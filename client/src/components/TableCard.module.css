@@ -1,0 +1,192 @@
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-amber);
+}
+
+.hosted {
+  border-color: rgba(245, 166, 35, 0.4);
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(245, 166, 35, 0.05) 100%);
+}
+
+.joined {
+  border-color: rgba(82, 201, 122, 0.3);
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.gameName {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--amber);
+  line-height: 1.3;
+}
+
+.statusBadge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border: 1px solid;
+  border-radius: 20px;
+  padding: 0.15rem 0.6rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Details */
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.detail {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.detail strong {
+  color: var(--text-primary);
+}
+
+.icon {
+  font-size: 0.9rem;
+  width: 1.2rem;
+  flex-shrink: 0;
+}
+
+/* Players */
+.players {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.playersLabel {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.playersList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.playerChip {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+/* Description */
+.description {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.5;
+  border-left: 2px solid var(--border-amber);
+  padding-left: 0.6rem;
+}
+
+/* Error */
+.error {
+  font-size: 0.82rem;
+  color: var(--red);
+  background: rgba(224, 82, 82, 0.1);
+  border: 1px solid rgba(224, 82, 82, 0.3);
+  border-radius: 6px;
+  padding: 0.4rem 0.7rem;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.btnPrimary, .btnSecondary, .btnDanger {
+  padding: 0.5rem 1.1rem;
+  border-radius: 7px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  transition: all var(--transition);
+}
+
+.btnPrimary {
+  background: var(--amber);
+  color: #1a1200;
+}
+.btnPrimary:hover:not(:disabled) {
+  background: var(--amber-light);
+  box-shadow: var(--shadow-amber);
+}
+.btnPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.btnSecondary:hover:not(:disabled) {
+  border-color: var(--amber-dark);
+  color: var(--amber);
+}
+
+.btnDanger {
+  background: transparent;
+  color: var(--red);
+  border: 1px solid rgba(224, 82, 82, 0.4);
+}
+.btnDanger:hover:not(:disabled) {
+  background: rgba(224, 82, 82, 0.1);
+}
+
+.hostBadge, .playerBadge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+}
+
+.hostBadge {
+  background: rgba(245, 166, 35, 0.15);
+  color: var(--amber);
+  border: 1px solid var(--border-amber);
+}
+
+.playerBadge {
+  background: rgba(82, 201, 122, 0.12);
+  color: var(--green);
+  border: 1px solid rgba(82, 201, 122, 0.3);
+}

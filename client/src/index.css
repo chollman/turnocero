@@ -1,0 +1,96 @@
+/* ===== Turnocero Global Styles ===== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Colors — dark board-game palette */
+  --bg-dark:       #0f0e0b;
+  --bg-card:       #1a1814;
+  --bg-elevated:   #232019;
+  --bg-hover:      #2c2820;
+
+  --amber:         #f5a623;
+  --amber-light:   #fbbf4a;
+  --amber-dark:    #c07d10;
+  --amber-glow:    rgba(245, 166, 35, 0.15);
+
+  --text-primary:  #f0e8d5;
+  --text-secondary:#a89878;
+  --text-muted:    #6b5e45;
+
+  --border:        #2e2a22;
+  --border-amber:  rgba(245, 166, 35, 0.35);
+
+  --red:           #e05252;
+  --green:         #52c97a;
+
+  /* Typography */
+  --font-display:  'Cinzel', serif;
+  --font-body:     'Inter', sans-serif;
+
+  /* Shadows */
+  --shadow-sm:     0 2px 8px rgba(0,0,0,0.4);
+  --shadow-md:     0 4px 20px rgba(0,0,0,0.6);
+  --shadow-amber:  0 0 20px rgba(245, 166, 35, 0.2);
+
+  /* Transitions */
+  --transition:    0.2s ease;
+}
+
+html, body, #root {
+  height: 100%;
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--amber);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+a:hover {
+  color: var(--amber-light);
+}
+
+button {
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+input, textarea, select {
+  font-family: var(--font-body);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Utility */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}

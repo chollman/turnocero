@@ -1,0 +1,193 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import styles from './CreateTable.module.css';
+
+const POPULAR_GAMES = [
+  'Catan', 'Carcassonne', 'Ticket to Ride', 'Pandemic', 'Terraforming Mars',
+  '7 Wonders', 'Dominion', 'Agricola', 'Power Grid', 'Twilight Imperium',
+  'Gloomhaven', 'Root', 'Spirit Island', 'Wingspan', 'Blood Rage',
+];
+
+// Default to tomorrow at 18:00
+const defaultDate = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(18, 0, 0, 0);
+  return d.toISOString().slice(0, 16);
+};
+
+export default function CreateTable() {
+  const [form, setForm] = useState({
+    boardGame: '',
+    date: defaultDate(),
+    maxPlayers: 3,
+    location: '',
+    description: '',
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleChange = (e) =>
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleGameSelect = (game) =>
+    setForm((f) => ({ ...f, boardGame: game }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!form.boardGame.trim()) {
+      setError('Ingresá el nombre del juego');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await axios.post('/api/tables', {
+        ...form,
+        maxPlayers: Number(form.maxPlayers),
+      });
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error al crear la mesa');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className={styles.page}>
+      <div className="container">
+        <div className={styles.card}>
+          <div className={styles.header}>
+            <span className={styles.icon}>🎲</span>
+            <h1 className={styles.title}>Nueva Mesa</h1>
+            <p className={styles.sub}>Convocá jugadores para tu partida</p>
+          </div>
+
+          {error && <div className={styles.errorBox}>{error}</div>}
+
+          <form onSubmit={handleSubmit} className={styles.form}>
+            {/* Board game */}
+            <div className={styles.field}>
+              <label className={styles.label}>Juego de mesa *</label>
+              <input
+                type="text"
+                name="boardGame"
+                value={form.boardGame}
+                onChange={handleChange}
+                className={styles.input}
+                placeholder="¿Qué van a jugar?"
+                required
+                maxLength={100}
+              />
+              <div className={styles.quickGames}>
+                {POPULAR_GAMES.map((game) => (
+                  <button
+                    type="button"
+                    key={game}
+                    className={`${styles.gameChip} ${form.boardGame === game ? styles.selectedChip : ''}`}
+                    onClick={() => handleGameSelect(game)}
+                  >
+                    {game}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Date & time */}
+            <div className={styles.field}>
+              <label className={styles.label}>Fecha y hora *</label>
+              <input
+                type="datetime-local"
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+                className={styles.input}
+                required
+              />
+            </div>
+
+            {/* Max players */}
+            <div className={styles.field}>
+              <label className={styles.label}>
+                Lugares disponibles *
+                <span className={styles.hint}>
+                  (cuántos jugadores más pueden unirse, sin contar al host)
+                </span>
+              </label>
+              <div className={styles.counterRow}>
+                <button
+                  type="button"
+                  className={styles.counterBtn}
+                  onClick={() => setForm((f) => ({ ...f, maxPlayers: Math.max(1, f.maxPlayers - 1) }))}
+                >
+                  −
+                </button>
+                <span className={styles.counterVal}>{form.maxPlayers}</span>
+                <button
+                  type="button"
+                  className={styles.counterBtn}
+                  onClick={() => setForm((f) => ({ ...f, maxPlayers: Math.min(20, f.maxPlayers + 1) }))}
+                >
+                  +
+                </button>
+                <span className={styles.totalPlayers}>
+                  Total: {Number(form.maxPlayers) + 1} jugadores
+                </span>
+              </div>
+            </div>
+
+            {/* Location */}
+            <div className={styles.field}>
+              <label className={styles.label}>Ubicación</label>
+              <input
+                type="text"
+                name="location"
+                value={form.location}
+                onChange={handleChange}
+                className={styles.input}
+                placeholder="Casa, bar, club… (opcional)"
+                maxLength={200}
+              />
+            </div>
+
+            {/* Description */}
+            <div className={styles.field}>
+              <label className={styles.label}>Descripción</label>
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                className={`${styles.input} ${styles.textarea}`}
+                placeholder="Reglas especiales, nivel requerido, qué llevar… (opcional)"
+                maxLength={500}
+                rows={3}
+              />
+            </div>
+
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className={styles.cancelBtn}
+                onClick={() => navigate('/')}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className={styles.submitBtn}
+                disabled={loading}
+              >
+                {loading ? 'Creando…' : '¡Crear mesa!'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
