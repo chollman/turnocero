@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(mongosh --eval \"db.runCommand\\({ ping: 1 }\\)\" --quiet)",
-      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\hell_\\\\Projects\\\\ClaudioHollman\\\\turnocero\\\\client\\\\src\" -Recurse | Where-Object {$_.Extension -in @\\('.js', '.jsx', '.ts', '.tsx'\\)} | Select-Object -First 20 FullName)"
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\hell_\\\\Projects\\\\ClaudioHollman\\\\turnocero\\\\client\\\\src\" -Recurse | Where-Object {$_.Extension -in @\\('.js', '.jsx', '.ts', '.tsx'\\)} | Select-Object -First 20 FullName)",
+      "WebFetch(domain:www.blizzard.com)"
     ]
   }
 }

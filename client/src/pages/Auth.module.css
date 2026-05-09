@@ -5,8 +5,8 @@
   justify-content: center;
   padding: 2rem 1rem;
   background:
-    radial-gradient(ellipse at 20% 50%, rgba(245, 166, 35, 0.06) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 20%, rgba(245, 166, 35, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 50%, rgba(24, 136, 239, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(24, 136, 239, 0.05) 0%, transparent 50%),
     var(--bg-dark);
 }
 
@@ -17,7 +17,7 @@
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 2.5rem 2rem;
-  box-shadow: var(--shadow-md), 0 0 40px rgba(245, 166, 35, 0.06);
+  box-shadow: var(--shadow-md), 0 0 40px rgba(24, 136, 239, 0.1);
 }
 
 /* Logo area */
@@ -30,7 +30,7 @@
   font-size: 3rem;
   display: block;
   margin-bottom: 0.5rem;
-  filter: drop-shadow(0 0 12px rgba(245, 166, 35, 0.5));
+  filter: drop-shadow(0 0 12px rgba(24, 136, 239, 0.7));
 }
 
 .appName {
@@ -61,8 +61,8 @@
 
 /* Error */
 .errorBox {
-  background: rgba(224, 82, 82, 0.12);
-  border: 1px solid rgba(224, 82, 82, 0.35);
+  background: rgba(243, 29, 119, 0.12);
+  border: 1px solid rgba(243, 29, 119, 0.35);
   border-radius: 8px;
   padding: 0.65rem 0.9rem;
   color: var(--red);
@@ -109,14 +109,14 @@
 
 .input:focus {
   border-color: var(--amber-dark);
-  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.12);
+  box-shadow: 0 0 0 3px rgba(24, 136, 239, 0.2);
 }
 
 /* Submit button */
 .submitBtn {
   margin-top: 0.5rem;
   background: var(--amber);
-  color: #1a1200;
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   padding: 0.75rem;
@@ -130,7 +130,7 @@
 
 .submitBtn:hover:not(:disabled) {
   background: var(--amber-light);
-  box-shadow: 0 4px 16px rgba(245, 166, 35, 0.35);
+  box-shadow: 0 4px 16px rgba(24, 136, 239, 0.5);
 }
 
 .submitBtn:disabled {

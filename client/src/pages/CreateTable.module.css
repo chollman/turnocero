@@ -23,7 +23,7 @@
   font-size: 2.5rem;
   display: block;
   margin-bottom: 0.5rem;
-  filter: drop-shadow(0 0 10px rgba(245, 166, 35, 0.4));
+  filter: drop-shadow(0 0 10px rgba(24, 136, 239, 0.6));
 }
 
 .title {
@@ -42,8 +42,8 @@
 
 /* Error */
 .errorBox {
-  background: rgba(224, 82, 82, 0.12);
-  border: 1px solid rgba(224, 82, 82, 0.35);
+  background: rgba(243, 29, 119, 0.12);
+  border: 1px solid rgba(243, 29, 119, 0.35);
   border-radius: 8px;
   padding: 0.65rem 0.9rem;
   color: var(--red);
@@ -102,7 +102,7 @@
 
 .input:focus {
   border-color: var(--amber-dark);
-  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.12);
+  box-shadow: 0 0 0 3px rgba(24, 136, 239, 0.2);
 }
 
 /* Datetime dark fix */
@@ -212,7 +212,7 @@
 .submitBtn {
   flex: 1;
   background: var(--amber);
-  color: #1a1200;
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   padding: 0.75rem;
@@ -225,7 +225,7 @@
 
 .submitBtn:hover:not(:disabled) {
   background: var(--amber-light);
-  box-shadow: 0 4px 16px rgba(245, 166, 35, 0.35);
+  box-shadow: 0 4px 16px rgba(24, 136, 239, 0.5);
 }
 
 .submitBtn:disabled {

@@ -7,35 +7,35 @@
 }
 
 :root {
-  /* Colors — dark board-game palette */
-  --bg-dark:       #0f0e0b;
-  --bg-card:       #1a1814;
-  --bg-elevated:   #232019;
-  --bg-hover:      #2c2820;
+  /* Colors — Blizzard/Battle.net dark navy theme */
+  --bg-dark:       #0a0d15;
+  --bg-card:       #151c28;
+  --bg-elevated:   #232a39;
+  --bg-hover:      #323a48;
 
-  --amber:         #f5a623;
-  --amber-light:   #fbbf4a;
-  --amber-dark:    #c07d10;
-  --amber-glow:    rgba(245, 166, 35, 0.15);
+  --amber:         #1888ef;
+  --amber-light:   #00aeff;
+  --amber-dark:    #0076d1;
+  --amber-glow:    rgba(24, 136, 239, 0.15);
 
-  --text-primary:  #f0e8d5;
-  --text-secondary:#a89878;
-  --text-muted:    #6b5e45;
+  --text-primary:  #ffffff;
+  --text-secondary:#a8b4cc;
+  --text-muted:    #5a5d70;
 
-  --border:        #2e2a22;
-  --border-amber:  rgba(245, 166, 35, 0.35);
+  --border:        #1e2a3d;
+  --border-amber:  rgba(24, 136, 239, 0.35);
 
-  --red:           #e05252;
-  --green:         #52c97a;
+  --red:           #f31d77;
+  --green:         #00d984;
 
   /* Typography */
-  --font-display:  'Cinzel', serif;
-  --font-body:     'Inter', sans-serif;
+  --font-display:  'Poppins', sans-serif;
+  --font-body:     'Archivo', sans-serif;
 
   /* Shadows */
-  --shadow-sm:     0 2px 8px rgba(0,0,0,0.4);
-  --shadow-md:     0 4px 20px rgba(0,0,0,0.6);
-  --shadow-amber:  0 0 20px rgba(245, 166, 35, 0.2);
+  --shadow-sm:     0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-md:     0 4px 20px rgba(0, 0, 0, 0.7);
+  --shadow-amber:  0 0 20px rgba(24, 136, 239, 0.3);
 
   /* Transitions */
   --transition:    0.2s ease;

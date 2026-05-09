@@ -64,14 +64,14 @@
 
 .btnPrimary {
   background: var(--amber);
-  color: #1a1200;
+  color: #ffffff;
   border: 2px solid var(--amber);
 }
 
 .btnPrimary:hover {
   background: var(--amber-light);
   border-color: var(--amber-light);
-  color: #1a1200;
+  color: #ffffff;
   box-shadow: var(--shadow-amber);
 }
 
