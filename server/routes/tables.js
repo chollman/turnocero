@@ -12,15 +12,22 @@ const validate = (req, res, next) => {
   next();
 };
 
+const parsePagination = (query) => {
+  const page = Math.max(1, parseInt(query.page) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(query.limit) || 20));
+  return { page, limit, skip: (page - 1) * limit };
+};
+
 // GET /api/tables - Get all open tables
 router.get('/', protect, async (req, res) => {
   try {
-    const tables = await Table.find({ status: { $ne: 'cancelled' } })
-      .populate('host', 'username')
-      .populate('players', 'username')
-      .sort({ date: 1 });
-
-    res.json(tables);
+    const { page, limit, skip } = parsePagination(req.query);
+    const filter = { status: { $ne: 'cancelled' } };
+    const [tables, total] = await Promise.all([
+      Table.find(filter).populate('host', 'username').populate('players', 'username').sort({ date: 1 }).skip(skip).limit(limit),
+      Table.countDocuments(filter),
+    ]);
+    res.json({ tables, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -29,15 +36,16 @@ router.get('/', protect, async (req, res) => {
 // GET /api/tables/mine - Get tables the user is hosting or joined
 router.get('/mine', protect, async (req, res) => {
   try {
-    const tables = await Table.find({
+    const { page, limit, skip } = parsePagination(req.query);
+    const filter = {
       $or: [{ host: req.user._id }, { players: req.user._id }],
       status: { $ne: 'cancelled' },
-    })
-      .populate('host', 'username')
-      .populate('players', 'username')
-      .sort({ date: 1 });
-
-    res.json(tables);
+    };
+    const [tables, total] = await Promise.all([
+      Table.find(filter).populate('host', 'username').populate('players', 'username').sort({ date: 1 }).skip(skip).limit(limit),
+      Table.countDocuments(filter),
+    ]);
+    res.json({ tables, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }

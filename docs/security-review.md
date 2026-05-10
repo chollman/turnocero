@@ -14,9 +14,9 @@ Se identificaron **24 vulnerabilidades** distribuidas en cuatro niveles de sever
 |-----------|-------|------------|------------|
 | CRÍTICO   | 4     | 4          | 0          |
 | ALTO      | 5     | 5          | 0          |
-| MEDIO     | 5     | 0          | 5          |
+| MEDIO     | 5     | 5          | 0          |
 | BAJO      | 4     | 0          | 4          |
-| **Total** | **24**| **9**      | **15**     |
+| **Total** | **24**| **14**     | **10**     |
 
 ---
 
