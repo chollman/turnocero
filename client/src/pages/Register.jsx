@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PasswordInput from '../components/PasswordInput';
 import styles from './Auth.module.css';
 
 export default function Register() {
@@ -83,8 +84,7 @@ export default function Register() {
 
           <div className={styles.field}>
             <label className={styles.label}>Contraseña</label>
-            <input
-              type="password"
+            <PasswordInput
               name="password"
               value={form.password}
               onChange={handleChange}
@@ -92,19 +92,20 @@ export default function Register() {
               placeholder="Mín. 8 caracteres, 1 mayúscula y 1 número"
               required
               minLength={8}
+              autoComplete="new-password"
             />
           </div>
 
           <div className={styles.field}>
             <label className={styles.label}>Confirmar contraseña</label>
-            <input
-              type="password"
+            <PasswordInput
               name="confirm"
               value={form.confirm}
               onChange={handleChange}
               className={styles.input}
               placeholder="Repetí tu contraseña"
               required
+              autoComplete="new-password"
             />
           </div>
 
