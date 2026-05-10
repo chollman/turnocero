@@ -115,6 +115,99 @@
   min-height: 80px;
 }
 
+/* BGG autocomplete */
+.gameInputWrapper {
+  position: relative;
+}
+
+.searchingHint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.55rem 0.9rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.dropdownItem:last-of-type {
+  border-bottom: none;
+}
+
+.dropdownItem:hover {
+  background: var(--bg-elevated);
+}
+
+.dropdownThumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-right: 0.6rem;
+  background: var(--bg-elevated);
+}
+
+.dropdownThumbPlaceholder {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-right: 0.6rem;
+}
+
+.dropdownName {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdownYear {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-left: 0.75rem;
+  flex-shrink: 0;
+}
+
+.dropdownFooter {
+  padding: 0.3rem 0.9rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: right;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+}
+
 /* Quick game chips */
 .quickGames {
   display: flex;
