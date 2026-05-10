@@ -3,6 +3,8 @@ const router = express.Router();
 const https = require('https');
 const zlib = require('zlib');
 
+const BGG_BASE = 'https://www.boardgamegeek.com/xmlapi2';
+
 const BGG_HEADERS = {
   'User-Agent': 'Turnocero/1.0 (board game session organizer)',
   'Accept': 'text/xml, application/xml, */*',
@@ -16,7 +18,7 @@ router.get('/search', async (req, res) => {
     return res.json({ items: [] });
   }
 
-  const searchUrl = `https://boardgamegeek.com/xmlapi2/search?query=${encodeURIComponent(query.trim())}&type=boardgame`;
+  const searchUrl = `${BGG_BASE}/search?query=${encodeURIComponent(query.trim())}&type=boardgame`;
 
   try {
     const searchXml = await fetchXML(searchUrl);
@@ -30,7 +32,7 @@ router.get('/search', async (req, res) => {
     }
 
     const ids = items.map((i) => i.id).join(',');
-    const thingUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${ids}&type=boardgame`;
+    const thingUrl = `${BGG_BASE}/thing?id=${ids}&type=boardgame`;
 
     try {
       const thingXml = await fetchXML(thingUrl);
@@ -44,22 +46,28 @@ router.get('/search', async (req, res) => {
 
     res.json({ items });
   } catch {
-    // BGG unavailable — degrade gracefully instead of propagating a 502
+    // BGG unavailable — degrade gracefully
     res.json({ items: [] });
   }
 });
 
-function fetchXML(url) {
+function fetchXML(url, redirectsLeft = 3) {
   return new Promise((resolve, reject) => {
     const req = https.get(url, { headers: BGG_HEADERS, timeout: 10000 }, (resp) => {
-      // Follow redirects (up to one hop)
       if (resp.statusCode >= 300 && resp.statusCode < 400 && resp.headers.location) {
-        req.destroy();
-        fetchXML(resp.headers.location).then(resolve).catch(reject);
+        resp.resume(); // drain body so socket is released
+        if (redirectsLeft <= 0) {
+          reject(new Error('Too many redirects'));
+          return;
+        }
+        const next = resp.headers.location.startsWith('http')
+          ? resp.headers.location
+          : new URL(resp.headers.location, url).href;
+        fetchXML(next, redirectsLeft - 1).then(resolve).catch(reject);
         return;
       }
       if (resp.statusCode !== 200) {
-        req.destroy();
+        resp.resume();
         reject(new Error(`BGG returned ${resp.statusCode}`));
         return;
       }
@@ -81,6 +89,7 @@ function fetchXML(url) {
           resolve(buf.toString('utf8'));
         }
       });
+      resp.on('error', reject);
     });
     req.on('error', reject);
     req.on('timeout', () => {
@@ -92,16 +101,21 @@ function fetchXML(url) {
 
 function parseSearchXML(xml) {
   const items = [];
-  const itemRegex = /<item type="boardgame" id="(\d+)">([\s\S]*?)<\/item>/g;
+  // Match <item> tags regardless of attribute order
+  const itemRegex = /<item ([^>]+)>([\s\S]*?)<\/item>/g;
   let match;
   while ((match = itemRegex.exec(xml)) !== null) {
-    const id = match[1];
+    const attrs = match[1];
     const inner = match[2];
-    const nameMatch = inner.match(/<name type="primary"[^>]*value="([^"]+)"/);
+    const typeMatch = attrs.match(/type="([^"]+)"/);
+    const idMatch = attrs.match(/id="(\d+)"/);
+    if (!idMatch || !typeMatch || typeMatch[1] !== 'boardgame') continue;
+
+    const nameMatch = inner.match(/<name [^>]*type="primary"[^>]*value="([^"]+)"/);
     const yearMatch = inner.match(/<yearpublished value="(\d+)"/);
     if (nameMatch) {
       items.push({
-        id,
+        id: idMatch[1],
         name: decodeXMLEntities(nameMatch[1]),
         year: yearMatch ? yearMatch[1] : null,
         thumbnail: null,
@@ -113,16 +127,18 @@ function parseSearchXML(xml) {
 
 function parseThumbnails(xml) {
   const thumbnails = {};
-  const itemRegex = /<item type="boardgame" id="(\d+)">([\s\S]*?)<\/item>/g;
+  const itemRegex = /<item ([^>]+)>([\s\S]*?)<\/item>/g;
   let match;
   while ((match = itemRegex.exec(xml)) !== null) {
-    const id = match[1];
+    const attrs = match[1];
     const inner = match[2];
+    const idMatch = attrs.match(/id="(\d+)"/);
+    if (!idMatch) continue;
     const thumbMatch = inner.match(/<thumbnail>([^<]+)<\/thumbnail>/);
     if (thumbMatch) {
       let url = thumbMatch[1].trim();
       if (url.startsWith('//')) url = 'https:' + url;
-      thumbnails[id] = url;
+      thumbnails[idMatch[1]] = url;
     }
   }
   return thumbnails;
