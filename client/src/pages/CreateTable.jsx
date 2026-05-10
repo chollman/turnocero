@@ -68,7 +68,8 @@ export default function CreateTable() {
     const parser = new DOMParser();
     try {
       const searchRes = await fetch(
-        `${BGG}/search?query=${encodeURIComponent(query)}&type=boardgame`
+        `${BGG}/search?query=${encodeURIComponent(query)}&type=boardgame`,
+        { credentials: 'include', referrerPolicy: 'no-referrer' }
       );
       if (!searchRes.ok) throw new Error(`BGG ${searchRes.status}`);
       const searchDoc = parser.parseFromString(await searchRes.text(), 'text/xml');
@@ -92,7 +93,9 @@ export default function CreateTable() {
       if (items.length > 0) {
         const ids = items.map((g) => g.id).join(',');
         try {
-          const thingRes = await fetch(`${BGG}/thing?id=${ids}&type=boardgame`);
+          const thingRes = await fetch(`${BGG}/thing?id=${ids}&type=boardgame`,
+            { credentials: 'include', referrerPolicy: 'no-referrer' }
+          );
           if (thingRes.ok) {
             const thingDoc = parser.parseFromString(await thingRes.text(), 'text/xml');
             thingDoc.querySelectorAll('item[type="boardgame"]').forEach((el) => {
