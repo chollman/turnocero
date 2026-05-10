@@ -56,7 +56,8 @@ export default function UserProfile() {
       lat: user.direccion?.lat ?? null,
       lng: user.direccion?.lng ?? null,
     });
-  }, [user?._id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?._id]); // intentional: only re-sync when user identity changes, not on every profile update
 
   // Initialize Leaflet map
   useEffect(() => {
