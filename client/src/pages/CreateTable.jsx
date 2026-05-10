@@ -64,9 +64,50 @@ export default function CreateTable() {
   };
 
   const searchBGG = async (query) => {
+    const BGG = 'https://api.geekdo.com/xmlapi2';
+    const parser = new DOMParser();
     try {
-      const res = await axios.get(`/api/bgg/search?query=${encodeURIComponent(query)}`);
-      const items = res.data.items || [];
+      const searchRes = await fetch(
+        `${BGG}/search?query=${encodeURIComponent(query)}&type=boardgame`
+      );
+      if (!searchRes.ok) throw new Error(`BGG ${searchRes.status}`);
+      const searchDoc = parser.parseFromString(await searchRes.text(), 'text/xml');
+
+      if (searchDoc.querySelector('message')) {
+        setBggResults([]);
+        setShowDropdown(false);
+        return;
+      }
+
+      const items = Array.from(searchDoc.querySelectorAll('item[type="boardgame"]'))
+        .slice(0, 12)
+        .map((el) => ({
+          id: el.getAttribute('id'),
+          name: el.querySelector('name[type="primary"]')?.getAttribute('value') || '',
+          year: el.querySelector('yearpublished')?.getAttribute('value') || null,
+          thumbnail: null,
+        }))
+        .filter((g) => g.name);
+
+      if (items.length > 0) {
+        const ids = items.map((g) => g.id).join(',');
+        try {
+          const thingRes = await fetch(`${BGG}/thing?id=${ids}&type=boardgame`);
+          if (thingRes.ok) {
+            const thingDoc = parser.parseFromString(await thingRes.text(), 'text/xml');
+            thingDoc.querySelectorAll('item[type="boardgame"]').forEach((el) => {
+              const id = el.getAttribute('id');
+              let thumb = el.querySelector('thumbnail')?.textContent?.trim();
+              if (thumb) {
+                if (thumb.startsWith('//')) thumb = 'https:' + thumb;
+                const game = items.find((g) => g.id === id);
+                if (game) game.thumbnail = thumb;
+              }
+            });
+          }
+        } catch { /* thumbnails optional */ }
+      }
+
       setBggResults(items);
       setShowDropdown(items.length > 0);
     } catch {
