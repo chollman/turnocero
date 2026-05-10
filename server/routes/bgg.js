@@ -5,25 +5,33 @@ const zlib = require('zlib');
 
 const BGG_BASE = 'https://api.geekdo.com/xmlapi2';
 
-const BGG_HEADERS = {
-  'Accept': 'text/xml',
-};
-
 router.get('/search', async (req, res) => {
   const { query } = req.query;
   if (!query || query.trim().length < 2) {
     return res.json({ items: [] });
   }
 
+  // Forward browser headers so BGG sees a real browser request
+  const forwardedHeaders = {
+    'Accept': 'text/xml, application/xml, */*',
+    'Accept-Encoding': 'gzip, deflate',
+    'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0',
+  };
+  if (req.headers['accept-language']) {
+    forwardedHeaders['Accept-Language'] = req.headers['accept-language'];
+  }
+  if (req.headers['cookie']) {
+    forwardedHeaders['Cookie'] = req.headers['cookie'];
+  }
+
   const searchUrl = `${BGG_BASE}/search?query=${encodeURIComponent(query.trim())}&type=boardgame`;
 
   try {
-    console.log('[BGG] Fetching:', searchUrl);
-    const searchXml = await fetchXML(searchUrl);
-    console.log('[BGG] Response length:', searchXml.length, '| First 300 chars:', searchXml.slice(0, 300));
+    console.log('[BGG] UA:', forwardedHeaders['User-Agent'].slice(0, 60));
+    const searchXml = await fetchXML(searchUrl, forwardedHeaders);
+    console.log('[BGG] Response length:', searchXml.length, '| Preview:', searchXml.slice(0, 200));
 
     if (searchXml.includes('<message>')) {
-      console.log('[BGG] Got <message> response');
       return res.json({ items: [] });
     }
 
@@ -37,7 +45,7 @@ router.get('/search', async (req, res) => {
     const thingUrl = `${BGG_BASE}/thing?id=${ids}&type=boardgame`;
 
     try {
-      const thingXml = await fetchXML(thingUrl);
+      const thingXml = await fetchXML(thingUrl, forwardedHeaders);
       const thumbnails = parseThumbnails(thingXml);
       items.forEach((item) => {
         item.thumbnail = thumbnails[item.id] || null;
@@ -53,21 +61,17 @@ router.get('/search', async (req, res) => {
   }
 });
 
-function fetchXML(url, redirectsLeft = 3) {
+function fetchXML(url, headers, redirectsLeft = 3) {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers: BGG_HEADERS, timeout: 10000 }, (resp) => {
-      console.log(`[BGG] ${url} → HTTP ${resp.statusCode}`, resp.headers['content-type'], resp.headers['content-encoding']);
+    const req = https.get(url, { headers, timeout: 10000 }, (resp) => {
+      console.log(`[BGG] ${url.split('?')[0]} → HTTP ${resp.statusCode}`);
       if (resp.statusCode >= 300 && resp.statusCode < 400 && resp.headers.location) {
-        resp.resume(); // drain body so socket is released
-        if (redirectsLeft <= 0) {
-          reject(new Error('Too many redirects'));
-          return;
-        }
+        resp.resume();
+        if (redirectsLeft <= 0) { reject(new Error('Too many redirects')); return; }
         const next = resp.headers.location.startsWith('http')
           ? resp.headers.location
           : new URL(resp.headers.location, url).href;
-        console.log('[BGG] Redirect →', next);
-        fetchXML(next, redirectsLeft - 1).then(resolve).catch(reject);
+        fetchXML(next, headers, redirectsLeft - 1).then(resolve).catch(reject);
         return;
       }
       if (resp.statusCode !== 200) {
@@ -96,16 +100,12 @@ function fetchXML(url, redirectsLeft = 3) {
       resp.on('error', reject);
     });
     req.on('error', reject);
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error('BGG timeout'));
-    });
+    req.on('timeout', () => { req.destroy(); reject(new Error('BGG timeout')); });
   });
 }
 
 function parseSearchXML(xml) {
   const items = [];
-  // Match <item> tags regardless of attribute order
   const itemRegex = /<item ([^>]+)>([\s\S]*?)<\/item>/g;
   let match;
   while ((match = itemRegex.exec(xml)) !== null) {
@@ -114,7 +114,6 @@ function parseSearchXML(xml) {
     const typeMatch = attrs.match(/type="([^"]+)"/);
     const idMatch = attrs.match(/id="(\d+)"/);
     if (!idMatch || !typeMatch || typeMatch[1] !== 'boardgame') continue;
-
     const nameMatch = inner.match(/<name [^>]*type="primary"[^>]*value="([^"]+)"/);
     const yearMatch = inner.match(/<yearpublished value="(\d+)"/);
     if (nameMatch) {
