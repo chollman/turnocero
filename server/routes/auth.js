@@ -127,7 +127,7 @@ router.put('/profile', protect, async (req, res) => {
       };
     }
 
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
     res.json(user);
   } catch (err) {
     logger.error('Profile update failed', { msg: err.message });
