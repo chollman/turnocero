@@ -17,30 +17,35 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-
-  const fetchTables = async (currentPage = page) => {
-    setLoading(true);
-    setError('');
-    try {
-      const url = activeTab === 'mine' ? '/api/tables/mine' : '/api/tables';
-      const { data } = await axios.get(url, { params: { page: currentPage, limit: 20 } });
-      setTables(data.tables);
-      setPagination({ page: data.page, pages: data.pages, total: data.total });
-    } catch (err) {
-      setError('Error al cargar las mesas');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [refetchKey, setRefetchKey] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const url = activeTab === 'mine' ? '/api/tables/mine' : '/api/tables';
+        const { data } = await axios.get(url, { params: { page, limit: 20 } });
+        if (!cancelled) {
+          setTables(data.tables);
+          setPagination({ page: data.page, pages: data.pages, total: data.total });
+        }
+      } catch {
+        if (!cancelled) setError('Error al cargar las mesas');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [activeTab, page, refetchKey]);
+
+  const handleTabChange = (id) => {
+    if (id === activeTab) return;
+    setActiveTab(id);
     setPage(1);
-    fetchTables(1);
-  }, [activeTab]);
-
-  useEffect(() => {
-    fetchTables(page);
-  }, [page]);
+  };
 
   const handleUpdate = (updatedTable) => {
     setTables((prev) =>
@@ -75,7 +80,7 @@ export default function Dashboard() {
               <button
                 key={tab.id}
                 className={`${styles.tab} ${activeTab === tab.id ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
               >
                 {tab.label}
               </button>
@@ -100,7 +105,7 @@ export default function Dashboard() {
         ) : error ? (
           <div className={styles.center}>
             <p className={styles.errorText}>{error}</p>
-            <button className={styles.retryBtn} onClick={() => fetchTables()}>
+            <button className={styles.retryBtn} onClick={() => setRefetchKey((k) => k + 1)}>
               Reintentar
             </button>
           </div>

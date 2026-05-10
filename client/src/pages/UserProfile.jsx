@@ -35,6 +35,13 @@ export default function UserProfile() {
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const updateMarkerRef = useRef(null);
+  const errorTimerRef = useRef(null);
+  const successTimerRef = useRef(null);
+
+  useEffect(() => () => {
+    clearTimeout(errorTimerRef.current);
+    clearTimeout(successTimerRef.current);
+  }, []);
 
   // Sync form when user loads
   useEffect(() => {
@@ -113,11 +120,13 @@ export default function UserProfile() {
         updateMarkerRef.current?.(parseFloat(data[0].lat), parseFloat(data[0].lon));
       } else {
         setError('No se encontró la dirección. Intentá ser más específico.');
-        setTimeout(() => setError(''), 3000);
+        clearTimeout(errorTimerRef.current);
+        errorTimerRef.current = setTimeout(() => setError(''), 3000);
       }
     } catch {
       setError('Error al buscar la dirección.');
-      setTimeout(() => setError(''), 3000);
+      clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => setError(''), 3000);
     } finally {
       setGeocoding(false);
     }
@@ -142,7 +151,8 @@ export default function UserProfile() {
         },
       });
       setSuccess('Perfil guardado correctamente.');
-      setTimeout(() => setSuccess(''), 3000);
+      clearTimeout(successTimerRef.current);
+      successTimerRef.current = setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Error al guardar el perfil.');
     } finally {

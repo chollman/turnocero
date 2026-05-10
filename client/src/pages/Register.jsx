@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PasswordInput from '../components/PasswordInput';
+import AuthLogo from '../components/AuthLogo';
 import styles from './Auth.module.css';
 
 export default function Register() {
@@ -41,12 +42,7 @@ export default function Register() {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        {/* Logo */}
-        <div className={styles.logoArea}>
-          <span className={styles.dice}>🎲</span>
-          <h1 className={styles.appName}>Turnocero</h1>
-          <p className={styles.tagline}>Tu mesa te espera</p>
-        </div>
+        <AuthLogo />
 
         <h2 className={styles.title}>Crear cuenta</h2>
 
