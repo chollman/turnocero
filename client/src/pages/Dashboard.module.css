@@ -87,7 +87,7 @@
 /* Grid */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: 1.25rem;
 }
 
@@ -212,14 +212,30 @@
 }
 
 @media (max-width: 600px) {
+  .hero {
+    padding: 1.5rem 0 1rem;
+  }
+
   .heroTitle {
     font-size: 1.6rem;
   }
+
   .controls {
     flex-direction: column;
     align-items: stretch;
   }
+
   .search {
     width: 100%;
+    font-size: 16px;
+  }
+
+  .grid {
+    gap: 0.85rem;
+  }
+
+  .pageBtn {
+    min-height: 44px;
+    padding: 0.5rem 1rem;
   }
 }

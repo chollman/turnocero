@@ -21,8 +21,8 @@ export default function Register() {
       setError('Las contraseñas no coinciden');
       return;
     }
-    if (form.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    if (form.password.length < 8 || !/[A-Z]/.test(form.password) || !/\d/.test(form.password)) {
+      setError('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número');
       return;
     }
 
@@ -89,9 +89,9 @@ export default function Register() {
               value={form.password}
               onChange={handleChange}
               className={styles.input}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mín. 8 caracteres, 1 mayúscula y 1 número"
               required
-              minLength={6}
+              minLength={8}
             />
           </div>
 

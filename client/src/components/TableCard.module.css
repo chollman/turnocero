@@ -190,3 +190,25 @@
   color: var(--green);
   border: 1px solid rgba(0, 217, 132, 0.3);
 }
+
+@media (max-width: 600px) {
+  .card {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+
+  .header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .btnPrimary, .btnSecondary, .btnDanger {
+    min-height: 44px;
+    padding: 0.6rem 1.1rem;
+    font-size: 0.9rem;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+}
