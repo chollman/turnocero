@@ -150,9 +150,12 @@
   .page {
     align-items: flex-start;
     padding: 0;
+    min-height: 100dvh;
   }
 
   .card {
+    flex: 1;
+    width: 100%;
     min-height: 100dvh;
     border-radius: 0;
     border: none;
