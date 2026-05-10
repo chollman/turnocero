@@ -32,6 +32,10 @@ npm start         # Production start (no nodemon)
 
 No test or lint commands are configured.
 
+## Git conventions
+
+Always write commit messages in **English**.
+
 ## Architecture
 
 ### Monorepo structure

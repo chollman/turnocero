@@ -11,18 +11,21 @@ const TABS = [
 
 export default function Dashboard() {
   const [tables, setTables] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
-  const fetchTables = async () => {
+  const fetchTables = async (currentPage = page) => {
     setLoading(true);
     setError('');
     try {
       const url = activeTab === 'mine' ? '/api/tables/mine' : '/api/tables';
-      const { data } = await axios.get(url);
-      setTables(data);
+      const { data } = await axios.get(url, { params: { page: currentPage, limit: 20 } });
+      setTables(data.tables);
+      setPagination({ page: data.page, pages: data.pages, total: data.total });
     } catch (err) {
       setError('Error al cargar las mesas');
     } finally {
@@ -31,8 +34,13 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    fetchTables();
+    setPage(1);
+    fetchTables(1);
   }, [activeTab]);
+
+  useEffect(() => {
+    fetchTables(page);
+  }, [page]);
 
   const handleUpdate = (updatedTable) => {
     setTables((prev) =>
@@ -92,7 +100,7 @@ export default function Dashboard() {
         ) : error ? (
           <div className={styles.center}>
             <p className={styles.errorText}>{error}</p>
-            <button className={styles.retryBtn} onClick={fetchTables}>
+            <button className={styles.retryBtn} onClick={() => fetchTables()}>
               Reintentar
             </button>
           </div>
@@ -112,16 +120,39 @@ export default function Dashboard() {
             )}
           </div>
         ) : (
-          <div className={styles.grid}>
-            {filtered.map((table) => (
-              <TableCard
-                key={table._id}
-                table={table}
-                onUpdate={handleUpdate}
-                onCancel={handleCancel}
-              />
-            ))}
-          </div>
+          <>
+            <div className={styles.grid}>
+              {filtered.map((table) => (
+                <TableCard
+                  key={table._id}
+                  table={table}
+                  onUpdate={handleUpdate}
+                  onCancel={handleCancel}
+                />
+              ))}
+            </div>
+            {pagination.pages > 1 && (
+              <div className={styles.pagination}>
+                <button
+                  className={styles.pageBtn}
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={page === 1}
+                >
+                  ← Anterior
+                </button>
+                <span className={styles.pageInfo}>
+                  {page} / {pagination.pages}
+                </span>
+                <button
+                  className={styles.pageBtn}
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page === pagination.pages}
+                >
+                  Siguiente →
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
