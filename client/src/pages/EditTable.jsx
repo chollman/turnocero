@@ -4,16 +4,11 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import styles from './CreateTable.module.css';
 
-const POPULAR_GAMES = [
-  'Catan', 'Carcassonne', 'Ticket to Ride', 'Pandemic', 'Terraforming Mars',
-  '7 Wonders', 'Dominion', 'Agricola', 'Power Grid', 'Twilight Imperium',
-  'Gloomhaven', 'Root', 'Spirit Island', 'Wingspan', 'Blood Rage',
-];
-
 export default function EditTable() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [boardGame, setBoardGame] = useState('');
   const [form, setForm] = useState(null);
   const [minPlayers, setMinPlayers] = useState(1);
   const [error, setError] = useState('');
@@ -32,8 +27,8 @@ export default function EditTable() {
           return;
         }
         setMinPlayers(data.players.length);
+        setBoardGame(data.boardGame);
         setForm({
-          boardGame: data.boardGame,
           date: new Date(data.date).toISOString().slice(0, 16),
           maxPlayers: data.maxPlayers,
           location: data.location || '',
@@ -51,16 +46,9 @@ export default function EditTable() {
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  const handleGameSelect = (game) =>
-    setForm((f) => ({ ...f, boardGame: game }));
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!form.boardGame.trim()) {
-      setError('Ingresá el nombre del juego');
-      return;
-    }
     setLoading(true);
     try {
       await axios.put(`/api/tables/${id}`, {
@@ -91,29 +79,10 @@ export default function EditTable() {
 
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.field}>
-              <label className={styles.label}>Juego de mesa *</label>
-              <input
-                type="text"
-                name="boardGame"
-                value={form.boardGame}
-                onChange={handleChange}
-                className={styles.input}
-                placeholder="¿Qué van a jugar?"
-                required
-                maxLength={100}
-              />
-              <div className={styles.quickGames}>
-                {POPULAR_GAMES.map((game) => (
-                  <button
-                    type="button"
-                    key={game}
-                    className={`${styles.gameChip} ${form.boardGame === game ? styles.selectedChip : ''}`}
-                    onClick={() => handleGameSelect(game)}
-                  >
-                    {game}
-                  </button>
-                ))}
-              </div>
+              <label className={styles.label}>Juego de mesa</label>
+              <p style={{ color: 'var(--amber)', fontFamily: 'var(--font-display)', fontSize: '1rem', margin: 0 }}>
+                {boardGame}
+              </p>
             </div>
 
             <div className={styles.field}>
