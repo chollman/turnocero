@@ -18,12 +18,17 @@ router.get('/search', async (req, res) => {
   const searchUrl = `${BGG_BASE}/search?query=${encodeURIComponent(query.trim())}&type=boardgame`;
 
   try {
+    console.log('[BGG] Fetching:', searchUrl);
     const searchXml = await fetchXML(searchUrl);
+    console.log('[BGG] Response length:', searchXml.length, '| First 300 chars:', searchXml.slice(0, 300));
+
     if (searchXml.includes('<message>')) {
+      console.log('[BGG] Got <message> response');
       return res.json({ items: [] });
     }
 
     const items = parseSearchXML(searchXml).slice(0, 12);
+    console.log('[BGG] Parsed items:', items.length);
     if (items.length === 0) {
       return res.json({ items: [] });
     }
@@ -37,13 +42,13 @@ router.get('/search', async (req, res) => {
       items.forEach((item) => {
         item.thumbnail = thumbnails[item.id] || null;
       });
-    } catch {
-      // thumbnails are optional — return items without them on failure
+    } catch (err) {
+      console.log('[BGG] Thumbnails failed (non-fatal):', err.message);
     }
 
     res.json({ items });
-  } catch {
-    // BGG unavailable — degrade gracefully
+  } catch (err) {
+    console.error('[BGG] Search failed:', err.message);
     res.json({ items: [] });
   }
 });
@@ -51,6 +56,7 @@ router.get('/search', async (req, res) => {
 function fetchXML(url, redirectsLeft = 3) {
   return new Promise((resolve, reject) => {
     const req = https.get(url, { headers: BGG_HEADERS, timeout: 10000 }, (resp) => {
+      console.log(`[BGG] ${url} → HTTP ${resp.statusCode}`, resp.headers['content-type'], resp.headers['content-encoding']);
       if (resp.statusCode >= 300 && resp.statusCode < 400 && resp.headers.location) {
         resp.resume(); // drain body so socket is released
         if (redirectsLeft <= 0) {
@@ -60,6 +66,7 @@ function fetchXML(url, redirectsLeft = 3) {
         const next = resp.headers.location.startsWith('http')
           ? resp.headers.location
           : new URL(resp.headers.location, url).href;
+        console.log('[BGG] Redirect →', next);
         fetchXML(next, redirectsLeft - 1).then(resolve).catch(reject);
         return;
       }
