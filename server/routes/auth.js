@@ -19,16 +19,6 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    const existingEmail = await User.findOne({ email });
-    if (existingEmail) {
-      return res.status(400).json({ message: 'Email already registered' });
-    }
-
-    const existingUsername = await User.findOne({ username });
-    if (existingUsername) {
-      return res.status(400).json({ message: 'Username already taken' });
-    }
-
     const user = await User.create({ username, email, password });
     const token = generateToken(user._id);
 
@@ -48,9 +38,7 @@ router.post('/register', async (req, res) => {
     }
     // MongoDB duplicate key (unique index violation)
     if (err.code === 11000) {
-      const field = Object.keys(err.keyValue || {})[0];
-      const msg = field === 'email' ? 'Email already registered' : 'Username already taken';
-      return res.status(400).json({ message: msg });
+      return res.status(400).json({ message: 'Email or username already in use' });
     }
     res.status(500).json({ message: err.message || 'Server error' });
   }
