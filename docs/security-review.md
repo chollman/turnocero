@@ -13,10 +13,10 @@ Se identificaron **24 vulnerabilidades** distribuidas en cuatro niveles de sever
 | Severidad | Total | Corregidas | Pendientes |
 |-----------|-------|------------|------------|
 | CRÍTICO   | 4     | 4          | 0          |
-| ALTO      | 5     | 0          | 5          |
+| ALTO      | 5     | 5          | 0          |
 | MEDIO     | 5     | 0          | 5          |
 | BAJO      | 4     | 0          | 4          |
-| **Total** | **24**| **4**      | **20**     |
+| **Total** | **24**| **9**      | **15**     |
 
 ---
 
@@ -147,99 +147,75 @@ Como beneficio adicional, se eliminaron dos consultas a la base de datos por cad
 
 ---
 
-## Vulnerabilidades ALTAS (pendientes)
+## Vulnerabilidades ALTAS (corregidas)
 
-### ALTO-1 — Sin rate limiting en endpoints de autenticación
+### ✅ ALTO-1 — Sin rate limiting en endpoints de autenticación [CORREGIDO]
 
 **Archivo:** `server/routes/auth.js`
 
 Sin límite de intentos en `/login` y `/register`, un atacante puede hacer miles de intentos de contraseña por segundo (fuerza bruta).
 
-**Fix recomendado:**
-```bash
-npm install express-rate-limit
-```
+**Cambio aplicado:**
 ```js
-const rateLimit = require('express-rate-limit');
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
+  windowMs: 15 * 60 * 1000,
   max: 10,
-  message: { message: 'Demasiados intentos. Esperá 15 minutos.' },
+  message: { message: 'Too many attempts, please try again in 15 minutes' },
 });
-router.post('/login', authLimiter, async (req, res) => { ... });
-router.post('/register', authLimiter, async (req, res) => { ... });
+router.post('/login', authLimiter, ...);
+router.post('/register', authLimiter, ...);
 ```
 
 ---
 
-### ALTO-2 — Sin headers de seguridad HTTP (Helmet)
+### ✅ ALTO-2 — Sin headers de seguridad HTTP (Helmet) [CORREGIDO]
 
 **Archivo:** `server/server.js`
 
 Sin headers como `X-Frame-Options`, `X-Content-Type-Options`, `Strict-Transport-Security` o `Content-Security-Policy`, el navegador no tiene protecciones básicas contra clickjacking, MIME sniffing y otros ataques.
 
-**Fix recomendado:**
-```bash
-npm install helmet
-```
-```js
-const helmet = require('helmet');
-app.use(helmet());
-```
+**Cambio aplicado:** `app.use(helmet())` agregado en `server/server.js`.
 
 ---
 
-### ALTO-3 — JWT expira en 7 días
+### ✅ ALTO-3 — JWT expira en 7 días [CORREGIDO]
 
-**Archivo:** `server/routes/auth.js` línea 9
+**Archivo:** `server/routes/auth.js`
 
-Un token comprometido es válido por 7 días. Sin blacklist de tokens, no hay forma de invalidarlo.
+Un token comprometido era válido por 7 días.
 
-**Fix recomendado:**  
-Reducir a 1 hora e implementar refresh tokens, o al menos a 24 horas como compromiso:
-```js
-expiresIn: '24h'
-```
+**Cambio aplicado:** Reducido a `24h`. El cookie también tiene `maxAge: 24h` para mantener coherencia.
 
 ---
 
-### ALTO-4 — Token JWT guardado en localStorage
+### ✅ ALTO-4 — Token JWT guardado en localStorage [CORREGIDO]
 
-**Archivo:** `client/src/context/AuthContext.jsx`
+**Archivos:** `server/routes/auth.js`, `server/middleware/auth.js`, `client/src/context/AuthContext.jsx`
 
-`localStorage` es accesible desde JavaScript. Un ataque XSS puede robar el token fácilmente.
+`localStorage` es accesible desde JavaScript. Un ataque XSS podía robar el token fácilmente.
 
-**Fix recomendado:**  
-Almacenar el token en una cookie `httpOnly` configurada desde el servidor:
-```js
-res.cookie('token', token, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge: 24 * 60 * 60 * 1000,
-});
-```
+**Cambio aplicado:**
+- El servidor ahora establece el token como cookie `httpOnly` en login y registro
+- El middleware acepta token desde cookie o Authorization header (compatibilidad)
+- Se agregó endpoint `POST /api/auth/logout` que limpia la cookie
+- El cliente eliminó todo uso de `localStorage` y el estado `token`; la sesión se valida via `GET /api/auth/me` al montar
+- `axios.defaults.withCredentials = true` para enviar cookies automáticamente
 
 ---
 
-### ALTO-5 — Sin validación/sanitización de inputs en tablas
+### ✅ ALTO-5 — Sin validación/sanitización de inputs en tablas [CORREGIDO]
 
 **Archivo:** `server/routes/tables.js`
 
-Los campos `boardGame`, `location` y `description` no tienen sanitización explícita. Aunque Mongoose protege contra NoSQL injection, no protege contra XSS almacenado si el frontend renderiza los datos sin escapar.
+Los campos de creación de mesa no tenían validación explícita.
 
-**Fix recomendado:**
-```bash
-npm install express-validator
-```
-```js
-const { body, validationResult } = require('express-validator');
-router.post('/', protect, [
-  body('boardGame').trim().notEmpty().escape(),
-  body('location').trim().escape(),
-  body('description').trim().escape(),
-], async (req, res) => { ... });
-```
+**Cambio aplicado con `express-validator`:**
+- `boardGame`: requerido, max 100 chars
+- `date`: requerido, formato ISO8601
+- `maxPlayers`: requerido, entero entre 2 y 20
+- `location`: opcional, max 200 chars
+- `description`: opcional, max 500 chars
+- `id` en rutas `/:id/*`: validado como MongoId
 
 ---
 
@@ -318,16 +294,16 @@ Agregar comentarios indicando qué rutas requieren autenticación.
 - [x] Configurar CORS con orígenes específicos
 - [x] Reforzar validación de contraseña (mínimo 8 chars + complejidad)
 - [x] Eliminar email enumeration en registro
-- [ ] Agregar `helmet`
-- [ ] Agregar rate limiting en `/login` y `/register`
-- [ ] Mover token a cookie `httpOnly`
+- [x] Agregar `helmet`
+- [x] Agregar rate limiting en `/login` y `/register`
+- [x] Mover token a cookie `httpOnly`
 
 ### Corto plazo (1–2 semanas)
-- [ ] Sanitizar inputs con `express-validator`
-- [ ] Reducir expiración de JWT a 24h
-- [ ] Validar ObjectIds en rutas
-- [ ] Corregir mensajes de error genéricos (email enumeration)
-- [ ] Reforzar validación de contraseña
+- [x] Sanitizar inputs con `express-validator`
+- [x] Reducir expiración de JWT a 24h
+- [x] Validar ObjectIds en rutas
+- [x] Corregir mensajes de error genéricos (email enumeration)
+- [x] Reforzar validación de contraseña
 
 ### Mediano plazo (antes de escalar)
 - [ ] Implementar logout con blacklist de tokens

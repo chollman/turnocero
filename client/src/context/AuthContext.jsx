@@ -1,72 +1,41 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
+axios.defaults.withCredentials = true;
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem('turnocero_token'));
   const [loading, setLoading] = useState(true);
 
-  // Set axios default auth header
+  // Validate session on mount via httpOnly cookie
   useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-    }
-  }, [token]);
-
-  // Load user on mount / token change
-  useEffect(() => {
-    const loadUser = async () => {
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const { data } = await axios.get('/api/auth/me');
-        setUser(data);
-      } catch {
-        setToken(null);
-        localStorage.removeItem('turnocero_token');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadUser();
-  }, [token]);
+    axios.get('/api/auth/me')
+      .then(({ data }) => setUser(data))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
+  }, []);
 
   const login = async (email, password) => {
     const { data } = await axios.post('/api/auth/login', { email, password });
-    axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-    localStorage.setItem('turnocero_token', data.token);
-    setToken(data.token);
     setUser(data.user);
     return data;
   };
 
   const register = async (username, email, password) => {
-    const { data } = await axios.post('/api/auth/register', {
-      username,
-      email,
-      password,
-    });
-    axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-    localStorage.setItem('turnocero_token', data.token);
-    setToken(data.token);
+    const { data } = await axios.post('/api/auth/register', { username, email, password });
     setUser(data.user);
     return data;
   };
 
-  const logout = () => {
-    setToken(null);
+  const logout = async () => {
+    await axios.post('/api/auth/logout').catch(() => {});
     setUser(null);
-    localStorage.removeItem('turnocero_token');
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
