@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const https = require('https');
+const zlib = require('zlib');
+
+const BGG_HEADERS = {
+  'User-Agent': 'Turnocero/1.0 (board game session organizer)',
+  'Accept': 'text/xml, application/xml, */*',
+  'Accept-Encoding': 'gzip, deflate',
+  'Accept-Language': 'en-US,en;q=0.9',
+};
 
 router.get('/search', async (req, res) => {
   const { query } = req.query;
@@ -36,20 +44,43 @@ router.get('/search', async (req, res) => {
 
     res.json({ items });
   } catch {
-    res.status(502).json({ message: 'Error al contactar BGG', items: [] });
+    // BGG unavailable — degrade gracefully instead of propagating a 502
+    res.json({ items: [] });
   }
 });
 
 function fetchXML(url) {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { timeout: 8000 }, (resp) => {
+    const req = https.get(url, { headers: BGG_HEADERS, timeout: 10000 }, (resp) => {
+      // Follow redirects (up to one hop)
+      if (resp.statusCode >= 300 && resp.statusCode < 400 && resp.headers.location) {
+        req.destroy();
+        fetchXML(resp.headers.location).then(resolve).catch(reject);
+        return;
+      }
       if (resp.statusCode !== 200) {
+        req.destroy();
         reject(new Error(`BGG returned ${resp.statusCode}`));
         return;
       }
-      let data = '';
-      resp.on('data', (chunk) => (data += chunk));
-      resp.on('end', () => resolve(data));
+
+      const encoding = resp.headers['content-encoding'] || '';
+      const chunks = [];
+      resp.on('data', (chunk) => chunks.push(chunk));
+      resp.on('end', () => {
+        const buf = Buffer.concat(chunks);
+        if (encoding === 'gzip') {
+          zlib.gunzip(buf, (err, decoded) =>
+            err ? reject(err) : resolve(decoded.toString('utf8'))
+          );
+        } else if (encoding === 'deflate') {
+          zlib.inflate(buf, (err, decoded) =>
+            err ? reject(err) : resolve(decoded.toString('utf8'))
+          );
+        } else {
+          resolve(buf.toString('utf8'));
+        }
+      });
     });
     req.on('error', reject);
     req.on('timeout', () => {
