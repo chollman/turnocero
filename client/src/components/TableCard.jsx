@@ -27,27 +27,14 @@ export default function TableCard({ table, onUpdate, onCancel }) {
   const availableSeats = table.maxPlayers - table.players.length;
   const isFull = availableSeats <= 0;
 
-  const handleJoin = async () => {
+  const handleAction = async (action) => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await axios.post(`/api/tables/${table._id}/join`);
+      const { data } = await axios.post(`/api/tables/${table._id}/${action}`);
       onUpdate(data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al unirse');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLeave = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const { data } = await axios.post(`/api/tables/${table._id}/leave`);
-      onUpdate(data);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Error al salir');
+      setError(err.response?.data?.message || (action === 'join' ? 'Error al unirse' : 'Error al salir'));
     } finally {
       setLoading(false);
     }
@@ -142,7 +129,7 @@ export default function TableCard({ table, onUpdate, onCancel }) {
         ) : isPlayer ? (
           <button
             className={styles.btnSecondary}
-            onClick={handleLeave}
+            onClick={() => handleAction('leave')}
             disabled={loading}
           >
             {loading ? '…' : 'Abandonar'}
@@ -150,7 +137,7 @@ export default function TableCard({ table, onUpdate, onCancel }) {
         ) : (
           <button
             className={styles.btnPrimary}
-            onClick={handleJoin}
+            onClick={() => handleAction('join')}
             disabled={loading || isFull}
           >
             {loading ? '…' : isFull ? 'Mesa llena' : 'Unirse'}

@@ -7,18 +7,6 @@ import CreateTable from './pages/CreateTable';
 import UserProfile from './pages/UserProfile';
 import Navbar from './components/Navbar';
 
-const PrivateRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
-  return user ? children : <Navigate to="/login" replace />;
-};
-
-const PublicRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
-  return !user ? children : <Navigate to="/" replace />;
-};
-
 const LoadingScreen = () => (
   <div style={{
     display: 'flex',
@@ -35,6 +23,18 @@ const LoadingScreen = () => (
     </p>
   </div>
 );
+
+const PrivateRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  return user ? children : <Navigate to="/login" replace />;
+};
+
+const PublicRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  return !user ? children : <Navigate to="/" replace />;
+};
 
 function AppRoutes() {
   const { user } = useAuth();
