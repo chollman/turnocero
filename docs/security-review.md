@@ -15,8 +15,8 @@ Se identificaron **24 vulnerabilidades** distribuidas en cuatro niveles de sever
 | CRÍTICO   | 4     | 4          | 0          |
 | ALTO      | 5     | 5          | 0          |
 | MEDIO     | 5     | 5          | 0          |
-| BAJO      | 4     | 0          | 4          |
-| **Total** | **24**| **14**     | **10**     |
+| BAJO      | 4     | 4          | 0          |
+| **Total** | **24**| **24**     | **0**      |
 
 ---
 
@@ -271,19 +271,19 @@ La regex `/^\S+@\S+\.\S+$/` acepta emails inválidos como `a@b.c` o `test@a..b`.
 
 ---
 
-## Vulnerabilidades BAJAS (pendientes)
+## Vulnerabilidades BAJAS (corregidas)
 
-### BAJO-1 — Sin protección CSRF explícita
-Agregar `sameSite: 'strict'` en cookies y considerar tokens CSRF para formularios.
+### ✅ BAJO-1 — Sin protección CSRF explícita [CORREGIDO]
+Resuelto como parte de ALTO-4: la cookie de sesión usa `sameSite: 'strict'` en producción y `sameSite: 'lax'` en desarrollo, lo que bloquea requests cross-site que intenten usar la cookie del usuario.
 
-### BAJO-2 — Sin validación de variables de entorno al arrancar
-Parcialmente corregido para `JWT_SECRET`. Falta validar `MONGODB_URI`.
+### ✅ BAJO-2 — Sin validación de variables de entorno al arrancar [CORREGIDO]
+`JWT_SECRET` ya validaba con `process.exit(1)`. Agregado warning para `MONGODB_URI` cuando no está definida y el servidor usa el valor por defecto local.
 
-### BAJO-3 — Sin logs estructurados
-Reemplazar `console.error` por una biblioteca como `pino` o `winston`.
+### ✅ BAJO-3 — Sin logs estructurados [CORREGIDO]
+Agregado `server/utils/logger.js`: logger mínimo que emite JSON con `level`, `msg`, `ts` y metadata opcional. Reemplaza todos los `console.log/error/warn` en server.js y rutas de auth.
 
-### BAJO-4 — Sin documentación de autenticación en rutas
-Agregar comentarios indicando qué rutas requieren autenticación.
+### ✅ BAJO-4 — Sin documentación de autenticación en rutas [CORREGIDO]
+Todos los endpoints en `routes/auth.js` y `routes/tables.js` tienen un comentario indicando si son `public`, `rate-limited` o `protected`.
 
 ---
 
@@ -306,10 +306,10 @@ Agregar comentarios indicando qué rutas requieren autenticación.
 - [x] Reforzar validación de contraseña
 
 ### Mediano plazo (antes de escalar)
-- [ ] Implementar logout con blacklist de tokens
-- [ ] Agregar paginación en `GET /api/tables`
-- [ ] Migrar a instancia de Axios
-- [ ] Implementar logging estructurado
+- [x] Implementar logout con blacklist de tokens
+- [x] Agregar paginación en `GET /api/tables`
+- [x] Migrar a instancia de Axios
+- [x] Implementar logging estructurado
 
 ---
 

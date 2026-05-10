@@ -4,12 +4,16 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
+const logger = require('./utils/logger');
 
 dotenv.config();
 
 if (!process.env.JWT_SECRET) {
-  console.error('❌ JWT_SECRET environment variable is required');
+  logger.error('JWT_SECRET environment variable is required');
   process.exit(1);
+}
+if (!process.env.MONGODB_URI) {
+  logger.warn('MONGODB_URI not set, falling back to local default');
 }
 
 const app = express();
@@ -51,12 +55,12 @@ const PORT = process.env.PORT || 5000;
 mongoose
   .connect(MONGODB_URI)
   .then(() => {
-    console.log('✅ Connected to MongoDB');
+    logger.info('Connected to MongoDB');
     app.listen(PORT, () => {
-      console.log(`🎲 Turnocero server running on port ${PORT}`);
+      logger.info(`Turnocero server running on port ${PORT}`);
     });
   })
   .catch((err) => {
-    console.error('❌ MongoDB connection error:', err.message);
+    logger.error('MongoDB connection failed', { error: err.message });
     process.exit(1);
   });

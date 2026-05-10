@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -26,7 +27,7 @@ const generateToken = (id) => {
   });
 };
 
-// POST /api/auth/register
+// POST /api/auth/register — public, rate-limited
 router.post('/register', authLimiter, async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -47,7 +48,7 @@ router.post('/register', authLimiter, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('[register error]', err.name, err.code, err.message);
+    logger.error('Register failed', { name: err.name, code: err.code, msg: err.message });
     if (err.name === 'ValidationError') {
       const messages = Object.values(err.errors).map((e) => e.message);
       return res.status(400).json({ message: messages[0] });
@@ -60,7 +61,7 @@ router.post('/register', authLimiter, async (req, res) => {
   }
 });
 
-// POST /api/auth/login
+// POST /api/auth/login — public, rate-limited
 router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -90,18 +91,18 @@ router.post('/login', authLimiter, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('[login error]', err.name, err.code, err.message);
+    logger.error('Login failed', { name: err.name, code: err.code, msg: err.message });
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// POST /api/auth/logout
+// POST /api/auth/logout — public
 router.post('/logout', (req, res) => {
   res.clearCookie('token', COOKIE_OPTIONS);
   res.json({ message: 'Logged out' });
 });
 
-// GET /api/auth/me
+// GET /api/auth/me — protected
 router.get('/me', protect, async (req, res) => {
   res.json(req.user);
 });
