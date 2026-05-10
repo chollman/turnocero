@@ -67,6 +67,7 @@ a:hover {
 button {
   cursor: pointer;
   font-family: var(--font-body);
+  touch-action: manipulation;
 }
 
 input, textarea, select {

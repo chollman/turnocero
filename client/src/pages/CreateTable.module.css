@@ -234,7 +234,43 @@
 }
 
 @media (max-width: 600px) {
+  .page {
+    padding: 0 0 2rem;
+  }
+
   .card {
-    padding: 1.5rem 1.25rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    padding: 1.75rem 1.25rem;
+  }
+
+  .input {
+    font-size: 16px;
+    padding: 0.75rem 0.9rem;
+  }
+
+  .counterBtn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .gameChip {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.82rem;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancelBtn {
+    width: 100%;
+    text-align: center;
+    padding: 0.65rem;
+  }
+
+  .submitBtn {
+    width: 100%;
   }
 }

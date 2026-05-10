@@ -32,7 +32,8 @@ export default function Navbar() {
                   location.pathname === '/create' ? styles.active : ''
                 }`}
               >
-                + Nueva Mesa
+                <span className={styles.btnLong}>+ Nueva Mesa</span>
+                <span className={styles.btnShort}>+ Mesa</span>
               </Link>
               <button className={styles.btnLogout} onClick={handleLogout}>
                 Salir

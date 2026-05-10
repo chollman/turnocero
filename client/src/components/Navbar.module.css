@@ -94,7 +94,33 @@
   .greeting {
     display: none;
   }
+
   .logoText {
     font-size: 1.1rem;
+  }
+
+  .btn {
+    min-height: 44px;
+    padding: 0 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  .btnLong {
+    display: none;
+  }
+
+  .btnShort {
+    display: inline;
+  }
+
+  .btnLogout {
+    min-height: 44px;
+    padding: 0 0.75rem;
+  }
+}
+
+@media (min-width: 601px) {
+  .btnShort {
+    display: none;
   }
 }
