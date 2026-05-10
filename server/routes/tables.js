@@ -1,7 +1,16 @@
 const express = require('express');
 const router = express.Router();
+const { body, param, validationResult } = require('express-validator');
 const Table = require('../models/Table');
 const { protect } = require('../middleware/auth');
+
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ message: errors.array()[0].msg });
+  }
+  next();
+};
 
 // GET /api/tables - Get all open tables
 router.get('/', protect, async (req, res) => {
@@ -35,7 +44,13 @@ router.get('/mine', protect, async (req, res) => {
 });
 
 // POST /api/tables - Create a new table
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, [
+  body('boardGame').trim().notEmpty().withMessage('Game name is required').isLength({ max: 100 }).withMessage('Game name is too long'),
+  body('date').notEmpty().withMessage('Date is required').isISO8601().withMessage('Invalid date format'),
+  body('maxPlayers').notEmpty().withMessage('Max players is required').isInt({ min: 2, max: 20 }).withMessage('Max players must be between 2 and 20'),
+  body('location').optional().trim().isLength({ max: 200 }).withMessage('Location is too long'),
+  body('description').optional().trim().isLength({ max: 500 }).withMessage('Description is too long'),
+], validate, async (req, res) => {
   try {
     const { boardGame, date, maxPlayers, location, description } = req.body;
 
@@ -66,7 +81,9 @@ router.post('/', protect, async (req, res) => {
 });
 
 // POST /api/tables/:id/join - Join a table
-router.post('/:id/join', protect, async (req, res) => {
+router.post('/:id/join', protect, [
+  param('id').isMongoId().withMessage('Invalid table ID'),
+], validate, async (req, res) => {
   try {
     const table = await Table.findById(req.params.id);
 
@@ -102,7 +119,9 @@ router.post('/:id/join', protect, async (req, res) => {
 });
 
 // POST /api/tables/:id/leave - Leave a table
-router.post('/:id/leave', protect, async (req, res) => {
+router.post('/:id/leave', protect, [
+  param('id').isMongoId().withMessage('Invalid table ID'),
+], validate, async (req, res) => {
   try {
     const table = await Table.findById(req.params.id);
 
@@ -130,7 +149,9 @@ router.post('/:id/leave', protect, async (req, res) => {
 });
 
 // DELETE /api/tables/:id - Cancel a table (host only)
-router.delete('/:id', protect, async (req, res) => {
+router.delete('/:id', protect, [
+  param('id').isMongoId().withMessage('Invalid table ID'),
+], validate, async (req, res) => {
   try {
     const table = await Table.findById(req.params.id);
 

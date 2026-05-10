@@ -1,17 +1,33 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many attempts, please try again in 15 minutes' },
+});
+
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+  maxAge: 24 * 60 * 60 * 1000,
+};
+
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '7d',
+    expiresIn: '24h',
   });
 };
 
 // POST /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
@@ -22,8 +38,8 @@ router.post('/register', async (req, res) => {
     const user = await User.create({ username, email, password });
     const token = generateToken(user._id);
 
+    res.cookie('token', token, COOKIE_OPTIONS);
     res.status(201).json({
-      token,
       user: {
         _id: user._id,
         username: user.username,
@@ -40,12 +56,12 @@ router.post('/register', async (req, res) => {
     if (err.code === 11000) {
       return res.status(400).json({ message: 'Email or username already in use' });
     }
-    res.status(500).json({ message: err.message || 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -65,8 +81,8 @@ router.post('/login', async (req, res) => {
 
     const token = generateToken(user._id);
 
+    res.cookie('token', token, COOKIE_OPTIONS);
     res.json({
-      token,
       user: {
         _id: user._id,
         username: user.username,
@@ -75,8 +91,14 @@ router.post('/login', async (req, res) => {
     });
   } catch (err) {
     console.error('[login error]', err.name, err.code, err.message);
-    res.status(500).json({ message: err.message || 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
+});
+
+// POST /api/auth/logout
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', COOKIE_OPTIONS);
+  res.json({ message: 'Logged out' });
 });
 
 // GET /api/auth/me
