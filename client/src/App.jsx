@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateTable from './pages/CreateTable';
+import UserProfile from './pages/UserProfile';
 import Navbar from './components/Navbar';
 
 const PrivateRoute = ({ children }) => {
@@ -45,6 +46,7 @@ function AppRoutes() {
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/create" element={<PrivateRoute><CreateTable /></PrivateRoute>} />
+        <Route path="/perfil" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

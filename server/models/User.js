@@ -33,6 +33,41 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    displayName: {
+      type: String,
+      default: '',
+      maxlength: [60, 'Display name cannot exceed 60 characters'],
+      trim: true,
+    },
+    nombre: {
+      type: String,
+      default: '',
+      maxlength: [50, 'Nombre cannot exceed 50 characters'],
+      trim: true,
+    },
+    apellido: {
+      type: String,
+      default: '',
+      maxlength: [50, 'Apellido cannot exceed 50 characters'],
+      trim: true,
+    },
+    direccion: {
+      texto: { type: String, default: '' },
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
+    },
+    telegram: {
+      type: String,
+      default: '',
+      maxlength: [50, 'Telegram username cannot exceed 50 characters'],
+      trim: true,
+    },
+    celular: {
+      type: String,
+      default: '',
+      maxlength: [30, 'Phone number cannot exceed 30 characters'],
+      trim: true,
+    },
   },
   { timestamps: true }
 );
