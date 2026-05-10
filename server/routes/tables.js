@@ -18,7 +18,7 @@ const parsePagination = (query) => {
   return { page, limit, skip: (page - 1) * limit };
 };
 
-// GET /api/tables - Get all open tables
+// GET /api/tables — protected; supports ?page and ?limit
 router.get('/', protect, async (req, res) => {
   try {
     const { page, limit, skip } = parsePagination(req.query);
@@ -33,7 +33,7 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// GET /api/tables/mine - Get tables the user is hosting or joined
+// GET /api/tables/mine — protected; returns tables where user is host or player
 router.get('/mine', protect, async (req, res) => {
   try {
     const { page, limit, skip } = parsePagination(req.query);
@@ -51,7 +51,7 @@ router.get('/mine', protect, async (req, res) => {
   }
 });
 
-// POST /api/tables - Create a new table
+// POST /api/tables — protected
 router.post('/', protect, [
   body('boardGame').trim().notEmpty().withMessage('Game name is required').isLength({ max: 100 }).withMessage('Game name is too long'),
   body('date').notEmpty().withMessage('Date is required').isISO8601().withMessage('Invalid date format'),
@@ -88,7 +88,7 @@ router.post('/', protect, [
   }
 });
 
-// POST /api/tables/:id/join - Join a table
+// POST /api/tables/:id/join — protected
 router.post('/:id/join', protect, [
   param('id').isMongoId().withMessage('Invalid table ID'),
 ], validate, async (req, res) => {
@@ -126,7 +126,7 @@ router.post('/:id/join', protect, [
   }
 });
 
-// POST /api/tables/:id/leave - Leave a table
+// POST /api/tables/:id/leave — protected
 router.post('/:id/leave', protect, [
   param('id').isMongoId().withMessage('Invalid table ID'),
 ], validate, async (req, res) => {
@@ -156,7 +156,7 @@ router.post('/:id/leave', protect, [
   }
 });
 
-// DELETE /api/tables/:id - Cancel a table (host only)
+// DELETE /api/tables/:id — protected, host only
 router.delete('/:id', protect, [
   param('id').isMongoId().withMessage('Invalid table ID'),
 ], validate, async (req, res) => {
