@@ -153,6 +153,15 @@ export default function CreateTable() {
                         className={styles.dropdownItem}
                         onMouseDown={() => handleBggSelect(game)}
                       >
+                        {game.thumbnail ? (
+                          <img
+                            src={game.thumbnail}
+                            alt=""
+                            className={styles.dropdownThumb}
+                          />
+                        ) : (
+                          <span className={styles.dropdownThumbPlaceholder}>🎲</span>
+                        )}
                         <span className={styles.dropdownName}>{game.name}</span>
                         {game.year && (
                           <span className={styles.dropdownYear}>{game.year}</span>
