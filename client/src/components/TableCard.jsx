@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import styles from './TableCard.module.css';
@@ -17,6 +18,7 @@ const formatDate = (dateStr) => {
 
 export default function TableCard({ table, onUpdate, onCancel }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -119,13 +121,22 @@ export default function TableCard({ table, onUpdate, onCancel }) {
       {/* Actions */}
       <div className={styles.actions}>
         {isHost ? (
-          <button
-            className={styles.btnDanger}
-            onClick={handleCancel}
-            disabled={loading}
-          >
-            Cancelar mesa
-          </button>
+          <>
+            <button
+              className={styles.btnSecondary}
+              onClick={() => navigate(`/tables/${table._id}/edit`)}
+              disabled={loading}
+            >
+              Editar
+            </button>
+            <button
+              className={styles.btnDanger}
+              onClick={handleCancel}
+              disabled={loading}
+            >
+              Cancelar mesa
+            </button>
+          </>
         ) : isPlayer ? (
           <button
             className={styles.btnSecondary}
