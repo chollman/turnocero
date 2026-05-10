@@ -45,6 +45,12 @@
 .greeting {
   color: var(--text-secondary);
   font-size: 0.9rem;
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+.greeting:hover {
+  color: var(--text-primary);
 }
 
 .greeting strong {
@@ -90,6 +96,98 @@
   color: var(--red);
 }
 
+/* Hamburger menu */
+.hamburgerWrap {
+  position: relative;
+}
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color var(--transition);
+}
+
+.hamburger:hover {
+  border-color: var(--amber);
+}
+
+.hamburger span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: var(--text-secondary);
+  border-radius: 2px;
+  transition: all var(--transition);
+}
+
+.hamburgerOpen span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburgerOpen span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburgerOpen span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  z-index: 200;
+}
+
+.dropdownItem {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  font-family: var(--font-body);
+}
+
+.dropdownItem:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.dropdownLogout:hover {
+  color: var(--red);
+}
+
+/* Visibility helpers */
+.desktopOnly {
+  display: flex;
+}
+
+.mobileOnly {
+  display: none;
+}
+
 @media (max-width: 600px) {
   .greeting {
     display: none;
@@ -113,9 +211,12 @@
     display: inline;
   }
 
-  .btnLogout {
-    min-height: 44px;
-    padding: 0 0.75rem;
+  .desktopOnly {
+    display: none;
+  }
+
+  .mobileOnly {
+    display: flex;
   }
 }
 

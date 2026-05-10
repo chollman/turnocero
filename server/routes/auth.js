@@ -107,4 +107,36 @@ router.get('/me', protect, async (req, res) => {
   res.json(req.user);
 });
 
+// PUT /api/auth/profile — protected
+router.put('/profile', protect, async (req, res) => {
+  try {
+    const { displayName, nombre, apellido, direccion, telegram, celular } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (displayName !== undefined) user.displayName = displayName;
+    if (nombre !== undefined) user.nombre = nombre;
+    if (apellido !== undefined) user.apellido = apellido;
+    if (telegram !== undefined) user.telegram = telegram;
+    if (celular !== undefined) user.celular = celular;
+    if (direccion !== undefined) {
+      user.direccion = {
+        texto: direccion.texto ?? user.direccion?.texto ?? '',
+        lat: direccion.lat ?? user.direccion?.lat ?? null,
+        lng: direccion.lng ?? user.direccion?.lng ?? null,
+      };
+    }
+
+    await user.save();
+    res.json(user);
+  } catch (err) {
+    logger.error('Profile update failed', { msg: err.message });
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map((e) => e.message);
+      return res.status(400).json({ message: messages[0] });
+    }
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
