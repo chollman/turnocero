@@ -106,7 +106,6 @@ router.get('/:id', protect, [
 // PUT /api/tables/:id — protected, host only
 router.put('/:id', protect, [
   param('id').isMongoId().withMessage('Invalid table ID'),
-  body('boardGame').trim().notEmpty().withMessage('Game name is required').isLength({ max: 100 }).withMessage('Game name is too long'),
   body('date').notEmpty().withMessage('Date is required').isISO8601().withMessage('Invalid date format'),
   body('maxPlayers').notEmpty().withMessage('Max players is required').isInt({ min: 2, max: 20 }).withMessage('Max players must be between 2 and 20'),
   body('location').optional().trim().isLength({ max: 200 }).withMessage('Location is too long'),
@@ -131,7 +130,6 @@ router.put('/:id', protect, [
       });
     }
 
-    table.boardGame = req.body.boardGame;
     table.date = req.body.date;
     table.maxPlayers = newMaxPlayers;
     table.location = req.body.location || '';
