@@ -5,7 +5,7 @@ const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret', {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: '7d',
   });
 };
