@@ -42,6 +42,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/tables', require('./routes/tables'));
+app.use('/api/bgg', require('./routes/bgg'));
 
 // Health check
 app.get('/api/health', (req, res) => {

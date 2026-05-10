@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './CreateTable.module.css';
@@ -9,7 +9,6 @@ const POPULAR_GAMES = [
   'Gloomhaven', 'Root', 'Spirit Island', 'Wingspan', 'Blood Rage',
 ];
 
-// Default to tomorrow at 18:00
 const defaultDate = () => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
@@ -27,13 +26,68 @@ export default function CreateTable() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [bggResults, setBggResults] = useState([]);
+  const [bggLoading, setBggLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const searchTimerRef = useRef(null);
+  const dropdownRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  const handleGameSelect = (game) =>
+  const handleGameInputChange = (e) => {
+    const value = e.target.value;
+    setForm((f) => ({ ...f, boardGame: value }));
+
+    clearTimeout(searchTimerRef.current);
+    if (value.trim().length >= 2) {
+      setBggLoading(true);
+      searchTimerRef.current = setTimeout(() => searchBGG(value.trim()), 450);
+    } else {
+      setBggResults([]);
+      setShowDropdown(false);
+      setBggLoading(false);
+    }
+  };
+
+  const searchBGG = async (query) => {
+    try {
+      const res = await axios.get(`/api/bgg/search?query=${encodeURIComponent(query)}`);
+      const items = res.data.items || [];
+      setBggResults(items);
+      setShowDropdown(items.length > 0);
+    } catch {
+      setBggResults([]);
+      setShowDropdown(false);
+    } finally {
+      setBggLoading(false);
+    }
+  };
+
+  const handleBggSelect = (game) => {
+    setForm((f) => ({ ...f, boardGame: game.name }));
+    setBggResults([]);
+    setShowDropdown(false);
+  };
+
+  const handleGameSelect = (game) => {
     setForm((f) => ({ ...f, boardGame: game }));
+    setBggResults([]);
+    setShowDropdown(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -74,16 +128,41 @@ export default function CreateTable() {
             {/* Board game */}
             <div className={styles.field}>
               <label className={styles.label}>Juego de mesa *</label>
-              <input
-                type="text"
-                name="boardGame"
-                value={form.boardGame}
-                onChange={handleChange}
-                className={styles.input}
-                placeholder="¿Qué van a jugar?"
-                required
-                maxLength={100}
-              />
+              <div className={styles.gameInputWrapper} ref={dropdownRef}>
+                <input
+                  type="text"
+                  name="boardGame"
+                  value={form.boardGame}
+                  onChange={handleGameInputChange}
+                  onFocus={() => bggResults.length > 0 && setShowDropdown(true)}
+                  className={styles.input}
+                  placeholder="¿Qué van a jugar?"
+                  required
+                  maxLength={100}
+                  autoComplete="off"
+                />
+                {bggLoading && (
+                  <span className={styles.searchingHint}>Buscando en BGG…</span>
+                )}
+                {showDropdown && bggResults.length > 0 && (
+                  <div className={styles.dropdown}>
+                    {bggResults.map((game) => (
+                      <button
+                        type="button"
+                        key={game.id}
+                        className={styles.dropdownItem}
+                        onMouseDown={() => handleBggSelect(game)}
+                      >
+                        <span className={styles.dropdownName}>{game.name}</span>
+                        {game.year && (
+                          <span className={styles.dropdownYear}>{game.year}</span>
+                        )}
+                      </button>
+                    ))}
+                    <div className={styles.dropdownFooter}>BoardGameGeek</div>
+                  </div>
+                )}
+              </div>
               <div className={styles.quickGames}>
                 {POPULAR_GAMES.map((game) => (
                   <button
