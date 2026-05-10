@@ -3,13 +3,10 @@ const router = express.Router();
 const https = require('https');
 const zlib = require('zlib');
 
-const BGG_BASE = 'https://www.boardgamegeek.com/xmlapi2';
+const BGG_BASE = 'https://api.geekdo.com/xmlapi2';
 
 const BGG_HEADERS = {
-  'User-Agent': 'Turnocero/1.0 (board game session organizer)',
-  'Accept': 'text/xml, application/xml, */*',
-  'Accept-Encoding': 'gzip, deflate',
-  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept': 'text/xml',
 };
 
 router.get('/search', async (req, res) => {
