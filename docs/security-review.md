@@ -2,21 +2,21 @@
 
 **Fecha:** 2026-05-10  
 **Revisado por:** Claude Code (claude-sonnet-4-6)  
-**Estado:** Parcialmente corregido (CRÍTICO #1 y #2 resueltos)
+**Estado:** Parcialmente corregido (CRÍTICO #1, #2, #3 y #4 resueltos)
 
 ---
 
 ## Resumen Ejecutivo
 
-Se identificaron **24 vulnerabilidades** distribuidas en cuatro niveles de severidad. Dos vulnerabilidades críticas fueron corregidas en esta revisión. El resto requiere atención antes de desplegar en producción.
+Se identificaron **24 vulnerabilidades** distribuidas en cuatro niveles de severidad. Cuatro vulnerabilidades críticas fueron corregidas. El resto requiere atención antes de desplegar en producción.
 
 | Severidad | Total | Corregidas | Pendientes |
 |-----------|-------|------------|------------|
-| CRÍTICO   | 4     | 2          | 2          |
+| CRÍTICO   | 4     | 4          | 0          |
 | ALTO      | 5     | 0          | 5          |
 | MEDIO     | 5     | 0          | 5          |
 | BAJO      | 4     | 0          | 4          |
-| **Total** | **24**| **2**      | **22**     |
+| **Total** | **24**| **4**      | **20**     |
 
 ---
 
@@ -99,43 +99,51 @@ Cualquier sitio web podía hacer requests autenticados a la API usando las crede
 
 ---
 
-### ⚠️ CRÍTICO-3 — Contraseña mínima de 6 caracteres sin complejidad [PENDIENTE]
+### ✅ CRÍTICO-3 — Contraseña mínima de 6 caracteres sin complejidad [CORREGIDO]
 
 **Archivo afectado:**
 - `server/models/User.js`
 
 **Descripción:**  
-El modelo de usuario solo requiere una contraseña de mínimo 6 caracteres, sin exigir mayúsculas, números ni caracteres especiales. Contraseñas como `123456` o `aaaaaa` son válidas.
+El modelo de usuario solo requería una contraseña de mínimo 6 caracteres, sin exigir mayúsculas, números ni caracteres especiales. Contraseñas como `123456` o `aaaaaa` eran válidas.
 
-**Fix recomendado:**
+**Cambio aplicado:**
 ```js
 password: {
   type: String,
   required: [true, 'Password is required'],
   minlength: [8, 'Password must be at least 8 characters'],
-  // Validar con regex antes de hashear en el pre-save hook
   validate: {
-    validator: (v) => /^(?=.*[A-Z])(?=.*\d).{8,}$/.test(v),
+    validator: (v) => /^(?=.*[A-Z])(?=.*\d).+$/.test(v),
     message: 'Password must contain at least one uppercase letter and one number',
   },
 },
 ```
 
+El validador corre antes del pre-save hook de bcrypt, por lo que siempre evalúa el texto plano. Contraseñas que no cumplan los requisitos son rechazadas con un mensaje de error claro.
+
 ---
 
-### ⚠️ CRÍTICO-4 — Enumeración de emails en registro [PENDIENTE]
+### ✅ CRÍTICO-4 — Enumeración de emails en registro [CORREGIDO]
 
 **Archivo afectado:**
-- `server/routes/auth.js` líneas 24 y 29
+- `server/routes/auth.js`
 
 **Descripción:**  
-Los mensajes de error diferencian entre `'Email already registered'` y `'Username already taken'`, lo que permite a un atacante determinar qué emails están registrados en el sistema.
+El endpoint de registro hacía dos consultas previas a la base de datos para verificar si el email o el username ya existían, y devolvía mensajes distintos para cada caso. Esto permitía a un atacante determinar qué emails están registrados en el sistema con solo intentar registrarse.
 
-**Fix recomendado:**
+**Cambio aplicado:**
+- Se eliminaron las consultas `findOne` preventivas para email y username
+- El índice único de MongoDB captura el conflicto en `User.create()`
+- El error de clave duplicada (código 11000) ahora devuelve un mensaje genérico:
+
 ```js
-// En lugar de mensajes específicos, usar uno genérico
-return res.status(400).json({ message: 'Email o nombre de usuario ya registrado' });
+if (err.code === 11000) {
+  return res.status(400).json({ message: 'Email or username already in use' });
+}
 ```
+
+Como beneficio adicional, se eliminaron dos consultas a la base de datos por cada registro exitoso.
 
 ---
 
@@ -308,6 +316,8 @@ Agregar comentarios indicando qué rutas requieren autenticación.
 ### Inmediato (antes de producción)
 - [x] Remover fallback `'fallback_secret'` en JWT
 - [x] Configurar CORS con orígenes específicos
+- [x] Reforzar validación de contraseña (mínimo 8 chars + complejidad)
+- [x] Eliminar email enumeration en registro
 - [ ] Agregar `helmet`
 - [ ] Agregar rate limiting en `/login` y `/register`
 - [ ] Mover token a cookie `httpOnly`
@@ -332,6 +342,7 @@ Agregar comentarios indicando qué rutas requieren autenticación.
 | Archivo | Cambio |
 |---------|--------|
 | `server/middleware/auth.js` | Removido fallback `'fallback_secret'` en `jwt.verify` |
-| `server/routes/auth.js` | Removido fallback `'fallback_secret'` en `jwt.sign` |
+| `server/routes/auth.js` | Removido fallback `'fallback_secret'` en `jwt.sign`; eliminadas consultas previas que permitían email enumeration; mensaje genérico en error de clave duplicada |
 | `server/server.js` | CORS configurado con lista de orígenes; validación de `JWT_SECRET` al arrancar |
 | `server/.env.example` | Agregada variable `CORS_ORIGIN` |
+| `server/models/User.js` | Contraseña: mínimo 8 caracteres + validador de complejidad (mayúscula + número) |
