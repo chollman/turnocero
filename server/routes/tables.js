@@ -88,6 +88,69 @@ router.post('/', protect, [
   }
 });
 
+// GET /api/tables/:id — protected; returns a single table
+router.get('/:id', protect, [
+  param('id').isMongoId().withMessage('Invalid table ID'),
+], validate, async (req, res) => {
+  try {
+    const table = await Table.findById(req.params.id)
+      .populate('host', 'username')
+      .populate('players', 'username');
+    if (!table) return res.status(404).json({ message: 'Table not found' });
+    res.json(table);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PUT /api/tables/:id — protected, host only
+router.put('/:id', protect, [
+  param('id').isMongoId().withMessage('Invalid table ID'),
+  body('boardGame').trim().notEmpty().withMessage('Game name is required').isLength({ max: 100 }).withMessage('Game name is too long'),
+  body('date').notEmpty().withMessage('Date is required').isISO8601().withMessage('Invalid date format'),
+  body('maxPlayers').notEmpty().withMessage('Max players is required').isInt({ min: 2, max: 20 }).withMessage('Max players must be between 2 and 20'),
+  body('location').optional().trim().isLength({ max: 200 }).withMessage('Location is too long'),
+  body('description').optional().trim().isLength({ max: 500 }).withMessage('Description is too long'),
+], validate, async (req, res) => {
+  try {
+    const table = await Table.findById(req.params.id);
+    if (!table) return res.status(404).json({ message: 'Table not found' });
+
+    if (table.status === 'cancelled') {
+      return res.status(400).json({ message: 'No se puede editar una mesa cancelada' });
+    }
+
+    if (table.host.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Solo el host puede editar esta mesa' });
+    }
+
+    const newMaxPlayers = Number(req.body.maxPlayers);
+    if (newMaxPlayers < table.players.length) {
+      return res.status(400).json({
+        message: `No podés reducir los lugares por debajo de los jugadores actuales (${table.players.length})`,
+      });
+    }
+
+    table.boardGame = req.body.boardGame;
+    table.date = req.body.date;
+    table.maxPlayers = newMaxPlayers;
+    table.location = req.body.location || '';
+    table.description = req.body.description || '';
+
+    await table.save();
+    await table.populate('host', 'username');
+    await table.populate('players', 'username');
+
+    res.json(table);
+  } catch (err) {
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map((e) => e.message);
+      return res.status(400).json({ message: messages[0] });
+    }
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // POST /api/tables/:id/join — protected
 router.post('/:id/join', protect, [
   param('id').isMongoId().withMessage('Invalid table ID'),
