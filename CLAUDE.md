@@ -15,7 +15,7 @@ Run both servers in separate terminals:
 npm run dev:server    # Express backend on port 4000 (nodemon)
 npm run dev:client    # Vite frontend on port 3000
 
-# First-time setup
+# First-time setup (also activates git hooks)
 npm run install:all   # Installs both server and client deps
 ```
 
@@ -31,6 +31,10 @@ npm start         # Production start (no nodemon)
 ```
 
 No test or lint commands are configured.
+
+## Git conventions
+
+Commit messages must be written in **English**. A `commit-msg` hook in `.githooks/` enforces this by rejecting messages with non-ASCII characters. The hook is activated automatically by `npm run install:all`. To activate it manually: `git config core.hooksPath .githooks`.
 
 ## Architecture
 
