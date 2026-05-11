@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body, param, validationResult } = require('express-validator');
 const Table = require('../models/Table');
+const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
 const validate = (req, res, next) => {
@@ -18,11 +19,20 @@ const parsePagination = (query) => {
   return { page, limit, skip: (page - 1) * limit };
 };
 
-// GET /api/tables — protected; supports ?page and ?limit
+const buildSearchClause = async (search) => {
+  if (!search) return null;
+  const escaped = search.slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const rx = new RegExp(escaped, 'i');
+  const matchingHosts = await User.find({ username: rx }).select('_id');
+  return { $or: [{ boardGame: rx }, { host: { $in: matchingHosts.map((u) => u._id) } }] };
+};
+
+// GET /api/tables — protected; supports ?page, ?limit, ?search
 router.get('/', protect, async (req, res) => {
   try {
     const { page, limit, skip } = parsePagination(req.query);
-    const filter = { status: { $ne: 'cancelled' } };
+    const searchClause = await buildSearchClause(req.query.search);
+    const filter = { status: { $ne: 'cancelled' }, ...searchClause };
     const [tables, total] = await Promise.all([
       Table.find(filter).populate('host', 'username').populate('players', 'username').sort({ date: 1 }).skip(skip).limit(limit),
       Table.countDocuments(filter),
@@ -37,10 +47,9 @@ router.get('/', protect, async (req, res) => {
 router.get('/mine', protect, async (req, res) => {
   try {
     const { page, limit, skip } = parsePagination(req.query);
-    const filter = {
-      $or: [{ host: req.user._id }, { players: req.user._id }],
-      status: { $ne: 'cancelled' },
-    };
+    const searchClause = await buildSearchClause(req.query.search);
+    const baseFilter = { $or: [{ host: req.user._id }, { players: req.user._id }], status: { $ne: 'cancelled' } };
+    const filter = searchClause ? { $and: [baseFilter, searchClause] } : baseFilter;
     const [tables, total] = await Promise.all([
       Table.find(filter).populate('host', 'username').populate('players', 'username').sort({ date: 1 }).skip(skip).limit(limit),
       Table.countDocuments(filter),

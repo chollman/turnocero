@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import TableCard from '../components/TableCard';
@@ -9,6 +9,8 @@ const TABS = [
   { id: 'mine', label: 'Mis mesas' },
 ];
 
+const DEBOUNCE_MS = 400;
+
 export default function Dashboard() {
   const [tables, setTables] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
@@ -16,8 +18,20 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [refetchKey, setRefetchKey] = useState(0);
+  const debounceTimer = useRef(null);
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearch(value);
+    clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedSearch(value);
+      setPage(1);
+    }, DEBOUNCE_MS);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -26,7 +40,9 @@ export default function Dashboard() {
       setError('');
       try {
         const url = activeTab === 'mine' ? '/api/tables/mine' : '/api/tables';
-        const { data } = await axios.get(url, { params: { page, limit: 20 } });
+        const params = { page, limit: 20 };
+        if (debouncedSearch) params.search = debouncedSearch;
+        const { data } = await axios.get(url, { params });
         if (!cancelled) {
           setTables(data.tables);
           setPagination({ page: data.page, pages: data.pages, total: data.total });
@@ -39,7 +55,7 @@ export default function Dashboard() {
     };
     load();
     return () => { cancelled = true; };
-  }, [activeTab, page, refetchKey]);
+  }, [activeTab, page, debouncedSearch, refetchKey]);
 
   const handleTabChange = (id) => {
     if (id === activeTab) return;
@@ -56,11 +72,6 @@ export default function Dashboard() {
   const handleCancel = (tableId) => {
     setTables((prev) => prev.filter((t) => t._id !== tableId));
   };
-
-  const filtered = tables.filter((t) =>
-    t.boardGame.toLowerCase().includes(search.toLowerCase()) ||
-    t.host.username?.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <div className={styles.page}>
@@ -92,7 +103,7 @@ export default function Dashboard() {
             className={styles.search}
             placeholder="Buscar juego o host…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={handleSearchChange}
           />
         </div>
 
@@ -109,16 +120,16 @@ export default function Dashboard() {
               Reintentar
             </button>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : tables.length === 0 ? (
           <div className={styles.empty}>
             <span className={styles.emptyIcon}>🃏</span>
             <p className={styles.emptyTitle}>
-              {search ? 'Sin resultados para esa búsqueda' : 'No hay mesas disponibles'}
+              {debouncedSearch ? 'Sin resultados para esa búsqueda' : 'No hay mesas disponibles'}
             </p>
             <p className={styles.emptySub}>
-              {!search && '¡Sé el primero en crear una mesa!'}
+              {!debouncedSearch && '¡Sé el primero en crear una mesa!'}
             </p>
-            {!search && (
+            {!debouncedSearch && (
               <Link to="/create" className={styles.createBtn}>
                 + Crear mesa
               </Link>
@@ -127,7 +138,7 @@ export default function Dashboard() {
         ) : (
           <>
             <div className={styles.grid}>
-              {filtered.map((table) => (
+              {tables.map((table) => (
                 <TableCard
                   key={table._id}
                   table={table}
