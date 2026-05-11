@@ -40,6 +40,13 @@ export default function TableDetail() {
   const [requestError, setRequestError] = useState('')
   const [requestLoading, setRequestLoading] = useState(null)
 
+  const [comments, setComments] = useState([])
+  const [commentInput, setCommentInput] = useState('')
+  const [submittingComment, setSubmittingComment] = useState(false)
+  const [commentError, setCommentError] = useState('')
+  const [editingCommentId, setEditingCommentId] = useState(null)
+  const [editingContent, setEditingContent] = useState('')
+
   const socketRef = useRef(null)
   const messageListRef = useRef(null)
 
@@ -84,6 +91,15 @@ export default function TableDetail() {
     axios
       .get(`/api/tables/${id}/messages`)
       .then(({ data }) => setMessages(data))
+  }, [table])
+
+  // Fetch comments once table is confirmed
+  useEffect(() => {
+    if (!table) return
+    axios
+      .get(`/api/tables/${id}/comments`)
+      .then(({ data }) => setComments(data))
+      .catch(() => {})
   }, [table])
 
   // Socket.io connection
@@ -153,6 +169,48 @@ export default function TableDetail() {
       setTable((prev) => ({ ...prev, reactions: data.reactions }))
     } catch {
       setTable((prev) => ({ ...prev, reactions: currentReactions }))
+    }
+  }
+
+  const handleAddComment = async (e) => {
+    e.preventDefault()
+    const content = commentInput.trim()
+    if (!content || submittingComment) return
+    setSubmittingComment(true)
+    setCommentError('')
+    try {
+      const { data } = await axios.post(`/api/tables/${id}/comments`, { content })
+      setComments((prev) => [...prev, data])
+      setCommentInput('')
+    } catch (err) {
+      setCommentError(err.response?.data?.message || 'Error al comentar')
+    } finally {
+      setSubmittingComment(false)
+    }
+  }
+
+  const handleEditComment = async (commentId) => {
+    const content = editingContent.trim()
+    if (!content) return
+    setCommentError('')
+    try {
+      const { data } = await axios.put(`/api/tables/${id}/comments/${commentId}`, { content })
+      setComments((prev) => prev.map((c) => (c._id === commentId ? data : c)))
+      setEditingCommentId(null)
+      setEditingContent('')
+    } catch (err) {
+      setCommentError(err.response?.data?.message || 'Error al editar')
+    }
+  }
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('¿Eliminar este comentario?')) return
+    setCommentError('')
+    try {
+      await axios.delete(`/api/tables/${id}/comments/${commentId}`)
+      setComments((prev) => prev.filter((c) => c._id !== commentId))
+    } catch (err) {
+      setCommentError(err.response?.data?.message || 'Error al eliminar')
     }
   }
 
@@ -426,6 +484,103 @@ export default function TableDetail() {
               </form>
             )}
           </div>
+        </div>
+
+        {/* Comments */}
+        <div className={styles.commentsSection}>
+          <h2 className={styles.commentsTitle}>
+            Comentarios
+            {comments.length > 0 && (
+              <span className={styles.commentsBadge}>{comments.length}</span>
+            )}
+          </h2>
+
+          {commentError && <p className={styles.commentError}>{commentError}</p>}
+
+          {comments.length === 0 ? (
+            <p className={styles.commentsEmpty}>Nadie comentó todavía. ¡Sé el primero!</p>
+          ) : (
+            <div className={styles.commentsList}>
+              {comments.map((comment) => {
+                const isOwn = (comment.author._id || comment.author).toString() === user._id.toString()
+                const canDelete = isOwn || isHost || user.isAdmin
+                return (
+                  <div key={comment._id} className={styles.commentItem}>
+                    <span className={styles.commentAvatar}>
+                      {comment.author.username[0].toUpperCase()}
+                    </span>
+                    <div className={styles.commentBody}>
+                      <div className={styles.commentMeta}>
+                        <span className={styles.commentAuthor}>{comment.author.username}</span>
+                        <span className={styles.commentTime}>{formatDate(comment.createdAt)}</span>
+                        {comment.editedAt && <span className={styles.editedBadge}>editado</span>}
+                      </div>
+                      {editingCommentId === comment._id ? (
+                        <div className={styles.editForm}>
+                          <textarea
+                            className={styles.editTextarea}
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            maxLength={500}
+                            rows={2}
+                          />
+                          <div className={styles.editActions}>
+                            <button className={styles.btnSaveEdit} onClick={() => handleEditComment(comment._id)}>
+                              Guardar
+                            </button>
+                            <button className={styles.btnCancelEdit} onClick={() => setEditingCommentId(null)}>
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className={styles.commentContent}>{comment.content}</p>
+                      )}
+                    </div>
+                    {editingCommentId !== comment._id && (
+                      <div className={styles.commentActions}>
+                        {isOwn && (
+                          <button
+                            className={styles.btnCommentEdit}
+                            onClick={() => { setEditingCommentId(comment._id); setEditingContent(comment.content) }}
+                          >
+                            Editar
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            className={styles.btnCommentDelete}
+                            onClick={() => handleDeleteComment(comment._id)}
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <form className={styles.addCommentForm} onSubmit={handleAddComment}>
+            <textarea
+              className={styles.commentTextarea}
+              placeholder='Escribí un comentario…'
+              value={commentInput}
+              onChange={(e) => setCommentInput(e.target.value)}
+              maxLength={500}
+              rows={2}
+              disabled={submittingComment}
+            />
+            <button
+              className={styles.btnComment}
+              type='submit'
+              disabled={!commentInput.trim() || submittingComment}
+            >
+              {submittingComment ? '…' : 'Comentar'}
+            </button>
+          </form>
         </div>
       </div>
     </div>

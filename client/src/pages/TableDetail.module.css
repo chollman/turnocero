@@ -532,6 +532,267 @@
   cursor: not-allowed;
 }
 
+/* ─── Comments ─── */
+.commentsSection {
+  margin-top: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.commentsTitle {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.commentsBadge {
+  background: var(--amber-glow);
+  border: 1px solid var(--border-amber);
+  color: var(--amber);
+  border-radius: 20px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.commentsEmpty {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.commentError {
+  font-size: 0.8rem;
+  color: var(--red);
+}
+
+.commentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.commentItem {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.commentAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--amber-glow);
+  border: 1px solid var(--border-amber);
+  color: var(--amber);
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.commentBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.commentMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+
+.commentAuthor {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.commentTime {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.editedBadge {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.commentContent {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.commentActions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  padding-top: 0.15rem;
+}
+
+.btnCommentEdit {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: color var(--transition);
+  font-family: var(--font-body);
+}
+
+.btnCommentEdit:hover {
+  color: var(--amber);
+}
+
+.btnCommentDelete {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: color var(--transition);
+  font-family: var(--font-body);
+}
+
+.btnCommentDelete:hover {
+  color: var(--red);
+}
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.editTextarea {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-amber);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  resize: vertical;
+  outline: none;
+  width: 100%;
+}
+
+.editActions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.btnSaveEdit {
+  background: var(--amber);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background var(--transition);
+}
+
+.btnSaveEdit:hover {
+  background: var(--amber-dark);
+}
+
+.btnCancelEdit {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all var(--transition);
+}
+
+.btnCancelEdit:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.addCommentForm {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.commentTextarea {
+  flex: 1;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  resize: none;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.commentTextarea:focus {
+  border-color: var(--border-amber);
+}
+
+.commentTextarea::placeholder {
+  color: var(--text-muted);
+}
+
+.commentTextarea:disabled {
+  opacity: 0.5;
+}
+
+.btnComment {
+  background: var(--amber);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.1rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition), opacity var(--transition);
+}
+
+.btnComment:hover:not(:disabled) {
+  background: var(--amber-dark);
+}
+
+.btnComment:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* ─── Loading ─── */
 .loadingWrapper {
   display: flex;
