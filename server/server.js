@@ -1,9 +1,12 @@
+const http = require('http');
 const express = require('express');
+const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
+const jwt = require('jsonwebtoken');
 const logger = require('./utils/logger');
 
 dotenv.config();
@@ -17,6 +20,7 @@ if (!process.env.MONGODB_URI) {
 }
 
 const app = express();
+const server = http.createServer(app);
 
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
@@ -26,7 +30,6 @@ app.use(helmet());
 app.use(cookieParser());
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, curl, same-origin)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -39,9 +42,44 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Socket.io
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+  },
+});
+
+// Expose io to routes via app
+app.set('io', io);
+
+// Socket auth middleware
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) return next(new Error('Authentication required'));
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.id;
+    next();
+  } catch {
+    next(new Error('Invalid token'));
+  }
+});
+
+io.on('connection', (socket) => {
+  socket.on('join:table', (tableId) => {
+    socket.join(`table:${tableId}`);
+  });
+
+  socket.on('leave:table', (tableId) => {
+    socket.leave(`table:${tableId}`);
+  });
+});
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/tables', require('./routes/tables'));
+app.use('/api/tables/:id/messages', require('./routes/messages'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/users', require('./routes/users'));
 
@@ -58,7 +96,7 @@ mongoose
   .connect(MONGODB_URI)
   .then(() => {
     logger.info('Connected to MongoDB');
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       logger.info(`Turnocero server running on port ${PORT}`);
     });
   })

@@ -123,6 +123,13 @@ export default function TableCard({ table, onUpdate, onCancel }) {
         {isHost ? (
           <>
             <button
+              className={styles.btnDetail}
+              onClick={() => navigate(`/tables/${table._id}`)}
+              disabled={loading}
+            >
+              Ver detalles y chat
+            </button>
+            <button
               className={styles.btnSecondary}
               onClick={() => navigate(`/tables/${table._id}/edit`)}
               disabled={loading}
@@ -138,13 +145,22 @@ export default function TableCard({ table, onUpdate, onCancel }) {
             </button>
           </>
         ) : isPlayer ? (
-          <button
-            className={styles.btnSecondary}
-            onClick={() => handleAction('leave')}
-            disabled={loading}
-          >
-            {loading ? '…' : 'Abandonar'}
-          </button>
+          <>
+            <button
+              className={styles.btnDetail}
+              onClick={() => navigate(`/tables/${table._id}`)}
+              disabled={loading}
+            >
+              Ver detalles y chat
+            </button>
+            <button
+              className={styles.btnSecondary}
+              onClick={() => handleAction('leave')}
+              disabled={loading}
+            >
+              {loading ? '…' : 'Abandonar'}
+            </button>
+          </>
         ) : (
           <button
             className={styles.btnPrimary}

@@ -145,7 +145,8 @@
 
 .btnPrimary,
 .btnSecondary,
-.btnDanger {
+.btnDanger,
+.btnDetail {
   padding: 0.5rem 1.1rem;
   border-radius: 7px;
   font-size: 0.875rem;
@@ -184,6 +185,16 @@
 }
 .btnDanger:hover:not(:disabled) {
   background: rgba(224, 82, 82, 0.1);
+}
+
+.btnDetail {
+  background: var(--amber-glow);
+  color: var(--amber);
+  border: 1px solid var(--border-amber);
+}
+.btnDetail:hover:not(:disabled) {
+  background: rgba(24, 136, 239, 0.25);
+  border-color: var(--amber);
 }
 
 .hostBadge,

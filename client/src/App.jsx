@@ -9,6 +9,7 @@ import UserProfile from './pages/UserProfile';
 import UsersList from './pages/UsersList';
 import UserProfilePublic from './pages/UserProfilePublic';
 import DatabaseViewer from './pages/DatabaseViewer';
+import TableDetail from './pages/TableDetail';
 import Navbar from './components/Navbar';
 import BoardGameBackground from './components/BoardGameBackground';
 
@@ -51,6 +52,7 @@ function AppRoutes() {
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/create" element={<PrivateRoute><CreateTable /></PrivateRoute>} />
+        <Route path="/tables/:id" element={<PrivateRoute><TableDetail /></PrivateRoute>} />
         <Route path="/tables/:id/edit" element={<PrivateRoute><EditTable /></PrivateRoute>} />
         <Route path="/perfil" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
         <Route path="/users" element={<PrivateRoute><UsersList /></PrivateRoute>} />
