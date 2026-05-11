@@ -1,14 +1,14 @@
 .page {
   min-height: calc(100vh - 64px);
+  padding: 2rem 1.5rem 4rem;
 }
 
 .card {
-  max-width: 620px;
   margin: 0 auto;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 2.5rem;
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
   box-shadow: var(--shadow-md);
 }
 
@@ -91,7 +91,9 @@
   color: var(--text-primary);
   font-size: 0.95rem;
   outline: none;
-  transition: border-color var(--transition), box-shadow var(--transition);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
   width: 100%;
 }
 
@@ -233,18 +235,8 @@
 }
 
 @media (max-width: 600px) {
-  .page {
-    padding: 0;
-  }
-
-  .page :global(.container) {
-    padding: 0;
-  }
-
   .card {
-    border-radius: 0;
-    border: none;
-    padding: 1.25rem 1rem;
+    padding: 1.5rem 1.25rem;
   }
 
   .input {

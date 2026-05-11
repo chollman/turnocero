@@ -1,0 +1,26 @@
+.background {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.piece {
+  position: absolute;
+  top: -12%;
+  color: var(--amber);
+  user-select: none;
+  animation: fallDown linear infinite;
+  will-change: transform;
+  text-shadow: 0 0 12px rgba(24, 136, 239, 0.35);
+}
+
+@keyframes fallDown {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    transform: translateY(calc(100vh + 15%)) rotate(360deg);
+  }
+}

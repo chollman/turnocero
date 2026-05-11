@@ -8,6 +8,7 @@ import EditTable from './pages/EditTable';
 import UserProfile from './pages/UserProfile';
 import DatabaseViewer from './pages/DatabaseViewer';
 import Navbar from './components/Navbar';
+import BoardGameBackground from './components/BoardGameBackground';
 
 const LoadingScreen = () => (
   <div style={{
@@ -61,7 +62,10 @@ export default function App() {
   return (
     <HashRouter>
       <AuthProvider>
-        <AppRoutes />
+        <BoardGameBackground />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <AppRoutes />
+        </div>
       </AuthProvider>
     </HashRouter>
   );
