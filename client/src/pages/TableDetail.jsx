@@ -76,7 +76,7 @@ export default function TableDetail() {
   useEffect(() => {
     if (!table) return;
     const token = localStorage.getItem('token');
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:4000';
+    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
     const socket = io(socketUrl, {
       auth: { token },
       transports: ['websocket'],
