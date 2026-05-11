@@ -82,7 +82,13 @@ export default function Navbar() {
               <div className={styles.bellWrap} ref={bellRef}>
                 <button
                   className={styles.bellBtn}
-                  onClick={() => setBellOpen((o) => !o)}
+                  onClick={() => {
+                    if (window.matchMedia('(max-width: 600px)').matches) {
+                      navigate('/notifications');
+                    } else {
+                      setBellOpen((o) => !o);
+                    }
+                  }}
                   aria-label="Notificaciones"
                   title="Notificaciones"
                 >
