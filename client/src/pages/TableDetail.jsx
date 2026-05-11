@@ -32,6 +32,9 @@ export default function TableDetail() {
   const [sending, setSending] = useState(false)
   const [loadingTable, setLoadingTable] = useState(true)
   const [error, setError] = useState('')
+  const [pendingRequests, setPendingRequests] = useState([])
+  const [requestError, setRequestError] = useState('')
+  const [requestLoading, setRequestLoading] = useState(null)
 
   const socketRef = useRef(null)
   const messageListRef = useRef(null)
@@ -56,6 +59,7 @@ export default function TableDetail() {
           return
         }
         setTable(data)
+        setPendingRequests(data.pendingRequests || [])
       } catch {
         navigate('/', { replace: true })
       } finally {
@@ -107,6 +111,19 @@ export default function TableDetail() {
     const list = messageListRef.current
     if (list) list.scrollTop = list.scrollHeight
   }, [messages])
+
+  const handleRequest = async (userId, action) => {
+    setRequestLoading(userId + action)
+    setRequestError('')
+    try {
+      const { data } = await axios.post(`/api/tables/${id}/requests/${userId}/${action}`)
+      setPendingRequests(data.pendingRequests || [])
+    } catch (err) {
+      setRequestError(err.response?.data?.message || 'Error al procesar la solicitud')
+    } finally {
+      setRequestLoading(null)
+    }
+  }
 
   const sendMessage = async (e) => {
     e.preventDefault()
@@ -240,6 +257,47 @@ export default function TableDetail() {
                 ))}
               </div>
             </div>
+
+            {/* Pending requests – host only, private tables */}
+            {isHost && table.privacy === 'private' && (
+              <div className={styles.requestsSection}>
+                <h2 className={styles.requestsTitle}>
+                  Solicitudes pendientes
+                  {pendingRequests.length > 0 && (
+                    <span className={styles.requestsBadge}>{pendingRequests.length}</span>
+                  )}
+                </h2>
+                {requestError && <p className={styles.requestsError}>{requestError}</p>}
+                {pendingRequests.length === 0 ? (
+                  <p className={styles.requestsEmpty}>No hay solicitudes pendientes.</p>
+                ) : (
+                  <ul className={styles.requestsList}>
+                    {pendingRequests.map((req) => (
+                      <li key={req._id} className={styles.requestItem}>
+                        <span className={styles.requestAvatar}>{req.username[0].toUpperCase()}</span>
+                        <span className={styles.requestUsername}>{req.username}</span>
+                        <div className={styles.requestActions}>
+                          <button
+                            className={styles.btnAccept}
+                            onClick={() => handleRequest(req._id, 'accept')}
+                            disabled={requestLoading !== null}
+                          >
+                            {requestLoading === req._id + 'accept' ? '…' : 'Aceptar'}
+                          </button>
+                          <button
+                            className={styles.btnReject}
+                            onClick={() => handleRequest(req._id, 'reject')}
+                            disabled={requestLoading !== null}
+                          >
+                            {requestLoading === req._id + 'reject' ? '…' : 'Rechazar'}
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right: Chat */}

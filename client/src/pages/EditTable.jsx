@@ -11,12 +11,9 @@ export default function EditTable() {
   const [boardGame, setBoardGame] = useState('');
   const [form, setForm] = useState(null);
   const [minPlayers, setMinPlayers] = useState(1);
-  const [pendingRequests, setPendingRequests] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [requestError, setRequestError] = useState('');
-  const [requestLoading, setRequestLoading] = useState(null);
 
   useEffect(() => {
     const fetchTable = async () => {
@@ -31,7 +28,6 @@ export default function EditTable() {
         }
         setMinPlayers(data.players.length);
         setBoardGame(data.boardGame);
-        setPendingRequests(data.pendingRequests || []);
         setForm({
           date: new Date(data.date).toISOString().slice(0, 16),
           maxPlayers: data.maxPlayers,
@@ -65,19 +61,6 @@ export default function EditTable() {
       setError(err.response?.data?.message || 'Error al guardar los cambios');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleRequest = async (userId, action) => {
-    setRequestLoading(userId + action);
-    setRequestError('');
-    try {
-      const { data } = await axios.post(`/api/tables/${id}/requests/${userId}/${action}`);
-      setPendingRequests(data.pendingRequests || []);
-    } catch (err) {
-      setRequestError(err.response?.data?.message || 'Error al procesar la solicitud');
-    } finally {
-      setRequestLoading(null);
     }
   };
 
@@ -217,48 +200,6 @@ export default function EditTable() {
             </div>
           </form>
 
-          {/* Pending requests admin section */}
-          {form.privacy === 'private' && (
-            <div className={styles.requestsSection}>
-              <h2 className={styles.requestsTitle}>
-                Solicitudes pendientes
-                {pendingRequests.length > 0 && (
-                  <span className={styles.requestsBadge}>{pendingRequests.length}</span>
-                )}
-              </h2>
-
-              {requestError && <div className={styles.errorBox}>{requestError}</div>}
-
-              {pendingRequests.length === 0 ? (
-                <p className={styles.requestsEmpty}>No hay solicitudes pendientes.</p>
-              ) : (
-                <ul className={styles.requestsList}>
-                  {pendingRequests.map((req) => (
-                    <li key={req._id} className={styles.requestItem}>
-                      <span className={styles.requestAvatar}>{req.username[0].toUpperCase()}</span>
-                      <span className={styles.requestUsername}>{req.username}</span>
-                      <div className={styles.requestActions}>
-                        <button
-                          className={styles.btnAccept}
-                          onClick={() => handleRequest(req._id, 'accept')}
-                          disabled={requestLoading !== null}
-                        >
-                          {requestLoading === req._id + 'accept' ? '…' : 'Aceptar'}
-                        </button>
-                        <button
-                          className={styles.btnReject}
-                          onClick={() => handleRequest(req._id, 'reject')}
-                          disabled={requestLoading !== null}
-                        >
-                          {requestLoading === req._id + 'reject' ? '…' : 'Rechazar'}
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>
