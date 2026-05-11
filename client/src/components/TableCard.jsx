@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import styles from './TableCard.module.css';
 
+
 const formatDate = (dateStr) => {
   const date = new Date(dateStr);
   return date.toLocaleDateString('es-AR', {
@@ -254,6 +255,23 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
       {table.description && (
         <p className={styles.description}>{table.description}</p>
       )}
+
+      {/* Reactions — read-only summary, only shown if the table has reactions */}
+      {(table.reactions || []).length > 0 && (() => {
+        const groups = (table.reactions || []).reduce((acc, r) => {
+          acc[r.emoji] = (acc[r.emoji] || 0) + 1
+          return acc
+        }, {})
+        return (
+          <div className={styles.reactionsRow}>
+            {Object.entries(groups).map(([emoji, count]) => (
+              <span key={emoji} className={styles.reactionChip}>
+                {emoji} <span className={styles.reactionCountSm}>{count}</span>
+              </span>
+            ))}
+          </div>
+        )
+      })()}
 
       {/* Error */}
       {error && <p className={styles.error}>{error}</p>}

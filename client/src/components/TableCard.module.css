@@ -142,6 +142,31 @@
   color: var(--text-secondary);
 }
 
+/* Reactions */
+.reactionsRow {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.reactionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem 0.45rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.reactionCountSm {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--amber);
+}
+
 /* Description */
 .description {
   font-size: 0.85rem;

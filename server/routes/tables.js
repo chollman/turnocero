@@ -338,6 +338,37 @@ router.post('/:id/leave', protect, [
   }
 });
 
+// POST /api/tables/:id/react — protected; any logged-in user; toggles/replaces emoji reaction
+router.post('/:id/react', protect, [
+  param('id').isMongoId().withMessage('Invalid table ID'),
+  body('emoji').isIn(['❤️', '🎲', '🔥', '👍', '😄']).withMessage('Invalid emoji'),
+], validate, async (req, res) => {
+  try {
+    const table = await Table.findById(req.params.id);
+    if (!table) return res.status(404).json({ message: 'Table not found' });
+    if (table.status === 'cancelled') return res.status(400).json({ message: 'Table is cancelled' });
+
+    const { emoji } = req.body;
+    const uid = req.user._id.toString();
+    const existingIdx = table.reactions.findIndex((r) => r.user.toString() === uid);
+
+    if (existingIdx !== -1) {
+      if (table.reactions[existingIdx].emoji === emoji) {
+        table.reactions.splice(existingIdx, 1);
+      } else {
+        table.reactions[existingIdx].emoji = emoji;
+      }
+    } else {
+      table.reactions.push({ user: req.user._id, emoji });
+    }
+
+    await table.save();
+    res.json({ reactions: table.reactions });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // DELETE /api/tables/:id — protected, host only
 router.delete('/:id', protect, [
   param('id').isMongoId().withMessage('Invalid table ID'),

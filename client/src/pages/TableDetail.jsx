@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext'
 import { useNotifications } from '../context/NotificationContext'
 import styles from './TableDetail.module.css'
 
+const REACTION_EMOJIS = ['❤️', '🎲', '🔥', '👍', '😄']
+
 const formatDate = (dateStr) =>
   new Date(dateStr).toLocaleDateString('es-AR', {
     weekday: 'long',
@@ -127,6 +129,33 @@ export default function TableDetail() {
     }
   }
 
+  const handleReact = async (emoji) => {
+    const currentReactions = table.reactions || []
+    const existing = currentReactions.find((r) => r.user?.toString() === user._id.toString())
+
+    let newReactions
+    if (existing) {
+      if (existing.emoji === emoji) {
+        newReactions = currentReactions.filter((r) => r.user?.toString() !== user._id.toString())
+      } else {
+        newReactions = currentReactions.map((r) =>
+          r.user?.toString() === user._id.toString() ? { ...r, emoji } : r
+        )
+      }
+    } else {
+      newReactions = [...currentReactions, { user: user._id, emoji }]
+    }
+
+    setTable((prev) => ({ ...prev, reactions: newReactions }))
+
+    try {
+      const { data } = await axios.post(`/api/tables/${id}/react`, { emoji })
+      setTable((prev) => ({ ...prev, reactions: data.reactions }))
+    } catch {
+      setTable((prev) => ({ ...prev, reactions: currentReactions }))
+    }
+  }
+
   const sendMessage = async (e) => {
     e.preventDefault()
     const content = input.trim()
@@ -233,6 +262,33 @@ export default function TableDetail() {
                 <p className={styles.descriptionText}>{table.description}</p>
               </div>
             )}
+
+            {/* Reactions */}
+            {(() => {
+              const reactions = table.reactions || []
+              const myReaction = reactions.find((r) => r.user?.toString() === user._id.toString())?.emoji || null
+              return (
+                <div className={styles.reactionSection}>
+                  <span className={styles.infoLabel}>¿Qué te parece esta mesa?</span>
+                  <div className={styles.reactionBar}>
+                    {REACTION_EMOJIS.map((emoji) => {
+                      const count = reactions.filter((r) => r.emoji === emoji).length
+                      return (
+                        <button
+                          key={emoji}
+                          className={`${styles.reactionBtn} ${myReaction === emoji ? styles.reactionActive : ''}`}
+                          onClick={() => handleReact(emoji)}
+                          title={myReaction === emoji ? 'Quitar reacción' : 'Reaccionar'}
+                        >
+                          <span>{emoji}</span>
+                          {count > 0 && <span className={styles.reactionCount}>{count}</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Participants */}
             <div className={styles.participantsBlock}>
