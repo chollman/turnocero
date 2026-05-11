@@ -1,0 +1,218 @@
+.page {
+  padding: 0 0 4rem;
+  min-height: calc(100vh - 64px);
+}
+
+.hero {
+  text-align: center;
+  padding: 1rem 0 1.5rem;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--amber);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.sub {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+  width: fit-content;
+  margin-bottom: 1.25rem;
+}
+
+.tab {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.4rem 1.1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--font-mono, monospace);
+}
+
+.tab:hover {
+  color: var(--text-primary);
+}
+
+.activeTab {
+  background: var(--bg-elevated);
+  color: var(--amber);
+}
+
+.meta {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-bottom: 0.75rem;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-family: var(--font-mono, monospace);
+}
+
+.table th {
+  background: var(--bg-elevated);
+  color: var(--amber);
+  font-weight: 600;
+  padding: 0.6rem 0.9rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+
+.table td {
+  padding: 0.5rem 0.9rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
+  background: var(--bg-elevated);
+}
+
+.null {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.bool {
+  color: var(--green);
+}
+
+.obj {
+  color: var(--text-secondary);
+  cursor: help;
+}
+
+.adminToggle {
+  padding: 0.25rem 0.6rem;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--font-mono, monospace);
+}
+
+.adminToggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.adminOn {
+  background: color-mix(in srgb, var(--green) 15%, transparent);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.adminOn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--red) 15%, transparent);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.adminOff {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.adminOff:not(:disabled):hover {
+  background: color-mix(in srgb, var(--green) 15%, transparent);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.error {
+  color: var(--red);
+  margin: 1rem 0;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 4rem 0;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  font-size: 2.5rem;
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.pageBtn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 0.5rem 1.25rem;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-size: 0.9rem;
+}
+
+.pageBtn:hover:not(:disabled) {
+  border-color: var(--amber-dark);
+  color: var(--amber);
+}
+
+.pageBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pageInfo {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  min-width: 4rem;
+  text-align: center;
+}

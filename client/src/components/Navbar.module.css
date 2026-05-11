@@ -81,6 +81,17 @@
   box-shadow: var(--shadow-amber);
 }
 
+.btnSecondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.btnSecondary:hover {
+  border-color: var(--amber-dark);
+  color: var(--amber);
+}
+
 .btnLogout {
   background: transparent;
   border: 1px solid var(--border);

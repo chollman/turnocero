@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import CreateTable from './pages/CreateTable';
 import EditTable from './pages/EditTable';
 import UserProfile from './pages/UserProfile';
+import DatabaseViewer from './pages/DatabaseViewer';
 import Navbar from './components/Navbar';
 
 const LoadingScreen = () => (
@@ -49,6 +50,7 @@ function AppRoutes() {
         <Route path="/create" element={<PrivateRoute><CreateTable /></PrivateRoute>} />
         <Route path="/tables/:id/edit" element={<PrivateRoute><EditTable /></PrivateRoute>} />
         <Route path="/perfil" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
+        <Route path="/database" element={<PrivateRoute><DatabaseViewer /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

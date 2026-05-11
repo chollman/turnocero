@@ -43,6 +43,15 @@ export default function Navbar() {
                 Hola, <strong>{user.username}</strong>
               </Link>
 
+              {user.isAdmin && (
+                <Link
+                  to="/database"
+                  className={`${styles.btn} ${styles.btnSecondary} ${styles.desktopOnly}`}
+                >
+                  DB
+                </Link>
+              )}
+
               <Link
                 to="/create"
                 className={`${styles.btn} ${styles.btnPrimary} ${
@@ -80,6 +89,15 @@ export default function Navbar() {
                     >
                       Mi Perfil
                     </Link>
+                    {user.isAdmin && (
+                      <Link
+                        to="/database"
+                        className={styles.dropdownItem}
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        Base de datos
+                      </Link>
+                    )}
                     <button className={`${styles.dropdownItem} ${styles.dropdownLogout}`} onClick={handleLogout}>
                       Salir
                     </button>
