@@ -111,21 +111,35 @@ export default function Navbar() {
                       <p className={styles.bellEmpty}>Sin notificaciones nuevas</p>
                     ) : (
                       <ul className={styles.bellList}>
-                        {[...notifications].reverse().map((n) => (
-                          <li key={n.tableId}>
-                            <Link
-                              to={`/tables/${n.tableId}`}
-                              className={styles.bellItem}
-                              onClick={() => { markRead(n.tableId); setBellOpen(false); }}
-                            >
-                              <span className={styles.bellGame}>🎲 {n.tableName}</span>
-                              <span className={styles.bellMsg}>
-                                <strong>{n.senderUsername}:</strong> {n.messagePreview}
-                                {n.messagePreview.length >= 60 ? '…' : ''}
-                              </span>
-                            </Link>
-                          </li>
-                        ))}
+                        {[...notifications].reverse().map((n) => {
+                          const isRequest = n.type === 'join_request';
+                          const countLabel = isRequest
+                            ? `${n.count} ${n.count === 1 ? 'solicitud' : 'solicitudes'}`
+                            : `${n.count} ${n.count === 1 ? 'mensaje nuevo' : 'mensajes nuevos'}`;
+                          const preview = isRequest
+                            ? `${n.lastRequesterUsername} quiere unirse`
+                            : `${n.lastSenderUsername}: ${n.lastMessagePreview}${(n.lastMessagePreview?.length ?? 0) >= 60 ? '…' : ''}`;
+                          const itemKey = `${n.type ?? 'chat'}:${n.tableId}`;
+                          return (
+                            <li key={itemKey}>
+                              <Link
+                                to={`/tables/${n.tableId}`}
+                                className={styles.bellItem}
+                                onClick={() => { markRead(n.tableId); setBellOpen(false); }}
+                              >
+                                <div className={styles.bellItemTop}>
+                                  <span className={styles.bellGame}>
+                                    {isRequest ? '🔔' : '🎲'} {n.tableName}
+                                  </span>
+                                  <span className={`${styles.bellCount} ${isRequest ? styles.bellCountRequest : ''}`}>
+                                    {countLabel}
+                                  </span>
+                                </div>
+                                <span className={styles.bellMsg}>{preview}</span>
+                              </Link>
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </div>

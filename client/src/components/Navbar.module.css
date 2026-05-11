@@ -227,12 +227,37 @@
   background: var(--bg-hover);
 }
 
+.bellItemTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
 .bellGame {
-  display: block;
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--amber);
-  margin-bottom: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bellCount {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--red);
+  background: rgba(243, 29, 119, 0.12);
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.bellCountRequest {
+  color: var(--amber);
+  background: var(--amber-glow);
 }
 
 .bellMsg {

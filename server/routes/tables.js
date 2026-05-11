@@ -198,6 +198,17 @@ router.post('/:id/join', protect, [
       table.pendingRequests.push(req.user._id);
       await table.save();
       const populated = await populateTable(Table.findById(table._id));
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${table.host}`).emit('join:request', {
+          tableId: table._id.toString(),
+          tableName: table.boardGame,
+          requesterUsername: req.user.username,
+          timestamp: new Date(),
+        });
+      }
+
       return res.json({ requested: true, table: populated });
     }
 

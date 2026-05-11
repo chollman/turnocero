@@ -13,6 +13,9 @@ function loadFromStorage() {
   }
 }
 
+const findExisting = (prev, type, tableId) =>
+  prev.find((n) => (n.type ?? 'chat') === type && n.tableId === tableId);
+
 export function NotificationProvider({ children }) {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState(loadFromStorage);
@@ -31,8 +34,56 @@ export function NotificationProvider({ children }) {
     socket.on('chat:notification', (notif) => {
       if (activeTableRef.current === notif.tableId) return;
       setNotifications((prev) => {
-        const rest = prev.filter((n) => n.tableId !== notif.tableId);
-        return [...rest, notif];
+        const existing = findExisting(prev, 'chat', notif.tableId);
+        if (existing) {
+          return prev.map((n) =>
+            (n.type ?? 'chat') === 'chat' && n.tableId === notif.tableId
+              ? {
+                  ...n,
+                  count: n.count + 1,
+                  lastSenderUsername: notif.senderUsername,
+                  lastMessagePreview: notif.messagePreview,
+                  timestamp: notif.timestamp,
+                }
+              : n
+          );
+        }
+        return [...prev, {
+          type: 'chat',
+          tableId: notif.tableId,
+          tableName: notif.tableName,
+          count: 1,
+          lastSenderUsername: notif.senderUsername,
+          lastMessagePreview: notif.messagePreview,
+          timestamp: notif.timestamp,
+        }];
+      });
+    });
+
+    socket.on('join:request', (notif) => {
+      if (activeTableRef.current === notif.tableId) return;
+      setNotifications((prev) => {
+        const existing = findExisting(prev, 'join_request', notif.tableId);
+        if (existing) {
+          return prev.map((n) =>
+            n.type === 'join_request' && n.tableId === notif.tableId
+              ? {
+                  ...n,
+                  count: n.count + 1,
+                  lastRequesterUsername: notif.requesterUsername,
+                  timestamp: notif.timestamp,
+                }
+              : n
+          );
+        }
+        return [...prev, {
+          type: 'join_request',
+          tableId: notif.tableId,
+          tableName: notif.tableName,
+          count: 1,
+          lastRequesterUsername: notif.requesterUsername,
+          timestamp: notif.timestamp,
+        }];
       });
     });
 
@@ -50,10 +101,12 @@ export function NotificationProvider({ children }) {
     if (tableId) markRead(tableId);
   }, [markRead]);
 
+  const totalUnread = notifications.reduce((sum, n) => sum + (n.count || 1), 0);
+
   return (
     <NotificationContext.Provider value={{
       notifications,
-      unreadCount: notifications.length,
+      unreadCount: totalUnread,
       markRead,
       clearAll,
       setActiveTable,
