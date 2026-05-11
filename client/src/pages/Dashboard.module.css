@@ -1,12 +1,12 @@
 .page {
-  padding: 2rem 0 4rem;
+  padding: 0 0 4rem;
   min-height: calc(100vh - 64px);
 }
 
 /* Hero */
 .hero {
   text-align: center;
-  padding: 2.5rem 0 2rem;
+  padding: 1rem 0;
 }
 
 .heroTitle {
@@ -72,7 +72,9 @@
   font-size: 0.875rem;
   outline: none;
   width: 220px;
-  transition: border-color var(--transition), box-shadow var(--transition);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
 .search::placeholder {
@@ -107,8 +109,12 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .errorText {
@@ -212,10 +218,6 @@
 }
 
 @media (max-width: 600px) {
-  .hero {
-    padding: 1.5rem 0 1rem;
-  }
-
   .heroTitle {
     font-size: 1.6rem;
   }

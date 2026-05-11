@@ -96,3 +96,9 @@ input, textarea, select {
   margin: 0 auto;
   padding: 0 1.5rem;
 }
+
+@media (max-width: 600px) {
+  .container {
+    padding: 0 0.5rem;
+  }
+}

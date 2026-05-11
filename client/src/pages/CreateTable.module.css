@@ -1,5 +1,4 @@
 .page {
-  padding: 2rem 0 4rem;
   min-height: calc(100vh - 64px);
 }
 
@@ -235,14 +234,17 @@
 
 @media (max-width: 600px) {
   .page {
-    padding: 0 0 1rem;
+    padding: 0;
+  }
+
+  .page :global(.container) {
+    padding: 0;
   }
 
   .card {
     border-radius: 0;
-    border-left: none;
-    border-right: none;
-    padding: 1.75rem 1.25rem;
+    border: none;
+    padding: 1.25rem 1rem;
   }
 
   .input {
