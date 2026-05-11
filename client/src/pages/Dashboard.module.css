@@ -63,6 +63,45 @@
   color: var(--amber);
 }
 
+.controlsRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.viewToggle {
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.viewBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.viewBtn:hover {
+  color: var(--text-primary);
+}
+
+.activeViewBtn {
+  background: var(--bg-elevated);
+  color: var(--amber);
+}
+
 .search {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -91,6 +130,13 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: 1.25rem;
+}
+
+/* List */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 /* Center states */
@@ -227,8 +273,15 @@
     align-items: stretch;
   }
 
+  .controlsRight {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
   .search {
-    width: 100%;
+    flex: 1;
+    width: auto;
     font-size: 16px;
   }
 

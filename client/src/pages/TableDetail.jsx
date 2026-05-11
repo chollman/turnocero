@@ -38,7 +38,6 @@ export default function TableDetail() {
 
   const socketRef = useRef(null)
   const messageListRef = useRef(null)
-  const skipNextScroll = useRef(false)
 
   const isParticipant = (t) => {
     if (!t || !user) return false
@@ -72,11 +71,9 @@ export default function TableDetail() {
   // Fetch message history once table is confirmed
   useEffect(() => {
     if (!table) return
-    skipNextScroll.current = true
     axios
       .get(`/api/tables/${id}/messages`)
       .then(({ data }) => setMessages(data))
-      .catch(() => { skipNextScroll.current = false })
   }, [table])
 
   // Socket.io connection
@@ -102,12 +99,8 @@ export default function TableDetail() {
     }
   }, [table, id])
 
-  // Auto-scroll chat on new messages, but not on initial load
+  // Auto-scroll chat on new messages and on initial load
   useEffect(() => {
-    if (skipNextScroll.current) {
-      skipNextScroll.current = false
-      return
-    }
     const list = messageListRef.current
     if (list) list.scrollTop = list.scrollHeight
   }, [messages])

@@ -16,7 +16,7 @@ const formatDate = (dateStr) => {
   });
 };
 
-export default function TableCard({ table, onUpdate, onCancel }) {
+export default function TableCard({ table, onUpdate, onCancel, listMode }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -88,6 +88,62 @@ export default function TableCard({ table, onUpdate, onCancel }) {
 
   const statusColor = isFull ? 'var(--red)' : 'var(--green)';
   const statusLabel = isFull ? 'Completa' : `${availableSeats} lugar${availableSeats !== 1 ? 'es' : ''} libre${availableSeats !== 1 ? 's' : ''}`;
+
+  if (listMode) {
+    return (
+      <div className={`${styles.card} ${styles.cardList} ${isHost ? styles.hosted : ''} ${isPlayer ? styles.joined : ''}`}>
+        <div className={styles.listLeft}>
+          <h3 className={styles.gameName}>{table.boardGame}</h3>
+          <div className={styles.badges}>
+            {isPrivate && <span className={styles.privacyBadge}>🔒 Privada</span>}
+            <span className={styles.statusBadge} style={{ color: statusColor, borderColor: statusColor }}>
+              {statusLabel}
+            </span>
+          </div>
+        </div>
+
+        <div className={styles.listMeta}>
+          <span className={styles.listMetaItem}>📅 {formatDate(table.date)}</span>
+          <span className={styles.listMetaItem}>👑 <strong>{table.host.username}</strong></span>
+          <span className={styles.listMetaItem}>👥 {table.players.length + 1} / {table.maxPlayers + 1}</span>
+          {table.location && <span className={styles.listMetaItem}>📍 {table.location}</span>}
+        </div>
+
+        <div className={styles.listActions}>
+          {error && <span className={styles.errorInline}>{error}</span>}
+          {isHost ? (
+            <>
+              <button className={styles.btnDetail} onClick={() => navigate(`/tables/${table._id}`)} disabled={loading}>
+                Ver detalles
+              </button>
+              <button className={styles.btnDanger} onClick={handleCancel} disabled={loading}>
+                Cancelar
+              </button>
+            </>
+          ) : isPlayer ? (
+            <>
+              <button className={styles.btnDetail} onClick={() => navigate(`/tables/${table._id}`)} disabled={loading}>
+                Ver detalles
+              </button>
+              <button className={styles.btnSecondary} onClick={handleLeave} disabled={loading}>
+                {loading ? '…' : 'Abandonar'}
+              </button>
+            </>
+          ) : isPendingRequest ? (
+            <button className={styles.btnPending} onClick={handleCancelRequest} disabled={loading}>
+              {loading ? '…' : 'Solicitud enviada · Cancelar'}
+            </button>
+          ) : (
+            <button className={styles.btnPrimary} onClick={handleJoin} disabled={loading || isFull}>
+              {loading ? '…' : isFull ? 'Llena' : isPrivate ? 'Solicitar' : 'Unirse'}
+            </button>
+          )}
+          {isHost && <span className={styles.hostBadge}>Host</span>}
+          {isPlayer && <span className={styles.playerBadge}>Unido</span>}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${styles.card} ${isHost ? styles.hosted : ''} ${isPlayer ? styles.joined : ''}`}>

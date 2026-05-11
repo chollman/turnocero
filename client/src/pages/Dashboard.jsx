@@ -11,6 +11,23 @@ const TABS = [
 
 const DEBOUNCE_MS = 400;
 
+const GridIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
+    <rect x="1" y="1" width="5.5" height="5.5" rx="1" />
+    <rect x="8.5" y="1" width="5.5" height="5.5" rx="1" />
+    <rect x="1" y="8.5" width="5.5" height="5.5" rx="1" />
+    <rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1" />
+  </svg>
+);
+
+const ListIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
+    <rect x="1" y="2" width="13" height="2" rx="1" />
+    <rect x="1" y="6.5" width="13" height="2" rx="1" />
+    <rect x="1" y="11" width="13" height="2" rx="1" />
+  </svg>
+);
+
 export default function Dashboard() {
   const [tables, setTables] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
@@ -21,6 +38,7 @@ export default function Dashboard() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [refetchKey, setRefetchKey] = useState(0);
+  const [viewMode, setViewMode] = useState('grid');
   const debounceTimer = useRef(null);
 
   const handleSearchChange = (e) => {
@@ -98,13 +116,31 @@ export default function Dashboard() {
             ))}
           </div>
 
-          <input
-            type="text"
-            className={styles.search}
-            placeholder="Buscar juego o host…"
-            value={search}
-            onChange={handleSearchChange}
-          />
+          <div className={styles.controlsRight}>
+            <div className={styles.viewToggle}>
+              <button
+                className={`${styles.viewBtn} ${viewMode === 'grid' ? styles.activeViewBtn : ''}`}
+                onClick={() => setViewMode('grid')}
+                title="Vista en cuadrícula"
+              >
+                <GridIcon />
+              </button>
+              <button
+                className={`${styles.viewBtn} ${viewMode === 'list' ? styles.activeViewBtn : ''}`}
+                onClick={() => setViewMode('list')}
+                title="Vista en lista"
+              >
+                <ListIcon />
+              </button>
+            </div>
+            <input
+              type="text"
+              className={styles.search}
+              placeholder="Buscar juego o host…"
+              value={search}
+              onChange={handleSearchChange}
+            />
+          </div>
         </div>
 
         {/* Content */}
@@ -137,13 +173,14 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-            <div className={styles.grid}>
+            <div className={viewMode === 'list' ? styles.list : styles.grid}>
               {tables.map((table) => (
                 <TableCard
                   key={table._id}
                   table={table}
                   onUpdate={handleUpdate}
                   onCancel={handleCancel}
+                  listMode={viewMode === 'list'}
                 />
               ))}
             </div>

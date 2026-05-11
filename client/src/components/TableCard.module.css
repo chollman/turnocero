@@ -259,7 +259,83 @@
   border: 1px solid rgba(0, 217, 132, 0.3);
 }
 
+/* List mode */
+.cardList {
+  flex-direction: row;
+  align-items: center;
+  padding: 0.7rem 1rem;
+  gap: 1rem;
+  border-radius: 10px;
+}
+
+.cardList:hover {
+  transform: none;
+}
+
+.listLeft {
+  flex: 0 0 auto;
+  min-width: 140px;
+  max-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.listMeta {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.25rem;
+}
+
+.listMetaItem {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.listMetaItem strong {
+  color: var(--text-primary);
+}
+
+.listActions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.errorInline {
+  font-size: 0.78rem;
+  color: var(--red);
+}
+
 @media (max-width: 600px) {
+  .cardList {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.85rem 1rem;
+  }
+
+  .listLeft {
+    max-width: none;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .listMeta {
+    gap: 0.25rem 0.75rem;
+  }
+
+  .listActions {
+    justify-content: flex-start;
+  }
+
   .card {
     padding: 1rem;
     border-radius: 10px;

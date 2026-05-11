@@ -1,3 +1,11 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
+const dns = require('dns');
+if (process.env.DNS_SERVERS) {
+  dns.setServers(process.env.DNS_SERVERS.split(',').map(s => s.trim()));
+}
+
 const http = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
@@ -5,11 +13,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
-const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
 const logger = require('./utils/logger');
-
-dotenv.config();
 
 if (!process.env.JWT_SECRET) {
   logger.error('JWT_SECRET environment variable is required');
