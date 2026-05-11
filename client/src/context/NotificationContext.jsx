@@ -60,6 +60,22 @@ export function NotificationProvider({ children }) {
       });
     });
 
+    socket.on('join:accepted', (notif) => {
+      if (activeTableRef.current === notif.tableId) return;
+      setNotifications((prev) => {
+        const rest = prev.filter(
+          (n) => !(n.type === 'join_accepted' && n.tableId === notif.tableId)
+        );
+        return [...rest, {
+          type: 'join_accepted',
+          tableId: notif.tableId,
+          tableName: notif.tableName,
+          count: 1,
+          timestamp: notif.timestamp,
+        }];
+      });
+    });
+
     socket.on('join:request', (notif) => {
       if (activeTableRef.current === notif.tableId) return;
       setNotifications((prev) => {

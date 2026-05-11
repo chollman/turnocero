@@ -113,12 +113,17 @@ export default function Navbar() {
                       <ul className={styles.bellList}>
                         {[...notifications].reverse().map((n) => {
                           const isRequest = n.type === 'join_request';
-                          const countLabel = isRequest
-                            ? `${n.count} ${n.count === 1 ? 'solicitud' : 'solicitudes'}`
-                            : `${n.count} ${n.count === 1 ? 'mensaje nuevo' : 'mensajes nuevos'}`;
-                          const preview = isRequest
-                            ? `${n.lastRequesterUsername} quiere unirse`
-                            : `${n.lastSenderUsername}: ${n.lastMessagePreview}${(n.lastMessagePreview?.length ?? 0) >= 60 ? '…' : ''}`;
+                          const isAccepted = n.type === 'join_accepted';
+                          const countLabel = isAccepted
+                            ? '¡Aceptado!'
+                            : isRequest
+                              ? `${n.count} ${n.count === 1 ? 'solicitud' : 'solicitudes'}`
+                              : `${n.count} ${n.count === 1 ? 'mensaje nuevo' : 'mensajes nuevos'}`;
+                          const preview = isAccepted
+                            ? '¡Ya sos parte de esta mesa!'
+                            : isRequest
+                              ? `${n.lastRequesterUsername} quiere unirse`
+                              : `${n.lastSenderUsername}: ${n.lastMessagePreview}${(n.lastMessagePreview?.length ?? 0) >= 60 ? '…' : ''}`;
                           const itemKey = `${n.type ?? 'chat'}:${n.tableId}`;
                           return (
                             <li key={itemKey}>
@@ -129,9 +134,9 @@ export default function Navbar() {
                               >
                                 <div className={styles.bellItemTop}>
                                   <span className={styles.bellGame}>
-                                    {isRequest ? '🔔' : '🎲'} {n.tableName}
+                                    {isAccepted ? '✅' : isRequest ? '🔔' : '🎲'} {n.tableName}
                                   </span>
-                                  <span className={`${styles.bellCount} ${isRequest ? styles.bellCountRequest : ''}`}>
+                                  <span className={`${styles.bellCount} ${isRequest ? styles.bellCountRequest : ''} ${isAccepted ? styles.bellCountAccepted : ''}`}>
                                     {countLabel}
                                   </span>
                                 </div>

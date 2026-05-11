@@ -269,6 +269,16 @@ router.post('/:id/requests/:userId/accept', protect, [
     table.players.push(req.params.userId);
     await table.save();
     const populated = await populateTable(Table.findById(table._id));
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user:${req.params.userId}`).emit('join:accepted', {
+        tableId: req.params.id,
+        tableName: table.boardGame,
+        timestamp: new Date(),
+      });
+    }
+
     res.json(populated);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
