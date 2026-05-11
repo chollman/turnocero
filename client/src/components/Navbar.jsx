@@ -43,6 +43,15 @@ export default function Navbar() {
                 Hola, <strong>{user.username}</strong>
               </Link>
 
+              <Link
+                to="/users"
+                className={`${styles.btn} ${styles.btnSecondary} ${styles.desktopOnly} ${
+                  location.pathname.startsWith('/users') ? styles.active : ''
+                }`}
+              >
+                Jugadores
+              </Link>
+
               {user.isAdmin && (
                 <Link
                   to="/database"
@@ -92,6 +101,13 @@ export default function Navbar() {
                       onClick={() => setMenuOpen(false)}
                     >
                       Mi Perfil
+                    </Link>
+                    <Link
+                      to="/users"
+                      className={styles.dropdownItem}
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Jugadores
                     </Link>
                     {user.isAdmin && (
                       <Link
