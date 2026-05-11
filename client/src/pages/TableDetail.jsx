@@ -35,6 +35,7 @@ export default function TableDetail() {
 
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const isInitialLoad = useRef(true);
 
   const isParticipant = (t) => {
     if (!t || !user) return false;
@@ -95,8 +96,12 @@ export default function TableDetail() {
     };
   }, [table, id]);
 
-  // Auto-scroll on new messages
+  // Auto-scroll on new messages, but not on initial load
   useEffect(() => {
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      return;
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
