@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import axios from 'axios'
@@ -47,6 +47,11 @@ export default function TableDetail() {
   const [editingCommentId, setEditingCommentId] = useState(null)
   const [editingContent, setEditingContent] = useState('')
 
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [imageError, setImageError] = useState('')
+  const [lightboxImage, setLightboxImage] = useState(null)
+  const fileInputRef = useRef(null)
+
   const socketRef = useRef(null)
   const messageListRef = useRef(null)
 
@@ -70,7 +75,8 @@ export default function TableDetail() {
     const fetchTable = async () => {
       try {
         const { data } = await axios.get(`/api/tables/${id}`)
-        if (!isParticipant(data) && !user.isAdmin) {
+        // Private tables: only members and admins can view
+        if (data.privacy === 'private' && !isParticipant(data) && !user.isAdmin) {
           navigate('/', { replace: true })
           return
         }
@@ -145,6 +151,23 @@ export default function TableDetail() {
     }
   }
 
+  const [joinLoading, setJoinLoading] = useState(false)
+  const [joinError, setJoinError] = useState('')
+
+  const handleGuestJoin = async () => {
+    setJoinLoading(true)
+    setJoinError('')
+    try {
+      const { data } = await axios.post(`/api/tables/${id}/join`)
+      setTable(data.table)
+      setPendingRequests(data.table.pendingRequests || [])
+    } catch (err) {
+      setJoinError(err.response?.data?.message || 'Error al unirse')
+    } finally {
+      setJoinLoading(false)
+    }
+  }
+
   const handleReact = async (emoji) => {
     const currentReactions = table.reactions || []
     const existing = currentReactions.find((r) => r.user?.toString() === user._id.toString())
@@ -169,6 +192,37 @@ export default function TableDetail() {
       setTable((prev) => ({ ...prev, reactions: data.reactions }))
     } catch {
       setTable((prev) => ({ ...prev, reactions: currentReactions }))
+    }
+  }
+
+  const handleImageUpload = useCallback(async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setImageError('')
+    setUploadingImage(true)
+    const formData = new FormData()
+    formData.append('image', file)
+    try {
+      const { data } = await axios.post(`/api/tables/${id}/images`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setTable((prev) => ({ ...prev, images: data }))
+    } catch (err) {
+      setImageError(err.response?.data?.message || 'Error al subir la imagen')
+    } finally {
+      setUploadingImage(false)
+    }
+  }, [id])
+
+  const handleImageDelete = async (imageId) => {
+    if (!window.confirm('¿Eliminar esta imagen?')) return
+    setImageError('')
+    try {
+      await axios.delete(`/api/tables/${id}/images/${imageId}`)
+      setTable((prev) => ({ ...prev, images: prev.images.filter((img) => img._id !== imageId) }))
+    } catch (err) {
+      setImageError(err.response?.data?.message || 'Error al eliminar la imagen')
     }
   }
 
@@ -242,6 +296,7 @@ export default function TableDetail() {
 
   const isHost = table.host._id?.toString() === user._id.toString()
   const isViewingAsAdmin = user.isAdmin && !isParticipant(table)
+  const isGuest = !isParticipant(table) && !user.isAdmin
   const isFull = table.players.length >= table.maxPlayers
   const statusLabel = isFull
     ? 'Completa'
@@ -255,7 +310,7 @@ export default function TableDetail() {
           ← Volver al dashboard
         </button>
 
-        <div className={styles.layout}>
+        <div className={`${styles.layout} ${isGuest ? styles.layoutSingle : ''}`}>
           {/* Left: Table details */}
           <div className={styles.detailsPanel}>
             <div className={styles.detailsHeader}>
@@ -375,6 +430,23 @@ export default function TableDetail() {
               </div>
             </div>
 
+            {/* Guest join action */}
+            {isGuest && table.status !== 'cancelled' && (
+              <div className={styles.guestJoinBlock}>
+                {joinError && <p className={styles.guestJoinError}>{joinError}</p>}
+                <button
+                  className={styles.btnGuestJoin}
+                  onClick={handleGuestJoin}
+                  disabled={joinLoading || isFull}
+                >
+                  {joinLoading ? '…' : isFull ? 'Mesa completa' : '¡Unirme a la mesa!'}
+                </button>
+                <p className={styles.chatPrivateNote}>
+                  El chat es privado y solo está disponible para los miembros.
+                </p>
+              </div>
+            )}
+
             {/* Pending requests – host only, private tables */}
             {isHost && table.privacy === 'private' && (
               <div className={styles.requestsSection}>
@@ -417,8 +489,8 @@ export default function TableDetail() {
             )}
           </div>
 
-          {/* Right: Chat */}
-          <div className={styles.chatPanel}>
+          {/* Right: Chat — private, only for members and admins */}
+          {!isGuest && <div className={styles.chatPanel}>
             <div className={styles.chatHeader}>
               <h2 className={styles.chatTitle}>Chat de la mesa</h2>
               <span className={styles.chatSubtitle}>
@@ -483,8 +555,88 @@ export default function TableDetail() {
                 </button>
               </form>
             )}
-          </div>
+          </div>}
         </div>
+
+        {/* Image gallery */}
+        {(() => {
+          const images = table.images || []
+          const canUpload = isParticipant(table) && !isViewingAsAdmin && images.length < 10
+          return (
+            <div className={styles.gallerySection}>
+              <div className={styles.galleryHeader}>
+                <h2 className={styles.galleryTitle}>
+                  Fotos de la mesa
+                  {images.length > 0 && (
+                    <span className={styles.galleryBadge}>{images.length}/10</span>
+                  )}
+                </h2>
+                {canUpload && (
+                  <>
+                    <button
+                      className={styles.btnUpload}
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingImage}
+                    >
+                      {uploadingImage ? 'Subiendo…' : '+ Agregar foto'}
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type='file'
+                      accept='image/jpeg,image/png,image/webp,image/gif'
+                      style={{ display: 'none' }}
+                      onChange={handleImageUpload}
+                    />
+                  </>
+                )}
+              </div>
+
+              {imageError && <p className={styles.galleryError}>{imageError}</p>}
+
+              {images.length === 0 ? (
+                <p className={styles.galleryEmpty}>
+                  {isParticipant(table) ? 'Todavía no hay fotos. ¡Subí la primera!' : 'Todavía no hay fotos.'}
+                </p>
+              ) : (
+                <div className={styles.imageGrid}>
+                  {images.map((img) => {
+                    const isUploader = (img.uploader?._id || img.uploader)?.toString() === user._id.toString()
+                    const canDelete = isUploader || isHost || user.isAdmin
+                    return (
+                      <div key={img._id} className={styles.imageThumb}>
+                        <img
+                          src={img.url}
+                          alt='Foto de la mesa'
+                          className={styles.thumbImg}
+                          onClick={() => setLightboxImage(img.url)}
+                        />
+                        {canDelete && (
+                          <button
+                            className={styles.btnDeleteImg}
+                            onClick={() => handleImageDelete(img._id)}
+                            title='Eliminar imagen'
+                          >
+                            ✕
+                          </button>
+                        )}
+                        {img.uploader?.username && (
+                          <span className={styles.uploaderLabel}>{img.uploader.username}</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
+        {/* Lightbox */}
+        {lightboxImage && (
+          <div className={styles.lightboxOverlay} onClick={() => setLightboxImage(null)}>
+            <img src={lightboxImage} alt='Vista ampliada' className={styles.lightboxImg} />
+          </div>
+        )}
 
         {/* Comments */}
         <div className={styles.commentsSection}>

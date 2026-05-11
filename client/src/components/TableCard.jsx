@@ -173,9 +173,16 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
               {loading ? '…' : 'Solicitud enviada · Cancelar'}
             </button>
           ) : (
-            <button className={styles.btnPrimary} onClick={handleJoin} disabled={loading || isFull}>
-              {loading ? '…' : isFull ? 'Llena' : isPrivate ? 'Solicitar' : 'Unirse'}
-            </button>
+            <>
+              {!isPrivate && (
+                <button className={`${styles.btnIcon} ${styles.btnIconDetail}`} onClick={() => navigate(`/tables/${table._id}`)} title="Ver detalle" disabled={loading}>
+                  <EyeIcon size={15} />
+                </button>
+              )}
+              <button className={styles.btnPrimary} onClick={handleJoin} disabled={loading || isFull}>
+                {loading ? '…' : isFull ? 'Llena' : isPrivate ? 'Solicitar' : 'Unirse'}
+              </button>
+            </>
           )}
           {showAdminTab && (
             <button
@@ -333,13 +340,25 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
             {loading ? '…' : 'Solicitud enviada · Cancelar'}
           </button>
         ) : (
-          <button
-            className={styles.btnPrimary}
-            onClick={handleJoin}
-            disabled={loading || isFull}
-          >
-            {loading ? '…' : isFull ? 'Mesa llena' : isPrivate ? 'Solicitar unirse' : 'Unirse'}
-          </button>
+          <>
+            {!isPrivate && (
+              <button
+                className={`${styles.btnIcon} ${styles.btnIconDetail}`}
+                onClick={() => navigate(`/tables/${table._id}`)}
+                title="Ver detalle"
+                disabled={loading}
+              >
+                <EyeIcon size={15} />
+              </button>
+            )}
+            <button
+              className={styles.btnPrimary}
+              onClick={handleJoin}
+              disabled={loading || isFull}
+            >
+              {loading ? '…' : isFull ? 'Mesa llena' : isPrivate ? 'Solicitar unirse' : 'Unirse'}
+            </button>
+          </>
         )}
 
       </div>

@@ -31,7 +31,8 @@ const populateTable = (query) =>
   query
     .populate('host', 'username')
     .populate('players', 'username')
-    .populate('pendingRequests', 'username');
+    .populate('pendingRequests', 'username')
+    .populate('images.uploader', 'username');
 
 // GET /api/tables — protected; supports ?page, ?limit, ?search
 router.get('/', protect, async (req, res) => {

@@ -12,7 +12,7 @@ El objetivo es enriquecer la experiencia dentro de cada mesa con contenido tipo 
 |------|---------|-------------|--------|
 | 1 | **Reacciones con emojis** (❤️ 🎲 🔥 👍 😄) | Baja | ✅ Completada |
 | 2 | **Comentarios** (add/edit/delete) | Media | ✅ Completada |
-| 3 | **Imágenes vía Cloudinary** | Alta | Pendiente |
+| 3 | **Imágenes vía Cloudinary** | Alta | ✅ Completada |
 | 4 | **Seguir mesa sin unirse** + notificación si se abre un lugar | Media | Pendiente |
 | 5 | **Valoración post-partida** | Media | Pendiente |
 

@@ -63,6 +63,14 @@ const tableSchema = new mongoose.Schema(
         emoji: { type: String, enum: ['❤️', '🎲', '🔥', '👍', '😄'], required: true },
       },
     ],
+    images: [
+      {
+        url:       { type: String, required: true },
+        publicId:  { type: String, required: true },
+        uploader:  { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );
