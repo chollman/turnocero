@@ -63,8 +63,12 @@ export default function Navbar() {
               </Link>
 
               {/* Desktop: logout button */}
-              <button className={`${styles.btnLogout} ${styles.desktopOnly}`} onClick={handleLogout}>
-                Salir
+              <button className={`${styles.btnLogout} ${styles.desktopOnly}`} onClick={handleLogout} aria-label="Cerrar sesión" title="Cerrar sesión">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
               </button>
 
               {/* Mobile: hamburger menu */}
@@ -99,6 +103,11 @@ export default function Navbar() {
                       </Link>
                     )}
                     <button className={`${styles.dropdownItem} ${styles.dropdownLogout}`} onClick={handleLogout}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '0.5rem', verticalAlign: 'middle' }}>
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                      </svg>
                       Salir
                     </button>
                   </div>

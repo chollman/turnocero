@@ -24,3 +24,15 @@
     transform: translateY(calc(100vh + 15%)) rotate(360deg);
   }
 }
+
+@media (max-width: 768px) {
+  .piece {
+    font-size: 4.5rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .piece {
+    font-size: 3rem !important;
+  }
+}
