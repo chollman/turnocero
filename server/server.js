@@ -72,6 +72,8 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
+  socket.join(`user:${socket.userId}`);
+
   socket.on('join:table', (tableId) => {
     socket.join(`table:${tableId}`);
   });

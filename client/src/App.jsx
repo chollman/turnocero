@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -68,10 +69,12 @@ export default function App() {
   return (
     <HashRouter>
       <AuthProvider>
-        <BoardGameBackground />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <AppRoutes />
-        </div>
+        <NotificationProvider>
+          <BoardGameBackground />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <AppRoutes />
+          </div>
+        </NotificationProvider>
       </AuthProvider>
     </HashRouter>
   );

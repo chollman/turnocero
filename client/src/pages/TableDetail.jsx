@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
+import { useNotifications } from '../context/NotificationContext'
 import styles from './TableDetail.module.css'
 
 const formatDate = (dateStr) =>
@@ -24,6 +25,7 @@ const formatTime = (dateStr) =>
 export default function TableDetail() {
   const { id } = useParams()
   const { user } = useAuth()
+  const { setActiveTable } = useNotifications()
   const navigate = useNavigate()
 
   const [table, setTable] = useState(null)
@@ -47,6 +49,12 @@ export default function TableDetail() {
       t.players.some((p) => (p._id || p).toString() === uid)
     )
   }
+
+  // Mark this table as active so notifications are suppressed while viewing
+  useEffect(() => {
+    setActiveTable(id)
+    return () => setActiveTable(null)
+  }, [id, setActiveTable])
 
   // Fetch table + validate access
   useEffect(() => {

@@ -55,9 +55,28 @@ router.post('/', protect, [
     });
     await message.populate('sender', 'username');
 
-    // Broadcast to all sockets in this table's room
     const io = req.app.get('io');
-    if (io) io.to(`table:${req.params.id}`).emit('chat:message', message);
+    if (io) {
+      io.to(`table:${req.params.id}`).emit('chat:message', message);
+
+      const senderId = req.user._id.toString();
+      const participantIds = [
+        table.host.toString(),
+        ...table.players.map((p) => p.toString()),
+      ].filter((pid) => pid !== senderId);
+
+      const notif = {
+        tableId: req.params.id,
+        tableName: table.boardGame,
+        senderUsername: req.user.username,
+        messagePreview: req.body.content.slice(0, 60),
+        timestamp: new Date(),
+      };
+
+      for (const pid of participantIds) {
+        io.to(`user:${pid}`).emit('chat:notification', notif);
+      }
+    }
 
     res.status(201).json(message);
   } catch {

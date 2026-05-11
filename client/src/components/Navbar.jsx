@@ -1,14 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import styles from './Navbar.module.css';
+
+const BellIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+  </svg>
+);
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { notifications, unreadCount, markRead, clearAll } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
   const menuRef = useRef(null);
+  const bellRef = useRef(null);
 
   const handleLogout = () => {
     logout();
@@ -21,12 +32,18 @@ export default function Navbar() {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setMenuOpen(false);
       }
+      if (bellRef.current && !bellRef.current.contains(e.target)) {
+        setBellOpen(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  useEffect(() => setMenuOpen(false), [location.pathname]);
+  useEffect(() => {
+    setMenuOpen(false);
+    setBellOpen(false);
+  }, [location.pathname]);
 
   return (
     <nav className={styles.nav}>
@@ -60,6 +77,60 @@ export default function Navbar() {
                   DB
                 </Link>
               )}
+
+              {/* Bell notification */}
+              <div className={styles.bellWrap} ref={bellRef}>
+                <button
+                  className={styles.bellBtn}
+                  onClick={() => setBellOpen((o) => !o)}
+                  aria-label="Notificaciones"
+                  title="Notificaciones"
+                >
+                  <BellIcon />
+                  {unreadCount > 0 && (
+                    <span className={styles.bellBadge}>
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {bellOpen && (
+                  <div className={styles.bellDropdown}>
+                    <div className={styles.bellHeader}>
+                      <span>Notificaciones</span>
+                      {notifications.length > 0 && (
+                        <button
+                          className={styles.clearBtn}
+                          onClick={() => { clearAll(); setBellOpen(false); }}
+                        >
+                          Limpiar
+                        </button>
+                      )}
+                    </div>
+                    {notifications.length === 0 ? (
+                      <p className={styles.bellEmpty}>Sin notificaciones nuevas</p>
+                    ) : (
+                      <ul className={styles.bellList}>
+                        {[...notifications].reverse().map((n) => (
+                          <li key={n.tableId}>
+                            <Link
+                              to={`/tables/${n.tableId}`}
+                              className={styles.bellItem}
+                              onClick={() => { markRead(n.tableId); setBellOpen(false); }}
+                            >
+                              <span className={styles.bellGame}>🎲 {n.tableName}</span>
+                              <span className={styles.bellMsg}>
+                                <strong>{n.senderUsername}:</strong> {n.messagePreview}
+                                {n.messagePreview.length >= 60 ? '…' : ''}
+                              </span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <Link
                 to="/create"
