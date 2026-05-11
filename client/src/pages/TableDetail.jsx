@@ -117,6 +117,7 @@ export default function TableDetail() {
     setRequestError('')
     try {
       const { data } = await axios.post(`/api/tables/${id}/requests/${userId}/${action}`)
+      setTable(data)
       setPendingRequests(data.pendingRequests || [])
     } catch (err) {
       setRequestError(err.response?.data?.message || 'Error al procesar la solicitud')
