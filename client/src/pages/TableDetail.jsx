@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { io } from 'socket.io-client';
-import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
-import styles from './TableDetail.module.css';
+import { useEffect, useRef, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { io } from 'socket.io-client'
+import axios from 'axios'
+import { useAuth } from '../context/AuthContext'
+import styles from './TableDetail.module.css'
 
 const formatDate = (dateStr) =>
   new Date(dateStr).toLocaleDateString('es-AR', {
@@ -13,146 +13,152 @@ const formatDate = (dateStr) =>
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  });
+  })
 
 const formatTime = (dateStr) =>
   new Date(dateStr).toLocaleTimeString('es-AR', {
     hour: '2-digit',
     minute: '2-digit',
-  });
+  })
 
 export default function TableDetail() {
-  const { id } = useParams();
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { id } = useParams()
+  const { user } = useAuth()
+  const navigate = useNavigate()
 
-  const [table, setTable] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
-  const [loadingTable, setLoadingTable] = useState(true);
-  const [error, setError] = useState('');
+  const [table, setTable] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [input, setInput] = useState('')
+  const [sending, setSending] = useState(false)
+  const [loadingTable, setLoadingTable] = useState(true)
+  const [error, setError] = useState('')
 
-  const socketRef = useRef(null);
-  const messagesEndRef = useRef(null);
-  const isInitialLoad = useRef(true);
+  const socketRef = useRef(null)
+  const messageListRef = useRef(null)
+  const skipNextScroll = useRef(false)
 
   const isParticipant = (t) => {
-    if (!t || !user) return false;
-    const uid = user._id.toString();
+    if (!t || !user) return false
+    const uid = user._id.toString()
     return (
       t.host._id?.toString() === uid ||
       t.players.some((p) => (p._id || p).toString() === uid)
-    );
-  };
+    )
+  }
 
   // Fetch table + validate access
   useEffect(() => {
     const fetchTable = async () => {
       try {
-        const { data } = await axios.get(`/api/tables/${id}`);
+        const { data } = await axios.get(`/api/tables/${id}`)
         if (!isParticipant(data)) {
-          navigate('/', { replace: true });
-          return;
+          navigate('/', { replace: true })
+          return
         }
-        setTable(data);
+        setTable(data)
       } catch {
-        navigate('/', { replace: true });
+        navigate('/', { replace: true })
       } finally {
-        setLoadingTable(false);
+        setLoadingTable(false)
       }
-    };
-    fetchTable();
-  }, [id]);
+    }
+    fetchTable()
+  }, [id])
 
   // Fetch message history once table is confirmed
   useEffect(() => {
-    if (!table) return;
-    axios.get(`/api/tables/${id}/messages`)
+    if (!table) return
+    skipNextScroll.current = true
+    axios
+      .get(`/api/tables/${id}/messages`)
       .then(({ data }) => setMessages(data))
-      .catch(() => {});
-  }, [table]);
+      .catch(() => { skipNextScroll.current = false })
+  }, [table])
 
   // Socket.io connection
   useEffect(() => {
-    if (!table) return;
-    const token = localStorage.getItem('token');
-    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    if (!table) return
+    const token = localStorage.getItem('token')
+    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
     const socket = io(socketUrl, {
       auth: { token },
       transports: ['websocket'],
-    });
-    socketRef.current = socket;
+    })
+    socketRef.current = socket
 
-    socket.emit('join:table', id);
+    socket.emit('join:table', id)
 
     socket.on('chat:message', (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
+      setMessages((prev) => [...prev, msg])
+    })
 
     return () => {
-      socket.emit('leave:table', id);
-      socket.disconnect();
-    };
-  }, [table, id]);
-
-  // Auto-scroll on new messages, but not on initial load
-  useEffect(() => {
-    if (isInitialLoad.current) {
-      isInitialLoad.current = false;
-      return;
+      socket.emit('leave:table', id)
+      socket.disconnect()
     }
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [table, id])
+
+  // Auto-scroll chat on new messages, but not on initial load
+  useEffect(() => {
+    if (skipNextScroll.current) {
+      skipNextScroll.current = false
+      return
+    }
+    const list = messageListRef.current
+    if (list) list.scrollTop = list.scrollHeight
+  }, [messages])
 
   const sendMessage = async (e) => {
-    e.preventDefault();
-    const content = input.trim();
-    if (!content || sending) return;
-    setSending(true);
-    setInput('');
+    e.preventDefault()
+    const content = input.trim()
+    if (!content || sending) return
+    setSending(true)
+    setInput('')
     try {
-      await axios.post(`/api/tables/${id}/messages`, { content });
+      await axios.post(`/api/tables/${id}/messages`, { content })
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al enviar el mensaje');
-      setInput(content);
+      setError(err.response?.data?.message || 'Error al enviar el mensaje')
+      setInput(content)
     } finally {
-      setSending(false);
+      setSending(false)
     }
-  };
+  }
 
   if (loadingTable) {
     return (
       <div className={styles.loadingWrapper}>
         <span className={styles.loadingDice}>🎲</span>
       </div>
-    );
+    )
   }
 
-  if (!table) return null;
+  if (!table) return null
 
-  const isHost = table.host._id?.toString() === user._id.toString();
-  const isFull = table.players.length >= table.maxPlayers;
-  const statusLabel = isFull ? 'Completa' : `${table.maxPlayers - table.players.length} lugar${table.maxPlayers - table.players.length !== 1 ? 'es' : ''} libre${table.maxPlayers - table.players.length !== 1 ? 's' : ''}`;
+  const isHost = table.host._id?.toString() === user._id.toString()
+  const isFull = table.players.length >= table.maxPlayers
+  const statusLabel = isFull
+    ? 'Completa'
+    : `${table.maxPlayers - table.players.length} lugar${table.maxPlayers - table.players.length !== 1 ? 'es' : ''} libre${table.maxPlayers - table.players.length !== 1 ? 's' : ''}`
 
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-
         {/* Back button */}
         <button className={styles.backBtn} onClick={() => navigate('/')}>
           ← Volver al dashboard
         </button>
 
         <div className={styles.layout}>
-
           {/* Left: Table details */}
           <div className={styles.detailsPanel}>
             <div className={styles.detailsHeader}>
               <h1 className={styles.gameTitle}>{table.boardGame}</h1>
               <span
                 className={styles.statusBadge}
-                style={{ color: isFull ? 'var(--red)' : 'var(--green)', borderColor: isFull ? 'var(--red)' : 'var(--green)' }}
+                style={{
+                  color: isFull ? 'var(--red)' : 'var(--green)',
+                  borderColor: isFull ? 'var(--red)' : 'var(--green)',
+                }}
               >
                 {statusLabel}
               </span>
@@ -163,7 +169,9 @@ export default function TableDetail() {
                 <span className={styles.infoIcon}>📅</span>
                 <div>
                   <span className={styles.infoLabel}>Fecha y hora</span>
-                  <span className={styles.infoValue}>{formatDate(table.date)}</span>
+                  <span className={styles.infoValue}>
+                    {formatDate(table.date)}
+                  </span>
                 </div>
               </div>
 
@@ -211,13 +219,19 @@ export default function TableDetail() {
               <span className={styles.infoLabel}>Participantes</span>
               <div className={styles.participantsList}>
                 <div className={styles.participant}>
-                  <span className={styles.avatar}>{table.host.username[0].toUpperCase()}</span>
-                  <span className={styles.participantName}>{table.host.username}</span>
+                  <span className={styles.avatar}>
+                    {table.host.username[0].toUpperCase()}
+                  </span>
+                  <span className={styles.participantName}>
+                    {table.host.username}
+                  </span>
                   <span className={styles.hostTag}>Host</span>
                 </div>
                 {table.players.map((p) => (
                   <div key={p._id || p} className={styles.participant}>
-                    <span className={styles.avatar}>{(p.username || '?')[0].toUpperCase()}</span>
+                    <span className={styles.avatar}>
+                      {(p.username || '?')[0].toUpperCase()}
+                    </span>
                     <span className={styles.participantName}>{p.username}</span>
                     {(p._id || p).toString() === user._id.toString() && (
                       <span className={styles.youTag}>vos</span>
@@ -232,31 +246,38 @@ export default function TableDetail() {
           <div className={styles.chatPanel}>
             <div className={styles.chatHeader}>
               <h2 className={styles.chatTitle}>Chat de la mesa</h2>
-              <span className={styles.chatSubtitle}>Solo visible para los participantes</span>
+              <span className={styles.chatSubtitle}>
+                Solo visible para los participantes
+              </span>
             </div>
 
-            <div className={styles.messageList}>
+            <div className={styles.messageList} ref={messageListRef}>
               {messages.length === 0 && (
                 <p className={styles.emptyChat}>
                   Nadie habló todavía. ¡Rompé el hielo! 🎲
                 </p>
               )}
               {messages.map((msg) => {
-                const isOwn = (msg.sender._id || msg.sender).toString() === user._id.toString();
+                const isOwn =
+                  (msg.sender._id || msg.sender).toString() ===
+                  user._id.toString()
                 return (
                   <div
                     key={msg._id}
                     className={`${styles.message} ${isOwn ? styles.ownMessage : styles.otherMessage}`}
                   >
                     {!isOwn && (
-                      <span className={styles.senderName}>{msg.sender.username}</span>
+                      <span className={styles.senderName}>
+                        {msg.sender.username}
+                      </span>
                     )}
                     <div className={styles.bubble}>{msg.content}</div>
-                    <span className={styles.messageTime}>{formatTime(msg.createdAt)}</span>
+                    <span className={styles.messageTime}>
+                      {formatTime(msg.createdAt)}
+                    </span>
                   </div>
-                );
+                )
               })}
-              <div ref={messagesEndRef} />
             </div>
 
             {error && <p className={styles.chatError}>{error}</p>}
@@ -264,8 +285,8 @@ export default function TableDetail() {
             <form className={styles.inputRow} onSubmit={sendMessage}>
               <input
                 className={styles.chatInput}
-                type="text"
-                placeholder="Escribí un mensaje…"
+                type='text'
+                placeholder='Escribí un mensaje…'
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 maxLength={1000}
@@ -273,16 +294,15 @@ export default function TableDetail() {
               />
               <button
                 className={styles.sendBtn}
-                type="submit"
+                type='submit'
                 disabled={!input.trim() || sending}
               >
                 Enviar
               </button>
             </form>
           </div>
-
         </div>
       </div>
     </div>
-  );
+  )
 }
