@@ -1,4 +1,4 @@
-# 🎲 Turnocero
+# Turnocero
 
 Aplicación para organizar mesas de juegos de mesa. Los usuarios pueden registrarse, crear mesas para una partida (con fecha, juego y cantidad de lugares) y unirse a mesas de otros jugadores.
 
@@ -6,10 +6,11 @@ Aplicación para organizar mesas de juegos de mesa. Los usuarios pueden registra
 
 ## Stack
 
-- **Frontend:** React 18 + Vite + React Router
-- **Backend:** Node.js + Express
+- **Frontend:** React 18 + Vite + React Router (HashRouter)
+- **Backend:** Node.js + Express + Socket.io
 - **Base de datos:** MongoDB (con Mongoose)
-- **Auth:** JWT + bcrypt
+- **Auth:** JWT + bcrypt (token en cookie httpOnly + localStorage)
+- **Mapa:** Leaflet + OpenStreetMap / Nominatim
 
 ---
 
@@ -22,23 +23,23 @@ Aplicación para organizar mesas de juegos de mesa. Los usuarios pueden registra
 
 ## Instalación
 
-### 1. Clonar / abrir el proyecto
+### 1. Instalar todas las dependencias (desde la raíz)
 
 ```bash
-cd "Table Creator"
+npm run install:all
 ```
 
-### 2. Instalar dependencias del servidor
+O manualmente:
 
 ```bash
-cd server
-npm install
+cd server && npm install
+cd ../client && npm install
 ```
 
-### 3. Configurar variables de entorno del servidor
+### 2. Configurar variables de entorno del servidor
 
 ```bash
-cp .env.example .env
+cp server/.env.example server/.env
 ```
 
 Editá `server/.env`:
@@ -46,69 +47,72 @@ Editá `server/.env`:
 ```
 MONGODB_URI=mongodb://localhost:27017/turnocero
 JWT_SECRET=cambia_esto_por_algo_seguro
-PORT=5000
-```
-
-### 4. Instalar dependencias del cliente
-
-```bash
-cd ../client
-npm install
+PORT=4000
+CORS_ORIGIN=http://localhost:3000
 ```
 
 ---
 
 ## Correr en desarrollo
 
-Necesitás **dos terminales**:
+Necesitás **dos terminales** (o usá los scripts desde la raíz):
 
-**Terminal 1 — Backend:**
 ```bash
-cd server
-npm run dev
-# Servidor en http://localhost:5000
+# Desde la raíz
+npm run dev:server    # Backend en http://localhost:4000
+npm run dev:client    # Frontend en http://localhost:3000
 ```
 
-**Terminal 2 — Frontend:**
-```bash
-cd client
-npm run dev
-# App en http://localhost:3000
-```
+El servidor de Vite hace proxy de `/api/*` hacia `http://localhost:4000/api`.
 
 ---
 
 ## Estructura del proyecto
 
 ```
-Table Creator/
+turnocero/
 ├── server/
 │   ├── models/
-│   │   ├── User.js          # Modelo de usuario
-│   │   └── Table.js         # Modelo de mesa
+│   │   ├── User.js          # Usuario con perfil completo, isAdmin
+│   │   ├── Table.js         # Mesa de juego
+│   │   └── Message.js       # Mensajes de chat por mesa
 │   ├── routes/
-│   │   ├── auth.js          # POST /api/auth/register, /login, GET /me
-│   │   └── tables.js        # CRUD de mesas + join/leave
+│   │   ├── auth.js          # POST /register, /login, GET /me, PATCH /profile
+│   │   ├── tables.js        # CRUD de mesas + join/leave + edit
+│   │   ├── messages.js      # Chat por mesa (GET/POST)
+│   │   ├── users.js         # Listado y perfil público de usuarios
+│   │   └── admin.js         # Visor de DB y toggle de admin (solo admins)
 │   ├── middleware/
-│   │   └── auth.js          # Middleware JWT
-│   ├── server.js
+│   │   └── auth.js          # Middleware JWT + requireAdmin
+│   ├── utils/
+│   │   └── logger.js        # Logger centralizado
+│   ├── server.js            # Express + Socket.io + rutas
 │   ├── .env.example
 │   └── package.json
 │
 └── client/
     ├── src/
     │   ├── context/
-    │   │   └── AuthContext.jsx   # Auth global (login, register, logout)
+    │   │   └── AuthContext.jsx       # Auth global (login, register, logout, updateProfile)
     │   ├── components/
     │   │   ├── Navbar.jsx
-    │   │   └── TableCard.jsx     # Tarjeta de mesa con acciones
+    │   │   ├── TableCard.jsx         # Tarjeta de mesa con acciones
+    │   │   ├── AuthLogo.jsx
+    │   │   ├── BoardGameBackground.jsx
+    │   │   └── PasswordInput.jsx
     │   ├── pages/
     │   │   ├── Login.jsx
     │   │   ├── Register.jsx
-    │   │   ├── Dashboard.jsx     # Lista de mesas
-    │   │   └── CreateTable.jsx   # Formulario crear mesa
+    │   │   ├── Dashboard.jsx         # Lista de mesas + búsqueda + tabs
+    │   │   ├── CreateTable.jsx       # Formulario crear mesa
+    │   │   ├── EditTable.jsx         # Editar mesa propia
+    │   │   ├── TableDetail.jsx       # Detalle de mesa + chat en tiempo real
+    │   │   ├── UserProfile.jsx       # Editar perfil propio con mapa
+    │   │   ├── UserProfilePublic.jsx # Perfil público de otro usuario + estadísticas
+    │   │   ├── UsersList.jsx         # Comunidad: listado de todos los jugadores
+    │   │   └── DatabaseViewer.jsx    # Visor de colecciones (solo admins)
     │   ├── App.jsx
-    │   └── index.css             # Variables de tema Turnocero
+    │   └── index.css                 # Variables de tema Turnocero
     ├── index.html
     ├── vite.config.js
     └── package.json
@@ -121,29 +125,73 @@ Table Creator/
 ### Auth
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| POST | `/api/auth/register` | Registrar usuario |
-| POST | `/api/auth/login` | Iniciar sesión |
+| POST | `/api/auth/register` | Registrar usuario (rate-limited) |
+| POST | `/api/auth/login` | Iniciar sesión (rate-limited) |
 | GET | `/api/auth/me` | Obtener usuario actual |
+| PATCH | `/api/auth/profile` | Actualizar perfil propio |
 
 ### Mesas (requieren token JWT)
 | Método | Ruta | Descripción |
 |--------|------|-------------|
 | GET | `/api/tables` | Listar todas las mesas activas |
 | GET | `/api/tables/mine` | Listar mis mesas (host o jugador) |
+| GET | `/api/tables/:id` | Detalle de una mesa |
 | POST | `/api/tables` | Crear una mesa |
+| PUT | `/api/tables/:id` | Editar una mesa (solo host) |
 | POST | `/api/tables/:id/join` | Unirse a una mesa |
 | POST | `/api/tables/:id/leave` | Abandonar una mesa |
 | DELETE | `/api/tables/:id` | Cancelar una mesa (solo host) |
+
+### Chat (solo participantes)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/tables/:id/messages` | Historial de mensajes |
+| POST | `/api/tables/:id/messages` | Enviar mensaje (emite por WebSocket) |
+
+### Usuarios (requieren token JWT)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/users` | Listado de usuarios con búsqueda y filtros |
+| GET | `/api/users/:id` | Perfil público + estadísticas de un usuario |
+
+### Admin (requieren token JWT + isAdmin)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/admin/collections` | Listar colecciones de MongoDB |
+| GET | `/api/admin/collections/:name` | Ver documentos de una colección (paginado) |
+| PATCH | `/api/admin/users/:id/admin` | Toggle de admin de un usuario |
+
+### Salud
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/health` | Estado del servidor |
+
+---
+
+## WebSockets (Socket.io)
+
+El servidor usa Socket.io con autenticación JWT por handshake. Los clientes emiten:
+
+- `join:table` — entrar a la sala de una mesa
+- `leave:table` — salir de la sala
+
+El servidor emite:
+
+- `chat:message` — nuevo mensaje de chat a todos los participantes en la sala
 
 ---
 
 ## Funcionalidades
 
-- ✅ Registro e inicio de sesión con JWT
-- ✅ Crear mesas (juego, fecha/hora, lugares disponibles, ubicación, descripción)
-- ✅ Unirse / abandonar mesas
-- ✅ El creador es el **host** y puede cancelar la mesa
-- ✅ Estado automático: mesa abierta / completa
-- ✅ Filtro por nombre de juego o host
-- ✅ Vista "Mis mesas"
-- ✅ Diseño oscuro estilo tablero de juego
+- Registro e inicio de sesión con JWT (cookie httpOnly + localStorage) y rate limiting
+- Contraseña con validación: mínimo 8 caracteres, una mayúscula, un número
+- Crear, editar y cancelar mesas (juego, fecha/hora, lugares, ubicación, descripción)
+- Unirse / abandonar mesas
+- Estado automático de mesa: abierta / completa / cancelada
+- Chat en tiempo real por mesa (solo visible para host y jugadores)
+- Perfil de usuario editable: nombre, apellido, display name, Telegram, celular, dirección con mapa interactivo (Leaflet + Nominatim)
+- Pantalla de comunidad: listado de jugadores con búsqueda, ordenamiento por actividad/fecha, filtro de solo activos
+- Perfil público de cada usuario con estadísticas: mesas creadas, jugadas, juegos favoritos, última actividad
+- Visor de base de datos para admins (colecciones paginadas, toggle de admin)
+- Fondo animado estilo tablero de juego
+- Diseño oscuro con tema ámbar/dorado
