@@ -27,6 +27,12 @@ const buildSearchClause = async (search) => {
   return { $or: [{ boardGame: rx }, { host: { $in: matchingHosts.map((u) => u._id) } }] };
 };
 
+const populateTable = (query) =>
+  query
+    .populate('host', 'username')
+    .populate('players', 'username')
+    .populate('pendingRequests', 'username');
+
 // GET /api/tables — protected; supports ?page, ?limit, ?search
 router.get('/', protect, async (req, res) => {
   try {
@@ -34,7 +40,7 @@ router.get('/', protect, async (req, res) => {
     const searchClause = await buildSearchClause(req.query.search);
     const filter = { status: { $ne: 'cancelled' }, ...searchClause };
     const [tables, total] = await Promise.all([
-      Table.find(filter).populate('host', 'username').populate('players', 'username').sort({ date: 1 }).skip(skip).limit(limit),
+      populateTable(Table.find(filter)).sort({ date: 1 }).skip(skip).limit(limit),
       Table.countDocuments(filter),
     ]);
     res.json({ tables, total, page, pages: Math.ceil(total / limit) });
@@ -51,7 +57,7 @@ router.get('/mine', protect, async (req, res) => {
     const baseFilter = { $or: [{ host: req.user._id }, { players: req.user._id }], status: { $ne: 'cancelled' } };
     const filter = searchClause ? { $and: [baseFilter, searchClause] } : baseFilter;
     const [tables, total] = await Promise.all([
-      Table.find(filter).populate('host', 'username').populate('players', 'username').sort({ date: 1 }).skip(skip).limit(limit),
+      populateTable(Table.find(filter)).sort({ date: 1 }).skip(skip).limit(limit),
       Table.countDocuments(filter),
     ]);
     res.json({ tables, total, page, pages: Math.ceil(total / limit) });
@@ -67,9 +73,10 @@ router.post('/', protect, [
   body('maxPlayers').notEmpty().withMessage('Max players is required').isInt({ min: 2, max: 20 }).withMessage('Max players must be between 2 and 20'),
   body('location').optional().trim().isLength({ max: 200 }).withMessage('Location is too long'),
   body('description').optional().trim().isLength({ max: 500 }).withMessage('Description is too long'),
+  body('privacy').optional().isIn(['public', 'private']).withMessage('Invalid privacy value'),
 ], validate, async (req, res) => {
   try {
-    const { boardGame, date, maxPlayers, location, description } = req.body;
+    const { boardGame, date, maxPlayers, location, description, privacy } = req.body;
 
     if (!boardGame || !date || !maxPlayers) {
       return res.status(400).json({ message: 'Game, date and max players are required' });
@@ -81,6 +88,7 @@ router.post('/', protect, [
       maxPlayers,
       location,
       description,
+      privacy: privacy || 'public',
       host: req.user._id,
       players: [],
     });
@@ -102,9 +110,7 @@ router.get('/:id', protect, [
   param('id').isMongoId().withMessage('Invalid table ID'),
 ], validate, async (req, res) => {
   try {
-    const table = await Table.findById(req.params.id)
-      .populate('host', 'username')
-      .populate('players', 'username');
+    const table = await populateTable(Table.findById(req.params.id));
     if (!table) return res.status(404).json({ message: 'Table not found' });
     res.json(table);
   } catch (err) {
@@ -119,6 +125,7 @@ router.put('/:id', protect, [
   body('maxPlayers').notEmpty().withMessage('Max players is required').isInt({ min: 2, max: 20 }).withMessage('Max players must be between 2 and 20'),
   body('location').optional().trim().isLength({ max: 200 }).withMessage('Location is too long'),
   body('description').optional().trim().isLength({ max: 500 }).withMessage('Description is too long'),
+  body('privacy').optional().isIn(['public', 'private']).withMessage('Invalid privacy value'),
 ], validate, async (req, res) => {
   try {
     const table = await Table.findById(req.params.id);
@@ -143,12 +150,10 @@ router.put('/:id', protect, [
     table.maxPlayers = newMaxPlayers;
     table.location = req.body.location || '';
     table.description = req.body.description || '';
+    if (req.body.privacy) table.privacy = req.body.privacy;
 
     await table.save();
-    await table.populate('host', 'username');
-    await table.populate('players', 'username');
-
-    res.json(table);
+    await populateTable(Table.findById(table._id)).then((t) => res.json(t));
   } catch (err) {
     if (err.name === 'ValidationError') {
       const messages = Object.values(err.errors).map((e) => e.message);
@@ -159,6 +164,7 @@ router.put('/:id', protect, [
 });
 
 // POST /api/tables/:id/join — protected
+// For public tables: joins directly. For private tables: adds to pendingRequests.
 router.post('/:id/join', protect, [
   param('id').isMongoId().withMessage('Invalid table ID'),
 ], validate, async (req, res) => {
@@ -185,12 +191,99 @@ router.post('/:id/join', protect, [
       return res.status(400).json({ message: 'This table is full' });
     }
 
+    if (table.privacy === 'private') {
+      if (table.pendingRequests.some((r) => r.toString() === req.user._id.toString())) {
+        return res.status(400).json({ message: 'Ya enviaste una solicitud para unirte a esta mesa' });
+      }
+      table.pendingRequests.push(req.user._id);
+      await table.save();
+      const populated = await populateTable(Table.findById(table._id));
+      return res.json({ requested: true, table: populated });
+    }
+
     table.players.push(req.user._id);
     await table.save();
-    await table.populate('host', 'username');
-    await table.populate('players', 'username');
+    const populated = await populateTable(Table.findById(table._id));
+    res.json({ requested: false, table: populated });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
-    res.json(table);
+// DELETE /api/tables/:id/request — protected; cancel own pending request
+router.delete('/:id/request', protect, [
+  param('id').isMongoId().withMessage('Invalid table ID'),
+], validate, async (req, res) => {
+  try {
+    const table = await Table.findById(req.params.id);
+    if (!table) return res.status(404).json({ message: 'Table not found' });
+
+    const idx = table.pendingRequests.findIndex((r) => r.toString() === req.user._id.toString());
+    if (idx === -1) return res.status(400).json({ message: 'No tenés una solicitud pendiente en esta mesa' });
+
+    table.pendingRequests.splice(idx, 1);
+    await table.save();
+    const populated = await populateTable(Table.findById(table._id));
+    res.json({ requested: false, table: populated });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/tables/:id/requests/:userId/accept — protected, host only
+router.post('/:id/requests/:userId/accept', protect, [
+  param('id').isMongoId().withMessage('Invalid table ID'),
+  param('userId').isMongoId().withMessage('Invalid user ID'),
+], validate, async (req, res) => {
+  try {
+    const table = await Table.findById(req.params.id);
+    if (!table) return res.status(404).json({ message: 'Table not found' });
+
+    if (table.host.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Solo el host puede aceptar solicitudes' });
+    }
+
+    if (table.status === 'cancelled') {
+      return res.status(400).json({ message: 'No se pueden aceptar solicitudes en una mesa cancelada' });
+    }
+
+    if (table.players.length >= table.maxPlayers) {
+      return res.status(400).json({ message: 'La mesa está llena' });
+    }
+
+    const idx = table.pendingRequests.findIndex((r) => r.toString() === req.params.userId);
+    if (idx === -1) return res.status(404).json({ message: 'Solicitud no encontrada' });
+
+    table.pendingRequests.splice(idx, 1);
+    table.players.push(req.params.userId);
+    await table.save();
+    const populated = await populateTable(Table.findById(table._id));
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/tables/:id/requests/:userId/reject — protected, host only
+router.post('/:id/requests/:userId/reject', protect, [
+  param('id').isMongoId().withMessage('Invalid table ID'),
+  param('userId').isMongoId().withMessage('Invalid user ID'),
+], validate, async (req, res) => {
+  try {
+    const table = await Table.findById(req.params.id);
+    if (!table) return res.status(404).json({ message: 'Table not found' });
+
+    if (table.host.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Solo el host puede rechazar solicitudes' });
+    }
+
+    const idx = table.pendingRequests.findIndex((r) => r.toString() === req.params.userId);
+    if (idx === -1) return res.status(404).json({ message: 'Solicitud no encontrada' });
+
+    table.pendingRequests.splice(idx, 1);
+    await table.save();
+    const populated = await populateTable(Table.findById(table._id));
+    res.json(populated);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -217,10 +310,8 @@ router.post('/:id/leave', protect, [
 
     table.players.splice(playerIndex, 1);
     await table.save();
-    await table.populate('host', 'username');
-    await table.populate('players', 'username');
-
-    res.json(table);
+    const populated = await populateTable(Table.findById(table._id));
+    res.json(populated);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }

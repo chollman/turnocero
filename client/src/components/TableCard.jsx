@@ -26,17 +26,47 @@ export default function TableCard({ table, onUpdate, onCancel }) {
   const isPlayer = table.players.some(
     (p) => (p._id || p).toString() === (user._id || user).toString()
   );
+  const isPendingRequest = (table.pendingRequests || []).some(
+    (r) => (r._id || r).toString() === user._id.toString()
+  );
+  const isPrivate = table.privacy === 'private';
   const availableSeats = table.maxPlayers - table.players.length;
   const isFull = availableSeats <= 0;
 
-  const handleAction = async (action) => {
+  const handleJoin = async () => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await axios.post(`/api/tables/${table._id}/${action}`);
+      const { data } = await axios.post(`/api/tables/${table._id}/join`);
+      onUpdate(data.table);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error al unirse');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLeave = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const { data } = await axios.post(`/api/tables/${table._id}/leave`);
       onUpdate(data);
     } catch (err) {
-      setError(err.response?.data?.message || (action === 'join' ? 'Error al unirse' : 'Error al salir'));
+      setError(err.response?.data?.message || 'Error al salir');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const { data } = await axios.delete(`/api/tables/${table._id}/request`);
+      onUpdate(data.table);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error al cancelar solicitud');
     } finally {
       setLoading(false);
     }
@@ -64,9 +94,14 @@ export default function TableCard({ table, onUpdate, onCancel }) {
       {/* Header */}
       <div className={styles.header}>
         <h3 className={styles.gameName}>{table.boardGame}</h3>
-        <span className={styles.statusBadge} style={{ color: statusColor, borderColor: statusColor }}>
-          {statusLabel}
-        </span>
+        <div className={styles.badges}>
+          {isPrivate && (
+            <span className={styles.privacyBadge}>🔒 Privada</span>
+          )}
+          <span className={styles.statusBadge} style={{ color: statusColor, borderColor: statusColor }}>
+            {statusLabel}
+          </span>
+        </div>
       </div>
 
       {/* Details */}
@@ -155,19 +190,27 @@ export default function TableCard({ table, onUpdate, onCancel }) {
             </button>
             <button
               className={styles.btnSecondary}
-              onClick={() => handleAction('leave')}
+              onClick={handleLeave}
               disabled={loading}
             >
               {loading ? '…' : 'Abandonar'}
             </button>
           </>
+        ) : isPendingRequest ? (
+          <button
+            className={styles.btnPending}
+            onClick={handleCancelRequest}
+            disabled={loading}
+          >
+            {loading ? '…' : 'Solicitud enviada · Cancelar'}
+          </button>
         ) : (
           <button
             className={styles.btnPrimary}
-            onClick={() => handleAction('join')}
+            onClick={handleJoin}
             disabled={loading || isFull}
           >
-            {loading ? '…' : isFull ? 'Mesa llena' : 'Unirse'}
+            {loading ? '…' : isFull ? 'Mesa llena' : isPrivate ? 'Solicitar unirse' : 'Unirse'}
           </button>
         )}
 

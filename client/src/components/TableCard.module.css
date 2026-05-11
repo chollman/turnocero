@@ -43,6 +43,27 @@
   gap: 0.75rem;
 }
 
+.badges {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.privacyBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border: 1px solid rgba(160, 120, 255, 0.5);
+  border-radius: 20px;
+  padding: 0.15rem 0.55rem;
+  color: rgba(180, 140, 255, 1);
+  background: rgba(160, 120, 255, 0.1);
+  white-space: nowrap;
+}
+
 .gameName {
   font-family: var(--font-display);
   font-size: 1.05rem;
@@ -195,6 +216,28 @@
 .btnDetail:hover:not(:disabled) {
   background: rgba(24, 136, 239, 0.25);
   border-color: var(--amber);
+}
+
+.btnPending {
+  padding: 0.5rem 1.1rem;
+  border-radius: 7px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid rgba(160, 120, 255, 0.4);
+  background: rgba(160, 120, 255, 0.08);
+  color: rgba(180, 140, 255, 1);
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.btnPending:hover:not(:disabled) {
+  background: rgba(160, 120, 255, 0.15);
+  border-color: rgba(160, 120, 255, 0.7);
+}
+
+.btnPending:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .hostBadge,

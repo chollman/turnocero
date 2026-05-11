@@ -46,6 +46,17 @@ const tableSchema = new mongoose.Schema(
       enum: ['open', 'full', 'cancelled'],
       default: 'open',
     },
+    privacy: {
+      type: String,
+      enum: ['public', 'private'],
+      default: 'public',
+    },
+    pendingRequests: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   { timestamps: true }
 );

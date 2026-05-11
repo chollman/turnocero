@@ -24,6 +24,7 @@ export default function CreateTable() {
     maxPlayers: 3,
     location: '',
     description: '',
+    privacy: 'public',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -167,6 +168,31 @@ export default function CreateTable() {
                 maxLength={500}
                 rows={3}
               />
+            </div>
+
+            {/* Privacy */}
+            <div className={styles.field}>
+              <label className={styles.label}>Privacidad de la mesa</label>
+              <div className={styles.privacyToggle}>
+                <button
+                  type="button"
+                  className={`${styles.privacyOption} ${form.privacy === 'public' ? styles.privacySelected : ''}`}
+                  onClick={() => setForm((f) => ({ ...f, privacy: 'public' }))}
+                >
+                  <span className={styles.privacyIcon}>🌐</span>
+                  <span className={styles.privacyLabel}>Pública</span>
+                  <span className={styles.privacyDesc}>Cualquiera puede unirse</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.privacyOption} ${form.privacy === 'private' ? styles.privacySelected : ''}`}
+                  onClick={() => setForm((f) => ({ ...f, privacy: 'private' }))}
+                >
+                  <span className={styles.privacyIcon}>🔒</span>
+                  <span className={styles.privacyLabel}>Privada</span>
+                  <span className={styles.privacyDesc}>El host acepta o rechaza</span>
+                </button>
+              </div>
             </div>
 
             <div className={styles.actions}>
