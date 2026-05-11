@@ -16,9 +16,12 @@ function loadFromStorage() {
 const findExisting = (prev, type, tableId) =>
   prev.find((n) => (n.type ?? 'chat') === type && n.tableId === tableId);
 
+const makeToastId = () => `${Date.now()}-${Math.random()}`;
+
 export function NotificationProvider({ children }) {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState(loadFromStorage);
+  const [toasts, setToasts] = useState([]);
   const activeTableRef = useRef(null);
 
   useEffect(() => {
@@ -33,73 +36,57 @@ export function NotificationProvider({ children }) {
 
     socket.on('chat:notification', (notif) => {
       if (activeTableRef.current === notif.tableId) return;
+
       setNotifications((prev) => {
         const existing = findExisting(prev, 'chat', notif.tableId);
         if (existing) {
           return prev.map((n) =>
             (n.type ?? 'chat') === 'chat' && n.tableId === notif.tableId
-              ? {
-                  ...n,
-                  count: n.count + 1,
-                  lastSenderUsername: notif.senderUsername,
-                  lastMessagePreview: notif.messagePreview,
-                  timestamp: notif.timestamp,
-                }
+              ? { ...n, count: n.count + 1, lastSenderUsername: notif.senderUsername, lastMessagePreview: notif.messagePreview, timestamp: notif.timestamp }
               : n
           );
         }
-        return [...prev, {
-          type: 'chat',
-          tableId: notif.tableId,
-          tableName: notif.tableName,
-          count: 1,
-          lastSenderUsername: notif.senderUsername,
-          lastMessagePreview: notif.messagePreview,
-          timestamp: notif.timestamp,
-        }];
+        return [...prev, { type: 'chat', tableId: notif.tableId, tableName: notif.tableName, count: 1, lastSenderUsername: notif.senderUsername, lastMessagePreview: notif.messagePreview, timestamp: notif.timestamp }];
+      });
+
+      setToasts((prev) => {
+        const next = [...prev, { id: makeToastId(), type: 'chat', tableId: notif.tableId, tableName: notif.tableName, senderUsername: notif.senderUsername, messagePreview: notif.messagePreview }];
+        return next.length > 4 ? next.slice(-4) : next;
       });
     });
 
     socket.on('join:accepted', (notif) => {
       if (activeTableRef.current === notif.tableId) return;
+
       setNotifications((prev) => {
-        const rest = prev.filter(
-          (n) => !(n.type === 'join_accepted' && n.tableId === notif.tableId)
-        );
-        return [...rest, {
-          type: 'join_accepted',
-          tableId: notif.tableId,
-          tableName: notif.tableName,
-          count: 1,
-          timestamp: notif.timestamp,
-        }];
+        const rest = prev.filter((n) => !(n.type === 'join_accepted' && n.tableId === notif.tableId));
+        return [...rest, { type: 'join_accepted', tableId: notif.tableId, tableName: notif.tableName, count: 1, timestamp: notif.timestamp }];
+      });
+
+      setToasts((prev) => {
+        const next = [...prev, { id: makeToastId(), type: 'join_accepted', tableId: notif.tableId, tableName: notif.tableName }];
+        return next.length > 4 ? next.slice(-4) : next;
       });
     });
 
     socket.on('join:request', (notif) => {
       if (activeTableRef.current === notif.tableId) return;
+
       setNotifications((prev) => {
         const existing = findExisting(prev, 'join_request', notif.tableId);
         if (existing) {
           return prev.map((n) =>
             n.type === 'join_request' && n.tableId === notif.tableId
-              ? {
-                  ...n,
-                  count: n.count + 1,
-                  lastRequesterUsername: notif.requesterUsername,
-                  timestamp: notif.timestamp,
-                }
+              ? { ...n, count: n.count + 1, lastRequesterUsername: notif.requesterUsername, timestamp: notif.timestamp }
               : n
           );
         }
-        return [...prev, {
-          type: 'join_request',
-          tableId: notif.tableId,
-          tableName: notif.tableName,
-          count: 1,
-          lastRequesterUsername: notif.requesterUsername,
-          timestamp: notif.timestamp,
-        }];
+        return [...prev, { type: 'join_request', tableId: notif.tableId, tableName: notif.tableName, count: 1, lastRequesterUsername: notif.requesterUsername, timestamp: notif.timestamp }];
+      });
+
+      setToasts((prev) => {
+        const next = [...prev, { id: makeToastId(), type: 'join_request', tableId: notif.tableId, tableName: notif.tableName, requesterUsername: notif.requesterUsername }];
+        return next.length > 4 ? next.slice(-4) : next;
       });
     });
 
@@ -117,6 +104,10 @@ export function NotificationProvider({ children }) {
     if (tableId) markRead(tableId);
   }, [markRead]);
 
+  const dismissToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
   const totalUnread = notifications.reduce((sum, n) => sum + (n.count || 1), 0);
 
   return (
@@ -126,6 +117,8 @@ export function NotificationProvider({ children }) {
       markRead,
       clearAll,
       setActiveTable,
+      toasts,
+      dismissToast,
     }}>
       {children}
     </NotificationContext.Provider>

@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import ToastContainer from './components/ToastContainer';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -74,6 +75,7 @@ export default function App() {
           <div style={{ position: 'relative', zIndex: 1 }}>
             <AppRoutes />
           </div>
+          <ToastContainer />
         </NotificationProvider>
       </AuthProvider>
     </HashRouter>
