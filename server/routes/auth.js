@@ -40,7 +40,7 @@ router.post('/register', authLimiter, async (req, res) => {
     const token = generateToken(user._id);
 
     res.cookie('token', token, COOKIE_OPTIONS);
-    res.status(201).json({ user });
+    res.status(201).json({ user, token });
   } catch (err) {
     logger.error('Register failed', { name: err.name, code: err.code, msg: err.message });
     if (err.name === 'ValidationError') {
@@ -77,7 +77,7 @@ router.post('/login', authLimiter, async (req, res) => {
     const token = generateToken(user._id);
 
     res.cookie('token', token, COOKIE_OPTIONS);
-    res.json({ user });
+    res.json({ user, token });
   } catch (err) {
     logger.error('Login failed', { name: err.name, code: err.code, msg: err.message });
     res.status(500).json({ message: 'Server error' });
