@@ -61,7 +61,7 @@ export default function TableDetail() {
     const fetchTable = async () => {
       try {
         const { data } = await axios.get(`/api/tables/${id}`)
-        if (!isParticipant(data)) {
+        if (!isParticipant(data) && !user.isAdmin) {
           navigate('/', { replace: true })
           return
         }
@@ -154,6 +154,7 @@ export default function TableDetail() {
   if (!table) return null
 
   const isHost = table.host._id?.toString() === user._id.toString()
+  const isViewingAsAdmin = user.isAdmin && !isParticipant(table)
   const isFull = table.players.length >= table.maxPlayers
   const statusLabel = isFull
     ? 'Completa'
@@ -307,9 +308,15 @@ export default function TableDetail() {
             <div className={styles.chatHeader}>
               <h2 className={styles.chatTitle}>Chat de la mesa</h2>
               <span className={styles.chatSubtitle}>
-                Solo visible para los participantes
+                {isViewingAsAdmin ? 'Vista de administrador' : 'Solo visible para los participantes'}
               </span>
             </div>
+
+            {isViewingAsAdmin && (
+              <div className={styles.adminBanner}>
+                👁 Estás viendo esta mesa como administrador
+              </div>
+            )}
 
             <div className={styles.messageList} ref={messageListRef}>
               {messages.length === 0 && (
@@ -342,24 +349,26 @@ export default function TableDetail() {
 
             {error && <p className={styles.chatError}>{error}</p>}
 
-            <form className={styles.inputRow} onSubmit={sendMessage}>
-              <input
-                className={styles.chatInput}
-                type='text'
-                placeholder='Escribí un mensaje…'
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                maxLength={1000}
-                disabled={sending}
-              />
-              <button
-                className={styles.sendBtn}
-                type='submit'
-                disabled={!input.trim() || sending}
-              >
-                Enviar
-              </button>
-            </form>
+            {!isViewingAsAdmin && (
+              <form className={styles.inputRow} onSubmit={sendMessage}>
+                <input
+                  className={styles.chatInput}
+                  type='text'
+                  placeholder='Escribí un mensaje…'
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  maxLength={1000}
+                  disabled={sending}
+                />
+                <button
+                  className={styles.sendBtn}
+                  type='submit'
+                  disabled={!input.trim() || sending}
+                >
+                  Enviar
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </div>

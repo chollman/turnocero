@@ -191,6 +191,16 @@
   overflow: hidden;
 }
 
+.adminBanner {
+  padding: 0.55rem 1.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #f5a623;
+  background: rgba(245, 166, 35, 0.08);
+  border-bottom: 1px solid rgba(245, 166, 35, 0.2);
+  flex-shrink: 0;
+}
+
 .chatHeader {
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--border);

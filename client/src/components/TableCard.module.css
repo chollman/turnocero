@@ -64,6 +64,12 @@
   white-space: nowrap;
 }
 
+.gameTitleWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 .gameName {
   font-family: var(--font-display);
   font-size: 1.05rem;
@@ -160,8 +166,69 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.25rem;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+.actions > button {
+  flex: 1;
+}
+
+.btnIcon {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  padding: 0;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btnIcon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btnIconDetail {
+  background: var(--amber-glow);
+  color: var(--amber);
+  border: 1px solid var(--border-amber);
+}
+.btnIconDetail:hover:not(:disabled) {
+  background: rgba(24, 136, 239, 0.25);
+  border-color: var(--amber);
+}
+
+.btnIconEdit {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.btnIconEdit:hover:not(:disabled) {
+  border-color: var(--amber-dark);
+  color: var(--amber);
+}
+
+.btnIconDanger {
+  background: transparent;
+  color: var(--red);
+  border: 1px solid rgba(243, 29, 119, 0.3);
+}
+.btnIconDanger:hover:not(:disabled) {
+  background: rgba(243, 29, 119, 0.1);
+  border-color: var(--red);
+}
+
+.btnIconLeave {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.btnIconLeave:hover:not(:disabled) {
+  border-color: rgba(243, 29, 119, 0.5);
+  color: var(--red);
 }
 
 .btnPrimary,
@@ -257,6 +324,54 @@
   background: rgba(0, 217, 132, 0.12);
   color: var(--green);
   border: 1px solid rgba(0, 217, 132, 0.3);
+}
+
+/* Admin tab — grid mode (absolute corner) */
+.adminTab {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.65rem;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(245, 166, 35, 0.45);
+  border-radius: 8px 0 12px 0;
+  color: #f5a623;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all var(--transition);
+  letter-spacing: 0.03em;
+}
+
+.adminTab:hover {
+  background: rgba(245, 166, 35, 0.15);
+  border-color: rgba(245, 166, 35, 0.8);
+}
+
+/* Admin tab — list mode (inline) */
+.adminTabInline {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.65rem;
+  background: transparent;
+  border: 1px solid rgba(245, 166, 35, 0.45);
+  border-radius: 6px;
+  color: #f5a623;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.adminTabInline:hover {
+  background: rgba(245, 166, 35, 0.12);
+  border-color: rgba(245, 166, 35, 0.8);
 }
 
 /* List mode */

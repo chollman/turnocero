@@ -18,7 +18,7 @@ router.get('/', protect, async (req, res) => {
   try {
     const table = await Table.findById(req.params.id);
     if (!table) return res.status(404).json({ message: 'Mesa no encontrada' });
-    if (!isParticipant(table, req.user._id)) {
+    if (!isParticipant(table, req.user._id) && !req.user.isAdmin) {
       return res.status(403).json({ message: 'Solo los participantes pueden ver el chat' });
     }
     const messages = await Message.find({ table: req.params.id })
