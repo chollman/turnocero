@@ -36,7 +36,11 @@
 
 /* Hero card */
 .heroCard {
-  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(245, 158, 11, 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--bg-card) 0%,
+    rgba(245, 158, 11, 0.05) 100%
+  );
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.5rem;
@@ -225,9 +229,15 @@
   flex-shrink: 0;
 }
 
-.breakdownDot[data-status='open'] { background: var(--green); }
-.breakdownDot[data-status='full'] { background: var(--amber); }
-.breakdownDot[data-status='cancelled'] { background: var(--red); }
+.breakdownDot[data-status="open"] {
+  background: var(--green);
+}
+.breakdownDot[data-status="full"] {
+  background: var(--amber);
+}
+.breakdownDot[data-status="cancelled"] {
+  background: var(--red);
+}
 
 .breakdownLabel {
   flex: 1;
@@ -313,8 +323,12 @@
 }
 
 @keyframes bounce {
-  from { transform: translateY(0) rotate(-10deg); }
-  to { transform: translateY(-8px) rotate(10deg); }
+  from {
+    transform: translateY(0) rotate(-10deg);
+  }
+  to {
+    transform: translateY(-8px) rotate(10deg);
+  }
 }
 
 .errorState {
@@ -328,25 +342,52 @@
 }
 
 /* Responsive visibility */
-.favoritesInline { display: none; }
-.favoritesDesktop { display: block; }
+.favoritesInline {
+  display: none;
+}
+.favoritesDesktop {
+  display: block;
+}
 
 @media (max-width: 768px) {
+  .page {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   .layout {
     grid-template-columns: 1fr;
   }
 
-  .favoritesInline { display: block; }
-  .favoritesDesktop { display: none; }
+  .favoritesInline {
+    display: block;
+  }
+  .favoritesDesktop {
+    display: none;
+  }
 
   .statsGrid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .heroCard {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    margin-bottom: 0;
+  }
+
+  .section {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    margin-bottom: 1px;
   }
 }
 
 @media (max-width: 480px) {
   .page {
-    padding: 1.25rem 1rem 3rem;
+    padding: 1.25rem 0 3rem;
   }
 
   .statsGrid {

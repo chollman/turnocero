@@ -5,7 +5,11 @@
 
 .card {
   margin: 0 auto;
-  background: var(--bg-card);
+  background: linear-gradient(
+    135deg,
+    var(--bg-card) 0%,
+    rgba(24, 136, 239, 0.05) 100%
+  );
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 2rem 2.5rem;
@@ -235,8 +239,19 @@
 }
 
 @media (max-width: 600px) {
+  .page {
+    padding: 0;
+  }
+
+  :global(.container) {
+    padding: 0;
+  }
+
   .card {
     padding: 1.5rem 1.25rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
   }
 
   .input {

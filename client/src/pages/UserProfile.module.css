@@ -237,8 +237,15 @@
 }
 
 @media (max-width: 600px) {
+  .page {
+    padding: 0;
+  }
+
   .card {
     padding: 1.5rem 1.25rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
   }
 
   .row {
