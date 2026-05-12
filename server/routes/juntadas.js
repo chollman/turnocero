@@ -71,6 +71,26 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// ── GET /api/juntadas/:id/og — public OG data for crawlers (no auth) ────
+router.get('/:id/og', async (req, res) => {
+  try {
+    const juntada = await Juntada.findById(req.params.id)
+      .populate('author', 'username displayName')
+      .select('title body images privacy author');
+    if (!juntada || juntada.privacy !== 'public') {
+      return res.status(404).json({});
+    }
+    res.json({
+      title:  juntada.title || null,
+      body:   juntada.body?.slice(0, 160) || null,
+      image:  juntada.images?.[0]?.url || null,
+      author: juntada.author.displayName || juntada.author.username,
+    });
+  } catch {
+    res.status(500).json({});
+  }
+});
+
 // ── GET /api/juntadas/:id — single post ──────────────────────────────────
 router.get('/:id', protect, async (req, res) => {
   try {
