@@ -108,9 +108,10 @@ router.get('/:id', protect, async (req, res) => {
     const lastActivity = allDates[0] || null;
 
     const userIdStr = userId.toString();
-    const isFriend = currentUser.friends.some((f) => f.toString() === userIdStr);
-    const requestSent = user.friendRequests?.some((r) => r.from.toString() === req.user._id.toString());
-    const requestReceived = currentUser.friendRequests?.some((r) => r.from.toString() === userIdStr);
+    const myIdStr = req.user._id.toString();
+    const isFriend = (currentUser?.friends || []).some((f) => f.toString() === userIdStr);
+    const requestSent = (user.friendRequests || []).some((r) => r.from.toString() === myIdStr);
+    const requestReceived = (currentUser?.friendRequests || []).some((r) => r.from.toString() === userIdStr);
     const relationship = isFriend ? 'friends'
       : requestSent ? 'request_sent'
       : requestReceived ? 'request_received'
