@@ -71,6 +71,29 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// ── GET /api/juntadas/:id — single post ──────────────────────────────────
+router.get('/:id', protect, async (req, res) => {
+  try {
+    const juntada = await populateJuntada(Juntada.findById(req.params.id));
+    if (!juntada) return res.status(404).json({ message: 'Juntada no encontrada' });
+
+    const uid = req.user._id.toString();
+    const isAuthor = juntada.author._id.toString() === uid;
+    const isFriend = req.user.friends.some((f) => f.toString() === juntada.author._id.toString());
+
+    if (
+      juntada.privacy === 'private' && !isAuthor ||
+      juntada.privacy === 'friends' && !isAuthor && !isFriend
+    ) {
+      return res.status(403).json({ message: 'No tenés acceso a esta juntada' });
+    }
+
+    res.json(juntada);
+  } catch (err) {
+    res.status(500).json({ message: 'Error al cargar la juntada' });
+  }
+});
+
 // ── POST /api/juntadas — create ───────────────────────────────────────────
 router.post('/', protect, async (req, res) => {
   try {

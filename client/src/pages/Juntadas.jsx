@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
+import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../context/AuthContext'
 import JuntadaCard from '../components/JuntadaCard'
 import CreateJuntadaForm from '../components/CreateJuntadaForm'
@@ -52,8 +53,20 @@ export default function Juntadas() {
     if (featured?._id === updated._id) setFeatured(updated)
   }
 
+  const pageUrl = typeof window !== 'undefined' ? `${window.location.origin}/juntadas` : '/juntadas'
+
   return (
     <div className={styles.page}>
+      <Helmet>
+        <title>Juntadas – Turnocero 🎲</title>
+        <meta name="description" content="Mirá las últimas juntadas de la comunidad de juegos de mesa." />
+        <meta property="og:title"       content="Juntadas – Turnocero 🎲" />
+        <meta property="og:description" content="Mirá las últimas juntadas de la comunidad de juegos de mesa." />
+        <meta property="og:url"         content={pageUrl} />
+        <meta property="og:type"        content="website" />
+        <meta name="twitter:title"       content="Juntadas – Turnocero 🎲" />
+        <meta name="twitter:description" content="Mirá las últimas juntadas de la comunidad de juegos de mesa." />
+      </Helmet>
       <div className={styles.layout}>
       <div className={styles.feedCol}>
         {/* ── Page header ── */}

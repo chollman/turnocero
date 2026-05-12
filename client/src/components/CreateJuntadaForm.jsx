@@ -46,14 +46,19 @@ export default function CreateJuntadaForm({ onCreated, onCancel, prefilledTableI
     })
   }
 
+  const submittingRef = useRef(false)
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (submittingRef.current) return
     if (!title.trim() && !body.trim() && images.length === 0) {
       setError('Agregá al menos un título, texto o foto.')
       return
     }
     setError('')
     setLoading(true)
+    submittingRef.current = true
+    let createdId = null
     try {
       const { data: created } = await axios.post('/api/juntadas', {
         title: title.trim(),
@@ -61,6 +66,7 @@ export default function CreateJuntadaForm({ onCreated, onCancel, prefilledTableI
         privacy,
         linkedTable: linkedTableId || undefined,
       })
+      createdId = created._id
 
       let finalPost = created
       for (const img of images) {
@@ -77,9 +83,13 @@ export default function CreateJuntadaForm({ onCreated, onCancel, prefilledTableI
       images.forEach((img) => URL.revokeObjectURL(img.preview))
       onCreated?.(finalPost)
     } catch (err) {
+      if (createdId) {
+        try { await axios.delete(`/api/juntadas/${createdId}`) } catch { /* ignore */ }
+      }
       setError(err.response?.data?.message || 'Error al publicar la juntada')
     } finally {
       setLoading(false)
+      submittingRef.current = false
     }
   }
 

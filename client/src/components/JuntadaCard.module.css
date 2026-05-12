@@ -422,6 +422,33 @@
 
 .commentToggle:hover { color: var(--amber-light); background: var(--amber-glow); }
 
+/* ── Share group ── */
+.shareGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.shareBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color var(--transition), background var(--transition);
+  flex-shrink: 0;
+}
+
+.shareBtn:hover { color: var(--text-primary); background: var(--bg-elevated); }
+.shareBtnCopied { color: var(--green) !important; }
+
 /* ── Comments section ── */
 .comments {
   display: flex;

@@ -1,0 +1,72 @@
+.page {
+  min-height: 100vh;
+  padding: 28px 0 80px;
+}
+
+.inner {
+  max-width: 680px;
+  margin-inline: auto;
+  padding: 0 20px;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 6px 0;
+  margin-bottom: 20px;
+  transition: color 0.15s;
+}
+
+.backBtn:hover {
+  color: var(--amber);
+}
+
+.spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 0;
+}
+
+.spinnerDice {
+  font-size: 2.5rem;
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.errorBox {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.errorBox p {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.backLink {
+  background: none;
+  border: 1px solid var(--amber);
+  color: var(--amber);
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.backLink:hover {
+  background: var(--amber);
+  color: var(--bg-dark);
+}
