@@ -1,23 +1,48 @@
 .page {
-  min-height: calc(100vh - 64px);
-  padding: 2rem 1.5rem 4rem;
-  margin: 0 auto;
+  min-height: calc(100vh - var(--navbar-h, 64px));
+  padding-bottom: 4rem;
 }
 
-/* Back button */
+/* ─── GameTile hero banner ─── */
+.banner {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.bannerOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 13, 21, 0.25) 0%, var(--bg-dark) 100%);
+}
+
+/* ─── Main inner (overlaps banner by pulling up) ─── */
+.inner {
+  padding: 0 28px 0;
+  margin-top: -72px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ─── Back button ─── */
 .backBtn {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  background: none;
+  gap: 4px;
+  background: rgba(10, 13, 21, 0.7);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text-secondary);
-  font-size: 0.875rem;
-  padding: 0.45rem 0.9rem;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
   cursor: pointer;
-  margin-bottom: 1.5rem;
-  transition: all var(--transition);
+  align-self: flex-start;
+  transition: border-color 0.15s, color 0.15s;
 }
 
 .backBtn:hover {
@@ -25,444 +50,138 @@
   color: var(--amber);
 }
 
-/* Layout */
-.layout {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 1.25rem;
-  align-items: start;
-}
-
-/* Hero card */
-.heroCard {
-  background: linear-gradient(
-    135deg,
-    var(--bg-card) 0%,
-    rgba(245, 158, 11, 0.05) 100%
-  );
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.5rem;
+/* ─── Hero row: avatar + info ─── */
+.heroRow {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 0.75rem;
-  box-shadow: var(--shadow-md);
-  margin-bottom: 1.25rem;
+  align-items: flex-end;
+  gap: 20px;
 }
 
-.heroAvatar {
-  width: 72px;
-  height: 72px;
+.avatar {
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   background: var(--amber-glow);
-  border: 2px solid var(--border-amber);
+  border: 3px solid var(--bg-dark);
   color: var(--amber);
-  font-family: var(--font-display);
-  font-size: 2rem;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 38px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .heroInfo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-}
-
-.heroUsername {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.heroName {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.heroMeta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-  margin-top: 0.25rem;
-}
-
-.metaItem {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-/* Sections */
-.section {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.25rem 1.5rem;
-  box-shadow: var(--shadow-md);
-  margin-bottom: 1.25rem;
-}
-
-.sectionTitle {
-  font-family: var(--font-display);
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  margin: 0 0 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
-}
-
-/* Info rows */
-.infoList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.infoRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.65rem;
-}
-
-.infoIcon {
-  font-size: 1rem;
-  flex-shrink: 0;
-  margin-top: 0.05rem;
-}
-
-.infoText {
-  display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
-}
-
-.infoLabel {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.infoValue {
-  font-size: 0.9rem;
-  color: var(--text-primary);
-}
-
-.noInfo {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  font-style: italic;
-  margin: 0;
-}
-
-/* Stats grid */
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-}
-
-.statCard {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.9rem 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-  transition: border-color var(--transition);
-}
-
-.statCardHighlight {
-  background: var(--amber-glow);
-  border-color: var(--border-amber);
-}
-
-.statValue {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1;
-}
-
-.statCardHighlight .statValue {
-  color: var(--amber);
-}
-
-.statLabel {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  text-align: center;
-  line-height: 1.3;
-}
-
-/* Host breakdown */
-.breakdown {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.breakdownItem {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.breakdownDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.breakdownDot[data-status="open"] {
-  background: var(--green);
-}
-.breakdownDot[data-status="full"] {
-  background: var(--amber);
-}
-.breakdownDot[data-status="cancelled"] {
-  background: var(--red);
-}
-
-.breakdownLabel {
   flex: 1;
-  font-size: 0.875rem;
+  padding-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.eyebrow {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--amber-light);
+  letter-spacing: 0.15em;
+}
+
+.heroTitle {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  line-height: 1.05;
+  margin: 0;
+}
+
+.heroSub {
+  font-size: 13px;
   color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
 }
 
-.breakdownValue {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-/* Favorite games */
-.gamesList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
-.gameRow {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.gameRank {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  min-width: 20px;
-}
-
-.gameName {
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.gameBarWrap {
-  width: 80px;
-  height: 6px;
-  background: var(--bg-elevated);
-  border-radius: 3px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.gameBar {
-  height: 100%;
-  background: var(--amber);
-  border-radius: 3px;
-  transition: width 0.4s ease;
-}
-
-.gameCount {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--amber);
-  min-width: 24px;
-  text-align: right;
-}
-
-/* Loading / error */
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 6rem 0;
-  color: var(--text-muted);
-  font-size: 0.95rem;
-}
-
-.loadingDice {
-  font-size: 2.5rem;
-  animation: bounce 1.2s ease-in-out infinite alternate;
-}
-
-@keyframes bounce {
-  from {
-    transform: translateY(0) rotate(-10deg);
-  }
-  to {
-    transform: translateY(-8px) rotate(10deg);
-  }
-}
-
-.errorState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 6rem 0;
-  color: var(--text-muted);
-  font-size: 0.95rem;
-}
-
-/* Responsive visibility */
-.favoritesInline {
-  display: none;
-}
-.favoritesDesktop {
-  display: block;
-}
-
-@media (max-width: 768px) {
-  .page {
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  .layout {
-    grid-template-columns: 1fr;
-  }
-
-  .favoritesInline {
-    display: block;
-  }
-  .favoritesDesktop {
-    display: none;
-  }
-
-  .statsGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .heroCard {
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-    margin-bottom: 0;
-  }
-
-  .section {
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-    margin-bottom: 1px;
-  }
-}
-
-@media (max-width: 480px) {
-  .page {
-    padding: 1.25rem 0 3rem;
-  }
-
-  .statsGrid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .gameBarWrap {
-    width: 50px;
-  }
-}
-
-/* Friend actions */
+/* ─── Friend actions ─── */
 .friendActions {
-  margin-top: 0.75rem;
+  margin-top: 8px;
 }
 
 .friendBtnGroup {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
-.friendBtn {
-  background: var(--amber-glow);
-  border: 1px solid var(--border-amber);
-  color: var(--amber);
-  border-radius: 20px;
-  padding: 0.35rem 1rem;
-  font-size: 0.82rem;
-  font-weight: 600;
+.friendBtnPrimary {
+  background: var(--amber);
+  color: #fff;
+  border: none;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
-  transition:
-    background var(--transition),
-    border-color var(--transition),
-    opacity var(--transition);
-  font-family: var(--font-body);
+  transition: background 0.15s;
+  box-shadow: 0 4px 14px var(--amber-glow);
 }
 
-.friendBtn:hover:not(:disabled) {
-  background: rgba(24, 136, 239, 0.25);
-}
-
-.friendBtn:disabled {
-  opacity: 0.5;
-  cursor: default;
+.friendBtnPrimary:hover:not(:disabled) {
+  background: var(--amber-light);
 }
 
 .friendBtnMuted {
   background: var(--bg-elevated);
-  border-color: var(--border);
+  border: 1px solid var(--border);
   color: var(--text-secondary);
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
 }
 
 .friendBtnMuted:hover:not(:disabled) {
   border-color: var(--red);
   color: var(--red);
-  background: rgba(243, 29, 119, 0.08);
 }
 
 .friendBtnAccept {
-  background: rgba(0, 217, 132, 0.1);
-  border-color: var(--green);
+  background: rgba(0, 217, 132, 0.12);
+  border: 1px solid var(--green);
   color: var(--green);
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
 .friendBtnAccept:hover:not(:disabled) {
-  background: rgba(0, 217, 132, 0.2);
+  background: rgba(0, 217, 132, 0.22);
 }
 
 .friendBtnUnfriend {
   background: transparent;
-  border-color: var(--border);
+  border: 1px solid var(--border);
   color: var(--text-muted);
-  font-size: 0.75rem;
-  padding: 0.25rem 0.7rem;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
 }
 
 .friendBtnUnfriend:hover:not(:disabled) {
@@ -471,11 +190,338 @@
 }
 
 .friendsBadge {
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--green);
-  background: rgba(0, 217, 132, 0.1);
+  background: rgba(0, 217, 132, 0.10);
   border: 1px solid var(--green);
-  border-radius: 20px;
-  padding: 0.35rem 1rem;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-family: 'Manrope', var(--font-display);
+}
+
+[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Stats grid ─── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.statCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.statCardAccent {
+  background: var(--amber-glow);
+  border-color: var(--amber);
+}
+
+.statValue {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.statCardAccent .statValue {
+  color: var(--amber);
+}
+
+.statLabel {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+
+/* ─── Two-column layout ─── */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.leftCol,
+.rightCol {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ─── Info / section cards ─── */
+.infoCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sectionLabel {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* ─── Contact info rows ─── */
+.infoList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.infoRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.infoIcon {
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.infoText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.infoLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'Manrope', var(--font-display);
+}
+
+.infoValue {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+/* ─── Favorite games ─── */
+.favSection {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gamesList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gameRank {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  min-width: 20px;
+}
+
+.gameName {
+  font-size: 13px;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameBarWrap {
+  width: 70px;
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.gameBar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber), var(--amber-light));
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.gameCount {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--amber);
+  min-width: 22px;
+  text-align: right;
+}
+
+/* ─── Activity hint ─── */
+.activityHint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── Breakdown ─── */
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.breakdownItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.breakdownDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotOpen    { background: var(--green); }
+.dotFull    { background: var(--amber); }
+.dotCancelled { background: var(--red); }
+
+.breakdownLabel {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.breakdownValue {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ─── Miembro desde card ─── */
+.miembroCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.miembroDate {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ─── States ─── */
+.stateCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 6rem 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.loadingDice {
+  font-size: 2.5rem;
+  animation: bounce 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes bounce {
+  from { transform: translateY(0) rotate(-10deg); }
+  to   { transform: translateY(-8px) rotate(10deg); }
+}
+
+/* ─── Mobile ─── */
+@media (max-width: 959px) {
+  .inner {
+    padding: 0 18px 0;
+    margin-top: -56px;
+    gap: 18px;
+  }
+
+  .banner {
+    height: 150px;
+  }
+
+  .avatar {
+    width: 72px;
+    height: 72px;
+    font-size: 28px;
+  }
+
+  .heroTitle {
+    font-size: 24px;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .heroRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .statCard {
+    padding: 14px 10px;
+  }
+
+  .statValue {
+    font-size: 24px;
+  }
 }

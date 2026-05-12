@@ -1,122 +1,163 @@
 .page {
-  min-height: calc(100vh - 64px);
-  padding: 2rem 1.5rem 4rem;
+  min-height: calc(100vh - var(--navbar-h, 64px));
+  padding: 0 0 4rem;
 }
 
-.card {
-  margin: 0 auto;
-  background: linear-gradient(
-    135deg,
-    var(--bg-card) 0%,
-    rgba(24, 136, 239, 0.05) 100%
-  );
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 2rem 2.5rem;
-  box-shadow: var(--shadow-md);
-}
-
-.title {
-  font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.35rem;
-}
-
-.subtitle {
+.inner {
+  padding: 24px 28px 0;
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 28px;
 }
 
-.usernameChip {
-  background: var(--amber-glow);
-  color: var(--amber);
-  border: 1px solid var(--border-amber);
-  border-radius: 20px;
-  padding: 0.2rem 0.75rem;
-  font-size: 0.85rem;
-  font-weight: 600;
+/* ─── Hero ─── */
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.email {
-  color: var(--text-muted);
-  font-size: 0.85rem;
+.eyebrow {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--amber-light);
+  letter-spacing: 0.15em;
 }
 
+.heroTitle {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  line-height: 1;
+  margin: 0;
+}
+
+.heroSub {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ─── Form card ─── */
+.formCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+}
+
+/* ─── Feedback banners ─── */
+.errorBox {
+  background: rgba(243, 29, 119, 0.10);
+  border: 1px solid rgba(243, 29, 119, 0.30);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--red);
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.successBox {
+  background: rgba(0, 217, 132, 0.10);
+  border: 1px solid rgba(0, 217, 132, 0.30);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--green);
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+/* ─── Form ─── */
 .form {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 0;
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-}
-
-.sectionTitle {
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding-bottom: 0.5rem;
+  gap: 14px;
+  padding-bottom: 24px;
+  margin-bottom: 24px;
   border-bottom: 1px solid var(--border);
 }
 
-.row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+.section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
+.sectionLabel {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* ─── Two-column grid ─── */
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ─── Field ─── */
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 6px;
 }
 
 .label {
-  font-size: 0.82rem;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   color: var(--text-secondary);
-  font-weight: 500;
+  text-transform: uppercase;
 }
 
+/* ─── Inputs ─── */
 .input {
-  background: var(--bg-elevated);
+  background: var(--bg-dark);
   border: 1px solid var(--border);
   border-radius: 8px;
+  padding: 10px 14px;
   color: var(--text-primary);
-  font-size: 0.95rem;
-  padding: 0.6rem 0.85rem;
-  transition: border-color var(--transition);
-  width: 100%;
-}
-
-.input:focus {
+  font-size: 14px;
+  font-family: inherit;
   outline: none;
-  border-color: var(--amber);
-  box-shadow: 0 0 0 3px var(--amber-glow);
+  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
 }
 
 .input::placeholder {
   color: var(--text-muted);
 }
 
+.input:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px var(--amber-glow);
+}
+
+/* ─── Prefixed input (Telegram) ─── */
 .inputPrefix {
   display: flex;
   align-items: center;
-  background: var(--bg-elevated);
+  background: var(--bg-dark);
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
-  transition: border-color var(--transition);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .inputPrefix:focus-within {
@@ -125,36 +166,39 @@
 }
 
 .prefix {
-  padding: 0 0.6rem 0 0.85rem;
+  padding: 0 6px 0 14px;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 14px;
   user-select: none;
 }
 
 .inputWithPrefix {
-  border: none;
-  border-radius: 0;
+  border: none !important;
+  border-radius: 0 !important;
   box-shadow: none !important;
-  background: transparent;
+  background: transparent !important;
   padding-left: 0;
   flex: 1;
 }
 
 .inputWithPrefix:focus {
   outline: none;
-  border: none;
+  border: none !important;
   box-shadow: none !important;
 }
 
+/* ─── Hint text ─── */
 .hint {
-  font-size: 0.82rem;
+  font-size: 13px;
   color: var(--text-muted);
   line-height: 1.5;
+  margin: 0;
 }
 
+/* ─── Geocode row ─── */
 .geocodeRow {
   display: flex;
-  gap: 0.6rem;
+  gap: 8px;
 }
 
 .geocodeRow .input {
@@ -165,12 +209,14 @@
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  padding: 0.6rem 1rem;
+  padding: 10px 16px;
   border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
   white-space: nowrap;
-  transition: all var(--transition);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
 }
 
 .btnSearch:hover:not(:disabled) {
@@ -184,10 +230,12 @@
 }
 
 .coordsHint {
-  font-size: 0.78rem;
+  font-size: 12px;
   color: var(--text-muted);
+  margin: 0;
 }
 
+/* ─── Map ─── */
 .map {
   height: 280px;
   border-radius: 8px;
@@ -195,68 +243,72 @@
   overflow: hidden;
 }
 
-.error {
-  background: rgba(243, 29, 119, 0.1);
-  border: 1px solid rgba(243, 29, 119, 0.3);
-  color: var(--red);
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
+/* ─── Actions ─── */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
 }
 
-.successMsg {
-  background: rgba(0, 217, 132, 0.1);
-  border: 1px solid rgba(0, 217, 132, 0.3);
-  color: var(--green);
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-}
-
-.btnSave {
+.btnPrimary {
   background: var(--amber);
   color: #fff;
   border: none;
+  padding: 10px 28px;
   border-radius: 8px;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  transition: all var(--transition);
-  align-self: flex-start;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 14px var(--amber-glow);
 }
 
-.btnSave:hover:not(:disabled) {
+.btnPrimary:hover:not(:disabled) {
   background: var(--amber-light);
-  box-shadow: var(--shadow-amber);
+  box-shadow: 0 4px 20px var(--amber-glow);
 }
 
-.btnSave:disabled {
+.btnPrimary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
+/* ─── Mobile ─── */
+@media (max-width: 959px) {
+  .inner {
+    padding: 16px 18px 0;
+    gap: 18px;
+  }
+
+  .heroTitle {
+    font-size: 26px;
+    letter-spacing: -0.035em;
+  }
+
+  .formCard {
+    padding: 20px 16px;
+  }
+}
+
 @media (max-width: 600px) {
-  .page {
-    padding: 0;
-  }
-
-  .card {
-    padding: 1.5rem 1.25rem;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-  }
-
-  .row {
+  .twoCol {
     grid-template-columns: 1fr;
   }
 
-  .btnSave {
-    width: 100%;
-    justify-content: center;
+  .input {
+    font-size: 16px;
   }
 
   .map {
     height: 220px;
+  }
+
+  .btnPrimary {
+    width: 100%;
+  }
+
+  .actions {
+    justify-content: stretch;
   }
 }
