@@ -33,7 +33,12 @@ export default function JuntadaPost() {
   const metaDesc = post?.body
     ? post.body.slice(0, 160) + (post.body.length > 160 ? '…' : '')
     : 'Mirá esta juntada en Turnocero, la comunidad de juegos de mesa.'
-  const metaImage = post?.images?.[0]?.url || `${origin}/og-default.png`
+  const rawImage = post?.images?.[0]?.url
+  // Resize to 1200×630 via Cloudinary transformation for optimal OG display
+  const metaImage = rawImage
+    ? rawImage.replace('/upload/', '/upload/w_1200,h_630,c_fill,g_auto/')
+    : `${origin}/og-default.png`
+  const hasImage = Boolean(rawImage)
 
   return (
     <div className={styles.page}>
@@ -42,19 +47,24 @@ export default function JuntadaPost() {
         <meta name="description" content={metaDesc} />
 
         {/* Open Graph */}
-        <meta property="og:type"        content="article" />
-        <meta property="og:title"       content={metaTitle} />
-        <meta property="og:description" content={metaDesc} />
-        <meta property="og:image"       content={metaImage} />
-        <meta property="og:url"         content={postUrl} />
-        <meta property="og:locale"      content="es_AR" />
-        <meta property="og:site_name"   content="Turnocero" />
+        <meta property="og:type"             content="article" />
+        <meta property="og:title"            content={metaTitle} />
+        <meta property="og:description"      content={metaDesc} />
+        <meta property="og:url"              content={postUrl} />
+        <meta property="og:locale"           content="es_AR" />
+        <meta property="og:site_name"        content="Turnocero" />
+        <meta property="og:image"            content={metaImage} />
+        <meta property="og:image:secure_url" content={metaImage} />
+        <meta property="og:image:width"      content="1200" />
+        <meta property="og:image:height"     content="630" />
+        <meta property="og:image:alt"        content={metaTitle} />
 
         {/* Twitter / X */}
-        <meta name="twitter:card"        content={post?.images?.length ? 'summary_large_image' : 'summary'} />
+        <meta name="twitter:card"        content={hasImage ? 'summary_large_image' : 'summary'} />
         <meta name="twitter:title"       content={metaTitle} />
         <meta name="twitter:description" content={metaDesc} />
         <meta name="twitter:image"       content={metaImage} />
+        <meta name="twitter:image:alt"   content={metaTitle} />
       </Helmet>
 
       <div className={styles.layout}>
