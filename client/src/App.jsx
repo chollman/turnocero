@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import ToastContainer from './components/ToastContainer';
@@ -78,7 +78,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <AuthProvider>
         <NotificationProvider>
           <BoardGameBackground />
@@ -88,6 +88,6 @@ export default function App() {
           <ToastContainer />
         </NotificationProvider>
       </AuthProvider>
-    </HashRouter>
+    </BrowserRouter>
   );
 }

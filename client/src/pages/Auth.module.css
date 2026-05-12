@@ -6,6 +6,8 @@
   background: var(--bg-dark);
   overflow-y: auto;
   z-index: 10;
+  max-width: 1440px;
+  margin-inline: auto;
 }
 
 /* ── Left panel (form) ── */
