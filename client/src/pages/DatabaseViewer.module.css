@@ -1,6 +1,8 @@
 .page {
   padding: 0 0 4rem;
   min-height: calc(100vh - 64px);
+  max-width: 1440px;
+  margin-inline: auto;
 }
 
 .hero {

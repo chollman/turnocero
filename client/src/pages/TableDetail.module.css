@@ -2,6 +2,8 @@
 .page {
   min-height: calc(100vh - var(--navbar-h, 64px));
   padding: 0 0 4rem;
+  max-width: 1440px;
+  margin-inline: auto;
 }
 
 /* ─── Hero ─── */
