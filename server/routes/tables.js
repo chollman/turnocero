@@ -84,6 +84,46 @@ router.get('/me/feed', protect, async (req, res) => {
   }
 });
 
+// GET /api/tables/showcase — public; active upcoming tables count + one random table for auth pages
+router.get('/showcase', async (req, res) => {
+  try {
+    const filter = { status: { $ne: 'cancelled' }, date: { $gte: new Date() } };
+    const total = await Table.countDocuments(filter);
+    let table = null;
+    if (total > 0) {
+      const skip = Math.floor(Math.random() * total);
+      table = await Table.findOne(filter)
+        .skip(skip)
+        .populate('host', 'username')
+        .select('boardGame host location date players maxPlayers')
+        .lean();
+    }
+    res.json({ total, table });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/tables/showcase — public; active upcoming tables count + one random table for auth pages
+router.get('/showcase', async (req, res) => {
+  try {
+    const filter = { status: { $ne: 'cancelled' }, date: { $gte: new Date() } };
+    const total = await Table.countDocuments(filter);
+    let table = null;
+    if (total > 0) {
+      const skip = Math.floor(Math.random() * total);
+      table = await Table.findOne(filter)
+        .skip(skip)
+        .populate('host', 'username')
+        .select('boardGame host location date players maxPlayers')
+        .lean();
+    }
+    res.json({ total, table });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // POST /api/tables — protected
 router.post('/', protect, [
   body('boardGame').trim().notEmpty().withMessage('Game name is required').isLength({ max: 100 }).withMessage('Game name is too long'),

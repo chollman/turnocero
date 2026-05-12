@@ -1,39 +1,61 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import PasswordInput from '../components/PasswordInput';
-import AuthLogo from '../components/AuthLogo';
-import styles from './Auth.module.css';
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { useAuth } from "../context/AuthContext";
+import PasswordInput from "../components/PasswordInput";
+import GameTile from "../components/GameTile";
+import styles from "./Auth.module.css";
+import { ShowcaseCard } from "./Login";
 
 export default function Register() {
-  const [form, setForm] = useState({ username: '', email: '', password: '', confirm: '' });
-  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirm: "",
+  });
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [showcase, setShowcase] = useState(null);
+  const [seed] = useState(() => Math.floor(Math.random() * 100));
+
+  useEffect(() => {
+    axios
+      .get("/api/tables/showcase")
+      .then(({ data }) => setShowcase(data))
+      .catch(() => {});
+  }, []);
 
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (form.password !== form.confirm) {
-      setError('Las contraseñas no coinciden');
+      setError("Las contraseñas no coinciden");
       return;
     }
-    if (form.password.length < 8 || !/[A-Z]/.test(form.password) || !/\d/.test(form.password)) {
-      setError('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número');
+    if (
+      form.password.length < 8 ||
+      !/[A-Z]/.test(form.password) ||
+      !/\d/.test(form.password)
+    ) {
+      setError(
+        "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número",
+      );
       return;
     }
 
     setLoading(true);
     try {
       await register(form.username, form.email, form.password);
-      navigate('/');
+      navigate("/");
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al registrarse');
+      setError(err.response?.data?.message || "Error al registrarse");
     } finally {
       setLoading(false);
     }
@@ -41,11 +63,31 @@ export default function Register() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.card}>
-        <AuthLogo />
+      {/* ── Left / main panel ── */}
+      <div className={styles.panel}>
+        {/* Logo */}
+        <div className={styles.logoBlock}>
+          <div className={styles.logoIcon}>T</div>
+          <div className={styles.logoText}>
+            <span className={styles.logoName}>TurnoCero</span>
+            <span className={styles.logoSub}>BOARD GAME MEETUPS</span>
+          </div>
+        </div>
 
-        <h2 className={styles.title}>Crear cuenta</h2>
+        {/* Mobile hero tile */}
+        <div className={styles.mobileHero}>
+          <GameTile game="TurnoCero" seed={seed} size="100%" />
+          <div className={styles.mobileHeroFade} />
+        </div>
 
+        {/* Heading */}
+        <div className={styles.eyebrow}>◆ NUEVA CUENTA</div>
+        <h1 className={styles.heading}>Empezá a jugar.</h1>
+        <p className={styles.sub}>
+          Creá tu perfil y encontrá tu próxima partida.
+        </p>
+
+        {/* Form */}
         {error && <div className={styles.errorBox}>{error}</div>}
 
         <form onSubmit={handleSubmit} className={styles.form}>
@@ -105,19 +147,55 @@ export default function Register() {
             />
           </div>
 
-          <button
-            type="submit"
-            className={styles.submitBtn}
-            disabled={loading}
-          >
-            {loading ? 'Creando cuenta…' : 'Crear cuenta'}
+          <button type="submit" className={styles.submitBtn} disabled={loading}>
+            {loading ? (
+              "Creando cuenta…"
+            ) : (
+              <>
+                <span>🎲</span> Crear cuenta
+              </>
+            )}
           </button>
         </form>
 
         <p className={styles.switchLink}>
-          ¿Ya tenés cuenta?{' '}
-          <Link to="/login">Iniciá sesión</Link>
+          ¿Ya tenés cuenta? <Link to="/login">Iniciá sesión →</Link>
         </p>
+      </div>
+
+      {/* ── Right: showcase (desktop only) ── */}
+      <div className={styles.showcase}>
+        <div className={styles.showcaseTile}>
+          <GameTile
+            game={showcase?.table?.boardGame || "TurnoCero"}
+            seed={seed}
+            size="100%"
+          />
+        </div>
+        <div className={styles.showcaseGradient} />
+        <div className={styles.showcaseContent}>
+          <div>
+            <div className={styles.showcaseEyebrow}>◆ MESAS ACTIVAS</div>
+            {showcase?.total > 0 ? (
+              <h2 className={styles.showcaseTitle}>
+                {showcase.total} mesas
+                <br />
+                <span className={styles.showcaseTitleAccent}>
+                  esperando jugadores.
+                </span>
+              </h2>
+            ) : (
+              <h2 className={styles.showcaseTitle}>
+                ¿Y vos qué
+                <br />
+                <span className={styles.showcaseTitleAccent}>
+                  esperás para sumarte?
+                </span>
+              </h2>
+            )}
+          </div>
+          {showcase?.table && <ShowcaseCard table={showcase.table} />}
+        </div>
       </div>
     </div>
   );
