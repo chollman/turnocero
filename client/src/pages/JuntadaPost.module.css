@@ -1,12 +1,21 @@
 .page {
-  min-height: 100vh;
-  padding: 28px 0 80px;
+  min-height: calc(100vh - var(--navbar-h, 64px));
+  padding: 0 0 4rem;
 }
 
-.inner {
-  max-width: 680px;
-  margin-inline: auto;
-  padding: 0 20px;
+.layout {
+  padding: 0 28px;
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.feedCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .backBtn {
@@ -15,9 +24,9 @@
   color: var(--text-secondary);
   font-size: 0.875rem;
   cursor: pointer;
-  padding: 6px 0;
-  margin-bottom: 20px;
+  padding: 0;
   transition: color 0.15s;
+  align-self: flex-start;
 }
 
 .backBtn:hover {
@@ -26,20 +35,22 @@
 
 .spinner {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
+  justify-content: center;
   padding: 60px 0;
 }
 
 .spinnerDice {
   font-size: 2.5rem;
-  animation: spin 1.2s linear infinite;
+  animation: spin 1.5s linear infinite;
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .errorBox {
@@ -52,7 +63,7 @@
 
 .errorBox p {
   color: var(--text-secondary);
-  margin-bottom: 20px;
+  margin: 0 0 20px;
 }
 
 .backLink {
@@ -63,10 +74,20 @@
   padding: 8px 18px;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .backLink:hover {
   background: var(--amber);
   color: var(--bg-dark);
+}
+
+@media (max-width: 959px) {
+  .layout {
+    padding: 16px 16px 0;
+    gap: 0;
+    flex-direction: column;
+  }
 }

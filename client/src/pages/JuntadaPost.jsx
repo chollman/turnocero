@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import axios from 'axios'
 import JuntadaCard from '../components/JuntadaCard'
+import JuntadasSidebar from '../components/JuntadasSidebar'
 import styles from './JuntadaPost.module.css'
 
 export default function JuntadaPost() {
@@ -56,33 +57,36 @@ export default function JuntadaPost() {
         <meta name="twitter:image"       content={metaImage} />
       </Helmet>
 
-      <div className={styles.inner}>
-        <button className={styles.backBtn} onClick={() => navigate('/juntadas')}>
-          ← Volver al feed
-        </button>
+      <div className={styles.layout}>
+        <div className={styles.feedCol}>
+          <button className={styles.backBtn} onClick={() => navigate('/juntadas')}>
+            ← Volver al feed
+          </button>
 
-        {loading && (
-          <div className={styles.spinner}>
-            <span className={styles.spinnerDice}>🎲</span>
-          </div>
-        )}
+          {loading && (
+            <div className={styles.spinner}>
+              <span className={styles.spinnerDice}>🎲</span>
+            </div>
+          )}
 
-        {error && (
-          <div className={styles.errorBox}>
-            <p>{error}</p>
-            <button className={styles.backLink} onClick={() => navigate('/juntadas')}>
-              Ir al feed de Juntadas
-            </button>
-          </div>
-        )}
+          {error && (
+            <div className={styles.errorBox}>
+              <p>{error}</p>
+              <button className={styles.backLink} onClick={() => navigate('/juntadas')}>
+                Ir al feed de Juntadas
+              </button>
+            </div>
+          )}
 
-        {post && (
-          <JuntadaCard
-            post={post}
-            onDeleted={() => navigate('/juntadas')}
-            onUpdated={(updated) => setPost(updated)}
-          />
-        )}
+          {post && (
+            <JuntadaCard
+              post={post}
+              onDeleted={() => navigate('/juntadas')}
+              onUpdated={(updated) => setPost(updated)}
+            />
+          )}
+        </div>
+        <JuntadasSidebar />
       </div>
     </div>
   )
