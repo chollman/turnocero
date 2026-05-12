@@ -94,7 +94,17 @@ export default function Dashboard() {
   return (
     <div className={styles.page}>
       <div className="container">
-        {/* Hero */}
+        {/* Mobile compact header (shown instead of hero on mobile) */}
+        <div className={styles.mobileHeader}>
+          <div>
+            <p className={styles.heroEyebrow}>
+              ◆ {pagination.total > 0 ? `${pagination.total} MESAS ACTIVAS` : 'MESAS DE JUEGO'}
+            </p>
+            <h1 className={styles.mobileTitle}>Tirá los dados.</h1>
+          </div>
+        </div>
+
+        {/* Hero — desktop only */}
         <div className={styles.hero}>
           <div className={styles.heroDecor} aria-hidden="true">
             <svg viewBox="0 0 100 100" width="100%" height="100%">
@@ -221,6 +231,11 @@ export default function Dashboard() {
           </>
         )}
       </div>
+
+      {/* FAB — mobile only */}
+      <Link to="/create" className={styles.fab}>
+        <span>+</span> Crear mesa
+      </Link>
     </div>
   );
 }

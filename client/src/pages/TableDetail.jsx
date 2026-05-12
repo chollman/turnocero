@@ -111,6 +111,8 @@ export default function TableDetail() {
   const [cancelTableLoading, setCancelTableLoading] = useState(false)
   const [cancelTableError, setCancelTableError] = useState('')
 
+  const [mobileTab, setMobileTab] = useState('chat')
+
   const socketRef = useRef(null)
   const messageListRef = useRef(null)
 
@@ -523,6 +525,20 @@ export default function TableDetail() {
           </div>
         </div>
 
+        {/* Mobile meta rows — date + location below hero (mobile only) */}
+        <div className={styles.mobileMetaRows}>
+          <div className={styles.mobileMetaRow}>
+            <span className={styles.mobileMetaIcon}>📅</span>
+            <span>{getDateChip(table.date)}</span>
+          </div>
+          {table.location && (
+            <div className={styles.mobileMetaRow}>
+              <span className={styles.mobileMetaIcon}>📍</span>
+              <span>{table.location}</span>
+            </div>
+          )}
+        </div>
+
         {/* Actions bar */}
         {table.status !== 'cancelled' && (isHost || isPlayer || isGuest) && (
           <div className={styles.actionsBar}>
@@ -653,12 +669,31 @@ export default function TableDetail() {
               </div>
             )}
 
+            {/* Mobile tab bar — participants only, hidden on desktop */}
+            {!isGuest && (
+              <div className={styles.mobileTabBar}>
+                {[
+                  { id: 'chat',    label: 'Chat' },
+                  { id: 'fotos',   label: 'Fotos' },
+                  { id: 'resenas', label: 'Reseñas' },
+                ].map(({ id, label }) => (
+                  <button
+                    key={id}
+                    className={`${styles.mobileTabBtn} ${mobileTab === id ? styles.mobileTabActive : ''}`}
+                    onClick={() => setMobileTab(id)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Gallery */}
             {(() => {
               const images = table.images || []
               const canUpload = isParticipant(table) && !isViewingAsAdmin && images.length < 10
               return (
-                <div className={styles.card}>
+                <div className={`${styles.card} ${!isGuest && mobileTab !== 'fotos' ? styles.mobileHidden : ''}`}>
                   <div className={styles.galleryHeader}>
                     <span className={styles.eyebrow}>
                       FOTOS DE LA MESA
@@ -715,7 +750,7 @@ export default function TableDetail() {
             })()}
 
             {/* Comments */}
-            <div className={styles.card}>
+            <div className={`${styles.card} ${!isGuest && mobileTab !== 'resenas' ? styles.mobileHidden : ''}`}>
               <div className={styles.sectionRow}>
                 <span className={styles.eyebrow}>
                   COMENTARIOS
@@ -797,7 +832,7 @@ export default function TableDetail() {
               const gameDatePassed = new Date(table.date) < new Date()
               const canRate = gameDatePassed && isParticipant(table)
               return (
-                <div className={styles.ratingsCard}>
+                <div className={`${styles.ratingsCard} ${!isGuest && mobileTab !== 'resenas' ? styles.mobileHidden : ''}`}>
                   <div className={styles.sectionRow}>
                     <span className={styles.eyebrow}>¿CÓMO ESTUVO LA SESIÓN?</span>
                     {ratingsCount > 0 && ratingsAvg !== null && (
@@ -864,7 +899,7 @@ export default function TableDetail() {
 
           {/* Right column: Chat */}
           {!isGuest && (
-            <div className={styles.chatPanel}>
+            <div className={`${styles.chatPanel} ${mobileTab !== 'chat' ? styles.mobileHidden : ''}`}>
               <div className={styles.chatHeader}>
                 <span className={styles.eyebrow}>CHAT DE LA MESA</span>
                 <span className={styles.chatSubtitle}>
