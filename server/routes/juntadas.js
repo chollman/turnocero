@@ -28,6 +28,17 @@ const visibilityFilter = (user) => ({
   ],
 });
 
+// ── Attach real comment counts to an array of juntada objects ─────────────
+const withCommentCounts = async (juntadas) => {
+  const ids = juntadas.map((j) => j._id);
+  const counts = await JuntadaComment.aggregate([
+    { $match: { juntada: { $in: ids } } },
+    { $group: { _id: '$juntada', count: { $sum: 1 } } },
+  ]);
+  const map = Object.fromEntries(counts.map((c) => [c._id.toString(), c.count]));
+  return juntadas.map((j) => ({ ...j.toObject(), commentCount: map[j._id.toString()] ?? 0 }));
+};
+
 // ── GET /api/juntadas — paginated feed ────────────────────────────────────
 router.get('/', protect, async (req, res) => {
   try {
@@ -59,9 +70,18 @@ router.get('/', protect, async (req, res) => {
       ? await populateJuntada(Juntada.findById(featuredId))
       : null;
 
+    const allForCounts = [...juntadas, ...(featured ? [featured] : [])];
+    const withCounts = await withCommentCounts(allForCounts);
+    const featuredWithCount = featured
+      ? withCounts.find((j) => j._id.toString() === featured._id.toString())
+      : null;
+    const juntadasWithCounts = withCounts.filter(
+      (j) => !featured || j._id.toString() !== featured._id.toString()
+    );
+
     res.json({
-      juntadas,
-      featured: featured ? featured.toObject() : null,
+      juntadas: juntadasWithCounts,
+      featured: featuredWithCount ?? null,
       total,
       page,
       pages: Math.ceil(total / limit),
@@ -108,7 +128,8 @@ router.get('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'No tenés acceso a esta juntada' });
     }
 
-    res.json(juntada);
+    const commentCount = await JuntadaComment.countDocuments({ juntada: juntada._id });
+    res.json({ ...juntada.toObject(), commentCount });
   } catch (err) {
     res.status(500).json({ message: 'Error al cargar la juntada' });
   }
@@ -308,7 +329,6 @@ router.post('/:id/comments', protect, async (req, res) => {
       content: content.trim(),
     });
     await comment.populate('author', 'username avatar displayName');
-
     res.status(201).json(comment);
   } catch (err) {
     res.status(500).json({ message: 'Error al agregar el comentario' });

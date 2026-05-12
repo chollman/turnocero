@@ -44,6 +44,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState([])
   const [commentsLoaded, setCommentsLoaded] = useState(false)
+  const [commentCount, setCommentCount] = useState(initialPost.commentCount ?? 0)
   const [commentInput, setCommentInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [editingCid, setEditingCid] = useState(null)
@@ -89,10 +90,10 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
         const { data } = await axios.get(`/api/juntadas/${post._id}/comments`)
         setComments(data)
         setCommentsLoaded(true)
+        setCommentCount(data.length)
       } catch { /* silently ignore */ }
     }
     setShowComments((s) => !s)
-    if (!showComments) setTimeout(() => commentInputRef.current?.focus(), 100)
   }
 
   const handleAddComment = async (e) => {
@@ -102,6 +103,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
     try {
       const { data } = await axios.post(`/api/juntadas/${post._id}/comments`, { content: commentInput.trim() })
       setComments((c) => [...c, data])
+      setCommentCount((n) => n + 1)
       setCommentInput('')
     } catch { /* silently ignore */ } finally {
       setSubmitting(false)
@@ -121,6 +123,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
     try {
       await axios.delete(`/api/juntadas/${post._id}/comments/${cid}`)
       setComments((cs) => cs.filter((c) => c._id !== cid))
+      setCommentCount((n) => Math.max(0, n - 1))
     } catch { /* silently ignore */ }
   }
 
@@ -285,7 +288,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
-            <span>{comments.length > 0 ? comments.length : commentsLoaded ? 0 : ''} comentarios</span>
+            <span>{commentCount} {commentCount === 1 ? 'comentario' : 'comentarios'}</span>
           </button>
 
           <div className={styles.shareGroup}>
