@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import ToastContainer from './components/ToastContainer';
@@ -20,6 +21,12 @@ import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 import BoardGameBackground from './components/BoardGameBackground';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
 
 const LoadingScreen = () => (
   <div style={{
@@ -54,6 +61,7 @@ function AppRoutes() {
   const { user } = useAuth();
   return (
     <div className="appShell">
+      <ScrollToTop />
       {user && <Sidebar />}
       <div className="appContent">
         {user && <Navbar />}

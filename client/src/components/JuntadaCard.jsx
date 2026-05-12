@@ -44,6 +44,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState([])
   const [commentsLoaded, setCommentsLoaded] = useState(false)
+  const [loadingComments, setLoadingComments] = useState(false)
   const [commentCount, setCommentCount] = useState(initialPost.commentCount ?? 0)
   const [commentInput, setCommentInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -86,14 +87,19 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
 
   const toggleComments = async () => {
     if (!showComments && !commentsLoaded) {
+      setShowComments(true)
+      setLoadingComments(true)
       try {
         const { data } = await axios.get(`/api/juntadas/${post._id}/comments`)
         setComments(data)
         setCommentsLoaded(true)
         setCommentCount(data.length)
-      } catch { /* silently ignore */ }
+      } catch { /* silently ignore */ } finally {
+        setLoadingComments(false)
+      }
+    } else {
+      setShowComments((s) => !s)
     }
-    setShowComments((s) => !s)
   }
 
   const handleAddComment = async (e) => {
@@ -353,9 +359,15 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
         {/* ── Comments ── */}
         {showComments && (
           <div className={styles.comments}>
-            {comments.length === 0 && (
+            {loadingComments ? (
+              <div className={styles.commentsLoader}>
+                <span className={styles.commentsLoaderDot} />
+                <span className={styles.commentsLoaderDot} />
+                <span className={styles.commentsLoaderDot} />
+              </div>
+            ) : comments.length === 0 ? (
               <p className={styles.noComments}>Sin comentarios aún. ¡Sé el primero!</p>
-            )}
+            ) : null}
             {comments.map((c) => {
               const isOwn = (c.author._id || c.author).toString() === user._id.toString()
               const canDel = isOwn || isAuthor || user.isAdmin
