@@ -67,6 +67,17 @@ router.get('/mine', protect, async (req, res) => {
   }
 });
 
+// GET /api/me/feed — protected; all tables for current user (all statuses), sorted date desc
+router.get('/me/feed', protect, async (req, res) => {
+  try {
+    const filter = { $or: [{ host: req.user._id }, { players: req.user._id }] };
+    const tables = await populateTable(Table.find(filter)).sort({ date: -1 });
+    res.json({ tables, total: tables.length });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // POST /api/tables — protected
 router.post('/', protect, [
   body('boardGame').trim().notEmpty().withMessage('Game name is required').isLength({ max: 100 }).withMessage('Game name is too long'),

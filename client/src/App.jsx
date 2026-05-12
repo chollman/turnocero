@@ -13,6 +13,7 @@ import UserProfilePublic from './pages/UserProfilePublic';
 import DatabaseViewer from './pages/DatabaseViewer';
 import TableDetail from './pages/TableDetail';
 import Notifications from './pages/Notifications';
+import MeFeed from './pages/MeFeed';
 import Navbar from './components/Navbar';
 import BoardGameBackground from './components/BoardGameBackground';
 
@@ -62,6 +63,7 @@ function AppRoutes() {
         <Route path="/users" element={<PrivateRoute><UsersList /></PrivateRoute>} />
         <Route path="/users/:id" element={<PrivateRoute><UserProfilePublic /></PrivateRoute>} />
         <Route path="/database" element={<PrivateRoute><DatabaseViewer /></PrivateRoute>} />
+        <Route path="/me" element={<PrivateRoute><MeFeed /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

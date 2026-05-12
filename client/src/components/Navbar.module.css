@@ -92,6 +92,11 @@
   color: var(--amber);
 }
 
+.active {
+  border-color: var(--amber-dark);
+  color: var(--amber);
+}
+
 .btnLogout {
   background: transparent;
   border: 1px solid var(--border);

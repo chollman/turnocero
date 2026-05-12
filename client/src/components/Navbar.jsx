@@ -69,6 +69,15 @@ export default function Navbar() {
                 Jugadores
               </Link>
 
+              <Link
+                to="/me"
+                className={`${styles.btn} ${styles.btnSecondary} ${styles.desktopOnly} ${
+                  location.pathname === '/me' ? styles.active : ''
+                }`}
+              >
+                Mi Historial
+              </Link>
+
               {user.isAdmin && (
                 <Link
                   to="/database"
@@ -197,6 +206,13 @@ export default function Navbar() {
                       onClick={() => setMenuOpen(false)}
                     >
                       Mi Perfil
+                    </Link>
+                    <Link
+                      to="/me"
+                      className={styles.dropdownItem}
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Mi Historial
                     </Link>
                     <Link
                       to="/users"
