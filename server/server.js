@@ -89,6 +89,7 @@ app.use('/api/tables', require('./routes/tables'));
 app.use('/api/tables/:id/messages', require('./routes/messages'));
 app.use('/api/tables/:id/comments', require('./routes/comments'));
 app.use('/api/tables/:id/images', require('./routes/images'));
+app.use('/api/tables/:id/ratings', require('./routes/ratings'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/users', require('./routes/users'));
 

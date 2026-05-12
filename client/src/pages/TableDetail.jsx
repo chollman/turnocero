@@ -52,6 +52,15 @@ export default function TableDetail() {
   const [lightboxImage, setLightboxImage] = useState(null)
   const fileInputRef = useRef(null)
 
+  const [ratings, setRatings] = useState([])
+  const [ratingsAvg, setRatingsAvg] = useState(null)
+  const [ratingsCount, setRatingsCount] = useState(0)
+  const [myRatingScore, setMyRatingScore] = useState(0)
+  const [myRatingComment, setMyRatingComment] = useState('')
+  const [hoverScore, setHoverScore] = useState(0)
+  const [submittingRating, setSubmittingRating] = useState(false)
+  const [ratingError, setRatingError] = useState('')
+
   const socketRef = useRef(null)
   const messageListRef = useRef(null)
 
@@ -105,6 +114,26 @@ export default function TableDetail() {
     axios
       .get(`/api/tables/${id}/comments`)
       .then(({ data }) => setComments(data))
+      .catch(() => {})
+  }, [table])
+
+  // Fetch ratings for all users once table is loaded
+  useEffect(() => {
+    if (!table) return
+    axios
+      .get(`/api/tables/${id}/ratings`)
+      .then(({ data }) => {
+        setRatings(data.ratings)
+        setRatingsAvg(data.avg)
+        setRatingsCount(data.count)
+        const mine = data.ratings.find(
+          (r) => (r.rater._id || r.rater).toString() === user._id.toString()
+        )
+        if (mine) {
+          setMyRatingScore(mine.score)
+          setMyRatingComment(mine.comment || '')
+        }
+      })
       .catch(() => {})
   }, [table])
 
@@ -273,6 +302,31 @@ export default function TableDetail() {
       setEditingContent('')
     } catch (err) {
       setCommentError(err.response?.data?.message || 'Error al editar')
+    }
+  }
+
+  const handleSubmitRating = async (e) => {
+    e.preventDefault()
+    if (!myRatingScore || submittingRating) return
+    setSubmittingRating(true)
+    setRatingError('')
+    try {
+      const { data } = await axios.post(`/api/tables/${id}/ratings`, {
+        score: myRatingScore,
+        comment: myRatingComment,
+      })
+      setRatings((prev) => {
+        const withoutMine = prev.filter(
+          (r) => (r.rater._id || r.rater).toString() !== user._id.toString()
+        )
+        return [data.rating, ...withoutMine]
+      })
+      setRatingsAvg(data.avg)
+      setRatingsCount(data.count)
+    } catch (err) {
+      setRatingError(err.response?.data?.message || 'Error al enviar la valoración')
+    } finally {
+      setSubmittingRating(false)
     }
   }
 
@@ -768,6 +822,84 @@ export default function TableDetail() {
             </button>
           </form>
         </div>
+        {/* Ratings — visible to all; form only for participants after game date */}
+        {(() => {
+          const gameDatePassed = new Date(table.date) < new Date()
+          const canRate = gameDatePassed && isParticipant(table)
+          return (
+            <div className={styles.ratingsSection}>
+              <h2 className={styles.ratingsTitle}>
+                ¿Cómo estuvo la sesión?
+                {ratingsCount > 0 && ratingsAvg !== null && (
+                  <span className={styles.ratingsAvgBadge}>
+                    {'★'.repeat(Math.round(ratingsAvg))}{'☆'.repeat(5 - Math.round(ratingsAvg))} {ratingsAvg.toFixed(1)} ({ratingsCount})
+                  </span>
+                )}
+              </h2>
+
+              {canRate && (
+                <form className={styles.ratingForm} onSubmit={handleSubmitRating}>
+                  <span className={styles.ratingLabel}>Tu puntuación</span>
+                  <div className={styles.starRow}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type='button'
+                        className={`${styles.starBtn} ${star <= (hoverScore || myRatingScore) ? styles.starActive : ''}`}
+                        onMouseEnter={() => setHoverScore(star)}
+                        onMouseLeave={() => setHoverScore(0)}
+                        onClick={() => setMyRatingScore(star)}
+                        aria-label={`${star} estrellas`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    className={styles.ratingTextarea}
+                    placeholder='Comentario opcional (máx. 300 caracteres)…'
+                    value={myRatingComment}
+                    onChange={(e) => setMyRatingComment(e.target.value)}
+                    maxLength={300}
+                    rows={2}
+                    disabled={submittingRating}
+                  />
+                  {ratingError && <p className={styles.ratingError}>{ratingError}</p>}
+                  <button
+                    className={styles.btnSubmitRating}
+                    type='submit'
+                    disabled={!myRatingScore || submittingRating}
+                  >
+                    {submittingRating ? '…' : myRatingScore ? 'Enviar valoración' : 'Seleccioná una puntuación'}
+                  </button>
+                </form>
+              )}
+
+              {ratings.length === 0 ? (
+                <p className={styles.ratingsEmpty}>Todavía no hay valoraciones.</p>
+              ) : (
+                <div className={styles.ratingsList}>
+                  {ratings.map((r) => (
+                    <div key={r._id} className={styles.ratingItem}>
+                      <span className={styles.ratingAvatar}>
+                        {r.rater.username[0].toUpperCase()}
+                      </span>
+                      <div className={styles.ratingBody}>
+                        <div className={styles.ratingMeta}>
+                          <span className={styles.ratingUsername}>{r.rater.username}</span>
+                          <span className={styles.ratingStars}>
+                            {'★'.repeat(r.score)}{'☆'.repeat(5 - r.score)}
+                          </span>
+                        </div>
+                        {r.comment && <p className={styles.ratingComment}>{r.comment}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )
