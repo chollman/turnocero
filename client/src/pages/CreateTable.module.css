@@ -4,7 +4,7 @@
 }
 
 .inner {
-  padding: 24px 28px 0;
+  padding: 0 28px;
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -52,8 +52,8 @@
 
 /* ─── Error ─── */
 .errorBox {
-  background: rgba(243, 29, 119, 0.10);
-  border: 1px solid rgba(243, 29, 119, 0.30);
+  background: rgba(243, 29, 119, 0.1);
+  border: 1px solid rgba(243, 29, 119, 0.3);
   border-radius: 8px;
   padding: 10px 14px;
   color: var(--red);
@@ -112,7 +112,9 @@
   font-family: inherit;
   outline: none;
   width: 100%;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
   box-sizing: border-box;
 }
 
@@ -125,7 +127,7 @@
   box-shadow: 0 0 0 3px var(--amber-glow);
 }
 
-.input[type="datetime-local"] {
+.input[type='datetime-local'] {
   color-scheme: dark;
 }
 
@@ -161,7 +163,10 @@
   font-size: 12px;
   font-family: inherit;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
 }
 
 .gameChip:hover {
@@ -196,7 +201,9 @@
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .counterMinus:hover,
@@ -237,7 +244,9 @@
   border-radius: 10px;
   cursor: pointer;
   font-family: inherit;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
   text-align: center;
 }
 
@@ -289,7 +298,9 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
   white-space: nowrap;
 }
 
@@ -308,7 +319,9 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s, box-shadow 0.15s;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
   box-shadow: 0 4px 14px var(--amber-glow);
   white-space: nowrap;
 }
@@ -333,12 +346,14 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
   white-space: nowrap;
 }
 
 .btnDanger:hover {
-  background: rgba(243, 29, 119, 0.10);
+  background: rgba(243, 29, 119, 0.1);
   border-color: var(--red);
 }
 

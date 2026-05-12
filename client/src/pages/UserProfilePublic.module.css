@@ -13,12 +13,16 @@
 .bannerOverlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(10, 13, 21, 0.25) 0%, var(--bg-dark) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(10, 13, 21, 0.25) 0%,
+    var(--bg-dark) 100%
+  );
 }
 
 /* ─── Main inner (overlaps banner by pulling up) ─── */
 .inner {
-  padding: 0 28px 0;
+  padding: 0 28px;
   margin-top: -72px;
   position: relative;
   display: flex;
@@ -42,7 +46,9 @@
   padding: 6px 14px;
   cursor: pointer;
   align-self: flex-start;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .backBtn:hover {
@@ -146,7 +152,9 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .friendBtnMuted:hover:not(:disabled) {
@@ -181,7 +189,9 @@
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .friendBtnUnfriend:hover:not(:disabled) {
@@ -193,7 +203,7 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--green);
-  background: rgba(0, 217, 132, 0.10);
+  background: rgba(0, 217, 132, 0.1);
   border: 1px solid var(--green);
   border-radius: 8px;
   padding: 6px 12px;
@@ -417,9 +427,15 @@
   flex-shrink: 0;
 }
 
-.dotOpen    { background: var(--green); }
-.dotFull    { background: var(--amber); }
-.dotCancelled { background: var(--red); }
+.dotOpen {
+  background: var(--green);
+}
+.dotFull {
+  background: var(--amber);
+}
+.dotCancelled {
+  background: var(--red);
+}
 
 .breakdownLabel {
   flex: 1;
@@ -470,8 +486,12 @@
 }
 
 @keyframes bounce {
-  from { transform: translateY(0) rotate(-10deg); }
-  to   { transform: translateY(-8px) rotate(10deg); }
+  from {
+    transform: translateY(0) rotate(-10deg);
+  }
+  to {
+    transform: translateY(-8px) rotate(10deg);
+  }
 }
 
 /* ─── Mobile ─── */
