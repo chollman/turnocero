@@ -673,9 +673,9 @@ export default function TableDetail() {
             {!isGuest && (
               <div className={styles.mobileTabBar}>
                 {[
-                  { id: 'chat',    label: 'Chat' },
-                  { id: 'fotos',   label: 'Fotos' },
-                  { id: 'resenas', label: 'Reseñas' },
+                  { id: 'chat',    label: 'CHAT' },
+                  { id: 'fotos',   label: 'FOTOS' },
+                  { id: 'resenas', label: 'RESEÑAS' },
                 ].map(({ id, label }) => (
                   <button
                     key={id}

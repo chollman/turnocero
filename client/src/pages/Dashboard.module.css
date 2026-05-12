@@ -354,7 +354,7 @@
     gap: 6px;
     position: fixed;
     bottom: calc(60px + 14px);
-    right: 16px;
+    right: 20px;
     height: 46px;
     padding: 0 16px 0 12px;
     background: var(--amber);
@@ -379,11 +379,11 @@
 
 @media (max-width: 600px) {
   .mobileHeader {
-    padding: 14px 1rem 4px;
+    padding: 12px 18px 4px;
   }
 
   .controls {
-    padding: 0 1rem;
+    padding: 0 18px;
     flex-direction: column;
     align-items: stretch;
   }
@@ -401,7 +401,13 @@
   }
 
   .grid {
-    gap: 0.85rem;
+    padding: 0 18px;
+    gap: 14px;
+  }
+
+  .list {
+    padding: 0 18px;
+    gap: 14px;
   }
 
   .pageBtn {
@@ -410,12 +416,12 @@
   }
 
   .pagination {
-    padding: 0 1rem;
+    padding: 0 18px;
   }
 
   .center,
   .empty {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 18px;
+    padding-right: 18px;
   }
 }

@@ -1386,18 +1386,19 @@
 /* ─── mobileHidden — show/hide tab content on mobile ─── */
 /* (applied to desktop too but overridden below) */
 
+/* ── 960px and below: single column, mobile nav visible ── */
 @media (max-width: 959px) {
-  /* Hide heroChips inside the banner — date/location move to mobileMetaRows */
+  /* Move date/location out of hero banner */
   .heroChips {
     display: none;
   }
 
-  /* Show meta rows below hero */
+  /* Meta rows: no extra horizontal padding here — container provides 24px */
   .mobileMetaRows {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
-    padding: 0.75rem 1rem 0;
+    gap: 0.55rem;
+    padding-top: 12px;
   }
 
   .mobileMetaRow {
@@ -1414,33 +1415,34 @@
     flex-shrink: 0;
   }
 
-  /* Tab bar */
+  /* Underline-style tab bar — no horizontal margin here, container handles it */
   .mobileTabBar {
     display: flex;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 3px;
-    gap: 2px;
-    margin-top: 0.25rem;
-    margin-left: 1rem;
-    margin-right: 1rem;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    padding: 0;
+    gap: 0;
+    margin-top: 0.65rem;
   }
 
   .mobileTabBtn {
     flex: 1;
     background: transparent;
     border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
     color: var(--text-secondary);
-    padding: 0.5rem 0;
-    border-radius: 7px;
+    padding: 10px 0;
+    margin-bottom: -1px;
     font-family: var(--font-display);
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     cursor: pointer;
-    transition: all var(--transition);
+    transition: color var(--transition), border-color var(--transition);
   }
 
   .mobileTabBtn:hover {
@@ -1448,8 +1450,9 @@
   }
 
   .mobileTabActive {
-    background: var(--bg-elevated);
-    color: var(--amber);
+    background: transparent;
+    color: var(--text-primary);
+    border-bottom-color: var(--amber);
   }
 
   /* Hide content not in active tab */
@@ -1457,14 +1460,14 @@
     display: none !important;
   }
 
-  /* Chat panel in flow (not sticky) — already handled at 960px breakpoint */
-  /* Make it grow to fill remaining viewport when active */
+  /* Chat panel fills available viewport height */
   .chatPanel {
     height: calc(100vh - 360px);
     min-height: 340px;
   }
 }
 
+/* ── 600px and below: container padding = 0, elements add own inset ── */
 @media (max-width: 600px) {
   .hero {
     height: 170px;
@@ -1479,33 +1482,44 @@
     padding: 0.9rem 1rem;
   }
 
+  /* All content inset 16px from edges (matches handoff's padding: 12px 16px) */
+  .mobileMetaRows {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .mobileTabBar {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
   .actionsBar {
-    margin-left: 1rem;
-    margin-right: 1rem;
+    margin-left: 16px;
+    margin-right: 16px;
   }
 
   .adminBanner {
-    margin-left: 1rem;
-    margin-right: 1rem;
+    margin-left: 16px;
+    margin-right: 16px;
   }
 
   .card,
   .ratingsCard {
     padding: 1rem 1.1rem;
     border-radius: 10px;
-    margin-left: 1rem;
-    margin-right: 1rem;
+    margin-left: 16px;
+    margin-right: 16px;
   }
 
   .chatPanel {
     height: calc(100vh - 320px);
     min-height: 320px;
-    margin-left: 1rem;
-    margin-right: 1rem;
+    margin-left: 16px;
+    margin-right: 16px;
     border-radius: 10px;
   }
 
   .content {
-    gap: 0.85rem;
+    gap: 14px;
   }
 }
