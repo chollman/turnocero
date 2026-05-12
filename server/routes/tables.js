@@ -84,6 +84,23 @@ router.get('/me/feed', protect, async (req, res) => {
   }
 });
 
+// GET /api/tables/top-games — most-played games in the last 7 days
+router.get('/top-games', protect, async (req, res) => {
+  try {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const games = await Table.aggregate([
+      { $match: { status: { $ne: 'cancelled' }, createdAt: { $gte: since } } },
+      { $group: { _id: '$boardGame', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 8 },
+      { $project: { _id: 0, game: '$_id', count: 1 } },
+    ]);
+    res.json(games);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // GET /api/tables/showcase — public; active upcoming tables count + one random table for auth pages
 router.get('/showcase', async (req, res) => {
   try {

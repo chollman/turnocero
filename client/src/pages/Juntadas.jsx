@@ -4,6 +4,7 @@ import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import JuntadaCard from '../components/JuntadaCard'
 import CreateJuntadaForm from '../components/CreateJuntadaForm'
+import JuntadasSidebar from '../components/JuntadasSidebar'
 import styles from './Juntadas.module.css'
 
 export default function Juntadas() {
@@ -53,7 +54,8 @@ export default function Juntadas() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.inner}>
+      <div className={styles.layout}>
+      <div className={styles.feedCol}>
         {/* ── Page header ── */}
         <div className={styles.pageHeader}>
           <div className={styles.heroBlock}>
@@ -126,6 +128,8 @@ export default function Juntadas() {
             )}
           </div>
         )}
+      </div>
+      <JuntadasSidebar />
       </div>
     </div>
   )

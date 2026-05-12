@@ -1,0 +1,201 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 260px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 24px;
+  align-self: flex-start;
+}
+
+@media (max-width: 959px) {
+  .sidebar { display: none; }
+}
+
+/* ── Widget shell ── */
+.widget {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.widgetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.widgetEyebrow {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: var(--amber-light);
+}
+
+.widgetLink {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+.widgetLink:hover { color: var(--amber-light); }
+
+.widgetTitle {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+/* ── Empty state ── */
+.emptyWidget {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.emptyText {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.emptyAction {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--amber);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--transition);
+}
+
+.emptyAction:hover { color: var(--amber-light); }
+
+/* ── Table list ── */
+.tableList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tableRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background var(--transition);
+}
+
+.tableRow:hover { background: var(--bg-elevated); }
+
+.tableTile {
+  flex-shrink: 0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tableInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.tableGame {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tableMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.tableSeats {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+.tableSeatsFull { color: var(--text-muted); }
+
+/* ── Game list (top games) ── */
+.gameList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gameRank {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  min-width: 16px;
+  text-align: right;
+}
+
+.gameRankTop { color: var(--amber); }
+
+.gameBar {
+  width: 36px;
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.gameBarFill {
+  height: 100%;
+  background: var(--amber);
+  border-radius: 2px;
+  min-width: 4px;
+  transition: width 0.4s ease;
+}
+
+.gameName {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gameCount {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
