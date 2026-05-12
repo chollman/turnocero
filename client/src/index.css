@@ -111,6 +111,8 @@ select {
 .appShell {
   display: flex;
   min-height: 100vh;
+  max-width: 1440px;
+  margin-inline: auto;
 }
 
 .appContent {
