@@ -77,16 +77,17 @@ router.get('/', protect, async (req, res) => {
 router.get('/:id', protect, async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .select('username displayName nombre apellido telegram celular direccion createdAt')
+      .select('username displayName nombre apellido telegram celular direccion createdAt friendRequests friends')
       .lean();
 
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
     const userId = user._id;
 
-    const [hostedTables, playerTables] = await Promise.all([
+    const [hostedTables, playerTables, currentUser] = await Promise.all([
       Table.find({ host: userId }).select('boardGame status date createdAt').lean(),
       Table.find({ players: userId }).select('boardGame status date createdAt').lean(),
+      User.findById(req.user._id).select('friends friendRequests').lean(),
     ]);
 
     const hostedActive = hostedTables.filter((t) => t.status !== 'cancelled');
@@ -106,8 +107,21 @@ router.get('/:id', protect, async (req, res) => {
       .sort((a, b) => b - a);
     const lastActivity = allDates[0] || null;
 
+    const userIdStr = userId.toString();
+    const isFriend = currentUser.friends.some((f) => f.toString() === userIdStr);
+    const requestSent = user.friendRequests?.some((r) => r.from.toString() === req.user._id.toString());
+    const requestReceived = currentUser.friendRequests?.some((r) => r.from.toString() === userIdStr);
+    const relationship = isFriend ? 'friends'
+      : requestSent ? 'request_sent'
+      : requestReceived ? 'request_received'
+      : 'none';
+
+    const { friendRequests: _fr, friends: _friends, ...userPublic } = user;
+
     res.json({
-      ...user,
+      ...userPublic,
+      relationship,
+      friendsCount: (_friends || []).length,
       stats: {
         tablesHosted: {
           total: hostedTables.length,

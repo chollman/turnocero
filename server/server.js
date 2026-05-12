@@ -92,6 +92,7 @@ app.use('/api/tables/:id/images', require('./routes/images'));
 app.use('/api/tables/:id/ratings', require('./routes/ratings'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/friends', require('./routes/friends'));
 
 // Health check
 app.get('/api/health', (req, res) => {

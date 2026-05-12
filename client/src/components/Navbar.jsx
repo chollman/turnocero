@@ -13,7 +13,7 @@ const BellIcon = () => (
 
 export default function Navbar() {
   const { user, logout } = useAuth();
-  const { notifications, unreadCount, markRead, clearAll } = useNotifications();
+  const { notifications, unreadCount, markRead, markReadFriend, clearAll } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -126,7 +126,25 @@ export default function Navbar() {
                       <p className={styles.bellEmpty}>Sin notificaciones nuevas</p>
                     ) : (
                       <ul className={styles.bellList}>
-                        {[...notifications].reverse().map((n) => {
+                        {notifications.filter((n) => n.type === 'friend_request' || n.type === 'friend_accepted').map((n) => (
+                          <li key={`${n.type}:${n.fromUserId}`}>
+                            <Link
+                              to={`/users/${n.fromUserId}`}
+                              className={styles.bellItem}
+                              onClick={() => { markReadFriend(n.fromUserId); setBellOpen(false); }}
+                            >
+                              <div className={styles.bellItemTop}>
+                                <span className={styles.bellGame}>
+                                  {n.type === 'friend_request' ? '🤝' : '✅'} {n.fromUsername}
+                                </span>
+                                <span className={styles.bellCount}>
+                                  {n.type === 'friend_request' ? 'solicitud de amistad' : 'aceptó tu solicitud'}
+                                </span>
+                              </div>
+                            </Link>
+                          </li>
+                        ))}
+                        {[...notifications].reverse().filter((n) => n.type !== 'friend_request' && n.type !== 'friend_accepted').map((n) => {
                           const isRequest = n.type === 'join_request';
                           const isAccepted = n.type === 'join_accepted';
                           const countLabel = isAccepted

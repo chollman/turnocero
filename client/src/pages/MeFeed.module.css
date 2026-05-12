@@ -167,6 +167,22 @@
   background: var(--amber-glow);
 }
 
+.filterBtnFriends {
+  border-color: rgba(167, 139, 250, 0.4);
+  color: #a78bfa;
+}
+
+.filterBtnFriends:hover {
+  border-color: #a78bfa;
+  color: #a78bfa;
+}
+
+.filterBtnFriendsActive {
+  border-color: #a78bfa;
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.1);
+}
+
 /* Feed */
 .feed {
   display: flex;

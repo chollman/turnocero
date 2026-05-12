@@ -80,6 +80,12 @@
   background: rgba(243, 29, 119, 0.1);
 }
 
+.badgeFriend {
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.1);
+  border-color: rgba(167, 139, 250, 0.4);
+}
+
 .metaRow {
   display: flex;
   flex-wrap: wrap;

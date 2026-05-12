@@ -146,11 +146,39 @@ export function NotificationProvider({ children }) {
       });
     });
 
+    socket.on('friend:request', (notif) => {
+      setNotifications((prev) => {
+        const existing = prev.find((n) => n.type === 'friend_request' && n.fromUserId === notif.fromUserId);
+        if (existing) return prev;
+        return [...prev, { type: 'friend_request', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername, count: 1, timestamp: new Date().toISOString() }];
+      });
+      setToasts((prev) => {
+        const next = [...prev, { id: makeToastId(), type: 'friend_request', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername }];
+        return next.length > 4 ? next.slice(-4) : next;
+      });
+    });
+
+    socket.on('friend:accepted', (notif) => {
+      setNotifications((prev) => {
+        const existing = prev.find((n) => n.type === 'friend_accepted' && n.fromUserId === notif.fromUserId);
+        if (existing) return prev;
+        return [...prev, { type: 'friend_accepted', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername, count: 1, timestamp: new Date().toISOString() }];
+      });
+      setToasts((prev) => {
+        const next = [...prev, { id: makeToastId(), type: 'friend_accepted', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername }];
+        return next.length > 4 ? next.slice(-4) : next;
+      });
+    });
+
     return () => socket.disconnect();
   }, [user]);
 
   const markRead = useCallback((tableId) => {
     setNotifications((prev) => prev.filter((n) => n.tableId !== tableId));
+  }, []);
+
+  const markReadFriend = useCallback((fromUserId) => {
+    setNotifications((prev) => prev.filter((n) => n.fromUserId !== fromUserId));
   }, []);
 
   const clearAll = useCallback(() => setNotifications([]), []);
@@ -171,6 +199,7 @@ export function NotificationProvider({ children }) {
       notifications,
       unreadCount: totalUnread,
       markRead,
+      markReadFriend,
       clearAll,
       setActiveTable,
       toasts,

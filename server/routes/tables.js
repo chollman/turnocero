@@ -68,9 +68,15 @@ router.get('/mine', protect, async (req, res) => {
 });
 
 // GET /api/me/feed — protected; all tables for current user (all statuses), sorted date desc
+// ?includeFriends=true also includes friends' tables
 router.get('/me/feed', protect, async (req, res) => {
   try {
-    const filter = { $or: [{ host: req.user._id }, { players: req.user._id }] };
+    let ids = [req.user._id];
+    if (req.query.includeFriends === 'true') {
+      const me = await User.findById(req.user._id).select('friends').lean();
+      ids = [req.user._id, ...(me.friends || [])];
+    }
+    const filter = { $or: [{ host: { $in: ids } }, { players: { $in: ids } }] };
     const tables = await populateTable(Table.find(filter)).sort({ date: -1 });
     res.json({ tables, total: tables.length });
   } catch (err) {

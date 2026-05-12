@@ -21,6 +21,8 @@ function initial(username) {
 export default function FeedCard({ table, userId, isPast }) {
   const hostId = (table.host._id || table.host).toString();
   const isHost = hostId === userId.toString();
+  const isPlayer = table.players.some((p) => (p._id || p).toString() === userId.toString());
+  const isParticipant = isHost || isPlayer;
   const allParticipants = [table.host, ...table.players];
   const visibleChips = allParticipants.slice(0, 5);
   const overflow = allParticipants.length - visibleChips.length;
@@ -30,9 +32,15 @@ export default function FeedCard({ table, userId, isPast }) {
       <div className={styles.topRow}>
         <span className={styles.title}>{table.boardGame}</span>
         <div className={styles.badges}>
-          <span className={`${styles.badge} ${isHost ? styles.badgeHost : styles.badgePlayer}`}>
-            {isHost ? 'Anfitrión' : 'Jugador'}
-          </span>
+          {isParticipant ? (
+            <span className={`${styles.badge} ${isHost ? styles.badgeHost : styles.badgePlayer}`}>
+              {isHost ? 'Anfitrión' : 'Jugador'}
+            </span>
+          ) : (
+            <span className={`${styles.badge} ${styles.badgeFriend}`}>
+              🤝 {table.host.username}
+            </span>
+          )}
           <span className={`${styles.badge} ${STATUS_CLASS[table.status]}`}>
             {STATUS_LABEL[table.status]}
           </span>

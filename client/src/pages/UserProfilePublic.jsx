@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import styles from './UserProfilePublic.module.css';
 
 function StatCard({ value, label, highlight }) {
@@ -70,18 +71,50 @@ function timeAgo(iso) {
 export default function UserProfilePublic() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [relationship, setRelationship] = useState('none');
+  const [friendLoading, setFriendLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
     axios.get(`/api/users/${id}`)
-      .then(({ data }) => setProfile(data))
+      .then(({ data }) => {
+        setProfile(data);
+        setRelationship(data.relationship ?? 'none');
+      })
       .catch(() => setError('No se pudo cargar el perfil'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleFriendAction = async (action) => {
+    setFriendLoading(true);
+    try {
+      if (action === 'request') {
+        await axios.post(`/api/friends/${id}/request`);
+        setRelationship('request_sent');
+      } else if (action === 'cancel_request') {
+        await axios.delete(`/api/friends/${id}/request`);
+        setRelationship('none');
+      } else if (action === 'accept') {
+        await axios.post(`/api/friends/${id}/accept`);
+        setRelationship('friends');
+      } else if (action === 'reject') {
+        await axios.post(`/api/friends/${id}/reject`);
+        setRelationship('none');
+      } else if (action === 'unfriend') {
+        await axios.delete(`/api/friends/${id}`);
+        setRelationship('none');
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setFriendLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -140,6 +173,58 @@ export default function UserProfilePublic() {
                   </span>
                 )}
               </div>
+              {currentUser && currentUser._id !== id && (
+                <div className={styles.friendActions}>
+                  {relationship === 'none' && (
+                    <button
+                      className={styles.friendBtn}
+                      onClick={() => handleFriendAction('request')}
+                      disabled={friendLoading}
+                    >
+                      ➕ Agregar amigo
+                    </button>
+                  )}
+                  {relationship === 'request_sent' && (
+                    <button
+                      className={`${styles.friendBtn} ${styles.friendBtnMuted}`}
+                      onClick={() => handleFriendAction('cancel_request')}
+                      disabled={friendLoading}
+                    >
+                      Solicitud enviada · Cancelar
+                    </button>
+                  )}
+                  {relationship === 'request_received' && (
+                    <div className={styles.friendBtnGroup}>
+                      <button
+                        className={`${styles.friendBtn} ${styles.friendBtnAccept}`}
+                        onClick={() => handleFriendAction('accept')}
+                        disabled={friendLoading}
+                      >
+                        ✓ Aceptar
+                      </button>
+                      <button
+                        className={`${styles.friendBtn} ${styles.friendBtnMuted}`}
+                        onClick={() => handleFriendAction('reject')}
+                        disabled={friendLoading}
+                      >
+                        Rechazar
+                      </button>
+                    </div>
+                  )}
+                  {relationship === 'friends' && (
+                    <div className={styles.friendBtnGroup}>
+                      <span className={styles.friendsBadge}>✓ Amigos</span>
+                      <button
+                        className={`${styles.friendBtn} ${styles.friendBtnUnfriend}`}
+                        onClick={() => handleFriendAction('unfriend')}
+                        disabled={friendLoading}
+                      >
+                        Desamigar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

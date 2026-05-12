@@ -398,3 +398,83 @@
     width: 50px;
   }
 }
+
+/* Friend actions */
+.friendActions {
+  margin-top: 0.75rem;
+}
+
+.friendBtnGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.friendBtn {
+  background: var(--amber-glow);
+  border: 1px solid var(--border-amber);
+  color: var(--amber);
+  border-radius: 20px;
+  padding: 0.35rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), opacity var(--transition);
+  font-family: var(--font-body);
+}
+
+.friendBtn:hover:not(:disabled) {
+  background: rgba(24, 136, 239, 0.25);
+}
+
+.friendBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.friendBtnMuted {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+.friendBtnMuted:hover:not(:disabled) {
+  border-color: var(--red);
+  color: var(--red);
+  background: rgba(243, 29, 119, 0.08);
+}
+
+.friendBtnAccept {
+  background: rgba(0, 217, 132, 0.1);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.friendBtnAccept:hover:not(:disabled) {
+  background: rgba(0, 217, 132, 0.2);
+}
+
+.friendBtnUnfriend {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  padding: 0.25rem 0.7rem;
+}
+
+.friendBtnUnfriend:hover:not(:disabled) {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.friendsBadge {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--green);
+  background: rgba(0, 217, 132, 0.1);
+  border: 1px solid var(--green);
+  border-radius: 20px;
+  padding: 0.35rem 1rem;
+}
+

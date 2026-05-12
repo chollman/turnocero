@@ -51,16 +51,30 @@ export default function MeFeed() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [includeFriends, setIncludeFriends] = useState(false);
+  const [hasFriends, setHasFriends] = useState(false);
+
+  const uid = user?._id?.toString();
 
   useEffect(() => {
-    axios.get('/api/tables/me/feed')
+    if (!uid) return;
+    setLoading(true);
+    setError(null);
+    const url = includeFriends ? '/api/tables/me/feed?includeFriends=true' : '/api/tables/me/feed';
+    axios.get(url)
       .then((res) => setTables(res.data.tables))
       .catch(() => setError('No se pudo cargar el historial.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [includeFriends, uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+    axios.get(`/api/users/${uid}`)
+      .then((res) => setHasFriends((res.data.friendsCount ?? 0) > 0))
+      .catch(() => {});
+  }, [uid]);
 
   const now = new Date();
-  const uid = user?._id?.toString();
 
   const applyFilter = (t) => {
     if (filter === 'all') return true;
@@ -78,11 +92,16 @@ export default function MeFeed() {
   // Next game is the earliest upcoming — array is sorted desc, so last of upcoming
   const nextGame = upcoming.length > 0 ? upcoming[upcoming.length - 1] : null;
 
-  // Stats from full (unfiltered) array
-  const totalTables = tables.length;
-  const asHost = tables.filter((t) => (t.host._id || t.host).toString() === uid).length;
+  // Stats from full (unfiltered) array — only my tables
+  const myTables = tables.filter((t) => {
+    const hostId = (t.host._id || t.host).toString();
+    const isPlayer = t.players.some((p) => (p._id || p).toString() === uid);
+    return hostId === uid || isPlayer;
+  });
+  const totalTables = myTables.length;
+  const asHost = myTables.filter((t) => (t.host._id || t.host).toString() === uid).length;
   const asPlayer = totalTables - asHost;
-  const upcomingCount = tables.filter((t) => new Date(t.date) >= now).length;
+  const upcomingCount = myTables.filter((t) => new Date(t.date) >= now).length;
 
   return (
     <div className={styles.page}>
@@ -125,6 +144,14 @@ export default function MeFeed() {
               {f.label}
             </button>
           ))}
+          {hasFriends && (
+            <button
+              className={`${styles.filterBtn} ${styles.filterBtnFriends} ${includeFriends ? styles.filterBtnFriendsActive : ''}`}
+              onClick={() => setIncludeFriends((v) => !v)}
+            >
+              {includeFriends ? '🤝 Con amigos' : '🤝 Incluir amigos'}
+            </button>
+          )}
         </div>
 
         {loading && <p className={styles.loading}>Cargando historial…</p>}
