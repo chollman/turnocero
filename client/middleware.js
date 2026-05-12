@@ -19,7 +19,7 @@ export default async function middleware(request) {
   const ua = request.headers.get('user-agent') || ''
   if (!CRAWLER.test(ua)) return
 
-  const apiUrl = process.env.API_URL
+  const apiUrl = process.env.VITE_API_URL
   if (!apiUrl) return
 
   const [, id] = match
