@@ -138,6 +138,12 @@
   border-radius: 10px;
 }
 
+.guestJoinRow {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
 .btnGuestJoin {
   background: var(--amber);
   color: #fff;
@@ -156,6 +162,36 @@
 }
 
 .btnGuestJoin:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnFollowDetail {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.btnFollowDetail:hover:not(:disabled) {
+  border-color: var(--border-amber);
+  color: var(--amber);
+}
+
+.btnFollowingDetail {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: var(--amber-glow);
+}
+
+.btnFollowDetail:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

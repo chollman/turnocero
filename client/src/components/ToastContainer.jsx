@@ -7,6 +7,9 @@ const DURATION = {
   chat: 4000,
   join_request: 4000,
   join_accepted: 5500,
+  spot_opened: 6000,
+  comment: 4000,
+  image: 4000,
 };
 
 function ToastItem({ toast, onDismiss }) {
@@ -30,17 +33,27 @@ function ToastItem({ toast, onDismiss }) {
 
   const icon =
     toast.type === 'join_accepted' ? '✅' :
-    toast.type === 'join_request'  ? '🔔' : '🎲';
+    toast.type === 'join_request'  ? '🔔' :
+    toast.type === 'spot_opened'   ? '🎯' :
+    toast.type === 'comment'       ? '🗨️' :
+    toast.type === 'image'         ? '📸' : '🎲';
 
   const title =
-    toast.type === 'join_accepted' ? '¡Fuiste aceptado!' : toast.tableName;
+    toast.type === 'join_accepted' ? '¡Fuiste aceptado!' :
+    toast.type === 'spot_opened'   ? '¡Se liberó un lugar!' : toast.tableName;
 
   const body =
     toast.type === 'chat'
       ? `${toast.senderUsername}: ${toast.messagePreview}${toast.messagePreview?.length >= 60 ? '…' : ''}`
       : toast.type === 'join_request'
         ? `${toast.requesterUsername} quiere unirse`
-        : `Ya sos parte de la mesa de ${toast.tableName}`;
+        : toast.type === 'spot_opened'
+          ? `Hay un lugar disponible en ${toast.tableName} 🎲 ¡Sumate ahora!`
+          : toast.type === 'comment'
+            ? `${toast.commenterUsername}: ${toast.commentPreview}${toast.commentPreview?.length >= 60 ? '…' : ''}`
+            : toast.type === 'image'
+              ? `${toast.uploaderUsername} subió una foto`
+              : `Ya sos parte de la mesa de ${toast.tableName}`;
 
   return (
     <div className={styles.toast} onClick={handleClick} role="alert">

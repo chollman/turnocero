@@ -69,6 +69,62 @@ export function NotificationProvider({ children }) {
       });
     });
 
+    socket.on('table:comment', (notif) => {
+      if (activeTableRef.current === notif.tableId) return;
+
+      setNotifications((prev) => {
+        const existing = findExisting(prev, 'comment', notif.tableId);
+        if (existing) {
+          return prev.map((n) =>
+            n.type === 'comment' && n.tableId === notif.tableId
+              ? { ...n, count: n.count + 1, lastCommenterUsername: notif.commenterUsername, lastCommentPreview: notif.commentPreview, timestamp: notif.timestamp }
+              : n
+          );
+        }
+        return [...prev, { type: 'comment', tableId: notif.tableId, tableName: notif.tableName, count: 1, lastCommenterUsername: notif.commenterUsername, lastCommentPreview: notif.commentPreview, timestamp: notif.timestamp }];
+      });
+
+      setToasts((prev) => {
+        const next = [...prev, { id: makeToastId(), type: 'comment', tableId: notif.tableId, tableName: notif.tableName, commenterUsername: notif.commenterUsername, commentPreview: notif.commentPreview }];
+        return next.length > 4 ? next.slice(-4) : next;
+      });
+    });
+
+    socket.on('table:image', (notif) => {
+      if (activeTableRef.current === notif.tableId) return;
+
+      setNotifications((prev) => {
+        const existing = findExisting(prev, 'image', notif.tableId);
+        if (existing) {
+          return prev.map((n) =>
+            n.type === 'image' && n.tableId === notif.tableId
+              ? { ...n, count: n.count + 1, lastUploaderUsername: notif.uploaderUsername, timestamp: notif.timestamp }
+              : n
+          );
+        }
+        return [...prev, { type: 'image', tableId: notif.tableId, tableName: notif.tableName, count: 1, lastUploaderUsername: notif.uploaderUsername, timestamp: notif.timestamp }];
+      });
+
+      setToasts((prev) => {
+        const next = [...prev, { id: makeToastId(), type: 'image', tableId: notif.tableId, tableName: notif.tableName, uploaderUsername: notif.uploaderUsername }];
+        return next.length > 4 ? next.slice(-4) : next;
+      });
+    });
+
+    socket.on('table:spot-opened', (notif) => {
+      if (activeTableRef.current === notif.tableId) return;
+
+      setNotifications((prev) => {
+        const rest = prev.filter((n) => !(n.type === 'spot_opened' && n.tableId === notif.tableId));
+        return [...rest, { type: 'spot_opened', tableId: notif.tableId, tableName: notif.tableName, count: 1, timestamp: notif.timestamp }];
+      });
+
+      setToasts((prev) => {
+        const next = [...prev, { id: makeToastId(), type: 'spot_opened', tableId: notif.tableId, tableName: notif.tableName }];
+        return next.length > 4 ? next.slice(-4) : next;
+      });
+    });
+
     socket.on('join:request', (notif) => {
       if (activeTableRef.current === notif.tableId) return;
 

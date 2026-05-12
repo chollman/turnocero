@@ -60,6 +60,26 @@ router.post(
       await table.save();
       await table.populate('images.uploader', 'username');
 
+      // Notify members and followers (except the uploader)
+      const io = req.app.get('io');
+      if (io) {
+        const uid = req.user._id.toString();
+        const recipients = new Set([
+          table.host.toString(),
+          ...table.players.map((p) => p.toString()),
+          ...table.followers.map((f) => f.toString()),
+        ]);
+        recipients.delete(uid);
+        recipients.forEach((userId) => {
+          io.to(`user:${userId}`).emit('table:image', {
+            tableId: table._id.toString(),
+            tableName: table.boardGame,
+            uploaderUsername: req.user.username,
+            timestamp: new Date(),
+          });
+        });
+      }
+
       res.status(201).json(table.images);
     } catch (err) {
       res.status(500).json({ message: 'Error al subir la imagen' });

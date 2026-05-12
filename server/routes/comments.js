@@ -50,6 +50,28 @@ router.post('/', protect, [
     });
 
     await comment.populate('author', 'username');
+
+    // Notify members and followers (except the author)
+    const io = req.app.get('io');
+    if (io) {
+      const uid = req.user._id.toString();
+      const recipients = new Set([
+        table.host.toString(),
+        ...table.players.map((p) => p.toString()),
+        ...table.followers.map((f) => f.toString()),
+      ]);
+      recipients.delete(uid);
+      recipients.forEach((userId) => {
+        io.to(`user:${userId}`).emit('table:comment', {
+          tableId: table._id.toString(),
+          tableName: table.boardGame,
+          commenterUsername: req.user.username,
+          commentPreview: req.body.content.slice(0, 60),
+          timestamp: new Date(),
+        });
+      });
+    }
+
     res.status(201).json(comment);
   } catch {
     res.status(500).json({ message: 'Server error' });

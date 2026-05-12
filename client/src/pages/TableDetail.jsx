@@ -153,6 +153,25 @@ export default function TableDetail() {
 
   const [joinLoading, setJoinLoading] = useState(false)
   const [joinError, setJoinError] = useState('')
+  const [followLoading, setFollowLoading] = useState(false)
+
+  const handleFollow = async () => {
+    setFollowLoading(true)
+    const currentFollowers = table.followers || []
+    const isFollowing = currentFollowers.some((f) => f.toString() === user._id.toString())
+    const newFollowers = isFollowing
+      ? currentFollowers.filter((f) => f.toString() !== user._id.toString())
+      : [...currentFollowers, user._id]
+    setTable((prev) => ({ ...prev, followers: newFollowers }))
+    try {
+      const { data } = await axios.post(`/api/tables/${id}/follow`)
+      setTable((prev) => ({ ...prev, followers: data.followers }))
+    } catch {
+      setTable((prev) => ({ ...prev, followers: currentFollowers }))
+    } finally {
+      setFollowLoading(false)
+    }
+  }
 
   const handleGuestJoin = async () => {
     setJoinLoading(true)
@@ -434,13 +453,28 @@ export default function TableDetail() {
             {isGuest && table.status !== 'cancelled' && (
               <div className={styles.guestJoinBlock}>
                 {joinError && <p className={styles.guestJoinError}>{joinError}</p>}
-                <button
-                  className={styles.btnGuestJoin}
-                  onClick={handleGuestJoin}
-                  disabled={joinLoading || isFull}
-                >
-                  {joinLoading ? '…' : isFull ? 'Mesa completa' : '¡Unirme a la mesa!'}
-                </button>
+                <div className={styles.guestJoinRow}>
+                  <button
+                    className={styles.btnGuestJoin}
+                    onClick={handleGuestJoin}
+                    disabled={joinLoading || isFull}
+                  >
+                    {joinLoading ? '…' : isFull ? 'Mesa completa' : '¡Unirme a la mesa!'}
+                  </button>
+                  {(() => {
+                    const isFollowing = (table.followers || []).some((f) => f.toString() === user._id.toString())
+                    return (
+                      <button
+                        className={`${styles.btnFollowDetail} ${isFollowing ? styles.btnFollowingDetail : ''}`}
+                        onClick={handleFollow}
+                        disabled={followLoading}
+                        title={isFollowing ? 'Dejar de seguir' : 'Seguir mesa para recibir avisos cuando se libere un lugar'}
+                      >
+                        {isFollowing ? '🔔 Siguiendo' : '🔕 Seguir'}
+                      </button>
+                    )
+                  })()}
+                </div>
                 <p className={styles.chatPrivateNote}>
                   El chat es privado y solo está disponible para los miembros.
                 </p>

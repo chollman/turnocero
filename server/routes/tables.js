@@ -214,6 +214,9 @@ router.post('/:id/join', protect, [
     }
 
     table.players.push(req.user._id);
+    // Remove from followers if they were following
+    const followerIdx = table.followers.findIndex((f) => f.toString() === req.user._id.toString());
+    if (followerIdx !== -1) table.followers.splice(followerIdx, 1);
     await table.save();
     const populated = await populateTable(Table.findById(table._id));
     res.json({ requested: false, table: populated });
@@ -333,7 +336,50 @@ router.post('/:id/leave', protect, [
     table.players.splice(playerIndex, 1);
     await table.save();
     const populated = await populateTable(Table.findById(table._id));
+
+    // Notify followers that a spot opened
+    if (table.players.length < table.maxPlayers && table.followers.length > 0) {
+      const io = req.app.get('io');
+      if (io) {
+        table.followers.forEach((followerId) => {
+          io.to(`user:${followerId}`).emit('table:spot-opened', {
+            tableId: table._id.toString(),
+            tableName: table.boardGame,
+            timestamp: new Date(),
+          });
+        });
+      }
+    }
+
     res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/tables/:id/follow — protected; toggle follow; any non-member logged-in user
+router.post('/:id/follow', protect, [
+  param('id').isMongoId().withMessage('Invalid table ID'),
+], validate, async (req, res) => {
+  try {
+    const table = await Table.findById(req.params.id);
+    if (!table) return res.status(404).json({ message: 'Table not found' });
+    if (table.status === 'cancelled') return res.status(400).json({ message: 'Table is cancelled' });
+
+    const uid = req.user._id.toString();
+    if (table.host.toString() === uid || table.players.some((p) => p.toString() === uid)) {
+      return res.status(400).json({ message: 'Ya sos miembro de esta mesa' });
+    }
+
+    const idx = table.followers.findIndex((f) => f.toString() === uid);
+    if (idx !== -1) {
+      table.followers.splice(idx, 1);
+    } else {
+      table.followers.push(req.user._id);
+    }
+
+    await table.save();
+    res.json({ followers: table.followers, isFollowing: idx === -1 });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
