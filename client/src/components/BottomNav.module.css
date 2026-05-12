@@ -4,9 +4,9 @@
   left: 0;
   right: 0;
   height: 60px;
-  background: rgba(13, 18, 28, 0.95);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-around;
@@ -14,7 +14,6 @@
   z-index: 100;
 }
 
-/* Only visible on mobile */
 @media (min-width: 960px) {
   .nav {
     display: none;
@@ -29,11 +28,11 @@
   color: var(--text-muted);
   text-decoration: none;
   font-family: var(--font-display);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.06em;
   position: relative;
-  padding: 6px 14px;
+  padding: 8px 24px;
   transition: color var(--transition);
 }
 
@@ -42,34 +41,29 @@
 }
 
 .itemActive {
-  color: var(--amber-light);
+  color: var(--amber);
 }
 
 .icon {
-  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
 }
 
 .label {
-  font-size: 8px;
+  font-size: 9px;
   line-height: 1;
+  text-transform: uppercase;
 }
 
-.badge {
+.activeDot {
   position: absolute;
-  top: 2px;
-  right: 8px;
-  background: var(--red);
-  min-width: 15px;
-  height: 15px;
-  border-radius: 999px;
-  font-size: 9px;
-  font-weight: 700;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 3px;
-  border: 1.5px solid var(--bg-dark);
-  font-family: var(--font-display);
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--amber);
 }

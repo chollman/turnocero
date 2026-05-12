@@ -98,7 +98,7 @@ select {
 
 /* Layout offset variable — used by pages for min-height / sticky positioning */
 :root {
-  --navbar-h: 64px;
+  --navbar-h: 52px;
 }
 
 @media (min-width: 960px) {
@@ -126,6 +126,7 @@ select {
 
 @media (max-width: 959px) {
   .appContent {
+    padding-top: 52px; /* space for fixed Navbar */
     padding-bottom: 60px; /* space for BottomNav */
   }
 }

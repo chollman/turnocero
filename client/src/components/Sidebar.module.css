@@ -200,3 +200,59 @@
   color: var(--red);
   background: rgba(243, 29, 119, 0.1);
 }
+
+.logoutConfirm {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.logoutConfirmLabel {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+}
+
+.logoutConfirmActions {
+  display: flex;
+  gap: 6px;
+}
+
+.logoutConfirmYes {
+  flex: 1;
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 0;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+
+.logoutConfirmYes:hover {
+  opacity: 0.85;
+}
+
+.logoutConfirmNo {
+  flex: 1;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 0;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.logoutConfirmNo:hover {
+  color: var(--text-primary);
+}
