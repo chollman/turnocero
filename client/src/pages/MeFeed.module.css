@@ -1,225 +1,235 @@
 .page {
-  min-height: calc(100vh - 64px);
-  padding: 2rem 1.25rem 4rem;
+  min-height: calc(100vh - var(--navbar-h, 64px));
+  padding: 0 0 4rem;
 }
 
 .inner {
-  max-width: 900px;
-  margin: 0 auto;
+  padding: 24px 28px 0;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 28px;
 }
 
-/* Hero */
+/* ─── Hero ─── */
 .hero {
-  margin-bottom: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eyebrow {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--amber-light);
+  letter-spacing: 0.15em;
 }
 
 .heroTitle {
-  font-family: var(--font-display);
-  font-size: 1.75rem;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 40px;
   font-weight: 700;
+  letter-spacing: -0.04em;
   color: var(--text-primary);
-  margin: 0 0 0.25rem;
+  line-height: 1;
+  margin: 0;
 }
 
 .heroSub {
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 14px;
   margin: 0;
+  line-height: 1.5;
 }
 
-/* Stats bar */
-.statsBar {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.statChip {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.65rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 90px;
-}
-
-.statNumber {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--amber);
-  font-family: var(--font-display);
-  line-height: 1;
-}
-
-.statLabel {
-  font-size: 0.72rem;
-  color: var(--text-secondary);
-  text-transform: lowercase;
-}
-
-/* Next game highlight */
+/* ─── Next game highlight ─── */
 .nextGame {
-  background: var(--bg-elevated);
-  border: 2px solid var(--amber);
-  border-radius: 12px;
-  padding: 1.25rem 1.5rem;
+  position: relative;
+  background: linear-gradient(135deg, var(--amber-glow), var(--bg-card));
+  border: 1px solid var(--amber);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.nextGameBgTile {
+  position: absolute;
+  right: -40px;
+  top: -40px;
+  width: 220px;
+  height: 220px;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.nextGameContent {
+  position: relative;
+  padding: 24px 28px;
+  display: flex;
+  gap: 22px;
+  align-items: center;
+}
+
+.nextGameTile {
+  flex-shrink: 0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.nextGameInfo {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  box-shadow: 0 0 20px var(--amber-glow);
-}
-
-.nextGameHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.nextGameBadge {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--amber);
-  background: var(--amber-glow);
-  border: 1px solid var(--border-amber);
-  border-radius: 20px;
-  padding: 0.2rem 0.6rem;
-}
-
-.rolePill {
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.2rem 0.55rem;
-  border-radius: 20px;
-  border: 1px solid currentColor;
-}
-
-.rolePillHost {
-  color: var(--amber);
-  background: var(--amber-glow);
-}
-
-.rolePillPlayer {
-  color: var(--green);
-  background: rgba(0, 217, 132, 0.1);
+  gap: 8px;
 }
 
 .nextGameTitle {
-  font-size: 1.15rem;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 28px;
   font-weight: 700;
+  letter-spacing: -0.03em;
   color: var(--text-primary);
-  font-family: var(--font-display);
+  line-height: 1.1;
+  margin: 0;
 }
 
 .nextGameMeta {
-  font-size: 0.85rem;
+  font-size: 13px;
   color: var(--text-secondary);
 }
 
-.nextGameLink {
-  align-self: flex-start;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--amber);
+/* ─── Seat track ─── */
+.seatTrack {
+  position: relative;
+  height: 8px;
+  background: var(--bg-dark);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  max-width: 300px;
+}
+
+.seatTrackFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, var(--amber), var(--amber-light));
+  box-shadow: 0 0 8px var(--amber-glow);
+}
+
+.seatTrackDivider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.nextGameActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btnPrimary {
+  background: var(--amber);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: 'Manrope', var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.02em;
   text-decoration: none;
-  margin-top: 0.25rem;
-  transition: color var(--transition);
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 4px 14px var(--amber-glow);
+  transition: background 0.15s;
 }
 
-.nextGameLink:hover {
-  color: var(--amber-light);
+.btnPrimary:hover {
+  background: var(--amber-light);
+  color: #fff;
 }
 
-/* Filter bar */
+/* ─── Filter bar ─── */
 .filterBar {
   display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  gap: 22px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
 }
 
 .filterBtn {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 6px 0;
   color: var(--text-secondary);
-  border-radius: 20px;
-  padding: 0.35rem 0.9rem;
-  font-size: 0.82rem;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Manrope', var(--font-display);
   cursor: pointer;
-  transition: border-color var(--transition), color var(--transition), background var(--transition);
-  font-family: var(--font-body);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s;
+  white-space: nowrap;
 }
 
 .filterBtn:hover {
-  border-color: var(--amber-dark);
   color: var(--text-primary);
 }
 
 .filterBtnActive {
-  border-color: var(--amber);
-  color: var(--amber);
-  background: var(--amber-glow);
+  color: var(--text-primary);
+  border-bottom-color: var(--amber);
+}
+
+.filterCount {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .filterBtnFriends {
-  border-color: rgba(167, 139, 250, 0.4);
+  margin-left: auto;
   color: #a78bfa;
 }
 
 .filterBtnFriends:hover {
-  border-color: #a78bfa;
-  color: #a78bfa;
+  color: #c4b5fd;
 }
 
 .filterBtnFriendsActive {
-  border-color: #a78bfa;
-  color: #a78bfa;
-  background: rgba(167, 139, 250, 0.1);
+  color: #c4b5fd;
+  border-bottom-color: #a78bfa;
 }
 
-/* Feed */
+/* ─── Section label ─── */
+.sectionLabel {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.14em;
+}
+
+/* ─── Feed list ─── */
 .feed {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 14px;
 }
 
-/* Separator */
-.separator {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin: 0.5rem 0;
-}
-
-.separatorLine {
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-.separatorLabel {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  white-space: nowrap;
-  letter-spacing: 0.04em;
-}
-
-/* States */
-.loading,
-.errorMsg,
-.sectionEmpty {
+/* ─── States ─── */
+.stateMsg {
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 14px;
   text-align: center;
-  padding: 1rem 0;
+  padding: 16px 0;
 }
 
 .errorMsg {
@@ -230,8 +240,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  padding: 3rem 0;
+  gap: 12px;
+  padding: 48px 0;
   color: var(--text-secondary);
   text-align: center;
 }
@@ -242,22 +252,66 @@
 
 .emptyLink {
   color: var(--amber);
+  font-size: 13px;
+  font-weight: 700;
   text-decoration: none;
-  font-size: 0.88rem;
-  font-weight: 600;
 }
 
 .emptyLink:hover {
   color: var(--amber-light);
 }
 
-@media (max-width: 600px) {
-  .statsBar {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+/* ─── Mobile ─── */
+@media (max-width: 959px) {
+  .inner {
+    padding: 16px 18px 0;
+    gap: 18px;
   }
 
   .heroTitle {
-    font-size: 1.4rem;
+    font-size: 26px;
+    letter-spacing: -0.035em;
+  }
+
+  .nextGameContent {
+    padding: 14px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .nextGameTile {
+    display: none;
+  }
+
+  .nextGameBgTile {
+    width: 140px;
+    height: 140px;
+    right: -30px;
+    top: -30px;
+    opacity: 0.3;
+  }
+
+  .nextGameTitle {
+    font-size: 19px;
+  }
+
+  .seatTrack {
+    max-width: 100%;
+  }
+
+  .filterBar {
+    gap: 14px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .filterBar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filterBtnFriends {
+    margin-left: 0;
   }
 }

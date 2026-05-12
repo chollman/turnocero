@@ -2,45 +2,76 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import GameTile from '../components/GameTile';
 import FeedCard from '../components/FeedCard';
 import styles from './MeFeed.module.css';
 
 const FILTERS = [
-  { key: 'all', label: 'Todas' },
-  { key: 'host', label: 'Anfitrión' },
-  { key: 'player', label: 'Jugador' },
+  { key: 'all',       label: 'Todas'      },
+  { key: 'host',      label: 'Anfitrión'  },
+  { key: 'player',    label: 'Jugador'    },
   { key: 'cancelled', label: 'Canceladas' },
 ];
 
-function formatNextDate(dateStr) {
-  return new Date(dateStr).toLocaleString('es-AR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+function seedFromId(id = '') {
+  let s = 0;
+  for (let i = 0; i < id.length; i++) s = (s * 31 + id.charCodeAt(i)) >>> 0;
+  return s;
 }
 
-function NextGameHighlight({ table, userId }) {
-  const isHost = (table.host._id || table.host).toString() === userId.toString();
+function daysUntil(dateStr) {
+  return Math.ceil((new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
+}
+
+function formatNextMeta(table) {
+  const d = new Date(table.date);
+  const weekday = d.toLocaleString('es-AR', { weekday: 'short' }).toUpperCase().replace('.', '');
+  const day = d.toLocaleString('es-AR', { day: 'numeric', month: 'short' }).toUpperCase();
+  const time = d.toLocaleString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  const parts = [`${weekday} ${day} · ${time}`];
+  if (table.location) parts.push(table.location);
+  parts.push(`${table.players.length + 1}/${table.maxPlayers + 1} jugadores`);
+  return parts.join(' · ');
+}
+
+function SeatTrack({ filled, total }) {
+  const pct = total > 0 ? (filled / total) * 100 : 0;
+  return (
+    <div className={styles.seatTrack}>
+      <div className={styles.seatTrackFill} style={{ width: `${pct}%` }} />
+      {Array.from({ length: total - 1 }).map((_, i) => (
+        <div key={i} className={styles.seatTrackDivider} style={{ left: `${((i + 1) / total) * 100}%` }} />
+      ))}
+    </div>
+  );
+}
+
+function NextGameHighlight({ table, uid }) {
+  const days = daysUntil(table.date);
+  const daysLabel = days <= 0 ? 'HOY' : days === 1 ? 'EN 1 DÍA' : `EN ${days} DÍAS`;
+  const seed = seedFromId(table._id);
+  const filled = table.players.length + 1;
+  const total = table.maxPlayers + 1;
+
   return (
     <div className={styles.nextGame}>
-      <div className={styles.nextGameHeader}>
-        <span className={styles.nextGameBadge}>PRÓXIMA MESA</span>
-        <span className={`${styles.rolePill} ${isHost ? styles.rolePillHost : styles.rolePillPlayer}`}>
-          {isHost ? 'Anfitrión' : 'Jugador'}
-        </span>
+      <div className={styles.nextGameBgTile}>
+        <GameTile game={table.boardGame} seed={seed} size="100%" />
       </div>
-      <div className={styles.nextGameTitle}>{table.boardGame}</div>
-      <div className={styles.nextGameMeta}>
-        📅 {formatNextDate(table.date)}
-        {table.location && <> · 📍 {table.location}</>}
-        · 👥 {table.players.length + 1}/{table.maxPlayers + 1}
+      <div className={styles.nextGameContent}>
+        <div className={styles.nextGameTile}>
+          <GameTile game={table.boardGame} seed={seed} size={110} />
+        </div>
+        <div className={styles.nextGameInfo}>
+          <span className={styles.eyebrow}>◆ PRÓXIMA MESA · {daysLabel}</span>
+          <div className={styles.nextGameTitle}>{table.boardGame}</div>
+          <div className={styles.nextGameMeta}>{formatNextMeta(table)}</div>
+          <SeatTrack filled={filled} total={total} />
+          <div className={styles.nextGameActions}>
+            <Link to={`/tables/${table._id}`} className={styles.btnPrimary}>Abrir mesa →</Link>
+          </div>
+        </div>
       </div>
-      <Link to={`/tables/${table._id}`} className={styles.nextGameLink}>
-        Ver mesa →
-      </Link>
     </div>
   );
 }
@@ -76,62 +107,56 @@ export default function MeFeed() {
 
   const now = new Date();
 
+  const isHostOf = (t) => (t.host._id || t.host).toString() === uid;
+
   const applyFilter = (t) => {
     if (filter === 'all') return true;
     if (filter === 'cancelled') return t.status === 'cancelled';
-    const isHost = (t.host._id || t.host).toString() === uid;
-    if (filter === 'host') return isHost;
-    if (filter === 'player') return !isHost;
+    if (filter === 'host') return isHostOf(t);
+    if (filter === 'player') return !isHostOf(t);
     return true;
   };
 
   const filteredTables = tables.filter(applyFilter);
   const upcoming = filteredTables.filter((t) => new Date(t.date) >= now);
   const past = filteredTables.filter((t) => new Date(t.date) < now);
-
-  // Next game is the earliest upcoming — array is sorted desc, so last of upcoming
   const nextGame = upcoming.length > 0 ? upcoming[upcoming.length - 1] : null;
 
-  // Stats from full (unfiltered) array — only my tables
-  const myTables = tables.filter((t) => {
-    const hostId = (t.host._id || t.host).toString();
-    const isPlayer = t.players.some((p) => (p._id || p).toString() === uid);
-    return hostId === uid || isPlayer;
-  });
-  const totalTables = myTables.length;
-  const asHost = myTables.filter((t) => (t.host._id || t.host).toString() === uid).length;
-  const asPlayer = totalTables - asHost;
-  const upcomingCount = myTables.filter((t) => new Date(t.date) >= now).length;
+  const countFor = (key) => {
+    if (key === 'all') return tables.length;
+    if (key === 'cancelled') return tables.filter((t) => t.status === 'cancelled').length;
+    if (key === 'host') return tables.filter(isHostOf).length;
+    if (key === 'player') return tables.filter((t) => !isHostOf(t)).length;
+    return 0;
+  };
+
+  const hostedCount = tables.filter(isHostOf).length;
+  const upcomingAll = tables.filter((t) => new Date(t.date) >= now);
+  const nextAll = upcomingAll.length > 0 ? upcomingAll[upcomingAll.length - 1] : null;
+  const days = nextAll ? daysUntil(nextAll.date) : null;
+
+  let subtitle = '';
+  if (days !== null && days >= 0) {
+    subtitle = days === 0 ? 'Tu próxima partida es hoy.' : `Tu próxima partida es en ${days} día${days !== 1 ? 's' : ''}.`;
+  }
+  if (hostedCount > 0) {
+    subtitle += `${subtitle ? ' Y tenés' : 'Tenés'} ${hostedCount} mesa${hostedCount !== 1 ? 's' : ''} hosteada${hostedCount !== 1 ? 's' : ''} en total.`;
+  }
+  if (!subtitle && !loading) subtitle = 'Empezá a jugar o creá tu primera mesa.';
+
+  const nombre = user?.nombre || user?.username || '…';
 
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
         <div className={styles.hero}>
-          <h1 className={styles.heroTitle}>Mi Historial</h1>
-          <p className={styles.heroSub}>Todas tus mesas, en un solo lugar</p>
-        </div>
-
-        <div className={styles.statsBar}>
-          <div className={styles.statChip}>
-            <span className={styles.statNumber}>{totalTables}</span>
-            <span className={styles.statLabel}>mesas en total</span>
-          </div>
-          <div className={styles.statChip}>
-            <span className={styles.statNumber}>{asHost}</span>
-            <span className={styles.statLabel}>como anfitrión</span>
-          </div>
-          <div className={styles.statChip}>
-            <span className={styles.statNumber}>{asPlayer}</span>
-            <span className={styles.statLabel}>como jugador</span>
-          </div>
-          <div className={styles.statChip}>
-            <span className={styles.statNumber}>{upcomingCount}</span>
-            <span className={styles.statLabel}>próximas</span>
-          </div>
+          <div className={styles.eyebrow}>◆ MI FEED</div>
+          <h1 className={styles.heroTitle}>Hola, {nombre}.</h1>
+          {subtitle && <p className={styles.heroSub}>{subtitle}</p>}
         </div>
 
         {!loading && !error && nextGame && filter === 'all' && (
-          <NextGameHighlight table={nextGame} userId={uid} />
+          <NextGameHighlight table={nextGame} uid={uid} />
         )}
 
         <div className={styles.filterBar}>
@@ -142,6 +167,7 @@ export default function MeFeed() {
               onClick={() => setFilter(f.key)}
             >
               {f.label}
+              <span className={styles.filterCount}>{countFor(f.key)}</span>
             </button>
           ))}
           {hasFriends && (
@@ -149,13 +175,13 @@ export default function MeFeed() {
               className={`${styles.filterBtn} ${styles.filterBtnFriends} ${includeFriends ? styles.filterBtnFriendsActive : ''}`}
               onClick={() => setIncludeFriends((v) => !v)}
             >
-              {includeFriends ? '🤝 Con amigos' : '🤝 Incluir amigos'}
+              🤝 {includeFriends ? 'Con amigos' : 'Amigos'}
             </button>
           )}
         </div>
 
-        {loading && <p className={styles.loading}>Cargando historial…</p>}
-        {error && <p className={styles.errorMsg}>{error}</p>}
+        {loading && <p className={styles.stateMsg}>Cargando historial…</p>}
+        {error && <p className={`${styles.stateMsg} ${styles.errorMsg}`}>{error}</p>}
 
         {!loading && !error && filteredTables.length === 0 && (
           <div className={styles.empty}>
@@ -167,22 +193,21 @@ export default function MeFeed() {
 
         {!loading && !error && filteredTables.length > 0 && (
           <div className={styles.feed}>
-            {upcoming.map((t) => (
-              <FeedCard key={t._id} table={t} userId={uid} isPast={false} />
-            ))}
-
-            <div className={styles.separator}>
-              <span className={styles.separatorLine} />
-              <span className={styles.separatorLabel}>↑ Próximas · Historial ↓</span>
-              <span className={styles.separatorLine} />
-            </div>
-
-            {past.map((t) => (
-              <FeedCard key={t._id} table={t} userId={uid} isPast={true} />
-            ))}
-
-            {past.length === 0 && (
-              <p className={styles.sectionEmpty}>Sin mesas jugadas todavía.</p>
+            {upcoming.length > 0 && (
+              <>
+                <div className={styles.sectionLabel}>PRÓXIMAS · {upcoming.length}</div>
+                {upcoming.map((t) => (
+                  <FeedCard key={t._id} table={t} userId={uid} isPast={false} />
+                ))}
+              </>
+            )}
+            {past.length > 0 && (
+              <>
+                <div className={styles.sectionLabel}>HISTORIAL</div>
+                {past.map((t) => (
+                  <FeedCard key={t._id} table={t} userId={uid} isPast />
+                ))}
+              </>
             )}
           </div>
         )}

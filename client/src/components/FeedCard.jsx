@@ -1,73 +1,47 @@
 import { Link } from 'react-router-dom';
+import GameTile from './GameTile';
 import styles from './FeedCard.module.css';
 
-const STATUS_LABEL = { open: 'Abierta', full: 'Completa', cancelled: 'Cancelada' };
-const STATUS_CLASS = { open: styles.badgeOpen, full: styles.badgeFull, cancelled: styles.badgeCancelled };
-
-function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleString('es-AR', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+function seedFromId(id = '') {
+  let s = 0;
+  for (let i = 0; i < id.length; i++) s = (s * 31 + id.charCodeAt(i)) >>> 0;
+  return s;
 }
 
-function initial(username) {
-  return (username || '?')[0].toUpperCase();
+function formatCardDate(dateStr) {
+  const d = new Date(dateStr);
+  const weekday = d.toLocaleString('es-AR', { weekday: 'short' }).toUpperCase().replace('.', '');
+  const day = d.toLocaleString('es-AR', { day: 'numeric', month: 'short' }).toUpperCase();
+  const time = d.toLocaleString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  return `${weekday} ${day} · ${time}`;
 }
 
 export default function FeedCard({ table, userId, isPast }) {
   const hostId = (table.host._id || table.host).toString();
   const isHost = hostId === userId.toString();
-  const isPlayer = table.players.some((p) => (p._id || p).toString() === userId.toString());
-  const isParticipant = isHost || isPlayer;
-  const allParticipants = [table.host, ...table.players];
-  const visibleChips = allParticipants.slice(0, 5);
-  const overflow = allParticipants.length - visibleChips.length;
+  const seed = seedFromId(table._id);
+  const dateStr = formatCardDate(table.date);
+  const meta = [
+    dateStr,
+    table.location || null,
+    `${table.players.length + 1}/${table.maxPlayers + 1}`,
+  ].filter(Boolean).join(' · ');
 
   return (
     <div className={`${styles.card} ${isPast ? styles.cardPast : ''}`}>
-      <div className={styles.topRow}>
-        <span className={styles.title}>{table.boardGame}</span>
-        <div className={styles.badges}>
-          {isParticipant ? (
-            <span className={`${styles.badge} ${isHost ? styles.badgeHost : styles.badgePlayer}`}>
-              {isHost ? 'Anfitrión' : 'Jugador'}
-            </span>
-          ) : (
-            <span className={`${styles.badge} ${styles.badgeFriend}`}>
-              🤝 {table.host.username}
-            </span>
-          )}
-          <span className={`${styles.badge} ${STATUS_CLASS[table.status]}`}>
-            {STATUS_LABEL[table.status]}
+      <div className={styles.tile}>
+        <GameTile game={table.boardGame} seed={seed} size={64} />
+      </div>
+      <div className={styles.body}>
+        <div className={styles.topRow}>
+          <span className={styles.title}>{table.boardGame}</span>
+          <span className={`${styles.roleBadge} ${isHost ? styles.roleBadgeHost : styles.roleBadgePlayer}`}>
+            {isHost ? 'HOST' : 'JUGADOR'}
           </span>
         </div>
+        <div className={styles.meta}>{meta}</div>
       </div>
-
-      <div className={styles.metaRow}>
-        <span className={styles.metaItem}>📅 {formatDate(table.date)}</span>
-        {table.location && <span className={styles.metaItem}>📍 {table.location}</span>}
-        <span className={styles.metaItem}>
-          👥 {table.players.length + 1}/{table.maxPlayers + 1}
-        </span>
-      </div>
-
-      <div className={styles.bottomRow}>
-        <div className={styles.playerChips}>
-          {visibleChips.map((p) => (
-            <span key={(p._id || p).toString()} className={styles.chip} title={p.username}>
-              {initial(p.username)}
-            </span>
-          ))}
-          {overflow > 0 && <span className={styles.chipExtra}>+{overflow}</span>}
-        </div>
-        <Link to={`/tables/${table._id}`} className={styles.viewLink}>
-          Ver mesa →
-        </Link>
-      </div>
+      <Link to={`/tables/${table._id}`} className={styles.viewBtn}>Ver →</Link>
     </div>
   );
 }
