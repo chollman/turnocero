@@ -96,10 +96,23 @@ export default function Dashboard() {
       <div className="container">
         {/* Hero */}
         <div className={styles.hero}>
-          <h1 className={styles.heroTitle}>Mesas de juego</h1>
-          <p className={styles.heroSub}>
-            Encontrá una mesa o creá la tuya y convocá jugadores
-          </p>
+          <div className={styles.heroDecor} aria-hidden="true">
+            <svg viewBox="0 0 100 100" width="100%" height="100%">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.6" opacity="0.3"/>
+              <circle cx="50" cy="50" r="30" fill="none" stroke="currentColor" strokeWidth="0.6" opacity="0.3"/>
+              <circle cx="50" cy="50" r="20" fill="none" stroke="currentColor" strokeWidth="0.6" opacity="0.5"/>
+              <polygon points="50,10 60,40 90,40 65,60 75,90 50,72 25,90 35,60 10,40 40,40" fill="rgba(24,136,239,0.12)"/>
+            </svg>
+          </div>
+          <div className={styles.heroContent}>
+            <p className={styles.heroEyebrow}>
+              ◆ {pagination.total > 0 ? `${pagination.total} MESAS ACTIVAS` : 'MESAS DE JUEGO'}
+            </p>
+            <h1 className={styles.heroTitle}>Tirá los dados.</h1>
+            <p className={styles.heroSub}>
+              Sumate a una mesa o convocá la tuya. Encontrá jugadores cerca y empezá la próxima partida.
+            </p>
+          </div>
         </div>
 
         {/* Controls */}

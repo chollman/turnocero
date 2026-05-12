@@ -2,8 +2,25 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import GameTile from './GameTile';
 import styles from './TableCard.module.css';
 
+// --- helpers ---
+
+function hashStr(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function getDateParts(dateStr) {
+  const date = new Date(dateStr);
+  const weekday = date.toLocaleDateString('es-AR', { weekday: 'short' }).toUpperCase().replace(/\./g, '');
+  const day = date.getDate();
+  const month = date.toLocaleDateString('es-AR', { month: 'short' }).toUpperCase().replace(/\./g, '');
+  const time = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return { weekday, day, month, time };
+}
 
 const formatDate = (dateStr) => {
   const date = new Date(dateStr);
@@ -17,6 +34,22 @@ const formatDate = (dateStr) => {
   });
 };
 
+// --- icons ---
+
+const PinIcon = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+    <circle cx="12" cy="10" r="3"/>
+  </svg>
+);
+
+const LockIcon = ({ size = 11 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2"/>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </svg>
+);
+
 const EyeIcon = ({ size = 13 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -25,14 +58,14 @@ const EyeIcon = ({ size = 13 }) => (
 );
 
 const EditIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
   </svg>
 );
 
 const XIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10"/>
     <line x1="15" y1="9" x2="9" y2="15"/>
     <line x1="9" y1="9" x2="15" y2="15"/>
@@ -40,12 +73,42 @@ const XIcon = () => (
 );
 
 const LeaveIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
     <polyline points="16 17 21 12 16 7"/>
     <line x1="21" y1="12" x2="9" y2="12"/>
   </svg>
 );
+
+// --- sub-components ---
+
+function SeatTrack({ filled, total }) {
+  const pct = Math.min(100, (filled / total) * 100);
+  return (
+    <div className={styles.seatTrack}>
+      <div className={styles.seatFill} style={{ width: `${pct}%` }} />
+      {Array.from({ length: total - 1 }).map((_, i) => (
+        <span
+          key={i}
+          className={styles.seatDivider}
+          style={{ left: `${((i + 1) / total) * 100}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function StatusChip({ seats }) {
+  const full = seats <= 0;
+  return (
+    <span className={`${styles.statusChip} ${full ? styles.statusFull : styles.statusOpen}`}>
+      <span className={styles.statusDot} />
+      {full ? 'Mesa completa' : `${seats} lugar${seats !== 1 ? 'es' : ''}`}
+    </span>
+  );
+}
+
+// --- main component ---
 
 export default function TableCard({ table, onUpdate, onCancel, listMode }) {
   const { user } = useAuth();
@@ -118,21 +181,25 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     }
   };
 
-  const statusColor = isFull ? 'var(--red)' : 'var(--green)';
-  const statusLabel = isFull ? 'Completa' : `${availableSeats} lugar${availableSeats !== 1 ? 'es' : ''} libre${availableSeats !== 1 ? 's' : ''}`;
+  // ─── LIST MODE ────────────────────────────────────────────────
 
   if (listMode) {
+    const statusColor = isFull ? 'var(--red)' : 'var(--green)';
+    const statusLabel = isFull
+      ? 'Completa'
+      : `${availableSeats} lugar${availableSeats !== 1 ? 'es' : ''} libre${availableSeats !== 1 ? 's' : ''}`;
+
     return (
-      <div className={`${styles.card} ${styles.cardList} ${isHost ? styles.hosted : ''} ${isPlayer ? styles.joined : ''}`}>
+      <div className={`${styles.cardList} ${isHost ? styles.hosted : ''} ${isPlayer ? styles.joined : ''}`}>
         <div className={styles.listLeft}>
-          <div className={styles.gameTitleWrap}>
-            <h3 className={styles.gameName}>{table.boardGame}</h3>
-            {isHost && <span className={styles.hostBadge}>Host</span>}
-            {isPlayer && <span className={styles.playerBadge}>Unido</span>}
+          <div className={styles.listTitleWrap}>
+            <h3 className={styles.listGameName}>{table.boardGame}</h3>
+            {isHost && <span className={styles.hostBadge}>HOST</span>}
+            {isPlayer && <span className={styles.playerBadge}>UNIDO</span>}
           </div>
-          <div className={styles.badges}>
-            {isPrivate && <span className={styles.privacyBadge}>🔒 Privada</span>}
-            <span className={styles.statusBadge} style={{ color: statusColor, borderColor: statusColor }}>
+          <div className={styles.listBadges}>
+            {isPrivate && <span className={styles.lockBadge}><LockIcon size={10} /> Privada</span>}
+            <span className={styles.listStatus} style={{ color: statusColor, borderColor: statusColor }}>
               {statusLabel}
             </span>
           </div>
@@ -149,47 +216,29 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
           {error && <span className={styles.errorInline}>{error}</span>}
           {isHost ? (
             <>
-              <button className={`${styles.btnIcon} ${styles.btnIconDetail}`} onClick={() => navigate(`/tables/${table._id}`)} title="Ver detalles y chat" disabled={loading}>
-                <EyeIcon size={15} />
-              </button>
-              <button className={`${styles.btnIcon} ${styles.btnIconEdit}`} onClick={() => navigate(`/tables/${table._id}/edit`)} title="Editar mesa" disabled={loading}>
-                <EditIcon />
-              </button>
-              <button className={`${styles.btnIcon} ${styles.btnIconDanger}`} onClick={handleCancel} title="Cancelar mesa" disabled={loading}>
-                <XIcon />
-              </button>
+              <button className={`${styles.btnIcon} ${styles.btnIconDetail}`} onClick={() => navigate(`/tables/${table._id}`)} title="Ver detalles" disabled={loading}><EyeIcon /></button>
+              <button className={`${styles.btnIcon} ${styles.btnIconEdit}`} onClick={() => navigate(`/tables/${table._id}/edit`)} title="Editar" disabled={loading}><EditIcon /></button>
+              <button className={`${styles.btnIcon} ${styles.btnIconDanger}`} onClick={handleCancel} title="Cancelar" disabled={loading}><XIcon /></button>
             </>
           ) : isPlayer ? (
             <>
-              <button className={`${styles.btnIcon} ${styles.btnIconDetail}`} onClick={() => navigate(`/tables/${table._id}`)} title="Ver detalles y chat" disabled={loading}>
-                <EyeIcon size={15} />
-              </button>
-              <button className={`${styles.btnIcon} ${styles.btnIconLeave}`} onClick={handleLeave} title="Abandonar mesa" disabled={loading}>
-                {loading ? '…' : <LeaveIcon />}
-              </button>
+              <button className={`${styles.btnIcon} ${styles.btnIconDetail}`} onClick={() => navigate(`/tables/${table._id}`)} title="Ver detalles" disabled={loading}><EyeIcon /></button>
+              <button className={`${styles.btnIcon} ${styles.btnIconLeave}`} onClick={handleLeave} title="Abandonar" disabled={loading}>{loading ? '…' : <LeaveIcon />}</button>
             </>
           ) : isPendingRequest ? (
-            <button className={styles.btnPending} onClick={handleCancelRequest} disabled={loading}>
-              {loading ? '…' : 'Solicitud enviada · Cancelar'}
-            </button>
+            <button className={styles.btnPending} onClick={handleCancelRequest} disabled={loading}>{loading ? '…' : 'Solicitud enviada · Cancelar'}</button>
           ) : (
             <>
               {!isPrivate && (
-                <button className={`${styles.btnIcon} ${styles.btnIconDetail}`} onClick={() => navigate(`/tables/${table._id}`)} title="Ver detalle" disabled={loading}>
-                  <EyeIcon size={15} />
-                </button>
+                <button className={`${styles.btnIcon} ${styles.btnIconDetail}`} onClick={() => navigate(`/tables/${table._id}`)} title="Ver detalle" disabled={loading}><EyeIcon /></button>
               )}
-              <button className={styles.btnPrimary} onClick={handleJoin} disabled={loading || isFull}>
+              <button className={styles.btnJoin} onClick={handleJoin} disabled={loading || isFull}>
                 {loading ? '…' : isFull ? 'Llena' : isPrivate ? 'Solicitar' : 'Unirse'}
               </button>
             </>
           )}
           {showAdminTab && (
-            <button
-              className={styles.adminTabInline}
-              onClick={() => navigate(`/tables/${table._id}`)}
-              title="Ver como administrador"
-            >
+            <button className={styles.adminTabInline} onClick={() => navigate(`/tables/${table._id}`)} title="Ver como admin">
               <EyeIcon /> Admin
             </button>
           )}
@@ -198,169 +247,147 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     );
   }
 
+  // ─── GRID MODE (Token & Track) ────────────────────────────────
+
+  const { weekday, day, month, time } = getDateParts(table.date);
+  const seed = hashStr(table._id || '') % 10;
+
   return (
-    <div className={`${styles.card} ${isHost ? styles.hosted : ''} ${isPlayer ? styles.joined : ''}`} style={{ position: 'relative' }}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.gameTitleWrap}>
-          <h3 className={styles.gameName}>{table.boardGame}</h3>
-          {isHost && <span className={styles.hostBadge}>Sos el host</span>}
-          {isPlayer && <span className={styles.playerBadge}>Te uniste</span>}
-        </div>
-        <div className={styles.badges}>
-          {isPrivate && (
-            <span className={styles.privacyBadge}>🔒 Privada</span>
-          )}
-          <span className={styles.statusBadge} style={{ color: statusColor, borderColor: statusColor }}>
-            {statusLabel}
+    <div
+      className={`${styles.card} ${isHost ? styles.hosted : ''} ${isPlayer ? styles.joined : ''}`}
+      style={{ position: 'relative' }}
+    >
+      {/* Banner with game tile */}
+      <div className={styles.banner}>
+        <GameTile game={table.boardGame} seed={seed} size="100%" />
+        <div className={styles.bannerGradient} />
+        <div className={styles.bannerTop}>
+          <span className={styles.dateChip}>
+            <span className={styles.dateChipDot}>●</span>
+            {weekday} · {day} {month} · {time}
           </span>
+          <div className={styles.bannerBadges}>
+            {isHost && <span className={styles.hostBadge}>HOST</span>}
+            {isPlayer && <span className={styles.playerBadge}>UNIDO</span>}
+            {isPrivate && (
+              <span className={styles.lockBadge}><LockIcon size={11} /></span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Details */}
-      <div className={styles.details}>
-        <div className={styles.detail}>
-          <span className={styles.icon}>📅</span>
-          <span>{formatDate(table.date)}</span>
-        </div>
-
-        <div className={styles.detail}>
-          <span className={styles.icon}>👑</span>
-          <span>Host: <strong>{table.host.username}</strong></span>
-        </div>
-
-        <div className={styles.detail}>
-          <span className={styles.icon}>👥</span>
-          <span>
-            {table.players.length + 1} / {table.maxPlayers + 1} jugadores
-          </span>
-        </div>
+      {/* Card body */}
+      <div className={styles.body}>
+        <h3 className={styles.gameName}>{table.boardGame}</h3>
 
         {table.location && (
-          <div className={styles.detail}>
-            <span className={styles.icon}>📍</span>
+          <div className={styles.location}>
+            <PinIcon size={13} />
             <span>{table.location}</span>
           </div>
         )}
-      </div>
 
-      {/* Players list */}
-      {table.players.length > 0 && (
-        <div className={styles.players}>
-          <span className={styles.playersLabel}>Jugadores:</span>
-          <div className={styles.playersList}>
-            {table.players.map((p) => (
-              <span key={p._id || p} className={styles.playerChip}>
-                {p.username || p}
-              </span>
-            ))}
+        {/* Seat track */}
+        <div className={styles.seatSection}>
+          <div className={styles.seatHeader}>
+            <span className={styles.seatLabel}>LUGARES</span>
+            <span className={styles.seatCount}>{table.players.length + 1}/{table.maxPlayers + 1}</span>
           </div>
+          <SeatTrack filled={table.players.length + 1} total={table.maxPlayers + 1} />
         </div>
-      )}
 
-      {/* Description */}
-      {table.description && (
-        <p className={styles.description}>{table.description}</p>
-      )}
+        {error && <p className={styles.error}>{error}</p>}
 
-      {/* Reactions — read-only summary, only shown if the table has reactions */}
-      {(table.reactions || []).length > 0 && (() => {
-        const groups = (table.reactions || []).reduce((acc, r) => {
-          acc[r.emoji] = (acc[r.emoji] || 0) + 1
-          return acc
-        }, {})
-        return (
-          <div className={styles.reactionsRow}>
-            {Object.entries(groups).map(([emoji, count]) => (
-              <span key={emoji} className={styles.reactionChip}>
-                {emoji} <span className={styles.reactionCountSm}>{count}</span>
-              </span>
-            ))}
+        {/* Footer: host info + CTA */}
+        <div className={styles.footer}>
+          <div className={styles.hostInfo}>
+            <div className={styles.hostAvatar}>
+              {table.host.username[0].toUpperCase()}
+            </div>
+            <div className={styles.hostDetails}>
+              <span className={styles.hostName}>{table.host.username}</span>
+              <StatusChip seats={availableSeats} />
+            </div>
           </div>
-        )
-      })()}
 
-      {/* Error */}
-      {error && <p className={styles.error}>{error}</p>}
-
-      {/* Actions */}
-      <div className={styles.actions}>
-        {isHost ? (
-          <>
-            <button
-              className={`${styles.btnIcon} ${styles.btnIconDetail}`}
-              onClick={() => navigate(`/tables/${table._id}`)}
-              title="Ver detalles y chat"
-              disabled={loading}
-            >
-              <EyeIcon size={15} />
-            </button>
-            <button
-              className={`${styles.btnIcon} ${styles.btnIconEdit}`}
-              onClick={() => navigate(`/tables/${table._id}/edit`)}
-              title="Editar mesa"
-              disabled={loading}
-            >
-              <EditIcon />
-            </button>
-            <button
-              className={`${styles.btnIcon} ${styles.btnIconDanger}`}
-              onClick={handleCancel}
-              title="Cancelar mesa"
-              disabled={loading}
-            >
-              <XIcon />
-            </button>
-          </>
-        ) : isPlayer ? (
-          <>
-            <button
-              className={`${styles.btnIcon} ${styles.btnIconDetail}`}
-              onClick={() => navigate(`/tables/${table._id}`)}
-              title="Ver detalles y chat"
-              disabled={loading}
-            >
-              <EyeIcon size={15} />
-            </button>
-            <button
-              className={`${styles.btnIcon} ${styles.btnIconLeave}`}
-              onClick={handleLeave}
-              title="Abandonar mesa"
-              disabled={loading}
-            >
-              {loading ? '…' : <LeaveIcon />}
-            </button>
-          </>
-        ) : isPendingRequest ? (
-          <button
-            className={styles.btnPending}
-            onClick={handleCancelRequest}
-            disabled={loading}
-          >
-            {loading ? '…' : 'Solicitud enviada · Cancelar'}
-          </button>
-        ) : (
-          <>
-            {!isPrivate && (
+          <div className={styles.footerActions}>
+            {isHost ? (
+              <>
+                <button
+                  className={`${styles.btnIcon} ${styles.btnIconEdit}`}
+                  onClick={() => navigate(`/tables/${table._id}/edit`)}
+                  title="Editar mesa"
+                  disabled={loading}
+                >
+                  <EditIcon />
+                </button>
+                <button
+                  className={`${styles.btnIcon} ${styles.btnIconDanger}`}
+                  onClick={handleCancel}
+                  title="Cancelar mesa"
+                  disabled={loading}
+                >
+                  <XIcon />
+                </button>
+                <button
+                  className={styles.btnManage}
+                  onClick={() => navigate(`/tables/${table._id}`)}
+                  disabled={loading}
+                >
+                  Administrar
+                </button>
+              </>
+            ) : isPlayer ? (
+              <>
+                <button
+                  className={`${styles.btnIcon} ${styles.btnIconLeave}`}
+                  onClick={handleLeave}
+                  title="Abandonar mesa"
+                  disabled={loading}
+                >
+                  {loading ? '…' : <LeaveIcon />}
+                </button>
+                <button
+                  className={styles.btnOpen}
+                  onClick={() => navigate(`/tables/${table._id}`)}
+                  disabled={loading}
+                >
+                  Abrir mesa
+                </button>
+              </>
+            ) : isPendingRequest ? (
               <button
-                className={`${styles.btnIcon} ${styles.btnIconDetail}`}
-                onClick={() => navigate(`/tables/${table._id}`)}
-                title="Ver detalle"
+                className={styles.btnPending}
+                onClick={handleCancelRequest}
                 disabled={loading}
               >
-                <EyeIcon size={15} />
+                {loading ? '…' : 'Cancelar solicitud'}
               </button>
+            ) : isFull ? (
+              <button className={styles.btnFull} disabled>Llena</button>
+            ) : (
+              <>
+                {!isPrivate && (
+                  <button
+                    className={`${styles.btnIcon} ${styles.btnIconDetail}`}
+                    onClick={() => navigate(`/tables/${table._id}`)}
+                    title="Ver detalles"
+                    disabled={loading}
+                  >
+                    <EyeIcon />
+                  </button>
+                )}
+                <button
+                  className={styles.btnJoin}
+                  onClick={handleJoin}
+                  disabled={loading}
+                >
+                  {loading ? '…' : isPrivate ? 'Solicitar' : 'Unirme'}
+                </button>
+              </>
             )}
-            <button
-              className={styles.btnPrimary}
-              onClick={handleJoin}
-              disabled={loading || isFull}
-            >
-              {loading ? '…' : isFull ? 'Mesa llena' : isPrivate ? 'Solicitar unirse' : 'Unirse'}
-            </button>
-          </>
-        )}
-
+          </div>
+        </div>
       </div>
 
       {showAdminTab && (

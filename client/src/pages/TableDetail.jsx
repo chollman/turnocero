@@ -4,6 +4,7 @@ import { io } from 'socket.io-client'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import { useNotifications } from '../context/NotificationContext'
+import GameTile from '../components/GameTile'
 import styles from './TableDetail.module.css'
 
 const REACTION_EMOJIS = ['❤️', '🎲', '🔥', '👍', '😄']
@@ -23,6 +24,47 @@ const formatTime = (dateStr) =>
     hour: '2-digit',
     minute: '2-digit',
   })
+
+function hashStr(str) {
+  let h = 0
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0
+  return h
+}
+
+function getDateChip(dateStr) {
+  const date = new Date(dateStr)
+  const weekday = date.toLocaleDateString('es-AR', { weekday: 'short' }).toUpperCase().replace(/\./g, '')
+  const day = date.getDate()
+  const month = date.toLocaleDateString('es-AR', { month: 'short' }).toUpperCase().replace(/\./g, '')
+  const time = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return `${weekday} · ${day} ${month} · ${time}`
+}
+
+function SeatTrack({ filled, total }) {
+  const pct = Math.min(100, (filled / total) * 100)
+  return (
+    <div className={styles.seatTrack}>
+      <div className={styles.seatFill} style={{ width: `${pct}%` }} />
+      {Array.from({ length: total - 1 }).map((_, i) => (
+        <span key={i} className={styles.seatDivider} style={{ left: `${((i + 1) / total) * 100}%` }} />
+      ))}
+    </div>
+  )
+}
+
+const LockIcon = ({ size = 11 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2"/>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </svg>
+)
+
+const SendIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="22" y1="2" x2="11" y2="13"/>
+    <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor" stroke="none"/>
+  </svg>
+)
 
 export default function TableDetail() {
   const { id } = useParams()
@@ -61,6 +103,14 @@ export default function TableDetail() {
   const [submittingRating, setSubmittingRating] = useState(false)
   const [ratingError, setRatingError] = useState('')
 
+  const [joinLoading, setJoinLoading] = useState(false)
+  const [joinError, setJoinError] = useState('')
+  const [followLoading, setFollowLoading] = useState(false)
+  const [leaveLoading, setLeaveLoading] = useState(false)
+  const [leaveError, setLeaveError] = useState('')
+  const [cancelTableLoading, setCancelTableLoading] = useState(false)
+  const [cancelTableError, setCancelTableError] = useState('')
+
   const socketRef = useRef(null)
   const messageListRef = useRef(null)
 
@@ -73,18 +123,15 @@ export default function TableDetail() {
     )
   }
 
-  // Mark this table as active so notifications are suppressed while viewing
   useEffect(() => {
     setActiveTable(id)
     return () => setActiveTable(null)
   }, [id, setActiveTable])
 
-  // Fetch table + validate access
   useEffect(() => {
     const fetchTable = async () => {
       try {
         const { data } = await axios.get(`/api/tables/${id}`)
-        // Private tables: only members and admins can view
         if (data.privacy === 'private' && !isParticipant(data) && !user.isAdmin) {
           navigate('/', { replace: true })
           return
@@ -100,24 +147,16 @@ export default function TableDetail() {
     fetchTable()
   }, [id])
 
-  // Fetch message history once table is confirmed
   useEffect(() => {
     if (!table) return
-    axios
-      .get(`/api/tables/${id}/messages`)
-      .then(({ data }) => setMessages(data))
+    axios.get(`/api/tables/${id}/messages`).then(({ data }) => setMessages(data))
   }, [table])
 
-  // Fetch comments once table is confirmed
   useEffect(() => {
     if (!table) return
-    axios
-      .get(`/api/tables/${id}/comments`)
-      .then(({ data }) => setComments(data))
-      .catch(() => {})
+    axios.get(`/api/tables/${id}/comments`).then(({ data }) => setComments(data)).catch(() => {})
   }, [table])
 
-  // Fetch ratings for all users once table is loaded
   useEffect(() => {
     if (!table) return
     axios
@@ -137,30 +176,22 @@ export default function TableDetail() {
       .catch(() => {})
   }, [table])
 
-  // Socket.io connection
   useEffect(() => {
     if (!table) return
     const token = localStorage.getItem('token')
     const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
-    const socket = io(socketUrl, {
-      auth: { token },
-      transports: ['websocket'],
-    })
+    const socket = io(socketUrl, { auth: { token }, transports: ['websocket'] })
     socketRef.current = socket
-
     socket.emit('join:table', id)
-
     socket.on('chat:message', (msg) => {
       setMessages((prev) => [...prev, msg])
     })
-
     return () => {
       socket.emit('leave:table', id)
       socket.disconnect()
     }
   }, [table, id])
 
-  // Auto-scroll chat on new messages and on initial load
   useEffect(() => {
     const list = messageListRef.current
     if (list) list.scrollTop = list.scrollHeight
@@ -179,14 +210,6 @@ export default function TableDetail() {
       setRequestLoading(null)
     }
   }
-
-  const [joinLoading, setJoinLoading] = useState(false)
-  const [joinError, setJoinError] = useState('')
-  const [followLoading, setFollowLoading] = useState(false)
-  const [leaveLoading, setLeaveLoading] = useState(false)
-  const [leaveError, setLeaveError] = useState('')
-  const [cancelTableLoading, setCancelTableLoading] = useState(false)
-  const [cancelTableError, setCancelTableError] = useState('')
 
   const handleFollow = async () => {
     setFollowLoading(true)
@@ -262,7 +285,6 @@ export default function TableDetail() {
   const handleReact = async (emoji) => {
     const currentReactions = table.reactions || []
     const existing = currentReactions.find((r) => r.user?.toString() === user._id.toString())
-
     let newReactions
     if (existing) {
       if (existing.emoji === emoji) {
@@ -275,9 +297,7 @@ export default function TableDetail() {
     } else {
       newReactions = [...currentReactions, { user: user._id, emoji }]
     }
-
     setTable((prev) => ({ ...prev, reactions: newReactions }))
-
     try {
       const { data } = await axios.post(`/api/tables/${id}/react`, { emoji })
       setTable((prev) => ({ ...prev, reactions: data.reactions }))
@@ -348,6 +368,17 @@ export default function TableDetail() {
     }
   }
 
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('¿Eliminar este comentario?')) return
+    setCommentError('')
+    try {
+      await axios.delete(`/api/tables/${id}/comments/${commentId}`)
+      setComments((prev) => prev.filter((c) => c._id !== commentId))
+    } catch (err) {
+      setCommentError(err.response?.data?.message || 'Error al eliminar')
+    }
+  }
+
   const handleSubmitRating = async (e) => {
     e.preventDefault()
     if (!myRatingScore || submittingRating) return
@@ -370,17 +401,6 @@ export default function TableDetail() {
       setRatingError(err.response?.data?.message || 'Error al enviar la valoración')
     } finally {
       setSubmittingRating(false)
-    }
-  }
-
-  const handleDeleteComment = async (commentId) => {
-    if (!window.confirm('¿Eliminar este comentario?')) return
-    setCommentError('')
-    try {
-      await axios.delete(`/api/tables/${id}/comments/${commentId}`)
-      setComments((prev) => prev.filter((c) => c._id !== commentId))
-    } catch (err) {
-      setCommentError(err.response?.data?.message || 'Error al eliminar')
     }
   }
 
@@ -418,152 +438,131 @@ export default function TableDetail() {
   const isPendingRequest = (table.pendingRequests || []).some(
     (r) => (r._id || r).toString() === user._id.toString()
   )
-  const statusLabel = isFull
-    ? 'Completa'
-    : `${table.maxPlayers - table.players.length} lugar${table.maxPlayers - table.players.length !== 1 ? 'es' : ''} libre${table.maxPlayers - table.players.length !== 1 ? 's' : ''}`
+  const isPrivate = table.privacy === 'private'
+  const isFollowing = (table.followers || []).some((f) => f.toString() === user._id.toString())
+  const filled = table.players.length + 1
+  const total = table.maxPlayers + 1
+  const availableSeats = table.maxPlayers - table.players.length
+  const seed = hashStr(table._id || '') % 10
+
+  const actionError = cancelTableError || leaveError || joinError
+
+  const actionButtons = (
+    <>
+      {actionError && <p className={styles.actionError}>{actionError}</p>}
+      {isHost && (
+        <>
+          <button className={styles.btnActEdit} onClick={() => navigate(`/tables/${id}/edit`)} disabled={cancelTableLoading}>
+            Editar mesa
+          </button>
+          <button className={styles.btnActCancel} onClick={handleCancelTable} disabled={cancelTableLoading}>
+            {cancelTableLoading ? '…' : 'Cancelar mesa'}
+          </button>
+        </>
+      )}
+      {isPlayer && (
+        <button className={styles.btnActLeave} onClick={handleLeave} disabled={leaveLoading}>
+          {leaveLoading ? '…' : 'Abandonar mesa'}
+        </button>
+      )}
+      {isGuest && isPendingRequest && (
+        <button className={styles.btnActPending} onClick={handleCancelJoinRequest} disabled={joinLoading}>
+          {joinLoading ? '…' : 'Solicitud enviada · Cancelar'}
+        </button>
+      )}
+      {isGuest && !isPendingRequest && (
+        <button className={styles.btnActJoin} onClick={handleGuestJoin} disabled={joinLoading || isFull}>
+          {joinLoading ? '…' : isFull ? 'Mesa completa' : isPrivate ? 'Solicitar unirse' : 'Unirme a la mesa'}
+        </button>
+      )}
+      {isGuest && (
+        <button
+          className={`${styles.btnFollow} ${isFollowing ? styles.btnFollowing : ''}`}
+          onClick={handleFollow}
+          disabled={followLoading}
+        >
+          {isFollowing ? '🔔 Siguiendo' : '🔕 Seguir'}
+        </button>
+      )}
+    </>
+  )
 
   return (
     <div className={styles.page}>
-      <div className={styles.container}>
-        {/* Back button */}
-        <button className={styles.backBtn} onClick={() => navigate('/')}>
-          ← Volver al dashboard
-        </button>
+      <div className="container">
 
-        <div className={`${styles.layout} ${isGuest ? styles.layoutSingle : ''}`}>
-          {/* Left: Table details */}
-          <div className={styles.detailsPanel}>
-            <div className={styles.detailsHeader}>
-              <h1 className={styles.gameTitle}>{table.boardGame}</h1>
-              <span
-                className={styles.statusBadge}
-                style={{
-                  color: isFull ? 'var(--red)' : 'var(--green)',
-                  borderColor: isFull ? 'var(--red)' : 'var(--green)',
-                }}
-              >
-                {statusLabel}
+        {/* Hero */}
+        <div className={styles.hero}>
+          <div className={styles.heroTile}>
+            <GameTile game={table.boardGame} seed={seed} size="100%" />
+          </div>
+          <div className={styles.heroGradient} />
+
+          <button className={styles.backBtn} onClick={() => navigate('/')}>
+            ← Volver
+          </button>
+
+          <div className={styles.heroBadges}>
+            {isHost && <span className={styles.hostBadge}>HOST</span>}
+            {isPlayer && <span className={styles.playerBadge}>UNIDO</span>}
+            {table.status === 'cancelled' && <span className={styles.cancelledBadge}>CANCELADA</span>}
+            {isPrivate && <span className={styles.lockBadge}><LockIcon size={10} /></span>}
+          </div>
+
+          <div className={styles.heroMeta}>
+            <h1 className={styles.heroGameTitle}>{table.boardGame}</h1>
+            <div className={styles.heroChips}>
+              <span className={styles.heroChip}>
+                <span className={styles.heroChipDot}>●</span>
+                {getDateChip(table.date)}
+              </span>
+              {table.location && (
+                <span className={styles.heroChip}>📍 {table.location}</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions bar */}
+        {table.status !== 'cancelled' && (isHost || isPlayer || isGuest) && (
+          <div className={styles.actionsBar}>
+            <div className={styles.actionsRow}>
+              {actionButtons}
+            </div>
+          </div>
+        )}
+
+        {isViewingAsAdmin && (
+          <div className={styles.adminBanner}>
+            👁 Estás viendo esta mesa como administrador
+          </div>
+        )}
+
+        {/* Content */}
+        <div className={`${styles.content} ${isGuest ? styles.contentSingle : ''}`}>
+
+          {/* Left column */}
+          <div className={styles.mainCol}>
+
+            {/* Seat track card */}
+            <div className={styles.card}>
+              <div className={styles.seatCardHeader}>
+                <span className={styles.eyebrow}>LUGARES</span>
+                <span className={styles.seatCount}>{filled}/{total}</span>
+              </div>
+              <SeatTrack filled={filled} total={total} />
+              <span className={isFull ? styles.statusFull : styles.statusOpen}>
+                ● {isFull
+                  ? 'Mesa completa'
+                  : `${availableSeats} lugar${availableSeats !== 1 ? 'es' : ''} libre${availableSeats !== 1 ? 's' : ''}`
+                }
               </span>
             </div>
 
-            {/* Actions bar */}
-            {table.status !== 'cancelled' && (isHost || isPlayer || isGuest) && (
-              <div className={styles.actionsBar}>
-                {(cancelTableError || leaveError || joinError) && (
-                  <p className={styles.actionError}>{cancelTableError || leaveError || joinError}</p>
-                )}
-                <div className={styles.actionsRow}>
-                  {isHost && (
-                    <>
-                      <button
-                        className={styles.btnActEdit}
-                        onClick={() => navigate(`/tables/${id}/edit`)}
-                        disabled={cancelTableLoading}
-                      >
-                        ✏️ Editar mesa
-                      </button>
-                      <button
-                        className={styles.btnActCancel}
-                        onClick={handleCancelTable}
-                        disabled={cancelTableLoading}
-                      >
-                        {cancelTableLoading ? '…' : '✕ Cancelar mesa'}
-                      </button>
-                    </>
-                  )}
-                  {isPlayer && (
-                    <button
-                      className={styles.btnActLeave}
-                      onClick={handleLeave}
-                      disabled={leaveLoading}
-                    >
-                      {leaveLoading ? '…' : '↩ Abandonar mesa'}
-                    </button>
-                  )}
-                  {isGuest && (
-                    <>
-                      {isPendingRequest ? (
-                        <button
-                          className={styles.btnActPending}
-                          onClick={handleCancelJoinRequest}
-                          disabled={joinLoading}
-                        >
-                          {joinLoading ? '…' : 'Solicitud enviada · Cancelar'}
-                        </button>
-                      ) : (
-                        <button
-                          className={styles.btnActJoin}
-                          onClick={handleGuestJoin}
-                          disabled={joinLoading || isFull}
-                        >
-                          {joinLoading ? '…' : isFull ? 'Mesa completa' : table.privacy === 'private' ? '📨 Solicitar unirse' : '🎲 Unirme a la mesa'}
-                        </button>
-                      )}
-                      {(() => {
-                        const isFollowing = (table.followers || []).some((f) => f.toString() === user._id.toString())
-                        return (
-                          <button
-                            className={`${styles.btnFollowDetail} ${isFollowing ? styles.btnFollowingDetail : ''}`}
-                            onClick={handleFollow}
-                            disabled={followLoading}
-                            title={isFollowing ? 'Dejar de seguir' : 'Seguir para recibir avisos cuando se libere un lugar'}
-                          >
-                            {isFollowing ? '🔔 Siguiendo' : '🔕 Seguir'}
-                          </button>
-                        )
-                      })()}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className={styles.infoGrid}>
-              <div className={styles.infoItem}>
-                <span className={styles.infoIcon}>📅</span>
-                <div>
-                  <span className={styles.infoLabel}>Fecha y hora</span>
-                  <span className={styles.infoValue}>
-                    {formatDate(table.date)}
-                  </span>
-                </div>
-              </div>
-
-              <div className={styles.infoItem}>
-                <span className={styles.infoIcon}>👑</span>
-                <div>
-                  <span className={styles.infoLabel}>Host</span>
-                  <span className={styles.infoValue}>
-                    {table.host.username}
-                    {isHost && <span className={styles.youTag}> (vos)</span>}
-                  </span>
-                </div>
-              </div>
-
-              <div className={styles.infoItem}>
-                <span className={styles.infoIcon}>👥</span>
-                <div>
-                  <span className={styles.infoLabel}>Jugadores</span>
-                  <span className={styles.infoValue}>
-                    {table.players.length + 1} / {table.maxPlayers + 1}
-                  </span>
-                </div>
-              </div>
-
-              {table.location && (
-                <div className={styles.infoItem}>
-                  <span className={styles.infoIcon}>📍</span>
-                  <div>
-                    <span className={styles.infoLabel}>Lugar</span>
-                    <span className={styles.infoValue}>{table.location}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
+            {/* Description */}
             {table.description && (
-              <div className={styles.descriptionBlock}>
-                <span className={styles.infoLabel}>Descripción</span>
+              <div className={styles.card}>
+                <span className={styles.eyebrow}>SOBRE LA PARTIDA</span>
                 <p className={styles.descriptionText}>{table.description}</p>
               </div>
             )}
@@ -573,8 +572,8 @@ export default function TableDetail() {
               const reactions = table.reactions || []
               const myReaction = reactions.find((r) => r.user?.toString() === user._id.toString())?.emoji || null
               return (
-                <div className={styles.reactionSection}>
-                  <span className={styles.infoLabel}>¿Qué te parece esta mesa?</span>
+                <div className={styles.card}>
+                  <span className={styles.eyebrow}>¿QUÉ TE PARECE?</span>
                   <div className={styles.reactionBar}>
                     {REACTION_EMOJIS.map((emoji) => {
                       const count = reactions.filter((r) => r.emoji === emoji).length
@@ -583,7 +582,6 @@ export default function TableDetail() {
                           key={emoji}
                           className={`${styles.reactionBtn} ${myReaction === emoji ? styles.reactionActive : ''}`}
                           onClick={() => handleReact(emoji)}
-                          title={myReaction === emoji ? 'Quitar reacción' : 'Reaccionar'}
                         >
                           <span>{emoji}</span>
                           {count > 0 && <span className={styles.reactionCount}>{count}</span>}
@@ -595,25 +593,19 @@ export default function TableDetail() {
               )
             })()}
 
-            {/* Participants */}
-            <div className={styles.participantsBlock}>
-              <span className={styles.infoLabel}>Participantes</span>
-              <div className={styles.participantsList}>
-                <div className={styles.participant}>
-                  <span className={styles.avatar}>
-                    {table.host.username[0].toUpperCase()}
-                  </span>
-                  <span className={styles.participantName}>
-                    {table.host.username}
-                  </span>
+            {/* EN LA MESA */}
+            <div className={styles.card}>
+              <span className={styles.eyebrow}>EN LA MESA</span>
+              <div className={styles.playerChips}>
+                <div className={styles.playerChip}>
+                  <span className={styles.playerChipAvatar}>{table.host.username[0].toUpperCase()}</span>
+                  <span className={styles.playerChipName}>{table.host.username}</span>
                   <span className={styles.hostTag}>Host</span>
                 </div>
                 {table.players.map((p) => (
-                  <div key={p._id || p} className={styles.participant}>
-                    <span className={styles.avatar}>
-                      {(p.username || '?')[0].toUpperCase()}
-                    </span>
-                    <span className={styles.participantName}>{p.username}</span>
+                  <div key={p._id || p} className={styles.playerChip}>
+                    <span className={styles.playerChipAvatar}>{(p.username || '?')[0].toUpperCase()}</span>
+                    <span className={styles.playerChipName}>{p.username}</span>
                     {(p._id || p).toString() === user._id.toString() && (
                       <span className={styles.youTag}>vos</span>
                     )}
@@ -622,22 +614,21 @@ export default function TableDetail() {
               </div>
             </div>
 
-            {/* Note for guests about private chat */}
             {isGuest && (
               <p className={styles.chatPrivateNote}>
                 El chat es privado y solo está disponible para los miembros.
               </p>
             )}
 
-            {/* Pending requests – host only, private tables */}
-            {isHost && table.privacy === 'private' && (
-              <div className={styles.requestsSection}>
-                <h2 className={styles.requestsTitle}>
-                  Solicitudes pendientes
+            {/* Pending requests — host only, private tables */}
+            {isHost && isPrivate && (
+              <div className={styles.card}>
+                <div className={styles.requestsHeader}>
+                  <span className={styles.eyebrow}>SOLICITUDES PENDIENTES</span>
                   {pendingRequests.length > 0 && (
                     <span className={styles.requestsBadge}>{pendingRequests.length}</span>
                   )}
-                </h2>
+                </div>
                 {requestError && <p className={styles.requestsError}>{requestError}</p>}
                 {pendingRequests.length === 0 ? (
                   <p className={styles.requestsEmpty}>No hay solicitudes pendientes.</p>
@@ -648,18 +639,10 @@ export default function TableDetail() {
                         <span className={styles.requestAvatar}>{req.username[0].toUpperCase()}</span>
                         <span className={styles.requestUsername}>{req.username}</span>
                         <div className={styles.requestActions}>
-                          <button
-                            className={styles.btnAccept}
-                            onClick={() => handleRequest(req._id, 'accept')}
-                            disabled={requestLoading !== null}
-                          >
+                          <button className={styles.btnAccept} onClick={() => handleRequest(req._id, 'accept')} disabled={requestLoading !== null}>
                             {requestLoading === req._id + 'accept' ? '…' : 'Aceptar'}
                           </button>
-                          <button
-                            className={styles.btnReject}
-                            onClick={() => handleRequest(req._id, 'reject')}
-                            disabled={requestLoading !== null}
-                          >
+                          <button className={styles.btnReject} onClick={() => handleRequest(req._id, 'reject')} disabled={requestLoading !== null}>
                             {requestLoading === req._id + 'reject' ? '…' : 'Rechazar'}
                           </button>
                         </div>
@@ -669,332 +652,276 @@ export default function TableDetail() {
                 )}
               </div>
             )}
-          </div>
 
-          {/* Right: Chat — private, only for members and admins */}
-          {!isGuest && <div className={styles.chatPanel}>
-            <div className={styles.chatHeader}>
-              <h2 className={styles.chatTitle}>Chat de la mesa</h2>
-              <span className={styles.chatSubtitle}>
-                {isViewingAsAdmin ? 'Vista de administrador' : 'Solo visible para los participantes'}
-              </span>
-            </div>
-
-            {isViewingAsAdmin && (
-              <div className={styles.adminBanner}>
-                👁 Estás viendo esta mesa como administrador
-              </div>
-            )}
-
-            <div className={styles.messageList} ref={messageListRef}>
-              {messages.length === 0 && (
-                <p className={styles.emptyChat}>
-                  Nadie habló todavía. ¡Rompé el hielo! 🎲
-                </p>
-              )}
-              {messages.map((msg) => {
-                const isOwn =
-                  (msg.sender._id || msg.sender).toString() ===
-                  user._id.toString()
-                return (
-                  <div
-                    key={msg._id}
-                    className={`${styles.message} ${isOwn ? styles.ownMessage : styles.otherMessage}`}
-                  >
-                    {!isOwn && (
-                      <span className={styles.senderName}>
-                        {msg.sender.username}
-                      </span>
-                    )}
-                    <div className={styles.bubble}>{msg.content}</div>
-                    <span className={styles.messageTime}>
-                      {formatTime(msg.createdAt)}
+            {/* Gallery */}
+            {(() => {
+              const images = table.images || []
+              const canUpload = isParticipant(table) && !isViewingAsAdmin && images.length < 10
+              return (
+                <div className={styles.card}>
+                  <div className={styles.galleryHeader}>
+                    <span className={styles.eyebrow}>
+                      FOTOS DE LA MESA
+                      {images.length > 0 && <span className={styles.galleryBadge}>{images.length}/10</span>}
                     </span>
-                  </div>
-                )
-              })}
-            </div>
-
-            {error && <p className={styles.chatError}>{error}</p>}
-
-            {!isViewingAsAdmin && (
-              <form className={styles.inputRow} onSubmit={sendMessage}>
-                <input
-                  className={styles.chatInput}
-                  type='text'
-                  placeholder='Escribí un mensaje…'
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  maxLength={1000}
-                  disabled={sending}
-                />
-                <button
-                  className={styles.sendBtn}
-                  type='submit'
-                  disabled={!input.trim() || sending}
-                >
-                  Enviar
-                </button>
-              </form>
-            )}
-          </div>}
-        </div>
-
-        {/* Image gallery */}
-        {(() => {
-          const images = table.images || []
-          const canUpload = isParticipant(table) && !isViewingAsAdmin && images.length < 10
-          return (
-            <div className={styles.gallerySection}>
-              <div className={styles.galleryHeader}>
-                <h2 className={styles.galleryTitle}>
-                  Fotos de la mesa
-                  {images.length > 0 && (
-                    <span className={styles.galleryBadge}>{images.length}/10</span>
-                  )}
-                </h2>
-                {canUpload && (
-                  <>
-                    <button
-                      className={styles.btnUpload}
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingImage}
-                    >
-                      {uploadingImage ? 'Subiendo…' : '+ Agregar foto'}
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type='file'
-                      accept='image/jpeg,image/png,image/webp,image/gif'
-                      style={{ display: 'none' }}
-                      onChange={handleImageUpload}
-                    />
-                  </>
-                )}
-              </div>
-
-              {imageError && <p className={styles.galleryError}>{imageError}</p>}
-
-              {images.length === 0 ? (
-                <p className={styles.galleryEmpty}>
-                  {isParticipant(table) ? 'Todavía no hay fotos. ¡Subí la primera!' : 'Todavía no hay fotos.'}
-                </p>
-              ) : (
-                <div className={styles.imageGrid}>
-                  {images.map((img) => {
-                    const isUploader = (img.uploader?._id || img.uploader)?.toString() === user._id.toString()
-                    const canDelete = isUploader || isHost || user.isAdmin
-                    return (
-                      <div key={img._id} className={styles.imageThumb}>
-                        <img
-                          src={img.url}
-                          alt='Foto de la mesa'
-                          className={styles.thumbImg}
-                          onClick={() => setLightboxImage(img.url)}
+                    {canUpload && (
+                      <>
+                        <button className={styles.btnUpload} onClick={() => fileInputRef.current?.click()} disabled={uploadingImage}>
+                          {uploadingImage ? 'Subiendo…' : '+ Foto'}
+                        </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          style={{ display: 'none' }}
+                          onChange={handleImageUpload}
                         />
-                        {canDelete && (
-                          <button
-                            className={styles.btnDeleteImg}
-                            onClick={() => handleImageDelete(img._id)}
-                            title='Eliminar imagen'
-                          >
-                            ✕
-                          </button>
-                        )}
-                        {img.uploader?.username && (
-                          <span className={styles.uploaderLabel}>{img.uploader.username}</span>
+                      </>
+                    )}
+                  </div>
+                  {imageError && <p className={styles.galleryError}>{imageError}</p>}
+                  {images.length === 0 ? (
+                    <p className={styles.galleryEmpty}>
+                      {isParticipant(table) ? 'Todavía no hay fotos. ¡Subí la primera!' : 'Todavía no hay fotos.'}
+                    </p>
+                  ) : (
+                    <div className={styles.imageGrid}>
+                      {images.map((img) => {
+                        const isUploader = (img.uploader?._id || img.uploader)?.toString() === user._id.toString()
+                        const canDelete = isUploader || isHost || user.isAdmin
+                        return (
+                          <div key={img._id} className={styles.imageThumb}>
+                            <img
+                              src={img.url}
+                              alt="Foto de la mesa"
+                              className={styles.thumbImg}
+                              onClick={() => setLightboxImage(img.url)}
+                            />
+                            {canDelete && (
+                              <button className={styles.btnDeleteImg} onClick={() => handleImageDelete(img._id)} title="Eliminar imagen">
+                                ✕
+                              </button>
+                            )}
+                            {img.uploader?.username && (
+                              <span className={styles.uploaderLabel}>{img.uploader.username}</span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* Comments */}
+            <div className={styles.card}>
+              <div className={styles.sectionRow}>
+                <span className={styles.eyebrow}>
+                  COMENTARIOS
+                  {comments.length > 0 && <span className={styles.commentsBadge}>{comments.length}</span>}
+                </span>
+              </div>
+              {commentError && <p className={styles.commentError}>{commentError}</p>}
+              {comments.length === 0 ? (
+                <p className={styles.commentsEmpty}>Nadie comentó todavía. ¡Sé el primero!</p>
+              ) : (
+                <div className={styles.commentsList}>
+                  {comments.map((comment) => {
+                    const isOwn = (comment.author._id || comment.author).toString() === user._id.toString()
+                    const canDelete = isOwn || isHost || user.isAdmin
+                    return (
+                      <div key={comment._id} className={styles.commentItem}>
+                        <span className={styles.commentAvatar}>{comment.author.username[0].toUpperCase()}</span>
+                        <div className={styles.commentBody}>
+                          <div className={styles.commentMeta}>
+                            <span className={styles.commentAuthor}>{comment.author.username}</span>
+                            <span className={styles.commentTime}>{formatDate(comment.createdAt)}</span>
+                            {comment.editedAt && <span className={styles.editedBadge}>editado</span>}
+                          </div>
+                          {editingCommentId === comment._id ? (
+                            <div className={styles.editForm}>
+                              <textarea
+                                className={styles.editTextarea}
+                                value={editingContent}
+                                onChange={(e) => setEditingContent(e.target.value)}
+                                maxLength={500}
+                                rows={2}
+                              />
+                              <div className={styles.editActions}>
+                                <button className={styles.btnSaveEdit} onClick={() => handleEditComment(comment._id)}>Guardar</button>
+                                <button className={styles.btnCancelEdit} onClick={() => setEditingCommentId(null)}>Cancelar</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className={styles.commentContent}>{comment.content}</p>
+                          )}
+                        </div>
+                        {editingCommentId !== comment._id && (
+                          <div className={styles.commentActions}>
+                            {isOwn && (
+                              <button className={styles.btnCommentEdit} onClick={() => { setEditingCommentId(comment._id); setEditingContent(comment.content) }}>
+                                Editar
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button className={styles.btnCommentDelete} onClick={() => handleDeleteComment(comment._id)}>
+                                Eliminar
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     )
                   })}
                 </div>
               )}
+              <form className={styles.addCommentForm} onSubmit={handleAddComment}>
+                <textarea
+                  className={styles.commentTextarea}
+                  placeholder="Escribí un comentario…"
+                  value={commentInput}
+                  onChange={(e) => setCommentInput(e.target.value)}
+                  maxLength={500}
+                  rows={2}
+                  disabled={submittingComment}
+                />
+                <button className={styles.btnComment} type="submit" disabled={!commentInput.trim() || submittingComment}>
+                  {submittingComment ? '…' : 'Comentar'}
+                </button>
+              </form>
             </div>
-          )
-        })()}
 
-        {/* Lightbox */}
-        {lightboxImage && (
-          <div className={styles.lightboxOverlay} onClick={() => setLightboxImage(null)}>
-            <img src={lightboxImage} alt='Vista ampliada' className={styles.lightboxImg} />
-          </div>
-        )}
-
-        {/* Comments */}
-        <div className={styles.commentsSection}>
-          <h2 className={styles.commentsTitle}>
-            Comentarios
-            {comments.length > 0 && (
-              <span className={styles.commentsBadge}>{comments.length}</span>
-            )}
-          </h2>
-
-          {commentError && <p className={styles.commentError}>{commentError}</p>}
-
-          {comments.length === 0 ? (
-            <p className={styles.commentsEmpty}>Nadie comentó todavía. ¡Sé el primero!</p>
-          ) : (
-            <div className={styles.commentsList}>
-              {comments.map((comment) => {
-                const isOwn = (comment.author._id || comment.author).toString() === user._id.toString()
-                const canDelete = isOwn || isHost || user.isAdmin
-                return (
-                  <div key={comment._id} className={styles.commentItem}>
-                    <span className={styles.commentAvatar}>
-                      {comment.author.username[0].toUpperCase()}
-                    </span>
-                    <div className={styles.commentBody}>
-                      <div className={styles.commentMeta}>
-                        <span className={styles.commentAuthor}>{comment.author.username}</span>
-                        <span className={styles.commentTime}>{formatDate(comment.createdAt)}</span>
-                        {comment.editedAt && <span className={styles.editedBadge}>editado</span>}
-                      </div>
-                      {editingCommentId === comment._id ? (
-                        <div className={styles.editForm}>
-                          <textarea
-                            className={styles.editTextarea}
-                            value={editingContent}
-                            onChange={(e) => setEditingContent(e.target.value)}
-                            maxLength={500}
-                            rows={2}
-                          />
-                          <div className={styles.editActions}>
-                            <button className={styles.btnSaveEdit} onClick={() => handleEditComment(comment._id)}>
-                              Guardar
-                            </button>
-                            <button className={styles.btnCancelEdit} onClick={() => setEditingCommentId(null)}>
-                              Cancelar
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className={styles.commentContent}>{comment.content}</p>
-                      )}
-                    </div>
-                    {editingCommentId !== comment._id && (
-                      <div className={styles.commentActions}>
-                        {isOwn && (
-                          <button
-                            className={styles.btnCommentEdit}
-                            onClick={() => { setEditingCommentId(comment._id); setEditingContent(comment.content) }}
-                          >
-                            Editar
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            className={styles.btnCommentDelete}
-                            onClick={() => handleDeleteComment(comment._id)}
-                          >
-                            Eliminar
-                          </button>
-                        )}
-                      </div>
+            {/* Ratings */}
+            {(() => {
+              const gameDatePassed = new Date(table.date) < new Date()
+              const canRate = gameDatePassed && isParticipant(table)
+              return (
+                <div className={styles.ratingsCard}>
+                  <div className={styles.sectionRow}>
+                    <span className={styles.eyebrow}>¿CÓMO ESTUVO LA SESIÓN?</span>
+                    {ratingsCount > 0 && ratingsAvg !== null && (
+                      <span className={styles.ratingsAvgBadge}>
+                        {'★'.repeat(Math.round(ratingsAvg))}{'☆'.repeat(5 - Math.round(ratingsAvg))} {ratingsAvg.toFixed(1)} ({ratingsCount})
+                      </span>
                     )}
                   </div>
-                )
-              })}
-            </div>
-          )}
-
-          <form className={styles.addCommentForm} onSubmit={handleAddComment}>
-            <textarea
-              className={styles.commentTextarea}
-              placeholder='Escribí un comentario…'
-              value={commentInput}
-              onChange={(e) => setCommentInput(e.target.value)}
-              maxLength={500}
-              rows={2}
-              disabled={submittingComment}
-            />
-            <button
-              className={styles.btnComment}
-              type='submit'
-              disabled={!commentInput.trim() || submittingComment}
-            >
-              {submittingComment ? '…' : 'Comentar'}
-            </button>
-          </form>
-        </div>
-        {/* Ratings — visible to all; form only for participants after game date */}
-        {(() => {
-          const gameDatePassed = new Date(table.date) < new Date()
-          const canRate = gameDatePassed && isParticipant(table)
-          return (
-            <div className={styles.ratingsSection}>
-              <h2 className={styles.ratingsTitle}>
-                ¿Cómo estuvo la sesión?
-                {ratingsCount > 0 && ratingsAvg !== null && (
-                  <span className={styles.ratingsAvgBadge}>
-                    {'★'.repeat(Math.round(ratingsAvg))}{'☆'.repeat(5 - Math.round(ratingsAvg))} {ratingsAvg.toFixed(1)} ({ratingsCount})
-                  </span>
-                )}
-              </h2>
-
-              {canRate && (
-                <form className={styles.ratingForm} onSubmit={handleSubmitRating}>
-                  <span className={styles.ratingLabel}>Tu puntuación</span>
-                  <div className={styles.starRow}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type='button'
-                        className={`${styles.starBtn} ${star <= (hoverScore || myRatingScore) ? styles.starActive : ''}`}
-                        onMouseEnter={() => setHoverScore(star)}
-                        onMouseLeave={() => setHoverScore(0)}
-                        onClick={() => setMyRatingScore(star)}
-                        aria-label={`${star} estrellas`}
-                      >
-                        ★
+                  {canRate && (
+                    <form className={styles.ratingForm} onSubmit={handleSubmitRating}>
+                      <span className={styles.ratingLabel}>Tu puntuación</span>
+                      <div className={styles.starRow}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            className={`${styles.starBtn} ${star <= (hoverScore || myRatingScore) ? styles.starActive : ''}`}
+                            onMouseEnter={() => setHoverScore(star)}
+                            onMouseLeave={() => setHoverScore(0)}
+                            onClick={() => setMyRatingScore(star)}
+                            aria-label={`${star} estrellas`}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        className={styles.ratingTextarea}
+                        placeholder="Comentario opcional (máx. 300 caracteres)…"
+                        value={myRatingComment}
+                        onChange={(e) => setMyRatingComment(e.target.value)}
+                        maxLength={300}
+                        rows={2}
+                        disabled={submittingRating}
+                      />
+                      {ratingError && <p className={styles.ratingError}>{ratingError}</p>}
+                      <button className={styles.btnSubmitRating} type="submit" disabled={!myRatingScore || submittingRating}>
+                        {submittingRating ? '…' : myRatingScore ? 'Enviar valoración' : 'Seleccioná una puntuación'}
                       </button>
-                    ))}
-                  </div>
-                  <textarea
-                    className={styles.ratingTextarea}
-                    placeholder='Comentario opcional (máx. 300 caracteres)…'
-                    value={myRatingComment}
-                    onChange={(e) => setMyRatingComment(e.target.value)}
-                    maxLength={300}
-                    rows={2}
-                    disabled={submittingRating}
+                    </form>
+                  )}
+                  {ratings.length === 0 ? (
+                    <p className={styles.ratingsEmpty}>Todavía no hay valoraciones.</p>
+                  ) : (
+                    <div className={styles.ratingsList}>
+                      {ratings.map((r) => (
+                        <div key={r._id} className={styles.ratingItem}>
+                          <span className={styles.ratingAvatar}>{r.rater.username[0].toUpperCase()}</span>
+                          <div className={styles.ratingBody}>
+                            <div className={styles.ratingMeta}>
+                              <span className={styles.ratingUsername}>{r.rater.username}</span>
+                              <span className={styles.ratingStars}>{'★'.repeat(r.score)}{'☆'.repeat(5 - r.score)}</span>
+                            </div>
+                            {r.comment && <p className={styles.ratingComment}>{r.comment}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
+
+          {/* Right column: Chat */}
+          {!isGuest && (
+            <div className={styles.chatPanel}>
+              <div className={styles.chatHeader}>
+                <span className={styles.eyebrow}>CHAT DE LA MESA</span>
+                <span className={styles.chatSubtitle}>
+                  {isViewingAsAdmin ? 'Vista de administrador' : 'Solo visible para los participantes'}
+                </span>
+              </div>
+
+              <div className={styles.messageList} ref={messageListRef}>
+                {messages.length === 0 && (
+                  <p className={styles.emptyChat}>Nadie habló todavía. ¡Rompé el hielo! 🎲</p>
+                )}
+                {messages.map((msg) => {
+                  const isOwn = (msg.sender._id || msg.sender).toString() === user._id.toString()
+                  return (
+                    <div key={msg._id} className={`${styles.message} ${isOwn ? styles.ownMessage : styles.otherMessage}`}>
+                      {!isOwn && (
+                        <span className={styles.msgAvatar}>{msg.sender.username[0].toUpperCase()}</span>
+                      )}
+                      <div className={styles.msgContent}>
+                        {!isOwn && <span className={styles.senderName}>{msg.sender.username}</span>}
+                        <div className={styles.bubble}>{msg.content}</div>
+                        <span className={styles.messageTime}>{formatTime(msg.createdAt)}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {error && <p className={styles.chatError}>{error}</p>}
+
+              {!isViewingAsAdmin && (
+                <form className={styles.inputRow} onSubmit={sendMessage}>
+                  <input
+                    className={styles.chatInput}
+                    type="text"
+                    placeholder="Escribí un mensaje…"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    maxLength={1000}
+                    disabled={sending}
                   />
-                  {ratingError && <p className={styles.ratingError}>{ratingError}</p>}
-                  <button
-                    className={styles.btnSubmitRating}
-                    type='submit'
-                    disabled={!myRatingScore || submittingRating}
-                  >
-                    {submittingRating ? '…' : myRatingScore ? 'Enviar valoración' : 'Seleccioná una puntuación'}
+                  <button className={styles.sendCircle} type="submit" disabled={!input.trim() || sending}>
+                    <SendIcon />
                   </button>
                 </form>
               )}
-
-              {ratings.length === 0 ? (
-                <p className={styles.ratingsEmpty}>Todavía no hay valoraciones.</p>
-              ) : (
-                <div className={styles.ratingsList}>
-                  {ratings.map((r) => (
-                    <div key={r._id} className={styles.ratingItem}>
-                      <span className={styles.ratingAvatar}>
-                        {r.rater.username[0].toUpperCase()}
-                      </span>
-                      <div className={styles.ratingBody}>
-                        <div className={styles.ratingMeta}>
-                          <span className={styles.ratingUsername}>{r.rater.username}</span>
-                          <span className={styles.ratingStars}>
-                            {'★'.repeat(r.score)}{'☆'.repeat(5 - r.score)}
-                          </span>
-                        </div>
-                        {r.comment && <p className={styles.ratingComment}>{r.comment}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-          )
-        })()}
+          )}
+        </div>
       </div>
+
+      {/* Lightbox */}
+      {lightboxImage && (
+        <div className={styles.lightboxOverlay} onClick={() => setLightboxImage(null)}>
+          <img src={lightboxImage} alt="Vista ampliada" className={styles.lightboxImg} />
+        </div>
+      )}
     </div>
   )
 }
