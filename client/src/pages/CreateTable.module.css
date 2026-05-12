@@ -1,104 +1,119 @@
 .page {
-  min-height: calc(100vh - 64px);
-  padding: 2rem 1.5rem 4rem;
+  min-height: calc(100vh - var(--navbar-h, 64px));
+  padding: 0 0 4rem;
 }
 
-.card {
-  margin: 0 auto;
-  background: linear-gradient(
-    135deg,
-    var(--bg-card) 0%,
-    rgba(24, 136, 239, 0.05) 100%
-  );
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 2rem 2.5rem;
-  box-shadow: var(--shadow-md);
+.inner {
+  padding: 24px 28px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
 }
 
-/* Header */
-.header {
-  text-align: center;
-  margin-bottom: 2rem;
+/* ─── Hero ─── */
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.icon {
-  font-size: 2.5rem;
-  display: block;
-  margin-bottom: 0.5rem;
-  filter: drop-shadow(0 0 10px rgba(24, 136, 239, 0.6));
+.eyebrow {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--amber-light);
+  letter-spacing: 0.15em;
 }
 
-.title {
-  font-family: var(--font-display);
-  font-size: 1.75rem;
+.heroTitle {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 40px;
   font-weight: 700;
-  color: var(--amber);
-  letter-spacing: 0.06em;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  line-height: 1;
+  margin: 0;
 }
 
-.sub {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  margin-top: 0.3rem;
+.heroSub {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.5;
 }
 
-/* Error */
+/* ─── Form card ─── */
+.formCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+}
+
+/* ─── Error ─── */
 .errorBox {
-  background: rgba(243, 29, 119, 0.12);
-  border: 1px solid rgba(243, 29, 119, 0.35);
+  background: rgba(243, 29, 119, 0.10);
+  border: 1px solid rgba(243, 29, 119, 0.30);
   border-radius: 8px;
-  padding: 0.65rem 0.9rem;
+  padding: 10px 14px;
   color: var(--red);
-  font-size: 0.875rem;
-  margin-bottom: 1.25rem;
+  font-size: 13px;
+  margin-bottom: 20px;
 }
 
-/* Form */
+/* ─── Form layout ─── */
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 20px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 6px;
 }
 
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ─── Label ─── */
 .label {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   color: var(--text-secondary);
-  letter-spacing: 0.05em;
   text-transform: uppercase;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  gap: 6px;
 }
 
-.hint {
+.labelHint {
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: 11px;
 }
 
+/* ─── Inputs ─── */
 .input {
-  background: var(--bg-elevated);
+  background: var(--bg-dark);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.65rem 0.9rem;
+  padding: 10px 14px;
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: 14px;
+  font-family: inherit;
   outline: none;
-  transition:
-    border-color var(--transition),
-    box-shadow var(--transition);
   width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
 }
 
 .input::placeholder {
@@ -106,11 +121,10 @@
 }
 
 .input:focus {
-  border-color: var(--amber-dark);
-  box-shadow: 0 0 0 3px rgba(24, 136, 239, 0.2);
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px var(--amber-glow);
 }
 
-/* Datetime dark fix */
 .input[type="datetime-local"] {
   color-scheme: dark;
 }
@@ -120,12 +134,22 @@
   min-height: 80px;
 }
 
-/* Quick game chips */
+/* ─── Read-only game display (edit mode) ─── */
+.gameReadOnly {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--amber);
+  padding: 10px 0;
+  margin: 0;
+}
+
+/* ─── Quick game chips ─── */
 .quickGames {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.35rem;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .gameChip {
@@ -133,198 +157,241 @@
   border: 1px solid var(--border);
   color: var(--text-secondary);
   border-radius: 20px;
-  padding: 0.25rem 0.7rem;
-  font-size: 0.78rem;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-family: inherit;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
 .gameChip:hover {
-  border-color: var(--amber-dark);
-  color: var(--amber);
+  border-color: var(--amber);
+  color: var(--text-primary);
 }
 
-.selectedChip {
+.gameChipSelected {
   background: var(--amber-glow);
-  border-color: var(--amber-dark);
+  border-color: var(--amber);
   color: var(--amber);
 }
 
-/* Counter */
-.counterRow {
+/* ─── Counter ─── */
+.counter {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
-.counterBtn {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
+.counterMinus,
+.counterPlus {
   width: 36px;
   height: 36px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  font-size: 1.2rem;
+  color: var(--text-primary);
+  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s;
 }
 
-.counterBtn:hover {
-  border-color: var(--amber-dark);
+.counterMinus:hover,
+.counterPlus:hover {
+  border-color: var(--amber);
   color: var(--amber);
 }
 
 .counterVal {
-  font-size: 1.5rem;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 24px;
   font-weight: 700;
   color: var(--amber);
-  font-family: var(--font-display);
-  min-width: 2rem;
+  min-width: 32px;
   text-align: center;
 }
 
-.totalPlayers {
-  font-size: 0.82rem;
+.counterTotal {
+  font-size: 12px;
   color: var(--text-muted);
-  margin-left: 0.25rem;
 }
 
-/* Privacy toggle */
-.privacyToggle {
+/* ─── Privacy ─── */
+.privacyGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
-.privacyOption {
+.privacyCard {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.85rem 0.75rem;
+  gap: 4px;
+  padding: 16px 12px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 10px;
   cursor: pointer;
-  transition: all var(--transition);
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
   text-align: center;
 }
 
-.privacyOption:hover {
-  border-color: var(--amber-dark);
+.privacyCard:hover {
+  border-color: var(--amber);
 }
 
-.privacySelected {
+.privacyCardSelected {
   background: var(--amber-glow);
-  border-color: var(--amber-dark);
+  border-color: var(--amber);
 }
 
 .privacyIcon {
-  font-size: 1.4rem;
+  font-size: 22px;
 }
 
 .privacyLabel {
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
 .privacyDesc {
-  font-size: 0.75rem;
+  font-size: 11px;
   color: var(--text-muted);
 }
 
-/* Actions */
+/* ─── Actions ─── */
 .actions {
   display: flex;
-  gap: 1rem;
-  margin-top: 0.75rem;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  justify-content: flex-end;
 }
 
-.cancelBtn {
-  flex: 0;
+.actionsLeft {
+  margin-right: auto;
+}
+
+.btnGhost {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  padding: 0.7rem 1.25rem;
+  padding: 10px 20px;
   border-radius: 8px;
-  font-size: 0.95rem;
-  transition: all var(--transition);
+  font-family: 'Manrope', var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
 }
 
-.cancelBtn:hover {
+.btnGhost:hover {
   border-color: var(--text-muted);
   color: var(--text-primary);
 }
 
-.submitBtn {
-  flex: 1;
+.btnPrimary {
   background: var(--amber);
-  color: #ffffff;
+  color: #fff;
   border: none;
+  padding: 10px 24px;
   border-radius: 8px;
-  padding: 0.75rem;
-  font-size: 1rem;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 13px;
   font-weight: 700;
-  font-family: var(--font-display);
-  letter-spacing: 0.04em;
-  transition: all var(--transition);
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 14px var(--amber-glow);
+  white-space: nowrap;
 }
 
-.submitBtn:hover:not(:disabled) {
+.btnPrimary:hover:not(:disabled) {
   background: var(--amber-light);
-  box-shadow: 0 4px 16px rgba(24, 136, 239, 0.5);
+  box-shadow: 0 4px 20px var(--amber-glow);
 }
 
-.submitBtn:disabled {
+.btnPrimary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
+.btnDanger {
+  background: transparent;
+  border: 1px solid rgba(243, 29, 119, 0.35);
+  color: var(--red);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.btnDanger:hover {
+  background: rgba(243, 29, 119, 0.10);
+  border-color: var(--red);
+}
+
+/* ─── Mobile ─── */
+@media (max-width: 959px) {
+  .inner {
+    padding: 16px 18px 0;
+    gap: 18px;
+  }
+
+  .heroTitle {
+    font-size: 26px;
+    letter-spacing: -0.035em;
+  }
+
+  .formCard {
+    padding: 20px 16px;
+  }
+
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 600px) {
-  .page {
-    padding: 0;
-  }
-
-  :global(.container) {
-    padding: 0;
-  }
-
-  .card {
-    padding: 1.5rem 1.25rem;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-  }
-
   .input {
     font-size: 16px;
-    padding: 0.75rem 0.9rem;
   }
 
-  .counterBtn {
+  .counterMinus,
+  .counterPlus {
     min-width: 44px;
     min-height: 44px;
+    width: 44px;
+    height: 44px;
   }
 
   .gameChip {
-    padding: 0.35rem 0.8rem;
-    font-size: 0.82rem;
+    padding: 5px 14px;
+    font-size: 13px;
   }
 
   .actions {
-    flex-direction: column-reverse;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
-  .cancelBtn {
+  .actionsLeft {
     width: 100%;
-    text-align: center;
-    padding: 0.65rem;
+    margin-right: 0;
   }
 
-  .submitBtn {
+  .btnDanger {
     width: 100%;
   }
 }

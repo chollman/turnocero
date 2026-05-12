@@ -9,7 +9,6 @@ const POPULAR_GAMES = [
   'Gloomhaven', 'Root', 'Spirit Island', 'Wingspan', 'Blood Rage',
 ];
 
-// Default to tomorrow at 18:00
 const defaultDate = () => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
@@ -33,24 +32,16 @@ export default function CreateTable() {
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  const handleGameSelect = (game) =>
-    setForm((f) => ({ ...f, boardGame: game }));
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
     if (!form.boardGame.trim()) {
       setError('Ingresá el nombre del juego');
       return;
     }
-
     setLoading(true);
     try {
-      await axios.post('/api/tables', {
-        ...form,
-        maxPlayers: Number(form.maxPlayers),
-      });
+      await axios.post('/api/tables', { ...form, maxPlayers: Number(form.maxPlayers) });
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Error al crear la mesa');
@@ -61,18 +52,17 @@ export default function CreateTable() {
 
   return (
     <div className={styles.page}>
-      <div className="container">
-        <div className={styles.card}>
-          <div className={styles.header}>
-            <span className={styles.icon}>🎲</span>
-            <h1 className={styles.title}>Nueva Mesa</h1>
-            <p className={styles.sub}>Convocá jugadores para tu partida</p>
-          </div>
+      <div className={styles.inner}>
+        <div className={styles.hero}>
+          <div className={styles.eyebrow}>◆ NUEVA MESA</div>
+          <h1 className={styles.heroTitle}>Convocá una partida</h1>
+          <p className={styles.heroSub}>Elegí juego, lugar y horario. La comunidad se encarga del resto.</p>
+        </div>
 
+        <div className={styles.formCard}>
           {error && <div className={styles.errorBox}>{error}</div>}
 
           <form onSubmit={handleSubmit} className={styles.form}>
-            {/* Board game */}
             <div className={styles.field}>
               <label className={styles.label}>Juego de mesa *</label>
               <input
@@ -90,8 +80,8 @@ export default function CreateTable() {
                   <button
                     type="button"
                     key={game}
-                    className={`${styles.gameChip} ${form.boardGame === game ? styles.selectedChip : ''}`}
-                    onClick={() => handleGameSelect(game)}
+                    className={`${styles.gameChip} ${form.boardGame === game ? styles.gameChipSelected : ''}`}
+                    onClick={() => setForm((f) => ({ ...f, boardGame: game }))}
                   >
                     {game}
                   </button>
@@ -99,50 +89,41 @@ export default function CreateTable() {
               </div>
             </div>
 
-            {/* Date & time */}
-            <div className={styles.field}>
-              <label className={styles.label}>Fecha y hora *</label>
-              <input
-                type="datetime-local"
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                className={styles.input}
-                required
-              />
-            </div>
+            <div className={styles.twoCol}>
+              <div className={styles.field}>
+                <label className={styles.label}>Fecha y hora *</label>
+                <input
+                  type="datetime-local"
+                  name="date"
+                  value={form.date}
+                  onChange={handleChange}
+                  className={styles.input}
+                  required
+                />
+              </div>
 
-            {/* Max players */}
-            <div className={styles.field}>
-              <label className={styles.label}>
-                Lugares disponibles *
-                <span className={styles.hint}>
-                  (cuántos jugadores más pueden unirse, sin contar al host)
-                </span>
-              </label>
-              <div className={styles.counterRow}>
-                <button
-                  type="button"
-                  className={styles.counterBtn}
-                  onClick={() => setForm((f) => ({ ...f, maxPlayers: Math.max(1, f.maxPlayers - 1) }))}
-                >
-                  −
-                </button>
-                <span className={styles.counterVal}>{form.maxPlayers}</span>
-                <button
-                  type="button"
-                  className={styles.counterBtn}
-                  onClick={() => setForm((f) => ({ ...f, maxPlayers: Math.min(20, f.maxPlayers + 1) }))}
-                >
-                  +
-                </button>
-                <span className={styles.totalPlayers}>
-                  Total: {Number(form.maxPlayers) + 1} jugadores
-                </span>
+              <div className={styles.field}>
+                <label className={styles.label}>
+                  Lugares *
+                  <span className={styles.labelHint}>(sin contar al host)</span>
+                </label>
+                <div className={styles.counter}>
+                  <button
+                    type="button"
+                    className={styles.counterMinus}
+                    onClick={() => setForm((f) => ({ ...f, maxPlayers: Math.max(1, f.maxPlayers - 1) }))}
+                  >−</button>
+                  <span className={styles.counterVal}>{form.maxPlayers}</span>
+                  <button
+                    type="button"
+                    className={styles.counterPlus}
+                    onClick={() => setForm((f) => ({ ...f, maxPlayers: Math.min(20, f.maxPlayers + 1) }))}
+                  >+</button>
+                  <span className={styles.counterTotal}>Total: {Number(form.maxPlayers) + 1}</span>
+                </div>
               </div>
             </div>
 
-            {/* Location */}
             <div className={styles.field}>
               <label className={styles.label}>Ubicación</label>
               <input
@@ -156,7 +137,6 @@ export default function CreateTable() {
               />
             </div>
 
-            {/* Description */}
             <div className={styles.field}>
               <label className={styles.label}>Descripción</label>
               <textarea
@@ -170,45 +150,36 @@ export default function CreateTable() {
               />
             </div>
 
-            {/* Privacy */}
             <div className={styles.field}>
-              <label className={styles.label}>Privacidad de la mesa</label>
-              <div className={styles.privacyToggle}>
+              <label className={styles.label}>Privacidad</label>
+              <div className={styles.privacyGrid}>
                 <button
                   type="button"
-                  className={`${styles.privacyOption} ${form.privacy === 'public' ? styles.privacySelected : ''}`}
+                  className={`${styles.privacyCard} ${form.privacy === 'public' ? styles.privacyCardSelected : ''}`}
                   onClick={() => setForm((f) => ({ ...f, privacy: 'public' }))}
                 >
                   <span className={styles.privacyIcon}>🌐</span>
                   <span className={styles.privacyLabel}>Pública</span>
-                  <span className={styles.privacyDesc}>Cualquiera puede unirse</span>
+                  <span className={styles.privacyDesc}>Cualquiera puede unirse al instante</span>
                 </button>
                 <button
                   type="button"
-                  className={`${styles.privacyOption} ${form.privacy === 'private' ? styles.privacySelected : ''}`}
+                  className={`${styles.privacyCard} ${form.privacy === 'private' ? styles.privacyCardSelected : ''}`}
                   onClick={() => setForm((f) => ({ ...f, privacy: 'private' }))}
                 >
                   <span className={styles.privacyIcon}>🔒</span>
                   <span className={styles.privacyLabel}>Privada</span>
-                  <span className={styles.privacyDesc}>El host acepta o rechaza</span>
+                  <span className={styles.privacyDesc}>Aprobás cada solicitud</span>
                 </button>
               </div>
             </div>
 
             <div className={styles.actions}>
-              <button
-                type="button"
-                className={styles.cancelBtn}
-                onClick={() => navigate('/')}
-              >
+              <button type="button" className={styles.btnGhost} onClick={() => navigate('/')}>
                 Cancelar
               </button>
-              <button
-                type="submit"
-                className={styles.submitBtn}
-                disabled={loading}
-              >
-                {loading ? 'Creando…' : '¡Crear mesa!'}
+              <button type="submit" className={styles.btnPrimary} disabled={loading}>
+                {loading ? 'Creando…' : '🎲 Crear mesa'}
               </button>
             </div>
           </form>

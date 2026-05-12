@@ -64,70 +64,70 @@ export default function EditTable() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm('¿Cancelar la mesa? Esta acción no se puede deshacer.')) return;
+    setLoading(true);
+    try {
+      await axios.delete(`/api/tables/${id}`);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error al cancelar la mesa');
+      setLoading(false);
+    }
+  };
+
   if (fetching || !form) return null;
 
   return (
     <div className={styles.page}>
-      <div className="container">
-        <div className={styles.card}>
-          <div className={styles.header}>
-            <span className={styles.icon}>✏️</span>
-            <h1 className={styles.title}>Editar Mesa</h1>
-            <p className={styles.sub}>Modificá los detalles de tu partida</p>
-          </div>
+      <div className={styles.inner}>
+        <div className={styles.hero}>
+          <div className={styles.eyebrow}>◆ EDITAR MESA</div>
+          <h1 className={styles.heroTitle}>Editar tu mesa</h1>
+          <p className={styles.heroSub}>Los cambios se notifican a los jugadores ya unidos.</p>
+        </div>
 
+        <div className={styles.formCard}>
           {error && <div className={styles.errorBox}>{error}</div>}
 
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.field}>
               <label className={styles.label}>Juego de mesa</label>
-              <p style={{ color: 'var(--amber)', fontFamily: 'var(--font-display)', fontSize: '1rem', margin: 0 }}>
-                {boardGame}
-              </p>
+              <div className={styles.gameReadOnly}>{boardGame}</div>
             </div>
 
-            <div className={styles.field}>
-              <label className={styles.label}>Fecha y hora *</label>
-              <input
-                type="datetime-local"
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                className={styles.input}
-                required
-              />
-            </div>
+            <div className={styles.twoCol}>
+              <div className={styles.field}>
+                <label className={styles.label}>Fecha y hora *</label>
+                <input
+                  type="datetime-local"
+                  name="date"
+                  value={form.date}
+                  onChange={handleChange}
+                  className={styles.input}
+                  required
+                />
+              </div>
 
-            <div className={styles.field}>
-              <label className={styles.label}>
-                Lugares disponibles *
-                <span className={styles.hint}>
-                  (cuántos jugadores más pueden unirse, sin contar al host)
-                </span>
-              </label>
-              <div className={styles.counterRow}>
-                <button
-                  type="button"
-                  className={styles.counterBtn}
-                  onClick={() =>
-                    setForm((f) => ({ ...f, maxPlayers: Math.max(minPlayers, f.maxPlayers - 1) }))
-                  }
-                >
-                  −
-                </button>
-                <span className={styles.counterVal}>{form.maxPlayers}</span>
-                <button
-                  type="button"
-                  className={styles.counterBtn}
-                  onClick={() =>
-                    setForm((f) => ({ ...f, maxPlayers: Math.min(20, f.maxPlayers + 1) }))
-                  }
-                >
-                  +
-                </button>
-                <span className={styles.totalPlayers}>
-                  Total: {Number(form.maxPlayers) + 1} jugadores
-                </span>
+              <div className={styles.field}>
+                <label className={styles.label}>
+                  Lugares *
+                  <span className={styles.labelHint}>(sin contar al host)</span>
+                </label>
+                <div className={styles.counter}>
+                  <button
+                    type="button"
+                    className={styles.counterMinus}
+                    onClick={() => setForm((f) => ({ ...f, maxPlayers: Math.max(minPlayers, f.maxPlayers - 1) }))}
+                  >−</button>
+                  <span className={styles.counterVal}>{form.maxPlayers}</span>
+                  <button
+                    type="button"
+                    className={styles.counterPlus}
+                    onClick={() => setForm((f) => ({ ...f, maxPlayers: Math.min(20, f.maxPlayers + 1) }))}
+                  >+</button>
+                  <span className={styles.counterTotal}>Total: {Number(form.maxPlayers) + 1}</span>
+                </div>
               </div>
             </div>
 
@@ -157,27 +157,26 @@ export default function EditTable() {
               />
             </div>
 
-            {/* Privacy */}
             <div className={styles.field}>
-              <label className={styles.label}>Privacidad de la mesa</label>
-              <div className={styles.privacyToggle}>
+              <label className={styles.label}>Privacidad</label>
+              <div className={styles.privacyGrid}>
                 <button
                   type="button"
-                  className={`${styles.privacyOption} ${form.privacy === 'public' ? styles.privacySelected : ''}`}
+                  className={`${styles.privacyCard} ${form.privacy === 'public' ? styles.privacyCardSelected : ''}`}
                   onClick={() => setForm((f) => ({ ...f, privacy: 'public' }))}
                 >
                   <span className={styles.privacyIcon}>🌐</span>
                   <span className={styles.privacyLabel}>Pública</span>
-                  <span className={styles.privacyDesc}>Cualquiera puede unirse</span>
+                  <span className={styles.privacyDesc}>Cualquiera puede unirse al instante</span>
                 </button>
                 <button
                   type="button"
-                  className={`${styles.privacyOption} ${form.privacy === 'private' ? styles.privacySelected : ''}`}
+                  className={`${styles.privacyCard} ${form.privacy === 'private' ? styles.privacyCardSelected : ''}`}
                   onClick={() => setForm((f) => ({ ...f, privacy: 'private' }))}
                 >
                   <span className={styles.privacyIcon}>🔒</span>
                   <span className={styles.privacyLabel}>Privada</span>
-                  <span className={styles.privacyDesc}>El host acepta o rechaza</span>
+                  <span className={styles.privacyDesc}>Aprobás cada solicitud</span>
                 </button>
               </div>
             </div>
@@ -185,21 +184,20 @@ export default function EditTable() {
             <div className={styles.actions}>
               <button
                 type="button"
-                className={styles.cancelBtn}
-                onClick={() => navigate('/')}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className={styles.submitBtn}
+                className={`${styles.btnDanger} ${styles.actionsLeft}`}
+                onClick={handleDelete}
                 disabled={loading}
               >
+                Eliminar mesa
+              </button>
+              <button type="button" className={styles.btnGhost} onClick={() => navigate('/')}>
+                Cancelar
+              </button>
+              <button type="submit" className={styles.btnPrimary} disabled={loading}>
                 {loading ? 'Guardando…' : 'Guardar cambios'}
               </button>
             </div>
           </form>
-
         </div>
       </div>
     </div>
