@@ -33,6 +33,15 @@ const PerfilIcon = () => (
   </svg>
 )
 
+const JuntadasIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="14" rx="2"/>
+    <circle cx="8" cy="10" r="2"/>
+    <path d="M21 17 3 17M7 21h10"/>
+    <path d="m14 7 3 3-3 3"/>
+  </svg>
+)
+
 const DBIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <ellipse cx="12" cy="5" rx="9" ry="3"/>
@@ -43,16 +52,18 @@ const DBIcon = () => (
 )
 
 const NAV = [
-  { id: 'feed',    label: 'Feed',      Icon: FeedIcon,      to: '/me' },
-  { id: 'dash',    label: 'Mesas',     Icon: MesasIcon,     to: '/' },
-  { id: 'users',   label: 'Comunidad', Icon: ComunidadIcon, to: '/users' },
-  { id: 'profile', label: 'Perfil',    Icon: PerfilIcon,    to: '/perfil' },
-  { id: 'db',      label: 'DB',        Icon: DBIcon,        to: '/database', adminOnly: true },
+  { id: 'feed',      label: 'Feed',      Icon: FeedIcon,      to: '/me' },
+  { id: 'dash',      label: 'Mesas',     Icon: MesasIcon,     to: '/' },
+  { id: 'juntadas',  label: 'Juntadas',  Icon: JuntadasIcon,  to: '/juntadas' },
+  { id: 'users',     label: 'Comunidad', Icon: ComunidadIcon, to: '/users' },
+  { id: 'profile',   label: 'Perfil',    Icon: PerfilIcon,    to: '/perfil' },
+  { id: 'db',        label: 'DB',        Icon: DBIcon,        to: '/database', adminOnly: true },
 ]
 
 function getActiveId(pathname) {
   if (pathname === '/me') return 'feed'
   if (pathname === '/' || pathname.startsWith('/tables')) return 'dash'
+  if (pathname.startsWith('/juntadas')) return 'juntadas'
   if (pathname.startsWith('/users')) return 'users'
   if (pathname.startsWith('/perfil')) return 'profile'
   if (pathname.startsWith('/database')) return 'db'

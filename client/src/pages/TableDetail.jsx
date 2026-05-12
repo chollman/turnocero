@@ -486,6 +486,14 @@ export default function TableDetail() {
           {isFollowing ? '🔔 Siguiendo' : '🔕 Seguir'}
         </button>
       )}
+      {(isHost || isPlayer) && (
+        <button
+          className={styles.btnShareJuntada}
+          onClick={() => navigate(`/juntadas?mesa=${id}`)}
+        >
+          📸 Compartir juntada
+        </button>
+      )}
     </>
   )
 

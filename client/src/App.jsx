@@ -14,6 +14,7 @@ import DatabaseViewer from './pages/DatabaseViewer';
 import TableDetail from './pages/TableDetail';
 import Notifications from './pages/Notifications';
 import MeFeed from './pages/MeFeed';
+import Juntadas from './pages/Juntadas';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
@@ -68,6 +69,7 @@ function AppRoutes() {
           <Route path="/users/:id" element={<PrivateRoute><UserProfilePublic /></PrivateRoute>} />
           <Route path="/database" element={<PrivateRoute><DatabaseViewer /></PrivateRoute>} />
           <Route path="/me" element={<PrivateRoute><MeFeed /></PrivateRoute>} />
+          <Route path="/juntadas" element={<PrivateRoute><Juntadas /></PrivateRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         {user && <BottomNav />}

@@ -5,18 +5,20 @@ import { useNotifications } from '../context/NotificationContext'
 import styles from './Sidebar.module.css'
 
 const NAV = [
-  { id: 'feed',    label: 'Mi feed',         icon: '◈', to: '/me' },
-  { id: 'dash',    label: 'Mesas',           icon: '▦', to: '/' },
-  { id: 'create',  label: 'Crear mesa',      icon: '+', to: '/create' },
-  { id: 'notif',   label: 'Notificaciones',  icon: '◆', to: '/notifications' },
-  { id: 'users',   label: 'Comunidad',       icon: '◎', to: '/users' },
-  { id: 'profile', label: 'Perfil',          icon: '○', to: '/perfil' },
-  { id: 'db',      label: 'Base de datos',   icon: '⊟', to: '/database', adminOnly: true },
+  { id: 'feed',      label: 'Mi feed',         icon: '◈', to: '/me' },
+  { id: 'dash',      label: 'Mesas',           icon: '▦', to: '/' },
+  { id: 'juntadas',  label: 'Juntadas',        icon: '◉', to: '/juntadas' },
+  { id: 'create',    label: 'Crear mesa',      icon: '+', to: '/create' },
+  { id: 'notif',     label: 'Notificaciones',  icon: '◆', to: '/notifications' },
+  { id: 'users',     label: 'Comunidad',       icon: '◎', to: '/users' },
+  { id: 'profile',   label: 'Perfil',          icon: '○', to: '/perfil' },
+  { id: 'db',        label: 'Base de datos',   icon: '⊟', to: '/database', adminOnly: true },
 ]
 
 function getActiveId(pathname) {
   if (pathname === '/me') return 'feed'
   if (pathname === '/' || pathname.startsWith('/tables')) return 'dash'
+  if (pathname.startsWith('/juntadas')) return 'juntadas'
   if (pathname === '/create') return 'create'
   if (pathname === '/notifications') return 'notif'
   if (pathname.startsWith('/users')) return 'users'
