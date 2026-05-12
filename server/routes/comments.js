@@ -4,6 +4,7 @@ const { body, param, validationResult } = require('express-validator');
 const Comment = require('../models/Comment');
 const Table = require('../models/Table');
 const { protect } = require('../middleware/auth');
+const saveNotification = require('../utils/saveNotification');
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -69,6 +70,12 @@ router.post('/', protect, [
           commentPreview: req.body.content.slice(0, 60),
           timestamp: new Date(),
         });
+        saveNotification(userId, 'comment', {
+          tableId: table._id.toString(),
+          tableName: table.boardGame,
+          lastCommenterUsername: req.user.username,
+          lastCommentPreview: req.body.content.slice(0, 60),
+        }).catch(() => {});
       });
     }
 

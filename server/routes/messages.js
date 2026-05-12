@@ -4,6 +4,7 @@ const { body, validationResult } = require('express-validator');
 const Message = require('../models/Message');
 const Table = require('../models/Table');
 const { protect } = require('../middleware/auth');
+const saveNotification = require('../utils/saveNotification');
 
 const isParticipant = (table, userId) => {
   const id = userId.toString();
@@ -75,6 +76,12 @@ router.post('/', protect, [
 
       for (const pid of participantIds) {
         io.to(`user:${pid}`).emit('chat:notification', notif);
+        saveNotification(pid, 'chat', {
+          tableId: req.params.id,
+          tableName: table.boardGame,
+          lastSenderUsername: req.user.username,
+          lastMessagePreview: notif.messagePreview,
+        }).catch(() => {});
       }
     }
 

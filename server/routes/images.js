@@ -5,6 +5,7 @@ const multer = require('../config/multer');
 const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
 const Table = require('../models/Table');
 const { protect } = require('../middleware/auth');
+const saveNotification = require('../utils/saveNotification');
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -77,6 +78,11 @@ router.post(
             uploaderUsername: req.user.username,
             timestamp: new Date(),
           });
+          saveNotification(userId, 'image', {
+            tableId: table._id.toString(),
+            tableName: table.boardGame,
+            lastUploaderUsername: req.user.username,
+          }).catch(() => {});
         });
       }
 

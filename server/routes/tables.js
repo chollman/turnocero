@@ -4,6 +4,7 @@ const { body, param, validationResult } = require('express-validator');
 const Table = require('../models/Table');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const saveNotification = require('../utils/saveNotification');
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -282,6 +283,11 @@ router.post('/:id/join', protect, [
           requesterUsername: req.user.username,
           timestamp: new Date(),
         });
+        saveNotification(table.host, 'join_request', {
+          tableId: table._id.toString(),
+          tableName: table.boardGame,
+          lastRequesterUsername: req.user.username,
+        }).catch(() => {});
       }
 
       return res.json({ requested: true, table: populated });
@@ -355,6 +361,10 @@ router.post('/:id/requests/:userId/accept', protect, [
         tableName: table.boardGame,
         timestamp: new Date(),
       });
+      saveNotification(req.params.userId, 'join_accepted', {
+        tableId: req.params.id,
+        tableName: table.boardGame,
+      }).catch(() => {});
     }
 
     res.json(populated);
@@ -421,6 +431,10 @@ router.post('/:id/leave', protect, [
             tableName: table.boardGame,
             timestamp: new Date(),
           });
+          saveNotification(followerId, 'spot_opened', {
+            tableId: table._id.toString(),
+            tableName: table.boardGame,
+          }).catch(() => {});
         });
       }
     }

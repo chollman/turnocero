@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const saveNotification = require('../utils/saveNotification');
 
 // POST /api/friends/:id/request — send friend request
 router.post('/:id/request', protect, async (req, res) => {
@@ -35,6 +36,10 @@ router.post('/:id/request', protect, async (req, res) => {
       fromUserId: myId,
       fromUsername: me.username,
     });
+    saveNotification(targetId, 'friend_request', {
+      fromUserId: myId,
+      fromUsername: me.username,
+    }).catch(() => {});
 
     res.json({ message: 'Solicitud enviada' });
   } catch (err) {
@@ -71,6 +76,10 @@ router.post('/:id/accept', protect, async (req, res) => {
       fromUserId: myId,
       fromUsername: me.username,
     });
+    saveNotification(fromId, 'friend_accepted', {
+      fromUserId: myId,
+      fromUsername: me.username,
+    }).catch(() => {});
 
     res.json({ message: 'Solicitud aceptada' });
   } catch (err) {

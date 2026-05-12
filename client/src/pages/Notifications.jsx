@@ -27,7 +27,7 @@ function getNotifMeta(n) {
 
 export default function Notifications() {
   const navigate = useNavigate();
-  const { notifications, markRead, clearAll } = useNotifications();
+  const { notifications, markRead, markReadFriend, clearAll } = useNotifications();
   const sorted = [...notifications].reverse();
 
   return (
@@ -47,26 +47,33 @@ export default function Notifications() {
       {sorted.length === 0 ? (
         <div className={styles.empty}>
           <span className={styles.emptyIcon}>🔔</span>
-          <p className={styles.emptyText}>Sin notificaciones nuevas</p>
+          <p className={styles.emptyText}>Sin notificaciones</p>
         </div>
       ) : (
         <ul className={styles.list}>
           {sorted.map((n) => {
             const { icon, countLabel, preview, chipClass } = getNotifMeta(n);
+            const to = n.fromUserId ? `/users/${n.fromUserId}` : `/tables/${n.tableId}`;
+            const handleClick = () => n.fromUserId ? markReadFriend(n.fromUserId) : markRead(n.tableId);
             return (
-              <li key={`${n.type ?? 'chat'}:${n.tableId}`}>
+              <li key={`${n.type ?? 'chat'}:${n.tableId ?? n.fromUserId}`}>
                 <Link
-                  to={`/tables/${n.tableId}`}
-                  className={styles.card}
-                  onClick={() => markRead(n.tableId)}
+                  to={to}
+                  className={`${styles.card} ${n.read ? styles.cardRead : ''}`}
+                  onClick={handleClick}
                 >
-                  <span className={styles.cardIcon}>{icon}</span>
+                  <div className={styles.cardIconWrap}>
+                    <span className={styles.cardIcon}>{icon}</span>
+                    {!n.read && <span className={styles.unreadDot} />}
+                  </div>
                   <div className={styles.cardBody}>
                     <div className={styles.cardTop}>
-                      <span className={styles.cardGame}>{n.tableName}</span>
-                      <span className={`${styles.chip} ${styles[chipClass]}`}>
-                        {countLabel}
-                      </span>
+                      <span className={styles.cardGame}>{n.tableName || n.fromUsername}</span>
+                      {!n.read && (
+                        <span className={`${styles.chip} ${styles[chipClass]}`}>
+                          {countLabel}
+                        </span>
+                      )}
                     </div>
                     <span className={styles.cardPreview}>{preview}</span>
                   </div>

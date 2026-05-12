@@ -91,21 +91,47 @@
   gap: 0.85rem;
   padding: 1rem;
   background: var(--bg-card);
-  border: 1px solid var(--border);
+  border: 1px solid var(--amber);
   border-radius: 10px;
   text-decoration: none;
-  transition: border-color var(--transition), background var(--transition);
+  transition: border-color var(--transition), background var(--transition), opacity var(--transition);
 }
 
 .card:hover {
-  border-color: var(--border-amber);
+  border-color: var(--amber-light);
   background: var(--bg-elevated);
+}
+
+.cardRead {
+  border-color: var(--border);
+  opacity: 0.6;
+}
+
+.cardRead:hover {
+  border-color: var(--border);
+  opacity: 0.85;
+}
+
+.cardIconWrap {
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
 }
 
 .cardIcon {
   font-size: 1.4rem;
-  flex-shrink: 0;
-  margin-top: 0.1rem;
+  display: block;
+}
+
+.unreadDot {
+  position: absolute;
+  top: -3px;
+  right: -4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: 2px solid var(--bg-card);
 }
 
 .cardBody {

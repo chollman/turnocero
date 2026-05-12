@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
+import axios from 'axios';
 import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext(null);
@@ -24,6 +25,14 @@ export function NotificationProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const activeTableRef = useRef(null);
 
+  // Load from server when user is available (overrides localStorage cache)
+  useEffect(() => {
+    if (!user) return;
+    axios.get('/api/notifications')
+      .then(({ data }) => setNotifications(data))
+      .catch(() => {});
+  }, [user]);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
   }, [notifications]);
@@ -42,11 +51,11 @@ export function NotificationProvider({ children }) {
         if (existing) {
           return prev.map((n) =>
             (n.type ?? 'chat') === 'chat' && n.tableId === notif.tableId
-              ? { ...n, count: n.count + 1, lastSenderUsername: notif.senderUsername, lastMessagePreview: notif.messagePreview, timestamp: notif.timestamp }
+              ? { ...n, read: false, count: n.count + 1, lastSenderUsername: notif.senderUsername, lastMessagePreview: notif.messagePreview, timestamp: notif.timestamp }
               : n
           );
         }
-        return [...prev, { type: 'chat', tableId: notif.tableId, tableName: notif.tableName, count: 1, lastSenderUsername: notif.senderUsername, lastMessagePreview: notif.messagePreview, timestamp: notif.timestamp }];
+        return [...prev, { type: 'chat', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, lastSenderUsername: notif.senderUsername, lastMessagePreview: notif.messagePreview, timestamp: notif.timestamp }];
       });
 
       setToasts((prev) => {
@@ -60,7 +69,7 @@ export function NotificationProvider({ children }) {
 
       setNotifications((prev) => {
         const rest = prev.filter((n) => !(n.type === 'join_accepted' && n.tableId === notif.tableId));
-        return [...rest, { type: 'join_accepted', tableId: notif.tableId, tableName: notif.tableName, count: 1, timestamp: notif.timestamp }];
+        return [...rest, { type: 'join_accepted', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, timestamp: notif.timestamp }];
       });
 
       setToasts((prev) => {
@@ -77,11 +86,11 @@ export function NotificationProvider({ children }) {
         if (existing) {
           return prev.map((n) =>
             n.type === 'comment' && n.tableId === notif.tableId
-              ? { ...n, count: n.count + 1, lastCommenterUsername: notif.commenterUsername, lastCommentPreview: notif.commentPreview, timestamp: notif.timestamp }
+              ? { ...n, read: false, count: n.count + 1, lastCommenterUsername: notif.commenterUsername, lastCommentPreview: notif.commentPreview, timestamp: notif.timestamp }
               : n
           );
         }
-        return [...prev, { type: 'comment', tableId: notif.tableId, tableName: notif.tableName, count: 1, lastCommenterUsername: notif.commenterUsername, lastCommentPreview: notif.commentPreview, timestamp: notif.timestamp }];
+        return [...prev, { type: 'comment', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, lastCommenterUsername: notif.commenterUsername, lastCommentPreview: notif.commentPreview, timestamp: notif.timestamp }];
       });
 
       setToasts((prev) => {
@@ -98,11 +107,11 @@ export function NotificationProvider({ children }) {
         if (existing) {
           return prev.map((n) =>
             n.type === 'image' && n.tableId === notif.tableId
-              ? { ...n, count: n.count + 1, lastUploaderUsername: notif.uploaderUsername, timestamp: notif.timestamp }
+              ? { ...n, read: false, count: n.count + 1, lastUploaderUsername: notif.uploaderUsername, timestamp: notif.timestamp }
               : n
           );
         }
-        return [...prev, { type: 'image', tableId: notif.tableId, tableName: notif.tableName, count: 1, lastUploaderUsername: notif.uploaderUsername, timestamp: notif.timestamp }];
+        return [...prev, { type: 'image', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, lastUploaderUsername: notif.uploaderUsername, timestamp: notif.timestamp }];
       });
 
       setToasts((prev) => {
@@ -116,7 +125,7 @@ export function NotificationProvider({ children }) {
 
       setNotifications((prev) => {
         const rest = prev.filter((n) => !(n.type === 'spot_opened' && n.tableId === notif.tableId));
-        return [...rest, { type: 'spot_opened', tableId: notif.tableId, tableName: notif.tableName, count: 1, timestamp: notif.timestamp }];
+        return [...rest, { type: 'spot_opened', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, timestamp: notif.timestamp }];
       });
 
       setToasts((prev) => {
@@ -133,11 +142,11 @@ export function NotificationProvider({ children }) {
         if (existing) {
           return prev.map((n) =>
             n.type === 'join_request' && n.tableId === notif.tableId
-              ? { ...n, count: n.count + 1, lastRequesterUsername: notif.requesterUsername, timestamp: notif.timestamp }
+              ? { ...n, read: false, count: n.count + 1, lastRequesterUsername: notif.requesterUsername, timestamp: notif.timestamp }
               : n
           );
         }
-        return [...prev, { type: 'join_request', tableId: notif.tableId, tableName: notif.tableName, count: 1, lastRequesterUsername: notif.requesterUsername, timestamp: notif.timestamp }];
+        return [...prev, { type: 'join_request', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, lastRequesterUsername: notif.requesterUsername, timestamp: notif.timestamp }];
       });
 
       setToasts((prev) => {
@@ -150,7 +159,7 @@ export function NotificationProvider({ children }) {
       setNotifications((prev) => {
         const existing = prev.find((n) => n.type === 'friend_request' && n.fromUserId === notif.fromUserId);
         if (existing) return prev;
-        return [...prev, { type: 'friend_request', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername, count: 1, timestamp: new Date().toISOString() }];
+        return [...prev, { type: 'friend_request', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername, count: 1, read: false, timestamp: new Date().toISOString() }];
       });
       setToasts((prev) => {
         const next = [...prev, { id: makeToastId(), type: 'friend_request', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername }];
@@ -162,7 +171,7 @@ export function NotificationProvider({ children }) {
       setNotifications((prev) => {
         const existing = prev.find((n) => n.type === 'friend_accepted' && n.fromUserId === notif.fromUserId);
         if (existing) return prev;
-        return [...prev, { type: 'friend_accepted', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername, count: 1, timestamp: new Date().toISOString() }];
+        return [...prev, { type: 'friend_accepted', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername, count: 1, read: false, timestamp: new Date().toISOString() }];
       });
       setToasts((prev) => {
         const next = [...prev, { id: makeToastId(), type: 'friend_accepted', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername }];
@@ -174,14 +183,23 @@ export function NotificationProvider({ children }) {
   }, [user]);
 
   const markRead = useCallback((tableId) => {
-    setNotifications((prev) => prev.filter((n) => n.tableId !== tableId));
+    setNotifications((prev) =>
+      prev.map((n) => n.tableId === tableId ? { ...n, read: true } : n)
+    );
+    axios.patch('/api/notifications/read', { tableId }).catch(() => {});
   }, []);
 
   const markReadFriend = useCallback((fromUserId) => {
-    setNotifications((prev) => prev.filter((n) => n.fromUserId !== fromUserId));
+    setNotifications((prev) =>
+      prev.map((n) => n.fromUserId === fromUserId ? { ...n, read: true } : n)
+    );
+    axios.patch('/api/notifications/read', { fromUserId }).catch(() => {});
   }, []);
 
-  const clearAll = useCallback(() => setNotifications([]), []);
+  const clearAll = useCallback(() => {
+    setNotifications([]);
+    axios.delete('/api/notifications').catch(() => {});
+  }, []);
 
   const setActiveTable = useCallback((tableId) => {
     activeTableRef.current = tableId;
@@ -192,7 +210,7 @@ export function NotificationProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const totalUnread = notifications.reduce((sum, n) => sum + (n.count || 1), 0);
+  const totalUnread = notifications.filter((n) => !n.read).reduce((sum, n) => sum + (n.count || 1), 0);
 
   return (
     <NotificationContext.Provider value={{
