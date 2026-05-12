@@ -43,7 +43,6 @@ export default function UserProfile() {
     clearTimeout(successTimerRef.current);
   }, []);
 
-  // Sync form when user loads
   useEffect(() => {
     if (!user) return;
     setForm({
@@ -57,15 +56,14 @@ export default function UserProfile() {
       lng: user.direccion?.lng ?? null,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?._id]); // intentional: only re-sync when user identity changes, not on every profile update
+  }, [user?._id]);
 
-  // Initialize Leaflet map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
     const center = (user?.direccion?.lat && user?.direccion?.lng)
       ? [user.direccion.lat, user.direccion.lng]
-      : [-34.6037, -58.3816]; // Buenos Aires default
+      : [-34.6037, -58.3816];
 
     const map = L.map(mapContainerRef.current, { center, zoom: 13 });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -163,128 +161,132 @@ export default function UserProfile() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.card}>
-        <h1 className={styles.title}>Mi Perfil</h1>
-        <p className={styles.subtitle}>
-          <span className={styles.usernameChip}>@{user?.username}</span>
-          <span className={styles.email}>{user?.email}</span>
-        </p>
+      <div className={styles.inner}>
+        <div className={styles.hero}>
+          <div className={styles.eyebrow}>◆ MI PERFIL</div>
+          <h1 className={styles.heroTitle}>@{user?.username}</h1>
+          <p className={styles.heroSub}>{user?.email}</p>
+        </div>
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Información personal</h2>
+        <div className={styles.formCard}>
+          {error && <div className={styles.errorBox}>{error}</div>}
+          {success && <div className={styles.successBox}>{success}</div>}
 
-            <div className={styles.field}>
-              <label className={styles.label}>Nombre para mostrar</label>
-              <input
-                className={styles.input}
-                name="displayName"
-                value={form.displayName}
-                onChange={handleChange}
-                placeholder="Como querés que te vean otros usuarios"
-                maxLength={60}
-              />
-            </div>
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <div className={styles.section}>
+              <div className={styles.sectionLabel}>Información personal</div>
 
-            <div className={styles.row}>
               <div className={styles.field}>
-                <label className={styles.label}>Nombre</label>
+                <label className={styles.label}>Nombre para mostrar</label>
                 <input
                   className={styles.input}
-                  name="nombre"
-                  value={form.nombre}
+                  name="displayName"
+                  value={form.displayName}
                   onChange={handleChange}
-                  placeholder="Tu nombre"
-                  maxLength={50}
+                  placeholder="Como querés que te vean otros usuarios"
+                  maxLength={60}
                 />
               </div>
-              <div className={styles.field}>
-                <label className={styles.label}>Apellido</label>
-                <input
-                  className={styles.input}
-                  name="apellido"
-                  value={form.apellido}
-                  onChange={handleChange}
-                  placeholder="Tu apellido"
-                  maxLength={50}
-                />
-              </div>
-            </div>
-          </div>
 
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Contacto</h2>
-
-            <div className={styles.row}>
-              <div className={styles.field}>
-                <label className={styles.label}>Usuario de Telegram</label>
-                <div className={styles.inputPrefix}>
-                  <span className={styles.prefix}>@</span>
+              <div className={styles.twoCol}>
+                <div className={styles.field}>
+                  <label className={styles.label}>Nombre</label>
                   <input
-                    className={`${styles.input} ${styles.inputWithPrefix}`}
-                    name="telegram"
-                    value={form.telegram}
+                    className={styles.input}
+                    name="nombre"
+                    value={form.nombre}
                     onChange={handleChange}
-                    placeholder="tu_usuario"
+                    placeholder="Tu nombre"
+                    maxLength={50}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label className={styles.label}>Apellido</label>
+                  <input
+                    className={styles.input}
+                    name="apellido"
+                    value={form.apellido}
+                    onChange={handleChange}
+                    placeholder="Tu apellido"
                     maxLength={50}
                   />
                 </div>
               </div>
-              <div className={styles.field}>
-                <label className={styles.label}>Celular</label>
-                <input
-                  className={styles.input}
-                  name="celular"
-                  value={form.celular}
-                  onChange={handleChange}
-                  placeholder="+54 9 11 1234-5678"
-                  maxLength={30}
-                  type="tel"
-                />
+            </div>
+
+            <div className={styles.section}>
+              <div className={styles.sectionLabel}>Contacto</div>
+
+              <div className={styles.twoCol}>
+                <div className={styles.field}>
+                  <label className={styles.label}>Telegram</label>
+                  <div className={styles.inputPrefix}>
+                    <span className={styles.prefix}>@</span>
+                    <input
+                      className={`${styles.input} ${styles.inputWithPrefix}`}
+                      name="telegram"
+                      value={form.telegram}
+                      onChange={handleChange}
+                      placeholder="tu_usuario"
+                      maxLength={50}
+                    />
+                  </div>
+                </div>
+                <div className={styles.field}>
+                  <label className={styles.label}>Celular</label>
+                  <input
+                    className={styles.input}
+                    name="celular"
+                    value={form.celular}
+                    onChange={handleChange}
+                    placeholder="+54 9 11 1234-5678"
+                    maxLength={30}
+                    type="tel"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Dirección</h2>
-            <p className={styles.hint}>
-              Escribí tu dirección y hacé clic en <strong>Buscar</strong>, o cliqueá directamente en el mapa para marcar tu ubicación.
-            </p>
+            <div className={styles.section}>
+              <div className={styles.sectionLabel}>Dirección</div>
+              <p className={styles.hint}>
+                Escribí tu dirección y hacé clic en <strong>Buscar</strong>, o cliqueá directamente en el mapa para marcar tu ubicación.
+              </p>
 
-            <div className={styles.geocodeRow}>
-              <input
-                className={styles.input}
-                name="direccionTexto"
-                value={form.direccionTexto}
-                onChange={handleChange}
-                placeholder="Ej: Av. Corrientes 1234, Buenos Aires"
-              />
-              <button
-                type="button"
-                className={styles.btnSearch}
-                onClick={handleGeocode}
-                disabled={geocoding}
-              >
-                {geocoding ? '…' : 'Buscar'}
-              </button>
+              <div className={styles.geocodeRow}>
+                <input
+                  className={styles.input}
+                  name="direccionTexto"
+                  value={form.direccionTexto}
+                  onChange={handleChange}
+                  placeholder="Ej: Av. Corrientes 1234, Buenos Aires"
+                />
+                <button
+                  type="button"
+                  className={styles.btnSearch}
+                  onClick={handleGeocode}
+                  disabled={geocoding}
+                >
+                  {geocoding ? '…' : 'Buscar'}
+                </button>
+              </div>
+
+              {form.lat && form.lng && (
+                <p className={styles.coordsHint}>
+                  📍 {form.lat.toFixed(5)}, {form.lng.toFixed(5)}
+                </p>
+              )}
+
+              <div ref={mapContainerRef} className={styles.map} />
             </div>
 
-            {form.lat && form.lng && (
-              <p className={styles.coordsHint}>
-                📍 {form.lat.toFixed(5)}, {form.lng.toFixed(5)}
-              </p>
-            )}
-
-            <div ref={mapContainerRef} className={styles.map} />
-          </div>
-
-          {error && <p className={styles.error}>{error}</p>}
-          {success && <p className={styles.successMsg}>{success}</p>}
-
-          <button type="submit" className={styles.btnSave} disabled={saving}>
-            {saving ? 'Guardando…' : 'Guardar cambios'}
-          </button>
-        </form>
+            <div className={styles.actions}>
+              <button type="submit" className={styles.btnPrimary} disabled={saving}>
+                {saving ? 'Guardando…' : 'Guardar cambios'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

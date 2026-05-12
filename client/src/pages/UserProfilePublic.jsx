@@ -2,53 +2,13 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import GameTile from '../components/GameTile';
 import styles from './UserProfilePublic.module.css';
 
-function StatCard({ value, label, highlight }) {
-  return (
-    <div className={`${styles.statCard} ${highlight ? styles.statCardHighlight : ''}`}>
-      <span className={styles.statValue}>{value}</span>
-      <span className={styles.statLabel}>{label}</span>
-    </div>
-  );
-}
-
-function InfoRow({ icon, label, value }) {
-  if (!value) return null;
-  return (
-    <div className={styles.infoRow}>
-      <span className={styles.infoIcon}>{icon}</span>
-      <div className={styles.infoText}>
-        <span className={styles.infoLabel}>{label}</span>
-        <span className={styles.infoValue}>{value}</span>
-      </div>
-    </div>
-  );
-}
-
-function FavoriteGames({ games }) {
-  if (!games || games.length === 0) return null;
-  const max = games[0].count;
-  return (
-    <div className={styles.section}>
-      <p className={styles.sectionTitle}>Juegos favoritos</p>
-      <div className={styles.gamesList}>
-        {games.map((g, i) => (
-          <div key={g.game} className={styles.gameRow}>
-            <span className={styles.gameRank}>#{i + 1}</span>
-            <span className={styles.gameName}>{g.game}</span>
-            <div className={styles.gameBarWrap}>
-              <div
-                className={styles.gameBar}
-                style={{ width: `${Math.round((g.count / max) * 100)}%` }}
-              />
-            </div>
-            <span className={styles.gameCount}>{g.count}×</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+function seedFromId(id = '') {
+  let s = 0;
+  for (let i = 0; i < id.length; i++) s = (s * 31 + id.charCodeAt(i)) >>> 0;
+  return s;
 }
 
 function formatDate(iso) {
@@ -66,6 +26,37 @@ function timeAgo(iso) {
   if (days < 30) return `hace ${Math.floor(days / 7)} semana${Math.floor(days / 7) > 1 ? 's' : ''}`;
   if (days < 365) return `hace ${Math.floor(days / 30)} mes${Math.floor(days / 30) > 1 ? 'es' : ''}`;
   return `hace ${Math.floor(days / 365)} año${Math.floor(days / 365) > 1 ? 's' : ''}`;
+}
+
+function StatCard({ value, label, accent }) {
+  return (
+    <div className={`${styles.statCard} ${accent ? styles.statCardAccent : ''}`}>
+      <span className={styles.statValue}>{value}</span>
+      <span className={styles.statLabel}>{label}</span>
+    </div>
+  );
+}
+
+function FavoriteGames({ games }) {
+  if (!games || games.length === 0) return null;
+  const max = games[0].count;
+  return (
+    <div className={styles.favSection}>
+      <div className={styles.sectionLabel}>JUEGOS FAVORITOS</div>
+      <div className={styles.gamesList}>
+        {games.map((g, i) => (
+          <div key={g.game} className={styles.gameRow}>
+            <span className={styles.gameRank}>#{i + 1}</span>
+            <span className={styles.gameName}>{g.game}</span>
+            <div className={styles.gameBarWrap}>
+              <div className={styles.gameBar} style={{ width: `${Math.round((g.count / max) * 100)}%` }} />
+            </div>
+            <span className={styles.gameCount}>{g.count}×</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function UserProfilePublic() {
@@ -119,7 +110,7 @@ export default function UserProfilePublic() {
   if (loading) {
     return (
       <div className={styles.page}>
-        <div className={styles.loading}>
+        <div className={styles.stateCenter}>
           <span className={styles.loadingDice}>🎲</span>
           <p>Cargando perfil…</p>
         </div>
@@ -130,7 +121,7 @@ export default function UserProfilePublic() {
   if (error || !profile) {
     return (
       <div className={styles.page}>
-        <div className={styles.errorState}>
+        <div className={styles.stateCenter}>
           <p>{error || 'Usuario no encontrado'}</p>
           <button className={styles.backBtn} onClick={() => navigate('/users')}>
             ← Volver a jugadores
@@ -142,169 +133,167 @@ export default function UserProfilePublic() {
 
   const { stats } = profile;
   const displayName = profile.displayName ||
-    [profile.nombre, profile.apellido].filter(Boolean).join(' ');
+    [profile.nombre, profile.apellido].filter(Boolean).join(' ') ||
+    profile.username;
+  const seed = seedFromId(profile._id || id);
+  const joinYear = profile.createdAt ? new Date(profile.createdAt).getFullYear() : null;
+
+  const contactParts = [
+    profile.direccion?.texto,
+    profile.telegram ? '✈️ Telegram' : null,
+    profile.celular ? '📱 Celular' : null,
+  ].filter(Boolean);
 
   return (
     <div className={styles.page}>
-      <button className={styles.backBtn} onClick={() => navigate('/users')}>
-        ← Jugadores
-      </button>
+      {/* GameTile hero banner */}
+      <div className={styles.banner}>
+        <GameTile game={profile.username} seed={seed} size="100%" />
+        <div className={styles.bannerOverlay} />
+      </div>
 
-      <div className={styles.layout}>
+      <div className={styles.inner}>
+        {/* Back button */}
+        <button className={styles.backBtn} onClick={() => navigate('/users')}>
+          ← Jugadores
+        </button>
 
-        {/* Left column */}
-        <div className={styles.leftCol}>
-
-          {/* Profile hero */}
-          <div className={styles.heroCard}>
-            <div className={styles.heroAvatar}>
-              {profile.username.charAt(0).toUpperCase()}
+        {/* Hero row: avatar + name + actions */}
+        <div className={styles.heroRow}>
+          <div className={styles.avatar}>
+            {profile.username.charAt(0).toUpperCase()}
+          </div>
+          <div className={styles.heroInfo}>
+            <div className={styles.eyebrow}>
+              ◆ PERFIL{joinYear ? ` · DESDE ${joinYear}` : ''}
             </div>
-            <div className={styles.heroInfo}>
-              <p className={styles.heroUsername}>@{profile.username}</p>
-              {displayName && <p className={styles.heroName}>{displayName}</p>}
-              <div className={styles.heroMeta}>
-                <span className={styles.metaItem}>
-                  Miembro desde {formatDate(profile.createdAt)}
-                </span>
-                {stats.lastActivity && (
-                  <span className={styles.metaItem}>
-                    Última actividad {timeAgo(stats.lastActivity)}
-                  </span>
+            <h1 className={styles.heroTitle}>{displayName}</h1>
+            <div className={styles.heroSub}>
+              @{profile.username}
+              {contactParts.length > 0 && ` · ${contactParts.join(' · ')}`}
+            </div>
+
+            {currentUser && currentUser._id !== id && (
+              <div className={styles.friendActions}>
+                {relationship === 'none' && (
+                  <button className={styles.friendBtnPrimary} onClick={() => handleFriendAction('request')} disabled={friendLoading}>
+                    Agregar amigo
+                  </button>
+                )}
+                {relationship === 'request_sent' && (
+                  <button className={styles.friendBtnMuted} onClick={() => handleFriendAction('cancel_request')} disabled={friendLoading}>
+                    Solicitud enviada · Cancelar
+                  </button>
+                )}
+                {relationship === 'request_received' && (
+                  <div className={styles.friendBtnGroup}>
+                    <button className={styles.friendBtnAccept} onClick={() => handleFriendAction('accept')} disabled={friendLoading}>
+                      ✓ Aceptar
+                    </button>
+                    <button className={styles.friendBtnMuted} onClick={() => handleFriendAction('reject')} disabled={friendLoading}>
+                      Rechazar
+                    </button>
+                  </div>
+                )}
+                {relationship === 'friends' && (
+                  <div className={styles.friendBtnGroup}>
+                    <span className={styles.friendsBadge}>✓ Amigos</span>
+                    <button className={styles.friendBtnUnfriend} onClick={() => handleFriendAction('unfriend')} disabled={friendLoading}>
+                      Desamigar
+                    </button>
+                  </div>
                 )}
               </div>
-              {currentUser && currentUser._id !== id && (
-                <div className={styles.friendActions}>
-                  {relationship === 'none' && (
-                    <button
-                      className={styles.friendBtn}
-                      onClick={() => handleFriendAction('request')}
-                      disabled={friendLoading}
-                    >
-                      ➕ Agregar amigo
-                    </button>
-                  )}
-                  {relationship === 'request_sent' && (
-                    <button
-                      className={`${styles.friendBtn} ${styles.friendBtnMuted}`}
-                      onClick={() => handleFriendAction('cancel_request')}
-                      disabled={friendLoading}
-                    >
-                      Solicitud enviada · Cancelar
-                    </button>
-                  )}
-                  {relationship === 'request_received' && (
-                    <div className={styles.friendBtnGroup}>
-                      <button
-                        className={`${styles.friendBtn} ${styles.friendBtnAccept}`}
-                        onClick={() => handleFriendAction('accept')}
-                        disabled={friendLoading}
-                      >
-                        ✓ Aceptar
-                      </button>
-                      <button
-                        className={`${styles.friendBtn} ${styles.friendBtnMuted}`}
-                        onClick={() => handleFriendAction('reject')}
-                        disabled={friendLoading}
-                      >
-                        Rechazar
-                      </button>
-                    </div>
-                  )}
-                  {relationship === 'friends' && (
-                    <div className={styles.friendBtnGroup}>
-                      <span className={styles.friendsBadge}>✓ Amigos</span>
-                      <button
-                        className={`${styles.friendBtn} ${styles.friendBtnUnfriend}`}
-                        onClick={() => handleFriendAction('unfriend')}
-                        disabled={friendLoading}
-                      >
-                        Desamigar
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Contact info */}
-          <div className={styles.section}>
-            <p className={styles.sectionTitle}>Información de contacto</p>
-            <div className={styles.infoList}>
-              <InfoRow icon="📍" label="Zona" value={profile.direccion?.texto} />
-              <InfoRow
-                icon="✈️"
-                label="Telegram"
-                value={profile.telegram ? `@${profile.telegram}` : null}
-              />
-              <InfoRow icon="📱" label="Celular" value={profile.celular} />
-              {!profile.direccion?.texto && !profile.telegram && !profile.celular && (
-                <p className={styles.noInfo}>Sin información de contacto pública</p>
-              )}
-            </div>
-          </div>
-
-          {/* Favorite games — mobile visible inside left col on large, separate on small */}
-          <div className={styles.favoritesInline}>
-            <FavoriteGames games={stats.favoriteGames} />
+            )}
           </div>
         </div>
 
-        {/* Right column */}
-        <div className={styles.rightCol}>
+        {/* Stats grid */}
+        <div className={styles.statsGrid}>
+          <StatCard value={stats.totalGamesPlayed} label="Partidas jugadas" accent />
+          <StatCard value={stats.tablesHosted.total} label="Mesas creadas" />
+          <StatCard value={stats.tablesAsPlayer.total} label="Como jugador" />
+          <StatCard value={stats.tablesHosted.active} label="Mesas activas" />
+        </div>
 
-          {/* Stats grid */}
-          <div className={styles.section}>
-            <p className={styles.sectionTitle}>Estadísticas</p>
-            <div className={styles.statsGrid}>
-              <StatCard
-                value={stats.totalGamesPlayed}
-                label="Partidas jugadas"
-                highlight
-              />
-              <StatCard
-                value={stats.tablesHosted.total}
-                label="Mesas creadas"
-              />
-              <StatCard
-                value={stats.tablesAsPlayer.total}
-                label="Mesas como jugador"
-              />
-              <StatCard
-                value={stats.tablesHosted.active}
-                label="Mesas activas (host)"
-              />
-            </div>
-          </div>
+        {/* Two-column layout */}
+        <div className={styles.layout}>
+          {/* Left: contact + favorites */}
+          <div className={styles.leftCol}>
+            {(profile.direccion?.texto || profile.telegram || profile.celular) && (
+              <div className={styles.infoCard}>
+                <div className={styles.sectionLabel}>CONTACTO</div>
+                <div className={styles.infoList}>
+                  {profile.direccion?.texto && (
+                    <div className={styles.infoRow}>
+                      <span className={styles.infoIcon}>📍</span>
+                      <div className={styles.infoText}>
+                        <span className={styles.infoLabel}>Zona</span>
+                        <span className={styles.infoValue}>{profile.direccion.texto}</span>
+                      </div>
+                    </div>
+                  )}
+                  {profile.telegram && (
+                    <div className={styles.infoRow}>
+                      <span className={styles.infoIcon}>✈️</span>
+                      <div className={styles.infoText}>
+                        <span className={styles.infoLabel}>Telegram</span>
+                        <span className={styles.infoValue}>@{profile.telegram}</span>
+                      </div>
+                    </div>
+                  )}
+                  {profile.celular && (
+                    <div className={styles.infoRow}>
+                      <span className={styles.infoIcon}>📱</span>
+                      <div className={styles.infoText}>
+                        <span className={styles.infoLabel}>Celular</span>
+                        <span className={styles.infoValue}>{profile.celular}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-          {/* Host breakdown */}
-          <div className={styles.section}>
-            <p className={styles.sectionTitle}>Mesas como anfitrión</p>
-            <div className={styles.breakdown}>
-              <div className={styles.breakdownItem}>
-                <span className={styles.breakdownDot} data-status="open" />
-                <span className={styles.breakdownLabel}>Abiertas</span>
-                <span className={styles.breakdownValue}>{stats.tablesHosted.open}</span>
-              </div>
-              <div className={styles.breakdownItem}>
-                <span className={styles.breakdownDot} data-status="full" />
-                <span className={styles.breakdownLabel}>Llenas</span>
-                <span className={styles.breakdownValue}>{stats.tablesHosted.full}</span>
-              </div>
-              <div className={styles.breakdownItem}>
-                <span className={styles.breakdownDot} data-status="cancelled" />
-                <span className={styles.breakdownLabel}>Canceladas</span>
-                <span className={styles.breakdownValue}>{stats.tablesHosted.cancelled}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Favorite games desktop */}
-          <div className={styles.favoritesDesktop}>
             <FavoriteGames games={stats.favoriteGames} />
+
+            {stats.lastActivity && (
+              <div className={styles.activityHint}>
+                Última actividad {timeAgo(stats.lastActivity)}
+              </div>
+            )}
           </div>
 
+          {/* Right: breakdown */}
+          <div className={styles.rightCol}>
+            <div className={styles.infoCard}>
+              <div className={styles.sectionLabel}>MESAS COMO ANFITRIÓN</div>
+              <div className={styles.breakdown}>
+                <div className={styles.breakdownItem}>
+                  <span className={`${styles.breakdownDot} ${styles.dotOpen}`} />
+                  <span className={styles.breakdownLabel}>Abiertas</span>
+                  <span className={styles.breakdownValue}>{stats.tablesHosted.open}</span>
+                </div>
+                <div className={styles.breakdownItem}>
+                  <span className={`${styles.breakdownDot} ${styles.dotFull}`} />
+                  <span className={styles.breakdownLabel}>Llenas</span>
+                  <span className={styles.breakdownValue}>{stats.tablesHosted.full}</span>
+                </div>
+                <div className={styles.breakdownItem}>
+                  <span className={`${styles.breakdownDot} ${styles.dotCancelled}`} />
+                  <span className={styles.breakdownLabel}>Canceladas</span>
+                  <span className={styles.breakdownValue}>{stats.tablesHosted.cancelled}</span>
+                </div>
+              </div>
+            </div>
+
+            {profile.direccion?.texto && (
+              <div className={styles.miembroCard}>
+                <div className={styles.sectionLabel}>MIEMBRO DESDE</div>
+                <div className={styles.miembroDate}>{formatDate(profile.createdAt)}</div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
