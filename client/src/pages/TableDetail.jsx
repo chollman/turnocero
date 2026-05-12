@@ -183,6 +183,10 @@ export default function TableDetail() {
   const [joinLoading, setJoinLoading] = useState(false)
   const [joinError, setJoinError] = useState('')
   const [followLoading, setFollowLoading] = useState(false)
+  const [leaveLoading, setLeaveLoading] = useState(false)
+  const [leaveError, setLeaveError] = useState('')
+  const [cancelTableLoading, setCancelTableLoading] = useState(false)
+  const [cancelTableError, setCancelTableError] = useState('')
 
   const handleFollow = async () => {
     setFollowLoading(true)
@@ -211,6 +215,45 @@ export default function TableDetail() {
       setPendingRequests(data.table.pendingRequests || [])
     } catch (err) {
       setJoinError(err.response?.data?.message || 'Error al unirse')
+    } finally {
+      setJoinLoading(false)
+    }
+  }
+
+  const handleLeave = async () => {
+    if (!window.confirm('¿Abandonar esta mesa?')) return
+    setLeaveLoading(true)
+    setLeaveError('')
+    try {
+      await axios.post(`/api/tables/${id}/leave`)
+      navigate('/')
+    } catch (err) {
+      setLeaveError(err.response?.data?.message || 'Error al abandonar la mesa')
+      setLeaveLoading(false)
+    }
+  }
+
+  const handleCancelTable = async () => {
+    if (!window.confirm('¿Cancelar esta mesa? Esta acción no se puede deshacer.')) return
+    setCancelTableLoading(true)
+    try {
+      await axios.delete(`/api/tables/${id}`)
+      navigate('/')
+    } catch (err) {
+      setCancelTableError(err.response?.data?.message || 'Error al cancelar la mesa')
+      setCancelTableLoading(false)
+    }
+  }
+
+  const handleCancelJoinRequest = async () => {
+    setJoinLoading(true)
+    setJoinError('')
+    try {
+      const { data } = await axios.delete(`/api/tables/${id}/request`)
+      setTable(data.table)
+      setPendingRequests(data.table.pendingRequests || [])
+    } catch (err) {
+      setJoinError(err.response?.data?.message || 'Error al cancelar solicitud')
     } finally {
       setJoinLoading(false)
     }
@@ -370,7 +413,11 @@ export default function TableDetail() {
   const isHost = table.host._id?.toString() === user._id.toString()
   const isViewingAsAdmin = user.isAdmin && !isParticipant(table)
   const isGuest = !isParticipant(table) && !user.isAdmin
+  const isPlayer = isParticipant(table) && !isHost
   const isFull = table.players.length >= table.maxPlayers
+  const isPendingRequest = (table.pendingRequests || []).some(
+    (r) => (r._id || r).toString() === user._id.toString()
+  )
   const statusLabel = isFull
     ? 'Completa'
     : `${table.maxPlayers - table.players.length} lugar${table.maxPlayers - table.players.length !== 1 ? 'es' : ''} libre${table.maxPlayers - table.players.length !== 1 ? 's' : ''}`
@@ -398,6 +445,78 @@ export default function TableDetail() {
                 {statusLabel}
               </span>
             </div>
+
+            {/* Actions bar */}
+            {table.status !== 'cancelled' && (isHost || isPlayer || isGuest) && (
+              <div className={styles.actionsBar}>
+                {(cancelTableError || leaveError || joinError) && (
+                  <p className={styles.actionError}>{cancelTableError || leaveError || joinError}</p>
+                )}
+                <div className={styles.actionsRow}>
+                  {isHost && (
+                    <>
+                      <button
+                        className={styles.btnActEdit}
+                        onClick={() => navigate(`/tables/${id}/edit`)}
+                        disabled={cancelTableLoading}
+                      >
+                        ✏️ Editar mesa
+                      </button>
+                      <button
+                        className={styles.btnActCancel}
+                        onClick={handleCancelTable}
+                        disabled={cancelTableLoading}
+                      >
+                        {cancelTableLoading ? '…' : '✕ Cancelar mesa'}
+                      </button>
+                    </>
+                  )}
+                  {isPlayer && (
+                    <button
+                      className={styles.btnActLeave}
+                      onClick={handleLeave}
+                      disabled={leaveLoading}
+                    >
+                      {leaveLoading ? '…' : '↩ Abandonar mesa'}
+                    </button>
+                  )}
+                  {isGuest && (
+                    <>
+                      {isPendingRequest ? (
+                        <button
+                          className={styles.btnActPending}
+                          onClick={handleCancelJoinRequest}
+                          disabled={joinLoading}
+                        >
+                          {joinLoading ? '…' : 'Solicitud enviada · Cancelar'}
+                        </button>
+                      ) : (
+                        <button
+                          className={styles.btnActJoin}
+                          onClick={handleGuestJoin}
+                          disabled={joinLoading || isFull}
+                        >
+                          {joinLoading ? '…' : isFull ? 'Mesa completa' : table.privacy === 'private' ? '📨 Solicitar unirse' : '🎲 Unirme a la mesa'}
+                        </button>
+                      )}
+                      {(() => {
+                        const isFollowing = (table.followers || []).some((f) => f.toString() === user._id.toString())
+                        return (
+                          <button
+                            className={`${styles.btnFollowDetail} ${isFollowing ? styles.btnFollowingDetail : ''}`}
+                            onClick={handleFollow}
+                            disabled={followLoading}
+                            title={isFollowing ? 'Dejar de seguir' : 'Seguir para recibir avisos cuando se libere un lugar'}
+                          >
+                            {isFollowing ? '🔔 Siguiendo' : '🔕 Seguir'}
+                          </button>
+                        )
+                      })()}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className={styles.infoGrid}>
               <div className={styles.infoItem}>
@@ -503,36 +622,11 @@ export default function TableDetail() {
               </div>
             </div>
 
-            {/* Guest join action */}
-            {isGuest && table.status !== 'cancelled' && (
-              <div className={styles.guestJoinBlock}>
-                {joinError && <p className={styles.guestJoinError}>{joinError}</p>}
-                <div className={styles.guestJoinRow}>
-                  <button
-                    className={styles.btnGuestJoin}
-                    onClick={handleGuestJoin}
-                    disabled={joinLoading || isFull}
-                  >
-                    {joinLoading ? '…' : isFull ? 'Mesa completa' : '¡Unirme a la mesa!'}
-                  </button>
-                  {(() => {
-                    const isFollowing = (table.followers || []).some((f) => f.toString() === user._id.toString())
-                    return (
-                      <button
-                        className={`${styles.btnFollowDetail} ${isFollowing ? styles.btnFollowingDetail : ''}`}
-                        onClick={handleFollow}
-                        disabled={followLoading}
-                        title={isFollowing ? 'Dejar de seguir' : 'Seguir mesa para recibir avisos cuando se libere un lugar'}
-                      >
-                        {isFollowing ? '🔔 Siguiendo' : '🔕 Seguir'}
-                      </button>
-                    )
-                  })()}
-                </div>
-                <p className={styles.chatPrivateNote}>
-                  El chat es privado y solo está disponible para los miembros.
-                </p>
-              </div>
+            {/* Note for guests about private chat */}
+            {isGuest && (
+              <p className={styles.chatPrivateNote}>
+                El chat es privado y solo está disponible para los miembros.
+              </p>
             )}
 
             {/* Pending requests – host only, private tables */}
