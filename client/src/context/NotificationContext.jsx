@@ -19,7 +19,7 @@ const findExisting = (prev, type, tableId) =>
   prev.find((n) => (n.type ?? 'chat') === type && n.tableId === tableId);
 
 export function NotificationProvider({ children }) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [notifications, setNotifications] = useState(loadFromStorage);
   const [toasts, setToasts] = useState([]);
   const [adminChatUnread, setAdminChatUnread] = useState(0);
@@ -179,6 +179,7 @@ export function NotificationProvider({ children }) {
         const next = [...prev, { id: makeToastId(), type: 'friend_accepted', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername }];
         return next.length > 4 ? next.slice(-4) : next;
       });
+      refreshUser().catch(() => {});
     });
 
     socket.on('dm:message', (msg) => {

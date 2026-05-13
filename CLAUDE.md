@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Turnocero** is a full-stack web app for the Argentine board-game community. Core feature: organize *mesas* (game sessions) — create, join, chat, and manage them. Additional features: *Compartidas* (social posts about sessions), *Noticias* (admin news/announcements), a friends system, and public browsing without login. The UI and all user-facing content are in **Argentine Spanish**.
+**Turnocero** is a full-stack web app for the Argentine board-game community. Core feature: organize *mesas* (game sessions) — create, join, chat, and manage them. Additional features: *Compartidas* (social posts about sessions), *Noticias* (admin news/announcements), a friends system, direct messages between friends, and public browsing without login. The UI and all user-facing content are in **Argentine Spanish**. The app is deployed as a **PWA** (vite-plugin-pwa; assets in `client/public/`).
 
 ## Development Commands
 
@@ -23,7 +23,7 @@ No test commands are configured. ESLint runs as a pre-commit hook via the `/reac
 
 ## Frontend routing
 
-All client-side routes **must use Spanish slugs**. Examples: `/mesas`, `/mesas/crear`, `/mesas/:id/editar`, `/compartidas`, `/noticias`, `/perfil`, `/usuarios`, `/notificaciones`, `/mi`, `/base-de-datos`. The only exceptions are `/login` and `/register`.
+All client-side routes **must use Spanish slugs**. Examples: `/mesas`, `/mesas/crear`, `/mesas/:id/editar`, `/compartidas`, `/noticias`, `/perfil`, `/usuarios`, `/notificaciones`, `/mi`, `/mensajes`, `/base-de-datos`. The only exceptions are `/login` and `/register`.
 
 ## Git conventions
 
@@ -70,10 +70,23 @@ Social posts that users create to share moments from their sessions. Stored in t
 Admin-only announcements. `Noticia` model: title, body, image (Cloudinary, `turnocero/noticias/`), optional link + linkLabel. Read publicly; write requires `isAdmin`.
 
 ### Friends system
-Stored on the `User` model: `friends: [ObjectId]` and `friendRequests: [{ from, sentAt }]`. Managed via `/api/friends/:id/request|accept|reject` and `DELETE /api/friends/:id`. The friends list gates `'friends'`-privacy Compartidas.
+Stored on the `User` model: `friends: [ObjectId]` and `friendRequests: [{ from, sentAt }]`. Managed via `/api/friends/:id/request|accept|reject` and `DELETE /api/friends/:id`. The friends list gates `'friends'`-privacy Compartidas and DM access.
+
+### Direct Messages (DM)
+Friends-only real-time chat. `DirectMessage` model: `from`, `to`, `content` (max 1000 chars), `readByRecipient`.
+
+- `GET /api/dm` returns a conversation list (latest message + unread count per contact, via aggregation)
+- `GET /api/dm/:userId` returns paginated history (40/page, max 100); 403 if not friends
+- `POST /api/dm/:userId` sends a message; emits `dm:message` to recipient's socket with an `isNewConversation` flag
+- `PATCH /api/dm/:userId/read` marks all messages from that user as read
+
+**ChatContext** manages the desktop DM experience (up to 3 floating chat windows). It registers a listener with `NotificationContext.addDmListener` to receive incoming messages, increments per-conversation unread counts, and exposes `openChat`, `closeChat`, `minimizeChat`, `sendMessage`, and `dmUnreadTotal`. On mobile (< 960 px), clicking a conversation navigates to `/mensajes/:userId` (the `DirectChat` page) instead of opening a floating window.
+
+### Admin Chat
+Shared real-time chat room visible only to admins. `AdminMessage` model: `from`, `content` (max 2000 chars). On socket connect, admins auto-join `admin:room`. The `admin:message` event is broadcast to that room. `NotificationContext` tracks an `adminChatUnread` counter (via `setAdminChatActive`). Routes: `GET /api/admin-chat` (last 100 messages), `POST /api/admin-chat`.
 
 ### Socket.IO rooms and events
-Each authenticated socket auto-joins `user:<userId>`. When entering a table detail page, the client emits `join:table <tableId>` to join `table:<tableId>`.
+Each authenticated socket auto-joins `user:<userId>`. Admins also auto-join `admin:room`. When entering a table detail page, the client emits `join:table <tableId>` to join `table:<tableId>`.
 
 Server-emitted events:
 | Event | Room | Trigger |
@@ -87,9 +100,11 @@ Server-emitted events:
 | `table:spot-opened` | `user:<id>` | player leaves → followers notified |
 | `friend:request` | `user:<targetId>` | friend request sent |
 | `friend:accepted` | `user:<fromId>` | friend request accepted |
+| `dm:message` | `user:<recipientId>` | direct message sent (includes `isNewConversation`) |
+| `admin:message` | `admin:room` | admin chat message sent |
 
 ### NotificationContext
-Owns the Socket.IO connection for the authenticated user. On mount, loads persisted notifications from `GET /api/notifications` (MongoDB, last 60) and mirrors any updates back via `PATCH /api/notifications/read` and `DELETE /api/notifications`. Also drives in-app toasts (max 4 visible). `setActiveTable(tableId)` suppresses notifications for the currently open table and auto-marks them read. `unreadCount` drives the nav badge.
+Owns the Socket.IO connection for the authenticated user. On mount, loads persisted notifications from `GET /api/notifications` (MongoDB, last 60) and mirrors any updates back via `PATCH /api/notifications/read` and `DELETE /api/notifications`. Also drives in-app toasts (max 4 visible). `setActiveTable(tableId)` suppresses notifications for the currently open table and auto-marks them read. `unreadCount` drives the nav badge. DM messages are routed through `addDmListener` (consumed by `ChatContext`) rather than stored as persistent notifications.
 
 ### Key API endpoints
 ```
@@ -150,6 +165,14 @@ GET    /api/notifications                       — own, newest first, limit 60
 PATCH  /api/notifications/read                  — mark read by tableId or fromUserId or all
 DELETE /api/notifications                       — clear all
 
+GET    /api/dm                                  — conversation list (latest msg + unread per contact)
+GET    /api/dm/:userId                          — paginated message history; friends only
+POST   /api/dm/:userId                          — send message; friends only
+PATCH  /api/dm/:userId/read                     — mark messages from that user as read
+
+GET    /api/admin-chat                          — last 100 messages; admin only
+POST   /api/admin-chat                          — send message; admin only
+
 GET    /api/users
 GET    /api/users/:id
 
@@ -158,7 +181,7 @@ GET    /api/admin/*                             — isAdmin only
 
 ### Frontend pages
 ```
-App (AuthProvider + NotificationProvider + Router)
+App (AuthProvider + NotificationProvider + ChatProvider + Router)
 ├── components/layout/          ← shell (GuestNavbar, Sidebar, Navbar, BottomNav,
 │                                  BoardGameBackground, SplashScreen, ToastContainer)
 ├── components/shared/          ← GameTile, LoginPromptModal
@@ -166,14 +189,16 @@ App (AuthProvider + NotificationProvider + Router)
 ├── pages/auth/                 ← Login, Register + PasswordInput, AuthLogo
 │
 ├── pages/dashboard/            ← Dashboard / + TableCard
-├── pages/tables/               ← TableDetail /tables/:id, CreateTable /create, EditTable /tables/:id/edit
+├── pages/tables/               ← TableDetail /mesas/:id, CreateTable /mesas/crear, EditTable /mesas/:id/editar
 ├── pages/compartidas/          ← Compartidas /compartidas, CompartidaPost /compartidas/:id
 │                                  + CompartidaCard, CompartidaSkeleton, CompartidasSidebar, CreateCompartidaForm
 ├── pages/noticias/             ← Noticias /noticias, NoticiaDetail /noticias/:id
-├── pages/me/                   ← MeFeed /me + FeedCard
-├── pages/users/                ← UsersList /users, UserProfile /perfil, UserProfilePublic /users/:id
-├── pages/notifications/        ← Notifications /notifications
-└── pages/admin/                ← DatabaseViewer /database (isAdmin only)
+├── pages/me/                   ← MeFeed /mi + FeedCard  (own tables feed)
+├── pages/users/                ← UsersList /usuarios, UserProfile /perfil, UserProfilePublic /usuarios/:id
+├── pages/messages/             ← Messages /mensajes, DirectChat /mensajes/:userId, AdminChat /mensajes-admin
+├── pages/notifications/        ← Notifications /notificaciones
+├── pages/bgg/                  ← BggProfile /perfil-bgg/:bggUsername  (BGG user lookup — see limitations)
+└── pages/admin/                ← DatabaseViewer /base-de-datos (isAdmin only)
 ```
 
 ### Styling
@@ -200,6 +225,6 @@ VITE_API_URL=http://localhost:4000
 
 ## Known limitations / decisions
 
-- **No BGG integration**: A BoardGameGeek API integration was built and fully reverted (PRs #13–#21, reverted in #22) due to unresolvable CORS issues with the BGG API. Do not reintegrate without a concrete CORS solution.
+- **No BGG integration**: A BoardGameGeek API integration was built and fully reverted (PRs #13–#21, reverted in #22) due to unresolvable CORS issues with the BGG API. The `BggProfile` page and `/api/bgg` route exist as stubs. Do not reintegrate without a concrete CORS solution.
 - Chat history is capped at the last 200 messages per table (server-side).
 - The `Rating` model and routes exist but the UI for ratings is not yet fully implemented.

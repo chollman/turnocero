@@ -58,6 +58,12 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    const { data } = await axios.get('/api/auth/me');
+    setUser(data);
+    return data;
+  };
+
   const updateProfile = async (data) => {
     const { data: updated } = await axios.put('/api/auth/profile', data);
     setUser(updated);
@@ -65,7 +71,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

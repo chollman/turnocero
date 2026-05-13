@@ -62,7 +62,7 @@ function FavoriteGames({ games }) {
 export default function UserProfilePublic() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, refreshUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -93,12 +93,14 @@ export default function UserProfilePublic() {
       } else if (action === 'accept') {
         await axios.post(`/api/friends/${id}/accept`);
         setRelationship('friends');
+        refreshUser().catch(() => {});
       } else if (action === 'reject') {
         await axios.post(`/api/friends/${id}/reject`);
         setRelationship('none');
       } else if (action === 'unfriend') {
         await axios.delete(`/api/friends/${id}`);
         setRelationship('none');
+        refreshUser().catch(() => {});
       }
     } catch {
       // silently ignore
