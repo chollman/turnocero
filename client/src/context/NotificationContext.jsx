@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext(null);
 const STORAGE_KEY = 'turnocero_notifications';
+const makeToastId = () => `${Date.now()}-${Math.random()}`;
 
 function loadFromStorage() {
   try {
@@ -17,13 +18,12 @@ function loadFromStorage() {
 const findExisting = (prev, type, tableId) =>
   prev.find((n) => (n.type ?? 'chat') === type && n.tableId === tableId);
 
-const makeToastId = () => `${Date.now()}-${Math.random()}`;
-
 export function NotificationProvider({ children }) {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState(loadFromStorage);
   const [toasts, setToasts] = useState([]);
   const activeTableRef = useRef(null);
+  const dmListenersRef = useRef(new Set());
 
   // Load from server when user is available (overrides localStorage cache)
   useEffect(() => {
@@ -179,6 +179,10 @@ export function NotificationProvider({ children }) {
       });
     });
 
+    socket.on('dm:message', (msg) => {
+      dmListenersRef.current.forEach((fn) => fn(msg));
+    });
+
     return () => socket.disconnect();
   }, [user]);
 
@@ -210,6 +214,18 @@ export function NotificationProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const addToast = useCallback((toast) => {
+    setToasts((prev) => {
+      const next = [...prev, { id: makeToastId(), ...toast }];
+      return next.length > 4 ? next.slice(-4) : next;
+    });
+  }, []);
+
+  const addDmListener = useCallback((fn) => {
+    dmListenersRef.current.add(fn);
+    return () => dmListenersRef.current.delete(fn);
+  }, []);
+
   const totalUnread = notifications.filter((n) => !n.read).reduce((sum, n) => sum + (n.count || 1), 0);
 
   return (
@@ -222,6 +238,8 @@ export function NotificationProvider({ children }) {
       setActiveTable,
       toasts,
       dismissToast,
+      addToast,
+      addDmListener,
     }}>
       {children}
     </NotificationContext.Provider>

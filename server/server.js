@@ -14,6 +14,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
+const User = require('./models/User');
 const logger = require('./utils/logger');
 
 if (!process.env.JWT_SECRET) {
@@ -71,8 +72,14 @@ io.use((socket, next) => {
   }
 });
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
   socket.join(`user:${socket.userId}`);
+
+  // Admins auto-join the shared admin chat room
+  try {
+    const user = await User.findById(socket.userId).select('isAdmin');
+    if (user?.isAdmin) socket.join('admin:room');
+  } catch { /* non-fatal */ }
 
   socket.on('join:table', (tableId) => {
     socket.join(`table:${tableId}`);
@@ -97,6 +104,8 @@ app.use('/api/compartidas', require('./routes/compartidas'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/noticias', require('./routes/noticias'));
 app.use('/api/bgg', require('./routes/bgg'));
+app.use('/api/dm', require('./routes/dm'));
+app.use('/api/admin-chat', require('./routes/adminChat'));
 
 // Health check
 app.get('/api/health', (req, res) => {

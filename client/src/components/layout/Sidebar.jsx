@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useNotifications } from '../../context/NotificationContext'
+import { useChat } from '../../context/ChatContext'
 import styles from './Sidebar.module.css'
 
 const ICONS = {
@@ -71,16 +72,29 @@ const ICONS = {
       <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
     </svg>
   ),
+  mensajes: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  ),
+  adminChat: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  ),
 }
 
 const NAV = [
   { id: 'dash',        label: 'Mesas',          to: '/mesas' },
   { id: 'feed',        label: 'Mi feed',        to: '/mi' },
   { id: 'notif',       label: 'Notificaciones',  to: '/notificaciones' },
+  { id: 'mensajes',    label: 'Mensajes',        to: '/mensajes' },
   { id: 'compartidas', label: 'Compartite',      to: '/compartidas' },
   { id: 'users',       label: 'Comunidad',       to: '/usuarios' },
   { id: 'noticias',    label: 'Noticias',        to: '/noticias' },
   { id: 'db',          label: 'Base de datos',   to: '/base-de-datos', adminOnly: true },
+  { id: 'adminChat',   label: 'Chat Admin',      to: '/mensajes-admin', adminOnly: true },
 ]
 
 function getActiveId(pathname) {
@@ -90,6 +104,8 @@ function getActiveId(pathname) {
   if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas'
   if (pathname === '/mesas/crear') return 'create'
   if (pathname === '/notificaciones') return 'notif'
+  if (pathname.startsWith('/mensajes-admin')) return 'adminChat'
+  if (pathname.startsWith('/mensajes')) return 'mensajes'
   if (pathname.startsWith('/usuarios')) return 'users'
   if (pathname.startsWith('/perfil')) return 'profile'
   if (pathname.startsWith('/base-de-datos')) return 'db'
@@ -99,6 +115,7 @@ function getActiveId(pathname) {
 export default function Sidebar() {
   const { user, logout } = useAuth()
   const { unreadCount } = useNotifications()
+  const { dmUnreadTotal } = useChat()
   const location = useLocation()
   const navigate = useNavigate()
   const active = getActiveId(location.pathname)
@@ -122,9 +139,9 @@ export default function Sidebar() {
       <nav className={styles.nav}>
         {NAV.filter(item => !item.adminOnly || user?.isAdmin).map((item) => {
           const isActive = item.id === active
-          const badge = item.id === 'notif' && unreadCount > 0
-            ? (unreadCount > 9 ? '9+' : unreadCount)
-            : null
+          let badge = null
+          if (item.id === 'notif' && unreadCount > 0) badge = unreadCount > 9 ? '9+' : unreadCount
+          if (item.id === 'mensajes' && dmUnreadTotal > 0) badge = dmUnreadTotal > 9 ? '9+' : dmUnreadTotal
           return (
             <Link
               key={item.id}

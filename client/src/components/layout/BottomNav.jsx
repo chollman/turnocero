@@ -60,6 +60,12 @@ const DBIcon = () => (
   </svg>
 )
 
+const MensajesIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+)
+
 const ChevronLeft = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="m15 18-6-6 6-6"/>
@@ -73,13 +79,14 @@ const ChevronRight = () => (
 )
 
 const NAV = [
-  { id: 'feed',        label: 'Feed',       Icon: FeedIcon,       to: '/mi' },
-  { id: 'dash',        label: 'Mesas',      Icon: MesasIcon,      to: '/mesas' },
-  { id: 'noticias',    label: 'Noticias',   Icon: NoticiasIcon,   to: '/noticias' },
+  { id: 'feed',        label: 'Feed',       Icon: FeedIcon,        to: '/mi' },
+  { id: 'dash',        label: 'Mesas',      Icon: MesasIcon,       to: '/mesas' },
+  { id: 'mensajes',    label: 'Mensajes',   Icon: MensajesIcon,    to: '/mensajes' },
+  { id: 'noticias',    label: 'Noticias',   Icon: NoticiasIcon,    to: '/noticias' },
   { id: 'compartidas', label: 'Compartite', Icon: CompartidasIcon, to: '/compartidas' },
-  { id: 'users',       label: 'Comunidad',  Icon: ComunidadIcon,  to: '/usuarios' },
-  { id: 'profile',     label: 'Perfil',     Icon: PerfilIcon,     to: '/perfil' },
-  { id: 'db',          label: 'DB',         Icon: DBIcon,         to: '/base-de-datos', adminOnly: true },
+  { id: 'users',       label: 'Comunidad',  Icon: ComunidadIcon,   to: '/usuarios' },
+  { id: 'profile',     label: 'Perfil',     Icon: PerfilIcon,      to: '/perfil' },
+  { id: 'db',          label: 'DB',         Icon: DBIcon,          to: '/base-de-datos', adminOnly: true },
 ]
 
 const VISIBLE = 3
@@ -87,6 +94,7 @@ const VISIBLE = 3
 function getActiveId(pathname) {
   if (pathname === '/mi') return 'feed'
   if (pathname.startsWith('/mesas')) return 'dash'
+  if (pathname.startsWith('/mensajes')) return 'mensajes'
   if (pathname.startsWith('/noticias')) return 'noticias'
   if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas'
   if (pathname.startsWith('/usuarios')) return 'users'

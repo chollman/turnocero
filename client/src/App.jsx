@@ -2,7 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { ChatProvider } from './context/ChatContext';
 import ToastContainer from './components/layout/ToastContainer';
+import ChatWindowManager from './components/chat/ChatWindowManager';
+import ChatLauncher from './components/chat/ChatLauncher';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './pages/dashboard/Dashboard';
@@ -20,6 +23,9 @@ import NoticiaDetail from './pages/noticias/NoticiaDetail';
 import Compartidas from './pages/compartidas/Compartidas';
 import CompartidaPost from './pages/compartidas/CompartidaPost';
 import BggProfile from './pages/bgg/BggProfile';
+import Messages from './pages/messages/Messages';
+import DirectChat from './pages/messages/DirectChat';
+import AdminChat from './pages/messages/AdminChat';
 import Navbar from './components/layout/Navbar';
 import GuestNavbar from './components/layout/GuestNavbar';
 import Sidebar from './components/layout/Sidebar';
@@ -76,6 +82,9 @@ function AppRoutes() {
           <Route path="/compartidas" element={<Compartidas />} />
           <Route path="/compartidas/:id" element={<CompartidaPost />} />
           <Route path="/perfil-bgg/:bggUsername" element={<BggProfile />} />
+          <Route path="/mensajes" element={<PrivateRoute><Messages /></PrivateRoute>} />
+          <Route path="/mensajes/:userId" element={<PrivateRoute><DirectChat /></PrivateRoute>} />
+          <Route path="/mensajes-admin" element={<PrivateRoute><AdminChat /></PrivateRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         {user && <BottomNav />}
@@ -95,6 +104,8 @@ function AppShell() {
         <AppRoutes />
       </div>
       <ToastContainer />
+      <ChatWindowManager />
+      <ChatLauncher />
     </>
   );
 }
@@ -104,7 +115,9 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <NotificationProvider>
-          <AppShell />
+          <ChatProvider>
+            <AppShell />
+          </ChatProvider>
         </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>

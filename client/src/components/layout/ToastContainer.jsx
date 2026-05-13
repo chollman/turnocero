@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
+import { useChat } from '../../context/ChatContext';
 import styles from './ToastContainer.module.css';
+
+const DESKTOP = 960;
 
 const DURATION = {
   chat: 4000,
@@ -12,10 +15,13 @@ const DURATION = {
   image: 4000,
   friend_request: 6000,
   friend_accepted: 5500,
+  dm: 4000,
+  dm_new: 7000,
 };
 
 function ToastItem({ toast, onDismiss }) {
   const navigate = useNavigate();
+  const { openChat, conversations } = useChat();
   const duration = DURATION[toast.type] ?? 4000;
 
   useEffect(() => {
@@ -26,6 +32,14 @@ function ToastItem({ toast, onDismiss }) {
   const handleClick = () => {
     if (toast.type === 'friend_request' || toast.type === 'friend_accepted') {
       navigate(`/usuarios/${toast.fromUserId}`);
+    } else if (toast.type === 'dm' || toast.type === 'dm_new') {
+      if (window.innerWidth >= DESKTOP) {
+        const conv = conversations[toast.fromUserId];
+        const contactUser = conv?.user || { _id: toast.fromUserId, username: toast.fromUsername };
+        openChat(contactUser);
+      } else {
+        navigate(`/mensajes/${toast.fromUserId}`);
+      }
     } else {
       navigate(`/mesas/${toast.tableId}`);
     }
@@ -44,13 +58,17 @@ function ToastItem({ toast, onDismiss }) {
     toast.type === 'comment'         ? '🗨️' :
     toast.type === 'image'           ? '📸' :
     toast.type === 'friend_request'  ? '🤝' :
-    toast.type === 'friend_accepted' ? '✅' : '🎲';
+    toast.type === 'friend_accepted' ? '✅' :
+    toast.type === 'dm_new'          ? '💬' :
+    toast.type === 'dm'              ? '💬' : '🎲';
 
   const title =
     toast.type === 'join_accepted'   ? '¡Fuiste aceptado!' :
     toast.type === 'spot_opened'     ? '¡Se liberó un lugar!' :
     toast.type === 'friend_request'  ? `${toast.fromUsername}` :
-    toast.type === 'friend_accepted' ? `${toast.fromUsername}` : toast.tableName;
+    toast.type === 'friend_accepted' ? `${toast.fromUsername}` :
+    toast.type === 'dm_new'          ? `${toast.fromUsername}` :
+    toast.type === 'dm'              ? `${toast.fromUsername}` : toast.tableName;
 
   const body =
     toast.type === 'chat'
@@ -67,7 +85,11 @@ function ToastItem({ toast, onDismiss }) {
                 ? 'Te envió una solicitud de amistad · Aceptar o rechazar'
                 : toast.type === 'friend_accepted'
                   ? 'Aceptó tu solicitud de amistad'
-                  : `Ya sos parte de la mesa de ${toast.tableName}`;
+                  : toast.type === 'dm_new'
+                  ? 'Te escribió por primera vez · Tocá para responder'
+                  : toast.type === 'dm'
+                    ? `${toast.messagePreview}${toast.messagePreview?.length >= 60 ? '…' : ''}`
+                    : `Ya sos parte de la mesa de ${toast.tableName}`;
 
   return (
     <div className={styles.toast} onClick={handleClick} role="alert">
