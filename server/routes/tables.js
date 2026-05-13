@@ -43,7 +43,7 @@ router.get('/', optionalAuth, async (req, res) => {
     const privacyFilter = req.user ? {} : { privacy: { $ne: 'private' } };
     const filter = { status: { $ne: 'cancelled' }, ...privacyFilter, ...searchClause };
     const [tables, total] = await Promise.all([
-      populateTable(Table.find(filter)).sort({ date: 1 }).skip(skip).limit(limit),
+      populateTable(Table.find(filter)).sort({ date: -1 }).skip(skip).limit(limit),
       Table.countDocuments(filter),
     ]);
     res.json({ tables, total, page, pages: Math.ceil(total / limit) });
@@ -60,7 +60,7 @@ router.get('/mine', protect, async (req, res) => {
     const baseFilter = { $or: [{ host: req.user._id }, { players: req.user._id }], status: { $ne: 'cancelled' } };
     const filter = searchClause ? { $and: [baseFilter, searchClause] } : baseFilter;
     const [tables, total] = await Promise.all([
-      populateTable(Table.find(filter)).sort({ date: 1 }).skip(skip).limit(limit),
+      populateTable(Table.find(filter)).sort({ date: -1 }).skip(skip).limit(limit),
       Table.countDocuments(filter),
     ]);
     res.json({ tables, total, page, pages: Math.ceil(total / limit) });

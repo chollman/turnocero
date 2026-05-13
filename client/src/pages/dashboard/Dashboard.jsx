@@ -54,13 +54,17 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [page]);
+
+  useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
       setError('');
       try {
         const url = activeTab === 'mine' ? '/api/tables/mine' : '/api/tables';
-        const params = { page, limit: 20 };
+        const params = { page, limit: 12 };
         if (debouncedSearch) params.search = debouncedSearch;
         const { data } = await axios.get(url, { params });
         if (!cancelled) {
