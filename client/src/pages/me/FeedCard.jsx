@@ -30,7 +30,7 @@ export default function FeedCard({ table, userId, isPast }) {
   return (
     <div className={`${styles.card} ${isPast ? styles.cardPast : ''}`}>
       <div className={styles.tile}>
-        <GameTile game={table.boardGame} seed={seed} size={64} />
+        <GameTile game={table.boardGame} seed={seed} size={64} imageUrl={table.bggImage || null} />
       </div>
       <div className={styles.body}>
         <div className={styles.topRow}>
