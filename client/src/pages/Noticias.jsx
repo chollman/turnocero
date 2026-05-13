@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import axios from 'axios'
+import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../context/AuthContext'
 import styles from './Noticias.module.css'
 
@@ -345,8 +346,24 @@ export default function Noticias() {
   const handleUpdated = (updated) =>
     setNoticias((prev) => prev.map((n) => (n._id === updated._id ? updated : n)))
 
+  const pageUrl    = typeof window !== 'undefined' ? `${window.location.origin}/noticias` : '/noticias'
+  const ogImage    = noticias.find((n) => n.image?.url)?.image?.url
+
   return (
     <div className={styles.page}>
+      <Helmet>
+        <title>Noticias – Turnocero 🎲</title>
+        <meta name="description" content="Novedades y eventos de la comunidad Turnocero." />
+        <meta property="og:title"       content="Noticias – Turnocero 🎲" />
+        <meta property="og:description" content="Novedades y eventos de la comunidad Turnocero." />
+        <meta property="og:url"         content={pageUrl} />
+        <meta property="og:type"        content="website" />
+        {ogImage && <meta property="og:image" content={ogImage} />}
+        <meta name="twitter:card"        content="summary_large_image" />
+        <meta name="twitter:title"       content="Noticias – Turnocero 🎲" />
+        <meta name="twitter:description" content="Novedades y eventos de la comunidad Turnocero." />
+        {ogImage && <meta name="twitter:image" content={ogImage} />}
+      </Helmet>
       <div className={styles.inner}>
         <div className={styles.header}>
           <div>
