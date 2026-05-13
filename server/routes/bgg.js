@@ -6,10 +6,10 @@ const BGG_API = 'https://boardgamegeek.com/xmlapi2';
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 const cache = new Map();
 
-function getCached(key) {
+function getCached(key, ttl = CACHE_TTL) {
   const entry = cache.get(key);
   if (!entry) return null;
-  if (Date.now() - entry.ts > CACHE_TTL) { cache.delete(key); return null; }
+  if (Date.now() - entry.ts > ttl) { cache.delete(key); return null; }
   return entry.data;
 }
 
@@ -39,6 +39,101 @@ async function fetchBgg(url) {
 }
 
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
+
+const GAME_CACHE_TTL = 30 * 60 * 1000; // 30 minutos
+
+// GET /api/bgg/search?q=<query>
+router.get('/search', async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (q.length < 3) return res.json([]);
+
+  const cacheKey = `search:${q.toLowerCase()}`;
+  const cached = getCached(cacheKey);
+  if (cached) return res.json(cached);
+
+  try {
+    const xml = await fetchBgg(`${BGG_API}/search?query=${encodeURIComponent(q)}&type=boardgame`);
+    const parsed = parser.parse(xml);
+
+    const root = parsed?.items;
+    if (!root) return res.json([]);
+
+    const rawItems = root.item || [];
+    const items = Array.isArray(rawItems) ? rawItems : [rawItems];
+
+    const results = items
+      .slice(0, 15)
+      .map((item) => {
+        const nameRaw = item.name;
+        const nameArr = Array.isArray(nameRaw) ? nameRaw : [nameRaw];
+        const primary = nameArr.find((n) => n['@_type'] === 'primary') || nameArr[0];
+        const name = primary?.['@_value'] || '';
+        const year = item.yearpublished?.['@_value'] ? Number(item.yearpublished['@_value']) : null;
+        return { id: Number(item['@_id']), name, year, thumbnail: null };
+      })
+      .filter((g) => g.name);
+
+    // Batch-fetch thumbnails in a single request
+    if (results.length > 0) {
+      try {
+        const ids = results.map((g) => g.id).join(',');
+        const thingXml = await fetchBgg(`${BGG_API}/thing?id=${ids}&type=boardgame`);
+        const thingParsed = parser.parse(thingXml);
+        const thingItems = thingParsed?.items?.item;
+        if (thingItems) {
+          const arr = Array.isArray(thingItems) ? thingItems : [thingItems];
+          const thumbMap = Object.fromEntries(arr.map((i) => [Number(i['@_id']), i.thumbnail || null]));
+          results.forEach((g) => { g.thumbnail = thumbMap[g.id] || null; });
+        }
+      } catch {
+        // thumbnails son opcionales, no bloqueamos el resultado
+      }
+    }
+
+    setCached(cacheKey, results);
+    res.json(results);
+  } catch (err) {
+    res.status(502).json({ message: 'No se pudo conectar con BGG' });
+  }
+});
+
+// GET /api/bgg/game/:id
+router.get('/game/:id', async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (!id || id <= 0) return res.status(400).json({ message: 'Invalid game ID' });
+
+  const cacheKey = `game:${id}`;
+  const cached = getCached(cacheKey, GAME_CACHE_TTL);
+  if (cached) return res.json(cached);
+
+  try {
+    const xml = await fetchBgg(`${BGG_API}/thing?id=${id}&type=boardgame`);
+    const parsed = parser.parse(xml);
+
+    const item = parsed?.items?.item;
+    if (!item) return res.status(404).json({ message: 'Juego no encontrado' });
+
+    const nameRaw = item.name;
+    const nameArr = Array.isArray(nameRaw) ? nameRaw : [nameRaw];
+    const primary = nameArr.find((n) => n['@_type'] === 'primary') || nameArr[0];
+    const name = primary?.['@_value'] || '';
+
+    const game = {
+      id: Number(item['@_id']),
+      name,
+      thumbnail: item.thumbnail || null,
+      year: item.yearpublished?.['@_value'] ? Number(item.yearpublished['@_value']) : null,
+      minPlayers: item.minplayers?.['@_value'] ? Number(item.minplayers['@_value']) : null,
+      maxPlayers: item.maxplayers?.['@_value'] ? Number(item.maxplayers['@_value']) : null,
+    };
+
+    setCached(cacheKey, game, GAME_CACHE_TTL);
+    res.json(game);
+  } catch (err) {
+    if (err.status === 404) return res.status(404).json({ message: 'Juego no encontrado' });
+    res.status(502).json({ message: 'No se pudo conectar con BGG' });
+  }
+});
 
 // GET /api/bgg/coleccion/:bggUsername
 router.get('/coleccion/:bggUsername', async (req, res) => {

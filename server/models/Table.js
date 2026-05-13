@@ -8,6 +8,9 @@ const tableSchema = new mongoose.Schema(
       trim: true,
       maxlength: [100, 'Game name cannot exceed 100 characters'],
     },
+    bggId: { type: Number, default: null },
+    bggThumbnail: { type: String, default: null },
+    bggYear: { type: Number, default: null },
     date: {
       type: Date,
       required: [true, 'Date is required'],

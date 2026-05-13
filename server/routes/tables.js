@@ -153,7 +153,7 @@ router.post('/', protect, [
   body('privacy').optional().isIn(['public', 'private']).withMessage('Invalid privacy value'),
 ], validate, async (req, res) => {
   try {
-    const { boardGame, date, maxPlayers, location, description, privacy } = req.body;
+    const { boardGame, date, maxPlayers, location, description, privacy, bggId, bggThumbnail, bggYear } = req.body;
 
     if (!boardGame || !date || !maxPlayers) {
       return res.status(400).json({ message: 'Game, date and max players are required' });
@@ -168,6 +168,9 @@ router.post('/', protect, [
       privacy: privacy || 'public',
       host: req.user._id,
       players: [],
+      bggId: bggId || null,
+      bggThumbnail: bggThumbnail || null,
+      bggYear: bggYear || null,
     });
 
     await table.populate('host', 'username');

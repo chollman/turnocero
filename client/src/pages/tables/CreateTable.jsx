@@ -1,13 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './CreateTable.module.css';
-
-const POPULAR_GAMES = [
-  'Catan', 'Carcassonne', 'Ticket to Ride', 'Pandemic', 'Terraforming Mars',
-  '7 Wonders', 'Dominion', 'Agricola', 'Power Grid', 'Twilight Imperium',
-  'Gloomhaven', 'Root', 'Spirit Island', 'Wingspan', 'Blood Rage',
-];
 
 const defaultDate = () => {
   const d = new Date();
@@ -18,31 +12,122 @@ const defaultDate = () => {
 
 export default function CreateTable() {
   const [form, setForm] = useState({
-    boardGame: '',
     date: defaultDate(),
     maxPlayers: 3,
     location: '',
     description: '',
     privacy: 'public',
   });
+  const [boardGameInput, setBoardGameInput] = useState('');
+  const [boardGameSelected, setBoardGameSelected] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [noResults, setNoResults] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const searchRef = useRef(null);
+  const abortRef = useRef(null);
+  const searchCache = useRef(new Map());
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (boardGameInput.length < 3 || boardGameSelected) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      setSearching(false);
+      setNoResults(false);
+      return;
+    }
+
+    const q = boardGameInput.toLowerCase();
+
+    const cached = searchCache.current.get(q);
+    if (cached) {
+      setSuggestions(cached);
+      setShowDropdown(cached.length > 0);
+      setNoResults(cached.length === 0);
+      return;
+    }
+
+    setSearching(true);
+    setNoResults(false);
+    setShowDropdown(false);
+
+    const timer = setTimeout(async () => {
+      if (abortRef.current) abortRef.current.abort();
+      abortRef.current = new AbortController();
+      try {
+        const res = await axios.get(`/api/bgg/search?q=${encodeURIComponent(boardGameInput)}`, {
+          signal: abortRef.current.signal,
+        });
+        searchCache.current.set(q, res.data);
+        setSuggestions(res.data);
+        if (res.data.length > 0) {
+          setShowDropdown(true);
+        } else {
+          setNoResults(true);
+        }
+      } catch (err) {
+        if (!axios.isCancel(err)) setSuggestions([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [boardGameInput, boardGameSelected]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
+  const handleGameInputChange = (e) => {
+    setBoardGameInput(e.target.value);
+    if (boardGameSelected) setBoardGameSelected(null);
+  };
+
+  const handleSelectGame = async (game) => {
+    setShowDropdown(false);
+    setSearching(true);
+    try {
+      const res = await axios.get(`/api/bgg/game/${game.id}`);
+      setBoardGameSelected(res.data);
+      setBoardGameInput(res.data.name);
+    } catch {
+      setBoardGameSelected({ name: game.name, id: game.id, thumbnail: null, year: game.year });
+      setBoardGameInput(game.name);
+    } finally {
+      setSearching(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!form.boardGame.trim()) {
-      setError('Ingresá el nombre del juego');
+    if (!boardGameSelected) {
+      setError('Seleccioná un juego del catálogo de BGG');
       return;
     }
     setLoading(true);
     try {
-      await axios.post('/api/tables', { ...form, maxPlayers: Number(form.maxPlayers) });
-      navigate('/');
+      const { data } = await axios.post('/api/tables', {
+        ...form,
+        boardGame: boardGameSelected.name,
+        bggId: boardGameSelected.id,
+        bggThumbnail: boardGameSelected.thumbnail,
+        bggYear: boardGameSelected.year,
+        maxPlayers: Number(form.maxPlayers),
+      });
+      navigate(`/mesas/${data._id}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Error al crear la mesa');
     } finally {
@@ -65,27 +150,36 @@ export default function CreateTable() {
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.field}>
               <label className={styles.label}>Juego de mesa *</label>
-              <input
-                type="text"
-                name="boardGame"
-                value={form.boardGame}
-                onChange={handleChange}
-                className={styles.input}
-                placeholder="¿Qué van a jugar?"
-                required
-                maxLength={100}
-              />
-              <div className={styles.quickGames}>
-                {POPULAR_GAMES.map((game) => (
-                  <button
-                    type="button"
-                    key={game}
-                    className={`${styles.gameChip} ${form.boardGame === game ? styles.gameChipSelected : ''}`}
-                    onClick={() => setForm((f) => ({ ...f, boardGame: game }))}
-                  >
-                    {game}
-                  </button>
-                ))}
+              <div className={styles.gameSearchWrapper} ref={searchRef}>
+                <input
+                  type="text"
+                  value={boardGameInput}
+                  onChange={handleGameInputChange}
+                  onFocus={() => suggestions.length > 0 && !boardGameSelected && setShowDropdown(true)}
+                  className={`${styles.input} ${boardGameSelected ? styles.inputSelected : ''}`}
+                  placeholder="Buscá un juego en BGG…"
+                  autoComplete="off"
+                />
+                {searching && <div className={styles.searchHint}>Buscando…</div>}
+                {noResults && <div className={styles.searchHint}>Sin resultados en BGG</div>}
+                {showDropdown && (
+                  <ul className={styles.suggestions}>
+                    {suggestions.map((game) => (
+                      <li
+                        key={game.id}
+                        className={styles.suggestionItem}
+                        onMouseDown={() => handleSelectGame(game)}
+                      >
+                        {game.thumbnail
+                          ? <img src={game.thumbnail} alt="" className={styles.suggestionThumb} />
+                          : <div className={styles.suggestionThumbPlaceholder}>🎲</div>
+                        }
+                        <span className={styles.suggestionName}>{game.name}</span>
+                        {game.year && <span className={styles.suggestionYear}>{game.year}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
 

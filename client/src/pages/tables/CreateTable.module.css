@@ -146,38 +146,83 @@
   margin: 0;
 }
 
-/* ─── Quick game chips ─── */
-.quickGames {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
+/* ─── BGG game search autocomplete ─── */
+.gameSearchWrapper {
+  position: relative;
 }
 
-.gameChip {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  border-radius: 20px;
-  padding: 4px 12px;
+.inputSelected {
+  border-color: var(--green) !important;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12) !important;
+}
+
+.searchHint {
   font-size: 12px;
-  font-family: inherit;
+  color: var(--text-muted);
+  padding: 4px 2px 0;
+}
+
+.suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.suggestionItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
   cursor: pointer;
-  transition:
-    border-color 0.15s,
-    color 0.15s,
-    background 0.15s;
+  transition: background 0.1s;
 }
 
-.gameChip:hover {
-  border-color: var(--amber);
+.suggestionItem:hover {
+  background: var(--bg-elevated);
+}
+
+.suggestionThumb {
+  width: 38px;
+  height: 38px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+}
+
+.suggestionThumbPlaceholder {
+  width: 38px;
+  height: 38px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.suggestionName {
+  font-size: 14px;
   color: var(--text-primary);
+  flex: 1;
 }
 
-.gameChipSelected {
-  background: var(--amber-glow);
-  border-color: var(--amber);
-  color: var(--amber);
+.suggestionYear {
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 /* ─── Counter ─── */
@@ -389,11 +434,6 @@
     min-height: 44px;
     width: 44px;
     height: 44px;
-  }
-
-  .gameChip {
-    padding: 5px 14px;
-    font-size: 13px;
   }
 
   .actions {
