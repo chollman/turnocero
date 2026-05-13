@@ -84,12 +84,10 @@ export default function AdminChat() {
           const isOwn = (msg.from._id || msg.from).toString() === user._id.toString();
           return (
             <div key={msg._id} className={`${styles.message} ${isOwn ? styles.own : styles.other}`}>
-              {!isOwn && (
-                <div className={styles.senderInfo}>
-                  <span className={styles.senderAvatar}>{msg.from.username[0].toUpperCase()}</span>
-                  <span className={styles.senderName}>{msg.from.username}</span>
-                </div>
-              )}
+              <div className={styles.senderInfo}>
+                <span className={styles.senderAvatar}>{msg.from.username[0].toUpperCase()}</span>
+                <span className={styles.senderName}>{msg.from.username}</span>
+              </div>
               <div className={styles.msgContent}>
                 <div className={styles.bubble}>{msg.content}</div>
                 <span className={styles.time}>{formatTime(msg.createdAt)}</span>
