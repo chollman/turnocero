@@ -19,7 +19,7 @@ export default function CompartidasSidebar() {
   const [topGames, setTopGames] = useState([])
 
   useEffect(() => {
-    axios.get('/api/mesas/mine', { params: { limit: 4 } })
+    axios.get('/api/tables/mine', { params: { limit: 4 } })
       .then(({ data }) => {
         const upcoming = (data.tables || [])
           .filter((t) => t.status !== 'cancelled' && new Date(t.date) >= new Date())
@@ -29,7 +29,7 @@ export default function CompartidasSidebar() {
       })
       .catch(() => {})
 
-    axios.get('/api/mesas/top-games')
+    axios.get('/api/tables/top-games')
       .then(({ data }) => setTopGames(data))
       .catch(() => {})
   }, [])
