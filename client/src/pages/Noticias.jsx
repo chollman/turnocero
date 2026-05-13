@@ -12,9 +12,93 @@ function timeAgo(date) {
   return new Date(date).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-function NoticiaCard({ noticia, onDeleted, isAdmin }) {
-  const [confirming, setConfirming] = useState(false)
-  const [lightbox, setLightbox] = useState(false)
+function ImageDropzone({ preview, onFile }) {
+  const inputRef = useRef(null)
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    const f = e.dataTransfer.files?.[0]
+    if (f) onFile(f)
+  }
+
+  return (
+    <div
+      className={`${styles.dropzone} ${preview ? styles.dropzoneWithPreview : ''}`}
+      onDrop={handleDrop}
+      onDragOver={(e) => e.preventDefault()}
+      onClick={() => inputRef.current?.click()}
+    >
+      {preview ? (
+        <img src={preview} alt="preview" className={styles.dropzonePreview} />
+      ) : (
+        <div className={styles.dropzonePlaceholder}>
+          <span className={styles.dropzoneIcon}>🖼</span>
+          <span className={styles.dropzoneText}>Arrastrá o hacé click para subir la imagen</span>
+          <span className={styles.dropzoneSub}>JPG, PNG, WEBP · máx. 5 MB</span>
+        </div>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className={styles.fileInput}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f) }}
+      />
+    </div>
+  )
+}
+
+function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
+  const [noticia, setNoticia]     = useState(initial)
+  const [lightbox, setLightbox]   = useState(false)
+  const [editing, setEditing]     = useState(false)
+  const [confirming, setConfirm]  = useState(false)
+
+  // edit form state
+  const [editTitle, setEditTitle] = useState(noticia.title || '')
+  const [editBody, setEditBody]   = useState(noticia.body  || '')
+  const [editLink, setEditLink]   = useState(noticia.link  || '')
+  const [newFile, setNewFile]     = useState(null)
+  const [newPreview, setNewPreview] = useState(null)
+  const [saving, setSaving]       = useState(false)
+  const [editError, setEditError] = useState('')
+
+  const openEdit = () => {
+    setEditTitle(noticia.title || '')
+    setEditBody(noticia.body   || '')
+    setEditLink(noticia.link   || '')
+    setNewFile(null)
+    setNewPreview(null)
+    setEditError('')
+    setEditing(true)
+  }
+
+  const handleNewFile = (f) => {
+    setNewFile(f)
+    setNewPreview(URL.createObjectURL(f))
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    setEditError('')
+    try {
+      const fd = new FormData()
+      fd.append('title', editTitle.trim())
+      fd.append('body',  editBody.trim())
+      fd.append('link',  editLink.trim())
+      if (newFile) fd.append('image', newFile)
+      const { data } = await axios.put(`/api/noticias/${noticia._id}`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setNoticia(data)
+      onUpdated?.(data)
+      setEditing(false)
+    } catch (err) {
+      setEditError(err.response?.data?.message || 'Error al guardar')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleDelete = async () => {
     try {
@@ -26,33 +110,109 @@ function NoticiaCard({ noticia, onDeleted, isAdmin }) {
   return (
     <>
       <article className={styles.card}>
-        <button
-          className={styles.imageBtn}
-          onClick={() => setLightbox(true)}
-          aria-label="Ver imagen completa"
-        >
-          <img src={noticia.image.url} alt={noticia.title || 'Noticia'} className={styles.image} />
-        </button>
-
-        <div className={styles.cardBody}>
-          <div className={styles.cardMeta}>
-            <span className={styles.cardDate}>{timeAgo(noticia.createdAt)}</span>
-            {isAdmin && (
-              confirming ? (
-                <div className={styles.confirmRow}>
-                  <span className={styles.confirmLabel}>¿Eliminar?</span>
-                  <button className={styles.confirmYes} onClick={handleDelete}>Sí</button>
-                  <button className={styles.confirmNo} onClick={() => setConfirming(false)}>No</button>
-                </div>
-              ) : (
-                <button className={styles.deleteBtn} onClick={() => setConfirming(true)}>
-                  Eliminar
-                </button>
-              )
+        {/* ── Image / edit dropzone ── */}
+        {editing ? (
+          <div className={styles.editImageWrap}>
+            <ImageDropzone
+              preview={newPreview || noticia.image.url}
+              onFile={handleNewFile}
+            />
+            {newFile && (
+              <span className={styles.editImageHint}>
+                Nueva imagen seleccionada — se reemplazará al guardar
+              </span>
             )}
           </div>
-          {noticia.title && <h2 className={styles.cardTitle}>{noticia.title}</h2>}
-          {noticia.body  && <p  className={styles.cardText}>{noticia.body}</p>}
+        ) : (
+          <button
+            className={styles.imageBtn}
+            onClick={() => setLightbox(true)}
+            aria-label="Ver imagen completa"
+          >
+            <img src={noticia.image.url} alt={noticia.title || 'Noticia'} className={styles.image} />
+          </button>
+        )}
+
+        <div className={styles.cardBody}>
+          {/* ── Meta row: date + admin actions ── */}
+          <div className={styles.cardMeta}>
+            <span className={styles.cardDate}>{timeAgo(noticia.createdAt)}</span>
+            {isAdmin && !editing && (
+              <div className={styles.adminActions}>
+                <button className={styles.editBtn} onClick={openEdit}>Editar</button>
+                {confirming ? (
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmLabel}>¿Eliminar?</span>
+                    <button className={styles.confirmYes} onClick={handleDelete}>Sí</button>
+                    <button className={styles.confirmNo} onClick={() => setConfirm(false)}>No</button>
+                  </div>
+                ) : (
+                  <button className={styles.deleteBtn} onClick={() => setConfirm(true)}>Eliminar</button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Content or edit form ── */}
+          {editing ? (
+            <div className={styles.editForm}>
+              <input
+                className={styles.fieldInput}
+                placeholder="Título (opcional)"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                maxLength={200}
+              />
+              <textarea
+                className={styles.fieldTextarea}
+                placeholder="Descripción (opcional)"
+                value={editBody}
+                onChange={(e) => setEditBody(e.target.value)}
+                rows={3}
+                maxLength={2000}
+              />
+              <input
+                className={styles.fieldInput}
+                placeholder="Link externo (opcional) — https://..."
+                value={editLink}
+                onChange={(e) => setEditLink(e.target.value)}
+                maxLength={500}
+                type="url"
+              />
+              {editError && <p className={styles.errorMsg}>{editError}</p>}
+              <div className={styles.editActions}>
+                <button
+                  className={styles.btnGhost}
+                  onClick={() => setEditing(false)}
+                  disabled={saving}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className={styles.btnPublish}
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? 'Guardando…' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {noticia.title && <h2 className={styles.cardTitle}>{noticia.title}</h2>}
+              {noticia.body  && <p  className={styles.cardText}>{noticia.body}</p>}
+              {noticia.link  && (
+                <a
+                  href={noticia.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.cardLink}
+                >
+                  Ver más →
+                </a>
+              )}
+            </>
+          )}
         </div>
       </article>
 
@@ -67,37 +227,31 @@ function NoticiaCard({ noticia, onDeleted, isAdmin }) {
 }
 
 function CreateForm({ onCreated, onCancel }) {
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
-  const [file, setFile] = useState(null)
-  const [preview, setPreview] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-  const inputRef = useRef(null)
+  const [title, setTitle]       = useState('')
+  const [body, setBody]         = useState('')
+  const [link, setLink]         = useState('')
+  const [file, setFile]         = useState(null)
+  const [preview, setPreview]   = useState(null)
+  const [submitting, setSub]    = useState(false)
+  const [error, setError]       = useState('')
 
   const handleFile = (f) => {
-    if (!f) return
     setFile(f)
     setPreview(URL.createObjectURL(f))
     setError('')
   }
 
-  const handleDrop = (e) => {
-    e.preventDefault()
-    const f = e.dataTransfer.files?.[0]
-    if (f) handleFile(f)
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!file) { setError('Seleccioná una imagen'); return }
-    setSubmitting(true)
+    setSub(true)
     setError('')
     try {
       const fd = new FormData()
       fd.append('image', file)
       if (title.trim()) fd.append('title', title.trim())
       if (body.trim())  fd.append('body',  body.trim())
+      if (link.trim())  fd.append('link',  link.trim())
       const { data } = await axios.post('/api/noticias', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
@@ -105,7 +259,7 @@ function CreateForm({ onCreated, onCancel }) {
     } catch (err) {
       setError(err.response?.data?.message || 'Error al publicar')
     } finally {
-      setSubmitting(false)
+      setSub(false)
     }
   }
 
@@ -113,29 +267,7 @@ function CreateForm({ onCreated, onCancel }) {
     <form className={styles.createForm} onSubmit={handleSubmit}>
       <h3 className={styles.createTitle}>Nueva noticia</h3>
 
-      <div
-        className={`${styles.dropzone} ${preview ? styles.dropzoneWithPreview : ''}`}
-        onDrop={handleDrop}
-        onDragOver={(e) => e.preventDefault()}
-        onClick={() => inputRef.current?.click()}
-      >
-        {preview ? (
-          <img src={preview} alt="preview" className={styles.dropzonePreview} />
-        ) : (
-          <div className={styles.dropzonePlaceholder}>
-            <span className={styles.dropzoneIcon}>🖼</span>
-            <span className={styles.dropzoneText}>Arrastrá o hacé click para subir la imagen</span>
-            <span className={styles.dropzoneSub}>JPG, PNG, WEBP · máx. 5 MB</span>
-          </div>
-        )}
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          className={styles.fileInput}
-          onChange={(e) => handleFile(e.target.files?.[0])}
-        />
-      </div>
+      <ImageDropzone preview={preview} onFile={handleFile} />
 
       <input
         className={styles.fieldInput}
@@ -152,6 +284,15 @@ function CreateForm({ onCreated, onCancel }) {
         onChange={(e) => setBody(e.target.value)}
         rows={3}
         maxLength={2000}
+      />
+
+      <input
+        className={styles.fieldInput}
+        placeholder="Link externo (opcional) — https://..."
+        value={link}
+        onChange={(e) => setLink(e.target.value)}
+        maxLength={500}
+        type="url"
       />
 
       {error && <p className={styles.errorMsg}>{error}</p>}
@@ -172,12 +313,12 @@ export default function Noticias() {
   const { user } = useAuth()
   const isAdmin = user?.isAdmin
 
-  const [noticias, setNoticias]   = useState([])
-  const [page, setPage]           = useState(1)
-  const [totalPages, setTotal]    = useState(1)
-  const [loading, setLoading]     = useState(true)
-  const [loadingMore, setMore]    = useState(false)
-  const [showCreate, setCreate]   = useState(false)
+  const [noticias, setNoticias] = useState([])
+  const [page, setPage]         = useState(1)
+  const [totalPages, setTotal]  = useState(1)
+  const [loading, setLoading]   = useState(true)
+  const [loadingMore, setMore]  = useState(false)
+  const [showCreate, setCreate] = useState(false)
 
   const load = useCallback(async (pageNum = 1, replace = true) => {
     if (pageNum === 1) setLoading(true); else setMore(true)
@@ -199,9 +340,10 @@ export default function Noticias() {
     setCreate(false)
   }
 
-  const handleDeleted = (id) => {
-    setNoticias((prev) => prev.filter((n) => n._id !== id))
-  }
+  const handleDeleted = (id) => setNoticias((prev) => prev.filter((n) => n._id !== id))
+
+  const handleUpdated = (updated) =>
+    setNoticias((prev) => prev.map((n) => (n._id === updated._id ? updated : n)))
 
   return (
     <div className={styles.page}>
@@ -223,10 +365,7 @@ export default function Noticias() {
         </div>
 
         {showCreate && (
-          <CreateForm
-            onCreated={handleCreated}
-            onCancel={() => setCreate(false)}
-          />
+          <CreateForm onCreated={handleCreated} onCancel={() => setCreate(false)} />
         )}
 
         {loading ? (
@@ -259,6 +398,7 @@ export default function Noticias() {
                 key={n._id}
                 noticia={n}
                 onDeleted={handleDeleted}
+                onUpdated={handleUpdated}
                 isAdmin={isAdmin}
               />
             ))}

@@ -40,6 +40,7 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
     const noticia = await Noticia.create({
       title:  req.body.title?.trim() || undefined,
       body:   req.body.body?.trim()  || undefined,
+      link:   req.body.link?.trim()  || undefined,
       image:  { url: result.secure_url, publicId: result.public_id },
       author: req.user._id,
     });
@@ -48,6 +49,33 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
     res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ message: 'Error al crear la noticia' });
+  }
+});
+
+// PUT /api/noticias/:id — admin only, image replacement is optional
+router.put('/:id', protect, requireAdmin, multer.single('image'), async (req, res) => {
+  try {
+    const noticia = await Noticia.findById(req.params.id);
+    if (!noticia) return res.status(404).json({ message: 'Noticia no encontrada' });
+
+    noticia.title = req.body.title?.trim() || undefined;
+    noticia.body  = req.body.body?.trim()  || undefined;
+    noticia.link  = req.body.link?.trim()  || undefined;
+
+    if (req.file) {
+      await cloudinary.uploader.destroy(noticia.image.publicId);
+      const result = await uploadToCloudinary(req.file.buffer, {
+        folder: 'turnocero/noticias',
+        transformation: [{ width: 1200, crop: 'limit' }],
+      });
+      noticia.image = { url: result.secure_url, publicId: result.public_id };
+    }
+
+    await noticia.save();
+    const populated = await noticia.populate('author', 'username displayName');
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: 'Error al editar la noticia' });
   }
 });
 
