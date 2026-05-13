@@ -98,6 +98,13 @@ export default function DirectChat() {
             </div>
           );
         })}
+        {sending && (
+          <div className={styles.sendingBubble}>
+            <span className={styles.sendingDot} />
+            <span className={styles.sendingDot} />
+            <span className={styles.sendingDot} />
+          </div>
+        )}
       </div>
 
       <form className={styles.inputRow} onSubmit={handleSend}>
