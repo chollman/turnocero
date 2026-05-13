@@ -16,7 +16,7 @@ function UserCard({ user }) {
   const joined = new Date(user.createdAt).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' });
 
   return (
-    <button className={styles.card} onClick={() => navigate(`/users/${user._id}`)}>
+    <button className={styles.card} onClick={() => navigate(`/usuarios/${user._id}`)}>
       <div className={styles.cardAvatar}>
         {user.username.charAt(0).toUpperCase()}
       </div>

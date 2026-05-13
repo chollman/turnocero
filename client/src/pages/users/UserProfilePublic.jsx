@@ -123,7 +123,7 @@ export default function UserProfilePublic() {
       <div className={styles.page}>
         <div className={styles.stateCenter}>
           <p>{error || 'Usuario no encontrado'}</p>
-          <button className={styles.backBtn} onClick={() => navigate('/users')}>
+          <button className={styles.backBtn} onClick={() => navigate('/usuarios')}>
             ← Volver a jugadores
           </button>
         </div>
@@ -154,7 +154,7 @@ export default function UserProfilePublic() {
 
       <div className={styles.inner}>
         {/* Back button */}
-        <button className={styles.backBtn} onClick={() => navigate('/users')}>
+        <button className={styles.backBtn} onClick={() => navigate('/usuarios')}>
           ← Jugadores
         </button>
 

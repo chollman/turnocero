@@ -25,9 +25,9 @@ function ToastItem({ toast, onDismiss }) {
 
   const handleClick = () => {
     if (toast.type === 'friend_request' || toast.type === 'friend_accepted') {
-      navigate(`/users/${toast.fromUserId}`);
+      navigate(`/usuarios/${toast.fromUserId}`);
     } else {
-      navigate(`/tables/${toast.tableId}`);
+      navigate(`/mesas/${toast.tableId}`);
     }
     onDismiss(toast.id);
   };

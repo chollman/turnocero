@@ -53,7 +53,7 @@ export default function Notifications() {
         <ul className={styles.list}>
           {sorted.map((n) => {
             const { icon, countLabel, preview, chipClass } = getNotifMeta(n);
-            const to = n.fromUserId ? `/users/${n.fromUserId}` : `/tables/${n.tableId}`;
+            const to = n.fromUserId ? `/usuarios/${n.fromUserId}` : `/mesas/${n.tableId}`;
             const handleClick = () => n.fromUserId ? markReadFriend(n.fromUserId) : markRead(n.tableId);
             return (
               <li key={`${n.type ?? 'chat'}:${n.tableId ?? n.fromUserId}`}>

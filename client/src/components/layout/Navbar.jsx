@@ -44,7 +44,7 @@ export default function Navbar() {
         <div className={styles.right}>
           <button
             className={styles.bellBtn}
-            onClick={() => navigate('/notifications')}
+            onClick={() => navigate('/notificaciones')}
             aria-label="Notificaciones"
           >
             <BellIcon />

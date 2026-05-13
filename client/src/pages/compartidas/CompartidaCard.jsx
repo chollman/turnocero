@@ -279,7 +279,7 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
               </span>
             </div>
             <Link
-              to={`/tables/${table._id}`}
+              to={`/mesas/${table._id}`}
               className={`${styles.mesaBtn} ${tableOpen ? styles.mesaBtnOpen : ''}`}
             >
               {tableOpen ? 'Unirse →' : 'Ver mesa →'}

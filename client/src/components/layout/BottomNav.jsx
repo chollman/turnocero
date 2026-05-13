@@ -60,23 +60,23 @@ const DBIcon = () => (
 )
 
 const NAV = [
-  { id: 'feed',      label: 'Feed',      Icon: FeedIcon,      to: '/me' },
-  { id: 'dash',      label: 'Mesas',     Icon: MesasIcon,     to: '/' },
+  { id: 'feed',      label: 'Feed',      Icon: FeedIcon,      to: '/mi' },
+  { id: 'dash',      label: 'Mesas',     Icon: MesasIcon,     to: '/mesas' },
   { id: 'noticias',    label: 'Noticias',    Icon: NoticiasIcon,    to: '/noticias' },
   { id: 'compartidas',  label: 'Compartite',  Icon: CompartidasIcon,  to: '/compartidas' },
-  { id: 'users',     label: 'Comunidad', Icon: ComunidadIcon, to: '/users' },
+  { id: 'users',     label: 'Comunidad', Icon: ComunidadIcon, to: '/usuarios' },
   { id: 'profile',   label: 'Perfil',    Icon: PerfilIcon,    to: '/perfil' },
-  { id: 'db',        label: 'DB',        Icon: DBIcon,        to: '/database', adminOnly: true },
+  { id: 'db',        label: 'DB',        Icon: DBIcon,        to: '/base-de-datos', adminOnly: true },
 ]
 
 function getActiveId(pathname) {
-  if (pathname === '/me') return 'feed'
-  if (pathname === '/' || pathname.startsWith('/tables')) return 'dash'
+  if (pathname === '/mi') return 'feed'
+  if (pathname.startsWith('/mesas')) return 'dash'
   if (pathname.startsWith('/noticias')) return 'noticias'
-  if (pathname.startsWith('/compartidas')) return 'compartidas'
-  if (pathname.startsWith('/users')) return 'users'
+  if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas'
+  if (pathname.startsWith('/usuarios')) return 'users'
   if (pathname.startsWith('/perfil')) return 'profile'
-  if (pathname.startsWith('/database')) return 'db'
+  if (pathname.startsWith('/base-de-datos')) return 'db'
   return null
 }
 

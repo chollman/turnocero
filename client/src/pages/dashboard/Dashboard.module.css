@@ -141,6 +141,26 @@
   gap: 0.75rem;
 }
 
+.createCtaBtn {
+  background: var(--amber);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.4rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all var(--transition);
+  display: inline-block;
+}
+
+.createCtaBtn:hover {
+  background: var(--amber-light);
+  color: #ffffff;
+  box-shadow: var(--shadow-amber);
+}
+
 .viewToggle {
   display: flex;
   background: var(--bg-card);
@@ -392,6 +412,10 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+  }
+
+  .createCtaBtn {
+    display: none;
   }
 
   .search {

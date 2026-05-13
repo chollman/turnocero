@@ -475,7 +475,7 @@ export default function TableDetail() {
       {actionError && <p className={styles.actionError}>{actionError}</p>}
       {isHost && (
         <>
-          <button className={styles.btnActEdit} onClick={() => navigate(`/tables/${id}/edit`)} disabled={cancelTableLoading}>
+          <button className={styles.btnActEdit} onClick={() => navigate(`/mesas/${id}/editar`)} disabled={cancelTableLoading}>
             Editar mesa
           </button>
           <button className={styles.btnActCancel} onClick={handleCancelTable} disabled={cancelTableLoading}>

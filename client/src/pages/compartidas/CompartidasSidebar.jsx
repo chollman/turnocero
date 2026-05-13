@@ -19,7 +19,7 @@ export default function CompartidasSidebar() {
   const [topGames, setTopGames] = useState([])
 
   useEffect(() => {
-    axios.get('/api/tables/mine', { params: { limit: 4 } })
+    axios.get('/api/mesas/mine', { params: { limit: 4 } })
       .then(({ data }) => {
         const upcoming = (data.tables || [])
           .filter((t) => t.status !== 'cancelled' && new Date(t.date) >= new Date())
@@ -29,7 +29,7 @@ export default function CompartidasSidebar() {
       })
       .catch(() => {})
 
-    axios.get('/api/tables/top-games')
+    axios.get('/api/mesas/top-games')
       .then(({ data }) => setTopGames(data))
       .catch(() => {})
   }, [])
@@ -41,14 +41,14 @@ export default function CompartidasSidebar() {
       <div className={styles.widget}>
         <div className={styles.widgetHeader}>
           <span className={styles.widgetEyebrow}>◆ TUS MESAS</span>
-          <Link to="/" className={styles.widgetLink}>Ver todas →</Link>
+          <Link to="/mesas" className={styles.widgetLink}>Ver todas →</Link>
         </div>
         <h3 className={styles.widgetTitle}>Próximas partidas</h3>
 
         {tables.length === 0 ? (
           <div className={styles.emptyWidget}>
             <p className={styles.emptyText}>Sin mesas próximas</p>
-            <Link to="/create" className={styles.emptyAction}>+ Crear mesa</Link>
+            <Link to="/mesas/crear" className={styles.emptyAction}>+ Crear mesa</Link>
           </div>
         ) : (
           <div className={styles.tableList}>
@@ -56,7 +56,7 @@ export default function CompartidasSidebar() {
               const seats = t.maxPlayers - (t.players?.length || 0)
               const isFull = t.status === 'full'
               return (
-                <Link key={t._id} to={`/tables/${t._id}`} className={styles.tableRow}>
+                <Link key={t._id} to={`/mesas/${t._id}`} className={styles.tableRow}>
                   <div className={styles.tableTile}>
                     <GameTile game={t.boardGame} seed={seedFromId(t._id)} size={40} />
                   </div>

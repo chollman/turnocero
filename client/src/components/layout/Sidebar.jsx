@@ -74,27 +74,26 @@ const ICONS = {
 }
 
 const NAV = [
-  { id: 'feed',        label: 'Mi feed',        to: '/me' },
-  { id: 'dash',        label: 'Mesas',          to: '/' },
+  { id: 'feed',        label: 'Mi feed',        to: '/mi' },
+  { id: 'dash',        label: 'Mesas',          to: '/mesas' },
   { id: 'noticias',    label: 'Noticias',        to: '/noticias' },
   { id: 'compartidas', label: 'Compartite',      to: '/compartidas' },
-  { id: 'create',      label: 'Crear mesa',      to: '/create' },
-  { id: 'notif',       label: 'Notificaciones',  to: '/notifications' },
-  { id: 'users',       label: 'Comunidad',       to: '/users' },
+  { id: 'notif',       label: 'Notificaciones',  to: '/notificaciones' },
+  { id: 'users',       label: 'Comunidad',       to: '/usuarios' },
   { id: 'profile',     label: 'Perfil',          to: '/perfil' },
-  { id: 'db',          label: 'Base de datos',   to: '/database', adminOnly: true },
+  { id: 'db',          label: 'Base de datos',   to: '/base-de-datos', adminOnly: true },
 ]
 
 function getActiveId(pathname) {
-  if (pathname === '/me') return 'feed'
-  if (pathname === '/' || pathname.startsWith('/tables')) return 'dash'
+  if (pathname === '/mi') return 'feed'
+  if (pathname.startsWith('/mesas')) return 'dash'
   if (pathname.startsWith('/noticias')) return 'noticias'
-  if (pathname.startsWith('/compartidas')) return 'compartidas'
-  if (pathname === '/create') return 'create'
-  if (pathname === '/notifications') return 'notif'
-  if (pathname.startsWith('/users')) return 'users'
+  if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas'
+  if (pathname === '/mesas/crear') return 'create'
+  if (pathname === '/notificaciones') return 'notif'
+  if (pathname.startsWith('/usuarios')) return 'users'
   if (pathname.startsWith('/perfil')) return 'profile'
-  if (pathname.startsWith('/database')) return 'db'
+  if (pathname.startsWith('/base-de-datos')) return 'db'
   return null
 }
 

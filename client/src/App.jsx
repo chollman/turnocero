@@ -59,16 +59,17 @@ function AppRoutes() {
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/create" element={<PrivateRoute><CreateTable /></PrivateRoute>} />
-          <Route path="/tables/:id" element={<TableDetail />} />
-          <Route path="/tables/:id/edit" element={<PrivateRoute><EditTable /></PrivateRoute>} />
-          <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
+          <Route path="/" element={<Compartidas />} />
+          <Route path="/mesas" element={<Dashboard />} />
+          <Route path="/mesas/crear" element={<PrivateRoute><CreateTable /></PrivateRoute>} />
+          <Route path="/mesas/:id" element={<TableDetail />} />
+          <Route path="/mesas/:id/editar" element={<PrivateRoute><EditTable /></PrivateRoute>} />
+          <Route path="/notificaciones" element={<PrivateRoute><Notifications /></PrivateRoute>} />
           <Route path="/perfil" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
-          <Route path="/users" element={<UsersList />} />
-          <Route path="/users/:id" element={<UserProfilePublic />} />
-          <Route path="/database" element={<PrivateRoute><DatabaseViewer /></PrivateRoute>} />
-          <Route path="/me" element={<PrivateRoute><MeFeed /></PrivateRoute>} />
+          <Route path="/usuarios" element={<UsersList />} />
+          <Route path="/usuarios/:id" element={<UserProfilePublic />} />
+          <Route path="/base-de-datos" element={<PrivateRoute><DatabaseViewer /></PrivateRoute>} />
+          <Route path="/mi" element={<PrivateRoute><MeFeed /></PrivateRoute>} />
           <Route path="/noticias" element={<Noticias />} />
           <Route path="/noticias/:id" element={<NoticiaDetail />} />
           <Route path="/compartidas" element={<Compartidas />} />

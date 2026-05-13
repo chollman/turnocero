@@ -68,7 +68,7 @@ function NextGameHighlight({ table, uid }) {
           <div className={styles.nextGameMeta}>{formatNextMeta(table)}</div>
           <SeatTrack filled={filled} total={total} />
           <div className={styles.nextGameActions}>
-            <Link to={`/tables/${table._id}`} className={styles.btnPrimary}>Abrir mesa →</Link>
+            <Link to={`/mesas/${table._id}`} className={styles.btnPrimary}>Abrir mesa →</Link>
           </div>
         </div>
       </div>
@@ -187,7 +187,7 @@ export default function MeFeed() {
           <div className={styles.empty}>
             <span className={styles.emptyIcon}>🎲</span>
             <p>No hay mesas para mostrar.</p>
-            <Link to="/" className={styles.emptyLink}>Explorar mesas disponibles</Link>
+            <Link to="/mesas" className={styles.emptyLink}>Explorar mesas disponibles</Link>
           </div>
         )}
 

@@ -142,6 +142,9 @@ export default function Dashboard() {
           </div>
 
           <div className={styles.controlsRight}>
+            {user && (
+              <Link to="/mesas/crear" className={styles.createCtaBtn}>+ Crear mesa</Link>
+            )}
             <div className={styles.viewToggle}>
               <button
                 className={`${styles.viewBtn} ${viewMode === 'grid' ? styles.activeViewBtn : ''}`}
@@ -191,7 +194,7 @@ export default function Dashboard() {
               {!debouncedSearch && (user ? '¡Sé el primero en crear una mesa!' : '¡Registrate para crear la primera!')}
             </p>
             {!debouncedSearch && user && (
-              <Link to="/create" className={styles.createBtn}>
+              <Link to="/mesas/crear" className={styles.createBtn}>
                 + Crear mesa
               </Link>
             )}
@@ -236,7 +239,7 @@ export default function Dashboard() {
 
       {/* FAB — mobile only, logged-in users only */}
       {user && (
-        <Link to="/create" className={styles.fab}>
+        <Link to="/mesas/crear" className={styles.fab}>
           <span>+</span> Crear mesa
         </Link>
       )}

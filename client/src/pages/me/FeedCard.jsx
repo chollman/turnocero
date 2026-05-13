@@ -41,7 +41,7 @@ export default function FeedCard({ table, userId, isPast }) {
         </div>
         <div className={styles.meta}>{meta}</div>
       </div>
-      <Link to={`/tables/${table._id}`} className={styles.viewBtn}>Ver →</Link>
+      <Link to={`/mesas/${table._id}`} className={styles.viewBtn}>Ver →</Link>
     </div>
   );
 }

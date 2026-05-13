@@ -226,13 +226,13 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
           {error && <span className={styles.errorInline}>{error}</span>}
           {isHost ? (
             <>
-              <button className={`${styles.btnIcon} ${styles.btnIconDetail}`} onClick={() => navigate(`/tables/${table._id}`)} title="Ver detalles" disabled={loading}><EyeIcon /></button>
-              <button className={`${styles.btnIcon} ${styles.btnIconEdit}`} onClick={() => navigate(`/tables/${table._id}/edit`)} title="Editar" disabled={loading}><EditIcon /></button>
+              <button className={`${styles.btnIcon} ${styles.btnIconDetail}`} onClick={() => navigate(`/mesas/${table._id}`)} title="Ver detalles" disabled={loading}><EyeIcon /></button>
+              <button className={`${styles.btnIcon} ${styles.btnIconEdit}`} onClick={() => navigate(`/mesas/${table._id}/editar`)} title="Editar" disabled={loading}><EditIcon /></button>
               <button className={`${styles.btnIcon} ${styles.btnIconDanger}`} onClick={handleCancel} title="Cancelar" disabled={loading}><XIcon /></button>
             </>
           ) : isPlayer ? (
             <>
-              <button className={`${styles.btnIcon} ${styles.btnIconDetail}`} onClick={() => navigate(`/tables/${table._id}`)} title="Ver detalles" disabled={loading}><EyeIcon /></button>
+              <button className={`${styles.btnIcon} ${styles.btnIconDetail}`} onClick={() => navigate(`/mesas/${table._id}`)} title="Ver detalles" disabled={loading}><EyeIcon /></button>
               <button className={`${styles.btnIcon} ${styles.btnIconLeave}`} onClick={handleLeave} title="Abandonar" disabled={loading}>{loading ? '…' : <LeaveIcon />}</button>
             </>
           ) : isPendingRequest ? (
@@ -240,7 +240,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
           ) : (
             <>
               {!isPrivate && (
-                <button className={`${styles.btnIcon} ${styles.btnIconDetail}`} onClick={() => navigate(`/tables/${table._id}`)} title="Ver detalle" disabled={loading}><EyeIcon /></button>
+                <button className={`${styles.btnIcon} ${styles.btnIconDetail}`} onClick={() => navigate(`/mesas/${table._id}`)} title="Ver detalle" disabled={loading}><EyeIcon /></button>
               )}
               <button className={styles.btnJoin} onClick={handleJoin} disabled={loading || isFull}>
                 {loading ? '…' : isFull ? 'Llena' : isPrivate ? 'Solicitar' : 'Unirse'}
@@ -248,7 +248,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
             </>
           )}
           {showAdminTab && (
-            <button className={styles.adminTabInline} onClick={() => navigate(`/tables/${table._id}`)} title="Ver como admin">
+            <button className={styles.adminTabInline} onClick={() => navigate(`/mesas/${table._id}`)} title="Ver como admin">
               <EyeIcon /> Admin
             </button>
           )}
@@ -328,7 +328,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
               <>
                 <button
                   className={`${styles.btnIcon} ${styles.btnIconEdit}`}
-                  onClick={() => navigate(`/tables/${table._id}/edit`)}
+                  onClick={() => navigate(`/mesas/${table._id}/editar`)}
                   title="Editar mesa"
                   disabled={loading}
                 >
@@ -344,7 +344,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
                 </button>
                 <button
                   className={styles.btnManage}
-                  onClick={() => navigate(`/tables/${table._id}`)}
+                  onClick={() => navigate(`/mesas/${table._id}`)}
                   disabled={loading}
                 >
                   Administrar
@@ -362,7 +362,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
                 </button>
                 <button
                   className={styles.btnOpen}
-                  onClick={() => navigate(`/tables/${table._id}`)}
+                  onClick={() => navigate(`/mesas/${table._id}`)}
                   disabled={loading}
                 >
                   Abrir mesa
@@ -383,7 +383,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
                 {!isPrivate && (
                   <button
                     className={`${styles.btnIcon} ${styles.btnIconDetail}`}
-                    onClick={() => navigate(`/tables/${table._id}`)}
+                    onClick={() => navigate(`/mesas/${table._id}`)}
                     title="Ver detalles"
                     disabled={loading}
                   >
@@ -406,7 +406,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
       {showAdminTab && (
         <button
           className={styles.adminTab}
-          onClick={() => navigate(`/tables/${table._id}`)}
+          onClick={() => navigate(`/mesas/${table._id}`)}
           title="Ver como administrador"
         >
           <EyeIcon /> Admin
