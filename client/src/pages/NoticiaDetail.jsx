@@ -53,12 +53,14 @@ export default function NoticiaDetail() {
 
   if (loading) return (
     <div className={styles.page}>
-      <div className={styles.skeleton}>
-        <div className={styles.skeletonImg} />
-        <div className={styles.skeletonBody}>
-          {[60, 85, 70].map((w, i) => (
-            <div key={i} className={styles.skeletonLine} style={{ width: `${w}%` }} />
-          ))}
+      <div className={styles.inner}>
+        <div className={styles.skeleton}>
+          <div className={styles.skeletonImg} />
+          <div className={styles.skeletonBody}>
+            {[60, 85, 70].map((w, i) => (
+              <div key={i} className={styles.skeletonLine} style={{ width: `${w}%` }} />
+            ))}
+          </div>
         </div>
       </div>
     </div>
