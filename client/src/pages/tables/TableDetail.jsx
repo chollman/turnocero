@@ -540,7 +540,7 @@ export default function TableDetail() {
         {/* Hero */}
         <div className={styles.hero}>
           <div className={styles.heroTile}>
-            <GameTile game={table.boardGame} seed={seed} size="100%" />
+            <GameTile game={table.boardGame} seed={seed} size="100%" imageUrl={table.bggImage || null} />
           </div>
           <div className={styles.heroGradient} />
 

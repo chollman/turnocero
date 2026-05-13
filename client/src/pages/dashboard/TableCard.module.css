@@ -45,6 +45,42 @@
   );
 }
 
+/* ─── Card with BGG image background ─── */
+
+.cardBg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hasImage .banner {
+  background: transparent;
+}
+
+.hasImage .bannerGradient {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.3) 0%,
+    rgba(0, 0, 0, 0) 60%
+  );
+}
+
+.hasImage .body {
+  position: relative;
+  z-index: 1;
+  background: rgba(21, 28, 40, 0.78);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 22px);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 22px);
+  justify-content: flex-end;
+}
+
+.hasImage .footer {
+  margin-top: 0;
+}
+
 .bannerTop {
   position: absolute;
   top: 10px;
@@ -247,7 +283,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid var(--border);
 }

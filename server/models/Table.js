@@ -10,6 +10,7 @@ const tableSchema = new mongoose.Schema(
     },
     bggId: { type: Number, default: null },
     bggThumbnail: { type: String, default: null },
+    bggImage: { type: String, default: null },
     bggYear: { type: Number, default: null },
     date: {
       type: Date,

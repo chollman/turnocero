@@ -267,12 +267,20 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     <>
     <LoginPromptModal isOpen={!!loginPrompt} onClose={() => setLoginPrompt('')} message={loginPrompt} />
     <div
-      className={`${styles.card} ${isHost ? styles.hosted : ''} ${isPlayer ? styles.joined : ''}`}
+      className={`${styles.card} ${isHost ? styles.hosted : ''} ${isPlayer ? styles.joined : ''} ${table.bggImage ? styles.hasImage : ''}`}
       style={{ position: 'relative' }}
     >
+      {table.bggImage && (
+        <div className={styles.cardBg}>
+          <GameTile game={table.boardGame} seed={seed} size="100%" imageUrl={table.bggImage} />
+        </div>
+      )}
+
       {/* Banner with game tile */}
       <div className={styles.banner}>
-        <GameTile game={table.boardGame} seed={seed} size="100%" />
+        {!table.bggImage && (
+          <GameTile game={table.boardGame} seed={seed} size="100%" />
+        )}
         <div className={styles.bannerGradient} />
         <div className={styles.bannerTop}>
           <span className={styles.dateChip}>

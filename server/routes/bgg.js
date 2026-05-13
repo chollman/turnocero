@@ -122,6 +122,7 @@ router.get('/game/:id', async (req, res) => {
       id: Number(item['@_id']),
       name,
       thumbnail: item.thumbnail || null,
+      image: item.image || null,
       year: item.yearpublished?.['@_value'] ? Number(item.yearpublished['@_value']) : null,
       minPlayers: item.minplayers?.['@_value'] ? Number(item.minplayers['@_value']) : null,
       maxPlayers: item.maxplayers?.['@_value'] ? Number(item.maxplayers['@_value']) : null,

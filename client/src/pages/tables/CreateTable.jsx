@@ -103,7 +103,7 @@ export default function CreateTable() {
       setBoardGameSelected(res.data);
       setBoardGameInput(res.data.name);
     } catch {
-      setBoardGameSelected({ name: game.name, id: game.id, thumbnail: null, year: game.year });
+      setBoardGameSelected({ name: game.name, id: game.id, thumbnail: null, image: null, year: game.year });
       setBoardGameInput(game.name);
     } finally {
       setSearching(false);
@@ -124,6 +124,7 @@ export default function CreateTable() {
         boardGame: boardGameSelected.name,
         bggId: boardGameSelected.id,
         bggThumbnail: boardGameSelected.thumbnail,
+        bggImage: boardGameSelected.image,
         bggYear: boardGameSelected.year,
         maxPlayers: Number(form.maxPlayers),
       });
