@@ -1,5 +1,11 @@
 .page {
-  padding: 0 1.5rem 2rem;
+  padding: var(--navbar-h) 1.5rem 2rem;
+}
+
+@media (min-width: 960px) {
+  .page {
+    padding-top: 1.5rem;
+  }
 }
 
 .header {

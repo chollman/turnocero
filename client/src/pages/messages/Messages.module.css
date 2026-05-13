@@ -1,7 +1,12 @@
 .page {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 24px 16px 80px;
+  margin: 0;
+  padding: var(--navbar-h) 1.5rem 80px;
+}
+
+@media (min-width: 960px) {
+  .page {
+    padding-top: 24px;
+  }
 }
 
 .header {
@@ -35,7 +40,9 @@
   transition: opacity 0.15s;
 }
 
-.newBtn:hover { opacity: 0.85; }
+.newBtn:hover {
+  opacity: 0.85;
+}
 
 .newChatPanel {
   background: var(--bg-card);
@@ -63,8 +70,12 @@
   outline: none;
 }
 
-.searchInput:focus { border-color: var(--border-amber); }
-.searchInput::placeholder { color: var(--text-muted); }
+.searchInput:focus {
+  border-color: var(--border-amber);
+}
+.searchInput::placeholder {
+  color: var(--text-muted);
+}
 
 .closeSearch {
   background: none;
@@ -76,7 +87,9 @@
   align-items: center;
 }
 
-.closeSearch:hover { color: var(--text-primary); }
+.closeSearch:hover {
+  color: var(--text-primary);
+}
 
 .friendsList {
   display: flex;
@@ -100,7 +113,9 @@
   width: 100%;
 }
 
-.friendItem:hover { background: var(--bg-elevated); }
+.friendItem:hover {
+  background: var(--bg-elevated);
+}
 
 .empty {
   color: var(--text-muted);
@@ -139,12 +154,16 @@
   padding: 12px 14px;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
   width: 100%;
   margin-bottom: 4px;
 }
 
-.convItem:hover { background: var(--bg-elevated); }
+.convItem:hover {
+  background: var(--bg-elevated);
+}
 
 .convUnread {
   border-color: var(--border-amber);

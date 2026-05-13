@@ -226,16 +226,9 @@
   text-overflow: ellipsis;
 }
 
-/* On mobile: hide on /mensajes routes (already full-screen there) */
 @media (max-width: 959px) {
-  .fab {
-    bottom: 76px; /* above the BottomNav */
-  }
-
+  .fab,
   .panel {
-    bottom: 140px;
-    right: 8px;
-    width: calc(100vw - 16px);
-    max-width: 340px;
+    display: none;
   }
 }

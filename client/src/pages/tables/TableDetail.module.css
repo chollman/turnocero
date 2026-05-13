@@ -1,7 +1,13 @@
 /* ─── Page ─── */
 .page {
   min-height: calc(100vh - var(--navbar-h, 64px));
-  padding: 0 0 4rem;
+  padding: var(--navbar-h) 0 4rem;
+}
+
+@media (min-width: 960px) {
+  .page {
+    padding-top: 1.5rem;
+  }
 }
 
 /* ─── Hero ─── */
