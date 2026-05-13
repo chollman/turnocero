@@ -22,6 +22,7 @@ import GuestNavbar from './components/GuestNavbar';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 import BoardGameBackground from './components/BoardGameBackground';
+import SplashScreen from './components/SplashScreen';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -29,32 +30,15 @@ function ScrollToTop() {
   return null;
 }
 
-const LoadingScreen = () => (
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100vh',
-    background: 'var(--bg-dark)',
-    flexDirection: 'column',
-    gap: '1rem',
-  }}>
-    <div style={{ fontSize: '3rem' }}>🎲</div>
-    <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-display)' }}>
-      Loading…
-    </p>
-  </div>
-);
-
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
+  if (loading) return null;
   return user ? children : <Navigate to="/login" replace />;
 };
 
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
+  if (loading) return null;
   return !user ? children : <Navigate to="/" replace />;
 };
 
@@ -94,16 +78,26 @@ function AppRoutes() {
   );
 }
 
+function AppShell() {
+  const { loading } = useAuth();
+  return (
+    <>
+      <SplashScreen visible={loading} />
+      <BoardGameBackground />
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <AppRoutes />
+      </div>
+      <ToastContainer />
+    </>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <NotificationProvider>
-          <BoardGameBackground />
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <AppRoutes />
-          </div>
-          <ToastContainer />
+          <AppShell />
         </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>

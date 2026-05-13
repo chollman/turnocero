@@ -1,0 +1,115 @@
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+
+.hiding {
+  opacity: 0;
+  transform: scale(1.04);
+  pointer-events: none;
+}
+
+.piece {
+  position: absolute;
+  top: -15%;
+  color: var(--amber);
+  user-select: none;
+  animation: splashFall linear infinite;
+  will-change: transform;
+  text-shadow: 0 0 24px rgba(24, 136, 239, 0.65);
+}
+
+@keyframes splashFall {
+  0%   { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(calc(100vh + 20%)) rotate(360deg); }
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+  background: rgba(10, 13, 21, 0.6);
+  padding: 2.5rem 3.5rem;
+  border-radius: 1.5rem;
+  border: 1px solid var(--border-amber);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 60px rgba(24, 136, 239, 0.15);
+}
+
+.logo {
+  font-size: 4.5rem;
+  filter: drop-shadow(0 0 18px rgba(24, 136, 239, 0.85));
+  animation: pulse 1.8s ease-in-out infinite;
+  line-height: 1;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.12); }
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 28px rgba(24, 136, 239, 0.55);
+  margin: 0;
+}
+
+.subtitle {
+  font-family: var(--font-body);
+  color: var(--text-secondary);
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+}
+
+.dots {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+  animation: bounce 1.3s ease-in-out infinite;
+  opacity: 0.4;
+}
+
+.dots span:nth-child(2) { animation-delay: 0.22s; }
+.dots span:nth-child(3) { animation-delay: 0.44s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: translateY(0);    opacity: 0.4; }
+  40%            { transform: translateY(-9px); opacity: 1;   }
+}
+
+@media (max-width: 480px) {
+  .piece {
+    font-size: 3.5rem !important;
+  }
+  .content {
+    padding: 2rem 2rem;
+  }
+  .title {
+    font-size: 2rem;
+  }
+  .logo {
+    font-size: 3.5rem;
+  }
+}
