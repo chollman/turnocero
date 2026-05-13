@@ -107,7 +107,7 @@ router.put('/profile', protect, async (req, res) => {
     if (apellido !== undefined) user.apellido = apellido;
     if (telegram !== undefined) user.telegram = telegram;
     if (celular !== undefined) user.celular = celular;
-    if (bggUsername !== undefined) user.bggUsername = bggUsername;
+    if (bggUsername !== undefined) user.bggUsername = bggUsername.replace(/^@/, '').trim();
     if (direccion !== undefined) {
       user.direccion = {
         texto: direccion.texto ?? user.direccion?.texto ?? '',
