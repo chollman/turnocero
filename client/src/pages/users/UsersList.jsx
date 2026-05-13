@@ -43,19 +43,24 @@ function UserCard({ user }) {
       <div className={styles.cardStats}>
         <div className={styles.statItem}>
           <span className={styles.statValue}>{user.tablesHosted}</span>
-          <span className={styles.statLabel}>mesas creadas</span>
+          <span className={styles.statLabel}>Mesas creadas</span>
         </div>
         <div className={styles.statDivider} />
         <div className={styles.statItem}>
           <span className={styles.statValue}>{user.tablesAsPlayer}</span>
-          <span className={styles.statLabel}>mesas jugadas</span>
+          <span className={styles.statLabel}>Mesas jugadas</span>
+        </div>
+        <div className={styles.statDivider} />
+        <div className={styles.statItem}>
+          <span className={styles.statValue}>{user.compartidas}</span>
+          <span className={styles.statLabel}>Publicaciones</span>
         </div>
         <div className={styles.statDivider} />
         <div className={styles.statItem}>
           <span className={`${styles.statValue} ${totalActivity > 0 ? styles.statValueActive : ''}`}>
             {totalActivity}
           </span>
-          <span className={styles.statLabel}>total</span>
+          <span className={styles.statLabel}>Total</span>
         </div>
       </div>
     </button>

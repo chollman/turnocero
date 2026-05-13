@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Table = require('../models/Table');
+const Compartida = require('../models/Compartida');
 const { protect, optionalAuth } = require('../middleware/auth');
 
 // GET /api/users — public list with optional search, sortBy, activeOnly
@@ -29,7 +30,7 @@ router.get('/', optionalAuth, async (req, res) => {
 
     const userIds = users.map((u) => u._id);
 
-    const [hostedCounts, playerCounts] = await Promise.all([
+    const [hostedCounts, playerCounts, compartidaCounts] = await Promise.all([
       Table.aggregate([
         { $match: { host: { $in: userIds }, status: { $ne: 'cancelled' } } },
         { $group: { _id: '$host', count: { $sum: 1 } } },
@@ -40,6 +41,10 @@ router.get('/', optionalAuth, async (req, res) => {
         { $match: { players: { $in: userIds } } },
         { $group: { _id: '$players', count: { $sum: 1 } } },
       ]),
+      Compartida.aggregate([
+        { $match: { author: { $in: userIds }, privacy: 'public' } },
+        { $group: { _id: '$author', count: { $sum: 1 } } },
+      ]),
     ]);
 
     const hostedMap = {};
@@ -47,6 +52,9 @@ router.get('/', optionalAuth, async (req, res) => {
 
     const playerMap = {};
     playerCounts.forEach((p) => { playerMap[p._id.toString()] = p.count; });
+
+    const compartidaMap = {};
+    compartidaCounts.forEach((c) => { compartidaMap[c._id.toString()] = c.count; });
 
     if (activeOnly === 'true') {
       const activeIds = new Set([
@@ -60,6 +68,7 @@ router.get('/', optionalAuth, async (req, res) => {
       ...u,
       tablesHosted: hostedMap[u._id.toString()] || 0,
       tablesAsPlayer: playerMap[u._id.toString()] || 0,
+      compartidas: compartidaMap[u._id.toString()] || 0,
     }));
 
     if (sortBy === 'activity') {
