@@ -321,7 +321,7 @@
   color: var(--amber);
 }
 
-.btnShareJuntada {
+.btnShareCompartida {
   height: 40px;
   display: inline-flex;
   align-items: center;
@@ -339,7 +339,7 @@
   transition: all var(--transition);
 }
 
-.btnShareJuntada:hover {
+.btnShareCompartida:hover {
   border-color: var(--amber);
   color: var(--amber);
 }

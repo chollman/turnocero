@@ -4,11 +4,11 @@ import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import GameTile from './GameTile'
 import LoginPromptModal from './LoginPromptModal'
-import styles from './JuntadaCard.module.css'
+import styles from './CompartidaCard.module.css'
 
 function buildShareData(post) {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const url = `${origin}/juntadas/${post._id}`
+  const url = `${origin}/compartidas/${post._id}`
   const parts = []
   if (post.title) parts.push(`*${post.title}*`)
   if (post.body)  parts.push(post.body.slice(0, 180) + (post.body.length > 180 ? '…' : ''))
@@ -34,7 +34,7 @@ function formatTableDate(date) {
 
 const PRIVACY_LABELS = { public: null, friends: 'Amigos', private: 'Solo yo' }
 
-export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, featured }) {
+export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated, featured }) {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [post, setPost] = useState(initialPost)
@@ -78,12 +78,12 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
   }, [])
 
   const handleLike = async () => {
-    if (!user) { setLoginPrompt('Iniciá sesión para dar like a esta juntada.'); return }
+    if (!user) { setLoginPrompt('Iniciá sesión para dar like a esta compartida.'); return }
     const prev = liked
     setLiked(!liked)
     setLikeCount((c) => c + (liked ? -1 : 1))
     try {
-      await axios.post(`/api/juntadas/${post._id}/like`)
+      await axios.post(`/api/compartidas/${post._id}/like`)
     } catch {
       setLiked(prev)
       setLikeCount((c) => c + (prev ? 1 : -1))
@@ -95,7 +95,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
       setShowComments(true)
       setLoadingComments(true)
       try {
-        const { data } = await axios.get(`/api/juntadas/${post._id}/comments`)
+        const { data } = await axios.get(`/api/compartidas/${post._id}/comments`)
         setComments(data)
         setCommentsLoaded(true)
         setCommentCount(data.length)
@@ -112,7 +112,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
     if (!commentInput.trim() || submitting) return
     setSubmitting(true)
     try {
-      const { data } = await axios.post(`/api/juntadas/${post._id}/comments`, { content: commentInput.trim() })
+      const { data } = await axios.post(`/api/compartidas/${post._id}/comments`, { content: commentInput.trim() })
       setComments((c) => [...c, data])
       setCommentCount((n) => n + 1)
       setCommentInput('')
@@ -124,7 +124,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
   const handleEditComment = async (cid) => {
     if (!editContent.trim()) return
     try {
-      const { data } = await axios.put(`/api/juntadas/${post._id}/comments/${cid}`, { content: editContent.trim() })
+      const { data } = await axios.put(`/api/compartidas/${post._id}/comments/${cid}`, { content: editContent.trim() })
       setComments((cs) => cs.map((c) => (c._id === cid ? data : c)))
       setEditingCid(null)
     } catch { /* silently ignore */ }
@@ -132,23 +132,23 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
 
   const handleDeleteComment = async (cid) => {
     try {
-      await axios.delete(`/api/juntadas/${post._id}/comments/${cid}`)
+      await axios.delete(`/api/compartidas/${post._id}/comments/${cid}`)
       setComments((cs) => cs.filter((c) => c._id !== cid))
       setCommentCount((n) => Math.max(0, n - 1))
     } catch { /* silently ignore */ }
   }
 
   const handleDelete = async () => {
-    if (!window.confirm('¿Eliminar esta juntada?')) return
+    if (!window.confirm('¿Eliminar esta compartida?')) return
     try {
-      await axios.delete(`/api/juntadas/${post._id}`)
+      await axios.delete(`/api/compartidas/${post._id}`)
       onDeleted?.(post._id)
     } catch { /* silently ignore */ }
   }
 
   const handleSaveEdit = async () => {
     try {
-      const { data } = await axios.put(`/api/juntadas/${post._id}`, {
+      const { data } = await axios.put(`/api/compartidas/${post._id}`, {
         title: editTitle, body: editBody, privacy: editPrivacy,
       })
       const updated = { ...post, title: data.title, body: data.body, privacy: data.privacy }
@@ -171,7 +171,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
       <LoginPromptModal isOpen={!!loginPrompt} onClose={() => setLoginPrompt('')} message={loginPrompt} />
       <article className={`${styles.card} ${featured ? styles.cardFeatured : ''}`}>
         {featured && (
-          <div className={styles.featuredBadge}>🔥 Juntada del día</div>
+          <div className={styles.featuredBadge}>🔥 Compartida del día</div>
         )}
 
         {/* ── Header ── */}
@@ -211,7 +211,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
               className={styles.editBody}
               value={editBody}
               onChange={(e) => setEditBody(e.target.value)}
-              placeholder="¿Cómo estuvo la juntada?"
+              placeholder="¿Cómo estuvo la compartida?"
               rows={4}
               maxLength={2000}
             />
@@ -334,7 +334,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
             {/* Twitter / X */}
             <a
               className={styles.shareBtn}
-              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent((post.title || post.body?.slice(0, 100) || 'Juntada en TurnoCero') + ' 🎲')}&url=${encodeURIComponent(buildShareData(post).url)}`}
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent((post.title || post.body?.slice(0, 100) || 'Compartida en TurnoCero') + ' 🎲')}&url=${encodeURIComponent(buildShareData(post).url)}`}
               target="_blank"
               rel="noopener noreferrer"
               title="Compartir en X (Twitter)"
@@ -442,7 +442,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
               <button
                 className={styles.commentSubmit}
                 style={{ width: '100%', borderRadius: 8, padding: '8px 0' }}
-                onClick={() => setLoginPrompt('Iniciá sesión para comentar en esta juntada.')}
+                onClick={() => setLoginPrompt('Iniciá sesión para comentar en esta compartida.')}
                 type="button"
               >
                 Iniciá sesión para comentar

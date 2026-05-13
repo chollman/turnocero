@@ -33,7 +33,7 @@ const PerfilIcon = () => (
   </svg>
 )
 
-const JuntadasIcon = () => (
+const CompartidasIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="18" height="14" rx="2"/>
     <circle cx="8" cy="10" r="2"/>
@@ -54,7 +54,7 @@ const DBIcon = () => (
 const NAV = [
   { id: 'feed',      label: 'Feed',      Icon: FeedIcon,      to: '/me' },
   { id: 'dash',      label: 'Mesas',     Icon: MesasIcon,     to: '/' },
-  { id: 'juntadas',  label: 'Juntadas',  Icon: JuntadasIcon,  to: '/juntadas' },
+  { id: 'compartidas',  label: 'Compartite',  Icon: CompartidasIcon,  to: '/compartidas' },
   { id: 'users',     label: 'Comunidad', Icon: ComunidadIcon, to: '/users' },
   { id: 'profile',   label: 'Perfil',    Icon: PerfilIcon,    to: '/perfil' },
   { id: 'db',        label: 'DB',        Icon: DBIcon,        to: '/database', adminOnly: true },
@@ -63,7 +63,7 @@ const NAV = [
 function getActiveId(pathname) {
   if (pathname === '/me') return 'feed'
   if (pathname === '/' || pathname.startsWith('/tables')) return 'dash'
-  if (pathname.startsWith('/juntadas')) return 'juntadas'
+  if (pathname.startsWith('/compartidas')) return 'compartidas'
   if (pathname.startsWith('/users')) return 'users'
   if (pathname.startsWith('/perfil')) return 'profile'
   if (pathname.startsWith('/database')) return 'db'

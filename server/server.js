@@ -93,7 +93,7 @@ app.use('/api/tables/:id/ratings', require('./routes/ratings'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/friends', require('./routes/friends'));
-app.use('/api/juntadas', require('./routes/juntadas'));
+app.use('/api/compartidas', require('./routes/compartidas'));
 app.use('/api/notifications', require('./routes/notifications'));
 
 // Health check

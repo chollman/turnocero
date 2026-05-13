@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
-import styles from './CreateJuntadaForm.module.css'
+import styles from './CreateCompartidaForm.module.css'
 
 const PRIVACY_OPTIONS = [
   { value: 'public',  label: 'Público',  desc: 'Todos' },
@@ -9,7 +9,7 @@ const PRIVACY_OPTIONS = [
   { value: 'private', label: 'Solo yo',  desc: 'Privado' },
 ]
 
-export default function CreateJuntadaForm({ onCreated, onCancel, prefilledTableId }) {
+export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTableId }) {
   const { user } = useAuth()
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
@@ -60,7 +60,7 @@ export default function CreateJuntadaForm({ onCreated, onCancel, prefilledTableI
     submittingRef.current = true
     let createdId = null
     try {
-      const { data: created } = await axios.post('/api/juntadas', {
+      const { data: created } = await axios.post('/api/compartidas', {
         title: title.trim(),
         body: body.trim(),
         privacy,
@@ -73,7 +73,7 @@ export default function CreateJuntadaForm({ onCreated, onCancel, prefilledTableI
         const fd = new FormData()
         fd.append('image', img.file)
         const { data: updatedImages } = await axios.post(
-          `/api/juntadas/${created._id}/images`,
+          `/api/compartidas/${created._id}/images`,
           fd,
           { headers: { 'Content-Type': 'multipart/form-data' } }
         )
@@ -84,9 +84,9 @@ export default function CreateJuntadaForm({ onCreated, onCancel, prefilledTableI
       onCreated?.(finalPost)
     } catch (err) {
       if (createdId) {
-        try { await axios.delete(`/api/juntadas/${createdId}`) } catch { /* ignore */ }
+        try { await axios.delete(`/api/compartidas/${createdId}`) } catch { /* ignore */ }
       }
-      setError(err.response?.data?.message || 'Error al publicar la juntada')
+      setError(err.response?.data?.message || 'Error al publicar la compartida')
     } finally {
       setLoading(false)
       submittingRef.current = false
@@ -99,7 +99,7 @@ export default function CreateJuntadaForm({ onCreated, onCancel, prefilledTableI
     <form className={styles.form} onSubmit={handleSubmit}>
       <div className={styles.header}>
         <div className={styles.avatar}>{user.username[0].toUpperCase()}</div>
-        <span className={styles.prompt}>¿Cómo estuvo la juntada?</span>
+        <span className={styles.prompt}>¿Cómo estuvo la compartida?</span>
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
@@ -202,7 +202,7 @@ export default function CreateJuntadaForm({ onCreated, onCancel, prefilledTableI
           </button>
         )}
         <button type="submit" className={styles.submitBtn} disabled={!canSubmit}>
-          {loading ? 'Publicando…' : 'Publicar juntada'}
+          {loading ? 'Publicando…' : 'Publicar compartida'}
         </button>
       </div>
     </form>

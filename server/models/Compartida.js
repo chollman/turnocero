@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const juntadaSchema = new mongoose.Schema(
+const compartidaSchema = new mongoose.Schema(
   {
     author: {
       type: mongoose.Schema.Types.ObjectId,
@@ -47,4 +47,4 @@ const juntadaSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Juntada', juntadaSchema);
+module.exports = mongoose.model('Compartida', compartidaSchema);

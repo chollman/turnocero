@@ -3,12 +3,12 @@ import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../context/AuthContext'
-import JuntadaCard from '../components/JuntadaCard'
-import CreateJuntadaForm from '../components/CreateJuntadaForm'
-import JuntadasSidebar from '../components/JuntadasSidebar'
-import styles from './Juntadas.module.css'
+import CompartidaCard from '../components/CompartidaCard'
+import CreateCompartidaForm from '../components/CreateCompartidaForm'
+import CompartidasSidebar from '../components/CompartidasSidebar'
+import styles from './Compartidas.module.css'
 
-export default function Juntadas() {
+export default function Compartidas() {
   const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const prefilledMesa = searchParams.get('mesa') || ''
@@ -25,8 +25,8 @@ export default function Juntadas() {
     if (pageNum === 1) setLoading(true)
     else setLoadingMore(true)
     try {
-      const { data } = await axios.get('/api/juntadas', { params: { page: pageNum, limit: 10 } })
-      setPosts((prev) => replace ? data.juntadas : [...prev, ...data.juntadas])
+      const { data } = await axios.get('/api/compartidas', { params: { page: pageNum, limit: 10 } })
+      setPosts((prev) => replace ? data.compartidas : [...prev, ...data.compartidas])
       setTotalPages(data.pages)
       setPage(pageNum)
       if (pageNum === 1 && data.featured) setFeatured(data.featured)
@@ -53,19 +53,19 @@ export default function Juntadas() {
     if (featured?._id === updated._id) setFeatured(updated)
   }
 
-  const pageUrl = typeof window !== 'undefined' ? `${window.location.origin}/juntadas` : '/juntadas'
+  const pageUrl = typeof window !== 'undefined' ? `${window.location.origin}/compartidas` : '/compartidas'
 
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Juntadas – Turnocero 🎲</title>
-        <meta name="description" content="Mirá las últimas juntadas de la comunidad de juegos de mesa." />
-        <meta property="og:title"       content="Juntadas – Turnocero 🎲" />
-        <meta property="og:description" content="Mirá las últimas juntadas de la comunidad de juegos de mesa." />
+        <title>Compartidas – Turnocero 🎲</title>
+        <meta name="description" content="Mirá las últimas compartidas de la comunidad de juegos de mesa." />
+        <meta property="og:title"       content="Compartidas – Turnocero 🎲" />
+        <meta property="og:description" content="Mirá las últimas compartidas de la comunidad de juegos de mesa." />
         <meta property="og:url"         content={pageUrl} />
         <meta property="og:type"        content="website" />
-        <meta name="twitter:title"       content="Juntadas – Turnocero 🎲" />
-        <meta name="twitter:description" content="Mirá las últimas juntadas de la comunidad de juegos de mesa." />
+        <meta name="twitter:title"       content="Compartidas – Turnocero 🎲" />
+        <meta name="twitter:description" content="Mirá las últimas compartidas de la comunidad de juegos de mesa." />
       </Helmet>
       <div className={styles.layout}>
       <div className={styles.feedCol}>
@@ -73,7 +73,7 @@ export default function Juntadas() {
         <div className={styles.pageHeader}>
           <div className={styles.heroBlock}>
             <div className={styles.eyebrow}>◆ COMUNIDAD</div>
-            <h1 className={styles.heroTitle}>Juntadas</h1>
+            <h1 className={styles.heroTitle}>Compartidas</h1>
             <p className={styles.heroSub}>Compartí tus partidas, fotos y momentos con la comunidad.</p>
           </div>
           {user && (
@@ -81,14 +81,14 @@ export default function Juntadas() {
               className={`${styles.newBtn} ${showCreate ? styles.newBtnActive : ''}`}
               onClick={() => setShowCreate((s) => !s)}
             >
-              {showCreate ? '✕ Cancelar' : '+ Nueva juntada'}
+              {showCreate ? '✕ Cancelar' : '+ Nueva compartida'}
             </button>
           )}
         </div>
 
         {/* ── Create form ── */}
         {showCreate && (
-          <CreateJuntadaForm
+          <CreateCompartidaForm
             onCreated={handleCreated}
             onCancel={() => setShowCreate(false)}
             prefilledTableId={prefilledMesa}
@@ -99,23 +99,23 @@ export default function Juntadas() {
         {loading ? (
           <div className={styles.spinner}>
             <span className={styles.spinnerDice}>🎲</span>
-            <span className={styles.spinnerText}>Cargando juntadas…</span>
+            <span className={styles.spinnerText}>Cargando compartidas…</span>
           </div>
         ) : posts.length === 0 && !featured ? (
           <div className={styles.empty}>
             <span className={styles.emptyIcon}>🎲</span>
-            <p className={styles.emptyTitle}>No hay juntadas todavía</p>
+            <p className={styles.emptyTitle}>No hay compartidas todavía</p>
             <p className={styles.emptySub}>{user ? '¡Sé el primero en compartir tu partida!' : 'Registrate para compartir tus partidas.'}</p>
             {user && (
               <button className={styles.emptyBtn} onClick={() => setShowCreate(true)}>
-                + Publicar juntada
+                + Publicar compartida
               </button>
             )}
           </div>
         ) : (
           <div className={styles.feed}>
             {featured && (
-              <JuntadaCard
+              <CompartidaCard
                 key={`featured-${featured._id}`}
                 post={featured}
                 featured
@@ -126,7 +126,7 @@ export default function Juntadas() {
             {posts
               .filter((p) => !featured || p._id !== featured._id)
               .map((post) => (
-                <JuntadaCard
+                <CompartidaCard
                   key={post._id}
                   post={post}
                   onDeleted={handleDeleted}
@@ -140,13 +140,13 @@ export default function Juntadas() {
                 onClick={() => loadFeed(page + 1, false)}
                 disabled={loadingMore}
               >
-                {loadingMore ? 'Cargando…' : 'Ver más juntadas'}
+                {loadingMore ? 'Cargando…' : 'Ver más compartidas'}
               </button>
             )}
           </div>
         )}
       </div>
-      <JuntadasSidebar />
+      <CompartidasSidebar />
       </div>
     </div>
   )

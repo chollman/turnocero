@@ -522,10 +522,10 @@ export default function TableDetail() {
       )}
       {(isHost || isPlayer) && (
         <button
-          className={styles.btnShareJuntada}
-          onClick={() => navigate(`/juntadas?mesa=${id}`)}
+          className={styles.btnShareCompartida}
+          onClick={() => navigate(`/compartidas?mesa=${id}`)}
         >
-          📸 Compartir juntada
+          📸 Compartir compartida
         </button>
       )}
     </>

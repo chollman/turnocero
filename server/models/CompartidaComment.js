@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
 
-const juntadaCommentSchema = new mongoose.Schema(
+const compartidaCommentSchema = new mongoose.Schema(
   {
-    juntada: {
+    compartida: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Juntada',
+      ref: 'Compartida',
       required: true,
       index: true,
     },
@@ -27,4 +27,4 @@ const juntadaCommentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model('JuntadaComment', juntadaCommentSchema);
+module.exports = mongoose.model('CompartidaComment', compartidaCommentSchema);

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import GameTile from './GameTile'
-import styles from './JuntadasSidebar.module.css'
+import styles from './CompartidasSidebar.module.css'
 
 function formatDate(date) {
   return new Date(date).toLocaleDateString('es-AR', {
@@ -14,7 +14,7 @@ function seedFromId(id = '') {
   return id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
 }
 
-export default function JuntadasSidebar() {
+export default function CompartidasSidebar() {
   const [tables, setTables] = useState([])
   const [topGames, setTopGames] = useState([])
 

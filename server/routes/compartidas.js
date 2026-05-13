@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const multer = require('../config/multer');
 const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
-const Juntada = require('../models/Juntada');
-const JuntadaComment = require('../models/JuntadaComment');
+const Compartida = require('../models/Compartida');
+const CompartidaComment = require('../models/CompartidaComment');
 const User = require('../models/User');
 const Table = require('../models/Table');
 const { protect, optionalAuth } = require('../middleware/auth');
@@ -14,7 +14,7 @@ const parsePagination = (query) => {
   return { page, limit, skip: (page - 1) * limit };
 };
 
-const populateJuntada = (query) =>
+const populateCompartida = (query) =>
   query
     .populate('author', 'username avatar displayName')
     .populate('linkedTable', 'boardGame date maxPlayers players host status location');
@@ -31,32 +31,32 @@ const visibilityFilter = (user) => {
   };
 };
 
-// ── Attach real comment counts to an array of juntada objects ─────────────
-const withCommentCounts = async (juntadas) => {
-  const ids = juntadas.map((j) => j._id);
-  const counts = await JuntadaComment.aggregate([
-    { $match: { juntada: { $in: ids } } },
-    { $group: { _id: '$juntada', count: { $sum: 1 } } },
+// ── Attach real comment counts to an array of compartida objects ─────────────
+const withCommentCounts = async (compartidas) => {
+  const ids = compartidas.map((j) => j._id);
+  const counts = await CompartidaComment.aggregate([
+    { $match: { compartida: { $in: ids } } },
+    { $group: { _id: '$compartida', count: { $sum: 1 } } },
   ]);
   const map = Object.fromEntries(counts.map((c) => [c._id.toString(), c.count]));
-  return juntadas.map((j) => ({ ...j.toObject(), commentCount: map[j._id.toString()] ?? 0 }));
+  return compartidas.map((j) => ({ ...j.toObject(), commentCount: map[j._id.toString()] ?? 0 }));
 };
 
-// ── GET /api/juntadas — paginated feed (public juntadas visible without auth) ─
+// ── GET /api/compartidas — paginated feed (public compartidas visible without auth) ─
 router.get('/', optionalAuth, async (req, res) => {
   try {
     const { page, limit, skip } = parsePagination(req.query);
     const filter = visibilityFilter(req.user);
 
-    // "Juntada del día" — most-liked post in the last 24h
+    // "Compartida del día" — most-liked post in the last 24h
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const [juntadas, total, allRecent] = await Promise.all([
-      populateJuntada(Juntada.find(filter))
+    const [compartidas, total, allRecent] = await Promise.all([
+      populateCompartida(Compartida.find(filter))
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      Juntada.countDocuments(filter),
-      Juntada.find({ ...filter, createdAt: { $gte: since24h } })
+      Compartida.countDocuments(filter),
+      Compartida.find({ ...filter, createdAt: { $gte: since24h } })
         .sort({ 'likes.length': -1 })
         .limit(10)
         .select('_id likes'),
@@ -70,20 +70,20 @@ router.get('/', optionalAuth, async (req, res) => {
       : null;
 
     const featured = featuredId
-      ? await populateJuntada(Juntada.findById(featuredId))
+      ? await populateCompartida(Compartida.findById(featuredId))
       : null;
 
-    const allForCounts = [...juntadas, ...(featured ? [featured] : [])];
+    const allForCounts = [...compartidas, ...(featured ? [featured] : [])];
     const withCounts = await withCommentCounts(allForCounts);
     const featuredWithCount = featured
       ? withCounts.find((j) => j._id.toString() === featured._id.toString())
       : null;
-    const juntadasWithCounts = withCounts.filter(
+    const compartidasWithCounts = withCounts.filter(
       (j) => !featured || j._id.toString() !== featured._id.toString()
     );
 
     res.json({
-      juntadas: juntadasWithCounts,
+      compartidas: compartidasWithCounts,
       featured: featuredWithCount ?? null,
       total,
       page,
@@ -94,62 +94,62 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
-// ── GET /api/juntadas/:id/og — public OG data for crawlers (no auth) ────
+// ── GET /api/compartidas/:id/og — public OG data for crawlers (no auth) ────
 router.get('/:id/og', async (req, res) => {
   try {
-    const juntada = await Juntada.findById(req.params.id)
+    const compartida = await Compartida.findById(req.params.id)
       .populate('author', 'username displayName')
       .select('title body images privacy author');
-    if (!juntada || juntada.privacy !== 'public') {
+    if (!compartida || compartida.privacy !== 'public') {
       return res.status(404).json({});
     }
     res.json({
-      title:  juntada.title || null,
-      body:   juntada.body?.slice(0, 160) || null,
-      image:  juntada.images?.[0]?.url || null,
-      author: juntada.author.displayName || juntada.author.username,
+      title:  compartida.title || null,
+      body:   compartida.body?.slice(0, 160) || null,
+      image:  compartida.images?.[0]?.url || null,
+      author: compartida.author.displayName || compartida.author.username,
     });
   } catch {
     res.status(500).json({});
   }
 });
 
-// ── GET /api/juntadas/:id — single post (public juntadas visible without auth) ─
+// ── GET /api/compartidas/:id — single post (public compartidas visible without auth) ─
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
-    const juntada = await populateJuntada(Juntada.findById(req.params.id));
-    if (!juntada) return res.status(404).json({ message: 'Juntada no encontrada' });
+    const compartida = await populateCompartida(Compartida.findById(req.params.id));
+    if (!compartida) return res.status(404).json({ message: 'Compartida no encontrada' });
 
     if (!req.user) {
-      if (juntada.privacy !== 'public') {
-        return res.status(403).json({ message: 'No tenés acceso a esta juntada' });
+      if (compartida.privacy !== 'public') {
+        return res.status(403).json({ message: 'No tenés acceso a esta compartida' });
       }
     } else {
       const uid = req.user._id.toString();
-      const isAuthor = juntada.author._id.toString() === uid;
-      const isFriend = req.user.friends.some((f) => f.toString() === juntada.author._id.toString());
+      const isAuthor = compartida.author._id.toString() === uid;
+      const isFriend = req.user.friends.some((f) => f.toString() === compartida.author._id.toString());
       if (
-        (juntada.privacy === 'private' && !isAuthor) ||
-        (juntada.privacy === 'friends' && !isAuthor && !isFriend)
+        (compartida.privacy === 'private' && !isAuthor) ||
+        (compartida.privacy === 'friends' && !isAuthor && !isFriend)
       ) {
-        return res.status(403).json({ message: 'No tenés acceso a esta juntada' });
+        return res.status(403).json({ message: 'No tenés acceso a esta compartida' });
       }
     }
 
-    const commentCount = await JuntadaComment.countDocuments({ juntada: juntada._id });
-    res.json({ ...juntada.toObject(), commentCount });
+    const commentCount = await CompartidaComment.countDocuments({ compartida: compartida._id });
+    res.json({ ...compartida.toObject(), commentCount });
   } catch (err) {
-    res.status(500).json({ message: 'Error al cargar la juntada' });
+    res.status(500).json({ message: 'Error al cargar la compartida' });
   }
 });
 
-// ── POST /api/juntadas — create ───────────────────────────────────────────
+// ── POST /api/compartidas — create ───────────────────────────────────────────
 router.post('/', protect, async (req, res) => {
   try {
     const { title, body, linkedTable, privacy } = req.body;
 
     if (!title?.trim() && !body?.trim()) {
-      return res.status(400).json({ message: 'La juntada necesita al menos un título o texto' });
+      return res.status(400).json({ message: 'La compartida necesita al menos un título o texto' });
     }
 
     // Validate linkedTable belongs to the user (host or player)
@@ -165,7 +165,7 @@ router.post('/', protect, async (req, res) => {
       }
     }
 
-    const juntada = await Juntada.create({
+    const compartida = await Compartida.create({
       author: req.user._id,
       title: title?.trim() || '',
       body: body?.trim() || '',
@@ -173,136 +173,136 @@ router.post('/', protect, async (req, res) => {
       privacy: privacy || 'public',
     });
 
-    await juntada.populate('author', 'username avatar displayName');
-    if (juntada.linkedTable) {
-      await juntada.populate('linkedTable', 'boardGame date maxPlayers players host status location');
+    await compartida.populate('author', 'username avatar displayName');
+    if (compartida.linkedTable) {
+      await compartida.populate('linkedTable', 'boardGame date maxPlayers players host status location');
     }
 
-    res.status(201).json(juntada);
+    res.status(201).json(compartida);
   } catch (err) {
-    res.status(500).json({ message: 'Error al crear la juntada' });
+    res.status(500).json({ message: 'Error al crear la compartida' });
   }
 });
 
-// ── PUT /api/juntadas/:id — edit (author only) ───────────────────────────
+// ── PUT /api/compartidas/:id — edit (author only) ───────────────────────────
 router.put('/:id', protect, async (req, res) => {
   try {
-    const juntada = await Juntada.findById(req.params.id);
-    if (!juntada) return res.status(404).json({ message: 'Juntada no encontrada' });
-    if (juntada.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Solo el autor puede editar esta juntada' });
+    const compartida = await Compartida.findById(req.params.id);
+    if (!compartida) return res.status(404).json({ message: 'Compartida no encontrada' });
+    if (compartida.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Solo el autor puede editar esta compartida' });
     }
 
     const { title, body, privacy, linkedTable } = req.body;
-    if (title !== undefined) juntada.title = title.trim();
-    if (body !== undefined) juntada.body = body.trim();
-    if (privacy !== undefined) juntada.privacy = privacy;
-    if (linkedTable !== undefined) juntada.linkedTable = linkedTable || null;
+    if (title !== undefined) compartida.title = title.trim();
+    if (body !== undefined) compartida.body = body.trim();
+    if (privacy !== undefined) compartida.privacy = privacy;
+    if (linkedTable !== undefined) compartida.linkedTable = linkedTable || null;
 
-    await juntada.save();
-    await populateJuntada(Promise.resolve(juntada));
-    res.json(juntada);
+    await compartida.save();
+    await populateCompartida(Promise.resolve(compartida));
+    res.json(compartida);
   } catch (err) {
-    res.status(500).json({ message: 'Error al editar la juntada' });
+    res.status(500).json({ message: 'Error al editar la compartida' });
   }
 });
 
-// ── DELETE /api/juntadas/:id — delete (author only) ──────────────────────
+// ── DELETE /api/compartidas/:id — delete (author only) ──────────────────────
 router.delete('/:id', protect, async (req, res) => {
   try {
-    const juntada = await Juntada.findById(req.params.id);
-    if (!juntada) return res.status(404).json({ message: 'Juntada no encontrada' });
-    if (juntada.author.toString() !== req.user._id.toString() && !req.user.isAdmin) {
-      return res.status(403).json({ message: 'Solo el autor puede eliminar esta juntada' });
+    const compartida = await Compartida.findById(req.params.id);
+    if (!compartida) return res.status(404).json({ message: 'Compartida no encontrada' });
+    if (compartida.author.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+      return res.status(403).json({ message: 'Solo el autor puede eliminar esta compartida' });
     }
 
     // Delete images from Cloudinary
     await Promise.allSettled(
-      juntada.images.map((img) => cloudinary.uploader.destroy(img.publicId))
+      compartida.images.map((img) => cloudinary.uploader.destroy(img.publicId))
     );
 
-    await JuntadaComment.deleteMany({ juntada: juntada._id });
-    await juntada.deleteOne();
+    await CompartidaComment.deleteMany({ compartida: compartida._id });
+    await compartida.deleteOne();
 
-    res.json({ message: 'Juntada eliminada' });
+    res.json({ message: 'Compartida eliminada' });
   } catch (err) {
-    res.status(500).json({ message: 'Error al eliminar la juntada' });
+    res.status(500).json({ message: 'Error al eliminar la compartida' });
   }
 });
 
-// ── POST /api/juntadas/:id/like — toggle like ────────────────────────────
+// ── POST /api/compartidas/:id/like — toggle like ────────────────────────────
 router.post('/:id/like', protect, async (req, res) => {
   try {
-    const juntada = await Juntada.findById(req.params.id);
-    if (!juntada) return res.status(404).json({ message: 'Juntada no encontrada' });
+    const compartida = await Compartida.findById(req.params.id);
+    if (!compartida) return res.status(404).json({ message: 'Compartida no encontrada' });
 
     // Enforce visibility
     const uid = req.user._id;
     const isVisible =
-      juntada.privacy === 'public' ||
-      juntada.author.toString() === uid.toString() ||
-      (juntada.privacy === 'friends' &&
-        req.user.friends.some((f) => f.toString() === juntada.author.toString()));
-    if (!isVisible) return res.status(403).json({ message: 'No tenés acceso a esta juntada' });
+      compartida.privacy === 'public' ||
+      compartida.author.toString() === uid.toString() ||
+      (compartida.privacy === 'friends' &&
+        req.user.friends.some((f) => f.toString() === compartida.author.toString()));
+    if (!isVisible) return res.status(403).json({ message: 'No tenés acceso a esta compartida' });
 
-    const idx = juntada.likes.findIndex((l) => l.toString() === uid.toString());
+    const idx = compartida.likes.findIndex((l) => l.toString() === uid.toString());
     if (idx === -1) {
-      juntada.likes.push(uid);
+      compartida.likes.push(uid);
     } else {
-      juntada.likes.splice(idx, 1);
+      compartida.likes.splice(idx, 1);
     }
-    await juntada.save();
-    res.json({ likes: juntada.likes.length, liked: idx === -1 });
+    await compartida.save();
+    res.json({ likes: compartida.likes.length, liked: idx === -1 });
   } catch (err) {
     res.status(500).json({ message: 'Error al procesar el like' });
   }
 });
 
-// ── POST /api/juntadas/:id/images — upload (author only, max 3) ──────────
+// ── POST /api/compartidas/:id/images — upload (author only, max 3) ──────────
 router.post('/:id/images', protect, multer.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No se recibió ninguna imagen' });
 
   try {
-    const juntada = await Juntada.findById(req.params.id);
-    if (!juntada) return res.status(404).json({ message: 'Juntada no encontrada' });
-    if (juntada.author.toString() !== req.user._id.toString()) {
+    const compartida = await Compartida.findById(req.params.id);
+    if (!compartida) return res.status(404).json({ message: 'Compartida no encontrada' });
+    if (compartida.author.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Solo el autor puede subir imágenes' });
     }
-    if (juntada.images.length >= 3) {
-      return res.status(400).json({ message: 'Máximo 3 imágenes por juntada' });
+    if (compartida.images.length >= 3) {
+      return res.status(400).json({ message: 'Máximo 3 imágenes por compartida' });
     }
 
     const result = await uploadToCloudinary(req.file.buffer, {
-      folder: `turnocero/juntadas/${req.params.id}`,
+      folder: `turnocero/compartidas/${req.params.id}`,
       transformation: [{ width: 1200, crop: 'limit' }],
     });
 
-    juntada.images.push({ url: result.secure_url, publicId: result.public_id });
-    await juntada.save();
+    compartida.images.push({ url: result.secure_url, publicId: result.public_id });
+    await compartida.save();
 
-    res.status(201).json(juntada.images);
+    res.status(201).json(compartida.images);
   } catch (err) {
     res.status(500).json({ message: 'Error al subir la imagen' });
   }
 });
 
-// ── DELETE /api/juntadas/:id/images/:imgId ───────────────────────────────
+// ── DELETE /api/compartidas/:id/images/:imgId ───────────────────────────────
 router.delete('/:id/images/:imgId', protect, async (req, res) => {
   try {
-    const juntada = await Juntada.findById(req.params.id);
-    if (!juntada) return res.status(404).json({ message: 'Juntada no encontrada' });
+    const compartida = await Compartida.findById(req.params.id);
+    if (!compartida) return res.status(404).json({ message: 'Compartida no encontrada' });
 
-    const image = juntada.images.id(req.params.imgId);
+    const image = compartida.images.id(req.params.imgId);
     if (!image) return res.status(404).json({ message: 'Imagen no encontrada' });
 
-    const isAuthor = juntada.author.toString() === req.user._id.toString();
+    const isAuthor = compartida.author.toString() === req.user._id.toString();
     if (!isAuthor && !req.user.isAdmin) {
       return res.status(403).json({ message: 'No tenés permiso para eliminar esta imagen' });
     }
 
     await cloudinary.uploader.destroy(image.publicId);
     image.deleteOne();
-    await juntada.save();
+    await compartida.save();
 
     res.json({ message: 'Imagen eliminada' });
   } catch (err) {
@@ -310,10 +310,10 @@ router.delete('/:id/images/:imgId', protect, async (req, res) => {
   }
 });
 
-// ── GET /api/juntadas/:id/comments ───────────────────────────────────────
+// ── GET /api/compartidas/:id/comments ───────────────────────────────────────
 router.get('/:id/comments', optionalAuth, async (req, res) => {
   try {
-    const comments = await JuntadaComment.find({ juntada: req.params.id })
+    const comments = await CompartidaComment.find({ compartida: req.params.id })
       .populate('author', 'username avatar displayName')
       .sort({ createdAt: 1 });
     res.json(comments);
@@ -322,17 +322,17 @@ router.get('/:id/comments', optionalAuth, async (req, res) => {
   }
 });
 
-// ── POST /api/juntadas/:id/comments ──────────────────────────────────────
+// ── POST /api/compartidas/:id/comments ──────────────────────────────────────
 router.post('/:id/comments', protect, async (req, res) => {
   try {
-    const juntada = await Juntada.findById(req.params.id);
-    if (!juntada) return res.status(404).json({ message: 'Juntada no encontrada' });
+    const compartida = await Compartida.findById(req.params.id);
+    if (!compartida) return res.status(404).json({ message: 'Compartida no encontrada' });
 
     const { content } = req.body;
     if (!content?.trim()) return res.status(400).json({ message: 'El comentario no puede estar vacío' });
 
-    const comment = await JuntadaComment.create({
-      juntada: juntada._id,
+    const comment = await CompartidaComment.create({
+      compartida: compartida._id,
       author: req.user._id,
       content: content.trim(),
     });
@@ -343,10 +343,10 @@ router.post('/:id/comments', protect, async (req, res) => {
   }
 });
 
-// ── PUT /api/juntadas/:id/comments/:cid ──────────────────────────────────
+// ── PUT /api/compartidas/:id/comments/:cid ──────────────────────────────────
 router.put('/:id/comments/:cid', protect, async (req, res) => {
   try {
-    const comment = await JuntadaComment.findById(req.params.cid);
+    const comment = await CompartidaComment.findById(req.params.cid);
     if (!comment) return res.status(404).json({ message: 'Comentario no encontrado' });
     if (comment.author.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Solo el autor puede editar este comentario' });
@@ -366,16 +366,16 @@ router.put('/:id/comments/:cid', protect, async (req, res) => {
   }
 });
 
-// ── DELETE /api/juntadas/:id/comments/:cid ───────────────────────────────
+// ── DELETE /api/compartidas/:id/comments/:cid ───────────────────────────────
 router.delete('/:id/comments/:cid', protect, async (req, res) => {
   try {
-    const comment = await JuntadaComment.findById(req.params.cid);
+    const comment = await CompartidaComment.findById(req.params.cid);
     if (!comment) return res.status(404).json({ message: 'Comentario no encontrado' });
 
-    const juntada = await Juntada.findById(req.params.id).select('author');
+    const compartida = await Compartida.findById(req.params.id).select('author');
     const uid = req.user._id.toString();
     const isCommentAuthor = comment.author.toString() === uid;
-    const isPostAuthor = juntada?.author.toString() === uid;
+    const isPostAuthor = compartida?.author.toString() === uid;
 
     if (!isCommentAuthor && !isPostAuthor && !req.user.isAdmin) {
       return res.status(403).json({ message: 'No tenés permiso para eliminar este comentario' });

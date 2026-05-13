@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import axios from 'axios'
-import JuntadaCard from '../components/JuntadaCard'
-import JuntadasSidebar from '../components/JuntadasSidebar'
-import styles from './JuntadaPost.module.css'
+import CompartidaCard from '../components/CompartidaCard'
+import CompartidasSidebar from '../components/CompartidasSidebar'
+import styles from './CompartidaPost.module.css'
 
-export default function JuntadaPost() {
+export default function CompartidaPost() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [post, setPost] = useState(null)
@@ -14,25 +14,25 @@ export default function JuntadaPost() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    axios.get(`/api/juntadas/${id}`)
+    axios.get(`/api/compartidas/${id}`)
       .then(({ data }) => setPost(data))
       .catch((err) => {
-        if (err.response?.status === 404) setError('Esta juntada no existe o fue eliminada.')
-        else if (err.response?.status === 403) setError('No tenés acceso a esta juntada.')
-        else setError('Error al cargar la juntada.')
+        if (err.response?.status === 404) setError('Esta compartida no existe o fue eliminada.')
+        else if (err.response?.status === 403) setError('No tenés acceso a esta compartida.')
+        else setError('Error al cargar la compartida.')
       })
       .finally(() => setLoading(false))
   }, [id])
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const postUrl = `${origin}/juntadas/${id}`
+  const postUrl = `${origin}/compartidas/${id}`
   const authorName = post ? (post.author.displayName || post.author.username) : 'Turnocero'
   const metaTitle = post?.title
     ? `${post.title} – Turnocero 🎲`
-    : `Juntada de ${authorName} – Turnocero 🎲`
+    : `Compartida de ${authorName} – Turnocero 🎲`
   const metaDesc = post?.body
     ? post.body.slice(0, 160) + (post.body.length > 160 ? '…' : '')
-    : 'Mirá esta juntada en Turnocero, la comunidad de juegos de mesa.'
+    : 'Mirá esta compartida en Turnocero, la comunidad de juegos de mesa.'
   const rawImage = post?.images?.[0]?.url
   // Resize to 1200×630 via Cloudinary transformation for optimal OG display
   const metaImage = rawImage
@@ -69,7 +69,7 @@ export default function JuntadaPost() {
 
       <div className={styles.layout}>
         <div className={styles.feedCol}>
-          <button className={styles.backBtn} onClick={() => navigate('/juntadas')}>
+          <button className={styles.backBtn} onClick={() => navigate('/compartidas')}>
             ← Volver al feed
           </button>
 
@@ -82,21 +82,21 @@ export default function JuntadaPost() {
           {error && (
             <div className={styles.errorBox}>
               <p>{error}</p>
-              <button className={styles.backLink} onClick={() => navigate('/juntadas')}>
-                Ir al feed de Juntadas
+              <button className={styles.backLink} onClick={() => navigate('/compartidas')}>
+                Ir al feed de Compartidas
               </button>
             </div>
           )}
 
           {post && (
-            <JuntadaCard
+            <CompartidaCard
               post={post}
-              onDeleted={() => navigate('/juntadas')}
+              onDeleted={() => navigate('/compartidas')}
               onUpdated={(updated) => setPost(updated)}
             />
           )}
         </div>
-        <JuntadasSidebar />
+        <CompartidasSidebar />
       </div>
     </div>
   )

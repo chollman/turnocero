@@ -12,8 +12,8 @@ function esc(str) {
 export default async function middleware(request) {
   const url = new URL(request.url)
 
-  // Only handle /juntadas/<mongoId>
-  const match = url.pathname.match(/^\/juntadas\/([a-f\d]{24})$/i)
+  // Only handle /compartidas/<mongoId>
+  const match = url.pathname.match(/^\/compartidas\/([a-f\d]{24})$/i)
   if (!match) return
 
   const ua = request.headers.get('user-agent') || ''
@@ -23,18 +23,18 @@ export default async function middleware(request) {
   if (!apiUrl) return
 
   const [, id] = match
-  const postUrl = `${url.origin}/juntadas/${id}`
+  const postUrl = `${url.origin}/compartidas/${id}`
 
   try {
-    const apiRes = await fetch(`${apiUrl}/api/juntadas/${id}/og`)
+    const apiRes = await fetch(`${apiUrl}/api/compartidas/${id}/og`)
     if (!apiRes.ok) return
     const data = await apiRes.json()
 
     const title = data.title
       ? `${data.title} – Turnocero 🎲`
-      : `Juntada de ${data.author} – Turnocero 🎲`
+      : `Compartida de ${data.author} – Turnocero 🎲`
     const desc =
-      data.body || 'Mirá esta juntada en Turnocero, la comunidad de juegos de mesa.'
+      data.body || 'Mirá esta compartida en Turnocero, la comunidad de juegos de mesa.'
     const image = data.image
       ? data.image.replace('/upload/', '/upload/w_1200,h_630,c_fill,g_auto/')
       : `${url.origin}/og-default.png`
@@ -74,5 +74,5 @@ export default async function middleware(request) {
 }
 
 export const config = {
-  matcher: '/juntadas/:id*',
+  matcher: '/compartidas/:id*',
 }
