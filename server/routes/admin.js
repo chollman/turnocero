@@ -24,14 +24,35 @@ router.get('/collections/:name', protect, requireAdmin, async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
     const skip = (page - 1) * limit;
+    const searchTerm = (req.query.search || '').trim();
 
     const col = mongoose.connection.db.collection(name);
+
+    let query = {};
+    if (searchTerm) {
+      if (/^[0-9a-f]{24}$/i.test(searchTerm)) {
+        try {
+          query = { _id: new mongoose.Types.ObjectId(searchTerm) };
+        } catch { /* invalid ObjectId, keep empty query */ }
+      } else {
+        const sample = await col.findOne({});
+        if (sample) {
+          const stringFields = Object.entries(sample)
+            .filter(([, v]) => typeof v === 'string')
+            .map(([k]) => k);
+          if (stringFields.length > 0) {
+            query = { $or: stringFields.map((f) => ({ [f]: { $regex: searchTerm, $options: 'i' } })) };
+          }
+        }
+      }
+    }
+
     const [docs, total] = await Promise.all([
-      col.find({}).skip(skip).limit(limit).toArray(),
-      col.countDocuments(),
+      col.find(query).skip(skip).limit(limit).toArray(),
+      col.countDocuments(query),
     ]);
 
-    res.json({ docs, total, page, pages: Math.ceil(total / limit) });
+    res.json({ docs, total, page, pages: Math.ceil(total / limit) || 1 });
   } catch {
     res.status(500).json({ message: 'Server error' });
   }

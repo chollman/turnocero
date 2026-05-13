@@ -36,6 +36,8 @@ function DatabaseViewerInner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [toggling, setToggling] = useState(null);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   useEffect(() => {
     axios.get('/api/admin/collections')
@@ -47,15 +49,23 @@ function DatabaseViewerInner() {
   }, []);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
     if (!activeCol) return;
     let cancelled = false;
     const load = async () => {
       setLoading(true);
       setError('');
       try {
-        const { data } = await axios.get(`/api/admin/collections/${activeCol}`, {
-          params: { page, limit: 50 },
-        });
+        const params = { page, limit: 50 };
+        if (debouncedSearch) params.search = debouncedSearch;
+        const { data } = await axios.get(`/api/admin/collections/${activeCol}`, { params });
         if (cancelled) return;
         setDocs(data.docs);
         setPagination({ page: data.page, pages: data.pages, total: data.total });
@@ -68,12 +78,13 @@ function DatabaseViewerInner() {
     };
     load();
     return () => { cancelled = true; };
-  }, [activeCol, page]);
+  }, [activeCol, page, debouncedSearch]);
 
   const handleColChange = (name) => {
     if (name === activeCol) return;
     setActiveCol(name);
     setPage(1);
+    setSearch('');
     setDocs([]);
     setColumns([]);
   };
@@ -116,6 +127,21 @@ function DatabaseViewerInner() {
           </div>
         )}
 
+        {activeCol && (
+          <div className={styles.searchBar}>
+            <input
+              className={styles.searchInput}
+              type="text"
+              placeholder="Buscar en la colección…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button className={styles.searchClear} onClick={() => setSearch('')}>✕</button>
+            )}
+          </div>
+        )}
+
         {error && <p className={styles.error}>{error}</p>}
 
         {loading ? (
@@ -125,12 +151,14 @@ function DatabaseViewerInner() {
           </div>
         ) : !error && docs.length === 0 && activeCol ? (
           <div className={styles.center}>
-            <p>La colección está vacía</p>
+            <p>{debouncedSearch ? `Sin resultados para "${debouncedSearch}"` : 'La colección está vacía'}</p>
           </div>
         ) : columns.length > 0 && (
           <>
             <p className={styles.meta}>
-              {pagination.total} documentos · página {pagination.page}/{pagination.pages}
+              {debouncedSearch
+                ? `${pagination.total} resultado${pagination.total !== 1 ? 's' : ''} para "${debouncedSearch}" · página ${pagination.page}/${pagination.pages}`
+                : `${pagination.total} documentos · página ${pagination.page}/${pagination.pages}`}
             </p>
             <div className={styles.tableWrap}>
               <table className={styles.table}>
