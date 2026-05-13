@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import styles from './BottomNav.module.css'
@@ -111,6 +111,19 @@ export default function BottomNav() {
   const scrollable = items.length > VISIBLE
 
   const [startIndex, setStartIndex] = useState(0)
+  const touchStartX = useRef(null)
+
+  function handleTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX
+  }
+
+  function handleTouchEnd(e) {
+    if (touchStartX.current === null || !scrollable) return
+    const delta = touchStartX.current - e.changedTouches[0].clientX
+    touchStartX.current = null
+    if (delta > 50 && canGoRight) setStartIndex(i => i + 1)
+    else if (delta < -50 && canGoLeft) setStartIndex(i => i - 1)
+  }
 
   // Keep the active item visible when navigating
   useEffect(() => {
@@ -129,7 +142,11 @@ export default function BottomNav() {
   const canGoRight = scrollable && startIndex + VISIBLE < items.length
 
   return (
-    <nav className={`${styles.nav} ${scrollable ? styles.navScrollable : ''}`}>
+    <nav
+      className={`${styles.nav} ${scrollable ? styles.navScrollable : ''}`}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {scrollable && (
         <button
           className={styles.arrow}
