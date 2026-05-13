@@ -2,13 +2,13 @@
   display: flex;
   flex-direction: column;
   height: calc(100vh - var(--navbar-h) - 60px);
-  max-width: 720px;
-  margin: 0 auto;
+  margin-top: var(--navbar-h);
 }
 
 @media (min-width: 960px) {
   .page {
-    height: calc(100vh - 48px);
+    height: 100vh;
+    margin-top: 0;
   }
 }
 
