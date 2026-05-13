@@ -114,7 +114,7 @@ function getActiveId(pathname) {
 
 export default function Sidebar() {
   const { user, logout } = useAuth()
-  const { unreadCount } = useNotifications()
+  const { unreadCount, adminChatUnread } = useNotifications()
   const { dmUnreadTotal } = useChat()
   const location = useLocation()
   const navigate = useNavigate()
@@ -142,6 +142,7 @@ export default function Sidebar() {
           let badge = null
           if (item.id === 'notif' && unreadCount > 0) badge = unreadCount > 9 ? '9+' : unreadCount
           if (item.id === 'mensajes' && dmUnreadTotal > 0) badge = dmUnreadTotal > 9 ? '9+' : dmUnreadTotal
+          if (item.id === 'adminChat' && adminChatUnread > 0) badge = adminChatUnread > 9 ? '9+' : adminChatUnread
           return (
             <Link
               key={item.id}

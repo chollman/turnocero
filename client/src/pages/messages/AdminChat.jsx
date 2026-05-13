@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { io } from 'socket.io-client';
 import styles from './AdminChat.module.css';
 
@@ -11,6 +12,7 @@ function formatTime(date) {
 
 export default function AdminChat() {
   const { user } = useAuth();
+  const { setAdminChatActive } = useNotifications();
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -21,6 +23,11 @@ export default function AdminChat() {
   useEffect(() => {
     if (user && !user.isAdmin) navigate('/', { replace: true });
   }, [user, navigate]);
+
+  useEffect(() => {
+    setAdminChatActive(true);
+    return () => setAdminChatActive(false);
+  }, [setAdminChatActive]);
 
   useEffect(() => {
     if (!user?.isAdmin) return;

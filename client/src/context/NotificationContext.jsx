@@ -22,7 +22,9 @@ export function NotificationProvider({ children }) {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState(loadFromStorage);
   const [toasts, setToasts] = useState([]);
+  const [adminChatUnread, setAdminChatUnread] = useState(0);
   const activeTableRef = useRef(null);
+  const adminChatActiveRef = useRef(false);
   const dmListenersRef = useRef(new Set());
 
   // Load from server when user is available (overrides localStorage cache)
@@ -183,6 +185,12 @@ export function NotificationProvider({ children }) {
       dmListenersRef.current.forEach((fn) => fn(msg));
     });
 
+    socket.on('admin:message', () => {
+      if (!adminChatActiveRef.current) {
+        setAdminChatUnread((prev) => prev + 1);
+      }
+    });
+
     return () => socket.disconnect();
   }, [user]);
 
@@ -226,6 +234,11 @@ export function NotificationProvider({ children }) {
     return () => dmListenersRef.current.delete(fn);
   }, []);
 
+  const setAdminChatActive = useCallback((active) => {
+    adminChatActiveRef.current = active;
+    if (active) setAdminChatUnread(0);
+  }, []);
+
   const totalUnread = notifications.filter((n) => !n.read).reduce((sum, n) => sum + (n.count || 1), 0);
 
   return (
@@ -240,6 +253,8 @@ export function NotificationProvider({ children }) {
       dismissToast,
       addToast,
       addDmListener,
+      adminChatUnread,
+      setAdminChatActive,
     }}>
       {children}
     </NotificationContext.Provider>
