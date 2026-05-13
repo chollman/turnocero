@@ -4,6 +4,7 @@ import axios from 'axios'
 import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../context/AuthContext'
 import CompartidaCard from '../components/CompartidaCard'
+import CompartidaSkeleton from '../components/CompartidaSkeleton'
 import CreateCompartidaForm from '../components/CreateCompartidaForm'
 import CompartidasSidebar from '../components/CompartidasSidebar'
 import styles from './Compartidas.module.css'
@@ -97,9 +98,10 @@ export default function Compartidas() {
 
         {/* ── Feed ── */}
         {loading ? (
-          <div className={styles.spinner}>
-            <span className={styles.spinnerDice}>🎲</span>
-            <span className={styles.spinnerText}>Cargando compartidas…</span>
+          <div className={styles.feed}>
+            <CompartidaSkeleton />
+            <CompartidaSkeleton />
+            <CompartidaSkeleton />
           </div>
         ) : posts.length === 0 && !featured ? (
           <div className={styles.empty}>
