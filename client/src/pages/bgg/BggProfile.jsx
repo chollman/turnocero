@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './BggProfile.module.css';
 
+const COLLECTION_PAGE_SIZE = 24;
+const PLAYS_PAGE_SIZE = 30; // BGG returns 30 per page server-side
+
 function formatDate(iso) {
   if (!iso) return null;
   const [year, month, day] = iso.split('-');
@@ -11,9 +14,54 @@ function formatDate(iso) {
   });
 }
 
-function StarRating({ value, max = 10 }) {
+function StarRating({ value }) {
   if (!value) return <span className={styles.ratingNull}>—</span>;
   return <span className={styles.rating}>{Number(value).toFixed(1)}</span>;
+}
+
+function Pagination({ page, totalPages, onPage }) {
+  if (totalPages <= 1) return null;
+
+  const range = [];
+  const delta = 2;
+  const left = Math.max(1, page - delta);
+  const right = Math.min(totalPages, page + delta);
+
+  if (left > 1) { range.push(1); if (left > 2) range.push('…'); }
+  for (let i = left; i <= right; i++) range.push(i);
+  if (right < totalPages) { if (right < totalPages - 1) range.push('…'); range.push(totalPages); }
+
+  return (
+    <div className={styles.pagination}>
+      <button
+        className={styles.pageBtn}
+        onClick={() => onPage(page - 1)}
+        disabled={page === 1}
+      >
+        ‹
+      </button>
+      {range.map((item, i) =>
+        item === '…'
+          ? <span key={`ellipsis-${i}`} className={styles.pageEllipsis}>…</span>
+          : (
+            <button
+              key={item}
+              className={`${styles.pageBtn} ${item === page ? styles.pageBtnActive : ''}`}
+              onClick={() => onPage(item)}
+            >
+              {item}
+            </button>
+          )
+      )}
+      <button
+        className={styles.pageBtn}
+        onClick={() => onPage(page + 1)}
+        disabled={page === totalPages}
+      >
+        ›
+      </button>
+    </div>
+  );
 }
 
 function GameCard({ game }) {
@@ -68,12 +116,19 @@ export default function BggProfile() {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('coleccion');
+
+  // Collection state (all data fetched once, paginated client-side)
   const [collection, setCollection] = useState(null);
-  const [plays, setPlays] = useState(null);
   const [loadingCollection, setLoadingCollection] = useState(false);
-  const [loadingPlays, setLoadingPlays] = useState(false);
   const [errorCollection, setErrorCollection] = useState(null);
+  const [collectionPage, setCollectionPage] = useState(1);
+
+  // Plays state (server-side pagination)
+  const [plays, setPlays] = useState(null);
+  const [loadingPlays, setLoadingPlays] = useState(false);
   const [errorPlays, setErrorPlays] = useState(null);
+  const [playsPage, setPlaysPage] = useState(1);
+  const [playsLoaded, setPlaysLoaded] = useState(false);
 
   useEffect(() => {
     setLoadingCollection(true);
@@ -84,16 +139,39 @@ export default function BggProfile() {
       .finally(() => setLoadingCollection(false));
   }, [bggUsername]);
 
-  const handleTabPlays = () => {
-    setActiveTab('partidas');
-    if (plays || loadingPlays) return;
+  const fetchPlays = (page) => {
     setLoadingPlays(true);
     setErrorPlays(null);
-    axios.get(`/api/bgg/partidas/${encodeURIComponent(bggUsername)}`)
-      .then(({ data }) => setPlays(data))
+    axios.get(`/api/bgg/partidas/${encodeURIComponent(bggUsername)}?page=${page}`)
+      .then(({ data }) => { setPlays(data); setPlaysLoaded(true); })
       .catch((err) => setErrorPlays(err.response?.data?.message || 'No se pudo cargar las partidas'))
       .finally(() => setLoadingPlays(false));
   };
+
+  const handleTabPlays = () => {
+    setActiveTab('partidas');
+    if (!playsLoaded) fetchPlays(1);
+  };
+
+  const handlePlaysPage = (page) => {
+    setPlaysPage(page);
+    fetchPlays(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCollectionPage = (page) => {
+    setCollectionPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Derived collection pagination
+  const collectionTotalPages = collection ? Math.ceil(collection.length / COLLECTION_PAGE_SIZE) : 0;
+  const collectionSlice = collection
+    ? collection.slice((collectionPage - 1) * COLLECTION_PAGE_SIZE, collectionPage * COLLECTION_PAGE_SIZE)
+    : [];
+
+  // Derived plays pagination
+  const playsTotalPages = plays ? Math.ceil(plays.total / PLAYS_PAGE_SIZE) : 0;
 
   return (
     <div className={styles.page}>
@@ -151,11 +229,23 @@ export default function BggProfile() {
               </div>
             )}
             {collection && collection.length > 0 && (
-              <div className={styles.gameGrid}>
-                {collection.map((game) => (
-                  <GameCard key={game.id} game={game} />
-                ))}
-              </div>
+              <>
+                <div className={styles.paginationHeader}>
+                  <span className={styles.paginationInfo}>
+                    {collection.length} juegos · página {collectionPage} de {collectionTotalPages}
+                  </span>
+                </div>
+                <div className={styles.gameGrid}>
+                  {collectionSlice.map((game) => (
+                    <GameCard key={game.id} game={game} />
+                  ))}
+                </div>
+                <Pagination
+                  page={collectionPage}
+                  totalPages={collectionTotalPages}
+                  onPage={handleCollectionPage}
+                />
+              </>
             )}
           </div>
         )}
@@ -182,10 +272,18 @@ export default function BggProfile() {
               <div className={styles.playsList}>
                 <div className={styles.playsHeader}>
                   <span className={styles.playsTotal}>{plays.total} partidas registradas</span>
+                  <span className={styles.paginationInfo}>
+                    página {playsPage} de {playsTotalPages}
+                  </span>
                 </div>
                 {plays.plays.map((play) => (
                   <PlayRow key={play.id} play={play} />
                 ))}
+                <Pagination
+                  page={playsPage}
+                  totalPages={playsTotalPages}
+                  onPage={handlePlaysPage}
+                />
               </div>
             )}
           </div>

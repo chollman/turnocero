@@ -210,7 +210,12 @@
 }
 
 .playsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0 0 12px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .playsTotal {
@@ -263,6 +268,70 @@
   padding: 2px 8px;
   font-size: 11px;
   color: var(--text-muted);
+}
+
+/* ─── Pagination ─── */
+.paginationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+.paginationInfo {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+
+.pageBtn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.pageBtn:hover:not(:disabled) {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.pageBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pageBtnActive {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--bg-dark);
+}
+
+.pageBtnActive:hover:not(:disabled) {
+  background: var(--amber);
+  color: var(--bg-dark);
+}
+
+.pageEllipsis {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 0 4px;
+  line-height: 34px;
 }
 
 /* ─── States ─── */
