@@ -6,8 +6,8 @@ const noticiaSchema = new mongoose.Schema(
     body:   { type: String, trim: true, maxlength: 2000 },
     link:   { type: String, trim: true, maxlength: 500 },
     image: {
-      url:      { type: String, required: true },
-      publicId: { type: String, required: true },
+      url:      { type: String },
+      publicId: { type: String },
     },
     author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },

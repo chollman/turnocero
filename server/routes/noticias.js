@@ -27,21 +27,23 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
-// POST /api/noticias — admin only, multipart/form-data with image
+// POST /api/noticias — admin only, multipart/form-data with optional image
 router.post('/', protect, requireAdmin, multer.single('image'), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: 'La imagen es obligatoria' });
-
-    const result = await uploadToCloudinary(req.file.buffer, {
-      folder: 'turnocero/noticias',
-      transformation: [{ width: 1200, crop: 'limit' }],
-    });
+    let image;
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer, {
+        folder: 'turnocero/noticias',
+        transformation: [{ width: 1200, crop: 'limit' }],
+      });
+      image = { url: result.secure_url, publicId: result.public_id };
+    }
 
     const noticia = await Noticia.create({
       title:  req.body.title?.trim() || undefined,
       body:   req.body.body?.trim()  || undefined,
       link:   req.body.link?.trim()  || undefined,
-      image:  { url: result.secure_url, publicId: result.public_id },
+      image,
       author: req.user._id,
     });
 
@@ -85,7 +87,7 @@ router.delete('/:id', protect, requireAdmin, async (req, res) => {
     const noticia = await Noticia.findById(req.params.id);
     if (!noticia) return res.status(404).json({ message: 'Noticia no encontrada' });
 
-    await cloudinary.uploader.destroy(noticia.image.publicId);
+    if (noticia.image?.publicId) await cloudinary.uploader.destroy(noticia.image.publicId);
     await noticia.deleteOne();
 
     res.json({ message: 'Noticia eliminada' });

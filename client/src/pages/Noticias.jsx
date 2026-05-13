@@ -114,7 +114,7 @@ function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
         {editing ? (
           <div className={styles.editImageWrap}>
             <ImageDropzone
-              preview={newPreview || noticia.image.url}
+              preview={newPreview || noticia.image?.url || null}
               onFile={handleNewFile}
             />
             {newFile && (
@@ -123,15 +123,16 @@ function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
               </span>
             )}
           </div>
-        ) : (
+        ) : noticia.image?.url ? (
           <button
             className={styles.imageBtn}
             onClick={() => setLightbox(true)}
             aria-label="Ver imagen completa"
           >
+            <img src={noticia.image.url} alt="" className={styles.imageBg} aria-hidden="true" />
             <img src={noticia.image.url} alt={noticia.title || 'Noticia'} className={styles.image} />
           </button>
-        )}
+        ) : null}
 
         <div className={styles.cardBody}>
           {/* ── Meta row: date + admin actions ── */}
@@ -216,7 +217,7 @@ function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
         </div>
       </article>
 
-      {lightbox && (
+      {lightbox && noticia.image?.url && (
         <div className={styles.lightbox} onClick={() => setLightbox(false)}>
           <img src={noticia.image.url} alt={noticia.title || ''} className={styles.lightboxImg} />
           <button className={styles.lightboxClose}>✕</button>
@@ -243,7 +244,6 @@ function CreateForm({ onCreated, onCancel }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!file) { setError('Seleccioná una imagen'); return }
     setSub(true)
     setError('')
     try {
@@ -301,7 +301,7 @@ function CreateForm({ onCreated, onCancel }) {
         <button type="button" className={styles.btnGhost} onClick={onCancel} disabled={submitting}>
           Cancelar
         </button>
-        <button type="submit" className={styles.btnPublish} disabled={submitting || !file}>
+        <button type="submit" className={styles.btnPublish} disabled={submitting}>
           {submitting ? 'Publicando…' : 'Publicar'}
         </button>
       </div>
@@ -392,7 +392,10 @@ export default function Noticias() {
             )}
           </div>
         ) : (
-          <div className={styles.feed}>
+          <div
+            className={styles.feed}
+            style={{ gridTemplateColumns: `repeat(${Math.min(3, noticias.length)}, 1fr)` }}
+          >
             {noticias.map((n) => (
               <NoticiaCard
                 key={n._id}
