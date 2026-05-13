@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import styles from './UserProfile.module.css';

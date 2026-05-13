@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useNotifications } from '../context/NotificationContext';
+import { useNotifications } from '../../context/NotificationContext';
 import styles from './Notifications.module.css';
 
 function getNotifMeta(n) {

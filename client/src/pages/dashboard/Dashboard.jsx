@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
-import TableCard from '../components/TableCard';
+import { useAuth } from '../../context/AuthContext';
+import TableCard from './TableCard';
 import styles from './Dashboard.module.css';
 
 const TABS = [

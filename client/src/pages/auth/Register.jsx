@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useAuth } from "../context/AuthContext";
-import PasswordInput from "../components/PasswordInput";
-import GameTile from "../components/GameTile";
+import { useAuth } from "../../context/AuthContext";
+import PasswordInput from "./PasswordInput";
+import GameTile from "../../components/shared/GameTile";
 import styles from "./Auth.module.css";
 import { ShowcaseCard } from "./Login";
 

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import GameTile from './GameTile';
+import GameTile from '../../components/shared/GameTile';
 import styles from './FeedCard.module.css';
 
 function seedFromId(id = '') {

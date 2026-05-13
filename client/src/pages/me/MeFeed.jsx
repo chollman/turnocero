@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
-import GameTile from '../components/GameTile';
-import FeedCard from '../components/FeedCard';
+import { useAuth } from '../../context/AuthContext';
+import GameTile from '../../components/shared/GameTile';
+import FeedCard from './FeedCard';
 import styles from './MeFeed.module.css';
 
 const FILTERS = [

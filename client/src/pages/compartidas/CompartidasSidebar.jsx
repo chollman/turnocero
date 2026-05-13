@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
-import GameTile from './GameTile'
+import GameTile from '../../components/shared/GameTile'
 import styles from './CompartidasSidebar.module.css'
 
 function formatDate(date) {

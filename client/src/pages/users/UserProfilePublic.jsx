@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
-import GameTile from '../components/GameTile';
+import { useAuth } from '../../context/AuthContext';
+import GameTile from '../../components/shared/GameTile';
 import styles from './UserProfilePublic.module.css';
 
 function seedFromId(id = '') {

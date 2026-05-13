@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import axios from 'axios'
-import CompartidaCard from '../components/CompartidaCard'
-import CompartidasSidebar from '../components/CompartidasSidebar'
+import CompartidaCard from './CompartidaCard'
+import CompartidasSidebar from './CompartidasSidebar'
 import styles from './CompartidaPost.module.css'
 
 export default function CompartidaPost() {

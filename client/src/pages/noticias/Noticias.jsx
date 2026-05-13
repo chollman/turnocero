@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import axios from 'axios'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../../context/AuthContext'
 import styles from './Noticias.module.css'
 
 function timeAgo(date) {

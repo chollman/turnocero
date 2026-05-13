@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { useAuth } from '../context/AuthContext'
-import GameTile from './GameTile'
-import LoginPromptModal from './LoginPromptModal'
+import { useAuth } from '../../context/AuthContext'
+import GameTile from '../../components/shared/GameTile'
+import LoginPromptModal from '../../components/shared/LoginPromptModal'
 import styles from './CompartidaCard.module.css'
 
 function buildShareData(post) {

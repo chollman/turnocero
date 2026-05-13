@@ -155,32 +155,21 @@ GET    /api/admin/*                             — isAdmin only
 ### Frontend pages
 ```
 App (AuthProvider + NotificationProvider + Router)
-├── GuestNavbar                 ← shown to unauthenticated users (non-auth pages)
-├── Sidebar                     ← desktop left nav (authenticated)
-├── Navbar                      ← top bar / mobile (authenticated), notification badge
-├── BottomNav                   ← mobile bottom tabs (authenticated)
+├── components/layout/          ← shell (GuestNavbar, Sidebar, Navbar, BottomNav,
+│                                  BoardGameBackground, SplashScreen, ToastContainer)
+├── components/shared/          ← GameTile, LoginPromptModal
 │
-├── PublicRoute
-│   ├── Login
-│   └── Register
+├── pages/auth/                 ← Login, Register + PasswordInput, AuthLogo
 │
-├── Public (no login required)
-│   ├── Dashboard /             ← All/Mine tabs, search, pagination → TableCard
-│   ├── TableDetail /tables/:id ← chat, join/leave, comments, reactions, gallery
-│   ├── Compartidas /compartidas ← social feed, featured post, create form
-│   ├── CompartidaPost /compartidas/:id
-│   ├── Noticias /noticias
-│   ├── NoticiaDetail /noticias/:id
-│   ├── UsersList /users
-│   └── UserProfilePublic /users/:id
-│
-└── PrivateRoute
-    ├── CreateTable /create
-    ├── EditTable /tables/:id/edit
-    ├── Notifications /notifications
-    ├── UserProfile /perfil      ← avatar, displayName, nombre, apellido, direccion, telegram, celular
-    ├── MeFeed /me               ← personal activity feed
-    └── DatabaseViewer /database ← isAdmin only; raw collection viewer
+├── pages/dashboard/            ← Dashboard / + TableCard
+├── pages/tables/               ← TableDetail /tables/:id, CreateTable /create, EditTable /tables/:id/edit
+├── pages/compartidas/          ← Compartidas /compartidas, CompartidaPost /compartidas/:id
+│                                  + CompartidaCard, CompartidaSkeleton, CompartidasSidebar, CreateCompartidaForm
+├── pages/noticias/             ← Noticias /noticias, NoticiaDetail /noticias/:id
+├── pages/me/                   ← MeFeed /me + FeedCard
+├── pages/users/                ← UsersList /users, UserProfile /perfil, UserProfilePublic /users/:id
+├── pages/notifications/        ← Notifications /notifications
+└── pages/admin/                ← DatabaseViewer /database (isAdmin only)
 ```
 
 ### Styling
