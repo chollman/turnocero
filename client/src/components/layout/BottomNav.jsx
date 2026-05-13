@@ -112,74 +112,103 @@ export default function BottomNav() {
 
   const [startIndex, setStartIndex] = useState(0)
   const touchStartX = useRef(null)
+  const slideDir = useRef(null)
+
+  const visibleItems = scrollable ? items.slice(startIndex, startIndex + VISIBLE) : items
+  const canGoLeft = scrollable && startIndex > 0
+  const canGoRight = scrollable && startIndex + VISIBLE < items.length
+
+  function goLeft() {
+    if (!canGoLeft) return
+    slideDir.current = 'right'
+    setStartIndex(i => i - 1)
+  }
+
+  function goRight() {
+    if (!canGoRight) return
+    slideDir.current = 'left'
+    setStartIndex(i => i + 1)
+  }
 
   function handleTouchStart(e) {
     touchStartX.current = e.touches[0].clientX
   }
 
   function handleTouchEnd(e) {
-    if (touchStartX.current === null || !scrollable) return
+    if (touchStartX.current === null) return
     const delta = touchStartX.current - e.changedTouches[0].clientX
     touchStartX.current = null
-    if (delta > 50 && canGoRight) setStartIndex(i => i + 1)
-    else if (delta < -50 && canGoLeft) setStartIndex(i => i - 1)
+    if (delta > 50) goRight()
+    else if (delta < -50) goLeft()
   }
 
-  // Keep the active item visible when navigating
+  // Keep the active item visible when navigating via router
   useEffect(() => {
     if (!scrollable) return
     const activeIdx = items.findIndex(item => item.id === active)
     if (activeIdx < 0) return
     setStartIndex(prev => {
-      if (activeIdx < prev) return activeIdx
-      if (activeIdx >= prev + VISIBLE) return activeIdx - VISIBLE + 1
+      if (activeIdx < prev) {
+        slideDir.current = 'right'
+        return activeIdx
+      }
+      if (activeIdx >= prev + VISIBLE) {
+        slideDir.current = 'left'
+        return activeIdx - VISIBLE + 1
+      }
       return prev
     })
   }, [active]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const visibleItems = scrollable ? items.slice(startIndex, startIndex + VISIBLE) : items
-  const canGoLeft = scrollable && startIndex > 0
-  const canGoRight = scrollable && startIndex + VISIBLE < items.length
+  const animClass = slideDir.current === 'left' ? styles.slideLeft
+                  : slideDir.current === 'right' ? styles.slideRight
+                  : ''
+
+  const renderItem = ({ id, label, Icon, to }) => {
+    const isActive = id === active
+    return (
+      <Link
+        key={id}
+        to={to}
+        className={`${styles.item} ${isActive ? styles.itemActive : ''}`}
+      >
+        <span className={styles.icon}><Icon /></span>
+        <span className={styles.label}>{label}</span>
+        {isActive && <span className={styles.activeDot} />}
+      </Link>
+    )
+  }
 
   return (
     <nav
       className={`${styles.nav} ${scrollable ? styles.navScrollable : ''}`}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      onTouchStart={scrollable ? handleTouchStart : undefined}
+      onTouchEnd={scrollable ? handleTouchEnd : undefined}
     >
-      {scrollable && (
-        <button
-          className={styles.arrow}
-          onClick={() => setStartIndex(i => i - 1)}
-          style={{ visibility: canGoLeft ? 'visible' : 'hidden' }}
-          aria-label="Anterior"
-        >
-          <ChevronLeft />
-        </button>
-      )}
-      {visibleItems.map(({ id, label, Icon, to }) => {
-        const isActive = id === active
-        return (
-          <Link
-            key={id}
-            to={to}
-            className={`${styles.item} ${isActive ? styles.itemActive : ''}`}
+      {scrollable ? (
+        <>
+          <button
+            className={styles.arrow}
+            onClick={goLeft}
+            style={{ visibility: canGoLeft ? 'visible' : 'hidden' }}
+            aria-label="Anterior"
           >
-            <span className={styles.icon}><Icon /></span>
-            <span className={styles.label}>{label}</span>
-            {isActive && <span className={styles.activeDot} />}
-          </Link>
-        )
-      })}
-      {scrollable && (
-        <button
-          className={styles.arrow}
-          onClick={() => setStartIndex(i => i + 1)}
-          style={{ visibility: canGoRight ? 'visible' : 'hidden' }}
-          aria-label="Siguiente"
-        >
-          <ChevronRight />
-        </button>
+            <ChevronLeft />
+          </button>
+          <div key={startIndex} className={`${styles.itemsContainer} ${animClass}`}>
+            {visibleItems.map(renderItem)}
+          </div>
+          <button
+            className={styles.arrow}
+            onClick={goRight}
+            style={{ visibility: canGoRight ? 'visible' : 'hidden' }}
+            aria-label="Siguiente"
+          >
+            <ChevronRight />
+          </button>
+        </>
+      ) : (
+        items.map(renderItem)
       )}
     </nav>
   )

@@ -16,8 +16,9 @@
 
 .navScrollable {
   display: grid;
-  grid-template-columns: 40px 1fr 1fr 1fr 40px;
+  grid-template-columns: 40px 1fr 40px;
   justify-content: unset;
+  overflow: hidden;
 }
 
 @media (min-width: 960px) {
@@ -40,11 +41,6 @@
   position: relative;
   padding: 8px 24px;
   transition: color var(--transition);
-}
-
-.navScrollable .item {
-  padding-left: 0;
-  padding-right: 0;
 }
 
 .item:hover {
@@ -94,4 +90,39 @@
 
 .arrow:hover {
   color: var(--text-secondary);
+}
+
+/* Items wrapper inside the scrollable nav */
+.itemsContainer {
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  height: 100%;
+}
+
+.itemsContainer .item {
+  flex: 1;
+  padding-left: 0;
+  padding-right: 0;
+  height: 100%;
+  justify-content: center;
+}
+
+/* Slide animations */
+@keyframes kSlideLeft {
+  from { transform: translateX(32px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes kSlideRight {
+  from { transform: translateX(-32px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+.slideLeft {
+  animation: kSlideLeft 0.2s ease-out forwards;
+}
+
+.slideRight {
+  animation: kSlideRight 0.2s ease-out forwards;
 }
