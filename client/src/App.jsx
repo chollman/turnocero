@@ -60,12 +60,16 @@ const PublicRoute = ({ children }) => {
 
 function AppRoutes() {
   const { user } = useAuth();
+  const { pathname } = useLocation();
+  const isAuthPage = pathname === '/login' || pathname === '/register';
   return (
-    <div className="appShell">
+    <>
+      {!user && !isAuthPage && <GuestNavbar />}
+      <div className="appShell">
       <ScrollToTop />
       {user && <Sidebar />}
-      <div className="appContent">
-        {user ? <Navbar /> : <GuestNavbar />}
+      <div className={`appContent${!user ? ' guestMode' : ''}`}>
+        {user && <Navbar />}
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
@@ -86,6 +90,7 @@ function AppRoutes() {
         {user && <BottomNav />}
       </div>
     </div>
+    </>
   );
 }
 

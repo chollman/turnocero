@@ -145,12 +145,18 @@ select {
   .appContent {
     padding-top: 1.5rem;
   }
+  .appContent.guestMode {
+    padding-top: 0;
+  }
 }
 
 @media (max-width: 959px) {
   .appContent {
     padding-top: 52px; /* space for fixed Navbar */
     padding-bottom: 60px; /* space for BottomNav */
+  }
+  .appContent.guestMode {
+    padding-bottom: 0;
   }
 }
 
