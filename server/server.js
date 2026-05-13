@@ -95,6 +95,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/friends', require('./routes/friends'));
 app.use('/api/compartidas', require('./routes/compartidas'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/noticias', require('./routes/noticias'));
 
 // Health check
 app.get('/api/health', (req, res) => {

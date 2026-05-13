@@ -7,6 +7,7 @@ import styles from './Sidebar.module.css'
 const NAV = [
   { id: 'feed',      label: 'Mi feed',         icon: '◈', to: '/me' },
   { id: 'dash',      label: 'Mesas',           icon: '▦', to: '/' },
+  { id: 'noticias',    label: 'Noticias',        icon: '◈', to: '/noticias' },
   { id: 'compartidas',  label: 'Compartite',     icon: '◉', to: '/compartidas' },
   { id: 'create',    label: 'Crear mesa',      icon: '+', to: '/create' },
   { id: 'notif',     label: 'Notificaciones',  icon: '◆', to: '/notifications' },
@@ -18,6 +19,7 @@ const NAV = [
 function getActiveId(pathname) {
   if (pathname === '/me') return 'feed'
   if (pathname === '/' || pathname.startsWith('/tables')) return 'dash'
+  if (pathname.startsWith('/noticias')) return 'noticias'
   if (pathname.startsWith('/compartidas')) return 'compartidas'
   if (pathname === '/create') return 'create'
   if (pathname === '/notifications') return 'notif'

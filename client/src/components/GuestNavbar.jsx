@@ -13,6 +13,11 @@ export default function GuestNavbar() {
           </div>
         </Link>
 
+        <div className={styles.links}>
+          <Link to="/noticias" className={styles.navLink}>Noticias</Link>
+          <Link to="/compartidas" className={styles.navLink}>Compartidas</Link>
+        </div>
+
         <div className={styles.right}>
           <Link to="/login" className={styles.btnLogin}>
             Iniciá sesión

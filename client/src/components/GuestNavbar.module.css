@@ -92,6 +92,32 @@
   text-transform: uppercase;
 }
 
+.links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.navLink {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color var(--transition), background var(--transition);
+}
+
+.navLink:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+@media (max-width: 500px) {
+  .links { display: none; }
+}
+
 .right {
   display: flex;
   align-items: center;
