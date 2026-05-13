@@ -3,7 +3,7 @@ const router = express.Router();
 const { body, param, validationResult } = require('express-validator');
 const Table = require('../models/Table');
 const User = require('../models/User');
-const { protect } = require('../middleware/auth');
+const { protect, optionalAuth } = require('../middleware/auth');
 const saveNotification = require('../utils/saveNotification');
 
 const validate = (req, res, next) => {
@@ -35,12 +35,13 @@ const populateTable = (query) =>
     .populate('pendingRequests', 'username')
     .populate('images.uploader', 'username');
 
-// GET /api/tables — protected; supports ?page, ?limit, ?search
-router.get('/', protect, async (req, res) => {
+// GET /api/tables — public (anon sees only public tables); supports ?page, ?limit, ?search
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const { page, limit, skip } = parsePagination(req.query);
     const searchClause = await buildSearchClause(req.query.search);
-    const filter = { status: { $ne: 'cancelled' }, ...searchClause };
+    const privacyFilter = req.user ? {} : { privacy: { $ne: 'private' } };
+    const filter = { status: { $ne: 'cancelled' }, ...privacyFilter, ...searchClause };
     const [tables, total] = await Promise.all([
       populateTable(Table.find(filter)).sort({ date: 1 }).skip(skip).limit(limit),
       Table.countDocuments(filter),
@@ -85,8 +86,8 @@ router.get('/me/feed', protect, async (req, res) => {
   }
 });
 
-// GET /api/tables/top-games — most-played games in the last 7 days
-router.get('/top-games', protect, async (req, res) => {
+// GET /api/tables/top-games — most-played games in the last 7 days (public)
+router.get('/top-games', optionalAuth, async (req, res) => {
   try {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const games = await Table.aggregate([
@@ -181,13 +182,16 @@ router.post('/', protect, [
   }
 });
 
-// GET /api/tables/:id — protected; returns a single table
-router.get('/:id', protect, [
+// GET /api/tables/:id — public; private tables require auth
+router.get('/:id', optionalAuth, [
   param('id').isMongoId().withMessage('Invalid table ID'),
 ], validate, async (req, res) => {
   try {
     const table = await populateTable(Table.findById(req.params.id));
     if (!table) return res.status(404).json({ message: 'Table not found' });
+    if (table.privacy === 'private' && !req.user) {
+      return res.status(403).json({ message: 'Esta mesa es privada' });
+    }
     res.json(table);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });

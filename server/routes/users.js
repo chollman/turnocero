@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Table = require('../models/Table');
-const { protect } = require('../middleware/auth');
+const { protect, optionalAuth } = require('../middleware/auth');
 
-// GET /api/users — list with optional search, sortBy, activeOnly
-router.get('/', protect, async (req, res) => {
+// GET /api/users — public list with optional search, sortBy, activeOnly
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const { search, sortBy, activeOnly } = req.query;
 
@@ -73,8 +73,8 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// GET /api/users/:id — public profile + stats
-router.get('/:id', protect, async (req, res) => {
+// GET /api/users/:id — public profile + stats; relationship fields are null for anon
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
       .select('username displayName nombre apellido telegram celular direccion createdAt friendRequests friends')
@@ -84,11 +84,15 @@ router.get('/:id', protect, async (req, res) => {
 
     const userId = user._id;
 
-    const [hostedTables, playerTables, currentUser] = await Promise.all([
+    const queries = [
       Table.find({ host: userId }).select('boardGame status date createdAt').lean(),
       Table.find({ players: userId }).select('boardGame status date createdAt').lean(),
-      User.findById(req.user._id).select('friends friendRequests').lean(),
-    ]);
+    ];
+    if (req.user) {
+      queries.push(User.findById(req.user._id).select('friends friendRequests').lean());
+    }
+
+    const [hostedTables, playerTables, currentUser] = await Promise.all(queries);
 
     const hostedActive = hostedTables.filter((t) => t.status !== 'cancelled');
     const playerActive = playerTables.filter((t) => t.status !== 'cancelled');
@@ -107,15 +111,18 @@ router.get('/:id', protect, async (req, res) => {
       .sort((a, b) => b - a);
     const lastActivity = allDates[0] || null;
 
-    const userIdStr = userId.toString();
-    const myIdStr = req.user._id.toString();
-    const isFriend = (currentUser?.friends || []).some((f) => f.toString() === userIdStr);
-    const requestSent = (user.friendRequests || []).some((r) => r.from.toString() === myIdStr);
-    const requestReceived = (currentUser?.friendRequests || []).some((r) => r.from.toString() === userIdStr);
-    const relationship = isFriend ? 'friends'
-      : requestSent ? 'request_sent'
-      : requestReceived ? 'request_received'
-      : 'none';
+    let relationship = null;
+    if (req.user && currentUser) {
+      const userIdStr = userId.toString();
+      const myIdStr = req.user._id.toString();
+      const isFriend = (currentUser?.friends || []).some((f) => f.toString() === userIdStr);
+      const requestSent = (user.friendRequests || []).some((r) => r.from.toString() === myIdStr);
+      const requestReceived = (currentUser?.friendRequests || []).some((r) => r.from.toString() === userIdStr);
+      relationship = isFriend ? 'friends'
+        : requestSent ? 'request_sent'
+        : requestReceived ? 'request_received'
+        : 'none';
+    }
 
     const { friendRequests: _fr, friends: _friends, ...userPublic } = user;
 

@@ -6,7 +6,7 @@ const Juntada = require('../models/Juntada');
 const JuntadaComment = require('../models/JuntadaComment');
 const User = require('../models/User');
 const Table = require('../models/Table');
-const { protect } = require('../middleware/auth');
+const { protect, optionalAuth } = require('../middleware/auth');
 
 const parsePagination = (query) => {
   const page = Math.max(1, parseInt(query.page) || 1);
@@ -20,13 +20,16 @@ const populateJuntada = (query) =>
     .populate('linkedTable', 'boardGame date maxPlayers players host status location');
 
 // ── Privacy filter helper ──────────────────────────────────────────────────
-const visibilityFilter = (user) => ({
-  $or: [
-    { privacy: 'public' },
-    { privacy: 'friends', author: { $in: user.friends } },
-    { author: user._id },
-  ],
-});
+const visibilityFilter = (user) => {
+  if (!user) return { privacy: 'public' };
+  return {
+    $or: [
+      { privacy: 'public' },
+      { privacy: 'friends', author: { $in: user.friends } },
+      { author: user._id },
+    ],
+  };
+};
 
 // ── Attach real comment counts to an array of juntada objects ─────────────
 const withCommentCounts = async (juntadas) => {
@@ -39,8 +42,8 @@ const withCommentCounts = async (juntadas) => {
   return juntadas.map((j) => ({ ...j.toObject(), commentCount: map[j._id.toString()] ?? 0 }));
 };
 
-// ── GET /api/juntadas — paginated feed ────────────────────────────────────
-router.get('/', protect, async (req, res) => {
+// ── GET /api/juntadas — paginated feed (public juntadas visible without auth) ─
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const { page, limit, skip } = parsePagination(req.query);
     const filter = visibilityFilter(req.user);
@@ -111,21 +114,26 @@ router.get('/:id/og', async (req, res) => {
   }
 });
 
-// ── GET /api/juntadas/:id — single post ──────────────────────────────────
-router.get('/:id', protect, async (req, res) => {
+// ── GET /api/juntadas/:id — single post (public juntadas visible without auth) ─
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const juntada = await populateJuntada(Juntada.findById(req.params.id));
     if (!juntada) return res.status(404).json({ message: 'Juntada no encontrada' });
 
-    const uid = req.user._id.toString();
-    const isAuthor = juntada.author._id.toString() === uid;
-    const isFriend = req.user.friends.some((f) => f.toString() === juntada.author._id.toString());
-
-    if (
-      juntada.privacy === 'private' && !isAuthor ||
-      juntada.privacy === 'friends' && !isAuthor && !isFriend
-    ) {
-      return res.status(403).json({ message: 'No tenés acceso a esta juntada' });
+    if (!req.user) {
+      if (juntada.privacy !== 'public') {
+        return res.status(403).json({ message: 'No tenés acceso a esta juntada' });
+      }
+    } else {
+      const uid = req.user._id.toString();
+      const isAuthor = juntada.author._id.toString() === uid;
+      const isFriend = req.user.friends.some((f) => f.toString() === juntada.author._id.toString());
+      if (
+        (juntada.privacy === 'private' && !isAuthor) ||
+        (juntada.privacy === 'friends' && !isAuthor && !isFriend)
+      ) {
+        return res.status(403).json({ message: 'No tenés acceso a esta juntada' });
+      }
     }
 
     const commentCount = await JuntadaComment.countDocuments({ juntada: juntada._id });
@@ -303,7 +311,7 @@ router.delete('/:id/images/:imgId', protect, async (req, res) => {
 });
 
 // ── GET /api/juntadas/:id/comments ───────────────────────────────────────
-router.get('/:id/comments', protect, async (req, res) => {
+router.get('/:id/comments', optionalAuth, async (req, res) => {
   try {
     const comments = await JuntadaComment.find({ juntada: req.params.id })
       .populate('author', 'username avatar displayName')

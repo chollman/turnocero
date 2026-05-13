@@ -5,6 +5,7 @@ import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import { useNotifications } from '../context/NotificationContext'
 import GameTile from '../components/GameTile'
+import LoginPromptModal from '../components/LoginPromptModal'
 import styles from './TableDetail.module.css'
 
 const REACTION_EMOJIS = ['❤️', '🎲', '🔥', '👍', '😄']
@@ -110,6 +111,8 @@ export default function TableDetail() {
   const [leaveError, setLeaveError] = useState('')
   const [cancelTableLoading, setCancelTableLoading] = useState(false)
   const [cancelTableError, setCancelTableError] = useState('')
+  const [loginPrompt, setLoginPrompt] = useState('')
+  const [accessError, setAccessError] = useState('')
 
   const [mobileTab, setMobileTab] = useState('chat')
 
@@ -134,14 +137,18 @@ export default function TableDetail() {
     const fetchTable = async () => {
       try {
         const { data } = await axios.get(`/api/tables/${id}`)
-        if (data.privacy === 'private' && !isParticipant(data) && !user.isAdmin) {
+        if (data.privacy === 'private' && !isParticipant(data) && !user?.isAdmin) {
           navigate('/', { replace: true })
           return
         }
         setTable(data)
         setPendingRequests(data.pendingRequests || [])
-      } catch {
-        navigate('/', { replace: true })
+      } catch (err) {
+        if (err.response?.status === 403) {
+          setAccessError('Esta mesa es privada')
+        } else {
+          navigate('/', { replace: true })
+        }
       } finally {
         setLoadingTable(false)
       }
@@ -167,7 +174,7 @@ export default function TableDetail() {
         setRatings(data.ratings)
         setRatingsAvg(data.avg)
         setRatingsCount(data.count)
-        const mine = data.ratings.find(
+        const mine = user && data.ratings.find(
           (r) => (r.rater._id || r.rater).toString() === user._id.toString()
         )
         if (mine) {
@@ -179,7 +186,7 @@ export default function TableDetail() {
   }, [table])
 
   useEffect(() => {
-    if (!table) return
+    if (!table || !user) return
     const token = localStorage.getItem('token')
     const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
     const socket = io(socketUrl, { auth: { token }, transports: ['websocket'] })
@@ -192,7 +199,7 @@ export default function TableDetail() {
       socket.emit('leave:table', id)
       socket.disconnect()
     }
-  }, [table, id])
+  }, [table, id, user])
 
   useEffect(() => {
     const list = messageListRef.current
@@ -214,6 +221,7 @@ export default function TableDetail() {
   }
 
   const handleFollow = async () => {
+    if (!user) { setLoginPrompt('Iniciá sesión para seguir esta mesa.'); return }
     setFollowLoading(true)
     const currentFollowers = table.followers || []
     const isFollowing = currentFollowers.some((f) => f.toString() === user._id.toString())
@@ -232,6 +240,7 @@ export default function TableDetail() {
   }
 
   const handleGuestJoin = async () => {
+    if (!user) { setLoginPrompt('Iniciá sesión para unirte a esta mesa.'); return }
     setJoinLoading(true)
     setJoinError('')
     try {
@@ -285,6 +294,7 @@ export default function TableDetail() {
   }
 
   const handleReact = async (emoji) => {
+    if (!user) { setLoginPrompt('Iniciá sesión para reaccionar a esta mesa.'); return }
     const currentReactions = table.reactions || []
     const existing = currentReactions.find((r) => r.user?.toString() === user._id.toString())
     let newReactions
@@ -430,18 +440,29 @@ export default function TableDetail() {
     )
   }
 
+  if (accessError) {
+    return (
+      <div className={styles.loadingWrapper}>
+        <span style={{ fontSize: '2rem' }}>🔒</span>
+        <p style={{ color: 'var(--text-secondary)', marginTop: '1rem' }}>{accessError}</p>
+        <button style={{ marginTop: '1rem', color: 'var(--amber)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-display)', fontSize: '14px' }} onClick={() => navigate('/')}>← Volver al inicio</button>
+      </div>
+    )
+  }
+
   if (!table) return null
 
-  const isHost = table.host._id?.toString() === user._id.toString()
-  const isViewingAsAdmin = user.isAdmin && !isParticipant(table)
-  const isGuest = !isParticipant(table) && !user.isAdmin
+  const isAnon = !user
+  const isHost = !isAnon && table.host._id?.toString() === user._id.toString()
+  const isViewingAsAdmin = !isAnon && user.isAdmin && !isParticipant(table)
+  const isGuest = !isParticipant(table) && !user?.isAdmin
   const isPlayer = isParticipant(table) && !isHost
   const isFull = table.players.length >= table.maxPlayers
-  const isPendingRequest = (table.pendingRequests || []).some(
+  const isPendingRequest = !isAnon && (table.pendingRequests || []).some(
     (r) => (r._id || r).toString() === user._id.toString()
   )
   const isPrivate = table.privacy === 'private'
-  const isFollowing = (table.followers || []).some((f) => f.toString() === user._id.toString())
+  const isFollowing = !isAnon && (table.followers || []).some((f) => f.toString() === user._id.toString())
   const filled = table.players.length + 1
   const total = table.maxPlayers + 1
   const availableSeats = table.maxPlayers - table.players.length
@@ -472,18 +493,31 @@ export default function TableDetail() {
           {joinLoading ? '…' : 'Solicitud enviada · Cancelar'}
         </button>
       )}
-      {isGuest && !isPendingRequest && (
+      {isGuest && !isAnon && !isPendingRequest && (
         <button className={styles.btnActJoin} onClick={handleGuestJoin} disabled={joinLoading || isFull}>
           {joinLoading ? '…' : isFull ? 'Mesa completa' : isPrivate ? 'Solicitar unirse' : 'Unirme a la mesa'}
         </button>
       )}
-      {isGuest && (
+      {isAnon && !isFull && (
+        <button className={styles.btnActJoin} onClick={() => setLoginPrompt('Iniciá sesión para unirte a esta mesa.')}>
+          Unirme a la mesa
+        </button>
+      )}
+      {isGuest && !isAnon && (
         <button
           className={`${styles.btnFollow} ${isFollowing ? styles.btnFollowing : ''}`}
           onClick={handleFollow}
           disabled={followLoading}
         >
           {isFollowing ? '🔔 Siguiendo' : '🔕 Seguir'}
+        </button>
+      )}
+      {isAnon && (
+        <button
+          className={styles.btnFollow}
+          onClick={() => setLoginPrompt('Iniciá sesión para seguir esta mesa.')}
+        >
+          🔕 Seguir
         </button>
       )}
       {(isHost || isPlayer) && (
@@ -498,6 +532,8 @@ export default function TableDetail() {
   )
 
   return (
+    <>
+    <LoginPromptModal isOpen={!!loginPrompt} onClose={() => setLoginPrompt('')} message={loginPrompt} />
     <div className={styles.page}>
       <div className="container">
 
@@ -548,7 +584,7 @@ export default function TableDetail() {
         </div>
 
         {/* Actions bar */}
-        {table.status !== 'cancelled' && (isHost || isPlayer || isGuest) && (
+        {table.status !== 'cancelled' && (isHost || isPlayer || isGuest || isAnon) && (
           <div className={styles.actionsBar}>
             <div className={styles.actionsRow}>
               {actionButtons}
@@ -594,7 +630,7 @@ export default function TableDetail() {
             {/* Reactions */}
             {(() => {
               const reactions = table.reactions || []
-              const myReaction = reactions.find((r) => r.user?.toString() === user._id.toString())?.emoji || null
+              const myReaction = user ? reactions.find((r) => r.user?.toString() === user._id.toString())?.emoji || null : null
               return (
                 <div className={styles.card}>
                   <span className={styles.eyebrow}>¿QUÉ TE PARECE?</span>
@@ -630,7 +666,7 @@ export default function TableDetail() {
                   <div key={p._id || p} className={styles.playerChip}>
                     <span className={styles.playerChipAvatar}>{(p.username || '?')[0].toUpperCase()}</span>
                     <span className={styles.playerChipName}>{p.username}</span>
-                    {(p._id || p).toString() === user._id.toString() && (
+                    {user && (p._id || p).toString() === user._id.toString() && (
                       <span className={styles.youTag}>vos</span>
                     )}
                   </div>
@@ -730,8 +766,8 @@ export default function TableDetail() {
                   ) : (
                     <div className={styles.imageGrid}>
                       {images.map((img) => {
-                        const isUploader = (img.uploader?._id || img.uploader)?.toString() === user._id.toString()
-                        const canDelete = isUploader || isHost || user.isAdmin
+                        const isUploader = user && (img.uploader?._id || img.uploader)?.toString() === user._id.toString()
+                        const canDelete = isUploader || isHost || user?.isAdmin
                         return (
                           <div key={img._id} className={styles.imageThumb}>
                             <img
@@ -771,8 +807,8 @@ export default function TableDetail() {
               ) : (
                 <div className={styles.commentsList}>
                   {comments.map((comment) => {
-                    const isOwn = (comment.author._id || comment.author).toString() === user._id.toString()
-                    const canDelete = isOwn || isHost || user.isAdmin
+                    const isOwn = user && (comment.author._id || comment.author).toString() === user._id.toString()
+                    const canDelete = isOwn || isHost || user?.isAdmin
                     return (
                       <div key={comment._id} className={styles.commentItem}>
                         <span className={styles.commentAvatar}>{comment.author.username[0].toUpperCase()}</span>
@@ -819,20 +855,30 @@ export default function TableDetail() {
                   })}
                 </div>
               )}
-              <form className={styles.addCommentForm} onSubmit={handleAddComment}>
-                <textarea
-                  className={styles.commentTextarea}
-                  placeholder="Escribí un comentario…"
-                  value={commentInput}
-                  onChange={(e) => setCommentInput(e.target.value)}
-                  maxLength={500}
-                  rows={2}
-                  disabled={submittingComment}
-                />
-                <button className={styles.btnComment} type="submit" disabled={!commentInput.trim() || submittingComment}>
-                  {submittingComment ? '…' : 'Comentar'}
+              {isAnon ? (
+                <button
+                  className={styles.btnComment}
+                  onClick={() => setLoginPrompt('Iniciá sesión para comentar en esta mesa.')}
+                  type="button"
+                >
+                  Iniciá sesión para comentar
                 </button>
-              </form>
+              ) : (
+                <form className={styles.addCommentForm} onSubmit={handleAddComment}>
+                  <textarea
+                    className={styles.commentTextarea}
+                    placeholder="Escribí un comentario…"
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    maxLength={500}
+                    rows={2}
+                    disabled={submittingComment}
+                  />
+                  <button className={styles.btnComment} type="submit" disabled={!commentInput.trim() || submittingComment}>
+                    {submittingComment ? '…' : 'Comentar'}
+                  </button>
+                </form>
+              )}
             </div>
 
             {/* Ratings */}
@@ -966,5 +1012,6 @@ export default function TableDetail() {
         </div>
       )}
     </div>
+    </>
   )
 }

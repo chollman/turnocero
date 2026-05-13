@@ -76,12 +76,14 @@ export default function Juntadas() {
             <h1 className={styles.heroTitle}>Juntadas</h1>
             <p className={styles.heroSub}>Compartí tus partidas, fotos y momentos con la comunidad.</p>
           </div>
-          <button
-            className={`${styles.newBtn} ${showCreate ? styles.newBtnActive : ''}`}
-            onClick={() => setShowCreate((s) => !s)}
-          >
-            {showCreate ? '✕ Cancelar' : '+ Nueva juntada'}
-          </button>
+          {user && (
+            <button
+              className={`${styles.newBtn} ${showCreate ? styles.newBtnActive : ''}`}
+              onClick={() => setShowCreate((s) => !s)}
+            >
+              {showCreate ? '✕ Cancelar' : '+ Nueva juntada'}
+            </button>
+          )}
         </div>
 
         {/* ── Create form ── */}
@@ -103,10 +105,12 @@ export default function Juntadas() {
           <div className={styles.empty}>
             <span className={styles.emptyIcon}>🎲</span>
             <p className={styles.emptyTitle}>No hay juntadas todavía</p>
-            <p className={styles.emptySub}>¡Sé el primero en compartir tu partida!</p>
-            <button className={styles.emptyBtn} onClick={() => setShowCreate(true)}>
-              + Publicar juntada
-            </button>
+            <p className={styles.emptySub}>{user ? '¡Sé el primero en compartir tu partida!' : 'Registrate para compartir tus partidas.'}</p>
+            {user && (
+              <button className={styles.emptyBtn} onClick={() => setShowCreate(true)}>
+                + Publicar juntada
+              </button>
+            )}
           </div>
         ) : (
           <div className={styles.feed}>

@@ -18,6 +18,7 @@ import MeFeed from './pages/MeFeed';
 import Juntadas from './pages/Juntadas'
 import JuntadaPost from './pages/JuntadaPost';
 import Navbar from './components/Navbar';
+import GuestNavbar from './components/GuestNavbar';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 import BoardGameBackground from './components/BoardGameBackground';
@@ -64,22 +65,22 @@ function AppRoutes() {
       <ScrollToTop />
       {user && <Sidebar />}
       <div className="appContent">
-        {user && <Navbar />}
+        {user ? <Navbar /> : <GuestNavbar />}
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-          <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/" element={<Dashboard />} />
           <Route path="/create" element={<PrivateRoute><CreateTable /></PrivateRoute>} />
-          <Route path="/tables/:id" element={<PrivateRoute><TableDetail /></PrivateRoute>} />
+          <Route path="/tables/:id" element={<TableDetail />} />
           <Route path="/tables/:id/edit" element={<PrivateRoute><EditTable /></PrivateRoute>} />
           <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
           <Route path="/perfil" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
-          <Route path="/users" element={<PrivateRoute><UsersList /></PrivateRoute>} />
-          <Route path="/users/:id" element={<PrivateRoute><UserProfilePublic /></PrivateRoute>} />
+          <Route path="/users" element={<UsersList />} />
+          <Route path="/users/:id" element={<UserProfilePublic />} />
           <Route path="/database" element={<PrivateRoute><DatabaseViewer /></PrivateRoute>} />
           <Route path="/me" element={<PrivateRoute><MeFeed /></PrivateRoute>} />
-          <Route path="/juntadas" element={<PrivateRoute><Juntadas /></PrivateRoute>} />
-          <Route path="/juntadas/:id" element={<PrivateRoute><JuntadaPost /></PrivateRoute>} />
+          <Route path="/juntadas" element={<Juntadas />} />
+          <Route path="/juntadas/:id" element={<JuntadaPost />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         {user && <BottomNav />}

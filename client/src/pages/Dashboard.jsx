@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import TableCard from '../components/TableCard';
 import styles from './Dashboard.module.css';
 
@@ -29,6 +30,7 @@ const ListIcon = () => (
 );
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [tables, setTables] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -128,7 +130,7 @@ export default function Dashboard() {
         {/* Controls */}
         <div className={styles.controls}>
           <div className={styles.tabs}>
-            {TABS.map((tab) => (
+            {TABS.filter((tab) => user || tab.id !== 'mine').map((tab) => (
               <button
                 key={tab.id}
                 className={`${styles.tab} ${activeTab === tab.id ? styles.activeTab : ''}`}
@@ -186,9 +188,9 @@ export default function Dashboard() {
               {debouncedSearch ? 'Sin resultados para esa búsqueda' : 'No hay mesas disponibles'}
             </p>
             <p className={styles.emptySub}>
-              {!debouncedSearch && '¡Sé el primero en crear una mesa!'}
+              {!debouncedSearch && (user ? '¡Sé el primero en crear una mesa!' : '¡Registrate para crear la primera!')}
             </p>
-            {!debouncedSearch && (
+            {!debouncedSearch && user && (
               <Link to="/create" className={styles.createBtn}>
                 + Crear mesa
               </Link>
@@ -232,10 +234,12 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* FAB — mobile only */}
-      <Link to="/create" className={styles.fab}>
-        <span>+</span> Crear mesa
-      </Link>
+      {/* FAB — mobile only, logged-in users only */}
+      {user && (
+        <Link to="/create" className={styles.fab}>
+          <span>+</span> Crear mesa
+        </Link>
+      )}
     </div>
   );
 }

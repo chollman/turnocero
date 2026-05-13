@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import GameTile from './GameTile';
+import LoginPromptModal from './LoginPromptModal';
 import styles from './TableCard.module.css';
 
 // --- helpers ---
@@ -115,20 +116,27 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loginPrompt, setLoginPrompt] = useState('');
 
-  const isHost = table.host._id === user._id || table.host._id?.toString() === user._id?.toString();
-  const isPlayer = table.players.some(
+  const isHost = user && (table.host._id === user._id || table.host._id?.toString() === user._id?.toString());
+  const isPlayer = user && table.players.some(
     (p) => (p._id || p).toString() === (user._id || user).toString()
   );
-  const showAdminTab = user.isAdmin && !isHost && !isPlayer;
-  const isPendingRequest = (table.pendingRequests || []).some(
+  const showAdminTab = user?.isAdmin && !isHost && !isPlayer;
+  const isPendingRequest = user && (table.pendingRequests || []).some(
     (r) => (r._id || r).toString() === user._id.toString()
   );
   const isPrivate = table.privacy === 'private';
   const availableSeats = table.maxPlayers - table.players.length;
   const isFull = availableSeats <= 0;
 
+  const requireAuth = (msg) => {
+    if (!user) { setLoginPrompt(msg); return false; }
+    return true;
+  };
+
   const handleJoin = async () => {
+    if (!requireAuth('Iniciá sesión para unirte a esta mesa.')) return;
     setLoading(true);
     setError('');
     try {
@@ -190,6 +198,8 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
       : `${availableSeats} lugar${availableSeats !== 1 ? 'es' : ''} libre${availableSeats !== 1 ? 's' : ''}`;
 
     return (
+      <>
+      <LoginPromptModal isOpen={!!loginPrompt} onClose={() => setLoginPrompt('')} message={loginPrompt} />
       <div className={`${styles.cardList} ${isHost ? styles.hosted : ''} ${isPlayer ? styles.joined : ''}`}>
         <div className={styles.listLeft}>
           <div className={styles.listTitleWrap}>
@@ -244,6 +254,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
           )}
         </div>
       </div>
+      </>
     );
   }
 
@@ -253,6 +264,8 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
   const seed = hashStr(table._id || '') % 10;
 
   return (
+    <>
+    <LoginPromptModal isOpen={!!loginPrompt} onClose={() => setLoginPrompt('')} message={loginPrompt} />
     <div
       className={`${styles.card} ${isHost ? styles.hosted : ''} ${isPlayer ? styles.joined : ''}`}
       style={{ position: 'relative' }}
@@ -400,5 +413,6 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
         </button>
       )}
     </div>
+    </>
   );
 }

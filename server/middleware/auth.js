@@ -35,4 +35,17 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-module.exports = { protect, requireAdmin };
+const optionalAuth = async (req, res, next) => {
+  const token = req.headers.authorization?.startsWith('Bearer ')
+    ? req.headers.authorization.split(' ')[1]
+    : req.cookies?.token;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = await User.findById(decoded.id).select('-password');
+    } catch (_) { /* continue as anon */ }
+  }
+  next();
+};
+
+module.exports = { protect, requireAdmin, optionalAuth };
