@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 import styles from './UsersList.module.css';
 
 const SORT_OPTIONS = [
+  { value: 'alpha', label: 'A–Z' },
+  { value: 'activity', label: 'Más activos' },
   { value: 'date_desc', label: 'Más nuevos' },
   { value: 'date_asc', label: 'Más antiguos' },
-  { value: 'activity', label: 'Más activos' },
 ];
 
 function UserCard({ user }) {
@@ -61,11 +63,13 @@ function UserCard({ user }) {
 }
 
 export default function UsersList() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('date_desc');
+  const [sortBy, setSortBy] = useState('alpha');
   const [activeOnly, setActiveOnly] = useState(false);
+  const [friendsOnly, setFriendsOnly] = useState(false);
   const [searchInput, setSearchInput] = useState('');
 
   const fetchUsers = useCallback(async () => {
@@ -74,6 +78,7 @@ export default function UsersList() {
       const params = { sortBy };
       if (search) params.search = search;
       if (activeOnly) params.activeOnly = 'true';
+      if (friendsOnly) params.friendsOnly = 'true';
       const { data } = await axios.get('/api/users', { params });
       setUsers(data);
     } catch {
@@ -81,7 +86,7 @@ export default function UsersList() {
     } finally {
       setLoading(false);
     }
-  }, [search, sortBy, activeOnly]);
+  }, [search, sortBy, activeOnly, friendsOnly]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
@@ -132,6 +137,15 @@ export default function UsersList() {
           >
             Solo activos
           </button>
+
+          {currentUser && (
+            <button
+              className={`${styles.toggleBtn} ${friendsOnly ? styles.toggleActive : ''}`}
+              onClick={() => setFriendsOnly((v) => !v)}
+            >
+              Solo amigos
+            </button>
+          )}
         </div>
       </div>
 
@@ -145,7 +159,7 @@ export default function UsersList() {
           <span className={styles.emptyIcon}>👥</span>
           <p>No se encontraron jugadores</p>
           {(search || activeOnly) && (
-            <button className={styles.clearFiltersBtn} onClick={() => { setSearchInput(''); setSearch(''); setActiveOnly(false); }}>
+            <button className={styles.clearFiltersBtn} onClick={() => { setSearchInput(''); setSearch(''); setActiveOnly(false); setFriendsOnly(false); }}>
               Limpiar filtros
             </button>
           )}

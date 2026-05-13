@@ -74,13 +74,12 @@ const ICONS = {
 }
 
 const NAV = [
-  { id: 'feed',        label: 'Mi feed',        to: '/mi' },
   { id: 'dash',        label: 'Mesas',          to: '/mesas' },
-  { id: 'noticias',    label: 'Noticias',        to: '/noticias' },
-  { id: 'compartidas', label: 'Compartite',      to: '/compartidas' },
+  { id: 'feed',        label: 'Mi feed',        to: '/mi' },
   { id: 'notif',       label: 'Notificaciones',  to: '/notificaciones' },
+  { id: 'compartidas', label: 'Compartite',      to: '/compartidas' },
   { id: 'users',       label: 'Comunidad',       to: '/usuarios' },
-  { id: 'profile',     label: 'Perfil',          to: '/perfil' },
+  { id: 'noticias',    label: 'Noticias',        to: '/noticias' },
   { id: 'db',          label: 'Base de datos',   to: '/base-de-datos', adminOnly: true },
 ]
 
@@ -151,10 +150,10 @@ export default function Sidebar() {
           </div>
         ) : (
           <>
-            <div className={styles.userChip}>
+            <Link to="/perfil" className={styles.userChip}>
               <span className={styles.userAvatar}>{user?.username?.[0]?.toUpperCase()}</span>
               <span className={styles.userName}>{user?.username}</span>
-            </div>
+            </Link>
             <button className={styles.logoutBtn} onClick={() => setConfirmingLogout(true)} title="Cerrar sesión">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>

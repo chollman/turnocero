@@ -7,9 +7,12 @@ const { protect, optionalAuth } = require('../middleware/auth');
 // GET /api/users — public list with optional search, sortBy, activeOnly
 router.get('/', optionalAuth, async (req, res) => {
   try {
-    const { search, sortBy, activeOnly } = req.query;
+    const { search, sortBy, activeOnly, friendsOnly } = req.query;
 
     const query = {};
+    if (friendsOnly === 'true' && req.user) {
+      query._id = { $in: req.user.friends };
+    }
     if (search) {
       const regex = new RegExp(search, 'i');
       query.$or = [
@@ -63,8 +66,10 @@ router.get('/', optionalAuth, async (req, res) => {
       users.sort((a, b) => (b.tablesHosted + b.tablesAsPlayer) - (a.tablesHosted + a.tablesAsPlayer));
     } else if (sortBy === 'date_asc') {
       users.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    } else {
+    } else if (sortBy === 'date_desc') {
       users.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else {
+      users.sort((a, b) => (a.username || '').localeCompare(b.username || '', 'es', { sensitivity: 'base' }));
     }
 
     res.json(users);
