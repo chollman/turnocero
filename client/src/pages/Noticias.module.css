@@ -311,6 +311,23 @@
   border-color: var(--amber);
 }
 
+/* ── Detail link ── */
+.detailLink {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 2px 0;
+  transition: color var(--transition);
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  margin-top: 2px;
+}
+
+.detailLink:hover { color: var(--amber-light); }
+
 /* ── Admin actions ── */
 .adminActions {
   display: flex;

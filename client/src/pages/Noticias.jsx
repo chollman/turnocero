@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import axios from 'axios'
 import { Helmet } from 'react-helmet-async'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import styles from './Noticias.module.css'
 
@@ -58,7 +59,8 @@ function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
   // edit form state
   const [editTitle, setEditTitle] = useState(noticia.title || '')
   const [editBody, setEditBody]   = useState(noticia.body  || '')
-  const [editLink, setEditLink]   = useState(noticia.link  || '')
+  const [editLink, setEditLink]         = useState(noticia.link      || '')
+  const [editLinkLabel, setEditLinkLabel] = useState(noticia.linkLabel || '')
   const [newFile, setNewFile]     = useState(null)
   const [newPreview, setNewPreview] = useState(null)
   const [saving, setSaving]       = useState(false)
@@ -67,7 +69,8 @@ function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
   const openEdit = () => {
     setEditTitle(noticia.title || '')
     setEditBody(noticia.body   || '')
-    setEditLink(noticia.link   || '')
+    setEditLink(noticia.link         || '')
+    setEditLinkLabel(noticia.linkLabel || '')
     setNewFile(null)
     setNewPreview(null)
     setEditError('')
@@ -86,7 +89,8 @@ function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
       const fd = new FormData()
       fd.append('title', editTitle.trim())
       fd.append('body',  editBody.trim())
-      fd.append('link',  editLink.trim())
+      fd.append('link',      editLink.trim())
+      fd.append('linkLabel', editLinkLabel.trim())
       if (newFile) fd.append('image', newFile)
       const { data } = await axios.put(`/api/noticias/${noticia._id}`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -181,6 +185,14 @@ function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
                 maxLength={500}
                 type="url"
               />
+              <input
+                className={styles.fieldInput}
+                placeholder={`Texto del botón (opcional) — por defecto "Ver más →"`}
+                value={editLinkLabel}
+                onChange={(e) => setEditLinkLabel(e.target.value)}
+                maxLength={80}
+                disabled={!editLink.trim()}
+              />
               {editError && <p className={styles.errorMsg}>{editError}</p>}
               <div className={styles.editActions}>
                 <button
@@ -210,9 +222,12 @@ function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
                   rel="noopener noreferrer"
                   className={styles.cardLink}
                 >
-                  Ver más →
+                  {noticia.linkLabel || 'Ver más →'}
                 </a>
               )}
+              <Link to={`/noticias/${noticia._id}`} className={styles.detailLink}>
+                Ver y compartir →
+              </Link>
             </>
           )}
         </div>
@@ -231,7 +246,8 @@ function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
 function CreateForm({ onCreated, onCancel }) {
   const [title, setTitle]       = useState('')
   const [body, setBody]         = useState('')
-  const [link, setLink]         = useState('')
+  const [link, setLink]           = useState('')
+  const [linkLabel, setLinkLabel] = useState('')
   const [file, setFile]         = useState(null)
   const [preview, setPreview]   = useState(null)
   const [submitting, setSub]    = useState(false)
@@ -252,7 +268,8 @@ function CreateForm({ onCreated, onCancel }) {
       fd.append('image', file)
       if (title.trim()) fd.append('title', title.trim())
       if (body.trim())  fd.append('body',  body.trim())
-      if (link.trim())  fd.append('link',  link.trim())
+      if (link.trim())      fd.append('link',      link.trim())
+      if (linkLabel.trim()) fd.append('linkLabel', linkLabel.trim())
       const { data } = await axios.post('/api/noticias', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
@@ -294,6 +311,14 @@ function CreateForm({ onCreated, onCancel }) {
         onChange={(e) => setLink(e.target.value)}
         maxLength={500}
         type="url"
+      />
+      <input
+        className={styles.fieldInput}
+        placeholder={`Texto del botón (opcional) — por defecto "Ver más →"`}
+        value={linkLabel}
+        onChange={(e) => setLinkLabel(e.target.value)}
+        maxLength={80}
+        disabled={!link.trim()}
       />
 
       {error && <p className={styles.errorMsg}>{error}</p>}

@@ -16,6 +16,7 @@ import TableDetail from './pages/TableDetail';
 import Notifications from './pages/Notifications';
 import MeFeed from './pages/MeFeed';
 import Noticias from './pages/Noticias';
+import NoticiaDetail from './pages/NoticiaDetail';
 import Compartidas from './pages/Compartidas'
 import CompartidaPost from './pages/CompartidaPost';
 import Navbar from './components/Navbar';
@@ -69,6 +70,7 @@ function AppRoutes() {
           <Route path="/database" element={<PrivateRoute><DatabaseViewer /></PrivateRoute>} />
           <Route path="/me" element={<PrivateRoute><MeFeed /></PrivateRoute>} />
           <Route path="/noticias" element={<Noticias />} />
+          <Route path="/noticias/:id" element={<NoticiaDetail />} />
           <Route path="/compartidas" element={<Compartidas />} />
           <Route path="/compartidas/:id" element={<CompartidaPost />} />
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -42,7 +42,8 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
     const noticia = await Noticia.create({
       title:  req.body.title?.trim() || undefined,
       body:   req.body.body?.trim()  || undefined,
-      link:   req.body.link?.trim()  || undefined,
+      link:      req.body.link?.trim()      || undefined,
+      linkLabel: req.body.linkLabel?.trim() || undefined,
       image,
       author: req.user._id,
     });
@@ -54,6 +55,17 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
   }
 });
 
+// GET /api/noticias/:id — public
+router.get('/:id', optionalAuth, async (req, res) => {
+  try {
+    const noticia = await Noticia.findById(req.params.id).populate('author', 'username displayName');
+    if (!noticia) return res.status(404).json({ message: 'Noticia no encontrada' });
+    res.json(noticia);
+  } catch {
+    res.status(500).json({ message: 'Error al obtener la noticia' });
+  }
+});
+
 // PUT /api/noticias/:id — admin only, image replacement is optional
 router.put('/:id', protect, requireAdmin, multer.single('image'), async (req, res) => {
   try {
@@ -62,7 +74,8 @@ router.put('/:id', protect, requireAdmin, multer.single('image'), async (req, re
 
     noticia.title = req.body.title?.trim() || undefined;
     noticia.body  = req.body.body?.trim()  || undefined;
-    noticia.link  = req.body.link?.trim()  || undefined;
+    noticia.link      = req.body.link?.trim()      || undefined;
+    noticia.linkLabel = req.body.linkLabel?.trim() || undefined;
 
     if (req.file) {
       await cloudinary.uploader.destroy(noticia.image.publicId);

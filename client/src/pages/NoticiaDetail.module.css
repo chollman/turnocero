@@ -1,0 +1,323 @@
+.page {
+  min-height: calc(100vh - var(--navbar-h, 64px));
+  padding: 0 0 4rem;
+}
+
+.inner {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Back link ── */
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 6px 0;
+  transition: color var(--transition);
+}
+
+.backLink:hover { color: var(--text-primary); }
+
+/* ── Card ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* ── Image ── */
+.imageBtn {
+  display: block;
+  position: relative;
+  width: 100%;
+  background: var(--bg-dark);
+  border: none;
+  padding: 0;
+  cursor: zoom-in;
+  overflow: hidden;
+}
+
+.imageBg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(22px);
+  transform: scale(1.12);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.image {
+  display: block;
+  position: relative;
+  width: 100%;
+  max-height: 620px;
+  object-fit: contain;
+  z-index: 1;
+  transition: transform 0.25s ease;
+}
+
+.imageBtn:hover .image { transform: scale(1.01); }
+
+/* ── Body ── */
+.body {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Meta ── */
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.date {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.adminActions {
+  display: flex;
+  gap: 8px;
+}
+
+.editBtn {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color var(--transition), background var(--transition);
+}
+
+.editBtn:hover { color: var(--amber-light); background: var(--amber-glow); }
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background var(--transition);
+}
+
+.deleteBtn:hover { background: rgba(243, 29, 119, 0.1); }
+
+/* ── Content ── */
+.title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.text {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.externalLink {
+  display: inline-block;
+  padding: 8px 18px;
+  background: var(--amber-glow);
+  border: 1px solid var(--border-amber);
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--amber-light);
+  text-decoration: none;
+  transition: background var(--transition), border-color var(--transition);
+  align-self: flex-start;
+}
+
+.externalLink:hover {
+  background: rgba(24, 136, 239, 0.25);
+  border-color: var(--amber);
+}
+
+/* ── Share section ── */
+.shareSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.shareLabel {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.shareButtons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shareBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.shareBtn:hover {
+  border-color: var(--amber);
+  color: var(--amber-light);
+  background: var(--amber-glow);
+}
+
+.shareBtnCopied {
+  border-color: var(--green) !important;
+  color: var(--green) !important;
+}
+
+/* ── Lightbox ── */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.94);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+}
+
+.lightboxImg {
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.lightboxClose {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Skeleton ── */
+.skeleton {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.skeletonImg {
+  width: 100%;
+  height: 380px;
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.skeletonBody {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeletonLine {
+  height: 16px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* ── Not found ── */
+.notFound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 80px 0;
+  text-align: center;
+}
+
+.notFoundTitle {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ── Mobile ── */
+@media (max-width: 600px) {
+  .inner  { padding: 0 12px; }
+  .body   { padding: 16px 16px 20px; }
+  .title  { font-size: 20px; }
+  .image  { max-height: 420px; }
+
+  .shareButtons { gap: 6px; }
+  .shareBtn     { padding: 6px 10px; font-size: 11px; }
+}
