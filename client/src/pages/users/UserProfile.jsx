@@ -22,6 +22,7 @@ export default function UserProfile() {
     apellido: '',
     telegram: '',
     celular: '',
+    bggUsername: '',
     direccionTexto: '',
     lat: null,
     lng: null,
@@ -51,6 +52,7 @@ export default function UserProfile() {
       apellido: user.apellido || '',
       telegram: user.telegram || '',
       celular: user.celular || '',
+      bggUsername: user.bggUsername || '',
       direccionTexto: user.direccion?.texto || '',
       lat: user.direccion?.lat ?? null,
       lng: user.direccion?.lng ?? null,
@@ -143,6 +145,7 @@ export default function UserProfile() {
         apellido: form.apellido,
         telegram: form.telegram,
         celular: form.celular,
+        bggUsername: form.bggUsername,
         direccion: {
           texto: form.direccionTexto,
           lat: form.lat,
@@ -242,6 +245,21 @@ export default function UserProfile() {
                     placeholder="+54 9 11 1234-5678"
                     maxLength={30}
                     type="tel"
+                  />
+                </div>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label}>Usuario en BGG</label>
+                <div className={styles.inputPrefix}>
+                  <span className={styles.prefix}>BGG</span>
+                  <input
+                    className={`${styles.input} ${styles.inputWithPrefix}`}
+                    name="bggUsername"
+                    value={form.bggUsername}
+                    onChange={handleChange}
+                    placeholder="tu_usuario_bgg"
+                    maxLength={50}
                   />
                 </div>
               </div>

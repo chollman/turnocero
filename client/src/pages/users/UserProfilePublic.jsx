@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import GameTile from '../../components/shared/GameTile';
@@ -142,6 +142,7 @@ export default function UserProfilePublic() {
     profile.direccion?.texto,
     profile.telegram ? '✈️ Telegram' : null,
     profile.celular ? '📱 Celular' : null,
+    profile.bggUsername ? '🎲 BGG' : null,
   ].filter(Boolean);
 
   return (
@@ -220,7 +221,7 @@ export default function UserProfilePublic() {
         <div className={styles.layout}>
           {/* Left: contact + favorites */}
           <div className={styles.leftCol}>
-            {(profile.direccion?.texto || profile.telegram || profile.celular) && (
+            {(profile.direccion?.texto || profile.telegram || profile.celular || profile.bggUsername) && (
               <div className={styles.infoCard}>
                 <div className={styles.sectionLabel}>CONTACTO</div>
                 <div className={styles.infoList}>
@@ -248,6 +249,17 @@ export default function UserProfilePublic() {
                       <div className={styles.infoText}>
                         <span className={styles.infoLabel}>Celular</span>
                         <span className={styles.infoValue}>{profile.celular}</span>
+                      </div>
+                    </div>
+                  )}
+                  {profile.bggUsername && (
+                    <div className={styles.infoRow}>
+                      <span className={styles.infoIcon}>🎲</span>
+                      <div className={styles.infoText}>
+                        <span className={styles.infoLabel}>BGG</span>
+                        <Link to={`/perfil-bgg/${profile.bggUsername}`} className={styles.infoLink}>
+                          {profile.bggUsername}
+                        </Link>
                       </div>
                     </div>
                   )}

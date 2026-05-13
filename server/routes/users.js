@@ -77,7 +77,7 @@ router.get('/', optionalAuth, async (req, res) => {
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .select('username displayName nombre apellido telegram celular direccion createdAt friendRequests friends')
+      .select('username displayName nombre apellido telegram celular bggUsername direccion createdAt friendRequests friends')
       .lean();
 
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });

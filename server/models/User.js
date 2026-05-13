@@ -68,6 +68,12 @@ const userSchema = new mongoose.Schema(
       maxlength: [30, 'Phone number cannot exceed 30 characters'],
       trim: true,
     },
+    bggUsername: {
+      type: String,
+      default: '',
+      maxlength: [50, 'BGG username cannot exceed 50 characters'],
+      trim: true,
+    },
     isAdmin: {
       type: Boolean,
       default: false,

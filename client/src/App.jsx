@@ -19,6 +19,7 @@ import Noticias from './pages/noticias/Noticias';
 import NoticiaDetail from './pages/noticias/NoticiaDetail';
 import Compartidas from './pages/compartidas/Compartidas';
 import CompartidaPost from './pages/compartidas/CompartidaPost';
+import BggProfile from './pages/bgg/BggProfile';
 import Navbar from './components/layout/Navbar';
 import GuestNavbar from './components/layout/GuestNavbar';
 import Sidebar from './components/layout/Sidebar';
@@ -74,6 +75,7 @@ function AppRoutes() {
           <Route path="/noticias/:id" element={<NoticiaDetail />} />
           <Route path="/compartidas" element={<Compartidas />} />
           <Route path="/compartidas/:id" element={<CompartidaPost />} />
+          <Route path="/perfil-bgg/:bggUsername" element={<BggProfile />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         {user && <BottomNav />}

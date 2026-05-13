@@ -6,7 +6,11 @@
       "WebFetch(domain:www.blizzard.com)",
       "Bash(npm run lint*)",
       "Bash(npx eslint*)",
-      "Bash(grep -E \"\\\\.\\(js|ts|model\\)$\")"
+      "Bash(grep -E \"\\\\.\\(js|ts|model\\)$\")",
+      "WebFetch(domain:bgg-api.readthedocs.io)",
+      "WebSearch",
+      "WebFetch(domain:blog.arranfrance.com)",
+      "WebFetch(domain:boardgamegeek.com)"
     ]
   },
   "hooks": {

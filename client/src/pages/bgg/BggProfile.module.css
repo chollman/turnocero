@@ -1,0 +1,317 @@
+/* ─── Page shell ─── */
+.page {
+  min-height: 100vh;
+  padding-bottom: 48px;
+}
+
+.inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 28px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ─── Back button ─── */
+.backBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  align-self: flex-start;
+  transition: color 0.15s;
+}
+
+.backBtn:hover {
+  color: var(--amber);
+}
+
+/* ─── Hero ─── */
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eyebrow {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--amber);
+  text-transform: uppercase;
+}
+
+.heroTitle {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.bggLink {
+  font-size: 13px;
+  color: var(--amber);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.bggLink:hover {
+  text-decoration: underline;
+}
+
+/* ─── Tabs ─── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-bottom: -1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+  color: var(--text-primary);
+}
+
+.tabActive {
+  color: var(--amber);
+  border-bottom-color: var(--amber);
+}
+
+.tabBadge {
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+/* ─── Tab content ─── */
+.tabContent {
+  min-height: 200px;
+}
+
+/* ─── Game grid ─── */
+.gameGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.gameCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s;
+}
+
+.gameCard:hover {
+  border-color: var(--amber);
+}
+
+.gameThumbnail {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--bg-elevated);
+}
+
+.gameThumbnailPlaceholder {
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+}
+
+.gameInfo {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.gameName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.gameYear {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.gameRatings {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.ratingBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ratingLabel {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.rating {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.ratingNull {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ─── Plays list ─── */
+.playsList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.playsHeader {
+  padding: 0 0 12px;
+}
+
+.playsTotal {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.playRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: border-color 0.15s;
+}
+
+.playRow:hover {
+  border-color: var(--amber);
+}
+
+.playDate {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.playGame {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.playMeta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.playTag {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ─── States ─── */
+.stateCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 5rem 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.loadingDice {
+  font-size: 2.5rem;
+  animation: bounce 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes bounce {
+  from { transform: translateY(0) rotate(-10deg); }
+  to { transform: translateY(-8px) rotate(10deg); }
+}
+
+.errorText {
+  color: var(--red);
+}
+
+/* ─── Mobile ─── */
+@media (max-width: 600px) {
+  .inner {
+    padding: 16px 18px 0;
+  }
+
+  .heroTitle {
+    font-size: 24px;
+  }
+
+  .gameGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .playRow {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .playDate {
+    min-width: unset;
+  }
+}

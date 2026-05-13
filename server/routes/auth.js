@@ -98,7 +98,7 @@ router.get('/me', protect, async (req, res) => {
 // PUT /api/auth/profile — protected
 router.put('/profile', protect, async (req, res) => {
   try {
-    const { displayName, nombre, apellido, direccion, telegram, celular } = req.body;
+    const { displayName, nombre, apellido, direccion, telegram, celular, bggUsername } = req.body;
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -107,6 +107,7 @@ router.put('/profile', protect, async (req, res) => {
     if (apellido !== undefined) user.apellido = apellido;
     if (telegram !== undefined) user.telegram = telegram;
     if (celular !== undefined) user.celular = celular;
+    if (bggUsername !== undefined) user.bggUsername = bggUsername;
     if (direccion !== undefined) {
       user.direccion = {
         texto: direccion.texto ?? user.direccion?.texto ?? '',

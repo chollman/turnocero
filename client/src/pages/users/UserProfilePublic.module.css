@@ -336,6 +336,17 @@
   color: var(--text-primary);
 }
 
+.infoLink {
+  font-size: 13px;
+  color: var(--amber);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.infoLink:hover {
+  text-decoration: underline;
+}
+
 /* ─── Favorite games ─── */
 .favSection {
   background: var(--bg-card);
