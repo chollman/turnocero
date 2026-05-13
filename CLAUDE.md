@@ -21,6 +21,10 @@ npm run install:all   # Installs both server and client deps
 
 No test commands are configured. ESLint runs as a pre-commit hook via the `/react-review` skill.
 
+## Frontend routing
+
+All client-side routes **must use Spanish slugs**. Examples: `/mesas`, `/mesas/crear`, `/mesas/:id/editar`, `/compartidas`, `/noticias`, `/perfil`, `/usuarios`, `/notificaciones`, `/mi`, `/base-de-datos`. The only exceptions are `/login` and `/register`.
+
 ## Git conventions
 
 Always write commit messages in **English**.
