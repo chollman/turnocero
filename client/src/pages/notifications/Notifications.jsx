@@ -3,26 +3,64 @@ import { useNotifications } from '../../context/NotificationContext';
 import styles from './Notifications.module.css';
 
 function getNotifMeta(n) {
-  const isAccepted = n.type === 'join_accepted';
-  const isRequest  = n.type === 'join_request';
-
-  const icon = isAccepted ? '✅' : isRequest ? '🔔' : '🎲';
-
-  const countLabel = isAccepted
-    ? '¡Aceptado!'
-    : isRequest
-      ? `${n.count} ${n.count === 1 ? 'solicitud' : 'solicitudes'}`
-      : `${n.count} ${n.count === 1 ? 'mensaje nuevo' : 'mensajes nuevos'}`;
-
-  const preview = isAccepted
-    ? `Ya sos parte de la mesa de ${n.tableName}`
-    : isRequest
-      ? `${n.lastRequesterUsername} quiere unirse`
-      : `${n.lastSenderUsername}: ${n.lastMessagePreview}${(n.lastMessagePreview?.length ?? 0) >= 60 ? '…' : ''}`;
-
-  const chipClass = isAccepted ? 'accepted' : isRequest ? 'request' : 'chat';
-
-  return { icon, countLabel, preview, chipClass };
+  switch (n.type) {
+    case 'join_accepted':
+      return {
+        icon: '✅',
+        countLabel: '¡Aceptado!',
+        preview: `Ya sos parte de la mesa de ${n.tableName}`,
+        chipClass: 'accepted',
+      };
+    case 'join_request':
+      return {
+        icon: '🔔',
+        countLabel: `${n.count} ${n.count === 1 ? 'solicitud' : 'solicitudes'}`,
+        preview: `${n.lastRequesterUsername} quiere unirse`,
+        chipClass: 'request',
+      };
+    case 'friend_request':
+      return {
+        icon: '🤝',
+        countLabel: 'Solicitud de amistad',
+        preview: `${n.fromUsername} te envió una solicitud de amistad`,
+        chipClass: 'request',
+      };
+    case 'friend_accepted':
+      return {
+        icon: '✅',
+        countLabel: '¡Amigos!',
+        preview: `${n.fromUsername} aceptó tu solicitud de amistad`,
+        chipClass: 'accepted',
+      };
+    case 'comment':
+      return {
+        icon: '🗨️',
+        countLabel: `${n.count} ${n.count === 1 ? 'comentario nuevo' : 'comentarios nuevos'}`,
+        preview: `${n.lastCommenterUsername}: ${n.lastCommentPreview ?? ''}${(n.lastCommentPreview?.length ?? 0) >= 60 ? '…' : ''}`,
+        chipClass: 'chat',
+      };
+    case 'image':
+      return {
+        icon: '📸',
+        countLabel: `${n.count} ${n.count === 1 ? 'foto nueva' : 'fotos nuevas'}`,
+        preview: `${n.lastUploaderUsername} subió una foto`,
+        chipClass: 'chat',
+      };
+    case 'spot_opened':
+      return {
+        icon: '🎯',
+        countLabel: '¡Lugar disponible!',
+        preview: `Se liberó un lugar en ${n.tableName}`,
+        chipClass: 'request',
+      };
+    default:
+      return {
+        icon: '🎲',
+        countLabel: `${n.count} ${n.count === 1 ? 'mensaje nuevo' : 'mensajes nuevos'}`,
+        preview: `${n.lastSenderUsername}: ${n.lastMessagePreview ?? ''}${(n.lastMessagePreview?.length ?? 0) >= 60 ? '…' : ''}`,
+        chipClass: 'chat',
+      };
+  }
 }
 
 export default function Notifications() {
