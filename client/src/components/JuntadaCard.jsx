@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import GameTile from './GameTile'
+import LoginPromptModal from './LoginPromptModal'
 import styles from './JuntadaCard.module.css'
 
 function buildShareData(post) {
@@ -38,8 +39,9 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
   const navigate = useNavigate()
   const [post, setPost] = useState(initialPost)
   const [liked, setLiked] = useState(() =>
-    initialPost.likes.some((l) => (l._id || l).toString() === user._id.toString())
+    user ? initialPost.likes.some((l) => (l._id || l).toString() === user._id.toString()) : false
   )
+  const [loginPrompt, setLoginPrompt] = useState('')
   const [likeCount, setLikeCount] = useState(initialPost.likes.length)
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState([])
@@ -61,8 +63,10 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
   const menuRef = useRef(null)
   const commentInputRef = useRef(null)
 
-  const isAuthor = post.author._id?.toString() === user._id.toString() ||
-                   post.author.toString?.() === user._id.toString()
+  const isAuthor = user && (
+    post.author._id?.toString() === user._id.toString() ||
+    post.author.toString?.() === user._id.toString()
+  )
 
   // Close menu on outside click
   useEffect(() => {
@@ -74,6 +78,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
   }, [])
 
   const handleLike = async () => {
+    if (!user) { setLoginPrompt('Iniciá sesión para dar like a esta juntada.'); return }
     const prev = liked
     setLiked(!liked)
     setLikeCount((c) => c + (liked ? -1 : 1))
@@ -163,6 +168,7 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
 
   return (
     <>
+      <LoginPromptModal isOpen={!!loginPrompt} onClose={() => setLoginPrompt('')} message={loginPrompt} />
       <article className={`${styles.card} ${featured ? styles.cardFeatured : ''}`}>
         {featured && (
           <div className={styles.featuredBadge}>🔥 Juntada del día</div>
@@ -369,8 +375,8 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
               <p className={styles.noComments}>Sin comentarios aún. ¡Sé el primero!</p>
             ) : null}
             {comments.map((c) => {
-              const isOwn = (c.author._id || c.author).toString() === user._id.toString()
-              const canDel = isOwn || isAuthor || user.isAdmin
+              const isOwn = user && (c.author._id || c.author).toString() === user._id.toString()
+              const canDel = isOwn || isAuthor || user?.isAdmin
               return (
                 <div key={c._id} className={styles.comment}>
                   <div className={styles.commentAvatar}>{(c.author.displayName || c.author.username)[0].toUpperCase()}</div>
@@ -412,25 +418,36 @@ export default function JuntadaCard({ post: initialPost, onDeleted, onUpdated, f
               )
             })}
 
-            <form className={styles.commentForm} onSubmit={handleAddComment}>
-              <div className={styles.commentFormAvatar}>{user.username[0].toUpperCase()}</div>
-              <input
-                ref={commentInputRef}
-                className={styles.commentInput}
-                placeholder="Escribí un comentario…"
-                value={commentInput}
-                onChange={(e) => setCommentInput(e.target.value)}
-                maxLength={500}
-                disabled={submitting}
-              />
+            {user ? (
+              <form className={styles.commentForm} onSubmit={handleAddComment}>
+                <div className={styles.commentFormAvatar}>{user.username[0].toUpperCase()}</div>
+                <input
+                  ref={commentInputRef}
+                  className={styles.commentInput}
+                  placeholder="Escribí un comentario…"
+                  value={commentInput}
+                  onChange={(e) => setCommentInput(e.target.value)}
+                  maxLength={500}
+                  disabled={submitting}
+                />
+                <button
+                  type="submit"
+                  className={styles.commentSubmit}
+                  disabled={!commentInput.trim() || submitting}
+                >
+                  {submitting ? '…' : '↑'}
+                </button>
+              </form>
+            ) : (
               <button
-                type="submit"
                 className={styles.commentSubmit}
-                disabled={!commentInput.trim() || submitting}
+                style={{ width: '100%', borderRadius: 8, padding: '8px 0' }}
+                onClick={() => setLoginPrompt('Iniciá sesión para comentar en esta juntada.')}
+                type="button"
               >
-                {submitting ? '…' : '↑'}
+                Iniciá sesión para comentar
               </button>
-            </form>
+            )}
           </div>
         )}
       </article>
