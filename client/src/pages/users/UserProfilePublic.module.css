@@ -3,6 +3,12 @@
   padding-bottom: 4rem;
 }
 
+@media (min-width: 960px) {
+  .page {
+    margin-top: -1.5rem;
+  }
+}
+
 /* ─── GameTile hero banner ─── */
 .banner {
   position: relative;
@@ -218,7 +224,7 @@
 /* ─── Stats grid ─── */
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 12px;
 }
 
@@ -447,6 +453,9 @@
 .dotCancelled {
   background: var(--red);
 }
+.dotSuccess {
+  background: var(--green);
+}
 
 .breakdownLabel {
   flex: 1;
@@ -457,6 +466,57 @@
 .breakdownValue {
   font-family: 'Manrope', var(--font-display);
   font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.breakdownSuccess {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  margin-top: 2px;
+}
+
+.breakdownValueSuccess {
+  color: var(--green);
+}
+
+/* ─── Ratio bar ─── */
+.ratioWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ratioLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'Manrope', var(--font-display);
+}
+
+.ratioBar {
+  height: 8px;
+  background: rgba(0, 217, 132, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ratioFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber), var(--amber-light));
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.ratioValues {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Manrope', var(--font-display);
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
 }

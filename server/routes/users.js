@@ -106,7 +106,16 @@ router.get('/:id', optionalAuth, async (req, res) => {
       queries.push(User.findById(req.user._id).select('friends friendRequests').lean());
     }
 
-    const [hostedTables, playerTables, currentUser] = await Promise.all(queries);
+    const [tableResults, compartidaResult] = await Promise.all([
+      Promise.all(queries),
+      Compartida.aggregate([
+        { $match: { author: userId, privacy: 'public' } },
+        { $group: { _id: null, count: { $sum: 1 }, likes: { $sum: { $size: '$likes' } } } },
+      ]),
+    ]);
+
+    const [hostedTables, playerTables, currentUser] = tableResults;
+    const compartidaData = compartidaResult[0] || { count: 0, likes: 0 };
 
     const hostedActive = hostedTables.filter((t) => t.status !== 'cancelled');
     const playerActive = playerTables.filter((t) => t.status !== 'cancelled');
@@ -157,6 +166,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
           active: playerActive.length,
         },
         totalGamesPlayed: hostedActive.length + playerActive.length,
+        compartidas: compartidaData.count,
+        likesReceived: compartidaData.likes,
         favoriteGames,
         lastActivity,
       },

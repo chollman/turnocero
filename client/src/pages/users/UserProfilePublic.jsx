@@ -215,6 +215,9 @@ export default function UserProfilePublic() {
           <StatCard value={stats.tablesHosted.total} label="Mesas creadas" />
           <StatCard value={stats.tablesAsPlayer.total} label="Como jugador" />
           <StatCard value={stats.tablesHosted.active} label="Mesas activas" />
+          <StatCard value={profile.friendsCount} label="Amigos" />
+          <StatCard value={stats.compartidas} label="Publicaciones" />
+          <StatCard value={stats.likesReceived} label="Likes recibidos" />
         </div>
 
         {/* Two-column layout */}
@@ -296,10 +299,41 @@ export default function UserProfilePublic() {
                   <span className={styles.breakdownLabel}>Canceladas</span>
                   <span className={styles.breakdownValue}>{stats.tablesHosted.cancelled}</span>
                 </div>
+                {stats.tablesHosted.total > 0 && (
+                  <div className={`${styles.breakdownItem} ${styles.breakdownSuccess}`}>
+                    <span className={`${styles.breakdownDot} ${styles.dotSuccess}`} />
+                    <span className={styles.breakdownLabel}>Tasa de éxito</span>
+                    <span className={`${styles.breakdownValue} ${styles.breakdownValueSuccess}`}>
+                      {Math.round(((stats.tablesHosted.total - stats.tablesHosted.cancelled) / stats.tablesHosted.total) * 100)}%
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {profile.direccion?.texto && (
+            {stats.totalGamesPlayed > 0 && (
+              <div className={styles.infoCard}>
+                <div className={styles.sectionLabel}>ROL EN PARTIDAS</div>
+                <div className={styles.ratioWrap}>
+                  <div className={styles.ratioLabels}>
+                    <span>Anfitrión</span>
+                    <span>Jugador</span>
+                  </div>
+                  <div className={styles.ratioBar}>
+                    <div
+                      className={styles.ratioFill}
+                      style={{ width: `${Math.round((stats.tablesHosted.active / stats.totalGamesPlayed) * 100)}%` }}
+                    />
+                  </div>
+                  <div className={styles.ratioValues}>
+                    <span>{Math.round((stats.tablesHosted.active / stats.totalGamesPlayed) * 100)}%</span>
+                    <span>{Math.round((stats.tablesAsPlayer.active / stats.totalGamesPlayed) * 100)}%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {profile.createdAt && (
               <div className={styles.miembroCard}>
                 <div className={styles.sectionLabel}>MIEMBRO DESDE</div>
                 <div className={styles.miembroDate}>{formatDate(profile.createdAt)}</div>
