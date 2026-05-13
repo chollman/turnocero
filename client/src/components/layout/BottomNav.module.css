@@ -14,6 +14,12 @@
   z-index: 100;
 }
 
+.navScrollable {
+  display: grid;
+  grid-template-columns: 40px 1fr 1fr 1fr 40px;
+  justify-content: unset;
+}
+
 @media (min-width: 960px) {
   .nav {
     display: none;
@@ -34,6 +40,11 @@
   position: relative;
   padding: 8px 24px;
   transition: color var(--transition);
+}
+
+.navScrollable .item {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .item:hover {
@@ -66,4 +77,21 @@
   height: 2px;
   border-radius: 0 0 2px 2px;
   background: var(--amber);
+}
+
+.arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  height: 100%;
+  transition: color var(--transition);
+}
+
+.arrow:hover {
+  color: var(--text-secondary);
 }

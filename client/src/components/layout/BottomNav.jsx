@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import styles from './BottomNav.module.css'
@@ -59,15 +60,29 @@ const DBIcon = () => (
   </svg>
 )
 
+const ChevronLeft = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m15 18-6-6 6-6"/>
+  </svg>
+)
+
+const ChevronRight = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m9 18 6-6-6-6"/>
+  </svg>
+)
+
 const NAV = [
-  { id: 'feed',      label: 'Feed',      Icon: FeedIcon,      to: '/mi' },
-  { id: 'dash',      label: 'Mesas',     Icon: MesasIcon,     to: '/mesas' },
-  { id: 'noticias',    label: 'Noticias',    Icon: NoticiasIcon,    to: '/noticias' },
-  { id: 'compartidas',  label: 'Compartite',  Icon: CompartidasIcon,  to: '/compartidas' },
-  { id: 'users',     label: 'Comunidad', Icon: ComunidadIcon, to: '/usuarios' },
-  { id: 'profile',   label: 'Perfil',    Icon: PerfilIcon,    to: '/perfil' },
-  { id: 'db',        label: 'DB',        Icon: DBIcon,        to: '/base-de-datos', adminOnly: true },
+  { id: 'feed',        label: 'Feed',       Icon: FeedIcon,       to: '/mi' },
+  { id: 'dash',        label: 'Mesas',      Icon: MesasIcon,      to: '/mesas' },
+  { id: 'noticias',    label: 'Noticias',   Icon: NoticiasIcon,   to: '/noticias' },
+  { id: 'compartidas', label: 'Compartite', Icon: CompartidasIcon, to: '/compartidas' },
+  { id: 'users',       label: 'Comunidad',  Icon: ComunidadIcon,  to: '/usuarios' },
+  { id: 'profile',     label: 'Perfil',     Icon: PerfilIcon,     to: '/perfil' },
+  { id: 'db',          label: 'DB',         Icon: DBIcon,         to: '/base-de-datos', adminOnly: true },
 ]
+
+const VISIBLE = 3
 
 function getActiveId(pathname) {
   if (pathname === '/mi') return 'feed'
@@ -85,10 +100,39 @@ export default function BottomNav() {
   const location = useLocation()
   const active = getActiveId(location.pathname)
   const items = NAV.filter(item => !item.adminOnly || user?.isAdmin)
+  const scrollable = items.length > VISIBLE
+
+  const [startIndex, setStartIndex] = useState(0)
+
+  // Keep the active item visible when navigating
+  useEffect(() => {
+    if (!scrollable) return
+    const activeIdx = items.findIndex(item => item.id === active)
+    if (activeIdx < 0) return
+    setStartIndex(prev => {
+      if (activeIdx < prev) return activeIdx
+      if (activeIdx >= prev + VISIBLE) return activeIdx - VISIBLE + 1
+      return prev
+    })
+  }, [active]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const visibleItems = scrollable ? items.slice(startIndex, startIndex + VISIBLE) : items
+  const canGoLeft = scrollable && startIndex > 0
+  const canGoRight = scrollable && startIndex + VISIBLE < items.length
 
   return (
-    <nav className={styles.nav}>
-      {items.map(({ id, label, Icon, to }) => {
+    <nav className={`${styles.nav} ${scrollable ? styles.navScrollable : ''}`}>
+      {scrollable && (
+        <button
+          className={styles.arrow}
+          onClick={() => setStartIndex(i => i - 1)}
+          style={{ visibility: canGoLeft ? 'visible' : 'hidden' }}
+          aria-label="Anterior"
+        >
+          <ChevronLeft />
+        </button>
+      )}
+      {visibleItems.map(({ id, label, Icon, to }) => {
         const isActive = id === active
         return (
           <Link
@@ -102,6 +146,16 @@ export default function BottomNav() {
           </Link>
         )
       })}
+      {scrollable && (
+        <button
+          className={styles.arrow}
+          onClick={() => setStartIndex(i => i + 1)}
+          style={{ visibility: canGoRight ? 'visible' : 'hidden' }}
+          aria-label="Siguiente"
+        >
+          <ChevronRight />
+        </button>
+      )}
     </nav>
   )
 }
