@@ -38,7 +38,7 @@ Always write commit messages in **English**.
 The Vite dev server proxies `/api/*` to `http://localhost:4000/api`, so all frontend API calls use relative `/api/...` paths. The Socket.IO client connects directly to `http://localhost:4000` (or `VITE_API_URL`).
 
 ### Auth flow
-1. `POST /api/auth/register` or `/login` → JWT (7-day) + user object returned
+1. `POST /api/auth/register` or `/login` → JWT (24-hour) + user object returned
 2. `AuthContext` stores the token in `localStorage` and sets it as the Axios default `Authorization` header
 3. On app load, `GET /api/auth/me` re-validates the token
 4. `App.jsx` uses `<PrivateRoute>` for auth-only pages and `<PublicRoute>` for login/register; most pages are accessible without login
@@ -109,7 +109,9 @@ Owns the Socket.IO connection for the authenticated user. On mount, loads persis
 ### Key API endpoints
 ```
 POST   /api/auth/register|login
+POST   /api/auth/logout
 GET    /api/auth/me
+PUT    /api/auth/profile                        — update displayName, nombre, apellido, direccion, telegram, celular, bggUsername
 
 GET    /api/tables                              — paginated (?page, ?limit, ?search)
 GET    /api/tables/mine
@@ -200,6 +202,21 @@ App (AuthProvider + NotificationProvider + ChatProvider + Router)
 ├── pages/bgg/                  ← BggProfile /perfil-bgg/:bggUsername  (BGG user lookup — see limitations)
 └── pages/admin/                ← DatabaseViewer /base-de-datos (isAdmin only)
 ```
+
+### Image uploads
+All image uploads go through Multer (memory storage, no disk) before Cloudinary. Constraints: 5 MB max per file; accepted types: `image/jpeg`, `image/png`, `image/webp`, `image/gif`. Cloudinary folders by resource type:
+- Tables: `turnocero/tables/<tableId>/` (transformed to max 1200 px wide)
+- Compartidas: `turnocero/compartidas/<compartidaId>/`
+- Noticias: `turnocero/noticias/`
+
+### Server error format
+All error responses return `{ message: '<string>' }`. Status codes: `400` validation/bad request, `401` unauthenticated, `403` forbidden, `404` not found, `500` server error. Auth routes (`/register`, `/login`) are rate-limited: 10 attempts per 15 minutes per IP.
+
+### OG / Vercel middleware
+`client/middleware.js` intercepts compartida share links for social crawlers (WhatsApp, Twitter, Facebook, etc.) and injects OG meta tags from `GET /api/compartidas/:id/og`. `client/vercel.json` rewrites all other paths to `/index.html` for SPA routing.
+
+### Notification persistence
+`server/utils/saveNotification.js` upserts notifications rather than creating new ones. Types `chat`, `comment`, `image`, and `join_request` aggregate (increment count on existing); all others overwrite.
 
 ### Styling
 CSS Modules per component. Global CSS variables in `client/src/index.css` define the dark amber/gold board-game theme: `--bg-dark`, `--amber`, `--green`, `--red`, `--text-primary`, etc. Always use these variables; never hardcode colors.

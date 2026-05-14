@@ -16,6 +16,7 @@ export default function GuestNavbar() {
         <div className={styles.links}>
           <Link to="/noticias" className={styles.navLink}>Noticias</Link>
           <Link to="/compartidas" className={styles.navLink}>Compartidas</Link>
+          <Link to="/utilidades" className={styles.navLink}>Utilidades</Link>
         </div>
 
         <div className={styles.right}>
