@@ -41,6 +41,7 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
   const [liked, setLiked] = useState(() =>
     user ? initialPost.likes.some((l) => (l._id || l).toString() === user._id.toString()) : false
   )
+  const [heartPopping, setHeartPopping] = useState(false)
   const [loginPrompt, setLoginPrompt] = useState('')
   const [likeCount, setLikeCount] = useState(initialPost.likes.length)
   const [showComments, setShowComments] = useState(false)
@@ -82,6 +83,10 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
     const prev = liked
     setLiked(!liked)
     setLikeCount((c) => c + (liked ? -1 : 1))
+    if (!prev) {
+      setHeartPopping(true)
+      setTimeout(() => setHeartPopping(false), 350)
+    }
     try {
       await axios.post(`/api/compartidas/${post._id}/like`)
     } catch {
@@ -293,7 +298,7 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
             className={`${styles.likeBtn} ${liked ? styles.likeBtnActive : ''}`}
             onClick={handleLike}
           >
-            <span className={styles.likeHeart}>❤</span>
+            <span className={`${styles.likeHeart} ${heartPopping ? styles.likeHeartPop : ''}`}>❤</span>
             <span>{likeCount}</span>
           </button>
           <button className={styles.commentToggle} onClick={toggleComments}>

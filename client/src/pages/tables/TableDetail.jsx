@@ -639,7 +639,7 @@ export default function TableDetail() {
                       const count = reactions.filter((r) => r.emoji === emoji).length
                       return (
                         <button
-                          key={emoji}
+                          key={`${emoji}-${myReaction === emoji}`}
                           className={`${styles.reactionBtn} ${myReaction === emoji ? styles.reactionActive : ''}`}
                           onClick={() => handleReact(emoji)}
                         >

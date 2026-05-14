@@ -206,14 +206,15 @@ export default function Dashboard() {
         ) : (
           <>
             <div className={viewMode === 'list' ? styles.list : styles.grid}>
-              {tables.map((table) => (
-                <TableCard
-                  key={table._id}
-                  table={table}
-                  onUpdate={handleUpdate}
-                  onCancel={handleCancel}
-                  listMode={viewMode === 'list'}
-                />
+              {tables.map((table, i) => (
+                <div key={table._id} className={styles.cardWrap} style={{ '--i': i }}>
+                  <TableCard
+                    table={table}
+                    onUpdate={handleUpdate}
+                    onCancel={handleCancel}
+                    listMode={viewMode === 'list'}
+                  />
+                </div>
               ))}
             </div>
             {pagination.pages > 1 && (

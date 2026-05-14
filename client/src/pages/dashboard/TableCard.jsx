@@ -117,6 +117,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [loginPrompt, setLoginPrompt] = useState('');
+  const [flashing, setFlashing] = useState(false);
 
   const isHost = user && (table.host._id === user._id || table.host._id?.toString() === user._id?.toString());
   const isPlayer = user && table.players.some(
@@ -142,6 +143,8 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     try {
       const { data } = await axios.post(`/api/tables/${table._id}/join`);
       onUpdate(data.table);
+      setFlashing(true);
+      setTimeout(() => setFlashing(false), 500);
     } catch (err) {
       setError(err.response?.data?.message || 'Error al unirse');
     } finally {
@@ -267,7 +270,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     <>
     <LoginPromptModal isOpen={!!loginPrompt} onClose={() => setLoginPrompt('')} message={loginPrompt} />
     <div
-      className={`${styles.card} ${isHost ? styles.hosted : ''} ${isPlayer ? styles.joined : ''} ${table.bggImage ? styles.hasImage : ''}`}
+      className={`${styles.card} ${isHost ? styles.hosted : ''} ${isPlayer ? styles.joined : ''} ${table.bggImage ? styles.hasImage : ''} ${flashing ? styles.joinFlash : ''}`}
       style={{ position: 'relative' }}
     >
       {table.bggImage && (

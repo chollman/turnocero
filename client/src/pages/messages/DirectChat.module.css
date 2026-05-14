@@ -106,6 +106,15 @@
   max-width: 75%;
 }
 
+.messageNew {
+  animation: msgSlideIn 0.2s ease;
+}
+
+@keyframes msgSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .own {
   align-self: flex-end;
   flex-direction: row-reverse;

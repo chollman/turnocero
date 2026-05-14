@@ -22,6 +22,12 @@
   font-weight: 800;
   letter-spacing: 0.1em;
   color: var(--amber);
+  animation: featuredPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes featuredPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
 }
 
 /* ── Header ── */
@@ -115,6 +121,13 @@
   z-index: 10;
   min-width: 120px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: menuFade 0.13s ease;
+  transform-origin: top right;
+}
+
+@keyframes menuFade {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .menuItem {
@@ -402,6 +415,19 @@
 .likeHeart {
   font-size: 15px;
   line-height: 1;
+  display: inline-block;
+  transition: transform 0.1s;
+}
+
+.likeHeartPop {
+  animation: heartPop 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes heartPop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.55); }
+  60%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
 }
 
 .commentToggle {
@@ -456,6 +482,12 @@
   gap: 0;
   padding: 0 16px 14px;
   border-top: 1px solid var(--border);
+  animation: commentsSlideDown 0.22s ease;
+}
+
+@keyframes commentsSlideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .noComments {

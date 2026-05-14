@@ -151,7 +151,7 @@ export default function Sidebar() {
             >
               <span className={styles.navIcon}>{ICONS[item.id]}</span>
               <span className={styles.navLabel}>{item.label}</span>
-              {badge && <span className={styles.navBadge}>{badge}</span>}
+              {badge && <span key={badge} className={styles.navBadge}>{badge}</span>}
             </Link>
           )
         })}

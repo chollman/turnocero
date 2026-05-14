@@ -230,6 +230,16 @@
   gap: 1.25rem;
 }
 
+.cardWrap {
+  animation: cardEnter 0.28s ease both;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* List */
 .list {
   display: flex;

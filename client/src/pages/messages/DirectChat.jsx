@@ -18,6 +18,7 @@ export default function DirectChat() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const messageListRef = useRef(null);
+  const loadedCountRef = useRef(null);
 
   const conv = conversations[userId];
 
@@ -55,6 +56,11 @@ export default function DirectChat() {
 
   const messages = conv?.messages || [];
 
+  // Snapshot the count when the conversation first loads so we only animate new arrivals
+  if (conv?.loaded && loadedCountRef.current === null) {
+    loadedCountRef.current = messages.length;
+  }
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -82,10 +88,11 @@ export default function DirectChat() {
         {!conv?.loaded && (
           <div className={styles.loading}>Cargando mensajes...</div>
         )}
-        {messages.map((msg) => {
+        {messages.map((msg, i) => {
           const isOwn = (msg.from._id || msg.from).toString() === user._id.toString();
+          const isNew = loadedCountRef.current !== null && i >= loadedCountRef.current;
           return (
-            <div key={msg._id} className={`${styles.message} ${isOwn ? styles.own : styles.other}`}>
+            <div key={msg._id} className={`${styles.message} ${isOwn ? styles.own : styles.other} ${isNew ? styles.messageNew : ''}`}>
               {!isOwn && (
                 <span className={styles.senderAvatar}>
                   {(msg.from.username || '?')[0].toUpperCase()}

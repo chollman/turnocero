@@ -49,7 +49,7 @@ export default function Navbar() {
           >
             <BellIcon />
             {unreadCount > 0 && (
-              <span className={styles.bellBadge}>
+              <span key={unreadCount} className={styles.bellBadge}>
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
