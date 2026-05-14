@@ -87,7 +87,6 @@ const ChevronRight = () => (
 const NAV = [
   { id: 'feed',        label: 'Feed',       Icon: FeedIcon,        to: '/mi' },
   { id: 'dash',        label: 'Mesas',      Icon: MesasIcon,       to: '/mesas' },
-  { id: 'mensajes',    label: 'Mensajes',   Icon: MensajesIcon,    to: '/mensajes' },
   { id: 'noticias',    label: 'Noticias',   Icon: NoticiasIcon,    to: '/noticias' },
   { id: 'compartidas', label: 'Compartite', Icon: CompartidasIcon, to: '/compartidas' },
   { id: 'users',       label: 'Comunidad',  Icon: ComunidadIcon,   to: '/usuarios' },
@@ -101,7 +100,6 @@ const VISIBLE = 3
 function getActiveId(pathname) {
   if (pathname === '/mi') return 'feed'
   if (pathname.startsWith('/mesas')) return 'dash'
-  if (pathname.startsWith('/mensajes')) return 'mensajes'
   if (pathname.startsWith('/noticias')) return 'noticias'
   if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas'
   if (pathname.startsWith('/usuarios')) return 'users'

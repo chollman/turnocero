@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { useChat } from '../../context/ChatContext';
 import styles from './Navbar.module.css';
+
+const ChatIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+);
 
 const BellIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -22,6 +29,7 @@ const LogoutIcon = () => (
 export default function Navbar() {
   const { logout } = useAuth();
   const { unreadCount } = useNotifications();
+  const { dmUnreadTotal } = useChat();
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
 
@@ -42,6 +50,19 @@ export default function Navbar() {
         </Link>
 
         <div className={styles.right}>
+          <button
+            className={styles.bellBtn}
+            onClick={() => navigate('/mensajes')}
+            aria-label="Mensajes"
+          >
+            <ChatIcon />
+            {dmUnreadTotal > 0 && (
+              <span key={dmUnreadTotal} className={styles.bellBadge}>
+                {dmUnreadTotal > 9 ? '9+' : dmUnreadTotal}
+              </span>
+            )}
+          </button>
+
           <button
             className={styles.bellBtn}
             onClick={() => navigate('/notificaciones')}
