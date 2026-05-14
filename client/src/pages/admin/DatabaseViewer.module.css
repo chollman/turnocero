@@ -3,6 +3,13 @@
   min-height: calc(100vh - 64px);
 }
 
+@media (max-width: 600px) {
+  .page {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
 @media (min-width: 960px) {
   .page {
     padding-top: 1.5rem;
@@ -30,12 +37,12 @@
 
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 3px;
-  width: fit-content;
   margin-bottom: 1.25rem;
 }
 
