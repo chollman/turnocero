@@ -1,0 +1,106 @@
+# Features de BGG para Turnocero
+
+## Contexto
+
+Turnocero ya tiene la infraestructura base para BGG: el `bggId`, `bggThumbnail`, `bggImage` y `bggYear` se guardan en cada mesa al crearla, los usuarios tienen `bggUsername`, y el servidor tiene un proxy completo en `server/routes/bgg.js` que evita el problema de CORS llamando a la API de BGG server-to-server. La `BggProfile` page existe en `client/src/pages/bgg/BggProfile.jsx`. Lo que falta es aprovechar toda esa información para enriquecer la experiencia.
+
+---
+
+## 1. Enriquecimiento de mesas
+
+### Datos del juego en cards y detalle
+- Mostrar **rating BGG** (1–10) y **complejidad/peso** (1–5) en TableCard y TableDetail — ya está el `bggId` guardado, solo falta fetchear el dato desde `GET /api/bgg/game/:id`
+- Mostrar **mecánicas** del juego (Worker Placement, Deck Building, etc.) como chips/tags
+- Mostrar **categorías** (Estrategia, Familiar, Cooperativo, etc.)
+- Mostrar **rango BGG** del juego ("Top #34 en BGG")
+- Mostrar **tiempo estimado de partida** (min/max playtime)
+- Mostrar **"mejor con X jugadores"** según los votos de BGG
+- Mostrar **descripción del juego** expandible en el detalle de mesa
+- **Link directo a BGG** del juego en el detalle de mesa
+
+### Filtros y búsqueda
+- Filtrar mesas por **mecánica** o **categoría**
+- Filtrar mesas por **peso/complejidad** (liviano / medio / pesado)
+- Filtrar mesas por **duración estimada** (< 60 min, 1–2 h, > 2 h)
+- Filtrar mesas por **cantidad de jugadores óptima**
+
+---
+
+## 2. Descubrimiento de juegos
+
+- **Sección "En tendencia"**: Hotness List de BGG (los 50 juegos más calientes) → botón directo para crear mesa
+- **Página de juego** (`/juegos/:bggId`): vista dedicada por juego con mesas activas en Turnocero + datos de BGG
+- **Reseñas y videos de BGG** del juego, visibles desde el detalle de mesa
+- Buscador general de juegos con info completa (rating, complejidad, mecánicas)
+
+---
+
+## 3. Perfil de usuario enriquecido
+
+- **Tamaño de colección BGG** en el perfil público ("Tiene 87 juegos")
+- **Juegos más jugados** del usuario (de BGG plays) en el perfil
+- **Complejidad promedio** de su colección
+- **Total de horas jugadas** estimado (plays × duración)
+- **Heatmap de actividad** de partidas (como el de GitHub), generado de BGG plays
+- **Estadísticas por mecánica** — "el 60% de tus partidas son gestión de recursos"
+- **Badges automáticos** de tipo de jugador: "Jugador Hardcore" (peso promedio > 3.5), "Amante del Cooperativo", "Casual Gamer", etc.
+
+---
+
+## 4. Compatibilidad entre usuarios y matching
+
+- **"Este juego está en tu colección BGG"** — indicador en TableCard para el usuario logueado
+- **"X de tus amigos tienen este juego"** en el detalle de mesa, con avatares
+- Al **crear una mesa**, sugerir amigos que tienen ese juego en su colección BGG
+- **Compatibilidad de colección** entre dos usuarios: "vos y @fulanito tienen 23 juegos en común"
+- **Wishlists BGG**: si alguien tiene un juego en wishlist y se crea una mesa → notificación automática
+
+---
+
+## 5. Estadísticas de la comunidad
+
+- **Top juegos más jugados en Turnocero** (ranking interno por `bggId`)
+- **"Juego de la semana"** — el más popular en mesas recientes
+- Estadísticas globales: horas totales, juego más jugado del mes
+- Página `/estadisticas` con gráficos de actividad
+
+---
+
+## 6. Compartidas enriquecidas
+
+- Al crear una Compartida, poder **linkear a un juego BGG** además de a una mesa
+- Mostrar **thumbnail del juego** en la card si tiene juego vinculado
+- **Filtrar compartidas por juego**
+- Sección "Compartidas de este juego" en la vista de juego
+
+---
+
+## 7. Notificaciones inteligentes
+
+- **Notificar cuando se abre una mesa** de un juego en wishlist BGG del usuario
+- **Notificar cuando un amigo crea una mesa** de un juego en tu colección
+- **Sugerir mesas** basadas en juegos de tu colección que no jugaste en Turnocero
+
+---
+
+## 8. Integración de ratings post-partida
+
+- Al cerrar una mesa, invitar a los participantes a **registrar la partida en BGG** (deep link al log play de BGG)
+- Mostrar si los jugadores ya **rankearon el juego en BGG**
+- Widget "¿Qué te pareció?" que sincronice con el rating personal del usuario en BGG
+
+---
+
+## Archivos clave
+
+- `server/routes/bgg.js` — proxy BGG ya construido (search, game detail, collection, plays)
+- `server/models/Table.js` — campos `bggId`, `bggThumbnail`, `bggImage`, `bggYear`, `boardGame`
+- `server/models/User.js` — campo `bggUsername`
+- `client/src/pages/bgg/BggProfile.jsx` — página de perfil BGG existente
+- `client/src/pages/tables/CreateTable.jsx` — búsqueda BGG al crear mesa
+- `client/src/pages/tables/TableDetail.jsx` — detalle de mesa donde mostrar datos enriquecidos
+- `client/src/App.jsx` — routing
+
+## Por dónde arrancar
+
+Las más fáciles: **rating, complejidad y mecánicas en las cards** (punto 1) — solo requiere fetchear más campos del endpoint `GET /api/bgg/game/:id` que ya existe y mostrarlos en `TableCard` y `TableDetail`.
