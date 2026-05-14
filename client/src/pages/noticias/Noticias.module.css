@@ -105,6 +105,7 @@
 }
 
 .dropzone:hover { border-color: var(--amber); background: var(--amber-glow); }
+.dropzoneDragOver { border-color: var(--amber); background: var(--amber-glow); border-style: solid; }
 
 .dropzonePlaceholder {
   display: flex;

@@ -15,19 +15,46 @@ function timeAgo(date) {
 }
 
 function ImageDropzone({ preview, onFile }) {
-  const inputRef = useRef(null)
+  const inputRef  = useRef(null)
+  const onFileRef = useRef(onFile)
+  const [dragOver, setDragOver] = useState(false)
+
+  useEffect(() => { onFileRef.current = onFile }, [onFile])
+
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const f = item.getAsFile()
+          if (f) { onFileRef.current(f); break }
+        }
+      }
+    }
+    document.addEventListener('paste', handlePaste)
+    return () => document.removeEventListener('paste', handlePaste)
+  }, [])
 
   const handleDrop = (e) => {
     e.preventDefault()
+    setDragOver(false)
     const f = e.dataTransfer.files?.[0]
     if (f) onFile(f)
   }
 
+  const classes = [
+    styles.dropzone,
+    preview   ? styles.dropzoneWithPreview : '',
+    dragOver  ? styles.dropzoneDragOver    : '',
+  ].filter(Boolean).join(' ')
+
   return (
     <div
-      className={`${styles.dropzone} ${preview ? styles.dropzoneWithPreview : ''}`}
+      className={classes}
       onDrop={handleDrop}
-      onDragOver={(e) => e.preventDefault()}
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+      onDragLeave={() => setDragOver(false)}
       onClick={() => inputRef.current?.click()}
     >
       {preview ? (
@@ -35,7 +62,7 @@ function ImageDropzone({ preview, onFile }) {
       ) : (
         <div className={styles.dropzonePlaceholder}>
           <span className={styles.dropzoneIcon}>🖼</span>
-          <span className={styles.dropzoneText}>Arrastrá o hacé click para subir la imagen</span>
+          <span className={styles.dropzoneText}>Arrastrá, pegá o hacé click para subir la imagen</span>
           <span className={styles.dropzoneSub}>JPG, PNG, WEBP · máx. 5 MB</span>
         </div>
       )}
