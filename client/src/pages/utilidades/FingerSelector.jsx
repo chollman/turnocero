@@ -27,6 +27,7 @@ export default function FingerSelector() {
   const [counting, setCounting] = useState(false);
   const [countdown, setCountdown] = useState(COUNTDOWN_START);
   const [winnerId, setWinnerId] = useState(null);
+  const [countKey, setCountKey] = useState(0);
 
   function nextColor() {
     for (let i = 0; i < FINGER_COLORS.length; i++) {
@@ -86,6 +87,7 @@ export default function FingerSelector() {
       countingRef.current = true;
       setCounting(true);
       setCountdown(COUNTDOWN_START);
+      setCountKey(k => k + 1);
       let count = COUNTDOWN_START;
       intervalRef.current = setInterval(() => {
         count--;
@@ -190,7 +192,6 @@ export default function FingerSelector() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const ringOffset = CIRCUMFERENCE * (1 - countdown / COUNTDOWN_START);
   const winnerColor = winnerId !== null ? dots.find(d => d.id === winnerId)?.color : null;
 
   return (
@@ -218,14 +219,15 @@ export default function FingerSelector() {
           <svg viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
             <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="6" />
             <circle
+              key={countKey}
               cx="50" cy="50" r="40"
               fill="none"
               stroke="var(--amber)"
               strokeWidth="6"
               strokeDasharray={CIRCUMFERENCE}
-              strokeDashoffset={ringOffset}
+              strokeDashoffset={0}
               strokeLinecap="round"
-              style={{ transition: 'stroke-dashoffset 1s linear' }}
+              style={{ animation: `ringEmpty ${COUNTDOWN_START}s linear forwards` }}
             />
           </svg>
           <div className={styles.countdownNum}>{countdown}</div>
