@@ -28,9 +28,21 @@
   pointer-events: none;
 }
 
+@media (max-width: 600px) {
+  .card {
+    aspect-ratio: unset;
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 18px 20px;
+    gap: 16px;
+  }
+}
+
 .icon {
   font-size: 2.6rem;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .name {
