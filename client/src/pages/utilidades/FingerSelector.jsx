@@ -93,7 +93,7 @@ export default function FingerSelector() {
         if (count <= 0) {
           clearInterval(intervalRef.current);
           countingRef.current = false;
-          triggerSelection();
+          timeoutRef.current = setTimeout(triggerSelection, 600);
         }
       }, 1000);
     }
