@@ -28,6 +28,8 @@ import DirectChat from './pages/messages/DirectChat';
 import AdminChat from './pages/messages/AdminChat';
 import Utilidades from './pages/utilidades/Utilidades';
 import FingerSelector from './pages/utilidades/FingerSelector';
+import Temporizador from './pages/utilidades/Temporizador';
+import Dado from './pages/utilidades/Dado';
 import Navbar from './components/layout/Navbar';
 import GuestNavbar from './components/layout/GuestNavbar';
 import Sidebar from './components/layout/Sidebar';
@@ -89,6 +91,8 @@ function AppRoutes() {
           <Route path="/mensajes-admin" element={<PrivateRoute><AdminChat /></PrivateRoute>} />
           <Route path="/utilidades" element={<Utilidades />} />
           <Route path="/utilidades/selector-de-dedos" element={<FingerSelector />} />
+          <Route path="/utilidades/temporizador" element={<Temporizador />} />
+          <Route path="/utilidades/dado" element={<Dado />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         {user && <BottomNav />}
