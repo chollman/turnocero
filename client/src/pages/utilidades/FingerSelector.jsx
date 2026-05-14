@@ -28,6 +28,9 @@ export default function FingerSelector() {
   const [countdown, setCountdown] = useState(COUNTDOWN_START);
   const [winnerId, setWinnerId] = useState(null);
   const [countKey, setCountKey] = useState(0);
+  const [isLandscape, setIsLandscape] = useState(
+    () => window.matchMedia('(orientation: landscape)').matches
+  );
 
   function nextColor() {
     for (let i = 0; i < FINGER_COLORS.length; i++) {
@@ -60,6 +63,16 @@ export default function FingerSelector() {
     setCountdown(COUNTDOWN_START);
     setWinnerId(null);
   }
+
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: landscape)');
+    const handler = (e) => {
+      setIsLandscape(e.matches);
+      if (e.matches) reset();
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const el = containerRef.current;
@@ -95,6 +108,7 @@ export default function FingerSelector() {
         if (count <= 0) {
           clearInterval(intervalRef.current);
           countingRef.current = false;
+          navigator.vibrate?.(300);
           triggerSelection();
         }
       }, 1000);
@@ -196,6 +210,13 @@ export default function FingerSelector() {
 
   return (
     <div ref={containerRef} className={styles.screen}>
+      {isLandscape && (
+        <div className={styles.landscapeOverlay}>
+          <div className={styles.landscapeIcon}>🔄</div>
+          <p className={styles.landscapeText}>Rotá el celular a modo vertical para usar esta app</p>
+        </div>
+      )}
+
       <button className={styles.backBtn} onClick={() => navigate('/utilidades')} type="button">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="m15 18-6-6 6-6"/>
@@ -225,9 +246,8 @@ export default function FingerSelector() {
               stroke="var(--amber)"
               strokeWidth="6"
               strokeDasharray={CIRCUMFERENCE}
-              strokeDashoffset={0}
               strokeLinecap="round"
-              style={{ animation: `ringEmpty ${COUNTDOWN_START}s linear forwards` }}
+              className={styles.ringProgress}
             />
           </svg>
           <div className={styles.countdownNum}>{countdown}</div>
