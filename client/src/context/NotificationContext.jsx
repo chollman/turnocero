@@ -28,9 +28,14 @@ export function NotificationProvider({ children }) {
   const dmListenersRef = useRef(new Set());
   const friendListenersRef = useRef(new Set());
 
-  // Load from server when user is available (overrides localStorage cache)
+  // Load from server when user is available; reset entirely on logout
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setNotifications([]);
+      setToasts([]);
+      setAdminChatUnread(0);
+      return;
+    }
     axios.get('/api/notifications')
       .then(({ data }) => setNotifications(data))
       .catch(() => {});

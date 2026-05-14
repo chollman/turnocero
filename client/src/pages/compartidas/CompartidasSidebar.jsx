@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
+import { useAuth } from '../../context/AuthContext'
 import GameTile from '../../components/shared/GameTile'
 import styles from './CompartidasSidebar.module.css'
 
@@ -15,10 +16,15 @@ function seedFromId(id = '') {
 }
 
 export default function CompartidasSidebar() {
+  const { user } = useAuth()
   const [tables, setTables] = useState([])
   const [topGames, setTopGames] = useState([])
 
   useEffect(() => {
+    if (!user) {
+      setTables([])
+      return
+    }
     axios.get('/api/tables/mine', { params: { limit: 4 } })
       .then(({ data }) => {
         const upcoming = (data.tables || [])
@@ -32,7 +38,7 @@ export default function CompartidasSidebar() {
     axios.get('/api/tables/top-games')
       .then(({ data }) => setTopGames(data))
       .catch(() => {})
-  }, [])
+  }, [user])
 
   return (
     <aside className={styles.sidebar}>
