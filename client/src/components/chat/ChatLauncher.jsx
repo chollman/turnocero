@@ -20,7 +20,10 @@ export default function ChatLauncher() {
   const btnRef = useRef(null);
 
   const fetchFriends = useCallback(() => {
-    if (!user) return;
+    if (!user) {
+      setFriends([]);
+      return;
+    }
     axios.get('/api/users', { params: { friendsOnly: 'true' } })
       .then(({ data }) => setFriends(Array.isArray(data) ? data : []))
       .catch(() => {});

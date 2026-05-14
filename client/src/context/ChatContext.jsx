@@ -21,19 +21,20 @@ export function ChatProvider({ children }) {
   // Tracks which conversations have been loaded to avoid duplicate API calls
   const loadedRef = useRef({});
 
-  // Load conversation list on mount to populate unread totals
+  // Load conversation list on mount; reset entirely on logout
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setConversations({});
+      setOpenOrder([]);
+      loadedRef.current = {};
+      return;
+    }
     axios.get('/api/dm').then(({ data }) => {
-      setConversations((prev) => {
-        const next = { ...prev };
-        data.forEach(({ contact, unread }) => {
-          if (!next[contact._id]) {
-            next[contact._id] = { user: contact, messages: [], unread, minimized: false, loaded: false };
-          }
-        });
-        return next;
+      const next = {};
+      data.forEach(({ contact, unread }) => {
+        next[contact._id] = { user: contact, messages: [], unread, minimized: false, loaded: false };
       });
+      setConversations(next);
     }).catch(() => {});
   }, [user]);
 
