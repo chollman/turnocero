@@ -93,7 +93,7 @@ export default function FingerSelector() {
         if (count <= 0) {
           clearInterval(intervalRef.current);
           countingRef.current = false;
-          timeoutRef.current = setTimeout(triggerSelection, 600);
+          triggerSelection();
         }
       }, 1000);
     }
@@ -191,11 +191,14 @@ export default function FingerSelector() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ringOffset = CIRCUMFERENCE * (1 - countdown / COUNTDOWN_START);
+  const winnerColor = winnerId !== null ? dots.find(d => d.id === winnerId)?.color : null;
 
   return (
     <div ref={containerRef} className={styles.screen}>
       <button className={styles.backBtn} onClick={() => navigate('/utilidades')} type="button">
-        ←
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m15 18-6-6 6-6"/>
+        </svg>
       </button>
 
       {phase === 'idle' && (
@@ -210,7 +213,7 @@ export default function FingerSelector() {
         <div className={styles.waitingHint}>Necesitás al menos 2 dedos</div>
       )}
 
-      {counting && (
+      {counting && phase === 'waiting' && (
         <div className={styles.countdown}>
           <svg viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
             <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="6" />
@@ -225,8 +228,12 @@ export default function FingerSelector() {
               style={{ transition: 'stroke-dashoffset 1s linear' }}
             />
           </svg>
-          <div className={styles.countdownNum}>{countdown || '!'}</div>
+          <div className={styles.countdownNum}>{countdown}</div>
         </div>
+      )}
+
+      {winnerColor && (phase === 'selecting' || phase === 'result') && (
+        <div className={styles.winnerOverlay} style={{ background: winnerColor }} />
       )}
 
       {dots.map(dot => {
@@ -250,12 +257,12 @@ export default function FingerSelector() {
       })}
 
       {phase === 'result' && (
-        <div className={styles.result}>
-          <div className={styles.resultText}>¡Empezás vos! 🎉</div>
-          <button className={styles.replayBtn} onClick={reset} type="button">
-            Jugar de nuevo
-          </button>
-        </div>
+        <button className={styles.replayBtn} onClick={reset} type="button">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+        </button>
       )}
     </div>
   );
