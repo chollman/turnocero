@@ -106,6 +106,7 @@ export default function FingerSelector() {
     }
 
     function onTouchStart(e) {
+      if (e.target.closest('button')) return;
       e.preventDefault();
       const p = phaseRef.current;
       if (p === 'selecting' || p === 'result') return;
@@ -133,6 +134,7 @@ export default function FingerSelector() {
     }
 
     function onTouchMove(e) {
+      if (e.target.closest('button')) return;
       e.preventDefault();
       const p = phaseRef.current;
       if (p === 'selecting' || p === 'result') return;
@@ -151,6 +153,7 @@ export default function FingerSelector() {
     }
 
     function onTouchEnd(e) {
+      if (e.target.closest('button')) return;
       e.preventDefault();
       const p = phaseRef.current;
       if (p === 'selecting' || p === 'result') return;
