@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
+import { useNotifications } from '../../context/NotificationContext';
 import styles from './ChatLauncher.module.css';
 
 const DESKTOP = 960;
@@ -10,6 +11,7 @@ const DESKTOP = 960;
 export default function ChatLauncher() {
   const { user } = useAuth();
   const { conversations, openChat, dmUnreadTotal } = useChat();
+  const { addFriendListener } = useNotifications();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [friends, setFriends] = useState([]);
@@ -17,12 +19,19 @@ export default function ChatLauncher() {
   const panelRef = useRef(null);
   const btnRef = useRef(null);
 
-  useEffect(() => {
+  const fetchFriends = useCallback(() => {
     if (!user) return;
     axios.get('/api/users', { params: { friendsOnly: 'true' } })
       .then(({ data }) => setFriends(Array.isArray(data) ? data : []))
       .catch(() => {});
   }, [user]);
+
+  useEffect(() => { fetchFriends(); }, [fetchFriends]);
+
+  useEffect(() => {
+    if (!user) return;
+    return addFriendListener(fetchFriends);
+  }, [user, addFriendListener, fetchFriends]);
 
   // Close on outside click
   useEffect(() => {

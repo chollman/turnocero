@@ -26,6 +26,7 @@ export function NotificationProvider({ children }) {
   const activeTableRef = useRef(null);
   const adminChatActiveRef = useRef(false);
   const dmListenersRef = useRef(new Set());
+  const friendListenersRef = useRef(new Set());
 
   // Load from server when user is available (overrides localStorage cache)
   useEffect(() => {
@@ -180,6 +181,7 @@ export function NotificationProvider({ children }) {
         return next.length > 4 ? next.slice(-4) : next;
       });
       refreshUser().catch(() => {});
+      friendListenersRef.current.forEach((fn) => fn());
     });
 
     socket.on('dm:message', (msg) => {
@@ -235,6 +237,15 @@ export function NotificationProvider({ children }) {
     return () => dmListenersRef.current.delete(fn);
   }, []);
 
+  const addFriendListener = useCallback((fn) => {
+    friendListenersRef.current.add(fn);
+    return () => friendListenersRef.current.delete(fn);
+  }, []);
+
+  const notifyFriendAdded = useCallback(() => {
+    friendListenersRef.current.forEach((fn) => fn());
+  }, []);
+
   const setAdminChatActive = useCallback((active) => {
     adminChatActiveRef.current = active;
     if (active) setAdminChatUnread(0);
@@ -254,6 +265,8 @@ export function NotificationProvider({ children }) {
       dismissToast,
       addToast,
       addDmListener,
+      addFriendListener,
+      notifyFriendAdded,
       adminChatUnread,
       setAdminChatActive,
     }}>

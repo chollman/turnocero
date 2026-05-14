@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import GameTile from '../../components/shared/GameTile';
 import styles from './UserProfilePublic.module.css';
 
@@ -63,6 +64,7 @@ export default function UserProfilePublic() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: currentUser, refreshUser } = useAuth();
+  const { notifyFriendAdded } = useNotifications();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -93,6 +95,7 @@ export default function UserProfilePublic() {
       } else if (action === 'accept') {
         await axios.post(`/api/friends/${id}/accept`);
         setRelationship('friends');
+        notifyFriendAdded();
         refreshUser().catch(() => {});
       } else if (action === 'reject') {
         await axios.post(`/api/friends/${id}/reject`);
