@@ -1,6 +1,8 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
+const VIEW_AS_USER_KEY = 'viewAsUser';
 
 // TODO (long-term): migrate to a custom domain (e.g. turnocero.com + api.turnocero.com)
 // so auth cookies become first-party (SameSite=lax). Safari's ITP blocks cross-site
@@ -20,9 +22,19 @@ const setAuthHeader = (token) => {
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [realUser, setRealUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [viewAsUser, setViewAsUserState] = useState(
+    () => typeof window !== 'undefined' && localStorage.getItem(VIEW_AS_USER_KEY) === 'true'
+  );
   const navigate = useNavigate();
+
+  const setViewAsUser = (value) => {
+    const v = !!value;
+    setViewAsUserState(v);
+    if (v) localStorage.setItem(VIEW_AS_USER_KEY, 'true');
+    else localStorage.removeItem(VIEW_AS_USER_KEY);
+  };
 
   useEffect(() => {
     const id = axios.interceptors.response.use(
@@ -30,8 +42,10 @@ export const AuthProvider = ({ children }) => {
       (err) => {
         if (err.response?.status === 401 && !err.config?.url?.includes('/api/auth/')) {
           localStorage.removeItem('token');
+          localStorage.removeItem(VIEW_AS_USER_KEY);
           setAuthHeader(null);
-          setUser(null);
+          setRealUser(null);
+          setViewAsUserState(false);
           navigate('/login', { replace: true });
         }
         return Promise.reject(err);
@@ -44,9 +58,9 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     setAuthHeader(token);
     axios.get('/api/auth/me')
-      .then(({ data }) => setUser(data))
+      .then(({ data }) => setRealUser(data))
       .catch(() => {
-        setUser(null);
+        setRealUser(null);
         localStorage.removeItem('token');
         setAuthHeader(null);
       })
@@ -57,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     const { data } = await axios.post('/api/auth/login', { email, password });
     localStorage.setItem('token', data.token);
     setAuthHeader(data.token);
-    setUser(data.user);
+    setRealUser(data.user);
     return data;
   };
 
@@ -65,31 +79,52 @@ export const AuthProvider = ({ children }) => {
     const { data } = await axios.post('/api/auth/register', { username, email, password });
     localStorage.setItem('token', data.token);
     setAuthHeader(data.token);
-    setUser(data.user);
+    setRealUser(data.user);
     return data;
   };
 
   const logout = async () => {
     await axios.post('/api/auth/logout').catch(() => {});
     localStorage.removeItem('token');
+    localStorage.removeItem(VIEW_AS_USER_KEY);
     setAuthHeader(null);
-    setUser(null);
+    setRealUser(null);
+    setViewAsUserState(false);
   };
 
   const refreshUser = async () => {
     const { data } = await axios.get('/api/auth/me');
-    setUser(data);
+    setRealUser(data);
     return data;
   };
 
   const updateProfile = async (data) => {
     const { data: updated } = await axios.put('/api/auth/profile', data);
-    setUser(updated);
+    setRealUser(updated);
     return updated;
   };
 
+  const isActuallyAdmin = !!realUser?.isAdmin;
+
+  const user = useMemo(() => {
+    if (!realUser) return null;
+    if (isActuallyAdmin && viewAsUser) return { ...realUser, isAdmin: false };
+    return realUser;
+  }, [realUser, isActuallyAdmin, viewAsUser]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile, refreshUser }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
+      register,
+      logout,
+      updateProfile,
+      refreshUser,
+      viewAsUser,
+      setViewAsUser,
+      isActuallyAdmin,
+    }}>
       {children}
     </AuthContext.Provider>
   );

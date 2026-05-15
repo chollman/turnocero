@@ -6,6 +6,8 @@ import { ChatProvider } from './context/ChatContext';
 import ToastContainer from './components/layout/ToastContainer';
 import ChatWindowManager from './components/chat/ChatWindowManager';
 import ChatLauncher from './components/chat/ChatLauncher';
+import AdminViewToggle from './components/admin/AdminViewToggle';
+import ViewAsUserBanner from './components/admin/ViewAsUserBanner';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './pages/dashboard/Dashboard';
@@ -123,6 +125,8 @@ function AppShell() {
       <ToastContainer />
       <ChatWindowManager />
       <ChatLauncher />
+      <AdminViewToggle />
+      <ViewAsUserBanner />
     </>
   );
 }
