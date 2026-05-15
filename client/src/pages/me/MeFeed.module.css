@@ -1,3 +1,8 @@
+@keyframes shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
 .page {
   min-height: calc(100vh - var(--navbar-h, 64px));
   padding: var(--navbar-h) 0 var(--page-padding);
@@ -46,6 +51,15 @@
   font-size: 14px;
   margin: 0;
   line-height: 1.5;
+}
+
+.heroSubSkeleton {
+  width: 52%;
+  height: 13px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
 }
 
 /* ─── Next game highlight ─── */

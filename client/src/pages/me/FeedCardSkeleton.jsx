@@ -2,7 +2,7 @@ import styles from './FeedCardSkeleton.module.css'
 
 export default function FeedCardSkeleton() {
   return (
-    <div aria-hidden="true" className={styles.card}>
+    <div aria-hidden='true' className={styles.card}>
       <div className={styles.tile} />
       <div className={styles.body}>
         <div className={styles.topRow}>

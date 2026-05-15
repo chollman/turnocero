@@ -174,7 +174,9 @@ export default function MeFeed() {
         <div className={styles.hero}>
           <div className={styles.eyebrow}>◆ MI FEED</div>
           <h1 className={styles.heroTitle}>Hola, {nombre}.</h1>
-          {subtitle && <p className={styles.heroSub}>{subtitle}</p>}
+          {loading
+            ? <div className={styles.heroSubSkeleton} />
+            : subtitle && <p className={styles.heroSub}>{subtitle}</p>}
         </div>
 
         {!loading && !error && nextGame && filter === 'all' && (
