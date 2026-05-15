@@ -2,6 +2,34 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Claude Memory Setup (per machine)
+
+Claude's persistent memory for this project lives in `.claude/memory/` inside this repo and is versioned with git.
+
+On each new machine, after cloning, run this **once** to link it to where Claude Code expects to find it.
+
+The slug in the target path is derived from the absolute path of the repo with `/` replaced by `-` and leading `-` removed. Check the exact slug with:
+```bash
+ls ~/.claude/projects/   # macOS/Linux
+ls $env:USERPROFILE\.claude\projects\   # Windows
+```
+
+**macOS / Linux** (adjust repo path to where you cloned it):
+```bash
+REPO="$HOME/Projects/ClaudioHollman/turnocero"
+SLUG=$(echo "$REPO" | sed 's|^/||; s|/|-|g')
+ln -s "$REPO/.claude/memory" "$HOME/.claude/projects/$SLUG/memory"
+```
+
+**Windows** (PowerShell — adjust repo path):
+```powershell
+New-Item -ItemType SymbolicLink `
+  -Path "C:\Users\<username>\.claude\projects\c--Users-<username>-Projects-ClaudioHollman-turnocero\memory" `
+  -Target "C:\Users\<username>\Projects\ClaudioHollman\turnocero\.claude\memory"
+```
+
+After that, Claude will read and write memories directly from the repo folder.
+
 ## Project Overview
 
 **Turnocero** is a full-stack web app for the Argentine board-game community. Core feature: organize *mesas* (game sessions) — create, join, chat, and manage them. Additional features: *Compartidas* (social posts about sessions), *Noticias* (admin news/announcements), a friends system, direct messages between friends, and public browsing without login. The UI and all user-facing content are in **Argentine Spanish**. The app is deployed as a **PWA** (vite-plugin-pwa; assets in `client/public/`).
