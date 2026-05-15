@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useNotifications } from '../../context/NotificationContext'
-import { useChat } from '../../context/ChatContext'
 import styles from './Sidebar.module.css'
 
 const ICONS = {
@@ -94,16 +93,14 @@ const ICONS = {
 }
 
 const NAV = [
-  { id: 'dash',        label: 'Mesas',          to: '/mesas' },
-  { id: 'feed',        label: 'Mi feed',        to: '/mi' },
-  { id: 'notif',       label: 'Notificaciones',  to: '/notificaciones' },
-  { id: 'mensajes',    label: 'Mensajes',        to: '/mensajes' },
-  { id: 'compartidas', label: 'Compartite',      to: '/compartidas' },
-  { id: 'users',       label: 'Comunidad',       to: '/usuarios' },
-  { id: 'noticias',    label: 'Noticias',        to: '/noticias' },
-  { id: 'eventos',     label: 'Eventos',         to: '/eventos' },
-  { id: 'db',          label: 'Base de datos',   to: '/base-de-datos', adminOnly: true },
-  { id: 'adminChat',   label: 'Chat Admin',      to: '/mensajes-admin', adminOnly: true },
+  { id: 'compartidas', label: 'Compartite',     to: '/compartidas' },
+  { id: 'noticias',    label: 'Noticias',       to: '/noticias' },
+  { id: 'eventos',     label: 'Eventos',        to: '/eventos' },
+  { id: 'dash',        label: 'Mesas',          to: '/mesas',          adminOnly: true },
+  { id: 'feed',        label: 'Mi feed',        to: '/mi',             adminOnly: true },
+  { id: 'users',       label: 'Comunidad',      to: '/usuarios',       adminOnly: true },
+  { id: 'db',          label: 'Base de datos',  to: '/base-de-datos',  adminOnly: true },
+  { id: 'adminChat',   label: 'Chat Admin',     to: '/mensajes-admin', adminOnly: true },
 ]
 
 function getActiveId(pathname) {
@@ -126,7 +123,6 @@ function getActiveId(pathname) {
 export default function Sidebar() {
   const { user, logout } = useAuth()
   const { unreadCount, adminChatUnread } = useNotifications()
-  const { dmUnreadTotal } = useChat()
   const location = useLocation()
   const navigate = useNavigate()
   const active = getActiveId(location.pathname)
@@ -139,21 +135,36 @@ export default function Sidebar() {
 
   return (
     <aside className={styles.sidebar}>
-      <Link to="/" className={styles.logo}>
-        <div className={styles.logoIcon}>T</div>
-        <div className={styles.logoText}>
-          <span className={styles.logoName}>TurnoCero</span>
-          <span className={styles.logoSub}>BOARD GAME MEETUPS</span>
-        </div>
-      </Link>
+      <div className={styles.logoRow}>
+        <Link to="/" className={styles.logo}>
+          <div className={styles.logoIcon}>T</div>
+          <div className={styles.logoText}>
+            <span className={styles.logoName}>TurnoCero</span>
+            <span className={styles.logoSub}>BOARD GAME MEETUPS</span>
+          </div>
+        </Link>
+        <button
+          className={`${styles.bellBtn} ${active === 'notif' ? styles.bellBtnActive : ''}`}
+          onClick={() => navigate('/notificaciones')}
+          aria-label="Notificaciones"
+          title="Notificaciones"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          {unreadCount > 0 && (
+            <span key={unreadCount} className={styles.bellBadge}>
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </button>
+      </div>
 
       <nav className={styles.nav}>
-        {NAV.filter(item => !item.adminOnly || user?.isAdmin).map((item) => {
+        {NAV.filter(item => !item.adminOnly).map((item) => {
           const isActive = item.id === active
-          let badge = null
-          if (item.id === 'notif' && unreadCount > 0) badge = unreadCount > 9 ? '9+' : unreadCount
-          if (item.id === 'mensajes' && dmUnreadTotal > 0) badge = dmUnreadTotal > 9 ? '9+' : dmUnreadTotal
-          if (item.id === 'adminChat' && adminChatUnread > 0) badge = adminChatUnread > 9 ? '9+' : adminChatUnread
+          const badge = null
           return (
             <Link
               key={item.id}
@@ -166,6 +177,29 @@ export default function Sidebar() {
             </Link>
           )
         })}
+
+        {user?.isAdmin && (
+          <>
+            <div className={styles.navDivider} />
+            {NAV.filter(item => item.adminOnly).map((item) => {
+              const isActive = item.id === active
+              const badge = item.id === 'adminChat' && adminChatUnread > 0
+                ? (adminChatUnread > 9 ? '9+' : adminChatUnread)
+                : null
+              return (
+                <Link
+                  key={item.id}
+                  to={item.to}
+                  className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
+                >
+                  <span className={styles.navIcon}>{ICONS[item.id]}</span>
+                  <span className={styles.navLabel}>{item.label}</span>
+                  {badge && <span key={badge} className={styles.navBadge}>{badge}</span>}
+                </Link>
+              )
+            })}
+          </>
+        )}
       </nav>
 
       <div className={styles.footer}>

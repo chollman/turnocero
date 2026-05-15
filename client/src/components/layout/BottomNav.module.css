@@ -75,6 +75,15 @@
   background: var(--amber);
 }
 
+.navDivider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0 6px;
+}
+
 .arrow {
   display: flex;
   align-items: center;

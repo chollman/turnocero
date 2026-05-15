@@ -93,17 +93,22 @@ const ChevronRight = () => (
   </svg>
 )
 
-const NAV = [
-  { id: 'dash',        label: 'Mesas',      Icon: MesasIcon,       to: '/mesas' },
-  { id: 'feed',        label: 'Feed',       Icon: FeedIcon,        to: '/mi' },
+const REGULAR_NAV = [
   { id: 'compartidas', label: 'Compartite', Icon: CompartidasIcon, to: '/compartidas' },
-  { id: 'users',       label: 'Comunidad',  Icon: ComunidadIcon,   to: '/usuarios' },
   { id: 'noticias',    label: 'Noticias',   Icon: NoticiasIcon,    to: '/noticias' },
   { id: 'eventos',     label: 'Eventos',    Icon: EventosIcon,     to: '/eventos' },
   { id: 'profile',     label: 'Perfil',     Icon: PerfilIcon,      to: '/perfil' },
   { id: 'utilidades',  label: 'Utilidades', Icon: UtilidadesIcon,  to: '/utilidades' },
-  { id: 'db',          label: 'DB',         Icon: DBIcon,          to: '/base-de-datos', adminOnly: true },
 ]
+
+const ADMIN_NAV = [
+  { id: 'dash',  label: 'Mesas',     Icon: MesasIcon,    to: '/mesas',         adminOnly: true },
+  { id: 'feed',  label: 'Feed',      Icon: FeedIcon,     to: '/mi',            adminOnly: true },
+  { id: 'users', label: 'Comunidad', Icon: ComunidadIcon,to: '/usuarios',      adminOnly: true },
+  { id: 'db',    label: 'DB',        Icon: DBIcon,       to: '/base-de-datos', adminOnly: true },
+]
+
+const DIVIDER = { id: '__divider__', isDivider: true }
 
 const VISIBLE = 3
 
@@ -124,8 +129,10 @@ export default function BottomNav() {
   const { user } = useAuth()
   const location = useLocation()
   const active = getActiveId(location.pathname)
-  const items = NAV.filter(item => !item.adminOnly || user?.isAdmin)
-  const scrollable = items.length > VISIBLE
+  const items = user?.isAdmin
+    ? [...REGULAR_NAV, DIVIDER, ...ADMIN_NAV]
+    : REGULAR_NAV
+  const scrollable = items.filter(i => !i.isDivider).length > VISIBLE
 
   const [startIndex, setStartIndex] = useState(0)
   const touchStartX = useRef(null)
@@ -162,7 +169,7 @@ export default function BottomNav() {
   // Keep the active item visible when navigating via router
   useEffect(() => {
     if (!scrollable) return
-    const activeIdx = items.findIndex(item => item.id === active)
+    const activeIdx = items.findIndex(item => !item.isDivider && item.id === active)
     if (activeIdx < 0) return
     setStartIndex(prev => {
       if (activeIdx < prev) {
@@ -181,7 +188,9 @@ export default function BottomNav() {
                   : slideDir.current === 'right' ? styles.slideRight
                   : ''
 
-  const renderItem = ({ id, label, Icon, to }) => {
+  const renderItem = (item) => {
+    if (item.isDivider) return <div key="__divider__" className={styles.navDivider} />
+    const { id, label, Icon, to } = item
     const isActive = id === active
     return (
       <Link

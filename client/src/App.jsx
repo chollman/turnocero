@@ -62,6 +62,13 @@ const PublicRoute = ({ children }) => {
   return !user ? children : <Navigate to="/" replace />;
 };
 
+const AdminRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  return user.isAdmin ? children : <Navigate to="/" replace />;
+};
+
 function AppRoutes() {
   const { user } = useAuth();
   const { pathname } = useLocation();
@@ -78,16 +85,16 @@ function AppRoutes() {
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/" element={<Compartidas />} />
-          <Route path="/mesas" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-          <Route path="/mesas/crear" element={<PrivateRoute><CreateTable /></PrivateRoute>} />
-          <Route path="/mesas/:id" element={<PrivateRoute><TableDetail /></PrivateRoute>} />
-          <Route path="/mesas/:id/editar" element={<PrivateRoute><EditTable /></PrivateRoute>} />
+          <Route path="/mesas" element={<AdminRoute><Dashboard /></AdminRoute>} />
+          <Route path="/mesas/crear" element={<AdminRoute><CreateTable /></AdminRoute>} />
+          <Route path="/mesas/:id" element={<AdminRoute><TableDetail /></AdminRoute>} />
+          <Route path="/mesas/:id/editar" element={<AdminRoute><EditTable /></AdminRoute>} />
           <Route path="/notificaciones" element={<PrivateRoute><Notifications /></PrivateRoute>} />
           <Route path="/perfil" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
-          <Route path="/usuarios" element={<PrivateRoute><UsersList /></PrivateRoute>} />
-          <Route path="/usuarios/:id" element={<PrivateRoute><UserProfilePublic /></PrivateRoute>} />
+          <Route path="/usuarios" element={<AdminRoute><UsersList /></AdminRoute>} />
+          <Route path="/usuarios/:id" element={<AdminRoute><UserProfilePublic /></AdminRoute>} />
           <Route path="/base-de-datos" element={<PrivateRoute><DatabaseViewer /></PrivateRoute>} />
-          <Route path="/mi" element={<PrivateRoute><MeFeed /></PrivateRoute>} />
+          <Route path="/mi" element={<AdminRoute><MeFeed /></AdminRoute>} />
           <Route path="/noticias" element={<Noticias />} />
           <Route path="/noticias/:id" element={<NoticiaDetail />} />
           <Route path="/eventos" element={<PrivateRoute><Eventos /></PrivateRoute>} />
