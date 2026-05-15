@@ -306,10 +306,7 @@ export default function Eventos() {
             <h2 className={styles.emptyTitle}>No hay eventos por ahora</h2>
           </div>
         ) : (
-          <div
-            className={styles.grid}
-            style={{ gridTemplateColumns: `repeat(${Math.min(eventos.length, 3)}, 1fr)` }}
-          >
+          <div className={styles.grid}>
             {eventos.map(ev => (
               <EventoCard key={ev._id} evento={ev} />
             ))}

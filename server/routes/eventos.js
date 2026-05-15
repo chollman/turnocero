@@ -84,7 +84,8 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const evento = await Evento.findById(req.params.id)
-      .populate('author', 'username displayName');
+      .populate('author', 'username displayName')
+      .populate('registrations.user', 'username displayName');
 
     if (!evento) return res.status(404).json({ message: 'Evento no encontrado' });
     if (evento.status === 'draft' && !req.user?.isAdmin) {
@@ -97,10 +98,17 @@ router.get('/:id', optionalAuth, async (req, res) => {
       confirmed: evento.registrations.filter(r => r.status === 'confirmed').length,
     };
 
+    const confirmedRegistrations = evento.registrations
+      .filter(r => r.status === 'confirmed')
+      .map(r => ({
+        _id:  r._id,
+        user: r.user ? { username: r.user.username, displayName: r.user.displayName } : null,
+      }));
+
     let userRegistration = null;
     if (req.user) {
       const reg = evento.registrations.find(
-        r => r.user.toString() === req.user._id.toString()
+        r => r.user?._id?.toString() === req.user._id.toString()
       );
       if (reg) {
         userRegistration = {
@@ -116,7 +124,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
     const eventoObj = evento.toObject();
     delete eventoObj.registrations;
-    res.json({ ...eventoObj, registrationCount, userRegistration });
+    res.json({ ...eventoObj, registrationCount, userRegistration, confirmedRegistrations });
   } catch {
     res.status(500).json({ message: 'Error al obtener el evento' });
   }

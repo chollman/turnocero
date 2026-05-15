@@ -763,6 +763,28 @@ export default function EventoDetail() {
                 <p className={styles.transferText}>{evento.transferDetails}</p>
               </div>
             )}
+
+            {/* Confirmed participants list */}
+            {evento.confirmedRegistrations?.length > 0 && (
+              <div className={styles.participantsCard}>
+                <h3 className={styles.participantsTitle}>
+                  Inscriptos confirmados
+                  <span className={styles.participantsCount}>{evento.confirmedRegistrations.length}</span>
+                </h3>
+                <ul className={styles.participantsList}>
+                  {evento.confirmedRegistrations.map(r => (
+                    <li key={r._id} className={styles.participantItem}>
+                      <span className={styles.participantAvatar}>
+                        {(r.user?.displayName || r.user?.username || '?')[0].toUpperCase()}
+                      </span>
+                      <span className={styles.participantName}>
+                        {r.user?.displayName || r.user?.username || 'Usuario'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>
