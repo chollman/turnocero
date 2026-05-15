@@ -66,6 +66,15 @@ const MensajesIcon = () => (
   </svg>
 )
 
+const EventosIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+)
+
 const UtilidadesIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
@@ -88,6 +97,7 @@ const NAV = [
   { id: 'feed',        label: 'Feed',       Icon: FeedIcon,        to: '/mi' },
   { id: 'dash',        label: 'Mesas',      Icon: MesasIcon,       to: '/mesas' },
   { id: 'noticias',    label: 'Noticias',   Icon: NoticiasIcon,    to: '/noticias' },
+  { id: 'eventos',     label: 'Eventos',    Icon: EventosIcon,     to: '/eventos' },
   { id: 'compartidas', label: 'Compartite', Icon: CompartidasIcon, to: '/compartidas' },
   { id: 'users',       label: 'Comunidad',  Icon: ComunidadIcon,   to: '/usuarios' },
   { id: 'profile',     label: 'Perfil',     Icon: PerfilIcon,      to: '/perfil' },
@@ -101,6 +111,7 @@ function getActiveId(pathname) {
   if (pathname === '/mi') return 'feed'
   if (pathname.startsWith('/mesas')) return 'dash'
   if (pathname.startsWith('/noticias')) return 'noticias'
+  if (pathname.startsWith('/eventos')) return 'eventos'
   if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas'
   if (pathname.startsWith('/usuarios')) return 'users'
   if (pathname.startsWith('/perfil')) return 'profile'

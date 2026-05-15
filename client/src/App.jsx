@@ -20,6 +20,9 @@ import Notifications from './pages/notifications/Notifications';
 import MeFeed from './pages/me/MeFeed';
 import Noticias from './pages/noticias/Noticias';
 import NoticiaDetail from './pages/noticias/NoticiaDetail';
+import Eventos from './pages/eventos/Eventos';
+import EventoDetail from './pages/eventos/EventoDetail';
+import EventoInscripciones from './pages/eventos/EventoInscripciones';
 import Compartidas from './pages/compartidas/Compartidas';
 import CompartidaPost from './pages/compartidas/CompartidaPost';
 import BggProfile from './pages/bgg/BggProfile';
@@ -83,6 +86,9 @@ function AppRoutes() {
           <Route path="/mi" element={<PrivateRoute><MeFeed /></PrivateRoute>} />
           <Route path="/noticias" element={<Noticias />} />
           <Route path="/noticias/:id" element={<NoticiaDetail />} />
+          <Route path="/eventos" element={<Eventos />} />
+          <Route path="/eventos/:id" element={<EventoDetail />} />
+          <Route path="/eventos/:id/inscripciones" element={<PrivateRoute><EventoInscripciones /></PrivateRoute>} />
           <Route path="/compartidas" element={<Compartidas />} />
           <Route path="/compartidas/:id" element={<CompartidaPost />} />
           <Route path="/perfil-bgg/:bggUsername" element={<BggProfile />} />
