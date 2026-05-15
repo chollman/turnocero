@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 // TODO (long-term): migrate to a custom domain (e.g. turnocero.com + api.turnocero.com)
@@ -21,6 +22,23 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const id = axios.interceptors.response.use(
+      (res) => res,
+      (err) => {
+        if (err.response?.status === 401 && !err.config?.url?.includes('/api/auth/')) {
+          localStorage.removeItem('token');
+          setAuthHeader(null);
+          setUser(null);
+          navigate('/login', { replace: true });
+        }
+        return Promise.reject(err);
+      }
+    );
+    return () => axios.interceptors.response.eject(id);
+  }, [navigate]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
