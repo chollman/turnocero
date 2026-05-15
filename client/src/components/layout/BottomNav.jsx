@@ -94,12 +94,12 @@ const ChevronRight = () => (
 )
 
 const NAV = [
-  { id: 'feed',        label: 'Feed',       Icon: FeedIcon,        to: '/mi' },
   { id: 'dash',        label: 'Mesas',      Icon: MesasIcon,       to: '/mesas' },
-  { id: 'noticias',    label: 'Noticias',   Icon: NoticiasIcon,    to: '/noticias' },
-  { id: 'eventos',     label: 'Eventos',    Icon: EventosIcon,     to: '/eventos' },
+  { id: 'feed',        label: 'Feed',       Icon: FeedIcon,        to: '/mi' },
   { id: 'compartidas', label: 'Compartite', Icon: CompartidasIcon, to: '/compartidas' },
   { id: 'users',       label: 'Comunidad',  Icon: ComunidadIcon,   to: '/usuarios' },
+  { id: 'noticias',    label: 'Noticias',   Icon: NoticiasIcon,    to: '/noticias' },
+  { id: 'eventos',     label: 'Eventos',    Icon: EventosIcon,     to: '/eventos' },
   { id: 'profile',     label: 'Perfil',     Icon: PerfilIcon,      to: '/perfil' },
   { id: 'utilidades',  label: 'Utilidades', Icon: UtilidadesIcon,  to: '/utilidades' },
   { id: 'db',          label: 'DB',         Icon: DBIcon,          to: '/base-de-datos', adminOnly: true },
