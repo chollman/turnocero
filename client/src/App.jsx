@@ -108,6 +108,7 @@ function AppShell() {
     <>
       <SplashScreen visible={loading} />
       <BoardGameBackground />
+      <div className="appFrame" aria-hidden="true" />
       <div style={{ position: 'relative', zIndex: 1 }}>
         <AppRoutes />
       </div>

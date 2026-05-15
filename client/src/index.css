@@ -136,6 +136,25 @@ select {
   margin-inline: auto;
 }
 
+/* Fixed frame overlay — stays in viewport regardless of scroll */
+.appFrame {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .appFrame {
+    display: block;
+    position: fixed;
+    inset: 0;
+    max-width: 1440px;
+    margin-inline: auto;
+    border: 12px solid var(--bg-card);
+    border-radius: 20px;
+    pointer-events: none;
+    z-index: 1000;
+  }
+}
+
 .appContent {
   flex: 1;
   min-width: 0;
