@@ -1,11 +1,11 @@
 .page {
-  padding: var(--navbar-h) 0 4rem;
+  padding: var(--navbar-h) 0 var(--page-padding);
   min-height: calc(100vh - var(--navbar-h, 64px));
 }
 
 @media (min-width: 960px) {
   .page {
-    padding-top: 1.5rem;
+    padding-top: var(--page-padding);
   }
 }
 
@@ -414,12 +414,16 @@
 }
 
 @media (max-width: 600px) {
+  .page {
+    padding-bottom: var(--page-padding-mobile);
+  }
+
   .mobileHeader {
-    padding: 12px 18px 4px;
+    padding: var(--page-padding-mobile) var(--page-padding-mobile) 4px;
   }
 
   .controls {
-    padding: 0 18px;
+    padding: 0 var(--page-padding-mobile);
     flex-direction: column;
     align-items: stretch;
   }
@@ -441,12 +445,12 @@
   }
 
   .grid {
-    padding: 0 18px;
+    padding: 0 var(--page-padding-mobile);
     gap: 14px;
   }
 
   .list {
-    padding: 0 18px;
+    padding: 0 var(--page-padding-mobile);
     gap: 14px;
   }
 
@@ -456,12 +460,12 @@
   }
 
   .pagination {
-    padding: 0 18px;
+    padding: 0 var(--page-padding-mobile);
   }
 
   .center,
   .empty {
-    padding-left: 18px;
-    padding-right: 18px;
+    padding-left: var(--page-padding-mobile);
+    padding-right: var(--page-padding-mobile);
   }
 }

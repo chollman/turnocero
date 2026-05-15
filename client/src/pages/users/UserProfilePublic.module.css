@@ -1,6 +1,6 @@
 .page {
   min-height: calc(100vh - var(--navbar-h, 64px));
-  padding-bottom: 4rem;
+  padding-bottom: var(--page-padding);
 }
 
 @media (max-width: 959px) {
@@ -28,7 +28,7 @@
 
 /* ─── Main inner (overlaps banner by pulling up) ─── */
 .inner {
-  padding: 0 28px;
+  padding: 0 var(--page-padding) 0 var(--page-padding-left);
   margin-top: -72px;
   position: relative;
   display: flex;
@@ -567,8 +567,12 @@
 
 /* ─── Mobile ─── */
 @media (max-width: 959px) {
+  .page {
+    padding-bottom: var(--page-padding-mobile);
+  }
+
   .inner {
-    padding: 0 18px 0;
+    padding: 0 var(--page-padding-mobile);
     margin-top: -56px;
     gap: 18px;
   }

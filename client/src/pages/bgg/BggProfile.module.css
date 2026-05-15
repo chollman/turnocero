@@ -1,13 +1,13 @@
 /* ─── Page shell ─── */
 .page {
   min-height: 100vh;
-  padding-bottom: 48px;
+  padding-bottom: var(--page-padding);
 }
 
 .inner {
   max-width: 960px;
   margin: 0 auto;
-  padding: 24px 28px 0;
+  padding: var(--page-padding) var(--page-padding) 0 var(--page-padding-left);
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -361,10 +361,17 @@
 }
 
 /* ─── Mobile ─── */
-@media (max-width: 600px) {
-  .inner {
-    padding: 16px 18px 0;
+@media (max-width: 959px) {
+  .page {
+    padding-bottom: var(--page-padding-mobile);
   }
+
+  .inner {
+    padding: var(--page-padding-mobile) var(--page-padding-mobile) 0;
+  }
+}
+
+@media (max-width: 600px) {
 
   .heroTitle {
     font-size: 24px;

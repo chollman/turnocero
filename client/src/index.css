@@ -9,6 +9,10 @@
 }
 
 :root {
+  --page-padding: 1.5rem;
+  --page-padding-left: 0.75rem;
+  --page-padding-mobile: 0.5rem;
+
   /* Colors — Blizzard/Battle.net dark navy theme */
   --bg-dark: #0a0d15;
   --bg-card: #151c28;
@@ -157,7 +161,7 @@ select {
     inset: 0;
     max-width: 1440px;
     margin-inline: auto;
-    border: 12px solid var(--bg-card);
+    border: 0.75rem solid var(--bg-card);
     border-left: none;
     border-radius: 20px;
     pointer-events: none;
@@ -182,11 +186,11 @@ select {
 /* Utility */
 .container {
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 var(--page-padding) 0 var(--page-padding-left);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 959px) {
   .container {
-    padding: 0;
+    padding: 0 var(--page-padding-mobile);
   }
 }

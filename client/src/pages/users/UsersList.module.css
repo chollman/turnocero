@@ -1,12 +1,15 @@
 .page {
   min-height: calc(100vh - 64px);
-  padding: 1.5rem 1.5rem 4rem;
+  padding: var(--page-padding) var(--page-padding) var(--page-padding) var(--page-padding-left);
   margin: 0 auto;
 }
 
 @media (max-width: 959px) {
   .page {
     padding-top: var(--navbar-h);
+    padding-right: var(--page-padding-mobile);
+    padding-bottom: var(--page-padding-mobile);
+    padding-left: var(--page-padding-mobile);
   }
 }
 
@@ -333,7 +336,7 @@
 
 @media (max-width: 640px) {
   .page {
-    padding: 1.5rem 1rem 3rem;
+    padding: var(--navbar-h) var(--page-padding-mobile) var(--page-padding-mobile);
   }
 
   .cardStats {

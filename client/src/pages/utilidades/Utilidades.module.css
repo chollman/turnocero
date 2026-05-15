@@ -1,12 +1,18 @@
 .page {
   min-height: calc(100vh - var(--navbar-h));
-  padding-top: var(--navbar-h);
+  padding: var(--navbar-h) 0 var(--page-padding);
+}
+
+@media (min-width: 960px) {
+  .page {
+    padding-top: var(--page-padding);
+  }
 }
 
 .inner {
   max-width: 860px;
   margin: 0 auto;
-  padding: 32px 24px 60px;
+  padding: 0 var(--page-padding) 0 var(--page-padding-left);
 }
 
 .title {
@@ -29,10 +35,17 @@
   gap: 14px;
 }
 
-@media (max-width: 600px) {
-  .inner {
-    padding: 24px 16px 80px;
+@media (max-width: 959px) {
+  .page {
+    padding-bottom: var(--page-padding-mobile);
   }
+
+  .inner {
+    padding: 0 var(--page-padding-mobile);
+  }
+}
+
+@media (max-width: 600px) {
   .grid {
     grid-template-columns: 1fr;
     gap: 10px;

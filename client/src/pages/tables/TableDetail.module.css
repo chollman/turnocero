@@ -1,12 +1,12 @@
 /* ─── Page ─── */
 .page {
   min-height: calc(100vh - var(--navbar-h, 64px));
-  padding: var(--navbar-h) 0 4rem;
+  padding: var(--navbar-h) 0 var(--page-padding);
 }
 
 @media (min-width: 960px) {
   .page {
-    padding-top: 1.5rem;
+    padding-top: var(--page-padding);
   }
 }
 
@@ -1425,6 +1425,10 @@
 
 /* ── 960px and below: single column, mobile nav visible ── */
 @media (max-width: 959px) {
+  .page {
+    padding-bottom: var(--page-padding-mobile);
+  }
+
   /* Move date/location out of hero banner */
   .heroChips {
     display: none;

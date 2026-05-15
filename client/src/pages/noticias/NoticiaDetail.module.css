@@ -1,18 +1,18 @@
 .page {
   min-height: calc(100vh - var(--navbar-h, 64px));
-  padding: var(--navbar-h) 0 4rem;
+  padding: var(--navbar-h) 0 var(--page-padding);
 }
 
 @media (min-width: 960px) {
   .page {
-    padding-top: 1.5rem;
+    padding-top: var(--page-padding);
   }
 }
 
 .inner {
   max-width: 780px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--page-padding) 0 var(--page-padding-left);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -318,8 +318,12 @@
 }
 
 /* ── Mobile ── */
+@media (max-width: 959px) {
+  .page  { padding-bottom: var(--page-padding-mobile); }
+  .inner { padding: 0 var(--page-padding-mobile); }
+}
+
 @media (max-width: 600px) {
-  .inner  { padding: 0 12px; }
   .body   { padding: 16px 16px 20px; }
   .title  { font-size: 20px; }
   .image  { max-height: 420px; }

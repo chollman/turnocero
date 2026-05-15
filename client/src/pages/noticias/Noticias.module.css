@@ -1,16 +1,16 @@
 .page {
   min-height: calc(100vh - var(--navbar-h, 64px));
-  padding: var(--navbar-h) 0 4rem;
+  padding: var(--navbar-h) 0 var(--page-padding);
 }
 
 @media (min-width: 960px) {
   .page {
-    padding-top: 1.5rem;
+    padding-top: var(--page-padding);
   }
 }
 
 .inner {
-  padding: 0 28px;
+  padding: 0 var(--page-padding) 0 var(--page-padding-left);
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -565,7 +565,8 @@
     gap: 10px;
   }
 
-  .inner  { padding: 16px 16px 0; }
+  .page   { padding-bottom: var(--page-padding-mobile); }
+  .inner  { padding: 0 var(--page-padding-mobile); }
   .newBtn { align-self: stretch; text-align: center; }
   .title  { font-size: 28px; }
 

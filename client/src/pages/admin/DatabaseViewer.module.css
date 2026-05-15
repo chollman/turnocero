@@ -1,18 +1,17 @@
 .page {
-  padding: var(--navbar-h) 0 4rem;
+  padding: var(--navbar-h) 0 var(--page-padding);
   min-height: calc(100vh - 64px);
-}
-
-@media (max-width: 600px) {
-  .page {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
 }
 
 @media (min-width: 960px) {
   .page {
-    padding-top: 1.5rem;
+    padding-top: var(--page-padding);
+  }
+}
+
+@media (max-width: 959px) {
+  .page {
+    padding-bottom: var(--page-padding-mobile);
   }
 }
 
