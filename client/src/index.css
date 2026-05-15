@@ -51,12 +51,26 @@ body,
   min-height: 100dvh;
 }
 
+html {
+  overflow-y: overlay;
+}
+
+@media (max-width: 1440px) {
+  html {
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 body {
   font-family: var(--font-body);
   background-color: var(--bg-dark);
   color: var(--text-primary);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  overflow-y: overlay;
 }
 
 /* ── Under-construction ribbon ── */
