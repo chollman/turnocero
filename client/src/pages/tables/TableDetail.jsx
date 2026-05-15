@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useNotifications } from '../../context/NotificationContext'
 import GameTile from '../../components/shared/GameTile'
 import LoginPromptModal from '../../components/shared/LoginPromptModal'
+import TableDetailSkeleton from './TableDetailSkeleton'
 import styles from './TableDetail.module.css'
 
 const REACTION_EMOJIS = ['❤️', '🎲', '🔥', '👍', '😄']
@@ -433,11 +434,7 @@ export default function TableDetail() {
   }
 
   if (loadingTable) {
-    return (
-      <div className={styles.loadingWrapper}>
-        <span className={styles.loadingDice}>🎲</span>
-      </div>
-    )
+    return <TableDetailSkeleton />
   }
 
   if (accessError) {

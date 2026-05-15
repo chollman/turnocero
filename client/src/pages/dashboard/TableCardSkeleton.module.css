@@ -1,0 +1,105 @@
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.banner,
+.title,
+.badge,
+.subtitle,
+.chip,
+.avatar,
+.joinBtn {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.banner {
+  height: 150px;
+  border-radius: 0;
+  flex-shrink: 0;
+}
+
+.body {
+  padding: 12px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 1;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  width: 65%;
+  height: 15px;
+  flex-shrink: 1;
+}
+
+.badge {
+  width: 40px;
+  height: 13px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.subtitle {
+  width: 45%;
+  height: 12px;
+}
+
+.chip {
+  width: 60px;
+  height: 11px;
+}
+
+.footer {
+  padding: 8px 14px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.avatars {
+  display: flex;
+  gap: -4px;
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin-right: -4px;
+  border: 2px solid var(--bg-card);
+  flex-shrink: 0;
+}
+
+.joinBtn {
+  width: 80px;
+  height: 28px;
+  border-radius: 7px;
+}

@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async'
 import axios from 'axios'
 import CompartidaCard from './CompartidaCard'
 import CompartidasSidebar from './CompartidasSidebar'
+import CompartidaSkeleton from './CompartidaSkeleton'
 import styles from './CompartidaPost.module.css'
 
 export default function CompartidaPost() {
@@ -73,11 +74,7 @@ export default function CompartidaPost() {
             ← Volver al feed
           </button>
 
-          {loading && (
-            <div className={styles.spinner}>
-              <span className={styles.spinnerDice}>🎲</span>
-            </div>
-          )}
+          {loading && <CompartidaSkeleton />}
 
           {error && (
             <div className={styles.errorBox}>

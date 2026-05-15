@@ -1,0 +1,168 @@
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.page {
+  min-height: calc(100vh - var(--navbar-h, 64px));
+  padding-bottom: var(--page-padding);
+}
+
+@media (max-width: 959px) {
+  .page {
+    padding-top: var(--navbar-h);
+    padding-bottom: var(--page-padding-mobile);
+  }
+}
+
+.banner {
+  height: 200px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@media (max-width: 959px) {
+  .banner {
+    height: 150px;
+  }
+}
+
+.inner {
+  padding: 0 var(--page-padding) 0 var(--page-padding-left);
+  margin-top: -72px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (max-width: 959px) {
+  .inner {
+    padding: 0 var(--page-padding-mobile);
+    margin-top: -56px;
+    gap: 18px;
+  }
+}
+
+.backBtn,
+.eyebrow,
+.title,
+.sub,
+.avatar,
+.statCard,
+.infoCard {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+.backBtn {
+  width: 100px;
+  height: 28px;
+  border-radius: 8px;
+  align-self: flex-start;
+}
+
+.heroRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+@media (max-width: 959px) {
+  .avatar {
+    width: 72px;
+    height: 72px;
+  }
+}
+
+.heroInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.eyebrow {
+  width: 120px;
+  height: 10px;
+  border-radius: 4px;
+}
+
+.title {
+  width: 55%;
+  height: 34px;
+  border-radius: 6px;
+}
+
+@media (max-width: 959px) {
+  .title {
+    height: 24px;
+  }
+}
+
+.sub {
+  width: 70%;
+  height: 13px;
+  border-radius: 4px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 959px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+}
+
+.statCard {
+  height: 76px;
+  border-radius: 12px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 959px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+}
+
+.infoCard {
+  height: 160px;
+  border-radius: 12px;
+}

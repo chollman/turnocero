@@ -551,20 +551,6 @@
   text-align: center;
 }
 
-.loadingDice {
-  font-size: 2.5rem;
-  animation: bounce 1.2s ease-in-out infinite alternate;
-}
-
-@keyframes bounce {
-  from {
-    transform: translateY(0) rotate(-10deg);
-  }
-  to {
-    transform: translateY(-8px) rotate(10deg);
-  }
-}
-
 /* ─── Mobile ─── */
 @media (max-width: 959px) {
   .page {

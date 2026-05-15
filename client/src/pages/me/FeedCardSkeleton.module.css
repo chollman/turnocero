@@ -1,0 +1,76 @@
+@keyframes shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tile,
+.title,
+.badge,
+.meta,
+.btn {
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.tile {
+  width: 64px;
+  height: 64px;
+  border-radius: 9px;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  width: 55%;
+  height: 14px;
+  flex-shrink: 1;
+}
+
+.badge {
+  width: 36px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+.meta {
+  width: 40%;
+  height: 11px;
+}
+
+.btn {
+  width: 68px;
+  height: 28px;
+  border-radius: 7px;
+}
+
+@media (max-width: 600px) {
+  .card {
+    padding: 10px;
+    gap: 10px;
+  }
+}

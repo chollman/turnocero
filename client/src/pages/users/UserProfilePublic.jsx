@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import GameTile from '../../components/shared/GameTile';
+import ProfileSkeleton from './ProfileSkeleton';
 import styles from './UserProfilePublic.module.css';
 
 function seedFromId(id = '') {
@@ -113,14 +114,7 @@ export default function UserProfilePublic() {
   };
 
   if (loading) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.stateCenter}>
-          <span className={styles.loadingDice}>🎲</span>
-          <p>Cargando perfil…</p>
-        </div>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (error || !profile) {

@@ -1392,15 +1392,6 @@
   height: 60vh;
 }
 
-.loadingDice {
-  font-size: 3rem;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
 
 /* ─── Responsive ─── */
 @media (max-width: 960px) {

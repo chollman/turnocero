@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import DatabaseSkeleton from './DatabaseSkeleton';
 import styles from './DatabaseViewer.module.css';
 
 function cellValue(val) {
@@ -145,10 +146,7 @@ function DatabaseViewerInner() {
         {error && <p className={styles.error}>{error}</p>}
 
         {loading ? (
-          <div className={styles.center}>
-            <span className={styles.spinner}>🎲</span>
-            <p>Cargando datos…</p>
-          </div>
+          <DatabaseSkeleton />
         ) : !error && docs.length === 0 && activeCol ? (
           <div className={styles.center}>
             <p>{debouncedSearch ? `Sin resultados para "${debouncedSearch}"` : 'La colección está vacía'}</p>
