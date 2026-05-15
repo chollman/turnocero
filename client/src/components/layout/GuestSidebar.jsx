@@ -11,14 +11,6 @@ const ICONS = {
       <line x1="2" y1="9" x2="5" y2="9"/>
     </svg>
   ),
-  eventos: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-      <line x1="16" y1="2" x2="16" y2="6"/>
-      <line x1="8" y1="2" x2="8" y2="6"/>
-      <line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-  ),
   compartidas: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="18" cy="5" r="3"/>
@@ -32,14 +24,12 @@ const ICONS = {
 
 const NAV = [
   { id: 'noticias',    label: 'Noticias',    to: '/noticias' },
-  { id: 'eventos',     label: 'Eventos',     to: '/eventos' },
   { id: 'compartidas', label: 'Compartidas', to: '/compartidas' },
 ];
 
 function getActiveId(pathname) {
   if (pathname.startsWith('/noticias')) return 'noticias';
-  if (pathname.startsWith('/eventos')) return 'eventos';
-  if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas';
+if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas';
   if (pathname.startsWith('/utilidades')) return 'utilidades';
   return null;
 }

@@ -1,29 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 import styles from './BottomNav.module.css';
 
-const MesasIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
-    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
-    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
-    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
-  </svg>
-)
-
 const NoticiasIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/>
     <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
     <path d="M2 15h8M2 19h8M2 11h4"/>
-  </svg>
-)
-
-const EventosIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-    <line x1="16" y1="2" x2="16" y2="6"/>
-    <line x1="8" y1="2" x2="8" y2="6"/>
-    <line x1="3" y1="10" x2="21" y2="10"/>
   </svg>
 )
 
@@ -43,10 +25,8 @@ const UtilidadesIcon = () => (
 )
 
 const NAV = [
-  { id: 'compartidas', label: 'Compartidas', Icon: CompartidasIcon, to: '/compartidas' },
-  { id: 'mesas',       label: 'Mesas',       Icon: MesasIcon,       to: '/mesas' },
   { id: 'noticias',    label: 'Noticias',    Icon: NoticiasIcon,    to: '/noticias' },
-  { id: 'eventos',     label: 'Eventos',     Icon: EventosIcon,     to: '/eventos' },
+  { id: 'compartidas', label: 'Compartidas', Icon: CompartidasIcon, to: '/compartidas' },
   { id: 'utilidades',  label: 'Utilidades',  Icon: UtilidadesIcon,  to: '/utilidades' },
 ]
 
@@ -54,8 +34,7 @@ function getActiveId(pathname) {
   if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas'
   if (pathname.startsWith('/mesas')) return 'mesas'
   if (pathname.startsWith('/noticias')) return 'noticias'
-  if (pathname.startsWith('/eventos')) return 'eventos'
-  if (pathname.startsWith('/utilidades')) return 'utilidades'
+if (pathname.startsWith('/utilidades')) return 'utilidades'
   return null
 }
 

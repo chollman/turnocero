@@ -76,24 +76,24 @@ function AppRoutes() {
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/" element={<Compartidas />} />
-          <Route path="/mesas" element={<Dashboard />} />
+          <Route path="/mesas" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/mesas/crear" element={<PrivateRoute><CreateTable /></PrivateRoute>} />
-          <Route path="/mesas/:id" element={<TableDetail />} />
+          <Route path="/mesas/:id" element={<PrivateRoute><TableDetail /></PrivateRoute>} />
           <Route path="/mesas/:id/editar" element={<PrivateRoute><EditTable /></PrivateRoute>} />
           <Route path="/notificaciones" element={<PrivateRoute><Notifications /></PrivateRoute>} />
           <Route path="/perfil" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
-          <Route path="/usuarios" element={<UsersList />} />
-          <Route path="/usuarios/:id" element={<UserProfilePublic />} />
+          <Route path="/usuarios" element={<PrivateRoute><UsersList /></PrivateRoute>} />
+          <Route path="/usuarios/:id" element={<PrivateRoute><UserProfilePublic /></PrivateRoute>} />
           <Route path="/base-de-datos" element={<PrivateRoute><DatabaseViewer /></PrivateRoute>} />
           <Route path="/mi" element={<PrivateRoute><MeFeed /></PrivateRoute>} />
           <Route path="/noticias" element={<Noticias />} />
           <Route path="/noticias/:id" element={<NoticiaDetail />} />
-          <Route path="/eventos" element={<Eventos />} />
-          <Route path="/eventos/:id" element={<EventoDetail />} />
+          <Route path="/eventos" element={<PrivateRoute><Eventos /></PrivateRoute>} />
+          <Route path="/eventos/:id" element={<PrivateRoute><EventoDetail /></PrivateRoute>} />
           <Route path="/eventos/:id/inscripciones" element={<PrivateRoute><EventoInscripciones /></PrivateRoute>} />
           <Route path="/compartidas" element={<Compartidas />} />
           <Route path="/compartidas/:id" element={<CompartidaPost />} />
-          <Route path="/perfil-bgg/:bggUsername" element={<BggProfile />} />
+          <Route path="/perfil-bgg/:bggUsername" element={<PrivateRoute><BggProfile /></PrivateRoute>} />
           <Route path="/mensajes" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/mensajes/:userId" element={<PrivateRoute><DirectChat /></PrivateRoute>} />
           <Route path="/mensajes-admin" element={<PrivateRoute><AdminChat /></PrivateRoute>} />
@@ -103,7 +103,7 @@ function AppRoutes() {
           <Route path="/utilidades/dado" element={<Dado />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        {user && <BottomNav />}
+        {user ? <BottomNav /> : !isAuthPage && <GuestBottomNav />}
       </div>
     </div>
     </>
