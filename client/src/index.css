@@ -179,7 +179,7 @@ select {
     padding-bottom: 60px; /* space for BottomNav */
   }
   .appContent.guestMode {
-    padding-bottom: 0;
+    padding-bottom: 60px; /* space for GuestBottomNav */
   }
 }
 

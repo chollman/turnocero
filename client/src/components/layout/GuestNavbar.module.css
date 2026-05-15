@@ -7,13 +7,14 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* Desktop: hidden — GuestSidebar handles navigation */
 @media (min-width: 960px) {
   .nav {
-    display: block;
-    margin-bottom: 1.5rem;
+    display: none;
   }
 }
 
+/* Mobile: fixed bar — logo left, actions right */
 @media (max-width: 959px) {
   .nav {
     position: fixed;
@@ -32,11 +33,12 @@
     margin: 0;
     padding: 0 16px;
     height: 52px;
+    justify-content: space-between;
   }
 }
 
 .inner {
-  max-width: 1440px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 0 1.5rem;
   height: 64px;
@@ -45,6 +47,7 @@
   justify-content: space-between;
 }
 
+/* Logo — matches Navbar */
 .logo {
   display: flex;
   align-items: center;
@@ -92,36 +95,10 @@
   text-transform: uppercase;
 }
 
-.links {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.navLink {
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition: color var(--transition), background var(--transition);
-}
-
-.navLink:hover {
-  color: var(--text-primary);
-  background: var(--bg-elevated);
-}
-
-@media (max-width: 500px) {
-  .links { display: none; }
-}
-
 .right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .btnLogin {
@@ -133,9 +110,7 @@
   color: var(--text-secondary);
   text-decoration: none;
   border: 1px solid var(--border);
-  transition:
-    color var(--transition),
-    border-color var(--transition);
+  transition: color var(--transition), border-color var(--transition);
 }
 
 .btnLogin:hover {

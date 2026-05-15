@@ -34,7 +34,9 @@ import FingerSelector from './pages/utilidades/FingerSelector';
 import Temporizador from './pages/utilidades/Temporizador';
 import Dado from './pages/utilidades/Dado';
 import Navbar from './components/layout/Navbar';
-import GuestNavbar from './components/layout/GuestNavbar';
+import GuestSidebar from './components/layout/GuestSidebar'
+import GuestNavbar from './components/layout/GuestNavbar'
+import GuestBottomNav from './components/layout/GuestBottomNav';
 import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
 import BoardGameBackground from './components/layout/BoardGameBackground';
@@ -67,7 +69,7 @@ function AppRoutes() {
       {!user && !isAuthPage && <GuestNavbar />}
       <div className="appShell">
       <ScrollToTop />
-      {user && <Sidebar />}
+      {user ? <Sidebar /> : !isAuthPage && <GuestSidebar />}
       <div className={`appContent${!user ? ' guestMode' : ''}`}>
         {user && <Navbar />}
         <Routes>
