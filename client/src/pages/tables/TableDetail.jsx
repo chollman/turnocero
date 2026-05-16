@@ -157,36 +157,35 @@ export default function TableDetail() {
       }
     }
     fetchTable()
-  }, [id])
+    // Refetch only when id changes; user-dependent gating is re-evaluated on next render
+  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!table) return
-    axios.get(`/api/tables/${id}/messages`).then(({ data }) => setMessages(data))
-  }, [table])
-
-  useEffect(() => {
-    if (!table) return
-    axios.get(`/api/tables/${id}/comments`).then(({ data }) => setComments(data)).catch(() => {})
-  }, [table])
-
-  useEffect(() => {
-    if (!table) return
-    axios
-      .get(`/api/tables/${id}/ratings`)
-      .then(({ data }) => {
-        setRatings(data.ratings)
-        setRatingsAvg(data.avg)
-        setRatingsCount(data.count)
-        const mine = user && data.ratings.find(
+    let cancelled = false
+    Promise.all([
+      axios.get(`/api/tables/${id}/messages`).catch(() => ({ data: [] })),
+      axios.get(`/api/tables/${id}/comments`).catch(() => ({ data: [] })),
+      axios.get(`/api/tables/${id}/ratings`).catch(() => null),
+    ]).then(([msgs, cmts, rt]) => {
+      if (cancelled) return
+      setMessages(msgs.data)
+      setComments(cmts.data)
+      if (rt) {
+        setRatings(rt.data.ratings)
+        setRatingsAvg(rt.data.avg)
+        setRatingsCount(rt.data.count)
+        const mine = user && rt.data.ratings.find(
           (r) => (r.rater._id || r.rater).toString() === user._id.toString()
         )
         if (mine) {
           setMyRatingScore(mine.score)
           setMyRatingComment(mine.comment || '')
         }
-      })
-      .catch(() => {})
-  }, [table])
+      }
+    })
+    return () => { cancelled = true }
+  }, [table, id, user])
 
   useEffect(() => {
     if (!table || !user) return
@@ -711,10 +710,10 @@ export default function TableDetail() {
                         <span className={styles.requestUsername}>{req.username}</span>
                         <div className={styles.requestActions}>
                           <button className={styles.btnAccept} onClick={() => handleRequest(req._id, 'accept')} disabled={requestLoading !== null}>
-                            {requestLoading === req._id + 'accept' ? '…' : 'Aceptar'}
+                            {requestLoading === `${req._id}accept` ? '…' : 'Aceptar'}
                           </button>
                           <button className={styles.btnReject} onClick={() => handleRequest(req._id, 'reject')} disabled={requestLoading !== null}>
-                            {requestLoading === req._id + 'reject' ? '…' : 'Rechazar'}
+                            {requestLoading === `${req._id}reject` ? '…' : 'Rechazar'}
                           </button>
                         </div>
                       </li>

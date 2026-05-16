@@ -17,7 +17,7 @@ function formatRelativeTime(date) {
 
 export default function Messages() {
   const { user } = useAuth();
-  const { conversations, openChat, dmUnreadTotal } = useChat();
+  const { conversations, openChat } = useChat();
   const navigate = useNavigate();
   const [friends, setFriends] = useState([]);
   const [showNewChat, setShowNewChat] = useState(false);

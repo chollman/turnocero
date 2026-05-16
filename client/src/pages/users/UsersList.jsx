@@ -66,7 +66,7 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete }) {
             <span className={styles.metaChip}>
               <span className={styles.metaIcon}>📍</span>
               {user.direccion.texto.length > 30
-                ? user.direccion.texto.slice(0, 30) + '…'
+                ? `${user.direccion.texto.slice(0, 30)}…`
                 : user.direccion.texto}
             </span>
           )}

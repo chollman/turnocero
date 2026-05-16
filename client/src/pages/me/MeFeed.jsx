@@ -56,7 +56,7 @@ function SeatTrack({ filled, total }) {
   )
 }
 
-function NextGameHighlight({ table, uid }) {
+function NextGameHighlight({ table }) {
   const days = daysUntil(table.date)
   const daysLabel =
     days <= 0 ? 'HOY' : days === 1 ? 'EN 1 DÍA' : `EN ${days} DÍAS`
@@ -180,7 +180,7 @@ export default function MeFeed() {
         </div>
 
         {!loading && !error && nextGame && filter === 'all' && (
-          <NextGameHighlight table={nextGame} uid={uid} />
+          <NextGameHighlight table={nextGame} />
         )}
 
         <div className={styles.filterBar}>

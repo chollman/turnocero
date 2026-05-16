@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
 import GameTile from '../../components/shared/GameTile'
@@ -38,7 +38,6 @@ const PRIVACY_LABELS = { public: null, friends: 'Amigos', private: 'Solo yo' }
 
 export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated, featured }) {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const [post, setPost] = useState(initialPost)
   const [liked, setLiked] = useState(() =>
     user ? initialPost.likes.some((l) => (l._id || l).toString() === user._id.toString()) : false
@@ -170,7 +169,7 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
   const tableSeats = table ? table.maxPlayers - (table.players?.length || 0) : 0
   const tableOpen = table?.status === 'open'
   const bodyLong = post.body.length > 220
-  const displayBody = expanded || !bodyLong ? post.body : post.body.slice(0, 220) + '…'
+  const displayBody = expanded || !bodyLong ? post.body : `${post.body.slice(0, 220)}…`
   const authorName = authorInfo.name
   const privacyLabel = PRIVACY_LABELS[post.privacy]
 
@@ -344,7 +343,7 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
             {/* Twitter / X */}
             <a
               className={styles.shareBtn}
-              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent((post.title || post.body?.slice(0, 100) || 'Compartida en TurnoCero') + ' 🎲')}&url=${encodeURIComponent(buildShareData(post).url)}`}
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${post.title || post.body?.slice(0, 100) || 'Compartida en TurnoCero'} 🎲`)}&url=${encodeURIComponent(buildShareData(post).url)}`}
               target="_blank"
               rel="noopener noreferrer"
               title="Compartir en X (Twitter)"
