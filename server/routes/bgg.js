@@ -199,15 +199,43 @@ router.get('/partidas/:bggUsername', async (req, res) => {
     const result = {
       total: root['@_total'] ? Number(root['@_total']) : plays.length,
       page,
-      plays: plays.map((play) => ({
-        id: play['@_id'],
-        date: play['@_date'] || null,
-        gameName: play.item?.['@_name'] || null,
-        gameId: play.item?.['@_objectid'] || null,
-        quantity: play['@_quantity'] ? Number(play['@_quantity']) : 1,
-        duration: play['@_length'] ? Number(play['@_length']) : null,
-        location: play['@_location'] || null,
-      })),
+      plays: plays.map((play) => {
+        const playerNode = play.players?.player;
+        const playersArr = playerNode
+          ? (Array.isArray(playerNode) ? playerNode : [playerNode])
+          : [];
+
+        const commentsRaw = play.comments;
+        const comments = typeof commentsRaw === 'string'
+          ? commentsRaw
+          : (commentsRaw?.['#text'] || null);
+
+        return {
+          id: play['@_id'],
+          date: play['@_date'] || null,
+          gameName: play.item?.['@_name'] || null,
+          gameId: play.item?.['@_objectid'] || null,
+          quantity: play['@_quantity'] ? Number(play['@_quantity']) : 1,
+          duration: play['@_length'] ? Number(play['@_length']) : null,
+          location: play['@_location'] || null,
+          incomplete: play['@_incomplete'] === '1' || play['@_incomplete'] === 1,
+          nowinstats: play['@_nowinstats'] === '1' || play['@_nowinstats'] === 1,
+          comments: comments || null,
+          players: playersArr.map((p) => ({
+            name: p['@_name'] || null,
+            username: p['@_username'] || null,
+            userid: p['@_userid'] ? Number(p['@_userid']) : null,
+            position: p['@_startposition'] || null,
+            color: p['@_color'] || null,
+            score: p['@_score'] !== undefined && p['@_score'] !== '' ? String(p['@_score']) : null,
+            win: p['@_win'] === '1' || p['@_win'] === 1,
+            new: p['@_new'] === '1' || p['@_new'] === 1,
+            rating: p['@_rating'] && p['@_rating'] !== '0'
+              ? Number(p['@_rating'])
+              : null,
+          })),
+        };
+      }),
     };
 
     setCached(cacheKey, result);
