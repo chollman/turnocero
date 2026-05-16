@@ -19,6 +19,53 @@ function StarRating({ value }) {
   return <span className={styles.rating}>{Number(value).toFixed(1)}</span>;
 }
 
+function StatsBar({ collection, plays }) {
+  const totalPartidas = plays?.total ?? null;
+  const juegosUnicos = collection?.length ?? null;
+
+  let topGame = null;
+  if (collection && collection.length > 0) {
+    topGame = collection.reduce((best, g) => (
+      (g.numPlays || 0) > (best?.numPlays || 0) ? g : best
+    ), null);
+    if (!topGame || (topGame.numPlays || 0) === 0) topGame = null;
+  }
+
+  const ultimaPartida = plays?.plays?.[0]?.date || null;
+
+  return (
+    <div className={styles.statsBar}>
+      <div className={styles.statCard}>
+        <span className={styles.statLabel}>Partidas</span>
+        <span className={styles.statValue}>
+          {totalPartidas !== null ? totalPartidas : '—'}
+        </span>
+      </div>
+      <div className={styles.statCard}>
+        <span className={styles.statLabel}>Juegos únicos</span>
+        <span className={styles.statValue}>
+          {juegosUnicos !== null ? juegosUnicos : '—'}
+        </span>
+      </div>
+      <div className={styles.statCard}>
+        <span className={styles.statLabel}>Más jugado</span>
+        <span className={styles.statValueSm} title={topGame?.name || ''}>
+          {topGame ? topGame.name : '—'}
+        </span>
+        {topGame && (
+          <span className={styles.statHint}>{topGame.numPlays}× partidas</span>
+        )}
+      </div>
+      <div className={styles.statCard}>
+        <span className={styles.statLabel}>Última partida</span>
+        <span className={styles.statValueSm}>
+          {ultimaPartida ? formatDate(ultimaPartida) : '—'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function Pagination({ page, totalPages, onPage }) {
   if (totalPages <= 1) return null;
 
@@ -191,6 +238,8 @@ export default function BggProfile() {
             Ver en BoardGameGeek ↗
           </a>
         </div>
+
+        <StatsBar collection={collection} plays={plays} />
 
         <div className={styles.tabs}>
           <button
