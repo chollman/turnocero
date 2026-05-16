@@ -1097,6 +1097,56 @@
   gap: 12px;
 }
 
+.groupCardFinal {
+  border-color: var(--orange);
+  background: linear-gradient(180deg, var(--orange-15), var(--bg-card) 30%);
+  box-shadow: 0 0 0 1px var(--orange-45);
+}
+
+.championBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--orange-25);
+  border: 1px solid var(--orange-45);
+  border-radius: 10px;
+}
+
+.championIcon { font-size: 28px; line-height: 1; }
+
+.championText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.championLabel {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--orange);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.championName {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.championScore {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .groupHeader {
   display: flex;
   justify-content: space-between;

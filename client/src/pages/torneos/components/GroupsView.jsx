@@ -113,6 +113,7 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
             isCurrentPhase={activePhase === phaseData.currentPhase}
             gamesPerGroup={phaseData.gamesPerGroup}
             qualifiersPerGroup={phaseData.qualifiersPerGroup}
+            isFinalTable={phaseData.groups.length === 1}
             onRecordGame={(g) => { setRecordingGame(g); setRecordingGroup(group) }}
             onUndoGame={handleUndoResult}
             editingAdvanced={editingAdvanced === group._id}
@@ -163,25 +164,45 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
   )
 }
 
-function GroupCard({ group, isAdmin, isCurrentPhase, gamesPerGroup, qualifiersPerGroup,
+function GroupCard({ group, isAdmin, isCurrentPhase, gamesPerGroup, qualifiersPerGroup, isFinalTable,
                     onRecordGame, onUndoGame, editingAdvanced, onToggleEditAdvanced, onToggleAdvanced }) {
   const advancedIds = new Set((group.advancedPlayers || []).map((p) => String(p._id || p)))
+  const champion = isFinalTable && group.status === 'completed' ? group.standings?.[0] : null
+  // Find the populated user for the champion (standings entries only carry userId strings).
+  const championUser = champion
+    ? (group.players || []).find((p) => String(p._id || p) === String(champion.user))
+    : null
 
   return (
-    <div className={styles.groupCard}>
+    <div className={`${styles.groupCard} ${isFinalTable ? styles.groupCardFinal : ''}`}>
       <div className={styles.groupHeader}>
-        <h3 className={styles.groupTitle}>Mesa #{group.tableNumber}</h3>
+        <h3 className={styles.groupTitle}>
+          {isFinalTable ? '🏆 Mesa final' : `Mesa #${group.tableNumber}`}
+        </h3>
         <span className={`${styles.groupStatus} ${styles[`status_${group.status}`]}`}>
           {group.status === 'completed' ? 'Terminado'
             : group.status === 'in_progress' ? 'En curso' : 'Pendiente'}
         </span>
       </div>
 
+      {champion && championUser && (
+        <div className={styles.championBanner}>
+          <span className={styles.championIcon}>🏆</span>
+          <div className={styles.championText}>
+            <span className={styles.championLabel}>Campeón provisional</span>
+            <span className={styles.championName}>
+              <UserRef user={championUser} noLink />
+              <span className={styles.championScore}>{champion.totalPV} PV</span>
+            </span>
+          </div>
+        </div>
+      )}
+
       <GroupStandings
         standings={group.standings}
         players={group.players}
         gamesPerGroup={gamesPerGroup}
-        qualifiersPerGroup={qualifiersPerGroup}
+        qualifiersPerGroup={isFinalTable ? 1 : qualifiersPerGroup}
       />
 
       <div className={styles.groupGamesSection}>
@@ -220,7 +241,7 @@ function GroupCard({ group, isAdmin, isCurrentPhase, gamesPerGroup, qualifiersPe
         </ul>
       </div>
 
-      {group.status === 'completed' && (
+      {group.status === 'completed' && !isFinalTable && (
         <div className={styles.groupAdvancedSection}>
           <div className={styles.groupAdvancedHeader}>
             <h4 className={styles.groupSubheading}>Promovidos ({advancedIds.size})</h4>

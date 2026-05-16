@@ -1014,16 +1014,27 @@ router.post('/:id/games/:gameId/result', protect, requireAdmin, async (req, res)
     game.playedAt = new Date();
     await game.save();
 
-    // If all P games of this group are completed → mark group completed + suggest top-C as advanced.
+    // If all P games of this group are completed → mark group completed.
+    // If this group is the ONLY one in its phase, it's the final mesa: skip
+    // auto-assigning advancedPlayers (the admin should click "Finalizar torneo"
+    // and the top-1 of the standings becomes the champion).
     const allGames = await TorneoGame.find({ group: group._id });
     if (allGames.every((g) => g.status === 'completed')) {
       group.status = 'completed';
       group.completedAt = new Date();
-      // Suggest top-C as advanced (overridable by admin afterwards).
-      const standings = computeGroupStandings(allGames, group.players);
-      group.advancedPlayers = standings
-        .slice(0, torneo.qualifiersPerGroup)
-        .map((s) => s.user);
+      const groupsInPhase = await TorneoGroup.countDocuments({
+        torneo: torneo._id,
+        phase: group.phase,
+      });
+      const isFinalTable = groupsInPhase === 1;
+      if (!isFinalTable) {
+        const standings = computeGroupStandings(allGames, group.players);
+        group.advancedPlayers = standings
+          .slice(0, torneo.qualifiersPerGroup)
+          .map((s) => s.user);
+      } else {
+        group.advancedPlayers = [];
+      }
       await group.save();
     } else if (group.status === 'pending') {
       group.status = 'in_progress';
