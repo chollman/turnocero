@@ -49,6 +49,16 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
     });
 
     const populated = await noticia.populate('author', 'username displayName');
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('noticia:published', {
+        noticiaId: noticia._id.toString(),
+        title: noticia.title || '',
+        timestamp: new Date(),
+      });
+    }
+
     res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ message: 'Error al crear la noticia' });

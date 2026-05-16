@@ -83,6 +83,48 @@ function getNotifMeta(n) {
         preview: `Suerte la próxima 🎲`,
         chipClass: 'request',
       };
+    case 'tournament_started':
+      return {
+        icon: '🚀',
+        countLabel: '¡Empezó el torneo!',
+        preview: `${n.torneoTitle} ya está en juego`,
+        chipClass: 'accepted',
+      };
+    case 'tournament_finished':
+      return {
+        icon: '🏁',
+        countLabel: 'Torneo finalizado',
+        preview: `Terminó ${n.torneoTitle}`,
+        chipClass: 'request',
+      };
+    case 'compartida_comment':
+      return {
+        icon: '🗨️',
+        countLabel: `${n.count} ${n.count === 1 ? 'comentario nuevo' : 'comentarios nuevos'}`,
+        preview: `${n.lastCommenterUsername}: ${n.lastCommentPreview ?? ''}${(n.lastCommentPreview?.length ?? 0) >= 60 ? '…' : ''}`,
+        chipClass: 'chat',
+      };
+    case 'compartida_like':
+      return {
+        icon: '❤️',
+        countLabel: `${n.count} ${n.count === 1 ? 'like nuevo' : 'likes nuevos'}`,
+        preview: `${n.lastSenderUsername} le dio like a tu compartida`,
+        chipClass: 'accepted',
+      };
+    case 'table_cancelled':
+      return {
+        icon: '❌',
+        countLabel: 'Mesa cancelada',
+        preview: `Se canceló ${n.tableName}`,
+        chipClass: 'request',
+      };
+    case 'join_rejected':
+      return {
+        icon: '🚷',
+        countLabel: 'Solicitud rechazada',
+        preview: `Tu solicitud para ${n.tableName} fue rechazada`,
+        chipClass: 'request',
+      };
     case 'dm':
       return {
         icon: '💬',
@@ -110,7 +152,7 @@ function getNotifMeta(n) {
 const getNotifTime = (n) => new Date(n.updatedAt || n.timestamp || 0).getTime();
 
 export default function Notifications() {
-  const { notifications, markRead, markReadFriend, markReadTorneo, markReadDm, markReadAdminChat, markAllRead, clearAll } = useNotifications();
+  const { notifications, markRead, markReadFriend, markReadTorneo, markReadCompartida, markReadDm, markReadAdminChat, markAllRead, clearAll } = useNotifications();
   const { clearConversationUnread } = useChat();
   const sorted = [...notifications].sort((a, b) => getNotifTime(b) - getNotifTime(a));
   const hasUnread = notifications.some((n) => !n.read);
@@ -123,6 +165,7 @@ export default function Notifications() {
       clearConversationUnread(n.fromUserId);
       return;
     }
+    if (n.compartidaId) return markReadCompartida(n.compartidaId);
     if (n.type?.startsWith('tournament_')) return markReadTorneo(n.torneoId);
     if (n.fromUserId) return markReadFriend(n.fromUserId);
     return markRead(n.tableId);
@@ -170,6 +213,7 @@ export default function Notifications() {
             const to =
               n.type === 'admin_chat' ? '/mensajes-admin' :
               n.type === 'dm' ? `/mensajes/${n.fromUserId}` :
+              n.compartidaId ? `/compartidas/${n.compartidaId}` :
               isTorneo ? `/torneos/${n.torneoId}` :
               n.fromUserId ? `/usuarios/${n.fromUserId}` :
               `/mesas/${n.tableId}`;
@@ -180,7 +224,7 @@ export default function Notifications() {
               markNotifRead(n);
             };
             return (
-              <li key={`${n.type ?? 'chat'}:${n.tableId ?? n.fromUserId ?? n.torneoId}`}>
+              <li key={`${n.type ?? 'chat'}:${n.tableId ?? n.fromUserId ?? n.torneoId ?? n.compartidaId ?? 'global'}`}>
                 <Link
                   to={to}
                   className={`${styles.card} ${n.read ? styles.cardRead : ''}`}
@@ -195,7 +239,7 @@ export default function Notifications() {
                       <span className={styles.cardGame}>
                         {n.type === 'admin_chat'
                           ? 'Chat de admins'
-                          : (n.tableName || n.fromUsername || n.torneoTitle)}
+                          : (n.tableName || n.fromUsername || n.torneoTitle || n.compartidaTitle || 'Compartida')}
                       </span>
                       {!n.read && (
                         <span className={`${styles.chip} ${styles[chipClass]}`}>

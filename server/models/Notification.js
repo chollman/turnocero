@@ -28,6 +28,9 @@ const notificationSchema = new mongoose.Schema(
     torneoId: { type: String, default: null },
     torneoTitle: { type: String, default: '' },
     round: { type: Number, default: null },
+    // Compartida-related
+    compartidaId: { type: String, default: null },
+    compartidaTitle: { type: String, default: '' },
   },
   { timestamps: true }
 );
@@ -36,5 +39,6 @@ const notificationSchema = new mongoose.Schema(
 notificationSchema.index({ recipient: 1, type: 1, tableId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, fromUserId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, torneoId: 1 });
+notificationSchema.index({ recipient: 1, type: 1, compartidaId: 1 });
 
 module.exports = mongoose.model('Notification', notificationSchema);

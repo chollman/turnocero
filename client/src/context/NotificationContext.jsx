@@ -261,6 +261,73 @@ export function NotificationProvider({ children }) {
     socket.on('torneo:registration-rejected', handleTorneoEvent('tournament_rejected'));
     socket.on('torneo:advanced',              handleTorneoEvent('tournament_advanced'));
     socket.on('torneo:eliminated',            handleTorneoEvent('tournament_eliminated'));
+    socket.on('torneo:started',               handleTorneoEvent('tournament_started'));
+    socket.on('torneo:finished',              handleTorneoEvent('tournament_finished'));
+
+    socket.on('compartida:comment', (notif) => {
+      setNotifications((prev) => {
+        const existing = prev.find((n) => n.type === 'compartida_comment' && n.compartidaId === notif.compartidaId);
+        if (existing) {
+          return prev.map((n) =>
+            n.type === 'compartida_comment' && n.compartidaId === notif.compartidaId
+              ? { ...n, read: false, count: (n.count || 1) + 1, lastCommenterUsername: notif.commenterUsername, lastCommentPreview: notif.commentPreview, timestamp: notif.timestamp }
+              : n
+          );
+        }
+        return [...prev, { type: 'compartida_comment', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, count: 1, read: false, lastCommenterUsername: notif.commenterUsername, lastCommentPreview: notif.commentPreview, timestamp: notif.timestamp }];
+      });
+      setToasts((prev) => {
+        const next = [...prev, { id: makeToastId(), type: 'compartida_comment', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, commenterUsername: notif.commenterUsername, commentPreview: notif.commentPreview }];
+        return next.length > 4 ? next.slice(-4) : next;
+      });
+    });
+
+    socket.on('compartida:like', (notif) => {
+      setNotifications((prev) => {
+        const existing = prev.find((n) => n.type === 'compartida_like' && n.compartidaId === notif.compartidaId);
+        if (existing) {
+          return prev.map((n) =>
+            n.type === 'compartida_like' && n.compartidaId === notif.compartidaId
+              ? { ...n, read: false, count: (n.count || 1) + 1, lastSenderUsername: notif.fromUsername, timestamp: notif.timestamp }
+              : n
+          );
+        }
+        return [...prev, { type: 'compartida_like', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, count: 1, read: false, lastSenderUsername: notif.fromUsername, timestamp: notif.timestamp }];
+      });
+      setToasts((prev) => {
+        const next = [...prev, { id: makeToastId(), type: 'compartida_like', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, fromUsername: notif.fromUsername }];
+        return next.length > 4 ? next.slice(-4) : next;
+      });
+    });
+
+    socket.on('table:cancelled', (notif) => {
+      setNotifications((prev) => {
+        const rest = prev.filter((n) => !(n.type === 'table_cancelled' && n.tableId === notif.tableId));
+        return [...rest, { type: 'table_cancelled', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, timestamp: notif.timestamp }];
+      });
+      setToasts((prev) => {
+        const next = [...prev, { id: makeToastId(), type: 'table_cancelled', tableId: notif.tableId, tableName: notif.tableName }];
+        return next.length > 4 ? next.slice(-4) : next;
+      });
+    });
+
+    socket.on('join:rejected', (notif) => {
+      setNotifications((prev) => {
+        const rest = prev.filter((n) => !(n.type === 'join_rejected' && n.tableId === notif.tableId));
+        return [...rest, { type: 'join_rejected', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, timestamp: notif.timestamp }];
+      });
+      setToasts((prev) => {
+        const next = [...prev, { id: makeToastId(), type: 'join_rejected', tableId: notif.tableId, tableName: notif.tableName }];
+        return next.length > 4 ? next.slice(-4) : next;
+      });
+    });
+
+    socket.on('noticia:published', (notif) => {
+      setToasts((prev) => {
+        const next = [...prev, { id: makeToastId(), type: 'noticia', noticiaId: notif.noticiaId, title: notif.title }];
+        return next.length > 4 ? next.slice(-4) : next;
+      });
+    });
 
     return () => socket.disconnect();
     // refreshUser is intentionally omitted — including it would reconnect the socket on every render
@@ -285,6 +352,13 @@ export function NotificationProvider({ children }) {
       prev.map((n) => n.torneoId === torneoId ? { ...n, read: true } : n)
     );
     axios.patch('/api/notifications/read', { torneoId }).catch(() => {});
+  }, []);
+
+  const markReadCompartida = useCallback((compartidaId) => {
+    setNotifications((prev) =>
+      prev.map((n) => n.compartidaId === compartidaId ? { ...n, read: true } : n)
+    );
+    axios.patch('/api/notifications/read', { compartidaId }).catch(() => {});
   }, []);
 
   const markReadDm = useCallback((fromUserId) => {
@@ -361,6 +435,7 @@ export function NotificationProvider({ children }) {
       markRead,
       markReadFriend,
       markReadTorneo,
+      markReadCompartida,
       markReadDm,
       markReadAdminChat,
       markAllRead,

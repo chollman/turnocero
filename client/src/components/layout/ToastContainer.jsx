@@ -22,6 +22,13 @@ const DURATION = {
   tournament_advanced:   6000,
   tournament_eliminated: 6000,
   tournament_pending:    5000,
+  tournament_started:    6000,
+  tournament_finished:   6000,
+  compartida_comment:    4000,
+  compartida_like:       4000,
+  table_cancelled:       6000,
+  join_rejected:         5500,
+  noticia:               6000,
 };
 
 function ToastItem({ toast, onDismiss }) {
@@ -47,6 +54,10 @@ function ToastItem({ toast, onDismiss }) {
       }
     } else if (toast.type?.startsWith('tournament_')) {
       navigate(`/torneos/${toast.torneoId}`);
+    } else if (toast.type === 'compartida_comment' || toast.type === 'compartida_like') {
+      navigate(`/compartidas/${toast.compartidaId}`);
+    } else if (toast.type === 'noticia') {
+      navigate(`/noticias/${toast.noticiaId}`);
     } else {
       navigate(`/mesas/${toast.tableId}`);
     }
@@ -72,7 +83,14 @@ function ToastItem({ toast, onDismiss }) {
     toast.type === 'tournament_rejected'   ? '🚫' :
     toast.type === 'tournament_advanced'   ? '🎉' :
     toast.type === 'tournament_eliminated' ? '🥲' :
-    toast.type === 'tournament_pending'    ? '⏳' : '🎲';
+    toast.type === 'tournament_pending'    ? '⏳' :
+    toast.type === 'tournament_started'    ? '🚀' :
+    toast.type === 'tournament_finished'   ? '🏁' :
+    toast.type === 'compartida_comment'    ? '🗨️' :
+    toast.type === 'compartida_like'       ? '❤️' :
+    toast.type === 'table_cancelled'       ? '❌' :
+    toast.type === 'join_rejected'         ? '🚷' :
+    toast.type === 'noticia'               ? '📰' : '🎲';
 
   const title =
     toast.type === 'join_accepted'         ? '¡Fuiste aceptado!' :
@@ -86,6 +104,13 @@ function ToastItem({ toast, onDismiss }) {
     toast.type === 'tournament_advanced'   ? '¡Pasaste de ronda!' :
     toast.type === 'tournament_eliminated' ? 'Quedaste fuera del torneo' :
     toast.type === 'tournament_pending'    ? 'Inscripción enviada' :
+    toast.type === 'tournament_started'    ? '¡Empezó el torneo!' :
+    toast.type === 'tournament_finished'   ? 'Torneo finalizado' :
+    toast.type === 'compartida_comment'    ? `${toast.commenterUsername}` :
+    toast.type === 'compartida_like'       ? `${toast.fromUsername}` :
+    toast.type === 'table_cancelled'       ? 'Mesa cancelada' :
+    toast.type === 'join_rejected'         ? 'Solicitud rechazada' :
+    toast.type === 'noticia'               ? 'Nueva noticia' :
     toast.tableName;
 
   const body =
@@ -117,7 +142,21 @@ function ToastItem({ toast, onDismiss }) {
                             ? `${toast.torneoTitle} · Suerte la próxima 🎲`
                             : toast.type === 'tournament_pending'
                               ? `${toast.torneoTitle} · Esperá la aprobación del admin`
-                              : `Ya sos parte de la mesa de ${toast.tableName}`;
+                              : toast.type === 'tournament_started'
+                                ? `${toast.torneoTitle} ya está en juego`
+                                : toast.type === 'tournament_finished'
+                                  ? `Terminó ${toast.torneoTitle}`
+                                  : toast.type === 'compartida_comment'
+                                    ? `${toast.commentPreview ?? ''}${toast.commentPreview?.length >= 60 ? '…' : ''}`
+                                    : toast.type === 'compartida_like'
+                                      ? 'Le dio like a tu compartida'
+                                      : toast.type === 'table_cancelled'
+                                        ? `Se canceló ${toast.tableName}`
+                                        : toast.type === 'join_rejected'
+                                          ? `Tu solicitud para ${toast.tableName} fue rechazada`
+                                          : toast.type === 'noticia'
+                                            ? toast.title
+                                            : `Ya sos parte de la mesa de ${toast.tableName}`;
 
   return (
     <div className={styles.toast} onClick={handleClick} role="alert">

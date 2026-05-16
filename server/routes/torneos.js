@@ -668,6 +668,26 @@ router.patch('/:id/status', protect, requireAdmin, async (req, res) => {
     }
     await torneo.save();
 
+    if (next === 'in_progress' || next === 'finished') {
+      const io = req.app.get('io');
+      const notifType = next === 'in_progress' ? 'tournament_started' : 'tournament_finished';
+      const socketEvent = next === 'in_progress' ? 'torneo:started' : 'torneo:finished';
+      const participantIds = torneo.participants.map((p) => (p._id || p).toString());
+      participantIds.forEach((userId) => {
+        saveNotification(userId, notifType, {
+          torneoId: torneo._id.toString(),
+          torneoTitle: torneo.title,
+        }).catch(() => {});
+        if (io) {
+          io.to(`user:${userId}`).emit(socketEvent, {
+            torneoId: torneo._id.toString(),
+            torneoTitle: torneo.title,
+            timestamp: new Date(),
+          });
+        }
+      });
+    }
+
     const populated = await Torneo.findById(torneo._id)
       .populate('createdBy', USER_FIELDS)
       .populate('participants', USER_FIELDS)

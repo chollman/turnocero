@@ -399,6 +399,20 @@ router.post('/:id/requests/:userId/reject', protect, [
 
     table.pendingRequests.splice(idx, 1);
     await table.save();
+
+    saveNotification(req.params.userId, 'join_rejected', {
+      tableId: table._id.toString(),
+      tableName: table.boardGame,
+    }).catch(() => {});
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user:${req.params.userId}`).emit('join:rejected', {
+        tableId: table._id.toString(),
+        tableName: table.boardGame,
+        timestamp: new Date(),
+      });
+    }
+
     const populated = await populateTable(Table.findById(table._id));
     res.json(populated);
   } catch (err) {
@@ -529,6 +543,27 @@ router.delete('/:id', protect, [
 
     table.status = 'cancelled';
     await table.save();
+
+    const io = req.app.get('io');
+    const hostId = req.user._id.toString();
+    const recipients = new Set([
+      ...table.players.map((p) => p.toString()),
+      ...table.followers.map((f) => f.toString()),
+    ]);
+    recipients.delete(hostId);
+    recipients.forEach((userId) => {
+      saveNotification(userId, 'table_cancelled', {
+        tableId: table._id.toString(),
+        tableName: table.boardGame,
+      }).catch(() => {});
+      if (io) {
+        io.to(`user:${userId}`).emit('table:cancelled', {
+          tableId: table._id.toString(),
+          tableName: table.boardGame,
+          timestamp: new Date(),
+        });
+      }
+    });
 
     res.json({ message: 'Table cancelled successfully' });
   } catch (err) {

@@ -7,6 +7,7 @@ const CompartidaComment = require('../models/CompartidaComment');
 const User = require('../models/User');
 const Table = require('../models/Table');
 const { protect, optionalAuth } = require('../middleware/auth');
+const saveNotification = require('../utils/saveNotification');
 
 const parsePagination = (query) => {
   const page = Math.max(1, parseInt(query.page) || 1);
@@ -246,13 +247,33 @@ router.post('/:id/like', protect, async (req, res) => {
     if (!isVisible) return res.status(403).json({ message: 'No tenés acceso a esta compartida' });
 
     const idx = compartida.likes.findIndex((l) => l.toString() === uid.toString());
-    if (idx === -1) {
+    const adding = idx === -1;
+    if (adding) {
       compartida.likes.push(uid);
     } else {
       compartida.likes.splice(idx, 1);
     }
     await compartida.save();
-    res.json({ likes: compartida.likes.length, liked: idx === -1 });
+
+    if (adding && compartida.author.toString() !== uid.toString()) {
+      saveNotification(compartida.author, 'compartida_like', {
+        compartidaId: compartida._id.toString(),
+        compartidaTitle: compartida.title || '',
+        lastSenderUsername: req.user.username,
+      }).catch(() => {});
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${compartida.author}`).emit('compartida:like', {
+          compartidaId: compartida._id.toString(),
+          compartidaTitle: compartida.title || '',
+          fromUsername: req.user.username,
+          timestamp: new Date(),
+        });
+      }
+    }
+
+    res.json({ likes: compartida.likes.length, liked: adding });
   } catch (err) {
     res.status(500).json({ message: 'Error al procesar el like' });
   }
@@ -337,6 +358,28 @@ router.post('/:id/comments', protect, async (req, res) => {
       content: content.trim(),
     });
     await comment.populate('author', 'username avatar displayName');
+
+    if (compartida.author.toString() !== req.user._id.toString()) {
+      const preview = content.trim().slice(0, 60);
+      saveNotification(compartida.author, 'compartida_comment', {
+        compartidaId: compartida._id.toString(),
+        compartidaTitle: compartida.title || '',
+        lastCommenterUsername: req.user.username,
+        lastCommentPreview: preview,
+      }).catch(() => {});
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${compartida.author}`).emit('compartida:comment', {
+          compartidaId: compartida._id.toString(),
+          compartidaTitle: compartida.title || '',
+          commenterUsername: req.user.username,
+          commentPreview: preview,
+          timestamp: new Date(),
+        });
+      }
+    }
+
     res.status(201).json(comment);
   } catch (err) {
     res.status(500).json({ message: 'Error al agregar el comentario' });
