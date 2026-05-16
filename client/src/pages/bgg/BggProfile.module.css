@@ -592,6 +592,306 @@
   color: var(--red);
 }
 
+/* ─── Modal (PlayDetailModal) ─── */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1500;
+  padding: var(--page-padding-mobile);
+}
+
+.modalCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  max-width: 480px;
+  width: 100%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalCardWide {
+  max-width: 680px;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: all var(--transition);
+  align-self: flex-start;
+}
+
+.modalClose:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btnGhost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btnGhost:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+/* Modal hero (thumb + name + date) */
+.modalHero {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.modalHeroThumb {
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalHeroThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.modalHeroInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.modalGameName {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin: 0;
+  word-wrap: break-word;
+}
+
+.modalDateFull {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.modalGameLink {
+  font-size: 12px;
+  color: var(--amber);
+  text-decoration: none;
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+.modalGameLink:hover {
+  text-decoration: underline;
+}
+
+/* Modal sections */
+.modalSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modalSectionTitle {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* Player table */
+.playerTableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.playerTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.playerTable th {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 8px 10px;
+  text-align: left;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.playerTable td {
+  padding: 9px 10px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.playerTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.playerRowWinner td {
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  color: var(--text-primary);
+}
+
+.colNumeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.colCenter {
+  text-align: center;
+}
+
+.playerCellName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.playerCellUsername {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-top: 2px;
+}
+
+.playerCellUsername:hover {
+  color: var(--amber);
+}
+
+.newBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--amber);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.colorChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.colorDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.dimText {
+  color: var(--text-muted);
+}
+
+/* Details grid (dt/dd pairs) */
+.detailsGrid {
+  display: grid;
+  grid-template-columns: minmax(110px, auto) 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.detailsGrid dt {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  align-self: center;
+}
+
+.detailsGrid dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.detailWarn {
+  color: var(--red);
+}
+
+/* Comment body */
+.commentBody {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.55;
+  margin: 0;
+  white-space: pre-wrap;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
 /* ─── Mobile ─── */
 @media (max-width: 600px) {
   .gameGrid {
@@ -622,5 +922,40 @@
     flex-direction: row;
     align-items: center;
     gap: 6px;
+  }
+
+  .modalCard {
+    padding: 16px;
+  }
+
+  .modalHero {
+    gap: 12px;
+  }
+
+  .modalHeroThumb {
+    width: 72px;
+    height: 72px;
+  }
+
+  .modalGameName {
+    font-size: 18px;
+  }
+
+  .playerTable {
+    font-size: 12px;
+  }
+
+  .playerTable th,
+  .playerTable td {
+    padding: 7px 8px;
+  }
+
+  .detailsGrid {
+    grid-template-columns: 1fr;
+    gap: 2px 0;
+  }
+
+  .detailsGrid dt {
+    margin-top: 6px;
   }
 }

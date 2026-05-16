@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import PlayCard from './PlayCard';
+import PlayDetailModal from './PlayDetailModal';
 import styles from './BggProfile.module.css';
 
 const COLLECTION_PAGE_SIZE = 24;
@@ -162,6 +163,7 @@ export default function BggProfile() {
   const [loadingPlays, setLoadingPlays] = useState(false);
   const [errorPlays, setErrorPlays] = useState(null);
   const [playsPage, setPlaysPage] = useState(1);
+  const [openPlay, setOpenPlay] = useState(null);
 
   useEffect(() => {
     setLoadingCollection(true);
@@ -312,7 +314,11 @@ export default function BggProfile() {
                   </span>
                 </div>
                 {plays.plays.map((play) => (
-                  <PlayCard key={play.id} play={play} />
+                  <PlayCard
+                    key={play.id}
+                    play={play}
+                    onClick={() => setOpenPlay(play)}
+                  />
                 ))}
                 <Pagination
                   page={playsPage}
@@ -324,6 +330,10 @@ export default function BggProfile() {
           </div>
         )}
       </div>
+
+      {openPlay && (
+        <PlayDetailModal play={openPlay} onClose={() => setOpenPlay(null)} />
+      )}
     </div>
   );
 }
