@@ -17,10 +17,11 @@ export default function DirectChat() {
   const [contact, setContact] = useState(null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [loadedCount, setLoadedCount] = useState(null);
   const messageListRef = useRef(null);
-  const loadedCountRef = useRef(null);
 
   const conv = conversations[userId];
+  const messages = conv?.messages || [];
 
   // Load contact info and open chat in context
   useEffect(() => {
@@ -31,6 +32,18 @@ export default function DirectChat() {
       })
       .catch(() => navigate('/mensajes', { replace: true }));
   }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset the snapshot when switching conversations
+  useEffect(() => {
+    setLoadedCount(null);
+  }, [userId]);
+
+  // Snapshot the count when the conversation first loads so we only animate new arrivals
+  useEffect(() => {
+    if (conv?.loaded && loadedCount === null) {
+      setLoadedCount(messages.length);
+    }
+  }, [conv?.loaded, loadedCount, messages.length]);
 
   // Auto-scroll
   useEffect(() => {
@@ -53,13 +66,6 @@ export default function DirectChat() {
       setSending(false);
     }
   };
-
-  const messages = conv?.messages || [];
-
-  // Snapshot the count when the conversation first loads so we only animate new arrivals
-  if (conv?.loaded && loadedCountRef.current === null) {
-    loadedCountRef.current = messages.length;
-  }
 
   return (
     <div className={styles.page}>
@@ -90,7 +96,7 @@ export default function DirectChat() {
         )}
         {messages.map((msg, i) => {
           const isOwn = msg.from && (msg.from._id || msg.from).toString() === user._id.toString();
-          const isNew = loadedCountRef.current !== null && i >= loadedCountRef.current;
+          const isNew = loadedCount !== null && i >= loadedCount;
           return (
             <div key={msg._id} className={`${styles.message} ${isOwn ? styles.own : styles.other} ${isNew ? styles.messageNew : ''}`}>
               {!isOwn && (

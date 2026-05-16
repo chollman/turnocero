@@ -135,8 +135,8 @@ export default function BottomNav() {
   const scrollable = items.filter(i => !i.isDivider).length > VISIBLE
 
   const [startIndex, setStartIndex] = useState(0)
+  const [slideDir, setSlideDir] = useState(null)
   const touchStartX = useRef(null)
-  const slideDir = useRef(null)
 
   const visibleItems = scrollable ? items.slice(startIndex, startIndex + VISIBLE) : items
   const canGoLeft = scrollable && startIndex > 0
@@ -144,13 +144,13 @@ export default function BottomNav() {
 
   function goLeft() {
     if (!canGoLeft) return
-    slideDir.current = 'right'
+    setSlideDir('right')
     setStartIndex(i => i - 1)
   }
 
   function goRight() {
     if (!canGoRight) return
-    slideDir.current = 'left'
+    setSlideDir('left')
     setStartIndex(i => i + 1)
   }
 
@@ -171,21 +171,17 @@ export default function BottomNav() {
     if (!scrollable) return
     const activeIdx = items.findIndex(item => !item.isDivider && item.id === active)
     if (activeIdx < 0) return
-    setStartIndex(prev => {
-      if (activeIdx < prev) {
-        slideDir.current = 'right'
-        return activeIdx
-      }
-      if (activeIdx >= prev + VISIBLE) {
-        slideDir.current = 'left'
-        return activeIdx - VISIBLE + 1
-      }
-      return prev
-    })
+    if (activeIdx < startIndex) {
+      setSlideDir('right')
+      setStartIndex(activeIdx)
+    } else if (activeIdx >= startIndex + VISIBLE) {
+      setSlideDir('left')
+      setStartIndex(activeIdx - VISIBLE + 1)
+    }
   }, [active]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const animClass = slideDir.current === 'left' ? styles.slideLeft
-                  : slideDir.current === 'right' ? styles.slideRight
+  const animClass = slideDir === 'left' ? styles.slideLeft
+                  : slideDir === 'right' ? styles.slideRight
                   : ''
 
   const renderItem = (item) => {
