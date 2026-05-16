@@ -50,3 +50,12 @@ The app has grown significantly beyond what CLAUDE.md documents. Current feature
 
 ### Separate notifications server route
 - `server/routes/notifications.js` exists alongside the client-side `NotificationContext`
+
+### Admin user moderation (added 2026-05-16)
+- In `/usuarios` (Comunidad), admins see Ban/Unban + Delete buttons on each non-admin, non-self user card
+- Banned users have a red "Baneado" badge; tooltip shows `bannedReason` if set
+- Ban: `PATCH /api/admin/users/:id/ban` body `{ banned: bool, reason? }`, blocks login with 403 `{ code: 'banned', message }` and expels active sessions via the same check in `protect` middleware
+- Delete: `DELETE /api/admin/users/:id` — hard delete + `$pull` cleanup of array refs (`players`, `pendingRequests`, `followers`, `reactions`, `friends`, `friendRequests`). Frees username/email for re-registration. Scalar refs (`host`, `author`, `sender`, `rater`, `uploader`, comment `author`, etc.) are left orphaned and surface as "Usuario eliminado" — see [[feedback_deleted_user]].
+- Both endpoints reject self-target and admin-target with 400
+- Frontend uses reusable `ConfirmActionModal` (`client/src/components/shared/`) for confirmation, with optional textarea for ban reason
+- Banned-session expulsion uses 403 + `code: 'banned'` in the global axios interceptor in `AuthContext.jsx`; ban message is stashed in `sessionStorage.bannedMessage` and surfaced on the Login page
