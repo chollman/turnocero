@@ -223,6 +223,29 @@ export default function Sidebar() {
     navigate("/login");
   };
 
+  const renderNavItem = (item) => {
+    const isActive = item.id === active;
+    let badge = null;
+    if (item.id === "adminChat" && adminChatUnread > 0) {
+      badge = adminChatUnread > 9 ? "9+" : adminChatUnread;
+    }
+    return (
+      <Link
+        key={item.id}
+        to={item.to}
+        className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
+      >
+        <span className={styles.navIcon}>{ICONS[item.id]}</span>
+        <span className={styles.navLabel}>{item.label}</span>
+        {badge && (
+          <span key={badge} className={styles.navBadge}>
+            {badge}
+          </span>
+        )}
+      </Link>
+    );
+  };
+
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logoRow}>
@@ -261,53 +284,12 @@ export default function Sidebar() {
       </div>
 
       <nav className={styles.nav}>
-        {NAV.filter((item) => !item.adminOnly).map((item) => {
-          const isActive = item.id === active;
-          const badge = null;
-          return (
-            <Link
-              key={item.id}
-              to={item.to}
-              className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
-            >
-              <span className={styles.navIcon}>{ICONS[item.id]}</span>
-              <span className={styles.navLabel}>{item.label}</span>
-              {badge && (
-                <span key={badge} className={styles.navBadge}>
-                  {badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+        {NAV.filter((item) => !item.adminOnly).map(renderNavItem)}
 
         {user?.isAdmin && (
           <>
             <div className={styles.navDivider} />
-            {NAV.filter((item) => item.adminOnly).map((item) => {
-              const isActive = item.id === active;
-              const badge =
-                item.id === "adminChat" && adminChatUnread > 0
-                  ? adminChatUnread > 9
-                    ? "9+"
-                    : adminChatUnread
-                  : null;
-              return (
-                <Link
-                  key={item.id}
-                  to={item.to}
-                  className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
-                >
-                  <span className={styles.navIcon}>{ICONS[item.id]}</span>
-                  <span className={styles.navLabel}>{item.label}</span>
-                  {badge && (
-                    <span key={badge} className={styles.navBadge}>
-                      {badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
+            {NAV.filter((item) => item.adminOnly).map(renderNavItem)}
           </>
         )}
       </nav>
