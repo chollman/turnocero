@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import ConfirmActionModal from '../../components/shared/ConfirmActionModal';
 import PlayCard from './PlayCard';
 import PlayDetailModal from './PlayDetailModal';
 import CreatePlayModal from './CreatePlayModal';
@@ -41,6 +42,22 @@ export default function PerGameView() {
   const [openPlay, setOpenPlay] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingPlay, setEditingPlay] = useState(null);
+  const [deletingPlay, setDeletingPlay] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!deletingPlay) return;
+    setDeleting(true);
+    try {
+      await axios.delete(`/api/bgg/partidas/${encodeURIComponent(deletingPlay.id)}`);
+      setDeletingPlay(null);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      alert(err.response?.data?.message || 'No se pudo eliminar la partida.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const isOwnProfile = !!user?.bggUsername &&
     user.bggUsername.toLowerCase() === (bggUsername || '').toLowerCase();
@@ -231,6 +248,7 @@ export default function PerGameView() {
                 play={play}
                 onClick={() => setOpenPlay(play)}
                 onEdit={canCreate ? () => setEditingPlay(play) : undefined}
+                onDelete={canCreate ? () => setDeletingPlay(play) : undefined}
               />
             ))}
             <Pagination page={page} totalPages={totalPages} onPage={handlePage} />
@@ -264,6 +282,20 @@ export default function PerGameView() {
           onCreated={() => setRefreshKey((k) => k + 1)}
         />
       )}
+
+      <ConfirmActionModal
+        isOpen={!!deletingPlay}
+        title="Eliminar partida"
+        message={deletingPlay
+          ? `¿Eliminar la partida del ${deletingPlay.date || '?'}? Esta acción no se puede deshacer y borra la partida en BGG.`
+          : ''}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => !deleting && setDeletingPlay(null)}
+      />
     </div>
   );
 }

@@ -480,6 +480,37 @@ router.post('/partidas', protect, async (req, res) => {
   }
 });
 
+// DELETE /api/bgg/partidas/:playId — delete a play from BGG
+router.delete('/partidas/:playId', protect, async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user.bggUsername) {
+      return res.status(400).json({ message: 'Configurá tu username de BGG en el perfil' });
+    }
+    const { playId } = req.params;
+    if (!/^\d+$/.test(String(playId))) {
+      return res.status(400).json({ message: 'ID de partida inválido' });
+    }
+
+    const form = new URLSearchParams();
+    form.set('ajax', '1');
+    form.set('action', 'delete');
+    form.set('playid', String(playId));
+
+    let payload;
+    try {
+      payload = await submitToGeekplay(user, form, 'DELETE');
+    } catch (e) {
+      return res.status(e.status || 500).json({ message: e.message });
+    }
+    clearPartidasCache(user.bggUsername);
+    res.json({ success: true, raw: payload });
+  } catch (err) {
+    console.error('Delete play failed:', err);
+    res.status(500).json({ message: err.message || 'Error al eliminar la partida' });
+  }
+});
+
 // PUT /api/bgg/partidas/:playId — edit an existing play in BGG
 router.put('/partidas/:playId', protect, async (req, res) => {
   try {

@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import ConfirmActionModal from '../../components/shared/ConfirmActionModal';
 import PartidasPanel from './PartidasPanel';
 import ColeccionPanel from './ColeccionPanel';
 import PlayDetailModal from './PlayDetailModal';
@@ -73,6 +75,8 @@ export default function BggProfile() {
   const [openPlay, setOpenPlay] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingPlay, setEditingPlay] = useState(null);
+  const [deletingPlay, setDeletingPlay] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const isOwnProfile = !!user?.bggUsername &&
@@ -84,7 +88,22 @@ export default function BggProfile() {
   const handlePlaysMeta = useCallback((meta) => setPlaysMeta(meta), []);
   const handlePlayClick = useCallback((play) => setOpenPlay(play), []);
   const handlePlayEdit = useCallback((play) => setEditingPlay(play), []);
+  const handlePlayDelete = useCallback((play) => setDeletingPlay(play), []);
   const handleCreated = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  const confirmDelete = async () => {
+    if (!deletingPlay) return;
+    setDeleting(true);
+    try {
+      await axios.delete(`/api/bgg/partidas/${encodeURIComponent(deletingPlay.id)}`);
+      setDeletingPlay(null);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      alert(err.response?.data?.message || 'No se pudo eliminar la partida.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -142,6 +161,7 @@ export default function BggProfile() {
             collection={collection}
             onPlayClick={handlePlayClick}
             onPlayEdit={canCreate ? handlePlayEdit : undefined}
+            onPlayDelete={canCreate ? handlePlayDelete : undefined}
             onMetaChange={handlePlaysMeta}
           />
         </div>
@@ -173,6 +193,20 @@ export default function BggProfile() {
           onCreated={handleCreated}
         />
       )}
+
+      <ConfirmActionModal
+        isOpen={!!deletingPlay}
+        title="Eliminar partida"
+        message={deletingPlay
+          ? `¿Eliminar la partida de "${deletingPlay.gameName}" del ${deletingPlay.date || '?'}? Esta acción no se puede deshacer y borra la partida en BGG.`
+          : ''}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => !deleting && setDeletingPlay(null)}
+      />
     </div>
   );
 }
