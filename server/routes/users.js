@@ -24,8 +24,13 @@ router.get('/', optionalAuth, async (req, res) => {
       ];
     }
 
+    const isAdmin = !!req.user?.isAdmin;
+    const selectFields = isAdmin
+      ? 'username displayName nombre apellido telegram celular direccion createdAt isAdmin isBanned bannedAt bannedReason'
+      : 'username displayName nombre apellido telegram celular direccion createdAt';
+
     let users = await User.find(query)
-      .select('username displayName nombre apellido telegram celular direccion createdAt')
+      .select(selectFields)
       .lean();
 
     const userIds = users.map((u) => u._id);

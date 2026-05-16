@@ -17,8 +17,8 @@ function formatCardDate(dateStr) {
 }
 
 export default function FeedCard({ table, userId, isPast }) {
-  const hostId = (table.host._id || table.host).toString();
-  const isHost = hostId === userId.toString();
+  const hostId = table.host ? (table.host._id || table.host).toString() : null;
+  const isHost = hostId && hostId === userId.toString();
   const seed = seedFromId(table._id);
   const dateStr = formatCardDate(table.date);
   const meta = [

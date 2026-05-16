@@ -6,6 +6,8 @@ import { useAuth } from '../../context/AuthContext'
 import { useNotifications } from '../../context/NotificationContext'
 import GameTile from '../../components/shared/GameTile'
 import LoginPromptModal from '../../components/shared/LoginPromptModal'
+import { GhostIcon } from '../../components/shared/UserRef'
+import { getUserDisplay, DELETED_USER_LABEL } from '../../utils/userDisplay'
 import TableDetailSkeleton from './TableDetailSkeleton'
 import styles from './TableDetail.module.css'
 
@@ -124,8 +126,8 @@ export default function TableDetail() {
     if (!t || !user) return false
     const uid = user._id.toString()
     return (
-      t.host._id?.toString() === uid ||
-      t.players.some((p) => (p._id || p).toString() === uid)
+      t.host?._id?.toString() === uid ||
+      t.players.some((p) => p && (p._id || p).toString() === uid)
     )
   }
 
@@ -450,7 +452,8 @@ export default function TableDetail() {
   if (!table) return null
 
   const isAnon = !user
-  const isHost = !isAnon && table.host._id?.toString() === user._id.toString()
+  const isHost = !isAnon && table.host?._id?.toString() === user._id.toString()
+  const hostInfo = getUserDisplay(table.host)
   const isViewingAsAdmin = !isAnon && user.isAdmin && !isParticipant(table)
   const isGuest = !isParticipant(table) && !user?.isAdmin
   const isPlayer = isParticipant(table) && !isHost
@@ -655,19 +658,30 @@ export default function TableDetail() {
               <span className={styles.eyebrow}>EN LA MESA</span>
               <div className={styles.playerChips}>
                 <div className={styles.playerChip}>
-                  <span className={styles.playerChipAvatar}>{table.host.username[0].toUpperCase()}</span>
-                  <span className={styles.playerChipName}>{table.host.username}</span>
+                  <span className={styles.playerChipAvatar}>
+                    {hostInfo.isDeleted ? <GhostIcon size={14} /> : table.host.username[0].toUpperCase()}
+                  </span>
+                  <span className={styles.playerChipName}>
+                    {hostInfo.isDeleted ? DELETED_USER_LABEL : table.host.username}
+                  </span>
                   <span className={styles.hostTag}>Host</span>
                 </div>
-                {table.players.map((p) => (
-                  <div key={p._id || p} className={styles.playerChip}>
-                    <span className={styles.playerChipAvatar}>{(p.username || '?')[0].toUpperCase()}</span>
-                    <span className={styles.playerChipName}>{p.username}</span>
-                    {user && (p._id || p).toString() === user._id.toString() && (
-                      <span className={styles.youTag}>vos</span>
-                    )}
-                  </div>
-                ))}
+                {table.players.filter(Boolean).map((p) => {
+                  const playerInfo = getUserDisplay(p)
+                  return (
+                    <div key={p._id || p} className={styles.playerChip}>
+                      <span className={styles.playerChipAvatar}>
+                        {playerInfo.isDeleted ? <GhostIcon size={14} /> : (p.username || '?')[0].toUpperCase()}
+                      </span>
+                      <span className={styles.playerChipName}>
+                        {playerInfo.isDeleted ? DELETED_USER_LABEL : p.username}
+                      </span>
+                      {user && (p._id || p).toString() === user._id.toString() && (
+                        <span className={styles.youTag}>vos</span>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
@@ -804,14 +818,19 @@ export default function TableDetail() {
               ) : (
                 <div className={styles.commentsList}>
                   {comments.map((comment) => {
-                    const isOwn = user && (comment.author._id || comment.author).toString() === user._id.toString()
+                    const authorInfo = getUserDisplay(comment.author)
+                    const isOwn = user && comment.author && (comment.author._id || comment.author).toString() === user._id.toString()
                     const canDelete = isOwn || isHost || user?.isAdmin
                     return (
                       <div key={comment._id} className={styles.commentItem}>
-                        <span className={styles.commentAvatar}>{comment.author.username[0].toUpperCase()}</span>
+                        <span className={styles.commentAvatar}>
+                          {authorInfo.isDeleted ? <GhostIcon size={14} /> : comment.author.username[0].toUpperCase()}
+                        </span>
                         <div className={styles.commentBody}>
                           <div className={styles.commentMeta}>
-                            <span className={styles.commentAuthor}>{comment.author.username}</span>
+                            <span className={styles.commentAuthor}>
+                              {authorInfo.isDeleted ? DELETED_USER_LABEL : comment.author.username}
+                            </span>
                             <span className={styles.commentTime}>{formatDate(comment.createdAt)}</span>
                             {comment.editedAt && <span className={styles.editedBadge}>editado</span>}
                           </div>
@@ -929,18 +948,25 @@ export default function TableDetail() {
                     <p className={styles.ratingsEmpty}>Todavía no hay valoraciones.</p>
                   ) : (
                     <div className={styles.ratingsList}>
-                      {ratings.map((r) => (
+                      {ratings.map((r) => {
+                        const raterInfo = getUserDisplay(r.rater)
+                        return (
                         <div key={r._id} className={styles.ratingItem}>
-                          <span className={styles.ratingAvatar}>{r.rater.username[0].toUpperCase()}</span>
+                          <span className={styles.ratingAvatar}>
+                            {raterInfo.isDeleted ? <GhostIcon size={14} /> : r.rater.username[0].toUpperCase()}
+                          </span>
                           <div className={styles.ratingBody}>
                             <div className={styles.ratingMeta}>
-                              <span className={styles.ratingUsername}>{r.rater.username}</span>
+                              <span className={styles.ratingUsername}>
+                                {raterInfo.isDeleted ? DELETED_USER_LABEL : r.rater.username}
+                              </span>
                               <span className={styles.ratingStars}>{'★'.repeat(r.score)}{'☆'.repeat(5 - r.score)}</span>
                             </div>
                             {r.comment && <p className={styles.ratingComment}>{r.comment}</p>}
                           </div>
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -963,14 +989,21 @@ export default function TableDetail() {
                   <p className={styles.emptyChat}>Nadie habló todavía. ¡Rompé el hielo! 🎲</p>
                 )}
                 {messages.map((msg) => {
-                  const isOwn = (msg.sender._id || msg.sender).toString() === user._id.toString()
+                  const senderInfo = getUserDisplay(msg.sender)
+                  const isOwn = msg.sender && (msg.sender._id || msg.sender).toString() === user._id.toString()
                   return (
                     <div key={msg._id} className={`${styles.message} ${isOwn ? styles.ownMessage : styles.otherMessage}`}>
                       {!isOwn && (
-                        <span className={styles.msgAvatar}>{msg.sender.username[0].toUpperCase()}</span>
+                        <span className={styles.msgAvatar}>
+                          {senderInfo.isDeleted ? <GhostIcon size={14} /> : msg.sender.username[0].toUpperCase()}
+                        </span>
                       )}
                       <div className={styles.msgContent}>
-                        {!isOwn && <span className={styles.senderName}>{msg.sender.username}</span>}
+                        {!isOwn && (
+                          <span className={styles.senderName}>
+                            {senderInfo.isDeleted ? DELETED_USER_LABEL : msg.sender.username}
+                          </span>
+                        )}
                         <div className={styles.bubble}>{msg.content}</div>
                         <span className={styles.messageTime}>{formatTime(msg.createdAt)}</span>
                       </div>

@@ -27,7 +27,9 @@ export default function CompartidaPost() {
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const postUrl = `${origin}/compartidas/${id}`
-  const authorName = post ? (post.author.displayName || post.author.username) : 'Turnocero'
+  const authorName = post?.author
+    ? (post.author.displayName || post.author.username)
+    : 'Turnocero'
   const metaTitle = post?.title
     ? `${post.title} – Turnocero 🎲`
     : `Compartida de ${authorName} – Turnocero 🎲`

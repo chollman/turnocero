@@ -4,6 +4,8 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { io } from 'socket.io-client';
+import { GhostIcon } from '../../components/shared/UserRef';
+import { getUserDisplay, DELETED_USER_LABEL } from '../../utils/userDisplay';
 import styles from './AdminChat.module.css';
 
 function formatTime(date) {
@@ -88,12 +90,17 @@ export default function AdminChat() {
           <div className={styles.empty}>No hay mensajes todavía.</div>
         )}
         {messages.map((msg) => {
-          const isOwn = (msg.from._id || msg.from).toString() === user._id.toString();
+          const fromInfo = getUserDisplay(msg.from);
+          const isOwn = msg.from && (msg.from._id || msg.from).toString() === user._id.toString();
           return (
             <div key={msg._id} className={`${styles.message} ${isOwn ? styles.own : styles.other}`}>
               <div className={styles.senderInfo}>
-                <span className={styles.senderAvatar}>{msg.from.username[0].toUpperCase()}</span>
-                <span className={styles.senderName}>{msg.from.username}</span>
+                <span className={styles.senderAvatar}>
+                  {fromInfo.isDeleted ? <GhostIcon size={12} /> : msg.from.username[0].toUpperCase()}
+                </span>
+                <span className={styles.senderName}>
+                  {fromInfo.isDeleted ? DELETED_USER_LABEL : msg.from.username}
+                </span>
               </div>
               <div className={styles.msgContent}>
                 <div className={styles.bubble}>{msg.content}</div>

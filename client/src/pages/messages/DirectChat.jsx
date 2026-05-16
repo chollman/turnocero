@@ -89,13 +89,13 @@ export default function DirectChat() {
           <div className={styles.loading}>Cargando mensajes...</div>
         )}
         {messages.map((msg, i) => {
-          const isOwn = (msg.from._id || msg.from).toString() === user._id.toString();
+          const isOwn = msg.from && (msg.from._id || msg.from).toString() === user._id.toString();
           const isNew = loadedCountRef.current !== null && i >= loadedCountRef.current;
           return (
             <div key={msg._id} className={`${styles.message} ${isOwn ? styles.own : styles.other} ${isNew ? styles.messageNew : ''}`}>
               {!isOwn && (
                 <span className={styles.senderAvatar}>
-                  {(msg.from.username || '?')[0].toUpperCase()}
+                  {(msg.from?.username || '?')[0].toUpperCase()}
                 </span>
               )}
               <div className={styles.msgContent}>

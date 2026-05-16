@@ -723,3 +723,18 @@
     gap: 10px;
   }
 }
+
+/* Deleted user host states */
+.hostAvatarDeleted {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+
+.deletedInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-muted);
+  font-style: italic;
+}

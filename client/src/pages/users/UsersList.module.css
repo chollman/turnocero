@@ -188,6 +188,7 @@
 
 /* Card */
 .card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -208,6 +209,102 @@
   border-color: var(--amber);
   box-shadow: var(--shadow-amber);
   transform: translateY(-1px);
+}
+
+.cardBanned {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.cardBanned:hover {
+  border-color: var(--red);
+}
+
+.bannedBadge {
+  position: absolute;
+  top: -8px;
+  left: 14px;
+  background: var(--red);
+  color: #fff;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 9px;
+  cursor: help;
+}
+
+.adminBadge {
+  position: absolute;
+  top: -8px;
+  right: 14px;
+  background: var(--amber-glow);
+  color: var(--amber);
+  border: 1px solid var(--border-amber);
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 9px;
+}
+
+.adminActions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--border);
+}
+
+.banButton,
+.unbanButton,
+.deleteButton {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.banButton {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.banButton:hover {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: #f59e0b;
+}
+
+.unbanButton {
+  color: var(--green, #22c55e);
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.unbanButton:hover {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: var(--green, #22c55e);
+}
+
+.deleteButton {
+  color: var(--red);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.deleteButton:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: var(--red);
 }
 
 .cardAvatar {
@@ -338,6 +435,10 @@
     padding: var(--navbar-h) var(--page-padding-mobile) var(--page-padding-mobile);
   }
 
+  .card {
+    flex-wrap: wrap;
+  }
+
   .cardStats {
     display: none;
   }
@@ -348,6 +449,16 @@
   }
 
   .filters {
+    justify-content: flex-end;
+  }
+
+  .adminActions {
+    width: 100%;
+    margin-left: 0;
+    padding-left: 0;
+    padding-top: 0.6rem;
+    border-left: none;
+    border-top: 1px solid var(--border);
     justify-content: flex-end;
   }
 }

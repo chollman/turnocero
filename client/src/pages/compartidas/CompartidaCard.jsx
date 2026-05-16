@@ -4,6 +4,8 @@ import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
 import GameTile from '../../components/shared/GameTile'
 import LoginPromptModal from '../../components/shared/LoginPromptModal'
+import { GhostIcon } from '../../components/shared/UserRef'
+import { getUserDisplay } from '../../utils/userDisplay'
 import styles from './CompartidaCard.module.css'
 
 function buildShareData(post) {
@@ -64,7 +66,8 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
   const menuRef = useRef(null)
   const commentInputRef = useRef(null)
 
-  const isAuthor = user && (
+  const authorInfo = getUserDisplay(post.author)
+  const isAuthor = user && post.author && (
     post.author._id?.toString() === user._id.toString() ||
     post.author.toString?.() === user._id.toString()
   )
@@ -168,7 +171,7 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
   const tableOpen = table?.status === 'open'
   const bodyLong = post.body.length > 220
   const displayBody = expanded || !bodyLong ? post.body : post.body.slice(0, 220) + '…'
-  const authorName = post.author.displayName || post.author.username
+  const authorName = authorInfo.name
   const privacyLabel = PRIVACY_LABELS[post.privacy]
 
   return (
@@ -181,7 +184,9 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
 
         {/* ── Header ── */}
         <div className={styles.header}>
-          <div className={styles.avatar}>{authorName[0].toUpperCase()}</div>
+          <div className={styles.avatar}>
+            {authorInfo.isDeleted ? <GhostIcon size={16} /> : authorName[0].toUpperCase()}
+          </div>
           <div className={styles.authorMeta}>
             <span className={styles.authorName}>{authorName}</span>
             <span className={styles.meta}>
@@ -380,14 +385,17 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
               <p className={styles.noComments}>Sin comentarios aún. ¡Sé el primero!</p>
             ) : null}
             {comments.map((c) => {
-              const isOwn = user && (c.author._id || c.author).toString() === user._id.toString()
+              const cAuthorInfo = getUserDisplay(c.author)
+              const isOwn = user && c.author && (c.author._id || c.author).toString() === user._id.toString()
               const canDel = isOwn || isAuthor || user?.isAdmin
               return (
                 <div key={c._id} className={styles.comment}>
-                  <div className={styles.commentAvatar}>{(c.author.displayName || c.author.username)[0].toUpperCase()}</div>
+                  <div className={styles.commentAvatar}>
+                    {cAuthorInfo.isDeleted ? <GhostIcon size={14} /> : cAuthorInfo.name[0].toUpperCase()}
+                  </div>
                   <div className={styles.commentBody}>
                     <div className={styles.commentMeta}>
-                      <span className={styles.commentAuthor}>{c.author.displayName || c.author.username}</span>
+                      <span className={styles.commentAuthor}>{cAuthorInfo.name}</span>
                       <span className={styles.commentTime}>{timeAgo(c.createdAt)}</span>
                       {c.editedAt && <span className={styles.editedBadge}>editado</span>}
                     </div>

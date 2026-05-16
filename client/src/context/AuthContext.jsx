@@ -40,12 +40,18 @@ export const AuthProvider = ({ children }) => {
     const id = axios.interceptors.response.use(
       (res) => res,
       (err) => {
-        if (err.response?.status === 401 && !err.config?.url?.includes('/api/auth/')) {
+        const status = err.response?.status;
+        const isBan = status === 403 && err.response?.data?.code === 'banned';
+        const isUnauth = status === 401 && !err.config?.url?.includes('/api/auth/');
+        if (isUnauth || isBan) {
           localStorage.removeItem('token');
           localStorage.removeItem(VIEW_AS_USER_KEY);
           setAuthHeader(null);
           setRealUser(null);
           setViewAsUserState(false);
+          if (isBan) {
+            sessionStorage.setItem('bannedMessage', err.response?.data?.message || 'Tu cuenta ha sido suspendida.');
+          }
           navigate('/login', { replace: true });
         }
         return Promise.reject(err);

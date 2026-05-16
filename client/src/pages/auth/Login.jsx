@@ -50,6 +50,11 @@ export default function Login() {
 
   useEffect(() => {
     axios.get('/api/tables/showcase').then(({ data }) => setShowcase(data)).catch(() => {});
+    const bannedMsg = sessionStorage.getItem('bannedMessage');
+    if (bannedMsg) {
+      setError(bannedMsg);
+      sessionStorage.removeItem('bannedMessage');
+    }
   }, []);
 
   const handleChange = (e) =>

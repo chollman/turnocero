@@ -74,6 +74,15 @@ router.post('/login', authLimiter, async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    if (user.isBanned) {
+      return res.status(403).json({
+        code: 'banned',
+        message: user.bannedReason
+          ? `Tu cuenta ha sido suspendida. Motivo: ${user.bannedReason}`
+          : 'Tu cuenta ha sido suspendida.',
+      });
+    }
+
     const token = generateToken(user._id);
 
     res.cookie('token', token, COOKIE_OPTIONS);

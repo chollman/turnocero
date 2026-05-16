@@ -22,6 +22,15 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ message: 'User not found' });
     }
 
+    if (req.user.isBanned) {
+      return res.status(403).json({
+        code: 'banned',
+        message: req.user.bannedReason
+          ? `Tu cuenta ha sido suspendida. Motivo: ${req.user.bannedReason}`
+          : 'Tu cuenta ha sido suspendida.',
+      });
+    }
+
     next();
   } catch (err) {
     return res.status(401).json({ message: 'Token invalid or expired' });

@@ -78,6 +78,20 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
+    bannedAt: {
+      type: Date,
+      default: null,
+    },
+    bannedReason: {
+      type: String,
+      default: '',
+      maxlength: [500, 'Ban reason cannot exceed 500 characters'],
+      trim: true,
+    },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     friendRequests: [{
       from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

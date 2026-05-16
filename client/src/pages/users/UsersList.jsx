@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
+import ConfirmActionModal from '../../components/shared/ConfirmActionModal'
 import styles from './UsersList.module.css'
 import UsersListSkeleton from './UsersListSkeleton'
 
@@ -12,7 +13,7 @@ const SORT_OPTIONS = [
   { value: 'date_asc', label: 'Más antiguos' },
 ]
 
-function UserCard({ user }) {
+function UserCard({ user, currentUser, isAdmin, onBan, onDelete }) {
   const navigate = useNavigate()
   const displayLabel =
     user.displayName ||
@@ -24,11 +25,34 @@ function UserCard({ user }) {
     year: 'numeric',
   })
 
+  const isSelf = currentUser?._id === user._id
+  const showAdminActions = isAdmin && !isSelf && !user.isAdmin
+
   return (
-    <button
-      className={styles.card}
+    <div
+      className={`${styles.card} ${user.isBanned ? styles.cardBanned : ''}`}
       onClick={() => navigate(`/usuarios/${user._id}`)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          navigate(`/usuarios/${user._id}`)
+        }
+      }}
     >
+      {user.isBanned && (
+        <span
+          className={styles.bannedBadge}
+          title={user.bannedReason ? `Motivo: ${user.bannedReason}` : 'Usuario baneado'}
+        >
+          Baneado
+        </span>
+      )}
+      {user.isAdmin && !isSelf && (
+        <span className={styles.adminBadge}>Admin</span>
+      )}
+
       <div className={styles.cardAvatar}>
         {user.username.charAt(0).toUpperCase()}
       </div>
@@ -77,12 +101,36 @@ function UserCard({ user }) {
           <span className={styles.statLabel}>Total</span>
         </div>
       </div>
-    </button>
+
+      {showAdminActions && (
+        <div className={styles.adminActions} onClick={(e) => e.stopPropagation()}>
+          <button
+            className={user.isBanned ? styles.unbanButton : styles.banButton}
+            onClick={(e) => {
+              e.stopPropagation()
+              onBan(user)
+            }}
+          >
+            {user.isBanned ? 'Desbanear' : 'Banear'}
+          </button>
+          <button
+            className={styles.deleteButton}
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete(user)
+            }}
+          >
+            Eliminar
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
 export default function UsersList() {
   const { user: currentUser } = useAuth()
+  const isAdmin = !!currentUser?.isAdmin
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -90,6 +138,11 @@ export default function UsersList() {
   const [activeOnly, setActiveOnly] = useState(false)
   const [friendsOnly, setFriendsOnly] = useState(false)
   const [searchInput, setSearchInput] = useState('')
+
+  const [banTarget, setBanTarget] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [actionError, setActionError] = useState('')
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -115,6 +168,52 @@ export default function UsersList() {
     const timeout = setTimeout(() => setSearch(searchInput), 350)
     return () => clearTimeout(timeout)
   }, [searchInput])
+
+  const handleBanConfirm = async (reason) => {
+    if (!banTarget) return
+    setActionLoading(true)
+    setActionError('')
+    try {
+      const { data } = await axios.patch(`/api/admin/users/${banTarget._id}/ban`, {
+        banned: !banTarget.isBanned,
+        reason: banTarget.isBanned ? '' : reason || '',
+      })
+      setUsers((prev) =>
+        prev.map((u) =>
+          u._id === banTarget._id
+            ? { ...u, isBanned: data.isBanned, bannedAt: data.bannedAt, bannedReason: data.bannedReason }
+            : u
+        )
+      )
+      setBanTarget(null)
+    } catch (err) {
+      setActionError(err.response?.data?.message || 'Error al actualizar')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    setActionLoading(true)
+    setActionError('')
+    try {
+      await axios.delete(`/api/admin/users/${deleteTarget._id}`)
+      setUsers((prev) => prev.filter((u) => u._id !== deleteTarget._id))
+      setDeleteTarget(null)
+    } catch (err) {
+      setActionError(err.response?.data?.message || 'Error al eliminar')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const closeModals = () => {
+    if (actionLoading) return
+    setBanTarget(null)
+    setDeleteTarget(null)
+    setActionError('')
+  }
 
   return (
     <div className={styles.page}>
@@ -210,10 +309,45 @@ export default function UsersList() {
       ) : (
         <div className={styles.grid}>
           {users.map((u) => (
-            <UserCard key={u._id} user={u} />
+            <UserCard
+              key={u._id}
+              user={u}
+              currentUser={currentUser}
+              isAdmin={isAdmin}
+              onBan={setBanTarget}
+              onDelete={setDeleteTarget}
+            />
           ))}
         </div>
       )}
+
+      <ConfirmActionModal
+        isOpen={!!banTarget}
+        title={banTarget?.isBanned ? 'Desbanear usuario' : 'Banear usuario'}
+        message={
+          banTarget?.isBanned
+            ? `¿Querés desbanear a @${banTarget?.username}? Podrá volver a iniciar sesión y usar la app.`
+            : `¿Querés banear a @${banTarget?.username}? No podrá iniciar sesión y será expulsado si ya tiene una sesión activa.${actionError ? `\n\n${actionError}` : ''}`
+        }
+        confirmLabel={banTarget?.isBanned ? 'Desbanear' : 'Banear'}
+        variant={banTarget?.isBanned ? 'warning' : 'danger'}
+        inputLabel={banTarget && !banTarget.isBanned ? 'Motivo del baneo (opcional)' : undefined}
+        inputPlaceholder="Por ejemplo: spam reiterado, comportamiento inapropiado…"
+        loading={actionLoading}
+        onConfirm={handleBanConfirm}
+        onCancel={closeModals}
+      />
+
+      <ConfirmActionModal
+        isOpen={!!deleteTarget}
+        title="Eliminar usuario"
+        message={`¿Querés eliminar a @${deleteTarget?.username}? Esta acción no se puede deshacer. El usuario podrá registrarse nuevamente con el mismo email y sus contenidos (mesas, mensajes, comentarios) figurarán como "Usuario eliminado".${actionError ? `\n\n${actionError}` : ''}`}
+        confirmLabel="Eliminar definitivamente"
+        variant="danger"
+        loading={actionLoading}
+        onConfirm={handleDeleteConfirm}
+        onCancel={closeModals}
+      />
     </div>
   )
 }

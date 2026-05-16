@@ -4,6 +4,8 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import GameTile from '../../components/shared/GameTile';
 import LoginPromptModal from '../../components/shared/LoginPromptModal';
+import { GhostIcon } from '../../components/shared/UserRef';
+import { getUserDisplay } from '../../utils/userDisplay';
 import styles from './TableCard.module.css';
 
 // --- helpers ---
@@ -119,7 +121,8 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
   const [loginPrompt, setLoginPrompt] = useState('');
   const [flashing, setFlashing] = useState(false);
 
-  const isHost = user && (table.host._id === user._id || table.host._id?.toString() === user._id?.toString());
+  const hostInfo = getUserDisplay(table.host);
+  const isHost = user && table.host && (table.host._id === user._id || table.host._id?.toString() === user._id?.toString());
   const isPlayer = user && table.players.some(
     (p) => (p._id || p).toString() === (user._id || user).toString()
   );
@@ -220,7 +223,11 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
 
         <div className={styles.listMeta}>
           <span className={styles.listMetaItem}>📅 {formatDate(table.date)}</span>
-          <span className={styles.listMetaItem}>👑 <strong>{table.host.username}</strong></span>
+          <span className={styles.listMetaItem}>
+            👑 {hostInfo.isDeleted
+              ? <span className={styles.deletedInline}><GhostIcon size={12} /> Usuario eliminado</span>
+              : <strong>{table.host.username}</strong>}
+          </span>
           <span className={styles.listMetaItem}>👥 {table.players.length + 1} / {table.maxPlayers + 1}</span>
           {table.location && <span className={styles.listMetaItem}>📍 {table.location}</span>}
         </div>
@@ -325,11 +332,13 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
         {/* Footer: host info + CTA */}
         <div className={styles.footer}>
           <div className={styles.hostInfo}>
-            <div className={styles.hostAvatar}>
-              {table.host.username[0].toUpperCase()}
+            <div className={`${styles.hostAvatar} ${hostInfo.isDeleted ? styles.hostAvatarDeleted : ''}`}>
+              {hostInfo.isDeleted ? <GhostIcon size={16} /> : table.host.username[0].toUpperCase()}
             </div>
             <div className={styles.hostDetails}>
-              <span className={styles.hostName}>{table.host.username}</span>
+              <span className={styles.hostName}>
+                {hostInfo.isDeleted ? 'Usuario eliminado' : table.host.username}
+              </span>
               <StatusChip seats={availableSeats} />
             </div>
           </div>
