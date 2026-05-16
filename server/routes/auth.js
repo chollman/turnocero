@@ -5,6 +5,8 @@ const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 const logger = require('../utils/logger');
+const { encrypt } = require('../utils/encryption');
+const { loginToBgg, clearSession } = require('../utils/bggAuth');
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -116,7 +118,18 @@ router.put('/profile', protect, async (req, res) => {
     if (apellido !== undefined) user.apellido = apellido;
     if (telegram !== undefined) user.telegram = telegram;
     if (celular !== undefined) user.celular = celular;
-    if (bggUsername !== undefined) user.bggUsername = bggUsername.replace(/^@/, '').trim();
+    if (bggUsername !== undefined) {
+      const newBgg = bggUsername.replace(/^@/, '').trim();
+      if (newBgg !== user.bggUsername && user.bggCredentials?.encryptedPassword) {
+        // Stored credentials are tied to the previous username — clear them
+        user.bggCredentials.encryptedPassword = '';
+        user.bggCredentials.connectedAt = null;
+        user.bggCredentials.lastValidatedAt = null;
+        user.bggCredentials.invalid = false;
+        clearSession(user._id);
+      }
+      user.bggUsername = newBgg;
+    }
     if (direccion !== undefined) {
       user.direccion = {
         texto: direccion.texto ?? user.direccion?.texto ?? '',
@@ -134,6 +147,60 @@ router.put('/profile', protect, async (req, res) => {
       return res.status(400).json({ message: messages[0] });
     }
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/auth/bgg-connect — validates BGG password and stores encrypted
+router.post('/bgg-connect', protect, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ message: 'Password de BGG requerida' });
+    }
+    const user = req.user;
+    if (!user.bggUsername) {
+      return res.status(400).json({
+        message: 'Configurá primero tu username de BGG en el perfil',
+      });
+    }
+
+    // Validate by attempting login (do NOT store on failure)
+    try {
+      await loginToBgg(user.bggUsername, password);
+    } catch (e) {
+      const status = e.status === 401 ? 401 : 502;
+      return res.status(status).json({ message: e.message });
+    }
+
+    user.bggCredentials.encryptedPassword = encrypt(password);
+    user.bggCredentials.connectedAt = new Date();
+    user.bggCredentials.lastValidatedAt = new Date();
+    user.bggCredentials.invalid = false;
+    await user.save();
+    clearSession(user._id);
+
+    res.json(user);
+  } catch (err) {
+    logger.error('BGG connect failed', { msg: err.message });
+    res.status(500).json({ message: 'Error al conectar con BGG' });
+  }
+});
+
+// DELETE /api/auth/bgg-connection — removes stored BGG credentials
+router.delete('/bgg-connection', protect, async (req, res) => {
+  try {
+    const user = req.user;
+    user.bggCredentials.encryptedPassword = '';
+    user.bggCredentials.connectedAt = null;
+    user.bggCredentials.lastValidatedAt = null;
+    user.bggCredentials.invalid = false;
+    await user.save();
+    clearSession(user._id);
+
+    res.json(user);
+  } catch (err) {
+    logger.error('BGG disconnect failed', { msg: err.message });
+    res.status(500).json({ message: 'Error al desconectar BGG' });
   }
 });
 

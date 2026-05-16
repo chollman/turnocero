@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import 'leaflet/dist/leaflet.css';
@@ -32,8 +33,13 @@ const SunIcon = () => (
 );
 
 export default function UserProfile() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, refreshUser } = useAuth();
   const { theme, setTheme } = useTheme();
+
+  // ── BGG connection state ──
+  const [bggPassword, setBggPassword] = useState('');
+  const [bggBusy, setBggBusy] = useState(false);
+  const [bggError, setBggError] = useState('');
 
   const [form, setForm] = useState({
     displayName: '',
@@ -155,6 +161,42 @@ export default function UserProfile() {
       errorTimerRef.current = setTimeout(() => setError(''), 3000);
     } finally {
       setGeocoding(false);
+    }
+  };
+
+  const handleBggConnect = async () => {
+    if (!user?.bggUsername) {
+      setBggError('Configurá primero tu username de BGG y guardá el perfil.');
+      return;
+    }
+    if (!bggPassword) {
+      setBggError('Ingresá tu password de BGG.');
+      return;
+    }
+    setBggBusy(true);
+    setBggError('');
+    try {
+      await axios.post('/api/auth/bgg-connect', { password: bggPassword });
+      await refreshUser();
+      setBggPassword('');
+    } catch (err) {
+      setBggError(err.response?.data?.message || 'No se pudo conectar con BGG.');
+    } finally {
+      setBggBusy(false);
+    }
+  };
+
+  const handleBggDisconnect = async () => {
+    if (!window.confirm('¿Desconectar tu cuenta de BGG? Vas a tener que reingresar tu password para volver a cargar partidas.')) return;
+    setBggBusy(true);
+    setBggError('');
+    try {
+      await axios.delete('/api/auth/bgg-connection');
+      await refreshUser();
+    } catch (err) {
+      setBggError(err.response?.data?.message || 'Error al desconectar.');
+    } finally {
+      setBggBusy(false);
     }
   };
 
@@ -315,6 +357,92 @@ export default function UserProfile() {
                   />
                 </div>
               </div>
+            </div>
+
+            <div className={styles.section}>
+              <div className={styles.sectionLabel}>Conexión con BoardGameGeek</div>
+              <p className={styles.hint}>
+                Conectá tu cuenta de BGG para cargar, editar y eliminar partidas
+                directamente desde Turnocero. Tu password se guarda cifrada
+                (AES-256-GCM) en nuestros servidores y nunca se envía al navegador.
+              </p>
+
+              <div className={styles.bggWarning}>
+                ⚠️ Usamos el endpoint interno de BGG (no oficial). Si BGG cambia su
+                web, esta integración puede dejar de funcionar hasta una
+                actualización. Podés desconectar cuando quieras.
+              </div>
+
+              {bggError && <div className={styles.errorBox}>{bggError}</div>}
+
+              {!user?.bggUsername && (
+                <p className={styles.hint}>
+                  Primero configurá tu <strong>Usuario en BGG</strong> arriba y
+                  guardá el perfil.
+                </p>
+              )}
+
+              {user?.bggUsername && user?.bggConnected && !user?.bggInvalid && (
+                <div className={styles.bggStatus}>
+                  <div className={styles.bggStatusBlock}>
+                    <span className={styles.bggStatusLabel}>Conectado como</span>
+                    <span className={styles.bggStatusValue}>@{user.bggUsername}</span>
+                  </div>
+                  {user.bggConnectedAt && (
+                    <div className={styles.bggStatusBlock}>
+                      <span className={styles.bggStatusLabel}>Desde</span>
+                      <span className={styles.bggStatusValue}>
+                        {new Date(user.bggConnectedAt).toLocaleDateString('es-AR', {
+                          day: 'numeric', month: 'short', year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className={styles.btnGhost}
+                    onClick={handleBggDisconnect}
+                    disabled={bggBusy}
+                  >
+                    Desconectar
+                  </button>
+                </div>
+              )}
+
+              {user?.bggUsername && (!user?.bggConnected || user?.bggInvalid) && (
+                <>
+                  {user.bggInvalid && (
+                    <div className={styles.bggInvalidBox}>
+                      Tu sesión BGG caducó (probablemente cambiaste el password en
+                      BGG.com). Reingresá tu password para reconectar.
+                    </div>
+                  )}
+                  <div className={styles.bggConnectForm}>
+                    <div className={styles.field} style={{ flex: 1 }}>
+                      <label className={styles.label}>
+                        Password de BGG para @{user.bggUsername}
+                      </label>
+                      <input
+                        type="password"
+                        className={styles.input}
+                        value={bggPassword}
+                        onChange={(e) => setBggPassword(e.target.value)}
+                        placeholder="Tu password de BoardGameGeek"
+                        autoComplete="off"
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleBggConnect(); } }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.btnPrimary}
+                      onClick={handleBggConnect}
+                      disabled={bggBusy || !bggPassword}
+                    >
+                      {bggBusy ? 'Validando…' : (user.bggInvalid ? 'Reconectar' : 'Conectar')}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className={styles.section}>

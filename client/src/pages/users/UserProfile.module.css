@@ -247,6 +247,91 @@
   margin: 0;
 }
 
+/* ─── BGG connection ─── */
+.bggWarning {
+  background: var(--orange-10);
+  border: 1px solid var(--orange-30);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--orange);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.bggInvalidBox {
+  background: var(--orange-15);
+  border: 1px solid var(--orange-45);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--orange);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.bggConnectForm {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.bggStatus {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.bggStatusBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bggStatusLabel {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.bggStatusValue {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.btnGhost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: auto;
+  transition: all var(--transition);
+}
+
+.btnGhost:hover:not(:disabled) {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.btnGhost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ─── Map ─── */
 .map {
   height: 280px;

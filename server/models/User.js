@@ -74,6 +74,12 @@ const userSchema = new mongoose.Schema(
       maxlength: [50, 'BGG username cannot exceed 50 characters'],
       trim: true,
     },
+    bggCredentials: {
+      encryptedPassword: { type: String, default: '' },
+      connectedAt: { type: Date, default: null },
+      lastValidatedAt: { type: Date, default: null },
+      invalid: { type: Boolean, default: false },
+    },
     isAdmin: {
       type: Boolean,
       default: false,
@@ -114,10 +120,15 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Remove password from JSON output
+// Remove password and BGG credentials from JSON output; expose derived flags
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
+  const creds = obj.bggCredentials;
+  obj.bggConnected = !!(creds && creds.encryptedPassword);
+  obj.bggInvalid = !!(creds && creds.invalid);
+  obj.bggConnectedAt = creds?.connectedAt || null;
+  delete obj.bggCredentials;
   return obj;
 };
 
