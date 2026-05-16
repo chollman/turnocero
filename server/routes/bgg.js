@@ -178,16 +178,29 @@ router.get('/coleccion/:bggUsername', async (req, res) => {
 });
 
 // GET /api/bgg/partidas/:bggUsername
+const PAGE_SIZE = 10;
+const BGG_PAGE_SIZE = 30;
+const PAGES_PER_BGG = BGG_PAGE_SIZE / PAGE_SIZE; // 3 client pages per BGG page
+
 router.get('/partidas/:bggUsername', async (req, res) => {
   const { bggUsername } = req.params;
-  const page = Math.max(1, parseInt(req.query.page) || 1);
-  const cacheKey = `partidas:${bggUsername.toLowerCase()}:${page}`;
+  const clientPage = Math.max(1, parseInt(req.query.page) || 1);
+  const bggPage = Math.ceil(clientPage / PAGES_PER_BGG);
+  const offsetWithinBgg = ((clientPage - 1) % PAGES_PER_BGG) * PAGE_SIZE;
+  const cacheKey = `partidas:${bggUsername.toLowerCase()}:bgg:${bggPage}`;
 
-  const cached = getCached(cacheKey);
-  if (cached) return res.json(cached);
+  const cachedFull = getCached(cacheKey);
+  if (cachedFull) {
+    return res.json({
+      total: cachedFull.total,
+      page: clientPage,
+      pageSize: PAGE_SIZE,
+      plays: cachedFull.plays.slice(offsetWithinBgg, offsetWithinBgg + PAGE_SIZE),
+    });
+  }
 
   try {
-    const xml = await fetchBgg(`${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=${page}`);
+    const xml = await fetchBgg(`${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=${bggPage}`);
     const parsed = parser.parse(xml);
 
     const root = parsed?.plays;
@@ -196,50 +209,126 @@ router.get('/partidas/:bggUsername', async (req, res) => {
     const rawPlays = root.play || [];
     const plays = Array.isArray(rawPlays) ? rawPlays : [rawPlays];
 
-    const result = {
-      total: root['@_total'] ? Number(root['@_total']) : plays.length,
-      page,
-      plays: plays.map((play) => {
-        const playerNode = play.players?.player;
-        const playersArr = playerNode
-          ? (Array.isArray(playerNode) ? playerNode : [playerNode])
-          : [];
+    const parsedPlays = plays.map((play) => {
+      const playerNode = play.players?.player;
+      const playersArr = playerNode
+        ? (Array.isArray(playerNode) ? playerNode : [playerNode])
+        : [];
 
-        const commentsRaw = play.comments;
-        const comments = typeof commentsRaw === 'string'
-          ? commentsRaw
-          : (commentsRaw?.['#text'] || null);
+      const commentsRaw = play.comments;
+      const comments = typeof commentsRaw === 'string'
+        ? commentsRaw
+        : (commentsRaw?.['#text'] || null);
 
-        return {
-          id: play['@_id'],
-          date: play['@_date'] || null,
-          gameName: play.item?.['@_name'] || null,
-          gameId: play.item?.['@_objectid'] || null,
-          quantity: play['@_quantity'] ? Number(play['@_quantity']) : 1,
-          duration: play['@_length'] ? Number(play['@_length']) : null,
-          location: play['@_location'] || null,
-          incomplete: play['@_incomplete'] === '1' || play['@_incomplete'] === 1,
-          nowinstats: play['@_nowinstats'] === '1' || play['@_nowinstats'] === 1,
-          comments: comments || null,
-          players: playersArr.map((p) => ({
-            name: p['@_name'] || null,
-            username: p['@_username'] || null,
-            userid: p['@_userid'] ? Number(p['@_userid']) : null,
-            position: p['@_startposition'] || null,
-            color: p['@_color'] || null,
-            score: p['@_score'] !== undefined && p['@_score'] !== '' ? String(p['@_score']) : null,
-            win: p['@_win'] === '1' || p['@_win'] === 1,
-            new: p['@_new'] === '1' || p['@_new'] === 1,
-            rating: p['@_rating'] && p['@_rating'] !== '0'
-              ? Number(p['@_rating'])
-              : null,
-          })),
-        };
-      }),
+      return {
+        id: play['@_id'],
+        date: play['@_date'] || null,
+        gameName: play.item?.['@_name'] || null,
+        gameId: play.item?.['@_objectid'] || null,
+        gameThumbnail: null,
+        quantity: play['@_quantity'] ? Number(play['@_quantity']) : 1,
+        duration: play['@_length'] ? Number(play['@_length']) : null,
+        location: play['@_location'] || null,
+        incomplete: play['@_incomplete'] === '1' || play['@_incomplete'] === 1,
+        nowinstats: play['@_nowinstats'] === '1' || play['@_nowinstats'] === 1,
+        comments: comments || null,
+        players: playersArr.map((p) => ({
+          name: p['@_name'] || null,
+          username: p['@_username'] || null,
+          userid: p['@_userid'] ? Number(p['@_userid']) : null,
+          position: p['@_startposition'] || null,
+          color: p['@_color'] || null,
+          score: p['@_score'] !== undefined && p['@_score'] !== '' ? String(p['@_score']) : null,
+          win: p['@_win'] === '1' || p['@_win'] === 1,
+          new: p['@_new'] === '1' || p['@_new'] === 1,
+          rating: p['@_rating'] && p['@_rating'] !== '0'
+            ? Number(p['@_rating'])
+            : null,
+        })),
+      };
+    });
+
+    // Enrich plays with game thumbnails (batch fetch, reuses /game/:id cache)
+    const uniqueGameIds = [...new Set(parsedPlays.map((p) => p.gameId).filter(Boolean))];
+    const thumbMap = {};
+    const idsToFetch = [];
+    for (const gid of uniqueGameIds) {
+      const cachedGame = getCached(`game:${gid}`, GAME_CACHE_TTL);
+      if (cachedGame) {
+        thumbMap[gid] = cachedGame.thumbnail || null;
+      } else {
+        idsToFetch.push(gid);
+      }
+    }
+
+    // Filter to numeric IDs only (defensive — BGG rejects malformed batches with 400)
+    const validIds = idsToFetch.filter((id) => /^\d+$/.test(String(id)));
+    const CHUNK_SIZE = 20;
+    const chunks = [];
+    for (let i = 0; i < validIds.length; i += CHUNK_SIZE) {
+      chunks.push(validIds.slice(i, i + CHUNK_SIZE));
+    }
+
+    for (const chunk of chunks) {
+      try {
+        const thingXml = await fetchBgg(`${BGG_API}/thing?id=${chunk.join(',')}`);
+        const thingParsed = parser.parse(thingXml);
+        const thingItems = thingParsed?.items?.item;
+        if (!thingItems) {
+          console.warn(`[bgg/partidas] /thing returned no items for ids: ${chunk.join(',')}`);
+          continue;
+        }
+        const arr = Array.isArray(thingItems) ? thingItems : [thingItems];
+        arr.forEach((item) => {
+          const id = String(item['@_id']);
+          const nameRaw = item.name;
+          const nameArr = Array.isArray(nameRaw) ? nameRaw : [nameRaw];
+          const primary = nameArr.find((n) => n['@_type'] === 'primary') || nameArr[0];
+          const thumb = typeof item.thumbnail === 'string'
+            ? item.thumbnail
+            : (item.thumbnail?.['#text'] || null);
+          const img = typeof item.image === 'string'
+            ? item.image
+            : (item.image?.['#text'] || null);
+          const game = {
+            id: Number(item['@_id']),
+            name: primary?.['@_value'] || '',
+            thumbnail: thumb || null,
+            image: img || null,
+            year: item.yearpublished?.['@_value'] ? Number(item.yearpublished['@_value']) : null,
+            minPlayers: item.minplayers?.['@_value'] ? Number(item.minplayers['@_value']) : null,
+            maxPlayers: item.maxplayers?.['@_value'] ? Number(item.maxplayers['@_value']) : null,
+          };
+          setCached(`game:${id}`, game);
+          thumbMap[id] = game.thumbnail;
+        });
+      } catch (e) {
+        console.warn(`[bgg/partidas] /thing batch failed for ids ${chunk.join(',')}: ${e.message || e}`);
+      }
+    }
+
+    const missing = validIds.filter((id) => !thumbMap[id]);
+    if (missing.length > 0) {
+      console.warn(`[bgg/partidas] no thumbnail for ids: ${missing.join(',')}`);
+    }
+
+    parsedPlays.forEach((p) => {
+      if (p.gameId) p.gameThumbnail = thumbMap[String(p.gameId)] || null;
+    });
+
+    const fullPageData = {
+      total: root['@_total'] ? Number(root['@_total']) : parsedPlays.length,
+      plays: parsedPlays,
     };
 
-    setCached(cacheKey, result);
-    res.json(result);
+    setCached(cacheKey, fullPageData);
+
+    res.json({
+      total: fullPageData.total,
+      page: clientPage,
+      pageSize: PAGE_SIZE,
+      plays: fullPageData.plays.slice(offsetWithinBgg, offsetWithinBgg + PAGE_SIZE),
+    });
   } catch (err) {
     if (err.status === 404) return res.status(404).json({ message: 'Usuario de BGG no encontrado' });
     res.status(502).json({ message: 'No se pudo conectar con BGG' });

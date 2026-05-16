@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import PlayCard from './PlayCard';
 import styles from './BggProfile.module.css';
 
 const COLLECTION_PAGE_SIZE = 24;
-const PLAYS_PAGE_SIZE = 30; // BGG returns 30 per page server-side
+const PLAYS_PAGE_SIZE = 10; // server re-paginates BGG's 30-per-page into 10
 
 function formatDate(iso) {
   if (!iso) return null;
@@ -139,20 +140,6 @@ function GameCard({ game }) {
             </span>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function PlayRow({ play }) {
-  return (
-    <div className={styles.playRow}>
-      <div className={styles.playDate}>{formatDate(play.date) || '—'}</div>
-      <div className={styles.playGame}>{play.gameName || '—'}</div>
-      <div className={styles.playMeta}>
-        {play.quantity > 1 && <span className={styles.playTag}>{play.quantity}× partidas</span>}
-        {play.duration > 0 && <span className={styles.playTag}>{play.duration} min</span>}
-        {play.location && <span className={styles.playTag}>{play.location}</span>}
       </div>
     </div>
   );
@@ -325,7 +312,7 @@ export default function BggProfile() {
                   </span>
                 </div>
                 {plays.plays.map((play) => (
-                  <PlayRow key={play.id} play={play} />
+                  <PlayCard key={play.id} play={play} />
                 ))}
                 <Pagination
                   page={playsPage}

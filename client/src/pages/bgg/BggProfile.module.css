@@ -298,14 +298,14 @@
 .playsList {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 10px;
 }
 
 .playsHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 0 12px;
+  padding: 0 0 4px;
   flex-wrap: wrap;
   gap: 6px;
 }
@@ -315,51 +315,191 @@
   color: var(--text-muted);
 }
 
-.playRow {
+/* ─── Play card ─── */
+.playCard {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
+  gap: 14px;
+  padding: 14px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  transition: border-color 0.15s;
+  border-radius: 12px;
+  transition: border-color var(--transition), background var(--transition);
 }
 
-.playRow:hover {
+.playCardInteractive {
+  cursor: pointer;
+}
+
+.playCardInteractive:hover,
+.playCardInteractive:focus-visible {
   border-color: var(--amber);
+  outline: none;
 }
 
-.playDate {
-  font-family: 'Manrope', var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-muted);
-  min-width: 100px;
+.playThumb {
   flex-shrink: 0;
-}
-
-.playGame {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  flex: 1;
-}
-
-.playMeta {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-elevated);
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.playThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.playThumbFallback {
+  font-size: 28px;
+  opacity: 0.6;
+}
+
+.playBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.playTopRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.playGameName {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.playDateBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   flex-shrink: 0;
+}
+
+.playDateRelative {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.playDateAbs {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.playPlayers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.playerChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.playerChipWinner {
+  background: var(--amber-20, color-mix(in srgb, var(--amber) 18%, transparent));
+  border-color: var(--amber);
+  color: var(--text-primary);
+}
+
+.winIcon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.playerName {
+  font-weight: 600;
+}
+
+.playerScore {
+  font-family: 'Manrope', var(--font-display);
+  font-weight: 700;
+  color: var(--amber);
+  font-size: 12px;
+}
+
+.playerChipWinner .playerScore {
+  color: var(--amber-light, var(--amber));
+}
+
+.playTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
 }
 
 .playTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 2px 8px;
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.playTagWarn {
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+  border-color: color-mix(in srgb, var(--red) 40%, transparent);
+  color: var(--red);
+}
+
+.playTagComment {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 2px 4px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tagIcon {
+  font-size: 11px;
+  opacity: 0.9;
 }
 
 /* ─── Pagination ─── */
@@ -459,12 +599,28 @@
     gap: 10px;
   }
 
-  .playRow {
-    flex-wrap: wrap;
-    gap: 8px;
+  .playCard {
+    padding: 12px;
+    gap: 10px;
   }
 
-  .playDate {
-    min-width: unset;
+  .playThumb {
+    width: 56px;
+    height: 56px;
+  }
+
+  .playGameName {
+    font-size: 15px;
+  }
+
+  .playTopRow {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .playDateBlock {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
   }
 }
