@@ -249,6 +249,13 @@ export function NotificationProvider({ children }) {
     axios.patch('/api/notifications/read', { fromUserId }).catch(() => {});
   }, []);
 
+  const markReadTorneo = useCallback((torneoId) => {
+    setNotifications((prev) =>
+      prev.map((n) => n.torneoId === torneoId ? { ...n, read: true } : n)
+    );
+    axios.patch('/api/notifications/read', { torneoId }).catch(() => {});
+  }, []);
+
   const clearAll = useCallback(() => {
     setNotifications([]);
     axios.delete('/api/notifications').catch(() => {});
@@ -297,6 +304,7 @@ export function NotificationProvider({ children }) {
       unreadCount: totalUnread,
       markRead,
       markReadFriend,
+      markReadTorneo,
       clearAll,
       setActiveTable,
       toasts,

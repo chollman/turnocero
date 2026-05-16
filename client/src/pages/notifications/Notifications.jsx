@@ -94,7 +94,7 @@ function getNotifMeta(n) {
 const getNotifTime = (n) => new Date(n.updatedAt || n.timestamp || 0).getTime();
 
 export default function Notifications() {
-  const { notifications, markRead, markReadFriend, clearAll } = useNotifications();
+  const { notifications, markRead, markReadFriend, markReadTorneo, clearAll } = useNotifications();
   const sorted = [...notifications].sort((a, b) => getNotifTime(b) - getNotifTime(a));
 
   return (
@@ -126,8 +126,15 @@ export default function Notifications() {
               ? `/torneos/${n.torneoId}`
               : n.fromUserId ? `/usuarios/${n.fromUserId}` : `/mesas/${n.tableId}`;
             const handleClick = () => {
-              if (isTorneo) return;
-              if (n.fromUserId) markReadFriend(n.fromUserId);
+              if (isTorneo) markReadTorneo(n.torneoId);
+              else if (n.fromUserId) markReadFriend(n.fromUserId);
+              else markRead(n.tableId);
+            };
+            const handleMarkRead = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (isTorneo) markReadTorneo(n.torneoId);
+              else if (n.fromUserId) markReadFriend(n.fromUserId);
               else markRead(n.tableId);
             };
             return (
@@ -152,6 +159,20 @@ export default function Notifications() {
                     </div>
                     <span className={styles.cardPreview}>{preview}</span>
                   </div>
+                  {!n.read && (
+                    <button
+                      type="button"
+                      className={styles.markReadBtn}
+                      onClick={handleMarkRead}
+                      aria-label="Marcar como leída"
+                      title="Marcar como leída"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    </button>
+                  )}
                 </Link>
               </li>
             );
