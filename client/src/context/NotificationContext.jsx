@@ -4,23 +4,29 @@ import axios from 'axios';
 import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext(null);
-const STORAGE_KEY = 'turnocero_notifications';
 const makeToastId = () => `${Date.now()}-${Math.random()}`;
-
-function loadFromStorage() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  } catch {
-    return [];
-  }
-}
 
 const findExisting = (prev, type, tableId) =>
   prev.find((n) => (n.type ?? 'chat') === type && n.tableId === tableId);
 
+const toastDedupKey = (t) => {
+  if (t.tableId)      return `${t.type}:t:${t.tableId}`;
+  if (t.torneoId)     return `${t.type}:r:${t.torneoId}`;
+  if (t.compartidaId) return `${t.type}:c:${t.compartidaId}`;
+  if (t.fromUserId)   return `${t.type}:u:${t.fromUserId}`;
+  return t.type;
+};
+
+const pushToast = (prev, toast) => {
+  const key = toastDedupKey(toast);
+  const filtered = prev.filter((t) => toastDedupKey(t) !== key);
+  const next = [...filtered, { id: makeToastId(), ...toast }];
+  return next.length > 4 ? next.slice(-4) : next;
+};
+
 export function NotificationProvider({ children }) {
   const { user, refreshUser } = useAuth();
-  const [notifications, setNotifications] = useState(loadFromStorage);
+  const [notifications, setNotifications] = useState([]);
   const [toasts, setToasts] = useState([]);
   const activeTableRef = useRef(null);
   const adminChatActiveRef = useRef(false);
@@ -40,10 +46,6 @@ export function NotificationProvider({ children }) {
       .catch(() => {});
     return () => { cancelled = true; };
   }, [user]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
-  }, [notifications]);
 
   useEffect(() => {
     if (!user) return;
@@ -66,10 +68,7 @@ export function NotificationProvider({ children }) {
         return [...prev, { type: 'chat', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, lastSenderUsername: notif.senderUsername, lastMessagePreview: notif.messagePreview, timestamp: notif.timestamp }];
       });
 
-      setToasts((prev) => {
-        const next = [...prev, { id: makeToastId(), type: 'chat', tableId: notif.tableId, tableName: notif.tableName, senderUsername: notif.senderUsername, messagePreview: notif.messagePreview }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, { type: 'chat', tableId: notif.tableId, tableName: notif.tableName, senderUsername: notif.senderUsername, messagePreview: notif.messagePreview }));
     });
 
     socket.on('join:accepted', (notif) => {
@@ -80,10 +79,7 @@ export function NotificationProvider({ children }) {
         return [...rest, { type: 'join_accepted', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, timestamp: notif.timestamp }];
       });
 
-      setToasts((prev) => {
-        const next = [...prev, { id: makeToastId(), type: 'join_accepted', tableId: notif.tableId, tableName: notif.tableName }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, { type: 'join_accepted', tableId: notif.tableId, tableName: notif.tableName }));
     });
 
     socket.on('table:comment', (notif) => {
@@ -101,10 +97,7 @@ export function NotificationProvider({ children }) {
         return [...prev, { type: 'comment', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, lastCommenterUsername: notif.commenterUsername, lastCommentPreview: notif.commentPreview, timestamp: notif.timestamp }];
       });
 
-      setToasts((prev) => {
-        const next = [...prev, { id: makeToastId(), type: 'comment', tableId: notif.tableId, tableName: notif.tableName, commenterUsername: notif.commenterUsername, commentPreview: notif.commentPreview }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, { type: 'comment', tableId: notif.tableId, tableName: notif.tableName, commenterUsername: notif.commenterUsername, commentPreview: notif.commentPreview }));
     });
 
     socket.on('table:image', (notif) => {
@@ -122,10 +115,7 @@ export function NotificationProvider({ children }) {
         return [...prev, { type: 'image', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, lastUploaderUsername: notif.uploaderUsername, timestamp: notif.timestamp }];
       });
 
-      setToasts((prev) => {
-        const next = [...prev, { id: makeToastId(), type: 'image', tableId: notif.tableId, tableName: notif.tableName, uploaderUsername: notif.uploaderUsername }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, { type: 'image', tableId: notif.tableId, tableName: notif.tableName, uploaderUsername: notif.uploaderUsername }));
     });
 
     socket.on('table:spot-opened', (notif) => {
@@ -136,10 +126,7 @@ export function NotificationProvider({ children }) {
         return [...rest, { type: 'spot_opened', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, timestamp: notif.timestamp }];
       });
 
-      setToasts((prev) => {
-        const next = [...prev, { id: makeToastId(), type: 'spot_opened', tableId: notif.tableId, tableName: notif.tableName }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, { type: 'spot_opened', tableId: notif.tableId, tableName: notif.tableName }));
     });
 
     socket.on('join:request', (notif) => {
@@ -157,10 +144,7 @@ export function NotificationProvider({ children }) {
         return [...prev, { type: 'join_request', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, lastRequesterUsername: notif.requesterUsername, timestamp: notif.timestamp }];
       });
 
-      setToasts((prev) => {
-        const next = [...prev, { id: makeToastId(), type: 'join_request', tableId: notif.tableId, tableName: notif.tableName, requesterUsername: notif.requesterUsername }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, { type: 'join_request', tableId: notif.tableId, tableName: notif.tableName, requesterUsername: notif.requesterUsername }));
     });
 
     socket.on('friend:request', (notif) => {
@@ -169,10 +153,7 @@ export function NotificationProvider({ children }) {
         if (existing) return prev;
         return [...prev, { type: 'friend_request', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername, count: 1, read: false, timestamp: new Date().toISOString() }];
       });
-      setToasts((prev) => {
-        const next = [...prev, { id: makeToastId(), type: 'friend_request', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, { type: 'friend_request', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername }));
     });
 
     socket.on('friend:accepted', (notif) => {
@@ -181,10 +162,7 @@ export function NotificationProvider({ children }) {
         if (existing) return prev;
         return [...prev, { type: 'friend_accepted', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername, count: 1, read: false, timestamp: new Date().toISOString() }];
       });
-      setToasts((prev) => {
-        const next = [...prev, { id: makeToastId(), type: 'friend_accepted', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, { type: 'friend_accepted', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername }));
       refreshUser().catch(() => {});
       friendListenersRef.current.forEach((fn) => fn());
     });
@@ -245,16 +223,12 @@ export function NotificationProvider({ children }) {
           timestamp: notif.timestamp || new Date().toISOString(),
         }];
       });
-      setToasts((prev) => {
-        const next = [...prev, {
-          id: makeToastId(),
-          type: eventType,
-          torneoId: notif.torneoId,
-          torneoTitle: notif.torneoTitle,
-          round: notif.round,
-        }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, {
+        type: eventType,
+        torneoId: notif.torneoId,
+        torneoTitle: notif.torneoTitle,
+        round: notif.round,
+      }));
     };
 
     socket.on('torneo:registration-accepted', handleTorneoEvent('tournament_accepted'));
@@ -276,10 +250,7 @@ export function NotificationProvider({ children }) {
         }
         return [...prev, { type: 'compartida_comment', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, count: 1, read: false, lastCommenterUsername: notif.commenterUsername, lastCommentPreview: notif.commentPreview, timestamp: notif.timestamp }];
       });
-      setToasts((prev) => {
-        const next = [...prev, { id: makeToastId(), type: 'compartida_comment', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, commenterUsername: notif.commenterUsername, commentPreview: notif.commentPreview }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, { type: 'compartida_comment', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, commenterUsername: notif.commenterUsername, commentPreview: notif.commentPreview }));
     });
 
     socket.on('compartida:like', (notif) => {
@@ -294,10 +265,7 @@ export function NotificationProvider({ children }) {
         }
         return [...prev, { type: 'compartida_like', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, count: 1, read: false, lastSenderUsername: notif.fromUsername, timestamp: notif.timestamp }];
       });
-      setToasts((prev) => {
-        const next = [...prev, { id: makeToastId(), type: 'compartida_like', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, fromUsername: notif.fromUsername }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, { type: 'compartida_like', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, fromUsername: notif.fromUsername }));
     });
 
     socket.on('table:cancelled', (notif) => {
@@ -305,10 +273,7 @@ export function NotificationProvider({ children }) {
         const rest = prev.filter((n) => !(n.type === 'table_cancelled' && n.tableId === notif.tableId));
         return [...rest, { type: 'table_cancelled', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, timestamp: notif.timestamp }];
       });
-      setToasts((prev) => {
-        const next = [...prev, { id: makeToastId(), type: 'table_cancelled', tableId: notif.tableId, tableName: notif.tableName }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, { type: 'table_cancelled', tableId: notif.tableId, tableName: notif.tableName }));
     });
 
     socket.on('join:rejected', (notif) => {
@@ -316,17 +281,11 @@ export function NotificationProvider({ children }) {
         const rest = prev.filter((n) => !(n.type === 'join_rejected' && n.tableId === notif.tableId));
         return [...rest, { type: 'join_rejected', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, timestamp: notif.timestamp }];
       });
-      setToasts((prev) => {
-        const next = [...prev, { id: makeToastId(), type: 'join_rejected', tableId: notif.tableId, tableName: notif.tableName }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, { type: 'join_rejected', tableId: notif.tableId, tableName: notif.tableName }));
     });
 
     socket.on('noticia:published', (notif) => {
-      setToasts((prev) => {
-        const next = [...prev, { id: makeToastId(), type: 'noticia', noticiaId: notif.noticiaId, title: notif.title }];
-        return next.length > 4 ? next.slice(-4) : next;
-      });
+      setToasts((prev) => pushToast(prev, { type: 'noticia', noticiaId: notif.noticiaId, title: notif.title }));
     });
 
     return () => socket.disconnect();
@@ -394,10 +353,7 @@ export function NotificationProvider({ children }) {
   }, []);
 
   const addToast = useCallback((toast) => {
-    setToasts((prev) => {
-      const next = [...prev, { id: makeToastId(), ...toast }];
-      return next.length > 4 ? next.slice(-4) : next;
-    });
+    setToasts((prev) => pushToast(prev, toast));
   }, []);
 
   const addDmListener = useCallback((fn) => {
