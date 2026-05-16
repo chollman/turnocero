@@ -117,6 +117,7 @@ export default function BggProfile() {
         <div style={{ display: activeTab === 'partidas' ? 'block' : 'none' }}>
           <PartidasPanel
             bggUsername={bggUsername}
+            collection={collection}
             onPlayClick={handlePlayClick}
             onMetaChange={handlePlaysMeta}
           />

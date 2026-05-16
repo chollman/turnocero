@@ -188,12 +188,13 @@ router.get('/partidas/:bggUsername', async (req, res) => {
   const bggPage = Math.ceil(clientPage / PAGES_PER_BGG);
   const offsetWithinBgg = ((clientPage - 1) % PAGES_PER_BGG) * PAGE_SIZE;
 
-  // Optional date filters (passed through to BGG)
+  // Optional filters (passed through to BGG)
   const dateRe = /^\d{4}-\d{2}-\d{2}$/;
   const mindate = dateRe.test(req.query.mindate || '') ? req.query.mindate : null;
   const maxdate = dateRe.test(req.query.maxdate || '') ? req.query.maxdate : null;
+  const gameId = /^\d+$/.test(req.query.id || '') ? req.query.id : null;
 
-  const cacheKey = `partidas:${bggUsername.toLowerCase()}:bgg:${bggPage}:${mindate || '-'}:${maxdate || '-'}`;
+  const cacheKey = `partidas:${bggUsername.toLowerCase()}:bgg:${bggPage}:${mindate || '-'}:${maxdate || '-'}:${gameId || '-'}`;
 
   const cachedFull = getCached(cacheKey);
   if (cachedFull) {
@@ -212,6 +213,7 @@ router.get('/partidas/:bggUsername', async (req, res) => {
     });
     if (mindate) params.set('mindate', mindate);
     if (maxdate) params.set('maxdate', maxdate);
+    if (gameId) params.set('id', gameId);
     const xml = await fetchBgg(`${BGG_API}/plays?${params.toString()}`);
     const parsed = parser.parse(xml);
 

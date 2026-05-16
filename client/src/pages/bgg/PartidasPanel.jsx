@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import PlayCard from './PlayCard';
 import Pagination from './Pagination';
 import styles from './BggProfile.module.css';
 
 const PLAYS_PAGE_SIZE = 10;
+const GAMES_PAGE_SIZE = 24;
 
 const FILTERS = [
   { id: 'all', label: 'Todas' },
@@ -37,12 +39,46 @@ function dateRangeFor(filterId) {
   return {};
 }
 
-export default function PartidasPanel({ bggUsername, onPlayClick, onMetaChange }) {
+function GameWithPlaysCard({ game, bggUsername }) {
+  return (
+    <Link
+      to={`/perfil-bgg/${encodeURIComponent(bggUsername)}/juego/${game.id}`}
+      className={styles.gameLink}
+    >
+      <div className={styles.gameCard}>
+        {game.thumbnail
+          ? <img src={game.thumbnail} alt={game.name} className={styles.gameThumbnail} loading="lazy" />
+          : <div className={styles.gameThumbnailPlaceholder}>🎲</div>
+        }
+        <div className={styles.gameInfo}>
+          <div className={styles.gameName}>{game.name}</div>
+          {game.yearPublished && (
+            <div className={styles.gameYear}>{game.yearPublished}</div>
+          )}
+          <div className={styles.gamePlayCount}>
+            <span className={styles.gamePlayCountValue}>{game.numPlays}</span>
+            <span className={styles.gamePlayCountLabel}>
+              {game.numPlays === 1 ? 'partida' : 'partidas'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+export default function PartidasPanel({ bggUsername, collection, onPlayClick, onMetaChange }) {
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'byGame'
+
+  // ── List mode state ──
   const [plays, setPlays] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState('all');
+
+  // ── By-game mode state ──
+  const [gamesPage, setGamesPage] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,8 +94,6 @@ export default function PartidasPanel({ bggUsername, onPlayClick, onMetaChange }
       .then(({ data }) => {
         if (cancelled) return;
         setPlays(data);
-        // Only update parent meta on the unfiltered, page-1 fetch (StatsBar shows
-        // all-time stats, not filtered)
         if (filter === 'all' && page === 1 && onMetaChange) {
           onMetaChange({
             total: data.total,
@@ -75,6 +109,13 @@ export default function PartidasPanel({ bggUsername, onPlayClick, onMetaChange }
     return () => { cancelled = true; };
   }, [bggUsername, page, filter, onMetaChange]);
 
+  const playedGames = useMemo(() => {
+    if (!collection) return null;
+    return [...collection]
+      .filter((g) => (g.numPlays || 0) > 0)
+      .sort((a, b) => (b.numPlays || 0) - (a.numPlays || 0));
+  }, [collection]);
+
   const handleFilter = (id) => {
     if (id === filter) return;
     setFilter(id);
@@ -86,66 +127,138 @@ export default function PartidasPanel({ bggUsername, onPlayClick, onMetaChange }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleGamesPage = (p) => {
+    setGamesPage(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const totalPages = plays ? Math.ceil(plays.total / PLAYS_PAGE_SIZE) : 0;
+  const gamesTotalPages = playedGames ? Math.ceil(playedGames.length / GAMES_PAGE_SIZE) : 0;
+  const gamesSlice = playedGames
+    ? playedGames.slice((gamesPage - 1) * GAMES_PAGE_SIZE, gamesPage * GAMES_PAGE_SIZE)
+    : [];
 
   return (
     <div className={styles.tabContent}>
-      <div className={styles.filterBar}>
-        {FILTERS.map((f) => (
+      <div className={styles.panelToolbar}>
+        {viewMode === 'list' && (
+          <div className={styles.filterBar}>
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                className={`${styles.filterChip} ${filter === f.id ? styles.filterChipActive : ''}`}
+                onClick={() => handleFilter(f.id)}
+                type="button"
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className={styles.viewToggle}>
           <button
-            key={f.id}
-            className={`${styles.filterChip} ${filter === f.id ? styles.filterChipActive : ''}`}
-            onClick={() => handleFilter(f.id)}
             type="button"
+            className={`${styles.viewToggleBtn} ${viewMode === 'list' ? styles.viewToggleBtnActive : ''}`}
+            onClick={() => setViewMode('list')}
+            aria-pressed={viewMode === 'list'}
           >
-            {f.label}
+            Lista
           </button>
-        ))}
+          <button
+            type="button"
+            className={`${styles.viewToggleBtn} ${viewMode === 'byGame' ? styles.viewToggleBtnActive : ''}`}
+            onClick={() => setViewMode('byGame')}
+            aria-pressed={viewMode === 'byGame'}
+          >
+            Por juego
+          </button>
+        </div>
       </div>
 
-      {loading && (
-        <div className={styles.stateCenter}>
-          <span className={styles.loadingDice}>🎲</span>
-          <p>Cargando partidas…</p>
-        </div>
+      {viewMode === 'list' && (
+        <>
+          {loading && (
+            <div className={styles.stateCenter}>
+              <span className={styles.loadingDice}>🎲</span>
+              <p>Cargando partidas…</p>
+            </div>
+          )}
+
+          {error && (
+            <div className={styles.stateCenter}>
+              <p className={styles.errorText}>{error}</p>
+            </div>
+          )}
+
+          {!loading && !error && plays && plays.plays.length === 0 && (
+            <div className={styles.stateCenter}>
+              <p>
+                {filter === 'all'
+                  ? 'Este usuario no tiene partidas registradas en BGG.'
+                  : 'No hay partidas en el período seleccionado.'}
+              </p>
+            </div>
+          )}
+
+          {!loading && plays && plays.plays.length > 0 && (
+            <div className={styles.playsList}>
+              <div className={styles.playsHeader}>
+                <span className={styles.playsTotal}>
+                  {plays.total} partida{plays.total === 1 ? '' : 's'}
+                  {filter !== 'all' && ' en el período'}
+                </span>
+                <span className={styles.paginationInfo}>
+                  página {page} de {totalPages}
+                </span>
+              </div>
+              {plays.plays.map((play) => (
+                <PlayCard
+                  key={play.id}
+                  play={play}
+                  onClick={() => onPlayClick(play)}
+                />
+              ))}
+              <Pagination page={page} totalPages={totalPages} onPage={handlePage} />
+            </div>
+          )}
+        </>
       )}
 
-      {error && (
-        <div className={styles.stateCenter}>
-          <p className={styles.errorText}>{error}</p>
-        </div>
-      )}
+      {viewMode === 'byGame' && (
+        <>
+          {!playedGames && (
+            <div className={styles.stateCenter}>
+              <span className={styles.loadingDice}>🎲</span>
+              <p>Cargando juegos…</p>
+            </div>
+          )}
 
-      {!loading && !error && plays && plays.plays.length === 0 && (
-        <div className={styles.stateCenter}>
-          <p>
-            {filter === 'all'
-              ? 'Este usuario no tiene partidas registradas en BGG.'
-              : 'No hay partidas en el período seleccionado.'}
-          </p>
-        </div>
-      )}
+          {playedGames && playedGames.length === 0 && (
+            <div className={styles.stateCenter}>
+              <p>No hay juegos con partidas registradas en la colección.</p>
+            </div>
+          )}
 
-      {!loading && plays && plays.plays.length > 0 && (
-        <div className={styles.playsList}>
-          <div className={styles.playsHeader}>
-            <span className={styles.playsTotal}>
-              {plays.total} partida{plays.total === 1 ? '' : 's'}
-              {filter !== 'all' && ' en el período'}
-            </span>
-            <span className={styles.paginationInfo}>
-              página {page} de {totalPages}
-            </span>
-          </div>
-          {plays.plays.map((play) => (
-            <PlayCard
-              key={play.id}
-              play={play}
-              onClick={() => onPlayClick(play)}
-            />
-          ))}
-          <Pagination page={page} totalPages={totalPages} onPage={handlePage} />
-        </div>
+          {playedGames && playedGames.length > 0 && (
+            <>
+              <div className={styles.paginationHeader}>
+                <span className={styles.paginationInfo}>
+                  {playedGames.length} juego{playedGames.length === 1 ? '' : 's'} · página {gamesPage} de {gamesTotalPages}
+                </span>
+              </div>
+              <div className={styles.gameGrid}>
+                {gamesSlice.map((game) => (
+                  <GameWithPlaysCard
+                    key={game.id}
+                    game={game}
+                    bggUsername={bggUsername}
+                  />
+                ))}
+              </div>
+              <Pagination page={gamesPage} totalPages={gamesTotalPages} onPage={handleGamesPage} />
+            </>
+          )}
+        </>
       )}
     </div>
   );

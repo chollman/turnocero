@@ -79,6 +79,70 @@
   text-decoration: underline;
 }
 
+/* ─── Per-game hero ─── */
+.gameHero {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.gameHeroImage {
+  flex-shrink: 0;
+  width: 160px;
+  height: 160px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gameHeroImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gameHeroInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+}
+
+.gameHeroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.gameHeroMeta span:not(:last-child)::after {
+  content: '·';
+  margin-left: 14px;
+  color: var(--border);
+}
+
+@media (max-width: 600px) {
+  .gameHero {
+    flex-direction: column;
+    gap: 14px;
+    align-items: stretch;
+  }
+
+  .gameHeroImage {
+    width: 100%;
+    height: 200px;
+  }
+}
+
 /* ─── Stats bar ─── */
 .statsBar {
   display: grid;
@@ -206,6 +270,52 @@
   gap: 16px;
 }
 
+/* ─── Panel toolbar (filter bar + view toggle) ─── */
+.panelToolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* View toggle (Lista | Por juego) */
+.viewToggle {
+  display: inline-flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.viewToggleBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.viewToggleBtn:hover {
+  color: var(--text-primary);
+}
+
+.viewToggleBtnActive {
+  background: var(--bg-elevated);
+  color: var(--amber);
+}
+
+.viewToggleBtnActive:hover {
+  color: var(--amber-light);
+}
+
 /* ─── Filter bar ─── */
 .filterBar {
   display: flex;
@@ -299,6 +409,41 @@
 .gameYear {
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.gameLink {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.gameLink:focus-visible .gameCard {
+  border-color: var(--amber);
+  outline: 2px solid var(--amber-glow, var(--amber));
+  outline-offset: 2px;
+}
+
+.gamePlayCount {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.gamePlayCountValue {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--amber);
+  line-height: 1;
+}
+
+.gamePlayCountLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: lowercase;
 }
 
 .gameRatings {

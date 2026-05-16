@@ -33,6 +33,7 @@ import EventoInscripciones from './pages/eventos/EventoInscripciones';
 import Compartidas from './pages/compartidas/Compartidas';
 import CompartidaPost from './pages/compartidas/CompartidaPost';
 import BggProfile from './pages/bgg/BggProfile';
+import PerGameView from './pages/bgg/PerGameView';
 import Messages from './pages/messages/Messages';
 import DirectChat from './pages/messages/DirectChat';
 import AdminChat from './pages/messages/AdminChat';
@@ -112,6 +113,7 @@ function AppRoutes() {
           <Route path="/compartidas" element={<Compartidas />} />
           <Route path="/compartidas/:id" element={<CompartidaPost />} />
           <Route path="/perfil-bgg/:bggUsername" element={<PrivateRoute><BggProfile /></PrivateRoute>} />
+          <Route path="/perfil-bgg/:bggUsername/juego/:gameId" element={<PrivateRoute><PerGameView /></PrivateRoute>} />
           <Route path="/mensajes" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/mensajes/:userId" element={<PrivateRoute><DirectChat /></PrivateRoute>} />
           <Route path="/mensajes-admin" element={<PrivateRoute><AdminChat /></PrivateRoute>} />
