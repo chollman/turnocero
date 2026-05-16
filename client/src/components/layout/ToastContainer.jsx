@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
 import { useChat } from '../../context/ChatContext';
@@ -35,11 +35,23 @@ function ToastItem({ toast, onDismiss }) {
   const navigate = useNavigate();
   const { openChat, conversations } = useChat();
   const duration = DURATION[toast.type] ?? 4000;
+  const [paused, setPaused] = useState(false);
+  const timerRef = useRef(null);
+  const remainingRef = useRef(duration);
+  const startRef = useRef(Date.now());
 
   useEffect(() => {
-    const timer = setTimeout(() => onDismiss(toast.id), duration);
-    return () => clearTimeout(timer);
-  }, [toast.id, duration, onDismiss]);
+    if (paused) {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        remainingRef.current -= Date.now() - startRef.current;
+      }
+      return;
+    }
+    startRef.current = Date.now();
+    timerRef.current = setTimeout(() => onDismiss(toast.id), remainingRef.current);
+    return () => clearTimeout(timerRef.current);
+  }, [paused, toast.id, onDismiss]);
 
   const handleClick = () => {
     if (toast.type === 'friend_request' || toast.type === 'friend_accepted') {
@@ -159,7 +171,13 @@ function ToastItem({ toast, onDismiss }) {
                                             : `Ya sos parte de la mesa de ${toast.tableName}`;
 
   return (
-    <div className={styles.toast} onClick={handleClick} role="alert">
+    <div
+      className={styles.toast}
+      onClick={handleClick}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      role="alert"
+    >
       <div className={styles.toastInner}>
         <span className={styles.icon}>{icon}</span>
         <div className={styles.text}>
@@ -170,7 +188,10 @@ function ToastItem({ toast, onDismiss }) {
       </div>
       <div
         className={styles.progress}
-        style={{ animationDuration: `${duration}ms` }}
+        style={{
+          animationDuration: `${duration}ms`,
+          animationPlayState: paused ? 'paused' : 'running',
+        }}
       />
     </div>
   );

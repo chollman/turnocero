@@ -1,8 +1,34 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useNotifications } from '../../context/NotificationContext';
 import { useChat } from '../../context/ChatContext';
+import { formatTimeAgo } from '../../utils/time';
 import styles from './Notifications.module.css';
+
+const CATEGORIES = {
+  mesas:       new Set(['chat', 'comment', 'image', 'join_request', 'join_accepted', 'spot_opened', 'table_cancelled', 'join_rejected']),
+  torneos:     new Set(['tournament_accepted', 'tournament_rejected', 'tournament_advanced', 'tournament_eliminated', 'tournament_started', 'tournament_finished']),
+  amigos:      new Set(['friend_request', 'friend_accepted', 'dm']),
+  compartidas: new Set(['compartida_comment', 'compartida_like']),
+  admin:       new Set(['admin_chat']),
+};
+
+const CATEGORY_LABELS = {
+  all:         'Todas',
+  mesas:       'Mesas',
+  torneos:     'Torneos',
+  amigos:      'Amigos',
+  compartidas: 'Compartidas',
+  admin:       'Admin',
+};
+
+const getCategory = (type) => {
+  for (const [cat, set] of Object.entries(CATEGORIES)) {
+    if (set.has(type)) return cat;
+  }
+  return 'mesas';
+};
 
 function getNotifMeta(n) {
   switch (n.type) {
@@ -154,8 +180,28 @@ const getNotifTime = (n) => new Date(n.updatedAt || n.timestamp || 0).getTime();
 export default function Notifications() {
   const { notifications, markRead, markReadFriend, markReadTorneo, markReadCompartida, markReadDm, markReadAdminChat, markAllRead, clearAll } = useNotifications();
   const { clearConversationUnread } = useChat();
+  const [tab, setTab] = useState('all');
+  const [category, setCategory] = useState('all');
+  const [, setNow] = useState(Date.now());
+
+  // Refresh relative timestamps every minute
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
   const sorted = [...notifications].sort((a, b) => getNotifTime(b) - getNotifTime(a));
   const hasUnread = notifications.some((n) => !n.read);
+
+  const filtered = sorted.filter((n) => {
+    if (tab === 'unread' && n.read) return false;
+    if (category !== 'all' && getCategory(n.type) !== category) return false;
+    return true;
+  });
+
+  const unreadCountByCategory = (cat) => notifications.filter(
+    (n) => !n.read && (cat === 'all' || getCategory(n.type) === cat)
+  ).length;
 
   const markNotifRead = (n) => {
     if (n.type === 'admin_chat') return markReadAdminChat();
@@ -200,14 +246,57 @@ export default function Notifications() {
         )}
       </div>
 
+      {sorted.length > 0 && (
+        <>
+          <div className={styles.tabs}>
+            <button
+              className={`${styles.tab} ${tab === 'all' ? styles.tabActive : ''}`}
+              onClick={() => setTab('all')}
+            >
+              Todas
+            </button>
+            <button
+              className={`${styles.tab} ${tab === 'unread' ? styles.tabActive : ''}`}
+              onClick={() => setTab('unread')}
+            >
+              Sin leer
+              {hasUnread && <span className={styles.tabCount}>{unreadCountByCategory('all')}</span>}
+            </button>
+          </div>
+
+          <div className={styles.categoryChips}>
+            {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
+              const unread = unreadCountByCategory(key);
+              return (
+                <button
+                  key={key}
+                  className={`${styles.catChip} ${category === key ? styles.catChipActive : ''}`}
+                  onClick={() => setCategory(key)}
+                >
+                  {label}
+                  {unread > 0 && <span className={styles.catChipBadge}>{unread}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       {sorted.length === 0 ? (
         <div className={styles.empty}>
           <span className={styles.emptyIcon}>🔔</span>
           <p className={styles.emptyText}>Sin notificaciones</p>
+          <p className={styles.emptySub}>Cuando alguien te escriba, comente o invite, vas a verlo acá.</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className={styles.empty}>
+          <span className={styles.emptyIcon}>🔍</span>
+          <p className={styles.emptyText}>Sin resultados</p>
+          <p className={styles.emptySub}>Probá cambiar el filtro.</p>
         </div>
       ) : (
         <ul className={styles.list}>
-          {sorted.map((n) => {
+          {filtered.map((n) => {
             const { icon, countLabel, preview, chipClass } = getNotifMeta(n);
             const isTorneo = n.type?.startsWith('tournament_');
             const to =
@@ -248,6 +337,7 @@ export default function Notifications() {
                       )}
                     </div>
                     <span className={styles.cardPreview}>{preview}</span>
+                    <span className={styles.cardTime}>{formatTimeAgo(n.updatedAt || n.timestamp)}</span>
                   </div>
                   {!n.read && (
                     <button
