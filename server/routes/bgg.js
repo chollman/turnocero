@@ -187,7 +187,13 @@ router.get('/partidas/:bggUsername', async (req, res) => {
   const clientPage = Math.max(1, parseInt(req.query.page) || 1);
   const bggPage = Math.ceil(clientPage / PAGES_PER_BGG);
   const offsetWithinBgg = ((clientPage - 1) % PAGES_PER_BGG) * PAGE_SIZE;
-  const cacheKey = `partidas:${bggUsername.toLowerCase()}:bgg:${bggPage}`;
+
+  // Optional date filters (passed through to BGG)
+  const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+  const mindate = dateRe.test(req.query.mindate || '') ? req.query.mindate : null;
+  const maxdate = dateRe.test(req.query.maxdate || '') ? req.query.maxdate : null;
+
+  const cacheKey = `partidas:${bggUsername.toLowerCase()}:bgg:${bggPage}:${mindate || '-'}:${maxdate || '-'}`;
 
   const cachedFull = getCached(cacheKey);
   if (cachedFull) {
@@ -200,7 +206,13 @@ router.get('/partidas/:bggUsername', async (req, res) => {
   }
 
   try {
-    const xml = await fetchBgg(`${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=${bggPage}`);
+    const params = new URLSearchParams({
+      username: bggUsername,
+      page: String(bggPage),
+    });
+    if (mindate) params.set('mindate', mindate);
+    if (maxdate) params.set('maxdate', maxdate);
+    const xml = await fetchBgg(`${BGG_API}/plays?${params.toString()}`);
     const parsed = parser.parse(xml);
 
     const root = parsed?.plays;

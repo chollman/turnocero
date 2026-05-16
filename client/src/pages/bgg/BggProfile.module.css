@@ -201,6 +201,46 @@
 /* ─── Tab content ─── */
 .tabContent {
   min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Filter bar ─── */
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filterChip {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.filterChip:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.filterChipActive {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--on-amber);
+}
+
+.filterChipActive:hover {
+  background: var(--amber-light);
+  border-color: var(--amber-light);
+  color: var(--on-amber);
 }
 
 /* ─── Game grid ─── */
