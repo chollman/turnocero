@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import UserRef from '../../../components/shared/UserRef'
 import { getUserDisplay } from '../../../utils/userDisplay'
+import ModalPortal from '../../../components/shared/ModalPortal'
 import styles from '../TorneoDetail.module.css'
 
 export default function GameScoreModal({ game, players, onClose, onConfirm }) {
@@ -63,6 +64,7 @@ export default function GameScoreModal({ game, players, onClose, onConfirm }) {
   }
 
   return (
+    <ModalPortal>
     <div className={styles.modalBackdrop} onClick={onClose}>
       <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
@@ -108,5 +110,6 @@ export default function GameScoreModal({ game, players, onClose, onConfirm }) {
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }

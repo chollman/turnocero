@@ -775,7 +775,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  /* Above .appFrame (1000), FABs (1001-1002) and below fullscreen utilities (9999). */
+  z-index: 1500;
   padding: var(--page-padding-mobile);
 }
 

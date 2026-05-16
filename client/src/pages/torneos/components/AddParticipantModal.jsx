@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import UserRef from '../../../components/shared/UserRef'
 import { getUserDisplay } from '../../../utils/userDisplay'
+import ModalPortal from '../../../components/shared/ModalPortal'
 import styles from '../TorneoDetail.module.css'
 
 export default function AddParticipantModal({ torneo, onClose, onChange }) {
@@ -44,6 +45,7 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
   }
 
   return (
+    <ModalPortal>
     <div className={styles.modalBackdrop} onClick={onClose}>
       <div className={`${styles.modalCard} ${styles.modalCardWide}`} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
@@ -104,5 +106,6 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }

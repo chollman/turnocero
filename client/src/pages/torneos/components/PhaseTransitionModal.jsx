@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import ModalPortal from '../../../components/shared/ModalPortal'
 import styles from '../TorneoDetail.module.css'
 
 export default function PhaseTransitionModal({ torneoId, onClose, onGenerated }) {
@@ -31,6 +32,7 @@ export default function PhaseTransitionModal({ torneoId, onClose, onGenerated })
   if (loading) return null
 
   return (
+    <ModalPortal>
     <div className={styles.modalBackdrop} onClick={onClose}>
       <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
@@ -93,5 +95,6 @@ export default function PhaseTransitionModal({ torneoId, onClose, onGenerated })
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }

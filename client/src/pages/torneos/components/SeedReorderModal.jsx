@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import UserRef from '../../../components/shared/UserRef'
 import { getUserDisplay } from '../../../utils/userDisplay'
+import ModalPortal from '../../../components/shared/ModalPortal'
 import styles from '../TorneoDetail.module.css'
 
 export default function SeedReorderModal({ torneo, onClose, onSaved }) {
@@ -33,6 +34,7 @@ export default function SeedReorderModal({ torneo, onClose, onSaved }) {
   }
 
   return (
+    <ModalPortal>
     <div className={styles.modalBackdrop} onClick={onClose}>
       <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
@@ -79,5 +81,6 @@ export default function SeedReorderModal({ torneo, onClose, onSaved }) {
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
