@@ -64,6 +64,23 @@ const ICONS = {
       <line x1="3" y1="10" x2="21" y2="10" />
     </svg>
   ),
+  torneos: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M6 2v7a6 6 0 0 0 12 0V2z" />
+      <line x1="6" y1="22" x2="18" y2="22" />
+      <line x1="12" y1="15" x2="12" y2="22" />
+      <line x1="9" y1="22" x2="15" y2="22" />
+    </svg>
+  ),
   compartidas: (
     <svg
       viewBox="0 0 24 24"
@@ -181,6 +198,7 @@ const NAV = [
   { id: "noticias", label: "Noticias", to: "/noticias" },
   { id: "eventos", label: "Eventos", to: "/eventos" },
   { id: "users", label: "Comunidad", to: "/usuarios" },
+  { id: "torneos", label: "Torneos", to: "/torneos", adminOnly: true },
   { id: "dash", label: "Mesas", to: "/mesas", adminOnly: true },
   { id: "feed", label: "Mi feed", to: "/mi", adminOnly: true },
   { id: "db", label: "Base de datos", to: "/base-de-datos", adminOnly: true },
@@ -196,6 +214,7 @@ function getActiveId(pathname) {
   if (pathname === "/mi") return "feed";
   if (pathname.startsWith("/mesas")) return "dash";
   if (pathname.startsWith("/noticias")) return "noticias";
+  if (pathname.startsWith("/torneos")) return "torneos";
   if (pathname.startsWith("/eventos")) return "eventos";
   if (pathname === "/" || pathname.startsWith("/compartidas"))
     return "compartidas";

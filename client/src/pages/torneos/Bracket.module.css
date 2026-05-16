@@ -1,0 +1,240 @@
+.bracketWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empty {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 30px 0;
+  margin: 0;
+}
+
+/* ── Mobile round selector ── */
+.roundSelector {
+  display: none;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.roundSelector::-webkit-scrollbar { display: none; }
+
+.roundTab {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+
+.roundTabActive {
+  background: var(--amber-15);
+  border-color: var(--amber);
+  color: var(--amber-light);
+}
+
+@media (max-width: 959px) {
+  .roundSelector { display: flex; }
+}
+
+/* ── Bracket grid (desktop) ── */
+.bracket {
+  display: flex;
+  gap: 28px;
+  overflow-x: auto;
+  padding: 8px 4px 16px;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 959px) {
+  .bracket {
+    gap: 0;
+    overflow-x: visible;
+    padding-bottom: 0;
+  }
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  flex-shrink: 0;
+}
+
+.roundTitle {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: 0 0 12px;
+  text-align: center;
+}
+
+.roundMatches {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 1;
+  gap: 14px;
+}
+
+/* Use the data-round attr to push matches further apart in later rounds (visual tree). */
+.roundMatches[data-round='2'] { gap: 60px; padding: 24px 0; }
+.roundMatches[data-round='3'] { gap: 140px; padding: 64px 0; }
+.roundMatches[data-round='4'] { gap: 300px; padding: 140px 0; }
+.roundMatches[data-round='5'] { gap: 620px; padding: 280px 0; }
+
+@media (max-width: 959px) {
+  .roundMatches,
+  .roundMatches[data-round='2'],
+  .roundMatches[data-round='3'],
+  .roundMatches[data-round='4'],
+  .roundMatches[data-round='5'] {
+    gap: 10px;
+    padding: 0;
+  }
+}
+
+/* ── Match card ── */
+.match {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 76px;
+  transition: border-color var(--transition);
+}
+
+.match:hover { border-color: var(--amber-30); }
+
+.matchBye {
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+.matchFinal {
+  border-color: var(--amber);
+  background: var(--amber-10);
+  box-shadow: 0 0 0 2px var(--amber-25);
+}
+
+.slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+  min-height: 26px;
+}
+
+.slotEmpty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.slotDeleted {
+  color: var(--text-muted);
+  font-style: italic;
+  gap: 4px;
+}
+
+.slotWinner {
+  background: var(--amber-15);
+  color: var(--amber-light);
+  font-weight: 700;
+}
+
+.slotName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.slotPlaceholder { color: var(--text-muted); }
+
+.slotCheck { color: var(--green); font-weight: 700; }
+
+.matchDivider {
+  height: 1px;
+  background: var(--border);
+  margin: 0 6px;
+}
+
+.byeBadge {
+  position: absolute;
+  top: -6px;
+  right: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--border);
+}
+
+.recordBtn {
+  margin-top: 4px;
+  background: var(--amber);
+  color: var(--on-amber);
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+.recordBtn:hover { background: var(--amber-light); }
+
+.undoBtn {
+  margin-top: 4px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+.undoBtn:hover { color: var(--text-primary); border-color: var(--text-muted); }
+
+/* ── Connectors (desktop only) ── */
+@media (min-width: 960px) {
+  .round + .round .match::before {
+    content: '';
+    position: absolute;
+    left: -29px;
+    top: 50%;
+    width: 28px;
+    height: 1px;
+    background: var(--border);
+  }
+}

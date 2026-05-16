@@ -53,6 +53,34 @@ function getNotifMeta(n) {
         preview: `Se liberó un lugar en ${n.tableName}`,
         chipClass: 'request',
       };
+    case 'tournament_accepted':
+      return {
+        icon: '🏆',
+        countLabel: '¡Inscripción aprobada!',
+        preview: `Ya estás dentro del torneo`,
+        chipClass: 'accepted',
+      };
+    case 'tournament_rejected':
+      return {
+        icon: '🚫',
+        countLabel: 'Inscripción rechazada',
+        preview: `Tu inscripción al torneo fue rechazada`,
+        chipClass: 'request',
+      };
+    case 'tournament_advanced':
+      return {
+        icon: '🎉',
+        countLabel: '¡Pasaste de ronda!',
+        preview: `Avanzaste a la ${n.round ? `ronda ${n.round + 1}` : 'siguiente ronda'}`,
+        chipClass: 'accepted',
+      };
+    case 'tournament_eliminated':
+      return {
+        icon: '🥲',
+        countLabel: 'Quedaste fuera',
+        preview: `Suerte la próxima 🎲`,
+        chipClass: 'request',
+      };
     default:
       return {
         icon: '🎲',
@@ -91,10 +119,17 @@ export default function Notifications() {
         <ul className={styles.list}>
           {sorted.map((n) => {
             const { icon, countLabel, preview, chipClass } = getNotifMeta(n);
-            const to = n.fromUserId ? `/usuarios/${n.fromUserId}` : `/mesas/${n.tableId}`;
-            const handleClick = () => n.fromUserId ? markReadFriend(n.fromUserId) : markRead(n.tableId);
+            const isTorneo = n.type?.startsWith('tournament_');
+            const to = isTorneo
+              ? `/torneos/${n.torneoId}`
+              : n.fromUserId ? `/usuarios/${n.fromUserId}` : `/mesas/${n.tableId}`;
+            const handleClick = () => {
+              if (isTorneo) return;
+              if (n.fromUserId) markReadFriend(n.fromUserId);
+              else markRead(n.tableId);
+            };
             return (
-              <li key={`${n.type ?? 'chat'}:${n.tableId ?? n.fromUserId}`}>
+              <li key={`${n.type ?? 'chat'}:${n.tableId ?? n.fromUserId ?? n.torneoId}`}>
                 <Link
                   to={to}
                   className={`${styles.card} ${n.read ? styles.cardRead : ''}`}
@@ -106,7 +141,7 @@ export default function Notifications() {
                   </div>
                   <div className={styles.cardBody}>
                     <div className={styles.cardTop}>
-                      <span className={styles.cardGame}>{n.tableName || n.fromUsername}</span>
+                      <span className={styles.cardGame}>{n.tableName || n.fromUsername || n.torneoTitle}</span>
                       {!n.read && (
                         <span className={`${styles.chip} ${styles[chipClass]}`}>
                           {countLabel}

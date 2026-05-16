@@ -32,7 +32,7 @@ After that, Claude will read and write memories directly from the repo folder.
 
 ## Project Overview
 
-**Turnocero** is a full-stack web app for the Argentine board-game community. Core feature: organize *mesas* (game sessions) — create, join, chat, and manage them. Additional features: *Compartidas* (social posts about sessions), *Noticias* (admin news/announcements), a friends system, direct messages between friends, and public browsing without login. The UI and all user-facing content are in **Argentine Spanish**. The app is deployed as a **PWA** (vite-plugin-pwa; assets in `client/public/`).
+**Turnocero** is a full-stack web app for the Argentine board-game community. Core feature: organize *mesas* (game sessions) — create, join, chat, and manage them. Additional features: *Compartidas* (social posts about sessions), *Noticias* (admin news/announcements), *Torneos* (admin-managed tournaments — league and single-elimination), a friends system, direct messages between friends, and public browsing without login. The UI and all user-facing content are in **Argentine Spanish**. The app is deployed as a **PWA** (vite-plugin-pwa; assets in `client/public/`).
 
 ## Development Commands
 
@@ -51,7 +51,7 @@ No test commands are configured. ESLint runs as a pre-commit hook via the `/reac
 
 ## Frontend routing
 
-All client-side routes **must use Spanish slugs**. Examples: `/mesas`, `/mesas/crear`, `/mesas/:id/editar`, `/compartidas`, `/noticias`, `/perfil`, `/usuarios`, `/notificaciones`, `/mi`, `/mensajes`, `/base-de-datos`. The only exceptions are `/login` and `/register`.
+All client-side routes **must use Spanish slugs**. Examples: `/mesas`, `/mesas/crear`, `/mesas/:id/editar`, `/compartidas`, `/noticias`, `/torneos`, `/torneos/crear`, `/torneos/:id/editar`, `/perfil`, `/usuarios`, `/notificaciones`, `/mi`, `/mensajes`, `/base-de-datos`. The only exceptions are `/login` and `/register`.
 
 ## Git conventions
 
@@ -97,6 +97,34 @@ Social posts that users create to share moments from their sessions. Stored in t
 ### Noticias
 Admin-only announcements. `Noticia` model: title, body, image (Cloudinary, `turnocero/noticias/`), optional link + linkLabel. Read publicly; write requires `isAdmin`.
 
+### Torneos
+Admin-managed tournaments. Three formats supported:
+- **Liga**: head-to-head round-robin (3/1/0 scoring).
+- **Eliminación simple**: single-elimination bracket with byes.
+- **Grupos**: multi-phase tournament with multi-player tables (most realistic for board-game tournaments). Players are split into groups of `tableSize`, each group plays `gamesPerGroup` games, top `qualifiersPerGroup` advance to the next phase. Repeats until a single final table.
+
+Models:
+- `Torneo`: `title`, `description`, `game` (free-text), `format`, `status` (`draft` → `registration` → `in_progress` → `finished`), `inscriptionMode` (`open` | `admin_only`), `image`, `maxParticipants`, `createdBy`, `participants` (ordered by seed), `pendingRegistrations`, `rejectedRegistrations`, `winner`, `runnerUp`. **Groups-specific:** `tableSize`, `gamesPerGroup`, `qualifiersPerGroup`, `currentPhase`.
+- `TorneoMatch` (liga + single_elim only): `torneo`, `round`, `matchIndex`, `playerA`, `playerB`, `nextMatch` (single_elim, with `isUpperSlot`), `winner`, `isDraw` (league only), `status` (`pending` | `completed` | `bye`), `playedAt`.
+- `TorneoGroup` (groups only): `torneo`, `phase`, `tableNumber`, `players`, `advancedPlayers` (top-C, editable by admin before next-phase generation), `status` (`pending` | `in_progress` | `completed`), `completedAt`.
+- `TorneoGame` (groups only): `torneo`, `group`, `gameNumber`, `results: [{ player, score, position }]`, `status`, `playedAt`. Position is auto-derived from score within a game (1st = highest score; ties share position).
+
+Inscription modes:
+- `open`: users self-register; admin accepts/rejects. State machine: `draft → registration → in_progress → finished`.
+- `admin_only`: admin adds users directly via `POST /api/torneos/:id/participants/:userId` (search-and-pick UI). Registration state is optional; admin may go `draft → in_progress` directly. The register button is hidden from regular users.
+
+Lifecycle for **groups**: admin creates as `draft` → adds participants (or opens registration first) → starts (`in_progress`), which calls `generateGroupsPhase()` and creates `TorneoGroup` + `TorneoGame` docs for phase 1 → admin loads scores per game; after all P games of a group are loaded, the group auto-completes and the system suggests top-C as `advancedPlayers` (admin can edit) → when all groups of the phase are complete + have advancedPlayers, admin clicks "Siguiente fase" → `POST /api/torneos/:id/next-phase` (preview at `/next-phase/preview`) validates layout (with override-table-size suggestions for uneven cuts) and generates phase N+1 → loop until 1 final table → admin finalizes.
+
+Lifecycle for **league/single_elim** (unchanged): same as above but uses `TorneoMatch` and `generateLeagueFixture()` / `generateSingleElimBracket()` (NCAA seeding with byes pre-advanced).
+
+Standings:
+- League: 3/1/0 head-to-head sum (`computeStandings`).
+- Groups: sum of PV (native game score) per player across all games of the group (`computeGroupStandings`). Tiebreak: seed order (stable).
+
+Notifications: 5 non-aggregating types — `tournament_accepted`, `tournament_rejected`, `tournament_advanced`, `tournament_eliminated`, `tournament_pending` (only as toast, after the user clicks "Inscribirme"). `Notification` schema has `torneoId`, `torneoTitle`, `round` fields. `tournament_advanced` is reused both for single-elim bracket wins and for groups-format phase promotions.
+
+Drafts are visible only to admins (filtered server-side; 404 in detail for non-admins). Users see only `registration` / `in_progress` / `finished`. When `inscriptionMode === 'admin_only'`, `registration` status renders as "Inscripción cerrada" in the card.
+
 ### Friends system
 Stored on the `User` model: `friends: [ObjectId]` and `friendRequests: [{ from, sentAt }]`. Managed via `/api/friends/:id/request|accept|reject` and `DELETE /api/friends/:id`. The friends list gates `'friends'`-privacy Compartidas and DM access.
 
@@ -130,6 +158,10 @@ Server-emitted events:
 | `friend:accepted` | `user:<fromId>` | friend request accepted |
 | `dm:message` | `user:<recipientId>` | direct message sent (includes `isNewConversation`) |
 | `admin:message` | `admin:room` | admin chat message sent |
+| `torneo:registration-accepted` | `user:<id>` | admin accepts a tournament registration |
+| `torneo:registration-rejected` | `user:<id>` | admin rejects a tournament registration |
+| `torneo:advanced` | `user:<id>` | single-elim match winner advances (not on final) |
+| `torneo:eliminated` | `user:<id>` | single-elim match loser is out |
 
 ### NotificationContext
 Owns the Socket.IO connection for the authenticated user. On mount, loads persisted notifications from `GET /api/notifications` (MongoDB, last 60) and mirrors any updates back via `PATCH /api/notifications/read` and `DELETE /api/notifications`. Also drives in-app toasts (max 4 visible). `setActiveTable(tableId)` suppresses notifications for the currently open table and auto-marks them read. `unreadCount` drives the nav badge. DM messages are routed through `addDmListener` (consumed by `ChatContext`) rather than stored as persistent notifications.
@@ -185,6 +217,30 @@ GET    /api/noticias/:id                        — public
 PUT    /api/noticias/:id                        — admin only
 DELETE /api/noticias/:id                        — admin only
 
+GET    /api/torneos                             — optionalAuth, paginated (?status, ?game)
+POST   /api/torneos                             — admin only; creates in 'draft'
+GET    /api/torneos/:id                         — optionalAuth (drafts hidden from non-admins)
+PUT    /api/torneos/:id                         — admin only
+DELETE /api/torneos/:id                         — admin only (only draft or no matches)
+POST   /api/torneos/:id/register                — auth; creates pending registration
+DELETE /api/torneos/:id/register                — auth; cancel own pending
+POST   /api/torneos/:id/registrations/:userId/accept  — admin only
+POST   /api/torneos/:id/registrations/:userId/reject  — admin only
+POST   /api/torneos/:id/participants/:userId    — admin only (admin_only mode: direct add)
+DELETE /api/torneos/:id/participants/:userId    — admin only (draft/registration)
+PATCH  /api/torneos/:id/seeds                   — admin only (reorder before in_progress)
+PATCH  /api/torneos/:id/status                  — admin only (validated transitions; generates fixture/groups on registration→in_progress)
+GET    /api/torneos/:id/matches                 — optionalAuth (liga + single_elim)
+POST   /api/torneos/:id/matches/:matchId/result — admin only (body: { winnerId } or { draw: true })
+DELETE /api/torneos/:id/matches/:matchId/result — admin only (cascades clear in single_elim)
+GET    /api/torneos/:id/standings               — optionalAuth (computed for league)
+GET    /api/torneos/:id/groups                  — optionalAuth (groups format; ?phase, default = currentPhase)
+POST   /api/torneos/:id/games/:gameId/result    — admin only (body: { results: [{ playerId, score }] })
+DELETE /api/torneos/:id/games/:gameId/result    — admin only
+PATCH  /api/torneos/:id/groups/:groupId/advanced  — admin only (edit advancedPlayers list)
+POST   /api/torneos/:id/next-phase              — admin only (body: { tableSize? } override)
+GET    /api/torneos/:id/next-phase/preview      — admin only (validates layout + suggestions)
+
 POST   /api/friends/:id/request
 DELETE /api/friends/:id/request                 — cancel sent request
 POST   /api/friends/:id/accept
@@ -223,6 +279,13 @@ App (AuthProvider + NotificationProvider + ChatProvider + Router)
 ├── pages/compartidas/          ← Compartidas /compartidas, CompartidaPost /compartidas/:id
 │                                  + CompartidaCard, CompartidaSkeleton, CompartidasSidebar, CreateCompartidaForm
 ├── pages/noticias/             ← Noticias /noticias, NoticiaDetail /noticias/:id
+├── pages/torneos/              ← Torneos /torneos, TorneoDetail /torneos/:id,
+│                                  CreateTorneo /torneos/crear, EditTorneo /torneos/:id/editar
+│                                  + Bracket, LeagueStandings, LeagueRoundsList,
+│                                    RecordResultModal, SeedReorderModal, AdminPanel,
+│                                    RegistrationsList, ParticipantsList, RegisterButton,
+│                                    AddParticipantModal, GroupsView, GroupStandings,
+│                                    GameScoreModal, PhaseTransitionModal
 ├── pages/me/                   ← MeFeed /mi + FeedCard  (own tables feed)
 ├── pages/users/                ← UsersList /usuarios, UserProfile /perfil, UserProfilePublic /usuarios/:id
 ├── pages/messages/             ← Messages /mensajes, DirectChat /mensajes/:userId, AdminChat /mensajes-admin
@@ -236,6 +299,7 @@ All image uploads go through Multer (memory storage, no disk) before Cloudinary.
 - Tables: `turnocero/tables/<tableId>/` (transformed to max 1200 px wide)
 - Compartidas: `turnocero/compartidas/<compartidaId>/`
 - Noticias: `turnocero/noticias/`
+- Torneos: `turnocero/torneos/` (banner per tournament; max 1200 px wide)
 
 ### Server error format
 All error responses return `{ message: '<string>' }`. Status codes: `400` validation/bad request, `401` unauthenticated, `403` forbidden, `404` not found, `500` server error. Auth routes (`/register`, `/login`) are rate-limited: 10 attempts per 15 minutes per IP.

@@ -1,7 +1,7 @@
 # Memory Index — Turnocero
 
 - [Claudio Hollman — developer profile](user_profile.md) — sole dev/owner, full-stack, Argentine Spanish UI, English commit messages
-- [Turnocero current feature set](project_features.md) — Noticias, Compartidas, Friends, public browsing, Sidebar/BottomNav/GuestNavbar, admin moderation — features beyond CLAUDE.md
+- [Turnocero current feature set](project_features.md) — Noticias, Compartidas, Torneos, Friends, public browsing, Sidebar/BottomNav/GuestNavbar, admin moderation — features beyond CLAUDE.md
 - [Code style and workflow preferences](feedback_style.md) — commit-msg/UI language, BGG warning, CSS Modules, no tests
 - [Page padding system](padding_system.md) — `--page-padding`, `--page-padding-left`, `--page-padding-mobile` variables; patterns per page type
 - [Skeleton shimmer pattern](skeleton_pattern.md) — standard for all loading states; which screens are done, which are pending (BggProfile skipped)

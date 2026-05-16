@@ -24,6 +24,10 @@ const notificationSchema = new mongoose.Schema(
     lastCommenterUsername: String,
     lastCommentPreview: String,
     lastUploaderUsername: String,
+    // Torneo-related
+    torneoId: { type: String, default: null },
+    torneoTitle: { type: String, default: '' },
+    round: { type: Number, default: null },
   },
   { timestamps: true }
 );
@@ -31,5 +35,6 @@ const notificationSchema = new mongoose.Schema(
 // Compound index for fast upsert lookups
 notificationSchema.index({ recipient: 1, type: 1, tableId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, fromUserId: 1 });
+notificationSchema.index({ recipient: 1, type: 1, torneoId: 1 });
 
 module.exports = mongoose.model('Notification', notificationSchema);

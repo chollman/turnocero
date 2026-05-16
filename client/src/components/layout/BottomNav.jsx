@@ -69,6 +69,17 @@ const EventosIcon = () => (
   </svg>
 )
 
+const TorneosIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+    <path d="M6 2v7a6 6 0 0 0 12 0V2z"/>
+    <line x1="6" y1="22" x2="18" y2="22"/>
+    <line x1="12" y1="15" x2="12" y2="22"/>
+    <line x1="9" y1="22" x2="15" y2="22"/>
+  </svg>
+)
+
 const UtilidadesIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
@@ -97,9 +108,10 @@ const REGULAR_NAV = [
 ]
 
 const ADMIN_NAV = [
-  { id: 'dash',  label: 'Mesas',     Icon: MesasIcon,    to: '/mesas',         adminOnly: true },
-  { id: 'feed',  label: 'Feed',      Icon: FeedIcon,     to: '/mi',            adminOnly: true },
-  { id: 'db',    label: 'DB',        Icon: DBIcon,       to: '/base-de-datos', adminOnly: true },
+  { id: 'torneos', label: 'Torneos',  Icon: TorneosIcon,  to: '/torneos',       adminOnly: true },
+  { id: 'dash',    label: 'Mesas',    Icon: MesasIcon,    to: '/mesas',         adminOnly: true },
+  { id: 'feed',    label: 'Feed',     Icon: FeedIcon,     to: '/mi',            adminOnly: true },
+  { id: 'db',      label: 'DB',       Icon: DBIcon,       to: '/base-de-datos', adminOnly: true },
 ]
 
 const DIVIDER = { id: '__divider__', isDivider: true }
@@ -110,6 +122,7 @@ function getActiveId(pathname) {
   if (pathname === '/mi') return 'feed'
   if (pathname.startsWith('/mesas')) return 'dash'
   if (pathname.startsWith('/noticias')) return 'noticias'
+  if (pathname.startsWith('/torneos')) return 'torneos'
   if (pathname.startsWith('/eventos')) return 'eventos'
   if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas'
   if (pathname.startsWith('/usuarios')) return 'users'

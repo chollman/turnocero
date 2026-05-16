@@ -23,6 +23,10 @@ import Notifications from './pages/notifications/Notifications';
 import MeFeed from './pages/me/MeFeed';
 import Noticias from './pages/noticias/Noticias';
 import NoticiaDetail from './pages/noticias/NoticiaDetail';
+import Torneos from './pages/torneos/Torneos';
+import TorneoDetail from './pages/torneos/TorneoDetail';
+import CreateTorneo from './pages/torneos/CreateTorneo';
+import EditTorneo from './pages/torneos/EditTorneo';
 import Eventos from './pages/eventos/Eventos';
 import EventoDetail from './pages/eventos/EventoDetail';
 import EventoInscripciones from './pages/eventos/EventoInscripciones';
@@ -98,6 +102,10 @@ function AppRoutes() {
           <Route path="/mi" element={<AdminRoute><MeFeed /></AdminRoute>} />
           <Route path="/noticias" element={<Noticias />} />
           <Route path="/noticias/:id" element={<NoticiaDetail />} />
+          <Route path="/torneos" element={<AdminRoute><Torneos /></AdminRoute>} />
+          <Route path="/torneos/crear" element={<AdminRoute><CreateTorneo /></AdminRoute>} />
+          <Route path="/torneos/:id" element={<AdminRoute><TorneoDetail /></AdminRoute>} />
+          <Route path="/torneos/:id/editar" element={<AdminRoute><EditTorneo /></AdminRoute>} />
           <Route path="/eventos" element={<PrivateRoute><Eventos /></PrivateRoute>} />
           <Route path="/eventos/:id" element={<PrivateRoute><EventoDetail /></PrivateRoute>} />
           <Route path="/eventos/:id/inscripciones" element={<PrivateRoute><EventoInscripciones /></PrivateRoute>} />

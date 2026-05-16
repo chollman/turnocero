@@ -29,7 +29,7 @@ const NAV = [
 
 function getActiveId(pathname) {
   if (pathname.startsWith('/noticias')) return 'noticias';
-if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas';
+  if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas';
   if (pathname.startsWith('/utilidades')) return 'utilidades';
   return null;
 }

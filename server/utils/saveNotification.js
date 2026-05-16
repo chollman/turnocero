@@ -11,8 +11,9 @@ const AGGREGATING = new Set(['chat', 'comment', 'image', 'join_request']);
  */
 async function saveNotification(recipientId, type, fields) {
   const filter = { recipient: recipientId, type };
-  if (fields.tableId)   filter.tableId   = fields.tableId;
+  if (fields.tableId)    filter.tableId    = fields.tableId;
   if (fields.fromUserId) filter.fromUserId = fields.fromUserId;
+  if (fields.torneoId)   filter.torneoId   = fields.torneoId;
 
   if (AGGREGATING.has(type)) {
     const { tableName, ...updateFields } = fields;

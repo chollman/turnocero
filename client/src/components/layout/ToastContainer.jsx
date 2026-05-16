@@ -17,6 +17,11 @@ const DURATION = {
   friend_accepted: 5500,
   dm: 4000,
   dm_new: 7000,
+  tournament_accepted:   6000,
+  tournament_rejected:   6000,
+  tournament_advanced:   6000,
+  tournament_eliminated: 6000,
+  tournament_pending:    5000,
 };
 
 function ToastItem({ toast, onDismiss }) {
@@ -40,6 +45,8 @@ function ToastItem({ toast, onDismiss }) {
       } else {
         navigate(`/mensajes/${toast.fromUserId}`);
       }
+    } else if (toast.type?.startsWith('tournament_')) {
+      navigate(`/torneos/${toast.torneoId}`);
     } else {
       navigate(`/mesas/${toast.tableId}`);
     }
@@ -60,15 +67,26 @@ function ToastItem({ toast, onDismiss }) {
     toast.type === 'friend_request'  ? '🤝' :
     toast.type === 'friend_accepted' ? '✅' :
     toast.type === 'dm_new'          ? '💬' :
-    toast.type === 'dm'              ? '💬' : '🎲';
+    toast.type === 'dm'              ? '💬' :
+    toast.type === 'tournament_accepted'   ? '🏆' :
+    toast.type === 'tournament_rejected'   ? '🚫' :
+    toast.type === 'tournament_advanced'   ? '🎉' :
+    toast.type === 'tournament_eliminated' ? '🥲' :
+    toast.type === 'tournament_pending'    ? '⏳' : '🎲';
 
   const title =
-    toast.type === 'join_accepted'   ? '¡Fuiste aceptado!' :
-    toast.type === 'spot_opened'     ? '¡Se liberó un lugar!' :
-    toast.type === 'friend_request'  ? `${toast.fromUsername}` :
-    toast.type === 'friend_accepted' ? `${toast.fromUsername}` :
-    toast.type === 'dm_new'          ? `${toast.fromUsername}` :
-    toast.type === 'dm'              ? `${toast.fromUsername}` : toast.tableName;
+    toast.type === 'join_accepted'         ? '¡Fuiste aceptado!' :
+    toast.type === 'spot_opened'           ? '¡Se liberó un lugar!' :
+    toast.type === 'friend_request'        ? `${toast.fromUsername}` :
+    toast.type === 'friend_accepted'       ? `${toast.fromUsername}` :
+    toast.type === 'dm_new'                ? `${toast.fromUsername}` :
+    toast.type === 'dm'                    ? `${toast.fromUsername}` :
+    toast.type === 'tournament_accepted'   ? '¡Inscripción aprobada!' :
+    toast.type === 'tournament_rejected'   ? 'Inscripción rechazada' :
+    toast.type === 'tournament_advanced'   ? '¡Pasaste de ronda!' :
+    toast.type === 'tournament_eliminated' ? 'Quedaste fuera del torneo' :
+    toast.type === 'tournament_pending'    ? 'Inscripción enviada' :
+    toast.tableName;
 
   const body =
     toast.type === 'chat'
@@ -89,7 +107,17 @@ function ToastItem({ toast, onDismiss }) {
                   ? 'Te escribió por primera vez · Tocá para responder'
                   : toast.type === 'dm'
                     ? `${toast.messagePreview}${toast.messagePreview?.length >= 60 ? '…' : ''}`
-                    : `Ya sos parte de la mesa de ${toast.tableName}`;
+                    : toast.type === 'tournament_accepted'
+                      ? `${toast.torneoTitle} · Ya estás dentro`
+                      : toast.type === 'tournament_rejected'
+                        ? `${toast.torneoTitle}`
+                        : toast.type === 'tournament_advanced'
+                          ? `Avanzaste en ${toast.torneoTitle}`
+                          : toast.type === 'tournament_eliminated'
+                            ? `${toast.torneoTitle} · Suerte la próxima 🎲`
+                            : toast.type === 'tournament_pending'
+                              ? `${toast.torneoTitle} · Esperá la aprobación del admin`
+                              : `Ya sos parte de la mesa de ${toast.tableName}`;
 
   return (
     <div className={styles.toast} onClick={handleClick} role="alert">

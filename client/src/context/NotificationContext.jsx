@@ -201,6 +201,36 @@ export function NotificationProvider({ children }) {
       }
     });
 
+    const handleTorneoEvent = (eventType) => (notif) => {
+      setNotifications((prev) => {
+        const rest = prev.filter((n) => !(n.type === eventType && n.torneoId === notif.torneoId));
+        return [...rest, {
+          type: eventType,
+          torneoId: notif.torneoId,
+          torneoTitle: notif.torneoTitle,
+          round: notif.round,
+          count: 1,
+          read: false,
+          timestamp: notif.timestamp || new Date().toISOString(),
+        }];
+      });
+      setToasts((prev) => {
+        const next = [...prev, {
+          id: makeToastId(),
+          type: eventType,
+          torneoId: notif.torneoId,
+          torneoTitle: notif.torneoTitle,
+          round: notif.round,
+        }];
+        return next.length > 4 ? next.slice(-4) : next;
+      });
+    };
+
+    socket.on('torneo:registration-accepted', handleTorneoEvent('tournament_accepted'));
+    socket.on('torneo:registration-rejected', handleTorneoEvent('tournament_rejected'));
+    socket.on('torneo:advanced',              handleTorneoEvent('tournament_advanced'));
+    socket.on('torneo:eliminated',            handleTorneoEvent('tournament_eliminated'));
+
     return () => socket.disconnect();
     // refreshUser is intentionally omitted — including it would reconnect the socket on every render
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps

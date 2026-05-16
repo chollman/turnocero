@@ -34,7 +34,7 @@ function getActiveId(pathname) {
   if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas'
   if (pathname.startsWith('/mesas')) return 'mesas'
   if (pathname.startsWith('/noticias')) return 'noticias'
-if (pathname.startsWith('/utilidades')) return 'utilidades'
+  if (pathname.startsWith('/utilidades')) return 'utilidades'
   return null
 }
 

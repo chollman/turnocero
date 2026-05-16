@@ -51,6 +51,30 @@ The app has grown significantly beyond what CLAUDE.md documents. Current feature
 ### Separate notifications server route
 - `server/routes/notifications.js` exists alongside the client-side `NotificationContext`
 
+### Torneos (Tournaments — v1 added 2026-05-16; v2 same day adding Grupos + admin_only mode)
+- Routes: `/torneos`, `/torneos/:id`, `/torneos/crear` (admin), `/torneos/:id/editar` (admin)
+- Models:
+  - `Torneo`: lifecycle `draft` → `registration` → `in_progress` → `finished`; new fields `inscriptionMode` ('open' | 'admin_only'), and groups-specific `tableSize`/`gamesPerGroup`/`qualifiersPerGroup`/`currentPhase`.
+  - `TorneoMatch` (liga + single_elim only).
+  - `TorneoGroup` and `TorneoGame` (groups format only): a group has players + advancedPlayers + status; a game has a `results: [{ player, score, position }]` array.
+- **Three formats**:
+  - **Liga** (round-robin, head-to-head, 3/1/0).
+  - **Eliminación simple** (single-elim bracket, NCAA seeding, byes pre-advanced).
+  - **Grupos** (multi-phase, multi-player tables, scored by native game points; top-C per group advance; admin can override advancedPlayers list before next-phase generation).
+- Inscription modes:
+  - `open`: users self-register, admin accepts/rejects (registration list, accept/reject actions).
+  - `admin_only`: register button hidden; admin uses `AddParticipantModal` (search-and-pick from /api/users). State machine allows `draft → in_progress` directly.
+- Fixture generation: `server/utils/tournamentGeneration.js` exports `generateLeagueFixture`, `generateSingleElimBracket`, `computeStandings`, `generateGroupsPhase` (snake seeding), `computeGroupStandings` (sum of PV, stable tiebreak by seed), `validateNextPhase` (suggests override-tableSize when cut is uneven).
+- Groups lifecycle: admin starts → phase 1 generated (`POST /status` to `in_progress` calls `generateGroupsPhase`) → admin loads scores per game (`POST /games/:gameId/result`) → when all P games of a group done, group auto-completes + top-C assigned to `advancedPlayers` (admin can edit via `PATCH /groups/:groupId/advanced`) → admin generates next phase (`POST /next-phase`, preview at `/next-phase/preview`) → repeats until 1 final table → admin finalizes.
+- 5 notification types: `tournament_accepted`, `tournament_rejected`, `tournament_advanced` (reused for both single-elim bracket advances and groups phase promotions), `tournament_eliminated`, and `tournament_pending` (only as toast confirmation when a user clicks "Inscribirme"). `Notification` schema has `torneoId`, `torneoTitle`, `round` fields.
+- 4 socket events: `torneo:registration-accepted|rejected`, `torneo:advanced`, `torneo:eliminated` (all → `user:<id>`).
+- RegisterButton shows an animated success row for 3s after registering, plus toast.
+- TorneoCard shows "Inscripción cerrada" (instead of "Inscripción abierta") when `inscriptionMode === 'admin_only'`.
+- Pages: `Torneos.jsx`, `TorneoDetail.jsx` (banner + admin panel + tabs by format), `CreateTorneo.jsx`, `EditTorneo.jsx`. Components in `pages/torneos/components/`: Bracket, LeagueStandings, LeagueRoundsList, RecordResultModal, SeedReorderModal, AdminPanel, RegistrationsList, ParticipantsList, RegisterButton, TorneoCard, ImageDropzone, AddParticipantModal, GroupsView, GroupStandings, GameScoreModal, PhaseTransitionModal.
+- Cloudinary banner: `turnocero/torneos/` (max 1200 px wide).
+- Drafts hidden from non-admins.
+- All admin UI respects `isActuallyAdmin && !viewAsUser` — see [[feedback_admin_view_as_user]].
+
 ### Admin user moderation (added 2026-05-16)
 - In `/usuarios` (Comunidad), admins see Ban/Unban + Delete buttons on each non-admin, non-self user card
 - Banned users have a red "Baneado" badge; tooltip shows `bannedReason` if set
