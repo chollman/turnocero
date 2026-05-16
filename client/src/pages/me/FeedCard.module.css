@@ -67,7 +67,7 @@
 }
 
 .roleBadgePlayer {
-  background: rgba(0, 217, 132, 0.18);
+  background: var(--green-15);
   color: var(--green);
 }
 

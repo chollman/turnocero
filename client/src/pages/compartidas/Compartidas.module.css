@@ -65,7 +65,7 @@
 
 .newBtn {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   padding: 9px 18px;
   border-radius: 8px;
@@ -135,7 +135,7 @@
 .emptyBtn {
   margin-top: 8px;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   padding: 9px 20px;
   border-radius: 8px;

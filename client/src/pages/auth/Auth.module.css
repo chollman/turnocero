@@ -35,7 +35,7 @@
   height: 38px;
   border-radius: 9px;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   font-family: var(--font-display);
   font-size: 20px;
   font-weight: 800;
@@ -105,8 +105,8 @@
 
 /* ── Error ── */
 .errorBox {
-  background: rgba(243, 29, 119, 0.12);
-  border: 1px solid rgba(243, 29, 119, 0.35);
+  background: var(--red-15);
+  border: 1px solid var(--red-30);
   border-radius: 8px;
   padding: 0.65rem 0.9rem;
   color: var(--red);
@@ -157,14 +157,14 @@
 
 .input:focus {
   border-color: var(--amber-dark);
-  box-shadow: 0 0 0 3px rgba(24, 136, 239, 0.2);
+  box-shadow: 0 0 0 3px var(--amber-20);
 }
 
 /* ── Submit button ── */
 .submitBtn {
   margin-top: 4px;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   border-radius: 8px;
   padding: 0.8rem 1rem;

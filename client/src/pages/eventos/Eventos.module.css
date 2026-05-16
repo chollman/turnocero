@@ -55,7 +55,7 @@
 
 .newBtn {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   padding: 9px 18px;
   border-radius: 8px;
@@ -238,7 +238,7 @@
 
 .btnPublish {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   padding: 7px 20px;
   border-radius: 8px;

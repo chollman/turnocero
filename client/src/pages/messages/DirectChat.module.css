@@ -48,7 +48,7 @@
   height: 36px;
   border-radius: 50%;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   font-size: 0.9rem;
   font-weight: 700;
   display: flex;
@@ -164,7 +164,7 @@
 
 .own .bubble {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border-bottom-right-radius: 5px;
 }
 
@@ -199,7 +199,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--on-amber);
   animation: dotPulse 1.2s ease-in-out infinite;
 }
 
@@ -246,7 +246,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #fff;
+  color: var(--on-amber);
   flex-shrink: 0;
   align-self: center;
   transition: opacity 0.15s;

@@ -149,7 +149,7 @@
 
 .createCtaBtn {
   background: var(--amber);
-  color: #ffffff;
+  color: var(--on-amber);
   border: none;
   border-radius: 8px;
   padding: 0.4rem 1rem;
@@ -163,7 +163,7 @@
 
 .createCtaBtn:hover {
   background: var(--amber-light);
-  color: #ffffff;
+  color: var(--on-amber);
   box-shadow: var(--shadow-amber);
 }
 
@@ -220,7 +220,7 @@
 
 .search:focus {
   border-color: var(--amber-dark);
-  box-shadow: 0 0 0 3px rgba(24, 136, 239, 0.2);
+  box-shadow: 0 0 0 3px var(--amber-20);
 }
 
 /* Grid */
@@ -305,7 +305,7 @@
 .createBtn {
   margin-top: 0.5rem;
   background: var(--amber);
-  color: #ffffff;
+  color: var(--on-amber);
   border: none;
   border-radius: 8px;
   padding: 0.65rem 1.5rem;
@@ -318,7 +318,7 @@
 
 .createBtn:hover {
   background: var(--amber-light);
-  color: #ffffff;
+  color: var(--on-amber);
   box-shadow: var(--shadow-amber);
 }
 
@@ -381,21 +381,21 @@
     height: 46px;
     padding: 0 16px 0 12px;
     background: var(--amber);
-    color: #fff;
+    color: var(--on-amber);
     border-radius: 14px;
     font-family: var(--font-display);
     font-size: 0.85rem;
     font-weight: 700;
     letter-spacing: 0.02em;
     text-decoration: none;
-    box-shadow: 0 6px 20px var(--amber-glow), 0 0 0 4px rgba(24, 136, 239, 0.08);
+    box-shadow: 0 6px 20px var(--amber-glow), 0 0 0 4px var(--amber-10);
     z-index: 50;
     transition: background var(--transition), box-shadow var(--transition);
   }
 
   .fab:hover {
     background: var(--amber-dark);
-    color: #fff;
+    color: var(--on-amber);
     box-shadow: var(--shadow-amber);
   }
 }

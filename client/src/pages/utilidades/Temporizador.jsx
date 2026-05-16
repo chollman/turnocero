@@ -94,7 +94,7 @@ export default function Temporizador() {
             <circle
               cx="70" cy="70" r={R}
               fill="none"
-              stroke={isDone ? '#ef4444' : 'var(--amber)'}
+              stroke={isDone ? 'var(--red)' : 'var(--amber)'}
               strokeWidth="8"
               strokeDasharray={CIRCUMFERENCE}
               strokeDashoffset={dashOffset}

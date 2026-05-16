@@ -94,7 +94,7 @@
 }
 
 .counterPending   .counterValue { color: var(--amber-light); }
-.counterConfirmed .counterValue { color: #22c55e; }
+.counterConfirmed .counterValue { color: var(--green); }
 .counterRejected  .counterValue { color: var(--red); }
 
 /* ── Filters ── */
@@ -129,7 +129,7 @@
 }
 
 .chipCount {
-  background: rgba(251, 191, 36, 0.2);
+  background: var(--orange-15);
   color: var(--amber-light);
   font-size: 10px;
   padding: 1px 5px;
@@ -152,7 +152,7 @@
 }
 
 .row_pending   { border-left: 3px solid var(--amber); }
-.row_confirmed { border-left: 3px solid #22c55e; }
+.row_confirmed { border-left: 3px solid var(--green); }
 .row_rejected  { border-left: 3px solid var(--red); }
 
 .rowMain {
@@ -229,20 +229,20 @@
 }
 
 .comprobanteImg {
-  background: rgba(251, 191, 36, 0.12);
+  background: var(--orange-10);
   color: var(--amber-light);
   border: 1px solid var(--border-amber);
 }
 
-.comprobanteImg:hover { background: rgba(251, 191, 36, 0.22); }
+.comprobanteImg:hover { background: var(--orange-25); }
 
 .comprobantePdf {
-  background: rgba(99, 102, 241, 0.12);
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: var(--purple-10);
+  color: var(--purple);
+  border: 1px solid var(--purple-15);
 }
 
-.comprobantePdf:hover { background: rgba(99, 102, 241, 0.22); }
+.comprobantePdf:hover { background: var(--purple-15); }
 
 .comprobanteNone {
   font-size: 11px;
@@ -261,9 +261,9 @@
   flex-shrink: 0;
 }
 
-.badge_pending   { background: rgba(251, 191, 36, 0.15); color: var(--amber-light); border: 1px solid var(--border-amber); }
-.badge_confirmed { background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); }
-.badge_rejected  { background: rgba(239, 68, 68, 0.12); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.25); }
+.badge_pending   { background: var(--orange-15); color: var(--amber-light); border: 1px solid var(--border-amber); }
+.badge_confirmed { background: var(--green-15); color: var(--green); border: 1px solid var(--green-30); }
+.badge_rejected  { background: var(--red-10); color: var(--red); border: 1px solid var(--red-25); }
 
 .actionToggle {
   background: var(--bg-elevated);
@@ -335,21 +335,21 @@
 }
 
 .btnConfirm {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: var(--green-15);
+  color: var(--green);
+  border: 1px solid var(--green-30);
 }
 
-.btnConfirm:hover:not(:disabled) { background: rgba(34, 197, 94, 0.25); }
+.btnConfirm:hover:not(:disabled) { background: var(--green-25); }
 .btnConfirm:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btnReject {
-  background: rgba(239, 68, 68, 0.12);
+  background: var(--red-10);
   color: var(--red);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  border: 1px solid var(--red-25);
 }
 
-.btnReject:hover:not(:disabled) { background: rgba(239, 68, 68, 0.22); }
+.btnReject:hover:not(:disabled) { background: var(--red-25); }
 .btnReject:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── Empty ── */

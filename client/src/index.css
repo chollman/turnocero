@@ -13,7 +13,7 @@
   --page-padding-left: 0.75rem;
   --page-padding-mobile: 0.5rem;
 
-  /* Colors — Blizzard/Battle.net dark navy theme */
+  /* Colors — Blizzard/Battle.net dark navy theme (default) */
   --bg-dark: #0a0d15;
   --bg-card: #151c28;
   --bg-elevated: #232a39;
@@ -33,6 +33,46 @@
 
   --red: #f31d77;
   --green: #00d984;
+  --orange: #f5a623;
+  --purple: #b48cff;
+
+  /* Accent helpers (opacity variants of brand colors — same in both themes) */
+  --amber-05: rgba(24, 136, 239, 0.05);
+  --amber-10: rgba(24, 136, 239, 0.1);
+  --amber-15: rgba(24, 136, 239, 0.15);
+  --amber-20: rgba(24, 136, 239, 0.2);
+  --amber-25: rgba(24, 136, 239, 0.25);
+  --amber-30: rgba(24, 136, 239, 0.3);
+  --amber-35: rgba(24, 136, 239, 0.35);
+  --amber-40: rgba(24, 136, 239, 0.4);
+  --amber-50: rgba(24, 136, 239, 0.5);
+  --red-10: rgba(243, 29, 119, 0.1);
+  --red-15: rgba(243, 29, 119, 0.15);
+  --red-25: rgba(243, 29, 119, 0.25);
+  --red-30: rgba(243, 29, 119, 0.3);
+  --green-10: rgba(0, 217, 132, 0.1);
+  --green-15: rgba(0, 217, 132, 0.15);
+  --green-25: rgba(0, 217, 132, 0.25);
+  --green-30: rgba(0, 217, 132, 0.3);
+  --green-35: rgba(0, 217, 132, 0.35);
+  --green-40: rgba(0, 217, 132, 0.4);
+  --orange-10: rgba(245, 166, 35, 0.1);
+  --orange-15: rgba(245, 166, 35, 0.15);
+  --orange-25: rgba(245, 166, 35, 0.25);
+  --orange-30: rgba(245, 166, 35, 0.3);
+  --orange-45: rgba(245, 166, 35, 0.45);
+  --orange-80: rgba(245, 166, 35, 0.8);
+  --purple-10: rgba(160, 120, 255, 0.1);
+  --purple-15: rgba(160, 120, 255, 0.15);
+  --purple-30: rgba(160, 120, 255, 0.3);
+  --purple-40: rgba(160, 120, 255, 0.4);
+  --purple-70: rgba(160, 120, 255, 0.7);
+
+  /* Surface helpers (theme-dependent overlays — overridden in light) */
+  --overlay-soft: rgba(255, 255, 255, 0.06);
+  --overlay-medium: rgba(255, 255, 255, 0.12);
+  --overlay-strong: rgba(255, 255, 255, 0.2);
+  --on-amber: #ffffff;
 
   /* Typography */
   --font-display: 'Poppins', sans-serif;
@@ -45,6 +85,27 @@
 
   /* Transitions */
   --transition: 0.2s ease;
+}
+
+/* ─── Light theme overrides ─── */
+:root[data-theme='light'] {
+  --bg-dark: #f5f7fb;
+  --bg-card: #ffffff;
+  --bg-elevated: #eef1f7;
+  --bg-hover: #e3e8f0;
+
+  --text-primary: #0a0d15;
+  --text-secondary: #4a5568;
+  --text-muted: #8a92a3;
+
+  --border: #d8dde7;
+
+  --overlay-soft: rgba(15, 23, 42, 0.04);
+  --overlay-medium: rgba(15, 23, 42, 0.08);
+  --overlay-strong: rgba(15, 23, 42, 0.16);
+
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 4px 20px rgba(15, 23, 42, 0.12);
 }
 
 html,
@@ -70,6 +131,7 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* ── Under-construction ribbon ── */

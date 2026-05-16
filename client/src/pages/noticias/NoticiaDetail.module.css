@@ -133,7 +133,7 @@
   transition: background var(--transition);
 }
 
-.deleteBtn:hover { background: rgba(243, 29, 119, 0.1); }
+.deleteBtn:hover { background: var(--red-10); }
 
 /* ── Content ── */
 .title {
@@ -171,7 +171,7 @@
 }
 
 .externalLink:hover {
-  background: rgba(24, 136, 239, 0.25);
+  background: var(--amber-25);
   border-color: var(--amber);
 }
 

@@ -1,20 +1,39 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import styles from './UserProfile.module.css';
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 
-const markerIcon = L.divIcon({
-  className: '',
-  html: '<div style="width:18px;height:18px;background:#1888ef;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.6)"></div>',
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
-});
+const buildMarkerIcon = () => {
+  const amber = getComputedStyle(document.documentElement).getPropertyValue('--amber').trim() || '#1888ef';
+  const ring = getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() || '#ffffff';
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:18px;height:18px;background:${amber};border:3px solid ${ring};border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+  });
+};
+
+const MoonIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
+const SunIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+  </svg>
+);
 
 export default function UserProfile() {
   const { user, updateProfile } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   const [form, setForm] = useState({
     displayName: '',
@@ -77,7 +96,7 @@ export default function UserProfile() {
       if (markerRef.current) {
         markerRef.current.setLatLng([lat, lng]);
       } else {
-        const m = L.marker([lat, lng], { icon: markerIcon, draggable: true }).addTo(map);
+        const m = L.marker([lat, lng], { icon: buildMarkerIcon(), draggable: true }).addTo(map);
         m.on('dragend', (e) => {
           const pos = e.target.getLatLng();
           setForm((prev) => ({ ...prev, lat: pos.lat, lng: pos.lng }));
@@ -102,6 +121,12 @@ export default function UserProfile() {
       markerRef.current = null;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.setIcon(buildMarkerIcon());
+    }
+  }, [theme]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -176,6 +201,33 @@ export default function UserProfile() {
           {success && <div className={styles.successBox}>{success}</div>}
 
           <form onSubmit={handleSubmit} className={styles.form}>
+            <div className={styles.section}>
+              <div className={styles.sectionLabel}>Apariencia</div>
+              <p className={styles.hint}>
+                Elegí cómo querés ver Turnocero. Tu preferencia se guarda en este dispositivo.
+              </p>
+              <div className={styles.themeToggle} role="group" aria-label="Tema">
+                <button
+                  type="button"
+                  className={`${styles.themeOption} ${theme === 'dark' ? styles.themeOptionActive : ''}`}
+                  onClick={() => setTheme('dark')}
+                  aria-pressed={theme === 'dark'}
+                >
+                  <MoonIcon />
+                  Oscuro
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.themeOption} ${theme === 'light' ? styles.themeOptionActive : ''}`}
+                  onClick={() => setTheme('light')}
+                  aria-pressed={theme === 'light'}
+                >
+                  <SunIcon />
+                  Claro
+                </button>
+              </div>
+            </div>
+
             <div className={styles.section}>
               <div className={styles.sectionLabel}>Información personal</div>
 

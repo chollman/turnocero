@@ -6,7 +6,7 @@
   height: 52px;
   border-radius: 50%;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   cursor: pointer;
   display: flex;
@@ -38,7 +38,7 @@
   top: -2px;
   right: -2px;
   background: var(--red);
-  color: #fff;
+  color: var(--on-amber);
   font-size: 0.65rem;
   font-weight: 700;
   padding: 2px 5px;
@@ -172,7 +172,7 @@
   height: 38px;
   border-radius: 50%;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   font-size: 0.9rem;
   font-weight: 700;
   display: flex;
@@ -186,7 +186,7 @@
   top: -2px;
   right: -4px;
   background: var(--red);
-  color: #fff;
+  color: var(--on-amber);
   font-size: 0.6rem;
   font-weight: 700;
   padding: 1px 4px;

@@ -155,7 +155,7 @@ export default function Dashboard() {
               />
               <polygon
                 points='50,10 60,40 90,40 65,60 75,90 50,72 25,90 35,60 10,40 40,40'
-                fill='rgba(24,136,239,0.12)'
+                fill='var(--amber-10)'
               />
             </svg>
           </div>

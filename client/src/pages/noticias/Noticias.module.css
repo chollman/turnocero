@@ -57,7 +57,7 @@
 
 .newBtn {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   padding: 9px 18px;
   border-radius: 8px;
@@ -199,7 +199,7 @@
 
 .btnPublish {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   padding: 7px 20px;
   border-radius: 8px;
@@ -320,7 +320,7 @@
 }
 
 .cardLink:hover {
-  background: rgba(24, 136, 239, 0.25);
+  background: var(--amber-25);
   border-color: var(--amber);
 }
 
@@ -378,7 +378,7 @@
   flex-shrink: 0;
 }
 
-.deleteBtn:hover { background: rgba(243, 29, 119, 0.1); }
+.deleteBtn:hover { background: var(--red-10); }
 
 .confirmRow {
   display: flex;
@@ -457,7 +457,7 @@
   right: 20px;
   background: rgba(255, 255, 255, 0.12);
   border: none;
-  color: #fff;
+  color: var(--on-amber);
   font-size: 18px;
   width: 36px;
   height: 36px;
@@ -533,7 +533,7 @@
 .emptyBtn {
   margin-top: 8px;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   padding: 9px 20px;
   border-radius: 8px;

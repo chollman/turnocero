@@ -69,7 +69,7 @@
   align-items: center;
   gap: 6px;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   border-radius: 8px;
   padding: 8px 14px;
@@ -215,7 +215,7 @@
   height: 44px;
   border-radius: 50%;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   font-size: 1rem;
   font-weight: 700;
   display: flex;
@@ -230,7 +230,7 @@
   top: -2px;
   right: -4px;
   background: var(--red);
-  color: #fff;
+  color: var(--on-amber);
   font-size: 0.65rem;
   font-weight: 700;
   padding: 1px 4px;
@@ -243,7 +243,7 @@
   height: 34px;
   border-radius: 50%;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   font-size: 0.85rem;
   font-weight: 700;
   display: flex;

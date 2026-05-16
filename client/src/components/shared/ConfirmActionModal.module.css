@@ -119,7 +119,7 @@
 
 .btnConfirm {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border-color: var(--amber);
 }
 

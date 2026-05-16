@@ -35,8 +35,8 @@
 }
 
 .error {
-  background: rgba(243, 29, 119, 0.1);
-  border: 1px solid rgba(243, 29, 119, 0.3);
+  background: var(--red-10);
+  border: 1px solid var(--red-30);
   border-radius: 8px;
   padding: 8px 12px;
   color: var(--red);
@@ -227,7 +227,7 @@
 
 .submitBtn {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   padding: 8px 20px;
   border-radius: 8px;

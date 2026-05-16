@@ -68,7 +68,7 @@
   top: 2px;
   right: 2px;
   background: var(--red);
-  color: #fff;
+  color: var(--on-amber);
   font-size: 9px;
   font-weight: 700;
   padding: 1px 4px;
@@ -83,7 +83,7 @@
   height: 32px;
   border-radius: 8px;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 800;
@@ -190,7 +190,7 @@
 
 .navBadge {
   background: var(--red);
-  color: #fff;
+  color: var(--on-amber);
   font-size: 10px;
   font-weight: 700;
   padding: 1px 6px;
@@ -247,7 +247,7 @@
 }
 
 .userChip:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--overlay-soft);
 }
 
 .userAvatar {
@@ -255,7 +255,7 @@
   height: 28px;
   border-radius: 7px;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   font-size: 12px;
   font-weight: 700;
   display: flex;
@@ -291,7 +291,7 @@
 
 .logoutBtn:hover {
   color: var(--red);
-  background: rgba(243, 29, 119, 0.1);
+  background: var(--red-10);
 }
 
 .logoutConfirm {
@@ -317,7 +317,7 @@
 .logoutConfirmYes {
   flex: 1;
   background: var(--red);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   border-radius: 6px;
   padding: 5px 0;

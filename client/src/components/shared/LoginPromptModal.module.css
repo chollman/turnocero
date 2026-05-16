@@ -65,7 +65,7 @@
   padding: 10px;
   border-radius: 8px;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   font-family: var(--font-display);
   font-size: 13px;

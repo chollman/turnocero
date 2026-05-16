@@ -33,7 +33,7 @@
   height: 32px;
   border-radius: 8px;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 800;
@@ -154,7 +154,7 @@
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
-  color: #fff;
+  color: var(--on-amber);
   text-decoration: none;
   background: var(--amber);
   transition: opacity var(--transition);

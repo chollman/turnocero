@@ -49,7 +49,7 @@
   height: 28px;
   border-radius: 50%;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   font-size: 0.75rem;
   font-weight: 700;
   display: flex;
@@ -71,7 +71,7 @@
 
 .unreadBadge {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   font-size: 0.65rem;
   font-weight: 700;
   padding: 1px 5px;
@@ -154,7 +154,7 @@
 
 .own .bubble {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border-bottom-right-radius: 4px;
 }
 
@@ -211,7 +211,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #fff;
+  color: var(--on-amber);
   flex-shrink: 0;
   align-self: center;
   transition: opacity 0.15s;

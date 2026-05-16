@@ -21,7 +21,7 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(10, 13, 21, 0.25) 0%,
+    color-mix(in srgb, var(--bg-dark) 25%, transparent) 0%,
     var(--bg-dark) 100%
   );
 }
@@ -41,7 +41,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(10, 13, 21, 0.7);
+  background: color-mix(in srgb, var(--bg-dark) 70%, transparent);
   backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -132,7 +132,7 @@
 
 .friendBtnPrimary {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   padding: 7px 16px;
   border-radius: 8px;
@@ -169,7 +169,7 @@
 }
 
 .friendBtnAccept {
-  background: rgba(0, 217, 132, 0.12);
+  background: var(--green-10);
   border: 1px solid var(--green);
   color: var(--green);
   padding: 7px 14px;
@@ -182,7 +182,7 @@
 }
 
 .friendBtnAccept:hover:not(:disabled) {
-  background: rgba(0, 217, 132, 0.22);
+  background: var(--green-25);
 }
 
 .friendBtnUnfriend {
@@ -209,7 +209,7 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--green);
-  background: rgba(0, 217, 132, 0.1);
+  background: var(--green-10);
   border: 1px solid var(--green);
   border-radius: 8px;
   padding: 6px 12px;
@@ -500,7 +500,7 @@
 
 .ratioBar {
   height: 8px;
-  background: rgba(0, 217, 132, 0.2);
+  background: var(--green-15);
   border-radius: 4px;
   overflow: hidden;
 }

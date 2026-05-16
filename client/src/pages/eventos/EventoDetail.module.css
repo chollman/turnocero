@@ -104,10 +104,10 @@
   text-transform: uppercase;
 }
 
-.status_open      { background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); }
+.status_open      { background: var(--green-15); color: var(--green); border: 1px solid var(--green-30); }
 .status_closed    { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border); }
-.status_cancelled { background: rgba(239, 68, 68, 0.12); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.25); }
-.status_draft     { background: rgba(251, 191, 36, 0.15); color: var(--amber-light); border: 1px solid var(--border-amber); }
+.status_cancelled { background: var(--red-10); color: var(--red); border: 1px solid var(--red-25); }
+.status_draft     { background: var(--orange-15); color: var(--amber-light); border: 1px solid var(--border-amber); }
 
 .capacityBadge {
   font-size: 12px;
@@ -149,7 +149,7 @@
   transition: background var(--transition);
 }
 
-.deleteBtn:hover { background: rgba(243, 29, 119, 0.1); }
+.deleteBtn:hover { background: var(--red-10); }
 
 .confirmRow {
   display: flex;
@@ -173,7 +173,7 @@
   cursor: pointer;
 }
 
-.confirmYes { background: var(--red); color: #fff; }
+.confirmYes { background: var(--red); color: var(--on-amber); }
 .confirmNo  { background: var(--bg-elevated); color: var(--text-secondary); }
 
 .eventTitle {
@@ -268,7 +268,7 @@
 .manageBtn:hover { background: var(--amber-glow); border-color: var(--amber); }
 
 .manageBadge {
-  background: rgba(251, 191, 36, 0.15);
+  background: var(--orange-15);
   border: 1px solid var(--border-amber);
   color: var(--amber-light);
   font-size: 11px;
@@ -339,7 +339,7 @@
   line-height: 1.5;
 }
 
-.regConfirmed .regStatusTitle { color: #22c55e; }
+.regConfirmed .regStatusTitle { color: var(--green); }
 .regRejected  .regStatusTitle { color: var(--red); }
 .regPending   .regStatusTitle { color: var(--amber-light); }
 
@@ -397,7 +397,7 @@
 
 .regSuccess .regSuccessText {
   font-size: 13px;
-  color: #22c55e;
+  color: var(--green);
   line-height: 1.5;
   margin: 0;
 }
@@ -458,7 +458,7 @@
 /* ── Buttons ── */
 .btnInscribirse {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   padding: 11px 20px;
   border-radius: 10px;
@@ -545,9 +545,9 @@
 }
 
 .participantsCount {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: var(--green-15);
+  color: var(--green);
+  border: 1px solid var(--green-30);
   font-size: 10px;
   padding: 1px 7px;
   border-radius: 20px;
@@ -572,9 +572,9 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.25);
-  color: #22c55e;
+  background: var(--green-10);
+  border: 1px solid var(--green-25);
+  color: var(--green);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 13px;
@@ -750,7 +750,7 @@
 
 .btnPrimary {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   padding: 7px 20px;
   border-radius: 8px;

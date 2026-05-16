@@ -149,7 +149,7 @@
 }
 
 .menuItemDanger { color: var(--red); }
-.menuItemDanger:hover { background: rgba(243, 29, 119, 0.08); }
+.menuItemDanger:hover { background: var(--red-10); }
 
 /* ── Edit form ── */
 .editForm {
@@ -234,7 +234,7 @@
 
 .btnSave {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   border: none;
   padding: 7px 16px;
   border-radius: 8px;
@@ -409,7 +409,7 @@
   transition: all var(--transition);
 }
 
-.likeBtn:hover { color: var(--red); background: rgba(243, 29, 119, 0.08); }
+.likeBtn:hover { color: var(--red); background: var(--red-10); }
 .likeBtnActive { color: var(--red) !important; }
 
 .likeHeart {
@@ -666,7 +666,7 @@
   border-radius: 50%;
   background: var(--amber);
   border: none;
-  color: #fff;
+  color: var(--on-amber);
   font-size: 14px;
   cursor: pointer;
   display: flex;

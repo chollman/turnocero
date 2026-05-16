@@ -205,7 +205,7 @@
 
 .chat {
   color: var(--red);
-  background: rgba(243, 29, 119, 0.12);
+  background: var(--red-10);
 }
 
 .request {
@@ -215,5 +215,5 @@
 
 .accepted {
   color: var(--green);
-  background: rgba(0, 217, 132, 0.12);
+  background: var(--green-10);
 }

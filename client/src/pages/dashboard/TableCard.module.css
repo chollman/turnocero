@@ -31,7 +31,7 @@
   right: -30%;
   width: 75%;
   height: 75%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.055) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--overlay-soft) 0%, transparent 70%);
   transform: translate(50%, -50%);
   transition: transform 0.5s ease;
   pointer-events: none;
@@ -47,7 +47,7 @@
 }
 
 .joined {
-  border-color: rgba(0, 217, 132, 0.35);
+  border-color: var(--green-35);
 }
 
 .joinFlash {
@@ -62,7 +62,7 @@
   35% {
     transform: scale(1.03);
     box-shadow:
-      0 0 0 3px rgba(0, 217, 132, 0.4),
+      0 0 0 3px var(--green-40),
       0 12px 32px rgba(0, 0, 0, 0.4);
   }
   100% {
@@ -115,7 +115,7 @@
 .hasImage .body {
   position: relative;
   z-index: 1;
-  background: rgba(21, 28, 40, 0.78);
+  background: color-mix(in srgb, var(--bg-card) 78%, transparent);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 22px);
@@ -144,7 +144,7 @@
   gap: 6px;
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(10px);
-  color: #fff;
+  color: var(--on-amber);
   padding: 4px 9px;
   border-radius: 6px;
   font-family: var(--font-display);
@@ -169,7 +169,7 @@
 
 .hostBadge {
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   padding: 3px 8px;
   border-radius: 5px;
   font-family: var(--font-display);
@@ -179,7 +179,7 @@
 }
 
 .playerBadge {
-  background: rgba(0, 217, 132, 0.18);
+  background: var(--green-15);
   color: var(--green);
   padding: 3px 8px;
   border-radius: 5px;
@@ -192,7 +192,7 @@
 
 .lockBadge {
   background: rgba(0, 0, 0, 0.45);
-  color: #fff;
+  color: var(--on-amber);
   width: 24px;
   height: 22px;
   display: flex;
@@ -281,7 +281,7 @@
   top: 0;
   bottom: 0;
   background: linear-gradient(90deg, var(--amber), var(--amber-light));
-  box-shadow: 0 0 8px rgba(24, 136, 239, 0.3);
+  box-shadow: 0 0 8px var(--amber-30);
   transition: width 0.4s ease;
 }
 
@@ -290,7 +290,7 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--overlay-medium);
 }
 
 /* ─── Status chip ─── */
@@ -347,7 +347,7 @@
   height: 28px;
   border-radius: 8px;
   background: var(--amber);
-  color: #fff;
+  color: var(--on-amber);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -355,7 +355,7 @@
   font-weight: 800;
   font-size: 13px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(24, 136, 239, 0.3);
+  box-shadow: 0 2px 8px var(--amber-30);
 }
 
 .hostDetails {
@@ -409,20 +409,20 @@
   background: var(--amber-glow);
 }
 .btnIconDetail:hover:not(:disabled) {
-  background: rgba(24, 136, 239, 0.25);
+  background: var(--amber-25);
 }
 
 .btnIconEdit:hover:not(:disabled) {
-  border-color: rgba(24, 136, 239, 0.5);
+  border-color: var(--amber-50);
   color: var(--amber);
 }
 
 .btnIconDanger {
   color: var(--red);
-  border-color: rgba(243, 29, 119, 0.3);
+  border-color: var(--red-30);
 }
 .btnIconDanger:hover:not(:disabled) {
-  background: rgba(243, 29, 119, 0.1);
+  background: var(--red-10);
   border-color: var(--red);
 }
 
@@ -430,7 +430,7 @@
   color: var(--text-secondary);
 }
 .btnIconLeave:hover:not(:disabled) {
-  border-color: rgba(243, 29, 119, 0.4);
+  border-color: var(--red-30);
   color: var(--red);
 }
 
@@ -440,7 +440,7 @@
   border-radius: 8px;
   background: var(--amber);
   border: none;
-  color: #fff;
+  color: var(--on-amber);
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
@@ -452,7 +452,7 @@
 }
 .btnJoin:hover:not(:disabled) {
   background: var(--amber-light);
-  box-shadow: 0 4px 18px rgba(24, 136, 239, 0.4);
+  box-shadow: 0 4px 18px var(--amber-40);
 }
 .btnJoin:disabled {
   opacity: 0.5;
@@ -492,7 +492,7 @@
   white-space: nowrap;
 }
 .btnOpen:hover:not(:disabled) {
-  border-color: rgba(24, 136, 239, 0.4);
+  border-color: var(--amber-40);
   color: var(--amber);
 }
 
@@ -513,9 +513,9 @@
   height: 32px;
   padding: 0 10px;
   border-radius: 8px;
-  background: rgba(160, 120, 255, 0.08);
-  border: 1px solid rgba(160, 120, 255, 0.4);
-  color: rgba(180, 140, 255, 1);
+  background: var(--purple-10);
+  border: 1px solid var(--purple-40);
+  color: var(--purple);
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: 600;
@@ -524,8 +524,8 @@
   white-space: nowrap;
 }
 .btnPending:hover:not(:disabled) {
-  background: rgba(160, 120, 255, 0.15);
-  border-color: rgba(160, 120, 255, 0.7);
+  background: var(--purple-15);
+  border-color: var(--purple-70);
 }
 .btnPending:disabled {
   opacity: 0.5;
@@ -537,8 +537,8 @@
 .error {
   font-size: 0.78rem;
   color: var(--red);
-  background: rgba(243, 29, 119, 0.08);
-  border: 1px solid rgba(243, 29, 119, 0.25);
+  background: var(--red-10);
+  border: 1px solid var(--red-25);
   border-radius: 6px;
   padding: 0.35rem 0.6rem;
   margin: 0;
@@ -555,9 +555,9 @@
   gap: 0.3rem;
   padding: 0.3rem 0.65rem;
   background: var(--bg-elevated);
-  border: 1px solid rgba(245, 166, 35, 0.45);
+  border: 1px solid var(--orange-45);
   border-radius: 8px 0 14px 0;
-  color: #f5a623;
+  color: var(--orange);
   font-size: 0.7rem;
   font-weight: 600;
   font-family: var(--font-body);
@@ -566,8 +566,8 @@
   letter-spacing: 0.03em;
 }
 .adminTab:hover {
-  background: rgba(245, 166, 35, 0.15);
-  border-color: rgba(245, 166, 35, 0.8);
+  background: var(--orange-15);
+  border-color: var(--orange-80);
 }
 
 /* ===== List mode ===== */
@@ -584,13 +584,13 @@
   transition: border-color var(--transition);
 }
 .cardList:hover {
-  border-color: rgba(24, 136, 239, 0.3);
+  border-color: var(--amber-30);
 }
 .cardList.hosted {
-  border-color: rgba(24, 136, 239, 0.4);
+  border-color: var(--amber-40);
 }
 .cardList.joined {
-  border-color: rgba(0, 217, 132, 0.3);
+  border-color: var(--green-30);
 }
 
 .listLeft {
@@ -670,9 +670,9 @@
   gap: 0.3rem;
   padding: 0.3rem 0.65rem;
   background: transparent;
-  border: 1px solid rgba(245, 166, 35, 0.45);
+  border: 1px solid var(--orange-45);
   border-radius: 6px;
-  color: #f5a623;
+  color: var(--orange);
   font-size: 0.72rem;
   font-weight: 600;
   font-family: var(--font-body);
@@ -680,8 +680,8 @@
   transition: all var(--transition);
 }
 .adminTabInline:hover {
-  background: rgba(245, 166, 35, 0.12);
-  border-color: rgba(245, 166, 35, 0.8);
+  background: var(--orange-10);
+  border-color: var(--orange-80);
 }
 
 /* ─── Responsive ─── */
@@ -726,7 +726,7 @@
 
 /* Deleted user host states */
 .hostAvatarDeleted {
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: var(--overlay-soft) !important;
   border-color: var(--border) !important;
   color: var(--text-muted) !important;
 }

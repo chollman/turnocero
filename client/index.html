@@ -13,6 +13,18 @@
     <title>Turnocero 🎲</title>
     <meta name="description" content="Organizá y encontrá partidas de juegos de mesa en tu comunidad." />
 
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('turnocero_theme');
+          if (t !== 'dark' && t !== 'light') t = 'dark';
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
+
     <!-- Open Graph -->
     <meta property="og:type"        content="website" />
     <meta property="og:site_name"   content="Turnocero" />
