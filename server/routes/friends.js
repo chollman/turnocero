@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { protect } = require('../middleware/auth');
 const saveNotification = require('../utils/saveNotification');
 
@@ -123,6 +124,12 @@ router.delete('/:id/request', protect, async (req, res) => {
 
     target.friendRequests.splice(reqIndex, 1);
     await target.save();
+
+    Notification.deleteOne({
+      recipient: targetId,
+      type: 'friend_request',
+      fromUserId: myId,
+    }).catch(() => {});
 
     res.json({ message: 'Solicitud cancelada' });
   } catch (err) {

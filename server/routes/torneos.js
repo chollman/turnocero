@@ -1217,11 +1217,13 @@ router.post('/:id/next-phase', protect, requireAdmin, async (req, res) => {
         torneoId: String(torneo._id),
         torneoTitle: torneo.title,
         round: phase,
+        isPhase: true,
       });
       io?.to(`user:${String(advUser)}`).emit('torneo:advanced', {
         torneoId: String(torneo._id),
         torneoTitle: torneo.title,
         round: phase,
+        isPhase: true,
         timestamp: new Date().toISOString(),
       });
     }

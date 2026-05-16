@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
 import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../../context/AuthContext'
+import { useNotifications } from '../../context/NotificationContext'
 import UserRef from '../../components/shared/UserRef'
 import AdminPanel from './components/AdminPanel'
 import RegistrationsList from './components/RegistrationsList'
@@ -48,7 +49,12 @@ export default function TorneoDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user, isActuallyAdmin, viewAsUser } = useAuth()
+  const { setActiveTorneo } = useNotifications()
   const showAdminUI = isActuallyAdmin && !viewAsUser
+
+  useEffect(() => {
+    setActiveTorneo(id)
+  }, [id, setActiveTorneo])
 
   const [torneo, setTorneo]     = useState(null)
   const [matches, setMatches]   = useState([])

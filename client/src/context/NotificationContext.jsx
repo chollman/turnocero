@@ -9,6 +9,28 @@ const makeToastId = () => `${Date.now()}-${Math.random()}`;
 const findExisting = (prev, type, tableId) =>
   prev.find((n) => (n.type ?? 'chat') === type && n.tableId === tableId);
 
+const notifKey = (n) => {
+  const type = n.type ?? 'chat';
+  if (n.tableId)      return `${type}:t:${n.tableId}`;
+  if (n.torneoId)     return `${type}:r:${n.torneoId}`;
+  if (n.compartidaId) return `${type}:c:${n.compartidaId}`;
+  if (n.fromUserId)   return `${type}:u:${n.fromUserId}`;
+  return type;
+};
+
+const mergeNotifs = (serverList, localList) => {
+  const byKey = new Map();
+  serverList.forEach((n) => byKey.set(notifKey(n), n));
+  localList.forEach((n) => {
+    const k = notifKey(n);
+    const existing = byKey.get(k);
+    const localTime = new Date(n.updatedAt || n.timestamp || 0).getTime();
+    const serverTime = existing ? new Date(existing.updatedAt || existing.timestamp || 0).getTime() : 0;
+    if (!existing || localTime > serverTime) byKey.set(k, n);
+  });
+  return Array.from(byKey.values());
+};
+
 const toastDedupKey = (t) => {
   if (t.tableId)      return `${t.type}:t:${t.tableId}`;
   if (t.torneoId)     return `${t.type}:r:${t.torneoId}`;
@@ -42,7 +64,11 @@ export function NotificationProvider({ children }) {
     }
     let cancelled = false;
     axios.get('/api/notifications')
-      .then(({ data }) => { if (!cancelled) setNotifications(data); })
+      .then(({ data }) => {
+        if (cancelled) return;
+        // Merge with any local state arrived via socket while the GET was in-flight
+        setNotifications((local) => mergeNotifs(data, local));
+      })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [user]);
@@ -218,6 +244,7 @@ export function NotificationProvider({ children }) {
           torneoId: notif.torneoId,
           torneoTitle: notif.torneoTitle,
           round: notif.round,
+          isPhase: notif.isPhase || false,
           count: 1,
           read: false,
           timestamp: notif.timestamp || new Date().toISOString(),
@@ -228,6 +255,7 @@ export function NotificationProvider({ children }) {
         torneoId: notif.torneoId,
         torneoTitle: notif.torneoTitle,
         round: notif.round,
+        isPhase: notif.isPhase || false,
       }));
     };
 
@@ -343,10 +371,35 @@ export function NotificationProvider({ children }) {
     axios.patch('/api/notifications/read', {}).catch(() => {});
   }, []);
 
+  const loadOlder = useCallback(async () => {
+    const oldest = notifications.reduce((min, n) => {
+      const t = new Date(n.updatedAt || n.timestamp || 0).getTime();
+      return min == null || t < min ? t : min;
+    }, null);
+    if (oldest == null) return { count: 0 };
+    try {
+      const { data } = await axios.get('/api/notifications', {
+        params: { before: new Date(oldest).toISOString(), limit: 20 },
+      });
+      setNotifications((prev) => mergeNotifs(prev, data));
+      return { count: data.length };
+    } catch {
+      return { count: 0 };
+    }
+  }, [notifications]);
+
   const setActiveTable = useCallback((tableId) => {
     activeTableRef.current = tableId;
     if (tableId) markRead(tableId);
   }, [markRead]);
+
+  const setActiveTorneo = useCallback((torneoId) => {
+    if (torneoId) markReadTorneo(torneoId);
+  }, [markReadTorneo]);
+
+  const setActiveCompartida = useCallback((compartidaId) => {
+    if (compartidaId) markReadCompartida(compartidaId);
+  }, [markReadCompartida]);
 
   const dismissToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -395,8 +448,11 @@ export function NotificationProvider({ children }) {
       markReadDm,
       markReadAdminChat,
       markAllRead,
+      loadOlder,
       clearAll,
       setActiveTable,
+      setActiveTorneo,
+      setActiveCompartida,
       toasts,
       dismissToast,
       addToast,

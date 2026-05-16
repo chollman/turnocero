@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import axios from 'axios'
+import { useNotifications } from '../../context/NotificationContext'
 import CompartidaCard from './CompartidaCard'
 import CompartidasSidebar from './CompartidasSidebar'
 import CompartidaSkeleton from './CompartidaSkeleton'
@@ -10,9 +11,14 @@ import styles from './CompartidaPost.module.css'
 export default function CompartidaPost() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { setActiveCompartida } = useNotifications()
   const [post, setPost] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setActiveCompartida(id)
+  }, [id, setActiveCompartida])
 
   useEffect(() => {
     axios.get(`/api/compartidas/${id}`)

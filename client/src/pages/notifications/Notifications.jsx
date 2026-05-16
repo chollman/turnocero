@@ -95,13 +95,16 @@ function getNotifMeta(n) {
         preview: `Tu inscripción al torneo fue rechazada`,
         chipClass: 'request',
       };
-    case 'tournament_advanced':
+    case 'tournament_advanced': {
+      const label = n.isPhase ? 'fase' : 'ronda';
+      const nextNum = n.round != null ? n.round + 1 : null;
       return {
         icon: '🎉',
-        countLabel: '¡Pasaste de ronda!',
-        preview: `Avanzaste a la ${n.round ? `ronda ${n.round + 1}` : 'siguiente ronda'}`,
+        countLabel: `¡Pasaste de ${label}!`,
+        preview: `Avanzaste a la ${nextNum != null ? `${label} ${nextNum}` : `siguiente ${label}`}`,
         chipClass: 'accepted',
       };
+    }
     case 'tournament_eliminated':
       return {
         icon: '🥲',
@@ -178,11 +181,20 @@ function getNotifMeta(n) {
 const getNotifTime = (n) => new Date(n.updatedAt || n.timestamp || 0).getTime();
 
 export default function Notifications() {
-  const { notifications, markRead, markReadFriend, markReadTorneo, markReadCompartida, markReadDm, markReadAdminChat, markAllRead, clearAll } = useNotifications();
+  const { notifications, markRead, markReadFriend, markReadTorneo, markReadCompartida, markReadDm, markReadAdminChat, markAllRead, loadOlder, clearAll } = useNotifications();
   const { clearConversationUnread } = useChat();
   const [tab, setTab] = useState('all');
   const [category, setCategory] = useState('all');
   const [, setNow] = useState(Date.now());
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [exhaustedOlder, setExhaustedOlder] = useState(false);
+
+  const handleLoadOlder = async () => {
+    setLoadingOlder(true);
+    const { count } = await loadOlder();
+    setLoadingOlder(false);
+    if (count === 0) setExhaustedOlder(true);
+  };
 
   // Refresh relative timestamps every minute
   useEffect(() => {
@@ -357,6 +369,17 @@ export default function Notifications() {
               </li>
             );
           })}
+          {!exhaustedOlder && notifications.length >= 20 && (
+            <li className={styles.loadMoreRow}>
+              <button
+                className={styles.loadMoreBtn}
+                onClick={handleLoadOlder}
+                disabled={loadingOlder}
+              >
+                {loadingOlder ? 'Cargando…' : 'Cargar más antiguas'}
+              </button>
+            </li>
+          )}
         </ul>
       )}
     </div>

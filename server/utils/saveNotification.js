@@ -14,30 +14,35 @@ const AGGREGATING = new Set([
  * @param {object} fields — all data fields (tableId, tableName, fromUserId, payload…)
  */
 async function saveNotification(recipientId, type, fields) {
-  const filter = { recipient: recipientId, type };
-  if (fields.tableId)      filter.tableId      = fields.tableId;
-  if (fields.fromUserId)   filter.fromUserId   = fields.fromUserId;
-  if (fields.torneoId)     filter.torneoId     = fields.torneoId;
-  if (fields.compartidaId) filter.compartidaId = fields.compartidaId;
+  try {
+    const filter = { recipient: recipientId, type };
+    if (fields.tableId)      filter.tableId      = fields.tableId;
+    if (fields.fromUserId)   filter.fromUserId   = fields.fromUserId;
+    if (fields.torneoId)     filter.torneoId     = fields.torneoId;
+    if (fields.compartidaId) filter.compartidaId = fields.compartidaId;
 
-  if (AGGREGATING.has(type)) {
-    const { tableName, ...updateFields } = fields;
-    return Notification.findOneAndUpdate(
+    if (AGGREGATING.has(type)) {
+      const { tableName, ...updateFields } = fields;
+      return await Notification.findOneAndUpdate(
+        filter,
+        {
+          $inc: { count: 1 },
+          $set: { read: false, ...updateFields },
+          $setOnInsert: { tableName: tableName || '' },
+        },
+        { upsert: true, new: true }
+      );
+    }
+
+    return await Notification.findOneAndUpdate(
       filter,
-      {
-        $inc: { count: 1 },
-        $set: { read: false, ...updateFields },
-        $setOnInsert: { tableName: tableName || '' },
-      },
+      { $set: { read: false, count: 1, ...fields } },
       { upsert: true, new: true }
     );
+  } catch (err) {
+    console.error(`[saveNotification] failed for recipient=${recipientId} type=${type}:`, err.message);
+    return null;
   }
-
-  return Notification.findOneAndUpdate(
-    filter,
-    { $set: { read: false, count: 1, ...fields } },
-    { upsert: true, new: true }
-  );
 }
 
 module.exports = saveNotification;

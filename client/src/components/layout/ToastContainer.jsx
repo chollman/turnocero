@@ -34,6 +34,7 @@ const DURATION = {
 function ToastItem({ toast, onDismiss }) {
   const navigate = useNavigate();
   const { openChat, conversations } = useChat();
+  const { markRead, markReadFriend, markReadTorneo, markReadCompartida } = useNotifications();
   const duration = DURATION[toast.type] ?? 4000;
   const [paused, setPaused] = useState(false);
   const timerRef = useRef(null);
@@ -55,6 +56,7 @@ function ToastItem({ toast, onDismiss }) {
 
   const handleClick = () => {
     if (toast.type === 'friend_request' || toast.type === 'friend_accepted') {
+      markReadFriend(toast.fromUserId);
       navigate(`/usuarios/${toast.fromUserId}`);
     } else if (toast.type === 'dm' || toast.type === 'dm_new') {
       if (window.innerWidth >= DESKTOP) {
@@ -65,12 +67,15 @@ function ToastItem({ toast, onDismiss }) {
         navigate(`/mensajes/${toast.fromUserId}`);
       }
     } else if (toast.type?.startsWith('tournament_')) {
+      markReadTorneo(toast.torneoId);
       navigate(`/torneos/${toast.torneoId}`);
     } else if (toast.type === 'compartida_comment' || toast.type === 'compartida_like') {
+      markReadCompartida(toast.compartidaId);
       navigate(`/compartidas/${toast.compartidaId}`);
     } else if (toast.type === 'noticia') {
       navigate(`/noticias/${toast.noticiaId}`);
     } else {
+      if (toast.tableId) markRead(toast.tableId);
       navigate(`/mesas/${toast.tableId}`);
     }
     onDismiss(toast.id);
@@ -113,7 +118,7 @@ function ToastItem({ toast, onDismiss }) {
     toast.type === 'dm'                    ? `${toast.fromUsername}` :
     toast.type === 'tournament_accepted'   ? '¡Inscripción aprobada!' :
     toast.type === 'tournament_rejected'   ? 'Inscripción rechazada' :
-    toast.type === 'tournament_advanced'   ? '¡Pasaste de ronda!' :
+    toast.type === 'tournament_advanced'   ? (toast.isPhase ? '¡Pasaste de fase!' : '¡Pasaste de ronda!') :
     toast.type === 'tournament_eliminated' ? 'Quedaste fuera del torneo' :
     toast.type === 'tournament_pending'    ? 'Inscripción enviada' :
     toast.type === 'tournament_started'    ? '¡Empezó el torneo!' :

@@ -4,11 +4,18 @@ const Notification = require('../models/Notification');
 const { protect } = require('../middleware/auth');
 
 // GET /api/notifications — own notifications, newest first
+// Query: ?before=<isoDate> ?limit=<n> (default 60, max 100)
 router.get('/', protect, async (req, res) => {
   try {
-    const notifs = await Notification.find({ recipient: req.user._id })
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 60));
+    const filter = { recipient: req.user._id };
+    if (req.query.before) {
+      const beforeDate = new Date(req.query.before);
+      if (!isNaN(beforeDate)) filter.updatedAt = { $lt: beforeDate };
+    }
+    const notifs = await Notification.find(filter)
       .sort({ updatedAt: -1 })
-      .limit(60)
+      .limit(limit)
       .lean();
     res.json(notifs);
   } catch {

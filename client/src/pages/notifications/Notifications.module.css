@@ -371,3 +371,31 @@
   color: var(--amber);
   background: var(--amber-glow);
 }
+
+.loadMoreRow {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.loadMoreBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.loadMoreBtn:hover:not(:disabled) {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.loadMoreBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
