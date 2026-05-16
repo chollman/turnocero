@@ -91,8 +91,8 @@ function AppRoutes() {
           <Route path="/mesas/:id/editar" element={<AdminRoute><EditTable /></AdminRoute>} />
           <Route path="/notificaciones" element={<PrivateRoute><Notifications /></PrivateRoute>} />
           <Route path="/perfil" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
-          <Route path="/usuarios" element={<AdminRoute><UsersList /></AdminRoute>} />
-          <Route path="/usuarios/:id" element={<AdminRoute><UserProfilePublic /></AdminRoute>} />
+          <Route path="/usuarios" element={<PrivateRoute><UsersList /></PrivateRoute>} />
+          <Route path="/usuarios/:id" element={<PrivateRoute><UserProfilePublic /></PrivateRoute>} />
           <Route path="/base-de-datos" element={<PrivateRoute><DatabaseViewer /></PrivateRoute>} />
           <Route path="/mi" element={<AdminRoute><MeFeed /></AdminRoute>} />
           <Route path="/noticias" element={<Noticias />} />

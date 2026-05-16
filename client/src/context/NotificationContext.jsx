@@ -36,9 +36,11 @@ export function NotificationProvider({ children }) {
       setAdminChatUnread(0);
       return;
     }
+    let cancelled = false;
     axios.get('/api/notifications')
-      .then(({ data }) => setNotifications(data))
+      .then(({ data }) => { if (!cancelled) setNotifications(data); })
       .catch(() => {});
+    return () => { cancelled = true; };
   }, [user]);
 
   useEffect(() => {
@@ -200,7 +202,8 @@ export function NotificationProvider({ children }) {
     });
 
     return () => socket.disconnect();
-  }, [user]);
+    // refreshUser is intentionally omitted — including it would reconnect the socket on every render
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const markRead = useCallback((tableId) => {
     setNotifications((prev) =>

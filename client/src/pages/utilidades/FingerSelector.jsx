@@ -72,7 +72,7 @@ export default function FingerSelector() {
     };
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -204,7 +204,7 @@ export default function FingerSelector() {
       el.removeEventListener('touchend', onTouchEnd);
       el.removeEventListener('touchcancel', onTouchEnd);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const winnerColor = winnerId !== null ? dots.find(d => d.id === winnerId)?.color : null;
 

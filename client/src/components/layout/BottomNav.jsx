@@ -60,12 +60,6 @@ const DBIcon = () => (
   </svg>
 )
 
-const MensajesIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-  </svg>
-)
-
 const EventosIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -97,6 +91,7 @@ const REGULAR_NAV = [
   { id: 'compartidas', label: 'Compartite', Icon: CompartidasIcon, to: '/compartidas' },
   { id: 'noticias',    label: 'Noticias',   Icon: NoticiasIcon,    to: '/noticias' },
   { id: 'eventos',     label: 'Eventos',    Icon: EventosIcon,     to: '/eventos' },
+  { id: 'users',       label: 'Comunidad',  Icon: ComunidadIcon,   to: '/usuarios' },
   { id: 'profile',     label: 'Perfil',     Icon: PerfilIcon,      to: '/perfil' },
   { id: 'utilidades',  label: 'Utilidades', Icon: UtilidadesIcon,  to: '/utilidades' },
 ]
@@ -104,7 +99,6 @@ const REGULAR_NAV = [
 const ADMIN_NAV = [
   { id: 'dash',  label: 'Mesas',     Icon: MesasIcon,    to: '/mesas',         adminOnly: true },
   { id: 'feed',  label: 'Feed',      Icon: FeedIcon,     to: '/mi',            adminOnly: true },
-  { id: 'users', label: 'Comunidad', Icon: ComunidadIcon,to: '/usuarios',      adminOnly: true },
   { id: 'db',    label: 'DB',        Icon: DBIcon,       to: '/base-de-datos', adminOnly: true },
 ]
 

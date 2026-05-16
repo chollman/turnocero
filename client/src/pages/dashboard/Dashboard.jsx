@@ -58,6 +58,8 @@ export default function Dashboard() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [page])
 
+  useEffect(() => () => clearTimeout(debounceTimer.current), [])
+
   useEffect(() => {
     let cancelled = false
     const load = async () => {

@@ -28,7 +28,7 @@ function playAlarm() {
       osc.start(ctx.currentTime + t);
       osc.stop(ctx.currentTime + t + 0.28);
     });
-  } catch (_) { /* no web audio */ }
+  } catch { /* no web audio */ }
   navigator.vibrate?.([200, 150, 200, 150, 400]);
 }
 

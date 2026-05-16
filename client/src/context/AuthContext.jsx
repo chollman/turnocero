@@ -41,8 +41,9 @@ export const AuthProvider = ({ children }) => {
       (res) => res,
       (err) => {
         const status = err.response?.status;
-        const isBan = status === 403 && err.response?.data?.code === 'banned';
-        const isUnauth = status === 401 && !err.config?.url?.includes('/api/auth/');
+        const isAuthRoute = err.config?.url?.includes('/api/auth/');
+        const isBan = status === 403 && err.response?.data?.code === 'banned' && !isAuthRoute;
+        const isUnauth = status === 401 && !isAuthRoute;
         if (isUnauth || isBan) {
           localStorage.removeItem('token');
           localStorage.removeItem(VIEW_AS_USER_KEY);
@@ -93,6 +94,7 @@ export const AuthProvider = ({ children }) => {
     await axios.post('/api/auth/logout').catch(() => {});
     localStorage.removeItem('token');
     localStorage.removeItem(VIEW_AS_USER_KEY);
+    sessionStorage.removeItem('bannedMessage');
     setAuthHeader(null);
     setRealUser(null);
     setViewAsUserState(false);

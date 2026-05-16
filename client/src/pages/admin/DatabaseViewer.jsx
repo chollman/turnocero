@@ -10,7 +10,7 @@ function cellValue(val) {
   if (typeof val === 'boolean') return <span className={styles.bool}>{String(val)}</span>;
   if (typeof val === 'object') {
     const str = JSON.stringify(val);
-    return <span className={styles.obj} title={str}>{str.length > 60 ? str.slice(0, 57) + '…' : str}</span>;
+    return <span className={styles.obj} title={str}>{str.length > 60 ? `${str.slice(0, 57)}…` : str}</span>;
   }
   return String(val);
 }

@@ -66,7 +66,7 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete }) {
             <span className={styles.metaChip}>
               <span className={styles.metaIcon}>📍</span>
               {user.direccion.texto.length > 30
-                ? user.direccion.texto.slice(0, 30) + '…'
+                ? `${user.direccion.texto.slice(0, 30)}…`
                 : user.direccion.texto}
             </span>
           )}
@@ -215,6 +215,8 @@ export default function UsersList() {
     setActionError('')
   }
 
+  const visibleUsers = isAdmin ? users : users.filter((u) => !u.isBanned)
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -224,7 +226,7 @@ export default function UsersList() {
           <p className={styles.heroSub}>Jugadores registrados en Turnocero</p>
         </div>
         <span className={styles.countBadge}>
-          {users.length} jugador{users.length !== 1 ? 'es' : ''}
+          {visibleUsers.length} jugador{visibleUsers.length !== 1 ? 'es' : ''}
         </span>
       </div>
 
@@ -288,7 +290,7 @@ export default function UsersList() {
             <UsersListSkeleton key={i} />
           ))}
         </div>
-      ) : users.length === 0 ? (
+      ) : visibleUsers.length === 0 ? (
         <div className={styles.empty}>
           <span className={styles.emptyIcon}>👥</span>
           <p>No se encontraron jugadores</p>
@@ -308,7 +310,7 @@ export default function UsersList() {
         </div>
       ) : (
         <div className={styles.grid}>
-          {users.map((u) => (
+          {visibleUsers.map((u) => (
             <UserCard
               key={u._id}
               user={u}
