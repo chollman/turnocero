@@ -110,6 +110,7 @@ function DatabaseViewerInner() {
     <div className={styles.page}>
       <div className="container">
         <div className={styles.hero}>
+          <div className={styles.eyebrow}>◆ BASE DE DATOS</div>
           <h1 className={styles.title}>Base de datos</h1>
           <p className={styles.sub}>Explorador de colecciones de MongoDB</p>
         </div>
