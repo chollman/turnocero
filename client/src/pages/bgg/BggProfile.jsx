@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import PartidasPanel from './PartidasPanel';
 import ColeccionPanel from './ColeccionPanel';
 import PlayDetailModal from './PlayDetailModal';
+import CreatePlayModal from './CreatePlayModal';
 import styles from './BggProfile.module.css';
 
 function formatDate(iso) {
@@ -63,16 +65,24 @@ function StatsBar({ collection, playsMeta }) {
 export default function BggProfile() {
   const { bggUsername } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState('partidas');
   const [collection, setCollection] = useState(null);
   const [playsMeta, setPlaysMeta] = useState(null);
   const [openPlay, setOpenPlay] = useState(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const isOwnProfile = !!user?.bggUsername &&
+    user.bggUsername.toLowerCase() === (bggUsername || '').toLowerCase();
+  const canCreate = isOwnProfile && user?.bggConnected && !user?.bggInvalid;
 
   // Stable callbacks so panels don't refetch on every render
   const handleCollectionLoaded = useCallback((data) => setCollection(data), []);
   const handlePlaysMeta = useCallback((meta) => setPlaysMeta(meta), []);
   const handlePlayClick = useCallback((play) => setOpenPlay(play), []);
+  const handleCreated = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   return (
     <div className={styles.page}>
@@ -92,6 +102,15 @@ export default function BggProfile() {
           >
             Ver en BoardGameGeek ↗
           </a>
+          {canCreate && (
+            <button
+              type="button"
+              className={styles.newPlayBtn}
+              onClick={() => setCreateOpen(true)}
+            >
+              + Nueva partida
+            </button>
+          )}
         </div>
 
         <StatsBar collection={collection} playsMeta={playsMeta} />
@@ -116,6 +135,7 @@ export default function BggProfile() {
         {/* Both panels mounted (preserve state when switching tabs) */}
         <div style={{ display: activeTab === 'partidas' ? 'block' : 'none' }}>
           <PartidasPanel
+            key={`partidas-${refreshKey}`}
             bggUsername={bggUsername}
             collection={collection}
             onPlayClick={handlePlayClick}
@@ -132,6 +152,14 @@ export default function BggProfile() {
 
       {openPlay && (
         <PlayDetailModal play={openPlay} onClose={() => setOpenPlay(null)} />
+      )}
+
+      {createOpen && (
+        <CreatePlayModal
+          user={user}
+          onClose={() => setCreateOpen(false)}
+          onCreated={handleCreated}
+        />
       )}
     </div>
   );

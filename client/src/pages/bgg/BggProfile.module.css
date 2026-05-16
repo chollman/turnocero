@@ -844,9 +844,373 @@
   transition: all var(--transition);
 }
 
-.btnGhost:hover {
+.btnGhost:hover:not(:disabled) {
   border-color: var(--text-muted);
   color: var(--text-primary);
+}
+
+.btnGhost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  background: var(--amber);
+  color: var(--on-amber);
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.btnPrimary:hover:not(:disabled) { background: var(--amber-light); }
+.btnPrimary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ─── CreatePlayModal wizard ─── */
+.modalHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.modalTitle {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.stepIndicator {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  font-family: 'Manrope', var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.step {
+  padding: 4px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.stepActive {
+  background: color-mix(in srgb, var(--amber) 18%, transparent);
+  border-color: var(--amber);
+  color: var(--amber-light, var(--amber));
+}
+
+/* Picked-game preview pill */
+.gamePicked {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.gamePicked img {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.gamePickedName {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.gamePickedYear {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.gamePickedChange {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--amber);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gamePickedChange:hover { color: var(--amber-light, var(--amber)); }
+
+/* Inputs / textarea inside modal */
+.modalInput {
+  width: 100%;
+  background: var(--bg-dark, var(--bg-elevated));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: border-color var(--transition);
+  box-sizing: border-box;
+}
+
+.modalInput:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+
+.modalInputSmall {
+  width: 100%;
+  background: var(--bg-dark, var(--bg-elevated));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: border-color var(--transition);
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 90px;
+}
+
+.modalInputSmall:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+
+.modalTextarea {
+  width: 100%;
+  background: var(--bg-dark, var(--bg-elevated));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: border-color var(--transition);
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 70px;
+  line-height: 1.5;
+}
+
+.modalTextarea:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+
+/* Form layout */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.checkboxRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.checkboxLabel,
+.checkboxInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkboxInline {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Game search dropdown list */
+.gameSearchList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.gameSearchItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition);
+}
+
+.gameSearchItem:hover {
+  border-color: var(--amber);
+}
+
+.gameSearchThumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.gameSearchThumbFallback {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: var(--bg-dark, var(--bg-elevated));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.gameSearchInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.gameSearchName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.gameSearchYear {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Player edit rows */
+.playerEditList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.playerEditRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.playerEditPos {
+  font-family: 'Manrope', var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--amber);
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+  line-height: 36px;
+}
+
+.playerEditFields {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.playerEditFields .modalInput {
+  flex: 1;
+  min-width: 120px;
+}
+
+.playerEditRemove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px;
+  line-height: 1;
+  align-self: center;
+  border-radius: 6px;
+  transition: all var(--transition);
+}
+
+.playerEditRemove:hover {
+  color: var(--red);
+  background: var(--bg-dark, var(--bg-elevated));
+}
+
+/* Hero "Nueva partida" button */
+.newPlayBtn {
+  background: var(--amber);
+  color: var(--on-amber);
+  border: none;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-start;
+  margin-top: 4px;
+  transition: background var(--transition), box-shadow var(--transition);
+  box-shadow: 0 4px 14px var(--amber-glow);
+}
+
+.newPlayBtn:hover { background: var(--amber-light); }
+
+.newPlayBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* Modal hero (thumb + name + date) */
@@ -1120,6 +1484,26 @@
   .modalHeroThumb {
     width: 72px;
     height: 72px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .playerEditRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .playerEditPos {
+    line-height: 1.2;
+    text-align: left;
+    width: auto;
+  }
+
+  .playerEditRemove {
+    align-self: flex-end;
   }
 
   .modalGameName {

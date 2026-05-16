@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { XMLParser } = require('fast-xml-parser');
+const { protect } = require('../middleware/auth');
+const { getSessionCookie, clearSession } = require('../utils/bggAuth');
 
 const BGG_API = 'https://boardgamegeek.com/xmlapi2';
+const BGG_GEEKPLAY = 'https://boardgamegeek.com/geekplay.php';
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 const cache = new Map();
 
@@ -15,6 +18,13 @@ function getCached(key, ttl = CACHE_TTL) {
 
 function setCached(key, data) {
   cache.set(key, { data, ts: Date.now() });
+}
+
+function clearPartidasCache(bggUsername) {
+  const prefix = `partidas:${String(bggUsername).toLowerCase()}:`;
+  for (const key of cache.keys()) {
+    if (key.startsWith(prefix)) cache.delete(key);
+  }
 }
 
 async function fetchBgg(url) {
@@ -62,7 +72,6 @@ router.get('/search', async (req, res) => {
     const items = Array.isArray(rawItems) ? rawItems : [rawItems];
 
     const results = items
-      .slice(0, 15)
       .map((item) => {
         const nameRaw = item.name;
         const nameArr = Array.isArray(nameRaw) ? nameRaw : [nameRaw];
@@ -71,7 +80,9 @@ router.get('/search', async (req, res) => {
         const year = item.yearpublished?.['@_value'] ? Number(item.yearpublished['@_value']) : null;
         return { id: Number(item['@_id']), name, year, thumbnail: null };
       })
-      .filter((g) => g.name);
+      .filter((g) => g.name)
+      .sort((a, b) => (b.year || 0) - (a.year || 0))
+      .slice(0, 15);
 
     // Batch-fetch thumbnails in a single request
     if (results.length > 0) {
@@ -346,6 +357,121 @@ router.get('/partidas/:bggUsername', async (req, res) => {
   } catch (err) {
     if (err.status === 404) return res.status(404).json({ message: 'Usuario de BGG no encontrado' });
     res.status(502).json({ message: 'No se pudo conectar con BGG' });
+  }
+});
+
+// POST /api/bgg/partidas — create a play in BGG (uses /geekplay.php internal endpoint)
+router.post('/partidas', protect, async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user.bggUsername) {
+      return res.status(400).json({ message: 'Configurá tu username de BGG en el perfil' });
+    }
+
+    const {
+      objectid,
+      playdate,
+      length,
+      location,
+      quantity = 1,
+      comments,
+      incomplete = false,
+      nowinstats = false,
+      players = [],
+    } = req.body;
+
+    // Validation
+    if (!/^\d+$/.test(String(objectid || ''))) {
+      return res.status(400).json({ message: 'ID de juego inválido' });
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(playdate || ''))) {
+      return res.status(400).json({ message: 'Fecha inválida (formato YYYY-MM-DD)' });
+    }
+    if (!Array.isArray(players)) {
+      return res.status(400).json({ message: 'Lista de jugadores inválida' });
+    }
+    const qty = Math.max(1, Math.min(99, parseInt(quantity) || 1));
+    const len = length != null && length !== '' ? Math.max(0, parseInt(length) || 0) : null;
+
+    // Establish BGG session (login if needed)
+    let cookie;
+    try {
+      cookie = await getSessionCookie(user._id);
+    } catch (e) {
+      return res.status(e.status || 500).json({ message: e.message });
+    }
+
+    // Build form body (BGG expects application/x-www-form-urlencoded)
+    const form = new URLSearchParams();
+    form.set('ajax', '1');
+    form.set('action', 'save');
+    form.set('version', '2');
+    form.set('objecttype', 'thing');
+    form.set('objectid', String(objectid));
+    form.set('playdate', String(playdate));
+    if (len != null) form.set('length', String(len));
+    if (location) form.set('location', String(location).slice(0, 100));
+    form.set('quantity', String(qty));
+    if (comments) form.set('comments', String(comments).slice(0, 1000));
+    form.set('incomplete', incomplete ? '1' : '0');
+    form.set('nowinstats', nowinstats ? '1' : '0');
+
+    players.forEach((p, i) => {
+      const idx = `players[${i}]`;
+      if (p.name) form.set(`${idx}[name]`, String(p.name).slice(0, 100));
+      if (p.username) form.set(`${idx}[username]`, String(p.username).slice(0, 50));
+      form.set(`${idx}[position]`, String(p.position ?? i + 1));
+      if (p.color) form.set(`${idx}[color]`, String(p.color).slice(0, 30));
+      if (p.score != null && p.score !== '') form.set(`${idx}[score]`, String(p.score).slice(0, 30));
+      form.set(`${idx}[new]`, p.new ? '1' : '0');
+      if (p.rating != null && Number(p.rating) > 0) form.set(`${idx}[rating]`, String(p.rating));
+      form.set(`${idx}[win]`, p.win ? '1' : '0');
+    });
+
+    // POST to BGG
+    let bggRes;
+    try {
+      bggRes = await fetch(BGG_GEEKPLAY, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Cookie': cookie,
+          'User-Agent': 'Turnocero/1.0',
+          'Origin': 'https://boardgamegeek.com',
+          'Referer': 'https://boardgamegeek.com/',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: form.toString(),
+      });
+    } catch (e) {
+      return res.status(502).json({ message: `No se pudo contactar BGG: ${e.message}` });
+    }
+
+    if (bggRes.status === 401 || bggRes.status === 403) {
+      clearSession(user._id);
+      return res.status(401).json({ message: 'Sesión BGG inválida. Reconectá en /perfil.' });
+    }
+    if (!bggRes.ok) {
+      const text = await bggRes.text().catch(() => '');
+      console.warn(`[bgg/partidas POST] ${bggRes.status}:`, text.slice(0, 300));
+      return res.status(502).json({ message: `BGG respondió ${bggRes.status}` });
+    }
+
+    let payload;
+    const text = await bggRes.text();
+    try { payload = JSON.parse(text); } catch { payload = { raw: text.slice(0, 200) }; }
+
+    // Invalidate plays cache so the new play shows up on next fetch
+    clearPartidasCache(user.bggUsername);
+
+    res.json({
+      success: true,
+      playid: payload.playid || payload.numplays || null,
+      raw: payload,
+    });
+  } catch (err) {
+    console.error('Create play failed:', err);
+    res.status(500).json({ message: err.message || 'Error al crear la partida' });
   }
 });
 

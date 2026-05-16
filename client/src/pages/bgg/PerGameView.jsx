@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 import PlayCard from './PlayCard';
 import PlayDetailModal from './PlayDetailModal';
+import CreatePlayModal from './CreatePlayModal';
 import Pagination from './Pagination';
 import styles from './BggProfile.module.css';
 
@@ -25,6 +27,7 @@ function findOwnerPlayer(play, bggUsername) {
 export default function PerGameView() {
   const { bggUsername, gameId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [game, setGame] = useState(null);
   const [gameError, setGameError] = useState(null);
@@ -33,8 +36,14 @@ export default function PerGameView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [openPlay, setOpenPlay] = useState(null);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const isOwnProfile = !!user?.bggUsername &&
+    user.bggUsername.toLowerCase() === (bggUsername || '').toLowerCase();
+  const canCreate = isOwnProfile && user?.bggConnected && !user?.bggInvalid;
 
   // Fetch game details (uses /game/:id cache — likely hit if user came from Partidas)
   useEffect(() => {
@@ -61,7 +70,7 @@ export default function PerGameView() {
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [bggUsername, gameId, page]);
+  }, [bggUsername, gameId, page, refreshKey]);
 
   // Stats derived from the current page (with note when partial)
   const stats = useMemo(() => {
@@ -141,6 +150,15 @@ export default function PerGameView() {
             >
               Ver en BoardGameGeek ↗
             </a>
+            {canCreate && game && (
+              <button
+                type="button"
+                className={styles.newPlayBtn}
+                onClick={() => setCreateOpen(true)}
+              >
+                + Nueva partida de este juego
+              </button>
+            )}
           </div>
         </div>
 
@@ -220,6 +238,20 @@ export default function PerGameView() {
 
       {openPlay && (
         <PlayDetailModal play={openPlay} onClose={() => setOpenPlay(null)} />
+      )}
+
+      {createOpen && (
+        <CreatePlayModal
+          user={user}
+          preselectedGame={game ? {
+            id: game.id,
+            name: game.name,
+            thumbnail: game.thumbnail,
+            year: game.year,
+          } : null}
+          onClose={() => setCreateOpen(false)}
+          onCreated={() => setRefreshKey((k) => k + 1)}
+        />
       )}
     </div>
   );
