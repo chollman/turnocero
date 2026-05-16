@@ -10,3 +10,4 @@
 - [VSCode ESLint setup](reference_vscode_eslint.md) — per-machine `.vscode/settings.json` pointing ESLint extension at `./client` (flat config lives there, not at repo root)
 - [Plans folder location](feedback_plans_location.md) — Plans go in the project's `plans/` folder, not `~/.claude/plans/`
 - [Admin "view as user" mode](feedback_admin_view_as_user.md) — admin-only features must respect the `viewAsUser` toggle (filter/hide privileged data client-side)
+- [Theme support](feedback_theme_support.md) — every new feature/screen must work in both dark and light themes; use CSS variables, never hardcoded colors
