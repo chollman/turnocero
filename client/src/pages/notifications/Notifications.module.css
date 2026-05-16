@@ -63,7 +63,16 @@
   line-height: 1.4;
 }
 
-.clearBtn {
+.headerActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.clearBtn,
+.markAllBtn {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-secondary);
@@ -74,11 +83,22 @@
   transition: all var(--transition);
   font-family: var(--font-body);
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .clearBtn:hover {
   border-color: var(--red);
   color: var(--red);
+}
+
+.markAllBtn:hover:not(:disabled) {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.markAllBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* Empty state */

@@ -94,8 +94,14 @@ function getNotifMeta(n) {
 const getNotifTime = (n) => new Date(n.updatedAt || n.timestamp || 0).getTime();
 
 export default function Notifications() {
-  const { notifications, markRead, markReadFriend, markReadTorneo, clearAll } = useNotifications();
+  const { notifications, markRead, markReadFriend, markReadTorneo, markAllRead, clearAll } = useNotifications();
   const sorted = [...notifications].sort((a, b) => getNotifTime(b) - getNotifTime(a));
+  const hasUnread = notifications.some((n) => !n.read);
+
+  const handleClearAll = () => {
+    if (!window.confirm('¿Eliminar todas las notificaciones? Esta acción no se puede deshacer.')) return;
+    clearAll();
+  };
 
   return (
     <div className={styles.page}>
@@ -106,9 +112,18 @@ export default function Notifications() {
           <p className={styles.heroSub}>Tus últimas notificaciones.</p>
         </div>
         {notifications.length > 0 && (
-          <button className={styles.clearBtn} onClick={() => clearAll()}>
-            Limpiar
-          </button>
+          <div className={styles.headerActions}>
+            <button
+              className={styles.markAllBtn}
+              onClick={() => markAllRead()}
+              disabled={!hasUnread}
+            >
+              Marcar como leídas
+            </button>
+            <button className={styles.clearBtn} onClick={handleClearAll}>
+              Limpiar
+            </button>
+          </div>
         )}
       </div>
 

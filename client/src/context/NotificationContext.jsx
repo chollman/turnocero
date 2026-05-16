@@ -261,6 +261,11 @@ export function NotificationProvider({ children }) {
     axios.delete('/api/notifications').catch(() => {});
   }, []);
 
+  const markAllRead = useCallback(() => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    axios.patch('/api/notifications/read', {}).catch(() => {});
+  }, []);
+
   const setActiveTable = useCallback((tableId) => {
     activeTableRef.current = tableId;
     if (tableId) markRead(tableId);
@@ -305,6 +310,7 @@ export function NotificationProvider({ children }) {
       markRead,
       markReadFriend,
       markReadTorneo,
+      markAllRead,
       clearAll,
       setActiveTable,
       toasts,
