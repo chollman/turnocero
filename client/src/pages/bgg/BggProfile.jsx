@@ -115,7 +115,7 @@ export default function BggProfile() {
   const { bggUsername } = useParams();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState('coleccion');
+  const [activeTab, setActiveTab] = useState('partidas');
 
   // Collection state (all data fetched once, paginated client-side)
   const [collection, setCollection] = useState(null);
@@ -128,7 +128,6 @@ export default function BggProfile() {
   const [loadingPlays, setLoadingPlays] = useState(false);
   const [errorPlays, setErrorPlays] = useState(null);
   const [playsPage, setPlaysPage] = useState(1);
-  const [playsLoaded, setPlaysLoaded] = useState(false);
 
   useEffect(() => {
     setLoadingCollection(true);
@@ -143,15 +142,15 @@ export default function BggProfile() {
     setLoadingPlays(true);
     setErrorPlays(null);
     axios.get(`/api/bgg/partidas/${encodeURIComponent(bggUsername)}?page=${page}`)
-      .then(({ data }) => { setPlays(data); setPlaysLoaded(true); })
+      .then(({ data }) => setPlays(data))
       .catch((err) => setErrorPlays(err.response?.data?.message || 'No se pudo cargar las partidas'))
       .finally(() => setLoadingPlays(false));
   };
 
-  const handleTabPlays = () => {
-    setActiveTab('partidas');
-    if (!playsLoaded) fetchPlays(1);
-  };
+  useEffect(() => {
+    fetchPlays(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bggUsername]);
 
   const handlePlaysPage = (page) => {
     setPlaysPage(page);
@@ -195,18 +194,18 @@ export default function BggProfile() {
 
         <div className={styles.tabs}>
           <button
+            className={`${styles.tab} ${activeTab === 'partidas' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('partidas')}
+          >
+            Partidas
+            {plays && <span className={styles.tabBadge}>{plays.total}</span>}
+          </button>
+          <button
             className={`${styles.tab} ${activeTab === 'coleccion' ? styles.tabActive : ''}`}
             onClick={() => setActiveTab('coleccion')}
           >
             Colección
             {collection && <span className={styles.tabBadge}>{collection.length}</span>}
-          </button>
-          <button
-            className={`${styles.tab} ${activeTab === 'partidas' ? styles.tabActive : ''}`}
-            onClick={handleTabPlays}
-          >
-            Partidas
-            {plays && <span className={styles.tabBadge}>{plays.total}</span>}
           </button>
         </div>
 
