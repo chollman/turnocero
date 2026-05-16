@@ -22,7 +22,6 @@ export function NotificationProvider({ children }) {
   const { user, refreshUser } = useAuth();
   const [notifications, setNotifications] = useState(loadFromStorage);
   const [toasts, setToasts] = useState([]);
-  const [adminChatUnread, setAdminChatUnread] = useState(0);
   const activeTableRef = useRef(null);
   const adminChatActiveRef = useRef(false);
   const dmListenersRef = useRef(new Set());
@@ -33,7 +32,6 @@ export function NotificationProvider({ children }) {
     if (!user) {
       setNotifications([]);
       setToasts([]);
-      setAdminChatUnread(0);
       return;
     }
     let cancelled = false;
@@ -192,13 +190,46 @@ export function NotificationProvider({ children }) {
     });
 
     socket.on('dm:message', (msg) => {
+      const fromId = (msg.from?._id || msg.from || '').toString();
+      const fromUsername = msg.from?.username || '?';
+      const preview = (msg.content || '').slice(0, 60);
+
+      setNotifications((prev) => {
+        const existing = prev.find((n) => n.type === 'dm' && n.fromUserId === fromId);
+        if (existing) {
+          return prev.map((n) =>
+            n.type === 'dm' && n.fromUserId === fromId
+              ? { ...n, read: false, count: (n.count || 1) + 1, lastMessagePreview: preview, fromUsername, timestamp: new Date().toISOString() }
+              : n
+          );
+        }
+        return [...prev, { type: 'dm', fromUserId: fromId, fromUsername, lastMessagePreview: preview, count: 1, read: false, timestamp: new Date().toISOString() }];
+      });
+
       dmListenersRef.current.forEach((fn) => fn(msg));
     });
 
-    socket.on('admin:message', () => {
-      if (!adminChatActiveRef.current) {
-        setAdminChatUnread((prev) => prev + 1);
+    socket.on('admin:message', (msg) => {
+      const senderUsername = msg.from?.username || '?';
+      const preview = (msg.content || '').slice(0, 60);
+
+      if (adminChatActiveRef.current) {
+        // Already viewing admin chat: keep server notif in sync (marked read)
+        axios.patch('/api/admin-chat/read').catch(() => {});
+        return;
       }
+
+      setNotifications((prev) => {
+        const existing = prev.find((n) => n.type === 'admin_chat');
+        if (existing) {
+          return prev.map((n) =>
+            n.type === 'admin_chat'
+              ? { ...n, read: false, count: (n.count || 1) + 1, lastSenderUsername: senderUsername, lastMessagePreview: preview, timestamp: new Date().toISOString() }
+              : n
+          );
+        }
+        return [...prev, { type: 'admin_chat', lastSenderUsername: senderUsername, lastMessagePreview: preview, count: 1, read: false, timestamp: new Date().toISOString() }];
+      });
     });
 
     const handleTorneoEvent = (eventType) => (notif) => {
@@ -256,6 +287,19 @@ export function NotificationProvider({ children }) {
     axios.patch('/api/notifications/read', { torneoId }).catch(() => {});
   }, []);
 
+  const markReadDm = useCallback((fromUserId) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.type === 'dm' && n.fromUserId === fromUserId) ? { ...n, read: true } : n)
+    );
+  }, []);
+
+  const markReadAdminChat = useCallback(() => {
+    setNotifications((prev) =>
+      prev.map((n) => n.type === 'admin_chat' ? { ...n, read: true } : n)
+    );
+    axios.patch('/api/admin-chat/read').catch(() => {});
+  }, []);
+
   const clearAll = useCallback(() => {
     setNotifications([]);
     axios.delete('/api/notifications').catch(() => {});
@@ -298,10 +342,17 @@ export function NotificationProvider({ children }) {
 
   const setAdminChatActive = useCallback((active) => {
     adminChatActiveRef.current = active;
-    if (active) setAdminChatUnread(0);
-  }, []);
+    if (active) markReadAdminChat();
+  }, [markReadAdminChat]);
 
-  const totalUnread = notifications.filter((n) => !n.read).reduce((sum, n) => sum + (n.count || 1), 0);
+  const adminChatUnread = notifications
+    .filter((n) => n.type === 'admin_chat' && !n.read)
+    .reduce((sum, n) => sum + (n.count || 1), 0);
+
+  // Bell badge: exclude dm and admin_chat (they have their own badges on the chat icons)
+  const totalUnread = notifications
+    .filter((n) => !n.read && n.type !== 'dm' && n.type !== 'admin_chat')
+    .reduce((sum, n) => sum + (n.count || 1), 0);
 
   return (
     <NotificationContext.Provider value={{
@@ -310,6 +361,8 @@ export function NotificationProvider({ children }) {
       markRead,
       markReadFriend,
       markReadTorneo,
+      markReadDm,
+      markReadAdminChat,
       markAllRead,
       clearAll,
       setActiveTable,

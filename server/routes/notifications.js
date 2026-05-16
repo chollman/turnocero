@@ -17,14 +17,15 @@ router.get('/', protect, async (req, res) => {
 });
 
 // PATCH /api/notifications/read — mark matching notifications as read
-// Body: { tableId } or { fromUserId } or { torneoId } or {} (mark all)
+// Body: { tableId } or { fromUserId } or { torneoId } or { type } or {} (mark all)
 router.patch('/read', protect, async (req, res) => {
   try {
-    const { tableId, fromUserId, torneoId } = req.body;
+    const { tableId, fromUserId, torneoId, type } = req.body;
     const filter = { recipient: req.user._id, read: false };
     if (tableId)    filter.tableId    = tableId;
     if (fromUserId) filter.fromUserId = fromUserId;
     if (torneoId)   filter.torneoId   = torneoId;
+    if (type)       filter.type       = type;
     await Notification.updateMany(filter, { $set: { read: true } });
     res.json({ ok: true });
   } catch {

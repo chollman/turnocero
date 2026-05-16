@@ -1,7 +1,7 @@
 const Notification = require('../models/Notification');
 
 // These types accumulate count across multiple events for the same target
-const AGGREGATING = new Set(['chat', 'comment', 'image', 'join_request']);
+const AGGREGATING = new Set(['chat', 'comment', 'image', 'join_request', 'dm', 'admin_chat']);
 
 /**
  * Upsert a notification for a recipient.

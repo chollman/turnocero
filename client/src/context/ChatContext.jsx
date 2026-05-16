@@ -9,7 +9,7 @@ const MAX_WINDOWS = 3;
 
 export function ChatProvider({ children }) {
   const { user } = useAuth();
-  const { addDmListener, addToast } = useNotifications();
+  const { addDmListener, addToast, markReadDm } = useNotifications();
 
   // conversations: { [userId]: { user: {_id, username}, messages: [], unread: 0, minimized: false, loaded: false } }
   const [conversations, setConversations] = useState({});
@@ -52,6 +52,7 @@ export function ChatProvider({ children }) {
 
         if (isCurrentlyOpen && !isMinimized) {
           axios.patch(`/api/dm/${fromId}/read`).catch(() => {});
+          markReadDm(fromId);
         }
 
         return {
@@ -112,11 +113,20 @@ export function ChatProvider({ children }) {
       }).catch(() => { loadedRef.current[id] = false; });
       axios.patch(`/api/dm/${id}/read`).catch(() => {});
     }
-  }, []);
+    markReadDm(id);
+  }, [markReadDm]);
 
   const closeChat = useCallback((userId) => {
     const id = userId.toString();
     setOpenOrder((prev) => prev.filter((x) => x !== id));
+  }, []);
+
+  const clearConversationUnread = useCallback((userId) => {
+    const id = userId.toString();
+    setConversations((prev) => {
+      if (!prev[id]) return prev;
+      return { ...prev, [id]: { ...prev[id], unread: 0 } };
+    });
   }, []);
 
   const minimizeChat = useCallback((userId) => {
@@ -148,6 +158,7 @@ export function ChatProvider({ children }) {
       openOrder,
       openChat,
       closeChat,
+      clearConversationUnread,
       minimizeChat,
       sendMessage,
       dmUnreadTotal,

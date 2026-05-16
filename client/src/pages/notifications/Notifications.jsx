@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import { useNotifications } from '../../context/NotificationContext';
+import { useChat } from '../../context/ChatContext';
 import styles from './Notifications.module.css';
 
 function getNotifMeta(n) {
@@ -81,6 +83,20 @@ function getNotifMeta(n) {
         preview: `Suerte la próxima 🎲`,
         chipClass: 'request',
       };
+    case 'dm':
+      return {
+        icon: '💬',
+        countLabel: `${n.count} ${n.count === 1 ? 'mensaje nuevo' : 'mensajes nuevos'}`,
+        preview: `${n.fromUsername}: ${n.lastMessagePreview ?? ''}${(n.lastMessagePreview?.length ?? 0) >= 60 ? '…' : ''}`,
+        chipClass: 'chat',
+      };
+    case 'admin_chat':
+      return {
+        icon: '🛡️',
+        countLabel: `${n.count} ${n.count === 1 ? 'mensaje nuevo' : 'mensajes nuevos'}`,
+        preview: `${n.lastSenderUsername}: ${n.lastMessagePreview ?? ''}${(n.lastMessagePreview?.length ?? 0) >= 60 ? '…' : ''}`,
+        chipClass: 'chat',
+      };
     default:
       return {
         icon: '🎲',
@@ -94,9 +110,23 @@ function getNotifMeta(n) {
 const getNotifTime = (n) => new Date(n.updatedAt || n.timestamp || 0).getTime();
 
 export default function Notifications() {
-  const { notifications, markRead, markReadFriend, markReadTorneo, markAllRead, clearAll } = useNotifications();
+  const { notifications, markRead, markReadFriend, markReadTorneo, markReadDm, markReadAdminChat, markAllRead, clearAll } = useNotifications();
+  const { clearConversationUnread } = useChat();
   const sorted = [...notifications].sort((a, b) => getNotifTime(b) - getNotifTime(a));
   const hasUnread = notifications.some((n) => !n.read);
+
+  const markNotifRead = (n) => {
+    if (n.type === 'admin_chat') return markReadAdminChat();
+    if (n.type === 'dm') {
+      axios.patch(`/api/dm/${n.fromUserId}/read`).catch(() => {});
+      markReadDm(n.fromUserId);
+      clearConversationUnread(n.fromUserId);
+      return;
+    }
+    if (n.type?.startsWith('tournament_')) return markReadTorneo(n.torneoId);
+    if (n.fromUserId) return markReadFriend(n.fromUserId);
+    return markRead(n.tableId);
+  };
 
   const handleClearAll = () => {
     if (!window.confirm('¿Eliminar todas las notificaciones? Esta acción no se puede deshacer.')) return;
@@ -137,20 +167,17 @@ export default function Notifications() {
           {sorted.map((n) => {
             const { icon, countLabel, preview, chipClass } = getNotifMeta(n);
             const isTorneo = n.type?.startsWith('tournament_');
-            const to = isTorneo
-              ? `/torneos/${n.torneoId}`
-              : n.fromUserId ? `/usuarios/${n.fromUserId}` : `/mesas/${n.tableId}`;
-            const handleClick = () => {
-              if (isTorneo) markReadTorneo(n.torneoId);
-              else if (n.fromUserId) markReadFriend(n.fromUserId);
-              else markRead(n.tableId);
-            };
+            const to =
+              n.type === 'admin_chat' ? '/mensajes-admin' :
+              n.type === 'dm' ? `/mensajes/${n.fromUserId}` :
+              isTorneo ? `/torneos/${n.torneoId}` :
+              n.fromUserId ? `/usuarios/${n.fromUserId}` :
+              `/mesas/${n.tableId}`;
+            const handleClick = () => markNotifRead(n);
             const handleMarkRead = (e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (isTorneo) markReadTorneo(n.torneoId);
-              else if (n.fromUserId) markReadFriend(n.fromUserId);
-              else markRead(n.tableId);
+              markNotifRead(n);
             };
             return (
               <li key={`${n.type ?? 'chat'}:${n.tableId ?? n.fromUserId ?? n.torneoId}`}>
@@ -165,7 +192,11 @@ export default function Notifications() {
                   </div>
                   <div className={styles.cardBody}>
                     <div className={styles.cardTop}>
-                      <span className={styles.cardGame}>{n.tableName || n.fromUsername || n.torneoTitle}</span>
+                      <span className={styles.cardGame}>
+                        {n.type === 'admin_chat'
+                          ? 'Chat de admins'
+                          : (n.tableName || n.fromUsername || n.torneoTitle)}
+                      </span>
                       {!n.read && (
                         <span className={`${styles.chip} ${styles[chipClass]}`}>
                           {countLabel}

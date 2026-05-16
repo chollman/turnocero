@@ -3,8 +3,10 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 const DirectMessage = require('../models/DirectMessage');
+const Notification = require('../models/Notification');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const saveNotification = require('../utils/saveNotification');
 
 // GET /api/dm — list of conversations (latest message per contact + unread count)
 router.get('/', protect, async (req, res) => {
@@ -130,6 +132,12 @@ router.post(
       });
       await message.populate('from', 'username');
 
+      await saveNotification(recipientId, 'dm', {
+        fromUserId: req.user._id.toString(),
+        fromUsername: req.user.username,
+        lastMessagePreview: req.body.content.slice(0, 60),
+      });
+
       const io = req.app.get('io');
       if (io) {
         io.to(`user:${recipientId}`).emit('dm:message', {
@@ -151,6 +159,10 @@ router.patch('/:userId/read', protect, async (req, res) => {
     await DirectMessage.updateMany(
       { from: req.params.userId, to: req.user._id, readByRecipient: false },
       { $set: { readByRecipient: true } }
+    );
+    await Notification.updateMany(
+      { recipient: req.user._id, type: 'dm', fromUserId: req.params.userId, read: false },
+      { $set: { read: true } }
     );
     res.json({ ok: true });
   } catch {
