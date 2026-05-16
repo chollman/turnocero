@@ -15,21 +15,53 @@
     padding-bottom: var(--page-padding-mobile);
     padding-left: var(--page-padding-mobile);
   }
+
+  .heroTitle {
+    font-size: 28px;
+  }
+
+  .heroSub {
+    font-size: 13px;
+  }
 }
 
 .header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 20px;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
-.title {
+.heroBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.eyebrow {
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--amber-light);
+  letter-spacing: 0.15em;
+}
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: 40px;
   font-weight: 700;
+  letter-spacing: -0.04em;
   color: var(--text-primary);
+  line-height: 1;
   margin: 0;
+}
+
+.heroSub {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.4;
 }
 
 .newBtn {

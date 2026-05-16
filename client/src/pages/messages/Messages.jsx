@@ -58,7 +58,11 @@ export default function Messages() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Mensajes</h1>
+        <div className={styles.heroBlock}>
+          <div className={styles.eyebrow}>◆ MENSAJES</div>
+          <h1 className={styles.heroTitle}>Mensajes</h1>
+          <p className={styles.heroSub}>Chateá con tus amigos.</p>
+        </div>
         <button className={styles.newBtn} onClick={() => setShowNewChat((v) => !v)}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5v14M5 12h14"/>

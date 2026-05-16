@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
 import styles from './Notifications.module.css';
 
@@ -64,19 +64,19 @@ function getNotifMeta(n) {
 }
 
 export default function Notifications() {
-  const navigate = useNavigate();
   const { notifications, markRead, markReadFriend, clearAll } = useNotifications();
   const sorted = [...notifications].reverse();
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <button className={styles.backBtn} onClick={() => navigate(-1)}>
-          ← Volver
-        </button>
-        <h1 className={styles.title}>Notificaciones</h1>
+        <div className={styles.heroBlock}>
+          <div className={styles.eyebrow}>◆ ACTIVIDAD</div>
+          <h1 className={styles.heroTitle}>Notificaciones</h1>
+          <p className={styles.heroSub}>Tus últimas notificaciones.</p>
+        </div>
         {notifications.length > 0 && (
-          <button className={styles.clearBtn} onClick={() => { clearAll(); navigate(-1); }}>
+          <button className={styles.clearBtn} onClick={() => clearAll()}>
             Limpiar
           </button>
         )}

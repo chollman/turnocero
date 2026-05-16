@@ -149,8 +149,8 @@ export default function Eventos() {
 
       <div className={styles.inner}>
         <div className={styles.header}>
-          <div>
-            <p className={styles.eyebrow}>COMUNIDAD</p>
+          <div className={styles.heroBlock}>
+            <div className={styles.eyebrow}>◆ COMUNIDAD</div>
             <h1 className={styles.title}>Eventos</h1>
             <p className={styles.sub}>Torneos, encuentros y actividades de la comunidad</p>
           </div>

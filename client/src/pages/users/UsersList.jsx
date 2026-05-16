@@ -119,9 +119,10 @@ export default function UsersList() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Comunidad</h1>
-          <p className={styles.subtitle}>Jugadores registrados en Turnocero</p>
+        <div className={styles.heroBlock}>
+          <div className={styles.eyebrow}>◆ COMUNIDAD</div>
+          <h1 className={styles.heroTitle}>Comunidad</h1>
+          <p className={styles.heroSub}>Jugadores registrados en Turnocero</p>
         </div>
         <span className={styles.countBadge}>
           {users.length} jugador{users.length !== 1 ? 'es' : ''}

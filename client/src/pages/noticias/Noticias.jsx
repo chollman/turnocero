@@ -418,7 +418,7 @@ export default function Noticias() {
       </Helmet>
       <div className={styles.inner}>
         <div className={styles.header}>
-          <div>
+          <div className={styles.heroBlock}>
             <div className={styles.eyebrow}>◆ COMUNIDAD</div>
             <h1 className={styles.title}>Noticias</h1>
             <p className={styles.sub}>Novedades y eventos de la comunidad Turnocero.</p>
