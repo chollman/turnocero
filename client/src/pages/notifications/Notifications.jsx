@@ -91,9 +91,11 @@ function getNotifMeta(n) {
   }
 }
 
+const getNotifTime = (n) => new Date(n.updatedAt || n.timestamp || 0).getTime();
+
 export default function Notifications() {
   const { notifications, markRead, markReadFriend, clearAll } = useNotifications();
-  const sorted = [...notifications].reverse();
+  const sorted = [...notifications].sort((a, b) => getNotifTime(b) - getNotifTime(a));
 
   return (
     <div className={styles.page}>
