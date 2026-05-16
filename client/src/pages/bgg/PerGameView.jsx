@@ -40,6 +40,7 @@ export default function PerGameView() {
 
   const [openPlay, setOpenPlay] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingPlay, setEditingPlay] = useState(null);
 
   const isOwnProfile = !!user?.bggUsername &&
     user.bggUsername.toLowerCase() === (bggUsername || '').toLowerCase();
@@ -229,6 +230,7 @@ export default function PerGameView() {
                 key={play.id}
                 play={play}
                 onClick={() => setOpenPlay(play)}
+                onEdit={canCreate ? () => setEditingPlay(play) : undefined}
               />
             ))}
             <Pagination page={page} totalPages={totalPages} onPage={handlePage} />
@@ -250,6 +252,15 @@ export default function PerGameView() {
             year: game.year,
           } : null}
           onClose={() => setCreateOpen(false)}
+          onCreated={() => setRefreshKey((k) => k + 1)}
+        />
+      )}
+
+      {editingPlay && (
+        <CreatePlayModal
+          user={user}
+          editPlay={editingPlay}
+          onClose={() => setEditingPlay(null)}
           onCreated={() => setRefreshKey((k) => k + 1)}
         />
       )}

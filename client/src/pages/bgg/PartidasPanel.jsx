@@ -67,7 +67,7 @@ function GameWithPlaysCard({ game, bggUsername }) {
   );
 }
 
-export default function PartidasPanel({ bggUsername, collection, onPlayClick, onMetaChange }) {
+export default function PartidasPanel({ bggUsername, collection, onPlayClick, onPlayEdit, onMetaChange }) {
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'byGame'
 
   // ── List mode state ──
@@ -216,6 +216,7 @@ export default function PartidasPanel({ bggUsername, collection, onPlayClick, on
                   key={play.id}
                   play={play}
                   onClick={() => onPlayClick(play)}
+                  onEdit={onPlayEdit ? () => onPlayEdit(play) : undefined}
                 />
               ))}
               <Pagination page={page} totalPages={totalPages} onPage={handlePage} />

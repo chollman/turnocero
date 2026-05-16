@@ -605,6 +605,73 @@
   gap: 6px;
 }
 
+/* ─── Play card menu (kebab) ─── */
+.playCardMenu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.playCardMenuBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 8px;
+  border-radius: 6px;
+  transition: all var(--transition);
+}
+
+.playCardMenuBtn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.playCardMenuPop {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 140px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.playCardMenuItem {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.playCardMenuItem:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.playCardMenuItemDanger {
+  color: var(--red);
+}
+
+.playCardMenuItemDanger:hover {
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+  color: var(--red);
+}
+
 .playerChip {
   display: inline-flex;
   align-items: center;

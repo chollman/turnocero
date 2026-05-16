@@ -360,118 +360,152 @@ router.get('/partidas/:bggUsername', async (req, res) => {
   }
 });
 
-// POST /api/bgg/partidas — create a play in BGG (uses /geekplay.php internal endpoint)
+// Build geekplay.php form body. If `playId` is set, it's an edit; otherwise create.
+function buildPlayForm(body, playId = null) {
+  const {
+    objectid, playdate, length, location, quantity = 1, comments,
+    incomplete = false, nowinstats = false, players = [],
+  } = body;
+
+  const qty = Math.max(1, Math.min(99, parseInt(quantity) || 1));
+  const len = length != null && length !== '' ? Math.max(0, parseInt(length) || 0) : null;
+
+  const form = new URLSearchParams();
+  form.set('ajax', '1');
+  form.set('action', 'save');
+  form.set('version', '2');
+  form.set('objecttype', 'thing');
+  if (playId) form.set('playid', String(playId));
+  form.set('objectid', String(objectid));
+  form.set('playdate', String(playdate));
+  if (len != null) form.set('length', String(len));
+  if (location) form.set('location', String(location).slice(0, 100));
+  form.set('quantity', String(qty));
+  if (comments) form.set('comments', String(comments).slice(0, 1000));
+  form.set('incomplete', incomplete ? '1' : '0');
+  form.set('nowinstats', nowinstats ? '1' : '0');
+
+  players.forEach((p, i) => {
+    const idx = `players[${i}]`;
+    if (p.name) form.set(`${idx}[name]`, String(p.name).slice(0, 100));
+    if (p.username) form.set(`${idx}[username]`, String(p.username).slice(0, 50));
+    form.set(`${idx}[position]`, String(p.position ?? i + 1));
+    if (p.color) form.set(`${idx}[color]`, String(p.color).slice(0, 30));
+    if (p.score != null && p.score !== '') form.set(`${idx}[score]`, String(p.score).slice(0, 30));
+    form.set(`${idx}[new]`, p.new ? '1' : '0');
+    if (p.rating != null && Number(p.rating) > 0) form.set(`${idx}[rating]`, String(p.rating));
+    form.set(`${idx}[win]`, p.win ? '1' : '0');
+  });
+
+  return form;
+}
+
+function validatePlayBody(body) {
+  if (!/^\d+$/.test(String(body.objectid || ''))) {
+    return 'ID de juego inválido';
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.playdate || ''))) {
+    return 'Fecha inválida (formato YYYY-MM-DD)';
+  }
+  if (!Array.isArray(body.players)) {
+    return 'Lista de jugadores inválida';
+  }
+  return null;
+}
+
+async function submitToGeekplay(user, form, label) {
+  let cookie;
+  try {
+    cookie = await getSessionCookie(user._id);
+  } catch (e) {
+    throw Object.assign(e, { status: e.status || 500 });
+  }
+
+  let bggRes;
+  try {
+    bggRes = await fetch(BGG_GEEKPLAY, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': cookie,
+        'User-Agent': 'Turnocero/1.0',
+        'Origin': 'https://boardgamegeek.com',
+        'Referer': 'https://boardgamegeek.com/',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: form.toString(),
+    });
+  } catch (e) {
+    throw Object.assign(new Error(`No se pudo contactar BGG: ${e.message}`), { status: 502 });
+  }
+
+  if (bggRes.status === 401 || bggRes.status === 403) {
+    clearSession(user._id);
+    throw Object.assign(new Error('Sesión BGG inválida. Reconectá en /perfil.'), { status: 401 });
+  }
+  if (!bggRes.ok) {
+    const text = await bggRes.text().catch(() => '');
+    console.warn(`[bgg/partidas ${label}] ${bggRes.status}:`, text.slice(0, 300));
+    throw Object.assign(new Error(`BGG respondió ${bggRes.status}`), { status: 502 });
+  }
+
+  const text = await bggRes.text();
+  let payload;
+  try { payload = JSON.parse(text); } catch { payload = { raw: text.slice(0, 200) }; }
+  return payload;
+}
+
+// POST /api/bgg/partidas — create a play in BGG
 router.post('/partidas', protect, async (req, res) => {
   try {
     const user = req.user;
     if (!user.bggUsername) {
       return res.status(400).json({ message: 'Configurá tu username de BGG en el perfil' });
     }
+    const validationError = validatePlayBody(req.body);
+    if (validationError) return res.status(400).json({ message: validationError });
 
-    const {
-      objectid,
-      playdate,
-      length,
-      location,
-      quantity = 1,
-      comments,
-      incomplete = false,
-      nowinstats = false,
-      players = [],
-    } = req.body;
-
-    // Validation
-    if (!/^\d+$/.test(String(objectid || ''))) {
-      return res.status(400).json({ message: 'ID de juego inválido' });
-    }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(playdate || ''))) {
-      return res.status(400).json({ message: 'Fecha inválida (formato YYYY-MM-DD)' });
-    }
-    if (!Array.isArray(players)) {
-      return res.status(400).json({ message: 'Lista de jugadores inválida' });
-    }
-    const qty = Math.max(1, Math.min(99, parseInt(quantity) || 1));
-    const len = length != null && length !== '' ? Math.max(0, parseInt(length) || 0) : null;
-
-    // Establish BGG session (login if needed)
-    let cookie;
+    const form = buildPlayForm(req.body, null);
+    let payload;
     try {
-      cookie = await getSessionCookie(user._id);
+      payload = await submitToGeekplay(user, form, 'POST');
     } catch (e) {
       return res.status(e.status || 500).json({ message: e.message });
     }
-
-    // Build form body (BGG expects application/x-www-form-urlencoded)
-    const form = new URLSearchParams();
-    form.set('ajax', '1');
-    form.set('action', 'save');
-    form.set('version', '2');
-    form.set('objecttype', 'thing');
-    form.set('objectid', String(objectid));
-    form.set('playdate', String(playdate));
-    if (len != null) form.set('length', String(len));
-    if (location) form.set('location', String(location).slice(0, 100));
-    form.set('quantity', String(qty));
-    if (comments) form.set('comments', String(comments).slice(0, 1000));
-    form.set('incomplete', incomplete ? '1' : '0');
-    form.set('nowinstats', nowinstats ? '1' : '0');
-
-    players.forEach((p, i) => {
-      const idx = `players[${i}]`;
-      if (p.name) form.set(`${idx}[name]`, String(p.name).slice(0, 100));
-      if (p.username) form.set(`${idx}[username]`, String(p.username).slice(0, 50));
-      form.set(`${idx}[position]`, String(p.position ?? i + 1));
-      if (p.color) form.set(`${idx}[color]`, String(p.color).slice(0, 30));
-      if (p.score != null && p.score !== '') form.set(`${idx}[score]`, String(p.score).slice(0, 30));
-      form.set(`${idx}[new]`, p.new ? '1' : '0');
-      if (p.rating != null && Number(p.rating) > 0) form.set(`${idx}[rating]`, String(p.rating));
-      form.set(`${idx}[win]`, p.win ? '1' : '0');
-    });
-
-    // POST to BGG
-    let bggRes;
-    try {
-      bggRes = await fetch(BGG_GEEKPLAY, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Cookie': cookie,
-          'User-Agent': 'Turnocero/1.0',
-          'Origin': 'https://boardgamegeek.com',
-          'Referer': 'https://boardgamegeek.com/',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        body: form.toString(),
-      });
-    } catch (e) {
-      return res.status(502).json({ message: `No se pudo contactar BGG: ${e.message}` });
-    }
-
-    if (bggRes.status === 401 || bggRes.status === 403) {
-      clearSession(user._id);
-      return res.status(401).json({ message: 'Sesión BGG inválida. Reconectá en /perfil.' });
-    }
-    if (!bggRes.ok) {
-      const text = await bggRes.text().catch(() => '');
-      console.warn(`[bgg/partidas POST] ${bggRes.status}:`, text.slice(0, 300));
-      return res.status(502).json({ message: `BGG respondió ${bggRes.status}` });
-    }
-
-    let payload;
-    const text = await bggRes.text();
-    try { payload = JSON.parse(text); } catch { payload = { raw: text.slice(0, 200) }; }
-
-    // Invalidate plays cache so the new play shows up on next fetch
     clearPartidasCache(user.bggUsername);
-
-    res.json({
-      success: true,
-      playid: payload.playid || payload.numplays || null,
-      raw: payload,
-    });
+    res.json({ success: true, playid: payload.playid || payload.numplays || null, raw: payload });
   } catch (err) {
     console.error('Create play failed:', err);
     res.status(500).json({ message: err.message || 'Error al crear la partida' });
+  }
+});
+
+// PUT /api/bgg/partidas/:playId — edit an existing play in BGG
+router.put('/partidas/:playId', protect, async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user.bggUsername) {
+      return res.status(400).json({ message: 'Configurá tu username de BGG en el perfil' });
+    }
+    const { playId } = req.params;
+    if (!/^\d+$/.test(String(playId))) {
+      return res.status(400).json({ message: 'ID de partida inválido' });
+    }
+    const validationError = validatePlayBody(req.body);
+    if (validationError) return res.status(400).json({ message: validationError });
+
+    const form = buildPlayForm(req.body, playId);
+    let payload;
+    try {
+      payload = await submitToGeekplay(user, form, 'PUT');
+    } catch (e) {
+      return res.status(e.status || 500).json({ message: e.message });
+    }
+    clearPartidasCache(user.bggUsername);
+    res.json({ success: true, playid: playId, raw: payload });
+  } catch (err) {
+    console.error('Edit play failed:', err);
+    res.status(500).json({ message: err.message || 'Error al editar la partida' });
   }
 });
 

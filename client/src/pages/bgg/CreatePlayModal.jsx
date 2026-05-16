@@ -235,30 +235,58 @@ function StepPlayers({ players, setPlayers }) {
   );
 }
 
-export default function CreatePlayModal({ user, preselectedGame, onClose, onCreated }) {
-  const [step, setStep] = useState(preselectedGame ? 2 : 1);
-  const [game, setGame] = useState(preselectedGame || null);
+export default function CreatePlayModal({ user, preselectedGame, editPlay, onClose, onCreated }) {
+  const isEdit = !!editPlay;
+  // In edit mode, game is locked (cannot be changed) and step 1 is skipped
+  const initialGame = editPlay
+    ? { id: editPlay.gameId, name: editPlay.gameName, thumbnail: editPlay.gameThumbnail }
+    : (preselectedGame || null);
+  const lockedGame = isEdit || !!preselectedGame;
 
-  const [details, setDetails] = useState({
-    playdate: todayIso(),
-    length: '',
-    location: '',
-    quantity: 1,
-    comments: '',
-    incomplete: false,
-    nowinstats: false,
-  });
+  const [step, setStep] = useState(initialGame ? 2 : 1);
+  const [game, setGame] = useState(initialGame);
 
-  const [players, setPlayers] = useState([
-    {
+  const [details, setDetails] = useState(() => editPlay
+    ? {
+        playdate: editPlay.date || todayIso(),
+        length: editPlay.duration != null ? String(editPlay.duration) : '',
+        location: editPlay.location || '',
+        quantity: editPlay.quantity || 1,
+        comments: editPlay.comments || '',
+        incomplete: !!editPlay.incomplete,
+        nowinstats: !!editPlay.nowinstats,
+      }
+    : {
+        playdate: todayIso(),
+        length: '',
+        location: '',
+        quantity: 1,
+        comments: '',
+        incomplete: false,
+        nowinstats: false,
+      }
+  );
+
+  const [players, setPlayers] = useState(() => {
+    if (editPlay && Array.isArray(editPlay.players) && editPlay.players.length > 0) {
+      return editPlay.players.map((p) => ({
+        name: p.name || '',
+        username: p.username || '',
+        color: p.color || '',
+        score: p.score != null ? String(p.score) : '',
+        win: !!p.win,
+        new: !!p.new,
+      }));
+    }
+    return [{
       name: user?.displayName || user?.nombre || user?.username || '',
       username: user?.bggUsername || '',
       color: '',
       score: '',
       win: false,
       new: false,
-    },
-  ]);
+    }];
+  });
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -294,11 +322,17 @@ export default function CreatePlayModal({ user, preselectedGame, onClose, onCrea
             new: p.new,
           })),
       };
-      await axios.post('/api/bgg/partidas', body);
+      if (isEdit) {
+        await axios.put(`/api/bgg/partidas/${encodeURIComponent(editPlay.id)}`, body);
+      } else {
+        await axios.post('/api/bgg/partidas', body);
+      }
       if (onCreated) onCreated();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || 'No se pudo cargar la partida.');
+      setError(err.response?.data?.message || (isEdit
+        ? 'No se pudo editar la partida.'
+        : 'No se pudo cargar la partida.'));
     } finally {
       setSubmitting(false);
     }
@@ -317,14 +351,22 @@ export default function CreatePlayModal({ user, preselectedGame, onClose, onCrea
           aria-modal="true"
         >
           <div className={styles.modalHeaderRow}>
-            <h2 className={styles.modalTitle}>Cargar partida en BGG</h2>
+            <h2 className={styles.modalTitle}>
+              {isEdit ? 'Editar partida' : 'Cargar partida en BGG'}
+            </h2>
             <button className={styles.modalClose} onClick={onClose} aria-label="Cerrar" disabled={submitting}>✕</button>
           </div>
 
           <div className={styles.stepIndicator}>
-            <span className={`${styles.step} ${step >= 1 ? styles.stepActive : ''}`}>1. Juego</span>
-            <span className={`${styles.step} ${step >= 2 ? styles.stepActive : ''}`}>2. Datos</span>
-            <span className={`${styles.step} ${step >= 3 ? styles.stepActive : ''}`}>3. Jugadores</span>
+            {!lockedGame && (
+              <span className={`${styles.step} ${step >= 1 ? styles.stepActive : ''}`}>1. Juego</span>
+            )}
+            <span className={`${styles.step} ${step >= 2 ? styles.stepActive : ''}`}>
+              {lockedGame ? '1' : '2'}. Datos
+            </span>
+            <span className={`${styles.step} ${step >= 3 ? styles.stepActive : ''}`}>
+              {lockedGame ? '2' : '3'}. Jugadores
+            </span>
           </div>
 
           {game && (
@@ -337,7 +379,7 @@ export default function CreatePlayModal({ user, preselectedGame, onClose, onCrea
                 <div className={styles.gamePickedName}>{game.name}</div>
                 {game.year && <div className={styles.gamePickedYear}>{game.year}</div>}
               </div>
-              {step !== 1 && !preselectedGame && (
+              {step !== 1 && !lockedGame && (
                 <button
                   type="button"
                   className={styles.gamePickedChange}
@@ -358,17 +400,7 @@ export default function CreatePlayModal({ user, preselectedGame, onClose, onCrea
           {error && <div className={styles.errorText}>{error}</div>}
 
           <div className={styles.modalActions}>
-            {step > 1 && !preselectedGame && (
-              <button
-                type="button"
-                className={styles.btnGhost}
-                onClick={() => setStep(step - 1)}
-                disabled={submitting}
-              >
-                ← Atrás
-              </button>
-            )}
-            {step > 1 && preselectedGame && step > 2 && (
+            {((step > 1 && !lockedGame) || (step > 2 && lockedGame)) && (
               <button
                 type="button"
                 className={styles.btnGhost}
@@ -395,7 +427,7 @@ export default function CreatePlayModal({ user, preselectedGame, onClose, onCrea
                 onClick={handleSubmit}
                 disabled={!canSubmit || submitting}
               >
-                {submitting ? 'Guardando…' : 'Guardar en BGG'}
+                {submitting ? 'Guardando…' : (isEdit ? 'Guardar cambios' : 'Guardar en BGG')}
               </button>
             )}
           </div>

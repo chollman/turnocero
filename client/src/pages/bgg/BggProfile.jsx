@@ -72,6 +72,7 @@ export default function BggProfile() {
   const [playsMeta, setPlaysMeta] = useState(null);
   const [openPlay, setOpenPlay] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingPlay, setEditingPlay] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const isOwnProfile = !!user?.bggUsername &&
@@ -82,6 +83,7 @@ export default function BggProfile() {
   const handleCollectionLoaded = useCallback((data) => setCollection(data), []);
   const handlePlaysMeta = useCallback((meta) => setPlaysMeta(meta), []);
   const handlePlayClick = useCallback((play) => setOpenPlay(play), []);
+  const handlePlayEdit = useCallback((play) => setEditingPlay(play), []);
   const handleCreated = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   return (
@@ -139,6 +141,7 @@ export default function BggProfile() {
             bggUsername={bggUsername}
             collection={collection}
             onPlayClick={handlePlayClick}
+            onPlayEdit={canCreate ? handlePlayEdit : undefined}
             onMetaChange={handlePlaysMeta}
           />
         </div>
@@ -158,6 +161,15 @@ export default function BggProfile() {
         <CreatePlayModal
           user={user}
           onClose={() => setCreateOpen(false)}
+          onCreated={handleCreated}
+        />
+      )}
+
+      {editingPlay && (
+        <CreatePlayModal
+          user={user}
+          editPlay={editingPlay}
+          onClose={() => setEditingPlay(null)}
           onCreated={handleCreated}
         />
       )}

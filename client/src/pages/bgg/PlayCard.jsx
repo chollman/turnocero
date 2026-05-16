@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './BggProfile.module.css';
 
 function formatDate(iso) {
@@ -45,7 +45,71 @@ function PlayerChip({ player }) {
   );
 }
 
-export default function PlayCard({ play, onClick }) {
+function PlayCardMenu({ onEdit, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const stop = (e) => e.stopPropagation();
+  const handle = (e, fn) => {
+    e.stopPropagation();
+    setOpen(false);
+    fn();
+  };
+
+  return (
+    <div className={styles.playCardMenu} ref={ref} onClick={stop} onKeyDown={stop}>
+      <button
+        type="button"
+        className={styles.playCardMenuBtn}
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        aria-label="Acciones"
+        aria-expanded={open}
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className={styles.playCardMenuPop} role="menu">
+          {onEdit && (
+            <button
+              type="button"
+              className={styles.playCardMenuItem}
+              role="menuitem"
+              onClick={(e) => handle(e, onEdit)}
+            >
+              Editar
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              className={`${styles.playCardMenuItem} ${styles.playCardMenuItemDanger}`}
+              role="menuitem"
+              onClick={(e) => handle(e, onDelete)}
+            >
+              Eliminar
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function PlayCard({ play, onClick, onEdit, onDelete }) {
   const sortedPlayers = useMemo(() => {
     if (!play.players || play.players.length === 0) return [];
     return [...play.players].sort((a, b) => {
@@ -58,7 +122,7 @@ export default function PlayCard({ play, onClick }) {
   }, [play.players]);
 
   const truncatedComment = play.comments
-    ? (play.comments.length > 80 ? play.comments.slice(0, 80) + '…' : play.comments)
+    ? (play.comments.length > 80 ? `${play.comments.slice(0, 80)}…` : play.comments)
     : null;
 
   const interactive = typeof onClick === 'function';
@@ -91,6 +155,9 @@ export default function PlayCard({ play, onClick }) {
             <span className={styles.playDateRelative}>{relativeDate(play.date)}</span>
             <span className={styles.playDateAbs}>{formatDate(play.date)}</span>
           </span>
+          {(onEdit || onDelete) && (
+            <PlayCardMenu onEdit={onEdit} onDelete={onDelete} />
+          )}
         </div>
 
         {sortedPlayers.length > 0 && (
