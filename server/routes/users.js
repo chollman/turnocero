@@ -9,8 +9,12 @@ const { protect, optionalAuth } = require('../middleware/auth');
 router.get('/', optionalAuth, async (req, res) => {
   try {
     const { search, sortBy, activeOnly, friendsOnly } = req.query;
+    const isAdmin = !!req.user?.isAdmin;
 
     const query = {};
+    if (!isAdmin) {
+      query.isBanned = { $ne: true };
+    }
     if (friendsOnly === 'true' && req.user) {
       query._id = { $in: req.user.friends };
     }
@@ -24,7 +28,6 @@ router.get('/', optionalAuth, async (req, res) => {
       ];
     }
 
-    const isAdmin = !!req.user?.isAdmin;
     const selectFields = isAdmin
       ? 'username displayName nombre apellido telegram celular direccion createdAt isAdmin isBanned bannedAt bannedReason'
       : 'username displayName nombre apellido telegram celular direccion createdAt';
@@ -95,11 +98,13 @@ router.get('/', optionalAuth, async (req, res) => {
 // GET /api/users/:id — public profile + stats; relationship fields are null for anon
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
+    const isAdmin = !!req.user?.isAdmin;
     const user = await User.findById(req.params.id)
-      .select('username displayName nombre apellido telegram celular bggUsername direccion createdAt friendRequests friends')
+      .select('username displayName nombre apellido telegram celular bggUsername direccion createdAt friendRequests friends isBanned')
       .lean();
 
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+    if (user.isBanned && !isAdmin) return res.status(404).json({ message: 'Usuario no encontrado' });
 
     const userId = user._id;
 
@@ -152,7 +157,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
         : 'none';
     }
 
-    const { friendRequests: _fr, friends: _friends, ...userPublic } = user;
+    const { friendRequests: _fr, friends: _friends, isBanned: _isBanned, ...userPublic } = user;
+    if (isAdmin) userPublic.isBanned = _isBanned;
 
     res.json({
       ...userPublic,

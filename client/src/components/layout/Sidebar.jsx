@@ -180,9 +180,9 @@ const NAV = [
   { id: "compartidas", label: "Compartite", to: "/compartidas" },
   { id: "noticias", label: "Noticias", to: "/noticias" },
   { id: "eventos", label: "Eventos", to: "/eventos" },
+  { id: "users", label: "Comunidad", to: "/usuarios" },
   { id: "dash", label: "Mesas", to: "/mesas", adminOnly: true },
   { id: "feed", label: "Mi feed", to: "/mi", adminOnly: true },
-  { id: "users", label: "Comunidad", to: "/usuarios", adminOnly: true },
   { id: "db", label: "Base de datos", to: "/base-de-datos", adminOnly: true },
   {
     id: "adminChat",
