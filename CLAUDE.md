@@ -277,7 +277,7 @@ GET    /api/admin/*                             — isAdmin only
 
 ### Frontend pages
 ```
-App (AuthProvider + NotificationProvider + ChatProvider + Router)
+App (ThemeProvider + AuthProvider + NotificationProvider + ChatProvider + Router)
 ├── components/layout/          ← shell (GuestNavbar, Sidebar, Navbar, BottomNav,
 │                                  BoardGameBackground, SplashScreen, ToastContainer)
 ├── components/shared/          ← GameTile, LoginPromptModal
@@ -323,8 +323,25 @@ All error responses return `{ message: '<string>' }`. Status codes: `400` valida
 ### Notification persistence
 `server/utils/saveNotification.js` upserts notifications rather than creating new ones. Types `chat`, `comment`, `image`, and `join_request` aggregate (increment count on existing); all others overwrite.
 
-### Styling
-CSS Modules per component. Global CSS variables in `client/src/index.css` define the dark amber/gold board-game theme: `--bg-dark`, `--amber`, `--green`, `--red`, `--text-primary`, etc. Always use these variables; never hardcode colors.
+### Styling and theming
+CSS Modules per component. Global CSS variables in `client/src/index.css` define two themes:
+- **Dark** (default, applied when `<html data-theme="dark">` or no attribute): the Blizzard-style dark navy palette.
+- **Light** (applied when `<html data-theme="light">`): overrides only the neutrals (`--bg-*`, `--text-*`, `--border`, `--overlay-*`, `--shadow-*`); brand accents (`--amber`, `--red`, `--green`, `--orange`, `--purple`) stay the same in both.
+
+`ThemeContext` ([`client/src/context/ThemeContext.jsx`](client/src/context/ThemeContext.jsx)) owns the current theme, persists it to `localStorage` under `turnocero_theme`, and applies `data-theme` to `<html>`. It is the outermost provider in [`App.jsx`](client/src/App.jsx) (wraps `AuthProvider` so login/splash also respect the theme). An inline script in [`client/index.html`](client/index.html) reads the stored preference and applies `data-theme` before React hydrates, to avoid a FOUC.
+
+The toggle UI lives in the "Apariencia" section at the top of `/perfil`. Available tokens (use these instead of literal colors):
+- Backgrounds: `--bg-dark`, `--bg-card`, `--bg-elevated`, `--bg-hover`
+- Text: `--text-primary`, `--text-secondary`, `--text-muted`
+- Borders: `--border`, `--border-amber`
+- Brand: `--amber` (+ `--amber-light`, `--amber-dark`, `--amber-glow`), `--red`, `--green`, `--orange`, `--purple`
+- Opacity variants of brand colors: `--amber-10/15/20/25/30/35/40/50`, `--red-10/15/25/30`, `--green-10/15/25/30/35/40`, `--orange-10/15/25/30/45/80`, `--purple-10/15/30/40/70`. Add new ones to `index.css` rather than inlining `rgba()`.
+- Theme-aware overlays: `--overlay-soft`, `--overlay-medium`, `--overlay-strong` (white on dark, dark on light).
+- `--on-amber`: always white — use for text on amber/red/green/orange/purple buttons or badges, not literal `#fff`.
+
+Shadows using `rgba(0,0,0,X)` are theme-agnostic and may stay as literals. `--shadow-sm`/`--shadow-md` are softer in light mode.
+
+Forced-dark "tool" screens (`/utilidades/dado`, `/utilidades/temporizador`, `/utilidades/selector-de-dedos`) and the auth `.showcase*` blocks intentionally hardcode a dark mood and ignore the active theme — keep that convention for similar immersive surfaces. For runtime-read colors in JSX/SVG (e.g. Leaflet markers), read via `getComputedStyle(document.documentElement).getPropertyValue('--amber')` inside a `useEffect([theme])` so the color refreshes on toggle — see `buildMarkerIcon` in [UserProfile.jsx](client/src/pages/users/UserProfile.jsx).
 
 ## Environment Setup
 
