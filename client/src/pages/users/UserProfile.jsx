@@ -10,6 +10,7 @@ import MiBgWatchCard from './MiBgWatchCard';
 import styles from './UserProfile.module.css';
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
+const BGWATCH_BANNER_DISMISS_KEY = 'turnocero_bgwatch_profile_banner_dismissed';
 
 const buildMarkerIcon = () => {
   const amber = getComputedStyle(document.documentElement).getPropertyValue('--amber').trim() || '#1888ef';
@@ -44,6 +45,29 @@ export default function UserProfile() {
   const [bggPassword, setBggPassword] = useState('');
   const [bggBusy, setBggBusy] = useState(false);
   const [bggError, setBggError] = useState('');
+
+  // ── BG Watch promo banner (F.1) ──
+  const [bgWatchBannerDismissed, setBgWatchBannerDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(BGWATCH_BANNER_DISMISS_KEY) === '1';
+  });
+
+  const handleDismissBgWatchBanner = () => {
+    try {
+      window.localStorage.setItem(BGWATCH_BANNER_DISMISS_KEY, '1');
+    } catch {
+      // localStorage may be unavailable (private mode, etc.) — just hide for this session
+    }
+    setBgWatchBannerDismissed(true);
+  };
+
+  const handleFocusBggField = (e) => {
+    e.preventDefault();
+    const field = document.getElementById('bgg-username-field');
+    if (!field) return;
+    field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    field.querySelector('input')?.focus({ preventScroll: true });
+  };
 
   const [form, setForm] = useState({
     displayName: '',
@@ -266,6 +290,45 @@ export default function UserProfile() {
           <p className={styles.heroSub}>{user?.email}</p>
         </div>
 
+        {user && !user.bggUsername && !bgWatchBannerDismissed && (
+          <div className={styles.bgWatchBanner}>
+            <span className={styles.bgWatchBannerIcon} aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2.5" />
+                <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
+                <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
+                <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
+                <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
+                <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
+              </svg>
+            </span>
+            <div className={styles.bgWatchBannerBody}>
+              <strong className={styles.bgWatchBannerTitle}>
+                ¿Llevás partidas en BoardGameGeek?
+              </strong>
+              <p className={styles.bgWatchBannerSub}>
+                Activá BG Watch para registrar todas tus partidas desde Turnocero.
+              </p>
+            </div>
+            <a
+              href="#bgg-username-field"
+              className={styles.bgWatchBannerCta}
+              onClick={handleFocusBggField}
+            >
+              Activá ahora →
+            </a>
+            <button
+              type="button"
+              className={styles.bgWatchBannerDismiss}
+              onClick={handleDismissBgWatchBanner}
+              aria-label="Ocultar este banner"
+              title="Ocultar"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {user?.bggUsername && user?.bggConnected && !user?.bggInvalid && (
           <MiBgWatchCard bggUsername={user.bggUsername} />
         )}
@@ -375,7 +438,7 @@ export default function UserProfile() {
                 </div>
               </div>
 
-              <div className={styles.field}>
+              <div className={styles.field} id="bgg-username-field">
                 <label className={styles.label}>Usuario en BGG</label>
                 <div className={styles.inputPrefix}>
                   <span className={styles.prefix}>BGG</span>

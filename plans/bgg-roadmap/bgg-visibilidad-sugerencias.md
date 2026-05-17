@@ -63,13 +63,13 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | E.1 | ✅     | BG Watch público + CTAs de conversión                  | Medio       |           |
 | E.2 | ⬜     | OG metadata para `/bg-watch/:username`                 | Medio       |           |
 | E.3 | ⬜     | GuestNavbar con link a "Jugadores BG Watch"            | Medio       |           |
-| F.1 | ⬜     | Banner one-shot en `/perfil` post-registro             | Bajo        |           |
+| F.1 | ✅     | Banner one-shot en `/perfil` post-registro             | Bajo        |           |
 | F.2 | ⬜     | Empty state contextual con BG Watch de amigos          | Medio       |           |
 | F.3 | ⬜     | Featured "Jugador BG Watch de la semana"               | Medio/Alto  |           |
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 + D.3 + D.4 + E.1 implementados)
+> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 + D.3 + D.4 + E.1 + F.1 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -269,10 +269,18 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 
 ### F. Onboarding — captar usuarios sin BG Watch activo
 
-#### F.1 [ ] Banner one-shot en `/perfil` post-registro
+#### F.1 [x] Banner one-shot en `/perfil` post-registro
 **Qué**: para nuevos usuarios, banner dismissible "¿Llevás cuenta en BoardGameGeek? Activá BG Watch para registrar todas tus partidas".
 **Esfuerzo**: bajo. Usar localStorage para dismissal.
 **Impacto**: alto en conversión.
+
+**Implementación (2026-05-17)**:
+- Banner integrado inline en [UserProfile.jsx](../../client/src/pages/users/UserProfile.jsx) entre el `hero` y el slot de `MiBgWatchCard`. Visible solo si `user && !user.bggUsername && !bgWatchBannerDismissed`. En cuanto el usuario configura `bggUsername` y guarda el perfil, el banner desaparece naturalmente (sin necesidad de dismiss explícito).
+- **Decisión sobre "nuevos usuarios"**: el plan menciona "para nuevos usuarios", pero se eligió un trigger más simple — cualquier usuario sin `bggUsername` ve el banner. Esto cubre tanto recién registrados como usuarios viejos que nunca activaron BG Watch. El dismiss permite a quien no le interesa silenciarlo para siempre.
+- **Dismiss persistente**: clave `turnocero_bgwatch_profile_banner_dismissed` en `localStorage` (distinta de `turnocero_bgwatch_promo_dismissed` del widget de Compartidas — son surfaces independientes). Botón ✕ en la esquina del banner. Try/catch alrededor de `localStorage.setItem` por compatibilidad con modo privado.
+- **CTA principal**: link "Activá ahora →" que hace `scrollIntoView` smooth al campo `bggUsername` (que recibió `id="bgg-username-field"`) y le da foco al input — guía al usuario directo al primer paso del flujo de activación, sin saltos abruptos. El href es `#bgg-username-field` (fallback si JS falla).
+- **Estilos**: nuevo bloque `.bgWatchBanner` en [UserProfile.module.css](../../client/src/pages/users/UserProfile.module.css) reutilizando el lenguaje visual del banner análogo en `/usuarios` (gradient amber, icono cuadrado con dado, título + sub, CTA pill). Diferencias: agrega `.bgWatchBannerDismiss` (botón ✕ con hover suave) y posiciona el banner en flujo entre hero y form. Mobile (`<600px`): el sub se oculta, el CTA pasa a `width:100%` y el dismiss se ancla absoluto arriba a la derecha.
+- **Theme support**: usa solo tokens (`--amber-10/15/20`, `--text-primary`, `--text-secondary`, `--text-muted`, `--border-amber`, `--overlay-soft`, `--amber-glow`), funciona en dark y light sin cambios.
 
 #### F.2 [ ] Empty state contextual cuando un amigo loguea una mesa
 **Qué**: si un amigo del usuario tiene BG Watch activo y carga partidas, mostrarle al usuario sin BG Watch un nudge: "Ana usa BG Watch para registrar sus partidas. ¿Querés hacer lo mismo?".
