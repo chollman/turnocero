@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import GameTile from '../../components/shared/GameTile';
 import ProfileSkeleton from './ProfileSkeleton';
+import BgWatchUserCard from './BgWatchUserCard';
 import styles from './UserProfilePublic.module.css';
 
 function seedFromId(id = '') {
@@ -141,7 +142,6 @@ export default function UserProfilePublic() {
     profile.direccion?.texto,
     profile.telegram ? '✈️ Telegram' : null,
     profile.celular ? '📱 Celular' : null,
-    profile.bggUsername ? '🎲 BG Watch' : null,
   ].filter(Boolean);
 
   return (
@@ -219,11 +219,16 @@ export default function UserProfilePublic() {
           <StatCard value={stats.likesReceived} label="Likes recibidos" />
         </div>
 
+        {/* BG Watch card — prominent surface for visiting someone's BG Watch */}
+        {profile.bggUsername && (
+          <BgWatchUserCard bggUsername={profile.bggUsername} />
+        )}
+
         {/* Two-column layout */}
         <div className={styles.layout}>
           {/* Left: contact + favorites */}
           <div className={styles.leftCol}>
-            {(profile.direccion?.texto || profile.telegram || profile.celular || profile.bggUsername) && (
+            {(profile.direccion?.texto || profile.telegram || profile.celular) && (
               <div className={styles.infoCard}>
                 <div className={styles.sectionLabel}>CONTACTO</div>
                 <div className={styles.infoList}>
@@ -251,17 +256,6 @@ export default function UserProfilePublic() {
                       <div className={styles.infoText}>
                         <span className={styles.infoLabel}>Celular</span>
                         <span className={styles.infoValue}>{profile.celular}</span>
-                      </div>
-                    </div>
-                  )}
-                  {profile.bggUsername && (
-                    <div className={styles.infoRow}>
-                      <span className={styles.infoIcon}>🎲</span>
-                      <div className={styles.infoText}>
-                        <span className={styles.infoLabel}>BG Watch</span>
-                        <Link to={`/bg-watch/${profile.bggUsername}`} className={styles.infoLink}>
-                          {profile.bggUsername}
-                        </Link>
                       </div>
                     </div>
                   )}

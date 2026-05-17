@@ -56,7 +56,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | C.2 | ⬜     | Widget "Hot list" público (juegos hot de BGG)          | Bajo        |           |
 | D.1 | ✅     | Badge 🎲 BG Watch en cards de `/usuarios`              | Bajo        |           |
 | D.2 | ⬜     | Filtro "Solo con BG Watch" en `/usuarios`              | Bajo-medio  |           |
-| D.3 | ⬜     | Card BG Watch prominente en `/usuarios/:id`            | Bajo-medio  |           |
+| D.3 | ✅     | Card BG Watch prominente en `/usuarios/:id`            | Bajo-medio  |           |
 | D.4 | ✅     | Link a BG Watch en TableDetail                         | Bajo        |           |
 | D.5 | ⬜     | Link a BG Watch en autores de Compartidas              | Bajo        |           |
 | D.6 | ⬜     | "Cargar partida en BG Watch" desde TableDetail         | Medio       |           |
@@ -69,7 +69,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 + D.4 implementados)
+> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 + D.3 + D.4 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -188,10 +188,16 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 **Esfuerzo**: bajo-medio. Requiere param backend.
 **Impacto**: medio.
 
-#### D.3 [ ] Card BG Watch prominente en `/usuarios/:id`
+#### D.3 [x] Card BG Watch prominente en `/usuarios/:id`
 **Qué**: hoy es un text-link enterrado en "Contacto". Subirlo a una card propia tipo "Stats BG Watch" con thumbnail del juego más jugado + botón "Ver BG Watch".
 **Esfuerzo**: bajo-medio.
 **Impacto**: alto.
+
+**Implementación (2026-05-17)**:
+- Nuevo componente [BgWatchUserCard.jsx](../../client/src/pages/users/BgWatchUserCard.jsx) + `.module.css`. Comparte el lenguaje visual de [MiBgWatchCard](../../client/src/pages/users/MiBgWatchCard.jsx) (gradient amber, avatar con badge de dado, eyebrow `◆ BG WATCH`, CTA inline "Ver BG Watch →" con arrow animada) pero agrega una row destacada **"Juego más jugado"** con thumbnail (56×56, cae a placeholder con dado si BGG no devuelve uno), nombre del juego y conteo de partidas. Toda la card es un `<Link>` a `/bg-watch/<bggUsername>`.
+- Fetch en paralelo de `/api/bgg/partidas/:u?page=1` (total + última fecha) y `/api/bgg/coleccion/:u` (length = juegos únicos + ranking por `numPlays` desc para derivar el top game). Skeleton shimmer en la row del juego durante loading. Error silencioso con nota suave si ambos endpoints fallan.
+- Integrada en [UserProfilePublic.jsx](../../client/src/pages/users/UserProfilePublic.jsx) entre la `statsGrid` y el `layout` two-column. Renderiza solo si `profile.bggUsername` está seteado.
+- Limpieza: removida la fila `🎲 BG Watch` de la card "Contacto" y el chip `🎲 BG Watch` de los `contactParts` del hero (quedaban redundantes). El import de `Link` ya no era necesario.
 
 #### D.4 [x] Link a BG Watch en TableDetail (de hosts/players con BG Watch)
 **Qué**: en la lista de jugadores de una mesa, ícono de dado al lado del nombre que linkea a su `/bg-watch/...`. Hover muestra "Ver historial de partidas".
