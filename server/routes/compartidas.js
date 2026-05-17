@@ -15,9 +15,11 @@ const parsePagination = (query) => {
   return { page, limit, skip: (page - 1) * limit };
 };
 
+const POPULATE_AUTHOR_FIELDS = 'username avatar displayName bggUsername';
+
 const populateCompartida = (query) =>
   query
-    .populate('author', 'username avatar displayName')
+    .populate('author', POPULATE_AUTHOR_FIELDS)
     .populate('linkedTable', 'boardGame date maxPlayers players host status location');
 
 // ── Privacy filter helper ──────────────────────────────────────────────────
@@ -174,7 +176,7 @@ router.post('/', protect, async (req, res) => {
       privacy: privacy || 'public',
     });
 
-    await compartida.populate('author', 'username avatar displayName');
+    await compartida.populate('author', POPULATE_AUTHOR_FIELDS);
     if (compartida.linkedTable) {
       await compartida.populate('linkedTable', 'boardGame date maxPlayers players host status location');
     }

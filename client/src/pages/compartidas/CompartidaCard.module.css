@@ -61,11 +61,49 @@
   min-width: 0;
 }
 
+.authorNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .authorName {
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.authorBgWatchLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--amber-15);
+  color: var(--amber-light);
+  border: 1px solid var(--border-amber);
+  flex-shrink: 0;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    transform var(--transition);
+}
+
+.authorBgWatchLink:hover {
+  background: var(--amber-25);
+  color: var(--amber);
+  transform: translateY(-1px);
+}
+
+.authorBgWatchLink svg {
+  width: 12px;
+  height: 12px;
 }
 
 .meta {

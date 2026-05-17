@@ -58,7 +58,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | D.2 | ⬜     | Filtro "Solo con BG Watch" en `/usuarios`              | Bajo-medio  |           |
 | D.3 | ✅     | Card BG Watch prominente en `/usuarios/:id`            | Bajo-medio  |           |
 | D.4 | ✅     | Link a BG Watch en TableDetail                         | Bajo        |           |
-| D.5 | ⬜     | Link a BG Watch en autores de Compartidas              | Bajo        |           |
+| D.5 | ✅     | Link a BG Watch en autores de Compartidas              | Bajo        |           |
 | D.6 | ⬜     | "Cargar partida en BG Watch" desde TableDetail         | Medio       |           |
 | E.1 | ✅     | BG Watch público + CTAs de conversión                  | Medio       |           |
 | E.2 | ⬜     | OG metadata para `/bg-watch/:username`                 | Medio       |           |
@@ -69,7 +69,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 + D.3 + D.4 + E.1 + F.1 implementados)
+> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 + D.3 + D.4 + D.5 + E.1 + F.1 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -209,10 +209,16 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 - **Frontend**: en [TableDetail.jsx](../../client/src/pages/tables/TableDetail.jsx), nuevo componente helper `PlayerBgWatchLink` que renderiza un mini icono-link (dado 12×12 en un cuadrado 20×20 con bg amber tenue) cuando el user tiene `bggUsername`. Se inserta en el host chip y en cada player chip de la sección "EN LA MESA", entre el nombre y el tag (Host/vos). No se renderiza si el user está eliminado (matcheando el patrón del avatar fantasma). `title` = "Ver historial de partidas de @username", `aria-label` accesible, `onClick` con `stopPropagation` por consistencia (los chips actualmente no son clickeables pero por si en el futuro lo son).
 - **Estilos**: `.playerChipBgWatch` en [TableDetail.module.css](../../client/src/pages/tables/TableDetail.module.css), pill cuadrado amber tenue con hover más intenso + lift 1px.
 
-#### D.5 [ ] Link a BG Watch en autores de Compartidas
+#### D.5 [x] Link a BG Watch en autores de Compartidas
 **Qué**: en `CompartidaCard` y `CompartidaPost`, si el autor tiene `bggUsername`, agregar el ícono/link a su BG Watch.
 **Esfuerzo**: bajo.
 **Impacto**: bajo-medio.
+
+**Implementación (2026-05-17)**:
+- **Backend**: en [server/routes/compartidas.js](../../server/routes/compartidas.js), se extrajo `POPULATE_AUTHOR_FIELDS = 'username avatar displayName bggUsername'` como constante y se aplicó en `populateCompartida` (helper compartido por feed, featured, detail, image upload) y en el populate inline post-create. Mismo patrón que D.4 hizo en `/api/tables`. El populate de comments NO se tocó (D.5 solo cubre autor del post, no autores de comments).
+- **Frontend**: solo se modificó [CompartidaCard.jsx](../../client/src/pages/compartidas/CompartidaCard.jsx). `CompartidaPost.jsx` ya renderiza `CompartidaCard` internamente, así que automáticamente hereda el cambio. Nuevo componente helper inline `AuthorBgWatchLink` que mirrors `PlayerBgWatchLink` de TableDetail (dado 12×12 en cuadrado 20×20, amber tenue, hover lift, stopPropagation, title accesible). Se inserta en `authorMeta` junto al `authorName` dentro de un nuevo wrapper `.authorNameRow` (flex inline). No se renderiza si `authorInfo.isDeleted` (matchea la convención de Usuario eliminado).
+- **Estilo del nombre**: `.authorName` ahora tiene `overflow: hidden; text-overflow: ellipsis; white-space: nowrap` para que nombres largos no empujen el chip fuera de la card en mobile. Visualmente igual para nombres cortos (la mayoría).
+- **OG endpoint sin tocar**: `GET /api/compartidas/:id/og` no necesita `bggUsername` (sirve solo título/desc/imagen para crawlers).
 
 #### D.6 [ ] Mostrar "Cargar partida en BG Watch" en TableDetail tras jugar
 **Qué**: ya listado en roadmap (sección 2.1) pero también es una **palanca de visibilidad**: el CTA aparece en una pantalla que muchos visitan, generando familiaridad con la feature.

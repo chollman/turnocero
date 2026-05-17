@@ -28,6 +28,38 @@ function timeAgo(date) {
   return new Date(date).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
 }
 
+// Small inline link rendered next to the author's name when they have an active
+// BG Watch (i.e. populated `bggUsername`). Click → their BG Watch profile.
+function AuthorBgWatchLink({ author }) {
+  if (!author?.bggUsername) return null
+  return (
+    <Link
+      to={`/bg-watch/${encodeURIComponent(author.bggUsername)}`}
+      className={styles.authorBgWatchLink}
+      title={`Ver historial de partidas de @${author.username}`}
+      aria-label={`Ver BG Watch de ${author.username}`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="3" y="3" width="18" height="18" rx="2.5" />
+        <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
+        <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
+        <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
+        <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
+      </svg>
+    </Link>
+  )
+}
+
 function formatTableDate(date) {
   return new Date(date).toLocaleDateString('es-AR', {
     weekday: 'short', day: 'numeric', month: 'short',
@@ -187,7 +219,10 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
             {authorInfo.isDeleted ? <GhostIcon size={16} /> : authorName[0].toUpperCase()}
           </div>
           <div className={styles.authorMeta}>
-            <span className={styles.authorName}>{authorName}</span>
+            <div className={styles.authorNameRow}>
+              <span className={styles.authorName}>{authorName}</span>
+              {!authorInfo.isDeleted && <AuthorBgWatchLink author={post.author} />}
+            </div>
             <span className={styles.meta}>
               {timeAgo(post.createdAt)}
               {privacyLabel && <span className={styles.privacyBadge}>{privacyLabel}</span>}
