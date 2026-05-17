@@ -131,8 +131,8 @@ function AppRoutes() {
           <Route path="/compartidas" element={<Compartidas />} />
           <Route path="/compartidas/:id" element={<CompartidaPost />} />
           <Route path="/bg-watch" element={<BgWatchLanding />} />
-          <Route path="/bg-watch/:bggUsername" element={<PrivateRoute><BgWatchProfile /></PrivateRoute>} />
-          <Route path="/bg-watch/:bggUsername/juego/:gameId" element={<PrivateRoute><BgWatchPerGameView /></PrivateRoute>} />
+          <Route path="/bg-watch/:bggUsername" element={<BgWatchProfile />} />
+          <Route path="/bg-watch/:bggUsername/juego/:gameId" element={<BgWatchPerGameView />} />
           <Route path="/perfil-bgg/*" element={<LegacyBggRedirect />} />
           <Route path="/mensajes" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/mensajes/:userId" element={<PrivateRoute><DirectChat /></PrivateRoute>} />
