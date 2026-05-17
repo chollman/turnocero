@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
 import GameTile from '../../components/shared/GameTile'
+import BgWatchHomeWidget from './BgWatchHomeWidget'
 import styles from './CompartidasSidebar.module.css'
 
 function formatDate(date) {
@@ -42,6 +43,9 @@ export default function CompartidasSidebar() {
 
   return (
     <aside className={styles.sidebar}>
+
+      {/* ── BG Watch (activo o promo) ── */}
+      {user && <BgWatchHomeWidget user={user} dismissible />}
 
       {/* ── Próximas mesas ── */}
       <div className={styles.widget}>

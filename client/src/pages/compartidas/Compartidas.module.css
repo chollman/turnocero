@@ -24,6 +24,18 @@
   gap: 20px;
 }
 
+/* Slot for the BG Watch widget on mobile. Desktop hides it because the
+   sidebar already shows it. */
+.mobileWidgetSlot {
+  display: none;
+}
+
+@media (max-width: 959px) {
+  .mobileWidgetSlot {
+    display: block;
+  }
+}
+
 /* ── Page header ── */
 .pageHeader {
   display: flex;

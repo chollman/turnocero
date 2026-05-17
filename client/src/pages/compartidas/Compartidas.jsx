@@ -7,6 +7,7 @@ import CompartidaCard from './CompartidaCard'
 import CompartidaSkeleton from './CompartidaSkeleton'
 import CreateCompartidaForm from './CreateCompartidaForm'
 import CompartidasSidebar from './CompartidasSidebar'
+import BgWatchHomeWidget from './BgWatchHomeWidget'
 import styles from './Compartidas.module.css'
 
 export default function Compartidas() {
@@ -86,6 +87,13 @@ export default function Compartidas() {
             </button>
           )}
         </div>
+
+        {/* ── BG Watch widget (mobile only; desktop version lives in CompartidasSidebar) ── */}
+        {user && (
+          <div className={styles.mobileWidgetSlot}>
+            <BgWatchHomeWidget user={user} dismissible />
+          </div>
+        )}
 
         {/* ── Create form ── */}
         {showCreate && (

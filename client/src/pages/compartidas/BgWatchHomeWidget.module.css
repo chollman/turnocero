@@ -1,0 +1,264 @@
+/* Mirrors the visual language of the other widgets inside CompartidasSidebar. */
+.widget {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: var(--amber-light);
+}
+
+.link {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+.link:hover { color: var(--amber-light); }
+
+.title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+/* ─── Connected: play list ─── */
+.playList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.playRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--transition);
+}
+
+.playRow:hover { background: var(--bg-elevated); }
+
+.playThumbWrap {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 7px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+}
+
+.playThumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.playThumbPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--text-muted);
+}
+
+.winChip {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: var(--green);
+  color: var(--on-amber);
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 800;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.playInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.playGame {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playDate {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ─── Skeleton ─── */
+.playRowSkeleton {
+  pointer-events: none;
+}
+
+.playThumbSkeleton {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-elevated);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.skeletonLine {
+  display: block;
+  height: 9px;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+  margin-bottom: 4px;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.skeletonLineShort {
+  width: 50%;
+  margin-bottom: 0;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.85; }
+}
+
+/* ─── Empty / error ─── */
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.emptyText {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.emptyAction {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--amber);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--transition);
+}
+
+.emptyAction:hover { color: var(--amber-light); }
+
+/* ─── Promo variant ─── */
+.widgetPromo {
+  position: relative;
+  background: linear-gradient(135deg, var(--amber-10), var(--amber-15));
+  border-color: var(--border-amber);
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition);
+}
+
+.widgetPromo:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px var(--amber-glow);
+}
+
+.promoLink {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.promoSub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+  /* Leave space so text doesn't sit under the dismiss button. */
+  padding-right: 18px;
+}
+
+.promoCta {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: var(--amber);
+  color: var(--on-amber);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+/* "Don't show again" button shown in the dismissible promo variant. */
+.dismissBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+
+.dismissBtn:hover {
+  background: var(--overlay-soft);
+  color: var(--text-primary);
+}

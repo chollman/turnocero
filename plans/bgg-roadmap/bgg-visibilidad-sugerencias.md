@@ -52,7 +52,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | B.1 | ✅     | Card destacada "Mi BG Watch" en `/perfil`              | Bajo        |           |
 | B.2 | ✅     | Toast post-conexión con link al BG Watch               | Bajo        |           |
 | B.3 | ✅     | Badge "BG Watch ✓" en header de `/perfil`              | Bajo        |           |
-| C.1 | ⬜     | Widget "Tu actividad BG Watch" en home                 | Medio       |           |
+| C.1 | ✅     | Widget "Tu actividad BG Watch" en home                 | Medio       |           |
 | C.2 | ⬜     | Widget "Hot list" público (juegos hot de BGG)          | Bajo        |           |
 | D.1 | ⬜     | Badge 🎲 BG Watch en cards de `/usuarios`              | Bajo        |           |
 | D.2 | ⬜     | Filtro "Solo con BG Watch" en `/usuarios`              | Bajo-medio  |           |
@@ -69,7 +69,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 implementados)
+> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -149,11 +149,21 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 
 ### C. Dashboard / landing — widget BG Watch
 
-#### C.1 [ ] Widget "Tu actividad BG Watch" en home
+#### C.1 [x] Widget "Tu actividad BG Watch" en home
 **Qué**: para usuarios con BG Watch activo, un widget que muestre: últimas 3 partidas, win rate del mes, link "Ver todo →". Para usuarios sin BG Watch: un widget promocional "¿Tenés cuenta en BoardGameGeek? Activá BG Watch para registrar tus partidas →".
 **Dónde**: depende del home actual. Hoy `/` es Dashboard solo para admins; los usuarios regulares ven `/compartidas` o equivalente. Habría que decidir el surface (¿`/mi`? ¿una nueva home?).
 **Esfuerzo**: medio.
 **Impacto**: alto en retención de usuarios conectados.
+
+**Implementación (2026-05-17)**:
+- Surface elegido: **`CompartidasSidebar`** (columna derecha en desktop, hidden en mobile por el patrón del sidebar). Iteración: inicialmente se puso al tope del `feedCol`, pero ocupaba demasiado espacio sobre el feed; se movió al sidebar.
+- Nuevo componente `client/src/pages/compartidas/BgWatchHomeWidget.jsx` + `.module.css` con dos variantes que reutilizan el lenguaje visual de los otros widgets del sidebar (mismo `.widget` shell, eyebrows + title + link "Ver todo"):
+  - **`ConnectedView`** (BG Watch activo): header con eyebrow "◆ TU BG WATCH" + link "Ver todo →"; título "Últimas partidas"; lista vertical de 3 rows compactos (thumb 38×38 + nombre + fecha relativa "Hoy"/"Ayer"/"Hace N d"/"12 may" + chip verde "W" si el user ganó). Click en row → `/bg-watch/<u>/juego/<gameId>`. Maneja loading (skeleton shimmer), empty ("Sin partidas registradas todavía") y error.
+  - **`PromoView`** (no conectado): widget con título "¿Llevás tus partidas en BGG?", sub explicativo y CTA "Activá BG Watch →". Card entera es un `<Link>` a `/bg-watch`.
+- Decisión sobre win rate del mes: se descartó para mantener el widget liviano (un solo fetch a `/api/bgg/partidas/:u?page=1`, cacheado server-side). Las últimas 3 partidas + chip "W" transmiten estado reciente sin un fetch adicional con filtro de fecha.
+- Integrado en [CompartidasSidebar.jsx](../../client/src/pages/compartidas/CompartidasSidebar.jsx) como primer widget de la columna lateral (visible solo ≥960px).
+- En mobile (<960px), el mismo componente se renderiza inline en [Compartidas.jsx](../../client/src/pages/compartidas/Compartidas.jsx) justo después del `pageHeader` (antes del create form), wrapped en `.mobileWidgetSlot` que es `display:none` en desktop. Se duplica el render (sidebar + inline) pero solo uno es visible por viewport; los fetches duplicados son triviales por el caché server-side.
+- **Dismiss en la variante promo (mobile + desktop)**: ambos renders (inline mobile + sidebar desktop) pasan `dismissible` y la variante `PromoView` muestra un botón ✕ en la esquina superior derecha. Click → persiste en `localStorage` (`turnocero_bgwatch_promo_dismissed`) y oculta el widget en futuras visitas. Como la key es compartida, dismissar en cualquiera de los dos breakpoints lo oculta en ambos. La variante conectada nunca es dismissible. La preferencia es por-dispositivo (no se sincroniza al server).
 
 #### C.2 [ ] Widget "Hot list" público (juegos hot en BGG)
 **Qué**: ya está en el roadmap existente ([sección 4.1](bgg-perfil-mejoras-roadmap.md)). Reforzar como surface de descubrimiento: aparece para invitados también, generando incentivo a conectar.
