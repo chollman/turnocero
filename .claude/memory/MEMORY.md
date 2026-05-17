@@ -11,3 +11,4 @@
 - [Plans folder location](feedback_plans_location.md) — Plans go in the project's `plans/` folder, not `~/.claude/plans/`
 - [Admin "view as user" mode](feedback_admin_view_as_user.md) — admin-only features must respect the `viewAsUser` toggle (filter/hide privileged data client-side)
 - [Theme support](feedback_theme_support.md) — every new feature/screen must work in both dark and light themes; use CSS variables, never hardcoded colors
+- [Dev scripts](reference_dev_scripts.md) — root has `npm run dev` (concurrently) + `dev:server` / `dev:client`; CLAUDE.md only documents the split form
