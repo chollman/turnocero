@@ -164,6 +164,7 @@ export default function UsersList() {
   const [sortBy, setSortBy] = useState('alpha')
   const [activeOnly, setActiveOnly] = useState(false)
   const [friendsOnly, setFriendsOnly] = useState(false)
+  const [bgWatchOnly, setBgWatchOnly] = useState(false)
   const [searchInput, setSearchInput] = useState('')
 
   const [banTarget, setBanTarget] = useState(null)
@@ -178,6 +179,7 @@ export default function UsersList() {
       if (search) params.search = search
       if (activeOnly) params.activeOnly = 'true'
       if (friendsOnly) params.friendsOnly = 'true'
+      if (bgWatchOnly) params.bgWatchOnly = 'true'
       const { data } = await axios.get('/api/users', { params })
       setUsers(data)
     } catch {
@@ -185,7 +187,7 @@ export default function UsersList() {
     } finally {
       setLoading(false)
     }
-  }, [search, sortBy, activeOnly, friendsOnly])
+  }, [search, sortBy, activeOnly, friendsOnly, bgWatchOnly])
 
   useEffect(() => {
     fetchUsers()
@@ -332,6 +334,31 @@ export default function UsersList() {
               Solo amigos
             </button>
           )}
+
+          <button
+            className={`${styles.toggleBtn} ${styles.toggleBgWatch} ${bgWatchOnly ? styles.toggleActive : ''}`}
+            onClick={() => setBgWatchOnly((v) => !v)}
+            title="Mostrar solo jugadores con BG Watch activo"
+          >
+            <svg
+              className={styles.toggleBgWatchIcon}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2.5" />
+              <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
+              <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
+              <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
+              <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
+              <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
+            </svg>
+            Con BG Watch
+          </button>
         </div>
       </div>
 
@@ -345,7 +372,7 @@ export default function UsersList() {
         <div className={styles.empty}>
           <span className={styles.emptyIcon}>👥</span>
           <p>No se encontraron jugadores</p>
-          {(search || activeOnly) && (
+          {(search || activeOnly || friendsOnly || bgWatchOnly) && (
             <button
               className={styles.clearFiltersBtn}
               onClick={() => {
@@ -353,6 +380,7 @@ export default function UsersList() {
                 setSearch('')
                 setActiveOnly(false)
                 setFriendsOnly(false)
+                setBgWatchOnly(false)
               }}
             >
               Limpiar filtros
