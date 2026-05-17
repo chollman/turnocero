@@ -300,10 +300,11 @@ App (ThemeProvider + AuthProvider + NotificationProvider + ChatProvider + Router
 ├── pages/users/                ← UsersList /usuarios, UserProfile /perfil, UserProfilePublic /usuarios/:id
 ├── pages/messages/             ← Messages /mensajes, DirectChat /mensajes/:userId, AdminChat /mensajes-admin
 ├── pages/notifications/        ← Notifications /notificaciones
-├── pages/bgg/                  ← BggProfile /perfil-bgg/:bggUsername,
-│                                  PerGameView /perfil-bgg/:user/juego/:gameId
+├── pages/bg-watch/             ← BgWatchProfile /bg-watch/:bggUsername,
+│                                  BgWatchPerGameView /bg-watch/:user/juego/:gameId
 │                                  + PartidasPanel, ColeccionPanel, PlayCard,
 │                                    PlayDetailModal, CreatePlayModal, Pagination
+│                                  (legacy /perfil-bgg/* redirige a /bg-watch/* vía LegacyBggRedirect en App.jsx)
 └── pages/admin/                ← DatabaseViewer /base-de-datos (isAdmin only)
 ```
 

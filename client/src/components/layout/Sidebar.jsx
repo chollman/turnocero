@@ -191,6 +191,23 @@ const ICONS = {
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
   ),
+  bgwatch: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2.5" />
+      <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  ),
 };
 
 const NAV = [
@@ -222,6 +239,7 @@ function getActiveId(pathname) {
   if (pathname === "/notificaciones") return "notif";
   if (pathname.startsWith("/mensajes-admin")) return "adminChat";
   if (pathname.startsWith("/mensajes")) return "mensajes";
+  if (pathname.startsWith("/bg-watch")) return "bgwatch";
   if (pathname.startsWith("/usuarios")) return "users";
   if (pathname.startsWith("/perfil")) return "profile";
   if (pathname.startsWith("/base-de-datos")) return "db";
@@ -304,6 +322,13 @@ export default function Sidebar() {
 
       <nav className={styles.nav}>
         {NAV.filter((item) => !item.adminOnly).map(renderNavItem)}
+
+        {user?.bggUsername &&
+          renderNavItem({
+            id: "bgwatch",
+            label: "BG Watch",
+            to: `/bg-watch/${user.bggUsername}`,
+          })}
 
         {user?.isAdmin && (
           <>

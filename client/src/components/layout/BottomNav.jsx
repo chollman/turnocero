@@ -86,6 +86,17 @@ const UtilidadesIcon = () => (
   </svg>
 )
 
+const BgWatchIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2.5"/>
+    <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none"/>
+    <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none"/>
+    <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>
+    <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none"/>
+    <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none"/>
+  </svg>
+)
+
 const ChevronLeft = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="m15 18-6-6 6-6"/>
@@ -125,6 +136,7 @@ function getActiveId(pathname) {
   if (pathname.startsWith('/torneos')) return 'torneos'
   if (pathname.startsWith('/eventos')) return 'eventos'
   if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas'
+  if (pathname.startsWith('/bg-watch')) return 'bgwatch'
   if (pathname.startsWith('/usuarios')) return 'users'
   if (pathname.startsWith('/perfil')) return 'profile'
   if (pathname.startsWith('/base-de-datos')) return 'db'
@@ -136,9 +148,22 @@ export default function BottomNav() {
   const { user } = useAuth()
   const location = useLocation()
   const active = getActiveId(location.pathname)
-  const items = user?.isAdmin
-    ? [...REGULAR_NAV, DIVIDER, ...ADMIN_NAV]
-    : REGULAR_NAV
+  const items = (() => {
+    const regular = [...REGULAR_NAV]
+    if (user?.bggUsername) {
+      // Insert BG Watch right after "Comunidad" (id: 'users')
+      const idx = regular.findIndex(i => i.id === 'users')
+      regular.splice(idx + 1, 0, {
+        id: 'bgwatch',
+        label: 'BG Watch',
+        Icon: BgWatchIcon,
+        to: `/bg-watch/${user.bggUsername}`,
+      })
+    }
+    return user?.isAdmin
+      ? [...regular, DIVIDER, ...ADMIN_NAV]
+      : regular
+  })()
   const scrollable = items.filter(i => !i.isDivider).length > VISIBLE
 
   const [startIndex, setStartIndex] = useState(0)

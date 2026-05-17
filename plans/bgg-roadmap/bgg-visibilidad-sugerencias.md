@@ -46,8 +46,8 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | ID  | Estado | Título                                                 | Esfuerzo    | Prioridad |
 |-----|--------|--------------------------------------------------------|-------------|-----------|
 | 0   | ✅     | Migración de naming a BG Watch                         | Medio       | 🔥        |
-| A.1 | ⬜     | Item "BG Watch" en Sidebar                             | Bajo        | 🔥        |
-| A.2 | ⬜     | Item BG Watch en BottomNav                             | Bajo        | 🔥        |
+| A.1 | ✅     | Item "BG Watch" en Sidebar                             | Bajo        | 🔥        |
+| A.2 | ✅     | Item BG Watch en BottomNav                             | Bajo        | 🔥        |
 | A.3 | ⬜     | CTA "Activá BG Watch" para no-conectados               | Bajo        |           |
 | B.1 | ⬜     | Card destacada "Mi BG Watch" en `/perfil`              | Bajo        |           |
 | B.2 | ⬜     | Toast post-conexión con link al BG Watch               | Bajo        |           |
@@ -69,7 +69,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17
+> Última actualización: 2026-05-17 (A.1 + A.2 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -87,13 +87,13 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 
 ### A. Navegación primaria — entrar a BG Watch sin pasar por nadie más
 
-#### A.1 [ ] Item "BG Watch" en Sidebar (sólo si `bggUsername` configurado) 🔥
+#### A.1 [x] Item "BG Watch" en Sidebar (sólo si `bggUsername` configurado) 🔥
 **Qué**: agregar un item con ícono de dado al Sidebar, con label **BG Watch**, que linkea a `/bg-watch/<miBggUsername>`. Solo visible para usuarios con `bggUsername` seteado.
 **Por qué**: hoy el camino "Sidebar → Comunidad → buscarme → click en mi BG Watch" es absurdo para llegar al propio perfil.
 **Esfuerzo**: bajo. Una entrada condicional en [Sidebar.jsx:196-211](../../client/src/components/layout/Sidebar.jsx#L196-L211).
 **Impacto**: alto. Resuelve el problema #1 de descubrimiento.
 
-#### A.2 [ ] Item BG Watch en BottomNav (mobile) 🔥
+#### A.2 [x] Item BG Watch en BottomNav (mobile) 🔥
 **Qué**: misma idea para [BottomNav.jsx:101-108](../../client/src/components/layout/BottomNav.jsx#L101-L108).
 **Esfuerzo**: bajo.
 **Impacto**: alto en mobile. Recordar la regla del proyecto: cambios a Sidebar deben sincronizarse con BottomNav.
