@@ -48,7 +48,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | 0   | ✅     | Migración de naming a BG Watch                         | Medio       | 🔥        |
 | A.1 | ✅     | Item "BG Watch" en Sidebar                             | Bajo        | 🔥        |
 | A.2 | ✅     | Item BG Watch en BottomNav                             | Bajo        | 🔥        |
-| A.3 | ⬜     | CTA "Activá BG Watch" para no-conectados               | Bajo        |           |
+| A.3 | ✅     | CTA "Activá BG Watch" para no-conectados               | Bajo        |           |
 | B.1 | ⬜     | Card destacada "Mi BG Watch" en `/perfil`              | Bajo        |           |
 | B.2 | ⬜     | Toast post-conexión con link al BG Watch               | Bajo        |           |
 | B.3 | ⬜     | Badge "BG Watch ✓" en header de `/perfil`              | Bajo        |           |
@@ -69,7 +69,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17 (A.1 + A.2 implementados)
+> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -98,10 +98,18 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 **Esfuerzo**: bajo.
 **Impacto**: alto en mobile. Recordar la regla del proyecto: cambios a Sidebar deben sincronizarse con BottomNav.
 
-#### A.3 [ ] Si no está conectado → CTA "Activá BG Watch" en su lugar
+#### A.3 [x] Si no está conectado → CTA "Activá BG Watch" en su lugar
 **Qué**: para usuarios sin `bggUsername` seteado, el slot puede mostrar el CTA "Activá BG Watch" en una sección secundaria del Sidebar ("Más", "Explorar") para no canibalizar nav primario, o aparecer como sugerencia en Dashboard (ver C.1) en lugar de en nav.
 **Esfuerzo**: bajo.
 **Impacto**: medio. Resuelve el problema #2 (descubrir que existe).
+
+**Implementación (2026-05-17)**: se eligió un enfoque combinado más fuerte que el original.
+- Nueva ruta pública `/bg-watch` (sin username) con una landing explicativa (`BgWatchLanding.jsx`) que muestra qué es BG Watch, 3 features destacadas, un CTA adaptativo (registro / login según estado) y "cómo funciona" en 3 pasos. Si un usuario logueado con `bggUsername` entra, redirige a `/bg-watch/<username>`.
+- Sidebar: en el slot del BG Watch normal, para usuarios sin `bggUsername` se muestra item promo "Activá BG Watch" con estilo distintivo (background amber tenue, tag "Nuevo") que linkea a la landing.
+- BottomNav: mismo patrón, item promo "Activá" con punto amber.
+- `/usuarios`: banner arriba de la lista promocionando BG Watch (visible solo para autenticados sin `bggUsername`).
+- `ScrollToTop` actualizado para respetar hash anchors (necesario para que `/perfil#conexion-bgg` haga scroll a la sección BGG).
+- Sección "Conexión con BoardGameGeek" en `/perfil` recibió `id="conexion-bgg"` para el deep-link.
 
 ---
 

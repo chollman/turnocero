@@ -359,7 +359,7 @@ export default function UserProfile() {
               </div>
             </div>
 
-            <div className={styles.section}>
+            <div className={styles.section} id="conexion-bgg">
               <div className={styles.sectionLabel}>Conexión con BoardGameGeek</div>
               <p className={styles.hint}>
                 Conectá tu cuenta de BGG para cargar, editar y eliminar partidas

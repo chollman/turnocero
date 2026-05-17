@@ -208,6 +208,20 @@ const ICONS = {
       <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
     </svg>
   ),
+  bgwatchCta: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2.5" strokeDasharray="3 2" />
+      <line x1="12" y1="8" x2="12" y2="16" />
+      <line x1="8" y1="12" x2="16" y2="12" />
+    </svg>
+  ),
 };
 
 const NAV = [
@@ -239,6 +253,7 @@ function getActiveId(pathname) {
   if (pathname === "/notificaciones") return "notif";
   if (pathname.startsWith("/mensajes-admin")) return "adminChat";
   if (pathname.startsWith("/mensajes")) return "mensajes";
+  if (pathname === "/bg-watch") return "bgwatchCta";
   if (pathname.startsWith("/bg-watch")) return "bgwatch";
   if (pathname.startsWith("/usuarios")) return "users";
   if (pathname.startsWith("/perfil")) return "profile";
@@ -266,14 +281,20 @@ export default function Sidebar() {
     if (item.id === "adminChat" && adminChatUnread > 0) {
       badge = adminChatUnread > 9 ? "9+" : adminChatUnread;
     }
+    const cls = [
+      styles.navItem,
+      isActive ? styles.navItemActive : "",
+      item.variant === "promo" ? styles.navItemPromo : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
     return (
-      <Link
-        key={item.id}
-        to={item.to}
-        className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
-      >
+      <Link key={item.id} to={item.to} className={cls}>
         <span className={styles.navIcon}>{ICONS[item.id]}</span>
         <span className={styles.navLabel}>{item.label}</span>
+        {item.variant === "promo" && (
+          <span className={styles.navPromoTag}>Nuevo</span>
+        )}
         {badge && (
           <span key={badge} className={styles.navBadge}>
             {badge}
@@ -323,12 +344,18 @@ export default function Sidebar() {
       <nav className={styles.nav}>
         {NAV.filter((item) => !item.adminOnly).map(renderNavItem)}
 
-        {user?.bggUsername &&
-          renderNavItem({
-            id: "bgwatch",
-            label: "BG Watch",
-            to: `/bg-watch/${user.bggUsername}`,
-          })}
+        {user?.bggUsername
+          ? renderNavItem({
+              id: "bgwatch",
+              label: "BG Watch",
+              to: `/bg-watch/${user.bggUsername}`,
+            })
+          : renderNavItem({
+              id: "bgwatchCta",
+              label: "Activá BG Watch",
+              to: "/bg-watch",
+              variant: "promo",
+            })}
 
         {user?.isAdmin && (
           <>

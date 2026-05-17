@@ -97,6 +97,14 @@ const BgWatchIcon = () => (
   </svg>
 )
 
+const BgWatchCtaIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2.5" strokeDasharray="3 2"/>
+    <line x1="12" y1="8" x2="12" y2="16"/>
+    <line x1="8" y1="12" x2="16" y2="12"/>
+  </svg>
+)
+
 const ChevronLeft = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="m15 18-6-6 6-6"/>
@@ -136,6 +144,7 @@ function getActiveId(pathname) {
   if (pathname.startsWith('/torneos')) return 'torneos'
   if (pathname.startsWith('/eventos')) return 'eventos'
   if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas'
+  if (pathname === '/bg-watch') return 'bgwatchCta'
   if (pathname.startsWith('/bg-watch')) return 'bgwatch'
   if (pathname.startsWith('/usuarios')) return 'users'
   if (pathname.startsWith('/perfil')) return 'profile'
@@ -150,15 +159,25 @@ export default function BottomNav() {
   const active = getActiveId(location.pathname)
   const items = (() => {
     const regular = [...REGULAR_NAV]
-    if (user?.bggUsername) {
-      // Insert BG Watch right after "Comunidad" (id: 'users')
+    if (user) {
+      // Insert BG Watch (or its CTA for non-connected users) right after "Comunidad".
       const idx = regular.findIndex(i => i.id === 'users')
-      regular.splice(idx + 1, 0, {
-        id: 'bgwatch',
-        label: 'BG Watch',
-        Icon: BgWatchIcon,
-        to: `/bg-watch/${user.bggUsername}`,
-      })
+      if (user.bggUsername) {
+        regular.splice(idx + 1, 0, {
+          id: 'bgwatch',
+          label: 'BG Watch',
+          Icon: BgWatchIcon,
+          to: `/bg-watch/${user.bggUsername}`,
+        })
+      } else {
+        regular.splice(idx + 1, 0, {
+          id: 'bgwatchCta',
+          label: 'Activá',
+          Icon: BgWatchCtaIcon,
+          to: '/bg-watch',
+          variant: 'promo',
+        })
+      }
     }
     return user?.isAdmin
       ? [...regular, DIVIDER, ...ADMIN_NAV]
@@ -218,16 +237,18 @@ export default function BottomNav() {
 
   const renderItem = (item) => {
     if (item.isDivider) return <div key="__divider__" className={styles.navDivider} />
-    const { id, label, Icon, to } = item
+    const { id, label, Icon, to, variant } = item
     const isActive = id === active
+    const cls = [
+      styles.item,
+      isActive ? styles.itemActive : '',
+      variant === 'promo' ? styles.itemPromo : '',
+    ].filter(Boolean).join(' ')
     return (
-      <Link
-        key={id}
-        to={to}
-        className={`${styles.item} ${isActive ? styles.itemActive : ''}`}
-      >
+      <Link key={id} to={to} className={cls}>
         <span className={styles.icon}><Icon /></span>
         <span className={styles.label}>{label}</span>
+        {variant === 'promo' && <span className={styles.promoDot} />}
         {isActive && <span className={styles.activeDot} />}
       </Link>
     )

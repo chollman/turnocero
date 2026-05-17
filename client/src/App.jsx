@@ -34,6 +34,7 @@ import Compartidas from './pages/compartidas/Compartidas';
 import CompartidaPost from './pages/compartidas/CompartidaPost';
 import BgWatchProfile from './pages/bg-watch/BgWatchProfile';
 import BgWatchPerGameView from './pages/bg-watch/BgWatchPerGameView';
+import BgWatchLanding from './pages/bg-watch/BgWatchLanding';
 import Messages from './pages/messages/Messages';
 import DirectChat from './pages/messages/DirectChat';
 import AdminChat from './pages/messages/AdminChat';
@@ -51,8 +52,19 @@ import BoardGameBackground from './components/layout/BoardGameBackground';
 import SplashScreen from './components/layout/SplashScreen';
 
 function ScrollToTop() {
-  const { pathname } = useLocation();
-  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    // If the URL has a hash, let the browser scroll to that element instead of jumping to top.
+    if (hash) {
+      const el = document.getElementById(hash.slice(1));
+      if (el) {
+        // Defer to next tick so the target element is mounted.
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+        return;
+      }
+    }
+    window.scrollTo(0, 0);
+  }, [pathname, hash]);
   return null;
 }
 
@@ -118,6 +130,7 @@ function AppRoutes() {
           <Route path="/eventos/:id/inscripciones" element={<PrivateRoute><EventoInscripciones /></PrivateRoute>} />
           <Route path="/compartidas" element={<Compartidas />} />
           <Route path="/compartidas/:id" element={<CompartidaPost />} />
+          <Route path="/bg-watch" element={<BgWatchLanding />} />
           <Route path="/bg-watch/:bggUsername" element={<PrivateRoute><BgWatchProfile /></PrivateRoute>} />
           <Route path="/bg-watch/:bggUsername/juego/:gameId" element={<PrivateRoute><BgWatchPerGameView /></PrivateRoute>} />
           <Route path="/perfil-bgg/*" element={<LegacyBggRedirect />} />

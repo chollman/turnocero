@@ -214,6 +214,40 @@
   }
 }
 
+/* ─── Promo CTA variant (for items that aren't real nav, e.g. "Activá BG Watch") ─── */
+.navItemPromo {
+  color: var(--amber-light);
+  background: var(--amber-10);
+  border-left-color: var(--border-amber);
+}
+
+.navItemPromo:hover {
+  background: var(--amber-15);
+  color: var(--amber-light);
+  border-left-color: var(--amber);
+}
+
+.navItemPromo .navIcon {
+  color: var(--amber-light);
+}
+
+.navItemPromo:hover .navIcon {
+  color: var(--amber);
+}
+
+.navPromoTag {
+  background: var(--amber);
+  color: var(--on-amber);
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
 /* ─── Admin divider ─── */
 .navDivider {
   height: 1px;

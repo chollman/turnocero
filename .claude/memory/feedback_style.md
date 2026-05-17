@@ -32,3 +32,9 @@ metadata:
 ## No test suite; lint via `/react-review` skill
 **Why:** The project has no test suite. ESLint was added (PR #24) as a pre-commit hook via the `/react-review` skill, but there's no `npm test`.
 **How to apply:** Don't suggest running tests. For code quality, use the `/react-review` skill which runs ESLint on changed React files.
+
+---
+
+## New pages should use full available width
+**Why:** Claudio explicitly stated this preference (2026-05-17) after the BG Watch landing was initially built with `max-width: 960px; margin: 0 auto`. He wanted it removed so the page stretches to fill `appContent`.
+**How to apply:** When creating any new page's `.page` (or root wrapper) CSS, do NOT add `max-width` or `margin: 0 auto` to constrain the page container. The page should fill the available width (within `appContent`), with only the standard `--page-padding` / `--page-padding-left` / `--page-padding-mobile` for horizontal padding. Internal elements (hero text, paragraphs) may still have their own `max-width` for readability — only the outer container is unconstrained. See [[padding-system]] for the padding tokens.

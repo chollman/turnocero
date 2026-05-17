@@ -75,6 +75,26 @@
   background: var(--amber);
 }
 
+/* Promo CTA variant — used for "Activá BG Watch" item shown to non-connected users. */
+.itemPromo {
+  color: var(--amber-light);
+}
+
+.itemPromo:hover {
+  color: var(--amber);
+}
+
+.promoDot {
+  position: absolute;
+  top: 6px;
+  right: calc(50% - 14px);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 6px var(--amber-glow);
+}
+
 .navDivider {
   width: 1px;
   height: 28px;

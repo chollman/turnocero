@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
 import ConfirmActionModal from '../../components/shared/ConfirmActionModal'
@@ -229,6 +229,30 @@ export default function UsersList() {
           {visibleUsers.length} jugador{visibleUsers.length !== 1 ? 'es' : ''}
         </span>
       </div>
+
+      {currentUser && !currentUser.bggUsername && (
+        <Link to="/bg-watch" className={styles.bgWatchBanner}>
+          <span className={styles.bgWatchBannerIcon} aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2.5" />
+              <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
+              <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
+              <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
+              <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
+              <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
+            </svg>
+          </span>
+          <div className={styles.bgWatchBannerBody}>
+            <strong className={styles.bgWatchBannerTitle}>
+              ¿Ya conocés BG Watch?
+            </strong>
+            <p className={styles.bgWatchBannerSub}>
+              Conectá tu cuenta de BoardGameGeek y llevá registro de tus partidas desde Turnocero.
+            </p>
+          </div>
+          <span className={styles.bgWatchBannerCta}>Activá →</span>
+        </Link>
+      )}
 
       <div className={styles.controls}>
         <div className={styles.searchWrap}>
