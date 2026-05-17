@@ -12,3 +12,4 @@
 - [Admin "view as user" mode](feedback_admin_view_as_user.md) — admin-only features must respect the `viewAsUser` toggle (filter/hide privileged data client-side)
 - [Theme support](feedback_theme_support.md) — every new feature/screen must work in both dark and light themes; use CSS variables, never hardcoded colors
 - [Dev scripts](reference_dev_scripts.md) — root has `npm run dev` (concurrently) + `dev:server` / `dev:client`; CLAUDE.md only documents the split form
+- [No worktrees](feedback_no_worktrees.md) — user doesn't want to work in `.claude/worktrees/`; work directly in `~/Projects/turnocero/` and use feature branches there
