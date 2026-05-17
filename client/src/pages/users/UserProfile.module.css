@@ -41,6 +41,60 @@
   margin: 0;
 }
 
+/* Title row holds the heroTitle and optional inline badges (BG Watch ✓, etc.) */
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bgWatchBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--amber-15);
+  border: 1px solid var(--border-amber);
+  color: var(--amber-light);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition:
+    background var(--transition),
+    transform var(--transition),
+    color var(--transition);
+}
+
+.bgWatchBadge:hover {
+  background: var(--amber-25);
+  color: var(--amber);
+  transform: translateY(-1px);
+}
+
+.bgWatchBadge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.bgWatchBadgeCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--amber);
+  color: var(--on-amber);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .heroSub {
   color: var(--text-secondary);
   font-size: 14px;

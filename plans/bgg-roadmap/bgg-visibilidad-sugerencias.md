@@ -51,7 +51,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | A.3 | ✅     | CTA "Activá BG Watch" para no-conectados               | Bajo        |           |
 | B.1 | ✅     | Card destacada "Mi BG Watch" en `/perfil`              | Bajo        |           |
 | B.2 | ⬜     | Toast post-conexión con link al BG Watch               | Bajo        |           |
-| B.3 | ⬜     | Badge "BG Watch ✓" en header de `/perfil`              | Bajo        |           |
+| B.3 | ✅     | Badge "BG Watch ✓" en header de `/perfil`              | Bajo        |           |
 | C.1 | ⬜     | Widget "Tu actividad BG Watch" en home                 | Medio       |           |
 | C.2 | ⬜     | Widget "Hot list" público (juegos hot de BGG)          | Bajo        |           |
 | D.1 | ⬜     | Badge 🎲 BG Watch en cards de `/usuarios`              | Bajo        |           |
@@ -69,7 +69,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 implementados)
+> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.3 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -131,10 +131,12 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 **Esfuerzo**: bajo. Cambio puntual en el handler de connect.
 **Impacto**: medio.
 
-#### B.3 [ ] Badge "BG Watch ✓" en el header del propio perfil
+#### B.3 [x] Badge "BG Watch ✓" en el header del propio perfil
 **Qué**: un chip pequeño al lado del nombre en `/perfil` indicando "BG Watch activo" como link clickeable al propio perfil.
 **Esfuerzo**: bajo.
 **Impacto**: bajo, pero refuerza la presencia del feature.
+
+**Implementación (2026-05-17)**: en [UserProfile.jsx](../../client/src/pages/users/UserProfile.jsx) se envolvió el `<h1>` del hero en un `.titleRow` flex que permite alinear el badge inline. Badge es un `<Link>` con pill amber tenue (dado SVG + texto "BG Watch" + check ✓ circular), visible solo si `bggUsername && bggConnected && !bggInvalid`. Linkea a `/bg-watch/<bggUsername>`. Hover: fondo amber más fuerte + lift de 1px.
 
 ---
 

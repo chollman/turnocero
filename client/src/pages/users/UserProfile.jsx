@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -235,7 +236,27 @@ export default function UserProfile() {
       <div className={styles.inner}>
         <div className={styles.hero}>
           <div className={styles.eyebrow}>◆ MI PERFIL</div>
-          <h1 className={styles.heroTitle}>@{user?.username}</h1>
+          <div className={styles.titleRow}>
+            <h1 className={styles.heroTitle}>@{user?.username}</h1>
+            {user?.bggUsername && user?.bggConnected && !user?.bggInvalid && (
+              <Link
+                to={`/bg-watch/${encodeURIComponent(user.bggUsername)}`}
+                className={styles.bgWatchBadge}
+                title="Tu BG Watch está activo. Ir a mi perfil BG Watch."
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="3" width="18" height="18" rx="2.5" />
+                  <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
+                  <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
+                  <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
+                  <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
+                  <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
+                </svg>
+                <span>BG Watch</span>
+                <span className={styles.bgWatchBadgeCheck} aria-hidden="true">✓</span>
+              </Link>
+            )}
+          </div>
           <p className={styles.heroSub}>{user?.email}</p>
         </div>
 
