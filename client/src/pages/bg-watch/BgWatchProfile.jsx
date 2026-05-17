@@ -7,7 +7,7 @@ import PartidasPanel from './PartidasPanel';
 import ColeccionPanel from './ColeccionPanel';
 import PlayDetailModal from './PlayDetailModal';
 import CreatePlayModal from './CreatePlayModal';
-import styles from './BggProfile.module.css';
+import styles from './BgWatchProfile.module.css';
 
 function formatDate(iso) {
   if (!iso) return null;
@@ -64,7 +64,7 @@ function StatsBar({ collection, playsMeta }) {
   );
 }
 
-export default function BggProfile() {
+export default function BgWatchProfile() {
   const { bggUsername } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -113,7 +113,7 @@ export default function BggProfile() {
         </button>
 
         <div className={styles.hero}>
-          <div className={styles.eyebrow}>◆ PERFIL BGG</div>
+          <div className={styles.eyebrow}>◆ BG WATCH</div>
           <h1 className={styles.heroTitle}>{bggUsername}</h1>
           <a
             href={`https://boardgamegeek.com/user/${bggUsername}`}

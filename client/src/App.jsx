@@ -32,8 +32,8 @@ import EventoDetail from './pages/eventos/EventoDetail';
 import EventoInscripciones from './pages/eventos/EventoInscripciones';
 import Compartidas from './pages/compartidas/Compartidas';
 import CompartidaPost from './pages/compartidas/CompartidaPost';
-import BggProfile from './pages/bgg/BggProfile';
-import PerGameView from './pages/bgg/PerGameView';
+import BgWatchProfile from './pages/bg-watch/BgWatchProfile';
+import BgWatchPerGameView from './pages/bg-watch/BgWatchPerGameView';
 import Messages from './pages/messages/Messages';
 import DirectChat from './pages/messages/DirectChat';
 import AdminChat from './pages/messages/AdminChat';
@@ -67,6 +67,12 @@ const PublicRoute = ({ children }) => {
   if (loading) return null;
   return !user ? children : <Navigate to="/" replace />;
 };
+
+function LegacyBggRedirect() {
+  const location = useLocation();
+  const newPath = location.pathname.replace(/^\/perfil-bgg/, '/bg-watch');
+  return <Navigate to={newPath + location.search + location.hash} replace />;
+}
 
 const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -112,8 +118,9 @@ function AppRoutes() {
           <Route path="/eventos/:id/inscripciones" element={<PrivateRoute><EventoInscripciones /></PrivateRoute>} />
           <Route path="/compartidas" element={<Compartidas />} />
           <Route path="/compartidas/:id" element={<CompartidaPost />} />
-          <Route path="/perfil-bgg/:bggUsername" element={<PrivateRoute><BggProfile /></PrivateRoute>} />
-          <Route path="/perfil-bgg/:bggUsername/juego/:gameId" element={<PrivateRoute><PerGameView /></PrivateRoute>} />
+          <Route path="/bg-watch/:bggUsername" element={<PrivateRoute><BgWatchProfile /></PrivateRoute>} />
+          <Route path="/bg-watch/:bggUsername/juego/:gameId" element={<PrivateRoute><BgWatchPerGameView /></PrivateRoute>} />
+          <Route path="/perfil-bgg/*" element={<LegacyBggRedirect />} />
           <Route path="/mensajes" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/mensajes/:userId" element={<PrivateRoute><DirectChat /></PrivateRoute>} />
           <Route path="/mensajes-admin" element={<PrivateRoute><AdminChat /></PrivateRoute>} />

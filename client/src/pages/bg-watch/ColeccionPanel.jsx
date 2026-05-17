@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Pagination from './Pagination';
-import styles from './BggProfile.module.css';
+import styles from './BgWatchProfile.module.css';
 
 const COLLECTION_PAGE_SIZE = 24;
 

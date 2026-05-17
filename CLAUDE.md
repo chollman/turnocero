@@ -393,3 +393,7 @@ User profile flow:
 
 - Chat history is capped at the last 200 messages per table (server-side).
 - The `Rating` model and routes exist but the UI for ratings is not yet fully implemented.
+
+## Notes for Claude
+
+- The `Glob` tool sometimes returns "No files found" for folders that actually exist and contain matching files (observed with `plans/`). When this happens — especially for a folder the user has explicitly mentioned — verify with `ls` via bash or with `Grep` before concluding the folder/files don't exist. `Read` and `Grep` work fine on these paths; the issue is only with `Glob` enumeration.

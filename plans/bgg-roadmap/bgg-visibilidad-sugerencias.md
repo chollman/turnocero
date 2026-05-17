@@ -45,7 +45,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 
 | ID  | Estado | Título                                                 | Esfuerzo    | Prioridad |
 |-----|--------|--------------------------------------------------------|-------------|-----------|
-| 0   | ⬜     | Migración de naming a BG Watch                         | Medio       | 🔥        |
+| 0   | ✅     | Migración de naming a BG Watch                         | Medio       | 🔥        |
 | A.1 | ⬜     | Item "BG Watch" en Sidebar                             | Bajo        | 🔥        |
 | A.2 | ⬜     | Item BG Watch en BottomNav                             | Bajo        | 🔥        |
 | A.3 | ⬜     | CTA "Activá BG Watch" para no-conectados               | Bajo        |           |
@@ -78,7 +78,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 
 Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagement esperado).
 
-### 0. [ ] Migración de naming a BG Watch 🔥
+### 0. [x] Migración de naming a BG Watch 🔥
 **Qué**: paso previo a todo el resto. Renombrar rutas, componentes, folder de pages y CSS modules según la tabla del bloque "Naming". Agregar redirects 301 de `/perfil-bgg/...` → `/bg-watch/...` para no romper links externos existentes.
 **Esfuerzo**: medio. Refactor mecánico pero requiere actualizar todos los `<Link to=...>`, `useNavigate`, imports.
 **Impacto**: foundation. Sin esto, los items que mencionan "BG Watch" en UI quedan inconsistentes con el código.

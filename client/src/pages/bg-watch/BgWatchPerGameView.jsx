@@ -7,7 +7,7 @@ import PlayCard from './PlayCard';
 import PlayDetailModal from './PlayDetailModal';
 import CreatePlayModal from './CreatePlayModal';
 import Pagination from './Pagination';
-import styles from './BggProfile.module.css';
+import styles from './BgWatchProfile.module.css';
 
 const PLAYS_PAGE_SIZE = 10;
 
@@ -25,7 +25,7 @@ function findOwnerPlayer(play, bggUsername) {
   return play.players.find((p) => (p.username || '').toLowerCase() === lower) || null;
 }
 
-export default function PerGameView() {
+export default function BgWatchPerGameView() {
   const { bggUsername, gameId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -141,7 +141,7 @@ export default function PerGameView() {
           </div>
           <div className={styles.gameHeroInfo}>
             <Link
-              to={`/perfil-bgg/${encodeURIComponent(bggUsername)}`}
+              to={`/bg-watch/${encodeURIComponent(bggUsername)}`}
               className={styles.eyebrow}
               style={{ textDecoration: 'none' }}
             >

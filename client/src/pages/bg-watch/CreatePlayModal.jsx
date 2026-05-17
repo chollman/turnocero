@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import ModalPortal from '../../components/shared/ModalPortal';
-import styles from './BggProfile.module.css';
+import styles from './BgWatchProfile.module.css';
 
 function todayIso() {
   const d = new Date();

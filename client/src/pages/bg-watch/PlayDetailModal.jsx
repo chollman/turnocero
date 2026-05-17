@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import ModalPortal from '../../components/shared/ModalPortal';
-import styles from './BggProfile.module.css';
+import styles from './BgWatchProfile.module.css';
 
 function formatFullDate(iso) {
   if (!iso) return null;

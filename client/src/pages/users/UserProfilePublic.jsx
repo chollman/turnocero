@@ -141,7 +141,7 @@ export default function UserProfilePublic() {
     profile.direccion?.texto,
     profile.telegram ? '✈️ Telegram' : null,
     profile.celular ? '📱 Celular' : null,
-    profile.bggUsername ? '🎲 BGG' : null,
+    profile.bggUsername ? '🎲 BG Watch' : null,
   ].filter(Boolean);
 
   return (
@@ -258,8 +258,8 @@ export default function UserProfilePublic() {
                     <div className={styles.infoRow}>
                       <span className={styles.infoIcon}>🎲</span>
                       <div className={styles.infoText}>
-                        <span className={styles.infoLabel}>BGG</span>
-                        <Link to={`/perfil-bgg/${profile.bggUsername}`} className={styles.infoLink}>
+                        <span className={styles.infoLabel}>BG Watch</span>
+                        <Link to={`/bg-watch/${profile.bggUsername}`} className={styles.infoLink}>
                           {profile.bggUsername}
                         </Link>
                       </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import styles from './BggProfile.module.css';
+import styles from './BgWatchProfile.module.css';
 
 function formatDate(iso) {
   if (!iso) return null;

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import PlayCard from './PlayCard';
 import Pagination from './Pagination';
-import styles from './BggProfile.module.css';
+import styles from './BgWatchProfile.module.css';
 
 const PLAYS_PAGE_SIZE = 10;
 const GAMES_PAGE_SIZE = 24;
@@ -42,7 +42,7 @@ function dateRangeFor(filterId) {
 function GameWithPlaysCard({ game, bggUsername }) {
   return (
     <Link
-      to={`/perfil-bgg/${encodeURIComponent(bggUsername)}/juego/${game.id}`}
+      to={`/bg-watch/${encodeURIComponent(bggUsername)}/juego/${game.id}`}
       className={styles.gameLink}
     >
       <div className={styles.gameCard}>

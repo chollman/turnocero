@@ -1,4 +1,4 @@
-import styles from './BggProfile.module.css';
+import styles from './BgWatchProfile.module.css';
 
 export default function Pagination({ page, totalPages, onPage }) {
   if (totalPages <= 1) return null;
