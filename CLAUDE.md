@@ -172,6 +172,16 @@ POST   /api/auth/register|login
 POST   /api/auth/logout
 GET    /api/auth/me
 PUT    /api/auth/profile                        — update displayName, nombre, apellido, direccion, telegram, celular, bggUsername
+POST   /api/auth/bgg-connect                    — validate BGG password and store encrypted
+DELETE /api/auth/bgg-connection                 — remove stored BGG credentials
+
+GET    /api/bgg/search?q=                       — game name search (top 15, sorted by year)
+GET    /api/bgg/game/:id                        — game details (cached 30 min)
+GET    /api/bgg/coleccion/:bggUsername          — full collection with ratings + numPlays
+GET    /api/bgg/partidas/:bggUsername           — plays (?page, ?mindate, ?maxdate, ?id)
+POST   /api/bgg/partidas                        — log a play (auth + bggConnected)
+PUT    /api/bgg/partidas/:playId                — edit a play (auth + bggConnected)
+DELETE /api/bgg/partidas/:playId                — delete a play (auth + bggConnected)
 
 GET    /api/tables                              — paginated (?page, ?limit, ?search)
 GET    /api/tables/mine
@@ -290,7 +300,10 @@ App (AuthProvider + NotificationProvider + ChatProvider + Router)
 ├── pages/users/                ← UsersList /usuarios, UserProfile /perfil, UserProfilePublic /usuarios/:id
 ├── pages/messages/             ← Messages /mensajes, DirectChat /mensajes/:userId, AdminChat /mensajes-admin
 ├── pages/notifications/        ← Notifications /notificaciones
-├── pages/bgg/                  ← BggProfile /perfil-bgg/:bggUsername  (BGG user lookup — see limitations)
+├── pages/bgg/                  ← BggProfile /perfil-bgg/:bggUsername,
+│                                  PerGameView /perfil-bgg/:user/juego/:gameId
+│                                  + PartidasPanel, ColeccionPanel, PlayCard,
+│                                    PlayDetailModal, CreatePlayModal, Pagination
 └── pages/admin/                ← DatabaseViewer /base-de-datos (isAdmin only)
 ```
 
@@ -325,6 +338,9 @@ CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 CORS_ORIGIN=http://localhost:3000
+# 32-byte hex (64 chars) — encrypts BGG passwords at rest.
+# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+BGG_CREDS_KEY=
 ```
 
 The client needs `client/.env` (or `client/.env.local`) for:
@@ -332,8 +348,31 @@ The client needs `client/.env` (or `client/.env.local`) for:
 VITE_API_URL=http://localhost:4000
 ```
 
+### BGG integration
+
+The `/api/bgg` routes proxy the **BoardGameGeek XML API2** server-side (avoids the CORS issue that broke the earlier direct-from-browser attempt — see git history for PRs #13–#22). All endpoints cache responses in-memory (5 min default, 30 min for game details).
+
+Read endpoints (no auth needed for any of these):
+- `GET /api/bgg/search?q=<term>` — game name search (sorted by year desc, top 15)
+- `GET /api/bgg/game/:id` — game details (name, image, year, min/max players)
+- `GET /api/bgg/coleccion/:bggUsername` — full owned collection with ratings + numPlays
+- `GET /api/bgg/partidas/:bggUsername?page&mindate&maxdate&id` — paginated plays (10/page client-side, re-paginated from BGG's 30/page). Enriched with full player data (name, username, score, win, new, rating, color), `comments`, `incomplete`, `nowinstats` flags, and game thumbnails (batch-fetched).
+
+Write endpoints (auth required, BGG account must be connected):
+- `POST /api/bgg/partidas` — create play
+- `PUT /api/bgg/partidas/:playId` — edit play
+- `DELETE /api/bgg/partidas/:playId` — delete play
+
+**How writes work** (and the risk): The XML API is read-only. To enable writes, we POST to BGG's internal `geekplay.php` endpoint (the same one used by their web UI) using a session cookie obtained from `POST /login/api/v1`. This requires storing the user's BGG password. It's encrypted at rest with **AES-256-GCM** using the `BGG_CREDS_KEY` env var (a 32-byte hex). Session cookies are cached in memory for 15 min. If BGG returns 401, credentials are marked `invalid: true` and the user is prompted to reconnect.
+
+**Caveat**: `geekplay.php` is not officially documented and could change without notice. If writes start failing, check the endpoint structure first.
+
+User profile flow:
+- `/perfil` has a "Conexión con BoardGameGeek" section to connect/disconnect the BGG account. Endpoints: `POST /api/auth/bgg-connect`, `DELETE /api/auth/bgg-connection`.
+- `User.bggCredentials` (subdocument) is excluded from `toJSON`; only derived flags `bggConnected`, `bggInvalid`, `bggConnectedAt` are exposed to clients.
+- Changing `bggUsername` automatically clears stored credentials.
+
 ## Known limitations / decisions
 
-- **No BGG integration**: A BoardGameGeek API integration was built and fully reverted (PRs #13–#21, reverted in #22) due to unresolvable CORS issues with the BGG API. The `BggProfile` page and `/api/bgg` route exist as stubs. Do not reintegrate without a concrete CORS solution.
 - Chat history is capped at the last 200 messages per table (server-side).
 - The `Rating` model and routes exist but the UI for ratings is not yet fully implemented.
