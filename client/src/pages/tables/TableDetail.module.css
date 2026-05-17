@@ -578,6 +578,35 @@
   font-weight: 600;
 }
 
+/* Small inline dice icon-link next to a player's name when they have BG Watch. */
+.playerChipBgWatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--amber-15);
+  color: var(--amber-light);
+  border: 1px solid var(--border-amber);
+  flex-shrink: 0;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    transform var(--transition);
+}
+
+.playerChipBgWatch:hover {
+  background: var(--amber-25);
+  color: var(--amber);
+  transform: translateY(-1px);
+}
+
+.playerChipBgWatch svg {
+  width: 12px;
+  height: 12px;
+}
+
 /* ─── Guest note ─── */
 .chatPrivateNote {
   font-size: 0.78rem;

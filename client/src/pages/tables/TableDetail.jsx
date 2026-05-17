@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
@@ -12,6 +12,38 @@ import TableDetailSkeleton from './TableDetailSkeleton'
 import styles from './TableDetail.module.css'
 
 const REACTION_EMOJIS = ['❤️', '🎲', '🔥', '👍', '😄']
+
+// Small inline link rendered next to a player's name when they have an active
+// BG Watch (i.e. populated `bggUsername`). Click → their BG Watch profile.
+function PlayerBgWatchLink({ user }) {
+  if (!user?.bggUsername) return null
+  return (
+    <Link
+      to={`/bg-watch/${encodeURIComponent(user.bggUsername)}`}
+      className={styles.playerChipBgWatch}
+      title={`Ver historial de partidas de @${user.username}`}
+      aria-label={`Ver BG Watch de ${user.username}`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="3" y="3" width="18" height="18" rx="2.5" />
+        <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
+        <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
+        <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
+        <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
+      </svg>
+    </Link>
+  )
+}
 
 const formatDate = (dateStr) =>
   new Date(dateStr).toLocaleDateString('es-AR', {
@@ -663,6 +695,7 @@ export default function TableDetail() {
                   <span className={styles.playerChipName}>
                     {hostInfo.isDeleted ? DELETED_USER_LABEL : table.host.username}
                   </span>
+                  {!hostInfo.isDeleted && <PlayerBgWatchLink user={table.host} />}
                   <span className={styles.hostTag}>Host</span>
                 </div>
                 {table.players.filter(Boolean).map((p) => {
@@ -675,6 +708,7 @@ export default function TableDetail() {
                       <span className={styles.playerChipName}>
                         {playerInfo.isDeleted ? DELETED_USER_LABEL : p.username}
                       </span>
+                      {!playerInfo.isDeleted && <PlayerBgWatchLink user={p} />}
                       {user && (p._id || p).toString() === user._id.toString() && (
                         <span className={styles.youTag}>vos</span>
                       )}

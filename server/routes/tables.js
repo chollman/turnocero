@@ -28,11 +28,15 @@ const buildSearchClause = async (search) => {
   return { $or: [{ boardGame: rx }, { host: { $in: matchingHosts.map((u) => u._id) } }] };
 };
 
+// Fields exposed for any populated user reference returned by these routes.
+// `bggUsername` enables the BG Watch chip/link in TableDetail player chips.
+const POPULATE_USER_FIELDS = 'username bggUsername';
+
 const populateTable = (query) =>
   query
-    .populate('host', 'username')
-    .populate('players', 'username')
-    .populate('pendingRequests', 'username')
+    .populate('host', POPULATE_USER_FIELDS)
+    .populate('players', POPULATE_USER_FIELDS)
+    .populate('pendingRequests', POPULATE_USER_FIELDS)
     .populate('images.uploader', 'username');
 
 // GET /api/tables — public (anon sees only public tables); supports ?page, ?limit, ?search
@@ -113,7 +117,7 @@ router.get('/showcase', async (req, res) => {
       const skip = Math.floor(Math.random() * total);
       table = await Table.findOne(filter)
         .skip(skip)
-        .populate('host', 'username')
+        .populate('host', POPULATE_USER_FIELDS)
         .select('boardGame host location date players maxPlayers')
         .lean();
     }
@@ -133,7 +137,7 @@ router.get('/showcase', async (req, res) => {
       const skip = Math.floor(Math.random() * total);
       table = await Table.findOne(filter)
         .skip(skip)
-        .populate('host', 'username')
+        .populate('host', POPULATE_USER_FIELDS)
         .select('boardGame host location date players maxPlayers')
         .lean();
     }
@@ -174,7 +178,7 @@ router.post('/', protect, [
       bggYear: bggYear || null,
     });
 
-    await table.populate('host', 'username');
+    await table.populate('host', POPULATE_USER_FIELDS);
 
     res.status(201).json(table);
   } catch (err) {

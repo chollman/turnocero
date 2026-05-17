@@ -57,7 +57,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | D.1 | ✅     | Badge 🎲 BG Watch en cards de `/usuarios`              | Bajo        |           |
 | D.2 | ⬜     | Filtro "Solo con BG Watch" en `/usuarios`              | Bajo-medio  |           |
 | D.3 | ⬜     | Card BG Watch prominente en `/usuarios/:id`            | Bajo-medio  |           |
-| D.4 | ⬜     | Link a BG Watch en TableDetail                         | Bajo        |           |
+| D.4 | ✅     | Link a BG Watch en TableDetail                         | Bajo        |           |
 | D.5 | ⬜     | Link a BG Watch en autores de Compartidas              | Bajo        |           |
 | D.6 | ⬜     | "Cargar partida en BG Watch" desde TableDetail         | Medio       |           |
 | E.1 | ⬜     | BG Watch público + CTAs de conversión                  | Medio       |           |
@@ -69,7 +69,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 implementados)
+> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 + D.4 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -193,10 +193,15 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 **Esfuerzo**: bajo-medio.
 **Impacto**: alto.
 
-#### D.4 [ ] Link a BG Watch en TableDetail (de hosts/players con BG Watch)
+#### D.4 [x] Link a BG Watch en TableDetail (de hosts/players con BG Watch)
 **Qué**: en la lista de jugadores de una mesa, ícono de dado al lado del nombre que linkea a su `/bg-watch/...`. Hover muestra "Ver historial de partidas".
 **Esfuerzo**: bajo.
 **Impacto**: medio. Conecta el flujo "estoy por jugar con X" con "¿qué jugó X últimamente?".
+
+**Implementación (2026-05-17)**:
+- **Backend**: en [server/routes/tables.js](../../server/routes/tables.js), se extrajo `POPULATE_USER_FIELDS = 'username bggUsername'` como constante y se aplicó en `populateTable` (host + players + pendingRequests) y en todos los `.populate('host', ...)` individuales (create, leave, join flows, showcase). Así el endpoint expone `bggUsername` consistentemente para cualquier user populated.
+- **Frontend**: en [TableDetail.jsx](../../client/src/pages/tables/TableDetail.jsx), nuevo componente helper `PlayerBgWatchLink` que renderiza un mini icono-link (dado 12×12 en un cuadrado 20×20 con bg amber tenue) cuando el user tiene `bggUsername`. Se inserta en el host chip y en cada player chip de la sección "EN LA MESA", entre el nombre y el tag (Host/vos). No se renderiza si el user está eliminado (matcheando el patrón del avatar fantasma). `title` = "Ver historial de partidas de @username", `aria-label` accesible, `onClick` con `stopPropagation` por consistencia (los chips actualmente no son clickeables pero por si en el futuro lo son).
+- **Estilos**: `.playerChipBgWatch` en [TableDetail.module.css](../../client/src/pages/tables/TableDetail.module.css), pill cuadrado amber tenue con hover más intenso + lift 1px.
 
 #### D.5 [ ] Link a BG Watch en autores de Compartidas
 **Qué**: en `CompartidaCard` y `CompartidaPost`, si el autor tiene `bggUsername`, agregar el ícono/link a su BG Watch.
