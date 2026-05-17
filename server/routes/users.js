@@ -8,7 +8,7 @@ const { protect, optionalAuth } = require('../middleware/auth');
 // GET /api/users — public list with optional search, sortBy, activeOnly
 router.get('/', optionalAuth, async (req, res) => {
   try {
-    const { search, sortBy, activeOnly, friendsOnly } = req.query;
+    const { search, sortBy, activeOnly, friendsOnly, bgWatchOnly } = req.query;
     const isAdmin = !!req.user?.isAdmin;
 
     const query = {};
@@ -17,6 +17,9 @@ router.get('/', optionalAuth, async (req, res) => {
     }
     if (friendsOnly === 'true' && req.user) {
       query._id = { $in: req.user.friends };
+    }
+    if (bgWatchOnly === 'true') {
+      query.bggUsername = { $exists: true, $nin: [null, ''] };
     }
     if (search) {
       const regex = new RegExp(search, 'i');

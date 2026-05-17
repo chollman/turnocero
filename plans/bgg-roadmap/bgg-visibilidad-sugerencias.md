@@ -55,7 +55,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | C.1 | ✅     | Widget "Tu actividad BG Watch" en home                 | Medio       |           |
 | C.2 | ⬜     | Widget "Hot list" público (juegos hot de BGG)          | Bajo        |           |
 | D.1 | ✅     | Badge 🎲 BG Watch en cards de `/usuarios`              | Bajo        |           |
-| D.2 | ⬜     | Filtro "Solo con BG Watch" en `/usuarios`              | Bajo-medio  |           |
+| D.2 | ✅     | Filtro "Solo con BG Watch" en `/usuarios`              | Bajo-medio  |           |
 | D.3 | ✅     | Card BG Watch prominente en `/usuarios/:id`            | Bajo-medio  |           |
 | D.4 | ✅     | Link a BG Watch en TableDetail                         | Bajo        |           |
 | D.5 | ✅     | Link a BG Watch en autores de Compartidas              | Bajo        |           |
@@ -69,7 +69,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 + D.3 + D.4 + D.5 + E.1 + F.1 implementados)
+> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 + D.2 + D.3 + D.4 + D.5 + E.1 + F.1 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -183,10 +183,15 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 
 > **Cambio backend**: el listado `GET /api/users` (en [server/routes/users.js](../../server/routes/users.js)) no incluía `bggUsername` en el `select` (sí lo hacía el detalle `/:id` que comparte campos similares, lo cual generó confusión inicial). Se agregó `bggUsername` a ambas variantes de `selectFields` (admin y no-admin) para que el chip pueda condicionarse a su presencia.
 
-#### D.2 [ ] Filtro "Solo con BG Watch" en `/usuarios`
+#### D.2 [x] Filtro "Solo con BG Watch" en `/usuarios`
 **Qué**: tab/toggle que filtre el listado a usuarios con BG Watch activo. Útil para encontrar contrincantes con tracking de partidas.
 **Esfuerzo**: bajo-medio. Requiere param backend.
 **Impacto**: medio.
+
+**Implementación (2026-05-17)**:
+- **Backend**: en [server/routes/users.js](../../server/routes/users.js) se aceptó un nuevo query param `bgWatchOnly`. Cuando vale `'true'`, se agrega `bggUsername: { $exists: true, $nin: [null, ''] }` al match de Mongo, filtrando usuarios sin BGG configurado. Funciona combinado con los otros filtros (`activeOnly`, `friendsOnly`, `search`).
+- **Frontend**: en [UsersList.jsx](../../client/src/pages/users/UsersList.jsx), nuevo state `bgWatchOnly` + inclusión del param en el fetch. Toggle "Con BG Watch" agregado al final de la fila de filtros, después de "Solo amigos". Reutiliza `.toggleBtn` + `.toggleActive` para el comportamiento on/off, con la clase extra `.toggleBgWatch` que lo vuelve un `inline-flex` para alinear el ícono. El ícono SVG es el mismo dado 14×14 que se usa en el chip BG Watch de las cards, para mantener coherencia visual.
+- **Reset de filtros**: el botón "Limpiar filtros" del empty state ahora incluye también `friendsOnly` y `bgWatchOnly` en el clear (antes solo limpiaba `activeOnly`), y la condición de visibilidad considera los cuatro filtros.
 
 #### D.3 [x] Card BG Watch prominente en `/usuarios/:id`
 **Qué**: hoy es un text-link enterrado en "Contacto". Subirlo a una card propia tipo "Stats BG Watch" con thumbnail del juego más jugado + botón "Ver BG Watch".

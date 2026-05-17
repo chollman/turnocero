@@ -262,6 +262,18 @@
   color: var(--amber);
 }
 
+.toggleBgWatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.toggleBgWatchIcon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
 /* Grid */
 .grid {
   display: flex;
