@@ -49,7 +49,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | A.1 | ✅     | Item "BG Watch" en Sidebar                             | Bajo        | 🔥        |
 | A.2 | ✅     | Item BG Watch en BottomNav                             | Bajo        | 🔥        |
 | A.3 | ✅     | CTA "Activá BG Watch" para no-conectados               | Bajo        |           |
-| B.1 | ⬜     | Card destacada "Mi BG Watch" en `/perfil`              | Bajo        |           |
+| B.1 | ✅     | Card destacada "Mi BG Watch" en `/perfil`              | Bajo        |           |
 | B.2 | ⬜     | Toast post-conexión con link al BG Watch               | Bajo        |           |
 | B.3 | ⬜     | Badge "BG Watch ✓" en header de `/perfil`              | Bajo        |           |
 | C.1 | ⬜     | Widget "Tu actividad BG Watch" en home                 | Medio       |           |
@@ -69,7 +69,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 implementados)
+> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -115,10 +115,16 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 
 ### B. Promoción en `/perfil` propio — premio post-conexión
 
-#### B.1 [ ] Card destacada "Mi BG Watch" en `/perfil`
+#### B.1 [x] Card destacada "Mi BG Watch" en `/perfil`
 **Qué**: tras conectar la cuenta de BoardGameGeek, mostrar arriba del form (no enterrado al fondo) una card visual con: avatar, username de BGG, cantidad de partidas y juegos, y un CTA "Ver mi BG Watch completo →".
 **Esfuerzo**: bajo. Reordenar [UserProfile.jsx](../../client/src/pages/users/UserProfile.jsx) y agregar fetch ligero de stats.
 **Impacto**: alto. El usuario que ya pagó el costo de conectar tiene su recompensa visible.
+
+**Implementación (2026-05-17)**:
+- Nuevo componente `client/src/pages/users/MiBgWatchCard.jsx` + `.module.css`. Card clickeable (toda ella es un `<Link>` a `/bg-watch/<username>`) con avatar amber + badge dado, identidad (eyebrow "◆ MI BG WATCH", `@username`, tag "Conectado a BoardGameGeek" con dot verde), CTA inline "Ver mi BG Watch completo →" con flecha animada en hover, y row de stats (Partidas, Juegos en colección, Última partida).
+- Fetch en paralelo de `/api/bgg/partidas/:username?page=1` (total + última fecha) y `/api/bgg/coleccion/:username` (length = juegos únicos). Maneja errores silenciosamente con nota suave ("igual podés entrar a tu BG Watch").
+- Integrada en [UserProfile.jsx](../../client/src/pages/users/UserProfile.jsx) entre el hero y el `formCard`. Solo se renderiza si `user.bggUsername && user.bggConnected && !user.bggInvalid` (es decir, conexión activa y válida).
+- Endpoints reutilizan caché server-side (5–30 min) → carga rápida en revisitas.
 
 #### B.2 [ ] Toast / pantalla de bienvenida tras conectar
 **Qué**: justo después de un `POST /api/auth/bgg-connect` exitoso, además del toast actual de éxito, ofrecer un botón explícito "Ir a mi BG Watch ahora" que navega a `/bg-watch/<username>`.

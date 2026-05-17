@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import MiBgWatchCard from './MiBgWatchCard';
 import styles from './UserProfile.module.css';
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
@@ -237,6 +238,10 @@ export default function UserProfile() {
           <h1 className={styles.heroTitle}>@{user?.username}</h1>
           <p className={styles.heroSub}>{user?.email}</p>
         </div>
+
+        {user?.bggUsername && user?.bggConnected && !user?.bggInvalid && (
+          <MiBgWatchCard bggUsername={user.bggUsername} />
+        )}
 
         <div className={styles.formCard}>
           {error && <div className={styles.errorBox}>{error}</div>}
