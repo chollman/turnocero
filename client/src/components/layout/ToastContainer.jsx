@@ -29,6 +29,7 @@ const DURATION = {
   table_cancelled:       6000,
   join_rejected:         5500,
   noticia:               6000,
+  bgwatch_connected:     7000,
 };
 
 function ToastItem({ toast, onDismiss }) {
@@ -74,6 +75,8 @@ function ToastItem({ toast, onDismiss }) {
       navigate(`/compartidas/${toast.compartidaId}`);
     } else if (toast.type === 'noticia') {
       navigate(`/noticias/${toast.noticiaId}`);
+    } else if (toast.type === 'bgwatch_connected') {
+      navigate(`/bg-watch/${encodeURIComponent(toast.bggUsername)}`);
     } else {
       if (toast.tableId) markRead(toast.tableId);
       navigate(`/mesas/${toast.tableId}`);
@@ -107,7 +110,8 @@ function ToastItem({ toast, onDismiss }) {
     toast.type === 'compartida_like'       ? '❤️' :
     toast.type === 'table_cancelled'       ? '❌' :
     toast.type === 'join_rejected'         ? '🚷' :
-    toast.type === 'noticia'               ? '📰' : '🎲';
+    toast.type === 'noticia'               ? '📰' :
+    toast.type === 'bgwatch_connected'     ? '🎲' : '🎲';
 
   const title =
     toast.type === 'join_accepted'         ? '¡Fuiste aceptado!' :
@@ -128,6 +132,7 @@ function ToastItem({ toast, onDismiss }) {
     toast.type === 'table_cancelled'       ? 'Mesa cancelada' :
     toast.type === 'join_rejected'         ? 'Solicitud rechazada' :
     toast.type === 'noticia'               ? 'Nueva noticia' :
+    toast.type === 'bgwatch_connected'     ? '¡Conectado a BG Watch!' :
     toast.tableName;
 
   const body =
@@ -173,7 +178,9 @@ function ToastItem({ toast, onDismiss }) {
                                           ? `Tu solicitud para ${toast.tableName} fue rechazada`
                                           : toast.type === 'noticia'
                                             ? toast.title
-                                            : `Ya sos parte de la mesa de ${toast.tableName}`;
+                                            : toast.type === 'bgwatch_connected'
+                                              ? 'Tocá para ir a tu BG Watch ahora →'
+                                              : `Ya sos parte de la mesa de ${toast.tableName}`;
 
   return (
     <div

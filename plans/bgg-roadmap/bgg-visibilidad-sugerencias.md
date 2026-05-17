@@ -50,7 +50,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | A.2 | ✅     | Item BG Watch en BottomNav                             | Bajo        | 🔥        |
 | A.3 | ✅     | CTA "Activá BG Watch" para no-conectados               | Bajo        |           |
 | B.1 | ✅     | Card destacada "Mi BG Watch" en `/perfil`              | Bajo        |           |
-| B.2 | ⬜     | Toast post-conexión con link al BG Watch               | Bajo        |           |
+| B.2 | ✅     | Toast post-conexión con link al BG Watch               | Bajo        |           |
 | B.3 | ✅     | Badge "BG Watch ✓" en header de `/perfil`              | Bajo        |           |
 | C.1 | ⬜     | Widget "Tu actividad BG Watch" en home                 | Medio       |           |
 | C.2 | ⬜     | Widget "Hot list" público (juegos hot de BGG)          | Bajo        |           |
@@ -69,7 +69,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.3 implementados)
+> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -126,10 +126,17 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 - Integrada en [UserProfile.jsx](../../client/src/pages/users/UserProfile.jsx) entre el hero y el `formCard`. Solo se renderiza si `user.bggUsername && user.bggConnected && !user.bggInvalid` (es decir, conexión activa y válida).
 - Endpoints reutilizan caché server-side (5–30 min) → carga rápida en revisitas.
 
-#### B.2 [ ] Toast / pantalla de bienvenida tras conectar
+#### B.2 [x] Toast / pantalla de bienvenida tras conectar
 **Qué**: justo después de un `POST /api/auth/bgg-connect` exitoso, además del toast actual de éxito, ofrecer un botón explícito "Ir a mi BG Watch ahora" que navega a `/bg-watch/<username>`.
 **Esfuerzo**: bajo. Cambio puntual en el handler de connect.
 **Impacto**: medio.
+
+**Implementación (2026-05-17)**:
+- Nuevo tipo de toast `bgwatch_connected` registrado en [ToastContainer.jsx](../../client/src/components/layout/ToastContainer.jsx): icono 🎲, título "¡Conectado a BG Watch!", body "Tocá para ir a tu BG Watch ahora →", duración 7000ms (más largo que el default para dar tiempo a clickear).
+- Click handler navega a `/bg-watch/<bggUsername>`. Como todo el toast es clickeable (siguiendo el patrón del resto del sistema), no hace falta un botón separado — el toast entero ES el CTA.
+- En [UserProfile.handleBggConnect](../../client/src/pages/users/UserProfile.jsx) se dispara `addToast({ type: 'bgwatch_connected', bggUsername })` justo después del `refreshUser()` exitoso. Sigue el mismo patrón cliente-side que `tournament_pending` en RegisterButton.
+
+> Nota: el plan menciona "además del toast actual de éxito", pero en realidad no había feedback explícito post-conexión más allá del cambio visual de la UI (la sección pasa a mostrar "Conectado como @username"). Este toast es el primer feedback ephemeral del flujo.
 
 #### B.3 [x] Badge "BG Watch ✓" en el header del propio perfil
 **Qué**: un chip pequeño al lado del nombre en `/perfil` indicando "BG Watch activo" como link clickeable al propio perfil.

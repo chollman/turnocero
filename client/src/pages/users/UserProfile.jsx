@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useNotifications } from '../../context/NotificationContext';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import MiBgWatchCard from './MiBgWatchCard';
@@ -37,6 +38,7 @@ const SunIcon = () => (
 export default function UserProfile() {
   const { user, updateProfile, refreshUser } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { addToast } = useNotifications();
 
   // ── BGG connection state ──
   const [bggPassword, setBggPassword] = useState('');
@@ -181,6 +183,10 @@ export default function UserProfile() {
       await axios.post('/api/auth/bgg-connect', { password: bggPassword });
       await refreshUser();
       setBggPassword('');
+      addToast({
+        type: 'bgwatch_connected',
+        bggUsername: user.bggUsername,
+      });
     } catch (err) {
       setBggError(err.response?.data?.message || 'No se pudo conectar con BGG.');
     } finally {
