@@ -53,7 +53,6 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | B.2 | ✅     | Toast post-conexión con link al BG Watch               | Bajo        |           |
 | B.3 | ✅     | Badge "BG Watch ✓" en header de `/perfil`              | Bajo        |           |
 | C.1 | ✅     | Widget "Tu actividad BG Watch" en home                 | Medio       |           |
-| C.2 | ⬜     | Widget "Hot list" público (juegos hot de BGG)          | Bajo        |           |
 | D.1 | ✅     | Badge 🎲 BG Watch en cards de `/usuarios`              | Bajo        |           |
 | D.2 | ✅     | Filtro "Solo con BG Watch" en `/usuarios`              | Bajo-medio  |           |
 | D.3 | ✅     | Card BG Watch prominente en `/usuarios/:id`            | Bajo-medio  |           |
@@ -61,7 +60,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | D.5 | ✅     | Link a BG Watch en autores de Compartidas              | Bajo        |           |
 | D.6 | ⬜     | "Cargar partida en BG Watch" desde TableDetail         | Medio       |           |
 | E.1 | ✅     | BG Watch público + CTAs de conversión                  | Medio       |           |
-| E.2 | ⬜     | OG metadata para `/bg-watch/:username`                 | Medio       |           |
+| E.2 | ✅     | OG metadata para `/bg-watch/:username`                 | Medio       |           |
 | E.3 | ⬜     | GuestNavbar con link a "Jugadores BG Watch"            | Medio       |           |
 | F.1 | ✅     | Banner one-shot en `/perfil` post-registro             | Bajo        |           |
 | F.2 | ⬜     | Empty state contextual con BG Watch de amigos          | Medio       |           |
@@ -69,7 +68,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 + D.2 + D.3 + D.4 + D.5 + E.1 + F.1 implementados)
+> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 + D.2 + D.3 + D.4 + D.5 + E.1 + E.2 + F.1 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -164,11 +163,6 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 - Integrado en [CompartidasSidebar.jsx](../../client/src/pages/compartidas/CompartidasSidebar.jsx) como primer widget de la columna lateral (visible solo ≥960px).
 - En mobile (<960px), el mismo componente se renderiza inline en [Compartidas.jsx](../../client/src/pages/compartidas/Compartidas.jsx) justo después del `pageHeader` (antes del create form), wrapped en `.mobileWidgetSlot` que es `display:none` en desktop. Se duplica el render (sidebar + inline) pero solo uno es visible por viewport; los fetches duplicados son triviales por el caché server-side.
 - **Dismiss en la variante promo (mobile + desktop)**: ambos renders (inline mobile + sidebar desktop) pasan `dismissible` y la variante `PromoView` muestra un botón ✕ en la esquina superior derecha. Click → persiste en `localStorage` (`turnocero_bgwatch_promo_dismissed`) y oculta el widget en futuras visitas. Como la key es compartida, dismissar en cualquiera de los dos breakpoints lo oculta en ambos. La variante conectada nunca es dismissible. La preferencia es por-dispositivo (no se sincroniza al server).
-
-#### C.2 [ ] Widget "Hot list" público (juegos hot en BGG)
-**Qué**: ya está en el roadmap existente ([sección 4.1](bgg-perfil-mejoras-roadmap.md)). Reforzar como surface de descubrimiento: aparece para invitados también, generando incentivo a conectar.
-**Esfuerzo**: bajo.
-**Impacto**: medio.
 
 ---
 
@@ -266,10 +260,27 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
   - [BgWatchPerGameView.jsx](../../client/src/pages/bg-watch/BgWatchPerGameView.jsx): mismo `GuestBanner` arriba + `GuestFooter` al final. No tiene inline CTA porque la página no tiene un "momento aha!" tan claro como el perfil principal.
 - Los CTAs respetan el theme (gradient amber funciona en ambos), son responsive (a `<600px` el botón pasa a full-width). El `LoginPromptModal` existente queda disponible para futuros soft paywalls si se agregan likes/comments a partidas (hoy esas features no existen en BG Watch, así que no fue necesario).
 
-#### E.2 [ ] OG metadata para `/bg-watch/:username`
+#### E.2 [x] OG metadata para `/bg-watch/:username`
 **Qué**: análogo al existente para Compartidas (`GET /api/compartidas/:id/og`). Endpoint `GET /api/bg-watch/og/:username` que devuelve título + thumbnail del juego más jugado, para previews ricos en WhatsApp.
 **Esfuerzo**: medio. Requiere extender [middleware.js](../../client/middleware.js).
 **Impacto**: medio-alto si se viraliza el compartido de perfiles.
+
+**Implementación (2026-05-17)**:
+- **Endpoint server**: `GET /api/bgg/og/:bggUsername` agregado en [server/routes/bgg.js](../../server/routes/bgg.js) (montado bajo `/api/bgg/` y no `/api/bg-watch/` como sugería el plan — el resto del routing BGG-related vive ahí, y mantener consistencia evitó crear un router nuevo). Público, sin auth.
+  - Look up del usuario Turnocero por `bggUsername` case-insensitive (regex con escape) para usar `displayName` si está disponible; fallback al `bggUsername` crudo si no hay user en nuestra DB.
+  - Fetch en paralelo conceptual (secuencial en el código por simplicidad, las dos llamadas a BGG son baratas) de: collection (`/collection?username=<u>&own=1&stats=1`) para extraer `juegos` (total items) y `topGame` (item con `numplays` máximo, con `name` y `thumbnail`); y plays (`/plays?username=<u>&page=1`) para extraer `partidas` (`@_total`).
+  - Cache propio de 30 min con key `og:<username>` (más largo que los 5 min default del resto de endpoints BGG — los crawlers vuelven a hitear seguido).
+  - Errores parciales se tragan: si solo falla la colección o solo las partidas, igual se devuelve lo que se tenga. Si ambos fallan → 404.
+- **Middleware**: [client/middleware.js](../../client/middleware.js) refactorizado para soportar dos rutas (`/compartidas/:id` y `/bg-watch/:username`):
+  - Helper `ogHtml(...)` extraído para deduplicar la generación de meta tags. Acepta `imageIsLarge` para alternar entre `summary_large_image` (1200×630) y `summary` (square — usado para thumbnails de BGG que son típicamente cuadradas).
+  - `handleCompartida` y `handleBgWatch` separan la lógica específica de cada surface.
+  - Regex `/^\/bg-watch\/([^/]+)$/` matchea solo el perfil principal (no `/bg-watch` landing ni `/bg-watch/:u/juego/:gameId`).
+  - Matcher de Vercel ahora es array: `['/compartidas/:id*', '/bg-watch/:username*']`.
+- **Copy del preview de BG Watch** (ejemplos):
+  - Title: `BG Watch de <displayName> – Turnocero 🎲`
+  - Description: hasta 3 segmentos separados por `·` — "X partidas registradas en BGG · Y juegos en colección · más jugado: <topGame>". Con fallbacks cuando faltan datos.
+  - Image: thumbnail del juego más jugado (tarjeta `summary` cuadrada). Si no hay topGame con thumbnail → cae a `/og-default.png` (1200×630, `summary_large_image`).
+- **Tracking de conversión**: el meta-refresh apunta a la URL canónica sin query params adicionales — no se está midiendo conversión desde previews de OG por ahora. Si se quisiera, agregar `?source=og-preview` o similar al `canonicalUrl`.
 
 #### E.3 [ ] GuestNavbar con link a "Jugadores BG Watch"
 **Qué**: solo aplica si E.1 se implementa. Agregar un link en [GuestNavbar.jsx](../../client/src/components/layout/GuestNavbar.jsx) que lleve a una lista pública de perfiles BG Watch destacados.

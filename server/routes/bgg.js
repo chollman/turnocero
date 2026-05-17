@@ -3,6 +3,7 @@ const router = express.Router();
 const { XMLParser } = require('fast-xml-parser');
 const { protect } = require('../middleware/auth');
 const { getSessionCookie, clearSession } = require('../utils/bggAuth');
+const User = require('../models/User');
 
 const BGG_API = 'https://boardgamegeek.com/xmlapi2';
 const BGG_GEEKPLAY = 'https://boardgamegeek.com/geekplay.php';
@@ -454,6 +455,74 @@ async function submitToGeekplay(user, form, label) {
   try { payload = JSON.parse(text); } catch { payload = { raw: text.slice(0, 200) }; }
   return payload;
 }
+
+// GET /api/bgg/og/:bggUsername — public OG metadata for /bg-watch/:username crawlers.
+// Returns displayName (Turnocero user if connected), play count, collection size,
+// and the user's top-played game with thumbnail. Cached 30 min per username.
+router.get('/og/:bggUsername', async (req, res) => {
+  const { bggUsername } = req.params;
+  const cacheKey = `og:${bggUsername.toLowerCase()}`;
+  const cached = getCached(cacheKey, 30 * 60 * 1000);
+  if (cached) return res.json(cached);
+
+  try {
+    // Look up the Turnocero user by bggUsername (case-insensitive) for displayName.
+    const escaped = bggUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const userDoc = await User.findOne({ bggUsername: new RegExp(`^${escaped}$`, 'i') })
+      .select('username displayName')
+      .lean();
+    const displayName = userDoc?.displayName || userDoc?.username || bggUsername;
+
+    // Fetch BGG collection (top-played game + total games owned).
+    let juegos = null;
+    let topGame = null;
+    try {
+      const collXml = await fetchBgg(`${BGG_API}/collection?username=${encodeURIComponent(bggUsername)}&own=1&stats=1`);
+      const parsedColl = parser.parse(collXml);
+      const root = parsedColl?.items;
+      if (root) {
+        const rawItems = root.item || [];
+        const items = Array.isArray(rawItems) ? rawItems : [rawItems];
+        juegos = items.length;
+        let maxPlays = 0;
+        for (const item of items) {
+          const plays = item.numplays ? Number(item.numplays) : 0;
+          if (plays > maxPlays) {
+            maxPlays = plays;
+            topGame = {
+              name: typeof item.name === 'object' ? item.name['#text'] : item.name,
+              thumbnail: item.thumbnail || null,
+              numPlays: plays,
+            };
+          }
+        }
+      }
+    } catch {
+      // Swallow — partial data is better than 500 for crawlers.
+    }
+
+    // Fetch total play count (BGG plays API returns it as @_total).
+    let partidas = null;
+    try {
+      const playsXml = await fetchBgg(`${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=1`);
+      const parsedPlays = parser.parse(playsXml);
+      const total = parsedPlays?.plays?.['@_total'];
+      partidas = total ? Number(total) : null;
+    } catch {
+      // Swallow.
+    }
+
+    if (juegos === null && partidas === null) {
+      return res.status(404).json({});
+    }
+
+    const data = { displayName, bggUsername, partidas, juegos, topGame };
+    setCached(cacheKey, data);
+    res.json(data);
+  } catch {
+    res.status(500).json({});
+  }
+});
 
 // POST /api/bgg/partidas — create a play in BGG
 router.post('/partidas', protect, async (req, res) => {
