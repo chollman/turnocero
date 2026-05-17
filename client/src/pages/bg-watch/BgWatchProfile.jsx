@@ -7,6 +7,7 @@ import PartidasPanel from './PartidasPanel';
 import ColeccionPanel from './ColeccionPanel';
 import PlayDetailModal from './PlayDetailModal';
 import CreatePlayModal from './CreatePlayModal';
+import { GuestBanner, GuestInlineCTA, GuestFooter } from './BgWatchGuestCTAs';
 import styles from './BgWatchProfile.module.css';
 
 function formatDate(iso) {
@@ -82,6 +83,7 @@ export default function BgWatchProfile() {
   const isOwnProfile = !!user?.bggUsername &&
     user.bggUsername.toLowerCase() === (bggUsername || '').toLowerCase();
   const canCreate = isOwnProfile && user?.bggConnected && !user?.bggInvalid;
+  const isGuest = !user;
 
   // Stable callbacks so panels don't refetch on every render
   const handleCollectionLoaded = useCallback((data) => setCollection(data), []);
@@ -107,6 +109,7 @@ export default function BgWatchProfile() {
 
   return (
     <div className={styles.page}>
+      {isGuest && <GuestBanner bggUsername={bggUsername} />}
       <div className={styles.inner}>
         <button className={styles.backBtn} onClick={() => navigate(-1)}>
           ← Volver
@@ -135,6 +138,8 @@ export default function BgWatchProfile() {
         </div>
 
         <StatsBar collection={collection} playsMeta={playsMeta} />
+
+        {isGuest && <GuestInlineCTA />}
 
         <div className={styles.tabs}>
           <button
@@ -171,6 +176,8 @@ export default function BgWatchProfile() {
             onLoaded={handleCollectionLoaded}
           />
         </div>
+
+        {isGuest && <GuestFooter bggUsername={bggUsername} />}
       </div>
 
       {openPlay && (

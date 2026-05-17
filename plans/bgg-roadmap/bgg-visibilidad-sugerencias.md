@@ -60,7 +60,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | D.4 | ✅     | Link a BG Watch en TableDetail                         | Bajo        |           |
 | D.5 | ⬜     | Link a BG Watch en autores de Compartidas              | Bajo        |           |
 | D.6 | ⬜     | "Cargar partida en BG Watch" desde TableDetail         | Medio       |           |
-| E.1 | ⬜     | BG Watch público + CTAs de conversión                  | Medio       |           |
+| E.1 | ✅     | BG Watch público + CTAs de conversión                  | Medio       |           |
 | E.2 | ⬜     | OG metadata para `/bg-watch/:username`                 | Medio       |           |
 | E.3 | ⬜     | GuestNavbar con link a "Jugadores BG Watch"            | Medio       |           |
 | F.1 | ⬜     | Banner one-shot en `/perfil` post-registro             | Bajo        |           |
@@ -69,7 +69,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 + D.3 + D.4 implementados)
+> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 + D.3 + D.4 + E.1 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -225,7 +225,7 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 
 > **Filosofía**: cada perfil BG Watch público funciona como una landing page que vende el valor del tracking de partidas a usuarios anónimos. La apertura va **siempre acompañada de CTAs de registro** para que la viralidad alimente conversión, no la canibalice.
 
-#### E.1 [ ] BG Watch público (sin auth) + estrategia de conversión
+#### E.1 [x] BG Watch público (sin auth) + estrategia de conversión
 **Qué**: cambiar la ruta `/bg-watch/:bggUsername` de `<PrivateRoute>` a abierta (read-only). Acciones de escritura ("Nueva partida", editar, borrar) ocultas si no hay sesión o si la sesión no matchea al dueño.
 
 **CTAs de registro obligatorios para invitados** (no es opcional, es parte del diseño):
@@ -241,6 +241,19 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 - Convierte cada perfil en una herramienta de marketing — el dueño hace promoción del app cuando comparte su link.
 
 **Validación**: tracking de conversión específico para landings BG Watch (UTM o flag `source=bg-watch` en el formulario de register) para medir si efectivamente convierten más que el muro duro actual.
+
+**Implementación (2026-05-17)**:
+- **Rutas abiertas**: en [App.jsx](../../client/src/App.jsx#L133-L135), las rutas `/bg-watch/:bggUsername` y `/bg-watch/:bggUsername/juego/:gameId` dejaron de estar dentro de `<PrivateRoute>`. `/bg-watch` (landing) y `/bg-watch/:bggUsername` (perfil) y la per-game view son todas públicas ahora.
+- **Acciones de escritura ya gated implícitamente**: el cómputo `canCreate = isOwnProfile && bggConnected && !bggInvalid` ya falla para invitados (porque `user=null` → `isOwnProfile=false`), así que el botón "+ Nueva partida", los handlers `onPlayEdit`/`onPlayDelete` y el `CreatePlayModal` no se renderizan para guests sin necesidad de guards extra. Se agregó un flag `isGuest = !user` para activar los CTAs.
+- **Componente nuevo** [BgWatchGuestCTAs.jsx](../../client/src/pages/bg-watch/BgWatchGuestCTAs.jsx) + `.module.css` con 3 exports:
+  - **`<GuestBanner>`**: barra superior full-bleed con gradient amber sólido, ícono de dado, copy "Llevá tus partidas como @username con BG Watch" y botón "Registrate gratis →". Non-dismissible (es el principal driver de conversión).
+  - **`<GuestInlineCTA>`**: card amber tenue después del `StatsBar` con eyebrow "◆ ACTIVÁ TU PROPIO BG WATCH", título "¿Tenés cuenta en BoardGameGeek?", body explicativo y botón "Empezar →". Es el "soft sell" cuando el visitante acaba de ver la utilidad de la feature.
+  - **`<GuestFooter>`**: card neutra al final, "Este es el BG Watch de @username, una persona que juega en Turnocero. Vos también podés tener el tuyo" + botón outline "Registrate gratis →".
+- Todos los CTAs linkean a `/register?source=bg-watch` para que sea fácil medir conversión segmentada (UTM-like query param, listo para parsear en el handler de register si querés trackear).
+- **Integraciones**:
+  - [BgWatchProfile.jsx](../../client/src/pages/bg-watch/BgWatchProfile.jsx): `GuestBanner` arriba de `.inner` (full-bleed), `GuestInlineCTA` entre `StatsBar` y `.tabs`, `GuestFooter` al final del `.inner`.
+  - [BgWatchPerGameView.jsx](../../client/src/pages/bg-watch/BgWatchPerGameView.jsx): mismo `GuestBanner` arriba + `GuestFooter` al final. No tiene inline CTA porque la página no tiene un "momento aha!" tan claro como el perfil principal.
+- Los CTAs respetan el theme (gradient amber funciona en ambos), son responsive (a `<600px` el botón pasa a full-width). El `LoginPromptModal` existente queda disponible para futuros soft paywalls si se agregan likes/comments a partidas (hoy esas features no existen en BG Watch, así que no fue necesario).
 
 #### E.2 [ ] OG metadata para `/bg-watch/:username`
 **Qué**: análogo al existente para Compartidas (`GET /api/compartidas/:id/og`). Endpoint `GET /api/bg-watch/og/:username` que devuelve título + thumbnail del juego más jugado, para previews ricos en WhatsApp.

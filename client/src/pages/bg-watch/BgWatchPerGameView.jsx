@@ -7,6 +7,7 @@ import PlayCard from './PlayCard';
 import PlayDetailModal from './PlayDetailModal';
 import CreatePlayModal from './CreatePlayModal';
 import Pagination from './Pagination';
+import { GuestBanner, GuestFooter } from './BgWatchGuestCTAs';
 import styles from './BgWatchProfile.module.css';
 
 const PLAYS_PAGE_SIZE = 10;
@@ -62,6 +63,7 @@ export default function BgWatchPerGameView() {
   const isOwnProfile = !!user?.bggUsername &&
     user.bggUsername.toLowerCase() === (bggUsername || '').toLowerCase();
   const canCreate = isOwnProfile && user?.bggConnected && !user?.bggInvalid;
+  const isGuest = !user;
 
   // Fetch game details (uses /game/:id cache — likely hit if user came from Partidas)
   useEffect(() => {
@@ -126,6 +128,7 @@ export default function BgWatchPerGameView() {
 
   return (
     <div className={styles.page}>
+      {isGuest && <GuestBanner bggUsername={bggUsername} />}
       <div className={styles.inner}>
         <button className={styles.backBtn} onClick={() => navigate(-1)}>
           ← Volver
@@ -254,6 +257,8 @@ export default function BgWatchPerGameView() {
             <Pagination page={page} totalPages={totalPages} onPage={handlePage} />
           </div>
         )}
+
+        {isGuest && <GuestFooter bggUsername={bggUsername} />}
       </div>
 
       {openPlay && (
