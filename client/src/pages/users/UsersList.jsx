@@ -74,6 +74,33 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete }) {
             <span className={styles.metaIcon}>📅</span>
             Desde {joined}
           </span>
+          {user.bggUsername && (
+            <Link
+              to={`/bg-watch/${encodeURIComponent(user.bggUsername)}`}
+              className={styles.bgWatchChip}
+              onClick={(e) => e.stopPropagation()}
+              title={`Ver el BG Watch de @${user.username}`}
+            >
+              <svg
+                className={styles.bgWatchChipIcon}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2.5" />
+                <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
+                <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
+                <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
+                <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
+                <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
+              </svg>
+              BG Watch
+            </Link>
+          )}
         </div>
       </div>
       <div className={styles.cardStats}>

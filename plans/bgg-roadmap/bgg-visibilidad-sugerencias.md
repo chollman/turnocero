@@ -54,7 +54,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | B.3 | ✅     | Badge "BG Watch ✓" en header de `/perfil`              | Bajo        |           |
 | C.1 | ✅     | Widget "Tu actividad BG Watch" en home                 | Medio       |           |
 | C.2 | ⬜     | Widget "Hot list" público (juegos hot de BGG)          | Bajo        |           |
-| D.1 | ⬜     | Badge 🎲 BG Watch en cards de `/usuarios`              | Bajo        |           |
+| D.1 | ✅     | Badge 🎲 BG Watch en cards de `/usuarios`              | Bajo        |           |
 | D.2 | ⬜     | Filtro "Solo con BG Watch" en `/usuarios`              | Bajo-medio  |           |
 | D.3 | ⬜     | Card BG Watch prominente en `/usuarios/:id`            | Bajo-medio  |           |
 | D.4 | ⬜     | Link a BG Watch en TableDetail                         | Bajo        |           |
@@ -69,7 +69,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | G.1 | ⬜     | Aviso cuando un amigo carga partida BG Watch con vos   | Alto        |           |
 | G.2 | ⬜     | Recordatorio post-mesa para cargar en BG Watch         | Medio       |           |
 
-> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 implementados)
+> Última actualización: 2026-05-17 (A.1 + A.2 + A.3 + B.1 + B.2 + B.3 + C.1 + D.1 implementados)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -174,10 +174,14 @@ Cada sugerencia incluye: **Esfuerzo** (bajo/medio/alto) y **Impacto** (engagemen
 
 ### D. Cross-promoción entre features existentes
 
-#### D.1 [ ] Badge "🎲 BG Watch" en cards de usuario en `/usuarios`
+#### D.1 [x] Badge "🎲 BG Watch" en cards de usuario en `/usuarios`
 **Qué**: en la grilla/lista de Comunidad ([UsersList](../../client/src/pages/users/UsersList.jsx)), un chip discreto en las cards de usuarios que tienen `bggUsername`, clickeable directo a su BG Watch.
 **Esfuerzo**: bajo. El listado ya trae el campo.
 **Impacto**: alto para descubrimiento social — convierte cada user card en un punto de entrada a BG Watch.
+
+**Implementación (2026-05-17)**: en [UsersList.jsx](../../client/src/pages/users/UsersList.jsx), dentro de `cardMeta` (junto a los chips de ubicación y "Desde"), se agregó un `<Link>` con clase `.bgWatchChip`: pill amber tenue con dado SVG (12×12) + texto "BG Watch" en uppercase. Visible solo si `user.bggUsername`. `onClick` con `stopPropagation` para que no dispare el click del card (que navega a `/usuarios/:id`). Hover: fondo amber más fuerte + lift 1px. `title` accesible: "Ver el BG Watch de @username".
+
+> **Cambio backend**: el listado `GET /api/users` (en [server/routes/users.js](../../server/routes/users.js)) no incluía `bggUsername` en el `select` (sí lo hacía el detalle `/:id` que comparte campos similares, lo cual generó confusión inicial). Se agregó `bggUsername` a ambas variantes de `selectFields` (admin y no-admin) para que el chip pueda condicionarse a su presencia.
 
 #### D.2 [ ] Filtro "Solo con BG Watch" en `/usuarios`
 **Qué**: tab/toggle que filtre el listado a usuarios con BG Watch activo. Útil para encontrar contrincantes con tracking de partidas.

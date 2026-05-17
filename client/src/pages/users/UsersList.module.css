@@ -442,6 +442,40 @@
   font-size: 0.75rem;
 }
 
+/* Clickable chip linking to the user's BG Watch profile. */
+.bgWatchChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--amber-10);
+  border: 1px solid var(--border-amber);
+  color: var(--amber-light);
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    transform var(--transition);
+}
+
+.bgWatchChip:hover {
+  background: var(--amber-20);
+  color: var(--amber);
+  transform: translateY(-1px);
+}
+
+.bgWatchChipIcon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
 /* Stats */
 .cardStats {
   display: flex;
