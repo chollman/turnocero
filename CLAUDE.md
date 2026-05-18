@@ -67,10 +67,12 @@ Always write commit messages in **English**.
 The Vite dev server proxies `/api/*` to `http://localhost:4000/api`, so all frontend API calls use relative `/api/...` paths. The Socket.IO client connects directly to `http://localhost:4000` (or `VITE_API_URL`).
 
 ### Auth flow
-1. `POST /api/auth/register` or `/login` → JWT (24-hour) + user object returned
-2. `AuthContext` stores the token in `localStorage` and sets it as the Axios default `Authorization` header
-3. On app load, `GET /api/auth/me` re-validates the token
-4. `App.jsx` uses `<PrivateRoute>` for auth-only pages and `<PublicRoute>` for login/register; most pages are accessible without login
+1. `POST /api/auth/register` creates an **unverified** user, emails a 6-digit code via Resend, and returns `{ email, message }` — **no JWT is issued yet**. Login is blocked until the email is verified.
+2. `POST /api/auth/verify-email { email, code }` validates the code (5-attempt cap, 15-min TTL) and returns `{ user, token }`. Tokens are 24h JWTs.
+3. `POST /api/auth/login` returns `{ user, token }` or **403 with `code: 'email_not_verified'`** if the email hasn't been verified yet (frontend redirects to `/verificar-email?email=...`).
+4. `POST /api/auth/resend-verification` and `POST /api/auth/forgot-password` are rate-limited to **3 attempts / 15 min** (stricter `emailLimiter`) and always respond 200 generically to avoid leaking account existence. `POST /api/auth/reset-password { token, password }` confirms the reset.
+5. `AuthContext` stores the JWT in `localStorage`, sets it as the Axios default `Authorization` header, and re-validates via `GET /api/auth/me` on app load.
+6. Routes are gated by a combination of `<PublicRoute>` (auth pages), `<PrivateRoute>`, `<AdminRoute>`, and `<SectionGate section="...">` (driven by `SiteConfig` — see below).
 
 ### App shell and layout
 `App.jsx` renders a two-column shell for authenticated users:
@@ -367,7 +369,13 @@ All image uploads go through Multer (memory storage, no disk) before Cloudinary.
 - Eventos: `turnocero/eventos/` (banner) and `turnocero/eventos/<eventoId>/comprobantes/` for payment receipts (also accepts PDF — stored as `resource_type: 'raw'`)
 
 ### Server error format
-All error responses return `{ message: '<string>' }`. Status codes: `400` validation/bad request, `401` unauthenticated, `403` forbidden, `404` not found, `500` server error. Auth routes (`/register`, `/login`) are rate-limited: 10 attempts per 15 minutes per IP.
+All error responses return `{ message: '<string>' }`. Status codes: `400` validation/bad request, `401` unauthenticated, `403` forbidden, `404` not found, `500` server error.
+
+Two rate limiters in `routes/auth.js`:
+- `authLimiter` (10/15min per IP): `/register`, `/login`, `/verify-email`, `/reset-password`.
+- `emailLimiter` (3/15min per IP, stricter — these trigger outbound email): `/resend-verification`, `/forgot-password`. Both always respond `200` with a generic message to avoid leaking which emails are registered.
+
+The `403` for unverified login includes `code: 'email_not_verified'` plus `email` in the body; the `403` for banned accounts includes `code: 'banned'` plus `bannedReason` if set.
 
 ### OG / Vercel middleware
 `client/middleware.js` intercepts compartida share links for social crawlers (WhatsApp, Twitter, Facebook, etc.) and injects OG meta tags from `GET /api/compartidas/:id/og`. `client/vercel.json` rewrites all other paths to `/index.html` for SPA routing.
@@ -410,6 +418,11 @@ CORS_ORIGIN=http://localhost:3000
 # 32-byte hex (64 chars) — encrypts BGG passwords at rest.
 # Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 BGG_CREDS_KEY=
+# Resend — required for email verification, password reset, and any outbound mail.
+# Without it, server/utils/email.js logs a warning and skips sending (codes still
+# appear in the server console in non-production for manual testing).
+RESEND_API_KEY=
+EMAIL_FROM=onboarding@resend.dev
 ```
 
 The client needs `client/.env` (or `client/.env.local`) for:
@@ -417,7 +430,9 @@ The client needs `client/.env` (or `client/.env.local`) for:
 VITE_API_URL=http://localhost:4000
 ```
 
-### BGG integration
+### BG Watch (BGG integration)
+
+User-facing name is **BG Watch**; pages live under [client/src/pages/bg-watch/](client/src/pages/bg-watch/) and the feature is gated by `SiteConfig.sections.bgwatch`. The `/perfil-bgg/*` paths still exist but redirect to `/bg-watch/*` via `LegacyBggRedirect` in [App.jsx](client/src/App.jsx).
 
 The `/api/bgg` routes proxy the **BoardGameGeek XML API2** server-side (avoids the CORS issue that broke the earlier direct-from-browser attempt — see git history for PRs #13–#22). All endpoints cache responses in-memory (5 min default, 30 min for game details).
 
