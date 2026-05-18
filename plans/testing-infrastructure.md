@@ -8,14 +8,43 @@
 | 2. Server unit tests | ✅ Done | 8 archivos, ~50 tests, utils cubiertas ~80% |
 | 3. Server integration tests | ✅ Done | 9 suites, ~140 tests, routes ~40% promedio |
 | 4. Client unit tests | ✅ Done | 5 archivos, ~50 tests, `src/utils/` cubierto ~98% |
-| 5. Client component tests | 🟡 Started (foundation) | 4 componentes presentacionales cubiertos; queda el grueso |
+| 5. Client component tests | 🟡 In progress | 52 archivos cubiertos (~343 tests); BgWatchProfile/PerGameView + FingerSelector + componentes internos de torneos pendientes |
 | 6. Cierre | ✅ Done | Root scripts, coverage gitignored, CLAUDE.md actualizado |
 
-**Totales actuales**:
+**Totales actuales** (post-quinta sesión, 2026-05):
 - Server: **193 tests** pasando, line coverage **~40%** (utilities 80%+, routes varían 20-90%)
-- Client: **92 tests** pasando, line coverage **~2%** (utils 98%, componentes 4/30+)
+- Client: **343 tests** pasando, line coverage **~37.2%** (utils 98%, shared/admin 80-100%, auth pages 65%, layout nav 55%, list + detail pages 40-70%, formularios principales 50-70%, chat 50%+)
+- **Total: 536 tests pasando** (52 archivos client + 18 server)
 
-**Falta para llegar a la meta (70-80% global)**: completar Fase 5 (~1-2 semanas dedicadas).
+**Falta para llegar a la meta (70-80% global)**:
+- BG Watch páginas: `BgWatchProfile`, `BgWatchPerGameView` (~600 líneas cada una, muchos modals + sockets BGG)
+- Componentes internos de torneos: `Bracket`, `GroupsView`, `LeagueStandings`, `LeagueRoundsList`, `GroupStandings`, `RecordResultModal`, `SeedReorderModal`, `AddParticipantModal`, `GameScoreModal`, `PhaseTransitionModal`, `RegisterButton`, `AdminPanel`, `ParticipantsList`, `RegistrationsList`, `TorneoCard`, `ImageDropzone`
+- `FingerSelector` (touch events complejos)
+- Formularios: `CreateEvento` (similar a Eventos.jsx ya cubierto), `EditTorneo` (similar a EditTable)
+- `NoticiaCard` (embebido en Noticias.jsx — cubierto indirectamente)
+- `MeFeed` + `FeedCard`
+- Skeletons varios
+
+Estimado ~1-2 días para llegar a 70%. Todos los componentes restantes son tests pasivos (renderizar + assertar render).
+
+**Cobertura por área**:
+- `src/utils/` 98% (todo cubierto excepto trazas)
+- `src/components/shared/` ~80% (Avatar, UserRef, LoginPromptModal, ConfirmActionModal, AvatarCropModal, SectionGate)
+- `src/components/admin/` 100% (AdminViewToggle, ViewAsUserBanner)
+- `src/components/layout/` ~55% (Sidebar, BottomNav, GuestSidebar, GuestBottomNav, Navbar)
+- `src/components/chat/` ~20% (ChatLauncher cubierto; ChatWindow + ChatWindowManager pendientes)
+- `src/pages/auth/` ~65% (todas las 5 páginas cubiertas)
+- `src/pages/dashboard/` ~60% (Dashboard + TableCard)
+- `src/pages/compartidas/` ~40% (Compartidas + CompartidaPost + CreateCompartidaForm; CompartidaCard parcial vía mocks)
+- `src/pages/eventos/` ~50% (Eventos + EventoDetail + EventoInscripciones)
+- `src/pages/torneos/` ~25% (Torneos + TorneoDetail; componentes internos no testeados directamente)
+- `src/pages/noticias/` ~35% (Noticias + NoticiaDetail)
+- `src/pages/users/` ~50% (UserProfile + UserProfilePublic + UsersList)
+- `src/pages/tables/` ~15% (TableDetail focado; Create/Edit pendientes)
+- `src/pages/messages/` ~25% (Messages cubierto; DirectChat + AdminChat pendientes)
+- `src/pages/notifications/` ~30% (Notifications cubierto)
+- `src/pages/utilidades/` ~70% (Dado + Temporizador; FingerSelector pendiente)
+- `src/pages/bg-watch/` 0% (todo pendiente)
 
 ---
 
