@@ -13,6 +13,7 @@ export default function ChatWindow({ userId, index, currentUserId }) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const messageListRef = useRef(null);
+  const inputRef = useRef(null);
 
   // Right offset: leave 80px on the right for the ChatLauncher FAB button
   const rightOffset = 80 + index * (280 + 10);
@@ -22,6 +23,12 @@ export default function ChatWindow({ userId, index, currentUserId }) {
       messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
     }
   }, [conv?.messages, conv?.minimized]);
+
+  useEffect(() => {
+    if (!conv?.minimized) {
+      inputRef.current?.focus();
+    }
+  }, [conv?.minimized]);
 
   if (!conv) return null;
 
@@ -103,6 +110,7 @@ export default function ChatWindow({ userId, index, currentUserId }) {
           </div>
           <form className={styles.inputRow} onSubmit={handleSend}>
             <input
+              ref={inputRef}
               className={styles.input}
               value={input}
               onChange={(e) => setInput(e.target.value)}

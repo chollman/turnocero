@@ -227,7 +227,7 @@ export default function TableDetail() {
     socketRef.current = socket
     socket.emit('join:table', id)
     socket.on('chat:message', (msg) => {
-      setMessages((prev) => [...prev, msg])
+      setMessages((prev) => prev.some((m) => m._id === msg._id) ? prev : [...prev, msg])
     })
     return () => {
       socket.emit('leave:table', id)
@@ -457,7 +457,8 @@ export default function TableDetail() {
     setSending(true)
     setInput('')
     try {
-      await axios.post(`/api/tables/${id}/messages`, { content })
+      const { data } = await axios.post(`/api/tables/${id}/messages`, { content })
+      setMessages((prev) => prev.some((m) => m._id === data._id) ? prev : [...prev, data])
     } catch (err) {
       setError(err.response?.data?.message || 'Error al enviar el mensaje')
       setInput(content)
@@ -1056,7 +1057,6 @@ export default function TableDetail() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     maxLength={1000}
-                    disabled={sending}
                   />
                   <button className={styles.sendCircle} type="submit" disabled={!input.trim() || sending}>
                     <SendIcon />
