@@ -31,8 +31,8 @@ export function ChatProvider({ children }) {
     }
     axios.get('/api/dm').then(({ data }) => {
       const next = {};
-      data.forEach(({ contact, unread }) => {
-        next[contact._id] = { user: contact, messages: [], unread, minimized: false, loaded: false };
+      data.forEach(({ contact, lastMessage, unread }) => {
+        next[contact._id] = { user: contact, messages: [], lastMessage, unread, minimized: false, loaded: false };
       });
       setConversations(next);
     }).catch(() => {});
@@ -60,6 +60,7 @@ export function ChatProvider({ children }) {
           [fromId]: {
             user: conv?.user || { _id: fromId, username: msg.from.username || '?' },
             messages: conv?.loaded ? [...(conv.messages || []), msg] : (conv?.messages || []),
+            lastMessage: msg,
             unread: shouldIncrementUnread ? (conv?.unread || 0) + 1 : 0,
             minimized: conv?.minimized ?? false,
             loaded: conv?.loaded ?? false,
@@ -145,6 +146,7 @@ export function ChatProvider({ children }) {
       [id]: {
         ...prev[id],
         messages: [...(prev[id]?.messages || []), msg],
+        lastMessage: msg,
       },
     }));
     return msg;

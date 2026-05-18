@@ -109,7 +109,7 @@ export default function ChatLauncher() {
             {filtered.map((f) => {
               const conv = conversations[f._id];
               const unread = conv?.unread || 0;
-              const lastMsg = conv?.messages?.at(-1);
+              const lastMsg = conv?.messages?.at(-1) || conv?.lastMessage;
               return (
                 <button key={f._id} className={styles.friendRow} onClick={() => handleSelect(f)}>
                   <div className={styles.avatarWrap}>
