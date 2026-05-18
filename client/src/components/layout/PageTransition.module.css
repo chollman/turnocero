@@ -1,0 +1,40 @@
+/* Two-phase slide transition for section changes.
+   The wrapper around <Routes> animates first slide-out (old route),
+   then the displayed location swaps, then slide-in (new route). */
+
+.slideOut {
+  animation: slideOutDown 0.2s ease-in both;
+}
+
+.slideIn {
+  animation: slideInFromTop 0.26s cubic-bezier(0.22, 0.7, 0.3, 1) both;
+}
+
+@keyframes slideOutDown {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(48px);
+    opacity: 0;
+  }
+}
+
+@keyframes slideInFromTop {
+  0% {
+    transform: translateY(-48px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slideOut,
+  .slideIn {
+    animation: none;
+  }
+}

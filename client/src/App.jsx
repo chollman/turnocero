@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Route, Navigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SiteConfigProvider } from './context/SiteConfigContext';
@@ -53,6 +53,7 @@ import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
 import BoardGameBackground from './components/layout/BoardGameBackground';
 import SplashScreen from './components/layout/SplashScreen';
+import PageTransition from './components/layout/PageTransition';
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -111,7 +112,7 @@ function AppRoutes() {
       {user ? <Sidebar /> : !isAuthPage && <GuestSidebar />}
       <div className={`appContent${!user ? ' guestMode' : ''}`}>
         {user && <Navbar />}
-        <Routes>
+        <PageTransition>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/" element={<SectionGate section="compartidas"><Compartidas /></SectionGate>} />
@@ -149,7 +150,7 @@ function AppRoutes() {
           <Route path="/utilidades/temporizador" element={<SectionGate section="utilidades"><Temporizador /></SectionGate>} />
           <Route path="/utilidades/dado" element={<SectionGate section="utilidades"><Dado /></SectionGate>} />
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        </PageTransition>
         {user ? <BottomNav /> : !isAuthPage && <GuestBottomNav />}
       </div>
     </div>
