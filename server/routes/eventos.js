@@ -37,7 +37,7 @@ router.get('/', optionalAuth, async (req, res) => {
     const [eventos, total] = await Promise.all([
       Evento.find(filter)
         .select('-registrations')
-        .populate('author', 'username displayName')
+        .populate('author', 'username displayName avatar')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -76,7 +76,7 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
       author: req.user._id,
     });
 
-    const populated = await evento.populate('author', 'username displayName');
+    const populated = await evento.populate('author', 'username displayName avatar');
     res.status(201).json(populated);
   } catch {
     res.status(500).json({ message: 'Error al crear el evento' });
@@ -87,8 +87,8 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const evento = await Evento.findById(req.params.id)
-      .populate('author', 'username displayName')
-      .populate('registrations.user', 'username displayName');
+      .populate('author', 'username displayName avatar')
+      .populate('registrations.user', 'username displayName avatar');
 
     if (!evento) return res.status(404).json({ message: 'Evento no encontrado' });
     if (evento.status === 'draft' && !req.user?.isAdmin) {
@@ -159,7 +159,7 @@ router.put('/:id', protect, requireAdmin, multer.single('image'), async (req, re
     }
 
     await evento.save();
-    const populated = await evento.populate('author', 'username displayName');
+    const populated = await evento.populate('author', 'username displayName avatar');
 
     const registrationCount = {
       total:     evento.registrations.length,
@@ -279,7 +279,7 @@ router.delete('/:id/inscribirse', protect, async (req, res) => {
 router.get('/:id/inscripciones', protect, requireAdmin, async (req, res) => {
   try {
     const evento = await Evento.findById(req.params.id)
-      .populate('registrations.user', 'username displayName email');
+      .populate('registrations.user', 'username displayName avatar email');
     if (!evento) return res.status(404).json({ message: 'Evento no encontrado' });
 
     let registrations = evento.registrations.toObject ? evento.registrations.toObject() : [...evento.registrations];

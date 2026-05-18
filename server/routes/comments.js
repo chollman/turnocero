@@ -24,7 +24,7 @@ router.get('/', protect, async (req, res) => {
     if (!table) return res.status(404).json({ message: 'Table not found' });
 
     const comments = await Comment.find({ table: req.params.id })
-      .populate('author', 'username')
+      .populate('author', 'username displayName avatar')
       .sort({ createdAt: 1 });
 
     res.json(comments);
@@ -53,7 +53,7 @@ router.post('/', protect, [
       content: req.body.content,
     });
 
-    await comment.populate('author', 'username');
+    await comment.populate('author', 'username displayName avatar');
 
     // Notify members and followers (except the author)
     const io = req.app.get('io');
@@ -107,7 +107,7 @@ router.put('/:commentId', protect, [
     comment.content = req.body.content;
     comment.editedAt = new Date();
     await comment.save();
-    await comment.populate('author', 'username');
+    await comment.populate('author', 'username displayName avatar');
 
     res.json(comment);
   } catch {

@@ -211,18 +211,10 @@
 
 .convAvatar {
   position: relative;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--amber);
-  color: var(--on-amber);
-  font-size: 1rem;
-  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-family: var(--font-display);
 }
 
 .convBadge {

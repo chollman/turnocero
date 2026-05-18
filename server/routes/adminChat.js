@@ -11,7 +11,7 @@ const saveNotification = require('../utils/saveNotification');
 router.get('/', protect, requireAdmin, async (req, res) => {
   try {
     const messages = await AdminMessage.find()
-      .populate('from', 'username')
+      .populate('from', 'username displayName avatar')
       .sort({ createdAt: 1 })
       .limit(100);
     res.json(messages);
@@ -40,7 +40,7 @@ router.post(
         from: req.user._id,
         content: req.body.content,
       });
-      await message.populate('from', 'username');
+      await message.populate('from', 'username displayName avatar');
 
       const otherAdmins = await User.find({
         isAdmin: true,

@@ -35,8 +35,8 @@ router.get('/', optionalAuth, async (req, res) => {
     }
 
     const selectFields = isAdmin
-      ? 'username displayName nombre apellido telegram celular bggUsername direccion createdAt isAdmin isBanned bannedAt bannedReason'
-      : 'username displayName nombre apellido telegram celular bggUsername direccion createdAt';
+      ? 'username displayName nombre apellido avatar telegram celular bggUsername direccion createdAt isAdmin isBanned bannedAt bannedReason'
+      : 'username displayName nombre apellido avatar telegram celular bggUsername direccion createdAt';
 
     let users = await User.find(query)
       .select(selectFields)
@@ -142,7 +142,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const isAdmin = !!req.user?.isAdmin;
     const user = await User.findById(req.params.id)
-      .select('username displayName nombre apellido telegram celular bggUsername direccion createdAt friendRequests friends isBanned')
+      .select('username displayName nombre apellido avatar telegram celular bggUsername direccion createdAt friendRequests friends isBanned')
       .lean();
 
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });

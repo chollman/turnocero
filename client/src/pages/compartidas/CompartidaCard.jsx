@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useSiteConfig } from '../../context/SiteConfigContext'
 import GameTile from '../../components/shared/GameTile'
 import LoginPromptModal from '../../components/shared/LoginPromptModal'
-import { GhostIcon } from '../../components/shared/UserRef'
+import Avatar from '../../components/shared/Avatar'
 import { getUserDisplay } from '../../utils/userDisplay'
 import styles from './CompartidaCard.module.css'
 
@@ -220,9 +220,7 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
 
         {/* ── Header ── */}
         <div className={styles.header}>
-          <div className={styles.avatar}>
-            {authorInfo.isDeleted ? <GhostIcon size={16} /> : authorName[0].toUpperCase()}
-          </div>
+          <Avatar user={post.author} size="md" />
           <div className={styles.authorMeta}>
             <div className={styles.authorNameRow}>
               <span className={styles.authorName}>{authorName}</span>
@@ -429,9 +427,7 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
               const canDel = isOwn || isAuthor || user?.isAdmin
               return (
                 <div key={c._id} className={styles.comment}>
-                  <div className={styles.commentAvatar}>
-                    {cAuthorInfo.isDeleted ? <GhostIcon size={14} /> : cAuthorInfo.name[0].toUpperCase()}
-                  </div>
+                  <Avatar user={c.author} size="sm" />
                   <div className={styles.commentBody}>
                     <div className={styles.commentMeta}>
                       <span className={styles.commentAuthor}>{cAuthorInfo.name}</span>
@@ -472,7 +468,7 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
 
             {user ? (
               <form className={styles.commentForm} onSubmit={handleAddComment}>
-                <div className={styles.commentFormAvatar}>{user.username[0].toUpperCase()}</div>
+                <Avatar user={user} size="sm" />
                 <input
                   ref={commentInputRef}
                   className={styles.commentInput}

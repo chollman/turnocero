@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import GameTile from '../../components/shared/GameTile';
 import LoginPromptModal from '../../components/shared/LoginPromptModal';
+import Avatar from '../../components/shared/Avatar';
 import { GhostIcon } from '../../components/shared/UserRef';
 import { getUserDisplay } from '../../utils/userDisplay';
 import styles from './TableCard.module.css';
@@ -332,9 +333,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
         {/* Footer: host info + CTA */}
         <div className={styles.footer}>
           <div className={styles.hostInfo}>
-            <div className={`${styles.hostAvatar} ${hostInfo.isDeleted ? styles.hostAvatarDeleted : ''}`}>
-              {hostInfo.isDeleted ? <GhostIcon size={16} /> : table.host.username[0].toUpperCase()}
-            </div>
+            <Avatar user={table.host} size="md" />
             <div className={styles.hostDetails}>
               <span className={styles.hostName}>
                 {hostInfo.isDeleted ? 'Usuario eliminado' : table.host.username}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
+import Avatar from '../../components/shared/Avatar';
 import styles from './Messages.module.css';
 
 const DESKTOP_BREAKPOINT = 960;
@@ -97,7 +98,7 @@ export default function Messages() {
                 className={styles.friendItem}
                 onClick={() => { handleOpen(f); setShowNewChat(false); setSearch(''); }}
               >
-                <span className={styles.avatar}>{f.username[0].toUpperCase()}</span>
+                <Avatar user={f} size="md" />
                 <span className={styles.friendName}>{f.username}</span>
               </button>
             ))}
@@ -121,7 +122,7 @@ export default function Messages() {
               onClick={() => handleOpen(conv.user)}
             >
               <div className={styles.convAvatar}>
-                {conv.user.username[0].toUpperCase()}
+                <Avatar user={conv.user} size="md" />
                 {conv.unread > 0 && (
                   <span className={styles.convBadge}>{conv.unread > 9 ? '9+' : conv.unread}</span>
                 )}

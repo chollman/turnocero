@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
+import Avatar from '../../components/shared/Avatar'
 import styles from './CreateCompartidaForm.module.css'
 
 const PRIVACY_OPTIONS = [
@@ -98,7 +99,7 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <div className={styles.header}>
-        <div className={styles.avatar}>{user.username[0].toUpperCase()}</div>
+        <Avatar user={user} size="md" />
         <span className={styles.prompt}>¿Cómo estuvo la compartida?</span>
       </div>
 

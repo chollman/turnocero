@@ -31,7 +31,7 @@ router.get('/', protect, async (req, res) => {
     if (!table) return res.status(404).json({ message: 'Table not found' });
 
     const ratings = await Rating.find({ table: req.params.id })
-      .populate('rater', 'username')
+      .populate('rater', 'username displayName avatar')
       .sort({ createdAt: -1 });
 
     const avg = ratings.length
@@ -83,7 +83,7 @@ router.post('/', protect, [
       });
     }
 
-    await rating.populate('rater', 'username');
+    await rating.populate('rater', 'username displayName avatar');
 
     const allRatings = await Rating.find({ table: req.params.id });
     const avg = allRatings.reduce((sum, r) => sum + r.score, 0) / allRatings.length;

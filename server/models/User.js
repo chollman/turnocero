@@ -30,8 +30,8 @@ const userSchema = new mongoose.Schema(
       },
     },
     avatar: {
-      type: String,
-      default: '',
+      url: { type: String, default: '' },
+      publicId: { type: String, default: '' },
     },
     displayName: {
       type: String,
@@ -112,6 +112,13 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Normalize legacy avatar (string) → { url, publicId } on hydrate from DB
+userSchema.pre('init', function (doc) {
+  if (typeof doc.avatar === 'string') {
+    doc.avatar = { url: doc.avatar, publicId: '' };
+  }
+});
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

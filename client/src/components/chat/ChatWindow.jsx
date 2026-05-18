@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useChat } from '../../context/ChatContext';
+import Avatar from '../shared/Avatar';
 import styles from './ChatWindow.module.css';
 
 function formatTime(date) {
@@ -54,7 +55,7 @@ export default function ChatWindow({ userId, index, currentUserId }) {
     >
       <div className={styles.header} onClick={() => minimizeChat(userId)}>
         <div className={styles.headerLeft}>
-          <span className={styles.avatar}>{conv.user.username[0].toUpperCase()}</span>
+          <Avatar user={conv.user} size="sm" />
           <span className={styles.username}>{conv.user.username}</span>
           {conv.minimized && conv.unread > 0 && (
             <span className={styles.unreadBadge}>{conv.unread > 9 ? '9+' : conv.unread}</span>

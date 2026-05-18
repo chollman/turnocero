@@ -4,8 +4,8 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { io } from 'socket.io-client';
-import { GhostIcon } from '../../components/shared/UserRef';
 import { getUserDisplay, DELETED_USER_LABEL } from '../../utils/userDisplay';
+import Avatar from '../../components/shared/Avatar';
 import styles from './AdminChat.module.css';
 
 function formatTime(date) {
@@ -97,9 +97,7 @@ export default function AdminChat() {
           return (
             <div key={msg._id} className={`${styles.message} ${isOwn ? styles.own : styles.other}`}>
               <div className={styles.senderInfo}>
-                <span className={styles.senderAvatar}>
-                  {fromInfo.isDeleted ? <GhostIcon size={12} /> : msg.from.username[0].toUpperCase()}
-                </span>
+                <Avatar user={msg.from} size="xs" />
                 <span className={styles.senderName}>
                   {fromInfo.isDeleted ? DELETED_USER_LABEL : msg.from.username}
                 </span>

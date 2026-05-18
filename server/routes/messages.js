@@ -26,7 +26,7 @@ router.get('/', protect, async (req, res) => {
       return res.status(403).json({ message: 'Solo los participantes pueden ver el chat' });
     }
     const messages = await Message.find({ table: req.params.id })
-      .populate('sender', 'username')
+      .populate('sender', 'username displayName avatar')
       .sort({ createdAt: 1 })
       .limit(200);
     res.json(messages);
@@ -57,7 +57,7 @@ router.post('/', protect, [
       sender: req.user._id,
       content: req.body.content,
     });
-    await message.populate('sender', 'username');
+    await message.populate('sender', 'username displayName avatar');
 
     const io = req.app.get('io');
     if (io) {

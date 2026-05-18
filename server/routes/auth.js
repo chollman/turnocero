@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const multer = require('../config/multer');
+const { uploadToCloudinary, cloudinary } = require('../config/cloudinary');
 const logger = require('../utils/logger');
 const { encrypt } = require('../utils/encryption');
 const { loginToBgg, clearSession } = require('../utils/bggAuth');
@@ -378,6 +380,50 @@ router.put('/profile', protect, async (req, res) => {
       return res.status(400).json({ message: messages[0] });
     }
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PUT /api/auth/avatar — protected, multipart (field: 'avatar')
+router.put('/avatar', protect, multer.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'Imagen requerida' });
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const result = await uploadToCloudinary(req.file.buffer, {
+      folder: `turnocero/users/${user._id}`,
+      public_id: 'avatar',
+      overwrite: true,
+      format: 'webp',
+      transformation: [
+        { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+        { quality: 'auto' },
+      ],
+    });
+
+    user.avatar = { url: result.secure_url, publicId: result.public_id };
+    await user.save({ validateModifiedOnly: true });
+    res.json(user);
+  } catch (err) {
+    logger.error('Avatar upload failed', { msg: err.message });
+    res.status(500).json({ message: 'Error al subir avatar' });
+  }
+});
+
+// DELETE /api/auth/avatar — protected
+router.delete('/avatar', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.avatar?.publicId) {
+      await cloudinary.uploader.destroy(user.avatar.publicId).catch(() => {});
+    }
+    user.avatar = { url: '', publicId: '' };
+    await user.save({ validateModifiedOnly: true });
+    res.json(user);
+  } catch (err) {
+    logger.error('Avatar remove failed', { msg: err.message });
+    res.status(500).json({ message: 'Error al quitar avatar' });
   }
 });
 

@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useNotifications } from '../../context/NotificationContext'
 import GameTile from '../../components/shared/GameTile'
 import LoginPromptModal from '../../components/shared/LoginPromptModal'
-import { GhostIcon } from '../../components/shared/UserRef'
+import Avatar from '../../components/shared/Avatar'
 import { getUserDisplay, DELETED_USER_LABEL } from '../../utils/userDisplay'
 import TableDetailSkeleton from './TableDetailSkeleton'
 import styles from './TableDetail.module.css'
@@ -690,9 +690,7 @@ export default function TableDetail() {
               <span className={styles.eyebrow}>EN LA MESA</span>
               <div className={styles.playerChips}>
                 <div className={styles.playerChip}>
-                  <span className={styles.playerChipAvatar}>
-                    {hostInfo.isDeleted ? <GhostIcon size={14} /> : table.host.username[0].toUpperCase()}
-                  </span>
+                  <Avatar user={table.host} size="xs" />
                   <span className={styles.playerChipName}>
                     {hostInfo.isDeleted ? DELETED_USER_LABEL : table.host.username}
                   </span>
@@ -703,9 +701,7 @@ export default function TableDetail() {
                   const playerInfo = getUserDisplay(p)
                   return (
                     <div key={p._id || p} className={styles.playerChip}>
-                      <span className={styles.playerChipAvatar}>
-                        {playerInfo.isDeleted ? <GhostIcon size={14} /> : (p.username || '?')[0].toUpperCase()}
-                      </span>
+                      <Avatar user={p} size="xs" />
                       <span className={styles.playerChipName}>
                         {playerInfo.isDeleted ? DELETED_USER_LABEL : p.username}
                       </span>
@@ -741,7 +737,7 @@ export default function TableDetail() {
                   <ul className={styles.requestsList}>
                     {pendingRequests.map((req) => (
                       <li key={req._id} className={styles.requestItem}>
-                        <span className={styles.requestAvatar}>{req.username[0].toUpperCase()}</span>
+                        <Avatar user={req} size="sm" />
                         <span className={styles.requestUsername}>{req.username}</span>
                         <div className={styles.requestActions}>
                           <button className={styles.btnAccept} onClick={() => handleRequest(req._id, 'accept')} disabled={requestLoading !== null}>
@@ -857,9 +853,7 @@ export default function TableDetail() {
                     const canDelete = isOwn || isHost || user?.isAdmin
                     return (
                       <div key={comment._id} className={styles.commentItem}>
-                        <span className={styles.commentAvatar}>
-                          {authorInfo.isDeleted ? <GhostIcon size={14} /> : comment.author.username[0].toUpperCase()}
-                        </span>
+                        <Avatar user={comment.author} size="sm" />
                         <div className={styles.commentBody}>
                           <div className={styles.commentMeta}>
                             <span className={styles.commentAuthor}>
@@ -986,9 +980,7 @@ export default function TableDetail() {
                         const raterInfo = getUserDisplay(r.rater)
                         return (
                         <div key={r._id} className={styles.ratingItem}>
-                          <span className={styles.ratingAvatar}>
-                            {raterInfo.isDeleted ? <GhostIcon size={14} /> : r.rater.username[0].toUpperCase()}
-                          </span>
+                          <Avatar user={r.rater} size="sm" />
                           <div className={styles.ratingBody}>
                             <div className={styles.ratingMeta}>
                               <span className={styles.ratingUsername}>
@@ -1028,9 +1020,7 @@ export default function TableDetail() {
                   return (
                     <div key={msg._id} className={`${styles.message} ${isOwn ? styles.ownMessage : styles.otherMessage}`}>
                       {!isOwn && (
-                        <span className={styles.msgAvatar}>
-                          {senderInfo.isDeleted ? <GhostIcon size={14} /> : msg.sender.username[0].toUpperCase()}
-                        </span>
+                        <Avatar user={msg.sender} size="xs" />
                       )}
                       <div className={styles.msgContent}>
                         {!isOwn && (

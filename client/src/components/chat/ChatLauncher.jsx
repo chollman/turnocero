@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
+import Avatar from '../shared/Avatar';
 import styles from './ChatLauncher.module.css';
 
 const DESKTOP = 960;
@@ -113,7 +114,7 @@ export default function ChatLauncher() {
               return (
                 <button key={f._id} className={styles.friendRow} onClick={() => handleSelect(f)}>
                   <div className={styles.avatarWrap}>
-                    <span className={styles.avatar}>{f.username[0].toUpperCase()}</span>
+                    <Avatar user={f} size="md" />
                     {unread > 0 && (
                       <span className={styles.unreadDot}>{unread > 9 ? '9+' : unread}</span>
                     )}

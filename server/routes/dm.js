@@ -43,7 +43,7 @@ router.get('/', protect, async (req, res) => {
           localField: '_id',
           foreignField: '_id',
           as: 'contact',
-          pipeline: [{ $project: { username: 1 } }],
+          pipeline: [{ $project: { username: 1, displayName: 1, avatar: 1 } }],
         },
       },
       { $unwind: '$contact' },
@@ -83,7 +83,7 @@ router.get('/:userId', protect, async (req, res) => {
         { from: otherId, to: userId },
       ],
     })
-      .populate('from', 'username')
+      .populate('from', 'username displayName avatar')
       .sort({ createdAt: 1 })
       .skip(skip)
       .limit(limit);
@@ -133,7 +133,7 @@ router.post(
         to: recipientId,
         content: req.body.content,
       });
-      await message.populate('from', 'username');
+      await message.populate('from', 'username displayName avatar');
 
       await saveNotification(recipientId, 'dm', {
         fromUserId: req.user._id.toString(),

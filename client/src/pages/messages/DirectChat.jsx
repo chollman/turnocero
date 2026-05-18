@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
+import Avatar from '../../components/shared/Avatar';
 import styles from './DirectChat.module.css';
 
 function formatTime(date) {
@@ -76,9 +77,7 @@ export default function DirectChat() {
           </svg>
         </button>
         <div className={styles.headerInfo}>
-          <span className={styles.headerAvatar}>
-            {(contact?.username || '?')[0].toUpperCase()}
-          </span>
+          <Avatar user={contact} size="sm" />
           <span className={styles.headerName}>{contact?.username || '...'}</span>
         </div>
         {contact && (
@@ -100,9 +99,7 @@ export default function DirectChat() {
           return (
             <div key={msg._id} className={`${styles.message} ${isOwn ? styles.own : styles.other} ${isNew ? styles.messageNew : ''}`}>
               {!isOwn && (
-                <span className={styles.senderAvatar}>
-                  {(msg.from?.username || '?')[0].toUpperCase()}
-                </span>
+                <Avatar user={msg.from} size="xs" />
               )}
               <div className={styles.msgContent}>
                 <div className={styles.bubble}>{msg.content}</div>

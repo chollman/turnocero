@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
 import ConfirmActionModal from '../../components/shared/ConfirmActionModal'
+import Avatar from '../../components/shared/Avatar'
 import styles from './UsersList.module.css'
 import UsersListSkeleton from './UsersListSkeleton'
 
@@ -54,7 +55,7 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete }) {
       )}
 
       <div className={styles.cardAvatar}>
-        {user.username.charAt(0).toUpperCase()}
+        <Avatar user={user} size="md" />
       </div>
       <div className={styles.cardBody}>
         <p className={styles.cardUsername}>@{user.username}</p>

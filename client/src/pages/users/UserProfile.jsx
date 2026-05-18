@@ -8,7 +8,12 @@ import { useNotifications } from '../../context/NotificationContext';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import MiBgWatchCard from './MiBgWatchCard';
+import Avatar from '../../components/shared/Avatar';
+import AvatarCropModal from '../../components/shared/AvatarCropModal';
 import styles from './UserProfile.module.css';
+
+const AVATAR_MIME = ['image/jpeg', 'image/png', 'image/webp'];
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 const BGWATCH_BANNER_DISMISS_KEY = 'turnocero_bgwatch_profile_banner_dismissed';
@@ -87,6 +92,12 @@ export default function UserProfile() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [geocoding, setGeocoding] = useState(false);
+
+  // ── Avatar state ──
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
+  const avatarInputRef = useRef(null);
 
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -235,6 +246,58 @@ export default function UserProfile() {
     }
   };
 
+  const handleAvatarPick = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setAvatarError('');
+    if (!AVATAR_MIME.includes(file.type)) {
+      setAvatarError('Solo se permiten imágenes JPG, PNG o WEBP.');
+      return;
+    }
+    if (file.size > AVATAR_MAX_BYTES) {
+      setAvatarError('La imagen no puede superar los 5 MB.');
+      return;
+    }
+    setAvatarFile(file);
+  };
+
+  const handleAvatarConfirm = async (blob) => {
+    setAvatarBusy(true);
+    setAvatarError('');
+    try {
+      const formData = new FormData();
+      formData.append('avatar', blob, 'avatar.jpg');
+      await axios.put('/api/auth/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      await refreshUser();
+      setAvatarFile(null);
+    } catch (err) {
+      setAvatarError(err.response?.data?.message || 'Error al subir el avatar.');
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
+  const handleAvatarCancel = () => {
+    setAvatarFile(null);
+  };
+
+  const handleAvatarRemove = async () => {
+    if (!window.confirm('¿Quitar tu avatar? Volverá a mostrarse tu inicial.')) return;
+    setAvatarBusy(true);
+    setAvatarError('');
+    try {
+      await axios.delete('/api/auth/avatar');
+      await refreshUser();
+    } catch (err) {
+      setAvatarError(err.response?.data?.message || 'Error al quitar el avatar.');
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -366,6 +429,44 @@ export default function UserProfile() {
                   Claro
                 </button>
               </div>
+            </div>
+
+            <div className={styles.section}>
+              <div className={styles.sectionLabel}>Avatar</div>
+              <p className={styles.hint}>
+                Subí una foto cuadrada para que te identifiquen en mesas, comentarios y chats.
+              </p>
+              <div className={styles.avatarRow}>
+                <Avatar user={user} size="xl" />
+                <div className={styles.avatarActions}>
+                  <button
+                    type="button"
+                    className={styles.btnGhost}
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={avatarBusy}
+                  >
+                    {user?.avatar?.url ? 'Cambiar avatar' : 'Subir avatar'}
+                  </button>
+                  {user?.avatar?.url && (
+                    <button
+                      type="button"
+                      className={styles.btnGhost}
+                      onClick={handleAvatarRemove}
+                      disabled={avatarBusy}
+                    >
+                      Quitar avatar
+                    </button>
+                  )}
+                </div>
+              </div>
+              {avatarError && <div className={styles.avatarError}>{avatarError}</div>}
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleAvatarPick}
+                style={{ display: 'none' }}
+              />
             </div>
 
             <div className={styles.section}>
@@ -588,6 +689,13 @@ export default function UserProfile() {
           </form>
         </div>
       </div>
+
+      <AvatarCropModal
+        open={!!avatarFile}
+        file={avatarFile}
+        onCancel={handleAvatarCancel}
+        onConfirm={handleAvatarConfirm}
+      />
     </div>
   );
 }

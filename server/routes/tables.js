@@ -33,14 +33,14 @@ const buildSearchClause = async (search) => {
 
 // Fields exposed for any populated user reference returned by these routes.
 // `bggUsername` enables the BG Watch chip/link in TableDetail player chips.
-const POPULATE_USER_FIELDS = 'username bggUsername';
+const POPULATE_USER_FIELDS = 'username displayName avatar bggUsername';
 
 const populateTable = (query) =>
   query
     .populate('host', POPULATE_USER_FIELDS)
     .populate('players', POPULATE_USER_FIELDS)
     .populate('pendingRequests', POPULATE_USER_FIELDS)
-    .populate('images.uploader', 'username');
+    .populate('images.uploader', 'username displayName avatar');
 
 // GET /api/tables — public (anon sees only public tables); supports ?page, ?limit, ?search
 router.get('/', optionalAuth, async (req, res) => {

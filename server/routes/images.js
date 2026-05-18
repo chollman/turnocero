@@ -62,7 +62,7 @@ router.post(
       });
 
       await table.save();
-      await table.populate('images.uploader', 'username');
+      await table.populate('images.uploader', 'username displayName avatar');
 
       // Notify members and followers (except the uploader)
       const io = req.app.get('io');

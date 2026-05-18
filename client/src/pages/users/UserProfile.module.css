@@ -502,6 +502,48 @@
   cursor: not-allowed;
 }
 
+/* ─── Avatar section ─── */
+.avatarRow {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.avatarActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.avatarActions .btnGhost,
+.avatarActions button {
+  margin-left: 0;
+}
+
+.avatarError {
+  margin-top: 8px;
+  color: var(--red);
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .avatarRow {
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .avatarActions {
+    width: 100%;
+    align-items: stretch;
+  }
+  .avatarActions button {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 /* ─── Map ─── */
 .map {
   height: 280px;

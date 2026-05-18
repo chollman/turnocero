@@ -17,7 +17,7 @@ router.get('/', optionalAuth, async (req, res) => {
 
     const [noticias, total] = await Promise.all([
       Noticia.find()
-        .populate('author', 'username displayName')
+        .populate('author', 'username displayName avatar')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -51,7 +51,7 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
       author: req.user._id,
     });
 
-    const populated = await noticia.populate('author', 'username displayName');
+    const populated = await noticia.populate('author', 'username displayName avatar');
 
     const io = req.app.get('io');
     if (io) {
@@ -71,7 +71,7 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
 // GET /api/noticias/:id — public
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
-    const noticia = await Noticia.findById(req.params.id).populate('author', 'username displayName');
+    const noticia = await Noticia.findById(req.params.id).populate('author', 'username displayName avatar');
     if (!noticia) return res.status(404).json({ message: 'Noticia no encontrada' });
     res.json(noticia);
   } catch {
@@ -100,7 +100,7 @@ router.put('/:id', protect, requireAdmin, multer.single('image'), async (req, re
     }
 
     await noticia.save();
-    const populated = await noticia.populate('author', 'username displayName');
+    const populated = await noticia.populate('author', 'username displayName avatar');
     res.json(populated);
   } catch (err) {
     res.status(500).json({ message: 'Error al editar la noticia' });

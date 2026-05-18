@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import { useNotifications } from '../../context/NotificationContext';
 import GameTile from '../../components/shared/GameTile';
+import Avatar from '../../components/shared/Avatar';
 import ProfileSkeleton from './ProfileSkeleton';
 import BgWatchUserCard from './BgWatchUserCard';
 import styles from './UserProfilePublic.module.css';
@@ -166,9 +167,7 @@ export default function UserProfilePublic() {
 
         {/* Hero row: avatar + name + actions */}
         <div className={styles.heroRow}>
-          <div className={styles.avatar}>
-            {profile.username.charAt(0).toUpperCase()}
-          </div>
+          <Avatar user={profile} size="xl" />
           <div className={styles.heroInfo}>
             <div className={styles.eyebrow}>
               ◆ PERFIL{joinYear ? ` · DESDE ${joinYear}` : ''}

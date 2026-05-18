@@ -4,6 +4,7 @@ import axios from 'axios'
 import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../../context/AuthContext'
 import LoginPromptModal from '../../components/shared/LoginPromptModal'
+import Avatar from '../../components/shared/Avatar'
 import styles from './EventoDetail.module.css'
 
 function formatDate(dateStr) {
@@ -774,9 +775,7 @@ export default function EventoDetail() {
                 <ul className={styles.participantsList}>
                   {evento.confirmedRegistrations.map(r => (
                     <li key={r._id} className={styles.participantItem}>
-                      <span className={styles.participantAvatar}>
-                        {(r.user?.displayName || r.user?.username || '?')[0].toUpperCase()}
-                      </span>
+                      <Avatar user={r.user} size="sm" />
                       <span className={styles.participantName}>
                         {r.user?.displayName || r.user?.username || 'Usuario'}
                       </span>
