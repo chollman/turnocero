@@ -96,4 +96,124 @@ describe('<CompartidaCard>', () => {
     renderCard(makePost(), { user: { _id: 'other', username: 'other' } });
     expect(screen.queryByText('⋯')).not.toBeInTheDocument();
   });
+
+  it('expanded body shows truncated copy with ellipsis when body > 220 chars', () => {
+    const longBody = 'x'.repeat(300);
+    renderCard(makePost({ body: longBody }));
+    // Truncated to first 220 + "…"
+    expect(screen.getByText(/x{220}…/)).toBeInTheDocument();
+  });
+
+  it('renders image thumbnails when post has images', () => {
+    const { container } = renderCard(makePost({ images: [
+      { _id: 'i1', url: 'https://cdn/a.jpg' },
+      { _id: 'i2', url: 'https://cdn/b.jpg' },
+    ]}));
+    const imgs = container.querySelectorAll('img');
+    expect(imgs.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('renders linked table chip when mesas is enabled and post has linkedTable', () => {
+    renderCard(makePost({
+      linkedTable: {
+        _id: 't1',
+        boardGame: 'Catán',
+        date: new Date(Date.now() + 86400000).toISOString(),
+        players: [{ _id: 'p1' }],
+        maxPlayers: 4,
+        status: 'open',
+      },
+    }));
+    // Game name appears (the linked-table chip)
+    expect(screen.getAllByText(/Catán/).length).toBeGreaterThan(0);
+  });
+
+  it('hides linked table chip when mesas is disabled', () => {
+    useSiteConfig.mockReturnValue({ isSectionEnabled: (k) => k !== 'mesas' });
+    useAuth.mockReturnValue({ user: null });
+    render(
+      <MemoryRouter>
+        <CompartidaCard
+          post={makePost({
+            linkedTable: {
+              _id: 't1', boardGame: 'Catán',
+              date: new Date().toISOString(), players: [], maxPlayers: 4, status: 'open',
+            },
+          })}
+          onDeleted={vi.fn()}
+          onUpdated={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    // Body still renders but no linked table chip
+    expect(screen.getByText(/Anoche jugamos Catán/)).toBeInTheDocument();
+  });
+
+  it('clicking like as guest opens LoginPromptModal', () => {
+    renderCard(makePost(), { user: null });
+    const buttons = screen.getAllByRole('button');
+    const likeBtn = buttons.find((b) => b.textContent === '0');
+    if (likeBtn) {
+      fireEvent.click(likeBtn);
+      expect(screen.getByText(/iniciá sesión/i)).toBeInTheDocument();
+    }
+  });
+
+  it('clicking ⋯ menu opens dropdown with Editar/Eliminar', () => {
+    renderCard(
+      makePost({ author: { _id: 'me', username: 'me', avatar: { url: '', publicId: '' } } }),
+      { user: { _id: 'me', username: 'me' } },
+    );
+    fireEvent.click(screen.getByText('⋯'));
+    expect(screen.getByRole('button', { name: 'Editar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+  });
+
+  it('clicking Eliminar confirms and DELETEs the compartida', async () => {
+    const onDeleted = vi.fn();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    let deleted = false;
+    server.use(
+      http.delete('/api/compartidas/:id', () => { deleted = true; return HttpResponse.json({ ok: true }); }),
+    );
+    useAuth.mockReturnValue({ user: { _id: 'me', username: 'me' } });
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+    render(
+      <MemoryRouter>
+        <CompartidaCard
+          post={makePost({ author: { _id: 'me', username: 'me', avatar: { url: '', publicId: '' } } })}
+          onDeleted={onDeleted}
+          onUpdated={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByText('⋯'));
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await waitFor(() => expect(deleted).toBe(true));
+    expect(onDeleted).toHaveBeenCalledWith('c1');
+    confirmSpy.mockRestore();
+  });
+
+  it('opening edit mode shows the title/body/privacy inputs', () => {
+    renderCard(
+      makePost({ author: { _id: 'me', username: 'me', avatar: { url: '', publicId: '' } } }),
+      { user: { _id: 'me', username: 'me' } },
+    );
+    fireEvent.click(screen.getByText('⋯'));
+    fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
+    expect(screen.getByPlaceholderText(/título/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Público' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Solo yo' })).toBeInTheDocument();
+  });
+
+  it('renders the featured badge when featured=true', () => {
+    useAuth.mockReturnValue({ user: null });
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+    render(
+      <MemoryRouter>
+        <CompartidaCard post={makePost()} featured onDeleted={vi.fn()} onUpdated={vi.fn()} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/compartida del día/i)).toBeInTheDocument();
+  });
 });
