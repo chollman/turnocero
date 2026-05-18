@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import PlayCard from './PlayCard';
 import Pagination from './Pagination';
+import useBggUserMap from './useBggUserMap';
 import styles from './BgWatchProfile.module.css';
 
 const PLAYS_PAGE_SIZE = 10;
@@ -116,6 +117,10 @@ export default function PartidasPanel({ bggUsername, collection, onPlayClick, on
       .sort((a, b) => (b.numPlays || 0) - (a.numPlays || 0));
   }, [collection]);
 
+  // Map of bggUsernameLower → Turnocero user for any player on the current page
+  // that's also a Turnocero member. Used by PlayCard to render avatar + link.
+  const userMap = useBggUserMap(plays?.plays);
+
   const handleFilter = (id) => {
     if (id === filter) return;
     setFilter(id);
@@ -215,6 +220,7 @@ export default function PartidasPanel({ bggUsername, collection, onPlayClick, on
                 <PlayCard
                   key={play.id}
                   play={play}
+                  userMap={userMap}
                   onClick={() => onPlayClick(play)}
                   onEdit={onPlayEdit ? () => onPlayEdit(play) : undefined}
                   onDelete={onPlayDelete ? () => onPlayDelete(play) : undefined}

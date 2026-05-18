@@ -7,6 +7,7 @@ import PlayCard from './PlayCard';
 import PlayDetailModal from './PlayDetailModal';
 import CreatePlayModal from './CreatePlayModal';
 import Pagination from './Pagination';
+import useBggUserMap from './useBggUserMap';
 import { GuestBanner, GuestFooter } from './BgWatchGuestCTAs';
 import styles from './BgWatchProfile.module.css';
 
@@ -91,6 +92,11 @@ export default function BgWatchPerGameView() {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [bggUsername, gameId, page, refreshKey]);
+
+  // Map of bggUsernameLower → Turnocero user for players on the current page.
+  // Same map is used both for the PlayCards in the list and for PlayDetailModal,
+  // since the open play's players are always a subset.
+  const userMap = useBggUserMap(plays?.plays);
 
   // Stats derived from the current page (with note when partial)
   const stats = useMemo(() => {
@@ -249,6 +255,7 @@ export default function BgWatchPerGameView() {
               <PlayCard
                 key={play.id}
                 play={play}
+                userMap={userMap}
                 onClick={() => setOpenPlay(play)}
                 onEdit={canCreate ? () => setEditingPlay(play) : undefined}
                 onDelete={canCreate ? () => setDeletingPlay(play) : undefined}
@@ -262,7 +269,7 @@ export default function BgWatchPerGameView() {
       </div>
 
       {openPlay && (
-        <PlayDetailModal play={openPlay} onClose={() => setOpenPlay(null)} />
+        <PlayDetailModal play={openPlay} userMap={userMap} onClose={() => setOpenPlay(null)} />
       )}
 
       {createOpen && (

@@ -7,6 +7,7 @@ import PartidasPanel from './PartidasPanel';
 import ColeccionPanel from './ColeccionPanel';
 import PlayDetailModal from './PlayDetailModal';
 import CreatePlayModal from './CreatePlayModal';
+import useBggUserMap from './useBggUserMap';
 import { GuestBanner, GuestInlineCTA, GuestFooter } from './BgWatchGuestCTAs';
 import styles from './BgWatchProfile.module.css';
 
@@ -92,6 +93,10 @@ export default function BgWatchProfile() {
   const handlePlayEdit = useCallback((play) => setEditingPlay(play), []);
   const handlePlayDelete = useCallback((play) => setDeletingPlay(play), []);
   const handleCreated = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  // Small separate userMap fetch for the open play's players (PartidasPanel keeps
+  // its own map for the list). Cheap because it's at most ~10 usernames.
+  const modalUserMap = useBggUserMap(openPlay ? [openPlay] : null);
 
   const confirmDelete = async () => {
     if (!deletingPlay) return;
@@ -181,7 +186,7 @@ export default function BgWatchProfile() {
       </div>
 
       {openPlay && (
-        <PlayDetailModal play={openPlay} onClose={() => setOpenPlay(null)} />
+        <PlayDetailModal play={openPlay} userMap={modalUserMap} onClose={() => setOpenPlay(null)} />
       )}
 
       {createOpen && (

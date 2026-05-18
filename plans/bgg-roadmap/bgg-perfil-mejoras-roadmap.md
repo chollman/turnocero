@@ -35,7 +35,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | 1.8 | ⬜     | Rating consistency (scatter plot)                           | Medio       |           |
 | 2.1 | ⬜     | Cross-reference con Mesas                                   | Medio       | 🔥        |
 | 2.2 | ⬜     | Crear Compartida desde un PlayCard                          | Bajo-medio  |           |
-| 2.3 | ⬜     | Linkear jugadores BGG → usuarios de Turnocero               | Medio       | 🔥        |
+| 2.3 | ✅     | Linkear jugadores BGG → usuarios de Turnocero               | Medio       | 🔥        |
 | 2.4 | ⬜     | Comparación con amigos                                      | Medio       |           |
 | 2.5 | ⬜     | Timeline unificado (memorias)                               | Alto        |           |
 | 3.1 | ⬜     | Autocomplete de amigos en CreatePlayModal                   | Bajo-medio  | 🔥        |
@@ -56,7 +56,7 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 | 5.6 | ⬜     | Filtros server-side por jugador                             | Medio       |           |
 | 5.7 | ⬜     | Export a CSV                                                | Bajo        |           |
 
-> Última actualización: 2026-05-17
+> Última actualización: 2026-05-17 (2.3 implementado)
 > Al implementar un ítem, actualizar tanto el checkbox inline como la fila correspondiente en esta tabla.
 
 ---
@@ -122,10 +122,26 @@ Estados: ⬜ Pendiente · 🟡 En progreso · ✅ Implementado
 **Datos**: `play.gameName`, `play.players`, `play.date`, `play.comments`.
 **Esfuerzo**: bajo-medio. Hay que pasar datos al `CreateCompartidaForm`.
 
-### 2.3 [ ] Linkear jugadores BGG → usuarios de Turnocero 🔥
+### 2.3 [x] Linkear jugadores BGG → usuarios de Turnocero 🔥
 **Qué**: cuando renderiza chips de jugadores en `PlayCard` / `PlayDetailModal`, si el `player.username` (que es el username de BGG del jugador) matchea con un User de Turnocero (case-insensitive `bggUsername`), mostrar avatar + nombre + link a `/usuarios/:id`.
 **Datos**: nuevo endpoint `POST /api/users/by-bgg-usernames` que recibe array de usernames y devuelve usuarios matcheados.
 **Esfuerzo**: medio. Hay que batchear el lookup para no hacer N requests por página.
+
+**Implementación (2026-05-17)**:
+- **Backend**: `POST /api/users/by-bgg-usernames` en [server/routes/users.js](../../server/routes/users.js). Público (sin auth — necesario porque las páginas de BG Watch son públicas también). Recibe `{ usernames: [...] }`, dedupea + lowercases + limita a 50 entradas por request. Usa aggregation con `$toLower` para hacer match case-insensitive sin agregar índice nuevo al field `bggUsername`. Excluye usuarios baneados. Retorna `[{ _id, username, displayName, avatar, bggUsername }]`.
+- **Hook reusable** [useBggUserMap.js](../../client/src/pages/bg-watch/useBggUserMap.js): toma una lista de plays, extrae los unique `player.username` (lowercased), y hace POST al endpoint. Devuelve un objeto map `{ bggUsernameLower → turnoceroUser }`. Memoiza la key del set para no re-fetchear cuando el render se repite con la misma lista. Maneja cancellation con un flag local. Falla silenciosamente (vuelve `{}`) para que la UI siga funcionando sin links.
+- **Wiring**:
+  - [PartidasPanel.jsx](../../client/src/pages/bg-watch/PartidasPanel.jsx): llama el hook con `plays?.plays` y pasa `userMap` a cada `PlayCard`.
+  - [BgWatchPerGameView.jsx](../../client/src/pages/bg-watch/BgWatchPerGameView.jsx): mismo patrón. Acá el `userMap` se comparte con `PlayDetailModal` porque las partidas vienen de la misma fuente.
+  - [BgWatchProfile.jsx](../../client/src/pages/bg-watch/BgWatchProfile.jsx): el `openPlay` vive en este componente pero los plays viven adentro de `PartidasPanel`, así que se hace una segunda llamada al hook con solo `[openPlay]` cuando hay modal abierto. Es ~10 usernames como mucho, costo trivial. La alternativa (lift state) sumaba coupling sin beneficio.
+- **UI updates**:
+  - `PlayerChip` en [PlayCard.jsx](../../client/src/pages/bg-watch/PlayCard.jsx): cuando hay match, se renderiza como `<Link to="/usuarios/:id">` con avatar (img o fallback con inicial) + displayName + score + winIcon. `stopPropagation` en el click para no disparar el modal del PlayCard. Cuando no hay match, queda el `<span>` original.
+  - `PlayDetailModal` player row: el avatar (22×22) + displayName aparecen en `playerCellName`. El @username debajo cambia de link externo a BGG a `<Link>` interno a `/usuarios/:id` con copy "@username · en Turnocero". Cuando no hay match, mantiene el link externo a BGG como antes.
+- **Estilos nuevos en [BgWatchProfile.module.css](../../client/src/pages/bg-watch/BgWatchProfile.module.css)**:
+  - `.playerChipLinked` (hover amber + lift, `text-decoration: none`)
+  - `.playerChipAvatar` + `.playerChipAvatarFallback` (16×16 redondo)
+  - `.playerCellAvatar` + `.playerCellAvatarFallback` (22×22 redondo para tabla del modal)
+- **Edge cases manejados**: si `userMap` es undefined o el lookup falla → caen al render original (BGG name + BGG link), nada se rompe. Usuario sin `avatar` → muestra fallback con la inicial del display name. Player sin `username` → no se busca en el map (no se rompe).
 
 ### 2.4 [ ] Comparación con amigos
 **Qué**: "¿Quién jugó más Wingspan entre tus amigos?" — leaderboard del juego solo con amigos que tienen `bggUsername` configurado.

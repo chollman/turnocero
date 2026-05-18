@@ -98,6 +98,42 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
+// POST /api/users/by-bgg-usernames — batch resolve BGG usernames to Turnocero users.
+// Public (no auth). Used by BG Watch surfaces to link play participants to their
+// Turnocero profile when they're members. Capped at 50 usernames per request.
+router.post('/by-bgg-usernames', async (req, res) => {
+  try {
+    const raw = Array.isArray(req.body?.usernames) ? req.body.usernames : [];
+    const lowered = [...new Set(
+      raw
+        .filter((u) => typeof u === 'string' && u.trim().length > 0)
+        .map((u) => u.trim().toLowerCase())
+    )].slice(0, 50);
+
+    if (lowered.length === 0) return res.json([]);
+
+    const users = await User.aggregate([
+      { $match: { bggUsername: { $exists: true, $nin: [null, ''] }, isBanned: { $ne: true } } },
+      {
+        $project: {
+          _id: 1,
+          username: 1,
+          displayName: 1,
+          avatar: 1,
+          bggUsername: 1,
+          _lower: { $toLower: '$bggUsername' },
+        },
+      },
+      { $match: { _lower: { $in: lowered } } },
+      { $project: { _lower: 0 } },
+    ]);
+
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: 'Error al buscar usuarios por BGG' });
+  }
+});
+
 // GET /api/users/:id — public profile + stats; relationship fields are null for anon
 router.get('/:id', optionalAuth, async (req, res) => {
   try {

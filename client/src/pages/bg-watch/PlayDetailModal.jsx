@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import ModalPortal from '../../components/shared/ModalPortal';
 import styles from './BgWatchProfile.module.css';
 
@@ -47,7 +48,7 @@ function colorSwatch(name) {
   return KNOWN_COLORS[k] || k;
 }
 
-export default function PlayDetailModal({ play, onClose }) {
+export default function PlayDetailModal({ play, userMap, onClose }) {
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
@@ -121,6 +122,10 @@ export default function PlayDetailModal({ play, onClose }) {
                   <tbody>
                     {sortedPlayers.map((p, i) => {
                       const swatch = colorSwatch(p.color);
+                      const turnoceroUser = p.username ? userMap?.[p.username.toLowerCase()] : null;
+                      const displayName = turnoceroUser
+                        ? (turnoceroUser.displayName || turnoceroUser.username)
+                        : (p.name || 'Anónimo');
                       return (
                         <tr
                           key={`${p.username || p.name || 'anon'}-${i}`}
@@ -129,18 +134,33 @@ export default function PlayDetailModal({ play, onClose }) {
                           <td className={styles.colCenter}>{p.position || '—'}</td>
                           <td>
                             <div className={styles.playerCellName}>
-                              {p.name || 'Anónimo'}
+                              {turnoceroUser && (
+                                turnoceroUser.avatar
+                                  ? <img src={turnoceroUser.avatar} alt="" className={styles.playerCellAvatar} />
+                                  : <span className={styles.playerCellAvatarFallback}>{(displayName?.[0] || '?').toUpperCase()}</span>
+                              )}
+                              {displayName}
                               {p.new && <span className={styles.newBadge}>nuevo</span>}
                             </div>
-                            {p.username && (
-                              <a
-                                href={`https://boardgamegeek.com/user/${p.username}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                            {turnoceroUser ? (
+                              <Link
+                                to={`/usuarios/${turnoceroUser._id}`}
                                 className={styles.playerCellUsername}
+                                title="Ver perfil en Turnocero"
                               >
-                                @{p.username}
-                              </a>
+                                @{turnoceroUser.username} · en Turnocero
+                              </Link>
+                            ) : (
+                              p.username && (
+                                <a
+                                  href={`https://boardgamegeek.com/user/${p.username}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={styles.playerCellUsername}
+                                >
+                                  @{p.username}
+                                </a>
+                              )
                             )}
                           </td>
                           <td>

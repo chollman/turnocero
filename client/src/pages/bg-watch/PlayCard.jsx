@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import styles from './BgWatchProfile.module.css';
 
 function formatDate(iso) {
@@ -34,15 +35,41 @@ function relativeDate(iso) {
   return `Hace ${yr} ${yr === 1 ? 'año' : 'años'}`;
 }
 
-function PlayerChip({ player }) {
-  const name = player.name || player.username || 'Anónimo';
-  return (
-    <span className={`${styles.playerChip} ${player.win ? styles.playerChipWinner : ''}`}>
+function PlayerChip({ player, turnoceroUser }) {
+  const name = turnoceroUser
+    ? (turnoceroUser.displayName || turnoceroUser.username)
+    : (player.name || player.username || 'Anónimo');
+
+  const initial = (name?.[0] || '?').toUpperCase();
+  const content = (
+    <>
       {player.win && <span className={styles.winIcon} aria-label="Ganador">🏆</span>}
+      {turnoceroUser && (
+        turnoceroUser.avatar
+          ? <img src={turnoceroUser.avatar} alt="" className={styles.playerChipAvatar} />
+          : <span className={styles.playerChipAvatarFallback}>{initial}</span>
+      )}
       <span className={styles.playerName}>{name}</span>
       {player.score && <span className={styles.playerScore}>{player.score}</span>}
-    </span>
+    </>
   );
+
+  const classes = `${styles.playerChip} ${player.win ? styles.playerChipWinner : ''} ${turnoceroUser ? styles.playerChipLinked : ''}`;
+
+  if (turnoceroUser) {
+    return (
+      <Link
+        to={`/usuarios/${turnoceroUser._id}`}
+        className={classes}
+        onClick={(e) => e.stopPropagation()}
+        title={`Ver perfil de ${name}`}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return <span className={classes}>{content}</span>;
 }
 
 function PlayCardMenu({ onEdit, onDelete }) {
@@ -109,7 +136,7 @@ function PlayCardMenu({ onEdit, onDelete }) {
   );
 }
 
-export default function PlayCard({ play, onClick, onEdit, onDelete }) {
+export default function PlayCard({ play, userMap, onClick, onEdit, onDelete }) {
   const sortedPlayers = useMemo(() => {
     if (!play.players || play.players.length === 0) return [];
     return [...play.players].sort((a, b) => {
@@ -163,7 +190,11 @@ export default function PlayCard({ play, onClick, onEdit, onDelete }) {
         {sortedPlayers.length > 0 && (
           <div className={styles.playPlayers}>
             {sortedPlayers.map((p, i) => (
-              <PlayerChip key={`${p.username || p.name || 'anon'}-${i}`} player={p} />
+              <PlayerChip
+                key={`${p.username || p.name || 'anon'}-${i}`}
+                player={p}
+                turnoceroUser={p.username ? userMap?.[p.username.toLowerCase()] : null}
+              />
             ))}
           </div>
         )}
