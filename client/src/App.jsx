@@ -13,6 +13,9 @@ import ViewAsUserBanner from './components/admin/ViewAsUserBanner';
 import SectionGate from './components/shared/SectionGate';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import VerifyEmail from './pages/auth/VerifyEmail';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import Dashboard from './pages/dashboard/Dashboard';
 import CreateTable from './pages/tables/CreateTable';
 import EditTable from './pages/tables/EditTable';
@@ -103,7 +106,12 @@ const AdminRoute = ({ children }) => {
 function AppRoutes() {
   const { user } = useAuth();
   const { pathname } = useLocation();
-  const isAuthPage = pathname === '/login' || pathname === '/register';
+  const isAuthPage =
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname === '/verificar-email' ||
+    pathname === '/recuperar-contrasenia' ||
+    pathname === '/restablecer-contrasenia';
   return (
     <>
       {!user && !isAuthPage && <GuestNavbar />}
@@ -115,6 +123,9 @@ function AppRoutes() {
         <PageTransition>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+          <Route path="/verificar-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
+          <Route path="/recuperar-contrasenia" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          <Route path="/restablecer-contrasenia" element={<PublicRoute><ResetPassword /></PublicRoute>} />
           <Route path="/" element={<SectionGate section="compartidas"><Compartidas /></SectionGate>} />
           <Route path="/mesas" element={<SectionGate section="mesas"><Dashboard /></SectionGate>} />
           <Route path="/mesas/crear" element={<SectionGate section="mesas"><CreateTable /></SectionGate>} />

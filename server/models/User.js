@@ -103,6 +103,12 @@ const userSchema = new mongoose.Schema(
       from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       sentAt: { type: Date, default: Date.now },
     }],
+    emailVerified: { type: Boolean, default: false },
+    emailVerificationCodeHash: { type: String, default: null, select: false },
+    emailVerificationExpiresAt: { type: Date, default: null, select: false },
+    emailVerificationAttempts: { type: Number, default: 0, select: false },
+    passwordResetTokenHash: { type: String, default: null, select: false },
+    passwordResetExpiresAt: { type: Date, default: null, select: false },
   },
   { timestamps: true }
 );
@@ -129,6 +135,11 @@ userSchema.methods.toJSON = function () {
   obj.bggInvalid = !!(creds && creds.invalid);
   obj.bggConnectedAt = creds?.connectedAt || null;
   delete obj.bggCredentials;
+  delete obj.emailVerificationCodeHash;
+  delete obj.emailVerificationExpiresAt;
+  delete obj.emailVerificationAttempts;
+  delete obj.passwordResetTokenHash;
+  delete obj.passwordResetExpiresAt;
   return obj;
 };
 

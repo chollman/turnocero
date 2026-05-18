@@ -82,11 +82,33 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  // Creates an unverified account. No session is established here — the user
+  // must complete /verify-email with the code we sent to confirm ownership.
   const register = async (username, email, password) => {
     const { data } = await axios.post('/api/auth/register', { username, email, password });
+    return data; // { email, message }
+  };
+
+  const verifyEmail = async (email, code) => {
+    const { data } = await axios.post('/api/auth/verify-email', { email, code });
     localStorage.setItem('token', data.token);
     setAuthHeader(data.token);
     setRealUser(data.user);
+    return data;
+  };
+
+  const requestEmailVerification = async (email) => {
+    const { data } = await axios.post('/api/auth/resend-verification', { email });
+    return data;
+  };
+
+  const requestPasswordReset = async (email) => {
+    const { data } = await axios.post('/api/auth/forgot-password', { email });
+    return data;
+  };
+
+  const resetPassword = async (email, token, password) => {
+    const { data } = await axios.post('/api/auth/reset-password', { email, token, password });
     return data;
   };
 
@@ -126,6 +148,10 @@ export const AuthProvider = ({ children }) => {
       loading,
       login,
       register,
+      verifyEmail,
+      requestEmailVerification,
+      requestPasswordReset,
+      resetPassword,
       logout,
       updateProfile,
       refreshUser,

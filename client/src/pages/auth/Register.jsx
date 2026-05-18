@@ -53,7 +53,7 @@ export default function Register() {
     setLoading(true);
     try {
       await register(form.username, form.email, form.password);
-      navigate("/");
+      navigate("/verificar-email", { state: { email: form.email } });
     } catch (err) {
       setError(err.response?.data?.message || "Error al registrarse");
     } finally {

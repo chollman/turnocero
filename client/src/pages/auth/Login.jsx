@@ -42,6 +42,7 @@ export function ShowcaseCard({ table }) {
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [flash, setFlash] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -55,6 +56,11 @@ export default function Login() {
       setError(bannedMsg);
       sessionStorage.removeItem('bannedMessage');
     }
+    const flashMsg = sessionStorage.getItem('flashMessage');
+    if (flashMsg) {
+      setFlash(flashMsg);
+      sessionStorage.removeItem('flashMessage');
+    }
   }, []);
 
   const handleChange = (e) =>
@@ -63,12 +69,18 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setFlash('');
     setLoading(true);
     try {
       await login(form.email, form.password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al iniciar sesión');
+      const data = err.response?.data;
+      if (data?.code === 'email_not_verified') {
+        navigate('/verificar-email', { state: { email: data.email || form.email } });
+        return;
+      }
+      setError(data?.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
@@ -100,6 +112,7 @@ export default function Login() {
 
         {/* Form */}
         {error && <div className={styles.errorBox}>{error}</div>}
+        {flash && <div className={styles.successBox}>{flash}</div>}
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
@@ -127,6 +140,10 @@ export default function Login() {
               required
               autoComplete="current-password"
             />
+          </div>
+
+          <div className={styles.forgotRow}>
+            <Link to="/recuperar-contrasenia">¿Olvidaste tu contraseña?</Link>
           </div>
 
           <button type="submit" className={styles.submitBtn} disabled={loading}>

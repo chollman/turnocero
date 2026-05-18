@@ -114,6 +114,111 @@
   margin-bottom: 1rem;
 }
 
+.successBox {
+  background: var(--green-15);
+  border: 1px solid var(--green-30);
+  border-radius: 8px;
+  padding: 0.65rem 0.9rem;
+  color: var(--green);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  max-width: 380px;
+}
+
+.infoBox {
+  background: var(--amber-10);
+  border: 1px solid var(--amber-25);
+  border-radius: 8px;
+  padding: 0.7rem 0.95rem;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  max-width: 380px;
+}
+
+.infoBox strong {
+  color: var(--amber-light);
+  font-weight: 700;
+}
+
+/* ── Single-line verification code input ── */
+.codeInput {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  color: var(--text-primary);
+  font-size: 1.6rem;
+  font-family: var(--font-display), monospace;
+  font-weight: 700;
+  letter-spacing: 0.5em;
+  text-align: center;
+  outline: none;
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
+  width: 100%;
+}
+
+.codeInput::placeholder {
+  color: var(--text-muted);
+  letter-spacing: 0.5em;
+}
+
+.codeInput:focus {
+  border-color: var(--amber-dark);
+  box-shadow: 0 0 0 3px var(--amber-20);
+}
+
+/* ── Resend / secondary actions ── */
+.linkBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--amber-light);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.linkBtn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.linkBtn:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.helpRow {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.forgotRow {
+  margin-top: -8px;
+  text-align: right;
+  max-width: 380px;
+}
+
+.forgotRow a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.forgotRow a:hover {
+  color: var(--amber-light);
+  text-decoration: underline;
+}
+
 /* ── Form ── */
 .form {
   display: flex;
