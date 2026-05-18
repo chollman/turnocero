@@ -48,7 +48,21 @@ npm run dev:server    # Express backend on port 4000 (nodemon)
 npm run dev:client    # Vite frontend on port 3000
 ```
 
-No test commands are configured. ESLint runs as a pre-commit hook via the `/react-review` skill; the flat config lives in `client/eslint.config.js` (extending `eslint.shared.cjs` at the repo root).
+Tests run via **Vitest** in both workspaces (same runner client and server). ESLint runs as a pre-commit hook via the `/react-review` skill; the flat config lives in `client/eslint.config.js` (extending `eslint.shared.cjs` at the repo root).
+
+```bash
+# Server tests
+npm test --prefix server                  # one-off
+npm run test:watch --prefix server        # watch mode
+npm run test:coverage --prefix server     # writes coverage/index.html
+
+# Client tests
+npm test --prefix client
+npm run test:watch --prefix client
+npm run test:coverage --prefix client
+```
+
+See "Testing" section below for the full layout (helpers, mocks, MSW handlers).
 
 ## Frontend routing
 
@@ -475,6 +489,38 @@ User profile flow:
 - `/perfil` has a "Conexión con BoardGameGeek" section to connect/disconnect the BGG account. Endpoints: `POST /api/auth/bgg-connect`, `DELETE /api/auth/bgg-connection`.
 - `User.bggCredentials` (subdocument) is excluded from `toJSON`; only derived flags `bggConnected`, `bggInvalid`, `bggConnectedAt` are exposed to clients.
 - Changing `bggUsername` automatically clears stored credentials.
+
+## Testing
+
+**Stack**: Vitest (both workspaces) + supertest + mongodb-memory-server (server integration) + @testing-library/react + jsdom + MSW (client component tests).
+
+**Root scripts** (run both workspaces):
+- `npm test` → server + client unit + integration tests
+- `npm run test:coverage` → coverage reports in both `server/coverage/` and `client/coverage/`
+- `npm run test:server` / `npm run test:client` to run just one side
+
+**Current coverage** (2026-05, third session): server ~40% lines (utilities ~80%, routes 20-90%); client ~20.6% lines (utils 98%, shared/admin components ~80-100%, auth pages ~65%, layout nav ~55%, dashboard + feature list pages ~30-60%; pages of detail like TableDetail/TorneoDetail/EventoDetail, formularios de creación, chat windows + BgWatch pages still pending). **Total 431 tests** (193 server + 238 client). Plan and rollout tracked in [plans/testing-infrastructure.md](plans/testing-infrastructure.md).
+
+**Layout — server** (`server/`):
+- `tests/setup.js` — connects `MongoMemoryServer`, sets `JWT_SECRET` + `BGG_CREDS_KEY` test env vars, clears all collections between tests.
+- `tests/helpers/auth.js` — `createUser(overrides)`, `createAuthedUser(overrides)`, `tokenFor(user)`, `authHeader(token)`.
+- `tests/helpers/factories.js` — `createTable`, `createCompartida`, `createNoticia`, `createTorneo`, `createEvento`.
+- `tests/mocks/` — stubs for external boundaries (`cloudinary.js`, `email.js`). Apply per test with `vi.mock('../../config/cloudinary', () => require('../mocks/cloudinary'))`.
+- `tests/unit/utils/*.test.js` — pure utility tests, no Mongo.
+- `tests/integration/*.test.js` — supertest-driven API tests; require `app` from `../../app` (not `server.js`, which boots Mongo/socket).
+
+**Layout — client** (`client/`):
+- `src/test/setup.js` — `@testing-library/jest-dom`, jsdom polyfills (`URL.createObjectURL`, canvas, matchMedia, IntersectionObserver), MSW lifecycle.
+- `src/test/server.js` — MSW server with sensible default handlers (`/api/auth/me` → 401, `/api/site-config`, `/api/notifications`); override per test via `server.use(...)`.
+- `src/test/wrappers/AllProviders.jsx` — `<AllProviders>` (Helmet + Theme + MemoryRouter) for context-light components, `<RouterOnly>` for pure presentationals that just need `<Link>`.
+- `src/test/factories/users.js` — `makeUser(overrides)` returns API-shape user object including `avatar: { url, publicId }`.
+- Tests live next to source: `Avatar.jsx` ↔ `Avatar.test.jsx`. Pure JS utilities use `*.test.js`.
+
+**App refactor for testability**: `server/app.js` builds and exports the Express app (routes, middleware) without Mongo or Socket.io; `server/server.js` imports it and adds the boot (DB + listen + sockets). Supertest works against `app` directly without listening on a port.
+
+**Coverage**: HTML reports at `server/coverage/index.html` and `client/coverage/index.html`. No enforcement threshold currently; that's intentional during backfill.
+
+**Convention** (post-backfill): every new feature ships with tests for the routes, hooks, and any new shared component. Pure helpers extracted from components (color hashing, formatters, route matchers) belong in `client/src/utils/` and are tested there once instead of per call-site.
 
 ## Known limitations / decisions
 

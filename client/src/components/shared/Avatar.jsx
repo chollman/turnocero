@@ -1,8 +1,8 @@
 import { getUserDisplay } from '../../utils/userDisplay';
+import { hashToBrandColor, AVATAR_PALETTE } from '../../utils/hash';
+import { getInitials } from '../../utils/initials';
 import { GhostIcon } from './UserRef';
 import styles from './Avatar.module.css';
-
-const PALETTE = ['--amber', '--red', '--green', '--orange', '--purple'];
 
 const GHOST_SIZE = {
   xs: 14,
@@ -12,21 +12,8 @@ const GHOST_SIZE = {
   xl: 48,
 };
 
-function hashToColor(key = '') {
-  let h = 0;
-  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-  return PALETTE[h % PALETTE.length];
-}
-
-function getInitials(display) {
-  const name = display.displayName || display.name || '';
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return (Array.from(parts[0])[0] + Array.from(parts[1])[0]).toUpperCase();
-  }
-  const single = display.username || name || '?';
-  return (Array.from(single)[0] || '?').toUpperCase();
-}
+// Re-export legacy local names so existing imports continue to work.
+export { hashToBrandColor as hashToColor, getInitials, AVATAR_PALETTE as PALETTE };
 
 export default function Avatar({ user, size = 'md', className = '' }) {
   const display = getUserDisplay(user);
@@ -48,7 +35,7 @@ export default function Avatar({ user, size = 'md', className = '' }) {
     );
   }
 
-  const colorVar = hashToColor(String(display._id || display.username || ''));
+  const colorVar = hashToBrandColor(String(display._id || display.username || ''));
   return (
     <span
       className={`${styles.avatar} ${sizeClass} ${styles.initials} ${className}`}

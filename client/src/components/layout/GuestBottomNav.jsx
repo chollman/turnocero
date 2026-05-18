@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useSiteConfig } from '../../context/SiteConfigContext';
+import { getActiveNavId } from '../../utils/routing';
 import styles from './BottomNav.module.css';
 
 const NoticiasIcon = () => (
@@ -31,18 +32,10 @@ const NAV = [
   { id: 'utilidades',  label: 'Utilidades',  Icon: UtilidadesIcon,  to: '/utilidades',  section: 'utilidades' },
 ]
 
-function getActiveId(pathname) {
-  if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas'
-  if (pathname.startsWith('/mesas')) return 'mesas'
-  if (pathname.startsWith('/noticias')) return 'noticias'
-  if (pathname.startsWith('/utilidades')) return 'utilidades'
-  return null
-}
-
 export default function GuestBottomNav() {
   const { pathname } = useLocation()
   const { isSectionEnabled } = useSiteConfig()
-  const active = getActiveId(pathname)
+  const active = getActiveNavId(pathname)
   const visibleNav = NAV.filter(item => isSectionEnabled(item.section))
 
   return (

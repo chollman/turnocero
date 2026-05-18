@@ -14,6 +14,11 @@ client/.env.*.local
 client/dist/
 client/dist-ssr/
 
+# Test coverage reports
+coverage/
+client/coverage/
+server/coverage/
+
 # Vite
 *.local
 

@@ -7,7 +7,11 @@
     "dev": "concurrently --names server,client --prefix-colors cyan,yellow \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "dev:server": "npm run dev --prefix server",
     "dev:client": "npm run dev --prefix client",
-    "start:server": "npm start --prefix server"
+    "start:server": "npm start --prefix server",
+    "test": "npm test --prefix server && npm test --prefix client",
+    "test:server": "npm test --prefix server",
+    "test:client": "npm test --prefix client",
+    "test:coverage": "npm run test:coverage --prefix server && npm run test:coverage --prefix client"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

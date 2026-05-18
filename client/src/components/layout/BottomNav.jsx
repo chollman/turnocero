@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useSiteConfig } from '../../context/SiteConfigContext'
+import { getActiveNavId } from '../../utils/routing'
 import styles from './BottomNav.module.css'
 
 const FeedIcon = () => (
@@ -153,28 +154,11 @@ const DIVIDER = { id: '__divider__', isDivider: true }
 
 const VISIBLE = 3
 
-function getActiveId(pathname) {
-  if (pathname === '/mi') return 'feed'
-  if (pathname.startsWith('/panel-admin')) return 'panel'
-  if (pathname.startsWith('/mesas')) return 'dash'
-  if (pathname.startsWith('/noticias')) return 'noticias'
-  if (pathname.startsWith('/torneos')) return 'torneos'
-  if (pathname.startsWith('/eventos')) return 'eventos'
-  if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas'
-  if (pathname === '/bg-watch') return 'bgwatchCta'
-  if (pathname.startsWith('/bg-watch')) return 'bgwatch'
-  if (pathname.startsWith('/usuarios')) return 'users'
-  if (pathname.startsWith('/perfil')) return 'profile'
-  if (pathname.startsWith('/base-de-datos')) return 'db'
-  if (pathname.startsWith('/utilidades')) return 'utilidades'
-  return null
-}
-
 export default function BottomNav() {
   const { user, isActuallyAdmin } = useAuth()
   const { isSectionEnabled } = useSiteConfig()
   const location = useLocation()
-  const active = getActiveId(location.pathname)
+  const active = getActiveNavId(location.pathname)
 
   // adminOnly items (Panel, DB) always show to real admins regardless of viewAsUser.
   const isItemVisible = (item) => {

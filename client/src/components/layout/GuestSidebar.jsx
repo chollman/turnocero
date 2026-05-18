@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useSiteConfig } from '../../context/SiteConfigContext';
+import { getActiveNavId } from '../../utils/routing';
 import styles from './GuestSidebar.module.css';
 
 const ICONS = {
@@ -28,17 +29,10 @@ const NAV = [
   { id: 'compartidas', label: 'Compartidas', to: '/compartidas', section: 'compartidas' },
 ];
 
-function getActiveId(pathname) {
-  if (pathname.startsWith('/noticias')) return 'noticias';
-  if (pathname === '/' || pathname.startsWith('/compartidas')) return 'compartidas';
-  if (pathname.startsWith('/utilidades')) return 'utilidades';
-  return null;
-}
-
 export default function GuestSidebar() {
   const { pathname } = useLocation();
   const { isSectionEnabled } = useSiteConfig();
-  const active = getActiveId(pathname);
+  const active = getActiveNavId(pathname);
   const visibleNav = NAV.filter(item => isSectionEnabled(item.section));
 
   return (
