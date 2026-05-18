@@ -2,8 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { XMLParser } = require('fast-xml-parser');
 const { protect } = require('../middleware/auth');
+const { requireSection } = require('../middleware/sectionGate');
 const { getSessionCookie, clearSession } = require('../utils/bggAuth');
 const User = require('../models/User');
+
+router.use(requireSection('bgwatch'));
 
 const BGG_API = 'https://boardgamegeek.com/xmlapi2';
 const BGG_GEEKPLAY = 'https://boardgamegeek.com/geekplay.php';

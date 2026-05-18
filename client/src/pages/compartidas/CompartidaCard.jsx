@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
+import { useSiteConfig } from '../../context/SiteConfigContext'
 import GameTile from '../../components/shared/GameTile'
 import LoginPromptModal from '../../components/shared/LoginPromptModal'
 import { GhostIcon } from '../../components/shared/UserRef'
@@ -30,7 +31,8 @@ function timeAgo(date) {
 
 // Small inline link rendered next to the author's name when they have an active
 // BG Watch (i.e. populated `bggUsername`). Click → their BG Watch profile.
-function AuthorBgWatchLink({ author }) {
+function AuthorBgWatchLink({ author, enabled }) {
+  if (!enabled) return null
   if (!author?.bggUsername) return null
   return (
     <Link
@@ -70,6 +72,9 @@ const PRIVACY_LABELS = { public: null, friends: 'Amigos', private: 'Solo yo' }
 
 export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated, featured }) {
   const { user } = useAuth()
+  const { isSectionEnabled } = useSiteConfig()
+  const mesasEnabled = isSectionEnabled('mesas')
+  const bgwatchEnabled = isSectionEnabled('bgwatch')
   const [post, setPost] = useState(initialPost)
   const [liked, setLiked] = useState(() =>
     user ? initialPost.likes.some((l) => (l._id || l).toString() === user._id.toString()) : false
@@ -197,7 +202,7 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
     } catch { /* silently ignore */ }
   }
 
-  const table = post.linkedTable
+  const table = mesasEnabled ? post.linkedTable : null
   const tableSeats = table ? table.maxPlayers - (table.players?.length || 0) : 0
   const tableOpen = table?.status === 'open'
   const bodyLong = post.body.length > 220
@@ -221,7 +226,7 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
           <div className={styles.authorMeta}>
             <div className={styles.authorNameRow}>
               <span className={styles.authorName}>{authorName}</span>
-              {!authorInfo.isDeleted && <AuthorBgWatchLink author={post.author} />}
+              {!authorInfo.isDeleted && <AuthorBgWatchLink author={post.author} enabled={bgwatchEnabled} />}
             </div>
             <span className={styles.meta}>
               {timeAgo(post.createdAt)}

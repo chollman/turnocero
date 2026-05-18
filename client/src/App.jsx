@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SiteConfigProvider } from './context/SiteConfigContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ChatProvider } from './context/ChatContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -9,6 +10,7 @@ import ChatWindowManager from './components/chat/ChatWindowManager';
 import ChatLauncher from './components/chat/ChatLauncher';
 import AdminViewToggle from './components/admin/AdminViewToggle';
 import ViewAsUserBanner from './components/admin/ViewAsUserBanner';
+import SectionGate from './components/shared/SectionGate';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './pages/dashboard/Dashboard';
@@ -18,6 +20,7 @@ import UserProfile from './pages/users/UserProfile';
 import UsersList from './pages/users/UsersList';
 import UserProfilePublic from './pages/users/UserProfilePublic';
 import DatabaseViewer from './pages/admin/DatabaseViewer';
+import PanelAdmin from './pages/admin/PanelAdmin';
 import TableDetail from './pages/tables/TableDetail';
 import Notifications from './pages/notifications/Notifications';
 import MeFeed from './pages/me/MeFeed';
@@ -86,11 +89,14 @@ function LegacyBggRedirect() {
   return <Navigate to={newPath + location.search + location.hash} replace />;
 }
 
+// AdminRoute uses the *real* admin status (ignores viewAsUser), so admin-only
+// structural pages (Panel admin, Base de datos, Chat admin) stay accessible even
+// when an admin previews the site as a regular user.
 const AdminRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, isActuallyAdmin, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  return user.isAdmin ? children : <Navigate to="/" replace />;
+  return isActuallyAdmin ? children : <Navigate to="/" replace />;
 };
 
 function AppRoutes() {
@@ -108,39 +114,40 @@ function AppRoutes() {
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-          <Route path="/" element={<Compartidas />} />
-          <Route path="/mesas" element={<AdminRoute><Dashboard /></AdminRoute>} />
-          <Route path="/mesas/crear" element={<AdminRoute><CreateTable /></AdminRoute>} />
-          <Route path="/mesas/:id" element={<AdminRoute><TableDetail /></AdminRoute>} />
-          <Route path="/mesas/:id/editar" element={<AdminRoute><EditTable /></AdminRoute>} />
+          <Route path="/" element={<SectionGate section="compartidas"><Compartidas /></SectionGate>} />
+          <Route path="/mesas" element={<SectionGate section="mesas"><Dashboard /></SectionGate>} />
+          <Route path="/mesas/crear" element={<SectionGate section="mesas"><CreateTable /></SectionGate>} />
+          <Route path="/mesas/:id" element={<SectionGate section="mesas"><TableDetail /></SectionGate>} />
+          <Route path="/mesas/:id/editar" element={<SectionGate section="mesas"><EditTable /></SectionGate>} />
           <Route path="/notificaciones" element={<PrivateRoute><Notifications /></PrivateRoute>} />
           <Route path="/perfil" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
-          <Route path="/usuarios" element={<PrivateRoute><UsersList /></PrivateRoute>} />
-          <Route path="/usuarios/:id" element={<PrivateRoute><UserProfilePublic /></PrivateRoute>} />
-          <Route path="/base-de-datos" element={<PrivateRoute><DatabaseViewer /></PrivateRoute>} />
-          <Route path="/mi" element={<AdminRoute><MeFeed /></AdminRoute>} />
-          <Route path="/noticias" element={<Noticias />} />
-          <Route path="/noticias/:id" element={<NoticiaDetail />} />
-          <Route path="/torneos" element={<AdminRoute><Torneos /></AdminRoute>} />
-          <Route path="/torneos/crear" element={<AdminRoute><CreateTorneo /></AdminRoute>} />
-          <Route path="/torneos/:id" element={<AdminRoute><TorneoDetail /></AdminRoute>} />
-          <Route path="/torneos/:id/editar" element={<AdminRoute><EditTorneo /></AdminRoute>} />
-          <Route path="/eventos" element={<PrivateRoute><Eventos /></PrivateRoute>} />
-          <Route path="/eventos/:id" element={<PrivateRoute><EventoDetail /></PrivateRoute>} />
-          <Route path="/eventos/:id/inscripciones" element={<PrivateRoute><EventoInscripciones /></PrivateRoute>} />
-          <Route path="/compartidas" element={<Compartidas />} />
-          <Route path="/compartidas/:id" element={<CompartidaPost />} />
-          <Route path="/bg-watch" element={<BgWatchLanding />} />
-          <Route path="/bg-watch/:bggUsername" element={<BgWatchProfile />} />
-          <Route path="/bg-watch/:bggUsername/juego/:gameId" element={<BgWatchPerGameView />} />
+          <Route path="/usuarios" element={<PrivateRoute><SectionGate section="comunidad"><UsersList /></SectionGate></PrivateRoute>} />
+          <Route path="/usuarios/:id" element={<PrivateRoute><SectionGate section="comunidad"><UserProfilePublic /></SectionGate></PrivateRoute>} />
+          <Route path="/base-de-datos" element={<AdminRoute><DatabaseViewer /></AdminRoute>} />
+          <Route path="/panel-admin" element={<AdminRoute><PanelAdmin /></AdminRoute>} />
+          <Route path="/mi" element={<PrivateRoute><SectionGate section="miFeed"><MeFeed /></SectionGate></PrivateRoute>} />
+          <Route path="/noticias" element={<SectionGate section="noticias"><Noticias /></SectionGate>} />
+          <Route path="/noticias/:id" element={<SectionGate section="noticias"><NoticiaDetail /></SectionGate>} />
+          <Route path="/torneos" element={<SectionGate section="torneos"><Torneos /></SectionGate>} />
+          <Route path="/torneos/crear" element={<SectionGate section="torneos"><CreateTorneo /></SectionGate>} />
+          <Route path="/torneos/:id" element={<SectionGate section="torneos"><TorneoDetail /></SectionGate>} />
+          <Route path="/torneos/:id/editar" element={<SectionGate section="torneos"><EditTorneo /></SectionGate>} />
+          <Route path="/eventos" element={<PrivateRoute><SectionGate section="eventos"><Eventos /></SectionGate></PrivateRoute>} />
+          <Route path="/eventos/:id" element={<PrivateRoute><SectionGate section="eventos"><EventoDetail /></SectionGate></PrivateRoute>} />
+          <Route path="/eventos/:id/inscripciones" element={<PrivateRoute><SectionGate section="eventos"><EventoInscripciones /></SectionGate></PrivateRoute>} />
+          <Route path="/compartidas" element={<SectionGate section="compartidas"><Compartidas /></SectionGate>} />
+          <Route path="/compartidas/:id" element={<SectionGate section="compartidas"><CompartidaPost /></SectionGate>} />
+          <Route path="/bg-watch" element={<SectionGate section="bgwatch"><BgWatchLanding /></SectionGate>} />
+          <Route path="/bg-watch/:bggUsername" element={<SectionGate section="bgwatch"><BgWatchProfile /></SectionGate>} />
+          <Route path="/bg-watch/:bggUsername/juego/:gameId" element={<SectionGate section="bgwatch"><BgWatchPerGameView /></SectionGate>} />
           <Route path="/perfil-bgg/*" element={<LegacyBggRedirect />} />
-          <Route path="/mensajes" element={<PrivateRoute><Messages /></PrivateRoute>} />
-          <Route path="/mensajes/:userId" element={<PrivateRoute><DirectChat /></PrivateRoute>} />
-          <Route path="/mensajes-admin" element={<PrivateRoute><AdminChat /></PrivateRoute>} />
-          <Route path="/utilidades" element={<Utilidades />} />
-          <Route path="/utilidades/selector-de-dedos" element={<FingerSelector />} />
-          <Route path="/utilidades/temporizador" element={<Temporizador />} />
-          <Route path="/utilidades/dado" element={<Dado />} />
+          <Route path="/mensajes" element={<PrivateRoute><SectionGate section="dms"><Messages /></SectionGate></PrivateRoute>} />
+          <Route path="/mensajes/:userId" element={<PrivateRoute><SectionGate section="dms"><DirectChat /></SectionGate></PrivateRoute>} />
+          <Route path="/mensajes-admin" element={<AdminRoute><AdminChat /></AdminRoute>} />
+          <Route path="/utilidades" element={<SectionGate section="utilidades"><Utilidades /></SectionGate>} />
+          <Route path="/utilidades/selector-de-dedos" element={<SectionGate section="utilidades"><FingerSelector /></SectionGate>} />
+          <Route path="/utilidades/temporizador" element={<SectionGate section="utilidades"><Temporizador /></SectionGate>} />
+          <Route path="/utilidades/dado" element={<SectionGate section="utilidades"><Dado /></SectionGate>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         {user ? <BottomNav /> : !isAuthPage && <GuestBottomNav />}
@@ -174,11 +181,13 @@ export default function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <NotificationProvider>
-            <ChatProvider>
-              <AppShell />
-            </ChatProvider>
-          </NotificationProvider>
+          <SiteConfigProvider>
+            <NotificationProvider>
+              <ChatProvider>
+                <AppShell />
+              </ChatProvider>
+            </NotificationProvider>
+          </SiteConfigProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

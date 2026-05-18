@@ -5,6 +5,9 @@ const multer = require('../config/multer');
 const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
 const Evento = require('../models/Evento');
 const { protect, requireAdmin, optionalAuth } = require('../middleware/auth');
+const { requireSection } = require('../middleware/sectionGate');
+
+router.use(requireSection('eventos'));
 
 // Multer instance that also accepts PDF for comprobante uploads
 const COMPROBANTE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];

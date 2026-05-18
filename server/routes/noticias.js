@@ -4,6 +4,9 @@ const multer = require('../config/multer');
 const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
 const Noticia = require('../models/Noticia');
 const { protect, requireAdmin, optionalAuth } = require('../middleware/auth');
+const { requireSection } = require('../middleware/sectionGate');
+
+router.use(requireSection('noticias'));
 
 // GET /api/noticias — public, newest first, paginated
 router.get('/', optionalAuth, async (req, res) => {

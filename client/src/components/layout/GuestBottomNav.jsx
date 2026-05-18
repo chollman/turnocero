@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useSiteConfig } from '../../context/SiteConfigContext';
 import styles from './BottomNav.module.css';
 
 const NoticiasIcon = () => (
@@ -25,9 +26,9 @@ const UtilidadesIcon = () => (
 )
 
 const NAV = [
-  { id: 'noticias',    label: 'Noticias',    Icon: NoticiasIcon,    to: '/noticias' },
-  { id: 'compartidas', label: 'Compartidas', Icon: CompartidasIcon, to: '/compartidas' },
-  { id: 'utilidades',  label: 'Utilidades',  Icon: UtilidadesIcon,  to: '/utilidades' },
+  { id: 'noticias',    label: 'Noticias',    Icon: NoticiasIcon,    to: '/noticias',    section: 'noticias' },
+  { id: 'compartidas', label: 'Compartidas', Icon: CompartidasIcon, to: '/compartidas', section: 'compartidas' },
+  { id: 'utilidades',  label: 'Utilidades',  Icon: UtilidadesIcon,  to: '/utilidades',  section: 'utilidades' },
 ]
 
 function getActiveId(pathname) {
@@ -40,11 +41,13 @@ function getActiveId(pathname) {
 
 export default function GuestBottomNav() {
   const { pathname } = useLocation()
+  const { isSectionEnabled } = useSiteConfig()
   const active = getActiveId(pathname)
+  const visibleNav = NAV.filter(item => isSectionEnabled(item.section))
 
   return (
     <nav className={styles.nav}>
-      {NAV.map(({ id, label, Icon, to }) => (
+      {visibleNav.map(({ id, label, Icon, to }) => (
         <Link
           key={id}
           to={to}

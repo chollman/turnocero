@@ -5,7 +5,10 @@ const multer = require('../config/multer');
 const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
 const Table = require('../models/Table');
 const { protect } = require('../middleware/auth');
+const { requireSection } = require('../middleware/sectionGate');
 const saveNotification = require('../utils/saveNotification');
+
+router.use(requireSection('mesas'));
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);

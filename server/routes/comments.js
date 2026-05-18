@@ -4,7 +4,10 @@ const { body, param, validationResult } = require('express-validator');
 const Comment = require('../models/Comment');
 const Table = require('../models/Table');
 const { protect } = require('../middleware/auth');
+const { requireSection } = require('../middleware/sectionGate');
 const saveNotification = require('../utils/saveNotification');
+
+router.use(requireSection('mesas'));
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);

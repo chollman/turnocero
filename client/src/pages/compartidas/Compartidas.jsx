@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../../context/AuthContext'
+import { useSiteConfig } from '../../context/SiteConfigContext'
 import CompartidaCard from './CompartidaCard'
 import CompartidaSkeleton from './CompartidaSkeleton'
 import CreateCompartidaForm from './CreateCompartidaForm'
@@ -12,6 +13,8 @@ import styles from './Compartidas.module.css'
 
 export default function Compartidas() {
   const { user } = useAuth()
+  const { isSectionEnabled } = useSiteConfig()
+  const bgwatchEnabled = isSectionEnabled('bgwatch')
   const [searchParams] = useSearchParams()
   const prefilledMesa = searchParams.get('mesa') || ''
 
@@ -89,7 +92,7 @@ export default function Compartidas() {
         </div>
 
         {/* ── BG Watch widget (mobile only; desktop version lives in CompartidasSidebar) ── */}
-        {user && (
+        {user && bgwatchEnabled && (
           <div className={styles.mobileWidgetSlot}>
             <BgWatchHomeWidget user={user} dismissible />
           </div>

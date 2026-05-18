@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useSiteConfig } from '../../context/SiteConfigContext'
 import styles from './BottomNav.module.css'
 
 const FeedIcon = () => (
@@ -57,6 +58,20 @@ const DBIcon = () => (
     <path d="M3 5v4c0 1.7 4 3 9 3s9-1.3 9-3V5"/>
     <path d="M3 9v4c0 1.7 4 3 9 3s9-1.3 9-3V9"/>
     <path d="M3 13v4c0 1.7 4 3 9 3s9-1.3 9-3v-4"/>
+  </svg>
+)
+
+const PanelIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="4" y1="21" x2="4" y2="14"/>
+    <line x1="4" y1="10" x2="4" y2="3"/>
+    <line x1="12" y1="21" x2="12" y2="12"/>
+    <line x1="12" y1="8" x2="12" y2="3"/>
+    <line x1="20" y1="21" x2="20" y2="16"/>
+    <line x1="20" y1="12" x2="20" y2="3"/>
+    <line x1="1" y1="14" x2="7" y2="14"/>
+    <line x1="9" y1="8" x2="15" y2="8"/>
+    <line x1="17" y1="16" x2="23" y2="16"/>
   </svg>
 )
 
@@ -118,18 +133,19 @@ const ChevronRight = () => (
 )
 
 const REGULAR_NAV = [
-  { id: 'compartidas', label: 'Compartite', Icon: CompartidasIcon, to: '/compartidas' },
-  { id: 'noticias',    label: 'Noticias',   Icon: NoticiasIcon,    to: '/noticias' },
-  { id: 'eventos',     label: 'Eventos',    Icon: EventosIcon,     to: '/eventos' },
-  { id: 'users',       label: 'Comunidad',  Icon: ComunidadIcon,   to: '/usuarios' },
+  { id: 'compartidas', label: 'Compartite', Icon: CompartidasIcon, to: '/compartidas', section: 'compartidas' },
+  { id: 'noticias',    label: 'Noticias',   Icon: NoticiasIcon,    to: '/noticias',    section: 'noticias' },
+  { id: 'eventos',     label: 'Eventos',    Icon: EventosIcon,     to: '/eventos',     section: 'eventos' },
+  { id: 'users',       label: 'Comunidad',  Icon: ComunidadIcon,   to: '/usuarios',    section: 'comunidad' },
   { id: 'profile',     label: 'Perfil',     Icon: PerfilIcon,      to: '/perfil' },
-  { id: 'utilidades',  label: 'Utilidades', Icon: UtilidadesIcon,  to: '/utilidades' },
+  { id: 'utilidades',  label: 'Utilidades', Icon: UtilidadesIcon,  to: '/utilidades',  section: 'utilidades' },
 ]
 
 const ADMIN_NAV = [
-  { id: 'torneos', label: 'Torneos',  Icon: TorneosIcon,  to: '/torneos',       adminOnly: true },
-  { id: 'dash',    label: 'Mesas',    Icon: MesasIcon,    to: '/mesas',         adminOnly: true },
-  { id: 'feed',    label: 'Feed',     Icon: FeedIcon,     to: '/mi',            adminOnly: true },
+  { id: 'torneos', label: 'Torneos',  Icon: TorneosIcon,  to: '/torneos', section: 'torneos' },
+  { id: 'dash',    label: 'Mesas',    Icon: MesasIcon,    to: '/mesas',   section: 'mesas' },
+  { id: 'feed',    label: 'Feed',     Icon: FeedIcon,     to: '/mi',      section: 'miFeed' },
+  { id: 'panel',   label: 'Panel',    Icon: PanelIcon,    to: '/panel-admin',   adminOnly: true },
   { id: 'db',      label: 'DB',       Icon: DBIcon,       to: '/base-de-datos', adminOnly: true },
 ]
 
@@ -139,6 +155,7 @@ const VISIBLE = 3
 
 function getActiveId(pathname) {
   if (pathname === '/mi') return 'feed'
+  if (pathname.startsWith('/panel-admin')) return 'panel'
   if (pathname.startsWith('/mesas')) return 'dash'
   if (pathname.startsWith('/noticias')) return 'noticias'
   if (pathname.startsWith('/torneos')) return 'torneos'
@@ -154,23 +171,35 @@ function getActiveId(pathname) {
 }
 
 export default function BottomNav() {
-  const { user } = useAuth()
+  const { user, isActuallyAdmin } = useAuth()
+  const { isSectionEnabled } = useSiteConfig()
   const location = useLocation()
   const active = getActiveId(location.pathname)
+
+  // adminOnly items (Panel, DB) always show to real admins regardless of viewAsUser.
+  const isItemVisible = (item) => {
+    if (item.isDivider) return true
+    if (item.adminOnly) return isActuallyAdmin
+    if (item.section) return isSectionEnabled(item.section)
+    return true
+  }
+
   const items = (() => {
-    const regular = [...REGULAR_NAV]
-    if (user) {
-      // Insert BG Watch (or its CTA for non-connected users) right after "Comunidad".
+    const regular = REGULAR_NAV.filter(isItemVisible)
+    if (user && isSectionEnabled('bgwatch')) {
+      // Insert BG Watch (or its CTA for non-connected users) right after "Comunidad" if present,
+      // otherwise prepend it.
       const idx = regular.findIndex(i => i.id === 'users')
+      const insertAt = idx >= 0 ? idx + 1 : 0
       if (user.bggUsername) {
-        regular.splice(idx + 1, 0, {
+        regular.splice(insertAt, 0, {
           id: 'bgwatch',
           label: 'BG Watch',
           Icon: BgWatchIcon,
           to: `/bg-watch/${user.bggUsername}`,
         })
       } else {
-        regular.splice(idx + 1, 0, {
+        regular.splice(insertAt, 0, {
           id: 'bgwatchCta',
           label: 'Activá',
           Icon: BgWatchCtaIcon,
@@ -179,8 +208,9 @@ export default function BottomNav() {
         })
       }
     }
-    return user?.isAdmin
-      ? [...regular, DIVIDER, ...ADMIN_NAV]
+    const admin = ADMIN_NAV.filter(isItemVisible)
+    return isActuallyAdmin && admin.length > 0
+      ? [...regular, DIVIDER, ...admin]
       : regular
   })()
   const scrollable = items.filter(i => !i.isDivider).length > VISIBLE

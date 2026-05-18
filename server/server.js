@@ -16,6 +16,7 @@ const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const logger = require('./utils/logger');
+const { loadSiteConfig } = require('./utils/siteConfig');
 
 if (!process.env.JWT_SECRET) {
   logger.error('JWT_SECRET environment variable is required');
@@ -108,6 +109,7 @@ app.use('/api/eventos', require('./routes/eventos'));
 app.use('/api/bgg', require('./routes/bgg'));
 app.use('/api/dm', require('./routes/dm'));
 app.use('/api/admin-chat', require('./routes/adminChat'));
+app.use('/api/site-config', require('./routes/siteConfig'));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -120,8 +122,9 @@ const PORT = process.env.PORT || 5000;
 
 mongoose
   .connect(MONGODB_URI)
-  .then(() => {
+  .then(async () => {
     logger.info('Connected to MongoDB');
+    await loadSiteConfig();
     server.listen(PORT, () => {
       logger.info(`Turnocero server running on port ${PORT}`);
     });

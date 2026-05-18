@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { useSiteConfig } from '../../context/SiteConfigContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useNotifications } from '../../context/NotificationContext';
 import 'leaflet/dist/leaflet.css';
@@ -38,8 +39,10 @@ const SunIcon = () => (
 
 export default function UserProfile() {
   const { user, updateProfile, refreshUser } = useAuth();
+  const { isSectionEnabled } = useSiteConfig();
   const { theme, setTheme } = useTheme();
   const { addToast } = useNotifications();
+  const bgwatchEnabled = isSectionEnabled('bgwatch');
 
   // ── BGG connection state ──
   const [bggPassword, setBggPassword] = useState('');
@@ -268,7 +271,7 @@ export default function UserProfile() {
           <div className={styles.eyebrow}>◆ MI PERFIL</div>
           <div className={styles.titleRow}>
             <h1 className={styles.heroTitle}>@{user?.username}</h1>
-            {user?.bggUsername && user?.bggConnected && !user?.bggInvalid && (
+            {bgwatchEnabled && user?.bggUsername && user?.bggConnected && !user?.bggInvalid && (
               <Link
                 to={`/bg-watch/${encodeURIComponent(user.bggUsername)}`}
                 className={styles.bgWatchBadge}
@@ -290,7 +293,7 @@ export default function UserProfile() {
           <p className={styles.heroSub}>{user?.email}</p>
         </div>
 
-        {user && !user.bggUsername && !bgWatchBannerDismissed && (
+        {bgwatchEnabled && user && !user.bggUsername && !bgWatchBannerDismissed && (
           <div className={styles.bgWatchBanner}>
             <span className={styles.bgWatchBannerIcon} aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -329,7 +332,7 @@ export default function UserProfile() {
           </div>
         )}
 
-        {user?.bggUsername && user?.bggConnected && !user?.bggInvalid && (
+        {bgwatchEnabled && user?.bggUsername && user?.bggConnected && !user?.bggInvalid && (
           <MiBgWatchCard bggUsername={user.bggUsername} />
         )}
 
@@ -438,6 +441,7 @@ export default function UserProfile() {
                 </div>
               </div>
 
+              {bgwatchEnabled && (
               <div className={styles.field} id="bgg-username-field">
                 <label className={styles.label}>Usuario en BGG</label>
                 <div className={styles.inputPrefix}>
@@ -452,8 +456,10 @@ export default function UserProfile() {
                   />
                 </div>
               </div>
+              )}
             </div>
 
+            {bgwatchEnabled && (
             <div className={styles.section} id="conexion-bgg">
               <div className={styles.sectionLabel}>Conexión con BoardGameGeek</div>
               <p className={styles.hint}>
@@ -539,6 +545,7 @@ export default function UserProfile() {
                 </>
               )}
             </div>
+            )}
 
             <div className={styles.section}>
               <div className={styles.sectionLabel}>Dirección</div>

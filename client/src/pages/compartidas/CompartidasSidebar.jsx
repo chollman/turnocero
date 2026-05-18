@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
+import { useSiteConfig } from '../../context/SiteConfigContext'
 import GameTile from '../../components/shared/GameTile'
 import BgWatchHomeWidget from './BgWatchHomeWidget'
 import styles from './CompartidasSidebar.module.css'
@@ -18,12 +19,16 @@ function seedFromId(id = '') {
 
 export default function CompartidasSidebar() {
   const { user } = useAuth()
+  const { isSectionEnabled } = useSiteConfig()
+  const mesasEnabled = isSectionEnabled('mesas')
+  const bgwatchEnabled = isSectionEnabled('bgwatch')
   const [tables, setTables] = useState([])
   const [topGames, setTopGames] = useState([])
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !mesasEnabled) {
       setTables([])
+      setTopGames([])
       return
     }
     axios.get('/api/tables/mine', { params: { limit: 4 } })
@@ -39,15 +44,16 @@ export default function CompartidasSidebar() {
     axios.get('/api/tables/top-games')
       .then(({ data }) => setTopGames(data))
       .catch(() => {})
-  }, [user])
+  }, [user, mesasEnabled])
 
   return (
     <aside className={styles.sidebar}>
 
       {/* ── BG Watch (activo o promo) ── */}
-      {user && <BgWatchHomeWidget user={user} dismissible />}
+      {user && bgwatchEnabled && <BgWatchHomeWidget user={user} dismissible />}
 
       {/* ── Próximas mesas ── */}
+      {mesasEnabled && (
       <div className={styles.widget}>
         <div className={styles.widgetHeader}>
           <span className={styles.widgetEyebrow}>◆ TUS MESAS</span>
@@ -83,8 +89,10 @@ export default function CompartidasSidebar() {
           </div>
         )}
       </div>
+      )}
 
       {/* ── Top juegos ── */}
+      {mesasEnabled && (
       <div className={styles.widget}>
         <div className={styles.widgetHeader}>
           <span className={styles.widgetEyebrow}>◆ COMUNIDAD</span>
@@ -110,6 +118,7 @@ export default function CompartidasSidebar() {
           </div>
         )}
       </div>
+      )}
 
     </aside>
   )

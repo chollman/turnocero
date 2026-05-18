@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { useSiteConfig } from '../../context/SiteConfigContext';
 import { useNotifications } from '../../context/NotificationContext';
 import GameTile from '../../components/shared/GameTile';
 import ProfileSkeleton from './ProfileSkeleton';
@@ -66,7 +67,12 @@ export default function UserProfilePublic() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: currentUser, refreshUser } = useAuth();
+  const { isSectionEnabled } = useSiteConfig();
   const { notifyFriendAdded } = useNotifications();
+  const amigosEnabled = isSectionEnabled('amigos');
+  const mesasEnabled = isSectionEnabled('mesas');
+  const compartidasEnabled = isSectionEnabled('compartidas');
+  const bgwatchEnabled = isSectionEnabled('bgwatch');
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -173,7 +179,7 @@ export default function UserProfilePublic() {
               {contactParts.length > 0 && ` · ${contactParts.join(' · ')}`}
             </div>
 
-            {currentUser && currentUser._id !== id && (
+            {currentUser && currentUser._id !== id && amigosEnabled && (
               <div className={styles.friendActions}>
                 {relationship === 'none' && (
                   <button className={styles.friendBtnPrimary} onClick={() => handleFriendAction('request')} disabled={friendLoading}>
@@ -210,17 +216,17 @@ export default function UserProfilePublic() {
 
         {/* Stats grid */}
         <div className={styles.statsGrid}>
-          <StatCard value={stats.totalGamesPlayed} label="Partidas jugadas" accent />
-          <StatCard value={stats.tablesHosted.total} label="Mesas creadas" />
-          <StatCard value={stats.tablesAsPlayer.total} label="Como jugador" />
-          <StatCard value={stats.tablesHosted.active} label="Mesas activas" />
-          <StatCard value={profile.friendsCount} label="Amigos" />
-          <StatCard value={stats.compartidas} label="Publicaciones" />
-          <StatCard value={stats.likesReceived} label="Likes recibidos" />
+          {mesasEnabled && <StatCard value={stats.totalGamesPlayed} label="Partidas jugadas" accent />}
+          {mesasEnabled && <StatCard value={stats.tablesHosted.total} label="Mesas creadas" />}
+          {mesasEnabled && <StatCard value={stats.tablesAsPlayer.total} label="Como jugador" />}
+          {mesasEnabled && <StatCard value={stats.tablesHosted.active} label="Mesas activas" />}
+          {amigosEnabled && <StatCard value={profile.friendsCount} label="Amigos" />}
+          {compartidasEnabled && <StatCard value={stats.compartidas} label="Publicaciones" />}
+          {compartidasEnabled && <StatCard value={stats.likesReceived} label="Likes recibidos" />}
         </div>
 
         {/* BG Watch card — prominent surface for visiting someone's BG Watch */}
-        {profile.bggUsername && (
+        {profile.bggUsername && bgwatchEnabled && (
           <BgWatchUserCard bggUsername={profile.bggUsername} />
         )}
 
@@ -263,7 +269,7 @@ export default function UserProfilePublic() {
               </div>
             )}
 
-            <FavoriteGames games={stats.favoriteGames} />
+            {mesasEnabled && <FavoriteGames games={stats.favoriteGames} />}
 
             {stats.lastActivity && (
               <div className={styles.activityHint}>
@@ -274,6 +280,8 @@ export default function UserProfilePublic() {
 
           {/* Right: breakdown */}
           <div className={styles.rightCol}>
+            {mesasEnabled && (
+            <>
             <div className={styles.infoCard}>
               <div className={styles.sectionLabel}>MESAS COMO ANFITRIÓN</div>
               <div className={styles.breakdown}>
@@ -324,6 +332,8 @@ export default function UserProfilePublic() {
                   </div>
                 </div>
               </div>
+            )}
+            </>
             )}
 
             {profile.createdAt && (

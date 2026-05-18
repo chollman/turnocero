@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useSiteConfig } from '../../context/SiteConfigContext';
 import styles from './GuestSidebar.module.css';
 
 const ICONS = {
@@ -23,8 +24,8 @@ const ICONS = {
 };
 
 const NAV = [
-  { id: 'noticias',    label: 'Noticias',    to: '/noticias' },
-  { id: 'compartidas', label: 'Compartidas', to: '/compartidas' },
+  { id: 'noticias',    label: 'Noticias',    to: '/noticias',    section: 'noticias' },
+  { id: 'compartidas', label: 'Compartidas', to: '/compartidas', section: 'compartidas' },
 ];
 
 function getActiveId(pathname) {
@@ -36,7 +37,9 @@ function getActiveId(pathname) {
 
 export default function GuestSidebar() {
   const { pathname } = useLocation();
+  const { isSectionEnabled } = useSiteConfig();
   const active = getActiveId(pathname);
+  const visibleNav = NAV.filter(item => isSectionEnabled(item.section));
 
   return (
     <aside className={styles.sidebar}>
@@ -49,7 +52,7 @@ export default function GuestSidebar() {
       </Link>
 
       <nav className={styles.nav}>
-        {NAV.map((item) => (
+        {visibleNav.map((item) => (
           <Link
             key={item.id}
             to={item.to}

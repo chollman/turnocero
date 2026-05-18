@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useRef, useCallback } f
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
+import { useSiteConfig } from './SiteConfigContext';
 
 const NotificationContext = createContext(null);
 const makeToastId = () => `${Date.now()}-${Math.random()}`;
@@ -46,14 +47,50 @@ const pushToast = (prev, toast) => {
   return next.length > 4 ? next.slice(-4) : next;
 };
 
+// Mapea eventos socket → sección controlada. Permite filtrar al receptor cuando un admin
+// dispara una acción que el receptor (no-admin) no debería ver porque la sección está OFF.
+const EVENT_SECTION = {
+  'chat:notification': 'mesas',
+  'join:request':      'mesas',
+  'join:accepted':     'mesas',
+  'join:rejected':     'mesas',
+  'table:comment':     'mesas',
+  'table:image':       'mesas',
+  'table:spot-opened': 'mesas',
+  'table:cancelled':   'mesas',
+  'friend:request':    'amigos',
+  'friend:accepted':   'amigos',
+  'dm:message':        'dms',
+  'torneo:registration-accepted': 'torneos',
+  'torneo:registration-rejected': 'torneos',
+  'torneo:advanced':              'torneos',
+  'torneo:eliminated':            'torneos',
+  'torneo:started':               'torneos',
+  'torneo:finished':              'torneos',
+  'compartida:comment': 'compartidas',
+  'compartida:like':    'compartidas',
+  'noticia:published':  'noticias',
+};
+
 export function NotificationProvider({ children }) {
   const { user, refreshUser } = useAuth();
+  const { applyServerConfig, isSectionEnabled } = useSiteConfig();
   const [notifications, setNotifications] = useState([]);
   const [toasts, setToasts] = useState([]);
   const activeTableRef = useRef(null);
   const adminChatActiveRef = useRef(false);
   const dmListenersRef = useRef(new Set());
   const friendListenersRef = useRef(new Set());
+  const sectionCheckRef = useRef(isSectionEnabled);
+  useEffect(() => { sectionCheckRef.current = isSectionEnabled; }, [isSectionEnabled]);
+
+  // Wrap a socket handler with a section-enabled check. If the section is OFF for the
+  // current user (and they're not admin), drop the event silently (defense-in-depth).
+  const gated = (event, handler) => (payload) => {
+    const section = EVENT_SECTION[event];
+    if (section && !sectionCheckRef.current(section)) return;
+    handler(payload);
+  };
 
   // Load from server when user is available; reset entirely on logout
   useEffect(() => {
@@ -79,7 +116,7 @@ export function NotificationProvider({ children }) {
     const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
     const socket = io(socketUrl, { auth: { token }, transports: ['websocket'] });
 
-    socket.on('chat:notification', (notif) => {
+    socket.on('chat:notification', gated('chat:notification', (notif) => {
       if (activeTableRef.current === notif.tableId) return;
 
       setNotifications((prev) => {
@@ -95,9 +132,9 @@ export function NotificationProvider({ children }) {
       });
 
       setToasts((prev) => pushToast(prev, { type: 'chat', tableId: notif.tableId, tableName: notif.tableName, senderUsername: notif.senderUsername, messagePreview: notif.messagePreview }));
-    });
+    }));
 
-    socket.on('join:accepted', (notif) => {
+    socket.on('join:accepted', gated('join:accepted', (notif) => {
       if (activeTableRef.current === notif.tableId) return;
 
       setNotifications((prev) => {
@@ -106,9 +143,9 @@ export function NotificationProvider({ children }) {
       });
 
       setToasts((prev) => pushToast(prev, { type: 'join_accepted', tableId: notif.tableId, tableName: notif.tableName }));
-    });
+    }));
 
-    socket.on('table:comment', (notif) => {
+    socket.on('table:comment', gated('table:comment', (notif) => {
       if (activeTableRef.current === notif.tableId) return;
 
       setNotifications((prev) => {
@@ -124,9 +161,9 @@ export function NotificationProvider({ children }) {
       });
 
       setToasts((prev) => pushToast(prev, { type: 'comment', tableId: notif.tableId, tableName: notif.tableName, commenterUsername: notif.commenterUsername, commentPreview: notif.commentPreview }));
-    });
+    }));
 
-    socket.on('table:image', (notif) => {
+    socket.on('table:image', gated('table:image', (notif) => {
       if (activeTableRef.current === notif.tableId) return;
 
       setNotifications((prev) => {
@@ -142,9 +179,9 @@ export function NotificationProvider({ children }) {
       });
 
       setToasts((prev) => pushToast(prev, { type: 'image', tableId: notif.tableId, tableName: notif.tableName, uploaderUsername: notif.uploaderUsername }));
-    });
+    }));
 
-    socket.on('table:spot-opened', (notif) => {
+    socket.on('table:spot-opened', gated('table:spot-opened', (notif) => {
       if (activeTableRef.current === notif.tableId) return;
 
       setNotifications((prev) => {
@@ -153,9 +190,9 @@ export function NotificationProvider({ children }) {
       });
 
       setToasts((prev) => pushToast(prev, { type: 'spot_opened', tableId: notif.tableId, tableName: notif.tableName }));
-    });
+    }));
 
-    socket.on('join:request', (notif) => {
+    socket.on('join:request', gated('join:request', (notif) => {
       if (activeTableRef.current === notif.tableId) return;
 
       setNotifications((prev) => {
@@ -171,18 +208,18 @@ export function NotificationProvider({ children }) {
       });
 
       setToasts((prev) => pushToast(prev, { type: 'join_request', tableId: notif.tableId, tableName: notif.tableName, requesterUsername: notif.requesterUsername }));
-    });
+    }));
 
-    socket.on('friend:request', (notif) => {
+    socket.on('friend:request', gated('friend:request', (notif) => {
       setNotifications((prev) => {
         const existing = prev.find((n) => n.type === 'friend_request' && n.fromUserId === notif.fromUserId);
         if (existing) return prev;
         return [...prev, { type: 'friend_request', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername, count: 1, read: false, timestamp: new Date().toISOString() }];
       });
       setToasts((prev) => pushToast(prev, { type: 'friend_request', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername }));
-    });
+    }));
 
-    socket.on('friend:accepted', (notif) => {
+    socket.on('friend:accepted', gated('friend:accepted', (notif) => {
       setNotifications((prev) => {
         const existing = prev.find((n) => n.type === 'friend_accepted' && n.fromUserId === notif.fromUserId);
         if (existing) return prev;
@@ -191,9 +228,9 @@ export function NotificationProvider({ children }) {
       setToasts((prev) => pushToast(prev, { type: 'friend_accepted', fromUserId: notif.fromUserId, fromUsername: notif.fromUsername }));
       refreshUser().catch(() => {});
       friendListenersRef.current.forEach((fn) => fn());
-    });
+    }));
 
-    socket.on('dm:message', (msg) => {
+    socket.on('dm:message', gated('dm:message', (msg) => {
       const fromId = (msg.from?._id || msg.from || '').toString();
       const fromUsername = msg.from?.username || '?';
       const preview = (msg.content || '').slice(0, 60);
@@ -211,7 +248,7 @@ export function NotificationProvider({ children }) {
       });
 
       dmListenersRef.current.forEach((fn) => fn(msg));
-    });
+    }));
 
     socket.on('admin:message', (msg) => {
       const senderUsername = msg.from?.username || '?';
@@ -259,14 +296,14 @@ export function NotificationProvider({ children }) {
       }));
     };
 
-    socket.on('torneo:registration-accepted', handleTorneoEvent('tournament_accepted'));
-    socket.on('torneo:registration-rejected', handleTorneoEvent('tournament_rejected'));
-    socket.on('torneo:advanced',              handleTorneoEvent('tournament_advanced'));
-    socket.on('torneo:eliminated',            handleTorneoEvent('tournament_eliminated'));
-    socket.on('torneo:started',               handleTorneoEvent('tournament_started'));
-    socket.on('torneo:finished',              handleTorneoEvent('tournament_finished'));
+    socket.on('torneo:registration-accepted', gated('torneo:registration-accepted', handleTorneoEvent('tournament_accepted')));
+    socket.on('torneo:registration-rejected', gated('torneo:registration-rejected', handleTorneoEvent('tournament_rejected')));
+    socket.on('torneo:advanced',              gated('torneo:advanced',              handleTorneoEvent('tournament_advanced')));
+    socket.on('torneo:eliminated',            gated('torneo:eliminated',            handleTorneoEvent('tournament_eliminated')));
+    socket.on('torneo:started',               gated('torneo:started',               handleTorneoEvent('tournament_started')));
+    socket.on('torneo:finished',              gated('torneo:finished',              handleTorneoEvent('tournament_finished')));
 
-    socket.on('compartida:comment', (notif) => {
+    socket.on('compartida:comment', gated('compartida:comment', (notif) => {
       setNotifications((prev) => {
         const existing = prev.find((n) => n.type === 'compartida_comment' && n.compartidaId === notif.compartidaId);
         if (existing) {
@@ -279,9 +316,9 @@ export function NotificationProvider({ children }) {
         return [...prev, { type: 'compartida_comment', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, count: 1, read: false, lastCommenterUsername: notif.commenterUsername, lastCommentPreview: notif.commentPreview, timestamp: notif.timestamp }];
       });
       setToasts((prev) => pushToast(prev, { type: 'compartida_comment', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, commenterUsername: notif.commenterUsername, commentPreview: notif.commentPreview }));
-    });
+    }));
 
-    socket.on('compartida:like', (notif) => {
+    socket.on('compartida:like', gated('compartida:like', (notif) => {
       setNotifications((prev) => {
         const existing = prev.find((n) => n.type === 'compartida_like' && n.compartidaId === notif.compartidaId);
         if (existing) {
@@ -294,26 +331,30 @@ export function NotificationProvider({ children }) {
         return [...prev, { type: 'compartida_like', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, count: 1, read: false, lastSenderUsername: notif.fromUsername, timestamp: notif.timestamp }];
       });
       setToasts((prev) => pushToast(prev, { type: 'compartida_like', compartidaId: notif.compartidaId, compartidaTitle: notif.compartidaTitle, fromUsername: notif.fromUsername }));
-    });
+    }));
 
-    socket.on('table:cancelled', (notif) => {
+    socket.on('table:cancelled', gated('table:cancelled', (notif) => {
       setNotifications((prev) => {
         const rest = prev.filter((n) => !(n.type === 'table_cancelled' && n.tableId === notif.tableId));
         return [...rest, { type: 'table_cancelled', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, timestamp: notif.timestamp }];
       });
       setToasts((prev) => pushToast(prev, { type: 'table_cancelled', tableId: notif.tableId, tableName: notif.tableName }));
-    });
+    }));
 
-    socket.on('join:rejected', (notif) => {
+    socket.on('join:rejected', gated('join:rejected', (notif) => {
       setNotifications((prev) => {
         const rest = prev.filter((n) => !(n.type === 'join_rejected' && n.tableId === notif.tableId));
         return [...rest, { type: 'join_rejected', tableId: notif.tableId, tableName: notif.tableName, count: 1, read: false, timestamp: notif.timestamp }];
       });
       setToasts((prev) => pushToast(prev, { type: 'join_rejected', tableId: notif.tableId, tableName: notif.tableName }));
-    });
+    }));
 
-    socket.on('noticia:published', (notif) => {
+    socket.on('noticia:published', gated('noticia:published', (notif) => {
       setToasts((prev) => pushToast(prev, { type: 'noticia', noticiaId: notif.noticiaId, title: notif.title }));
+    }));
+
+    socket.on('site-config:updated', (config) => {
+      applyServerConfig(config);
     });
 
     return () => socket.disconnect();

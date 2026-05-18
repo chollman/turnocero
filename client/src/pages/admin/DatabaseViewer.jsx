@@ -218,7 +218,9 @@ function DatabaseViewerInner() {
 }
 
 export default function DatabaseViewer() {
-  const { user } = useAuth();
-  if (!user?.isAdmin) return <Navigate to="/" replace />;
+  // intentionally use isActuallyAdmin (not user.isAdmin) so the page stays accessible
+  // when an admin previews the site as a regular user.
+  const { isActuallyAdmin } = useAuth();
+  if (!isActuallyAdmin) return <Navigate to="/" replace />;
   return <DatabaseViewerInner />;
 }

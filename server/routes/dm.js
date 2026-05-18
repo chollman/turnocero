@@ -6,7 +6,10 @@ const DirectMessage = require('../models/DirectMessage');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const { requireSection } = require('../middleware/sectionGate');
 const saveNotification = require('../utils/saveNotification');
+
+router.use(requireSection('dms'));
 
 // GET /api/dm — list of conversations (latest message per contact + unread count)
 router.get('/', protect, async (req, res) => {

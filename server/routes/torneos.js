@@ -9,7 +9,10 @@ const TorneoGroup = require('../models/TorneoGroup');
 const TorneoGame = require('../models/TorneoGame');
 const User = require('../models/User');
 const { protect, requireAdmin, optionalAuth } = require('../middleware/auth');
+const { requireSection } = require('../middleware/sectionGate');
 const saveNotification = require('../utils/saveNotification');
+
+router.use(requireSection('torneos'));
 const {
   generateLeagueFixture,
   generateSingleElimBracket,

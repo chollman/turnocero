@@ -13,7 +13,9 @@ function formatTime(date) {
 }
 
 export default function AdminChat() {
-  const { user } = useAuth();
+  // Use isActuallyAdmin so admins can still chat with each other while previewing
+  // the site as a regular user.
+  const { user, isActuallyAdmin } = useAuth();
   const { setAdminChatActive } = useNotifications();
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
@@ -23,8 +25,8 @@ export default function AdminChat() {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    if (user && !user.isAdmin) navigate('/', { replace: true });
-  }, [user, navigate]);
+    if (user && !isActuallyAdmin) navigate('/', { replace: true });
+  }, [user, isActuallyAdmin, navigate]);
 
   useEffect(() => {
     setAdminChatActive(true);
@@ -32,7 +34,7 @@ export default function AdminChat() {
   }, [setAdminChatActive]);
 
   useEffect(() => {
-    if (!user?.isAdmin) return;
+    if (!isActuallyAdmin) return;
     axios.get('/api/admin-chat')
       .then(({ data }) => setMessages(data))
       .catch(() => {});
@@ -47,7 +49,7 @@ export default function AdminChat() {
     });
 
     return () => socket.disconnect();
-  }, [user?.isAdmin]);
+  }, [isActuallyAdmin]);
 
   useEffect(() => {
     if (messageListRef.current) {

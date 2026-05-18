@@ -7,7 +7,10 @@ const CompartidaComment = require('../models/CompartidaComment');
 const User = require('../models/User');
 const Table = require('../models/Table');
 const { protect, optionalAuth } = require('../middleware/auth');
+const { requireSection } = require('../middleware/sectionGate');
 const saveNotification = require('../utils/saveNotification');
+
+router.use(requireSection('compartidas'));
 
 const parsePagination = (query) => {
   const page = Math.max(1, parseInt(query.page) || 1);

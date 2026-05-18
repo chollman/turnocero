@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { useSiteConfig } from "../../context/SiteConfigContext";
 import styles from "./Sidebar.module.css";
 
 const ICONS = {
@@ -222,16 +223,37 @@ const ICONS = {
       <line x1="8" y1="12" x2="16" y2="12" />
     </svg>
   ),
+  panel: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="4" y1="21" x2="4" y2="14" />
+      <line x1="4" y1="10" x2="4" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12" y2="3" />
+      <line x1="20" y1="21" x2="20" y2="16" />
+      <line x1="20" y1="12" x2="20" y2="3" />
+      <line x1="1" y1="14" x2="7" y2="14" />
+      <line x1="9" y1="8" x2="15" y2="8" />
+      <line x1="17" y1="16" x2="23" y2="16" />
+    </svg>
+  ),
 };
 
 const NAV = [
-  { id: "compartidas", label: "Compartite", to: "/compartidas" },
-  { id: "noticias", label: "Noticias", to: "/noticias" },
-  { id: "eventos", label: "Eventos", to: "/eventos" },
-  { id: "users", label: "Comunidad", to: "/usuarios" },
-  { id: "torneos", label: "Torneos", to: "/torneos", adminOnly: true },
-  { id: "dash", label: "Mesas", to: "/mesas", adminOnly: true },
-  { id: "feed", label: "Mi feed", to: "/mi", adminOnly: true },
+  { id: "compartidas", label: "Compartite", to: "/compartidas", section: "compartidas" },
+  { id: "noticias", label: "Noticias", to: "/noticias", section: "noticias" },
+  { id: "eventos", label: "Eventos", to: "/eventos", section: "eventos" },
+  { id: "users", label: "Comunidad", to: "/usuarios", section: "comunidad" },
+  { id: "torneos", label: "Torneos", to: "/torneos", section: "torneos" },
+  { id: "dash", label: "Mesas", to: "/mesas", section: "mesas" },
+  { id: "feed", label: "Mi feed", to: "/mi", section: "miFeed" },
+  { id: "panel", label: "Panel admin", to: "/panel-admin", adminOnly: true },
   { id: "db", label: "Base de datos", to: "/base-de-datos", adminOnly: true },
   {
     id: "adminChat",
@@ -243,6 +265,7 @@ const NAV = [
 
 function getActiveId(pathname) {
   if (pathname === "/mi") return "feed";
+  if (pathname.startsWith("/panel-admin")) return "panel";
   if (pathname.startsWith("/mesas")) return "dash";
   if (pathname.startsWith("/noticias")) return "noticias";
   if (pathname.startsWith("/torneos")) return "torneos";
@@ -263,12 +286,23 @@ function getActiveId(pathname) {
 }
 
 export default function Sidebar() {
-  const { user, logout } = useAuth();
+  const { user, isActuallyAdmin, logout } = useAuth();
   const { unreadCount, adminChatUnread } = useNotifications();
+  const { isSectionEnabled } = useSiteConfig();
   const location = useLocation();
   const navigate = useNavigate();
   const active = getActiveId(location.pathname);
   const [confirmingLogout, setConfirmingLogout] = useState(false);
+
+  // adminOnly items (Panel admin, Base de datos, Chat admin) always show to real admins,
+  // independent of viewAsUser — they are structural admin tooling, not content sections.
+  const isItemVisible = (item) => {
+    if (item.adminOnly) return isActuallyAdmin;
+    if (item.section) return isSectionEnabled(item.section);
+    return true;
+  };
+  const visibleRegular = NAV.filter(item => !item.adminOnly && isItemVisible(item));
+  const visibleAdminOnly = NAV.filter(item => item.adminOnly && isItemVisible(item));
 
   const handleLogoutConfirm = () => {
     logout();
@@ -342,9 +376,9 @@ export default function Sidebar() {
       </div>
 
       <nav className={styles.nav}>
-        {NAV.filter((item) => !item.adminOnly).map(renderNavItem)}
+        {visibleRegular.map(renderNavItem)}
 
-        {user?.bggUsername
+        {isSectionEnabled('bgwatch') && (user?.bggUsername
           ? renderNavItem({
               id: "bgwatch",
               label: "BG Watch",
@@ -355,12 +389,12 @@ export default function Sidebar() {
               label: "Activá BG Watch",
               to: "/bg-watch",
               variant: "promo",
-            })}
+            }))}
 
-        {user?.isAdmin && (
+        {visibleAdminOnly.length > 0 && (
           <>
             <div className={styles.navDivider} />
-            {NAV.filter((item) => item.adminOnly).map(renderNavItem)}
+            {visibleAdminOnly.map(renderNavItem)}
           </>
         )}
       </nav>

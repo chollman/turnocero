@@ -1,8 +1,10 @@
 ---
 name: padding-system
-description: CSS variables for page padding — values, where defined, and how each page type uses them
-metadata:
+description: "CSS variables for page padding — values, where defined, and how each page type uses them"
+metadata: 
+  node_type: memory
   type: project
+  originSessionId: c105802a-014b-47dd-b456-9527cfc0eaa0
 ---
 
 ## Page padding system (standardized May 2026)
@@ -58,7 +60,8 @@ The `appFrame` overlay has `border: 0.75rem solid var(--bg-card)` with `border-l
 - `--navbar-h` top padding on mobile is **structural** (offsets fixed navbar) — never replace it with `--page-padding-mobile`
 - Full-width banners (UserProfilePublic, TableDetail) live on `.page` with no horizontal padding; horizontal padding stays on `.inner`/`.container`
 - On desktop (≥960px), top padding uses `var(--page-padding)` not `var(--navbar-h)` (navbar is not fixed on desktop)
+- **Pages must fill the available width** — the sidebar already reserves its space, so the content area should expand into the rest. **Never put `max-width` + `margin: 0 auto` on `.page`, `.inner`, `.layout`, or `.container`**. The only exception is in-content elements that need a reading-width cap (e.g. a long-form article body), and those are styled inside child elements, not on the page wrapper. Caught: PanelAdmin originally shipped with `max-width: 980px` and looked narrow on wide screens — fixed by removing the cap.
 
-**Why:** All screens had inconsistent hardcoded paddings (16px, 24px, 28px, 4rem, etc.). Single source of truth makes global spacing changes a one-line edit.
+**Why:** All screens had inconsistent hardcoded paddings (16px, 24px, 28px, 4rem, etc.). Single source of truth makes global spacing changes a one-line edit. Full-width also keeps the visual rhythm with the rest of the app.
 
-**How to apply:** Every new page must use these variables. Never hardcode pixel padding values on `.page`, `.inner`, `.layout`, or `.container`.
+**How to apply:** Every new page must use these variables. Never hardcode pixel padding values on `.page`, `.inner`, `.layout`, or `.container`, and never cap their width.

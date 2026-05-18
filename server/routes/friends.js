@@ -3,7 +3,10 @@ const router = express.Router();
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { protect } = require('../middleware/auth');
+const { requireSection } = require('../middleware/sectionGate');
 const saveNotification = require('../utils/saveNotification');
+
+router.use(requireSection('amigos'));
 
 // POST /api/friends/:id/request — send friend request
 router.post('/:id/request', protect, async (req, res) => {

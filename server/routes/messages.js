@@ -4,7 +4,10 @@ const { body, validationResult } = require('express-validator');
 const Message = require('../models/Message');
 const Table = require('../models/Table');
 const { protect } = require('../middleware/auth');
+const { requireSection } = require('../middleware/sectionGate');
 const saveNotification = require('../utils/saveNotification');
+
+router.use(requireSection('mesas'));
 
 const isParticipant = (table, userId) => {
   const id = userId.toString();

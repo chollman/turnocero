@@ -14,7 +14,9 @@ Crear un panel admin que permita prender/apagar secciones del app (Mesas, Compar
 ## Decisiones tomadas
 
 - **Storage**: singleton `SiteConfig` en MongoDB.
-- **Secciones**: las 4 principales + sociales (Amigos, DMs, Admin Chat) + BG Watch + Utilidades.
+- **Secciones toggleables**: `mesas`, `compartidas`, `noticias`, `torneos`, `eventos`, `comunidad`, `miFeed`, `amigos`, `dms`, `bgwatch`, `utilidades`.
+- **NO toggleables (siempre admin-only intrínseco)**: Base de datos, Chat Admin, el propio Panel Admin.
+- **Defaults** (preservan comportamiento actual hardcodeado): `mesas`, `torneos`, `miFeed` → `false`. Resto → `true`.
 - **Notif legacy**: bloquear nuevas, dejar las viejas.
 - **View as user**: SÍ respeta los toggles client-side. Admin con `viewAsUser` ON ve lo mismo que un no-admin. El gating server-side sigue tratando al admin como admin (igual que el patrón actual de view-as-user, que es filtrado client-side).
 
