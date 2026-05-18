@@ -499,7 +499,7 @@ User profile flow:
 - `npm run test:coverage` → coverage reports in both `server/coverage/` and `client/coverage/`
 - `npm run test:server` / `npm run test:client` to run just one side
 
-**Current coverage** (2026-05-18, tenth session): server ~40% lines (utilities ~80%, routes 20-90%); client **60.84% lines / 57.97% statements** (utils 98%, shared/admin ~80-100%, **torneos components ~90%+**, **BG Watch panels 63%+** + CreatePlayModal cubierto, **admin pages 100%** (PanelAdmin + DatabaseViewer), **utilidades 100%** (UtilCard + Utilidades + Dado + Temporizador + FingerSelector), MiBgWatchCard + BgWatchUserCard cubiertos, auth pages ~89%, me/messages ~88-91%). **Total 792 tests** (193 server + 599 client). Plan and rollout tracked in [plans/testing-infrastructure.md](plans/testing-infrastructure.md).
+**Current coverage** (2026-05-18, eleventh session): server ~40% lines (utilities ~80%, routes 20-90%); client **64.06% lines / 61.02% statements** (utils 98%, shared/admin ~80-100%, **torneos components ~90%+**, **BG Watch panels 63%+** + CreatePlayModal, admin pages 100%, utilidades 100%, **layout components 80%+** (ToastContainer, SplashScreen, BoardGameBackground, GuestNavbar, PageTransition), **ChatWindowManager + CompartidasSidebar + BgWatchHomeWidget + EventoCard 100%**, auth pages ~89%, me/messages ~88-91%). **Total 851 tests** (193 server + 658 client). Plan and rollout tracked in [plans/testing-infrastructure.md](plans/testing-infrastructure.md).
 
 **Layout — server** (`server/`):
 - `tests/setup.js` — connects `MongoMemoryServer`, sets `JWT_SECRET` + `BGG_CREDS_KEY` test env vars, clears all collections between tests.
