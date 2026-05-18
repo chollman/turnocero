@@ -1,11 +1,17 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import Sidebar from './Sidebar';
 
+const navigateMock = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return { ...actual, useNavigate: () => navigateMock };
+});
 vi.mock('../../context/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../../context/NotificationContext', () => ({ useNotifications: vi.fn() }));
 vi.mock('../../context/SiteConfigContext', () => ({ useSiteConfig: vi.fn() }));
+
+import Sidebar from './Sidebar';
 
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
@@ -91,5 +97,33 @@ describe('<Sidebar>', () => {
     setup({ isActuallyAdmin: true, adminChatUnread: 3 });
     // The badge text "3" should be in DOM (next to the chat-admin nav item).
     expect(screen.getAllByText('3').length).toBeGreaterThan(0);
+  });
+
+  it('clicking the notifications bell navigates to /notificaciones', () => {
+    navigateMock.mockReset();
+    setup();
+    fireEvent.click(screen.getByLabelText('Notificaciones'));
+    expect(navigateMock).toHaveBeenCalledWith('/notificaciones');
+  });
+
+  it('logout flow: shows confirmation, "Sí" calls logout + navigates to /login', () => {
+    const logout = vi.fn();
+    navigateMock.mockReset();
+    setup({ logout });
+    fireEvent.click(screen.getByTitle('Cerrar sesión'));
+    expect(screen.getByText('¿Cerrar sesión?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+    expect(logout).toHaveBeenCalled();
+    expect(navigateMock).toHaveBeenCalledWith('/login');
+  });
+
+  it('logout flow: clicking "No" cancels the confirmation', () => {
+    const logout = vi.fn();
+    setup({ logout });
+    fireEvent.click(screen.getByTitle('Cerrar sesión'));
+    expect(screen.getByText('¿Cerrar sesión?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'No' }));
+    expect(screen.queryByText('¿Cerrar sesión?')).not.toBeInTheDocument();
+    expect(logout).not.toHaveBeenCalled();
   });
 });

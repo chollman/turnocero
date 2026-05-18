@@ -8,21 +8,21 @@
 | 2. Server unit tests | ✅ Done | 8 archivos, ~50 tests, utils cubiertas ~80% |
 | 3. Server integration tests | ✅ Done | 9 suites, ~140 tests, routes ~40% promedio |
 | 4. Client unit tests | ✅ Done | 5 archivos, ~50 tests, `src/utils/` cubierto ~98% |
-| 5. Client component tests | 🟢 Near complete | 97 archivos cubiertos (658 tests); **64% line coverage alcanzado**; layout + chat + widgets + cards cubiertos |
+| 5. Client component tests | 🟢 Near complete | 100 archivos cubiertos (687 tests); **67% line coverage alcanzado**; contexts (Theme/SiteConfig/Auth) cubiertos |
 | 6. Cierre | ✅ Done | Root scripts, coverage gitignored, CLAUDE.md actualizado |
 
-**Totales actuales** (post-undécima sesión, 2026-05-18):
+**Totales actuales** (post-duodécima sesión, 2026-05-18):
 - Server: **193 tests** pasando, line coverage **~40%** (utilities 80%+, routes varían 20-90%)
-- Client: **658 tests** pasando, line coverage **64.06%** / statements 61.02% (utils 98%, shared/admin 80-100%, torneos components ~90%+, BG Watch panels 63%+, admin pages 100%, utilidades 100%, **layout components 80%+** (ToastContainer, SplashScreen, BoardGameBackground, GuestNavbar, PageTransition cubiertos), **ChatWindowManager 100%**, **CompartidasSidebar 100%**, **BgWatchHomeWidget 100%**, **EventoCard 100%**)
-- **Total: 851 tests pasando** (97 archivos client + 18 server)
+- Client: **687 tests** pasando, line coverage **67%** / statements 63.85% (utils 98%, shared/admin 80-100%, torneos components ~90%+, BG Watch panels 63%+, admin pages 100%, utilidades 100%, layout components 80%+, widgets/cards 100%, **ThemeContext + SiteConfigContext + AuthContext cubiertos** (8 + 7 + 11 tests), Sidebar logout flow añadido)
+- **Total: 880 tests pasando** (100 archivos client + 18 server)
 
 **Falta para llegar a la meta (70-80% global)**:
-- `TableDetail` (~1000 líneas, ~40% cubierto) — sigue siendo el de mayor superficie
+- `TableDetail` (~1000 líneas, ~40% cubierto) — sigue siendo el de mayor superficie sin cubrir
 - `CompartidaCard` (~38%), `TableCard` (~57%) — branches profundas no probadas
-- Context files (`AuthContext`, `ChatContext`, `NotificationContext`, `SiteConfigContext`, `ThemeContext`) — 0-23% individualmente, pero usados por todo lo demás
-- BG Watch landing pages, Skeletons varios (poco impacto)
+- `ChatContext` + `NotificationContext` — complejos por sockets, posibles para tanda siguiente
+- Skeletons varios (poco impacto)
 
-Estimado ~½ día más para llegar a 70%. El path crítico es TableDetail + context files.
+Estimado ~½ día más para llegar a 70-75%. El path crítico es TableDetail + ChatContext.
 
 **Cobertura por área**:
 - `src/utils/` 98% (todo cubierto excepto trazas)
