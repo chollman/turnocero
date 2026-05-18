@@ -499,7 +499,7 @@ User profile flow:
 - `npm run test:coverage` → coverage reports in both `server/coverage/` and `client/coverage/`
 - `npm run test:server` / `npm run test:client` to run just one side
 
-**Current coverage** (2026-05, seventh session): server ~40% lines (utilities ~80%, routes 20-90%); client ~46.4% lines (utils 98%, shared/admin ~80-100%, **torneos components ~90%+**, auth pages ~65%, layout nav ~55%, list + detail pages 40-70%, formularios principales 50-70%, chat ~50%; BgWatchProfile/PerGameView + FingerSelector + CreateEvento/EditTorneo still pending). **Total 649 tests** (193 server + 456 client). Plan and rollout tracked in [plans/testing-infrastructure.md](plans/testing-infrastructure.md).
+**Current coverage** (2026-05-18, eighth session): server ~40% lines (utilities ~80%, routes 20-90%); client **52.34% lines / 49.36% statements** (utils 98%, shared/admin ~80-100%, **torneos components ~90%+**, auth pages ~89%, me/messages ~88-91%, BG Watch landing pages 21-49%, utilidades 77%, EditTorneo 81%, FeedCard 100%, ImageDropzone 91%). **Total 682 tests** (193 server + 489 client). Plan and rollout tracked in [plans/testing-infrastructure.md](plans/testing-infrastructure.md).
 
 **Layout — server** (`server/`):
 - `tests/setup.js` — connects `MongoMemoryServer`, sets `JWT_SECRET` + `BGG_CREDS_KEY` test env vars, clears all collections between tests.

@@ -8,28 +8,23 @@
 | 2. Server unit tests | ✅ Done | 8 archivos, ~50 tests, utils cubiertas ~80% |
 | 3. Server integration tests | ✅ Done | 9 suites, ~140 tests, routes ~40% promedio |
 | 4. Client unit tests | ✅ Done | 5 archivos, ~50 tests, `src/utils/` cubierto ~98% |
-| 5. Client component tests | 🟡 In progress | 68 archivos cubiertos (~456 tests); **todos los componentes de torneos cubiertos** (15 archivos en `pages/torneos/components/`); BgWatchProfile/PerGameView + FingerSelector + EditTorneo + CreateEvento pendientes |
+| 5. Client component tests | 🟡 In progress | 74 archivos cubiertos (489 tests); **torneos components 100%, formularios principales 60-90%, BG Watch + FingerSelector cubiertos**; pendientes los más profundos (TableDetail, BgWatch panels internos) |
 | 6. Cierre | ✅ Done | Root scripts, coverage gitignored, CLAUDE.md actualizado |
 
-**Totales actuales** (post-séptima sesión, 2026-05):
+**Totales actuales** (post-octava sesión, 2026-05-18):
 - Server: **193 tests** pasando, line coverage **~40%** (utilities 80%+, routes varían 20-90%)
-- Client: **456 tests** pasando, line coverage **~46.4%** (utils 98%, shared/admin 80-100%, **torneos components ~90%+**, list + detail pages 40-70%, formularios principales 50-70%, chat 50%+)
-- **Total: 649 tests pasando** (68 archivos client + 18 server)
+- Client: **489 tests** pasando, line coverage **52.34%** / statements 49.36% (utils 98%, shared/admin 80-100%, torneos components ~90%+, auth pages ~89%, eventos ~40%, BG Watch landing/perfil 21-30%, FingerSelector 76%)
+- **Total: 682 tests pasando** (74 archivos client + 18 server)
 
 **Falta para llegar a la meta (70-80% global)**:
-- BG Watch páginas: `BgWatchProfile`, `BgWatchPerGameView` (~600 líneas cada una)
-- `FingerSelector` (touch events complejos)
-- `CreateEvento`, `EditTorneo` (similares a otros forms ya cubiertos)
-- `ImageDropzone` (componente shared en `torneos/components/`)
-- `MeFeed/FeedCard` (cubierto MeFeed, FeedCard no)
-- `NoticiaCard` (embebido en Noticias.jsx, cubierto transitivamente)
+- `TableDetail` (~1000 líneas, parcialmente cubierto) — sigue siendo el de mayor superficie sin cubrir
+- BG Watch panels internos (`PartidasPanel`, `ColeccionPanel`, `PlayCard`, `PlayDetailModal`, `CreatePlayModal`, `Pagination`) — 0% individual aunque las páginas que los usan están cubiertas
+- `Sidebar`, `BottomNav`, `GuestSidebar`, `GuestBottomNav`, `Navbar` — layout components (parcialmente cubiertos)
+- `CompartidaCard` (~40%), `TableCard` (~57%) — branches profundas no probadas
+- Admin pages: `DatabaseViewer`, `PanelAdmin` — 0%
 - Skeletons varios (poco impacto en coverage real)
-- Formularios: `CreateEvento` (similar a Eventos.jsx ya cubierto), `EditTorneo` (similar a EditTable)
-- `NoticiaCard` (embebido en Noticias.jsx — cubierto indirectamente)
-- `MeFeed` + `FeedCard`
-- Skeletons varios
 
-Estimado ~1-2 días para llegar a 70%. Todos los componentes restantes son tests pasivos (renderizar + assertar render).
+Estimado ~1 día más para llegar a 60%+. Todos los componentes restantes son tests pasivos.
 
 **Cobertura por área**:
 - `src/utils/` 98% (todo cubierto excepto trazas)
