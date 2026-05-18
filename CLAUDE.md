@@ -32,26 +32,27 @@ After that, Claude will read and write memories directly from the repo folder.
 
 ## Project Overview
 
-**Turnocero** is a full-stack web app for the Argentine board-game community. Core feature: organize *mesas* (game sessions) — create, join, chat, and manage them. Additional features: *Compartidas* (social posts about sessions), *Noticias* (admin news/announcements), *Torneos* (admin-managed tournaments — league and single-elimination), a friends system, direct messages between friends, and public browsing without login. The UI and all user-facing content are in **Argentine Spanish**. The app is deployed as a **PWA** (vite-plugin-pwa; assets in `client/public/`).
+**Turnocero** is a full-stack web app for the Argentine board-game community. Core feature: organize *mesas* (game sessions) — create, join, chat, and manage them. Additional features: *Compartidas* (social posts about sessions), *Noticias* (admin news/announcements), *Torneos* (admin-managed tournaments — league, single-elimination, and multi-table groups), *Eventos* (paid events with admin-confirmed registrations), a friends system, direct messages between friends, *Utilidades* (small tabletop tools), and public browsing without login. The UI and all user-facing content are in **Argentine Spanish**. The app is deployed as a **PWA** (vite-plugin-pwa; assets in `client/public/`).
 
 ## Development Commands
 
-Run both servers in separate terminals:
-
 ```bash
-# From repo root
-npm run dev:server    # Express backend on port 4000 (nodemon)
-npm run dev:client    # Vite frontend on port 3000
-
 # First-time setup
 npm run install:all   # Installs both server and client deps
+
+# Run both servers in one terminal (concurrently, color-prefixed)
+npm run dev
+
+# Or in separate terminals
+npm run dev:server    # Express backend on port 4000 (nodemon)
+npm run dev:client    # Vite frontend on port 3000
 ```
 
-No test commands are configured. ESLint runs as a pre-commit hook via the `/react-review` skill.
+No test commands are configured. ESLint runs as a pre-commit hook via the `/react-review` skill; the flat config lives in `client/eslint.config.js` (extending `eslint.shared.cjs` at the repo root).
 
 ## Frontend routing
 
-All client-side routes **must use Spanish slugs**. Examples: `/mesas`, `/mesas/crear`, `/mesas/:id/editar`, `/compartidas`, `/noticias`, `/torneos`, `/torneos/crear`, `/torneos/:id/editar`, `/perfil`, `/usuarios`, `/notificaciones`, `/mi`, `/mensajes`, `/base-de-datos`. The only exceptions are `/login` and `/register`.
+All client-side routes **must use Spanish slugs**. Examples: `/mesas`, `/mesas/crear`, `/mesas/:id/editar`, `/compartidas`, `/noticias`, `/torneos`, `/torneos/crear`, `/torneos/:id/editar`, `/eventos`, `/eventos/:id`, `/eventos/:id/inscripciones`, `/perfil`, `/usuarios`, `/notificaciones`, `/mi`, `/mensajes`, `/utilidades`, `/utilidades/dado`, `/utilidades/temporizador`, `/utilidades/selector-de-dedos`, `/base-de-datos`, `/panel-admin`, `/verificar-email`, `/recuperar-contrasenia`, `/restablecer-contrasenia`. The only English exceptions are `/login` and `/register`.
 
 ## Git conventions
 
@@ -125,6 +126,25 @@ Notifications: 5 non-aggregating types — `tournament_accepted`, `tournament_re
 
 Drafts are visible only to admins (filtered server-side; 404 in detail for non-admins). Users see only `registration` / `in_progress` / `finished`. When `inscriptionMode === 'admin_only'`, `registration` status renders as "Inscripción cerrada" in the card.
 
+### Eventos
+Admin-managed paid (or free) one-off events with manual registration confirmation. `Evento` model: `title`, `description`, `conditions`, `fee` (number, 0 = free), `transferDetails`, `eventDate`, `location`, `maxParticipants`, `image` (Cloudinary, `turnocero/eventos/`), `status` (`draft` | `open` | `closed` | `cancelled`), `author`, and an embedded `registrations` array.
+
+Each registration: `{ user, status: 'pending' | 'confirmed' | 'rejected', submittedAt, reviewedAt, reviewedBy, adminNotes, comprobante: { url, publicId, resourceType ('image' | 'raw' for PDF), uploadedAt } }`. The `comprobante` is a payment receipt the user uploads when they self-register; admins review and confirm/reject via `PATCH /api/eventos/:id/inscripciones/:userId/confirmar|rechazar`. Comprobantes accept images and PDFs (PDFs are stored as Cloudinary `resource_type: 'raw'`).
+
+### Utilidades
+Small standalone tabletop tools, intentionally **forced-dark** regardless of the active theme (they ignore `data-theme`): `/utilidades/dado` (dice roller), `/utilidades/temporizador` (timer), `/utilidades/selector-de-dedos` (touch-finger random picker). The hub `/utilidades` lists them via `UtilCard`. Keep this dark-mood convention for any new immersive tool screens.
+
+### Panel Admin and SiteConfig (section toggles)
+`SiteConfig` is a single MongoDB document (`_id: 'singleton'`) that controls which top-level sections are enabled site-wide. Section keys: `mesas`, `compartidas`, `noticias`, `torneos`, `eventos`, `comunidad`, `miFeed`, `amigos`, `dms`, `bgwatch`, `utilidades`. Defaults preserve historical hardcoded admin-only-ness for `mesas`, `torneos`, and `miFeed` (default `enabled: false`); all others default `true`. Admins flip toggles in `/panel-admin`; server enforces via `requireSection` middleware, client gates via `<SectionGate section="...">` (see [`App.jsx`](client/src/App.jsx)). When you add a new top-level feature, plumb it through `SECTION_KEYS`, the route guard, and the panel — see `feedback_panel_admin_toggles.md`.
+
+`SiteConfigContext` loads the config once on app boot and exposes `isSectionEnabled(key)`. Routes wrapped in `<SectionGate>` redirect/hide for disabled sections; admins always see disabled sections (with a banner) unless they enable "view as user".
+
+### Admin "view as user" mode
+`AuthContext` exposes both `isActuallyAdmin` (real DB flag) and the effective `user.isAdmin` (which an admin can suppress via the `AdminViewToggle`). Use `isActuallyAdmin` only for structural admin pages that must stay reachable even when previewing (`/panel-admin`, `/base-de-datos`, `/mensajes-admin`); for everything else (UI, conditionals, server-fetched data filters), respect the effective `user.isAdmin` so the preview is faithful. See `feedback_admin_view_as_user.md`.
+
+### Email verification & password reset
+Registration creates the user in an unverified state and emails a 6-digit code (in dev, the code is also logged to the server console — see commit 92013cf). Routes: `POST /api/auth/verify-email` (with code), `POST /api/auth/resend-verification` (rate-limited via `emailLimiter`), `POST /api/auth/forgot-password` (emails reset link), `POST /api/auth/reset-password` (with token). Frontend pages: `/verificar-email`, `/recuperar-contrasenia`, `/restablecer-contrasenia` (all `PublicRoute`).
+
 ### Friends system
 Stored on the `User` model: `friends: [ObjectId]` and `friendRequests: [{ from, sentAt }]`. Managed via `/api/friends/:id/request|accept|reject` and `DELETE /api/friends/:id`. The friends list gates `'friends'`-privacy Compartidas and DM access.
 
@@ -168,7 +188,11 @@ Owns the Socket.IO connection for the authenticated user. On mount, loads persis
 
 ### Key API endpoints
 ```
-POST   /api/auth/register|login
+POST   /api/auth/register|login                 — rate-limited (authLimiter)
+POST   /api/auth/verify-email                   — confirm with 6-digit code
+POST   /api/auth/resend-verification             — rate-limited (emailLimiter)
+POST   /api/auth/forgot-password                — emails reset link (rate-limited)
+POST   /api/auth/reset-password                 — confirm with token
 POST   /api/auth/logout
 GET    /api/auth/me
 PUT    /api/auth/profile                        — update displayName, nombre, apellido, direccion, telegram, celular, bggUsername
@@ -251,6 +275,20 @@ PATCH  /api/torneos/:id/groups/:groupId/advanced  — admin only (edit advancedP
 POST   /api/torneos/:id/next-phase              — admin only (body: { tableSize? } override)
 GET    /api/torneos/:id/next-phase/preview      — admin only (validates layout + suggestions)
 
+GET    /api/eventos                             — optionalAuth, paginated
+POST   /api/eventos                             — admin only (multipart: image)
+GET    /api/eventos/:id                         — optionalAuth (drafts hidden from non-admins)
+PUT    /api/eventos/:id                         — admin only
+DELETE /api/eventos/:id                         — admin only
+POST   /api/eventos/:id/inscribirse             — auth; uploads comprobante (image|PDF)
+DELETE /api/eventos/:id/inscribirse             — auth; cancel own pending registration
+GET    /api/eventos/:id/inscripciones           — admin only
+PATCH  /api/eventos/:id/inscripciones/:userId/confirmar  — admin only
+PATCH  /api/eventos/:id/inscripciones/:userId/rechazar   — admin only
+
+GET    /api/site-config                         — public (section enable/disable flags)
+PATCH  /api/site-config                         — admin only
+
 POST   /api/friends/:id/request
 DELETE /api/friends/:id/request                 — cancel sent request
 POST   /api/friends/:id/accept
@@ -277,16 +315,20 @@ GET    /api/admin/*                             — isAdmin only
 
 ### Frontend pages
 ```
-App (ThemeProvider + AuthProvider + NotificationProvider + ChatProvider + Router)
-├── components/layout/          ← shell (GuestNavbar, Sidebar, Navbar, BottomNav,
-│                                  BoardGameBackground, SplashScreen, ToastContainer)
-├── components/shared/          ← GameTile, LoginPromptModal
+App (ThemeProvider + AuthProvider + SiteConfigProvider + NotificationProvider + ChatProvider + Router)
+├── components/layout/          ← shell (GuestNavbar/GuestSidebar/GuestBottomNav, Sidebar, Navbar,
+│                                  BottomNav, BoardGameBackground, SplashScreen,
+│                                  ToastContainer, PageTransition)
+├── components/shared/          ← GameTile, LoginPromptModal, SectionGate
+├── components/admin/           ← AdminViewToggle, ViewAsUserBanner
+├── components/chat/            ← ChatWindowManager, ChatLauncher, ChatWindow
 │
-├── pages/auth/                 ← Login, Register + PasswordInput, AuthLogo
+├── pages/auth/                 ← Login, Register, VerifyEmail, ForgotPassword, ResetPassword
+│                                  + PasswordInput, AuthLogo
 │
-├── pages/dashboard/            ← Dashboard / + TableCard
+├── pages/dashboard/            ← Dashboard /mesas + TableCard
 ├── pages/tables/               ← TableDetail /mesas/:id, CreateTable /mesas/crear, EditTable /mesas/:id/editar
-├── pages/compartidas/          ← Compartidas /compartidas, CompartidaPost /compartidas/:id
+├── pages/compartidas/          ← Compartidas / + /compartidas (default landing), CompartidaPost /compartidas/:id
 │                                  + CompartidaCard, CompartidaSkeleton, CompartidasSidebar, CreateCompartidaForm
 ├── pages/noticias/             ← Noticias /noticias, NoticiaDetail /noticias/:id
 ├── pages/torneos/              ← Torneos /torneos, TorneoDetail /torneos/:id,
@@ -296,16 +338,24 @@ App (ThemeProvider + AuthProvider + NotificationProvider + ChatProvider + Router
 │                                    RegistrationsList, ParticipantsList, RegisterButton,
 │                                    AddParticipantModal, GroupsView, GroupStandings,
 │                                    GameScoreModal, PhaseTransitionModal
+├── pages/eventos/              ← Eventos /eventos, EventoDetail /eventos/:id,
+│                                  EventoInscripciones /eventos/:id/inscripciones (admin)
+│                                  + EventoCard, EventoSkeleton
 ├── pages/me/                   ← MeFeed /mi + FeedCard  (own tables feed)
 ├── pages/users/                ← UsersList /usuarios, UserProfile /perfil, UserProfilePublic /usuarios/:id
 ├── pages/messages/             ← Messages /mensajes, DirectChat /mensajes/:userId, AdminChat /mensajes-admin
 ├── pages/notifications/        ← Notifications /notificaciones
 ├── pages/bg-watch/             ← BgWatchProfile /bg-watch/:bggUsername,
-│                                  BgWatchPerGameView /bg-watch/:user/juego/:gameId
+│                                  BgWatchPerGameView /bg-watch/:user/juego/:gameId,
+│                                  BgWatchLanding /bg-watch
 │                                  + PartidasPanel, ColeccionPanel, PlayCard,
 │                                    PlayDetailModal, CreatePlayModal, Pagination
 │                                  (legacy /perfil-bgg/* redirige a /bg-watch/* vía LegacyBggRedirect en App.jsx)
-└── pages/admin/                ← DatabaseViewer /base-de-datos (isAdmin only)
+├── pages/utilidades/           ← Utilidades /utilidades, Dado /utilidades/dado,
+│                                  Temporizador /utilidades/temporizador,
+│                                  FingerSelector /utilidades/selector-de-dedos
+│                                  + UtilCard. Forced-dark — ignore active theme.
+└── pages/admin/                ← DatabaseViewer /base-de-datos, PanelAdmin /panel-admin (both isActuallyAdmin only)
 ```
 
 ### Image uploads
@@ -314,6 +364,7 @@ All image uploads go through Multer (memory storage, no disk) before Cloudinary.
 - Compartidas: `turnocero/compartidas/<compartidaId>/`
 - Noticias: `turnocero/noticias/`
 - Torneos: `turnocero/torneos/` (banner per tournament; max 1200 px wide)
+- Eventos: `turnocero/eventos/` (banner) and `turnocero/eventos/<eventoId>/comprobantes/` for payment receipts (also accepts PDF — stored as `resource_type: 'raw'`)
 
 ### Server error format
 All error responses return `{ message: '<string>' }`. Status codes: `400` validation/bad request, `401` unauthenticated, `403` forbidden, `404` not found, `500` server error. Auth routes (`/register`, `/login`) are rate-limited: 10 attempts per 15 minutes per IP.
