@@ -8,24 +8,22 @@
 | 2. Server unit tests | ✅ Done | 8 archivos, ~50 tests, utils cubiertas ~80% |
 | 3. Server integration tests | ✅ Done | 9 suites, ~140 tests, routes ~40% promedio |
 | 4. Client unit tests | ✅ Done | 5 archivos, ~50 tests, `src/utils/` cubierto ~98% |
-| 5. Client component tests | 🟡 In progress | 81 archivos cubiertos (548 tests); **torneos components 100%, BG Watch panels 63%, formularios 60-90%**; pendientes TableDetail, CreatePlayModal, layout nav, admin pages |
+| 5. Client component tests | 🟢 Near complete | 88 archivos cubiertos (599 tests); **60% line coverage alcanzado**; admin pages + utilidades + BG Watch promo cards + CreatePlayModal cubiertos |
 | 6. Cierre | ✅ Done | Root scripts, coverage gitignored, CLAUDE.md actualizado |
 
-**Totales actuales** (post-novena sesión, 2026-05-18):
+**Totales actuales** (post-décima sesión, 2026-05-18):
 - Server: **193 tests** pasando, line coverage **~40%** (utilities 80%+, routes varían 20-90%)
-- Client: **548 tests** pasando, line coverage **56.24%** / statements 53.48% (utils 98%, shared/admin 80-100%, torneos components ~90%+, **BG Watch panels 63% (subió de 21%)**, auth pages 89%, me/messages 88-91%, utilidades 77%)
-- **Total: 741 tests pasando** (81 archivos client + 18 server)
+- Client: **599 tests** pasando, line coverage **60.84%** / statements 57.97% (utils 98%, shared/admin 80-100%, torneos components ~90%+, BG Watch panels 63%+, **admin pages 100%**, **utilidades 100%**, auth pages 89%, me/messages 88-91%)
+- **Total: 792 tests pasando** (88 archivos client + 18 server)
 
 **Falta para llegar a la meta (70-80% global)**:
-- `TableDetail` (~1000 líneas, 38% cubierto) — sigue siendo el de mayor superficie
-- `CreatePlayModal` (~417 líneas, 0%) — modal form complejo para BG Watch
-- `Sidebar`, `BottomNav`, `GuestSidebar`, `GuestBottomNav`, `Navbar` — layout (parcialmente cubiertos)
+- `TableDetail` (~1000 líneas, 38% cubierto) — sigue siendo el de mayor superficie sin cubrir
+- `Sidebar`, `BottomNav`, `GuestSidebar`, `GuestBottomNav`, `Navbar` — layout components (parcialmente cubiertos)
 - `CompartidaCard` (~38%), `TableCard` (~57%) — branches profundas no probadas
-- Admin pages: `DatabaseViewer`, `PanelAdmin` — 0%
-- `BgWatchUserCard`, `BgWatchCard`, `UtilCard`, `Utilidades.jsx` — 0% (presentacionales chicos)
-- Skeletons varios (poco impacto)
+- `ChatWindow`, `ChatWindowManager`, `HomeWidget`, `CompartidasSidebar`, `EventoCard`, `NoticiaCard`, `BgWatchLandingHero` (presentacionales/widgets ~0%)
+- Skeletons varios (poco impacto en coverage real)
 
-Estimado ~½ día más para llegar a 60%+. Todos los componentes restantes son tests pasivos.
+Estimado ~½ día más para llegar a 65-70%. Todos los componentes restantes son tests pasivos.
 
 **Cobertura por área**:
 - `src/utils/` 98% (todo cubierto excepto trazas)
