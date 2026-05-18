@@ -39,7 +39,7 @@ const SECTION_META = [
         affects: ['Oculta botón "Agregar amigo" en perfiles', 'Bloquea notificaciones de solicitud / aceptación'] },
       { key: 'dms', label: 'Mensajes Directos',
         desc: 'Chat 1-a-1 entre amigos.',
-        affects: ['Oculta /mensajes y /mensajes/:userId', 'Bloquea notificaciones de DM'] },
+        affects: ['Oculta /mensajes y /mensajes/:userId', 'Oculta el FAB de chat (desktop)', 'Oculta el icono de mensajes en la barra mobile', 'Oculta ventanas flotantes de chat', 'Bloquea notificaciones de DM'] },
     ],
   },
   {

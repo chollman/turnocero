@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { useSiteConfig } from '../../context/SiteConfigContext';
 import styles from './ChatLauncher.module.css';
 
 const DESKTOP = 960;
@@ -12,6 +13,8 @@ export default function ChatLauncher() {
   const { user } = useAuth();
   const { conversations, openChat, dmUnreadTotal } = useChat();
   const { addFriendListener } = useNotifications();
+  const { isSectionEnabled } = useSiteConfig();
+  const dmsEnabled = isSectionEnabled('dms');
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [friends, setFriends] = useState([]);
@@ -53,6 +56,7 @@ export default function ChatLauncher() {
   }, [open]);
 
   if (!user) return null;
+  if (!dmsEnabled) return null;
 
   const handleSelect = (friend) => {
     setOpen(false);
