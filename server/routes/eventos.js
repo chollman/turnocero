@@ -105,7 +105,14 @@ router.get('/:id', optionalAuth, async (req, res) => {
       .filter(r => r.status === 'confirmed')
       .map(r => ({
         _id:  r._id,
-        user: r.user ? { username: r.user.username, displayName: r.user.displayName } : null,
+        user: r.user
+          ? {
+              _id:         r.user._id,
+              username:    r.user.username,
+              displayName: r.user.displayName,
+              avatar:      r.user.avatar,
+            }
+          : null,
       }));
 
     let userRegistration = null;

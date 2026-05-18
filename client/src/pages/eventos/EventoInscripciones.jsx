@@ -3,6 +3,7 @@ import { useParams, Link, Navigate } from 'react-router-dom'
 import axios from 'axios'
 import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../../context/AuthContext'
+import Avatar from '../../components/shared/Avatar'
 import styles from './EventoInscripciones.module.css'
 
 function formatDate(dateStr) {
@@ -55,7 +56,7 @@ function RegistrationRow({ reg, onConfirm, onReject }) {
     <div className={`${styles.row} ${styles[`row_${reg.status}`]}`}>
       <div className={styles.rowMain}>
         <div className={styles.userInfo}>
-          <span className={styles.avatar}>{u?.displayName?.[0]?.toUpperCase() || u?.username?.[0]?.toUpperCase() || '?'}</span>
+          <Avatar user={u} size="md" />
           <div className={styles.userDetails}>
             <span className={styles.displayName}>{u?.displayName || u?.username || 'Usuario'}</span>
             <span className={styles.username}>@{u?.username}</span>

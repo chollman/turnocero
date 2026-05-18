@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import Avatar from "../shared/Avatar";
 import styles from "./Sidebar.module.css";
 
 const ICONS = {
@@ -421,9 +422,7 @@ export default function Sidebar() {
         ) : (
           <>
             <Link to="/perfil" className={styles.userChip}>
-              <span className={styles.userAvatar}>
-                {user?.username?.[0]?.toUpperCase()}
-              </span>
+              <Avatar user={user} size="sm" />
               <span className={styles.userName}>{user?.username}</span>
             </Link>
             <button

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import Avatar from '../../components/shared/Avatar';
 import styles from './BgWatchProfile.module.css';
 
 function formatDate(iso) {
@@ -40,15 +41,10 @@ function PlayerChip({ player, turnoceroUser }) {
     ? (turnoceroUser.displayName || turnoceroUser.username)
     : (player.name || player.username || 'Anónimo');
 
-  const initial = (name?.[0] || '?').toUpperCase();
   const content = (
     <>
       {player.win && <span className={styles.winIcon} aria-label="Ganador">🏆</span>}
-      {turnoceroUser && (
-        turnoceroUser.avatar
-          ? <img src={turnoceroUser.avatar} alt="" className={styles.playerChipAvatar} />
-          : <span className={styles.playerChipAvatarFallback}>{initial}</span>
-      )}
+      {turnoceroUser && <Avatar user={turnoceroUser} size="xs" />}
       <span className={styles.playerName}>{name}</span>
       {player.score && <span className={styles.playerScore}>{player.score}</span>}
     </>

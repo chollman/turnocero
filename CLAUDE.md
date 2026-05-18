@@ -198,6 +198,8 @@ POST   /api/auth/reset-password                 — confirm with token
 POST   /api/auth/logout
 GET    /api/auth/me
 PUT    /api/auth/profile                        — update displayName, nombre, apellido, direccion, telegram, celular, bggUsername
+PUT    /api/auth/avatar                         — multipart: 'avatar' file; server stores as 400×400 WebP
+DELETE /api/auth/avatar                         — clears stored avatar
 POST   /api/auth/bgg-connect                    — validate BGG password and store encrypted
 DELETE /api/auth/bgg-connection                 — remove stored BGG credentials
 
@@ -367,6 +369,24 @@ All image uploads go through Multer (memory storage, no disk) before Cloudinary.
 - Noticias: `turnocero/noticias/`
 - Torneos: `turnocero/torneos/` (banner per tournament; max 1200 px wide)
 - Eventos: `turnocero/eventos/` (banner) and `turnocero/eventos/<eventoId>/comprobantes/` for payment receipts (also accepts PDF — stored as `resource_type: 'raw'`)
+- User avatars: `turnocero/users/<userId>/avatar.webp` with `public_id: 'avatar'` + `overwrite: true` + `format: 'webp'` + 400×400 `c_fill, g_face`, `quality: 'auto'`. The fixed publicId means every upload atomically replaces the previous asset — no explicit `destroy` is needed in `PUT /api/auth/avatar` and orphans are impossible. `DELETE /api/auth/avatar` still calls `cloudinary.uploader.destroy()` explicitly.
+
+### User avatars and identity rendering
+
+`User.avatar` is a `{ url, publicId }` subdocument (was a `String` until 2026-05). A `pre('init')` hook in [server/models/User.js](server/models/User.js) normalizes legacy string values into the new shape on hydrate, so old documents migrate lazily on next save — no migration script.
+
+All user avatar slots in the UI go through `<Avatar user={...} size="xs|sm|md|lg|xl" />` in [client/src/components/shared/Avatar.jsx](client/src/components/shared/Avatar.jsx). It handles three states:
+- Has avatar URL → renders `<img loading="lazy">`.
+- No avatar → initials over a deterministic brand color hashed from `_id` (palette: `--amber`, `--red`, `--green`, `--orange`, `--purple`). The same user always gets the same color.
+- Deleted user (per `getUserDisplay`) → `<GhostIcon>` on a muted background.
+
+**Do not render `username[0].toUpperCase()` in new code** — use `<Avatar>`. The shared component already replaces ad-hoc initials in chat, comments, tables, compartidas, eventos, user lists, etc.
+
+`getUserDisplay` in [client/src/utils/userDisplay.js](client/src/utils/userDisplay.js) normalizes any user shape (including legacy string avatars) into `{ name, isDeleted, _id, username, displayName, avatar: { url, publicId } }`. Always go through it instead of touching `user.username` / `user.avatar` directly.
+
+When adding a new server route that returns a populated user reference, **include `avatar` in the `.populate(...)` select** so the client can render it. Most existing populates already use `'username displayName avatar'`.
+
+Upload UI: [client/src/components/shared/AvatarCropModal.jsx](client/src/components/shared/AvatarCropModal.jsx) wraps `react-easy-crop` (1:1 aspect, round shape, pan/zoom), outputs a 600×600 JPEG @ 0.9 client-side, then the server transform (see Image uploads) reduces it to 400×400 WebP.
 
 ### Server error format
 All error responses return `{ message: '<string>' }`. Status codes: `400` validation/bad request, `401` unauthenticated, `403` forbidden, `404` not found, `500` server error.

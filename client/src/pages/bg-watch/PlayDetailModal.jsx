@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import ModalPortal from '../../components/shared/ModalPortal';
+import Avatar from '../../components/shared/Avatar';
 import styles from './BgWatchProfile.module.css';
 
 function formatFullDate(iso) {
@@ -134,11 +135,7 @@ export default function PlayDetailModal({ play, userMap, onClose }) {
                           <td className={styles.colCenter}>{p.position || '—'}</td>
                           <td>
                             <div className={styles.playerCellName}>
-                              {turnoceroUser && (
-                                turnoceroUser.avatar
-                                  ? <img src={turnoceroUser.avatar} alt="" className={styles.playerCellAvatar} />
-                                  : <span className={styles.playerCellAvatarFallback}>{(displayName?.[0] || '?').toUpperCase()}</span>
-                              )}
+                              {turnoceroUser && <Avatar user={turnoceroUser} size="xs" />}
                               {displayName}
                               {p.new && <span className={styles.newBadge}>nuevo</span>}
                             </div>
