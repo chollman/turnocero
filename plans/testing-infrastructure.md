@@ -8,18 +8,22 @@
 | 2. Server unit tests | ✅ Done | 8 archivos, ~50 tests, utils cubiertas ~80% |
 | 3. Server integration tests | ✅ Done | 9 suites, ~140 tests, routes ~40% promedio |
 | 4. Client unit tests | ✅ Done | 5 archivos, ~50 tests, `src/utils/` cubierto ~98% |
-| 5. Client component tests | 🟡 In progress | 52 archivos cubiertos (~343 tests); BgWatchProfile/PerGameView + FingerSelector + componentes internos de torneos pendientes |
+| 5. Client component tests | 🟡 In progress | 68 archivos cubiertos (~456 tests); **todos los componentes de torneos cubiertos** (15 archivos en `pages/torneos/components/`); BgWatchProfile/PerGameView + FingerSelector + EditTorneo + CreateEvento pendientes |
 | 6. Cierre | ✅ Done | Root scripts, coverage gitignored, CLAUDE.md actualizado |
 
-**Totales actuales** (post-quinta sesión, 2026-05):
+**Totales actuales** (post-séptima sesión, 2026-05):
 - Server: **193 tests** pasando, line coverage **~40%** (utilities 80%+, routes varían 20-90%)
-- Client: **343 tests** pasando, line coverage **~37.2%** (utils 98%, shared/admin 80-100%, auth pages 65%, layout nav 55%, list + detail pages 40-70%, formularios principales 50-70%, chat 50%+)
-- **Total: 536 tests pasando** (52 archivos client + 18 server)
+- Client: **456 tests** pasando, line coverage **~46.4%** (utils 98%, shared/admin 80-100%, **torneos components ~90%+**, list + detail pages 40-70%, formularios principales 50-70%, chat 50%+)
+- **Total: 649 tests pasando** (68 archivos client + 18 server)
 
 **Falta para llegar a la meta (70-80% global)**:
-- BG Watch páginas: `BgWatchProfile`, `BgWatchPerGameView` (~600 líneas cada una, muchos modals + sockets BGG)
-- Componentes internos de torneos: `Bracket`, `GroupsView`, `LeagueStandings`, `LeagueRoundsList`, `GroupStandings`, `RecordResultModal`, `SeedReorderModal`, `AddParticipantModal`, `GameScoreModal`, `PhaseTransitionModal`, `RegisterButton`, `AdminPanel`, `ParticipantsList`, `RegistrationsList`, `TorneoCard`, `ImageDropzone`
+- BG Watch páginas: `BgWatchProfile`, `BgWatchPerGameView` (~600 líneas cada una)
 - `FingerSelector` (touch events complejos)
+- `CreateEvento`, `EditTorneo` (similares a otros forms ya cubiertos)
+- `ImageDropzone` (componente shared en `torneos/components/`)
+- `MeFeed/FeedCard` (cubierto MeFeed, FeedCard no)
+- `NoticiaCard` (embebido en Noticias.jsx, cubierto transitivamente)
+- Skeletons varios (poco impacto en coverage real)
 - Formularios: `CreateEvento` (similar a Eventos.jsx ya cubierto), `EditTorneo` (similar a EditTable)
 - `NoticiaCard` (embebido en Noticias.jsx — cubierto indirectamente)
 - `MeFeed` + `FeedCard`
