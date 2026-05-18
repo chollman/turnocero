@@ -83,6 +83,10 @@ router.post('/register', authLimiter, async (req, res) => {
       logger.error('Verification email failed at register', { userId: user._id.toString(), msg: mailErr.message });
     }
 
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info('DEV verification code', { email: user.email, code });
+    }
+
     res.status(201).json({
       email: user.email,
       message: 'Te enviamos un código a tu email para verificar la cuenta.',
@@ -231,6 +235,10 @@ router.post('/resend-verification', emailLimiter, async (req, res) => {
       logger.error('Resend verification email failed', { userId: user._id.toString(), msg: mailErr.message });
     }
 
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info('DEV verification code (resend)', { email: user.email, code });
+    }
+
     res.status(200).json(generic);
   } catch (err) {
     logger.error('Resend verification failed', { msg: err.message });
@@ -263,6 +271,10 @@ router.post('/forgot-password', emailLimiter, async (req, res) => {
       await sendEmail({ to: user.email, ...tpl });
     } catch (mailErr) {
       logger.error('Password reset email failed', { userId: user._id.toString(), msg: mailErr.message });
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info('DEV password reset link', { email: user.email, resetUrl });
     }
 
     res.status(200).json(generic);
@@ -313,7 +325,10 @@ router.post('/reset-password', authLimiter, async (req, res) => {
 
 // POST /api/auth/logout — public
 router.post('/logout', (req, res) => {
-  res.clearCookie('token', COOKIE_OPTIONS);
+  // Express 5 ignores maxAge on clearCookie; pass only the cookie attributes
+  // that determine which cookie to clear (path/domain/secure/sameSite/httpOnly).
+  const { maxAge: _ignore, ...clearOpts } = COOKIE_OPTIONS;
+  res.clearCookie('token', clearOpts);
   res.json({ message: 'Logged out' });
 });
 
