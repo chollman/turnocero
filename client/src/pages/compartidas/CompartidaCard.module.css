@@ -19,10 +19,9 @@
 }
 
 /* ── Featured broadside ─────────────────────────────────────────────── */
-/* Visually matches the handoff broadside (gradient bg, rotated badge,
-   bigger title, pull quote with border-left). The strict 1fr 280px
-   side-by-side layout from the spec is deferred — current vertical
-   flow uses the same tokens and looks close. */
+/* Matches the desktop handoff broadside: gradient bg, rotated badge,
+   2-col grid (1fr 280px) with content on the left and the polaroid on
+   the right. Stacks to a single column on narrow viewports. */
 .cardFeatured {
   position: relative;
   background:
@@ -34,10 +33,45 @@
   overflow: hidden;
 }
 
+.broadsideGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 28px;
+  align-items: stretch;
+}
+
+/* Photos sit in the right column, vertically centered against the
+   left column. The left column (broadsideMain) stretches to the full
+   grid height so its meta row can sit at the bottom. */
+.cardFeatured .broadsideGrid > .photos {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  align-self: center;
+}
+
+/* The app's feed column is narrower than the handoff reference, so the
+   2-col broadside has less breathing room. While the sidebar sits next
+   to the feed (above ~960 px) the feed is squeezed; stack the broadside
+   vertically until the viewport is wide enough that the 1fr column has
+   real room for the headline. */
+@media (max-width: 1240px) {
+  .broadsideGrid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .cardFeatured .broadsideGrid > .photos {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: center;
+  }
+}
+
 @media (max-width: 940px) {
   .cardFeatured { padding: 22px; }
 }
 
+/* Blue badge to match the broadside's blue gradient bg. Pinned to the
+   top-right corner so it visually overlaps the polaroid like a sticker. */
 .featuredBadge {
   position: absolute;
   top: 18px;
@@ -50,13 +84,13 @@
   letter-spacing: 0.15em;
   font-weight: 700;
   text-transform: uppercase;
-  background: var(--amber);
-  color: var(--on-amber);
+  background: #1888ef;
+  color: #fff;
   padding: 5px 11px;
   border-radius: 999px;
   z-index: 3;
   transform: rotate(2deg);
-  box-shadow: 0 6px 20px var(--amber-glow);
+  box-shadow: 0 6px 20px rgba(24, 136, 239, 0.4);
 }
 
 /* ── Header ─────────────────────────────────────────────────────────── */
@@ -434,9 +468,23 @@
   perspective: 1000px;
 }
 
-.photosFeatured .photoBtn { width: 240px; max-width: 100%; }
+.photosFeatured .photoBtn { width: 260px; max-width: 100%; }
 .photosFeatured .polaroid { transform: rotate(-3deg); transition: transform var(--transition); }
 .photosFeatured .photoBtn:hover .polaroid { transform: rotate(-2deg) scale(1.02); }
+/* Force a square photo in the broadside polaroid, even when there is a
+   single image (which the Polaroid primitive otherwise renders landscape). */
+.photosFeatured .polaroidPhoto { aspect-ratio: 1; }
+/* The pattern-striped fallback the handoff shows when there is no
+   uploaded image yet. Overrides the plain dark gradient. */
+.photosFeatured .polaroidPhoto:has(> .polaroidPhotoFallback) {
+  background:
+    repeating-linear-gradient(135deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 8px,
+      transparent 8px,
+      transparent 16px),
+    linear-gradient(135deg, #1d2535, #0e1320);
+}
 
 /* ── Polaroid primitive ───────────────────────────────────────── */
 .polaroid {
@@ -614,19 +662,89 @@
 
 .mesaCtaOpen { box-shadow: 0 4px 12px var(--amber-glow); }
 
-/* ── Broadside meta (featured only) ──────────────────────────── */
+/* ── Broadside (featured only) ───────────────────────────────── */
+/* Left column wrapper — eyebrow, title, body, meta in a tight vertical
+   stack. The grid container handles its position; this controls the
+   internal rhythm. */
+.broadsideMain {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Eyebrow line above the title: small avatar + "Por <name> · hace Xh"
+   in JetBrains Mono uppercase, accent color. */
+.broadsideEyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+
+.broadsideEyebrow strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.broadsideEyebrow > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Inline stats row beneath the body: game pill + likes + comments,
+   all mono caps. The like control is a button (toggles like), the
+   comment count is a link to the full post. */
 .broadsideMeta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 16px;
+  align-items: center;
+  gap: 6px 18px;
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-muted);
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  /* Anchor the stats row to the bottom of broadsideMain so the eyebrow,
+     title and quote stay glued to the top and the polaroid stays
+     centered against the whole column. */
+  margin-top: auto;
 }
 
 .broadsideMeta strong { color: var(--text-primary); font-weight: 600; }
+
+.broadsideStat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  color: var(--text-muted);
+  text-transform: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.broadsideStat svg { width: 14px; height: 14px; }
+.broadsideStat:hover { color: var(--text-primary); }
+
+.broadsideStatLiked,
+.broadsideStatLiked:hover { color: var(--red); }
+
+.broadsideStatActive,
+.broadsideStatActive:hover { color: var(--amber-light); }
 
 /* ── Footer (reactions + share) ──────────────────────────────── */
 .footer {
@@ -647,7 +765,7 @@
 
 .cardFeatured .photos { padding: 12px 0 4px; }
 .cardFeatured .mesaTicket { margin: 6px 0 0; }
-.cardFeatured .comments { padding: 12px 0 0; margin: 0; }
+.cardFeatured .comments { padding: 12px 0 0; margin: 20px 0 0; }
 
 .reactionGroup {
   display: flex;

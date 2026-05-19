@@ -262,16 +262,202 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
   const imageGridClass = styles[`photoGrid${Math.min(imageCount, 4)}`]
   const pullQuote = featured ? post.body.slice(0, 180) + (post.body.length > 180 ? '…' : '') : null
 
-  return (
-    <>
-      <LoginPromptModal isOpen={!!loginPrompt} onClose={() => setLoginPrompt('')} message={loginPrompt} />
-      <article className={`${styles.card} ${featured ? styles.cardFeatured : ''}`}>
-        {featured && (
+  // ── Featured broadside (compartida del día) ──
+  // Renders the desktop-handoff broadside layout: eyebrow + title + body
+  // + integrated meta row (game · likes · comments) on the left, big
+  // polaroid on the right. Hides the normal post header, mesa ticket,
+  // footer reactions/share row, and inline comments — clicking the card
+  // navigates to the full post for the rest.
+  if (featured && !editing) {
+    return (
+      <>
+        <LoginPromptModal isOpen={!!loginPrompt} onClose={() => setLoginPrompt('')} message={loginPrompt} />
+        <article className={`${styles.card} ${styles.cardFeatured}`}>
           <div className={styles.featuredBadge}>◆ Compartida del día</div>
-        )}
+          <div className={styles.broadsideGrid}>
+            <div className={styles.broadsideMain}>
+              <div className={styles.broadsideEyebrow}>
+                <Avatar user={post.author} size="xs" />
+                <span>
+                  Por <strong>{authorName}</strong> · hace {timeAgo(post.createdAt)}
+                </span>
+                {!authorInfo.isDeleted && (
+                  <AuthorBgWatchLink author={post.author} enabled={bgwatchEnabled} />
+                )}
+              </div>
 
-        {/* ── Header ── */}
-        <div className={styles.header}>
+              {post.title && <h2 className={styles.title}>{post.title}</h2>}
+              {post.body && <p className={styles.pullQuote}>{pullQuote}</p>}
+
+              <div className={styles.broadsideMeta}>
+                {table && (
+                  <span>◆ <strong>{table.boardGame}</strong></span>
+                )}
+                <button
+                  type="button"
+                  className={`${styles.broadsideStat} ${liked ? styles.broadsideStatLiked : ''}`}
+                  onClick={(e) => { e.stopPropagation(); handleLike() }}
+                  aria-label={liked ? 'Quitar me gusta' : 'Me gusta'}
+                >
+                  <span className={`${styles.likeHeart} ${heartPopping ? styles.likeHeartPop : ''}`}>
+                    {liked ? (
+                      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                      </svg>
+                    )}
+                  </span>
+                  {likeCount}
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.broadsideStat} ${showComments ? styles.broadsideStatActive : ''}`}
+                  onClick={(e) => { e.stopPropagation(); toggleComments() }}
+                  aria-label={showComments ? 'Ocultar comentarios' : 'Ver comentarios'}
+                  aria-expanded={showComments}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  {commentCount}
+                </button>
+              </div>
+            </div>
+
+            <div className={`${styles.photos} ${styles.photosFeatured}`}>
+              <button
+                type="button"
+                className={styles.photoBtn}
+                onClick={() => post.images[0]?.url && setLightbox(post.images[0].url)}
+                disabled={!post.images[0]?.url}
+              >
+                <Polaroid
+                  image={post.images[0] || null}
+                  index={0}
+                  count={1}
+                  withTape
+                  caption="el momento exacto"
+                />
+              </button>
+            </div>
+          </div>
+
+          {showComments && (
+            <div className={styles.comments}>
+              {loadingComments ? (
+                <div className={styles.commentsLoader}>
+                  <span className={styles.commentsLoaderDot} />
+                  <span className={styles.commentsLoaderDot} />
+                  <span className={styles.commentsLoaderDot} />
+                </div>
+              ) : comments.length === 0 ? (
+                <p className={styles.noComments}>Sin comentarios aún. ¡Sé el primero!</p>
+              ) : (
+                <div className={styles.commentsHead}>
+                  ◆ {comments.length} {comments.length === 1 ? 'comentario' : 'comentarios'}
+                </div>
+              )}
+              {comments.map((c) => {
+                const cAuthorInfo = getUserDisplay(c.author)
+                const isOwn = user && c.author && (c.author._id || c.author).toString() === user._id.toString()
+                const canDel = isOwn || isAuthor || user?.isAdmin
+                return (
+                  <div key={c._id} className={styles.comment}>
+                    <Avatar user={c.author} size="xs" />
+                    <div className={styles.commentBody}>
+                      <div className={styles.commentMeta}>
+                        <span className={styles.commentAuthor}>{cAuthorInfo.name}</span>
+                        <span className={styles.commentTime}>{timeAgo(c.createdAt)}</span>
+                        {c.editedAt && <span className={styles.editedBadge}>editado</span>}
+                      </div>
+                      {editingCid === c._id ? (
+                        <div className={styles.inlineEdit}>
+                          <textarea
+                            className={styles.inlineEditArea}
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            rows={2}
+                            maxLength={500}
+                          />
+                          <div className={styles.inlineEditActions}>
+                            <button className={styles.btnSave} onClick={() => handleEditComment(c._id)}>Guardar</button>
+                            <button className={styles.btnGhost} onClick={() => setEditingCid(null)}>Cancelar</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className={styles.commentText}>{c.content}</p>
+                      )}
+                      {editingCid !== c._id && (
+                        <div className={styles.commentActions}>
+                          {isOwn && (
+                            <button className={styles.commentActionBtn} onClick={() => { setEditingCid(c._id); setEditContent(c.content) }}>Editar</button>
+                          )}
+                          {canDel && (
+                            <button className={`${styles.commentActionBtn} ${styles.commentActionDanger}`} onClick={() => handleDeleteComment(c._id)}>Eliminar</button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {user ? (
+                <form className={styles.commentForm} onSubmit={handleAddComment}>
+                  <Avatar user={user} size="xs" />
+                  <input
+                    ref={commentInputRef}
+                    className={styles.commentInput}
+                    placeholder="Escribí un comentario…"
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    maxLength={500}
+                    disabled={submitting}
+                  />
+                  <button
+                    type="submit"
+                    className={styles.commentSubmit}
+                    disabled={!commentInput.trim() || submitting}
+                    aria-label="Enviar comentario"
+                  >
+                    {submitting ? '…' : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <line x1="22" y1="2" x2="11" y2="13"/>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                      </svg>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <button
+                  className={styles.guestCommentCta}
+                  onClick={() => setLoginPrompt('Iniciá sesión para comentar en esta compartida.')}
+                  type="button"
+                >
+                  Iniciá sesión para comentar
+                </button>
+              )}
+            </div>
+          )}
+        </article>
+
+        {lightbox && (
+          <div className={styles.lightbox} onClick={() => setLightbox(null)}>
+            <img src={lightbox} alt="" className={styles.lightboxImg} />
+            <button className={styles.lightboxClose}>✕</button>
+          </div>
+        )}
+      </>
+    )
+  }
+
+  const upperSections = (
+    <>
+      {/* ── Header ── */}
+      <div className={styles.header}>
           <Avatar user={post.author} size="md" />
           <div className={styles.authorMeta}>
             <div className={styles.authorNameRow}>
@@ -410,6 +596,19 @@ export default function CompartidaCard({ post: initialPost, onDeleted, onUpdated
             <span>◆ <strong>{table.boardGame}</strong></span>
           </div>
         )}
+
+      </>
+  )
+
+  return (
+    <>
+      <LoginPromptModal isOpen={!!loginPrompt} onClose={() => setLoginPrompt('')} message={loginPrompt} />
+      <article className={`${styles.card} ${featured ? styles.cardFeatured : ''}`}>
+        {featured && (
+          <div className={styles.featuredBadge}>◆ Compartida del día</div>
+        )}
+
+        {upperSections}
 
         {/* ── Footer ── */}
         <div className={styles.footer}>
