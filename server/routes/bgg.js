@@ -6,6 +6,7 @@ const { requireSection } = require('../middleware/sectionGate');
 const { getSessionCookie, clearSession } = require('../utils/bggAuth');
 const User = require('../models/User');
 const BggGame = require('../models/BggGame');
+const BggCollection = require('../models/BggCollection');
 
 router.use(requireSection('bgwatch'));
 
@@ -38,15 +39,18 @@ function clearPartidasCache(bggUsername) {
   }
 }
 
-// Clears everything in the in-memory cache that's specific to one BGG
-// username: their plays (all pages/filters), collection, and OG metadata.
-// Called when a user reconnects their BGG account so subsequent reads come
-// fresh from BGG and don't show stale state from a previous session.
-function clearUserCache(bggUsername) {
+// Clears every cached artifact specific to one BGG username: in-memory
+// plays (all pages/filters), in-memory collection, OG metadata, and the
+// persistent `BggCollection` Mongo doc. Called when a user reconnects
+// their BGG account so subsequent reads come fresh from BGG and don't
+// show stale state from a previous session. Returns a Promise — callers
+// should await to ensure Mongo deletion has settled before the next read.
+async function clearUserCache(bggUsername) {
   const lower = String(bggUsername).toLowerCase();
   cache.delete(`coleccion:${lower}`);
   cache.delete(`og:${lower}`);
   clearPartidasCache(bggUsername);
+  await BggCollection.deleteOne({ bggUsername: lower });
 }
 
 async function fetchBgg(url) {
@@ -205,6 +209,64 @@ async function resolveGamesBatch(gameIds) {
   return result;
 }
 
+// ── Collection resolution helper (memoria → Mongo[TTL 6h] → BGG) ─────
+const COLLECTION_MONGO_TTL = 6 * 60 * 60 * 1000; // 6 horas
+
+function parseCollectionXml(xml) {
+  const parsed = parser.parse(xml);
+  const root = parsed?.items;
+  if (!root) return null;
+  const rawItems = root.item || [];
+  const items = Array.isArray(rawItems) ? rawItems : [rawItems];
+  return items.map((item) => {
+    const stats = item.stats || {};
+    const rating = stats.rating || {};
+    return {
+      id: item['@_objectid'],
+      name: typeof item.name === 'object' ? item.name['#text'] ?? item.name['@_sortindex'] : item.name,
+      thumbnail: item.thumbnail || null,
+      image: item.image || null,
+      yearPublished: item.yearpublished ? Number(item.yearpublished) : null,
+      userRating: rating['@_value'] && rating['@_value'] !== 'N/A' ? Number(rating['@_value']) : null,
+      bggRating: rating.average?.['@_value'] ? Number(rating.average['@_value']) : null,
+      numPlays: item.numplays ? Number(item.numplays) : 0,
+    };
+  });
+}
+
+async function resolveCollection(bggUsername, opts = {}) {
+  const { forceRefresh = false } = opts;
+  const lower = bggUsername.toLowerCase();
+  const cacheKey = `coleccion:${lower}`;
+
+  if (!forceRefresh) {
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+
+    const doc = await BggCollection.findOne({ bggUsername: lower }).lean();
+    if (doc && Date.now() - doc.lastFetchedAt.getTime() < COLLECTION_MONGO_TTL) {
+      setCached(cacheKey, doc.games);
+      return doc.games;
+    }
+  }
+
+  const xml = await fetchBgg(`${BGG_API}/collection?username=${encodeURIComponent(bggUsername)}&own=1&stats=1`);
+  const games = parseCollectionXml(xml);
+  if (!games) {
+    const err = new Error('Usuario de BGG no encontrado o sin colección');
+    err.status = 404;
+    throw err;
+  }
+
+  await BggCollection.updateOne(
+    { bggUsername: lower },
+    { $set: { games, lastFetchedAt: new Date() } },
+    { upsert: true }
+  );
+  setCached(cacheKey, games);
+  return games;
+}
+
 // GET /api/bgg/search?q=<query>
 router.get('/search', async (req, res) => {
   const q = (req.query.q || '').trim();
@@ -273,42 +335,13 @@ router.get('/game/:id', async (req, res) => {
 router.get('/coleccion/:bggUsername', async (req, res) => {
   const { bggUsername } = req.params;
   const forceRefresh = req.query.refresh === '1';
-  const cacheKey = `coleccion:${bggUsername.toLowerCase()}`;
-
-  if (!forceRefresh) {
-    const cached = getCached(cacheKey);
-    if (cached) return res.json(cached);
-  }
-
   try {
-    const xml = await fetchBgg(`${BGG_API}/collection?username=${encodeURIComponent(bggUsername)}&own=1&stats=1`);
-    const parsed = parser.parse(xml);
-
-    const root = parsed?.items;
-    if (!root) return res.status(404).json({ message: 'Usuario de BGG no encontrado o sin colección' });
-
-    const rawItems = root.item || [];
-    const items = Array.isArray(rawItems) ? rawItems : [rawItems];
-
-    const collection = items.map((item) => {
-      const stats = item.stats || {};
-      const rating = stats.rating || {};
-      return {
-        id: item['@_objectid'],
-        name: typeof item.name === 'object' ? item.name['#text'] ?? item.name['@_sortindex'] : item.name,
-        thumbnail: item.thumbnail || null,
-        image: item.image || null,
-        yearPublished: item.yearpublished ? Number(item.yearpublished) : null,
-        userRating: rating['@_value'] && rating['@_value'] !== 'N/A' ? Number(rating['@_value']) : null,
-        bggRating: rating.average?.['@_value'] ? Number(rating.average['@_value']) : null,
-        numPlays: item.numplays ? Number(item.numplays) : 0,
-      };
-    });
-
-    setCached(cacheKey, collection);
+    const collection = await resolveCollection(bggUsername, { forceRefresh });
     res.json(collection);
   } catch (err) {
-    if (err.status === 404) return res.status(404).json({ message: 'Usuario de BGG no encontrado' });
+    if (err.status === 404) {
+      return res.status(404).json({ message: err.message || 'Usuario de BGG no encontrado' });
+    }
     res.status(502).json({ message: 'No se pudo conectar con BGG' });
   }
 });

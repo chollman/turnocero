@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../../app');
 const BggGame = require('../../models/BggGame');
+const BggCollection = require('../../models/BggCollection');
 const bggRouter = require('../../routes/bgg');
 
 // ── Fixtures ─────────────────────────────────────────────────────────
@@ -208,6 +209,128 @@ describe('BGG persistent cache (memoria → Mongo → BGG)', () => {
     });
   });
 
+  // ── BggCollection persistence (L2 in the cache chain) ────────────
+  describe('BggCollection persistent cache', () => {
+    function collectionXml(items) {
+      const xmlItems = items.map((i) => `
+        <item objectid="${i.id}">
+          <name>${i.name}</name>
+          <thumbnail>${i.thumbnail || ''}</thumbnail>
+          <yearpublished>${i.year || ''}</yearpublished>
+          <numplays>${i.numPlays || 0}</numplays>
+          <stats><rating value="${i.userRating ?? 'N/A'}"><average value="${i.bggRating || ''}"/></rating></stats>
+        </item>
+      `).join('');
+      return `<?xml version="1.0"?><items>${xmlItems}</items>`;
+    }
+
+    it('cold path: empty Mongo → calls BGG once and persists the collection', async () => {
+      fetchSpy.mockResolvedValueOnce(ok(collectionXml([
+        { id: '101', name: 'Alpha', thumbnail: 'a.jpg', year: 2010, numPlays: 3 },
+        { id: '102', name: 'Beta',  thumbnail: 'b.jpg', year: 2011, numPlays: 1 },
+      ])));
+
+      const res = await request(app).get('/api/bgg/coleccion/colduser');
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(2);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      const doc = await BggCollection.findOne({ bggUsername: 'colduser' }).lean();
+      expect(doc).toBeTruthy();
+      expect(doc.games).toHaveLength(2);
+      expect(doc.games[0].name).toBe('Alpha');
+    });
+
+    it('warm L2 path: fresh Mongo doc serves the response without hitting BGG', async () => {
+      await BggCollection.create({
+        bggUsername: 'warmuser',
+        games: [{ id: '201', name: 'Cached', thumbnail: 'c.jpg', numPlays: 7 }],
+      });
+      // Clear L1 so we exercise L2 specifically
+      bggRouter.__resetCache();
+
+      const res = await request(app).get('/api/bgg/coleccion/warmuser');
+      expect(res.status).toBe(200);
+      expect(res.body[0].name).toBe('Cached');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('stale L2 path: expired Mongo doc → BGG called, doc updated', async () => {
+      // Doc whose lastFetchedAt is 7 hours ago (> 6h TTL)
+      await BggCollection.create({
+        bggUsername: 'staleuser',
+        games: [{ id: '301', name: 'Old', thumbnail: 'old.jpg' }],
+        lastFetchedAt: new Date(Date.now() - 7 * 60 * 60 * 1000),
+      });
+      bggRouter.__resetCache();
+
+      fetchSpy.mockResolvedValueOnce(ok(collectionXml([
+        { id: '301', name: 'Updated', thumbnail: 'new.jpg' },
+      ])));
+
+      const res = await request(app).get('/api/bgg/coleccion/staleuser');
+      expect(res.status).toBe(200);
+      expect(res.body[0].name).toBe('Updated');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      const doc = await BggCollection.findOne({ bggUsername: 'staleuser' }).lean();
+      expect(doc.games[0].name).toBe('Updated');
+      // lastFetchedAt was refreshed
+      expect(Date.now() - doc.lastFetchedAt.getTime()).toBeLessThan(60_000);
+    });
+
+    it('?refresh=1 bypasses both L1 and L2 even with a fresh Mongo doc', async () => {
+      await BggCollection.create({
+        bggUsername: 'refreshuser',
+        games: [{ id: '401', name: 'Old', thumbnail: 'old.jpg' }],
+      });
+      bggRouter.__resetCache();
+
+      fetchSpy.mockResolvedValueOnce(ok(collectionXml([
+        { id: '401', name: 'Forced', thumbnail: 'forced.jpg' },
+      ])));
+
+      const res = await request(app).get('/api/bgg/coleccion/refreshuser?refresh=1');
+      expect(res.status).toBe(200);
+      expect(res.body[0].name).toBe('Forced');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      const doc = await BggCollection.findOne({ bggUsername: 'refreshuser' }).lean();
+      expect(doc.games[0].name).toBe('Forced');
+    });
+
+    it('shared across users: A populates Mongo, B reuses it after server restart', async () => {
+      // User A — cold, populates Mongo
+      fetchSpy.mockResolvedValueOnce(ok(collectionXml([
+        { id: '501', name: 'Shared', thumbnail: 's.jpg' },
+      ])));
+      await request(app).get('/api/bgg/coleccion/userA');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      // Simulate restart by clearing L1
+      bggRouter.__resetCache();
+      fetchSpy.mockClear();
+
+      // User B looking at userA's collection again — Mongo serves
+      const res = await request(app).get('/api/bgg/coleccion/userA');
+      expect(res.status).toBe(200);
+      expect(res.body[0].name).toBe('Shared');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('clearUserCache deletes the BggCollection Mongo doc', async () => {
+      await BggCollection.create({
+        bggUsername: 'todelete',
+        games: [{ id: '601', name: 'X' }],
+      });
+      expect(await BggCollection.countDocuments({ bggUsername: 'todelete' })).toBe(1);
+
+      await bggRouter.clearUserCache('todelete');
+
+      expect(await BggCollection.countDocuments({ bggUsername: 'todelete' })).toBe(0);
+    });
+  });
+
   // ── ?refresh=1 bypasses the in-memory cache ──────────────────────
   describe('?refresh=1 query', () => {
     it('coleccion: serves cached on plain GET, hits BGG when refresh=1', async () => {
@@ -259,7 +382,7 @@ describe('BGG persistent cache (memoria → Mongo → BGG)', () => {
       expect(fetchSpy).toHaveBeenCalledTimes(1);
 
       // After clearUserCache → cold again
-      bggRouter.clearUserCache('clearuser');
+      await bggRouter.clearUserCache('clearuser');
       fetchSpy.mockResolvedValueOnce(ok(xml));
       await request(app).get('/api/bgg/coleccion/clearuser');
       expect(fetchSpy).toHaveBeenCalledTimes(2);
@@ -279,7 +402,7 @@ describe('BGG persistent cache (memoria → Mongo → BGG)', () => {
       expect(fetchSpy).toHaveBeenCalledTimes(2);
 
       // clearUserCache wipes both entries
-      bggRouter.clearUserCache('clearuser2');
+      await bggRouter.clearUserCache('clearuser2');
       fetchSpy.mockResolvedValueOnce(ok(playsXml([])));
       await request(app).get('/api/bgg/partidas/clearuser2?page=1');
       expect(fetchSpy).toHaveBeenCalledTimes(3);
@@ -292,7 +415,7 @@ describe('BGG persistent cache (memoria → Mongo → BGG)', () => {
       expect(fetchSpy).toHaveBeenCalledTimes(1);
 
       // Pass the mixed-case username — internal lowercasing should still match
-      bggRouter.clearUserCache('MixedCase');
+      await bggRouter.clearUserCache('MixedCase');
       fetchSpy.mockResolvedValueOnce(ok(xml));
       await request(app).get('/api/bgg/coleccion/MixedCase');
       expect(fetchSpy).toHaveBeenCalledTimes(2);

@@ -458,7 +458,7 @@ router.post('/bgg-connect', protect, async (req, res) => {
 
     // Drop any cached plays/collection/OG for this username so the next
     // /bg-watch read comes fresh from BGG.
-    require('./bgg').clearUserCache(user.bggUsername);
+    await require('./bgg').clearUserCache(user.bggUsername);
 
     res.json(user);
   } catch (err) {

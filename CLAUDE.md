@@ -468,9 +468,14 @@ VITE_API_URL=http://localhost:4000
 
 User-facing name is **BG Watch**; pages live under [client/src/pages/bg-watch/](client/src/pages/bg-watch/) and the feature is gated by `SiteConfig.sections.bgwatch`. The `/perfil-bgg/*` paths still exist but redirect to `/bg-watch/*` via `LegacyBggRedirect` in [App.jsx](client/src/App.jsx).
 
-The `/api/bgg` routes proxy the **BoardGameGeek XML API2** server-side (avoids the CORS issue that broke the earlier direct-from-browser attempt — see git history for PRs #13–#22). Per-user lookups (search, collection, plays) use an in-memory cache (30 min) that the client can bypass on demand by passing `?refresh=1`. Game details and thumbnails go through a **persistent cache** (`BggGame` model, [server/models/BggGame.js](server/models/BggGame.js)) so they survive restarts and are shared across all users.
+The `/api/bgg` routes proxy the **BoardGameGeek XML API2** server-side (avoids the CORS issue that broke the earlier direct-from-browser attempt — see git history for PRs #13–#22). Per-user lookups use an in-memory L1 cache (30 min) that the client can bypass with `?refresh=1`. Game details + thumbnails (immutable) and user collections (mutable, 6 h TTL) go through persistent Mongo L2 caches (`BggGame`, `BggCollection`) so they survive restarts and are shared across all users.
 
-**Cache layering — `memoria → Mongo → BGG`**: the helpers `resolveGame(id)` and `resolveGamesBatch(ids)` in [server/routes/bgg.js](server/routes/bgg.js) check the in-memory L1 first, then `BggGame` in Mongo, and only call BGG for ids that are missing in both. Resolved games are upserted to Mongo (with `lastFetchedAt`) and warmed into L1. Used by `GET /game/:id`, the thumbnail enrichment in `GET /partidas/:user`, and the thumbnail batch in `GET /search`. To add a new persistent entity (e.g. `BggCollection`, `BggPlay`) follow the same pattern: model + `resolveXxx` helper; immutable data has no TTL, mutable data uses `lastFetchedAt` + manual refresh button.
+**Cache layering — `memoria → Mongo → BGG`**:
+- `resolveGame(id)` / `resolveGamesBatch(ids)` check L1, then `BggGame` (no TTL — game details don't change), then BGG. Used by `GET /game/:id`, the thumbnail enrichment in `GET /partidas/:user`, and the thumbnail batch in `GET /search`.
+- `resolveCollection(bggUsername, { forceRefresh })` checks L1, then `BggCollection` (6 h TTL via `lastFetchedAt`), then BGG. Used by `GET /coleccion/:user`. `?refresh=1` skips both layers.
+- `clearUserCache(bggUsername)` (called from `auth/bgg-connect`) wipes both L1 entries AND the `BggCollection` Mongo doc for that user so the next read is guaranteed fresh.
+
+To add a new persistent entity (e.g. `BggPlay`) follow the same pattern: model + `resolveXxx` helper. Immutable data has no TTL; mutable data uses `lastFetchedAt` + manual refresh button + `clearUserCache` integration where appropriate.
 
 `PartidasPanel` and `ColeccionPanel` expose an **"Actualizar"** button that fires a refetch with `?refresh=1` (server skips its in-memory cache and goes to BGG). After clicking, the button is disabled for **60 s** with a visible countdown ("Esperá Xs"), then re-enables. The cooldown is purely client-side, per-panel — navigating away and back resets it.
 
