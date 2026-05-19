@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['dice.svg', 'favicon.ico', 'apple-touch-icon-180x180.png'],
+      includeAssets: ['logo.svg', 'favicon.ico', 'apple-touch-icon-180x180.png'],
       manifest: {
         name: 'Turnocero',
         short_name: 'Turnocero',

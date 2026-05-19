@@ -38,7 +38,7 @@ export default function GuestSidebar() {
   return (
     <aside className={styles.sidebar}>
       <Link to="/" className={styles.logo}>
-        <div className={styles.logoIcon}>T</div>
+        <img src="/logo.svg" alt="TurnoCero" className={styles.logoIcon} />
         <div className={styles.logoText}>
           <span className={styles.logoName}>TurnoCero</span>
           <span className={styles.logoSub}>BOARD GAME MEETUPS</span>

@@ -15,7 +15,7 @@ describe('<GuestNavbar>', () => {
   it('renders the TurnoCero brand mark', () => {
     renderNav();
     expect(screen.getByText('TurnoCero')).toBeInTheDocument();
-    expect(screen.getByText('T')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'TurnoCero' })).toHaveAttribute('src', '/logo.svg');
     expect(screen.getByText('BOARD GAME MEETUPS')).toBeInTheDocument();
   });
 

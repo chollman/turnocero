@@ -67,7 +67,7 @@ export default function Register() {
       <div className={styles.panel}>
         {/* Logo */}
         <div className={styles.logoBlock}>
-          <div className={styles.logoIcon}>T</div>
+          <img src="/logo.svg" alt="TurnoCero" className={styles.logoIcon} />
           <div className={styles.logoText}>
             <span className={styles.logoName}>TurnoCero</span>
             <span className={styles.logoSub}>BOARD GAME MEETUPS</span>
