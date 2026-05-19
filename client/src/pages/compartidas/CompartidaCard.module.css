@@ -858,14 +858,161 @@
   padding: 6px 18px 16px;
   border-top: 1px solid var(--border);
   margin: 0 4px;
-  animation: commentsSlideDown 0.22s ease;
+  position: relative;
+  /* Cyberpunk-glitch slide-in: the panel "boots" into place with RGB
+     split (magenta + cyan drop-shadows), small translate/skew jitters,
+     and clip-path wipe. `steps(1, end)` keeps each glitch frame sharp
+     instead of interpolating, so it reads as a staccato boot-up. */
+  animation: commentsGlitchSlide 0.55s steps(1, end) both;
+  will-change: transform, clip-path, opacity, filter;
 }
 
 .cardFeatured .comments { border-top-color: var(--border-strong); }
 
-@keyframes commentsSlideDown {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes commentsGlitchSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(-32px) skewX(0deg);
+    clip-path: inset(0 0 100% 0);
+    filter: brightness(2) contrast(1.2);
+  }
+  6% {
+    opacity: 1;
+    transform: translateY(-22px) skewX(-4deg);
+    clip-path: inset(0 0 70% 0);
+    filter:
+      drop-shadow(4px 0 0 #ff2a6d)
+      drop-shadow(-4px 0 0 #05d9e8)
+      brightness(1.4);
+  }
+  14% {
+    transform: translateY(-10px) skewX(3deg);
+    clip-path: inset(0 0 40% 0);
+    filter:
+      drop-shadow(-5px 0 0 #ff2a6d)
+      drop-shadow(5px 0 0 #05d9e8)
+      hue-rotate(15deg);
+  }
+  24% {
+    transform: translateY(2px) skewX(-2deg);
+    clip-path: inset(0 0 15% 0);
+    filter:
+      drop-shadow(3px 0 0 var(--amber))
+      drop-shadow(-3px 0 0 #05d9e8)
+      saturate(1.5);
+  }
+  34% {
+    transform: translateY(-4px) skewX(1deg);
+    clip-path: inset(0 0 0 0);
+    filter:
+      drop-shadow(-4px 0 0 #ff2a6d)
+      drop-shadow(4px 0 0 #05d9e8);
+  }
+  46% {
+    transform: translateY(2px);
+    clip-path: inset(0 0 0 0);
+    filter:
+      drop-shadow(2px 0 0 #ff2a6d)
+      drop-shadow(-2px 0 0 #05d9e8);
+  }
+  60% {
+    transform: translateY(-1px);
+    filter:
+      drop-shadow(1px 0 0 #ff2a6d)
+      drop-shadow(-1px 0 0 #05d9e8);
+  }
+  80% {
+    transform: translateY(0);
+    filter: none;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0 0 0 0);
+    filter: none;
+  }
+}
+
+/* Scanline overlay — fades after the boot-in finishes. */
+.comments::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(5, 217, 232, 0.07) 0,
+      rgba(5, 217, 232, 0.07) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  mix-blend-mode: screen;
+  animation: commentsCyberScanlines 0.55s steps(1, end) both;
+}
+
+/* Horizontal scan beam that sweeps once from top to bottom. */
+.comments::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 45%,
+    rgba(255, 42, 109, 0) 47%,
+    rgba(255, 42, 109, 0.85) 49%,
+    #ffffff 50%,
+    rgba(5, 217, 232, 0.85) 51%,
+    rgba(5, 217, 232, 0) 53%,
+    transparent 55%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  animation: commentsCyberScanBeam 0.55s linear both;
+}
+
+@keyframes commentsCyberScanlines {
+  0%   { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes commentsCyberScanBeam {
+  0%   { transform: translateY(-100%); opacity: 1; }
+  90%  { transform: translateY(100%);  opacity: 1; }
+  100% { transform: translateY(100%);  opacity: 0; }
+}
+
+/* Stagger the inner pieces — kick in after the glitch settles so the
+   data appears to populate the panel after it "boots up". */
+.comments > * {
+  animation: commentRowIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  position: relative;
+  z-index: 1;
+}
+
+.comments > *:nth-child(1) { animation-delay: 0.4s; }
+.comments > *:nth-child(2) { animation-delay: 0.46s; }
+.comments > *:nth-child(3) { animation-delay: 0.52s; }
+.comments > *:nth-child(4) { animation-delay: 0.56s; }
+.comments > *:nth-child(5) { animation-delay: 0.6s; }
+.comments > *:nth-child(n+6) { animation-delay: 0.62s; }
+
+@keyframes commentRowIn {
+  from { opacity: 0; transform: translateX(-18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Respect users who opt out of motion. */
+@media (prefers-reduced-motion: reduce) {
+  .comments,
+  .comments > * { animation: none; }
+  .comments::before,
+  .comments::after { display: none; }
 }
 
 .commentsHead {
