@@ -15,7 +15,7 @@ const STATUS_TABS = [
 ]
 
 export default function Torneos() {
-  const { user, isActuallyAdmin, viewAsUser } = useAuth()
+  const { isActuallyAdmin, viewAsUser } = useAuth()
   const showAdminUI = isActuallyAdmin && !viewAsUser
 
   const [torneos, setTorneos]   = useState([])

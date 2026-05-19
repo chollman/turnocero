@@ -59,7 +59,7 @@ describe('<BgWatchProfile>', () => {
   });
 
   it('renders Coleccion tab when clicked', async () => {
-    const { rerender } = renderProfile();
+    renderProfile();
     await screen.findByTestId('partidas-panel');
     const tabs = screen.getAllByRole('button');
     const coleccionTab = tabs.find((b) => /colecci[oó]n/i.test(b.textContent || ''));

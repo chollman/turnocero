@@ -185,7 +185,7 @@ export default function Notifications() {
   const { clearConversationUnread } = useChat();
   const [tab, setTab] = useState('all');
   const [category, setCategory] = useState('all');
-  const [, setNow] = useState(Date.now());
+  const [, setNow] = useState(() => Date.now());
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [exhaustedOlder, setExhaustedOlder] = useState(false);
 

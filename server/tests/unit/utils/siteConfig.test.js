@@ -1,7 +1,6 @@
 const SiteConfig = require('../../../models/SiteConfig');
 const {
   loadSiteConfig,
-  getSiteConfig,
   isSectionEnabled,
   updateSiteConfig,
 } = require('../../../utils/siteConfig');

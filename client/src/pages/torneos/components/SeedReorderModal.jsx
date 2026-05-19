@@ -10,7 +10,7 @@ export default function SeedReorderModal({ torneo, onClose, onSaved }) {
   const [submitting, setSub]  = useState(false)
   const [error, setError]     = useState('')
 
-  useEffect(() => { setOrder(torneo.participants || []) }, [torneo._id])
+  useEffect(() => { setOrder(torneo.participants || []) }, [torneo._id, torneo.participants])
 
   const move = (idx, dir) => {
     const target = idx + dir

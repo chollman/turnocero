@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
 import styles from './AvatarCropModal.module.css';
 
@@ -24,7 +24,7 @@ async function getCroppedBlob(imageSrc, pixelCrop) {
     600,
     600,
   );
-  return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+  return new Promise((resolve) => { canvas.toBlob(resolve, 'image/jpeg', 0.9); });
 }
 
 export default function AvatarCropModal({ open, file, onCancel, onConfirm }) {
@@ -32,26 +32,29 @@ export default function AvatarCropModal({ open, file, onCancel, onConfirm }) {
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [imageSrc, setImageSrc] = useState(null);
   const objectUrlRef = useRef(null);
 
-  const imageSrc = useMemo(() => {
-    if (!file) return null;
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-    }
-    const url = URL.createObjectURL(file);
-    objectUrlRef.current = url;
-    return url;
-  }, [file]);
-
+  // Generate the object URL for the picked file inside an effect (not during
+  // render — ref reads/writes are not allowed in the render phase). The effect
+  // also handles cleanup whenever `file` changes and on unmount.
   useEffect(() => {
-    return () => {
+    if (!file) {
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
         objectUrlRef.current = null;
       }
+      setImageSrc(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    objectUrlRef.current = url;
+    setImageSrc(url);
+    return () => {
+      URL.revokeObjectURL(url);
+      if (objectUrlRef.current === url) objectUrlRef.current = null;
     };
-  }, []);
+  }, [file]);
 
   useEffect(() => {
     if (open) {

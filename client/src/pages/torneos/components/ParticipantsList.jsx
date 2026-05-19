@@ -38,7 +38,7 @@ function ParticipantItem({ user, seed, torneoId, canRemove, onChange }) {
     try {
       const { data } = await axios.delete(`/api/torneos/${torneoId}/participants/${user._id}`)
       onChange(data)
-    } catch {} finally {
+    } catch { /* silently keep the row; user can retry */ } finally {
       setBusy(false)
       setConfirm(false)
     }

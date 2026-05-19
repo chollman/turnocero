@@ -4,7 +4,6 @@ const Evento = require('../../models/Evento');
 const { createUser, createAuthedUser, tokenFor } = require('../helpers/auth');
 const { createEvento } = require('../helpers/factories');
 const { loadSiteConfig, updateSiteConfig } = require('../../utils/siteConfig');
-const SiteConfig = require('../../models/SiteConfig');
 
 async function ensureEventosSectionOn() {
   await loadSiteConfig();

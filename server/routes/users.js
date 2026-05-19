@@ -3,7 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const Table = require('../models/Table');
 const Compartida = require('../models/Compartida');
-const { protect, optionalAuth } = require('../middleware/auth');
+const { optionalAuth } = require('../middleware/auth');
 const { requireSection } = require('../middleware/sectionGate');
 
 router.use(requireSection('comunidad'));

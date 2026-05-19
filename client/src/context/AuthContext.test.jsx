@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
@@ -129,7 +129,7 @@ describe('AuthContext', () => {
   });
 
   it('requestEmailVerification + requestPasswordReset + resetPassword call their endpoints', async () => {
-    let hit = { resend: false, forgot: false, reset: false };
+    const hit = { resend: false, forgot: false, reset: false };
     server.use(
       http.post('/api/auth/resend-verification', () => { hit.resend = true; return HttpResponse.json({}); }),
       http.post('/api/auth/forgot-password', () => { hit.forgot = true; return HttpResponse.json({}); }),

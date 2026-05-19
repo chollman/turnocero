@@ -4,7 +4,6 @@ const multer = require('../config/multer');
 const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
 const Compartida = require('../models/Compartida');
 const CompartidaComment = require('../models/CompartidaComment');
-const User = require('../models/User');
 const Table = require('../models/Table');
 const { protect, optionalAuth } = require('../middleware/auth');
 const { requireSection } = require('../middleware/sectionGate');

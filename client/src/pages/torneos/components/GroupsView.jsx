@@ -21,7 +21,7 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
     try {
       const { data } = await axios.get(`/api/torneos/${torneo._id}/groups`, { params: { phase: phaseToLoad } })
       setPhaseData(data)
-    } catch {} finally {
+    } catch { /* show empty state on failure */ } finally {
       setLoading(false)
     }
   }, [torneo._id])

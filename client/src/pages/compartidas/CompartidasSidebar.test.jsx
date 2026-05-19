@@ -27,7 +27,7 @@ function renderSidebar() {
 beforeEach(() => {
   useAuthMock.mockReturnValue({ user: { _id: 'me', username: 'me' } });
   useSiteConfigMock.mockReturnValue({
-    isSectionEnabled: (key) => true,
+    isSectionEnabled: () => true,
   });
   server.use(
     http.get('/api/tables/mine', () =>

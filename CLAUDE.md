@@ -520,7 +520,14 @@ User profile flow:
 
 **Coverage**: HTML reports at `server/coverage/index.html` and `client/coverage/index.html`. No enforcement threshold currently; that's intentional during backfill.
 
-**Convention** (post-backfill): every new feature ships with tests for the routes, hooks, and any new shared component. Pure helpers extracted from components (color hashing, formatters, route matchers) belong in `client/src/utils/` and are tested there once instead of per call-site.
+**Convention** (active, post-backfill): **every new component, route, hook, util, or method ships with its corresponding tests in the same PR/commit** — both client and server. No exceptions, even for "small" additions. Concretely:
+- New client component `Foo.jsx` → `Foo.test.jsx` next to it.
+- New client util `bar.js` → `bar.test.js` in `client/src/utils/`.
+- New server route → integration test in `server/tests/integration/`.
+- New server utility/model method → unit test in `server/tests/unit/`.
+- Bug fixes get a regression test that fails before the fix and passes after.
+- Pure helpers extracted from components (color hashing, formatters, route matchers) belong in `client/src/utils/` and are tested there once instead of per call-site.
+- When extending an existing component, extend its existing test file (don't create a parallel one).
 
 ## Known limitations / decisions
 

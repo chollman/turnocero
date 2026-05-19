@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, Link } from 'react-router-dom';
+import { MemoryRouter, Route, Link } from 'react-router-dom';
 import PageTransition from './PageTransition';
 
 function renderApp(initialEntry = '/') {

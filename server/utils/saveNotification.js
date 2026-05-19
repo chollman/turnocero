@@ -43,7 +43,7 @@ const TYPE_TO_SECTION = {
 async function saveNotification(recipientId, type, fields) {
   const section = TYPE_TO_SECTION[type];
   if (section && !isSectionEnabled(section)) {
-    // Admins reciben notificaciones aunque la sección esté OFF (ven todo).
+    // Admins reciben notificaciones aunque la sección esté OFF (ven todas).
     try {
       const recipient = await User.findById(recipientId).select('isAdmin');
       if (!recipient?.isAdmin) return null;

@@ -40,13 +40,14 @@ function ToastItem({ toast, onDismiss }) {
   const [paused, setPaused] = useState(false);
   const timerRef = useRef(null);
   const remainingRef = useRef(duration);
-  const startRef = useRef(Date.now());
+  // Initialized in the effect below; null until the first run.
+  const startRef = useRef(null);
 
   useEffect(() => {
     if (paused) {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
-        remainingRef.current -= Date.now() - startRef.current;
+        remainingRef.current -= Date.now() - (startRef.current ?? Date.now());
       }
       return;
     }

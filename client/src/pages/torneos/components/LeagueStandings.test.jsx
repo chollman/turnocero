@@ -3,16 +3,6 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import LeagueStandings from './LeagueStandings';
 
-function renderTable(props) {
-  return render(
-    <MemoryRouter>
-      <table><tbody><tr><td>
-        <LeagueStandings {...props} />
-      </td></tr></tbody></table>
-    </MemoryRouter>,
-  );
-}
-
 const playersBase = [
   { _id: 'p1', username: 'alice', displayName: 'Alice A', avatar: { url: '', publicId: '' } },
   { _id: 'p2', username: 'bob',   displayName: 'Bob B',   avatar: { url: '', publicId: '' } },

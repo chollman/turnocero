@@ -101,7 +101,7 @@ async function getSessionCookie(userId) {
   } catch (e) {
     if (e.status === 401) {
       creds.invalid = true;
-      try { await user.save(); } catch {}
+      try { await user.save(); } catch { /* non-fatal; just flag the user */ }
     }
     throw e;
   }

@@ -74,7 +74,7 @@ function verificationEmail({ username, code }) {
   const safeUser = escapeHtml(username || 'jugador');
   const safeCode = escapeHtml(code);
   const html = wrap({
-    heading: '¡Hola, ' + safeUser + '! 🎲',
+    heading: `¡Hola, ${  safeUser  }! 🎲`,
     body: `
       <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#d5dfeb;">
         Gracias por sumarte a TurnoCero. Para activar tu cuenta, ingresá este código en la app:

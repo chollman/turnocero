@@ -569,16 +569,20 @@ describe('NotificationContext', () => {
     );
     renderApp();
     await waitFor(() => expect(screen.getByTestId('count').textContent).toBe('1'));
-    // Trigger loadOlder from a probe with a direct ref
-    let loadOlderFn = null;
+    // Capture loadOlder via a probe — mutate a holder object's property inside an
+    // effect (allowed) instead of reassigning an outer variable during render
+    // (which the react-hooks rule flags as an impure side effect).
+    const loadOlderHolder = { fn: null };
     function LoaderProbe() {
       const n = useNotifications();
-      loadOlderFn = n.loadOlder;
+      useEffect(() => {
+        loadOlderHolder.fn = n.loadOlder;
+      }, [n.loadOlder]);
       return null;
     }
     render(<NotificationProvider><LoaderProbe /></NotificationProvider>);
-    await waitFor(() => expect(loadOlderFn).not.toBeNull());
-    await act(async () => { await loadOlderFn(); });
+    await waitFor(() => expect(loadOlderHolder.fn).not.toBeNull());
+    await act(async () => { await loadOlderHolder.fn(); });
     // Older notification merged in
     await waitFor(() => {
       expect(Number(screen.getAllByTestId('count')[0].textContent)).toBeGreaterThanOrEqual(1);

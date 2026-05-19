@@ -29,9 +29,9 @@ metadata:
 
 ---
 
-## No test suite; lint via `/react-review` skill
-**Why:** The project has no test suite. ESLint was added (PR #24) as a pre-commit hook via the `/react-review` skill, but there's no `npm test`.
-**How to apply:** Don't suggest running tests. For code quality, use the `/react-review` skill which runs ESLint on changed React files.
+## Tests are required for every new component and method
+**Why:** Claudio explicitly stated (2026-05-18) that from now on every new component or method — client AND server — must ship with its corresponding tests. The test infrastructure was built up in May 2026 and the project is now at 81%+ client line coverage.
+**How to apply:** See [[feedback-tests-required]] for the full convention. Lint still runs via the `/react-review` skill.
 
 ---
 

@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       maxlength: [254, 'Email cannot exceed 254 characters'],
-      match: [/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/, 'Please enter a valid email'],
+      match: [/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Please enter a valid email'],
     },
     password: {
       type: String,
@@ -114,7 +114,7 @@ const userSchema = new mongoose.Schema(
 );
 
 // Normalize legacy avatar (string) → { url, publicId } on hydrate from DB
-userSchema.pre('init', function (doc) {
+userSchema.pre('init', (doc) => {
   if (typeof doc.avatar === 'string') {
     doc.avatar = { url: doc.avatar, publicId: '' };
   }

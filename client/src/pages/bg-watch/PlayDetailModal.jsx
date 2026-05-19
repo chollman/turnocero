@@ -65,7 +65,7 @@ export default function PlayDetailModal({ play, userMap, onClose }) {
       if (Number.isFinite(aPos) && Number.isFinite(bPos) && aPos !== bPos) return aPos - bPos;
       return 0;
     });
-  }, [play?.players]);
+  }, [play]);
 
   if (!play) return null;
 

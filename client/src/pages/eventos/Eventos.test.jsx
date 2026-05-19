@@ -112,7 +112,7 @@ describe('<Eventos>', () => {
   it('shows skeletons while loading', () => {
     server.use(
       http.get('/api/eventos', async () => {
-        await new Promise((r) => setTimeout(r, 50));
+        await new Promise((r) => { setTimeout(r, 50); });
         return HttpResponse.json({ eventos: [], page: 1, pages: 1 });
       }),
     );

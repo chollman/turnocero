@@ -2,7 +2,8 @@
 
 - [Claudio Hollman — developer profile](user_profile.md) — sole dev/owner, full-stack, Argentine Spanish UI, English commit messages
 - [Turnocero current feature set](project_features.md) — Noticias, Compartidas, Torneos, Friends, public browsing, Sidebar/BottomNav/GuestNavbar, admin moderation — features beyond CLAUDE.md
-- [Code style and workflow preferences](feedback_style.md) — commit-msg/UI language, BGG warning, CSS Modules, no tests
+- [Code style and workflow preferences](feedback_style.md) — commit-msg/UI language, BGG warning, CSS Modules
+- [Tests are required for every new component and method](feedback_tests_required.md) — non-negotiable since 2026-05-18: every new component, route, hook, util, or method ships with its tests in the same change (client AND server)
 - [Page padding system](padding_system.md) — `--page-padding`, `--page-padding-left`, `--page-padding-mobile` variables; patterns per page type
 - [Skeleton shimmer pattern](skeleton_pattern.md) — standard for all loading states; which screens are done, which are pending (BggProfile skipped)
 - [Sidebar/BottomNav sync](feedback_sidebar_bottomnav_sync.md) — always ask about BottomNav when modifying Sidebar order or structure

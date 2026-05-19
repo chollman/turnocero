@@ -78,7 +78,7 @@ export function ChatProvider({ children }) {
       }
     });
     return cleanup;
-  }, [user, addDmListener, addToast]);
+  }, [user, addDmListener, addToast, markReadDm]);
 
   const openChat = useCallback((contactUser) => {
     const id = contactUser._id.toString();

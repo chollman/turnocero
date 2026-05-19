@@ -50,7 +50,7 @@ describe('<Pagination>', () => {
   });
 
   it('marks the current page as active', () => {
-    const { container } = render(<Pagination page={2} totalPages={5} onPage={vi.fn()} />);
+    render(<Pagination page={2} totalPages={5} onPage={vi.fn()} />);
     const activeBtn = screen.getByRole('button', { name: '2' });
     expect(activeBtn.className).toMatch(/active/i);
   });

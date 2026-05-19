@@ -4,18 +4,18 @@ import axios from 'axios';
 
 const VIEW_AS_USER_KEY = 'viewAsUser';
 
-// TODO (long-term): migrate to a custom domain (e.g. turnocero.com + api.turnocero.com)
-// so auth cookies become first-party (SameSite=lax). Safari's ITP blocks cross-site
-// cookies even with SameSite=None, which requires the Bearer-token workaround below.
-// See docs/safari-auth-fix.md for full context.
+// Note (long-term): consider migrating to a custom domain (e.g. turnocero.com +
+// api.turnocero.com) so auth cookies become first-party (SameSite=lax). Safari's ITP
+// blocks cross-site cookies even with SameSite=None, which requires the Bearer-token
+// workaround below. See docs/safari-auth-fix.md for full context.
 
 axios.defaults.withCredentials = true;
 
 const setAuthHeader = (token) => {
   if (token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    axios.defaults.headers.common.Authorization = `Bearer ${token}`;
   } else {
-    delete axios.defaults.headers.common['Authorization'];
+    delete axios.defaults.headers.common.Authorization;
   }
 };
 

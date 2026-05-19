@@ -2,7 +2,7 @@ const request = require('supertest');
 const app = require('../../app');
 const User = require('../../models/User');
 const DirectMessage = require('../../models/DirectMessage');
-const { createUser, createAuthedUser, tokenFor } = require('../helpers/auth');
+const { createUser, createAuthedUser } = require('../helpers/auth');
 const { loadSiteConfig, updateSiteConfig } = require('../../utils/siteConfig');
 const SiteConfig = require('../../models/SiteConfig');
 

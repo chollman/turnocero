@@ -1,7 +1,17 @@
 // Shared ESLint rules used by both client and server configs.
 // Keep rules here language-agnostic (no React/Node-specific ones).
 module.exports = {
-  'no-unused-vars': ['warn', { varsIgnorePattern: '^_', argsIgnorePattern: '^_' }],
+  // Catch-bound errors are often intentionally ignored (we surface the error via
+  // a state setter or just swallow it for non-critical paths); `caughtErrors: 'none'`
+  // turns off the warning for those without losing it for regular variables.
+  'no-unused-vars': [
+    'warn',
+    {
+      varsIgnorePattern: '^_',
+      argsIgnorePattern: '^_',
+      caughtErrors: 'none',
+    },
+  ],
   'no-var': 'error',
   'prefer-const': 'warn',
   eqeqeq: ['error', 'smart'],

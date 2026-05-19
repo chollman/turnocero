@@ -33,13 +33,13 @@ function clearPartidasCache(bggUsername) {
 
 async function fetchBgg(url) {
   const headers = { 'User-Agent': 'Turnocero/1.0' };
-  if (process.env.BGG_API_KEY) headers['Authorization'] = `Bearer ${process.env.BGG_API_KEY}`;
+  if (process.env.BGG_API_KEY) headers.Authorization = `Bearer ${process.env.BGG_API_KEY}`;
 
   let res = await fetch(url, { headers });
 
   if (res.status === 202) {
     // BGG encola el pedido — reintentar una vez después de 2s
-    await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((r) => { setTimeout(r, 2000); });
     res = await fetch(url, { headers });
   }
 

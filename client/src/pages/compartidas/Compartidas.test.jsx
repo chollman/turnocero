@@ -14,7 +14,7 @@ vi.mock('./CompartidaCard', () => ({
     <div data-testid="compartida-card">
       {post.body}
       <button onClick={() => onDeleted?.(post._id)}>borrar-{post._id}</button>
-      <button onClick={() => onUpdated?.({ ...post, body: post.body + '-editado' })}>
+      <button onClick={() => onUpdated?.({ ...post, body: `${post.body  }-editado` })}>
         editar-{post._id}
       </button>
     </div>

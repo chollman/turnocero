@@ -8,7 +8,7 @@ const TorneoMatch = require('../models/TorneoMatch');
 const TorneoGroup = require('../models/TorneoGroup');
 const TorneoGame = require('../models/TorneoGame');
 const User = require('../models/User');
-const { protect, requireAdmin, optionalAuth } = require('../middleware/auth');
+const { protect, requireAdmin } = require('../middleware/auth');
 const { requireSection } = require('../middleware/sectionGate');
 const saveNotification = require('../utils/saveNotification');
 
@@ -317,7 +317,7 @@ router.put('/:id', protect, requireAdmin, multer.single('image'), async (req, re
 
     if (req.file) {
       if (torneo.image?.publicId) {
-        try { await cloudinary.uploader.destroy(torneo.image.publicId); } catch {}
+        try { await cloudinary.uploader.destroy(torneo.image.publicId); } catch { /* best-effort cleanup */ }
       }
       const result = await uploadToCloudinary(req.file.buffer, {
         folder: 'turnocero/torneos',
@@ -350,7 +350,7 @@ router.delete('/:id', protect, requireAdmin, async (req, res) => {
     }
 
     if (torneo.image?.publicId) {
-      try { await cloudinary.uploader.destroy(torneo.image.publicId); } catch {}
+      try { await cloudinary.uploader.destroy(torneo.image.publicId); } catch { /* best-effort cleanup */ }
     }
     await TorneoMatch.deleteMany({ torneo: torneo._id });
     await TorneoGame.deleteMany({ torneo: torneo._id });

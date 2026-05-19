@@ -37,7 +37,7 @@ function RegistrationItem({ registration, torneoId, onChange }) {
     try {
       const { data } = await axios.post(`/api/torneos/${torneoId}/registrations/${userId}/accept`)
       onChange(data)
-    } catch {} finally { setBusy(false) }
+    } catch { /* user can retry */ } finally { setBusy(false) }
   }
 
   const reject = async () => {
@@ -45,7 +45,7 @@ function RegistrationItem({ registration, torneoId, onChange }) {
     try {
       const { data } = await axios.post(`/api/torneos/${torneoId}/registrations/${userId}/reject`)
       onChange(data)
-    } catch {} finally { setBusy(false) }
+    } catch { /* user can retry */ } finally { setBusy(false) }
   }
 
   return (
