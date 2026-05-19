@@ -1,0 +1,1343 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Compartidas · Mobile — Turnocero</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@600;700&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --bg-dark: #0a0d15;
+    --bg-card: #151c28;
+    --bg-paper: #18202f;
+    --bg-elevated: #1d2532;
+    --bg-deep: #050810;
+    --accent: #1888ef;
+    --accent-light: #00aeff;
+    --accent-dark: #0076d1;
+    --accent-glow: rgba(24, 136, 239, 0.18);
+    --text: #ffffff;
+    --text-secondary: #a8b4cc;
+    --text-muted: #5a6178;
+    --text-faint: #353d52;
+    --border: #1e2a3d;
+    --border-strong: #2a3a55;
+    --border-accent: rgba(24, 136, 239, 0.4);
+    --red: #f31d77;
+    --green: #00d984;
+    --orange: #f5a623;
+    --purple: #b48cff;
+    --gold: #ffd700;
+    --green-10: rgba(0,217,132,0.1);
+    --green-25: rgba(0,217,132,0.25);
+    --purple-10: rgba(180,140,255,0.1);
+    --purple-25: rgba(180,140,255,0.3);
+    --orange-10: rgba(245,166,35,0.1);
+    --orange-25: rgba(245,166,35,0.3);
+    --t: 0.2s ease;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background:
+      radial-gradient(900px circle at 85% -10%, rgba(24,136,239,0.05), transparent 50%),
+      radial-gradient(700px circle at 0% 100%, rgba(0,174,255,0.04), transparent 55%),
+      #060810;
+    color: var(--text);
+    font-family: 'Archivo', sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+
+  /* ──── Stage ──── */
+  .stage {
+    min-height: 100vh;
+    padding: 48px 24px 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 36px;
+  }
+  .stageHeader {
+    max-width: 760px; width: 100%;
+    text-align: center;
+    display: flex; flex-direction: column; gap: 8px; align-items: center;
+  }
+  .stageEyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.18em;
+    color: var(--accent-light); text-transform: uppercase;
+  }
+  .stageEyebrow::before, .stageEyebrow::after {
+    content: ''; width: 26px; height: 1px; background: var(--accent-light);
+  }
+  .stageTitle {
+    font-family: 'Poppins', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 800; letter-spacing: -0.04em; line-height: 0.95;
+    margin: 4px 0 4px;
+  }
+  .stageTitle em {
+    font-family: 'Caveat', cursive; font-style: normal; font-weight: 600;
+    color: var(--accent-light); font-size: 1.15em; letter-spacing: -0.02em;
+  }
+  .stageSub { color: var(--text-secondary); font-size: 14px; line-height: 1.55; max-width: 540px; }
+
+  /* ─── Phone frame ─── */
+  .phones {
+    display: flex; gap: 36px; flex-wrap: wrap; justify-content: center;
+    align-items: flex-start;
+  }
+  .phoneWrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .phoneLabel {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.12em;
+    color: var(--text-muted); text-transform: uppercase;
+  }
+  .phoneLabel strong { color: var(--accent-light); font-weight: 600; }
+  .phone {
+    width: 390px;
+    height: 820px;
+    background: #000;
+    border-radius: 56px;
+    padding: 12px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5), inset 0 0 0 1.5px #1a1a1a, inset 0 0 0 3px #000;
+    position: relative;
+  }
+  .screen {
+    width: 100%; height: 100%;
+    background: var(--bg-dark);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    display: flex; flex-direction: column;
+  }
+  .statusBar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 28px 0;
+    font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600; color: #fff;
+    flex-shrink: 0;
+  }
+  .statusBar svg { display: block; }
+  .island {
+    position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 33px; background: #000; border-radius: 24px; z-index: 10;
+  }
+
+  /* ─── Navbar (top) ─── */
+  .navbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 18px 18px 12px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    position: relative; z-index: 2;
+  }
+  .brand { display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0; }
+  .brandMark {
+    width: 38px; height: 38px;
+    background: var(--bg-dark);
+    border: 1.5px solid var(--accent-light);
+    border-radius: 11px;
+    display: flex; align-items: center; justify-content: center; gap: 2.5px;
+    flex-shrink: 0;
+    box-shadow: 0 3px 12px var(--accent-glow);
+  }
+  .brandMark .t { position: relative; width: 13px; height: 17px; }
+  .brandMark .t .arm { position: absolute; top: 0; left: 0; width: 13px; height: 2.5px; background: #fff; border-radius: 1px; }
+  .brandMark .t .stem { position: absolute; top: 0; left: 5.5px; width: 3px; height: 17px; background: #fff; border-radius: 1px; }
+  .brandMark .ring { width: 14px; height: 14px; border: 2.5px solid var(--accent-light); border-radius: 50%; position: relative; box-sizing: border-box; }
+  .brandMark .ring::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 3px; height: 3px; background: #fff; border-radius: 50%; }
+  .brandText { display: flex; flex-direction: column; min-width: 0; }
+  .brandName {
+    font-family: 'Poppins', sans-serif;
+    font-size: 16px; font-weight: 800;
+    letter-spacing: -0.035em; color: var(--text); line-height: 1.05;
+  }
+  .brandSub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8.5px; letter-spacing: 0.16em;
+    color: var(--text-muted); text-transform: uppercase;
+    margin-top: 1px;
+  }
+  .navActions { display: flex; gap: 6px; flex-shrink: 0; }
+  .iconBtn {
+    width: 36px; height: 36px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    display: grid; place-items: center;
+    color: var(--text-secondary);
+    position: relative;
+    transition: all var(--t);
+  }
+  .iconBtn:hover { color: var(--accent-light); border-color: var(--border-accent); background: var(--accent-glow); }
+  .iconBtn svg { width: 16px; height: 16px; }
+  .iconBtn .badge {
+    position: absolute; top: -3px; right: -3px;
+    min-width: 16px; height: 16px; padding: 0 4px;
+    background: var(--red); color: #fff;
+    border: 1.5px solid var(--bg-card); border-radius: 999px;
+    font-family: 'Poppins', sans-serif; font-size: 9.5px; font-weight: 800;
+    display: grid; place-items: center; letter-spacing: -0.02em;
+  }
+  .iconBtn .badge.live { background: var(--green); }
+
+  /* ─── Content scroll area ─── */
+  .content {
+    flex: 1; overflow-y: auto;
+    padding: 16px 14px 100px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .content::-webkit-scrollbar { display: none; }
+
+  /* Page header */
+  .pageHead {
+    display: flex; flex-direction: column; gap: 6px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
+  .pageEyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.16em;
+    color: var(--accent-light); text-transform: uppercase;
+  }
+  .pageEyebrow::before { content: ''; width: 20px; height: 1px; background: var(--accent-light); }
+  .pageTitle {
+    font-family: 'Poppins', sans-serif;
+    font-size: 26px; font-weight: 800;
+    letter-spacing: -0.04em; line-height: 1;
+    margin: 4px 0 0;
+  }
+  .pageTitle em {
+    font-family: 'Caveat', cursive; font-style: normal; font-weight: 600;
+    color: var(--accent-light); font-size: 1.15em; letter-spacing: -0.02em;
+  }
+  .pageStats {
+    display: flex; gap: 14px; margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.06em;
+    color: var(--text-muted); text-transform: uppercase;
+  }
+  .pageStats strong { color: var(--accent-light); font-weight: 600; }
+
+  /* Composer */
+  .composer {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 10px;
+  }
+  .composer:focus-within { border-color: var(--border-accent); }
+  .composerAvatar {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    display: grid; place-items: center;
+    font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 13px;
+    letter-spacing: -0.04em; flex-shrink: 0;
+  }
+  .composerTrigger {
+    flex: 1;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    text-align: left;
+  }
+  .composerActions { display: flex; gap: 4px; flex-shrink: 0; }
+  .composerActions button {
+    width: 32px; height: 32px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    display: grid; place-items: center;
+    transition: all var(--t);
+  }
+  .composerActions button:hover { color: var(--accent-light); border-color: var(--border-accent); background: var(--accent-glow); }
+  .composerActions button svg { width: 14px; height: 14px; }
+
+  /* Filter chips */
+  .filterChips {
+    display: flex; gap: 6px; overflow-x: auto;
+    padding: 2px 0;
+    scrollbar-width: none;
+    margin: 4px 0;
+  }
+  .filterChips::-webkit-scrollbar { display: none; }
+  .filterChip {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.06em;
+    text-transform: uppercase; font-weight: 500;
+    white-space: nowrap;
+    transition: all var(--t);
+  }
+  .filterChip:hover { color: var(--text); border-color: var(--border-strong); }
+  .filterChip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ─── Featured broadside (mobile, single col) ─── */
+  .broadside {
+    position: relative;
+    background:
+      radial-gradient(500px circle at 20% 30%, rgba(24,136,239,0.18), transparent 55%),
+      linear-gradient(135deg, #18223a, #0c1018);
+    border: 1px solid var(--border-strong);
+    border-radius: 16px;
+    padding: 18px;
+    overflow: hidden;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .broadsideLabel {
+    align-self: flex-start;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px; letter-spacing: 0.15em;
+    font-weight: 700; text-transform: uppercase;
+    background: var(--accent); color: #fff;
+    padding: 4px 9px;
+    border-radius: 999px;
+    transform: rotate(-2deg);
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+  .broadsideEyebrow {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em;
+    color: var(--accent-light); text-transform: uppercase;
+  }
+  .broadsideEyebrow .avatar {
+    width: 22px; height: 22px; border-radius: 999px;
+    background: var(--orange); color: #fff;
+    display: grid; place-items: center;
+    font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 10px;
+  }
+  .broadsideEyebrow strong { color: var(--text); font-weight: 600; }
+  .broadsideTitle {
+    font-family: 'Poppins', sans-serif;
+    font-size: 22px; font-weight: 700;
+    letter-spacing: -0.035em; line-height: 1.05;
+    color: var(--text); margin: 0;
+    text-wrap: balance;
+  }
+  .broadsideQuote {
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px; font-style: italic;
+    line-height: 1.5; color: var(--text-secondary);
+    border-left: 3px solid var(--accent);
+    padding-left: 10px;
+  }
+  .broadsidePolaroid {
+    align-self: center;
+    transform: rotate(-3deg);
+    max-width: 220px;
+    width: 100%;
+  }
+  .broadsideMeta {
+    display: flex; flex-wrap: wrap; gap: 4px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+  .broadsideMeta strong { color: var(--text); font-weight: 600; }
+
+  /* ─── Polaroid primitive ─── */
+  .polaroid {
+    background: #f4eeda;
+    padding: 8px 8px 28px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.3);
+    border-radius: 3px;
+    position: relative;
+    width: 100%;
+  }
+  .polaroidPhoto {
+    width: 100%;
+    aspect-ratio: 1;
+    background:
+      repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0, rgba(255,255,255,0.04) 8px, transparent 8px, transparent 16px),
+      linear-gradient(135deg, #1d2535, #0e1320);
+    display: grid; place-items: center;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase;
+  }
+  .polaroidPhoto.landscape { aspect-ratio: 4/3; }
+  .polaroidCaption {
+    position: absolute;
+    bottom: 4px; left: 0; right: 0;
+    text-align: center;
+    font-family: 'Caveat', cursive;
+    font-size: 15px; color: #2c2620;
+    line-height: 1;
+  }
+  .polaroidTape {
+    position: absolute;
+    top: -6px;
+    width: 50px; height: 14px;
+    background: rgba(232,220,180,0.62);
+    border: 1px solid rgba(255,235,180,0.15);
+    border-radius: 1px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .polaroidTape.left { left: 12px; transform: rotate(-3deg); }
+  .polaroidTape.right { right: 12px; transform: rotate(4deg); }
+  .polaroidTape.center { left: 50%; transform: translateX(-50%) rotate(-1deg); }
+
+  /* ─── Post card ─── */
+  .post {
+    background: var(--bg-paper);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .postHeader {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 14px 8px;
+  }
+  .postAvatar {
+    width: 38px; height: 38px;
+    border-radius: 11px;
+    color: #fff;
+    display: grid; place-items: center;
+    font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 13px;
+    letter-spacing: -0.04em;
+    flex-shrink: 0;
+  }
+  .postAuthor { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .postAuthorRow { display: flex; align-items: center; gap: 6px; }
+  .postAuthorName {
+    font-family: 'Poppins', sans-serif;
+    font-size: 13.5px; font-weight: 700;
+    color: var(--text); letter-spacing: -0.015em; line-height: 1.15;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .postAuthorBg {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px;
+    color: var(--accent-light);
+    background: var(--accent-glow);
+    border-radius: 4px;
+    border: 1px solid var(--border-accent);
+  }
+  .postAuthorBg svg { width: 9px; height: 9px; }
+  .postMetaLine {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--text-muted);
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .postPrivacy {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 1px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+  .postPrivacy svg { width: 8px; height: 8px; }
+  .postMenu {
+    width: 28px; height: 28px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: var(--text-muted);
+    display: grid; place-items: center;
+    transition: all var(--t);
+  }
+  .postMenu:hover { background: var(--bg-elevated); border-color: var(--border); color: var(--text); }
+
+  .postBody { padding: 0 14px 10px; }
+  .postTitle {
+    font-family: 'Poppins', sans-serif;
+    font-size: 16px; font-weight: 700;
+    letter-spacing: -0.025em; line-height: 1.18;
+    color: var(--text); margin: 0 0 6px;
+  }
+  .postText {
+    font-size: 14px; color: var(--text-secondary);
+    line-height: 1.5; margin: 0;
+  }
+  .postExpand {
+    display: inline-block; margin-top: 4px;
+    background: transparent; border: none;
+    color: var(--accent-light);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.06em;
+    padding: 0; text-transform: uppercase;
+  }
+
+  /* Photos */
+  .postPhotos { padding: 6px 14px 14px; }
+  .photoGrid1 { display: grid; place-items: center; padding-top: 8px; padding-bottom: 16px; }
+  .photoGrid1 .polaroidWrap { width: min(280px, 100%); }
+  .photoGrid1 .polaroid { transform: rotate(-1.5deg); width: 100%; }
+  .photoGrid2 {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 10px; padding-top: 12px; padding-bottom: 16px; place-items: center;
+  }
+  .photoGrid2 .polaroidWrap { width: 100%; min-width: 0; }
+  .photoGrid2 .polaroid { width: 100%; }
+  .photoGrid2 .polaroidWrap:nth-child(1) .polaroid { transform: rotate(-2.5deg); }
+  .photoGrid2 .polaroidWrap:nth-child(2) .polaroid { transform: rotate(1.8deg); }
+
+  .photoGrid4 {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 10px; padding-top: 14px; padding-bottom: 16px; place-items: center;
+  }
+  .photoGrid4 .polaroidWrap { width: 100%; min-width: 0; }
+  .photoGrid4 .polaroid { width: 100%; }
+  .photoGrid4 .polaroidWrap:nth-child(1) .polaroid { transform: rotate(-3deg); }
+  .photoGrid4 .polaroidWrap:nth-child(2) .polaroid { transform: rotate(2deg); }
+  .photoGrid4 .polaroidWrap:nth-child(3) .polaroid { transform: rotate(1deg); }
+  .photoGrid4 .polaroidWrap:nth-child(4) .polaroid { transform: rotate(-1.5deg); }
+
+  /* Mini mesa ticket */
+  .mesaTicket {
+    display: grid;
+    grid-template-columns: 38px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    margin: 0 14px 14px;
+    padding: 10px 12px;
+    background:
+      radial-gradient(200px circle at 0% 50%, var(--accent-glow), transparent 60%),
+      var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .mesaTicket::before, .mesaTicket::after {
+    content: ''; position: absolute;
+    width: 10px; height: 10px;
+    background: var(--bg-paper);
+    border-radius: 50%;
+    top: 50%; transform: translateY(-50%);
+    border: 1px solid var(--border-strong);
+  }
+  .mesaTicket::before { left: 34px; }
+  .mesaTicket::after { right: 70px; }
+  .mesaTile {
+    width: 38px; height: 38px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    display: grid; place-items: center;
+    color: #fff;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 800; font-size: 14px;
+    letter-spacing: -0.04em;
+    position: relative; z-index: 1;
+  }
+  .mesaInfo { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .mesaLabel {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.12em;
+    color: var(--accent-light); text-transform: uppercase;
+  }
+  .mesaGame {
+    font-family: 'Poppins', sans-serif;
+    font-size: 13px; font-weight: 700;
+    color: var(--text); letter-spacing: -0.015em; line-height: 1.15;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mesaMeta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--text-muted);
+  }
+  .mesaCta {
+    background: var(--accent); color: #fff;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.02em;
+    position: relative; z-index: 1;
+    white-space: nowrap;
+  }
+
+  /* Post footer */
+  .postFooter {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px 12px;
+    border-top: 1px dashed var(--border);
+    margin: 0 2px;
+  }
+  .reactionGroup { display: flex; gap: 2px; }
+  .reactionBtn {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: transparent; border: none;
+    color: var(--text-muted);
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.02em;
+    transition: all var(--t);
+  }
+  .reactionBtn:hover { background: var(--bg-elevated); color: var(--text); }
+  .reactionBtn.active { color: var(--red); }
+  .reactionBtn svg { width: 14px; height: 14px; }
+  .shareGroup { display: flex; gap: 1px; }
+  .shareBtn {
+    width: 30px; height: 30px;
+    background: transparent; border: none;
+    border-radius: 8px;
+    color: var(--text-muted);
+    display: grid; place-items: center;
+    transition: all var(--t);
+  }
+  .shareBtn:hover { background: var(--bg-elevated); color: var(--accent-light); }
+  .shareBtn svg { width: 13px; height: 13px; }
+
+  /* Inline comment preview */
+  .commentRow {
+    display: flex; gap: 8px; padding: 8px 14px 0;
+  }
+  .commentRow + .commentRow { padding-top: 4px; }
+  .commentRowAvatar {
+    width: 22px; height: 22px;
+    border-radius: 999px;
+    color: #fff;
+    display: grid; place-items: center;
+    font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 10px;
+    flex-shrink: 0;
+  }
+  .commentRowBody {
+    flex: 1; min-width: 0;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px 10px;
+  }
+  .commentRowAuthor {
+    font-family: 'Poppins', sans-serif;
+    font-size: 12px; font-weight: 700;
+    color: var(--text); letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+  .commentRowText {
+    font-size: 12.5px; color: var(--text-secondary);
+    line-height: 1.4;
+  }
+  .commentMore {
+    display: block;
+    background: transparent; border: none;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 8px 14px 0;
+  }
+  .commentForm {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px 14px;
+  }
+  .commentInput {
+    flex: 1;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    font-family: inherit;
+    outline: none;
+  }
+  .commentSubmit {
+    width: 30px; height: 30px;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 999px;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .commentSubmit svg { width: 12px; height: 12px; }
+
+  /* Inline widgets (between posts) */
+  .inlineWidget {
+    background:
+      radial-gradient(400px circle at 100% 0%, rgba(180,140,255,0.16), transparent 55%),
+      linear-gradient(135deg, #1a1d2e, #0e1320);
+    border: 1px solid rgba(180,140,255,0.25);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .inlineWidget.gold {
+    background:
+      radial-gradient(400px circle at 100% 0%, rgba(255,215,0,0.10), transparent 55%),
+      linear-gradient(135deg, #211c14, #15191f);
+    border-color: rgba(245,166,35,0.25);
+  }
+  .widgetEyebrow {
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .widgetEyebrow .left { color: #c2a7ff; }
+  .widgetEyebrow .right { color: var(--text-muted); }
+  .inlineWidget.gold .widgetEyebrow .left { color: var(--orange); }
+  .widgetTitle {
+    font-family: 'Poppins', sans-serif;
+    font-size: 16px; font-weight: 700;
+    letter-spacing: -0.025em; line-height: 1.2;
+    color: var(--text); margin: 0;
+  }
+  .widgetStats {
+    display: flex; gap: 12px;
+    padding: 10px 0;
+    border-top: 1px dashed rgba(180,140,255,0.2);
+    border-bottom: 1px dashed rgba(180,140,255,0.2);
+  }
+  .widgetStat { flex: 1; text-align: center; }
+  .widgetStatLabel {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.12em;
+    color: var(--text-muted); text-transform: uppercase;
+    display: block;
+  }
+  .widgetStatValue {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.3rem; font-weight: 700;
+    color: #c2a7ff; letter-spacing: -0.03em;
+    margin-top: 4px; line-height: 1;
+  }
+  .widgetCta {
+    align-self: stretch;
+    background: transparent;
+    border: 1px solid rgba(180,140,255,0.4);
+    color: #c2a7ff;
+    text-align: center;
+    padding: 8px;
+    border-radius: 8px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 12px; font-weight: 700;
+    text-decoration: none;
+    transition: all var(--t);
+  }
+  .widgetCta:hover { background: rgba(180,140,255,0.12); }
+
+  /* Quote widget */
+  .quoteText {
+    font-family: 'Poppins', sans-serif;
+    font-size: 15px; font-style: italic;
+    line-height: 1.4; color: var(--text);
+    letter-spacing: -0.01em;
+    position: relative; padding-left: 28px;
+  }
+  .quoteText::before {
+    content: '"';
+    font-family: 'Georgia', serif;
+    font-size: 3.4rem;
+    color: var(--orange); opacity: 0.4;
+    position: absolute; top: -2px; left: 0;
+    line-height: 1; font-weight: 700;
+  }
+  .quoteAttribution {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+  .quoteAttribution .avatar {
+    width: 22px; height: 22px; border-radius: 999px;
+    background: var(--purple); color: #fff;
+    display: grid; place-items: center;
+    font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 10px;
+  }
+  .quoteAttribution strong { color: var(--text); }
+
+  /* ─── BottomNav ─── */
+  .bottomnav {
+    position: absolute;
+    left: 12px; right: 12px; bottom: 12px;
+    background: rgba(21, 28, 40, 0.94);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-strong);
+    border-radius: 22px;
+    padding: 8px 6px;
+    display: flex; align-items: center; gap: 4px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,0,0,0.5);
+    z-index: 20;
+  }
+  .bnArrow {
+    width: 26px; height: 44px;
+    background: transparent; border: none;
+    color: var(--text-muted);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    transition: color var(--t);
+  }
+  .bnArrow:hover { color: var(--accent-light); }
+  .bnArrow svg { width: 16px; height: 16px; }
+  .bnItems {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    overflow: hidden;
+  }
+  .bnItem {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+    padding: 6px 4px 5px;
+    border-radius: 14px;
+    color: var(--text-muted);
+    position: relative;
+    transition: all var(--t);
+    text-align: center;
+  }
+  .bnIcon { width: 30px; height: 30px; display: grid; place-items: center; color: inherit; position: relative; }
+  .bnIcon svg { width: 22px; height: 22px; }
+  .bnLabel {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px; letter-spacing: 0.04em;
+    font-weight: 600; line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .bnItem.active {
+    background: var(--accent-glow);
+    color: var(--accent-light);
+  }
+  .bnItem.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px; height: 2px;
+    background: var(--accent-light);
+    border-radius: 1px;
+  }
+  .bnBadge {
+    position: absolute;
+    top: -2px; right: -4px;
+    min-width: 16px; height: 16px;
+    padding: 0 4px;
+    background: var(--red); color: #fff;
+    border: 1.5px solid var(--bg-card);
+    border-radius: 999px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 9px; font-weight: 800;
+    line-height: 1;
+    display: grid; place-items: center;
+    letter-spacing: -0.02em;
+  }
+  .bnBadge.live { background: var(--green); }
+  .bnPager {
+    position: absolute;
+    bottom: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 4px;
+  }
+  .bnPager .dot {
+    width: 5px; height: 5px;
+    background: var(--text-faint);
+    border-radius: 50%;
+    transition: all var(--t);
+  }
+  .bnPager .dot.active {
+    background: var(--accent-light);
+    width: 14px; border-radius: 3px;
+  }
+  .homeIndicator {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140px; height: 4px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 2px;
+    z-index: 25;
+  }
+
+  /* Footnote */
+  .footnote {
+    max-width: 720px;
+    padding: 18px 22px;
+    background: var(--bg-paper);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--text-secondary);
+    font-size: 13.5px; line-height: 1.6;
+    text-align: center;
+  }
+  .footnote strong { color: var(--text); }
+  .footnote code {
+    background: var(--bg-elevated);
+    color: var(--accent-light);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 880px) {
+    .phones { gap: 16px; }
+    .phone { transform: scale(0.85); transform-origin: top center; margin-bottom: -120px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="stageHeader">
+    <span class="stageEyebrow">Compartidas · mobile</span>
+    <h1 class="stageTitle">El <em>diario</em> en el bolsillo.</h1>
+    <p class="stageSub">
+      Versión mobile del feed de compartidas: composer inline, broadside compacto,
+      polaroids responsive, mesa-ticket sticky, widgets intercalados.
+    </p>
+  </div>
+
+  <div class="phones">
+
+    <!-- ═══════════════════ PHONE 1: feed top ═══════════════════ -->
+    <div class="phoneWrap">
+      <span class="phoneLabel">◆ Top · <strong>broadside + post</strong></span>
+      <div class="phone">
+        <div class="screen">
+          <div class="island"></div>
+
+          <!-- Status -->
+          <div class="statusBar">
+            <span>9:41</span>
+            <div><svg width="17" height="11" viewBox="0 0 17 11"><rect x="1" y="1" width="14" height="9" rx="2" stroke="#fff" stroke-opacity="0.4" fill="none"/><rect x="3" y="3" width="11" height="5" rx="0.5" fill="#fff"/></svg></div>
+          </div>
+
+          <!-- Navbar -->
+          <div class="navbar">
+            <a class="brand" href="#">
+              <div class="brandMark">
+                <div class="t"><div class="arm"></div><div class="stem"></div></div>
+                <div class="ring"></div>
+              </div>
+              <div class="brandText">
+                <span class="brandName">TurnoCero</span>
+                <span class="brandSub">◆ board game meetups</span>
+              </div>
+            </a>
+            <div class="navActions">
+              <button class="iconBtn" aria-label="Mensajes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span class="badge live">2</span>
+              </button>
+              <button class="iconBtn" aria-label="Notificaciones">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <span class="badge">3</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div class="content">
+            <!-- Page head -->
+            <div class="pageHead">
+              <span class="pageEyebrow">Comunidad · diario compartido</span>
+              <h1 class="pageTitle">Lo que <em>jugamos</em>.</h1>
+              <div class="pageStats">
+                <span><strong>6</strong> compartidas</span>
+                <span>· <strong>7</strong> esta semana</span>
+              </div>
+            </div>
+
+            <!-- Composer -->
+            <div class="composer">
+              <div class="composerAvatar">V</div>
+              <button class="composerTrigger">¿Qué jugaste hoy, Vos?</button>
+              <div class="composerActions">
+                <button aria-label="Subir foto">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </button>
+                <button aria-label="Enlazar mesa">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="16" cy="8" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="8" cy="16" r="1.2" fill="currentColor"/><circle cx="16" cy="16" r="1.2" fill="currentColor"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Filter chips (mini) -->
+            <div class="filterChips">
+              <button class="filterChip active">Todo</button>
+              <button class="filterChip">Amigos</button>
+              <button class="filterChip">Con fotos</button>
+              <button class="filterChip">Mesas</button>
+              <button class="filterChip">Trending</button>
+            </div>
+
+            <!-- Featured broadside -->
+            <article class="broadside">
+              <span class="broadsideLabel">◆ Compartida del día</span>
+              <div class="broadsideEyebrow">
+                <div class="avatar">C</div>
+                <span>Por <strong>Cami Rossi</strong> · hace 2h</span>
+              </div>
+              <h2 class="broadsideTitle">18 dados, ni un triple</h2>
+              <p class="broadsideQuote">Cuatro horas de Catán, tres negociaciones rotas y un robo a la vista al borde de un seis-seis-seis.</p>
+              <div class="broadsidePolaroid polaroid">
+                <span class="polaroidTape center"></span>
+                <div class="polaroidPhoto">foto de la partida</div>
+                <span class="polaroidCaption">el momento exacto</span>
+              </div>
+              <div class="broadsideMeta">
+                <span>◆ <strong>Catán</strong></span>
+                <span>♥ 24</span>
+                <span>💬 3</span>
+              </div>
+            </article>
+
+            <!-- Post 1 — text + 2 photos + mesa -->
+            <article class="post">
+              <div class="postHeader">
+                <div class="postAvatar" style="background: var(--purple)">P</div>
+                <div class="postAuthor">
+                  <div class="postAuthorRow">
+                    <span class="postAuthorName">Pancho Méndez</span>
+                    <span class="postAuthorBg" title="BG Watch">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="16" cy="8" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="8" cy="16" r="1.2" fill="currentColor"/><circle cx="16" cy="16" r="1.2" fill="currentColor"/></svg>
+                    </span>
+                  </div>
+                  <div class="postMetaLine">
+                    <span>◆ hace 5h</span>
+                    <span class="postPrivacy">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+                      Público
+                    </span>
+                  </div>
+                </div>
+                <button class="postMenu">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+                </button>
+              </div>
+              <div class="postBody">
+                <p class="postText">Sesión de Brass: Birmingham con los pesos pesados. Tres horas y media, ganó Vale por dos puntos. Necesitamos urgente más mesas como esta.</p>
+              </div>
+              <div class="postPhotos photoGrid2">
+                <div class="polaroidWrap">
+                  <div class="polaroid">
+                    <div class="polaroidPhoto">Birmingham 1850</div>
+                    <span class="polaroidCaption">Birmingham 1850</span>
+                  </div>
+                </div>
+                <div class="polaroidWrap">
+                  <div class="polaroid">
+                    <div class="polaroidPhoto">punto final</div>
+                    <span class="polaroidCaption">punto final</span>
+                  </div>
+                </div>
+              </div>
+              <div class="postFooter">
+                <div class="reactionGroup">
+                  <button class="reactionBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <span>11</span>
+                  </button>
+                  <button class="reactionBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span>1</span>
+                  </button>
+                </div>
+                <div class="shareGroup">
+                  <button class="shareBtn" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.535 5.862L.057 23.886a.5.5 0 0 0 .612.612l6.05-1.48A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.886 0-3.65-.51-5.166-1.396l-.37-.22-3.827.934.952-3.782-.243-.388A9.955 9.955 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg></button>
+                  <button class="shareBtn" aria-label="Copiar link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
+                </div>
+              </div>
+            </article>
+
+            <!-- Inline BG Watch widget -->
+            <div class="inlineWidget">
+              <div class="widgetEyebrow">
+                <span class="left">◆ Tu BG Watch</span>
+                <span class="right">100 partidas</span>
+              </div>
+              <h3 class="widgetTitle">¡Hiciste 100 partidas este año!</h3>
+              <div class="widgetStats">
+                <div class="widgetStat">
+                  <span class="widgetStatLabel">Este mes</span>
+                  <span class="widgetStatValue">12</span>
+                </div>
+                <div class="widgetStat">
+                  <span class="widgetStatLabel">Más jugado</span>
+                  <span class="widgetStatValue" style="font-size:1rem; line-height:1.3;">Wingspan</span>
+                </div>
+              </div>
+              <a class="widgetCta" href="#">+ Registrar partida</a>
+            </div>
+
+          </div>
+
+          <!-- BottomNav -->
+          <nav class="bottomnav">
+            <button class="bnArrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+            <div class="bnItems">
+              <a class="bnItem active" href="#">
+                <span class="bnIcon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                  <span class="bnBadge live">12</span>
+                </span>
+                <span class="bnLabel">Compartite</span>
+              </a>
+              <a class="bnItem" href="#">
+                <span class="bnIcon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M2 15h8M2 19h8M2 11h4"/></svg>
+                </span>
+                <span class="bnLabel">Noticias</span>
+              </a>
+              <a class="bnItem" href="#">
+                <span class="bnIcon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  <span class="bnBadge">2</span>
+                </span>
+                <span class="bnLabel">Eventos</span>
+              </a>
+            </div>
+            <button class="bnArrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+            <div class="bnPager">
+              <div class="dot active"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+            </div>
+          </nav>
+          <div class="homeIndicator"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════ PHONE 2: scrolled — post + comments ═══════════════════ -->
+    <div class="phoneWrap">
+      <span class="phoneLabel">◆ Scroll · <strong>post abierto + comentarios</strong></span>
+      <div class="phone">
+        <div class="screen">
+          <div class="island"></div>
+
+          <div class="statusBar">
+            <span>9:41</span>
+            <div><svg width="17" height="11" viewBox="0 0 17 11"><rect x="1" y="1" width="14" height="9" rx="2" stroke="#fff" stroke-opacity="0.4" fill="none"/><rect x="3" y="3" width="11" height="5" rx="0.5" fill="#fff"/></svg></div>
+          </div>
+
+          <div class="navbar">
+            <a class="brand" href="#">
+              <div class="brandMark">
+                <div class="t"><div class="arm"></div><div class="stem"></div></div>
+                <div class="ring"></div>
+              </div>
+              <div class="brandText">
+                <span class="brandName">TurnoCero</span>
+                <span class="brandSub">◆ board game meetups</span>
+              </div>
+            </a>
+            <div class="navActions">
+              <button class="iconBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
+              <button class="iconBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+            </div>
+          </div>
+
+          <div class="content">
+
+            <!-- Post 2 — 4 photos -->
+            <article class="post">
+              <div class="postHeader">
+                <div class="postAvatar" style="background: var(--green)">J</div>
+                <div class="postAuthor">
+                  <div class="postAuthorRow">
+                    <span class="postAuthorName">Joaco Russo</span>
+                  </div>
+                  <div class="postMetaLine">
+                    <span>◆ hace 1 día</span>
+                    <span class="postPrivacy">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                      Público
+                    </span>
+                  </div>
+                </div>
+                <button class="postMenu">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+                </button>
+              </div>
+              <div class="postBody">
+                <p class="postText">mini torneo de Carcassonne entre tres familias. el árbitro fue mi sobrino de 9 años. veredicto: gente más justa nunca existió.</p>
+              </div>
+              <div class="postPhotos photoGrid4">
+                <div class="polaroidWrap"><div class="polaroid"><div class="polaroidPhoto">el árbitro</div><span class="polaroidCaption">el árbitro</span></div></div>
+                <div class="polaroidWrap"><div class="polaroid"><div class="polaroidPhoto">final tight</div><span class="polaroidCaption">final tight</span></div></div>
+                <div class="polaroidWrap"><div class="polaroid"><div class="polaroidPhoto">la mesa</div></div></div>
+                <div class="polaroidWrap"><div class="polaroid"><div class="polaroidPhoto">trofeo</div><span class="polaroidCaption">trofeo casero</span></div></div>
+              </div>
+              <div class="postFooter">
+                <div class="reactionGroup">
+                  <button class="reactionBtn active">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <span>31</span>
+                  </button>
+                  <button class="reactionBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span>2</span>
+                  </button>
+                </div>
+                <div class="shareGroup">
+                  <button class="shareBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
+                </div>
+              </div>
+
+              <!-- Comments -->
+              <div class="commentRow">
+                <div class="commentRowAvatar" style="background: var(--orange)">C</div>
+                <div class="commentRowBody">
+                  <div class="commentRowAuthor">Cami Rossi</div>
+                  <div class="commentRowText">😂😂😂</div>
+                </div>
+              </div>
+              <div class="commentRow">
+                <div class="commentRowAvatar" style="background: var(--purple)">P</div>
+                <div class="commentRowBody">
+                  <div class="commentRowAuthor">Pancho M.</div>
+                  <div class="commentRowText">al sobrino sumalo a la próxima</div>
+                </div>
+              </div>
+              <button class="commentMore">◆ Ver 2 comentarios →</button>
+
+              <div class="commentForm">
+                <div class="commentRowAvatar" style="background: var(--accent)">V</div>
+                <input class="commentInput" placeholder="Escribí un comentario…" />
+                <button class="commentSubmit">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+              </div>
+            </article>
+
+            <!-- Inline quote widget -->
+            <div class="inlineWidget gold">
+              <div class="widgetEyebrow">
+                <span class="left">◆ Frase de la semana</span>
+              </div>
+              <p class="quoteText">Lo mejor del juego de mesa no es ganar — es discutir 30 minutos por qué la madera vale más que la oveja.</p>
+              <div class="quoteAttribution">
+                <div class="avatar">P</div>
+                <span>— <strong>Pancho M.</strong> · Catán</span>
+              </div>
+            </div>
+
+            <!-- Post 3 — text-only with mesa -->
+            <article class="post">
+              <div class="postHeader">
+                <div class="postAvatar" style="background: var(--accent)">T</div>
+                <div class="postAuthor">
+                  <div class="postAuthorRow">
+                    <span class="postAuthorName">Tomás Kibel</span>
+                    <span class="postAuthorBg">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="16" cy="8" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="8" cy="16" r="1.2" fill="currentColor"/><circle cx="16" cy="16" r="1.2" fill="currentColor"/></svg>
+                    </span>
+                  </div>
+                  <div class="postMetaLine">
+                    <span>◆ hace 2 días</span>
+                  </div>
+                </div>
+                <button class="postMenu">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+                </button>
+              </div>
+              <div class="postBody">
+                <h3 class="postTitle">Reseña corta: Sky Team</h3>
+                <p class="postText">Dos jugadores, dos horas, un cigarrillo nervioso. Sky Team es la mejor cooperativa que jugué este año.</p>
+              </div>
+              <div class="mesaTicket">
+                <div class="mesaTile">SK</div>
+                <div class="mesaInfo">
+                  <span class="mesaLabel">◆ Mesa enlazada</span>
+                  <span class="mesaGame">Sky Team · 2 jun</span>
+                </div>
+                <button class="mesaCta">Unirse</button>
+              </div>
+              <div class="postFooter">
+                <div class="reactionGroup">
+                  <button class="reactionBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <span>8</span>
+                  </button>
+                  <button class="reactionBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span>0</span>
+                  </button>
+                </div>
+              </div>
+            </article>
+
+          </div>
+
+          <nav class="bottomnav">
+            <button class="bnArrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+            <div class="bnItems">
+              <a class="bnItem active" href="#">
+                <span class="bnIcon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                </span>
+                <span class="bnLabel">Compartite</span>
+              </a>
+              <a class="bnItem" href="#">
+                <span class="bnIcon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                </span>
+                <span class="bnLabel">Noticias</span>
+              </a>
+              <a class="bnItem" href="#">
+                <span class="bnIcon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </span>
+                <span class="bnLabel">Eventos</span>
+              </a>
+            </div>
+            <button class="bnArrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+            <div class="bnPager">
+              <div class="dot active"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+            </div>
+          </nav>
+          <div class="homeIndicator"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footnote">
+    <strong>Adaptaciones mobile:</strong> el sidebar de widgets del desktop (BG Watch, Próximas partidas, Top juegos, Quote)
+    se vuelve <strong>widgets intercalados</strong> en el feed cada N posts. Polaroids responsive con grid 2×2 para 4 fotos
+    y una sola para 1. <code>broadside</code> apila vertical en vez de grid 1.3fr/1fr. Mesa enlazada conserva el
+    ticket-stub perforado. El composer se queda en estado one-liner por defecto.
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.bnItem, .filterChip').forEach(el => {
+    el.addEventListener('click', e => {
+      e.preventDefault();
+      const parent = el.parentElement;
+      parent.querySelectorAll(el.className.split(' ')[0] === 'bnItem' ? '.bnItem' : '.filterChip')
+        .forEach(i => i.classList.remove('active'));
+      el.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
