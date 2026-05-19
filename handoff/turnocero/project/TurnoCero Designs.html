@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>TurnoCero — Direcciones de diseño</title>
+<meta name="viewport" content="width=1400" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #0a0d15; font-family: Inter, system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2a3a58; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="data.js"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="shared.jsx"></script>
+<script type="text/babel" src="cardstock.jsx"></script>
+<script type="text/babel" src="tokens.jsx"></script>
+<script type="text/babel" src="tokens-extras.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState } = React;
+
+function Intro() {
+  return (
+    <div style={{
+      width: 1100, padding: '32px 40px', color: '#fff',
+      fontFamily: 'Inter, sans-serif', display: 'flex', gap: 36,
+    }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontFamily: 'Manrope, sans-serif', fontSize: 11, fontWeight: 800, letterSpacing: '0.18em', color: '#00aeff' }}>
+          ◆ TURNOCERO · REDISEÑO
+        </div>
+        <h1 style={{ fontFamily: 'Manrope, sans-serif', fontSize: 40, fontWeight: 700, letterSpacing: '-0.04em', margin: '8px 0 12px', lineHeight: 1.05 }}>
+          Dos direcciones, mismo ADN.
+        </h1>
+        <p style={{ color: '#a8b4cc', fontSize: 14, lineHeight: 1.6, margin: 0, maxWidth: 640 }}>
+          Mantengo el oscuro navy + acentos azules que ya tenés, pero subo la fidelidad y le agrego texturas de juego de mesa.
+          Tipografía display <strong style={{ color: '#fff' }}>Manrope</strong> (geométrica tipo Aeonik, gratis) sobre cuerpo en <strong style={{ color: '#fff' }}>Inter</strong>.
+          Cada juego genera un <strong style={{ color: '#fff' }}>mosaico geométrico único</strong> derivado del nombre — sin necesidad de subir arte real.
+        </p>
+      </div>
+      <div style={{ width: 320, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ background: '#151c28', border: '1px solid #22304a', borderRadius: 12, padding: 16 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: '#1888ef', letterSpacing: '0.12em', fontFamily: 'Manrope, sans-serif', marginBottom: 6 }}>DIRECCIÓN A</div>
+          <div style={{ fontFamily: 'Manrope, sans-serif', fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Cardstock</div>
+          <p style={{ color: '#a8b4cc', fontSize: 12, margin: '6px 0 0', lineHeight: 1.5 }}>
+            Estampas de fecha tipo ticket de juego, bordes punteados perforados, grano sutil. Sobrio, premium, gamer pero adulto.
+          </p>
+        </div>
+        <div style={{ background: '#121826', border: '1px solid #1f2a40', borderRadius: 12, padding: 16 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: '#00aeff', letterSpacing: '0.12em', fontFamily: 'Manrope, sans-serif', marginBottom: 6 }}>DIRECCIÓN B</div>
+          <div style={{ fontFamily: 'Manrope, sans-serif', fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Token &amp; Track</div>
+          <p style={{ color: '#9aa6c0', fontSize: 12, margin: '6px 0 0', lineHeight: 1.5 }}>
+            Avatares meeple, barras de ocupación tipo track, hero con mosaico full-bleed. Más lúdico y físico.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <DesignCanvas title="TurnoCero — Direcciones de diseño">
+      <DCSection id="intro" title="Resumen">
+        <DCArtboard id="intro" label="Notas" width={1100} height={260}>
+          <Intro />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="cardstock" title="A · Cardstock — pulido, sobrio, tipo ticket de juego">
+        <DCArtboard id="cs-dash-d" label="Dashboard · Desktop" width={1280} height={900}>
+          <CSDashboardDesktop />
+        </DCArtboard>
+        <DCArtboard id="cs-dash-m" label="Dashboard · Mobile" width={414} height={804}>
+          <CSDashboardMobile />
+        </DCArtboard>
+        <DCArtboard id="cs-detail-d" label="Mesa · Desktop" width={1280} height={900}>
+          <CSTableDetailDesktop />
+        </DCArtboard>
+        <DCArtboard id="cs-detail-m" label="Mesa · Mobile" width={414} height={804}>
+          <CSTableDetailMobile />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="tokens" title="B · Token & Track — lúdico, meeples, banners con mosaico">
+        <DCArtboard id="tk-dash-d" label="Dashboard · Desktop" width={1280} height={900}>
+          <TKDashboardDesktop />
+        </DCArtboard>
+        <DCArtboard id="tk-dash-m" label="Dashboard · Mobile" width={414} height={804}>
+          <TKDashboardMobile />
+        </DCArtboard>
+        <DCArtboard id="tk-detail-d" label="Mesa · Desktop" width={1280} height={900}>
+          <TKTableDetailDesktop />
+        </DCArtboard>
+        <DCArtboard id="tk-detail-m" label="Mesa · Mobile" width={414} height={804}>
+          <TKTableDetailMobile />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="tk-feed" title="B · Feed (/me) — próxima partida + historial">
+        <DCArtboard id="tk-feed-d" label="Feed · Desktop" width={1280} height={900}>
+          <TKFeedDesktop />
+        </DCArtboard>
+        <DCArtboard id="tk-feed-m" label="Feed · Mobile" width={414} height={804}>
+          <TKFeedMobile />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="tk-create" title="B · Crear mesa">
+        <DCArtboard id="tk-create-d" label="Crear · Desktop" width={1280} height={900}>
+          <TKCreateTableDesktop />
+        </DCArtboard>
+        <DCArtboard id="tk-create-m" label="Crear · Mobile" width={414} height={804}>
+          <TKCreateTableMobile />
+        </DCArtboard>
+        <DCArtboard id="tk-edit-d" label="Editar · Desktop" width={1280} height={900}>
+          <TKCreateTableDesktop editMode />
+        </DCArtboard>
+        <DCArtboard id="tk-edit-m" label="Editar · Mobile" width={414} height={804}>
+          <TKCreateTableMobile editMode />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="tk-profile" title="B · Perfil">
+        <DCArtboard id="tk-profile-d" label="Perfil · Desktop" width={1280} height={900}>
+          <TKProfileDesktop />
+        </DCArtboard>
+        <DCArtboard id="tk-profile-m" label="Perfil · Mobile" width={414} height={804}>
+          <TKProfileMobile />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="tk-notif" title="B · Notificaciones">
+        <DCArtboard id="tk-notif-d" label="Notificaciones · Desktop" width={1280} height={900}>
+          <TKNotificationsDesktop />
+        </DCArtboard>
+        <DCArtboard id="tk-notif-m" label="Notificaciones · Mobile" width={414} height={804}>
+          <TKNotificationsMobile />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="tk-login" title="B · Login">
+        <DCArtboard id="tk-login-d" label="Login · Desktop" width={1280} height={900}>
+          <TKLoginDesktop />
+        </DCArtboard>
+        <DCArtboard id="tk-login-m" label="Login · Mobile" width={414} height={804}>
+          <TKLoginMobile />
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
