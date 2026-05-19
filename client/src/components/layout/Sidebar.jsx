@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
-import Avatar from "../shared/Avatar";
+import { getUserDisplay } from "../../utils/userDisplay";
 import { getActiveNavId } from "../../utils/routing";
 import styles from "./Sidebar.module.css";
 
@@ -100,33 +100,6 @@ const ICONS = {
       <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
     </svg>
   ),
-  create: (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="8" x2="12" y2="16" />
-      <line x1="8" y1="12" x2="16" y2="12" />
-    </svg>
-  ),
-  notif: (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  ),
   users: (
     <svg
       viewBox="0 0 24 24"
@@ -142,19 +115,6 @@ const ICONS = {
       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   ),
-  profile: (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  ),
   db: (
     <svg
       viewBox="0 0 24 24"
@@ -167,18 +127,6 @@ const ICONS = {
       <ellipse cx="12" cy="5" rx="9" ry="3" />
       <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
       <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-    </svg>
-  ),
-  mensajes: (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
   ),
   adminChat: (
@@ -247,21 +195,39 @@ const ICONS = {
   ),
 };
 
-const NAV = [
-  { id: "compartidas", label: "Compartite", to: "/compartidas", section: "compartidas" },
-  { id: "noticias", label: "Noticias", to: "/noticias", section: "noticias" },
-  { id: "eventos", label: "Eventos", to: "/eventos", section: "eventos" },
-  { id: "users", label: "Comunidad", to: "/usuarios", section: "comunidad" },
-  { id: "torneos", label: "Torneos", to: "/torneos", section: "torneos" },
-  { id: "dash", label: "Mesas", to: "/mesas", section: "mesas" },
-  { id: "feed", label: "Mi feed", to: "/mi", section: "miFeed" },
-  { id: "panel", label: "Panel admin", to: "/panel-admin", adminOnly: true },
-  { id: "db", label: "Base de datos", to: "/base-de-datos", adminOnly: true },
+const SECTIONS = [
   {
-    id: "adminChat",
-    label: "Chat Admin",
-    to: "/mensajes-admin",
+    label: "Comunidad",
+    items: [
+      { id: "compartidas", label: "Compartite", to: "/compartidas", section: "compartidas" },
+      { id: "noticias", label: "Noticias", to: "/noticias", section: "noticias" },
+      { id: "users", label: "Comunidad", to: "/usuarios", section: "comunidad" },
+    ],
+  },
+  {
+    label: "Encuentros",
+    items: [
+      { id: "dash", label: "Mesas", to: "/mesas", section: "mesas" },
+      { id: "eventos", label: "Eventos", to: "/eventos", section: "eventos" },
+      { id: "torneos", label: "Torneos", to: "/torneos", section: "torneos" },
+    ],
+  },
+  {
+    label: "Tuyo",
+    items: [
+      { id: "feed", label: "Mi feed", to: "/mi", section: "miFeed" },
+      // bgwatch / bgwatchCta resolved at render time depending on user.bggUsername
+      { id: "bgwatchSlot", section: "bgwatch" },
+    ],
+  },
+  {
+    label: "Admin",
     adminOnly: true,
+    items: [
+      { id: "panel", label: "Panel admin", to: "/panel-admin" },
+      { id: "db", label: "Base de datos", to: "/base-de-datos" },
+      { id: "adminChat", label: "Chat admin", to: "/mensajes-admin" },
+    ],
   },
 ];
 
@@ -274,15 +240,46 @@ export default function Sidebar() {
   const active = getActiveNavId(location.pathname);
   const [confirmingLogout, setConfirmingLogout] = useState(false);
 
-  // adminOnly items (Panel admin, Base de datos, Chat admin) always show to real admins,
-  // independent of viewAsUser — they are structural admin tooling, not content sections.
-  const isItemVisible = (item) => {
-    if (item.adminOnly) return isActuallyAdmin;
-    if (item.section) return isSectionEnabled(item.section);
-    return true;
+  const display = getUserDisplay(user);
+
+  const resolveItem = (item) => {
+    if (item.id === "bgwatchSlot") {
+      if (!isSectionEnabled("bgwatch")) return null;
+      if (user?.bggUsername) {
+        return { id: "bgwatch", label: "BG Watch", to: `/bg-watch/${user.bggUsername}` };
+      }
+      return {
+        id: "bgwatchCta",
+        label: "Activá BG Watch",
+        to: "/bg-watch",
+        variant: "promo",
+        badge: { value: "Nuevo", variant: "promo" },
+      };
+    }
+    if (item.section && !isSectionEnabled(item.section)) return null;
+    return item;
   };
-  const visibleRegular = NAV.filter(item => !item.adminOnly && isItemVisible(item));
-  const visibleAdminOnly = NAV.filter(item => item.adminOnly && isItemVisible(item));
+
+  const itemBadge = (item) => {
+    if (item.badge) return item.badge;
+    if (item.id === "adminChat" && adminChatUnread > 0) {
+      return {
+        value: adminChatUnread > 9 ? "9+" : adminChatUnread,
+        variant: "urgent",
+      };
+    }
+    return null;
+  };
+
+  // Build visible sections + assign global stagger index (--i) across all items.
+  const visibleSections = SECTIONS.map((sec) => {
+    if (sec.adminOnly && !isActuallyAdmin) return null;
+    const items = sec.items.map(resolveItem).filter(Boolean);
+    if (items.length === 0) return null;
+    return { ...sec, items };
+  }).filter(Boolean);
+
+  let staggerIndex = 0;
 
   const handleLogoutConfirm = () => {
     logout();
@@ -291,10 +288,7 @@ export default function Sidebar() {
 
   const renderNavItem = (item) => {
     const isActive = item.id === active;
-    let badge = null;
-    if (item.id === "adminChat" && adminChatUnread > 0) {
-      badge = adminChatUnread > 9 ? "9+" : adminChatUnread;
-    }
+    const badge = itemBadge(item);
     const cls = [
       styles.navItem,
       isActive ? styles.navItemActive : "",
@@ -302,16 +296,31 @@ export default function Sidebar() {
     ]
       .filter(Boolean)
       .join(" ");
+    const i = staggerIndex++;
     return (
-      <Link key={item.id} to={item.to} className={cls}>
+      <Link
+        key={item.id}
+        to={item.to}
+        className={cls}
+        style={{ "--i": i }}
+        aria-current={isActive ? "page" : undefined}
+      >
         <span className={styles.navIcon}>{ICONS[item.id]}</span>
-        <span className={styles.navLabel}>{item.label}</span>
-        {item.variant === "promo" && (
-          <span className={styles.navPromoTag}>Nuevo</span>
-        )}
+        <span className={styles.navLab}>{item.label}</span>
         {badge && (
-          <span key={badge} className={styles.navBadge}>
-            {badge}
+          <span
+            key={badge.value}
+            className={`${styles.navBadge} ${
+              badge.variant === "live"
+                ? styles.navBadgeLive
+                : badge.variant === "urgent"
+                  ? styles.navBadgeUrgent
+                  : badge.variant === "promo"
+                    ? styles.navBadgePromo
+                    : ""
+            }`}
+          >
+            {badge.value}
           </span>
         )}
       </Link>
@@ -321,12 +330,18 @@ export default function Sidebar() {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logoRow}>
-        <Link to="/" className={styles.logo}>
-          <img src="/logo.svg" alt="TurnoCero" className={styles.logoIcon} />
-          <div className={styles.logoText}>
+        <Link to="/" className={styles.logo} aria-label="TurnoCero">
+          <span className={styles.logoMark} aria-hidden="true">
+            <span className={styles.logoT}>
+              <span className={styles.logoTArm} />
+              <span className={styles.logoTStem} />
+            </span>
+            <span className={styles.logoRing} />
+          </span>
+          <span className={styles.logoText}>
             <span className={styles.logoName}>TurnoCero</span>
-            <span className={styles.logoSub}>BOARD GAME MEETUPS</span>
-          </div>
+            <span className={styles.logoSub}>◆ board game meetups</span>
+          </span>
         </Link>
         <button
           className={`${styles.bellBtn} ${active === "notif" ? styles.bellBtnActive : ""}`}
@@ -335,8 +350,8 @@ export default function Sidebar() {
           title="Notificaciones"
         >
           <svg
-            width="18"
-            height="18"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -356,30 +371,18 @@ export default function Sidebar() {
       </div>
 
       <nav className={styles.nav}>
-        {visibleRegular.map(renderNavItem)}
-
-        {isSectionEnabled('bgwatch') && (user?.bggUsername
-          ? renderNavItem({
-              id: "bgwatch",
-              label: "BG Watch",
-              to: `/bg-watch/${user.bggUsername}`,
-            })
-          : renderNavItem({
-              id: "bgwatchCta",
-              label: "Activá BG Watch",
-              to: "/bg-watch",
-              variant: "promo",
-            }))}
-
-        {visibleAdminOnly.length > 0 && (
-          <>
-            <div className={styles.navDivider} />
-            {visibleAdminOnly.map(renderNavItem)}
-          </>
-        )}
+        {visibleSections.map((sec) => (
+          <div
+            key={sec.label}
+            className={`${styles.navSection} ${sec.adminOnly ? styles.navSectionAdmin : ""}`}
+          >
+            <span className={styles.navSectionLabel}>◆ {sec.label}</span>
+            {sec.items.map(renderNavItem)}
+          </div>
+        ))}
       </nav>
 
-      <div className={styles.footer}>
+      <div className={styles.sidebarFooter}>
         {confirmingLogout ? (
           <div className={styles.logoutConfirm}>
             <span className={styles.logoutConfirmLabel}>¿Cerrar sesión?</span>
@@ -399,15 +402,27 @@ export default function Sidebar() {
             </div>
           </div>
         ) : (
-          <>
-            <Link to="/perfil" className={styles.userChip}>
-              <Avatar user={user} size="sm" />
-              <span className={styles.userName}>{user?.username}</span>
-            </Link>
+          <Link to="/perfil" className={styles.userTicket}>
+            <span className={styles.userAvatar} aria-hidden="true">
+              {(display.name || "?").charAt(0).toUpperCase()}
+            </span>
+            <span className={styles.userInfo}>
+              <span className={styles.userName}>{display.name || user?.username}</span>
+              <span className={styles.userMeta}>
+                <span className={styles.statusDot} aria-hidden="true" />
+                @{user?.username} · activo
+              </span>
+            </span>
             <button
+              type="button"
               className={styles.logoutBtn}
-              onClick={() => setConfirmingLogout(true)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setConfirmingLogout(true);
+              }}
               title="Cerrar sesión"
+              aria-label="Cerrar sesión"
             >
               <svg
                 width="15"
@@ -424,7 +439,7 @@ export default function Sidebar() {
                 <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
             </button>
-          </>
+          </Link>
         )}
       </div>
     </aside>

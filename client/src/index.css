@@ -16,6 +16,7 @@
   /* Colors — Blizzard/Battle.net dark navy theme (default) */
   --bg-dark: #0a0d15;
   --bg-card: #151c28;
+  --bg-paper: #18202f;
   --bg-elevated: #232a39;
   --bg-hover: #323a48;
 
@@ -29,6 +30,7 @@
   --text-muted: #5a5d70;
 
   --border: #1e2a3d;
+  --border-strong: #2a3a55;
   --border-amber: rgba(24, 136, 239, 0.35);
 
   --red: #f31d77;
@@ -91,6 +93,7 @@
 :root[data-theme='light'] {
   --bg-dark: #f5f7fb;
   --bg-card: #ffffff;
+  --bg-paper: #f8fafc;
   --bg-elevated: #eef1f7;
   --bg-hover: #e3e8f0;
 
@@ -99,6 +102,7 @@
   --text-muted: #8a92a3;
 
   --border: #d8dde7;
+  --border-strong: #b9c3d4;
 
   --overlay-soft: rgba(15, 23, 42, 0.04);
   --overlay-medium: rgba(15, 23, 42, 0.08);
