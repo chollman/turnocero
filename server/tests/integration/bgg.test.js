@@ -244,6 +244,61 @@ describe('BGG persistent cache (memoria → Mongo → BGG)', () => {
     });
   });
 
+  // ── clearUserCache helper (used by auth/bgg-connect) ─────────────
+  describe('clearUserCache', () => {
+    it('drops the coleccion entry for that username', async () => {
+      const xml = `<?xml version="1.0"?><items><item objectid="1"><name>A</name></item></items>`;
+
+      // Cold → 1 BGG call
+      fetchSpy.mockResolvedValueOnce(ok(xml));
+      await request(app).get('/api/bgg/coleccion/clearuser');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      // Warm → cache hit, no extra BGG call
+      await request(app).get('/api/bgg/coleccion/clearuser');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      // After clearUserCache → cold again
+      bggRouter.clearUserCache('clearuser');
+      fetchSpy.mockResolvedValueOnce(ok(xml));
+      await request(app).get('/api/bgg/coleccion/clearuser');
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('drops every partidas page/filter combo for that username', async () => {
+      // Warm two distinct cache entries for the same username (different pages)
+      fetchSpy.mockResolvedValueOnce(ok(playsXml([])));
+      await request(app).get('/api/bgg/partidas/clearuser2?page=1');
+      fetchSpy.mockResolvedValueOnce(ok(playsXml([])));
+      await request(app).get('/api/bgg/partidas/clearuser2?page=4'); // separate BGG page
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+      // Both pages are cached — no new BGG calls
+      await request(app).get('/api/bgg/partidas/clearuser2?page=1');
+      await request(app).get('/api/bgg/partidas/clearuser2?page=4');
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+      // clearUserCache wipes both entries
+      bggRouter.clearUserCache('clearuser2');
+      fetchSpy.mockResolvedValueOnce(ok(playsXml([])));
+      await request(app).get('/api/bgg/partidas/clearuser2?page=1');
+      expect(fetchSpy).toHaveBeenCalledTimes(3);
+    });
+
+    it('is case-insensitive on the username (matches cache keys)', async () => {
+      const xml = `<?xml version="1.0"?><items><item objectid="1"><name>A</name></item></items>`;
+      fetchSpy.mockResolvedValueOnce(ok(xml));
+      await request(app).get('/api/bgg/coleccion/MixedCase');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      // Pass the mixed-case username — internal lowercasing should still match
+      bggRouter.clearUserCache('MixedCase');
+      fetchSpy.mockResolvedValueOnce(ok(xml));
+      await request(app).get('/api/bgg/coleccion/MixedCase');
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+
   // ── GET /api/bgg/search ──────────────────────────────────────────
   describe('GET /api/bgg/search', () => {
     it('cold: enriches results with thumbnails from BGG and persists them', async () => {

@@ -38,6 +38,17 @@ function clearPartidasCache(bggUsername) {
   }
 }
 
+// Clears everything in the in-memory cache that's specific to one BGG
+// username: their plays (all pages/filters), collection, and OG metadata.
+// Called when a user reconnects their BGG account so subsequent reads come
+// fresh from BGG and don't show stale state from a previous session.
+function clearUserCache(bggUsername) {
+  const lower = String(bggUsername).toLowerCase();
+  cache.delete(`coleccion:${lower}`);
+  cache.delete(`og:${lower}`);
+  clearPartidasCache(bggUsername);
+}
+
 async function fetchBgg(url) {
   const headers = { 'User-Agent': 'Turnocero/1.0' };
   if (process.env.BGG_API_KEY) headers.Authorization = `Bearer ${process.env.BGG_API_KEY}`;
@@ -677,5 +688,8 @@ router.put('/partidas/:playId', protect, async (req, res) => {
 });
 
 module.exports = router;
+// Exposed for other routes (e.g. auth's bgg-connect handler) that need to
+// invalidate the per-user in-memory cache after relevant mutations.
+module.exports.clearUserCache = clearUserCache;
 // Internal: clear the in-memory L1 cache. Tests use this to isolate runs.
 module.exports.__resetCache = () => cache.clear();

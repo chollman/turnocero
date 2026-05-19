@@ -456,6 +456,10 @@ router.post('/bgg-connect', protect, async (req, res) => {
     await user.save();
     clearSession(user._id);
 
+    // Drop any cached plays/collection/OG for this username so the next
+    // /bg-watch read comes fresh from BGG.
+    require('./bgg').clearUserCache(user.bggUsername);
+
     res.json(user);
   } catch (err) {
     logger.error('BGG connect failed', { msg: err.message });
