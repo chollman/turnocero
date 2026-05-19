@@ -33,12 +33,13 @@ describe('<GuestBottomNav>', () => {
     expect(screen.getAllByRole('link')).toHaveLength(2);
   });
 
-  it('marks the current section as active and adds the active dot', () => {
-    const { container } = renderAt('/compartidas');
+  it('marks the current section as active', () => {
+    renderAt('/compartidas');
     const compartidas = screen.getByRole('link', { name: /compartidas/i });
     expect(compartidas.className).toMatch(/active/i);
-    // Only the active link should have the dot.
-    expect(container.querySelectorAll('.activeDot, [class*="activeDot"]')).toHaveLength(1);
+    // Only one link should be marked active.
+    const actives = screen.getAllByRole('link').filter(l => /active/i.test(l.className));
+    expect(actives).toHaveLength(1);
   });
 
   it('no item is active when on a guest-irrelevant route', () => {

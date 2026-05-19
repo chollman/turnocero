@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import PasswordInput from './PasswordInput';
 import GameTile from '../../components/shared/GameTile';
+import Logo from '../../components/shared/Logo';
 import styles from './Auth.module.css';
 
 function formatShowcaseDate(dateStr) {
@@ -92,7 +93,7 @@ export default function Login() {
       <div className={styles.panel}>
         {/* Logo */}
         <div className={styles.logoBlock}>
-          <img src="/logo.svg" alt="TurnoCero" className={styles.logoIcon} />
+          <Logo className={styles.logoIcon} />
           <div className={styles.logoText}>
             <span className={styles.logoName}>TurnoCero</span>
             <span className={styles.logoSub}>BOARD GAME MEETUPS</span>

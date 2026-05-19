@@ -4,23 +4,24 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useChat } from '../../context/ChatContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
+import Logo from '../shared/Logo';
 import styles from './Navbar.module.css';
 
 const ChatIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
   </svg>
 );
 
 const BellIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
   </svg>
 );
 
 const LogoutIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
     <polyline points="16 17 21 12 16 7"/>
     <line x1="21" y1="12" x2="9" y2="12"/>
@@ -43,60 +44,60 @@ export default function Navbar() {
 
   return (
     <nav className={styles.nav}>
-      <div className={styles.inner}>
-        <Link to="/" className={styles.logo}>
-          <img src="/logo.svg" alt="TurnoCero" className={styles.logoIcon} />
-          <div className={styles.logoText}>
-            <span className={styles.logoName}>TurnoCero</span>
-            <span className={styles.logoSub}>BOARD GAME MEETUPS</span>
-          </div>
-        </Link>
+      <Link to="/" className={styles.brand}>
+        <span className={styles.brandMark} aria-hidden="true">
+          <Logo className={styles.brandMarkImg} alt="" />
+        </span>
+        <span className={styles.brandText}>
+          <span className={styles.brandName}>TurnoCero</span>
+          <span className={styles.brandSub}>◆ board game meetups</span>
+        </span>
+      </Link>
 
-        <div className={styles.right}>
-          {dmsEnabled && (
-            <button
-              className={styles.bellBtn}
-              onClick={() => navigate('/mensajes')}
-              aria-label="Mensajes"
-            >
-              <ChatIcon />
-              {dmUnreadTotal > 0 && (
-                <span key={dmUnreadTotal} className={styles.bellBadge}>
-                  {dmUnreadTotal > 9 ? '9+' : dmUnreadTotal}
-                </span>
-              )}
-            </button>
-          )}
-
+      <div className={styles.navActions}>
+        {dmsEnabled && (
           <button
-            className={styles.bellBtn}
-            onClick={() => navigate('/notificaciones')}
-            aria-label="Notificaciones"
+            className={styles.iconBtn}
+            onClick={() => navigate('/mensajes')}
+            aria-label="Mensajes"
           >
-            <BellIcon />
-            {unreadCount > 0 && (
-              <span key={unreadCount} className={styles.bellBadge}>
-                {unreadCount > 9 ? '9+' : unreadCount}
+            <ChatIcon />
+            {dmUnreadTotal > 0 && (
+              <span key={dmUnreadTotal} className={`${styles.iconBadge} ${styles.iconBadgeLive}`}>
+                {dmUnreadTotal > 9 ? '9+' : dmUnreadTotal}
               </span>
             )}
           </button>
+        )}
 
-          {confirming ? (
-            <div className={styles.logoutConfirm}>
-              <span className={styles.logoutConfirmLabel}>¿Salir?</span>
-              <button className={styles.logoutConfirmYes} onClick={handleLogoutConfirm}>Sí</button>
-              <button className={styles.logoutConfirmNo} onClick={() => setConfirming(false)}>No</button>
-            </div>
-          ) : (
-            <button
-              className={styles.logoutBtn}
-              onClick={() => setConfirming(true)}
-              aria-label="Cerrar sesión"
-            >
-              <LogoutIcon />
-            </button>
+        <button
+          className={styles.iconBtn}
+          onClick={() => navigate('/notificaciones')}
+          aria-label="Notificaciones"
+        >
+          <BellIcon />
+          {unreadCount > 0 && (
+            <span key={unreadCount} className={styles.iconBadge}>
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
           )}
-        </div>
+        </button>
+
+        {confirming ? (
+          <div className={styles.logoutConfirm}>
+            <span className={styles.logoutConfirmLabel}>¿Salir?</span>
+            <button className={styles.logoutConfirmYes} onClick={handleLogoutConfirm}>Sí</button>
+            <button className={styles.logoutConfirmNo} onClick={() => setConfirming(false)}>No</button>
+          </div>
+        ) : (
+          <button
+            className={styles.iconBtn}
+            onClick={() => setConfirming(true)}
+            aria-label="Cerrar sesión"
+          >
+            <LogoutIcon />
+          </button>
+        )}
       </div>
     </nav>
   );

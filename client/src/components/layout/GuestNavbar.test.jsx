@@ -1,15 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import GuestNavbar from './GuestNavbar';
+import { AllProviders } from '../../test/wrappers/AllProviders';
 
 describe('<GuestNavbar>', () => {
   function renderNav() {
-    return render(
-      <MemoryRouter>
-        <GuestNavbar />
-      </MemoryRouter>,
-    );
+    return render(<GuestNavbar />, { wrapper: AllProviders });
   }
 
   it('renders the TurnoCero brand mark', () => {

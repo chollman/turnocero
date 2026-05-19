@@ -2,9 +2,12 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 18px 12px;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
 }
 
 /* Desktop: hidden — Sidebar handles navigation */
@@ -14,113 +17,143 @@
   }
 }
 
-/* Mobile: fixed bar — logo left, bell right */
+/* Mobile: fixed bar so content scrolls beneath. Anchored to the visual viewport
+   (--vv-* vars in App.jsx) so it stays glued to the visible top during pinch-zoom.
+   Inverse scale keeps the bar at its original physical size — only content zooms. */
 @media (max-width: 959px) {
   .nav {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: var(--vv-top, 0px);
+    left: var(--vv-left, 0px);
     width: 100%;
-    background: var(--bg-dark);
-    border-bottom: none;
-    box-shadow: none;
+    right: auto;
     z-index: 101;
-  }
-
-  .inner {
-    max-width: none;
-    margin: 0;
-    padding: 0 16px;
-    height: 52px;
-    justify-content: space-between;
+    transform-origin: top left;
+    transform: scale(calc(1 / var(--vv-scale, 1)));
   }
 }
 
-.inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-  height: 64px;
+/* ─── Brand ─── */
+.brand {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-}
-
-/* Logo — matches Sidebar */
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  gap: 11px;
+  flex: 1;
+  min-width: 0;
   text-decoration: none;
+  color: inherit;
 }
 
-.logoIcon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+.brandMark {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  flex-shrink: 0;
+  box-shadow: 0 3px 12px var(--amber-glow);
+  position: relative;
   display: block;
+}
+
+.brandMarkImg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 11px;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.brandName {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: var(--text-primary);
+  line-height: 1.05;
+}
+
+.brandSub {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+/* ─── Actions ─── */
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
 }
 
-.logoText {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.logoName {
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  line-height: 1.1;
-}
-
-.logoSub {
-  font-family: var(--font-display);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.right {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* Logout */
-.logoutBtn {
+.iconBtn {
   width: 36px;
   height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  position: relative;
+  transition: all var(--transition);
   cursor: pointer;
-  transition: color var(--transition);
   padding: 0;
+  flex-shrink: 0;
 }
 
-.logoutBtn:hover {
-  color: var(--red);
+.iconBtn:hover {
+  color: var(--amber-light);
+  border-color: var(--border-amber);
+  background: var(--amber-glow);
 }
 
+.iconBtn:active {
+  transform: scale(0.95);
+}
+
+.iconBadge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: var(--red);
+  color: var(--on-amber);
+  border: 1.5px solid var(--bg-card);
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+}
+
+.iconBadgeLive {
+  background: var(--green);
+}
+
+/* ─── Logout confirmation ─── */
 .logoutConfirm {
   display: flex;
   align-items: center;
   gap: 6px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 4px 10px;
+  border-radius: 9px;
+  padding: 4px 8px;
 }
 
 .logoutConfirmLabel {
@@ -132,11 +165,13 @@
 }
 
 .logoutConfirmYes {
+  min-width: 26px;
+  height: 26px;
   background: var(--red);
   color: var(--on-amber);
   border: none;
-  border-radius: 5px;
-  padding: 3px 9px;
+  border-radius: 6px;
+  padding: 0 9px;
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
@@ -149,11 +184,13 @@
 }
 
 .logoutConfirmNo {
+  min-width: 26px;
+  height: 26px;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 3px 9px;
+  border-radius: 6px;
+  padding: 0 9px;
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
@@ -163,51 +200,4 @@
 
 .logoutConfirmNo:hover {
   color: var(--text-primary);
-}
-
-/* Bell */
-.bellBtn {
-  position: relative;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color var(--transition);
-  padding: 0;
-}
-
-.bellBtn:hover {
-  color: var(--amber);
-}
-
-.bellBadge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  background: var(--red);
-  color: var(--on-amber);
-  font-size: 0.6rem;
-  font-weight: 700;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 3px;
-  line-height: 1;
-  pointer-events: none;
-  animation: badgePop 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
-}
-
-@keyframes badgePop {
-  0%   { transform: scale(0.5); opacity: 0; }
-  60%  { transform: scale(1.3); }
-  100% { transform: scale(1);   opacity: 1; }
 }

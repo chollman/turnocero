@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import Logo from '../shared/Logo';
 import styles from './GuestNavbar.module.css';
 
 export default function GuestNavbar() {
@@ -6,7 +7,7 @@ export default function GuestNavbar() {
     <nav className={styles.nav}>
       <div className={styles.inner}>
         <Link to="/" className={styles.logo}>
-          <img src="/logo.svg" alt="TurnoCero" className={styles.logoIcon} />
+          <Logo className={styles.logoIcon} />
           <div className={styles.logoText}>
             <span className={styles.logoName}>TurnoCero</span>
             <span className={styles.logoSub}>BOARD GAME MEETUPS</span>

@@ -57,6 +57,7 @@ import BottomNav from './components/layout/BottomNav';
 import BoardGameBackground from './components/layout/BoardGameBackground';
 import SplashScreen from './components/layout/SplashScreen';
 import PageTransition from './components/layout/PageTransition';
+import useVisualViewportVars from './utils/useVisualViewportVars';
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -171,6 +172,7 @@ function AppRoutes() {
 
 function AppShell() {
   const { loading } = useAuth();
+  useVisualViewportVars();
   return (
     <>
       <SplashScreen visible={loading} />

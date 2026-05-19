@@ -1,150 +1,234 @@
+/* ─── Floating pill ─── */
+/* Anchored to the visual viewport (--vv-* vars set in App.jsx) so the pill stays
+   glued to the visible bottom during pinch-zoom. Inverse scale keeps the pill at
+   its original physical size — only content zooms. The 12px gutter and bottom inset
+   are divided by --vv-scale so they translate to a constant physical gap. */
 .nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 60px;
-  background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border);
+  left: calc(var(--vv-left, 0px) + 12px / var(--vv-scale, 1));
+  right: auto;
+  width: calc(100% - 24px);
+  bottom: calc(var(--vv-bottom, 0px) + max(12px, env(safe-area-inset-bottom)) / var(--vv-scale, 1));
+  transform-origin: bottom left;
+  transform: scale(calc(1 / var(--vv-scale, 1)));
+  background: rgba(21, 28, 40, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-strong);
+  border-radius: 22px;
+  padding: 8px 6px;
   display: flex;
-  justify-content: space-around;
   align-items: center;
+  gap: 4px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(0, 0, 0, 0.5);
   z-index: 100;
 }
 
-.navScrollable {
-  display: grid;
-  grid-template-columns: 40px 1fr 40px;
-  justify-content: unset;
-  overflow: hidden;
+/* Light-theme variant: lighter translucent fill */
+:global(:root[data-theme='light']) .nav {
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow:
+    0 8px 32px rgba(15, 23, 42, 0.15),
+    0 0 0 1px rgba(15, 23, 42, 0.05);
 }
 
+/* Hidden on desktop (Sidebar takes over) */
 @media (min-width: 960px) {
   .nav {
     display: none;
   }
 }
 
+/* ─── Arrows ─── */
+.arrow {
+  width: 26px;
+  height: 44px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: color var(--transition);
+  cursor: pointer;
+  padding: 0;
+}
+
+.arrow:hover {
+  color: var(--amber-light);
+}
+
+/* ─── Items container ─── */
+.items {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.itemFiller {
+  display: block;
+}
+
+/* ─── Item ─── */
 .item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
+  padding: 6px 4px 5px;
+  border-radius: 14px;
   color: var(--text-muted);
-  text-decoration: none;
-  font-family: var(--font-display);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
   position: relative;
-  padding: 8px 24px;
-  transition: color var(--transition);
+  transition: all var(--transition);
+  text-align: center;
+  text-decoration: none;
+  min-width: 0;
 }
 
-.item:hover {
-  color: var(--text-secondary);
-}
-
-.itemActive {
-  color: var(--amber);
+.item:active {
+  transform: scale(0.94);
 }
 
 .icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: inherit;
+  position: relative;
+}
+
+.icon svg {
+  width: 22px;
+  height: 22px;
 }
 
 .label {
-  font-size: 9px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   line-height: 1;
   text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
-.activeDot {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 2px;
-  border-radius: 0 0 2px 2px;
-  background: var(--amber);
-}
-
-/* Promo CTA variant — used for "Activá BG Watch" item shown to non-connected users. */
-.itemPromo {
+/* Active state */
+.itemActive {
+  background: var(--amber-glow);
   color: var(--amber-light);
 }
 
-.itemPromo:hover {
-  color: var(--amber);
-}
-
-.promoDot {
+.itemActive::after {
+  content: '';
   position: absolute;
-  top: 6px;
-  right: calc(50% - 14px);
-  width: 6px;
-  height: 6px;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 2px;
+  background: var(--amber-light);
+  border-radius: 1px;
+}
+
+/* ─── Badge on icon ─── */
+.iconBadge {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: var(--red);
+  color: var(--on-amber);
+  border: 1.5px solid var(--bg-card);
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  letter-spacing: -0.02em;
+}
+
+.iconBadgeUrgent {
+  animation: bnPulse 1.5s ease infinite;
+}
+
+@keyframes bnPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+
+/* ─── Promo (BG Watch CTA) ─── */
+.itemPromo {
+  background: var(--purple-10);
+  border: 1px dashed var(--purple-30);
+  color: var(--purple);
+}
+
+.itemPromo .label {
+  color: var(--purple);
+}
+
+.promoTag {
+  position: absolute;
+  top: -6px;
+  right: -2px;
+  background: var(--purple);
+  color: var(--on-amber);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+/* ─── Pager dots (above the pill so they clear safe-area on devices without it) ─── */
+.pager {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+}
+
+.pagerDot {
+  width: 5px;
+  height: 5px;
+  background: var(--text-muted);
+  opacity: 0.4;
   border-radius: 50%;
-  background: var(--amber);
-  box-shadow: 0 0 6px var(--amber-glow);
+  transition: all var(--transition);
 }
 
-.navDivider {
-  width: 1px;
-  height: 28px;
-  background: var(--border);
-  flex-shrink: 0;
-  align-self: center;
-  margin: 0 6px;
+.pagerDotActive {
+  background: var(--amber-light);
+  opacity: 1;
+  width: 14px;
+  border-radius: 3px;
 }
 
-.arrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0;
-  height: 100%;
-  transition: color var(--transition);
-}
-
-.arrow:hover {
-  color: var(--text-secondary);
-}
-
-/* Items wrapper inside the scrollable nav */
-.itemsContainer {
-  display: flex;
-  overflow: hidden;
-  align-items: center;
-  height: 100%;
-}
-
-.itemsContainer .item {
-  flex: 1;
-  padding-left: 0;
-  padding-right: 0;
-  height: 100%;
-  justify-content: center;
-}
-
-/* Slide animations */
+/* ─── Slide animations on pagination ─── */
 @keyframes kSlideLeft {
-  from { transform: translateX(32px); opacity: 0; }
+  from { transform: translateX(28px); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
 }
 
 @keyframes kSlideRight {
-  from { transform: translateX(-32px); opacity: 0; }
+  from { transform: translateX(-28px); opacity: 0; }
   to   { transform: translateX(0);     opacity: 1; }
 }
 

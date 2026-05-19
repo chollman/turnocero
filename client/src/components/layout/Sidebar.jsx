@@ -5,6 +5,7 @@ import { useNotifications } from "../../context/NotificationContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { getActiveNavId } from "../../utils/routing";
+import Logo from "../shared/Logo";
 import styles from "./Sidebar.module.css";
 
 const ICONS = {
@@ -199,9 +200,24 @@ const SECTIONS = [
   {
     label: "Comunidad",
     items: [
-      { id: "compartidas", label: "Compartite", to: "/compartidas", section: "compartidas" },
-      { id: "noticias", label: "Noticias", to: "/noticias", section: "noticias" },
-      { id: "users", label: "Comunidad", to: "/usuarios", section: "comunidad" },
+      {
+        id: "compartidas",
+        label: "Compartite",
+        to: "/compartidas",
+        section: "compartidas",
+      },
+      {
+        id: "noticias",
+        label: "Noticias",
+        to: "/noticias",
+        section: "noticias",
+      },
+      {
+        id: "users",
+        label: "Comunidad",
+        to: "/usuarios",
+        section: "comunidad",
+      },
     ],
   },
   {
@@ -246,7 +262,11 @@ export default function Sidebar() {
     if (item.id === "bgwatchSlot") {
       if (!isSectionEnabled("bgwatch")) return null;
       if (user?.bggUsername) {
-        return { id: "bgwatch", label: "BG Watch", to: `/bg-watch/${user.bggUsername}` };
+        return {
+          id: "bgwatch",
+          label: "BG Watch",
+          to: `/bg-watch/${user.bggUsername}`,
+        };
       }
       return {
         id: "bgwatchCta",
@@ -332,11 +352,7 @@ export default function Sidebar() {
       <div className={styles.logoRow}>
         <Link to="/" className={styles.logo} aria-label="TurnoCero">
           <span className={styles.logoMark} aria-hidden="true">
-            <span className={styles.logoT}>
-              <span className={styles.logoTArm} />
-              <span className={styles.logoTStem} />
-            </span>
-            <span className={styles.logoRing} />
+            <Logo className={styles.logoMarkImg} alt="" />
           </span>
           <span className={styles.logoText}>
             <span className={styles.logoName}>TurnoCero</span>
@@ -407,10 +423,12 @@ export default function Sidebar() {
               {(display.name || "?").charAt(0).toUpperCase()}
             </span>
             <span className={styles.userInfo}>
-              <span className={styles.userName}>{display.name || user?.username}</span>
+              <span className={styles.userName}>
+                {display.name || user?.username}
+              </span>
               <span className={styles.userMeta}>
-                <span className={styles.statusDot} aria-hidden="true" />
-                @{user?.username} · activo
+                <span className={styles.statusDot} aria-hidden="true" />@
+                {user?.username}
               </span>
             </span>
             <button

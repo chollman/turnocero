@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import { getActiveNavId } from '../../utils/routing';
+import Logo from '../shared/Logo';
 import styles from './GuestSidebar.module.css';
 
 const ICONS = {
@@ -38,7 +39,7 @@ export default function GuestSidebar() {
   return (
     <aside className={styles.sidebar}>
       <Link to="/" className={styles.logo}>
-        <img src="/logo.svg" alt="TurnoCero" className={styles.logoIcon} />
+        <Logo className={styles.logoIcon} />
         <div className={styles.logoText}>
           <span className={styles.logoName}>TurnoCero</span>
           <span className={styles.logoSub}>BOARD GAME MEETUPS</span>

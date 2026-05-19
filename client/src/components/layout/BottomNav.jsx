@@ -38,10 +38,11 @@ const PerfilIcon = () => (
 
 const CompartidasIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="14" rx="2"/>
-    <circle cx="8" cy="10" r="2"/>
-    <path d="M21 17 3 17M7 21h10"/>
-    <path d="m14 7 3 3-3 3"/>
+    <circle cx="18" cy="5" r="3"/>
+    <circle cx="6" cy="12" r="3"/>
+    <circle cx="18" cy="19" r="3"/>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
   </svg>
 )
 
@@ -122,13 +123,13 @@ const BgWatchCtaIcon = () => (
 )
 
 const ChevronLeft = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="m15 18-6-6 6-6"/>
   </svg>
 )
 
 const ChevronRight = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="m9 18 6-6-6-6"/>
   </svg>
 )
@@ -143,14 +144,12 @@ const REGULAR_NAV = [
 ]
 
 const ADMIN_NAV = [
-  { id: 'torneos', label: 'Torneos',  Icon: TorneosIcon,  to: '/torneos', section: 'torneos' },
-  { id: 'dash',    label: 'Mesas',    Icon: MesasIcon,    to: '/mesas',   section: 'mesas' },
-  { id: 'feed',    label: 'Feed',     Icon: FeedIcon,     to: '/mi',      section: 'miFeed' },
-  { id: 'panel',   label: 'Panel',    Icon: PanelIcon,    to: '/panel-admin',   adminOnly: true },
-  { id: 'db',      label: 'DB',       Icon: DBIcon,       to: '/base-de-datos', adminOnly: true },
+  { id: 'torneos',   label: 'Torneos',    Icon: TorneosIcon,   to: '/torneos', section: 'torneos' },
+  { id: 'dash',      label: 'Mesas',      Icon: MesasIcon,     to: '/mesas',   section: 'mesas' },
+  { id: 'feed',      label: 'Mi feed',    Icon: FeedIcon,      to: '/mi',      section: 'miFeed' },
+  { id: 'panel',     label: 'Panel',      Icon: PanelIcon,     to: '/panel-admin',   adminOnly: true },
+  { id: 'db',        label: 'DB',         Icon: DBIcon,        to: '/base-de-datos', adminOnly: true },
 ]
-
-const DIVIDER = { id: '__divider__', isDivider: true }
 
 const VISIBLE = 3
 
@@ -160,9 +159,7 @@ export default function BottomNav() {
   const location = useLocation()
   const active = getActiveNavId(location.pathname)
 
-  // adminOnly items (Panel, DB) always show to real admins regardless of viewAsUser.
   const isItemVisible = (item) => {
-    if (item.isDivider) return true
     if (item.adminOnly) return isActuallyAdmin
     if (item.section) return isSectionEnabled(item.section)
     return true
@@ -171,8 +168,6 @@ export default function BottomNav() {
   const items = (() => {
     const regular = REGULAR_NAV.filter(isItemVisible)
     if (user && isSectionEnabled('bgwatch')) {
-      // Insert BG Watch (or its CTA for non-connected users) right after "Comunidad" if present,
-      // otherwise prepend it.
       const idx = regular.findIndex(i => i.id === 'users')
       const insertAt = idx >= 0 ? idx + 1 : 0
       if (user.bggUsername) {
@@ -185,7 +180,7 @@ export default function BottomNav() {
       } else {
         regular.splice(insertAt, 0, {
           id: 'bgwatchCta',
-          label: 'Activá',
+          label: 'Activá BGW',
           Icon: BgWatchCtaIcon,
           to: '/bg-watch',
           variant: 'promo',
@@ -193,11 +188,11 @@ export default function BottomNav() {
       }
     }
     const admin = ADMIN_NAV.filter(isItemVisible)
-    return isActuallyAdmin && admin.length > 0
-      ? [...regular, DIVIDER, ...admin]
-      : regular
+    return isActuallyAdmin && admin.length > 0 ? [...regular, ...admin] : regular
   })()
-  const scrollable = items.filter(i => !i.isDivider).length > VISIBLE
+
+  const total = items.length
+  const scrollable = total > VISIBLE
 
   const [startIndex, setStartIndex] = useState(0)
   const [slideDir, setSlideDir] = useState(null)
@@ -205,7 +200,11 @@ export default function BottomNav() {
 
   const visibleItems = scrollable ? items.slice(startIndex, startIndex + VISIBLE) : items
   const canGoLeft = scrollable && startIndex > 0
-  const canGoRight = scrollable && startIndex + VISIBLE < items.length
+  const canGoRight = scrollable && startIndex + VISIBLE < total
+
+  // Pager: number of pages and which one we're on.
+  const pageCount = Math.max(1, Math.ceil(total / VISIBLE))
+  const activePage = Math.min(pageCount - 1, Math.floor(startIndex / VISIBLE))
 
   function goLeft() {
     if (!canGoLeft) return
@@ -234,7 +233,7 @@ export default function BottomNav() {
   // Keep the active item visible when navigating via router
   useEffect(() => {
     if (!scrollable) return
-    const activeIdx = items.findIndex(item => !item.isDivider && item.id === active)
+    const activeIdx = items.findIndex(item => item.id === active)
     if (activeIdx < 0) return
     if (activeIdx < startIndex) {
       setSlideDir('right')
@@ -250,54 +249,71 @@ export default function BottomNav() {
                   : ''
 
   const renderItem = (item) => {
-    if (item.isDivider) return <div key="__divider__" className={styles.navDivider} />
     const { id, label, Icon, to, variant } = item
     const isActive = id === active
+    const isPromo = variant === 'promo'
     const cls = [
       styles.item,
-      isActive ? styles.itemActive : '',
-      variant === 'promo' ? styles.itemPromo : '',
+      isActive && !isPromo ? styles.itemActive : '',
+      isPromo ? styles.itemPromo : '',
     ].filter(Boolean).join(' ')
     return (
-      <Link key={id} to={to} className={cls}>
-        <span className={styles.icon}><Icon /></span>
+      <Link key={id} to={to} className={cls} aria-current={isActive ? 'page' : undefined}>
+        <span className={styles.icon}>
+          <Icon />
+        </span>
         <span className={styles.label}>{label}</span>
-        {variant === 'promo' && <span className={styles.promoDot} />}
-        {isActive && <span className={styles.activeDot} />}
+        {isPromo && <span className={styles.promoTag}>NEW</span>}
       </Link>
     )
   }
 
   return (
     <nav
-      className={`${styles.nav} ${scrollable ? styles.navScrollable : ''}`}
+      className={styles.nav}
       onTouchStart={scrollable ? handleTouchStart : undefined}
       onTouchEnd={scrollable ? handleTouchEnd : undefined}
     >
-      {scrollable ? (
-        <>
-          <button
-            className={styles.arrow}
-            onClick={goLeft}
-            style={{ visibility: canGoLeft ? 'visible' : 'hidden' }}
-            aria-label="Anterior"
-          >
-            <ChevronLeft />
-          </button>
-          <div key={startIndex} className={`${styles.itemsContainer} ${animClass}`}>
-            {visibleItems.map(renderItem)}
-          </div>
-          <button
-            className={styles.arrow}
-            onClick={goRight}
-            style={{ visibility: canGoRight ? 'visible' : 'hidden' }}
-            aria-label="Siguiente"
-          >
-            <ChevronRight />
-          </button>
-        </>
-      ) : (
-        items.map(renderItem)
+      {scrollable && (
+        <button
+          className={styles.arrow}
+          onClick={goLeft}
+          style={{ visibility: canGoLeft ? 'visible' : 'hidden' }}
+          aria-label="Anterior"
+        >
+          <ChevronLeft />
+        </button>
+      )}
+
+      <div key={startIndex} className={`${styles.items} ${animClass}`}>
+        {visibleItems.map(renderItem)}
+        {/* Pad with invisible slots if last page has fewer than VISIBLE items */}
+        {visibleItems.length < VISIBLE &&
+          Array.from({ length: VISIBLE - visibleItems.length }).map((_, i) => (
+            <span key={`pad-${i}`} className={styles.itemFiller} aria-hidden="true" />
+          ))}
+      </div>
+
+      {scrollable && (
+        <button
+          className={styles.arrow}
+          onClick={goRight}
+          style={{ visibility: canGoRight ? 'visible' : 'hidden' }}
+          aria-label="Siguiente"
+        >
+          <ChevronRight />
+        </button>
+      )}
+
+      {scrollable && (
+        <div className={styles.pager} aria-hidden="true">
+          {Array.from({ length: pageCount }).map((_, i) => (
+            <span
+              key={i}
+              className={`${styles.pagerDot} ${i === activePage ? styles.pagerDotActive : ''}`}
+            />
+          ))}
+        </div>
       )}
     </nav>
   )

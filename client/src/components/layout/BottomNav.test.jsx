@@ -86,4 +86,19 @@ describe('<BottomNav>', () => {
     const eventos = screen.getByRole('link', { name: /eventos/i });
     expect(eventos.className).toMatch(/active/i);
   });
+
+  it('renders pager dots when items exceed the visible window', () => {
+    const { container } = setup({
+      isActuallyAdmin: true,
+      // All sections on → lots of items → pager active
+      sections: {
+        compartidas: true, noticias: true, eventos: true, comunidad: true,
+        utilidades: true, bgwatch: true, mesas: true, torneos: true, miFeed: true,
+      },
+    });
+    const pager = container.querySelector('[class*="pager"]');
+    expect(pager).not.toBeNull();
+    // At least two dots — there's more than VISIBLE=3 items
+    expect(pager.children.length).toBeGreaterThanOrEqual(2);
+  });
 });

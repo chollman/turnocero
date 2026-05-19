@@ -38,19 +38,28 @@ export default function GuestBottomNav() {
   const active = getActiveNavId(pathname)
   const visibleNav = NAV.filter(item => isSectionEnabled(item.section))
 
+  // Pad with invisible slots when fewer than 3 items so the 3-col grid stays balanced.
+  const VISIBLE = 3
+  const padCount = Math.max(0, VISIBLE - visibleNav.length)
+
   return (
     <nav className={styles.nav}>
-      {visibleNav.map(({ id, label, Icon, to }) => (
-        <Link
-          key={id}
-          to={to}
-          className={`${styles.item} ${active === id ? styles.itemActive : ''}`}
-        >
-          <span className={styles.icon}><Icon /></span>
-          <span className={styles.label}>{label}</span>
-          {active === id && <span className={styles.activeDot} />}
-        </Link>
-      ))}
+      <div className={styles.items}>
+        {visibleNav.map(({ id, label, Icon, to }) => (
+          <Link
+            key={id}
+            to={to}
+            className={`${styles.item} ${active === id ? styles.itemActive : ''}`}
+            aria-current={active === id ? 'page' : undefined}
+          >
+            <span className={styles.icon}><Icon /></span>
+            <span className={styles.label}>{label}</span>
+          </Link>
+        ))}
+        {Array.from({ length: padCount }).map((_, i) => (
+          <span key={`pad-${i}`} className={styles.itemFiller} aria-hidden="true" />
+        ))}
+      </div>
     </nav>
   )
 }

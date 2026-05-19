@@ -198,7 +198,7 @@ select {
 
 /* Layout offset variable — used by pages for min-height / sticky positioning */
 :root {
-  --navbar-h: 64px;
+  --navbar-h: 70px;
 }
 
 @media (min-width: 960px) {
@@ -242,10 +242,11 @@ select {
 
 @media (max-width: 959px) {
   .appContent {
-    padding-bottom: 60px; /* space for BottomNav */
+    /* space for the floating BottomNav pill (pill + inset + safe-area) */
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
   .appContent.guestMode {
-    padding-bottom: 60px; /* space for GuestBottomNav */
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
 }
 

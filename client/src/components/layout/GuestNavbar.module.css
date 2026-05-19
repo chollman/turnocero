@@ -14,18 +14,22 @@
   }
 }
 
-/* Mobile: fixed bar — logo left, actions right */
+/* Mobile: fixed bar — logo left, actions right. Anchored to the visual viewport
+   so it stays glued to the visible top during pinch-zoom. Inverse scale keeps the
+   bar at its original physical size — only content zooms. */
 @media (max-width: 959px) {
   .nav {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: var(--vv-top, 0px);
+    left: var(--vv-left, 0px);
     width: 100%;
+    right: auto;
     background: var(--bg-dark);
     border-bottom: none;
     box-shadow: none;
     z-index: 101;
+    transform-origin: top left;
+    transform: scale(calc(1 / var(--vv-scale, 1)));
   }
 
   .inner {

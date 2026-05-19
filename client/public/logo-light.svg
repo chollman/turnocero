@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="TurnoCero">
+  <title>TurnoCero · T0 mark · light</title>
+  <rect x="25" y="25" width="974" height="974" rx="215" ry="215" fill="#ffffff" stroke="#0a0d15" stroke-width="50"></rect>
+  
+  <rect x="93" y="282" width="370" height="74" rx="4" ry="4" fill="#0a0d15"></rect>
+  <rect x="237" y="282" width="83" height="460" rx="4" ry="4" fill="#0a0d15"></rect>
+  
+  <circle cx="721" cy="512" r="176.5" fill="none" stroke="#1888ef" stroke-width="67"></circle>
+  <circle cx="721" cy="512" r="42" fill="#0a0d15"></circle>
+</svg>
