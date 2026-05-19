@@ -468,14 +468,25 @@ VITE_API_URL=http://localhost:4000
 
 User-facing name is **BG Watch**; pages live under [client/src/pages/bg-watch/](client/src/pages/bg-watch/) and the feature is gated by `SiteConfig.sections.bgwatch`. The `/perfil-bgg/*` paths still exist but redirect to `/bg-watch/*` via `LegacyBggRedirect` in [App.jsx](client/src/App.jsx).
 
-The `/api/bgg` routes proxy the **BoardGameGeek XML API2** server-side (avoids the CORS issue that broke the earlier direct-from-browser attempt — see git history for PRs #13–#22). Per-user lookups use an in-memory L1 cache (30 min) that the client can bypass with `?refresh=1`. Game details + thumbnails (immutable) and user collections (mutable, 6 h TTL) go through persistent Mongo L2 caches (`BggGame`, `BggCollection`) so they survive restarts and are shared across all users.
+The `/api/bgg` routes proxy the **BoardGameGeek XML API2** server-side (avoids the CORS issue that broke the earlier direct-from-browser attempt — see git history for PRs #13–#22). Per-user lookups use an in-memory L1 cache (30 min) that the client can bypass with `?refresh=1`. Game details, user collections and user plays go through persistent Mongo L2 layers so they survive restarts and are shared across all users.
 
-**Cache layering — `memoria → Mongo → BGG`**:
-- `resolveGame(id)` / `resolveGamesBatch(ids)` check L1, then `BggGame` (no TTL — game details don't change), then BGG. Used by `GET /game/:id`, the thumbnail enrichment in `GET /partidas/:user`, and the thumbnail batch in `GET /search`.
-- `resolveCollection(bggUsername, { forceRefresh })` checks L1, then `BggCollection` (6 h TTL via `lastFetchedAt`), then BGG. Used by `GET /coleccion/:user`. `?refresh=1` skips both layers.
-- `clearUserCache(bggUsername)` (called from `auth/bgg-connect`) wipes both L1 entries AND the `BggCollection` Mongo doc for that user so the next read is guaranteed fresh.
+**Persistent layers:**
+- `BggGame` ([server/models/BggGame.js](server/models/BggGame.js)) — game details and thumbnails. No TTL (immutable). Helpers: `resolveGame(id)`, `resolveGamesBatch(ids)`.
+- `BggCollection` ([server/models/BggCollection.js](server/models/BggCollection.js)) — one doc per `bggUsername` with the user's owned-games array. **6 h TTL** via `lastFetchedAt`. Helper: `resolveCollection(bggUsername, { forceRefresh })`.
+- `BggPlay` ([server/models/BggPlay.js](server/models/BggPlay.js)) — one doc per `(bggUsername, playId)` storing every play. Populated by **explicit user action** (the "Sincronizar con BGG" button in `/perfil`), not automatically — see below.
 
-To add a new persistent entity (e.g. `BggPlay`) follow the same pattern: model + `resolveXxx` helper. Immutable data has no TTL; mutable data uses `lastFetchedAt` + manual refresh button + `clearUserCache` integration where appropriate.
+**Cache layering — `memoria → Mongo → BGG`:**
+- `GET /game/:id`, `/search` (thumbnail batch), `/partidas/:user` (thumbnail enrichment) all flow through `resolveGame*` helpers.
+- `GET /coleccion/:user` flows through `resolveCollection`. `?refresh=1` skips both L1 and the Mongo TTL check.
+- `GET /partidas/:user` checks `BggPlay.exists` for that user. If true → serves from Mongo (paginated + filtered as Mongo queries, no BGG call) and `?refresh=1` triggers an incremental delta sync. If false → falls back to the BGG XML + in-memory cache path (legacy behavior for users who never clicked "Sincronizar").
+
+**Plays sync model (Phase 3):**
+- `POST /api/bgg/sync` (auth required) wipes `BggPlay` for the authenticated user's `bggUsername` and refetches every page from BGG. Updates `User.bggSync.lastFullSyncAt` and `lastFullSyncCount`. Triggered by the "↻ Sincronizar con BGG" button.
+- `POST/PUT/DELETE /api/bgg/partidas` keep `BggPlay` in sync after Turnocero-driven mutations (only when records exist for that user — see `upsertPlayFromMutation`).
+- `?refresh=1` on `/partidas` runs a lightweight delta sync (`mindate=last-play-date - 1d`) to catch newly logged plays. It does NOT catch edits/deletes the user made directly on BGG's web UI — that's what the full-sync button is for.
+- `clearUserCache(bggUsername)` (called from `auth/bgg-connect`) also wipes `BggCollection` AND every `BggPlay` for that user.
+
+To add a new persistent entity follow the same pattern: model + `resolveXxx` helper. Immutable data has no TTL; mutable data uses `lastFetchedAt` + manual refresh + `clearUserCache` integration where appropriate.
 
 `PartidasPanel` and `ColeccionPanel` expose an **"Actualizar"** button that fires a refetch with `?refresh=1` (server skips its in-memory cache and goes to BGG). After clicking, the button is disabled for **60 s** with a visible countdown ("Esperá Xs"), then re-enables. The cooldown is purely client-side, per-panel — navigating away and back resets it.
 

@@ -2,6 +2,9 @@ const request = require('supertest');
 const app = require('../../app');
 const BggGame = require('../../models/BggGame');
 const BggCollection = require('../../models/BggCollection');
+const BggPlay = require('../../models/BggPlay');
+const User = require('../../models/User');
+const { createAuthedUser } = require('../helpers/auth');
 const bggRouter = require('../../routes/bgg');
 
 // ── Fixtures ─────────────────────────────────────────────────────────
@@ -206,6 +209,187 @@ describe('BGG persistent cache (memoria → Mongo → BGG)', () => {
       expect(res.status).toBe(200);
       expect(res.body.plays[0].gameThumbnail).toBe('shared.jpg');
       expect(fetchSpy).toHaveBeenCalledTimes(1); // only /plays for user B
+    });
+  });
+
+  // ── POST /api/bgg/sync (full play sync) ──────────────────────────
+  describe('POST /api/bgg/sync', () => {
+    it('401 when unauthenticated', async () => {
+      const res = await request(app).post('/api/bgg/sync');
+      expect(res.status).toBe(401);
+    });
+
+    it('400 when the user has no bggUsername', async () => {
+      const { token } = await createAuthedUser({ bggUsername: '' });
+      const res = await request(app)
+        .post('/api/bgg/sync')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(400);
+    });
+
+    it('persists every play to Mongo and stamps User.bggSync', async () => {
+      const { token, user } = await createAuthedUser({ bggUsername: 'syncuser' });
+      fetchSpy
+        // page=1 returns 2 plays with total=2 → loop exits after this page
+        .mockResolvedValueOnce(ok(playsXml([
+          { id: '1', date: '2026-01-01', gameName: 'A', gameId: 1 },
+          { id: '2', date: '2026-01-02', gameName: 'B', gameId: 2 },
+        ], 2)))
+        // game-thumbnail batch
+        .mockResolvedValueOnce(ok(thingXml([
+          { id: 1, name: 'A', thumbnail: 'a.jpg' },
+          { id: 2, name: 'B', thumbnail: 'b.jpg' },
+        ])));
+
+      const res = await request(app)
+        .post('/api/bgg/sync')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(res.body.count).toBe(2);
+      expect(res.body.lastFullSyncAt).toBeTruthy();
+
+      const docs = await BggPlay.find({ bggUsername: 'syncuser' }).sort({ playId: 1 }).lean();
+      expect(docs).toHaveLength(2);
+      expect(docs[0].gameThumbnail).toBe('a.jpg');
+      expect(docs[1].gameThumbnail).toBe('b.jpg');
+
+      const updated = await User.findById(user._id).lean();
+      expect(updated.bggSync.lastFullSyncAt).toBeTruthy();
+      expect(updated.bggSync.lastFullSyncCount).toBe(2);
+    });
+
+    it('wipes previous plays before re-syncing', async () => {
+      const { token } = await createAuthedUser({ bggUsername: 'rewriter' });
+      // Stale doc that should be removed
+      await BggPlay.create({
+        bggUsername: 'rewriter', playId: '999', date: '2020-01-01', gameId: '99',
+      });
+
+      fetchSpy
+        .mockResolvedValueOnce(ok(playsXml([
+          { id: '1', date: '2026-01-01', gameName: 'New', gameId: 1 },
+        ], 1)))
+        .mockResolvedValueOnce(ok(thingXml([
+          { id: 1, name: 'New', thumbnail: 'n.jpg' },
+        ])));
+
+      await request(app)
+        .post('/api/bgg/sync')
+        .set('Authorization', `Bearer ${token}`);
+
+      const docs = await BggPlay.find({ bggUsername: 'rewriter' }).lean();
+      expect(docs).toHaveLength(1);
+      expect(docs[0].playId).toBe('1');
+    });
+  });
+
+  // ── GET /partidas with Mongo data (Phase 3 path) ─────────────────
+  describe('GET /partidas — Mongo-served path', () => {
+    it('serves from Mongo when records exist and never touches BGG', async () => {
+      await BggPlay.insertMany([
+        { bggUsername: 'mongo1', playId: '1', date: '2026-05-01', gameName: 'X', gameId: '13', gameThumbnail: 'x.jpg' },
+        { bggUsername: 'mongo1', playId: '2', date: '2026-05-02', gameName: 'Y', gameId: '14', gameThumbnail: 'y.jpg' },
+      ]);
+
+      const res = await request(app).get('/api/bgg/partidas/mongo1');
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(2);
+      expect(res.body.plays).toHaveLength(2);
+      // sorted by date desc → '2' (2026-05-02) first
+      expect(res.body.plays[0].id).toBe('2');
+      expect(res.body.plays[0].gameThumbnail).toBe('y.jpg');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('applies mindate / maxdate / gameId filters as Mongo queries', async () => {
+      await BggPlay.insertMany([
+        { bggUsername: 'mongo2', playId: '1', date: '2026-01-01', gameId: '13' },
+        { bggUsername: 'mongo2', playId: '2', date: '2026-05-01', gameId: '13' },
+        { bggUsername: 'mongo2', playId: '3', date: '2026-05-02', gameId: '14' },
+      ]);
+
+      const res = await request(app)
+        .get('/api/bgg/partidas/mongo2?mindate=2026-04-01&id=13');
+      expect(res.status).toBe(200);
+      expect(res.body.plays).toHaveLength(1);
+      expect(res.body.plays[0].id).toBe('2');
+    });
+
+    it('paginates Mongo results 10 per page', async () => {
+      const docs = [];
+      for (let i = 1; i <= 15; i++) {
+        docs.push({
+          bggUsername: 'mongo3',
+          playId: String(i),
+          date: `2026-05-${String(i).padStart(2, '0')}`,
+          gameId: '13',
+        });
+      }
+      await BggPlay.insertMany(docs);
+
+      const p1 = await request(app).get('/api/bgg/partidas/mongo3?page=1');
+      expect(p1.body.total).toBe(15);
+      expect(p1.body.plays).toHaveLength(10);
+      // newest first
+      expect(p1.body.plays[0].id).toBe('15');
+
+      const p2 = await request(app).get('/api/bgg/partidas/mongo3?page=2');
+      expect(p2.body.plays).toHaveLength(5);
+      expect(p2.body.plays[0].id).toBe('5');
+    });
+
+    it('falls back to BGG when no Mongo records exist', async () => {
+      fetchSpy
+        .mockResolvedValueOnce(ok(playsXml([
+          { id: '1', date: '2026-01-01', gameName: 'X', gameId: 1 },
+        ])))
+        .mockResolvedValueOnce(ok(thingXml([
+          { id: 1, name: 'X', thumbnail: 't.jpg' },
+        ])));
+
+      const res = await request(app).get('/api/bgg/partidas/never-synced');
+      expect(res.status).toBe(200);
+      expect(res.body.plays).toHaveLength(1);
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('?refresh=1 triggers a delta sync and upserts new plays into Mongo', async () => {
+      await BggPlay.insertMany([
+        { bggUsername: 'mongo4', playId: '1', date: '2026-05-01', gameName: 'Old', gameId: '13' },
+      ]);
+
+      // Delta sync: BGG returns the existing play + a new one (upserts both)
+      fetchSpy
+        .mockResolvedValueOnce(ok(playsXml([
+          { id: '1', date: '2026-05-01', gameName: 'Old', gameId: 13 },
+          { id: '2', date: '2026-05-05', gameName: 'NewlyAdded', gameId: 13 },
+        ], 2)))
+        .mockResolvedValueOnce(ok(thingXml([
+          { id: 13, name: 'X', thumbnail: 't.jpg' },
+        ])));
+
+      const res = await request(app).get('/api/bgg/partidas/mongo4?refresh=1');
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(2);
+
+      const docs = await BggPlay.find({ bggUsername: 'mongo4' }).sort({ date: -1 }).lean();
+      expect(docs).toHaveLength(2);
+      expect(docs[0].gameName).toBe('NewlyAdded');
+    });
+  });
+
+  // ── clearUserCache extended to BggPlay ───────────────────────────
+  describe('clearUserCache also wipes BggPlay', () => {
+    it('removes plays from the user', async () => {
+      await BggPlay.insertMany([
+        { bggUsername: 'wipeme', playId: '1', date: '2026-01-01', gameId: '13' },
+        { bggUsername: 'wipeme', playId: '2', date: '2026-01-02', gameId: '13' },
+      ]);
+      expect(await BggPlay.countDocuments({ bggUsername: 'wipeme' })).toBe(2);
+
+      await bggRouter.clearUserCache('wipeme');
+
+      expect(await BggPlay.countDocuments({ bggUsername: 'wipeme' })).toBe(0);
     });
   });
 

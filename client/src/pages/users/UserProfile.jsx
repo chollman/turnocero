@@ -53,6 +53,9 @@ export default function UserProfile() {
   const [bggPassword, setBggPassword] = useState('');
   const [bggBusy, setBggBusy] = useState(false);
   const [bggError, setBggError] = useState('');
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncError, setSyncError] = useState('');
+  const [syncSuccess, setSyncSuccess] = useState('');
 
   // ── BG Watch promo banner (F.1) ──
   const [bgWatchBannerDismissed, setBgWatchBannerDismissed] = useState(() => {
@@ -229,6 +232,21 @@ export default function UserProfile() {
       setBggError(err.response?.data?.message || 'No se pudo conectar con BGG.');
     } finally {
       setBggBusy(false);
+    }
+  };
+
+  const handleBggSync = async () => {
+    setSyncBusy(true);
+    setSyncError('');
+    setSyncSuccess('');
+    try {
+      const { data } = await axios.post('/api/bgg/sync');
+      await refreshUser();
+      setSyncSuccess(`Sincronizadas ${data.count} partidas`);
+    } catch (err) {
+      setSyncError(err.response?.data?.message || 'No se pudo sincronizar con BGG.');
+    } finally {
+      setSyncBusy(false);
     }
   };
 
@@ -585,30 +603,54 @@ export default function UserProfile() {
               )}
 
               {user?.bggUsername && user?.bggConnected && !user?.bggInvalid && (
-                <div className={styles.bggStatus}>
-                  <div className={styles.bggStatusBlock}>
-                    <span className={styles.bggStatusLabel}>Conectado como</span>
-                    <span className={styles.bggStatusValue}>@{user.bggUsername}</span>
-                  </div>
-                  {user.bggConnectedAt && (
+                <>
+                  <div className={styles.bggStatus}>
                     <div className={styles.bggStatusBlock}>
-                      <span className={styles.bggStatusLabel}>Desde</span>
-                      <span className={styles.bggStatusValue}>
-                        {new Date(user.bggConnectedAt).toLocaleDateString('es-AR', {
-                          day: 'numeric', month: 'short', year: 'numeric',
-                        })}
-                      </span>
+                      <span className={styles.bggStatusLabel}>Conectado como</span>
+                      <span className={styles.bggStatusValue}>@{user.bggUsername}</span>
                     </div>
-                  )}
-                  <button
-                    type="button"
-                    className={styles.btnGhost}
-                    onClick={handleBggDisconnect}
-                    disabled={bggBusy}
-                  >
-                    Desconectar
-                  </button>
-                </div>
+                    {user.bggConnectedAt && (
+                      <div className={styles.bggStatusBlock}>
+                        <span className={styles.bggStatusLabel}>Desde</span>
+                        <span className={styles.bggStatusValue}>
+                          {new Date(user.bggConnectedAt).toLocaleDateString('es-AR', {
+                            day: 'numeric', month: 'short', year: 'numeric',
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    {user.bggSync?.lastFullSyncAt && (
+                      <div className={styles.bggStatusBlock}>
+                        <span className={styles.bggStatusLabel}>Última sincronización</span>
+                        <span className={styles.bggStatusValue}>
+                          {new Date(user.bggSync.lastFullSyncAt).toLocaleDateString('es-AR', {
+                            day: 'numeric', month: 'short', year: 'numeric',
+                          })}
+                          {user.bggSync.lastFullSyncCount > 0 && ` · ${user.bggSync.lastFullSyncCount} partidas`}
+                        </span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className={styles.btnPrimary}
+                      onClick={handleBggSync}
+                      disabled={syncBusy || bggBusy}
+                      title="Trae todas tus partidas desde BGG y las guarda. Usalo si editaste o borraste partidas directamente en BGG.com."
+                    >
+                      {syncBusy ? 'Sincronizando…' : '↻ Sincronizar con BGG'}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.btnGhost}
+                      onClick={handleBggDisconnect}
+                      disabled={bggBusy || syncBusy}
+                    >
+                      Desconectar
+                    </button>
+                  </div>
+                  {syncError && <div className={styles.errorBox}>{syncError}</div>}
+                  {syncSuccess && <div className={styles.successBox}>{syncSuccess}</div>}
+                </>
               )}
 
               {user?.bggUsername && (!user?.bggConnected || user?.bggInvalid) && (

@@ -199,3 +199,77 @@ describe('<UserProfile> — Avatar section', () => {
     expect(await screen.findByText(/Error al subir avatar/i)).toBeInTheDocument();
   });
 });
+
+describe('UserProfile — Sincronizar con BGG', () => {
+  const connectedUser = {
+    _id: 'u1',
+    username: 'cha',
+    email: 'cha@test.local',
+    bggUsername: 'rahdo',
+    bggConnected: true,
+    bggInvalid: false,
+    bggConnectedAt: '2026-05-01T00:00:00Z',
+    bggSync: null,
+  };
+
+  it('shows the "Sincronizar con BGG" button when the user is connected', () => {
+    setup({ user: connectedUser });
+    expect(screen.getByRole('button', { name: /sincronizar con bgg/i })).toBeInTheDocument();
+  });
+
+  it('does NOT show the button when the user is not connected', () => {
+    setup({ user: { ...connectedUser, bggConnected: false } });
+    expect(screen.queryByRole('button', { name: /sincronizar con bgg/i })).not.toBeInTheDocument();
+  });
+
+  it('calls POST /api/bgg/sync on click and shows the success count', async () => {
+    let calledWith = null;
+    server.use(
+      http.post('/api/bgg/sync', async ({ request }) => {
+        calledWith = request.url;
+        return HttpResponse.json({
+          success: true,
+          count: 247,
+          total: 247,
+          pages: 9,
+          lastFullSyncAt: '2026-05-19T12:00:00Z',
+        });
+      }),
+    );
+    const refreshUser = vi.fn();
+    setup({ user: connectedUser, refreshUser });
+
+    fireEvent.click(screen.getByRole('button', { name: /sincronizar con bgg/i }));
+    await waitFor(() => {
+      expect(refreshUser).toHaveBeenCalled();
+    });
+    expect(calledWith).toContain('/api/bgg/sync');
+    expect(await screen.findByText(/sincronizadas 247 partidas/i)).toBeInTheDocument();
+  });
+
+  it('shows last-sync date and count when present on the user', () => {
+    setup({
+      user: {
+        ...connectedUser,
+        bggSync: {
+          lastFullSyncAt: '2026-05-15T10:00:00Z',
+          lastFullSyncCount: 312,
+        },
+      },
+    });
+    // The block contains both date and count
+    expect(screen.getByText(/última sincronización/i)).toBeInTheDocument();
+    expect(screen.getByText(/312 partidas/)).toBeInTheDocument();
+  });
+
+  it('shows API error when sync fails', async () => {
+    server.use(
+      http.post('/api/bgg/sync', () =>
+        HttpResponse.json({ message: 'BGG offline' }, { status: 502 }),
+      ),
+    );
+    setup({ user: connectedUser });
+    fireEvent.click(screen.getByRole('button', { name: /sincronizar con bgg/i }));
+    expect(await screen.findByText('BGG offline')).toBeInTheDocument();
+  });
+});

@@ -7,6 +7,7 @@ const { getSessionCookie, clearSession } = require('../utils/bggAuth');
 const User = require('../models/User');
 const BggGame = require('../models/BggGame');
 const BggCollection = require('../models/BggCollection');
+const BggPlay = require('../models/BggPlay');
 
 router.use(requireSection('bgwatch'));
 
@@ -50,7 +51,10 @@ async function clearUserCache(bggUsername) {
   cache.delete(`coleccion:${lower}`);
   cache.delete(`og:${lower}`);
   clearPartidasCache(bggUsername);
-  await BggCollection.deleteOne({ bggUsername: lower });
+  await Promise.all([
+    BggCollection.deleteOne({ bggUsername: lower }),
+    BggPlay.deleteMany({ bggUsername: lower }),
+  ]);
 }
 
 async function fetchBgg(url) {
@@ -267,6 +271,223 @@ async function resolveCollection(bggUsername, opts = {}) {
   return games;
 }
 
+// ── Play parsing + full-sync helpers ─────────────────────────────────
+function parsePlay(play) {
+  const playerNode = play.players?.player;
+  const playersArr = playerNode
+    ? (Array.isArray(playerNode) ? playerNode : [playerNode])
+    : [];
+  const commentsRaw = play.comments;
+  const comments = typeof commentsRaw === 'string'
+    ? commentsRaw
+    : (commentsRaw?.['#text'] || null);
+  return {
+    playId: String(play['@_id']),
+    date: play['@_date'] || null,
+    gameName: play.item?.['@_name'] || null,
+    gameId: play.item?.['@_objectid'] ? String(play.item['@_objectid']) : null,
+    gameThumbnail: null,
+    quantity: play['@_quantity'] ? Number(play['@_quantity']) : 1,
+    duration: play['@_length'] ? Number(play['@_length']) : null,
+    location: play['@_location'] || null,
+    incomplete: play['@_incomplete'] === '1' || play['@_incomplete'] === 1,
+    nowinstats: play['@_nowinstats'] === '1' || play['@_nowinstats'] === 1,
+    comments: comments || null,
+    players: playersArr.map((p) => ({
+      name: p['@_name'] || null,
+      username: p['@_username'] || null,
+      userid: p['@_userid'] ? Number(p['@_userid']) : null,
+      position: p['@_startposition'] || null,
+      color: p['@_color'] || null,
+      score: p['@_score'] !== undefined && p['@_score'] !== '' ? String(p['@_score']) : null,
+      win: p['@_win'] === '1' || p['@_win'] === 1,
+      new: p['@_new'] === '1' || p['@_new'] === 1,
+      rating: p['@_rating'] && p['@_rating'] !== '0' ? Number(p['@_rating']) : null,
+    })),
+  };
+}
+
+// Returns null when the XML has no <plays> root (used to signal "BGG user
+// not found"). Returns { plays, total } otherwise — `total` is 0 for users
+// with no plays but who exist on BGG.
+function parsePlaysXml(xml) {
+  const parsed = parser.parse(xml);
+  const root = parsed?.plays;
+  if (!root) return null;
+  const rawPlays = root.play || [];
+  const arr = Array.isArray(rawPlays) ? rawPlays : [rawPlays];
+  return {
+    plays: arr.map(parsePlay),
+    total: root['@_total'] ? Number(root['@_total']) : arr.length,
+  };
+}
+
+// Re-shape an internal play (playId) to the API contract (id) used by the
+// existing /partidas response and React keys.
+function playToApi(p) {
+  return {
+    id: p.playId,
+    date: p.date,
+    gameName: p.gameName,
+    gameId: p.gameId,
+    gameThumbnail: p.gameThumbnail,
+    quantity: p.quantity,
+    duration: p.duration,
+    location: p.location,
+    incomplete: p.incomplete,
+    nowinstats: p.nowinstats,
+    comments: p.comments,
+    players: p.players,
+  };
+}
+
+// Wipes BggPlay for `bggUsername` and re-fetches every page from BGG.
+// Also warms BggGame for all referenced gameIds (free side-effect).
+// Returns { total, inserted, pages }.
+const SYNC_MAX_PAGES = 200; // safety: ~6000 plays
+async function syncPlaysFull(bggUsername) {
+  const lower = bggUsername.toLowerCase();
+  await BggPlay.deleteMany({ bggUsername: lower });
+
+  let page = 1;
+  let total = 0;
+  let inserted = 0;
+
+  while (page <= SYNC_MAX_PAGES) {
+    const xml = await fetchBgg(`${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=${page}`);
+    const parsed = parsePlaysXml(xml);
+    if (!parsed) {
+      const err = new Error('Usuario de BGG no encontrado');
+      err.status = 404;
+      throw err;
+    }
+    const { plays, total: pageTotal } = parsed;
+    total = pageTotal;
+    if (plays.length === 0) break;
+
+    // Warm BggGame + resolve thumbnails for this batch
+    const gameIds = [...new Set(plays.map((p) => p.gameId).filter(Boolean))];
+    let gamesMap = new Map();
+    try { gamesMap = await resolveGamesBatch(gameIds); } catch { /* best-effort */ }
+
+    const docs = plays.map((p) => ({
+      ...p,
+      bggUsername: lower,
+      gameThumbnail: p.gameId ? (gamesMap.get(Number(p.gameId))?.thumbnail || null) : null,
+    }));
+
+    try {
+      await BggPlay.insertMany(docs, { ordered: false });
+    } catch (e) {
+      // Duplicate-key errors are tolerable (the user may have edited
+      // mid-sync); other errors bubble up.
+      if (e.code !== 11000) throw e;
+    }
+    inserted += docs.length;
+
+    if (inserted >= total) break;
+    page++;
+  }
+
+  return { total, inserted, pages: page };
+}
+
+// Lightweight incremental sync. Pulls plays newer than the most recent one
+// we already have for this user and upserts them. Does NOT detect edits or
+// deletes on plays older than our latest — that's what syncPlaysFull (via
+// "Sincronizar con BGG") is for.
+async function syncPlaysDelta(bggUsername) {
+  const lower = bggUsername.toLowerCase();
+  const latest = await BggPlay.findOne({ bggUsername: lower }).sort({ date: -1 }).lean();
+  if (!latest) return { inserted: 0, skipped: true }; // never synced — caller should do full sync
+
+  // Subtract 1 day so a play logged on the same day doesn't slip past us
+  const buffer = new Date(latest.date);
+  buffer.setDate(buffer.getDate() - 1);
+  const mindate = buffer.toISOString().slice(0, 10);
+
+  let page = 1;
+  let inserted = 0;
+  while (page <= SYNC_MAX_PAGES) {
+    const xml = await fetchBgg(`${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&mindate=${mindate}&page=${page}`);
+    const parsed = parsePlaysXml(xml);
+    if (!parsed) break; // user vanished from BGG — bail without throwing
+    const { plays, total } = parsed;
+    if (plays.length === 0) break;
+
+    const gameIds = [...new Set(plays.map((p) => p.gameId).filter(Boolean))];
+    let gamesMap = new Map();
+    try { gamesMap = await resolveGamesBatch(gameIds); } catch { /* best-effort */ }
+
+    const ops = plays.map((p) => ({
+      updateOne: {
+        filter: { bggUsername: lower, playId: p.playId },
+        update: {
+          $set: {
+            ...p,
+            bggUsername: lower,
+            gameThumbnail: p.gameId ? (gamesMap.get(Number(p.gameId))?.thumbnail || null) : null,
+          },
+        },
+        upsert: true,
+      },
+    }));
+    await BggPlay.bulkWrite(ops);
+    inserted += ops.length;
+
+    if (inserted >= total) break;
+    page++;
+  }
+  return { inserted, skipped: false };
+}
+
+// Translates a play-create/update request body into a BggPlay doc and
+// upserts it. Looks up name + thumbnail via the persistent game cache.
+async function upsertPlayFromMutation(bggUsername, body, playId) {
+  const lower = bggUsername.toLowerCase();
+  let gameName = null;
+  let gameThumbnail = null;
+  try {
+    const game = await resolveGame(body.objectid);
+    if (game) {
+      gameName = game.name || null;
+      gameThumbnail = game.thumbnail || null;
+    }
+  } catch { /* best-effort */ }
+
+  const doc = {
+    bggUsername: lower,
+    playId: String(playId),
+    date: body.playdate || null,
+    gameId: String(body.objectid),
+    gameName,
+    gameThumbnail,
+    quantity: Math.max(1, Math.min(99, parseInt(body.quantity) || 1)),
+    duration: body.length != null && body.length !== '' ? Math.max(0, parseInt(body.length) || 0) : null,
+    location: body.location || null,
+    incomplete: !!body.incomplete,
+    nowinstats: !!body.nowinstats,
+    comments: body.comments || null,
+    players: (body.players || []).map((p, i) => ({
+      name: p.name || null,
+      username: p.username || null,
+      userid: null,
+      position: p.position != null ? String(p.position) : String(i + 1),
+      color: p.color || null,
+      score: p.score != null && p.score !== '' ? String(p.score) : null,
+      win: !!p.win,
+      new: !!p.new,
+      rating: p.rating != null && Number(p.rating) > 0 ? Number(p.rating) : null,
+    })),
+  };
+
+  await BggPlay.updateOne(
+    { bggUsername: lower, playId: doc.playId },
+    { $set: doc },
+    { upsert: true }
+  );
+}
+
 // GET /api/bgg/search?q=<query>
 router.get('/search', async (req, res) => {
   const q = (req.query.q || '').trim();
@@ -353,18 +574,58 @@ const PAGES_PER_BGG = BGG_PAGE_SIZE / PAGE_SIZE; // 3 client pages per BGG page
 
 router.get('/partidas/:bggUsername', async (req, res) => {
   const { bggUsername } = req.params;
+  const lower = bggUsername.toLowerCase();
   const clientPage = Math.max(1, parseInt(req.query.page) || 1);
-  const bggPage = Math.ceil(clientPage / PAGES_PER_BGG);
-  const offsetWithinBgg = ((clientPage - 1) % PAGES_PER_BGG) * PAGE_SIZE;
 
-  // Optional filters (passed through to BGG)
   const dateRe = /^\d{4}-\d{2}-\d{2}$/;
   const mindate = dateRe.test(req.query.mindate || '') ? req.query.mindate : null;
   const maxdate = dateRe.test(req.query.maxdate || '') ? req.query.maxdate : null;
   const gameId = /^\d+$/.test(req.query.id || '') ? req.query.id : null;
-
-  const cacheKey = `partidas:${bggUsername.toLowerCase()}:bgg:${bggPage}:${mindate || '-'}:${maxdate || '-'}:${gameId || '-'}`;
   const forceRefresh = req.query.refresh === '1';
+
+  // L2: serve from Mongo if this user has been synced.
+  const hasMongoData = await BggPlay.exists({ bggUsername: lower });
+
+  if (hasMongoData) {
+    if (forceRefresh) {
+      // Best-effort delta sync — newer plays only. Serve from Mongo even
+      // if BGG is down (we already have data to return).
+      try {
+        await syncPlaysDelta(bggUsername);
+      } catch (e) {
+        console.warn(`[bgg/partidas] delta sync failed for ${lower}: ${e.message || e}`);
+      }
+    }
+
+    const filter = { bggUsername: lower };
+    if (mindate || maxdate) {
+      filter.date = {};
+      if (mindate) filter.date.$gte = mindate;
+      if (maxdate) filter.date.$lte = maxdate;
+    }
+    if (gameId) filter.gameId = String(gameId);
+
+    const [total, docs] = await Promise.all([
+      BggPlay.countDocuments(filter),
+      BggPlay.find(filter)
+        .sort({ date: -1, playId: -1 })
+        .skip((clientPage - 1) * PAGE_SIZE)
+        .limit(PAGE_SIZE)
+        .lean(),
+    ]);
+
+    return res.json({
+      total,
+      page: clientPage,
+      pageSize: PAGE_SIZE,
+      plays: docs.map(playToApi),
+    });
+  }
+
+  // L1 / L3 fallback: no Mongo data yet — serve from BGG (with in-memory cache).
+  const bggPage = Math.ceil(clientPage / PAGES_PER_BGG);
+  const offsetWithinBgg = ((clientPage - 1) % PAGES_PER_BGG) * PAGE_SIZE;
+  const cacheKey = `partidas:${lower}:bgg:${bggPage}:${mindate || '-'}:${maxdate || '-'}:${gameId || '-'}`;
 
   if (!forceRefresh) {
     const cachedFull = getCached(cacheKey);
@@ -379,92 +640,31 @@ router.get('/partidas/:bggUsername', async (req, res) => {
   }
 
   try {
-    const params = new URLSearchParams({
-      username: bggUsername,
-      page: String(bggPage),
-    });
+    const params = new URLSearchParams({ username: bggUsername, page: String(bggPage) });
     if (mindate) params.set('mindate', mindate);
     if (maxdate) params.set('maxdate', maxdate);
     if (gameId) params.set('id', gameId);
     const xml = await fetchBgg(`${BGG_API}/plays?${params.toString()}`);
-    const parsed = parser.parse(xml);
+    const parsed = parsePlaysXml(xml);
+    if (!parsed) return res.status(404).json({ message: 'Usuario de BGG no encontrado' });
+    const { plays: parsedInternal, total } = parsed;
 
-    const root = parsed?.plays;
-    if (!root) return res.status(404).json({ message: 'Usuario de BGG no encontrado' });
-
-    const rawPlays = root.play || [];
-    const plays = Array.isArray(rawPlays) ? rawPlays : [rawPlays];
-
-    const parsedPlays = plays.map((play) => {
-      const playerNode = play.players?.player;
-      const playersArr = playerNode
-        ? (Array.isArray(playerNode) ? playerNode : [playerNode])
-        : [];
-
-      const commentsRaw = play.comments;
-      const comments = typeof commentsRaw === 'string'
-        ? commentsRaw
-        : (commentsRaw?.['#text'] || null);
-
-      return {
-        id: play['@_id'],
-        date: play['@_date'] || null,
-        gameName: play.item?.['@_name'] || null,
-        gameId: play.item?.['@_objectid'] || null,
-        gameThumbnail: null,
-        quantity: play['@_quantity'] ? Number(play['@_quantity']) : 1,
-        duration: play['@_length'] ? Number(play['@_length']) : null,
-        location: play['@_location'] || null,
-        incomplete: play['@_incomplete'] === '1' || play['@_incomplete'] === 1,
-        nowinstats: play['@_nowinstats'] === '1' || play['@_nowinstats'] === 1,
-        comments: comments || null,
-        players: playersArr.map((p) => ({
-          name: p['@_name'] || null,
-          username: p['@_username'] || null,
-          userid: p['@_userid'] ? Number(p['@_userid']) : null,
-          position: p['@_startposition'] || null,
-          color: p['@_color'] || null,
-          score: p['@_score'] !== undefined && p['@_score'] !== '' ? String(p['@_score']) : null,
-          win: p['@_win'] === '1' || p['@_win'] === 1,
-          new: p['@_new'] === '1' || p['@_new'] === 1,
-          rating: p['@_rating'] && p['@_rating'] !== '0'
-            ? Number(p['@_rating'])
-            : null,
-        })),
-      };
-    });
-
-    // Enrich plays with game thumbnails via the shared persistent cache
-    // (memoria → Mongo → BGG). Persiste por gameId, no por usuario.
-    const uniqueGameIds = [...new Set(parsedPlays.map((p) => p.gameId).filter(Boolean))];
+    // Enrich thumbnails via the shared BggGame cache (no per-user data here)
+    const uniqueGameIds = [...new Set(parsedInternal.map((p) => p.gameId).filter(Boolean))];
     const gamesMap = await resolveGamesBatch(uniqueGameIds);
-
-    parsedPlays.forEach((p) => {
-      if (p.gameId) {
-        const game = gamesMap.get(Number(p.gameId));
-        p.gameThumbnail = game?.thumbnail || null;
-      }
+    parsedInternal.forEach((p) => {
+      if (p.gameId) p.gameThumbnail = gamesMap.get(Number(p.gameId))?.thumbnail || null;
     });
 
-    const missing = uniqueGameIds
-      .map((id) => Number(id))
-      .filter((id) => Number.isFinite(id) && id > 0 && !gamesMap.get(id)?.thumbnail);
-    if (missing.length > 0) {
-      console.warn(`[bgg/partidas] no thumbnail for ids: ${missing.join(',')}`);
-    }
-
-    const fullPageData = {
-      total: root['@_total'] ? Number(root['@_total']) : parsedPlays.length,
-      plays: parsedPlays,
-    };
-
+    const apiPlays = parsedInternal.map(playToApi);
+    const fullPageData = { total, plays: apiPlays };
     setCached(cacheKey, fullPageData);
 
     res.json({
-      total: fullPageData.total,
+      total,
       page: clientPage,
       pageSize: PAGE_SIZE,
-      plays: fullPageData.plays.slice(offsetWithinBgg, offsetWithinBgg + PAGE_SIZE),
+      plays: apiPlays.slice(offsetWithinBgg, offsetWithinBgg + PAGE_SIZE),
     });
   } catch (err) {
     if (err.status === 404) return res.status(404).json({ message: 'Usuario de BGG no encontrado' });
@@ -635,6 +835,44 @@ router.get('/og/:bggUsername', async (req, res) => {
   }
 });
 
+// POST /api/bgg/sync — full re-sync of the authenticated user's BGG plays.
+// Wipes BggPlay for this user and re-fetches every page from BGG.
+// Used by the "Sincronizar con BGG" button to reconcile edits/deletes the
+// user made directly on BGG's web UI (which BGG doesn't notify us of).
+router.post('/sync', protect, async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user.bggUsername) {
+      return res.status(400).json({ message: 'Configurá tu username de BGG en el perfil' });
+    }
+
+    const result = await syncPlaysFull(user.bggUsername);
+
+    // Persist sync metadata on the user
+    if (!user.bggSync) user.bggSync = {};
+    user.bggSync.lastFullSyncAt = new Date();
+    user.bggSync.lastFullSyncCount = result.inserted;
+    await user.save();
+
+    // Drop the in-memory plays cache so subsequent reads come from Mongo
+    clearPartidasCache(user.bggUsername);
+
+    res.json({
+      success: true,
+      lastFullSyncAt: user.bggSync.lastFullSyncAt,
+      count: result.inserted,
+      total: result.total,
+      pages: result.pages,
+    });
+  } catch (err) {
+    if (err.status === 404) {
+      return res.status(404).json({ message: 'Usuario de BGG no encontrado' });
+    }
+    console.error('BGG full sync failed:', err);
+    res.status(502).json({ message: err.message || 'No se pudo sincronizar con BGG' });
+  }
+});
+
 // POST /api/bgg/partidas — create a play in BGG
 router.post('/partidas', protect, async (req, res) => {
   try {
@@ -653,7 +891,20 @@ router.post('/partidas', protect, async (req, res) => {
       return res.status(e.status || 500).json({ message: e.message });
     }
     clearPartidasCache(user.bggUsername);
-    res.json({ success: true, playid: payload.playid || payload.numplays || null, raw: payload });
+
+    const newPlayId = payload.playid || payload.numplays || null;
+    if (newPlayId) {
+      // Only mirror to Mongo if this user is already in Mongo-served mode
+      // (i.e. has done a full sync). Otherwise the GET fallback to BGG will
+      // pick up the new play on its next call.
+      const lower = user.bggUsername.toLowerCase();
+      if (await BggPlay.exists({ bggUsername: lower })) {
+        try { await upsertPlayFromMutation(user.bggUsername, req.body, newPlayId); }
+        catch (e) { console.warn('[bgg/POST] mirror to Mongo failed:', e.message); }
+      }
+    }
+
+    res.json({ success: true, playid: newPlayId, raw: payload });
   } catch (err) {
     console.error('Create play failed:', err);
     res.status(500).json({ message: err.message || 'Error al crear la partida' });
@@ -684,6 +935,9 @@ router.delete('/partidas/:playId', protect, async (req, res) => {
       return res.status(e.status || 500).json({ message: e.message });
     }
     clearPartidasCache(user.bggUsername);
+    try { await BggPlay.deleteOne({ bggUsername: user.bggUsername.toLowerCase(), playId: String(playId) }); }
+    catch (e) { console.warn('[bgg/DELETE] mirror to Mongo failed:', e.message); }
+
     res.json({ success: true, raw: payload });
   } catch (err) {
     console.error('Delete play failed:', err);
@@ -713,6 +967,12 @@ router.put('/partidas/:playId', protect, async (req, res) => {
       return res.status(e.status || 500).json({ message: e.message });
     }
     clearPartidasCache(user.bggUsername);
+    const lower = user.bggUsername.toLowerCase();
+    if (await BggPlay.exists({ bggUsername: lower })) {
+      try { await upsertPlayFromMutation(user.bggUsername, req.body, playId); }
+      catch (e) { console.warn('[bgg/PUT] mirror to Mongo failed:', e.message); }
+    }
+
     res.json({ success: true, playid: playId, raw: payload });
   } catch (err) {
     console.error('Edit play failed:', err);

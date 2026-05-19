@@ -80,6 +80,10 @@ const userSchema = new mongoose.Schema(
       lastValidatedAt: { type: Date, default: null },
       invalid: { type: Boolean, default: false },
     },
+    bggSync: {
+      lastFullSyncAt: { type: Date, default: null },
+      lastFullSyncCount: { type: Number, default: 0 },
+    },
     isAdmin: {
       type: Boolean,
       default: false,
