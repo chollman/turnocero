@@ -576,7 +576,7 @@ export default function TableDetail() {
           </div>
           <div className={styles.heroGradient} />
 
-          <button className={styles.backBtn} onClick={() => navigate('/')}>
+          <button className={styles.backBtn} onClick={() => navigate(-1)}>
             ← Volver
           </button>
 

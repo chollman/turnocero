@@ -79,3 +79,21 @@ if (typeof window.IntersectionObserver === 'undefined') {
     takeRecords() { return []; }
   };
 }
+
+// Node 24+ exposes a built-in experimental `localStorage` global that, when not
+// configured with `--localstorage-file=<path>`, shadows jsdom's working
+// `window.localStorage` and breaks `.getItem`/`.setItem`. Force the test global
+// to use jsdom's implementation.
+if (typeof window !== 'undefined' && window.localStorage) {
+  const store = new Map();
+  const ls = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => { store.set(k, String(v)); },
+    removeItem: (k) => { store.delete(k); },
+    clear: () => { store.clear(); },
+    key: (i) => Array.from(store.keys())[i] ?? null,
+    get length() { return store.size; },
+  };
+  Object.defineProperty(globalThis, 'localStorage', { value: ls, configurable: true, writable: true });
+  Object.defineProperty(window, 'localStorage', { value: ls, configurable: true, writable: true });
+}

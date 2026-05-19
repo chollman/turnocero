@@ -527,4 +527,21 @@ describe('<TableDetail>', () => {
     await screen.findByText('Catán');
     fireEvent.click(screen.getByRole('button', { name: /seguir/i }));
   });
+
+  it('"Volver" button navigates back to the previous screen', async () => {
+    setupTable(makeTable());
+    useAuth.mockReturnValue({ user: null });
+    useNotifications.mockReturnValue({ setActiveTable: vi.fn() });
+    render(
+      <MemoryRouter initialEntries={['/pantalla-anterior', '/mesas/t1']} initialIndex={1}>
+        <Routes>
+          <Route path="/pantalla-anterior" element={<div>previous-screen</div>} />
+          <Route path="/mesas/:id" element={<TableDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByText('Catán');
+    fireEvent.click(screen.getByRole('button', { name: /volver/i }));
+    expect(await screen.findByText('previous-screen')).toBeInTheDocument();
+  });
 });
