@@ -155,7 +155,8 @@ describe('<CompartidaCard>', () => {
     const likeBtn = buttons.find((b) => b.textContent === '0');
     if (likeBtn) {
       fireEvent.click(likeBtn);
-      expect(screen.getByText(/iniciá sesión/i)).toBeInTheDocument();
+      // Modal renders the message + an "Iniciá sesión" CTA — multiple matches are OK.
+      expect(screen.getAllByText(/iniciá sesión/i).length).toBeGreaterThan(0);
     }
   });
 

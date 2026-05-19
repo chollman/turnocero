@@ -79,6 +79,8 @@
   /* Typography */
   --font-display: 'Poppins', sans-serif;
   --font-body: 'Archivo', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-script: 'Caveat', cursive;
 
   /* Shadows */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);

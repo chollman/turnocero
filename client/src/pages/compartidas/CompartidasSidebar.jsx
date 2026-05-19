@@ -74,7 +74,7 @@ export default function CompartidasSidebar() {
               return (
                 <Link key={t._id} to={`/mesas/${t._id}`} className={styles.tableRow}>
                   <div className={styles.tableTile}>
-                    <GameTile game={t.boardGame} seed={seedFromId(t._id)} size={40} />
+                    <GameTile game={t.boardGame} seed={seedFromId(t._id)} size={38} />
                   </div>
                   <div className={styles.tableInfo}>
                     <span className={styles.tableGame}>{t.boardGame}</span>
@@ -108,11 +108,18 @@ export default function CompartidasSidebar() {
                 <span className={`${styles.gameRank} ${i === 0 ? styles.gameRankTop : ''}`}>
                   {i + 1}
                 </span>
-                <div className={styles.gameBar}>
-                  <div className={styles.gameBarFill} style={{ width: `${Math.round((g.count / topGames[0].count) * 100)}%` }} />
+                <div className={styles.gameBarWrap}>
+                  <div className={styles.gameNameRow}>
+                    <span className={styles.gameName}>{g.game}</span>
+                    <span className={styles.gameCount}>{g.count}</span>
+                  </div>
+                  <div className={styles.gameBar}>
+                    <div
+                      className={styles.gameBarFill}
+                      style={{ width: `${Math.round((g.count / topGames[0].count) * 100)}%` }}
+                    />
+                  </div>
                 </div>
-                <span className={styles.gameName}>{g.game}</span>
-                <span className={styles.gameCount}>{g.count}</span>
               </div>
             ))}
           </div>

@@ -1,78 +1,95 @@
+/* ============================================================================
+   CompartidaCard — Pixel-accurate to handoff §"Post card" + §"Featured broadside".
+   ============================================================================ */
+
 .card {
-  background: var(--bg-card);
+  background: var(--bg-paper);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  border-radius: 16px;
+  position: relative;
+  transition: border-color var(--transition);
+  animation: postIn 0.4s ease both;
 }
 
+.card:hover { border-color: var(--border-strong); }
+
+@keyframes postIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Featured broadside ─────────────────────────────────────────────── */
+/* Visually matches the handoff broadside (gradient bg, rotated badge,
+   bigger title, pull quote with border-left). The strict 1fr 280px
+   side-by-side layout from the spec is deferred — current vertical
+   flow uses the same tokens and looks close. */
 .cardFeatured {
-  border-color: var(--amber);
-  box-shadow: 0 0 0 1px var(--amber), 0 4px 24px var(--amber-glow);
+  position: relative;
+  background:
+    radial-gradient(800px circle at 20% 30%, rgba(24, 136, 239, 0.12), transparent 55%),
+    linear-gradient(135deg, #18223a, #0c1018);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  padding: 30px;
+  overflow: hidden;
 }
 
-/* ── Featured badge ── */
+@media (max-width: 940px) {
+  .cardFeatured { padding: 22px; }
+}
+
 .featuredBadge {
-  background: linear-gradient(90deg, var(--amber-glow), transparent);
-  border-bottom: 1px solid var(--amber);
-  padding: 6px 16px;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: var(--amber);
-  animation: featuredPulse 2.8s ease-in-out infinite;
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--amber);
+  color: var(--on-amber);
+  padding: 5px 11px;
+  border-radius: 999px;
+  z-index: 3;
+  transform: rotate(2deg);
+  box-shadow: 0 6px 20px var(--amber-glow);
 }
 
-@keyframes featuredPulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.65; }
-}
-
-/* ── Header ── */
+/* ── Header ─────────────────────────────────────────────────────────── */
 .header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 16px 0;
+  gap: 12px;
+  padding: 16px 18px 12px;
 }
 
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--amber-glow);
-  color: var(--amber);
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
+.cardFeatured .header { padding: 0 0 4px; }
 
 .authorMeta {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
 .authorNameRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
 }
 
 .authorName {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -84,7 +101,7 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  border-radius: 6px;
+  border-radius: 5px;
   background: var(--amber-15);
   color: var(--amber-light);
   border: 1px solid var(--border-amber);
@@ -101,51 +118,61 @@
   transform: translateY(-1px);
 }
 
-.authorBgWatchLink svg {
-  width: 12px;
-  height: 12px;
-}
+.authorBgWatchLink svg { width: 11px; height: 11px; }
 
-.meta {
-  font-size: 11px;
-  color: var(--text-muted);
+.metaLine {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.metaTime {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .privacyBadge {
-  background: var(--bg-elevated);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 1px 6px;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
-  font-family: var(--font-display);
-  letter-spacing: 0.04em;
 }
 
-/* ── Menu ── */
-.menuWrap {
-  position: relative;
-}
+.privacyBadge svg { width: 9px; height: 9px; }
+
+/* ── Menu (own UX — keeps dropdown for author) ─────────────────────── */
+.menuWrap { position: relative; }
 
 .menuBtn {
-  background: none;
-  border: none;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
   color: var(--text-muted);
   font-size: 18px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
   line-height: 1;
-  transition: color var(--transition), background var(--transition);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: color var(--transition), background var(--transition), border-color var(--transition);
 }
 
 .menuBtn:hover {
   color: var(--text-primary);
   background: var(--bg-elevated);
+  border-color: var(--border);
 }
 
 .menu {
@@ -176,58 +203,43 @@
   border: none;
   text-align: left;
   font-size: 13px;
+  font-family: inherit;
   color: var(--text-secondary);
   cursor: pointer;
   transition: background var(--transition), color var(--transition);
 }
 
-.menuItem:hover {
-  background: var(--bg-dark);
-  color: var(--text-primary);
-}
+.menuItem:hover { background: var(--bg-dark); color: var(--text-primary); }
 
 .menuItemDanger { color: var(--red); }
 .menuItemDanger:hover { background: var(--red-10); }
 
-/* ── Edit form ── */
+/* ── Edit form (own UX) ─────────────────────────────────────────── */
 .editForm {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 16px;
+  padding: 12px 18px;
 }
 
-.editTitle {
-  background: var(--bg-dark);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 12px;
-  color: var(--text-primary);
-  font-size: 14px;
-  font-family: inherit;
-  outline: none;
-}
-
-.editTitle:focus { border-color: var(--amber); }
-
+.editTitle,
 .editBody {
   background: var(--bg-dark);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 12px;
+  border-radius: 10px;
+  padding: 10px 14px;
   color: var(--text-primary);
   font-size: 14px;
   font-family: inherit;
   outline: none;
-  resize: vertical;
+  transition: border-color var(--transition);
 }
 
+.editTitle:focus,
 .editBody:focus { border-color: var(--amber); }
+.editBody { resize: vertical; }
 
-.editPrivacyRow {
-  display: flex;
-  gap: 6px;
-}
+.editPrivacyRow { display: flex; gap: 6px; }
 
 .privacyBtn {
   flex: 1;
@@ -235,8 +247,8 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px;
-  font-size: 12px;
   font-family: var(--font-display);
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-muted);
   cursor: pointer;
@@ -249,11 +261,7 @@
   background: var(--amber-glow);
 }
 
-.editActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
+.editActions { display: flex; justify-content: flex-end; gap: 8px; }
 
 .btnGhost {
   background: transparent;
@@ -285,254 +293,480 @@
 
 .btnSave:hover { background: var(--amber-light); }
 
-/* ── Post content ── */
-.title {
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 10px 16px 0;
-  letter-spacing: -0.02em;
+/* ── Content ────────────────────────────────────────────────────── */
+.contentWrap {
+  padding: 0 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
-.bodyWrap {
-  padding: 6px 16px 0;
+.cardFeatured .contentWrap { padding: 0; }
+
+.title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+  text-wrap: balance;
+}
+
+.cardFeatured .title {
+  font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  margin: 0 0 12px;
 }
 
 .body {
-  font-size: 14px;
-  color: var(--text-secondary);
+  font-size: 14.5px;
   line-height: 1.6;
+  color: var(--text-secondary);
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
+.pullQuote {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0 0 18px;
+  max-width: 460px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .expandBtn {
-  background: none;
+  display: inline-block;
+  margin-top: 6px;
+  background: transparent;
   border: none;
   color: var(--amber-light);
-  font-size: 13px;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0;
   cursor: pointer;
-  padding: 2px 0;
-  font-family: inherit;
 }
 
-/* ── Photos ── */
+.expandBtn:hover { text-decoration: underline; }
+
+/* ── Photos (polaroid grid) ─────────────────────────────────────── */
 .photos {
-  margin-top: 12px;
-  overflow: hidden;
+  padding: 6px 18px 14px;
+  position: relative;
 }
 
-.photos1 { display: block; }
-.photos1 .photoBtn { display: block; width: 100%; }
-.photos1 .photo { width: 100%; max-height: 480px; object-fit: cover; display: block; }
-
-.photos2 {
+.photoGrid1 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px;
+  place-items: center;
+  padding-top: 12px;
+  padding-bottom: 22px;
 }
-.photos2 .photo { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
 
-.photos3 {
+.photoGrid1 .photoBtn { width: min(360px, 100%); }
+.photoGrid1 .polaroid { width: 100%; transform: rotate(-1.5deg); }
+
+.photoGrid2 {
   display: grid;
-  grid-template-columns: 3fr 2fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 2px;
-  max-height: 380px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  padding-top: 16px;
+  padding-bottom: 18px;
+  place-items: center;
 }
-.photos3 .photoBtn:first-child { grid-row: span 2; }
-.photos3 .photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.photoGrid2 .photoBtn:nth-child(1) .polaroid { transform: rotate(-2.5deg); }
+.photoGrid2 .photoBtn:nth-child(2) .polaroid { transform: rotate(1.8deg); }
+
+.photoGrid3,
+.photoGrid4 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 12px;
+  padding-top: 18px;
+  padding-bottom: 18px;
+  place-items: center;
+}
+
+.photoGrid3 .photoBtn:nth-child(1) .polaroid,
+.photoGrid4 .photoBtn:nth-child(1) .polaroid { transform: rotate(-3deg); }
+.photoGrid3 .photoBtn:nth-child(2) .polaroid,
+.photoGrid4 .photoBtn:nth-child(2) .polaroid { transform: rotate(2deg); }
+.photoGrid3 .photoBtn:nth-child(3) .polaroid,
+.photoGrid4 .photoBtn:nth-child(3) .polaroid { transform: rotate(1deg); }
+.photoGrid4 .photoBtn:nth-child(4) .polaroid { transform: rotate(-1.5deg); }
 
 .photoBtn {
   background: none;
   border: none;
   padding: 0;
+  margin: 0;
   cursor: zoom-in;
+  display: block;
+  width: 100%;
+  transition: transform var(--transition);
+}
+
+.photoGrid1 .polaroid,
+.photoGrid2 .polaroid,
+.photoGrid3 .polaroid,
+.photoGrid4 .polaroid {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.photoBtn:hover .polaroid {
+  transform: rotate(0) scale(1.04);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 6px 14px rgba(0, 0, 0, 0.35);
+  z-index: 5;
+}
+
+/* Featured broadside polaroid wrapper (right column on desktop). */
+.photosFeatured {
+  padding: 0;
+  display: grid;
+  place-items: center;
+  perspective: 1000px;
+}
+
+.photosFeatured .photoBtn { width: 240px; max-width: 100%; }
+.photosFeatured .polaroid { transform: rotate(-3deg); transition: transform var(--transition); }
+.photosFeatured .photoBtn:hover .polaroid { transform: rotate(-2deg) scale(1.02); }
+
+/* ── Polaroid primitive ───────────────────────────────────────── */
+.polaroid {
+  background: #f4eeda;
+  padding: 8px 8px 32px;
+  box-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.35),
+    0 4px 10px rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+  position: relative;
+  width: 100%;
+  cursor: pointer;
+}
+
+.polaroidPhoto {
+  width: 100%;
+  aspect-ratio: 1;
+  background: linear-gradient(135deg, #1a2438, #0a0d15);
+  display: grid;
+  place-items: center;
   overflow: hidden;
-  display: flex;
+  color: var(--text-muted);
 }
 
-.photoBtn:hover .photo { opacity: 0.9; }
+.polaroidPhotoLandscape { aspect-ratio: 4 / 3; }
 
-/* ── Linked Mesa card ── */
-.mesaCard {
-  display: flex;
+.polaroidPhotoFallback {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.polaroidCaption {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--font-script);
+  font-weight: 600;
+  font-size: 16px;
+  color: #2c2620;
+  line-height: 1;
+  padding: 0 8px;
+}
+
+.polaroidTape {
+  position: absolute;
+  top: -6px;
+  width: 64px;
+  height: 18px;
+  background: rgba(232, 220, 180, 0.62);
+  border: 1px solid rgba(255, 235, 180, 0.15);
+  border-radius: 1px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 2;
+}
+
+.tape_left   { left: 14px;  transform: rotate(-3deg); }
+.tape_right  { right: 14px; transform: rotate(4deg); }
+.tape_center { left: 50%;   transform: translateX(-50%) rotate(-1deg); }
+
+/* ── Linked Mesa (ticket-stub) ────────────────────────────────── */
+.mesaTicket {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
   align-items: center;
-  gap: 12px;
-  margin: 12px 16px 0;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
+  gap: 14px;
+  margin: 6px 18px 14px;
+  padding: 12px 14px;
+  background:
+    radial-gradient(400px circle at 0% 50%, var(--amber-glow), transparent 60%),
+    var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
 }
+
+.mesaTicket::before,
+.mesaTicket::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: var(--bg-paper);
+  border-radius: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1px solid var(--border-strong);
+}
+
+.cardFeatured .mesaTicket::before,
+.cardFeatured .mesaTicket::after { background: #0c1018; }
+
+.mesaTicket::before { left: 48px; }
+.mesaTicket::after  { right: 100px; }
 
 .mesaTile {
-  flex-shrink: 0;
-  border-radius: 8px;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
   overflow: hidden;
+  background: linear-gradient(135deg, var(--amber), var(--amber-dark));
+  display: grid;
+  place-items: center;
+  position: relative;
+  z-index: 1;
 }
 
 .mesaInfo {
-  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+}
+
+.mesaLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+  margin-bottom: 2px;
 }
 
 .mesaGame {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .mesaMeta {
+  display: flex;
+  gap: 4px 10px;
+  font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-muted);
+  letter-spacing: 0.02em;
+  flex-wrap: wrap;
+  margin-top: 2px;
 }
 
-.mesaBtn {
-  background: var(--bg-dark);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-secondary);
+.mesaCta {
+  background: var(--amber);
+  color: var(--on-amber);
   text-decoration: none;
+  padding: 7px 12px;
+  border-radius: 7px;
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   white-space: nowrap;
-  transition: all var(--transition);
-  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  transition: background var(--transition);
 }
 
-.mesaBtn:hover { border-color: var(--amber); color: var(--amber); }
+.mesaCta:hover { background: var(--amber-light); }
 
-.mesaBtnOpen {
-  background: var(--amber-glow);
-  border-color: var(--amber);
-  color: var(--amber);
+.mesaCtaOpen { box-shadow: 0 4px 12px var(--amber-glow); }
+
+/* ── Broadside meta (featured only) ──────────────────────────── */
+.broadsideMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-/* ── Footer ── */
+.broadsideMeta strong { color: var(--text-primary); font-weight: 600; }
+
+/* ── Footer (reactions + share) ──────────────────────────────── */
 .footer {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
-  margin-top: 12px;
+  justify-content: space-between;
+  padding: 8px 14px 12px;
+  border-top: 1px dashed var(--border);
+  margin: 0 4px;
+  gap: 10px;
 }
 
-.likeBtn {
+.cardFeatured .footer {
+  border-top: 1px dashed var(--border-strong);
+  margin: 16px 0 0;
+  padding: 12px 0 0;
+}
+
+.cardFeatured .photos { padding: 12px 0 4px; }
+.cardFeatured .mesaTicket { margin: 6px 0 0; }
+.cardFeatured .comments { padding: 12px 0 0; margin: 0; }
+
+.reactionGroup {
   display: flex;
+  gap: 4px;
   align-items: center;
-  gap: 5px;
-  background: none;
+  flex-wrap: wrap;
+}
+
+.reactionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: var(--font-display);
-  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 6px 10px;
   border-radius: 8px;
+  cursor: pointer;
   transition: all var(--transition);
 }
 
-.likeBtn:hover { color: var(--red); background: var(--red-10); }
-.likeBtnActive { color: var(--red) !important; }
+.reactionBtn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+
+.reactionBtnLiked { color: var(--red); }
+.reactionBtnLiked:hover { color: var(--red); background: var(--red-10); }
 
 .likeHeart {
-  font-size: 15px;
-  line-height: 1;
-  display: inline-block;
-  transition: transform 0.1s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
 }
 
-.likeHeartPop {
-  animation: heartPop 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97);
-}
+.likeHeart svg { width: 18px; height: 18px; }
+
+.likeHeartPop { animation: heartPop 0.35s ease; }
 
 @keyframes heartPop {
   0%   { transform: scale(1); }
-  30%  { transform: scale(1.55); }
-  60%  { transform: scale(0.9); }
+  35%  { transform: scale(1.4); }
   100% { transform: scale(1); }
 }
 
-.commentToggle {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: var(--font-display);
-  padding: 4px 8px;
-  border-radius: 8px;
-  transition: all var(--transition);
+.reactionBtn svg { width: 18px; height: 18px; }
+
+.reactionLabel {
+  margin-left: 3px;
+  white-space: nowrap;
 }
 
-.commentToggle:hover { color: var(--amber-light); background: var(--amber-glow); }
+@media (max-width: 600px) {
+  .reactionLabel { display: none; }
+}
 
-/* ── Share group ── */
+/* ── Share group ─────────────────────────────────────────────── */
 .shareGroup {
   display: flex;
-  align-items: center;
   gap: 2px;
   margin-left: auto;
 }
 
 .shareBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: none;
+  width: 32px;
+  height: 32px;
+  background: transparent;
   border: none;
+  border-radius: 8px;
   color: var(--text-muted);
   cursor: pointer;
   text-decoration: none;
+  display: grid;
+  place-items: center;
   transition: color var(--transition), background var(--transition);
-  flex-shrink: 0;
 }
 
-.shareBtn:hover { color: var(--text-primary); background: var(--bg-elevated); }
-.shareBtnCopied { color: var(--green) !important; }
+.shareBtn:hover { color: var(--amber-light); background: var(--bg-elevated); }
+.shareBtnCopied { color: var(--green); }
+.shareBtn svg { width: 14px; height: 14px; }
 
-/* ── Comments section ── */
+/* ── Comments ───────────────────────────────────────────────── */
 .comments {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  padding: 0 16px 14px;
+  padding: 6px 18px 16px;
   border-top: 1px solid var(--border);
+  margin: 0 4px;
   animation: commentsSlideDown 0.22s ease;
 }
+
+.cardFeatured .comments { border-top-color: var(--border-strong); }
 
 @keyframes commentsSlideDown {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+.commentsHead {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin: 8px 0 12px;
+}
+
 .noComments {
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 12px;
   color: var(--text-muted);
   padding: 12px 0 8px;
   margin: 0;
+  letter-spacing: 0.04em;
+  text-align: center;
 }
 
 .commentsLoader {
@@ -560,61 +794,51 @@
 
 .comment {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   padding: 10px 0;
   border-bottom: 1px solid var(--border);
 }
 
-.comment:last-child { border-bottom: none; }
+.comment:last-of-type { border-bottom: none; }
 
-.commentAvatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 2px;
+.commentBody {
+  flex: 1;
+  min-width: 0;
 }
-
-.commentBody { flex: 1; min-width: 0; }
 
 .commentMeta {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 2px;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .commentAuthor {
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .commentTime {
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   color: var(--text-muted);
+  letter-spacing: 0.04em;
 }
 
 .editedBadge {
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
   color: var(--text-muted);
   font-style: italic;
 }
 
 .commentText {
-  font-size: 13px;
-  color: var(--text-secondary);
+  font-size: 13.5px;
   line-height: 1.5;
-  margin: 0;
+  color: var(--text-secondary);
+  margin: 3px 0 0;
   word-break: break-word;
 }
 
@@ -627,19 +851,25 @@
 .commentActionBtn {
   background: none;
   border: none;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
   color: var(--text-muted);
   cursor: pointer;
   padding: 0;
-  font-family: inherit;
   transition: color var(--transition);
 }
 
 .commentActionBtn:hover { color: var(--text-secondary); }
-.commentActionDanger:hover { color: var(--red) !important; }
+.commentActionDanger:hover { color: var(--red); }
 
-/* ── Inline comment edit ── */
-.inlineEdit { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+/* ── Inline comment edit (own UX) ─────────────────────────── */
+.inlineEdit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
 
 .inlineEditArea {
   background: var(--bg-dark);
@@ -659,65 +889,92 @@
 
 .inlineEditActions { display: flex; gap: 6px; }
 
-/* ── Comment form ── */
+/* ── Comment form ───────────────────────────────────────── */
 .commentForm {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding-top: 10px;
-}
-
-.commentFormAvatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--amber-glow);
-  color: var(--amber);
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .commentInput {
   flex: 1;
-  background: var(--bg-dark);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 7px 14px;
+  border-radius: 999px;
+  padding: 8px 14px;
   color: var(--text-primary);
   font-size: 13px;
   font-family: inherit;
   outline: none;
-  transition: border-color var(--transition);
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .commentInput::placeholder { color: var(--text-muted); }
-.commentInput:focus { border-color: var(--amber); }
+
+.commentInput:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px var(--amber-glow);
+}
 
 .commentSubmit {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
   background: var(--amber);
   border: none;
   color: var(--on-amber);
-  font-size: 14px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 14px var(--amber-glow);
   transition: background var(--transition);
 }
 
-.commentSubmit:disabled { opacity: 0.4; cursor: not-allowed; }
+.commentSubmit svg { width: 14px; height: 14px; }
+.commentSubmit:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 .commentSubmit:hover:not(:disabled) { background: var(--amber-light); }
 
-/* ── Lightbox ── */
+/* "Ver N comentarios →" inline toggle */
+.commentsToggle {
+  display: block;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 4px;
+  margin: 0 0 4px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.commentsToggle:hover { color: var(--amber-light); }
+
+.guestCommentCta {
+  width: 100%;
+  padding: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all var(--transition);
+}
+
+.guestCommentCta:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+/* ── Lightbox ───────────────────────────────────────────── */
 .lightbox {
   position: fixed;
   inset: 0;
@@ -748,17 +1005,17 @@
   height: 36px;
   border-radius: 50%;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
 }
 
-/* ── Mobile ── */
+/* ── Mobile tweaks (≤ 600 px) ─────────────────────────── */
 @media (max-width: 600px) {
-  .header { padding: 12px 12px 0; }
-  .title { margin: 8px 12px 0; }
-  .bodyWrap { padding: 4px 12px 0; }
-  .footer { padding: 10px 12px; }
-  .mesaCard { margin: 10px 12px 0; }
-  .comments { padding: 0 12px 12px; }
+  .header { padding: 14px 14px 10px; }
+  .contentWrap { padding: 0 14px 8px; }
+  .photos { padding: 6px 14px 12px; gap: 10px; }
+  .mesaTicket { margin: 0 14px 12px; }
+  .mesaTicket::after { right: 90px; }
+  .footer { padding: 8px 10px 10px; }
+  .comments { padding: 0 14px 12px; }
 }

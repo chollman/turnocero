@@ -120,35 +120,34 @@ describe('<Compartidas>', () => {
     });
   });
 
-  it('authenticated user sees the "+ Nueva compartida" toggle button', async () => {
+  it('authenticated user sees the composer trigger', async () => {
     renderPage();
     await waitFor(() => expect(screen.getAllByTestId('compartida-card').length).toBeGreaterThanOrEqual(2));
-    expect(screen.getByRole('button', { name: /nueva compartida/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /qué jugaste hoy/i })).toBeInTheDocument();
   });
 
-  it('clicking "+ Nueva compartida" shows the create form', async () => {
+  it('clicking the composer trigger shows the create form', async () => {
     renderPage();
     await waitFor(() => expect(screen.getAllByTestId('compartida-card').length).toBeGreaterThanOrEqual(1));
-    fireEvent.click(screen.getByRole('button', { name: /nueva compartida/i }));
+    fireEvent.click(screen.getByRole('button', { name: /qué jugaste hoy/i }));
     expect(screen.getByTestId('create-form')).toBeInTheDocument();
-    // Button label flips to "✕ Cancelar" (the header toggle)
-    expect(screen.getByRole('button', { name: '✕ Cancelar' })).toBeInTheDocument();
+    // Composer hides while the form is open
+    expect(screen.queryByRole('button', { name: /qué jugaste hoy/i })).not.toBeInTheDocument();
   });
 
-  it('clicking the toggle again hides the create form', async () => {
+  it('clicking the form cancel hides the create form', async () => {
     renderPage();
     await waitFor(() => expect(screen.getAllByTestId('compartida-card').length).toBeGreaterThanOrEqual(1));
-    fireEvent.click(screen.getByRole('button', { name: /nueva compartida/i }));
+    fireEvent.click(screen.getByRole('button', { name: /qué jugaste hoy/i }));
     expect(screen.getByTestId('create-form')).toBeInTheDocument();
-    // Click the header toggle (exact "✕ Cancelar"), not the form's "cancelar-form"
-    fireEvent.click(screen.getByRole('button', { name: '✕ Cancelar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'cancelar-form' }));
     expect(screen.queryByTestId('create-form')).not.toBeInTheDocument();
   });
 
   it('handleCreated: submitting the form prepends the new post and hides the form', async () => {
     renderPage();
     await waitFor(() => expect(screen.getAllByTestId('compartida-card').length).toBeGreaterThanOrEqual(2));
-    fireEvent.click(screen.getByRole('button', { name: /nueva compartida/i }));
+    fireEvent.click(screen.getByRole('button', { name: /qué jugaste hoy/i }));
     fireEvent.click(screen.getByRole('button', { name: 'crear' }));
     await waitFor(() => expect(screen.getByText('Nuevo post')).toBeInTheDocument());
     expect(screen.queryByTestId('create-form')).not.toBeInTheDocument();

@@ -1,3 +1,9 @@
+/* ============================================================================
+   Compartidas — Reimagined diary feed
+   Desktop: feed column + sidebar (CompartidasSidebar).
+   Mobile (≤ 960 px): feed only; sidebar widgets get intercalated between posts.
+   ============================================================================ */
+
 .page {
   min-height: calc(100vh - var(--navbar-h, 64px));
   padding: var(--navbar-h) 0 var(--page-padding);
@@ -11,21 +17,201 @@
 
 .layout {
   padding: 0 var(--page-padding) 0 var(--page-padding-left);
-  display: flex;
-  gap: 28px;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 0.75rem;
+  align-items: start;
+  max-width: 1180px;
 }
 
 .feedCol {
-  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0.75rem;
 }
 
-/* Slot for the BG Watch widget on mobile. Desktop hides it because the
-   sidebar already shows it. */
+.asideCol {
+  position: sticky;
+  top: 0px;
+  align-self: start;
+}
+
+/* ── Page header (diario) ───────────────────────────────────────────────── */
+/* Pixel-accurate to compartidas-styles.css §"Page header". Markup is
+   heroBlock + heroStats side-by-side; mobile collapses to single column. */
+.pageHead {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: end;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.75rem;
+  min-width: 0;
+}
+
+.heroBlock {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pageEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+}
+
+.pageEyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1px;
+  background: var(--amber-light);
+}
+
+.pageTitle {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  color: var(--text-primary);
+  margin: 8px 0;
+}
+
+.pageTitle em {
+  font-family: var(--font-script);
+  font-style: normal;
+  font-weight: 600;
+  color: var(--amber-light);
+  font-size: 1.15em;
+  letter-spacing: -0.02em;
+  padding: 0 4px;
+}
+
+.heroSub {
+  margin: 0;
+  max-width: 540px;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+/* ── Hero stats (column of mono uppercase text, right-aligned) ─────────── */
+.heroStats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  text-align: right;
+}
+
+.heroStatRow {
+  display: flex;
+  gap: 18px;
+}
+
+.heroStat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.heroStatVal {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.heroStatValAccent {
+  color: var(--amber-light);
+}
+
+/* ── Composer (pixel-accurate to handoff §Composer) ────────────────────── */
+.composer {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  transition: all var(--transition);
+}
+
+.composer:focus-within {
+  border-color: var(--border-amber);
+}
+
+.composerRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.composerTrigger {
+  flex: 1;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.composerTrigger:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-amber);
+}
+
+.composerActions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.composerIconBtn {
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.composerIconBtn:hover {
+  color: var(--amber-light);
+  border-color: var(--border-amber);
+  background: var(--amber-glow);
+}
+
+.composerIconBtn svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* ── Mobile-only widget slot above the feed ─────────────────────────────── */
 .mobileWidgetSlot {
   display: none;
 }
@@ -36,87 +222,162 @@
   }
 }
 
-/* ── Page header ── */
-.pageHeader {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.heroBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.eyebrow {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--amber-light);
-  letter-spacing: 0.15em;
-}
-
-.heroTitle {
-  font-family: var(--font-display);
-  font-size: 40px;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  color: var(--text-primary);
-  line-height: 1;
-  margin: 0;
-}
-
-.heroSub {
-  color: var(--text-secondary);
-  font-size: 14px;
-  margin: 0;
-  line-height: 1.4;
-}
-
-.newBtn {
-  background: var(--amber);
-  color: var(--on-amber);
-  border: none;
-  padding: 9px 18px;
-  border-radius: 8px;
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition:
-    background var(--transition),
-    box-shadow var(--transition);
-  box-shadow: 0 4px 14px var(--amber-glow);
-}
-
-.newBtn:hover {
-  background: var(--amber-light);
-}
-
-.newBtnActive {
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  box-shadow: none;
-}
-
-.newBtnActive:hover {
-  background: var(--bg-dark);
-  color: var(--text-primary);
-}
-
-/* ── Feed ── */
+/* ── Feed list ─────────────────────────────────────────────────────────── */
 .feed {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
-/* ── Empty ── */
+/* ── Inline widget (mobile, between posts) — purple "BG Watch" / generic — */
+.inlineWidget {
+  background:
+    radial-gradient(
+      400px circle at 100% 0%,
+      rgba(180, 140, 255, 0.16),
+      transparent 55%
+    ),
+    linear-gradient(135deg, #1a1d2e, #0e1320);
+  border: 1px solid var(--purple-30);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inlineWidget.gold {
+  background:
+    radial-gradient(400px circle at 100% 0%, var(--orange-15), transparent 55%),
+    linear-gradient(135deg, #211c14, #15191f);
+  border-color: var(--orange-30);
+}
+
+.widgetEyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.widgetEyebrow .left {
+  color: var(--purple);
+}
+.widgetEyebrow .right {
+  color: var(--text-muted);
+}
+.inlineWidget.gold .widgetEyebrow .left {
+  color: var(--orange);
+}
+
+.widgetTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.widgetStats {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px dashed var(--purple-15);
+  border-bottom: 1px dashed var(--purple-15);
+}
+
+.widgetStat {
+  flex: 1;
+  text-align: center;
+}
+
+.widgetStatLabel {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  display: block;
+}
+
+.widgetStatValue {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--purple);
+  letter-spacing: -0.03em;
+  margin-top: 4px;
+  line-height: 1;
+  display: block;
+}
+
+.widgetCta {
+  align-self: stretch;
+  background: transparent;
+  border: 1px solid var(--purple-40);
+  color: var(--purple);
+  text-align: center;
+  padding: 8px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all var(--transition);
+}
+
+.widgetCta:hover {
+  background: var(--purple-10);
+}
+
+/* Quote widget (`.inlineWidget.gold`) — handwritten frase de la semana */
+.quoteText {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  position: relative;
+  padding-left: 28px;
+  margin: 0;
+}
+
+.quoteText::before {
+  content: '"';
+  font-family: "Georgia", serif;
+  font-size: 3.4rem;
+  color: var(--orange);
+  opacity: 0.45;
+  position: absolute;
+  top: -4px;
+  left: 0;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.quoteAttribution {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.quoteAttribution strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ── Empty ─────────────────────────────────────────────────────────────── */
 .empty {
   display: flex;
   flex-direction: column;
@@ -163,24 +424,28 @@
   background: var(--amber-light);
 }
 
-/* ── Load more ── */
+/* ── Load more (pixel-accurate to handoff §Load more) ──────────────────── */
 .loadMoreBtn {
+  display: block;
+  width: 100%;
   background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  border: 1px dashed var(--border-strong);
   color: var(--text-secondary);
-  padding: 11px;
-  border-radius: 10px;
+  padding: 14px;
+  border-radius: 14px;
   font-family: var(--font-display);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  width: 100%;
+  margin-top: 8px;
   transition: all var(--transition);
 }
 
 .loadMoreBtn:hover:not(:disabled) {
   border-color: var(--amber);
-  color: var(--amber);
+  color: var(--amber-light);
+  border-style: solid;
 }
 
 .loadMoreBtn:disabled {
@@ -188,34 +453,32 @@
   cursor: not-allowed;
 }
 
-/* ── Mobile ── */
-@media (max-width: 959px) {
+/* ── Mobile ────────────────────────────────────────────────────────────── */
+@media (max-width: 940px) {
   .page {
     padding-bottom: var(--page-padding-mobile);
   }
 
   .layout {
     padding: 0 var(--page-padding-mobile);
-    gap: 0;
+    grid-template-columns: 1fr;
+    gap: 24px;
     flex-direction: column;
   }
 
   .feedCol {
     max-width: 100%;
-    gap: 16px;
+    gap: 14px;
   }
 
-  .heroTitle { font-size: 28px; }
-  .heroSub   { font-size: 13px; }
+  .pageHead {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
 
-  .pageHeader {
-    flex-direction: column;
+  .heroStats {
     align-items: flex-start;
-    gap: 10px;
-  }
-
-  .newBtn {
-    align-self: stretch;
-    text-align: center;
+    text-align: left;
   }
 }
