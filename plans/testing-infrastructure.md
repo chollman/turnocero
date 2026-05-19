@@ -8,21 +8,20 @@
 | 2. Server unit tests | ✅ Done | 8 archivos, ~50 tests, utils cubiertas ~80% |
 | 3. Server integration tests | ✅ Done | 9 suites, ~140 tests, routes ~40% promedio |
 | 4. Client unit tests | ✅ Done | 5 archivos, ~50 tests, `src/utils/` cubierto ~98% |
-| 5. Client component tests | 🟢 Effectively complete | 103 archivos cubiertos (730 tests); **69.3% line coverage** — meta 70-80% alcanzada en piso |
+| 5. Client component tests | 🟢 Effectively complete | 104 archivos cubiertos (751 tests); **72.42% line coverage** — meta 70-80% alcanzada con margen |
 | 6. Cierre | ✅ Done | Root scripts, coverage gitignored, CLAUDE.md actualizado |
 
-**Totales actuales** (post-treceava sesión, 2026-05-18):
+**Totales actuales** (post-catorceava sesión, 2026-05-18):
 - Server: **193 tests** pasando, line coverage **~40%** (utilities 80%+, routes varían 20-90%)
-- Client: **730 tests** pasando, line coverage **69.3%** / statements 66.08% (utils 98%, shared/admin 80-100%, torneos components ~90%+, BG Watch panels 63%+, admin pages 100%, utilidades 100%, layout 80%+, **ThemeContext + SiteConfigContext + AuthContext + ChatContext cubiertos**, **TableCard + CompartidaCard ampliados** (+23 tests), skeletons smoke tests añadidos)
-- **Total: 923 tests pasando** (103 archivos client + 18 server)
+- Client: **751 tests** pasando, line coverage **72.42%** / statements 69.41% (utils 98%, shared/admin 80-100%, torneos components ~90%+, BG Watch panels 63%+, admin pages 100%, utilidades 100%, layout 80%+, **TODOS los contexts cubiertos** (Theme + SiteConfig + Auth + Chat + **Notification** 18 tests con socket mockeado), Eventos toggle/cancel ampliado)
+- **Total: 944 tests pasando** (104 archivos client + 18 server)
 
-**Falta para llegar a 75-80%** (opcional, ya en meta):
+**Falta para llegar a 78-82%** (opcional, ya en meta amplia):
 - `TableDetail` (~1000 líneas, ~42% cubierto) — el de mayor superficie sin cubrir
-- `NotificationContext` (~514 líneas, 0%) — complejo por sockets; podría dar +5%
 - `App.jsx` (~192 líneas, 0%) — routing
-- `EventoDetail`, `Eventos`, `Noticias`, `Notifications`, `GroupsView`, `UsersList` — todos 35-49% cubiertos parcialmente
+- `EventoDetail` (~30%), `Eventos.jsx` (~45%), `Noticias.jsx` (~45%), `Notifications.jsx` (~50%), `GroupsView` (~46%), `UsersList` (~49%)
 
-El path crítico para 80% es NotificationContext + TableDetail (juntos representan ~1500 líneas a 0-42%). Estimado ~½ día más.
+El path crítico para 80% es TableDetail (la única superficie grande no testeada). Estimado ~½ día más.
 
 **Cobertura por área**:
 - `src/utils/` 98% (todo cubierto excepto trazas)

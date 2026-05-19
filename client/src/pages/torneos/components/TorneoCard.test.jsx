@@ -82,4 +82,36 @@ describe('<TorneoCard>', () => {
     renderCard(makeTorneo({ image: null, format: 'groups' }));
     expect(screen.getAllByText('🧩').length).toBeGreaterThan(0);
   });
+
+  it('timeAgo: shows "Xm" for < 1 hour ago', () => {
+    renderCard(makeTorneo({ createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString() }));
+    expect(screen.getByText(/^\d+m$/)).toBeInTheDocument();
+  });
+
+  it('timeAgo: shows "Xh" for < 1 day ago', () => {
+    renderCard(makeTorneo({ createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString() }));
+    expect(screen.getByText(/^\d+h$/)).toBeInTheDocument();
+  });
+
+  it('timeAgo: shows "Xd" for < 1 week ago', () => {
+    renderCard(makeTorneo({ createdAt: new Date(Date.now() - 3 * 86400 * 1000).toISOString() }));
+    expect(screen.getByText(/^\d+d$/)).toBeInTheDocument();
+  });
+
+  it('timeAgo: shows a formatted date for > 1 week ago', () => {
+    renderCard(makeTorneo({ createdAt: new Date(Date.now() - 14 * 86400 * 1000).toISOString() }));
+    // Long-ago dates show something locale-formatted; just verify the link renders
+    expect(screen.getByRole('link')).toBeInTheDocument();
+  });
+
+  it('no description renders nothing for the description element', () => {
+    renderCard(makeTorneo({ description: '' }));
+    // No description paragraph, just ensure no crash
+    expect(screen.getByText('Liga Catán 2026')).toBeInTheDocument();
+  });
+
+  it('shows participant count without max when maxParticipants is absent', () => {
+    renderCard(makeTorneo({ participantCount: 5, maxParticipants: undefined }));
+    expect(screen.getByText(/👥 5$/)).toBeInTheDocument();
+  });
 });

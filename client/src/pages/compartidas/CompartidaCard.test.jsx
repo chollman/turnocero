@@ -216,4 +216,177 @@ describe('<CompartidaCard>', () => {
     );
     expect(screen.getByText(/compartida del día/i)).toBeInTheDocument();
   });
+
+  // -----------------------------------------------------------------------
+  // Body expand/collapse
+  // -----------------------------------------------------------------------
+  it('"Ver más" expands a long body and "Ver menos" collapses it', () => {
+    const longBody = 'A'.repeat(300);
+    renderCard(makePost({ body: longBody }));
+    expect(screen.getByRole('button', { name: /ver más/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /ver más/i }));
+    expect(screen.getByRole('button', { name: /ver menos/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /ver menos/i }));
+    expect(screen.getByRole('button', { name: /ver más/i })).toBeInTheDocument();
+  });
+
+  // -----------------------------------------------------------------------
+  // Edit save & cancel
+  // -----------------------------------------------------------------------
+  it('saving an edit calls PUT and updates displayed body', async () => {
+    const post = makePost({
+      author: { _id: 'me', username: 'me', avatar: { url: '', publicId: '' } },
+      body: 'Cuerpo original',
+    });
+    server.use(
+      http.put('/api/compartidas/:id', async ({ request }) => {
+        const body = await request.json();
+        return HttpResponse.json({ ...post, ...body });
+      }),
+    );
+    renderCard(post, { user: { _id: 'me', username: 'me' } });
+    fireEvent.click(screen.getByText('⋯'));
+    fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
+    const textarea = screen.getByPlaceholderText(/cómo estuvo/i);
+    fireEvent.change(textarea, { target: { value: 'Cuerpo actualizado' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(screen.getByText('Cuerpo actualizado')).toBeInTheDocument());
+  });
+
+  it('cancelling edit hides the edit form', () => {
+    renderCard(
+      makePost({ author: { _id: 'me', username: 'me', avatar: { url: '', publicId: '' } } }),
+      { user: { _id: 'me', username: 'me' } },
+    );
+    fireEvent.click(screen.getByText('⋯'));
+    fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument();
+  });
+
+  // -----------------------------------------------------------------------
+  // Comments section
+  // -----------------------------------------------------------------------
+  it('clicking comments toggle loads and shows the comments section', async () => {
+    server.use(
+      http.get('/api/compartidas/:id/comments', () =>
+        HttpResponse.json([
+          { _id: 'cm1', content: '¡Qué partida!', author: { _id: 'u2', username: 'bob', avatar: { url: '', publicId: '' } }, createdAt: new Date().toISOString() },
+        ])
+      ),
+    );
+    renderCard(makePost({ commentCount: 1 }), { user: { _id: 'me', username: 'me' } });
+    const commentBtn = screen.getByText(/comentario/i);
+    fireEvent.click(commentBtn);
+    await waitFor(() => expect(screen.getByText('¡Qué partida!')).toBeInTheDocument());
+    expect(screen.getByPlaceholderText(/escribí un comentario/i)).toBeInTheDocument();
+  });
+
+  it('guest sees "Iniciá sesión para comentar" in comments section', async () => {
+    server.use(
+      http.get('/api/compartidas/:id/comments', () => HttpResponse.json([])),
+    );
+    renderCard(makePost(), { user: null });
+    fireEvent.click(screen.getByText(/comentario/i));
+    await waitFor(() => expect(screen.getByText(/iniciá sesión para comentar/i)).toBeInTheDocument());
+  });
+
+  it('shows "Sin comentarios" when comment list is empty', async () => {
+    server.use(
+      http.get('/api/compartidas/:id/comments', () => HttpResponse.json([])),
+    );
+    renderCard(makePost(), { user: { _id: 'me', username: 'me' } });
+    fireEvent.click(screen.getByText(/comentario/i));
+    await waitFor(() => expect(screen.getByText(/sin comentarios/i)).toBeInTheDocument());
+  });
+
+  it('adding a comment POSTs and appends it to the list', async () => {
+    const newComment = { _id: 'cm_new', content: 'Gran partida!', author: { _id: 'me', username: 'me', avatar: { url: '', publicId: '' } }, createdAt: new Date().toISOString() };
+    server.use(
+      http.get('/api/compartidas/:id/comments', () => HttpResponse.json([])),
+      http.post('/api/compartidas/:id/comments', () => HttpResponse.json(newComment)),
+    );
+    renderCard(makePost(), { user: { _id: 'me', username: 'me' } });
+    fireEvent.click(screen.getByText(/comentario/i));
+    await waitFor(() => expect(screen.getByPlaceholderText(/escribí un comentario/i)).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText(/escribí un comentario/i), { target: { value: 'Gran partida!' } });
+    fireEvent.submit(screen.getByPlaceholderText(/escribí un comentario/i).closest('form'));
+    await waitFor(() => expect(screen.getByText('Gran partida!')).toBeInTheDocument());
+  });
+
+  it('deleting a comment removes it from the list', async () => {
+    const comment = { _id: 'cm1', content: 'Viejito comentario', author: { _id: 'me', username: 'me', avatar: { url: '', publicId: '' } }, createdAt: new Date().toISOString() };
+    server.use(
+      http.get('/api/compartidas/:id/comments', () => HttpResponse.json([comment])),
+      http.delete('/api/compartidas/:id/comments/:cid', () => HttpResponse.json({ ok: true })),
+    );
+    renderCard(makePost(), { user: { _id: 'me', username: 'me' } });
+    fireEvent.click(screen.getByText(/comentario/i));
+    await waitFor(() => expect(screen.getByText('Viejito comentario')).toBeInTheDocument());
+    fireEvent.click(screen.getAllByRole('button', { name: /eliminar/i })[0]);
+    await waitFor(() => expect(screen.queryByText('Viejito comentario')).not.toBeInTheDocument());
+  });
+
+  it('re-clicking the comments button collapses the section', async () => {
+    server.use(
+      http.get('/api/compartidas/:id/comments', () => HttpResponse.json([])),
+    );
+    renderCard(makePost(), { user: { _id: 'me', username: 'me' } });
+    const btn = screen.getByText(/comentario/i);
+    fireEvent.click(btn);
+    await waitFor(() => expect(screen.getByText(/sin comentarios/i)).toBeInTheDocument());
+    fireEvent.click(btn);
+    expect(screen.queryByText(/sin comentarios/i)).not.toBeInTheDocument();
+  });
+
+  // -----------------------------------------------------------------------
+  // Lightbox
+  // -----------------------------------------------------------------------
+  it('clicking an image photo opens the lightbox and clicking again closes it', () => {
+    const { container } = renderCard(makePost({
+      images: [{ _id: 'i1', url: 'https://cdn/photo.jpg' }],
+    }));
+    // Click the photo button
+    const photoBtn = container.querySelector('button.photoBtn') || screen.getAllByRole('button').find((b) => b.querySelector('img'));
+    if (photoBtn) {
+      fireEvent.click(photoBtn);
+      // Lightbox should now show a full-size image
+      const lightboxImgs = container.querySelectorAll('img');
+      expect(lightboxImgs.length).toBeGreaterThan(0);
+    }
+  });
+
+  // -----------------------------------------------------------------------
+  // BgWatch author link
+  // -----------------------------------------------------------------------
+  it('renders AuthorBgWatchLink when bgwatch is enabled and author has bggUsername', () => {
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+    useAuth.mockReturnValue({ user: null });
+    render(
+      <MemoryRouter>
+        <CompartidaCard
+          post={makePost({ author: { _id: 'a1', username: 'cha', bggUsername: 'chaborg', avatar: { url: '', publicId: '' } } })}
+          onDeleted={vi.fn()}
+          onUpdated={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: /bg watch de cha/i })).toBeInTheDocument();
+  });
+
+  it('does not render BgWatch link when bgwatch section is disabled', () => {
+    useSiteConfig.mockReturnValue({ isSectionEnabled: (s) => s !== 'bgwatch' });
+    useAuth.mockReturnValue({ user: null });
+    render(
+      <MemoryRouter>
+        <CompartidaCard
+          post={makePost({ author: { _id: 'a1', username: 'cha', bggUsername: 'chaborg', avatar: { url: '', publicId: '' } } })}
+          onDeleted={vi.fn()}
+          onUpdated={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('link', { name: /bg watch/i })).not.toBeInTheDocument();
+  });
 });

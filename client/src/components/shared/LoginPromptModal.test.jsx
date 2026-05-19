@@ -52,4 +52,15 @@ describe('<LoginPromptModal>', () => {
     expect(screen.getByRole('button', { name: /sesi[oó]n/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /registrate/i })).toBeInTheDocument();
   });
+
+  it('clicking "Iniciá sesión" navigates (no crash)', () => {
+    render(<LoginPromptModal isOpen onClose={() => {}} />, { wrapper: RouterOnly });
+    fireEvent.click(screen.getByRole('button', { name: /sesi[oó]n/i }));
+    // navigate is called — just verify it completes without throwing
+  });
+
+  it('clicking "Registrate gratis" navigates (no crash)', () => {
+    render(<LoginPromptModal isOpen onClose={() => {}} />, { wrapper: RouterOnly });
+    fireEvent.click(screen.getByRole('button', { name: /registrate/i }));
+  });
 });
