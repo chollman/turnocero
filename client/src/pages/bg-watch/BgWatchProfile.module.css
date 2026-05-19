@@ -353,6 +353,34 @@
   color: var(--on-amber);
 }
 
+/* ─── Refresh button (manual refetch trigger) ─── */
+.refreshBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.refreshBtn:hover:not(:disabled) {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.refreshBtn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
 /* ─── Game grid ─── */
 .gameGrid {
   display: grid;

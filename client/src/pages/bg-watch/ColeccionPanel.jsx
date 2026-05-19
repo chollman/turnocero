@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Pagination from './Pagination';
 import styles from './BgWatchProfile.module.css';
+
+const REFRESH_COOLDOWN_MS = 60 * 1000;
 
 const COLLECTION_PAGE_SIZE = 24;
 
@@ -48,12 +50,29 @@ export default function ColeccionPanel({ bggUsername, onLoaded }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const forceRefreshRef = useRef(false);
+
+  const cooldownRemaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+  const inCooldown = cooldownRemaining > 0;
+
+  useEffect(() => {
+    if (!inCooldown) return undefined;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [inCooldown]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    axios.get(`/api/bgg/coleccion/${encodeURIComponent(bggUsername)}`)
+    const url = forceRefreshRef.current
+      ? `/api/bgg/coleccion/${encodeURIComponent(bggUsername)}?refresh=1`
+      : `/api/bgg/coleccion/${encodeURIComponent(bggUsername)}`;
+    forceRefreshRef.current = false;
+    axios.get(url)
       .then(({ data }) => {
         if (cancelled) return;
         setCollection(data);
@@ -65,7 +84,7 @@ export default function ColeccionPanel({ bggUsername, onLoaded }) {
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [bggUsername, onLoaded]);
+  }, [bggUsername, onLoaded, refreshTick]);
 
   const totalPages = collection ? Math.ceil(collection.length / COLLECTION_PAGE_SIZE) : 0;
   const slice = collection
@@ -79,6 +98,25 @@ export default function ColeccionPanel({ bggUsername, onLoaded }) {
 
   return (
     <div className={styles.tabContent}>
+      <div className={styles.panelToolbar}>
+        <button
+          type="button"
+          className={styles.refreshBtn}
+          onClick={() => {
+            if (loading || inCooldown) return;
+            forceRefreshRef.current = true;
+            setCooldownUntil(Date.now() + REFRESH_COOLDOWN_MS);
+            setNow(Date.now());
+            setRefreshTick((t) => t + 1);
+          }}
+          disabled={loading || inCooldown}
+          aria-label="Actualizar colección"
+          style={{ marginLeft: 'auto' }}
+        >
+          ↻ {inCooldown ? `Esperá ${cooldownRemaining}s` : 'Actualizar'}
+        </button>
+      </div>
+
       {loading && (
         <div className={styles.stateCenter}>
           <span className={styles.loadingDice}>🎲</span>

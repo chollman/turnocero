@@ -16,3 +16,4 @@
 - [Dev scripts](reference_dev_scripts.md) — root has `npm run dev` (concurrently) + `dev:server` / `dev:client`; CLAUDE.md only documents the split form
 - [No worktrees](feedback_no_worktrees.md) — user doesn't want to work in `.claude/worktrees/`; work directly in `~/Projects/turnocero/` and use feature branches there
 - [Cyberpunk glitch effect](feedback_cyberpunk_glitch.md) — default aesthetic for "impactful"/striking entrances; magenta+cyan RGB split, scanlines, scan beam, `steps(1)` frames — see ChatWindow.module.css
+- [BGG cache pattern](feedback_bgg_cache_pattern.md) — toda integración con BGG usa memoria → Mongo → BGG con `?refresh=1` y botón cliente con cooldown 60s

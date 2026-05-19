@@ -139,4 +139,69 @@ describe('<PartidasPanel>', () => {
     // The button should now have active styling
     expect(yearBtn.className).toMatch(/active/i);
   });
+
+  it('clicking "Actualizar" re-fetches partidas with ?refresh=1', async () => {
+    const requestedUrls = [];
+    server.use(
+      http.get('/api/bgg/partidas/:bggUsername', ({ request }) => {
+        requestedUrls.push(request.url);
+        return HttpResponse.json({ plays: [], page: 1, total: 0, totalPages: 1 });
+      }),
+    );
+
+    renderPanel();
+    await waitFor(() => {
+      expect(requestedUrls.length).toBe(1);
+    });
+    // First (mount) request should NOT have refresh=1
+    expect(requestedUrls[0]).not.toContain('refresh=1');
+
+    fireEvent.click(screen.getByRole('button', { name: /actualizar partidas/i }));
+    await waitFor(() => {
+      expect(requestedUrls.length).toBe(2);
+    });
+    // Second (manual click) request should include refresh=1
+    expect(requestedUrls[1]).toContain('refresh=1');
+  });
+
+  it('disables the refresh button while loading', async () => {
+    renderPanel();
+    const btn = screen.getByRole('button', { name: /actualizar partidas/i });
+    expect(btn).toBeDisabled();
+    await waitFor(() => {
+      expect(btn).not.toBeDisabled();
+    });
+  });
+
+  it('shows a 60s countdown and stays disabled during the cooldown', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      renderPanel();
+      const btn = await screen.findByRole('button', { name: /actualizar partidas/i });
+      await waitFor(() => { expect(btn).not.toBeDisabled(); });
+
+      fireEvent.click(btn);
+
+      // Cooldown active immediately after click
+      expect(btn).toBeDisabled();
+      expect(btn.textContent).toMatch(/esperá 60s/i);
+
+      // Advance 30s — counter should be ~30s
+      vi.advanceTimersByTime(30_000);
+      await waitFor(() => {
+        expect(btn.textContent).toMatch(/esperá 30s/i);
+      });
+      expect(btn).toBeDisabled();
+
+      // Advance past the cooldown — button should be enabled again with the
+      // plain "Actualizar" label
+      vi.advanceTimersByTime(31_000);
+      await waitFor(() => {
+        expect(btn.textContent).toMatch(/^↻ actualizar$/i);
+      });
+      expect(btn).not.toBeDisabled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

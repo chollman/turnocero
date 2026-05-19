@@ -114,6 +114,63 @@ describe('<ColeccionPanel>', () => {
     });
   });
 
+  it('clicking "Actualizar" re-fetches the collection with ?refresh=1', async () => {
+    const requestedUrls = [];
+    server.use(
+      http.get('/api/bgg/coleccion/:bggUsername', ({ request }) => {
+        requestedUrls.push(request.url);
+        return HttpResponse.json([]);
+      }),
+    );
+
+    render(<ColeccionPanel bggUsername="CarcaFan" />);
+    await waitFor(() => {
+      expect(requestedUrls.length).toBe(1);
+    });
+    expect(requestedUrls[0]).not.toContain('refresh=1');
+
+    fireEvent.click(screen.getByRole('button', { name: /actualizar colección/i }));
+    await waitFor(() => {
+      expect(requestedUrls.length).toBe(2);
+    });
+    expect(requestedUrls[1]).toContain('refresh=1');
+  });
+
+  it('disables the refresh button while loading', async () => {
+    render(<ColeccionPanel bggUsername="CarcaFan" />);
+    const btn = screen.getByRole('button', { name: /actualizar colección/i });
+    expect(btn).toBeDisabled();
+    await waitFor(() => {
+      expect(btn).not.toBeDisabled();
+    });
+  });
+
+  it('shows a 60s countdown and stays disabled during the cooldown', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(<ColeccionPanel bggUsername="CarcaFan" />);
+      const btn = await screen.findByRole('button', { name: /actualizar colección/i });
+      await waitFor(() => { expect(btn).not.toBeDisabled(); });
+
+      fireEvent.click(btn);
+      expect(btn).toBeDisabled();
+      expect(btn.textContent).toMatch(/esperá 60s/i);
+
+      vi.advanceTimersByTime(30_000);
+      await waitFor(() => {
+        expect(btn.textContent).toMatch(/esperá 30s/i);
+      });
+
+      vi.advanceTimersByTime(31_000);
+      await waitFor(() => {
+        expect(btn.textContent).toMatch(/^↻ actualizar$/i);
+      });
+      expect(btn).not.toBeDisabled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('shows "—" when userRating is null', async () => {
     server.use(
       http.get('/api/bgg/coleccion/:bggUsername', () =>

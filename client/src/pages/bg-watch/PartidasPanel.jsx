@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import PlayCard from './PlayCard';
 import Pagination from './Pagination';
 import useBggUserMap from './useBggUserMap';
 import styles from './BgWatchProfile.module.css';
+
+const REFRESH_COOLDOWN_MS = 60 * 1000;
 
 const PLAYS_PAGE_SIZE = 10;
 const GAMES_PAGE_SIZE = 24;
@@ -77,9 +79,22 @@ export default function PartidasPanel({ bggUsername, collection, onPlayClick, on
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState('all');
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const forceRefreshRef = useRef(false);
 
   // ── By-game mode state ──
   const [gamesPage, setGamesPage] = useState(1);
+
+  const cooldownRemaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+  const inCooldown = cooldownRemaining > 0;
+
+  useEffect(() => {
+    if (!inCooldown) return undefined;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [inCooldown]);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,6 +105,10 @@ export default function PartidasPanel({ bggUsername, collection, onPlayClick, on
     const range = dateRangeFor(filter);
     if (range.mindate) params.set('mindate', range.mindate);
     if (range.maxdate) params.set('maxdate', range.maxdate);
+    if (forceRefreshRef.current) {
+      params.set('refresh', '1');
+      forceRefreshRef.current = false;
+    }
 
     axios.get(`/api/bgg/partidas/${encodeURIComponent(bggUsername)}?${params.toString()}`)
       .then(({ data }) => {
@@ -108,7 +127,7 @@ export default function PartidasPanel({ bggUsername, collection, onPlayClick, on
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [bggUsername, page, filter, onMetaChange]);
+  }, [bggUsername, page, filter, onMetaChange, refreshTick]);
 
   const playedGames = useMemo(() => {
     if (!collection) return null;
@@ -178,6 +197,21 @@ export default function PartidasPanel({ bggUsername, collection, onPlayClick, on
             Por juego
           </button>
         </div>
+        <button
+          type="button"
+          className={styles.refreshBtn}
+          onClick={() => {
+            if (loading || inCooldown) return;
+            forceRefreshRef.current = true;
+            setCooldownUntil(Date.now() + REFRESH_COOLDOWN_MS);
+            setNow(Date.now());
+            setRefreshTick((t) => t + 1);
+          }}
+          disabled={loading || inCooldown}
+          aria-label="Actualizar partidas"
+        >
+          ↻ {inCooldown ? `Esperá ${cooldownRemaining}s` : 'Actualizar'}
+        </button>
       </div>
 
       {viewMode === 'list' && (
