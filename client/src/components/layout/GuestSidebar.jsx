@@ -23,11 +23,17 @@ const ICONS = {
       <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
     </svg>
   ),
+  utilidades: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+  ),
 };
 
 const NAV = [
-  { id: 'noticias',    label: 'Noticias',    to: '/noticias',    section: 'noticias' },
   { id: 'compartidas', label: 'Compartidas', to: '/compartidas', section: 'compartidas' },
+  { id: 'noticias',    label: 'Noticias',    to: '/noticias',    section: 'noticias' },
+  { id: 'utilidades',  label: 'Utilidades',  to: '/utilidades',  section: 'utilidades' },
 ];
 
 export default function GuestSidebar() {
@@ -38,28 +44,42 @@ export default function GuestSidebar() {
 
   return (
     <aside className={styles.sidebar}>
-      <Link to="/" className={styles.logo}>
-        <Logo className={styles.logoIcon} />
-        <div className={styles.logoText}>
-          <span className={styles.logoName}>TurnoCero</span>
-          <span className={styles.logoSub}>BOARD GAME MEETUPS</span>
-        </div>
-      </Link>
+      <div className={styles.logoRow}>
+        <Link to="/" className={styles.logo} aria-label="TurnoCero">
+          <span className={styles.logoMark} aria-hidden="true">
+            <Logo className={styles.logoMarkImg} />
+          </span>
+          <span className={styles.logoText}>
+            <span className={styles.logoName}>TurnoCero</span>
+            <span className={styles.logoSub}>◆ board game meetups</span>
+          </span>
+        </Link>
+      </div>
 
       <nav className={styles.nav}>
-        {visibleNav.map((item) => (
-          <Link
-            key={item.id}
-            to={item.to}
-            className={`${styles.navItem} ${active === item.id ? styles.navItemActive : ''}`}
-          >
-            <span className={styles.navIcon}>{ICONS[item.id]}</span>
-            <span className={styles.navLabel}>{item.label}</span>
-          </Link>
-        ))}
+        {visibleNav.length > 0 && (
+          <div className={styles.navSection}>
+            <span className={styles.navSectionLabel}>◆ Comunidad</span>
+            {visibleNav.map((item, i) => {
+              const isActive = active === item.id;
+              return (
+                <Link
+                  key={item.id}
+                  to={item.to}
+                  style={{ '--i': i }}
+                  className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <span className={styles.navIcon}>{ICONS[item.id]}</span>
+                  <span className={styles.navLab}>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </nav>
 
-      <div className={styles.footer}>
+      <div className={styles.sidebarFooter}>
         <Link to="/login" className={styles.btnLogin}>Iniciá sesión</Link>
         <Link to="/register" className={styles.btnRegister}>Registrate</Link>
       </div>
