@@ -21,54 +21,21 @@ function writeDismissed() {
   }
 }
 
-function formatPlayDate(iso) {
-  if (!iso) return ''
-  const [year, month, day] = iso.split('-').map(Number)
-  const playDate = new Date(year, month - 1, day)
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const diffDays = Math.round((today - playDate) / (1000 * 60 * 60 * 24))
-  if (diffDays === 0) return 'Hoy'
-  if (diffDays === 1) return 'Ayer'
-  if (diffDays > 1 && diffDays <= 7) return `Hace ${diffDays} d`
-  return playDate.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
-}
-
-function PlayRow({ play, bggUsername }) {
-  const me = play.players?.find(
-    (p) => p.username && p.username.toLowerCase() === bggUsername.toLowerCase()
-  )
-  const won = me?.win === true
-
-  return (
-    <Link
-      to={`/bg-watch/${encodeURIComponent(bggUsername)}/juego/${play.gameId}`}
-      className={styles.playRow}
-      title={play.gameName}
-    >
-      <div className={styles.playThumbWrap}>
-        {play.gameThumbnail ? (
-          <img
-            src={play.gameThumbnail}
-            alt=""
-            loading="lazy"
-            className={styles.playThumb}
-          />
-        ) : (
-          <div className={styles.playThumbPlaceholder} aria-hidden="true">🎲</div>
-        )}
-        {won && <span className={styles.winChip} title="Ganaste">W</span>}
-      </div>
-      <div className={styles.playInfo}>
-        <span className={styles.playGame}>{play.gameName || 'Juego desconocido'}</span>
-        <span className={styles.playDate}>{formatPlayDate(play.date)}</span>
-      </div>
-    </Link>
-  )
-}
-
+/**
+ * Connected view — pixel-accurate to the handoff "BG Watch" inline widget:
+ *   eyebrow (left/right) → title → 2-stat row → full-width CTA.
+ *
+ * Stats come from two parallel API calls, both relying on the server's
+ * `data.total` (the count BGG returns after the `mindate` filter) so the
+ * numbers stay exact no matter how many plays the user has:
+ *   - `?mindate=YYYY-01-01` → year total + most-played game from page 1.
+ *   - `?mindate=YYYY-MM-01` → month total.
+ * "Más jugado" still reads from the page-1 plays of the year request, so
+ * for very active users it reflects recent activity rather than the full
+ * year (fetching every page just to rank games isn't worth the cost).
+ */
 function ConnectedView({ bggUsername }) {
-  const [plays, setPlays] = useState(null)
+  const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
@@ -76,11 +43,31 @@ function ConnectedView({ bggUsername }) {
     let cancelled = false
     setLoading(true)
     setError(false)
-    axios
-      .get(`/api/bgg/partidas/${encodeURIComponent(bggUsername)}`, { params: { page: 1 } })
-      .then((r) => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const url = `/api/bgg/partidas/${encodeURIComponent(bggUsername)}`
+
+    Promise.all([
+      axios.get(url, { params: { page: 1, mindate: `${year}-01-01` } }),
+      axios.get(url, { params: { page: 1, mindate: `${year}-${month}-01` } }),
+    ])
+      .then(([yearRes, monthRes]) => {
         if (cancelled) return
-        setPlays((r.data?.plays || []).slice(0, 3))
+        const yearPlays = yearRes.data?.plays || []
+        const totalYear = typeof yearRes.data?.total === 'number' ? yearRes.data.total : yearPlays.length
+        const totalMonth = typeof monthRes.data?.total === 'number'
+          ? monthRes.data.total
+          : (monthRes.data?.plays || []).reduce((sum, p) => sum + (p.quantity || 1), 0)
+        const tally = {}
+        for (const p of yearPlays) {
+          if (!p.gameId) continue
+          const qty = p.quantity || 1
+          if (!tally[p.gameId]) tally[p.gameId] = { name: p.gameName || 'Juego desconocido', count: 0 }
+          tally[p.gameId].count += qty
+        }
+        const mostPlayed = Object.values(tally).sort((a, b) => b.count - a.count)[0]
+        setStats({ totalYear, thisMonth: totalMonth, mostPlayed })
         setLoading(false)
       })
       .catch(() => {
@@ -91,46 +78,46 @@ function ConnectedView({ bggUsername }) {
     return () => { cancelled = true }
   }, [bggUsername])
 
+  const totalYear = stats?.totalYear ?? 0
+  const headlineText = error
+    ? 'No se pudieron cargar tus partidas.'
+    : loading
+      ? 'Cargando tus partidas…'
+      : totalYear === 0
+        ? '¡Sumá tu primera partida del año! 🎲'
+        : `${totalYear} ${totalYear === 1 ? 'partida' : 'partidas'} registrada${totalYear === 1 ? '' : 's'} este año 🎉`
+
   return (
-    <div className={styles.widget}>
-      <div className={styles.header}>
-        <span className={styles.eyebrow}>◆ TU BG WATCH</span>
-        <Link to={`/bg-watch/${encodeURIComponent(bggUsername)}`} className={styles.link}>
-          Ver todo →
+    <div className={styles.widgetConnected}>
+      <div className={styles.widgetHead}>
+        <span className={styles.connectedEyebrow}>◆ Tu BG Watch</span>
+        <Link
+          to={`/bg-watch/${encodeURIComponent(bggUsername)}`}
+          className={styles.widgetLink}
+        >
+          Ver historial →
         </Link>
       </div>
-      <h3 className={styles.title}>Últimas partidas</h3>
 
-      <div className={styles.playList}>
-        {loading && [0, 1, 2].map((i) => (
-          <div key={i} className={`${styles.playRow} ${styles.playRowSkeleton}`}>
-            <div className={styles.playThumbWrap}>
-              <div className={styles.playThumbSkeleton} />
-            </div>
-            <div className={styles.playInfo}>
-              <span className={styles.skeletonLine} />
-              <span className={`${styles.skeletonLine} ${styles.skeletonLineShort}`} />
-            </div>
-          </div>
-        ))}
+      <p className={styles.headline}>{headlineText}</p>
 
-        {!loading && plays && plays.length === 0 && (
-          <div className={styles.empty}>
-            <p className={styles.emptyText}>Sin partidas registradas todavía.</p>
-            <Link to={`/bg-watch/${encodeURIComponent(bggUsername)}`} className={styles.emptyAction}>
-              Ir a mi BG Watch
-            </Link>
-          </div>
-        )}
-
-        {!loading && plays && plays.length > 0 && plays.map((play) => (
-          <PlayRow key={play.id} play={play} bggUsername={bggUsername} />
-        ))}
-
-        {!loading && error && (
-          <p className={styles.emptyText}>No se pudieron cargar tus partidas.</p>
-        )}
+      <div className={styles.stats}>
+        <div className={styles.stat}>
+          <span className={styles.statLabel}>Este mes</span>
+          <span className={styles.statValue}>{loading || error ? '—' : stats.thisMonth}</span>
+        </div>
+        <div className={styles.stat}>
+          <span className={styles.statLabel}>Más jugado</span>
+          <span
+            className={`${styles.statValue} ${styles.statValueText}`}
+            title={!loading && !error && stats.mostPlayed?.name ? stats.mostPlayed.name : undefined}
+          >
+            {loading || error ? '—' : (stats.mostPlayed?.name || '—')}
+          </span>
+        </div>
       </div>
+
+      <Link to="/bg-watch" className={styles.cta}>+ Registrar partida</Link>
     </div>
   )
 }

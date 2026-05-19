@@ -17,15 +17,26 @@ function renderWidget(props = {}) {
 
 beforeEach(() => {
   localStorage.removeItem(DISMISS_KEY);
+  // Two distinct calls: year (mindate=YYYY-01-01) and month (mindate=YYYY-MM-01).
+  // The mock differentiates by whether the mindate's month is January (year
+  // request) or any other month (month request).
   server.use(
-    http.get('/api/bgg/partidas/:bggUsername', () =>
-      HttpResponse.json({
+    http.get('/api/bgg/partidas/:bggUsername', ({ request }) => {
+      const url = new URL(request.url);
+      const mindate = url.searchParams.get('mindate') || '';
+      const isMonthQuery = /^\d{4}-(0[2-9]|1[0-2])-01$/.test(mindate);
+      if (isMonthQuery) {
+        return HttpResponse.json({ total: 8, plays: [] });
+      }
+      return HttpResponse.json({
+        total: 42,
         plays: [
-          { id: 'p1', gameId: 13, gameName: 'Catán', gameThumbnail: 'https://cdn/c.jpg', date: '2026-05-01', players: [{ username: 'CarcaFan', win: true }] },
-          { id: 'p2', gameId: 14, gameName: 'Carcassonne', gameThumbnail: null, date: '2026-04-30', players: [] },
+          { id: 'p1', gameId: 13, gameName: 'Catán', gameThumbnail: 'https://cdn/c.jpg', date: '2026-05-01', quantity: 1, players: [{ username: 'CarcaFan', win: true }] },
+          { id: 'p2', gameId: 13, gameName: 'Catán', gameThumbnail: 'https://cdn/c.jpg', date: '2026-05-12', quantity: 1, players: [] },
+          { id: 'p3', gameId: 14, gameName: 'Carcassonne', gameThumbnail: null, date: '2026-04-30', quantity: 1, players: [] },
         ],
-      }),
-    ),
+      });
+    }),
   );
 });
 
@@ -64,22 +75,31 @@ describe('<BgWatchHomeWidget>', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders ConnectedView when user has bggConnected', async () => {
+  it('renders ConnectedView with year stats when user has bggConnected', async () => {
     renderWidget({ user: { _id: 'me', bggUsername: 'CarcaFan', bggConnected: true, bggInvalid: false } });
-    expect(screen.getByText('Últimas partidas')).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByText('Catán')).toBeInTheDocument();
-      expect(screen.getByText('Carcassonne')).toBeInTheDocument();
+      expect(screen.getByText(/42 partidas registradas este año/i)).toBeInTheDocument();
     });
+    expect(screen.getByText(/tu bg watch/i)).toBeInTheDocument();
+    expect(screen.getByText(/este mes/i)).toBeInTheDocument();
+    expect(screen.getByText(/más jugado/i)).toBeInTheDocument();
+    // Most played comes from the response (Catán appears twice; Carcassonne once).
+    const mostPlayed = screen.getByText('Catán');
+    expect(mostPlayed).toBeInTheDocument();
+    // Full name is mirrored as a native tooltip via the title attribute so
+    // long game names that get truncated are still readable on hover.
+    expect(mostPlayed).toHaveAttribute('title', 'Catán');
+    // The eyebrow link should go to the user's BG Watch profile.
+    expect(screen.getByRole('link', { name: /ver historial/i })).toHaveAttribute('href', '/bg-watch/CarcaFan');
   });
 
-  it('renders empty state when ConnectedView has no plays', async () => {
+  it('renders empty-year headline when ConnectedView has no plays', async () => {
     server.use(
-      http.get('/api/bgg/partidas/:bggUsername', () => HttpResponse.json({ plays: [] })),
+      http.get('/api/bgg/partidas/:bggUsername', () => HttpResponse.json({ total: 0, plays: [] })),
     );
     renderWidget({ user: { _id: 'me', bggUsername: 'CarcaFan', bggConnected: true } });
     await waitFor(() => {
-      expect(screen.getByText(/sin partidas registradas/i)).toBeInTheDocument();
+      expect(screen.getByText(/sumá tu primera partida del año/i)).toBeInTheDocument();
     });
   });
 
@@ -98,8 +118,8 @@ describe('<BgWatchHomeWidget>', () => {
     expect(screen.getByText(/¿Llevás tus partidas en BGG\?/i)).toBeInTheDocument();
   });
 
-  it('"Ver todo →" links to /bg-watch/:bggUsername', () => {
+  it('"+ Registrar partida" CTA links to /bg-watch', () => {
     renderWidget({ user: { _id: 'me', bggUsername: 'CarcaFan', bggConnected: true } });
-    expect(screen.getByRole('link', { name: /ver todo/i })).toHaveAttribute('href', '/bg-watch/CarcaFan');
+    expect(screen.getByRole('link', { name: /registrar partida/i })).toHaveAttribute('href', '/bg-watch');
   });
 });

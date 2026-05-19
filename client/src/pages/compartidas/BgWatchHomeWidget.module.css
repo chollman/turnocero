@@ -1,4 +1,13 @@
-/* Mirrors the visual language of the other widgets inside CompartidasSidebar. */
+/* ============================================================================
+   Two variants:
+   1. ConnectedView (.widgetConnected): purple BG Watch widget showing year
+      stats — pixel-accurate to the handoff "inlineWidget" purple variant.
+   2. PromoView (.widget + .widgetPromo): amber promo card for users who
+      haven't connected their BGG account yet.
+   ============================================================================ */
+
+/* Base used by the promo variant only — the connected variant has its own
+   self-contained styles below. */
 .widget {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -15,25 +24,6 @@
   justify-content: space-between;
 }
 
-.eyebrow {
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.15em;
-  color: var(--amber-light);
-}
-
-.link {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-decoration: none;
-  transition: color var(--transition);
-}
-
-.link:hover { color: var(--amber-light); }
-
 .title {
   font-family: var(--font-display);
   font-size: 14px;
@@ -43,150 +33,141 @@
   letter-spacing: -0.02em;
 }
 
-/* ─── Connected: play list ─── */
-.playList {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.playRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 8px;
-  border-radius: 8px;
-  text-decoration: none;
-  color: inherit;
-  transition: background var(--transition);
-}
-
-.playRow:hover { background: var(--bg-elevated); }
-
-.playThumbWrap {
-  position: relative;
-  width: 38px;
-  height: 38px;
-  border-radius: 7px;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: var(--bg-elevated);
-}
-
-.playThumb {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.playThumbPlaceholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  color: var(--text-muted);
-}
-
-.winChip {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  background: var(--green);
-  color: var(--on-amber);
+/* Simple eyebrow used inside the amber promo variant. The connected
+   variant uses its own `.connectedEyebrow` flex-row below. */
+.eyebrow {
   font-family: var(--font-display);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
+  letter-spacing: 0.15em;
+  color: var(--amber-light);
 }
 
-.playInfo {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
+/* ─── Connected variant (purple BG Watch widget) ─────────────────────── */
+/* Pixel-accurate to handoff `.bgwatchWidget` — colors use the spec's
+   #c2a7ff lavender (lighter than our --purple token) and the dashed
+   stat separators use the exact rgba so the look matches the design. */
+.widgetConnected {
+  position: relative;
+  background:
+    radial-gradient(600px circle at 80% -20%, rgba(180, 140, 255, 0.18), transparent 55%),
+    linear-gradient(135deg, #1a1d2e, #0e1320);
+  border: 1px solid rgba(180, 140, 255, 0.25);
+  border-radius: 14px;
+  padding: 18px;
 }
 
-.playGame {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.playDate {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-/* ─── Skeleton ─── */
-.playRowSkeleton {
-  pointer-events: none;
-}
-
-.playThumbSkeleton {
-  width: 100%;
-  height: 100%;
-  background: var(--bg-elevated);
-  animation: shimmer 1.4s ease-in-out infinite;
-}
-
-.skeletonLine {
-  display: block;
-  height: 9px;
-  background: var(--bg-elevated);
-  border-radius: 3px;
-  margin-bottom: 4px;
-  animation: shimmer 1.4s ease-in-out infinite;
-}
-
-.skeletonLineShort {
-  width: 50%;
-  margin-bottom: 0;
-}
-
-@keyframes shimmer {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 0.85; }
-}
-
-/* ─── Empty / error ─── */
-.empty {
+/* Eyebrow row: pill on the left, "Ver historial →" link on the right. */
+.widgetHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
+  margin-bottom: 4px;
 }
 
-.emptyText {
-  font-size: 12px;
+.connectedEyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: #c2a7ff;
+  text-transform: uppercase;
+}
+
+.widgetLink {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
   color: var(--text-muted);
-  margin: 0;
-}
-
-.emptyAction {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--amber);
   text-decoration: none;
-  white-space: nowrap;
+  text-transform: uppercase;
   transition: color var(--transition);
 }
 
-.emptyAction:hover { color: var(--amber-light); }
+.widgetLink:hover { color: #c2a7ff; }
+
+.headline {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--text-primary);
+  margin: 8px 0 12px;
+  text-wrap: balance;
+}
+
+.stats {
+  display: grid;
+  /* `minmax(0, 1fr)` — the default `min-width: auto` on grid tracks lets
+     columns expand to fit their longest content, which defeats the
+     ellipsis on the game name. Setting min to 0 forces the columns to
+     honor the 1fr allocation so overflow + ellipsis kick in. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px dashed rgba(180, 140, 255, 0.2);
+  border-bottom: 1px dashed rgba(180, 140, 255, 0.2);
+}
+
+.stat {
+  text-align: center;
+  min-width: 0;
+}
+
+.statLabel {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.statValue {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #c2a7ff;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-top: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Textual values (game name) need a smaller size so they fit beside the
+   big numeric value without dwarfing it. */
+.statValueText {
+  font-size: 0.95rem;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.cta {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(180, 140, 255, 0.4);
+  color: #c2a7ff;
+  text-align: center;
+  padding: 8px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  margin-top: 14px;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.cta:hover {
+  background: rgba(180, 140, 255, 0.12);
+  border-color: rgba(180, 140, 255, 0.7);
+}
 
 /* ─── Promo variant ─── */
 .widgetPromo {
