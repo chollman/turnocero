@@ -314,6 +314,128 @@ describe('PUT /api/auth/avatar + DELETE /api/auth/avatar', () => {
   });
 });
 
+describe('POST /api/auth/bgg-connect — autosync on first connect', () => {
+  const BggPlay = require('../../models/BggPlay');
+  const bggRouter = require('../../routes/bgg');
+
+  function loginOk() {
+    return {
+      ok: true,
+      status: 200,
+      headers: {
+        getSetCookie: () => ['bggusername=h3rmit; Path=/', 'SessionID=abc; Path=/'],
+      },
+      text: async () => '',
+    };
+  }
+
+  function ok(body) {
+    return { ok: true, status: 200, text: async () => body };
+  }
+
+  function playsXml(plays, total) {
+    const playsContent = plays.map((p) => `
+      <play id="${p.id}" date="${p.date}" quantity="1" length="60" incomplete="0" nowinstats="0" location="">
+        <item name="${p.gameName}" objecttype="thing" objectid="${p.gameId}"/>
+        <players><player username="" name="Solo" startposition="" color="" score="" rating="0" new="0" win="1"/></players>
+      </play>
+    `).join('');
+    return `<?xml version="1.0" encoding="UTF-8"?><plays username="user" userid="1" total="${total ?? plays.length}" page="1">${playsContent}</plays>`;
+  }
+
+  function thingXml(games) {
+    const items = games.map((g) => `
+      <item type="boardgame" id="${g.id}">
+        <thumbnail>${g.thumbnail || ''}</thumbnail>
+        <image>${g.image || ''}</image>
+        <name type="primary" sortindex="1" value="${g.name}"/>
+        <yearpublished value="${g.year || 0}"/>
+        <minplayers value="${g.minPlayers || 0}"/>
+        <maxplayers value="${g.maxPlayers || 0}"/>
+      </item>
+    `).join('');
+    return `<?xml version="1.0" encoding="UTF-8"?><items>${items}</items>`;
+  }
+
+  async function waitFor(predicate, { timeoutMs = 5000, intervalMs = 25 } = {}) {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (await predicate()) return;
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+    throw new Error('waitFor: condition not met within timeout');
+  }
+
+  let fetchSpy;
+  beforeEach(() => {
+    bggRouter.__resetCache();
+    fetchSpy = vi.fn();
+    global.fetch = fetchSpy;
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete global.fetch;
+  });
+
+  it('triggers a background reconcile and persists plays after a successful connect', async () => {
+    const user = await createUser({ bggUsername: 'firsttime' });
+    fetchSpy
+      .mockResolvedValueOnce(loginOk()) // loginToBgg
+      .mockResolvedValueOnce(ok(playsXml([ // reconcileFull → /plays page 1
+        { id: '1', date: '2026-01-01', gameName: 'A', gameId: 1 },
+        { id: '2', date: '2026-01-02', gameName: 'B', gameId: 2 },
+      ], 2)))
+      .mockResolvedValueOnce(ok(thingXml([ // game thumbnails
+        { id: 1, name: 'A', thumbnail: 'a.jpg' },
+        { id: 2, name: 'B', thumbnail: 'b.jpg' },
+      ])));
+
+    const res = await request(app)
+      .post('/api/auth/bgg-connect')
+      .set('Authorization', `Bearer ${tokenFor(user)}`)
+      .send({ password: 'bgg-secret' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.bggConnected).toBe(true);
+
+    // Background reconcile completes asynchronously — poll until done.
+    await waitFor(async () => {
+      const u = await User.findById(user._id).lean();
+      return !!u.bggSync?.lastFullSyncAt;
+    });
+
+    const plays = await BggPlay.find({ bggUsername: 'firsttime' }).sort({ playId: 1 }).lean();
+    expect(plays).toHaveLength(2);
+    expect(plays[0].playId).toBe('1');
+    expect(plays[1].playId).toBe('2');
+
+    const u = await User.findById(user._id).lean();
+    expect(u.bggSync.lastFullSyncCount).toBe(2);
+  });
+
+  it('still completes the connect response even if the background reconcile fails', async () => {
+    const user = await createUser({ bggUsername: 'flaky' });
+    fetchSpy
+      .mockResolvedValueOnce(loginOk())
+      .mockRejectedValueOnce(new Error('BGG down')); // reconcileFull /plays fails
+
+    const res = await request(app)
+      .post('/api/auth/bgg-connect')
+      .set('Authorization', `Bearer ${tokenFor(user)}`)
+      .send({ password: 'bgg-secret' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.bggConnected).toBe(true);
+
+    // Give the failing background work a moment to settle.
+    await new Promise((r) => setTimeout(r, 50));
+    // No plays were persisted, and lastFullSyncAt stays null.
+    expect(await BggPlay.countDocuments({ bggUsername: 'flaky' })).toBe(0);
+    const u = await User.findById(user._id).lean();
+    expect(u.bggSync?.lastFullSyncAt || null).toBeNull();
+  });
+});
+
 describe('POST /api/auth/forgot-password', () => {
   it('returns 200 generic regardless of whether email exists (no enumeration)', async () => {
     const res = await request(app).post('/api/auth/forgot-password').send({ email: 'nobody@test.local' });

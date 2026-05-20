@@ -485,28 +485,119 @@ describe('BGG persistent cache (memoria → Mongo → BGG)', () => {
       expect(res.body.topGame).toBeNull();
     });
 
-    it('?refresh=1 triggers a delta sync and upserts new plays into Mongo', async () => {
-      await BggPlay.insertMany([
-        { bggUsername: 'mongo4', playId: '1', date: '2026-05-01', gameName: 'Old', gameId: '13' },
-      ]);
+    it('?refresh=1 with no drift: 1 BGG request, no Mongo writes, outcome no_drift', async () => {
+      // Seed by doing a real sync first so the stored hash exactly matches
+      // what parsePlaysXml + computePlayHash will produce on the probe.
+      const { token, user } = await createAuthedUser({ bggUsername: 'nodrift' });
+      const seedXml = ok(playsXml([
+        { id: '1', date: '2026-05-01', gameName: 'Old', gameId: 13 },
+      ], 1));
+      fetchSpy
+        .mockResolvedValueOnce(seedXml)
+        .mockResolvedValueOnce(ok(thingXml([{ id: 13, name: 'X', thumbnail: 't.jpg' }])));
+      await request(app)
+        .post('/api/bgg/sync')
+        .set('Authorization', `Bearer ${token}`);
+      expect(await BggPlay.countDocuments({ bggUsername: 'nodrift' })).toBe(1);
+      const callsAfterSeed = fetchSpy.mock.calls.length;
 
-      // Delta sync: BGG returns the existing play + a new one (upserts both)
+      // Probe: BGG returns same single play with same content → no drift.
+      fetchSpy.mockResolvedValueOnce(seedXml);
+      const res = await request(app).get('/api/bgg/partidas/nodrift?refresh=1');
+      expect(res.status).toBe(200);
+      expect(fetchSpy.mock.calls.length).toBe(callsAfterSeed + 1); // exactly 1 new fetch
+      expect(await BggPlay.countDocuments({ bggUsername: 'nodrift' })).toBe(1);
+
+      const u = await User.findById(user._id).lean();
+      expect(u.bggSync.lastProbeOutcome).toBe('no_drift');
+      expect(u.bggSync.lastProbedAt).toBeTruthy();
+    });
+
+    it('?refresh=1 with edits to recent plays: upserts and stamps edits_only', async () => {
+      const { user } = await createAuthedUser({ bggUsername: 'editor' });
+      // Local play with a stale hash that won't match BGG's response.
+      await BggPlay.create({
+        bggUsername: 'editor', playId: '1', date: '2026-05-01',
+        gameId: '13', gameName: 'Stale', hash: 'stale-hash-wont-match',
+      });
+
+      // Same total (1), same playId, but different content (hash mismatch).
       fetchSpy
         .mockResolvedValueOnce(ok(playsXml([
-          { id: '1', date: '2026-05-01', gameName: 'Old', gameId: 13 },
-          { id: '2', date: '2026-05-05', gameName: 'NewlyAdded', gameId: 13 },
-        ], 2)))
+          { id: '1', date: '2026-05-01', gameName: 'Edited', gameId: 13 },
+        ], 1)))
+        .mockResolvedValueOnce(ok(thingXml([
+          { id: 13, name: 'Edited', thumbnail: 't.jpg' },
+        ])));
+
+      await request(app).get('/api/bgg/partidas/editor?refresh=1');
+
+      const doc = await BggPlay.findOne({ bggUsername: 'editor', playId: '1' }).lean();
+      expect(doc.gameName).toBe('Edited');
+      expect(doc.hash).not.toBe('stale-hash-wont-match');
+
+      const u = await User.findById(user._id).lean();
+      expect(u.bggSync.lastProbeOutcome).toBe('edits_only');
+    });
+
+    it('?refresh=1 with total drift (add): triggers reconcile and stamps reconciled', async () => {
+      const { user } = await createAuthedUser({ bggUsername: 'addedplay' });
+      await BggPlay.create({
+        bggUsername: 'addedplay', playId: '1', date: '2026-05-01', gameId: '13', hash: 'h1',
+      });
+
+      // Probe sees total=2 vs local count=1 → delegates to reconcileFull,
+      // which re-fetches page 1.
+      const playsResponse = ok(playsXml([
+        { id: '1', date: '2026-05-01', gameName: 'Old', gameId: 13 },
+        { id: '2', date: '2026-05-05', gameName: 'New',  gameId: 13 },
+      ], 2));
+      fetchSpy
+        .mockResolvedValueOnce(playsResponse) // probe
+        .mockResolvedValueOnce(playsResponse) // reconcile page 1
         .mockResolvedValueOnce(ok(thingXml([
           { id: 13, name: 'X', thumbnail: 't.jpg' },
         ])));
 
-      const res = await request(app).get('/api/bgg/partidas/mongo4?refresh=1');
-      expect(res.status).toBe(200);
-      expect(res.body.total).toBe(2);
+      await request(app).get('/api/bgg/partidas/addedplay?refresh=1');
 
-      const docs = await BggPlay.find({ bggUsername: 'mongo4' }).sort({ date: -1 }).lean();
-      expect(docs).toHaveLength(2);
-      expect(docs[0].gameName).toBe('NewlyAdded');
+      expect(await BggPlay.countDocuments({ bggUsername: 'addedplay' })).toBe(2);
+      const u = await User.findById(user._id).lean();
+      expect(u.bggSync.lastProbeOutcome).toBe('reconciled');
+    });
+
+    it('?refresh=1 with BGG failure: stamps failed, no writes', async () => {
+      const { user } = await createAuthedUser({ bggUsername: 'oops' });
+      await BggPlay.create({
+        bggUsername: 'oops', playId: '1', date: '2026-05-01', gameId: '13', hash: 'h',
+      });
+
+      fetchSpy.mockRejectedValueOnce(new Error('BGG offline'));
+
+      const res = await request(app).get('/api/bgg/partidas/oops?refresh=1');
+      // Probe failure does NOT fail the response — we still serve from Mongo.
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(1);
+
+      const u = await User.findById(user._id).lean();
+      expect(u.bggSync.lastProbeOutcome).toBe('failed');
+    });
+
+    it('GET without refresh and recent lastProbedAt skips the background probe', async () => {
+      const { user } = await createAuthedUser({ bggUsername: 'recent' });
+      // createAuthedUser doesn't accept bggSync overrides — stamp it directly.
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { 'bggSync.lastProbedAt': new Date(), 'bggSync.lastProbeOutcome': 'no_drift' } }
+      );
+      await BggPlay.create({
+        bggUsername: 'recent', playId: '1', date: '2026-05-01', gameId: '13', hash: 'h',
+      });
+
+      const res = await request(app).get('/api/bgg/partidas/recent');
+      expect(res.status).toBe(200);
+      // No BGG fetch — background probe was throttled.
+      expect(fetchSpy).not.toHaveBeenCalled();
     });
   });
 

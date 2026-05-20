@@ -83,6 +83,12 @@ const userSchema = new mongoose.Schema(
     bggSync: {
       lastFullSyncAt: { type: Date, default: null },
       lastFullSyncCount: { type: Number, default: 0 },
+      lastProbedAt: { type: Date, default: null },
+      lastProbeOutcome: {
+        type: String,
+        enum: ['no_drift', 'edits_only', 'reconciled', 'failed', null],
+        default: null,
+      },
     },
     isAdmin: {
       type: Boolean,

@@ -458,7 +458,16 @@ router.post('/bgg-connect', protect, async (req, res) => {
 
     // Drop any cached plays/collection/OG for this username so the next
     // /bg-watch read comes fresh from BGG.
-    await require('./bgg').clearUserCache(user.bggUsername);
+    const bggRouter = require('./bgg');
+    await bggRouter.clearUserCache(user.bggUsername);
+
+    // Kick off the first full reconcile in the background. The response
+    // returns immediately; the user will see their plays appear in
+    // /bg-watch once the reconcile completes (typically seconds to
+    // minutes depending on history size). This closes the gap where a
+    // freshly-connected user had no BggPlay data until they manually
+    // clicked "Sincronizar con BGG".
+    bggRouter.triggerBackgroundReconcile(user.bggUsername);
 
     res.json(user);
   } catch (err) {
