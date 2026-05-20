@@ -588,7 +588,11 @@ describe('BGG persistent cache (memoria → Mongo → BGG)', () => {
       // createAuthedUser doesn't accept bggSync overrides — stamp it directly.
       await User.updateOne(
         { _id: user._id },
-        { $set: { 'bggSync.lastProbedAt': new Date(), 'bggSync.lastProbeOutcome': 'no_drift' } }
+        { $set: {
+            'bggSync.lastProbedAt': new Date(),
+            'bggSync.lastProbeOutcome': 'no_drift',
+            'bggSync.lastFullSyncAt': new Date(), // not overdue
+          } }
       );
       await BggPlay.create({
         bggUsername: 'recent', playId: '1', date: '2026-05-01', gameId: '13', hash: 'h',
@@ -598,6 +602,63 @@ describe('BGG persistent cache (memoria → Mongo → BGG)', () => {
       expect(res.status).toBe(200);
       // No BGG fetch — background probe was throttled.
       expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('GET without refresh with stale lastFullSyncAt (> 30 days) triggers a background reconcile', async () => {
+      const { user } = await createAuthedUser({ bggUsername: 'stalefull' });
+      // probe is due (lastProbedAt also stale) AND lastFullSyncAt > 30 days ago.
+      const longAgo = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { 'bggSync.lastProbedAt': longAgo, 'bggSync.lastFullSyncAt': longAgo } }
+      );
+      // Seed BggPlay so the Mongo-served path is taken.
+      await BggPlay.create({
+        bggUsername: 'stalefull', playId: '1', date: '2026-01-01', gameId: '13', hash: 'h',
+      });
+
+      // The triggered reconcile walks BGG; mock one page + the thumbnail.
+      fetchSpy
+        .mockResolvedValueOnce(ok(playsXml([
+          { id: '1', date: '2026-01-01', gameName: 'A', gameId: 13 },
+        ], 1)))
+        .mockResolvedValueOnce(ok(thingXml([{ id: 13, name: 'A', thumbnail: 't.jpg' }])));
+
+      const res = await request(app).get('/api/bgg/partidas/stalefull');
+      expect(res.status).toBe(200);
+
+      // The background reconcile fires after the response. Poll until it
+      // stamps lastFullSyncAt with a recent value.
+      const start = Date.now();
+      let u;
+      while (Date.now() - start < 3000) {
+        u = await User.findById(user._id).lean();
+        const t = u.bggSync?.lastFullSyncAt ? new Date(u.bggSync.lastFullSyncAt).getTime() : 0;
+        if (t > longAgo.getTime() + 1000) break;
+        await new Promise((r) => setTimeout(r, 25));
+      }
+
+      expect(u.bggSync.lastProbeOutcome).toBe('reconciled');
+      expect(new Date(u.bggSync.lastFullSyncAt).getTime()).toBeGreaterThan(longAgo.getTime() + 1000);
+      expect(u.bggSync.lastFullSyncCount).toBe(1);
+    });
+
+    it('POST /api/bgg/sync stamps lastProbedAt + lastProbeOutcome=reconciled', async () => {
+      const { token, user } = await createAuthedUser({ bggUsername: 'stampcheck' });
+      fetchSpy
+        .mockResolvedValueOnce(ok(playsXml([
+          { id: '1', date: '2026-01-01', gameName: 'A', gameId: 13 },
+        ], 1)))
+        .mockResolvedValueOnce(ok(thingXml([{ id: 13, name: 'A', thumbnail: 't.jpg' }])));
+
+      await request(app)
+        .post('/api/bgg/sync')
+        .set('Authorization', `Bearer ${token}`);
+
+      const u = await User.findById(user._id).lean();
+      expect(u.bggSync.lastFullSyncAt).toBeTruthy();
+      expect(u.bggSync.lastProbedAt).toBeTruthy();
+      expect(u.bggSync.lastProbeOutcome).toBe('reconciled');
     });
   });
 

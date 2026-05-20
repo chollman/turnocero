@@ -19,6 +19,7 @@ const {
 } = require('../utils/bggSync');
 
 const PROBE_THROTTLE_MS = 5 * 60 * 1000; // 5 min between background probes
+const FULL_RECONCILE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days between background full reconciles
 
 router.use(requireSection('bgwatch'));
 
@@ -583,14 +584,20 @@ function triggerBackgroundProbe(bggUsername) {
 }
 
 // Stamps a successful full reconcile on the user document. Best-effort.
+// Updates all four bggSync timing fields so the next /bg-watch visit
+// neither re-triggers a probe (within PROBE_THROTTLE_MS) nor a periodic
+// reconcile (within FULL_RECONCILE_INTERVAL_MS).
 async function stampReconcileResult(bggUsername, result) {
   try {
+    const now = new Date();
     await User.updateOne(
       { bggUsername },
       {
         $set: {
-          'bggSync.lastFullSyncAt': new Date(),
+          'bggSync.lastFullSyncAt': now,
           'bggSync.lastFullSyncCount': result.total,
+          'bggSync.lastProbedAt': now,
+          'bggSync.lastProbeOutcome': 'reconciled',
         },
       }
     );
@@ -803,15 +810,35 @@ router.get('/partidas/:bggUsername', async (req, res) => {
         await stampProbeOutcome(lower, 'failed');
       }
     } else {
-      // Background probe with 5-min throttle. Doesn't block the response.
-      // Skipped if no Turnocero User owns this BGG username — the probe
-      // is an owner-driven maintenance task; we don't sync plays for
-      // strangers an anonymous visitor happens to be looking at.
-      const u = await User.findOne({ bggUsername: lower }).select('bggSync.lastProbedAt').lean();
+      // Background sync with 5-min probe throttle. Doesn't block the
+      // response. Skipped if no Turnocero User owns this BGG username —
+      // the probe is an owner-driven maintenance task; we don't sync
+      // plays for strangers an anonymous visitor happens to be looking
+      // at.
+      //
+      // When a probe is due, we pick the path based on lastFullSyncAt:
+      //   - If a full reconcile is overdue (> 30 days, or never ran),
+      //     trigger a full reconcile instead of the lightweight probe.
+      //     This covers the blind spot of edits to plays older than the
+      //     30 most recent (which the page-1 probe can't detect).
+      //   - Otherwise, trigger the cheap probe.
+      // The two are mutually exclusive so they never race on the per-
+      // user lock.
+      const u = await User.findOne({ bggUsername: lower })
+        .select('bggSync.lastProbedAt bggSync.lastFullSyncAt')
+        .lean();
       if (u) {
         const lastProbed = u.bggSync?.lastProbedAt;
-        const due = !lastProbed || (Date.now() - new Date(lastProbed).getTime() > PROBE_THROTTLE_MS);
-        if (due) triggerBackgroundProbe(bggUsername);
+        const lastFullSync = u.bggSync?.lastFullSyncAt;
+        const probeDue = !lastProbed || (Date.now() - new Date(lastProbed).getTime() > PROBE_THROTTLE_MS);
+        if (probeDue) {
+          const reconcileOverdue = !lastFullSync || (Date.now() - new Date(lastFullSync).getTime() > FULL_RECONCILE_INTERVAL_MS);
+          if (reconcileOverdue) {
+            triggerBackgroundReconcile(bggUsername);
+          } else {
+            triggerBackgroundProbe(bggUsername);
+          }
+        }
       }
     }
 
@@ -1077,10 +1104,14 @@ router.post('/sync', protect, async (req, res) => {
       reconcileFull(user.bggUsername, { full: true, background: false })
     );
 
-    // Persist sync metadata on the user
+    // Persist sync metadata on the user — see stampReconcileResult for the
+    // shared semantics; same fields are mirrored here for the sync path.
     if (!user.bggSync) user.bggSync = {};
-    user.bggSync.lastFullSyncAt = new Date();
+    const now = new Date();
+    user.bggSync.lastFullSyncAt = now;
     user.bggSync.lastFullSyncCount = result.total;
+    user.bggSync.lastProbedAt = now;
+    user.bggSync.lastProbeOutcome = 'reconciled';
     await user.save();
 
     // Drop the in-memory plays cache so subsequent reads come from Mongo
