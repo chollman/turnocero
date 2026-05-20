@@ -61,6 +61,21 @@ describe('<PlayDetailModal>', () => {
     expect(screen.getByText('10')).toBeInTheDocument();
   });
 
+  it('renders "—" instead of "null" when a player has no score', () => {
+    renderModal({
+      play: {
+        players: [
+          { name: 'NoScore', username: 'ns', score: null, win: false, position: 1, new: false, rating: null },
+          { name: 'PoisonedScore', username: 'ps', score: 'null', win: false, position: 2, new: false, rating: null },
+        ],
+      },
+    });
+    expect(screen.getByText('NoScore')).toBeInTheDocument();
+    expect(screen.getByText('PoisonedScore')).toBeInTheDocument();
+    // No literal "null" text in the score column.
+    expect(screen.queryByText(/^null$/i)).toBeNull();
+  });
+
   it('shows the "nuevo" badge on new players', () => {
     renderModal();
     expect(screen.getByText('nuevo')).toBeInTheDocument();

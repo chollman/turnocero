@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Avatar from '../../components/shared/Avatar';
+import { hasDisplayableScore } from './playerScore';
 import styles from './BgWatchProfile.module.css';
 
 function formatDate(iso) {
@@ -46,7 +47,7 @@ function PlayerChip({ player, turnoceroUser }) {
       {player.win && <span className={styles.winIcon} aria-label="Ganador">🏆</span>}
       {turnoceroUser && <Avatar user={turnoceroUser} size="xs" />}
       <span className={styles.playerName}>{name}</span>
-      {player.score && <span className={styles.playerScore}>{player.score}</span>}
+      {hasDisplayableScore(player.score) && <span className={styles.playerScore}>{player.score}</span>}
     </>
   );
 

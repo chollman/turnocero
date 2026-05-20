@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import ModalPortal from '../../components/shared/ModalPortal';
 import Avatar from '../../components/shared/Avatar';
+import { hasDisplayableScore } from './playerScore';
 import styles from './BgWatchProfile.module.css';
 
 function formatFullDate(iso) {
@@ -173,7 +174,7 @@ export default function PlayDetailModal({ play, userMap, onClose }) {
                               <span className={styles.dimText}>—</span>
                             )}
                           </td>
-                          <td className={styles.colNumeric}>{p.score || <span className={styles.dimText}>—</span>}</td>
+                          <td className={styles.colNumeric}>{hasDisplayableScore(p.score) ? p.score : <span className={styles.dimText}>—</span>}</td>
                           <td className={styles.colNumeric}>
                             {p.rating ? p.rating.toFixed(1) : <span className={styles.dimText}>—</span>}
                           </td>

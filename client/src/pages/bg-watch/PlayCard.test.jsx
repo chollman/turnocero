@@ -55,6 +55,35 @@ describe('<PlayCard>', () => {
     expect(screen.getByText('7')).toBeInTheDocument();
   });
 
+  it('omits score entirely when a player has no score (null / empty / "null")', () => {
+    renderCard({
+      play: {
+        players: [
+          { name: 'NoScore', username: 'ns', score: null, win: false, position: 1 },
+          { name: 'EmptyScore', username: 'es', score: '', win: false, position: 2 },
+          { name: 'PoisonedScore', username: 'ps', score: 'null', win: false, position: 3 },
+        ],
+      },
+    });
+    expect(screen.getByText('NoScore')).toBeInTheDocument();
+    expect(screen.getByText('EmptyScore')).toBeInTheDocument();
+    expect(screen.getByText('PoisonedScore')).toBeInTheDocument();
+    // No "null" text should be rendered anywhere (data-poisoning guard).
+    expect(screen.queryByText('null')).toBeNull();
+    expect(screen.queryByText(/^null$/i)).toBeNull();
+  });
+
+  it('renders score "0" as a real score (not filtered as falsy)', () => {
+    renderCard({
+      play: {
+        players: [
+          { name: 'Zero', username: 'z', score: '0', win: true, position: 1 },
+        ],
+      },
+    });
+    expect(screen.getByText('0')).toBeInTheDocument();
+  });
+
   it('renders the win trophy icon for the winner', () => {
     renderCard();
     const trophies = screen.getAllByLabelText('Ganador');

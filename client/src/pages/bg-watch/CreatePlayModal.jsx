@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import ModalPortal from '../../components/shared/ModalPortal';
+import { hasDisplayableScore } from './playerScore';
 import styles from './BgWatchProfile.module.css';
 
 function todayIso() {
@@ -273,7 +274,9 @@ export default function CreatePlayModal({ user, preselectedGame, editPlay, onClo
         name: p.name || '',
         username: p.username || '',
         color: p.color || '',
-        score: p.score != null ? String(p.score) : '',
+        // Old plays may carry the literal string "null" in score — treat
+        // those as empty when prefilling the edit form.
+        score: hasDisplayableScore(p.score) ? String(p.score) : '',
         win: !!p.win,
         new: !!p.new,
       }));
