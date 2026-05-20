@@ -744,58 +744,77 @@ function triggerBackgroundReconcile(bggUsername) {
   return true;
 }
 
-// Translates a play-create/update request body into a BggPlay doc and
-// upserts it. Looks up name + thumbnail via the persistent game cache.
-async function upsertPlayFromMutation(bggUsername, body, playId) {
-  const lower = bggUsername.toLowerCase();
-  let gameName = null;
-  let gameThumbnail = null;
-  try {
-    const game = await resolveGame(body.objectid);
-    if (game) {
-      gameName = game.name || null;
-      gameThumbnail = game.thumbnail || null;
-    }
-  } catch {
-    /* best-effort */
+// Fetches plays from BGG narrowed by game + date so we can confirm
+// geekplay.php actually persisted the mutation (it can silently 200
+// without writing). Returns the parsed play (enriched with thumbnail)
+// if BGG has it with the expected playId, or null if not.
+//
+// NOTE: BGG's /xmlapi2/plays does NOT support filtering by play id.
+// The `id` query param is the GAME (thing) id. To pinpoint a single
+// play we narrow with id=gameId + mindate=date + maxdate=date, then
+// scan the result for the expected playId.
+//
+// One retry at 600ms because BGG's plays index can lag a hair behind
+// a fresh geekplay POST.
+async function verifyPlayOnBgg(bggUsername, playId, { gameId, playdate } = {}) {
+  const params = new URLSearchParams({ username: bggUsername });
+  if (gameId) params.set("id", String(gameId));
+  if (playdate) {
+    params.set("mindate", playdate);
+    params.set("maxdate", playdate);
   }
+  const url = `${BGG_API}/plays?${params.toString()}`;
+  console.log(`[bgg/verify] GET ${url} (looking for playId=${playId})`);
 
-  const doc = {
-    bggUsername: lower,
-    playId: String(playId),
-    date: body.playdate || null,
-    gameId: String(body.objectid),
-    gameName,
-    gameThumbnail,
-    quantity: Math.max(1, Math.min(99, parseInt(body.quantity) || 1)),
-    duration:
-      body.length != null && body.length !== ""
-        ? Math.max(0, parseInt(body.length) || 0)
-        : null,
-    location: body.location || null,
-    incomplete: !!body.incomplete,
-    nowinstats: !!body.nowinstats,
-    comments: body.comments || null,
-    players: (body.players || []).map((p, i) => ({
-      name: p.name || null,
-      username: p.username || null,
-      userid: null,
-      position: p.position != null ? String(p.position) : String(i + 1),
-      color: p.color || null,
-      score: p.score != null && p.score !== "" ? String(p.score) : null,
-      win: !!p.win,
-      new: !!p.new,
-      rating:
-        p.rating != null && Number(p.rating) > 0 ? Number(p.rating) : null,
-    })),
-  };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await sleep(600);
+    let xml;
+    try {
+      xml = await fetchBgg(url);
+    } catch (e) {
+      // Network/upstream blip — retry once, then give up.
+      if (attempt === 0) continue;
+      const err = new Error(`No se pudo verificar la partida en BGG: ${e.message}`);
+      err.status = 502;
+      throw err;
+    }
+    const parsed = parsePlaysXml(xml);
+    if (!parsed) continue;
+    const play = parsed.plays.find((p) => p.playId === String(playId));
+    if (!play) {
+      console.log(
+        `[bgg/verify] attempt ${attempt + 1}: ${parsed.plays.length} play(s) returned, none matched playId=${playId}`,
+      );
+      continue;
+    }
+
+    let thumbnail = null;
+    if (play.gameId) {
+      try {
+        const game = await resolveGame(play.gameId);
+        thumbnail = game?.thumbnail || null;
+      } catch {
+        /* best-effort */
+      }
+    }
+    return { ...play, gameThumbnail: thumbnail };
+  }
+  return null;
+}
+
+// Upserts a BggPlay from a play already parsed off the BGG XML response.
+// Use this after verifyPlayOnBgg succeeds — the doc matches what BGG has,
+// not what the client sent.
+async function upsertPlayFromBgg(bggUsername, parsedPlay) {
+  const lower = bggUsername.toLowerCase();
+  const doc = { ...parsedPlay, bggUsername: lower };
   doc.hash = computePlayHash(doc);
-
   await BggPlay.updateOne(
     { bggUsername: lower, playId: doc.playId },
     { $set: doc },
     { upsert: true },
   );
+  return doc;
 }
 
 // GET /api/bgg/search?q=<query>
@@ -1291,6 +1310,9 @@ async function submitToGeekplay(user, form, label) {
     throw Object.assign(e, { status: e.status || 500 });
   }
 
+  const formBody = form.toString();
+  console.log(`[bgg/geekplay ${label}] POST body: ${formBody}`);
+
   let bggRes;
   try {
     bggRes = await fetch(BGG_GEEKPLAY, {
@@ -1303,7 +1325,7 @@ async function submitToGeekplay(user, form, label) {
         Referer: "https://boardgamegeek.com/",
         "X-Requested-With": "XMLHttpRequest",
       },
-      body: form.toString(),
+      body: formBody,
     });
   } catch (e) {
     throw Object.assign(new Error(`No se pudo contactar BGG: ${e.message}`), {
@@ -1321,8 +1343,8 @@ async function submitToGeekplay(user, form, label) {
   if (!bggRes.ok) {
     const text = await bggRes.text().catch(() => "");
     console.warn(
-      `[bgg/partidas ${label}] ${bggRes.status}:`,
-      text.slice(0, 300),
+      `[bgg/geekplay ${label}] HTTP ${bggRes.status}:`,
+      text.slice(0, 500),
     );
     throw Object.assign(new Error(`BGG respondió ${bggRes.status}`), {
       status: 502,
@@ -1330,6 +1352,9 @@ async function submitToGeekplay(user, form, label) {
   }
 
   const text = await bggRes.text();
+  console.log(
+    `[bgg/geekplay ${label}] HTTP ${bggRes.status} body: ${text.slice(0, 500)}`,
+  );
   let payload;
   try {
     payload = JSON.parse(text);
@@ -1469,7 +1494,10 @@ router.post("/sync", protect, async (req, res) => {
   }
 });
 
-// POST /api/bgg/partidas — create a play in BGG
+// POST /api/bgg/partidas — create a play in BGG. The flow is BGG-first:
+// submit to geekplay.php, then verify the play exists on BGG by fetching
+// it back, then mirror to Mongo using BGG's canonical representation.
+// If any step fails the response is 502 and Mongo is left untouched.
 router.post("/partidas", protect, async (req, res) => {
   try {
     const user = req.user;
@@ -1489,24 +1517,41 @@ router.post("/partidas", protect, async (req, res) => {
     } catch (e) {
       return res.status(e.status || 500).json({ message: e.message });
     }
-    clearPartidasCache(user.bggUsername);
 
     const newPlayId = payload.playid || payload.numplays || null;
-    if (newPlayId) {
-      // Only mirror to Mongo if this user is already in Mongo-served mode
-      // (i.e. has done a full sync). Otherwise the GET fallback to BGG will
-      // pick up the new play on its next call.
-      const lower = user.bggUsername.toLowerCase();
-      if (await BggPlay.exists({ bggUsername: lower })) {
-        try {
-          await upsertPlayFromMutation(user.bggUsername, req.body, newPlayId);
-        } catch (e) {
-          console.warn("[bgg/POST] mirror to Mongo failed:", e.message);
-        }
+    if (!newPlayId) {
+      console.warn("[bgg/POST] geekplay returned no playid:", payload);
+      return res.status(502).json({
+        message: "BGG no devolvió un ID de partida. La partida no se guardó.",
+      });
+    }
+
+    const verified = await verifyPlayOnBgg(user.bggUsername, newPlayId, {
+      gameId: req.body.objectid,
+      playdate: req.body.playdate,
+    });
+    if (!verified) {
+      return res.status(502).json({
+        message:
+          "BGG no confirmó la partida después de guardarla. Intentá de nuevo.",
+      });
+    }
+
+    clearPartidasCache(user.bggUsername);
+
+    // Only mirror to Mongo if this user is already in Mongo-served mode
+    // (i.e. has done a full sync). Otherwise the GET fallback to BGG will
+    // pick up the new play on its next call.
+    const lower = user.bggUsername.toLowerCase();
+    if (await BggPlay.exists({ bggUsername: lower })) {
+      try {
+        await upsertPlayFromBgg(user.bggUsername, verified);
+      } catch (e) {
+        console.warn("[bgg/POST] mirror to Mongo failed:", e.message);
       }
     }
 
-    res.json({ success: true, playid: newPlayId, raw: payload });
+    res.json({ success: true, playid: String(newPlayId), play: playToApi(verified) });
   } catch (err) {
     console.error("Create play failed:", err);
     res
@@ -1515,7 +1560,8 @@ router.post("/partidas", protect, async (req, res) => {
   }
 });
 
-// DELETE /api/bgg/partidas/:playId — delete a play from BGG
+// DELETE /api/bgg/partidas/:playId — delete a play from BGG. Verifies the
+// play is actually gone from BGG before removing the Mongo mirror.
 router.delete("/partidas/:playId", protect, async (req, res) => {
   try {
     const user = req.user;
@@ -1529,17 +1575,39 @@ router.delete("/partidas/:playId", protect, async (req, res) => {
       return res.status(400).json({ message: "ID de partida inválido" });
     }
 
+    // We need gameId + date to narrow the verification query. Look up the
+    // existing play in our Mongo mirror; if the user hasn't synced yet we
+    // skip narrowing and the verify call walks the unfiltered plays list
+    // (acceptable fallback — DELETE on a never-synced user is rare).
+    const lower = user.bggUsername.toLowerCase();
+    const existing = await BggPlay.findOne({
+      bggUsername: lower,
+      playId: String(playId),
+    }).lean();
+    const verifyOpts = existing
+      ? { gameId: existing.gameId, playdate: existing.date }
+      : {};
+
     const form = new URLSearchParams();
     form.set("ajax", "1");
     form.set("action", "delete");
     form.set("playid", String(playId));
+    form.set("finalize", "1");
+    form.set("B1", "Yes");
 
-    let payload;
     try {
-      payload = await submitToGeekplay(user, form, "DELETE");
+      await submitToGeekplay(user, form, "DELETE");
     } catch (e) {
       return res.status(e.status || 500).json({ message: e.message });
     }
+
+    const stillThere = await verifyPlayOnBgg(user.bggUsername, playId, verifyOpts);
+    if (stillThere) {
+      return res.status(502).json({
+        message: "BGG no confirmó el borrado de la partida. Intentá de nuevo.",
+      });
+    }
+
     clearPartidasCache(user.bggUsername);
     try {
       await BggPlay.deleteOne({
@@ -1550,7 +1618,7 @@ router.delete("/partidas/:playId", protect, async (req, res) => {
       console.warn("[bgg/DELETE] mirror to Mongo failed:", e.message);
     }
 
-    res.json({ success: true, raw: payload });
+    res.json({ success: true });
   } catch (err) {
     console.error("Delete play failed:", err);
     res
@@ -1559,7 +1627,8 @@ router.delete("/partidas/:playId", protect, async (req, res) => {
   }
 });
 
-// PUT /api/bgg/partidas/:playId — edit an existing play in BGG
+// PUT /api/bgg/partidas/:playId — edit an existing play in BGG. Same
+// BGG-first verification flow as POST.
 router.put("/partidas/:playId", protect, async (req, res) => {
   try {
     const user = req.user;
@@ -1577,23 +1646,33 @@ router.put("/partidas/:playId", protect, async (req, res) => {
       return res.status(400).json({ message: validationError });
 
     const form = buildPlayForm(req.body, playId);
-    let payload;
     try {
-      payload = await submitToGeekplay(user, form, "PUT");
+      await submitToGeekplay(user, form, "PUT");
     } catch (e) {
       return res.status(e.status || 500).json({ message: e.message });
     }
+
+    const verified = await verifyPlayOnBgg(user.bggUsername, playId, {
+      gameId: req.body.objectid,
+      playdate: req.body.playdate,
+    });
+    if (!verified) {
+      return res.status(502).json({
+        message: "BGG no confirmó la edición de la partida. Intentá de nuevo.",
+      });
+    }
+
     clearPartidasCache(user.bggUsername);
     const lower = user.bggUsername.toLowerCase();
     if (await BggPlay.exists({ bggUsername: lower })) {
       try {
-        await upsertPlayFromMutation(user.bggUsername, req.body, playId);
+        await upsertPlayFromBgg(user.bggUsername, verified);
       } catch (e) {
         console.warn("[bgg/PUT] mirror to Mongo failed:", e.message);
       }
     }
 
-    res.json({ success: true, playid: playId, raw: payload });
+    res.json({ success: true, playid: playId, play: playToApi(verified) });
   } catch (err) {
     console.error("Edit play failed:", err);
     res

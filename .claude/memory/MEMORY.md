@@ -21,3 +21,4 @@
 - [Prefer BggPlay aggregations over collection](feedback_bgg_prefer_plays_aggregation.md) — toda vista derivada (top games, stats, listas) debe salir de aggregations sobre BggPlay; la colección omite plays unowned y rompe con perfiles privados
 - [BGG username case mismatch](feedback_bgg_username_case.md) — `User.bggUsername` case-preserved vs `BggPlay.bggUsername` lowercase; cross-model queries necesitan `collation strength: 2`
 - [withUserLock semantics](feedback_user_lock_semantics.md) — dedupe por key, no por work function; triggers de trabajos distintos deben ser mutuamente exclusivos en el caller
+- [BGG write quirks](feedback_bgg_write_quirks.md) — `/xmlapi2/plays?id=` es game-id (no play-id); `geekplay.php` DELETE necesita `finalize=1`+`B1=Yes` o devuelve HTML de confirmación silenciosamente
