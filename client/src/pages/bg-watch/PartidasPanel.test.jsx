@@ -132,6 +132,46 @@ describe('<PartidasPanel>', () => {
     expect(arg.lastDate).toBe('2026-05-01');
   });
 
+  it('forwards topGame from the server response to onMetaChange', async () => {
+    const topGame = { id: '13', name: 'Catán', thumbnail: 'c.jpg', numPlays: 7 };
+    server.use(
+      http.get('/api/bgg/partidas/:bggUsername', () =>
+        HttpResponse.json({
+          plays: [{ id: 'p1', date: '2026-05-01', players: [] }],
+          page: 1,
+          total: 1,
+          totalPages: 1,
+          topGame,
+        }),
+      ),
+    );
+    const onMetaChange = vi.fn();
+    renderPanel({ onMetaChange });
+    await waitFor(() => {
+      expect(onMetaChange).toHaveBeenCalled();
+    });
+    expect(onMetaChange.mock.calls[0][0].topGame).toEqual(topGame);
+  });
+
+  it('passes topGame: null when the server omits it', async () => {
+    server.use(
+      http.get('/api/bgg/partidas/:bggUsername', () =>
+        HttpResponse.json({
+          plays: [],
+          page: 1,
+          total: 0,
+          totalPages: 0,
+        }),
+      ),
+    );
+    const onMetaChange = vi.fn();
+    renderPanel({ onMetaChange });
+    await waitFor(() => {
+      expect(onMetaChange).toHaveBeenCalled();
+    });
+    expect(onMetaChange.mock.calls[0][0].topGame).toBeNull();
+  });
+
   it('clicking a filter chip changes its active class', async () => {
     renderPanel();
     const yearBtn = screen.getByRole('button', { name: 'Este año' });

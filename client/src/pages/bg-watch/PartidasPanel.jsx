@@ -118,6 +118,7 @@ export default function PartidasPanel({ bggUsername, collection, onPlayClick, on
           onMetaChange({
             total: data.total,
             lastDate: data.plays?.[0]?.date || null,
+            topGame: data.topGame ?? null,
           });
         }
       })
