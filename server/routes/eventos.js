@@ -36,7 +36,6 @@ router.get('/', optionalAuth, async (req, res) => {
 
     const [eventos, total] = await Promise.all([
       Evento.find(filter)
-        .select('-registrations')
         .populate('author', 'username displayName avatar')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -44,7 +43,31 @@ router.get('/', optionalAuth, async (req, res) => {
       Evento.countDocuments(filter),
     ]);
 
-    res.json({ eventos, total, page, pages: Math.ceil(total / limit) });
+    const userIdStr = req.user?._id?.toString();
+    const enriched = eventos.map(ev => {
+      const obj = ev.toObject();
+      const regs = obj.registrations || [];
+      const registrationCount = {
+        total:     regs.length,
+        pending:   regs.filter(r => r.status === 'pending').length,
+        confirmed: regs.filter(r => r.status === 'confirmed').length,
+      };
+      let userRegistration = null;
+      if (userIdStr) {
+        const reg = regs.find(r => r.user?.toString() === userIdStr);
+        if (reg) {
+          userRegistration = {
+            _id:         reg._id,
+            status:      reg.status,
+            submittedAt: reg.submittedAt,
+          };
+        }
+      }
+      delete obj.registrations;
+      return { ...obj, registrationCount, userRegistration };
+    });
+
+    res.json({ eventos: enriched, total, page, pages: Math.ceil(total / limit) });
   } catch {
     res.status(500).json({ message: 'Error al obtener eventos' });
   }
@@ -83,7 +106,7 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
   }
 });
 
-// GET /api/eventos/:id — public (draft only visible to admins)
+// GET /api/eventos/:id — public for open/closed; drafts y cancelled sólo para admins
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const evento = await Evento.findById(req.params.id)
@@ -91,7 +114,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       .populate('registrations.user', 'username displayName avatar');
 
     if (!evento) return res.status(404).json({ message: 'Evento no encontrado' });
-    if (evento.status === 'draft' && !req.user?.isAdmin) {
+    if (!req.user?.isAdmin && (evento.status === 'draft' || evento.status === 'cancelled')) {
       return res.status(404).json({ message: 'Evento no encontrado' });
     }
 
@@ -146,15 +169,22 @@ router.put('/:id', protect, requireAdmin, multer.single('image'), async (req, re
     const evento = await Evento.findById(req.params.id);
     if (!evento) return res.status(404).json({ message: 'Evento no encontrado' });
 
-    if (req.body.title?.trim())           evento.title           = req.body.title.trim();
-    evento.description     = req.body.description?.trim()      || undefined;
-    evento.conditions      = req.body.conditions?.trim()       || undefined;
-    if (req.body.fee !== undefined)        evento.fee             = parseFloat(req.body.fee) || 0;
-    evento.transferDetails = req.body.transferDetails?.trim()  || undefined;
-    evento.eventDate       = req.body.eventDate                || undefined;
-    evento.location        = req.body.location?.trim()         || undefined;
-    evento.maxParticipants = req.body.maxParticipants ? parseInt(req.body.maxParticipants) : undefined;
-    if (req.body.status)                   evento.status          = req.body.status;
+    // Partial update: only modify fields that were actually sent in the body.
+    // The form sends every field (empty string clears the value); a partial call
+    // like cancellation can send just { status } without clobbering everything else.
+    if (req.body.title !== undefined && req.body.title.trim()) {
+      evento.title = req.body.title.trim();
+    }
+    if (req.body.description !== undefined)     evento.description     = req.body.description.trim()     || undefined;
+    if (req.body.conditions !== undefined)      evento.conditions      = req.body.conditions.trim()      || undefined;
+    if (req.body.fee !== undefined)             evento.fee             = parseFloat(req.body.fee) || 0;
+    if (req.body.transferDetails !== undefined) evento.transferDetails = req.body.transferDetails.trim() || undefined;
+    if (req.body.eventDate !== undefined)       evento.eventDate       = req.body.eventDate              || undefined;
+    if (req.body.location !== undefined)        evento.location        = req.body.location.trim()        || undefined;
+    if (req.body.maxParticipants !== undefined) {
+      evento.maxParticipants = req.body.maxParticipants ? parseInt(req.body.maxParticipants) : undefined;
+    }
+    if (req.body.status)                        evento.status          = req.body.status;
 
     if (req.file) {
       if (evento.image?.publicId) await cloudinary.uploader.destroy(evento.image.publicId);

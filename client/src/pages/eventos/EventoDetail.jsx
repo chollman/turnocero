@@ -1,350 +1,196 @@
-import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
-import axios from 'axios'
-import { Helmet } from 'react-helmet-async'
-import { useAuth } from '../../context/AuthContext'
-import LoginPromptModal from '../../components/shared/LoginPromptModal'
-import Avatar from '../../components/shared/Avatar'
-import styles from './EventoDetail.module.css'
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
+import { Helmet } from 'react-helmet-async';
+import { useAuth } from '../../context/AuthContext';
+import LoginPromptModal from '../../components/shared/LoginPromptModal';
+import Avatar from '../../components/shared/Avatar';
+import { getUserDisplay } from '../../utils/userDisplay';
+import { dateParts, formatFee } from '../../utils/eventoDate';
+import TicketStub from './TicketStub';
+import EventoForm from './EventoForm';
+import { ArrowLeftIcon, ImageIcon } from './EventoIcons';
+import styles from './EventoDetail.module.css';
 
-function formatDate(dateStr) {
-  if (!dateStr) return null
-  return new Date(dateStr).toLocaleDateString('es-AR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function formatFee(fee) {
-  if (!fee || fee === 0) return 'Gratis'
-  return `$${fee.toLocaleString('es-AR')}`
-}
-
-const STATUS_LABEL = {
+const STATUS_EYEBROW = {
   open:      'Inscripciones abiertas',
   closed:    'Inscripciones cerradas',
   cancelled: 'Evento cancelado',
-  draft:     'Borrador',
-}
-
-function ImageDropzone({ preview, onFile }) {
-  const inputRef  = useRef(null)
-  const onFileRef = useRef(onFile)
-  const [dragOver, setDragOver] = useState(false)
-
-  useEffect(() => { onFileRef.current = onFile }, [onFile])
-
-  const handleDrop = (e) => {
-    e.preventDefault()
-    setDragOver(false)
-    const f = e.dataTransfer.files?.[0]
-    if (f) onFile(f)
-  }
-
-  const classes = [
-    styles.dropzone,
-    preview  ? styles.dropzoneWithPreview : '',
-    dragOver ? styles.dropzoneDragOver    : '',
-  ].filter(Boolean).join(' ')
-
-  return (
-    <div
-      className={classes}
-      onDrop={handleDrop}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-      onDragLeave={() => setDragOver(false)}
-      onClick={() => inputRef.current?.click()}
-    >
-      {preview ? (
-        <img src={preview} alt="preview" className={styles.dropzonePreview} />
-      ) : (
-        <div className={styles.dropzonePlaceholder}>
-          <span className={styles.dropzoneIcon}>🖼</span>
-          <span className={styles.dropzoneText}>Arrastrá, pegá o hacé click</span>
-        </div>
-      )}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
-        className={styles.fileInput}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f) }}
-      />
-    </div>
-  )
-}
-
-function ComprobanteDropzone({ file, onFile }) {
-  const inputRef  = useRef(null)
-  const onFileRef = useRef(onFile)
-  const [dragOver, setDragOver] = useState(false)
-
-  useEffect(() => { onFileRef.current = onFile }, [onFile])
-
-  const handleDrop = (e) => {
-    e.preventDefault()
-    setDragOver(false)
-    const f = e.dataTransfer.files?.[0]
-    if (f) onFile(f)
-  }
-
-  const isPdf    = file?.type === 'application/pdf'
-  const preview  = file && !isPdf ? URL.createObjectURL(file) : null
-  const fileName = file?.name
-
-  const classes = [
-    styles.comprobanteDropzone,
-    file     ? styles.comprobanteDropzoneActive : '',
-    dragOver ? styles.dropzoneDragOver          : '',
-  ].filter(Boolean).join(' ')
-
-  return (
-    <div
-      className={classes}
-      onDrop={handleDrop}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-      onDragLeave={() => setDragOver(false)}
-      onClick={() => inputRef.current?.click()}
-    >
-      {preview ? (
-        <img src={preview} alt="comprobante" className={styles.comprobantePreview} />
-      ) : file ? (
-        <div className={styles.comprobantePdfLabel}>
-          <span className={styles.comprobantePdfIcon}>📄</span>
-          <span className={styles.comprobantePdfName}>{fileName}</span>
-          <span className={styles.comprobanteChange}>Cambiar archivo</span>
-        </div>
-      ) : (
-        <div className={styles.comprobanteEmpty}>
-          <span className={styles.comprobanteEmptyIcon}>📎</span>
-          <span className={styles.comprobanteEmptyText}>Adjuntá el comprobante de transferencia</span>
-          <span className={styles.comprobanteEmptySub}>JPG, PNG o PDF · máx. 10 MB</span>
-        </div>
-      )}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,application/pdf"
-        className={styles.fileInput}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f) }}
-      />
-    </div>
-  )
-}
+  draft:     'Borrador · no visible',
+};
 
 export default function EventoDetail() {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const { user } = useAuth()
-  const isAdmin = user?.isAdmin
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const userId = user?._id;
 
-  const [evento, setEvento]               = useState(null)
-  const [loading, setLoading]             = useState(true)
-  const [notFound, setNotFound]           = useState(false)
-  const [lightbox, setLightbox]           = useState(false)
+  const [evento, setEvento]     = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [lightbox, setLightbox] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-  // Inscription state
-  const [userReg, setUserReg]             = useState(null)
-  const [showModal, setShowModal]         = useState(false)
-  const [comprobanteFile, setComprobanteFile] = useState(null)
-  const [inscribing, setInscribing]       = useState(false)
-  const [inscribed, setInscribed]         = useState(false)
-  const [cancelling, setCancelling]       = useState(false)
-  const [confirmCancel, setConfirmCancel] = useState(false)
-  const [regError, setRegError]           = useState('')
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  const [inscribing, setInscribing] = useState(false);
+  const [cancellingReg, setCancellingReg] = useState(false);
 
-  // Admin edit state
-  const [editing, setEditing]             = useState(false)
-  const [editForm, setEditForm]           = useState({})
-  const [editFile, setEditFile]           = useState(null)
-  const [editPreview, setEditPreview]     = useState('')
-  const [saving, setSaving]               = useState(false)
-  const [editError, setEditError]         = useState('')
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const [deleting, setDeleting]           = useState(false)
+  const [editing, setEditing] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
     async function load() {
-      setLoading(true)
+      setLoading(true);
       try {
-        const { data } = await axios.get(`/api/eventos/${id}`)
-        if (cancelled) return
-        setEvento(data)
-        setUserReg(data.userRegistration)
+        const { data } = await axios.get(`/api/eventos/${id}`);
+        if (cancelled) return;
+        setEvento(data);
       } catch (err) {
-        if (!cancelled) {
-          if (err.response?.status === 404) setNotFound(true)
-        }
+        if (!cancelled && err.response?.status === 404) setNotFound(true);
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) setLoading(false);
       }
     }
-    load()
-    return () => { cancelled = true }
-  }, [id])
+    load();
+    return () => { cancelled = true; };
+  }, [id]);
 
-  function startEdit() {
-    setEditForm({
-      title:           evento.title           || '',
-      description:     evento.description     || '',
-      conditions:      evento.conditions      || '',
-      fee:             evento.fee             ?? 0,
-      transferDetails: evento.transferDetails || '',
-      eventDate:       evento.eventDate ? evento.eventDate.slice(0, 16) : '',
-      location:        evento.location        || '',
-      maxParticipants: evento.maxParticipants || '',
-      status:          evento.status          || 'open',
-    })
-    setEditPreview(evento.image?.url || '')
-    setEditFile(null)
-    setEditing(true)
-    setEditError('')
-  }
-
-  function handleEditChange(e) {
-    const { name, value } = e.target
-    setEditForm(prev => ({ ...prev, [name]: value }))
-  }
-
-  async function handleSave(e) {
-    e.preventDefault()
-    if (!editForm.title.trim()) { setEditError('El título es obligatorio'); return }
-    setSaving(true)
-    setEditError('')
+  async function handleInscribirse(comprobanteFile) {
+    if (!user) { setShowLoginPrompt(true); return; }
+    setInscribing(true);
+    setActionError('');
     try {
-      const fd = new FormData()
-      Object.entries(editForm).forEach(([k, v]) => fd.append(k, v))
-      if (editFile) fd.append('image', editFile)
-      const { data } = await axios.put(`/api/eventos/${id}`, fd, {
+      const fd = new FormData();
+      if (comprobanteFile) fd.append('comprobante', comprobanteFile);
+      const { data: userReg } = await axios.post(`/api/eventos/${id}/inscribirse`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      setEvento(prev => ({ ...prev, ...data }))
-      setEditing(false)
-    } catch (err) {
-      setEditError(err.response?.data?.message || 'Error al guardar')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function handleDelete() {
-    setDeleting(true)
-    try {
-      await axios.delete(`/api/eventos/${id}`)
-      navigate('/eventos')
-    } catch {
-      setConfirmDelete(false)
-      setDeleting(false)
-    }
-  }
-
-  async function handleInscribirse() {
-    if (!user) { setShowLoginPrompt(true); return }
-    const isPaid = evento.fee > 0
-    if (isPaid && !comprobanteFile) {
-      setRegError('Debés adjuntar el comprobante de transferencia')
-      return
-    }
-    setInscribing(true)
-    setRegError('')
-    try {
-      const fd = new FormData()
-      if (comprobanteFile) fd.append('comprobante', comprobanteFile)
-      const { data } = await axios.post(`/api/eventos/${id}/inscribirse`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      setUserReg(data)
+      });
       setEvento(prev => ({
         ...prev,
+        userRegistration: userReg,
         registrationCount: {
           ...prev.registrationCount,
           total:   (prev.registrationCount?.total   || 0) + 1,
           pending: (prev.registrationCount?.pending || 0) + 1,
         },
-      }))
-      setInscribed(true)
-      setComprobanteFile(null)
+      }));
     } catch (err) {
-      setRegError(err.response?.data?.message || 'Error al inscribirse')
+      const msg = err.response?.data?.message || 'No pudimos enviar tu inscripción.';
+      setActionError(msg);
+      throw err;
     } finally {
-      setInscribing(false)
+      setInscribing(false);
     }
   }
 
-  async function handleCancelReg() {
-    setCancelling(true)
+  async function handleCancelRegistration() {
+    setCancellingReg(true);
+    setActionError('');
     try {
-      await axios.delete(`/api/eventos/${id}/inscribirse`)
-      setUserReg(null)
-      setInscribed(false)
-      setConfirmCancel(false)
+      await axios.delete(`/api/eventos/${id}/inscribirse`);
       setEvento(prev => ({
         ...prev,
+        userRegistration: null,
         registrationCount: {
           ...prev.registrationCount,
           total:   Math.max(0, (prev.registrationCount?.total   || 1) - 1),
           pending: Math.max(0, (prev.registrationCount?.pending || 1) - 1),
         },
-      }))
+      }));
     } catch (err) {
-      setRegError(err.response?.data?.message || 'Error al cancelar')
-      setConfirmCancel(false)
+      setActionError(err.response?.data?.message || 'No pudimos cancelar tu inscripción.');
     } finally {
-      setCancelling(false)
+      setCancellingReg(false);
+    }
+  }
+
+  async function handleSaveEdit(fd) {
+    setSavingEdit(true);
+    setActionError('');
+    try {
+      const { data } = await axios.put(`/api/eventos/${id}`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setEvento(prev => ({ ...prev, ...data }));
+      setEditing(false);
+    } catch (err) {
+      setActionError(err.response?.data?.message || 'No pudimos guardar los cambios.');
+      throw err;
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  async function handleCancelEvent() {
+    setActionError('');
+    try {
+      const fd = new FormData();
+      fd.append('status', 'cancelled');
+      const { data } = await axios.put(`/api/eventos/${id}`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setEvento(prev => ({ ...prev, ...data, status: 'cancelled' }));
+    } catch (err) {
+      setActionError(err.response?.data?.message || 'No pudimos cancelar el evento.');
+    }
+  }
+
+  async function handleReopenEvent() {
+    setActionError('');
+    try {
+      const fd = new FormData();
+      fd.append('status', 'open');
+      const { data } = await axios.put(`/api/eventos/${id}`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setEvento(prev => ({ ...prev, ...data, status: 'open' }));
+    } catch (err) {
+      setActionError(err.response?.data?.message || 'No pudimos reabrir el evento.');
     }
   }
 
   if (loading) {
     return (
       <div className={styles.page}>
-        <div className={styles.inner}>
-          <div className={styles.skeleton}>
-            <div className={styles.skeletonImg} />
-            <div className={styles.skeletonBody}>
-              <div className={`${styles.skeletonLine} ${styles.skeletonTitle}`} />
-              <div className={`${styles.skeletonLine} ${styles.skeletonMeta}`} />
-              <div className={`${styles.skeletonLine} ${styles.skeletonText}`} />
-              <div className={`${styles.skeletonLine} ${styles.skeletonText}`} />
-            </div>
-          </div>
-        </div>
+        <div className={styles.skeletonHero} />
+        <div className={styles.skeletonTitle} />
+        <div className={styles.skeletonMeta} />
       </div>
-    )
+    );
   }
 
   if (notFound) {
     return (
       <div className={styles.page}>
-        <div className={styles.inner}>
-          <div className={styles.notFound}>
-            <p className={styles.notFoundIcon}>🎲</p>
-            <h2 className={styles.notFoundTitle}>Evento no encontrado</h2>
-            <Link to="/eventos" className={styles.backLink}>← Volver a Eventos</Link>
-          </div>
+        <div className={styles.notFound}>
+          <p className={styles.notFoundEyebrow}>◆ 404</p>
+          <h1 className={styles.notFoundTitle}>Evento no encontrado</h1>
+          <Link to="/eventos" className={styles.notFoundLink}>← Volver a eventos</Link>
         </div>
       </div>
-    )
+    );
   }
 
-  const canRegister    = evento.status === 'open' && !userReg
-  const hasPending     = userReg?.status === 'pending'
-  const hasConfirmed   = userReg?.status === 'confirmed'
-  const hasRejected    = userReg?.status === 'rejected'
+  const d = dateParts(evento.eventDate);
+  const isFree = !evento.fee;
+  const hasMax = !!(evento.maxParticipants && evento.maxParticipants > 0);
+  const confirmedCount = evento.registrationCount?.confirmed ?? 0;
+  const pendingCount = evento.registrationCount?.pending ?? 0;
+  // Cuentan al cupo todas las inscripciones activas (pendientes + confirmadas).
+  const activeCount = confirmedCount + pendingCount;
+  const isHost = userId && evento.author?._id === userId;
+  const authorDisplay = getUserDisplay(evento.author);
 
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{evento.title} — TurnoCero</title>
-        <meta name="description" content={evento.description || `Evento: ${evento.title}`} />
+        <title>{evento.title} — Turnocero</title>
+        <meta name="description" content={evento.description?.slice(0, 160) || `Evento: ${evento.title}`} />
       </Helmet>
 
-      {lightbox && (
+      {lightbox && evento.image?.url && (
         <div className={styles.lightbox} onClick={() => setLightbox(false)}>
           <button className={styles.lightboxClose} onClick={() => setLightbox(false)}>✕</button>
           <img src={evento.image.url} alt={evento.title} className={styles.lightboxImg} />
@@ -357,436 +203,172 @@ export default function EventoDetail() {
         onClose={() => setShowLoginPrompt(false)}
       />
 
-      <div className={styles.inner}>
-        <div className={styles.back}>
-          <Link to="/eventos" className={styles.backLink}>← Eventos</Link>
-        </div>
+      <Link to="/eventos" className={styles.back}>
+        <ArrowLeftIcon size={11} /> Volver a eventos
+      </Link>
 
-        <div className={styles.layout}>
-          {/* ── Main content ── */}
-          <div className={styles.main}>
-            {editing ? (
-              <form className={styles.editForm} onSubmit={handleSave}>
-                <p className={styles.editTitle}>Editando evento</p>
-                <ImageDropzone
-                  preview={editPreview}
-                  onFile={(f) => { setEditFile(f); setEditPreview(URL.createObjectURL(f)) }}
-                />
-                <input
-                  name="title"
-                  value={editForm.title}
-                  onChange={handleEditChange}
-                  placeholder="Título *"
-                  className={styles.fieldInput}
-                  maxLength={200}
-                />
-                <textarea
-                  name="description"
-                  value={editForm.description}
-                  onChange={handleEditChange}
-                  placeholder="Descripción"
-                  className={styles.fieldTextarea}
-                  rows={3}
-                  maxLength={3000}
-                />
-                <textarea
-                  name="conditions"
-                  value={editForm.conditions}
-                  onChange={handleEditChange}
-                  placeholder="Condiciones de inscripción"
-                  className={styles.fieldTextarea}
-                  rows={3}
-                  maxLength={2000}
-                />
-                <div className={styles.row}>
-                  <input
-                    name="fee"
-                    value={editForm.fee}
-                    onChange={handleEditChange}
-                    placeholder="Monto ($ARS)"
-                    className={styles.fieldInput}
-                    type="number"
-                    min="0"
-                    style={{ flex: 1 }}
-                  />
-                  <input
-                    name="maxParticipants"
-                    value={editForm.maxParticipants}
-                    onChange={handleEditChange}
-                    placeholder="Cupo máximo"
-                    className={styles.fieldInput}
-                    type="number"
-                    min="1"
-                    style={{ flex: 1 }}
-                  />
-                </div>
-                <textarea
-                  name="transferDetails"
-                  value={editForm.transferDetails}
-                  onChange={handleEditChange}
-                  placeholder="Datos de transferencia (alias, CBU, instrucciones)"
-                  className={styles.fieldTextarea}
-                  rows={2}
-                  maxLength={500}
-                />
-                <div className={styles.row}>
-                  <input
-                    name="eventDate"
-                    value={editForm.eventDate}
-                    onChange={handleEditChange}
-                    type="datetime-local"
-                    className={styles.fieldInput}
-                    style={{ flex: 1 }}
-                  />
-                  <input
-                    name="location"
-                    value={editForm.location}
-                    onChange={handleEditChange}
-                    placeholder="Lugar"
-                    className={styles.fieldInput}
-                    maxLength={300}
-                    style={{ flex: 1 }}
-                  />
-                </div>
-                <div className={styles.fieldGroup}>
-                  <label className={styles.fieldLabel}>Estado</label>
-                  <select
-                    name="status"
-                    value={editForm.status}
-                    onChange={handleEditChange}
-                    className={styles.fieldSelect}
-                  >
-                    <option value="draft">Borrador</option>
-                    <option value="open">Abierto</option>
-                    <option value="closed">Cerrado</option>
-                    <option value="cancelled">Cancelado</option>
-                  </select>
-                </div>
-                {editError && <p className={styles.errorMsg}>{editError}</p>}
-                <div className={styles.editActions}>
+      <div className={styles.layout}>
+        <main className={styles.main}>
+          {editing ? (
+            <EventoForm
+              mode="edit"
+              initialEvento={evento}
+              onSubmit={handleSaveEdit}
+              onCancel={() => setEditing(false)}
+              submitting={savingEdit}
+            />
+          ) : (
+            <>
+              <div className={styles.hero}>
+                {evento.image?.url ? (
                   <button
                     type="button"
-                    className={styles.btnGhost}
-                    onClick={() => setEditing(false)}
-                    disabled={saving}
+                    className={styles.heroBtn}
+                    onClick={() => setLightbox(true)}
+                    aria-label="Ver imagen ampliada"
                   >
-                    Cancelar
+                    <img src={evento.image.url} alt={evento.title} className={styles.heroImg} />
                   </button>
-                  <button type="submit" className={styles.btnPrimary} disabled={saving}>
-                    {saving ? 'Guardando…' : 'Guardar cambios'}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <>
-                {evento.image?.url && (
-                  <button className={styles.imageBtn} onClick={() => setLightbox(true)}>
-                    <img src={evento.image.url} alt={evento.title} className={styles.heroImage} />
-                  </button>
+                ) : (
+                  <div className={styles.heroFallback}>
+                    <div className={styles.heroFallbackInner}>
+                      <ImageIcon size={48} />
+                      <span>imagen del evento · {evento.title}</span>
+                    </div>
+                  </div>
                 )}
+              </div>
 
-                <div className={styles.card}>
-                  <div className={styles.cardHeader}>
-                    <div className={styles.statusRow}>
-                      <span className={`${styles.statusBadge} ${styles[`status_${evento.status}`]}`}>
-                        {STATUS_LABEL[evento.status] || evento.status}
-                      </span>
-                      {evento.maxParticipants && (
-                        <span className={styles.capacityBadge}>
-                          {evento.registrationCount?.confirmed || 0} / {evento.maxParticipants} confirmados
-                        </span>
+              <div className={styles.titleBlock}>
+                <div className={styles.eyebrow}>
+                  {STATUS_EYEBROW[evento.status] || ''}
+                </div>
+                <h1 className={styles.title}>{evento.title}</h1>
+              </div>
+
+              <div className={styles.metaStrip}>
+                <div className={styles.metaCell}>
+                  <span className={styles.metaLabel}>Cuándo</span>
+                  <span className={styles.metaValue}>
+                    {d ? `${d.weekdayLong} ${d.day} ${d.monthLong}` : 'A confirmar'}
+                  </span>
+                  {d && <span className={`${styles.metaValue} ${styles.metaTime}`}>{d.time} hs</span>}
+                </div>
+                <div className={styles.metaCell}>
+                  <span className={styles.metaLabel}>Dónde</span>
+                  <span className={styles.metaValue}>{evento.location || 'Por confirmar'}</span>
+                </div>
+                <div className={styles.metaCell}>
+                  <span className={styles.metaLabel}>Inscripción</span>
+                  <span className={`${styles.metaValue} ${isFree ? styles.metaValueFree : ''}`}>
+                    {formatFee(evento.fee)}
+                  </span>
+                </div>
+                <div className={styles.metaCell}>
+                  <span className={styles.metaLabel}>Cupo</span>
+                  <span className={styles.metaValue}>
+                    {hasMax
+                      ? `${activeCount} de ${evento.maxParticipants}`
+                      : `${activeCount} inscriptos`}
+                  </span>
+                </div>
+              </div>
+
+              {actionError && (
+                <p className={styles.actionError}>{actionError}</p>
+              )}
+
+              {evento.description && (
+                <section className={styles.section}>
+                  <div className={styles.sectionHead}>
+                    <span className={styles.sectionLabel}>◆ Descripción</span>
+                    <span className={styles.sectionRule} />
+                  </div>
+                  <p className={styles.body}>{evento.description}</p>
+                </section>
+              )}
+
+              {evento.conditions && (
+                <section className={styles.section}>
+                  <div className={styles.sectionHead}>
+                    <span className={styles.sectionLabel}>◆ Condiciones</span>
+                    <span className={styles.sectionRule} />
+                  </div>
+                  <p className={styles.body}>{evento.conditions}</p>
+                </section>
+              )}
+
+              {evento.author && (
+                <section className={styles.section}>
+                  <div className={styles.sectionHead}>
+                    <span className={styles.sectionLabel}>◆ Organiza</span>
+                    <span className={styles.sectionRule} />
+                  </div>
+                  <div className={styles.hostCard}>
+                    <Avatar user={evento.author} size="xl" />
+                    <div className={styles.hostCardDetails}>
+                      <div className={styles.hostCardLabel}>Host del evento</div>
+                      <div className={styles.hostCardName}>{authorDisplay.name}</div>
+                      {evento.author.username && (
+                        <div className={styles.hostCardSub}>@{evento.author.username}</div>
                       )}
                     </div>
-
-                    {isAdmin && (
-                      <div className={styles.adminActions}>
-                        {confirmDelete ? (
-                          <div className={styles.confirmRow}>
-                            <span className={styles.confirmLabel}>¿Eliminar?</span>
-                            <button
-                              className={styles.confirmYes}
-                              onClick={handleDelete}
-                              disabled={deleting}
-                            >
-                              {deleting ? '…' : 'Sí'}
-                            </button>
-                            <button
-                              className={styles.confirmNo}
-                              onClick={() => setConfirmDelete(false)}
-                            >
-                              No
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <button className={styles.editBtn} onClick={startEdit}>Editar</button>
-                            <button className={styles.deleteBtn} onClick={() => setConfirmDelete(true)}>
-                              Eliminar
-                            </button>
-                          </>
-                        )}
-                      </div>
+                    {!authorDisplay.isDeleted && evento.author?._id && (
+                      <Link
+                        to={`/usuarios/${evento.author._id}`}
+                        className={styles.hostCardLink}
+                      >
+                        Ver perfil
+                      </Link>
                     )}
                   </div>
+                </section>
+              )}
 
-                  <h1 className={styles.eventTitle}>{evento.title}</h1>
-
-                  <div className={styles.metaList}>
-                    {evento.eventDate && (
-                      <div className={styles.metaItem}>
-                        <span className={styles.metaIcon}>📅</span>
-                        <span>{formatDate(evento.eventDate)}</span>
-                      </div>
-                    )}
-                    {evento.location && (
-                      <div className={styles.metaItem}>
-                        <span className={styles.metaIcon}>📍</span>
-                        <span>{evento.location}</span>
-                      </div>
-                    )}
-                    <div className={styles.metaItem}>
-                      <span className={styles.metaIcon}>💰</span>
-                      <span className={styles.fee}>{formatFee(evento.fee)}</span>
-                    </div>
-                    {evento.registrationCount?.total > 0 && (
-                      <div className={styles.metaItem}>
-                        <span className={styles.metaIcon}>👥</span>
-                        <span>{evento.registrationCount.total} inscripciones ({evento.registrationCount.pending} pendientes)</span>
-                      </div>
-                    )}
+              {evento.confirmedRegistrations?.length > 0 && (
+                <section className={styles.section}>
+                  <div className={styles.sectionHead}>
+                    <span className={styles.sectionLabel}>
+                      ◆ Inscriptos confirmados · {evento.confirmedRegistrations.length}
+                    </span>
+                    <span className={styles.sectionRule} />
                   </div>
-
-                  {evento.description && (
-                    <div className={styles.section}>
-                      <h2 className={styles.sectionTitle}>Descripción</h2>
-                      <p className={styles.body}>{evento.description}</p>
-                    </div>
-                  )}
-
-                  {evento.conditions && (
-                    <div className={styles.section}>
-                      <h2 className={styles.sectionTitle}>Condiciones de inscripción</h2>
-                      <p className={styles.body}>{evento.conditions}</p>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* ── Sidebar ── */}
-          <div className={styles.aside}>
-            {/* Admin: manage registrations link */}
-            {isAdmin && (
-              <Link to={`/eventos/${id}/inscripciones`} className={styles.manageBtn}>
-                <span>Gestionar inscripciones</span>
-                <span className={styles.manageBadge}>
-                  {evento.registrationCount?.pending || 0} pendientes
-                </span>
-              </Link>
-            )}
-
-            {/* Registration section */}
-            <div className={styles.regCard}>
-              <h2 className={styles.regTitle}>Inscripción</h2>
-
-              {/* State: not logged in */}
-              {!user && (
-                <div className={styles.regNotLogged}>
-                  <p className={styles.regText}>Iniciá sesión para poder inscribirte.</p>
-                  <button
-                    className={styles.btnInscribirse}
-                    onClick={() => setShowLoginPrompt(true)}
-                  >
-                    Iniciar sesión
-                  </button>
-                </div>
-              )}
-
-              {/* State: user has confirmed registration */}
-              {user && hasConfirmed && (
-                <div className={styles.regConfirmed}>
-                  <p className={styles.regStatusIcon}>✅</p>
-                  <p className={styles.regStatusTitle}>¡Inscripción confirmada!</p>
-                  <p className={styles.regStatusText}>Tu lugar en el evento está reservado.</p>
-                </div>
-              )}
-
-              {/* State: user has rejected registration */}
-              {user && hasRejected && (
-                <div className={styles.regRejected}>
-                  <p className={styles.regStatusIcon}>❌</p>
-                  <p className={styles.regStatusTitle}>Inscripción rechazada</p>
-                  <p className={styles.regStatusText}>El admin revisó y no pudo confirmar tu inscripción.</p>
-                </div>
-              )}
-
-              {/* State: user has pending registration — show modal or status */}
-              {user && hasPending && !showModal && (
-                <div className={styles.regPending}>
-                  <p className={styles.regStatusIcon}>⏳</p>
-                  <p className={styles.regStatusTitle}>Pendiente de revisión</p>
-                  <p className={styles.regStatusText}>
-                    El admin revisará tu comprobante y confirmará la inscripción a la brevedad.
-                  </p>
-                  {userReg?.comprobante?.url && (
-                    <a
-                      href={userReg.comprobante.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.formLink}
-                    >
-                      Ver comprobante enviado →
-                    </a>
-                  )}
-                  {!confirmCancel ? (
-                    <button
-                      className={styles.btnCancel}
-                      onClick={() => setConfirmCancel(true)}
-                    >
-                      Cancelar inscripción
-                    </button>
-                  ) : (
-                    <div className={styles.cancelConfirm}>
-                      <p className={styles.cancelConfirmText}>¿Cancelar inscripción?</p>
-                      <div className={styles.cancelConfirmActions}>
-                        <button
-                          className={styles.confirmYes}
-                          onClick={handleCancelReg}
-                          disabled={cancelling}
-                        >
-                          {cancelling ? '…' : 'Sí, cancelar'}
-                        </button>
-                        <button
-                          className={styles.confirmNo}
-                          onClick={() => setConfirmCancel(false)}
-                        >
-                          No
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {regError && <p className={styles.regError}>{regError}</p>}
-                </div>
-              )}
-
-              {/* State: inscribed flow complete */}
-              {user && inscribed && hasPending && !showModal && (
-                <div className={styles.regSuccess}>
-                  <p className={styles.regSuccessText}>
-                    ✅ Comprobante enviado. El admin lo revisará y confirmará tu inscripción.
-                  </p>
-                </div>
-              )}
-
-              {/* State: event closed / cancelled, not registered */}
-              {user && !userReg && evento.status !== 'open' && (
-                <div className={styles.regClosed}>
-                  <p className={styles.regText}>Las inscripciones están cerradas.</p>
-                </div>
-              )}
-
-              {/* State: can register — show modal or button */}
-              {user && canRegister && !showModal && (
-                <button
-                  className={styles.btnInscribirse}
-                  onClick={() => setShowModal(true)}
-                >
-                  Inscribirse
-                </button>
-              )}
-
-              {/* Inscription confirmation modal (inline) */}
-              {user && showModal && !userReg && (
-                <div className={styles.inscriptionModal}>
-                  <h3 className={styles.modalTitle}>Confirmá tu inscripción</h3>
-
-                  {evento.conditions && (
-                    <div className={styles.modalSection}>
-                      <p className={styles.modalLabel}>Condiciones</p>
-                      <p className={styles.modalText}>{evento.conditions}</p>
-                    </div>
-                  )}
-
-                  {evento.fee > 0 && (
-                    <>
-                      <div className={styles.modalSection}>
-                        <p className={styles.modalLabel}>Monto a abonar</p>
-                        <p className={styles.modalFee}>{formatFee(evento.fee)}</p>
-                      </div>
-
-                      {evento.transferDetails && (
-                        <div className={styles.modalSection}>
-                          <p className={styles.modalLabel}>Datos de transferencia</p>
-                          <p className={styles.modalText}>{evento.transferDetails}</p>
+                  <div className={styles.participantsGrid}>
+                    {evento.confirmedRegistrations.map(r => {
+                      const d2 = getUserDisplay(r.user);
+                      return (
+                        <div key={r._id} className={styles.participant}>
+                          <Avatar user={r.user} size="sm" />
+                          <span>{d2.name}</span>
                         </div>
-                      )}
-
-                      <div className={styles.modalSection}>
-                        <p className={styles.modalLabel}>Comprobante de pago *</p>
-                        <ComprobanteDropzone
-                          file={comprobanteFile}
-                          onFile={setComprobanteFile}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {regError && <p className={styles.regError}>{regError}</p>}
-
-                  <div className={styles.modalActions}>
-                    <button
-                      className={styles.btnGhost}
-                      onClick={() => { setShowModal(false); setRegError(''); setComprobanteFile(null) }}
-                      disabled={inscribing}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      className={styles.btnInscribirse}
-                      onClick={async () => {
-                        await handleInscribirse()
-                        setShowModal(false)
-                      }}
-                      disabled={inscribing || (evento.fee > 0 && !comprobanteFile)}
-                    >
-                      {inscribing ? 'Enviando…' : 'Confirmar inscripción'}
-                    </button>
+                      );
+                    })}
                   </div>
-                </div>
+                </section>
               )}
-            </div>
+            </>
+          )}
+        </main>
 
-            {/* Transfer details — shown to confirmed users for reference */}
-            {evento.transferDetails && userReg?.status === 'confirmed' && (
-              <div className={styles.transferCard}>
-                <h3 className={styles.transferTitle}>Datos de transferencia</h3>
-                <p className={styles.transferText}>{evento.transferDetails}</p>
-              </div>
-            )}
-
-            {/* Confirmed participants list */}
-            {evento.confirmedRegistrations?.length > 0 && (
-              <div className={styles.participantsCard}>
-                <h3 className={styles.participantsTitle}>
-                  Inscriptos confirmados
-                  <span className={styles.participantsCount}>{evento.confirmedRegistrations.length}</span>
-                </h3>
-                <ul className={styles.participantsList}>
-                  {evento.confirmedRegistrations.map(r => (
-                    <li key={r._id} className={styles.participantItem}>
-                      <Avatar user={r.user} size="sm" />
-                      <span className={styles.participantName}>
-                        {r.user?.displayName || r.user?.username || 'Usuario'}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
+        <aside className={styles.aside}>
+          <TicketStub
+            evento={evento}
+            user={user}
+            isHost={isHost}
+            userRegistration={evento.userRegistration}
+            pendingCount={pendingCount}
+            inscribing={inscribing}
+            cancellingReg={cancellingReg}
+            onInscribirse={handleInscribirse}
+            onCancelRegistration={handleCancelRegistration}
+            onLoginRequest={() => setShowLoginPrompt(true)}
+            onOpenInscripciones={isHost ? () => navigate(`/eventos/${id}/inscripciones`) : undefined}
+            onEdit={isHost ? () => setEditing(true) : undefined}
+            onCancelEvent={isHost && evento.status !== 'cancelled' ? handleCancelEvent : undefined}
+            onReopen={isHost && evento.status === 'cancelled' ? handleReopenEvent : undefined}
+          />
+        </aside>
       </div>
     </div>
-  )
+  );
 }

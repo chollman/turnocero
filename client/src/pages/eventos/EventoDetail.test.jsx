@@ -15,15 +15,15 @@ function makeEvento(overrides = {}) {
     _id: 'e1',
     title: 'Mi Evento',
     description: 'Descripción del evento',
-    conditions: '',
+    conditions: 'Llegar 15 min antes',
     fee: overrides.fee ?? 0,
-    transferDetails: overrides.transferDetails || '',
+    transferDetails: overrides.transferDetails || 'Alias: turnocero',
     eventDate: new Date(Date.now() + 14 * 86400000).toISOString(),
     location: 'Buenos Aires',
     maxParticipants: 20,
     image: null,
     status: overrides.status || 'open',
-    author: { _id: 'a1', username: 'organizer', avatar: { url: '', publicId: '' } },
+    author: { _id: 'a1', username: 'organizer', displayName: 'Organizer', avatar: null },
     registrationCount: { total: 2, pending: 1, confirmed: 1 },
     userRegistration: null,
     confirmedRegistrations: [],
@@ -32,9 +32,7 @@ function makeEvento(overrides = {}) {
 }
 
 function setupEvento(evento) {
-  server.use(
-    http.get('/api/eventos/:id', () => HttpResponse.json(evento)),
-  );
+  server.use(http.get('/api/eventos/:id', () => HttpResponse.json(evento)));
 }
 
 function renderDetail({ user = null, eventoId = 'e1' } = {}) {
@@ -45,6 +43,7 @@ function renderDetail({ user = null, eventoId = 'e1' } = {}) {
         <Routes>
           <Route path="/eventos/:id" element={<EventoDetail />} />
           <Route path="/" element={<div>home</div>} />
+          <Route path="/eventos" element={<div>eventos</div>} />
         </Routes>
       </MemoryRouter>
     </HelmetProvider>,
@@ -56,78 +55,78 @@ beforeEach(() => {
 });
 
 describe('<EventoDetail>', () => {
-  it('renders the evento title, description and "Gratis" label when fee=0', async () => {
+  it('renders the title, description and "Gratis" label when fee=0', async () => {
     renderDetail();
     expect(await screen.findByRole('heading', { name: 'Mi Evento' })).toBeInTheDocument();
     expect(screen.getByText('Descripción del evento')).toBeInTheDocument();
-    expect(screen.getByText('Gratis')).toBeInTheDocument();
+    expect(screen.getAllByText('Gratis').length).toBeGreaterThan(0);
   });
 
-  it('renders the formatted fee when > 0', async () => {
-    setupEvento(makeEvento({ fee: 5000 }));
-    renderDetail();
-    expect(await screen.findByText(/\$5\.000/)).toBeInTheDocument();
-  });
-
-  it('renders the location', async () => {
+  it('renders fee in pesos when paid', async () => {
+    setupEvento(makeEvento({ fee: 3500 }));
     renderDetail();
     await screen.findByRole('heading', { name: 'Mi Evento' });
-    expect(screen.getByText('Buenos Aires')).toBeInTheDocument();
+    expect(screen.getAllByText(/\$3\.500/).length).toBeGreaterThan(0);
   });
 
-  it('shows "Inscripciones cerradas" status when status=closed', async () => {
-    setupEvento(makeEvento({ status: 'closed' }));
-    renderDetail();
-    expect(await screen.findByText(/inscripciones cerradas/i)).toBeInTheDocument();
-  });
-
-  it('regression: renders confirmedRegistrations with proper user info (no ghost avatars)', async () => {
-    setupEvento(
-      makeEvento({
-        confirmedRegistrations: [
-          { _id: 'r1', user: { _id: 'u1', username: 'player1', displayName: '', avatar: { url: '', publicId: '' } } },
-          { _id: 'r2', user: { _id: 'u2', username: 'player2', displayName: 'Player Two', avatar: { url: '', publicId: '' } } },
-        ],
-      }),
-    );
+  it('shows "Iniciá sesión" CTA when user is not logged in', async () => {
     renderDetail();
     await screen.findByRole('heading', { name: 'Mi Evento' });
-    expect(screen.getByText(/player1/i)).toBeInTheDocument();
-    expect(screen.getByText(/Player Two/i)).toBeInTheDocument();
-    // GhostIcon should NOT appear for properly-populated users.
-    expect(screen.queryByLabelText('Usuario eliminado')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /iniciá sesión/i })).toBeInTheDocument();
   });
 
-  it('shows login prompt when anonymous user tries to register', async () => {
-    renderDetail({ user: null });
-    await screen.findByRole('heading', { name: 'Mi Evento' });
-    const registerBtn = screen.queryByRole('button', { name: /inscribirme|inscrib[ií]r/i });
-    if (registerBtn) {
-      fireEvent.click(registerBtn);
-      // LoginPromptModal should appear
-      await waitFor(() => {
-        expect(screen.getByText(/iniciar sesi[oó]n|sumate/i)).toBeInTheDocument();
-      });
-    }
+  it('shows confirmed state when userRegistration.status is confirmed', async () => {
+    setupEvento(makeEvento({ userRegistration: { status: 'confirmed' } }));
+    renderDetail({ user: { _id: 'me' } });
+    expect(await screen.findByText(/inscripción confirmada/i)).toBeInTheDocument();
   });
 
-  it('shows the userRegistration status when logged-in user is already registered', async () => {
-    setupEvento(
-      makeEvento({
-        userRegistration: { _id: 'r-me', status: 'pending', submittedAt: new Date().toISOString(), comprobante: null },
-      }),
-    );
-    renderDetail({ user: { _id: 'me', username: 'me' } });
-    await screen.findByRole('heading', { name: 'Mi Evento' });
-    // "Pendiente" appears in multiple places (status badge, counts header) — at least one match suffices.
-    expect(screen.getAllByText(/pendiente|en revisi[oó]n|revisando/i).length).toBeGreaterThan(0);
+  it('shows pending state and allows cancel for pending registration', async () => {
+    setupEvento(makeEvento({ userRegistration: { status: 'pending', comprobante: { url: 'x' } } }));
+    renderDetail({ user: { _id: 'me' } });
+    await screen.findByText(/pendiente de revisión/i);
+    expect(screen.getByRole('button', { name: /cancelar inscripción/i })).toBeInTheDocument();
   });
 
-  it('404 redirects to / via the not-found handling', async () => {
-    server.use(http.get('/api/eventos/:id', () => HttpResponse.json({ message: 'Evento no encontrado' }, { status: 404 })));
+  it('shows host admin actions when current user is the author', async () => {
+    setupEvento(makeEvento({ author: { _id: 'me', username: 'me', displayName: 'Me', avatar: null } }));
+    renderDetail({ user: { _id: 'me' } });
+    expect(await screen.findByRole('button', { name: /gestionar inscripciones/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /editar/i })).toBeInTheDocument();
+  });
+
+  it('clicking Editar (host) reveals the EventoForm', async () => {
+    setupEvento(makeEvento({ author: { _id: 'me', username: 'me', displayName: 'Me', avatar: null } }));
+    renderDetail({ user: { _id: 'me' } });
+    fireEvent.click(await screen.findByRole('button', { name: /editar/i }));
+    expect(await screen.findByLabelText(/título/i)).toBeInTheDocument();
+  });
+
+  it('renders 404 state when API returns 404', async () => {
+    server.use(http.get('/api/eventos/:id', () => HttpResponse.json({ message: 'Not found' }, { status: 404 })));
     renderDetail();
-    await waitFor(() => {
-      expect(screen.getByText(/evento no encontrado|no encontrado/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/evento no encontrado/i)).toBeInTheDocument();
+  });
+
+  it('clicking "Inscribirme" on free event opens the inline form with no comprobante', async () => {
+    renderDetail({ user: { _id: 'me' } });
+    fireEvent.click(await screen.findByRole('button', { name: /^inscribirme/i }));
+    expect(screen.queryByText(/comprobante \*/i)).not.toBeInTheDocument();
+  });
+
+  it('renders the metastrip with cuándo, dónde, inscripción, cupo', async () => {
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Mi Evento' });
+    expect(screen.getByText(/cuándo/i)).toBeInTheDocument();
+    expect(screen.getByText(/dónde/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/inscripción/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/cupo/i).length).toBeGreaterThan(0);
+  });
+
+  it('renders the host card with author display name', async () => {
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Mi Evento' });
+    expect(screen.getByText('Organizer')).toBeInTheDocument();
+    expect(screen.getByText('@organizer')).toBeInTheDocument();
   });
 });

@@ -7,10 +7,6 @@ import { server } from '../../test/server';
 
 vi.mock('../../context/AuthContext', () => ({ useAuth: vi.fn() }));
 
-vi.mock('./EventoCard', () => ({
-  default: ({ evento }) => <div data-testid="evento-card">{evento.title}</div>,
-}));
-
 import Eventos from './Eventos';
 import { useAuth } from '../../context/AuthContext';
 
@@ -34,19 +30,22 @@ function makeEvento(overrides = {}) {
     location: 'BA',
     maxParticipants: 20,
     status: overrides.status || 'open',
-    author: { _id: 'a1', username: 'admin', avatar: { url: '', publicId: '' } },
+    author: { _id: 'a1', username: 'admin', displayName: 'Admin', avatar: null },
     fee: 0,
+    registrationCount: { total: 0, pending: 0, confirmed: 0 },
+    userRegistration: null,
     ...overrides,
   };
 }
 
 beforeEach(() => {
+  localStorage.clear();
   server.use(
     http.get('/api/eventos', () =>
       HttpResponse.json({
         eventos: [
-          makeEvento({ title: 'Open House' }),
-          makeEvento({ title: 'Torneo Nocturno', status: 'closed' }),
+          makeEvento({ _id: 'a', title: 'Open House' }),
+          makeEvento({ _id: 'b', title: 'Torneo Nocturno', status: 'closed' }),
         ],
         page: 1,
         pages: 1,
@@ -57,56 +56,95 @@ beforeEach(() => {
 });
 
 describe('<Eventos>', () => {
-  it('loads + renders the evento list', async () => {
+  it('renders the editorial hero', async () => {
     renderPage();
-    await waitFor(() => {
-      expect(screen.getAllByTestId('evento-card')).toHaveLength(2);
-    });
-    expect(screen.getByText('Open House')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /eventos de la/i })).toBeInTheDocument();
+    expect(screen.getByText(/agenda · /i)).toBeInTheDocument();
+  });
+
+  it('loads + renders titles via TimelineRow', async () => {
+    renderPage();
+    await screen.findByText('Open House');
     expect(screen.getByText('Torneo Nocturno')).toBeInTheDocument();
   });
 
-  it('regular users do not see the "Crear evento" admin button', async () => {
+  it('regular users do not see the "Nuevo evento" button', async () => {
     renderPage({ user: { _id: 'me', isAdmin: false } });
     await screen.findByText('Open House');
     expect(screen.queryByRole('button', { name: /nuevo evento/i })).not.toBeInTheDocument();
   });
 
-  it('admins see the "Crear evento" button', async () => {
+  it('admins see the "Nuevo evento" button and chips for borradores/cancelados', async () => {
     renderPage({ user: { _id: 'admin', isAdmin: true } });
     await screen.findByText('Open House');
     expect(screen.getByRole('button', { name: /nuevo evento/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /borradores/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /cancelados/i })).toBeInTheDocument();
   });
 
-  it('shows the empty state when there are no eventos', async () => {
-    server.use(
-      http.get('/api/eventos', () =>
-        HttpResponse.json({ eventos: [], page: 1, pages: 1, total: 0 }),
-      ),
-    );
+  it('regular users do not see admin-only filters', async () => {
+    renderPage({ user: { _id: 'me', isAdmin: false } });
+    await screen.findByText('Open House');
+    expect(screen.queryByRole('button', { name: /borradores/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /cancelados/i })).not.toBeInTheDocument();
+  });
+
+  it('shows "Mis inscr." chip only for logged-in users', async () => {
+    renderPage({ user: { _id: 'me', isAdmin: false } });
+    await screen.findByText('Open House');
+    expect(screen.getByRole('button', { name: /mis inscr\./i })).toBeInTheDocument();
+  });
+
+  it('persists view mode via localStorage', async () => {
     renderPage();
-    await waitFor(() => {
-      expect(screen.queryByTestId('evento-card')).not.toBeInTheDocument();
-    });
+    await screen.findByText('Open House');
+    const posterBtn = screen.getByRole('button', { name: /vista posters/i });
+    fireEvent.click(posterBtn);
+    expect(JSON.parse(localStorage.getItem('turnocero_eventos_view'))).toBe('poster');
   });
 
-  it('admin clicking "Nuevo evento" reveals the create form', async () => {
+  it('reads stored view mode on mount', async () => {
+    localStorage.setItem('turnocero_eventos_view', JSON.stringify('poster'));
+    renderPage();
+    await screen.findByText('Open House');
+    expect(screen.getByRole('button', { name: /vista posters/i })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('admin: clicking "Nuevo evento" reveals the EventoForm', async () => {
     renderPage({ user: { _id: 'admin', isAdmin: true } });
     await screen.findByText('Open House');
     fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }));
-    expect(screen.getByPlaceholderText(/título del evento/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/título/i)).toBeInTheDocument();
   });
 
-  it('clicking the toggle again ("Cancelar") hides the create form', async () => {
+  it('admin: clicking the filter "Abiertos" passes status=open to the API', async () => {
+    let lastStatus = null;
+    server.use(
+      http.get('/api/eventos', ({ request }) => {
+        const url = new URL(request.url);
+        lastStatus = url.searchParams.get('status');
+        return HttpResponse.json({ eventos: [], page: 1, pages: 1, total: 0 });
+      }),
+    );
     renderPage({ user: { _id: 'admin', isAdmin: true } });
+    await waitFor(() => expect(lastStatus).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: /^abiertos$/i }));
+    await waitFor(() => expect(lastStatus).toBe('open'));
+  });
+
+  it('mine filter shows empty CTA "Cargar más eventos" when more pages exist', async () => {
+    server.use(
+      http.get('/api/eventos', () => HttpResponse.json({
+        eventos: [makeEvento({ _id: 'a', title: 'Open House' })],
+        page: 1,
+        pages: 3,
+        total: 30,
+      })),
+    );
+    renderPage({ user: { _id: 'me', isAdmin: false } });
     await screen.findByText('Open House');
-    fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }));
-    expect(screen.getByPlaceholderText(/título del evento/i)).toBeInTheDocument();
-    // The top toggle now reads "Cancelar". There are two "Cancelar" buttons; pick the first
-    // (the page-level toggle, not the form-level one).
-    const cancels = screen.getAllByRole('button', { name: /^cancelar$/i });
-    fireEvent.click(cancels[0]);
-    expect(screen.queryByPlaceholderText(/título del evento/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /mis inscr\./i }));
+    expect(await screen.findByRole('button', { name: /cargar más eventos/i })).toBeInTheDocument();
   });
 
   it('shows skeletons while loading', () => {
@@ -117,82 +155,21 @@ describe('<Eventos>', () => {
       }),
     );
     renderPage();
-    expect(screen.queryByTestId('evento-card')).not.toBeInTheDocument();
+    // Skeleton lines have shimmer animation; smoke check the page is mounted
+    expect(screen.getByRole('heading', { name: /eventos de la/i })).toBeInTheDocument();
   });
 
-  it('admin: CreateForm validates that title is required', async () => {
-    renderPage({ user: { _id: 'admin', isAdmin: true } });
-    await screen.findByText('Open House');
-    fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }));
-    // Submit without filling in a title
-    fireEvent.submit(screen.getByPlaceholderText(/título del evento/i).closest('form'));
-    expect(screen.getByText(/el título es obligatorio/i)).toBeInTheDocument();
-  });
-
-  it('admin: CreateForm submits and prepends the new evento', async () => {
-    const newEvento = makeEvento({ _id: 'eNEW', title: 'Festival 2025' });
-    server.use(
-      http.post('/api/eventos', () => HttpResponse.json(newEvento)),
-    );
-    renderPage({ user: { _id: 'admin', isAdmin: true } });
-    await screen.findByText('Open House');
-    fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }));
-    fireEvent.change(screen.getByPlaceholderText(/título del evento/i), { target: { value: 'Festival 2025' } });
-    fireEvent.submit(screen.getByPlaceholderText(/título del evento/i).closest('form'));
-    await waitFor(() => expect(screen.getByText('Festival 2025')).toBeInTheDocument());
-    // Form should be hidden after successful create
-    expect(screen.queryByPlaceholderText(/título del evento/i)).not.toBeInTheDocument();
-  });
-
-  it('admin: CreateForm shows API error message on failure', async () => {
-    server.use(
-      http.post('/api/eventos', () => HttpResponse.json({ message: 'Error del servidor' }, { status: 500 })),
-    );
-    renderPage({ user: { _id: 'admin', isAdmin: true } });
-    await screen.findByText('Open House');
-    fireEvent.click(screen.getByRole('button', { name: /nuevo evento/i }));
-    fireEvent.change(screen.getByPlaceholderText(/título del evento/i), { target: { value: 'Evento fallido' } });
-    fireEvent.submit(screen.getByPlaceholderText(/título del evento/i).closest('form'));
-    await waitFor(() => expect(screen.getByText(/error del servidor/i)).toBeInTheDocument());
-  });
-
-  it('admin: status filter buttons are visible', async () => {
-    renderPage({ user: { _id: 'admin', isAdmin: true } });
-    await screen.findByText('Open House');
-    // STATUS_OPTIONS: Todos, Abiertos, Cerrados, Borradores, Cancelados
-    expect(screen.getByRole('button', { name: /todos/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /abiertos/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /cerrados/i })).toBeInTheDocument();
-  });
-
-  it('admin: clicking a status filter button refetches with that filter', async () => {
-    let lastStatus = '';
-    server.use(
-      http.get('/api/eventos', ({ request }) => {
-        const url = new URL(request.url);
-        lastStatus = url.searchParams.get('status') || '';
-        return HttpResponse.json({ eventos: [], page: 1, pages: 1, total: 0 });
-      }),
-    );
-    renderPage({ user: { _id: 'admin', isAdmin: true } });
-    // Wait for initial load
-    await waitFor(() => expect(lastStatus).toBe(''));
-    fireEvent.click(screen.getByRole('button', { name: /abiertos/i }));
-    await waitFor(() => expect(lastStatus).toBe('open'));
-  });
-
-  it('"Ver más eventos" loads the next page and appends events', async () => {
+  it('Ver más eventos loads the next page and appends events', async () => {
     server.use(
       http.get('/api/eventos', ({ request }) => {
         const url = new URL(request.url);
         const page = parseInt(url.searchParams.get('page') || '1');
-        if (page === 2) return HttpResponse.json({ eventos: [makeEvento({ title: 'Evento Página 2' })], page: 2, pages: 2, total: 3 });
-        return HttpResponse.json({ eventos: [makeEvento({ title: 'Evento Página 1' })], page: 1, pages: 2, total: 3 });
+        if (page === 2) return HttpResponse.json({ eventos: [makeEvento({ _id: 'p2', title: 'Evento Página 2' })], page: 2, pages: 2, total: 3 });
+        return HttpResponse.json({ eventos: [makeEvento({ _id: 'p1', title: 'Evento Página 1' })], page: 1, pages: 2, total: 3 });
       }),
     );
     renderPage();
     await screen.findByText('Evento Página 1');
-    expect(screen.getByRole('button', { name: /ver más eventos/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /ver más eventos/i }));
     await waitFor(() => expect(screen.getByText('Evento Página 2')).toBeInTheDocument());
     expect(screen.getByText('Evento Página 1')).toBeInTheDocument();

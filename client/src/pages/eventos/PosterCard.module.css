@@ -1,0 +1,248 @@
+.poster {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: all var(--transition);
+  aspect-ratio: 3 / 4;
+  animation: posterEnter 0.4s ease both;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+
+@keyframes posterEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.poster:hover {
+  transform: translateY(-3px);
+  border-color: var(--amber-40);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.poster:hover .image { transform: scale(1.04); }
+
+/* Fallback — poster is intentionally dark in both themes (afiche cinematográfico). */
+.fallback {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(135deg,
+      var(--amber-10) 0,
+      var(--amber-10) 14px,
+      transparent 14px,
+      transparent 28px),
+    radial-gradient(circle at 30% 20%, var(--amber-15), transparent 60%),
+    linear-gradient(180deg, #16203a, #0a0d15);
+  display: grid;
+  place-items: center;
+}
+
+.fallbackInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.fallbackInner svg { opacity: 0.5; }
+
+.fallbackInner span {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Overlay always dark (poster media is dark by design). */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,
+    rgba(0, 0, 0, 0.5) 0%,
+    rgba(0, 0, 0, 0.05) 40%,
+    rgba(10, 13, 21, 0.4) 60%,
+    rgba(10, 13, 21, 0.95) 100%);
+  z-index: 1;
+}
+
+.date {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 0.9;
+}
+
+.dateDay {
+  font-family: var(--font-display);
+  font-size: 3.6rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+.dateMonth {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.statusWrap {
+  position: absolute;
+  top: 18px;
+  right: 16px;
+  z-index: 2;
+}
+
+/* Status pills over dark overlay — text intentionally white-ish. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+.status_open { color: var(--green); border-color: var(--green-25); background: var(--green-10); }
+.status_closed { color: rgba(255, 255, 255, 0.7); border-color: rgba(255, 255, 255, 0.15); }
+.status_cancelled {
+  color: var(--red); border-color: var(--red-25); background: var(--red-10);
+  text-decoration: line-through; text-decoration-thickness: 1px;
+}
+
+.body {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: #fff;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  /* Poster overlay siempre oscuro — texto blanco intencional en ambos temas. */
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.04em;
+}
+
+.meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.countdown {
+  color: var(--amber-light);
+}
+
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.fee {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.feeFree { color: var(--green); }
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  /* Over dark overlay — white-on-translucent intentional. */
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  padding: 6px 11px;
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(8px);
+  transition: all var(--transition);
+}
+
+.poster:hover .cta {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+
+/* Draft watermark */
+.draftWatermark {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.draftWatermark span {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: rgba(245, 166, 35, 0.22);
+  text-transform: uppercase;
+  transform: rotate(-12deg);
+  border: 3px dashed rgba(245, 166, 35, 0.3);
+  padding: 6px 18px;
+  border-radius: 8px;
+}

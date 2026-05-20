@@ -46,6 +46,122 @@ describe('GET /api/eventos', () => {
     const res = await request(app).get('/api/eventos?status=draft');
     expect(res.body.eventos.length).toBe(0);
   });
+
+  it('enriches each evento with registrationCount (regression: progressbar did not update on inscription)', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const p1 = await createUser({ username: 'player1' });
+    const p2 = await createUser({ username: 'player2' });
+    const p3 = await createUser({ username: 'player3' });
+
+    await createEvento(admin, {
+      title: 'Evento con inscripciones',
+      status: 'open',
+      maxParticipants: 10,
+      registrations: [
+        { user: p1._id, status: 'pending', submittedAt: new Date() },
+        { user: p2._id, status: 'pending', submittedAt: new Date() },
+        { user: p3._id, status: 'confirmed', submittedAt: new Date() },
+      ],
+    });
+
+    const res = await request(app).get('/api/eventos');
+    expect(res.status).toBe(200);
+    const evento = res.body.eventos.find((e) => e.title === 'Evento con inscripciones');
+    expect(evento.registrationCount).toEqual({ total: 3, pending: 2, confirmed: 1 });
+    expect(evento.registrations).toBeUndefined(); // not leaked to clients
+  });
+
+  it('includes the current user\'s userRegistration in each evento (logged-in only)', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const me = await createUser({ username: 'me_user' });
+    const other = await createUser({ username: 'other_user' });
+
+    await createEvento(admin, {
+      title: 'Evento con mi inscripción',
+      status: 'open',
+      registrations: [
+        { user: me._id, status: 'pending', submittedAt: new Date() },
+        { user: other._id, status: 'confirmed', submittedAt: new Date() },
+      ],
+    });
+
+    const res = await request(app)
+      .get('/api/eventos')
+      .set('Authorization', `Bearer ${tokenFor(me)}`);
+    expect(res.status).toBe(200);
+    const evento = res.body.eventos[0];
+    expect(evento.userRegistration).toBeTruthy();
+    expect(evento.userRegistration.status).toBe('pending');
+  });
+
+  it('omits userRegistration for unauthenticated requests', async () => {
+    const admin = await createUser({ isAdmin: true });
+    await createEvento(admin, { title: 'Anon list', status: 'open' });
+
+    const res = await request(app).get('/api/eventos');
+    expect(res.body.eventos[0].userRegistration).toBeNull();
+  });
+});
+
+describe('PUT /api/eventos/:id', () => {
+  it('partial update preserves untouched fields (regression: cancel was clobbering eventDate, description, etc.)', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin, {
+      title:           'Evento original',
+      description:     'Una descripción importante',
+      conditions:      'Condiciones puntuales',
+      location:        'Bar La Torre',
+      eventDate:       new Date('2026-09-01T20:00:00Z'),
+      fee:             3500,
+      maxParticipants: 24,
+      transferDetails: 'Alias: turnocero',
+      status:          'open',
+    });
+
+    // Partial cancel: only send status
+    const res = await request(app)
+      .put(`/api/eventos/${evento._id}`)
+      .set('Authorization', `Bearer ${tokenFor(admin)}`)
+      .field('status', 'cancelled');
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('cancelled');
+    expect(res.body.description).toBe('Una descripción importante');
+    expect(res.body.conditions).toBe('Condiciones puntuales');
+    expect(res.body.location).toBe('Bar La Torre');
+    expect(res.body.eventDate).toBeTruthy();
+    expect(res.body.fee).toBe(3500);
+    expect(res.body.maxParticipants).toBe(24);
+    expect(res.body.transferDetails).toBe('Alias: turnocero');
+
+    // And the Cancelados admin filter now returns it
+    const list = await request(app)
+      .get('/api/eventos?status=cancelled')
+      .set('Authorization', `Bearer ${tokenFor(admin)}`);
+    expect(list.body.eventos.map((e) => e.title)).toContain('Evento original');
+  });
+
+  it('full form update can still clear individual fields with empty strings', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin, {
+      title:       'Con descripción',
+      description: 'va a desaparecer',
+      location:    'va a desaparecer',
+      status:      'open',
+    });
+
+    const res = await request(app)
+      .put(`/api/eventos/${evento._id}`)
+      .set('Authorization', `Bearer ${tokenFor(admin)}`)
+      .field('title', 'Renombrado')
+      .field('description', '')
+      .field('location', '');
+
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe('Renombrado');
+    expect(res.body.description).toBeFalsy();
+    expect(res.body.location).toBeFalsy();
+  });
 });
 
 describe('GET /api/eventos/:id (public detail)', () => {
@@ -113,6 +229,29 @@ describe('GET /api/eventos/:id (public detail)', () => {
     const evento = await createEvento(admin, { status: 'draft' });
     const res = await request(app).get(`/api/eventos/${evento._id}`);
     expect(res.status).toBe(404);
+  });
+
+  it('hides cancelled events from non-admins (404)', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin, { status: 'cancelled' });
+
+    // Anonymous: 404
+    const anon = await request(app).get(`/api/eventos/${evento._id}`);
+    expect(anon.status).toBe(404);
+
+    // Regular logged-in user: also 404
+    const { token } = await createAuthedUser({ isAdmin: false });
+    const user = await request(app)
+      .get(`/api/eventos/${evento._id}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(user.status).toBe(404);
+
+    // Admin: still sees it
+    const adminRes = await request(app)
+      .get(`/api/eventos/${evento._id}`)
+      .set('Authorization', `Bearer ${tokenFor(admin)}`);
+    expect(adminRes.status).toBe(200);
+    expect(adminRes.body.status).toBe('cancelled');
   });
 });
 
