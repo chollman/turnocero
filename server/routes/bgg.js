@@ -1,14 +1,14 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { XMLParser } = require('fast-xml-parser');
-const { protect } = require('../middleware/auth');
-const { requireSection } = require('../middleware/sectionGate');
-const { getSessionCookie, clearSession } = require('../utils/bggAuth');
-const User = require('../models/User');
-const BggGame = require('../models/BggGame');
-const BggCollection = require('../models/BggCollection');
-const BggPlay = require('../models/BggPlay');
-const { computePlayHash } = require('../utils/bggHash');
+const { XMLParser } = require("fast-xml-parser");
+const { protect } = require("../middleware/auth");
+const { requireSection } = require("../middleware/sectionGate");
+const { getSessionCookie, clearSession } = require("../utils/bggAuth");
+const User = require("../models/User");
+const BggGame = require("../models/BggGame");
+const BggCollection = require("../models/BggCollection");
+const BggPlay = require("../models/BggPlay");
+const { computePlayHash } = require("../utils/bggHash");
 const {
   withUserLock,
   sleep,
@@ -16,12 +16,12 @@ const {
   releaseProbeSlot,
   tryAcquireReconcileSlot,
   releaseReconcileSlot,
-} = require('../utils/bggSync');
+} = require("../utils/bggSync");
 
 const PROBE_THROTTLE_MS = 5 * 60 * 1000; // 5 min between background probes
 const FULL_RECONCILE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days between background full reconciles
 
-router.use(requireSection('bgwatch'));
+router.use(requireSection("bgwatch"));
 
 // Persistent cache pattern: memoria → Mongo → BGG.
 // `BggGame` stores the immutable bits (name, image, thumbnail, year, players)
@@ -29,15 +29,18 @@ router.use(requireSection('bgwatch'));
 // below is kept as an L1 layer to avoid repeated Mongo round-trips within a
 // short window. For future entities (collection, plays) follow the same
 // pattern: add a model + a `resolveXxx` helper.
-const BGG_API = 'https://boardgamegeek.com/xmlapi2';
-const BGG_GEEKPLAY = 'https://boardgamegeek.com/geekplay.php';
+const BGG_API = "https://boardgamegeek.com/xmlapi2";
+const BGG_GEEKPLAY = "https://boardgamegeek.com/geekplay.php";
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutos (el botón "Actualizar" del cliente bypassa esto con ?refresh=1)
 const cache = new Map();
 
 function getCached(key, ttl = CACHE_TTL) {
   const entry = cache.get(key);
   if (!entry) return null;
-  if (Date.now() - entry.ts > ttl) { cache.delete(key); return null; }
+  if (Date.now() - entry.ts > ttl) {
+    cache.delete(key);
+    return null;
+  }
   return entry.data;
 }
 
@@ -70,14 +73,17 @@ async function clearUserCache(bggUsername) {
 }
 
 async function fetchBgg(url) {
-  const headers = { 'User-Agent': 'Turnocero/1.0' };
-  if (process.env.BGG_API_KEY) headers.Authorization = `Bearer ${process.env.BGG_API_KEY}`;
+  const headers = { "User-Agent": "Turnocero/1.0" };
+  if (process.env.BGG_API_KEY)
+    headers.Authorization = `Bearer ${process.env.BGG_API_KEY}`;
 
   let res = await fetch(url, { headers });
 
   if (res.status === 202) {
     // BGG encola el pedido — reintentar una vez después de 2s
-    await new Promise((r) => { setTimeout(r, 2000); });
+    await new Promise((r) => {
+      setTimeout(r, 2000);
+    });
     res = await fetch(url, { headers });
   }
 
@@ -90,7 +96,10 @@ async function fetchBgg(url) {
   return res.text();
 }
 
-const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
+const parser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: "@_",
+});
 
 const GAME_CACHE_TTL = 30 * 60 * 1000; // 30 minutos
 
@@ -98,21 +107,27 @@ const GAME_CACHE_TTL = 30 * 60 * 1000; // 30 minutos
 function parseGameItem(item) {
   const nameRaw = item.name;
   const nameArr = Array.isArray(nameRaw) ? nameRaw : [nameRaw];
-  const primary = nameArr.find((n) => n['@_type'] === 'primary') || nameArr[0];
-  const thumb = typeof item.thumbnail === 'string'
-    ? item.thumbnail
-    : (item.thumbnail?.['#text'] || null);
-  const img = typeof item.image === 'string'
-    ? item.image
-    : (item.image?.['#text'] || null);
+  const primary = nameArr.find((n) => n["@_type"] === "primary") || nameArr[0];
+  const thumb =
+    typeof item.thumbnail === "string"
+      ? item.thumbnail
+      : item.thumbnail?.["#text"] || null;
+  const img =
+    typeof item.image === "string" ? item.image : item.image?.["#text"] || null;
   return {
-    id: Number(item['@_id']),
-    name: primary?.['@_value'] || '',
+    id: Number(item["@_id"]),
+    name: primary?.["@_value"] || "",
     thumbnail: thumb || null,
     image: img || null,
-    year: item.yearpublished?.['@_value'] ? Number(item.yearpublished['@_value']) : null,
-    minPlayers: item.minplayers?.['@_value'] ? Number(item.minplayers['@_value']) : null,
-    maxPlayers: item.maxplayers?.['@_value'] ? Number(item.maxplayers['@_value']) : null,
+    year: item.yearpublished?.["@_value"]
+      ? Number(item.yearpublished["@_value"])
+      : null,
+    minPlayers: item.minplayers?.["@_value"]
+      ? Number(item.minplayers["@_value"])
+      : null,
+    maxPlayers: item.maxplayers?.["@_value"]
+      ? Number(item.maxplayers["@_value"])
+      : null,
   };
 }
 
@@ -142,7 +157,7 @@ async function persistGame(game) {
         lastFetchedAt: new Date(),
       },
     },
-    { upsert: true }
+    { upsert: true },
   );
 }
 
@@ -171,11 +186,13 @@ async function resolveGame(gameId) {
 }
 
 async function resolveGamesBatch(gameIds) {
-  const ids = [...new Set(
-    (gameIds || [])
-      .map((g) => Number(g))
-      .filter((n) => Number.isFinite(n) && n > 0)
-  )];
+  const ids = [
+    ...new Set(
+      (gameIds || [])
+        .map((g) => Number(g))
+        .filter((n) => Number.isFinite(n) && n > 0),
+    ),
+  ];
   const result = new Map();
   if (ids.length === 0) return result;
 
@@ -187,7 +204,9 @@ async function resolveGamesBatch(gameIds) {
   }
   if (missingAfterMemory.length === 0) return result;
 
-  const docs = await BggGame.find({ gameId: { $in: missingAfterMemory } }).lean();
+  const docs = await BggGame.find({
+    gameId: { $in: missingAfterMemory },
+  }).lean();
   const foundInMongo = new Set();
   for (const doc of docs) {
     const game = gameDocToObject(doc);
@@ -202,11 +221,13 @@ async function resolveGamesBatch(gameIds) {
   for (let i = 0; i < stillMissing.length; i += CHUNK_SIZE) {
     const chunk = stillMissing.slice(i, i + CHUNK_SIZE);
     try {
-      const thingXml = await fetchBgg(`${BGG_API}/thing?id=${chunk.join(',')}`);
+      const thingXml = await fetchBgg(`${BGG_API}/thing?id=${chunk.join(",")}`);
       const thingParsed = parser.parse(thingXml);
       const thingItems = thingParsed?.items?.item;
       if (!thingItems) {
-        console.warn(`[bgg/resolveGamesBatch] /thing returned no items for ids: ${chunk.join(',')}`);
+        console.warn(
+          `[bgg/resolveGamesBatch] /thing returned no items for ids: ${chunk.join(",")}`,
+        );
         continue;
       }
       const arr = Array.isArray(thingItems) ? thingItems : [thingItems];
@@ -218,7 +239,9 @@ async function resolveGamesBatch(gameIds) {
         result.set(game.id, game);
       }
     } catch (e) {
-      console.warn(`[bgg/resolveGamesBatch] /thing batch failed for ids ${chunk.join(',')}: ${e.message || e}`);
+      console.warn(
+        `[bgg/resolveGamesBatch] /thing batch failed for ids ${chunk.join(",")}: ${e.message || e}`,
+      );
     }
   }
 
@@ -238,13 +261,21 @@ function parseCollectionXml(xml) {
     const stats = item.stats || {};
     const rating = stats.rating || {};
     return {
-      id: item['@_objectid'],
-      name: typeof item.name === 'object' ? item.name['#text'] ?? item.name['@_sortindex'] : item.name,
+      id: item["@_objectid"],
+      name:
+        typeof item.name === "object"
+          ? (item.name["#text"] ?? item.name["@_sortindex"])
+          : item.name,
       thumbnail: item.thumbnail || null,
       image: item.image || null,
       yearPublished: item.yearpublished ? Number(item.yearpublished) : null,
-      userRating: rating['@_value'] && rating['@_value'] !== 'N/A' ? Number(rating['@_value']) : null,
-      bggRating: rating.average?.['@_value'] ? Number(rating.average['@_value']) : null,
+      userRating:
+        rating["@_value"] && rating["@_value"] !== "N/A"
+          ? Number(rating["@_value"])
+          : null,
+      bggRating: rating.average?.["@_value"]
+        ? Number(rating.average["@_value"])
+        : null,
       numPlays: item.numplays ? Number(item.numplays) : 0,
     };
   });
@@ -260,16 +291,21 @@ async function resolveCollection(bggUsername, opts = {}) {
     if (cached) return cached;
 
     const doc = await BggCollection.findOne({ bggUsername: lower }).lean();
-    if (doc && Date.now() - doc.lastFetchedAt.getTime() < COLLECTION_MONGO_TTL) {
+    if (
+      doc &&
+      Date.now() - doc.lastFetchedAt.getTime() < COLLECTION_MONGO_TTL
+    ) {
       setCached(cacheKey, doc.games);
       return doc.games;
     }
   }
 
-  const xml = await fetchBgg(`${BGG_API}/collection?username=${encodeURIComponent(bggUsername)}&own=1&stats=1`);
+  const xml = await fetchBgg(
+    `${BGG_API}/collection?username=${encodeURIComponent(bggUsername)}&own=1&stats=1`,
+  );
   const games = parseCollectionXml(xml);
   if (!games) {
-    const err = new Error('Usuario de BGG no encontrado o sin colección');
+    const err = new Error("Usuario de BGG no encontrado o sin colección");
     err.status = 404;
     throw err;
   }
@@ -277,7 +313,7 @@ async function resolveCollection(bggUsername, opts = {}) {
   await BggCollection.updateOne(
     { bggUsername: lower },
     { $set: { games, lastFetchedAt: new Date() } },
-    { upsert: true }
+    { upsert: true },
   );
   setCached(cacheKey, games);
   return games;
@@ -287,34 +323,41 @@ async function resolveCollection(bggUsername, opts = {}) {
 function parsePlay(play) {
   const playerNode = play.players?.player;
   const playersArr = playerNode
-    ? (Array.isArray(playerNode) ? playerNode : [playerNode])
+    ? Array.isArray(playerNode)
+      ? playerNode
+      : [playerNode]
     : [];
   const commentsRaw = play.comments;
-  const comments = typeof commentsRaw === 'string'
-    ? commentsRaw
-    : (commentsRaw?.['#text'] || null);
+  const comments =
+    typeof commentsRaw === "string"
+      ? commentsRaw
+      : commentsRaw?.["#text"] || null;
   return {
-    playId: String(play['@_id']),
-    date: play['@_date'] || null,
-    gameName: play.item?.['@_name'] || null,
-    gameId: play.item?.['@_objectid'] ? String(play.item['@_objectid']) : null,
+    playId: String(play["@_id"]),
+    date: play["@_date"] || null,
+    gameName: play.item?.["@_name"] || null,
+    gameId: play.item?.["@_objectid"] ? String(play.item["@_objectid"]) : null,
     gameThumbnail: null,
-    quantity: play['@_quantity'] ? Number(play['@_quantity']) : 1,
-    duration: play['@_length'] ? Number(play['@_length']) : null,
-    location: play['@_location'] || null,
-    incomplete: play['@_incomplete'] === '1' || play['@_incomplete'] === 1,
-    nowinstats: play['@_nowinstats'] === '1' || play['@_nowinstats'] === 1,
+    quantity: play["@_quantity"] ? Number(play["@_quantity"]) : 1,
+    duration: play["@_length"] ? Number(play["@_length"]) : null,
+    location: play["@_location"] || null,
+    incomplete: play["@_incomplete"] === "1" || play["@_incomplete"] === 1,
+    nowinstats: play["@_nowinstats"] === "1" || play["@_nowinstats"] === 1,
     comments: comments || null,
     players: playersArr.map((p) => ({
-      name: p['@_name'] || null,
-      username: p['@_username'] || null,
-      userid: p['@_userid'] ? Number(p['@_userid']) : null,
-      position: p['@_startposition'] || null,
-      color: p['@_color'] || null,
-      score: p['@_score'] !== undefined && p['@_score'] !== '' ? String(p['@_score']) : null,
-      win: p['@_win'] === '1' || p['@_win'] === 1,
-      new: p['@_new'] === '1' || p['@_new'] === 1,
-      rating: p['@_rating'] && p['@_rating'] !== '0' ? Number(p['@_rating']) : null,
+      name: p["@_name"] || null,
+      username: p["@_username"] || null,
+      userid: p["@_userid"] ? Number(p["@_userid"]) : null,
+      position: p["@_startposition"] || null,
+      color: p["@_color"] || null,
+      score:
+        p["@_score"] !== undefined && p["@_score"] !== ""
+          ? String(p["@_score"])
+          : null,
+      win: p["@_win"] === "1" || p["@_win"] === 1,
+      new: p["@_new"] === "1" || p["@_new"] === 1,
+      rating:
+        p["@_rating"] && p["@_rating"] !== "0" ? Number(p["@_rating"]) : null,
     })),
   };
 }
@@ -330,7 +373,7 @@ function parsePlaysXml(xml) {
   const arr = Array.isArray(rawPlays) ? rawPlays : [rawPlays];
   return {
     plays: arr.map(parsePlay),
-    total: root['@_total'] ? Number(root['@_total']) : arr.length,
+    total: root["@_total"] ? Number(root["@_total"]) : arr.length,
   };
 }
 
@@ -379,7 +422,10 @@ const RECONCILE_INTER_PAGE_MS = 500;
 //                 risk wrongly deleting it).
 //
 // Returns { inserted, updated, deleted, total, pages }.
-async function reconcileFull(bggUsername, { full = false, background = false } = {}) {
+async function reconcileFull(
+  bggUsername,
+  { full = false, background = false } = {},
+) {
   const lower = bggUsername.toLowerCase();
   const seen = new Set();
   let inserted = 0;
@@ -389,10 +435,12 @@ async function reconcileFull(bggUsername, { full = false, background = false } =
   let minSeenDate = null;
 
   for (let page = 1; page <= SYNC_MAX_PAGES; page++) {
-    const xml = await fetchBgg(`${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=${page}`);
+    const xml = await fetchBgg(
+      `${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=${page}`,
+    );
     const parsed = parsePlaysXml(xml);
     if (!parsed) {
-      const err = new Error('Usuario de BGG no encontrado');
+      const err = new Error("Usuario de BGG no encontrado");
       err.status = 404;
       throw err;
     }
@@ -403,13 +451,17 @@ async function reconcileFull(bggUsername, { full = false, background = false } =
 
     const gameIds = [...new Set(plays.map((p) => p.gameId).filter(Boolean))];
     let gamesMap = new Map();
-    try { gamesMap = await resolveGamesBatch(gameIds); } catch { /* best-effort */ }
+    try {
+      gamesMap = await resolveGamesBatch(gameIds);
+    } catch {
+      /* best-effort */
+    }
 
     // Build per-play docs with hash; look up local hashes for the same IDs.
     const pagePlayIds = plays.map((p) => p.playId);
     const localDocs = await BggPlay.find(
       { bggUsername: lower, playId: { $in: pagePlayIds } },
-      { playId: 1, hash: 1 }
+      { playId: 1, hash: 1 },
     ).lean();
     const localHashByPlayId = new Map(localDocs.map((d) => [d.playId, d.hash]));
 
@@ -417,22 +469,37 @@ async function reconcileFull(bggUsername, { full = false, background = false } =
     let allMatch = true;
     for (const p of plays) {
       seen.add(p.playId);
-      if (p.date && (!minSeenDate || p.date < minSeenDate)) minSeenDate = p.date;
+      if (p.date && (!minSeenDate || p.date < minSeenDate))
+        minSeenDate = p.date;
 
       const doc = {
         ...p,
         bggUsername: lower,
-        gameThumbnail: p.gameId ? (gamesMap.get(Number(p.gameId))?.thumbnail || null) : null,
+        gameThumbnail: p.gameId
+          ? gamesMap.get(Number(p.gameId))?.thumbnail || null
+          : null,
       };
       doc.hash = computePlayHash(doc);
 
       const localHash = localHashByPlayId.get(p.playId);
       if (!localHash) {
-        ops.push({ updateOne: { filter: { bggUsername: lower, playId: p.playId }, update: { $set: doc }, upsert: true } });
+        ops.push({
+          updateOne: {
+            filter: { bggUsername: lower, playId: p.playId },
+            update: { $set: doc },
+            upsert: true,
+          },
+        });
         inserted++;
         allMatch = false;
       } else if (localHash !== doc.hash) {
-        ops.push({ updateOne: { filter: { bggUsername: lower, playId: p.playId }, update: { $set: doc }, upsert: false } });
+        ops.push({
+          updateOne: {
+            filter: { bggUsername: lower, playId: p.playId },
+            update: { $set: doc },
+            upsert: false,
+          },
+        });
         updated++;
         allMatch = false;
       }
@@ -453,7 +520,10 @@ async function reconcileFull(bggUsername, { full = false, background = false } =
   const seenIds = [...seen];
   if (full) {
     // Walked everything — anything not seen is gone.
-    const result = await BggPlay.deleteMany({ bggUsername: lower, playId: { $nin: seenIds } });
+    const result = await BggPlay.deleteMany({
+      bggUsername: lower,
+      playId: { $nin: seenIds },
+    });
     deleted = result.deletedCount || 0;
   } else if (minSeenDate) {
     // Conservative: only delete plays strictly newer than the oldest date
@@ -483,10 +553,12 @@ async function reconcileFull(bggUsername, { full = false, background = false } =
 // should mark the outcome as 'failed').
 async function probe(bggUsername) {
   const lower = bggUsername.toLowerCase();
-  const xml = await fetchBgg(`${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=1`);
+  const xml = await fetchBgg(
+    `${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=1`,
+  );
   const parsed = parsePlaysXml(xml);
   if (!parsed) {
-    const err = new Error('Usuario de BGG no encontrado');
+    const err = new Error("Usuario de BGG no encontrado");
     err.status = 404;
     throw err;
   }
@@ -494,19 +566,28 @@ async function probe(bggUsername) {
   const localTotal = await BggPlay.countDocuments({ bggUsername: lower });
 
   if (remoteTotal !== localTotal) {
-    const result = await reconcileFull(bggUsername, { full: false, background: false });
-    return { outcome: 'reconciled', ...result };
+    const result = await reconcileFull(bggUsername, {
+      full: false,
+      background: false,
+    });
+    return { outcome: "reconciled", ...result };
   }
 
   // Same count — check the 30 most-recent plays for in-place edits.
   if (plays.length === 0) {
-    return { outcome: 'no_drift', inserted: 0, updated: 0, deleted: 0, total: remoteTotal };
+    return {
+      outcome: "no_drift",
+      inserted: 0,
+      updated: 0,
+      deleted: 0,
+      total: remoteTotal,
+    };
   }
 
   const pagePlayIds = plays.map((p) => p.playId);
   const localDocs = await BggPlay.find(
     { bggUsername: lower, playId: { $in: pagePlayIds } },
-    { playId: 1, hash: 1 }
+    { playId: 1, hash: 1 },
   ).lean();
   const localHashByPlayId = new Map(localDocs.map((d) => [d.playId, d.hash]));
 
@@ -520,49 +601,79 @@ async function probe(bggUsername) {
     const hash = computePlayHash(baseDoc);
     const localHash = localHashByPlayId.get(p.playId);
     if (!localHash) {
-      dirty.push({ play: p, hash, kind: 'insert' });
+      dirty.push({ play: p, hash, kind: "insert" });
       inserted++;
     } else if (localHash !== hash) {
-      dirty.push({ play: p, hash, kind: 'update' });
+      dirty.push({ play: p, hash, kind: "update" });
       updated++;
     }
   }
 
   if (dirty.length === 0) {
-    return { outcome: 'no_drift', inserted: 0, updated: 0, deleted: 0, total: remoteTotal };
+    return {
+      outcome: "no_drift",
+      inserted: 0,
+      updated: 0,
+      deleted: 0,
+      total: remoteTotal,
+    };
   }
 
   // Resolve thumbnails just for the dirty plays.
-  const dirtyGameIds = [...new Set(dirty.map((d) => d.play.gameId).filter(Boolean))];
+  const dirtyGameIds = [
+    ...new Set(dirty.map((d) => d.play.gameId).filter(Boolean)),
+  ];
   let gamesMap = new Map();
-  try { gamesMap = await resolveGamesBatch(dirtyGameIds); } catch { /* best-effort */ }
+  try {
+    gamesMap = await resolveGamesBatch(dirtyGameIds);
+  } catch {
+    /* best-effort */
+  }
 
   const ops = dirty.map(({ play, hash, kind }) => {
     const doc = {
       ...play,
       bggUsername: lower,
-      gameThumbnail: play.gameId ? (gamesMap.get(Number(play.gameId))?.thumbnail || null) : null,
+      gameThumbnail: play.gameId
+        ? gamesMap.get(Number(play.gameId))?.thumbnail || null
+        : null,
       hash,
     };
     return {
       updateOne: {
         filter: { bggUsername: lower, playId: play.playId },
         update: { $set: doc },
-        upsert: kind === 'insert',
+        upsert: kind === "insert",
       },
     };
   });
   await BggPlay.bulkWrite(ops, { ordered: false });
-  return { outcome: 'edits_only', inserted, updated, deleted: 0, total: remoteTotal };
+  return {
+    outcome: "edits_only",
+    inserted,
+    updated,
+    deleted: 0,
+    total: remoteTotal,
+  };
 }
 
 // Persists the probe outcome on the user document. Best-effort — failures
 // here don't propagate (the probe itself already succeeded or failed).
+//
+// User.bggUsername is stored verbatim (case-preserved). BggPlay.bggUsername
+// is normalized lowercase. Callers may pass either casing, so we match
+// case-insensitively via Mongo collation.
 async function stampProbeOutcome(bggUsername, outcome) {
   try {
     await User.updateOne(
       { bggUsername },
-      { $set: { 'bggSync.lastProbedAt': new Date(), 'bggSync.lastProbeOutcome': outcome } }
+      {
+        $set: {
+          "bggSync.lastProbedAt": new Date(),
+          "bggSync.lastProbeOutcome": outcome,
+        },
+      },
+      { collation: { locale: "en", strength: 2 } },
     );
   } catch (err) {
     console.warn(`[bgg/probe] stamp failed for ${bggUsername}: ${err.message}`);
@@ -577,8 +688,10 @@ function triggerBackgroundProbe(bggUsername) {
   withUserLock(bggUsername, () => probe(bggUsername))
     .then((result) => stampProbeOutcome(bggUsername, result.outcome))
     .catch((err) => {
-      console.warn(`[bgg/probe] background failed for ${bggUsername}: ${err.message}`);
-      return stampProbeOutcome(bggUsername, 'failed');
+      console.warn(
+        `[bgg/probe] background failed for ${bggUsername}: ${err.message}`,
+      );
+      return stampProbeOutcome(bggUsername, "failed");
     })
     .finally(() => releaseProbeSlot());
 }
@@ -587,6 +700,8 @@ function triggerBackgroundProbe(bggUsername) {
 // Updates all four bggSync timing fields so the next /bg-watch visit
 // neither re-triggers a probe (within PROBE_THROTTLE_MS) nor a periodic
 // reconcile (within FULL_RECONCILE_INTERVAL_MS).
+//
+// Case-insensitive match (collation strength 2) — see stampProbeOutcome.
 async function stampReconcileResult(bggUsername, result) {
   try {
     const now = new Date();
@@ -594,15 +709,18 @@ async function stampReconcileResult(bggUsername, result) {
       { bggUsername },
       {
         $set: {
-          'bggSync.lastFullSyncAt': now,
-          'bggSync.lastFullSyncCount': result.total,
-          'bggSync.lastProbedAt': now,
-          'bggSync.lastProbeOutcome': 'reconciled',
+          "bggSync.lastFullSyncAt": now,
+          "bggSync.lastFullSyncCount": result.total,
+          "bggSync.lastProbedAt": now,
+          "bggSync.lastProbeOutcome": "reconciled",
         },
-      }
+      },
+      { collation: { locale: "en", strength: 2 } },
     );
   } catch (err) {
-    console.warn(`[bgg/reconcile] stamp failed for ${bggUsername}: ${err.message}`);
+    console.warn(
+      `[bgg/reconcile] stamp failed for ${bggUsername}: ${err.message}`,
+    );
   }
 }
 
@@ -614,11 +732,13 @@ async function stampReconcileResult(bggUsername, result) {
 function triggerBackgroundReconcile(bggUsername) {
   if (!tryAcquireReconcileSlot()) return false;
   withUserLock(bggUsername, () =>
-    reconcileFull(bggUsername, { full: true, background: true })
+    reconcileFull(bggUsername, { full: true, background: true }),
   )
     .then((result) => stampReconcileResult(bggUsername.toLowerCase(), result))
     .catch((err) => {
-      console.warn(`[bgg/reconcile] background failed for ${bggUsername}: ${err.message}`);
+      console.warn(
+        `[bgg/reconcile] background failed for ${bggUsername}: ${err.message}`,
+      );
     })
     .finally(() => releaseReconcileSlot());
   return true;
@@ -636,7 +756,9 @@ async function upsertPlayFromMutation(bggUsername, body, playId) {
       gameName = game.name || null;
       gameThumbnail = game.thumbnail || null;
     }
-  } catch { /* best-effort */ }
+  } catch {
+    /* best-effort */
+  }
 
   const doc = {
     bggUsername: lower,
@@ -646,7 +768,10 @@ async function upsertPlayFromMutation(bggUsername, body, playId) {
     gameName,
     gameThumbnail,
     quantity: Math.max(1, Math.min(99, parseInt(body.quantity) || 1)),
-    duration: body.length != null && body.length !== '' ? Math.max(0, parseInt(body.length) || 0) : null,
+    duration:
+      body.length != null && body.length !== ""
+        ? Math.max(0, parseInt(body.length) || 0)
+        : null,
     location: body.location || null,
     incomplete: !!body.incomplete,
     nowinstats: !!body.nowinstats,
@@ -657,10 +782,11 @@ async function upsertPlayFromMutation(bggUsername, body, playId) {
       userid: null,
       position: p.position != null ? String(p.position) : String(i + 1),
       color: p.color || null,
-      score: p.score != null && p.score !== '' ? String(p.score) : null,
+      score: p.score != null && p.score !== "" ? String(p.score) : null,
       win: !!p.win,
       new: !!p.new,
-      rating: p.rating != null && Number(p.rating) > 0 ? Number(p.rating) : null,
+      rating:
+        p.rating != null && Number(p.rating) > 0 ? Number(p.rating) : null,
     })),
   };
   doc.hash = computePlayHash(doc);
@@ -668,13 +794,13 @@ async function upsertPlayFromMutation(bggUsername, body, playId) {
   await BggPlay.updateOne(
     { bggUsername: lower, playId: doc.playId },
     { $set: doc },
-    { upsert: true }
+    { upsert: true },
   );
 }
 
 // GET /api/bgg/search?q=<query>
-router.get('/search', async (req, res) => {
-  const q = (req.query.q || '').trim();
+router.get("/search", async (req, res) => {
+  const q = (req.query.q || "").trim();
   if (q.length < 3) return res.json([]);
 
   const cacheKey = `search:${q.toLowerCase()}`;
@@ -682,7 +808,9 @@ router.get('/search', async (req, res) => {
   if (cached) return res.json(cached);
 
   try {
-    const xml = await fetchBgg(`${BGG_API}/search?query=${encodeURIComponent(q)}&type=boardgame`);
+    const xml = await fetchBgg(
+      `${BGG_API}/search?query=${encodeURIComponent(q)}&type=boardgame`,
+    );
     const parsed = parser.parse(xml);
 
     const root = parsed?.items;
@@ -695,10 +823,13 @@ router.get('/search', async (req, res) => {
       .map((item) => {
         const nameRaw = item.name;
         const nameArr = Array.isArray(nameRaw) ? nameRaw : [nameRaw];
-        const primary = nameArr.find((n) => n['@_type'] === 'primary') || nameArr[0];
-        const name = primary?.['@_value'] || '';
-        const year = item.yearpublished?.['@_value'] ? Number(item.yearpublished['@_value']) : null;
-        return { id: Number(item['@_id']), name, year, thumbnail: null };
+        const primary =
+          nameArr.find((n) => n["@_type"] === "primary") || nameArr[0];
+        const name = primary?.["@_value"] || "";
+        const year = item.yearpublished?.["@_value"]
+          ? Number(item.yearpublished["@_value"])
+          : null;
+        return { id: Number(item["@_id"]), name, year, thumbnail: null };
       })
       .filter((g) => g.name)
       .sort((a, b) => (b.year || 0) - (a.year || 0))
@@ -708,7 +839,9 @@ router.get('/search', async (req, res) => {
     if (results.length > 0) {
       try {
         const gamesMap = await resolveGamesBatch(results.map((g) => g.id));
-        results.forEach((g) => { g.thumbnail = gamesMap.get(g.id)?.thumbnail || null; });
+        results.forEach((g) => {
+          g.thumbnail = gamesMap.get(g.id)?.thumbnail || null;
+        });
       } catch {
         // thumbnails son opcionales, no bloqueamos el resultado
       }
@@ -717,37 +850,41 @@ router.get('/search', async (req, res) => {
     setCached(cacheKey, results);
     res.json(results);
   } catch (err) {
-    res.status(502).json({ message: 'No se pudo conectar con BGG' });
+    res.status(502).json({ message: "No se pudo conectar con BGG" });
   }
 });
 
 // GET /api/bgg/game/:id
-router.get('/game/:id', async (req, res) => {
+router.get("/game/:id", async (req, res) => {
   const id = parseInt(req.params.id);
-  if (!id || id <= 0) return res.status(400).json({ message: 'Invalid game ID' });
+  if (!id || id <= 0)
+    return res.status(400).json({ message: "Invalid game ID" });
 
   try {
     const game = await resolveGame(id);
-    if (!game) return res.status(404).json({ message: 'Juego no encontrado' });
+    if (!game) return res.status(404).json({ message: "Juego no encontrado" });
     res.json(game);
   } catch (err) {
-    if (err.status === 404) return res.status(404).json({ message: 'Juego no encontrado' });
-    res.status(502).json({ message: 'No se pudo conectar con BGG' });
+    if (err.status === 404)
+      return res.status(404).json({ message: "Juego no encontrado" });
+    res.status(502).json({ message: "No se pudo conectar con BGG" });
   }
 });
 
 // GET /api/bgg/coleccion/:bggUsername
-router.get('/coleccion/:bggUsername', async (req, res) => {
+router.get("/coleccion/:bggUsername", async (req, res) => {
   const { bggUsername } = req.params;
-  const forceRefresh = req.query.refresh === '1';
+  const forceRefresh = req.query.refresh === "1";
   try {
     const collection = await resolveCollection(bggUsername, { forceRefresh });
     res.json(collection);
   } catch (err) {
     if (err.status === 404) {
-      return res.status(404).json({ message: err.message || 'Usuario de BGG no encontrado' });
+      return res
+        .status(404)
+        .json({ message: err.message || "Usuario de BGG no encontrado" });
     }
-    res.status(502).json({ message: 'No se pudo conectar con BGG' });
+    res.status(502).json({ message: "No se pudo conectar con BGG" });
   }
 });
 
@@ -765,10 +902,10 @@ async function computeTopPlayedGame(lowerBggUsername) {
     { $match: { bggUsername: lowerBggUsername, gameId: { $ne: null } } },
     {
       $group: {
-        _id: '$gameId',
-        count: { $sum: { $ifNull: ['$quantity', 1] } },
-        name: { $last: '$gameName' },
-        thumbnail: { $last: '$gameThumbnail' },
+        _id: "$gameId",
+        count: { $sum: { $ifNull: ["$quantity", 1] } },
+        name: { $last: "$gameName" },
+        thumbnail: { $last: "$gameThumbnail" },
       },
     },
     { $sort: { count: -1, _id: 1 } },
@@ -784,16 +921,20 @@ async function computeTopPlayedGame(lowerBggUsername) {
   };
 }
 
-router.get('/partidas/:bggUsername', async (req, res) => {
+router.get("/partidas/:bggUsername", async (req, res) => {
   const { bggUsername } = req.params;
   const lower = bggUsername.toLowerCase();
   const clientPage = Math.max(1, parseInt(req.query.page) || 1);
 
   const dateRe = /^\d{4}-\d{2}-\d{2}$/;
-  const mindate = dateRe.test(req.query.mindate || '') ? req.query.mindate : null;
-  const maxdate = dateRe.test(req.query.maxdate || '') ? req.query.maxdate : null;
-  const gameId = /^\d+$/.test(req.query.id || '') ? req.query.id : null;
-  const forceRefresh = req.query.refresh === '1';
+  const mindate = dateRe.test(req.query.mindate || "")
+    ? req.query.mindate
+    : null;
+  const maxdate = dateRe.test(req.query.maxdate || "")
+    ? req.query.maxdate
+    : null;
+  const gameId = /^\d+$/.test(req.query.id || "") ? req.query.id : null;
+  const forceRefresh = req.query.refresh === "1";
 
   // L2: serve from Mongo if this user has been synced.
   const hasMongoData = await BggPlay.exists({ bggUsername: lower });
@@ -803,11 +944,15 @@ router.get('/partidas/:bggUsername', async (req, res) => {
       // User explicitly asked for fresh data — run the probe synchronously
       // so the response reflects any changes from BGG.
       try {
-        const result = await withUserLock(bggUsername, () => probe(bggUsername));
+        const result = await withUserLock(bggUsername, () =>
+          probe(bggUsername),
+        );
         await stampProbeOutcome(lower, result.outcome);
       } catch (e) {
-        console.warn(`[bgg/partidas] sync probe failed for ${lower}: ${e.message || e}`);
-        await stampProbeOutcome(lower, 'failed');
+        console.warn(
+          `[bgg/partidas] sync probe failed for ${lower}: ${e.message || e}`,
+        );
+        await stampProbeOutcome(lower, "failed");
       }
     } else {
       // Background sync with 5-min probe throttle. Doesn't block the
@@ -825,14 +970,19 @@ router.get('/partidas/:bggUsername', async (req, res) => {
       // The two are mutually exclusive so they never race on the per-
       // user lock.
       const u = await User.findOne({ bggUsername: lower })
-        .select('bggSync.lastProbedAt bggSync.lastFullSyncAt')
+        .select("bggSync.lastProbedAt bggSync.lastFullSyncAt")
         .lean();
       if (u) {
         const lastProbed = u.bggSync?.lastProbedAt;
         const lastFullSync = u.bggSync?.lastFullSyncAt;
-        const probeDue = !lastProbed || (Date.now() - new Date(lastProbed).getTime() > PROBE_THROTTLE_MS);
+        const probeDue =
+          !lastProbed ||
+          Date.now() - new Date(lastProbed).getTime() > PROBE_THROTTLE_MS;
         if (probeDue) {
-          const reconcileOverdue = !lastFullSync || (Date.now() - new Date(lastFullSync).getTime() > FULL_RECONCILE_INTERVAL_MS);
+          const reconcileOverdue =
+            !lastFullSync ||
+            Date.now() - new Date(lastFullSync).getTime() >
+              FULL_RECONCILE_INTERVAL_MS;
           if (reconcileOverdue) {
             triggerBackgroundReconcile(bggUsername);
           } else {
@@ -850,7 +1000,8 @@ router.get('/partidas/:bggUsername', async (req, res) => {
     }
     if (gameId) filter.gameId = String(gameId);
 
-    const isUnfilteredFirstPage = clientPage === 1 && !mindate && !maxdate && !gameId;
+    const isUnfilteredFirstPage =
+      clientPage === 1 && !mindate && !maxdate && !gameId;
 
     const [total, docs, topGame] = await Promise.all([
       BggPlay.countDocuments(filter),
@@ -859,7 +1010,9 @@ router.get('/partidas/:bggUsername', async (req, res) => {
         .skip((clientPage - 1) * PAGE_SIZE)
         .limit(PAGE_SIZE)
         .lean(),
-      isUnfilteredFirstPage ? computeTopPlayedGame(lower) : Promise.resolve(undefined),
+      isUnfilteredFirstPage
+        ? computeTopPlayedGame(lower)
+        : Promise.resolve(undefined),
     ]);
 
     const response = {
@@ -875,7 +1028,7 @@ router.get('/partidas/:bggUsername', async (req, res) => {
   // L1 / L3 fallback: no Mongo data yet — serve from BGG (with in-memory cache).
   const bggPage = Math.ceil(clientPage / PAGES_PER_BGG);
   const offsetWithinBgg = ((clientPage - 1) % PAGES_PER_BGG) * PAGE_SIZE;
-  const cacheKey = `partidas:${lower}:bgg:${bggPage}:${mindate || '-'}:${maxdate || '-'}:${gameId || '-'}`;
+  const cacheKey = `partidas:${lower}:bgg:${bggPage}:${mindate || "-"}:${maxdate || "-"}:${gameId || "-"}`;
 
   if (!forceRefresh) {
     const cachedFull = getCached(cacheKey);
@@ -884,26 +1037,36 @@ router.get('/partidas/:bggUsername', async (req, res) => {
         total: cachedFull.total,
         page: clientPage,
         pageSize: PAGE_SIZE,
-        plays: cachedFull.plays.slice(offsetWithinBgg, offsetWithinBgg + PAGE_SIZE),
+        plays: cachedFull.plays.slice(
+          offsetWithinBgg,
+          offsetWithinBgg + PAGE_SIZE,
+        ),
       });
     }
   }
 
   try {
-    const params = new URLSearchParams({ username: bggUsername, page: String(bggPage) });
-    if (mindate) params.set('mindate', mindate);
-    if (maxdate) params.set('maxdate', maxdate);
-    if (gameId) params.set('id', gameId);
+    const params = new URLSearchParams({
+      username: bggUsername,
+      page: String(bggPage),
+    });
+    if (mindate) params.set("mindate", mindate);
+    if (maxdate) params.set("maxdate", maxdate);
+    if (gameId) params.set("id", gameId);
     const xml = await fetchBgg(`${BGG_API}/plays?${params.toString()}`);
     const parsed = parsePlaysXml(xml);
-    if (!parsed) return res.status(404).json({ message: 'Usuario de BGG no encontrado' });
+    if (!parsed)
+      return res.status(404).json({ message: "Usuario de BGG no encontrado" });
     const { plays: parsedInternal, total } = parsed;
 
     // Enrich thumbnails via the shared BggGame cache (no per-user data here)
-    const uniqueGameIds = [...new Set(parsedInternal.map((p) => p.gameId).filter(Boolean))];
+    const uniqueGameIds = [
+      ...new Set(parsedInternal.map((p) => p.gameId).filter(Boolean)),
+    ];
     const gamesMap = await resolveGamesBatch(uniqueGameIds);
     parsedInternal.forEach((p) => {
-      if (p.gameId) p.gameThumbnail = gamesMap.get(Number(p.gameId))?.thumbnail || null;
+      if (p.gameId)
+        p.gameThumbnail = gamesMap.get(Number(p.gameId))?.thumbnail || null;
     });
 
     const apiPlays = parsedInternal.map(playToApi);
@@ -917,60 +1080,72 @@ router.get('/partidas/:bggUsername', async (req, res) => {
       plays: apiPlays.slice(offsetWithinBgg, offsetWithinBgg + PAGE_SIZE),
     });
   } catch (err) {
-    if (err.status === 404) return res.status(404).json({ message: 'Usuario de BGG no encontrado' });
-    res.status(502).json({ message: 'No se pudo conectar con BGG' });
+    if (err.status === 404)
+      return res.status(404).json({ message: "Usuario de BGG no encontrado" });
+    res.status(502).json({ message: "No se pudo conectar con BGG" });
   }
 });
 
 // Build geekplay.php form body. If `playId` is set, it's an edit; otherwise create.
 function buildPlayForm(body, playId = null) {
   const {
-    objectid, playdate, length, location, quantity = 1, comments,
-    incomplete = false, nowinstats = false, players = [],
+    objectid,
+    playdate,
+    length,
+    location,
+    quantity = 1,
+    comments,
+    incomplete = false,
+    nowinstats = false,
+    players = [],
   } = body;
 
   const qty = Math.max(1, Math.min(99, parseInt(quantity) || 1));
-  const len = length != null && length !== '' ? Math.max(0, parseInt(length) || 0) : null;
+  const len =
+    length != null && length !== "" ? Math.max(0, parseInt(length) || 0) : null;
 
   const form = new URLSearchParams();
-  form.set('ajax', '1');
-  form.set('action', 'save');
-  form.set('version', '2');
-  form.set('objecttype', 'thing');
-  if (playId) form.set('playid', String(playId));
-  form.set('objectid', String(objectid));
-  form.set('playdate', String(playdate));
-  if (len != null) form.set('length', String(len));
-  if (location) form.set('location', String(location).slice(0, 100));
-  form.set('quantity', String(qty));
-  if (comments) form.set('comments', String(comments).slice(0, 1000));
-  form.set('incomplete', incomplete ? '1' : '0');
-  form.set('nowinstats', nowinstats ? '1' : '0');
+  form.set("ajax", "1");
+  form.set("action", "save");
+  form.set("version", "2");
+  form.set("objecttype", "thing");
+  if (playId) form.set("playid", String(playId));
+  form.set("objectid", String(objectid));
+  form.set("playdate", String(playdate));
+  if (len != null) form.set("length", String(len));
+  if (location) form.set("location", String(location).slice(0, 100));
+  form.set("quantity", String(qty));
+  if (comments) form.set("comments", String(comments).slice(0, 1000));
+  form.set("incomplete", incomplete ? "1" : "0");
+  form.set("nowinstats", nowinstats ? "1" : "0");
 
   players.forEach((p, i) => {
     const idx = `players[${i}]`;
     if (p.name) form.set(`${idx}[name]`, String(p.name).slice(0, 100));
-    if (p.username) form.set(`${idx}[username]`, String(p.username).slice(0, 50));
+    if (p.username)
+      form.set(`${idx}[username]`, String(p.username).slice(0, 50));
     form.set(`${idx}[position]`, String(p.position ?? i + 1));
     if (p.color) form.set(`${idx}[color]`, String(p.color).slice(0, 30));
-    if (p.score != null && p.score !== '') form.set(`${idx}[score]`, String(p.score).slice(0, 30));
-    form.set(`${idx}[new]`, p.new ? '1' : '0');
-    if (p.rating != null && Number(p.rating) > 0) form.set(`${idx}[rating]`, String(p.rating));
-    form.set(`${idx}[win]`, p.win ? '1' : '0');
+    if (p.score != null && p.score !== "")
+      form.set(`${idx}[score]`, String(p.score).slice(0, 30));
+    form.set(`${idx}[new]`, p.new ? "1" : "0");
+    if (p.rating != null && Number(p.rating) > 0)
+      form.set(`${idx}[rating]`, String(p.rating));
+    form.set(`${idx}[win]`, p.win ? "1" : "0");
   });
 
   return form;
 }
 
 function validatePlayBody(body) {
-  if (!/^\d+$/.test(String(body.objectid || ''))) {
-    return 'ID de juego inválido';
+  if (!/^\d+$/.test(String(body.objectid || ""))) {
+    return "ID de juego inválido";
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.playdate || ''))) {
-    return 'Fecha inválida (formato YYYY-MM-DD)';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.playdate || ""))) {
+    return "Fecha inválida (formato YYYY-MM-DD)";
   }
   if (!Array.isArray(body.players)) {
-    return 'Lista de jugadores inválida';
+    return "Lista de jugadores inválida";
   }
   return null;
 }
@@ -986,41 +1161,55 @@ async function submitToGeekplay(user, form, label) {
   let bggRes;
   try {
     bggRes = await fetch(BGG_GEEKPLAY, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Cookie': cookie,
-        'User-Agent': 'Turnocero/1.0',
-        'Origin': 'https://boardgamegeek.com',
-        'Referer': 'https://boardgamegeek.com/',
-        'X-Requested-With': 'XMLHttpRequest',
+        "Content-Type": "application/x-www-form-urlencoded",
+        Cookie: cookie,
+        "User-Agent": "Turnocero/1.0",
+        Origin: "https://boardgamegeek.com",
+        Referer: "https://boardgamegeek.com/",
+        "X-Requested-With": "XMLHttpRequest",
       },
       body: form.toString(),
     });
   } catch (e) {
-    throw Object.assign(new Error(`No se pudo contactar BGG: ${e.message}`), { status: 502 });
+    throw Object.assign(new Error(`No se pudo contactar BGG: ${e.message}`), {
+      status: 502,
+    });
   }
 
   if (bggRes.status === 401 || bggRes.status === 403) {
     clearSession(user._id);
-    throw Object.assign(new Error('Sesión BGG inválida. Reconectá en /perfil.'), { status: 401 });
+    throw Object.assign(
+      new Error("Sesión BGG inválida. Reconectá en /perfil."),
+      { status: 401 },
+    );
   }
   if (!bggRes.ok) {
-    const text = await bggRes.text().catch(() => '');
-    console.warn(`[bgg/partidas ${label}] ${bggRes.status}:`, text.slice(0, 300));
-    throw Object.assign(new Error(`BGG respondió ${bggRes.status}`), { status: 502 });
+    const text = await bggRes.text().catch(() => "");
+    console.warn(
+      `[bgg/partidas ${label}] ${bggRes.status}:`,
+      text.slice(0, 300),
+    );
+    throw Object.assign(new Error(`BGG respondió ${bggRes.status}`), {
+      status: 502,
+    });
   }
 
   const text = await bggRes.text();
   let payload;
-  try { payload = JSON.parse(text); } catch { payload = { raw: text.slice(0, 200) }; }
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    payload = { raw: text.slice(0, 200) };
+  }
   return payload;
 }
 
 // GET /api/bgg/og/:bggUsername — public OG metadata for /bg-watch/:username crawlers.
 // Returns displayName (Turnocero user if connected), play count, collection size,
 // and the user's top-played game with thumbnail. Cached 30 min per username.
-router.get('/og/:bggUsername', async (req, res) => {
+router.get("/og/:bggUsername", async (req, res) => {
   const { bggUsername } = req.params;
   const cacheKey = `og:${bggUsername.toLowerCase()}`;
   const cached = getCached(cacheKey, 30 * 60 * 1000);
@@ -1028,17 +1217,22 @@ router.get('/og/:bggUsername', async (req, res) => {
 
   try {
     // Look up the Turnocero user by bggUsername (case-insensitive) for displayName.
-    const escaped = bggUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const userDoc = await User.findOne({ bggUsername: new RegExp(`^${escaped}$`, 'i') })
-      .select('username displayName')
+    const escaped = bggUsername.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const userDoc = await User.findOne({
+      bggUsername: new RegExp(`^${escaped}$`, "i"),
+    })
+      .select("username displayName")
       .lean();
-    const displayName = userDoc?.displayName || userDoc?.username || bggUsername;
+    const displayName =
+      userDoc?.displayName || userDoc?.username || bggUsername;
 
     // Fetch BGG collection (top-played game + total games owned).
     let juegos = null;
     let topGame = null;
     try {
-      const collXml = await fetchBgg(`${BGG_API}/collection?username=${encodeURIComponent(bggUsername)}&own=1&stats=1`);
+      const collXml = await fetchBgg(
+        `${BGG_API}/collection?username=${encodeURIComponent(bggUsername)}&own=1&stats=1`,
+      );
       const parsedColl = parser.parse(collXml);
       const root = parsedColl?.items;
       if (root) {
@@ -1051,7 +1245,8 @@ router.get('/og/:bggUsername', async (req, res) => {
           if (plays > maxPlays) {
             maxPlays = plays;
             topGame = {
-              name: typeof item.name === 'object' ? item.name['#text'] : item.name,
+              name:
+                typeof item.name === "object" ? item.name["#text"] : item.name,
               thumbnail: item.thumbnail || null,
               numPlays: plays,
             };
@@ -1065,9 +1260,11 @@ router.get('/og/:bggUsername', async (req, res) => {
     // Fetch total play count (BGG plays API returns it as @_total).
     let partidas = null;
     try {
-      const playsXml = await fetchBgg(`${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=1`);
+      const playsXml = await fetchBgg(
+        `${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=1`,
+      );
       const parsedPlays = parser.parse(playsXml);
-      const total = parsedPlays?.plays?.['@_total'];
+      const total = parsedPlays?.plays?.["@_total"];
       partidas = total ? Number(total) : null;
     } catch {
       // Swallow.
@@ -1091,17 +1288,19 @@ router.get('/og/:bggUsername', async (req, res) => {
 // was already upserted stays valid and the next run picks up where this
 // left off.
 //
-// Used by the "Reconciliar todo con BGG" button as a manual fallback for
+// Used by the "Reconciliar all con BGG" button as a manual fallback for
 // edits to old plays that the lightweight probe misses.
-router.post('/sync', protect, async (req, res) => {
+router.post("/sync", protect, async (req, res) => {
   try {
     const user = req.user;
     if (!user.bggUsername) {
-      return res.status(400).json({ message: 'Configurá tu username de BGG en el perfil' });
+      return res
+        .status(400)
+        .json({ message: "Configurá tu username de BGG en el perfil" });
     }
 
     const result = await withUserLock(user.bggUsername, () =>
-      reconcileFull(user.bggUsername, { full: true, background: false })
+      reconcileFull(user.bggUsername, { full: true, background: false }),
     );
 
     // Persist sync metadata on the user — see stampReconcileResult for the
@@ -1111,7 +1310,7 @@ router.post('/sync', protect, async (req, res) => {
     user.bggSync.lastFullSyncAt = now;
     user.bggSync.lastFullSyncCount = result.total;
     user.bggSync.lastProbedAt = now;
-    user.bggSync.lastProbeOutcome = 'reconciled';
+    user.bggSync.lastProbeOutcome = "reconciled";
     await user.save();
 
     // Drop the in-memory plays cache so subsequent reads come from Mongo
@@ -1128,27 +1327,32 @@ router.post('/sync', protect, async (req, res) => {
     });
   } catch (err) {
     if (err.status === 404) {
-      return res.status(404).json({ message: 'Usuario de BGG no encontrado' });
+      return res.status(404).json({ message: "Usuario de BGG no encontrado" });
     }
-    console.error('BGG full sync failed:', err);
-    res.status(502).json({ message: err.message || 'No se pudo sincronizar con BGG' });
+    console.error("BGG full sync failed:", err);
+    res
+      .status(502)
+      .json({ message: err.message || "No se pudo sincronizar con BGG" });
   }
 });
 
 // POST /api/bgg/partidas — create a play in BGG
-router.post('/partidas', protect, async (req, res) => {
+router.post("/partidas", protect, async (req, res) => {
   try {
     const user = req.user;
     if (!user.bggUsername) {
-      return res.status(400).json({ message: 'Configurá tu username de BGG en el perfil' });
+      return res
+        .status(400)
+        .json({ message: "Configurá tu username de BGG en el perfil" });
     }
     const validationError = validatePlayBody(req.body);
-    if (validationError) return res.status(400).json({ message: validationError });
+    if (validationError)
+      return res.status(400).json({ message: validationError });
 
     const form = buildPlayForm(req.body, null);
     let payload;
     try {
-      payload = await submitToGeekplay(user, form, 'POST');
+      payload = await submitToGeekplay(user, form, "POST");
     } catch (e) {
       return res.status(e.status || 500).json({ message: e.message });
     }
@@ -1161,84 +1365,107 @@ router.post('/partidas', protect, async (req, res) => {
       // pick up the new play on its next call.
       const lower = user.bggUsername.toLowerCase();
       if (await BggPlay.exists({ bggUsername: lower })) {
-        try { await upsertPlayFromMutation(user.bggUsername, req.body, newPlayId); }
-        catch (e) { console.warn('[bgg/POST] mirror to Mongo failed:', e.message); }
+        try {
+          await upsertPlayFromMutation(user.bggUsername, req.body, newPlayId);
+        } catch (e) {
+          console.warn("[bgg/POST] mirror to Mongo failed:", e.message);
+        }
       }
     }
 
     res.json({ success: true, playid: newPlayId, raw: payload });
   } catch (err) {
-    console.error('Create play failed:', err);
-    res.status(500).json({ message: err.message || 'Error al crear la partida' });
+    console.error("Create play failed:", err);
+    res
+      .status(500)
+      .json({ message: err.message || "Error al crear la partida" });
   }
 });
 
 // DELETE /api/bgg/partidas/:playId — delete a play from BGG
-router.delete('/partidas/:playId', protect, async (req, res) => {
+router.delete("/partidas/:playId", protect, async (req, res) => {
   try {
     const user = req.user;
     if (!user.bggUsername) {
-      return res.status(400).json({ message: 'Configurá tu username de BGG en el perfil' });
+      return res
+        .status(400)
+        .json({ message: "Configurá tu username de BGG en el perfil" });
     }
     const { playId } = req.params;
     if (!/^\d+$/.test(String(playId))) {
-      return res.status(400).json({ message: 'ID de partida inválido' });
+      return res.status(400).json({ message: "ID de partida inválido" });
     }
 
     const form = new URLSearchParams();
-    form.set('ajax', '1');
-    form.set('action', 'delete');
-    form.set('playid', String(playId));
+    form.set("ajax", "1");
+    form.set("action", "delete");
+    form.set("playid", String(playId));
 
     let payload;
     try {
-      payload = await submitToGeekplay(user, form, 'DELETE');
+      payload = await submitToGeekplay(user, form, "DELETE");
     } catch (e) {
       return res.status(e.status || 500).json({ message: e.message });
     }
     clearPartidasCache(user.bggUsername);
-    try { await BggPlay.deleteOne({ bggUsername: user.bggUsername.toLowerCase(), playId: String(playId) }); }
-    catch (e) { console.warn('[bgg/DELETE] mirror to Mongo failed:', e.message); }
+    try {
+      await BggPlay.deleteOne({
+        bggUsername: user.bggUsername.toLowerCase(),
+        playId: String(playId),
+      });
+    } catch (e) {
+      console.warn("[bgg/DELETE] mirror to Mongo failed:", e.message);
+    }
 
     res.json({ success: true, raw: payload });
   } catch (err) {
-    console.error('Delete play failed:', err);
-    res.status(500).json({ message: err.message || 'Error al eliminar la partida' });
+    console.error("Delete play failed:", err);
+    res
+      .status(500)
+      .json({ message: err.message || "Error al eliminar la partida" });
   }
 });
 
 // PUT /api/bgg/partidas/:playId — edit an existing play in BGG
-router.put('/partidas/:playId', protect, async (req, res) => {
+router.put("/partidas/:playId", protect, async (req, res) => {
   try {
     const user = req.user;
     if (!user.bggUsername) {
-      return res.status(400).json({ message: 'Configurá tu username de BGG en el perfil' });
+      return res
+        .status(400)
+        .json({ message: "Configurá tu username de BGG en el perfil" });
     }
     const { playId } = req.params;
     if (!/^\d+$/.test(String(playId))) {
-      return res.status(400).json({ message: 'ID de partida inválido' });
+      return res.status(400).json({ message: "ID de partida inválido" });
     }
     const validationError = validatePlayBody(req.body);
-    if (validationError) return res.status(400).json({ message: validationError });
+    if (validationError)
+      return res.status(400).json({ message: validationError });
 
     const form = buildPlayForm(req.body, playId);
     let payload;
     try {
-      payload = await submitToGeekplay(user, form, 'PUT');
+      payload = await submitToGeekplay(user, form, "PUT");
     } catch (e) {
       return res.status(e.status || 500).json({ message: e.message });
     }
     clearPartidasCache(user.bggUsername);
     const lower = user.bggUsername.toLowerCase();
     if (await BggPlay.exists({ bggUsername: lower })) {
-      try { await upsertPlayFromMutation(user.bggUsername, req.body, playId); }
-      catch (e) { console.warn('[bgg/PUT] mirror to Mongo failed:', e.message); }
+      try {
+        await upsertPlayFromMutation(user.bggUsername, req.body, playId);
+      } catch (e) {
+        console.warn("[bgg/PUT] mirror to Mongo failed:", e.message);
+      }
     }
 
     res.json({ success: true, playid: playId, raw: payload });
   } catch (err) {
-    console.error('Edit play failed:', err);
-    res.status(500).json({ message: err.message || 'Error al editar la partida' });
+    console.error("Edit play failed:", err);
+    res
+      .status(500)
+      .json({ message: err.message || "Error al editar la partida" });
   }
 });
 

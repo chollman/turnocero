@@ -375,6 +375,44 @@ describe('BGG persistent cache (memoria → Mongo → BGG)', () => {
       expect(docs).toHaveLength(1);
       expect(docs[0].playId).toBe('7');
     });
+
+    it('stamps bggSync via the probe path regardless of bggUsername casing', async () => {
+      // User stores bggUsername with mixed case (legitimate — bggUsername
+      // is case-preserved). BggPlay normalizes to lowercase internally.
+      // stampProbeOutcome / stampReconcileResult must match the User
+      // case-insensitively or the update silently no-ops, leaving
+      // bggSync.lastProbedAt null forever.
+      const { user } = await createAuthedUser({ bggUsername: 'MixedCase' });
+      await BggPlay.create({
+        bggUsername: 'mixedcase', playId: '1', date: '2026-01-01', gameId: '13', hash: 'h',
+      });
+
+      // ?refresh=1 → sync probe path → calls stampProbeOutcome.
+      // BGG returns same playId same content → no_drift, no further fetch.
+      const { computePlayHash } = require('../../utils/bggHash');
+      // Trigger a count-drift so reconcileFull runs and stamps via reconcile flow.
+      fetchSpy
+        .mockResolvedValueOnce(ok(playsXml([
+          { id: '1', date: '2026-01-01', gameName: 'A', gameId: 13 },
+          { id: '2', date: '2026-01-02', gameName: 'B', gameId: 14 },
+        ], 2)))
+        .mockResolvedValueOnce(ok(playsXml([
+          { id: '1', date: '2026-01-01', gameName: 'A', gameId: 13 },
+          { id: '2', date: '2026-01-02', gameName: 'B', gameId: 14 },
+        ], 2)))
+        .mockResolvedValueOnce(ok(thingXml([
+          { id: 13, name: 'A', thumbnail: 't.jpg' },
+          { id: 14, name: 'B', thumbnail: 't2.jpg' },
+        ])));
+
+      // Pass mixed-case in URL too — the route lowercases internally.
+      await request(app).get('/api/bgg/partidas/MixedCase?refresh=1');
+
+      const u = await User.findById(user._id).lean();
+      expect(u.bggSync?.lastProbedAt).toBeTruthy();
+      expect(u.bggSync?.lastProbeOutcome).toBe('reconciled');
+      void computePlayHash; // suppress unused
+    });
   });
 
   // ── GET /partidas with Mongo data (Phase 3 path) ─────────────────

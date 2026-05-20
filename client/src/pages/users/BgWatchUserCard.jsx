@@ -54,8 +54,12 @@ export default function BgWatchUserCard({ bggUsername }) {
       if (cancelled) return
       const ok = partidas !== null || coleccion !== null
 
-      let topGame = null
-      if (Array.isArray(coleccion) && coleccion.length > 0) {
+      // Prefer the server-aggregated top game (computed from BggPlay log)
+      // when present. Falls back to collection's numPlays only for profiles
+      // that haven't been synced yet — that path misses unowned games and
+      // doesn't work for users with private collections (e.g. H3rmit87).
+      let topGame = partidas?.topGame ?? null
+      if (!topGame && Array.isArray(coleccion) && coleccion.length > 0) {
         const sorted = [...coleccion]
           .filter((g) => g.numPlays > 0)
           .sort((a, b) => b.numPlays - a.numPlays)
