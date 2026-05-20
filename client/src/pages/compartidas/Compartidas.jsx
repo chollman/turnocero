@@ -52,6 +52,7 @@ export default function Compartidas() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [showCreate, setShowCreate] = useState(!!prefilledMesa)
+  const [weekCount, setWeekCount] = useState(0)
 
   const loadFeed = useCallback(async (pageNum = 1, replace = true) => {
     if (pageNum === 1) setLoading(true)
@@ -87,8 +88,11 @@ export default function Compartidas() {
   }
 
   const visiblePosts = posts.filter((p) => !featured || p._id !== featured._id)
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-  const weekCount = posts.filter((p) => new Date(p.createdAt).getTime() >= weekAgo).length
+
+  useEffect(() => {
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+    setWeekCount(posts.filter((p) => new Date(p.createdAt).getTime() >= weekAgo).length)
+  }, [posts])
 
   const userDisplay = user ? getUserDisplay(user) : null
   const userFirstName = userDisplay?.name?.split(' ')[0] || userDisplay?.name || 'vos'
