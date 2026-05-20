@@ -222,14 +222,16 @@ describe('UserProfile — Sincronizar con BGG', () => {
     expect(screen.queryByRole('button', { name: /sincronizar con bgg/i })).not.toBeInTheDocument();
   });
 
-  it('calls POST /api/bgg/sync on click and shows the success count', async () => {
+  it('calls POST /api/bgg/sync on click and shows a per-bucket success breakdown', async () => {
     let calledWith = null;
     server.use(
       http.post('/api/bgg/sync', async ({ request }) => {
         calledWith = request.url;
         return HttpResponse.json({
           success: true,
-          count: 247,
+          inserted: 5,
+          updated: 2,
+          deleted: 1,
           total: 247,
           pages: 9,
           lastFullSyncAt: '2026-05-19T12:00:00Z',
@@ -244,7 +246,25 @@ describe('UserProfile — Sincronizar con BGG', () => {
       expect(refreshUser).toHaveBeenCalled();
     });
     expect(calledWith).toContain('/api/bgg/sync');
-    expect(await screen.findByText(/sincronizadas 247 partidas/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/reconciliadas 247 partidas \(5 nuevas, 2 actualizadas, 1 borradas\)/i)
+    ).toBeInTheDocument();
+  });
+
+  it('says "sin cambios" when reconcile returned 0 inserts/updates/deletes', async () => {
+    server.use(
+      http.post('/api/bgg/sync', () =>
+        HttpResponse.json({
+          success: true,
+          inserted: 0, updated: 0, deleted: 0,
+          total: 247, pages: 9,
+          lastFullSyncAt: '2026-05-19T12:00:00Z',
+        }),
+      ),
+    );
+    setup({ user: connectedUser });
+    fireEvent.click(screen.getByRole('button', { name: /sincronizar con bgg/i }));
+    expect(await screen.findByText(/reconciliadas 247 partidas \(sin cambios\)/i)).toBeInTheDocument();
   });
 
   it('shows last-sync date and count when present on the user', () => {

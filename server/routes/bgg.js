@@ -9,6 +9,7 @@ const BggGame = require('../models/BggGame');
 const BggCollection = require('../models/BggCollection');
 const BggPlay = require('../models/BggPlay');
 const { computePlayHash } = require('../utils/bggHash');
+const { withUserLock, sleep } = require('../utils/bggSync');
 
 router.use(requireSection('bgwatch'));
 
@@ -342,19 +343,42 @@ function playToApi(p) {
   };
 }
 
-// Wipes BggPlay for `bggUsername` and re-fetches every page from BGG.
-// Also warms BggGame for all referenced gameIds (free side-effect).
-// Returns { total, inserted, pages }.
 const SYNC_MAX_PAGES = 200; // safety: ~6000 plays
-async function syncPlaysFull(bggUsername) {
+const RECONCILE_INTER_PAGE_MS = 500;
+
+// Idempotent, non-destructive sync of a user's plays with BGG. Replaces the
+// old syncPlaysFull, which wiped BggPlay before refetching — that had an
+// inconsistency window and lost data if BGG failed mid-sync.
+//
+// Walks /plays?username=X&page=N, upserting by playId. Uses the locally
+// stored `hash` field to skip writes when content is unchanged.
+//
+// Options:
+//   full        — if false, exits as soon as an entire page already matches
+//                 locally (used by the drift-detection probe in reconcile
+//                 dirigido). If true, walks every page. Default: false.
+//   background  — if true, sleeps RECONCILE_INTER_PAGE_MS between pages so
+//                 a large user's reconcile doesn't spike outbound traffic.
+//                 Default: false.
+//
+// Delete detection:
+//   full=true   — anything local that wasn't seen in the walk is deleted.
+//   full=false  — only local plays whose date is strictly greater than the
+//                 oldest seen date are deleted (conservative boundary: if a
+//                 BGG date spans the early-exit page boundary, we don't
+//                 risk wrongly deleting it).
+//
+// Returns { inserted, updated, deleted, total, pages }.
+async function reconcileFull(bggUsername, { full = false, background = false } = {}) {
   const lower = bggUsername.toLowerCase();
-  await BggPlay.deleteMany({ bggUsername: lower });
-
-  let page = 1;
-  let total = 0;
+  const seen = new Set();
   let inserted = 0;
+  let updated = 0;
+  let total = 0;
+  let pages = 0;
+  let minSeenDate = null;
 
-  while (page <= SYNC_MAX_PAGES) {
+  for (let page = 1; page <= SYNC_MAX_PAGES; page++) {
     const xml = await fetchBgg(`${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=${page}`);
     const parsed = parsePlaysXml(xml);
     if (!parsed) {
@@ -364,37 +388,76 @@ async function syncPlaysFull(bggUsername) {
     }
     const { plays, total: pageTotal } = parsed;
     total = pageTotal;
+    pages = page;
     if (plays.length === 0) break;
 
-    // Warm BggGame + resolve thumbnails for this batch
     const gameIds = [...new Set(plays.map((p) => p.gameId).filter(Boolean))];
     let gamesMap = new Map();
     try { gamesMap = await resolveGamesBatch(gameIds); } catch { /* best-effort */ }
 
-    const docs = plays.map((p) => {
+    // Build per-play docs with hash; look up local hashes for the same IDs.
+    const pagePlayIds = plays.map((p) => p.playId);
+    const localDocs = await BggPlay.find(
+      { bggUsername: lower, playId: { $in: pagePlayIds } },
+      { playId: 1, hash: 1 }
+    ).lean();
+    const localHashByPlayId = new Map(localDocs.map((d) => [d.playId, d.hash]));
+
+    const ops = [];
+    let allMatch = true;
+    for (const p of plays) {
+      seen.add(p.playId);
+      if (p.date && (!minSeenDate || p.date < minSeenDate)) minSeenDate = p.date;
+
       const doc = {
         ...p,
         bggUsername: lower,
         gameThumbnail: p.gameId ? (gamesMap.get(Number(p.gameId))?.thumbnail || null) : null,
       };
       doc.hash = computePlayHash(doc);
-      return doc;
-    });
 
-    try {
-      await BggPlay.insertMany(docs, { ordered: false });
-    } catch (e) {
-      // Duplicate-key errors are tolerable (the user may have edited
-      // mid-sync); other errors bubble up.
-      if (e.code !== 11000) throw e;
+      const localHash = localHashByPlayId.get(p.playId);
+      if (!localHash) {
+        ops.push({ updateOne: { filter: { bggUsername: lower, playId: p.playId }, update: { $set: doc }, upsert: true } });
+        inserted++;
+        allMatch = false;
+      } else if (localHash !== doc.hash) {
+        ops.push({ updateOne: { filter: { bggUsername: lower, playId: p.playId }, update: { $set: doc }, upsert: false } });
+        updated++;
+        allMatch = false;
+      }
+      // else: identical content, nothing to write.
     }
-    inserted += docs.length;
 
-    if (inserted >= total) break;
-    page++;
+    if (ops.length > 0) {
+      await BggPlay.bulkWrite(ops, { ordered: false });
+    }
+
+    if (!full && allMatch) break;
+    if (seen.size >= total) break;
+    if (background) await sleep(RECONCILE_INTER_PAGE_MS);
   }
 
-  return { total, inserted, pages: page };
+  // Delete detection.
+  let deleted = 0;
+  const seenIds = [...seen];
+  if (full) {
+    // Walked everything — anything not seen is gone.
+    const result = await BggPlay.deleteMany({ bggUsername: lower, playId: { $nin: seenIds } });
+    deleted = result.deletedCount || 0;
+  } else if (minSeenDate) {
+    // Conservative: only delete plays strictly newer than the oldest date
+    // we saw. Anything at exactly minSeenDate might span the early-exit
+    // page boundary, so leave it for a future full reconcile to settle.
+    const result = await BggPlay.deleteMany({
+      bggUsername: lower,
+      date: { $gt: minSeenDate },
+      playId: { $nin: seenIds },
+    });
+    deleted = result.deletedCount || 0;
+  }
+
+  return { inserted, updated, deleted, total, pages };
 }
 
 // Lightweight incremental sync. Pulls plays newer than the most recent one
@@ -876,10 +939,14 @@ router.get('/og/:bggUsername', async (req, res) => {
   }
 });
 
-// POST /api/bgg/sync — full re-sync of the authenticated user's BGG plays.
-// Wipes BggPlay for this user and re-fetches every page from BGG.
-// Used by the "Sincronizar con BGG" button to reconcile edits/deletes the
-// user made directly on BGG's web UI (which BGG doesn't notify us of).
+// POST /api/bgg/sync — full reconciliation of the authenticated user's BGG
+// plays. Walks every page, upserting by playId and detecting deletes by
+// diffing against local IDs. Non-destructive: if BGG fails mid-walk, what
+// was already upserted stays valid and the next run picks up where this
+// left off.
+//
+// Used by the "Reconciliar todo con BGG" button as a manual fallback for
+// edits to old plays that the lightweight probe misses.
 router.post('/sync', protect, async (req, res) => {
   try {
     const user = req.user;
@@ -887,12 +954,14 @@ router.post('/sync', protect, async (req, res) => {
       return res.status(400).json({ message: 'Configurá tu username de BGG en el perfil' });
     }
 
-    const result = await syncPlaysFull(user.bggUsername);
+    const result = await withUserLock(user.bggUsername, () =>
+      reconcileFull(user.bggUsername, { full: true, background: false })
+    );
 
     // Persist sync metadata on the user
     if (!user.bggSync) user.bggSync = {};
     user.bggSync.lastFullSyncAt = new Date();
-    user.bggSync.lastFullSyncCount = result.inserted;
+    user.bggSync.lastFullSyncCount = result.total;
     await user.save();
 
     // Drop the in-memory plays cache so subsequent reads come from Mongo
@@ -901,7 +970,9 @@ router.post('/sync', protect, async (req, res) => {
     res.json({
       success: true,
       lastFullSyncAt: user.bggSync.lastFullSyncAt,
-      count: result.inserted,
+      inserted: result.inserted,
+      updated: result.updated,
+      deleted: result.deleted,
       total: result.total,
       pages: result.pages,
     });

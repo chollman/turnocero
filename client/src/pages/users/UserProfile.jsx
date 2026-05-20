@@ -242,7 +242,12 @@ export default function UserProfile() {
     try {
       const { data } = await axios.post('/api/bgg/sync');
       await refreshUser();
-      setSyncSuccess(`Sincronizadas ${data.count} partidas`);
+      const changes = [];
+      if (data.inserted) changes.push(`${data.inserted} nuevas`);
+      if (data.updated)  changes.push(`${data.updated} actualizadas`);
+      if (data.deleted)  changes.push(`${data.deleted} borradas`);
+      const detail = changes.length ? ` (${changes.join(', ')})` : ' (sin cambios)';
+      setSyncSuccess(`Reconciliadas ${data.total} partidas${detail}`);
     } catch (err) {
       setSyncError(err.response?.data?.message || 'No se pudo sincronizar con BGG.');
     } finally {

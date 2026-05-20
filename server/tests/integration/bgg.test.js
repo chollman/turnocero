@@ -245,22 +245,28 @@ describe('BGG persistent cache (memoria → Mongo → BGG)', () => {
         .post('/api/bgg/sync')
         .set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(200);
-      expect(res.body.count).toBe(2);
+      expect(res.body.inserted).toBe(2);
+      expect(res.body.updated).toBe(0);
+      expect(res.body.deleted).toBe(0);
+      expect(res.body.total).toBe(2);
       expect(res.body.lastFullSyncAt).toBeTruthy();
 
       const docs = await BggPlay.find({ bggUsername: 'syncuser' }).sort({ playId: 1 }).lean();
       expect(docs).toHaveLength(2);
       expect(docs[0].gameThumbnail).toBe('a.jpg');
       expect(docs[1].gameThumbnail).toBe('b.jpg');
+      // Every persisted play has a hash for drift detection.
+      expect(docs[0].hash).toMatch(/^[0-9a-f]{40}$/);
+      expect(docs[1].hash).toMatch(/^[0-9a-f]{40}$/);
 
-      const updated = await User.findById(user._id).lean();
-      expect(updated.bggSync.lastFullSyncAt).toBeTruthy();
-      expect(updated.bggSync.lastFullSyncCount).toBe(2);
+      const persisted = await User.findById(user._id).lean();
+      expect(persisted.bggSync.lastFullSyncAt).toBeTruthy();
+      expect(persisted.bggSync.lastFullSyncCount).toBe(2);
     });
 
-    it('wipes previous plays before re-syncing', async () => {
+    it('deletes local plays that no longer exist on BGG (full reconcile)', async () => {
       const { token } = await createAuthedUser({ bggUsername: 'rewriter' });
-      // Stale doc that should be removed
+      // Stale doc: present locally, BGG no longer returns it → must be deleted.
       await BggPlay.create({
         bggUsername: 'rewriter', playId: '999', date: '2020-01-01', gameId: '99',
       });
@@ -273,13 +279,101 @@ describe('BGG persistent cache (memoria → Mongo → BGG)', () => {
           { id: 1, name: 'New', thumbnail: 'n.jpg' },
         ])));
 
-      await request(app)
+      const res = await request(app)
         .post('/api/bgg/sync')
         .set('Authorization', `Bearer ${token}`);
+      expect(res.body.deleted).toBe(1);
 
       const docs = await BggPlay.find({ bggUsername: 'rewriter' }).lean();
       expect(docs).toHaveLength(1);
       expect(docs[0].playId).toBe('1');
+    });
+
+    it('is idempotent: running twice with no BGG changes is a no-op the second time', async () => {
+      const { token } = await createAuthedUser({ bggUsername: 'idem' });
+
+      const setup = () => {
+        fetchSpy
+          .mockResolvedValueOnce(ok(playsXml([
+            { id: '1', date: '2026-01-01', gameName: 'A', gameId: 1 },
+          ], 1)))
+          .mockResolvedValueOnce(ok(thingXml([
+            { id: 1, name: 'A', thumbnail: 'a.jpg' },
+          ])));
+      };
+
+      setup();
+      const first = await request(app)
+        .post('/api/bgg/sync')
+        .set('Authorization', `Bearer ${token}`);
+      expect(first.body.inserted).toBe(1);
+
+      // BggGame is now cached → only the /plays request will hit fetchSpy
+      // on the second run.
+      fetchSpy.mockResolvedValueOnce(ok(playsXml([
+        { id: '1', date: '2026-01-01', gameName: 'A', gameId: 1 },
+      ], 1)));
+
+      const second = await request(app)
+        .post('/api/bgg/sync')
+        .set('Authorization', `Bearer ${token}`);
+      expect(second.body.inserted).toBe(0);
+      expect(second.body.updated).toBe(0);
+      expect(second.body.deleted).toBe(0);
+      expect(second.body.total).toBe(1);
+    });
+
+    it('detects edits via hash: same playId with different content is updated', async () => {
+      const { token } = await createAuthedUser({ bggUsername: 'edituser' });
+      // Seed with a play whose hash will NOT match what BGG returns.
+      await BggPlay.create({
+        bggUsername: 'edituser',
+        playId: '1',
+        date: '2026-01-01',
+        gameId: '1',
+        gameName: 'Old Name',
+        comments: 'stale comment',
+        hash: 'stale-hash-that-wont-match',
+      });
+
+      fetchSpy
+        .mockResolvedValueOnce(ok(playsXml([
+          { id: '1', date: '2026-01-01', gameName: 'A', gameId: 1 },
+        ], 1)))
+        .mockResolvedValueOnce(ok(thingXml([
+          { id: 1, name: 'A', thumbnail: 'a.jpg' },
+        ])));
+
+      const res = await request(app)
+        .post('/api/bgg/sync')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.body.inserted).toBe(0);
+      expect(res.body.updated).toBe(1);
+      expect(res.body.deleted).toBe(0);
+
+      const doc = await BggPlay.findOne({ bggUsername: 'edituser', playId: '1' }).lean();
+      expect(doc.gameName).toBe('A');
+      expect(doc.comments).toBeNull(); // overwritten by the BGG response
+      expect(doc.hash).not.toBe('stale-hash-that-wont-match');
+    });
+
+    it('does not wipe data if BGG fails mid-walk', async () => {
+      const { token } = await createAuthedUser({ bggUsername: 'failsafe' });
+      // Pre-existing play that should survive a failed reconcile.
+      await BggPlay.create({
+        bggUsername: 'failsafe', playId: '7', date: '2025-12-01', gameId: '7', hash: 'x',
+      });
+
+      fetchSpy.mockRejectedValueOnce(new Error('BGG down'));
+
+      const res = await request(app)
+        .post('/api/bgg/sync')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(502);
+
+      const docs = await BggPlay.find({ bggUsername: 'failsafe' }).lean();
+      expect(docs).toHaveLength(1);
+      expect(docs[0].playId).toBe('7');
     });
   });
 
