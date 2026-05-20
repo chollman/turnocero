@@ -8,6 +8,7 @@ const User = require('../models/User');
 const BggGame = require('../models/BggGame');
 const BggCollection = require('../models/BggCollection');
 const BggPlay = require('../models/BggPlay');
+const { computePlayHash } = require('../utils/bggHash');
 
 router.use(requireSection('bgwatch'));
 
@@ -370,11 +371,15 @@ async function syncPlaysFull(bggUsername) {
     let gamesMap = new Map();
     try { gamesMap = await resolveGamesBatch(gameIds); } catch { /* best-effort */ }
 
-    const docs = plays.map((p) => ({
-      ...p,
-      bggUsername: lower,
-      gameThumbnail: p.gameId ? (gamesMap.get(Number(p.gameId))?.thumbnail || null) : null,
-    }));
+    const docs = plays.map((p) => {
+      const doc = {
+        ...p,
+        bggUsername: lower,
+        gameThumbnail: p.gameId ? (gamesMap.get(Number(p.gameId))?.thumbnail || null) : null,
+      };
+      doc.hash = computePlayHash(doc);
+      return doc;
+    });
 
     try {
       await BggPlay.insertMany(docs, { ordered: false });
@@ -419,19 +424,21 @@ async function syncPlaysDelta(bggUsername) {
     let gamesMap = new Map();
     try { gamesMap = await resolveGamesBatch(gameIds); } catch { /* best-effort */ }
 
-    const ops = plays.map((p) => ({
-      updateOne: {
-        filter: { bggUsername: lower, playId: p.playId },
-        update: {
-          $set: {
-            ...p,
-            bggUsername: lower,
-            gameThumbnail: p.gameId ? (gamesMap.get(Number(p.gameId))?.thumbnail || null) : null,
-          },
+    const ops = plays.map((p) => {
+      const doc = {
+        ...p,
+        bggUsername: lower,
+        gameThumbnail: p.gameId ? (gamesMap.get(Number(p.gameId))?.thumbnail || null) : null,
+      };
+      doc.hash = computePlayHash(doc);
+      return {
+        updateOne: {
+          filter: { bggUsername: lower, playId: p.playId },
+          update: { $set: doc },
+          upsert: true,
         },
-        upsert: true,
-      },
-    }));
+      };
+    });
     await BggPlay.bulkWrite(ops);
     inserted += ops.length;
 
@@ -480,6 +487,7 @@ async function upsertPlayFromMutation(bggUsername, body, playId) {
       rating: p.rating != null && Number(p.rating) > 0 ? Number(p.rating) : null,
     })),
   };
+  doc.hash = computePlayHash(doc);
 
   await BggPlay.updateOne(
     { bggUsername: lower, playId: doc.playId },

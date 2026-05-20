@@ -37,6 +37,7 @@ const bggPlaySchema = new mongoose.Schema(
     nowinstats:   { type: Boolean, default: false },
     comments:     { type: String, default: null },
     players:      { type: [playerSchema], default: [] },
+    hash:         { type: String, default: null, index: true },
   },
   { timestamps: true }
 );
