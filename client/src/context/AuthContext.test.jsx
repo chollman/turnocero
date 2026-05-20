@@ -50,11 +50,28 @@ beforeEach(() => {
 
 describe('AuthContext', () => {
   it('starts with loading=true and resolves to user=null when /me is 401', async () => {
+    localStorage.setItem('token', 'tok'); // force /me to be called
     renderApp();
     expect(screen.getByTestId('loading').textContent).toBe('true');
     await waitFor(() => {
       expect(screen.getByTestId('loading').textContent).toBe('false');
     });
+    expect(screen.getByTestId('user').textContent).toBe('null');
+  });
+
+  it('skips the /api/auth/me request entirely when there is no token', async () => {
+    let meCalls = 0;
+    server.use(
+      http.get('/api/auth/me', () => {
+        meCalls += 1;
+        return HttpResponse.json({}, { status: 401 });
+      }),
+    );
+    renderApp();
+    await waitFor(() => {
+      expect(screen.getByTestId('loading').textContent).toBe('false');
+    });
+    expect(meCalls).toBe(0);
     expect(screen.getByTestId('user').textContent).toBe('null');
   });
 

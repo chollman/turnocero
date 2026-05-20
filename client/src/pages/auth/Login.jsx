@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { useSiteConfig } from '../../context/SiteConfigContext';
 import PasswordInput from './PasswordInput';
 import GameTile from '../../components/shared/GameTile';
 import Logo from '../../components/shared/Logo';
@@ -46,12 +47,12 @@ export default function Login() {
   const [flash, setFlash] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const { loaded: siteConfigLoaded, isSectionEnabled } = useSiteConfig();
   const navigate = useNavigate();
   const [showcase, setShowcase] = useState(null);
   const [seed] = useState(() => Math.floor(Math.random() * 100));
 
   useEffect(() => {
-    axios.get('/api/tables/showcase').then(({ data }) => setShowcase(data)).catch(() => {});
     const bannedMsg = sessionStorage.getItem('bannedMessage');
     if (bannedMsg) {
       setError(bannedMsg);
@@ -63,6 +64,12 @@ export default function Login() {
       sessionStorage.removeItem('flashMessage');
     }
   }, []);
+
+  useEffect(() => {
+    if (!siteConfigLoaded) return;
+    if (!isSectionEnabled('mesas')) return;
+    axios.get('/api/tables/showcase').then(({ data }) => setShowcase(data)).catch(() => {});
+  }, [siteConfigLoaded, isSectionEnabled]);
 
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));

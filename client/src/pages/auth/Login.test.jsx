@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../test/server';
 
 vi.mock('../../context/AuthContext', () => ({ useAuth: vi.fn() }));
+vi.mock('../../context/SiteConfigContext', () => ({ useSiteConfig: vi.fn() }));
 
 const navigateMock = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -14,13 +15,25 @@ vi.mock('react-router-dom', async () => {
 
 import Login from './Login';
 import { useAuth } from '../../context/AuthContext';
+import { useSiteConfig } from '../../context/SiteConfigContext';
+
+let showcaseRequestCount;
 
 beforeEach(() => {
   navigateMock.mockReset();
+  showcaseRequestCount = 0;
   // Stub the showcase endpoint so the page doesn't trigger an unhandled-request MSW error.
   server.use(
-    http.get('/api/tables/showcase', () => HttpResponse.json({ total: 0, table: null })),
+    http.get('/api/tables/showcase', () => {
+      showcaseRequestCount += 1;
+      return HttpResponse.json({ total: 0, table: null });
+    }),
   );
+  // Default: site config loaded, mesas enabled.
+  useSiteConfig.mockReturnValue({
+    loaded: true,
+    isSectionEnabled: (key) => key === 'mesas',
+  });
 });
 
 function renderLogin(login = vi.fn()) {
@@ -118,5 +131,33 @@ describe('<Login>', () => {
     expect(screen.getByRole('link', { name: /crear cuenta/i })).toHaveAttribute(
       'href', '/register',
     );
+  });
+
+  it('skips the /api/tables/showcase request when mesas section is disabled', async () => {
+    useSiteConfig.mockReturnValue({
+      loaded: true,
+      isSectionEnabled: () => false,
+    });
+    renderLogin();
+    // Give any potential async request a tick to fire.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(showcaseRequestCount).toBe(0);
+  });
+
+  it('does not fire the showcase request until site config is loaded', async () => {
+    useSiteConfig.mockReturnValue({
+      loaded: false,
+      isSectionEnabled: () => true,
+    });
+    renderLogin();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(showcaseRequestCount).toBe(0);
+  });
+
+  it('fires the showcase request when mesas section is enabled', async () => {
+    renderLogin();
+    await waitFor(() => {
+      expect(showcaseRequestCount).toBe(1);
+    });
   });
 });

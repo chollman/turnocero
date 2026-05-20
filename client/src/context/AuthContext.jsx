@@ -63,6 +63,11 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    if (!token) {
+      setAuthHeader(null);
+      setLoading(false);
+      return;
+    }
     setAuthHeader(token);
     axios.get('/api/auth/me')
       .then(({ data }) => setRealUser(data))
