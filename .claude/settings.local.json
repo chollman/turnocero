@@ -15,18 +15,5 @@
       "Bash(ls /Users/claudiohollman/.claude/projects/-Users-claudiohollman-Projects-turnocero/memory/ 2>/dev/null | head -50)",
       "Bash(npm test *)"
     ]
-  },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/home/user/turnocero/.claude/hooks/react-lint.sh"
-          }
-        ]
-      }
-    ]
   }
 }
