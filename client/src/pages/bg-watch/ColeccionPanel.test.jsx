@@ -14,6 +14,18 @@ vi.mock('./Pagination', () => ({
 
 import ColeccionPanel from './ColeccionPanel';
 
+function renderPanel(props = {}) {
+  return render(
+    <ColeccionPanel
+      bggUsername={props.bggUsername ?? 'CarcaFan'}
+      onLoaded={props.onLoaded}
+      // Default true so existing button-interaction tests can find it.
+      // New tests opt out with canRefresh={false}.
+      canRefresh={props.canRefresh ?? true}
+    />,
+  );
+}
+
 function makeGame(overrides = {}) {
   return {
     id: 13,
@@ -36,12 +48,12 @@ beforeEach(() => {
 
 describe('<ColeccionPanel>', () => {
   it('shows loading state initially', () => {
-    render(<ColeccionPanel bggUsername="CarcaFan" />);
+    renderPanel();
     expect(screen.getByText(/cargando colección/i)).toBeInTheDocument();
   });
 
   it('shows empty state when user has no owned games', async () => {
-    render(<ColeccionPanel bggUsername="CarcaFan" />);
+    renderPanel();
     await waitFor(() => {
       expect(screen.getByText(/no tiene juegos marcados como propios/i)).toBeInTheDocument();
     });
@@ -53,7 +65,7 @@ describe('<ColeccionPanel>', () => {
         HttpResponse.json([makeGame(), makeGame({ id: 14, name: 'Carcassonne' })]),
       ),
     );
-    render(<ColeccionPanel bggUsername="CarcaFan" />);
+    renderPanel();
     await waitFor(() => {
       expect(screen.getByText('Catán')).toBeInTheDocument();
       expect(screen.getByText('Carcassonne')).toBeInTheDocument();
@@ -66,7 +78,7 @@ describe('<ColeccionPanel>', () => {
         HttpResponse.json({ message: 'BGG offline' }, { status: 503 }),
       ),
     );
-    render(<ColeccionPanel bggUsername="CarcaFan" />);
+    renderPanel();
     await waitFor(() => {
       expect(screen.getByText('BGG offline')).toBeInTheDocument();
     });
@@ -79,7 +91,7 @@ describe('<ColeccionPanel>', () => {
       ),
     );
     const onLoaded = vi.fn();
-    render(<ColeccionPanel bggUsername="CarcaFan" onLoaded={onLoaded} />);
+    renderPanel({ onLoaded });
     await waitFor(() => {
       expect(onLoaded).toHaveBeenCalled();
       const arg = onLoaded.mock.calls[0][0];
@@ -92,7 +104,7 @@ describe('<ColeccionPanel>', () => {
     server.use(
       http.get('/api/bgg/coleccion/:bggUsername', () => HttpResponse.json(games)),
     );
-    render(<ColeccionPanel bggUsername="CarcaFan" />);
+    renderPanel();
     await waitFor(() => {
       expect(screen.getByText(/50 juegos/)).toBeInTheDocument();
     });
@@ -103,7 +115,7 @@ describe('<ColeccionPanel>', () => {
     server.use(
       http.get('/api/bgg/coleccion/:bggUsername', () => HttpResponse.json(games)),
     );
-    render(<ColeccionPanel bggUsername="CarcaFan" />);
+    renderPanel();
     await waitFor(() => {
       expect(screen.getByText('Game 0')).toBeInTheDocument();
     });
@@ -123,7 +135,7 @@ describe('<ColeccionPanel>', () => {
       }),
     );
 
-    render(<ColeccionPanel bggUsername="CarcaFan" />);
+    renderPanel();
     await waitFor(() => {
       expect(requestedUrls.length).toBe(1);
     });
@@ -137,7 +149,7 @@ describe('<ColeccionPanel>', () => {
   });
 
   it('disables the refresh button while loading', async () => {
-    render(<ColeccionPanel bggUsername="CarcaFan" />);
+    renderPanel();
     const btn = screen.getByRole('button', { name: /actualizar colección/i });
     expect(btn).toBeDisabled();
     await waitFor(() => {
@@ -145,30 +157,72 @@ describe('<ColeccionPanel>', () => {
     });
   });
 
-  it('shows a 60s countdown and stays disabled during the cooldown', async () => {
+  it('does NOT render the refresh button when canRefresh=false (non-owner / guest)', async () => {
+    renderPanel({ canRefresh: false });
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /actualizar colección/i })).toBeNull();
+    });
+  });
+
+  it('reads the X-Refresh-Cooldown-Ms response header to drive the countdown', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
-      render(<ColeccionPanel bggUsername="CarcaFan" />);
-      const btn = await screen.findByRole('button', { name: /actualizar colección/i });
-      await waitFor(() => { expect(btn).not.toBeDisabled(); });
+      server.use(
+        http.get('/api/bgg/coleccion/:bggUsername', () =>
+          HttpResponse.json(
+            [],
+            { headers: { 'X-Refresh-Cooldown-Ms': '60000' } },
+          ),
+        ),
+      );
 
-      fireEvent.click(btn);
+      renderPanel();
+      const btn = await screen.findByRole('button', { name: /actualizar colección/i });
+
+      // On mount, the server reported a 60s active cooldown — UI reflects it
+      // without any click. This is the persistence guarantee across reloads.
+      await waitFor(() => {
+        expect(btn.textContent).toMatch(/esperá 60s/i);
+      });
       expect(btn).toBeDisabled();
-      expect(btn.textContent).toMatch(/esperá 60s/i);
 
       vi.advanceTimersByTime(30_000);
       await waitFor(() => {
         expect(btn.textContent).toMatch(/esperá 30s/i);
       });
-
-      vi.advanceTimersByTime(31_000);
-      await waitFor(() => {
-        expect(btn.textContent).toMatch(/^↻ actualizar$/i);
-      });
-      expect(btn).not.toBeDisabled();
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('syncs cooldown from a 429 response header', async () => {
+    let nthRequest = 0;
+    server.use(
+      http.get('/api/bgg/coleccion/:bggUsername', () => {
+        nthRequest += 1;
+        if (nthRequest === 1) {
+          return HttpResponse.json(
+            [],
+            { headers: { 'X-Refresh-Cooldown-Ms': '0' } },
+          );
+        }
+        return HttpResponse.json(
+          { message: 'Esperá 45s antes de actualizar.', retryAfterMs: 45000 },
+          { status: 429, headers: { 'X-Refresh-Cooldown-Ms': '45000' } },
+        );
+      }),
+    );
+
+    renderPanel();
+    const btn = await screen.findByRole('button', { name: /actualizar colección/i });
+    await waitFor(() => { expect(btn).not.toBeDisabled(); });
+
+    fireEvent.click(btn);
+
+    await waitFor(() => {
+      expect(btn.textContent).toMatch(/esperá 45s/i);
+    });
+    expect(btn).toBeDisabled();
   });
 
   it('shows "—" when userRating is null', async () => {
@@ -177,7 +231,7 @@ describe('<ColeccionPanel>', () => {
         HttpResponse.json([makeGame({ userRating: null, bggRating: 7.2 })]),
       ),
     );
-    render(<ColeccionPanel bggUsername="CarcaFan" />);
+    renderPanel();
     await waitFor(() => {
       expect(screen.getByText('Catán')).toBeInTheDocument();
     });

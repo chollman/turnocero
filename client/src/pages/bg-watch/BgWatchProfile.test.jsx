@@ -6,9 +6,18 @@ import { server } from '../../test/server';
 
 vi.mock('../../context/AuthContext', () => ({ useAuth: vi.fn() }));
 
-// Heavy child components — stub for focused tests.
-vi.mock('./PartidasPanel', () => ({ default: () => <div data-testid="partidas-panel" /> }));
-vi.mock('./ColeccionPanel', () => ({ default: () => <div data-testid="coleccion-panel" /> }));
+// Heavy child components — stubbed but capture canRefresh so tests can assert
+// what BgWatchProfile passed in for owner/admin gating.
+vi.mock('./PartidasPanel', () => ({
+  default: ({ canRefresh }) => (
+    <div data-testid="partidas-panel" data-can-refresh={String(!!canRefresh)} />
+  ),
+}));
+vi.mock('./ColeccionPanel', () => ({
+  default: ({ canRefresh }) => (
+    <div data-testid="coleccion-panel" data-can-refresh={String(!!canRefresh)} />
+  ),
+}));
 vi.mock('./PlayDetailModal', () => ({ default: () => null }));
 vi.mock('./CreatePlayModal', () => ({ default: () => null }));
 vi.mock('./BgWatchGuestCTAs', () => ({
@@ -69,6 +78,55 @@ describe('<BgWatchProfile>', () => {
         expect(screen.queryByTestId('coleccion-panel') || screen.queryByTestId('partidas-panel')).toBeTruthy();
       });
     }
+  });
+
+  it('passes canRefresh=true to panels when the logged-in user owns this bggUsername', async () => {
+    renderProfile({
+      user: { bggUsername: 'CarcaFan', bggConnected: true, bggInvalid: false, isAdmin: false },
+      bggUsername: 'CarcaFan',
+    });
+    const panel = await screen.findByTestId('partidas-panel');
+    expect(panel.dataset.canRefresh).toBe('true');
+    expect(screen.getByTestId('coleccion-panel').dataset.canRefresh).toBe('true');
+  });
+
+  it('passes canRefresh=false when the logged-in user does NOT own this bggUsername and is not admin', async () => {
+    renderProfile({
+      user: { bggUsername: 'SomeoneElse', isAdmin: false },
+      bggUsername: 'CarcaFan',
+    });
+    const panel = await screen.findByTestId('partidas-panel');
+    expect(panel.dataset.canRefresh).toBe('false');
+    expect(screen.getByTestId('coleccion-panel').dataset.canRefresh).toBe('false');
+  });
+
+  it('passes canRefresh=true to admins viewing any profile (effective user.isAdmin)', async () => {
+    renderProfile({
+      user: { bggUsername: 'SomeoneElse', isAdmin: true },
+      bggUsername: 'CarcaFan',
+    });
+    const panel = await screen.findByTestId('partidas-panel');
+    expect(panel.dataset.canRefresh).toBe('true');
+    expect(screen.getByTestId('coleccion-panel').dataset.canRefresh).toBe('true');
+  });
+
+  it('admin in "Ver como usuario" mode is treated as a non-owner (no refresh button)', async () => {
+    // AuthContext sets user.isAdmin=false when the AdminViewToggle is active,
+    // even though isActuallyAdmin stays true. The component must respect the
+    // effective flag so the preview is faithful — no refresh on other profiles.
+    renderProfile({
+      user: { bggUsername: 'SomeoneElse', isAdmin: false },
+      bggUsername: 'CarcaFan',
+    });
+    const panel = await screen.findByTestId('partidas-panel');
+    expect(panel.dataset.canRefresh).toBe('false');
+    expect(screen.getByTestId('coleccion-panel').dataset.canRefresh).toBe('false');
+  });
+
+  it('passes canRefresh=false to guests (no user)', async () => {
+    renderProfile({ user: null, bggUsername: 'CarcaFan' });
+    const panel = await screen.findByTestId('partidas-panel');
+    expect(panel.dataset.canRefresh).toBe('false');
   });
 
   it('renders StatsBar with all four metric labels', async () => {

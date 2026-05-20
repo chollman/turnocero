@@ -3,8 +3,6 @@ import axios from 'axios';
 import Pagination from './Pagination';
 import styles from './BgWatchProfile.module.css';
 
-const REFRESH_COOLDOWN_MS = 60 * 1000;
-
 const COLLECTION_PAGE_SIZE = 24;
 
 function StarRating({ value }) {
@@ -45,7 +43,7 @@ function GameCard({ game }) {
   );
 }
 
-export default function ColeccionPanel({ bggUsername, onLoaded }) {
+export default function ColeccionPanel({ bggUsername, onLoaded, canRefresh = false }) {
   const [collection, setCollection] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -73,13 +71,24 @@ export default function ColeccionPanel({ bggUsername, onLoaded }) {
       : `/api/bgg/coleccion/${encodeURIComponent(bggUsername)}`;
     forceRefreshRef.current = false;
     axios.get(url)
-      .then(({ data }) => {
+      .then(({ data, headers }) => {
         if (cancelled) return;
         setCollection(data);
+        // Server-driven cooldown — sync from header.
+        const headerMs = Number(headers?.['x-refresh-cooldown-ms'] || 0);
+        setCooldownUntil(headerMs > 0 ? Date.now() + headerMs : 0);
+        setNow(Date.now());
         if (onLoaded) onLoaded(data);
       })
       .catch((err) => {
-        if (!cancelled) setError(err.response?.data?.message || 'No se pudo cargar la colección');
+        if (cancelled) return;
+        // 429 includes the cooldown header — sync the countdown.
+        const headerMs = Number(err.response?.headers?.['x-refresh-cooldown-ms'] || 0);
+        if (headerMs > 0) {
+          setCooldownUntil(Date.now() + headerMs);
+          setNow(Date.now());
+        }
+        setError(err.response?.data?.message || 'No se pudo cargar la colección');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -99,22 +108,22 @@ export default function ColeccionPanel({ bggUsername, onLoaded }) {
   return (
     <div className={styles.tabContent}>
       <div className={styles.panelToolbar}>
-        <button
-          type="button"
-          className={styles.refreshBtn}
-          onClick={() => {
-            if (loading || inCooldown) return;
-            forceRefreshRef.current = true;
-            setCooldownUntil(Date.now() + REFRESH_COOLDOWN_MS);
-            setNow(Date.now());
-            setRefreshTick((t) => t + 1);
-          }}
-          disabled={loading || inCooldown}
-          aria-label="Actualizar colección"
-          style={{ marginLeft: 'auto' }}
-        >
-          ↻ {inCooldown ? `Esperá ${cooldownRemaining}s` : 'Actualizar'}
-        </button>
+        {canRefresh && (
+          <button
+            type="button"
+            className={styles.refreshBtn}
+            onClick={() => {
+              if (loading || inCooldown) return;
+              forceRefreshRef.current = true;
+              setRefreshTick((t) => t + 1);
+            }}
+            disabled={loading || inCooldown}
+            aria-label="Actualizar colección"
+            style={{ marginLeft: 'auto' }}
+          >
+            ↻ {inCooldown ? `Esperá ${cooldownRemaining}s` : 'Actualizar'}
+          </button>
+        )}
       </div>
 
       {loading && (

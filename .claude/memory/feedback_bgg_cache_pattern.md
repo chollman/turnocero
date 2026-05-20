@@ -17,6 +17,8 @@ Bypass obligatorio en endpoints per-user (no en los persistentes globales): el s
 
 Cliente: cualquier panel que liste datos de BGG debe exponer un botón "↻ Actualizar" que (a) mande `?refresh=1`, (b) entre en cooldown de 60 s, (c) muestre countdown visible "Esperá Xs", (d) se rehabilite solo al terminar. Patrón implementado en `PartidasPanel` y `ColeccionPanel`.
 
+**Cooldown server-side persistente (2026-05-20):** el cooldown de 60s ya **no es solo cliente**. Vive en `User.bggSync.lastManualRefreshPartidasAt` y `lastManualRefreshColeccionAt`. El server expone el remaining via header `X-Refresh-Cooldown-Ms` en toda respuesta del endpoint (200 y 429). El cliente lee el header y setea su `cooldownUntil = Date.now() + headerMs` — no hay setter optimista al click. Si el server devuelve 429, el header sigue presente y sincroniza el countdown. Sobrevive recargas. Visibilidad del botón: `canRefresh = isOwnProfile || !!user?.isAdmin` calculado en el padre (`BgWatchProfile`) usando el `isAdmin` **efectivo** (no `isActuallyAdmin`) para respetar `viewAsUser` — admin en modo "Ver como usuario" no ve el botón en perfiles ajenos. Pasado como prop a los paneles, que hacen conditional render. Admins respetan el mismo cooldown.
+
 **Why:** BGG es lento (cold fetch ~400-500 ms vs ~10 ms cacheado), rate-limited, y los datos o no cambian nunca (game details) o cambian a ritmo humano (colección, partidas). Antes de este patrón el cache era solo in-memory de 5 min — se perdía en cada deploy y no se compartía entre usuarios. La introducción de L2 colapsó la mayor parte del tráfico (thumbnails de partidas son lo más pedido) y el `?refresh=1` le devuelve control al usuario cuando sabe que algo cambió.
 
 **How to apply:**
@@ -27,8 +29,8 @@ Cliente: cualquier panel que liste datos de BGG debe exponer un botón "↻ Actu
 - TTL del cache L1 in-memory: **30 min por default** (no 5). Es seguro porque el botón bypassa, las mutaciones invalidan el cache vía `clearXxxCache`, y los datos son no-críticos.
 
 Tests requeridos por la regla [[feedback-tests-required]]:
-- Server: tests cold/warm/mixed que mockean `global.fetch` y verifican qué pedidos llegan a BGG vs cuáles vienen de Mongo o memoria. Test específico de `?refresh=1` que confirma que bypassa el cache.
-- Cliente: test que confirma que el botón manda `?refresh=1` Y que entra en cooldown 60 s con countdown que se actualiza Y que se rehabilita al terminar (usar `vi.useFakeTimers({ shouldAdvanceTime: true })`).
+- Server: tests cold/warm/mixed que mockean `global.fetch` y verifican qué pedidos llegan a BGG vs cuáles vienen de Mongo o memoria. Test específico de `?refresh=1` que confirma que bypassa el cache. **Cooldown server-side:** test que un segundo `?refresh=1` dentro de 60s devuelve 429 con header `X-Refresh-Cooldown-Ms` y `retryAfterMs`, que los cooldowns de panels independientes no se cruzan, y que el stamp se persiste en `User.bggSync.lastManualRefresh*At` (case-insensitive vía `collation strength: 2`).
+- Cliente: test que confirma que el botón manda `?refresh=1`, que el countdown viene del header `X-Refresh-Cooldown-Ms` de la respuesta (mount con cooldown activo → "Esperá Xs" sin haber clickeado), que un 429 sincroniza countdown desde su header, y que el botón está oculto cuando `canRefresh={false}`.
 
 Comentario al inicio de `routes/bgg.js` documenta el patrón.
 

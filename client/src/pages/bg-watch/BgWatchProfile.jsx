@@ -30,6 +30,12 @@ export default function BgWatchProfile() {
   const isOwnProfile = !!user?.bggUsername &&
     user.bggUsername.toLowerCase() === (bggUsername || '').toLowerCase();
   const canCreate = isOwnProfile && user?.bggConnected && !user?.bggInvalid;
+  // Manual "Actualizar" button visibility — owner or admin only. Uses the
+  // EFFECTIVE user.isAdmin (modified by AdminViewToggle), not isActuallyAdmin,
+  // so admins previewing "Ver como usuario" see what a regular user sees
+  // (no refresh button on other people's profiles). Cooldown is
+  // server-enforced; admins respect it too.
+  const canRefresh = isOwnProfile || !!user?.isAdmin;
   const isGuest = !user;
 
   // Stable callbacks so panels don't refetch on every render
@@ -119,12 +125,14 @@ export default function BgWatchProfile() {
             onPlayEdit={canCreate ? handlePlayEdit : undefined}
             onPlayDelete={canCreate ? handlePlayDelete : undefined}
             onMetaChange={handlePlaysMeta}
+            canRefresh={canRefresh}
           />
         </div>
         <div style={{ display: activeTab === 'coleccion' ? 'block' : 'none' }}>
           <ColeccionPanel
             bggUsername={bggUsername}
             onLoaded={handleCollectionLoaded}
+            canRefresh={canRefresh}
           />
         </div>
 

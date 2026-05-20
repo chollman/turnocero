@@ -89,6 +89,12 @@ const userSchema = new mongoose.Schema(
         enum: ['no_drift', 'edits_only', 'reconciled', 'failed', null],
         default: null,
       },
+      // Server-enforced cooldown timestamps for the manual "Actualizar"
+      // button on BG Watch panels. Throttled per-panel; state persists
+      // across page reloads. See routes/bgg.js helpers
+      // getManualRefreshRemainingMs / stampManualRefresh.
+      lastManualRefreshPartidasAt: { type: Date, default: null },
+      lastManualRefreshColeccionAt: { type: Date, default: null },
     },
     isAdmin: {
       type: Boolean,

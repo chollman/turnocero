@@ -24,6 +24,9 @@ function renderPanel(props = {}) {
         onPlayEdit={props.onPlayEdit}
         onPlayDelete={props.onPlayDelete}
         onMetaChange={props.onMetaChange}
+        // Default to true so the existing cooldown/button-interaction tests
+        // can still find the "Actualizar" button. New tests opt out explicitly.
+        canRefresh={props.canRefresh ?? true}
       />
     </MemoryRouter>,
   );
@@ -265,35 +268,93 @@ describe('<PartidasPanel>', () => {
     });
   });
 
-  it('shows a 60s countdown and stays disabled during the cooldown', async () => {
+  it('does NOT render the refresh button when canRefresh=false (non-owner / guest)', async () => {
+    renderPanel({ canRefresh: false });
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /actualizar partidas/i })).toBeNull();
+    });
+  });
+
+  it('reads the X-Refresh-Cooldown-Ms response header to drive the countdown', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
+      server.use(
+        http.get('/api/bgg/partidas/:bggUsername', () =>
+          HttpResponse.json(
+            { plays: [], page: 1, total: 0, totalPages: 1 },
+            { headers: { 'X-Refresh-Cooldown-Ms': '60000' } },
+          ),
+        ),
+      );
+
       renderPanel();
       const btn = await screen.findByRole('button', { name: /actualizar partidas/i });
-      await waitFor(() => { expect(btn).not.toBeDisabled(); });
 
-      fireEvent.click(btn);
-
-      // Cooldown active immediately after click
+      // After mount, the server told us there's an active 60s cooldown — the
+      // button reflects that without any click. This is the persistence guarantee.
+      await waitFor(() => {
+        expect(btn.textContent).toMatch(/esperá 60s/i);
+      });
       expect(btn).toBeDisabled();
-      expect(btn.textContent).toMatch(/esperá 60s/i);
 
-      // Advance 30s — counter should be ~30s
+      // Counter ticks down with wall-clock — advance 30s
       vi.advanceTimersByTime(30_000);
       await waitFor(() => {
         expect(btn.textContent).toMatch(/esperá 30s/i);
       });
-      expect(btn).toBeDisabled();
-
-      // Advance past the cooldown — button should be enabled again with the
-      // plain "Actualizar" label
-      vi.advanceTimersByTime(31_000);
-      await waitFor(() => {
-        expect(btn.textContent).toMatch(/^↻ actualizar$/i);
-      });
-      expect(btn).not.toBeDisabled();
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('syncs cooldown from a 429 response header', async () => {
+    let nthRequest = 0;
+    server.use(
+      http.get('/api/bgg/partidas/:bggUsername', () => {
+        nthRequest += 1;
+        if (nthRequest === 1) {
+          // Initial mount load — clean response, no cooldown yet.
+          return HttpResponse.json(
+            { plays: [], page: 1, total: 0, totalPages: 1 },
+            { headers: { 'X-Refresh-Cooldown-Ms': '0' } },
+          );
+        }
+        // Manual click → server says still in cooldown.
+        return HttpResponse.json(
+          { message: 'Esperá 45s antes de actualizar.', retryAfterMs: 45000 },
+          { status: 429, headers: { 'X-Refresh-Cooldown-Ms': '45000' } },
+        );
+      }),
+    );
+
+    renderPanel();
+    const btn = await screen.findByRole('button', { name: /actualizar partidas/i });
+    await waitFor(() => { expect(btn).not.toBeDisabled(); });
+
+    fireEvent.click(btn);
+
+    // The 429 carries the cooldown header — the button must reflect it.
+    await waitFor(() => {
+      expect(btn.textContent).toMatch(/esperá 45s/i);
+    });
+    expect(btn).toBeDisabled();
+  });
+
+  it('refresh button stays enabled after a successful refresh with no active cooldown header', async () => {
+    // Server returns "0" or omits the header — button should be available.
+    server.use(
+      http.get('/api/bgg/partidas/:bggUsername', () =>
+        HttpResponse.json(
+          { plays: [], page: 1, total: 0, totalPages: 1 },
+          { headers: { 'X-Refresh-Cooldown-Ms': '0' } },
+        ),
+      ),
+    );
+    renderPanel();
+    const btn = await screen.findByRole('button', { name: /actualizar partidas/i });
+    await waitFor(() => {
+      expect(btn).not.toBeDisabled();
+      expect(btn.textContent).toMatch(/^↻ actualizar$/i);
+    });
   });
 });

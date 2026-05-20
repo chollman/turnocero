@@ -20,6 +20,48 @@ const {
 
 const PROBE_THROTTLE_MS = 5 * 60 * 1000; // 5 min between background probes
 const FULL_RECONCILE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days between background full reconciles
+const MANUAL_REFRESH_COOLDOWN_MS = 60 * 1000; // 1 min between manual "Actualizar" button clicks per panel
+
+// Server-enforced cooldown for the "Actualizar" button on BG Watch panels.
+// Persisted in User.bggSync.lastManualRefresh{Partidas,Coleccion}At so the
+// cooldown survives page reloads and is uniform across clients. The button
+// only renders for the profile owner (or admin) on the client, but these
+// helpers gate the endpoint regardless of auth — a direct curl hit with
+// ?refresh=1 is throttled too. Returns 0 when refresh is allowed, otherwise
+// the milliseconds remaining.
+async function getManualRefreshRemainingMs(bggUsername, panel) {
+  if (!bggUsername) return 0;
+  const field =
+    panel === "partidas"
+      ? "bggSync.lastManualRefreshPartidasAt"
+      : "bggSync.lastManualRefreshColeccionAt";
+  const user = await User.findOne({ bggUsername })
+    .collation({ locale: "en", strength: 2 })
+    .select(field)
+    .lean();
+  if (!user) return 0; // no Turnocero user owns this bggUsername — can't persist, allow
+  const last =
+    panel === "partidas"
+      ? user.bggSync?.lastManualRefreshPartidasAt
+      : user.bggSync?.lastManualRefreshColeccionAt;
+  if (!last) return 0;
+  const elapsed = Date.now() - new Date(last).getTime();
+  return elapsed >= MANUAL_REFRESH_COOLDOWN_MS
+    ? 0
+    : MANUAL_REFRESH_COOLDOWN_MS - elapsed;
+}
+
+async function stampManualRefresh(bggUsername, panel) {
+  if (!bggUsername) return;
+  const field =
+    panel === "partidas"
+      ? "bggSync.lastManualRefreshPartidasAt"
+      : "bggSync.lastManualRefreshColeccionAt";
+  await User.updateOne(
+    { bggUsername },
+    { $set: { [field]: new Date() } },
+  ).collation({ locale: "en", strength: 2 });
+}
 
 router.use(requireSection("bgwatch"));
 
@@ -894,8 +936,32 @@ router.get("/game/:id", async (req, res) => {
 router.get("/coleccion/:bggUsername", async (req, res) => {
   const { bggUsername } = req.params;
   const forceRefresh = req.query.refresh === "1";
+
+  // Server-side cooldown for the manual "Actualizar" button (60s per panel).
+  // Applies to anyone hitting ?refresh=1 — the client only shows the button
+  // to owner/admin, but we throttle here regardless of auth.
+  if (forceRefresh) {
+    const remaining = await getManualRefreshRemainingMs(
+      bggUsername,
+      "coleccion",
+    );
+    if (remaining > 0) {
+      res.setHeader("X-Refresh-Cooldown-Ms", String(remaining));
+      return res.status(429).json({
+        message: `Esperá ${Math.ceil(remaining / 1000)}s antes de actualizar.`,
+        retryAfterMs: remaining,
+      });
+    }
+    await stampManualRefresh(bggUsername, "coleccion");
+  }
+
   try {
     const collection = await resolveCollection(bggUsername, { forceRefresh });
+    const remaining = await getManualRefreshRemainingMs(
+      bggUsername,
+      "coleccion",
+    );
+    res.setHeader("X-Refresh-Cooldown-Ms", String(remaining));
     res.json(collection);
   } catch (err) {
     if (err.status === 404) {
@@ -1069,6 +1135,33 @@ router.get("/partidas/:bggUsername", async (req, res) => {
     : null;
   const gameId = /^\d+$/.test(req.query.id || "") ? req.query.id : null;
   const forceRefresh = req.query.refresh === "1";
+
+  // Server-side cooldown for the manual "Actualizar" button (60s per panel).
+  // Applies regardless of auth — client only shows the button to owner/admin.
+  if (forceRefresh) {
+    const remaining = await getManualRefreshRemainingMs(
+      bggUsername,
+      "partidas",
+    );
+    if (remaining > 0) {
+      res.setHeader("X-Refresh-Cooldown-Ms", String(remaining));
+      return res.status(429).json({
+        message: `Esperá ${Math.ceil(remaining / 1000)}s antes de actualizar.`,
+        retryAfterMs: remaining,
+      });
+    }
+    await stampManualRefresh(bggUsername, "partidas");
+  }
+
+  // Set the current cooldown header on the response once, here. All
+  // res.json(...) paths below inherit it automatically. If we just stamped
+  // (forceRefresh path), this returns ~MANUAL_REFRESH_COOLDOWN_MS; otherwise
+  // it reflects whatever cooldown was previously active (or 0).
+  const cooldownRemaining = await getManualRefreshRemainingMs(
+    bggUsername,
+    "partidas",
+  );
+  res.setHeader("X-Refresh-Cooldown-Ms", String(cooldownRemaining));
 
   // L2: serve from Mongo if this user has been synced.
   const hasMongoData = await BggPlay.exists({ bggUsername: lower });

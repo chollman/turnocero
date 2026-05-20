@@ -6,8 +6,6 @@ import Pagination from './Pagination';
 import useBggUserMap from './useBggUserMap';
 import styles from './BgWatchProfile.module.css';
 
-const REFRESH_COOLDOWN_MS = 60 * 1000;
-
 const PLAYS_PAGE_SIZE = 10;
 const GAMES_PAGE_SIZE = 24;
 
@@ -70,7 +68,7 @@ function GameWithPlaysCard({ game, bggUsername }) {
   );
 }
 
-export default function PartidasPanel({ bggUsername, collection, onPlayClick, onPlayEdit, onPlayDelete, onMetaChange }) {
+export default function PartidasPanel({ bggUsername, collection, onPlayClick, onPlayEdit, onPlayDelete, onMetaChange, canRefresh = false }) {
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'byGame'
 
   // ── List mode state ──
@@ -112,9 +110,13 @@ export default function PartidasPanel({ bggUsername, collection, onPlayClick, on
     }
 
     axios.get(`/api/bgg/partidas/${encodeURIComponent(bggUsername)}?${params.toString()}`)
-      .then(({ data }) => {
+      .then(({ data, headers }) => {
         if (cancelled) return;
         setPlays(data);
+        // Server is the source of truth for the cooldown — sync from header.
+        const headerMs = Number(headers?.['x-refresh-cooldown-ms'] || 0);
+        setCooldownUntil(headerMs > 0 ? Date.now() + headerMs : 0);
+        setNow(Date.now());
         if (filter === 'all' && page === 1 && onMetaChange) {
           onMetaChange({
             total: data.total,
@@ -124,7 +126,14 @@ export default function PartidasPanel({ bggUsername, collection, onPlayClick, on
         }
       })
       .catch((err) => {
-        if (!cancelled) setError(err.response?.data?.message || 'No se pudo cargar las partidas');
+        if (cancelled) return;
+        // 429 carries the cooldown header too — sync the countdown.
+        const headerMs = Number(err.response?.headers?.['x-refresh-cooldown-ms'] || 0);
+        if (headerMs > 0) {
+          setCooldownUntil(Date.now() + headerMs);
+          setNow(Date.now());
+        }
+        setError(err.response?.data?.message || 'No se pudo cargar las partidas');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -218,21 +227,21 @@ export default function PartidasPanel({ bggUsername, collection, onPlayClick, on
             Por juego
           </button>
         </div>
-        <button
-          type="button"
-          className={styles.refreshBtn}
-          onClick={() => {
-            if (loading || inCooldown) return;
-            forceRefreshRef.current = true;
-            setCooldownUntil(Date.now() + REFRESH_COOLDOWN_MS);
-            setNow(Date.now());
-            setRefreshTick((t) => t + 1);
-          }}
-          disabled={loading || inCooldown}
-          aria-label="Actualizar partidas"
-        >
-          ↻ {inCooldown ? `Esperá ${cooldownRemaining}s` : 'Actualizar'}
-        </button>
+        {canRefresh && (
+          <button
+            type="button"
+            className={styles.refreshBtn}
+            onClick={() => {
+              if (loading || inCooldown) return;
+              forceRefreshRef.current = true;
+              setRefreshTick((t) => t + 1);
+            }}
+            disabled={loading || inCooldown}
+            aria-label="Actualizar partidas"
+          >
+            ↻ {inCooldown ? `Esperá ${cooldownRemaining}s` : 'Actualizar'}
+          </button>
+        )}
       </div>
 
       {viewMode === 'list' && (
