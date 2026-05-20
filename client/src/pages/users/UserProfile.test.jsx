@@ -200,7 +200,7 @@ describe('<UserProfile> — Avatar section', () => {
   });
 });
 
-describe('UserProfile — Sincronizar con BGG', () => {
+describe('UserProfile — Reconciliar todo con BGG', () => {
   const connectedUser = {
     _id: 'u1',
     username: 'cha',
@@ -212,14 +212,14 @@ describe('UserProfile — Sincronizar con BGG', () => {
     bggSync: null,
   };
 
-  it('shows the "Sincronizar con BGG" button when the user is connected', () => {
+  it('shows the "Reconciliar todo con BGG" button when the user is connected', () => {
     setup({ user: connectedUser });
-    expect(screen.getByRole('button', { name: /sincronizar con bgg/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reconciliar todo con bgg/i })).toBeInTheDocument();
   });
 
   it('does NOT show the button when the user is not connected', () => {
     setup({ user: { ...connectedUser, bggConnected: false } });
-    expect(screen.queryByRole('button', { name: /sincronizar con bgg/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /reconciliar todo con bgg/i })).not.toBeInTheDocument();
   });
 
   it('calls POST /api/bgg/sync on click and shows a per-bucket success breakdown', async () => {
@@ -241,7 +241,7 @@ describe('UserProfile — Sincronizar con BGG', () => {
     const refreshUser = vi.fn();
     setup({ user: connectedUser, refreshUser });
 
-    fireEvent.click(screen.getByRole('button', { name: /sincronizar con bgg/i }));
+    fireEvent.click(screen.getByRole('button', { name: /reconciliar todo con bgg/i }));
     await waitFor(() => {
       expect(refreshUser).toHaveBeenCalled();
     });
@@ -263,23 +263,55 @@ describe('UserProfile — Sincronizar con BGG', () => {
       ),
     );
     setup({ user: connectedUser });
-    fireEvent.click(screen.getByRole('button', { name: /sincronizar con bgg/i }));
+    fireEvent.click(screen.getByRole('button', { name: /reconciliar todo con bgg/i }));
     expect(await screen.findByText(/reconciliadas 247 partidas \(sin cambios\)/i)).toBeInTheDocument();
   });
 
-  it('shows last-sync date and count when present on the user', () => {
+  it('shows last full reconcile time + count as relative timestamp', () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     setup({
       user: {
         ...connectedUser,
         bggSync: {
-          lastFullSyncAt: '2026-05-15T10:00:00Z',
+          lastFullSyncAt: oneHourAgo,
           lastFullSyncCount: 312,
         },
       },
     });
-    // The block contains both date and count
-    expect(screen.getByText(/última sincronización/i)).toBeInTheDocument();
-    expect(screen.getByText(/312 partidas/)).toBeInTheDocument();
+    expect(screen.getByText(/última reconciliación completa/i)).toBeInTheDocument();
+    expect(screen.getByText(/hace 1 h · 312 partidas/i)).toBeInTheDocument();
+  });
+
+  it('shows last probe time + outcome label', () => {
+    const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    setup({
+      user: {
+        ...connectedUser,
+        bggSync: {
+          lastFullSyncAt: '2026-05-01T00:00:00Z',
+          lastFullSyncCount: 312,
+          lastProbedAt: twoMinAgo,
+          lastProbeOutcome: 'no_drift',
+        },
+      },
+    });
+    expect(screen.getByText(/última verificación/i)).toBeInTheDocument();
+    expect(screen.getByText(/hace 2 min · ✓ sin cambios/i)).toBeInTheDocument();
+  });
+
+  it('shows reconciled outcome label when applicable', () => {
+    setup({
+      user: {
+        ...connectedUser,
+        bggSync: {
+          lastFullSyncAt: new Date().toISOString(),
+          lastFullSyncCount: 100,
+          lastProbedAt: new Date().toISOString(),
+          lastProbeOutcome: 'reconciled',
+        },
+      },
+    });
+    expect(screen.getByText(/✓ reconciliado/i)).toBeInTheDocument();
   });
 
   it('shows API error when sync fails', async () => {
@@ -289,7 +321,7 @@ describe('UserProfile — Sincronizar con BGG', () => {
       ),
     );
     setup({ user: connectedUser });
-    fireEvent.click(screen.getByRole('button', { name: /sincronizar con bgg/i }));
+    fireEvent.click(screen.getByRole('button', { name: /reconciliar todo con bgg/i }));
     expect(await screen.findByText('BGG offline')).toBeInTheDocument();
   });
 });

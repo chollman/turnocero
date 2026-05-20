@@ -478,6 +478,15 @@
   color: var(--text-primary);
 }
 
+.bggSyncHint {
+  margin: 4px 0 0 0;
+  font-family: var(--font-display);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  max-width: 460px;
+}
+
 .btnGhost {
   background: transparent;
   border: 1px solid var(--border);

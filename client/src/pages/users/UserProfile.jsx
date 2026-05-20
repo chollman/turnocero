@@ -18,6 +18,23 @@ const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 const BGWATCH_BANNER_DISMISS_KEY = 'turnocero_bgwatch_profile_banner_dismissed';
 
+const PROBE_OUTCOME_LABEL = {
+  no_drift:   '✓ Sin cambios',
+  edits_only: '✓ Cambios aplicados',
+  reconciled: '✓ Reconciliado',
+  failed:     '⚠️ Falló',
+};
+
+function relativeTimeEs(date) {
+  if (!date) return null;
+  const diffSec = (Date.now() - new Date(date).getTime()) / 1000;
+  if (diffSec < 60)      return 'hace un momento';
+  if (diffSec < 3600)    return `hace ${Math.floor(diffSec / 60)} min`;
+  if (diffSec < 86400)   return `hace ${Math.floor(diffSec / 3600)} h`;
+  if (diffSec < 604800)  return `hace ${Math.floor(diffSec / 86400)} d`;
+  return new Date(date).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 const buildMarkerIcon = () => {
   const amber = getComputedStyle(document.documentElement).getPropertyValue('--amber').trim() || '#1888ef';
   const ring = getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() || '#ffffff';
@@ -626,23 +643,35 @@ export default function UserProfile() {
                     )}
                     {user.bggSync?.lastFullSyncAt && (
                       <div className={styles.bggStatusBlock}>
-                        <span className={styles.bggStatusLabel}>Última sincronización</span>
+                        <span className={styles.bggStatusLabel}>Última reconciliación completa</span>
                         <span className={styles.bggStatusValue}>
-                          {new Date(user.bggSync.lastFullSyncAt).toLocaleDateString('es-AR', {
-                            day: 'numeric', month: 'short', year: 'numeric',
-                          })}
+                          {relativeTimeEs(user.bggSync.lastFullSyncAt)}
                           {user.bggSync.lastFullSyncCount > 0 && ` · ${user.bggSync.lastFullSyncCount} partidas`}
                         </span>
                       </div>
                     )}
+                    {user.bggSync?.lastProbedAt && (
+                      <div className={styles.bggStatusBlock}>
+                        <span className={styles.bggStatusLabel}>Última verificación</span>
+                        <span className={styles.bggStatusValue}>
+                          {relativeTimeEs(user.bggSync.lastProbedAt)}
+                          {user.bggSync.lastProbeOutcome && PROBE_OUTCOME_LABEL[user.bggSync.lastProbeOutcome] &&
+                            ` · ${PROBE_OUTCOME_LABEL[user.bggSync.lastProbeOutcome]}`}
+                        </span>
+                      </div>
+                    )}
+                    <p className={styles.bggSyncHint}>
+                      Tu historial se mantiene actualizado automáticamente cuando entrás a BG Watch.
+                      Apretá el botón solo si editaste partidas viejas en BGG.com y querés forzar una reconciliación completa ahora.
+                    </p>
                     <button
                       type="button"
                       className={styles.btnPrimary}
                       onClick={handleBggSync}
                       disabled={syncBusy || bggBusy}
-                      title="Trae todas tus partidas desde BGG y las guarda. Usalo si editaste o borraste partidas directamente en BGG.com."
+                      title="Walk completo del historial de BGG. Útil si editaste partidas más viejas que las 30 más recientes."
                     >
-                      {syncBusy ? 'Sincronizando…' : '↻ Sincronizar con BGG'}
+                      {syncBusy ? 'Reconciliando…' : '↻ Reconciliar todo con BGG'}
                     </button>
                     <button
                       type="button"
