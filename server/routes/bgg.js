@@ -572,6 +572,34 @@ const PAGE_SIZE = 10;
 const BGG_PAGE_SIZE = 30;
 const PAGES_PER_BGG = BGG_PAGE_SIZE / PAGE_SIZE; // 3 client pages per BGG page
 
+// Aggregates the user's BggPlay docs to find the single most-played game,
+// summing `quantity` per gameId. Returns null when there are no plays with
+// a gameId. Designed for the stats card on /bg-watch/:user — only called on
+// the unfiltered page=1 request.
+async function computeTopPlayedGame(lowerBggUsername) {
+  const agg = await BggPlay.aggregate([
+    { $match: { bggUsername: lowerBggUsername, gameId: { $ne: null } } },
+    {
+      $group: {
+        _id: '$gameId',
+        count: { $sum: { $ifNull: ['$quantity', 1] } },
+        name: { $last: '$gameName' },
+        thumbnail: { $last: '$gameThumbnail' },
+      },
+    },
+    { $sort: { count: -1, _id: 1 } },
+    { $limit: 1 },
+  ]);
+  if (!agg.length || !agg[0].count) return null;
+  const top = agg[0];
+  return {
+    id: top._id,
+    name: top.name || null,
+    thumbnail: top.thumbnail || null,
+    numPlays: top.count,
+  };
+}
+
 router.get('/partidas/:bggUsername', async (req, res) => {
   const { bggUsername } = req.params;
   const lower = bggUsername.toLowerCase();
@@ -605,21 +633,26 @@ router.get('/partidas/:bggUsername', async (req, res) => {
     }
     if (gameId) filter.gameId = String(gameId);
 
-    const [total, docs] = await Promise.all([
+    const isUnfilteredFirstPage = clientPage === 1 && !mindate && !maxdate && !gameId;
+
+    const [total, docs, topGame] = await Promise.all([
       BggPlay.countDocuments(filter),
       BggPlay.find(filter)
         .sort({ date: -1, playId: -1 })
         .skip((clientPage - 1) * PAGE_SIZE)
         .limit(PAGE_SIZE)
         .lean(),
+      isUnfilteredFirstPage ? computeTopPlayedGame(lower) : Promise.resolve(undefined),
     ]);
 
-    return res.json({
+    const response = {
       total,
       page: clientPage,
       pageSize: PAGE_SIZE,
       plays: docs.map(playToApi),
-    });
+    };
+    if (isUnfilteredFirstPage) response.topGame = topGame;
+    return res.json(response);
   }
 
   // L1 / L3 fallback: no Mongo data yet — serve from BGG (with in-memory cache).

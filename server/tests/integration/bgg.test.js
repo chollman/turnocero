@@ -353,6 +353,44 @@ describe('BGG persistent cache (memoria → Mongo → BGG)', () => {
       expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
 
+    it('includes topGame (from BggPlay aggregation) on unfiltered page=1', async () => {
+      await BggPlay.insertMany([
+        { bggUsername: 'topagg', playId: '1', date: '2026-05-01', gameId: '13', gameName: 'A', gameThumbnail: 'a.jpg', quantity: 1 },
+        { bggUsername: 'topagg', playId: '2', date: '2026-05-02', gameId: '13', gameName: 'A', gameThumbnail: 'a.jpg', quantity: 2 },
+        { bggUsername: 'topagg', playId: '3', date: '2026-05-03', gameId: '14', gameName: 'B', gameThumbnail: 'b.jpg', quantity: 1 },
+      ]);
+
+      const res = await request(app).get('/api/bgg/partidas/topagg');
+      expect(res.status).toBe(200);
+      expect(res.body.topGame).toEqual({
+        id: '13',
+        name: 'A',
+        thumbnail: 'a.jpg',
+        numPlays: 3, // 1 + 2 (quantity summed)
+      });
+    });
+
+    it('omits topGame on filtered or paginated requests', async () => {
+      await BggPlay.insertMany([
+        { bggUsername: 'topagg2', playId: '1', date: '2026-05-01', gameId: '13', gameName: 'A' },
+      ]);
+
+      const filtered = await request(app).get('/api/bgg/partidas/topagg2?mindate=2026-04-01');
+      expect(filtered.body).not.toHaveProperty('topGame');
+
+      const page2 = await request(app).get('/api/bgg/partidas/topagg2?page=2');
+      expect(page2.body).not.toHaveProperty('topGame');
+    });
+
+    it('returns topGame: null when user has no plays with a gameId', async () => {
+      await BggPlay.insertMany([
+        { bggUsername: 'noid', playId: '1', date: '2026-05-01', gameId: null, gameName: 'unknown' },
+      ]);
+
+      const res = await request(app).get('/api/bgg/partidas/noid');
+      expect(res.body.topGame).toBeNull();
+    });
+
     it('?refresh=1 triggers a delta sync and upserts new plays into Mongo', async () => {
       await BggPlay.insertMany([
         { bggUsername: 'mongo4', playId: '1', date: '2026-05-01', gameName: 'Old', gameId: '13' },
