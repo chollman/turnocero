@@ -893,6 +893,101 @@ const PAGE_SIZE = 10;
 const BGG_PAGE_SIZE = 30;
 const PAGES_PER_BGG = BGG_PAGE_SIZE / PAGE_SIZE; // 3 client pages per BGG page
 
+// Aggregates per-game stats for the user — used by the /bg-watch/:user/juego/:gameId
+// view to show stats over the entire history instead of just the visible page.
+// "Owner" is the player whose username matches `bggUsername` case-insensitively
+// (BGG returns the account holder among the play's players).
+//
+// Returns { wins, rated, avgDuration, lastDate } where rated is the number of
+// plays in which we could identify the owner (plays without a matching player
+// are excluded from the win rate denominator).
+async function computeGameStats(lowerBggUsername, gameId) {
+  // $reduce gives us a deterministic "owner found?" sentinel (`null` means
+  // no player whose username matches `bggUsername`). $arrayElemAt on an
+  // empty array is supposed to return null too, but its interaction with
+  // downstream $ne/$eq turned out brittle in practice — $reduce is
+  // explicit about producing a null when no match exists.
+  const agg = await BggPlay.aggregate([
+    { $match: { bggUsername: lowerBggUsername, gameId: String(gameId) } },
+    {
+      $project: {
+        duration: 1,
+        date: 1,
+        ownerMatch: {
+          $reduce: {
+            input: { $ifNull: ["$players", []] },
+            initialValue: null,
+            in: {
+              $cond: [
+                {
+                  $eq: [
+                    { $toLower: { $ifNull: ["$$this.username", ""] } },
+                    lowerBggUsername,
+                  ],
+                },
+                { win: { $eq: ["$$this.win", true] } },
+                "$$value",
+              ],
+            },
+          },
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        rated: {
+          $sum: { $cond: [{ $ne: ["$ownerMatch", null] }, 1, 0] },
+        },
+        wins: {
+          $sum: { $cond: [{ $eq: ["$ownerMatch.win", true] }, 1, 0] },
+        },
+        avgDuration: {
+          $avg: { $cond: [{ $gt: ["$duration", 0] }, "$duration", null] },
+        },
+        lastDate: { $max: "$date" },
+      },
+    },
+  ]);
+  if (!agg.length) {
+    return { wins: 0, rated: 0, avgDuration: null, lastDate: null };
+  }
+  const row = agg[0];
+  return {
+    wins: row.wins || 0,
+    rated: row.rated || 0,
+    avgDuration: row.avgDuration != null ? Math.round(row.avgDuration) : null,
+    lastDate: row.lastDate || null,
+  };
+}
+
+// Aggregates the user's BggPlay docs into a per-game played-counts list,
+// summing `quantity` per gameId. Returns one entry per game the user has
+// played (in their log), sorted by numPlays desc. Powers the "Por juego"
+// view in PartidasPanel — replaces the collection-derived list, which
+// missed plays of unowned games and broke for users with private
+// collections.
+async function computePlayedGames(lowerBggUsername) {
+  const agg = await BggPlay.aggregate([
+    { $match: { bggUsername: lowerBggUsername, gameId: { $ne: null } } },
+    {
+      $group: {
+        _id: "$gameId",
+        numPlays: { $sum: { $ifNull: ["$quantity", 1] } },
+        name: { $last: "$gameName" },
+        thumbnail: { $last: "$gameThumbnail" },
+      },
+    },
+    { $sort: { numPlays: -1, _id: 1 } },
+  ]);
+  return agg.map((row) => ({
+    id: row._id,
+    name: row.name || null,
+    thumbnail: row.thumbnail || null,
+    numPlays: row.numPlays,
+  }));
+}
+
 // Aggregates the user's BggPlay docs to find the single most-played game,
 // summing `quantity` per gameId. Returns null when there are no plays with
 // a gameId. Designed for the stats card on /bg-watch/:user — only called on
@@ -920,6 +1015,26 @@ async function computeTopPlayedGame(lowerBggUsername) {
     numPlays: top.count,
   };
 }
+
+// GET /api/bgg/juegos-jugados/:bggUsername — list of games the user has
+// played, derived from BggPlay aggregation. Returns [] when the user has
+// no plays in Mongo so the client can fall back to the collection-derived
+// list (only useful for users on the L1/L3 fallback path; for synced
+// users the server-derived list is authoritative).
+router.get("/juegos-jugados/:bggUsername", async (req, res) => {
+  const { bggUsername } = req.params;
+  const lower = bggUsername.toLowerCase();
+  try {
+    const items = await computePlayedGames(lower);
+    res.json(items);
+  } catch (err) {
+    console.error(
+      `[bgg/juegos-jugados] aggregation failed for ${lower}:`,
+      err.message,
+    );
+    res.status(500).json({ message: "No se pudieron computar los juegos jugados" });
+  }
+});
 
 router.get("/partidas/:bggUsername", async (req, res) => {
   const { bggUsername } = req.params;
@@ -1003,7 +1118,7 @@ router.get("/partidas/:bggUsername", async (req, res) => {
     const isUnfilteredFirstPage =
       clientPage === 1 && !mindate && !maxdate && !gameId;
 
-    const [total, docs, topGame] = await Promise.all([
+    const [total, docs, topGame, gameStats] = await Promise.all([
       BggPlay.countDocuments(filter),
       BggPlay.find(filter)
         .sort({ date: -1, playId: -1 })
@@ -1013,6 +1128,9 @@ router.get("/partidas/:bggUsername", async (req, res) => {
       isUnfilteredFirstPage
         ? computeTopPlayedGame(lower)
         : Promise.resolve(undefined),
+      // Per-game stats over the full history — only when filtered by gameId
+      // (the /bg-watch/:user/juego/:gameId view).
+      gameId ? computeGameStats(lower, gameId) : Promise.resolve(undefined),
     ]);
 
     const response = {
@@ -1022,10 +1140,25 @@ router.get("/partidas/:bggUsername", async (req, res) => {
       plays: docs.map(playToApi),
     };
     if (isUnfilteredFirstPage) response.topGame = topGame;
+    if (gameId) response.gameStats = gameStats;
     return res.json(response);
   }
 
   // L1 / L3 fallback: no Mongo data yet — serve from BGG (with in-memory cache).
+  //
+  // If a Turnocero User owns this bggUsername (case-insensitive match), kick
+  // off a background reconcile so they stop falling through this path on
+  // future visits. This is the self-healing branch that catches users who
+  // connected BGG before the autosync-on-connect was deployed (Phase 5), or
+  // whose autosync failed and was never retried manually. The reconcile is
+  // fire-and-forget — the current request still serves the L1/L3 cache as
+  // before so the user sees data immediately.
+  const ownerForBackfill = await User.findOne({ bggUsername: lower })
+    .collation({ locale: "en", strength: 2 })
+    .select("_id")
+    .lean();
+  if (ownerForBackfill) triggerBackgroundReconcile(bggUsername);
+
   const bggPage = Math.ceil(clientPage / PAGES_PER_BGG);
   const offsetWithinBgg = ((clientPage - 1) % PAGES_PER_BGG) * PAGE_SIZE;
   const cacheKey = `partidas:${lower}:bgg:${bggPage}:${mindate || "-"}:${maxdate || "-"}:${gameId || "-"}`;

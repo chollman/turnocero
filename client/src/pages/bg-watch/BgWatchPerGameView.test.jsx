@@ -96,4 +96,51 @@ describe('<BgWatchPerGameView>', () => {
     await screen.findAllByText(/Catán/);
     expect(screen.queryByRole('button', { name: /registrar partida|cargar partida|nueva partida|\+ partida/i })).not.toBeInTheDocument();
   });
+
+  it('uses server-aggregated gameStats over the full history when present', async () => {
+    server.use(
+      http.get('/api/bgg/partidas/:bggUsername', () =>
+        HttpResponse.json({
+          plays: [{ id: 'p1', date: '2026-05-01', players: [] }],
+          page: 1,
+          total: 47, // many more plays exist than just the current page
+          totalPages: 5,
+          gameStats: { wins: 30, rated: 47, avgDuration: 85, lastDate: '2026-05-19' },
+        }),
+      ),
+    );
+    renderView();
+    await waitFor(() => {
+      // Win rate from server: 30/47 = 63.83% → rounded to 64%
+      expect(screen.getByText('64%')).toBeInTheDocument();
+    });
+    expect(screen.getByText('85m')).toBeInTheDocument(); // server avg
+    // No "de últimas N" hint when stats come from the server.
+    expect(screen.queryByText(/de últimas/i)).not.toBeInTheDocument();
+  });
+
+  it('falls back to page-derived stats with partial hint when gameStats is absent', async () => {
+    // Server response without gameStats (e.g. user not synced into BggPlay
+    // yet, served from the BGG XML cache fallback).
+    server.use(
+      http.get('/api/bgg/partidas/:bggUsername', () =>
+        HttpResponse.json({
+          plays: [
+            { id: 'p1', date: '2026-05-01', duration: 60, players: [{ username: 'CarcaFan', win: true }] },
+            { id: 'p2', date: '2026-05-02', duration: 90, players: [{ username: 'CarcaFan', win: false }] },
+          ],
+          page: 1,
+          total: 50, // many more than the 2 we sampled → partial
+          totalPages: 25,
+        }),
+      ),
+    );
+    renderView();
+    await waitFor(() => {
+      // Win rate from the 2 sampled plays: 1/2 = 50%
+      expect(screen.getByText('50%')).toBeInTheDocument();
+    });
+    expect(screen.getByText('75m')).toBeInTheDocument(); // (60+90)/2
+    expect(screen.getAllByText(/de últimas/i).length).toBeGreaterThan(0);
+  });
 });

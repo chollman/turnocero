@@ -98,10 +98,22 @@ export default function BgWatchPerGameView() {
   // since the open play's players are always a subset.
   const userMap = useBggUserMap(plays?.plays);
 
-  // Stats derived from the current page (with note when partial)
+  // Prefer server-aggregated stats over the full history (computed from
+  // BggPlay) when present. Falls back to per-page derivation for users
+  // served from the BGG XML cache path (no Mongo data yet).
   const stats = useMemo(() => {
+    if (plays?.gameStats) {
+      const g = plays.gameStats;
+      return {
+        winRate: g.rated > 0 ? Math.round((g.wins / g.rated) * 100) : null,
+        ratedCount: g.rated,
+        avgDuration: g.avgDuration ?? null,
+        lastPlay: g.lastDate || null,
+        source: 'server',
+      };
+    }
     if (!plays || plays.plays.length === 0) {
-      return { wins: 0, totalRated: 0, durations: [], lastPlay: null };
+      return { winRate: null, ratedCount: 0, avgDuration: null, lastPlay: null, source: 'page' };
     }
     let wins = 0;
     let totalRated = 0;
@@ -116,16 +128,23 @@ export default function BgWatchPerGameView() {
       if (p.duration > 0) durations.push(p.duration);
       if (!lastPlay || (p.date && p.date > lastPlay)) lastPlay = p.date;
     }
-    return { wins, totalRated, durations, lastPlay };
+    return {
+      winRate: totalRated > 0 ? Math.round((wins / totalRated) * 100) : null,
+      ratedCount: totalRated,
+      avgDuration: durations.length > 0
+        ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+        : null,
+      lastPlay,
+      durationsCount: durations.length,
+      source: 'page',
+    };
   }, [plays, bggUsername]);
 
-  const winRate = stats.totalRated > 0 ? Math.round((stats.wins / stats.totalRated) * 100) : null;
-  const avgDuration = stats.durations.length > 0
-    ? Math.round(stats.durations.reduce((a, b) => a + b, 0) / stats.durations.length)
-    : null;
-
   const totalPages = plays ? Math.ceil(plays.total / PLAYS_PAGE_SIZE) : 0;
-  const partialStats = plays && plays.total > plays.plays.length;
+  // "Partial" hint only when stats came from the page-derived fallback AND
+  // there are more plays than what we sampled. Server-aggregated stats are
+  // never partial.
+  const partialStats = stats.source === 'page' && plays && plays.total > plays.plays.length;
 
   const handlePage = (p) => {
     setPage(p);
@@ -198,19 +217,19 @@ export default function BgWatchPerGameView() {
             <div className={styles.statCard}>
               <span className={styles.statLabel}>Win rate</span>
               <span className={styles.statValue}>
-                {winRate !== null ? `${winRate}%` : '—'}
+                {stats.winRate !== null ? `${stats.winRate}%` : '—'}
               </span>
-              {partialStats && winRate !== null && (
-                <span className={styles.statHint}>de últimas {stats.totalRated}</span>
+              {partialStats && stats.winRate !== null && (
+                <span className={styles.statHint}>de últimas {stats.ratedCount}</span>
               )}
             </div>
             <div className={styles.statCard}>
               <span className={styles.statLabel}>Duración media</span>
               <span className={styles.statValue}>
-                {avgDuration !== null ? `${avgDuration}m` : '—'}
+                {stats.avgDuration !== null ? `${stats.avgDuration}m` : '—'}
               </span>
-              {partialStats && avgDuration !== null && (
-                <span className={styles.statHint}>de últimas {stats.durations.length}</span>
+              {partialStats && stats.avgDuration !== null && (
+                <span className={styles.statHint}>de últimas {stats.durationsCount}</span>
               )}
             </div>
             <div className={styles.statCard}>

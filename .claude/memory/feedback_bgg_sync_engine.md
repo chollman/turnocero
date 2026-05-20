@@ -42,4 +42,12 @@ Cuando se trabaje en la sincronización de partidas BGG (o se extienda el patró
 
 Anti-pattern: NO mezclar probe con reconcile en el mismo `withUserLock(key, work)` para distinto work — la dedupe del lock daría resultado del work-A a callers que pidieron work-B. Usar trigger mutuamente exclusivo en el caller (el route handler decide cuál disparar). Ver [[feedback-user-lock-semantics]].
 
-Relacionado: [[feedback-bgg-cache-pattern]] cubre el patrón de cache L1/L2/L3 sobre el cual este engine opera.
+**Helpers de aggregation sobre `BggPlay`** (todos en [server/routes/bgg.js](server/routes/bgg.js)) — usalos en cualquier vista que muestre stats derivadas:
+- `computeTopPlayedGame(lowerBggUsername)` — el juego más jugado. Usado por `topGame` en la response de `/api/bgg/partidas/:user` (unfiltered first page) y en `/api/bgg/perfil-publico/:user`.
+- `computeGameStats(lowerBggUsername, gameId)` — wins/rated/avgDuration/lastDate sobre todo el historial de un juego. Usado por `gameStats` en la response cuando se filtra por `?id=<gameId>`.
+- `computePlayedGames(lowerBggUsername)` — lista completa de juegos jugados con `numPlays`, ordenada desc. Endpoint dedicado `GET /api/bgg/juegos-jugados/:user`.
+Patrón común: `$match { bggUsername, gameId: { $ne: null } } → $group → $sort`. Owner identification (para wins) usa `$reduce` con `$toLower` para match case-insensitive. Ver [[feedback-bgg-prefer-plays-aggregation]] para el principio: estos derivados SIEMPRE deben salir de BggPlay, no de la colección.
+
+**Self-healing en el route**: `GET /api/bgg/partidas/:user` branch `!hasMongoData` hace `User.findOne({ bggUsername }).collation(strength: 2)`. Si existe el owner, dispara `triggerBackgroundReconcile` fire-and-forget antes de servir el fallback L1/L3. Esto cubre usuarios pre-Phase 5 (conectaron BGG cuando aún no había autosync-on-connect) sin requerir scripts manuales — la próxima visita se auto-cura. Hay un script complementario [server/scripts/migrate-bgg-sync-phase4.js](server/scripts/migrate-bgg-sync-phase4.js) para backfill eager con `DRY_RUN=1` por defecto seguro.
+
+Relacionado: [[feedback-bgg-cache-pattern]] cubre el patrón de cache L1/L2/L3 sobre el cual este engine opera. [[feedback-bgg-prefer-plays-aggregation]] explica por qué TODA vista derivada (top games, stats, listas) debe salir de aggregations sobre `BggPlay` y no de `BggCollection`.

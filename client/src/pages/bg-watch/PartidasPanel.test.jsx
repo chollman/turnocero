@@ -30,11 +30,13 @@ function renderPanel(props = {}) {
 }
 
 beforeEach(() => {
-  // default empty plays
+  // default empty plays + empty server-aggregated games (forces fallback to
+  // collection for the "Por juego" tab unless a test overrides).
   server.use(
     http.get('/api/bgg/partidas/:bggUsername', () =>
       HttpResponse.json({ plays: [], page: 1, total: 0, totalPages: 1 }),
     ),
+    http.get('/api/bgg/juegos-jugados/:bggUsername', () => HttpResponse.json([])),
   );
 });
 
@@ -109,6 +111,56 @@ describe('<PartidasPanel>', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Por juego' }));
     expect(screen.getByText(/no hay juegos con partidas registradas/i)).toBeInTheDocument();
+  });
+
+  it('prefers server-aggregated played games over the collection-derived list', async () => {
+    server.use(
+      http.get('/api/bgg/juegos-jugados/:bggUsername', () =>
+        HttpResponse.json([
+          // Played-but-not-owned game appears here but not in collection.
+          { id: '999', name: 'Brass Birmingham', thumbnail: 'bb.jpg', numPlays: 42 },
+          { id: '13',  name: 'Catán',            thumbnail: 'c.jpg',  numPlays: 5 },
+        ]),
+      ),
+    );
+    renderPanel({
+      collection: [
+        { id: 13, name: 'Catán', numPlays: 5 }, // only this in the BGG collection
+      ],
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Por juego' }));
+    await waitFor(() => {
+      expect(screen.getByText('Brass Birmingham')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Catán')).toBeInTheDocument();
+  });
+
+  it('shows played games even when the collection is empty (private collection case)', async () => {
+    // H3rmit87-style: collection fetch returned 401 → caller passes [].
+    // BggPlay sync still gives us the played games via the new endpoint.
+    server.use(
+      http.get('/api/bgg/juegos-jugados/:bggUsername', () =>
+        HttpResponse.json([
+          { id: '174430', name: 'Gloomhaven', thumbnail: 'g.jpg', numPlays: 32 },
+        ]),
+      ),
+    );
+    renderPanel({ collection: [] });
+    fireEvent.click(screen.getByRole('button', { name: 'Por juego' }));
+    await waitFor(() => {
+      expect(screen.getByText('Gloomhaven')).toBeInTheDocument();
+    });
+  });
+
+  it('falls back to the collection when the server returns no aggregated games', async () => {
+    // Default handler in beforeEach already returns [].
+    renderPanel({
+      collection: [
+        { id: 13, name: 'Catán', numPlays: 5 },
+      ],
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Por juego' }));
+    expect(screen.getByText('Catán')).toBeInTheDocument();
   });
 
   it('calls onMetaChange after first successful "all" load', async () => {

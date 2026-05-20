@@ -47,7 +47,9 @@ function withUserLock(key, fn) {
   // Use .then(onFulfilled, onRejected) instead of .finally so the cleanup
   // chain doesn't produce an unhandled rejection when fn() throws — the
   // original `promise` is what callers await, this branch is fire-and-forget.
-  const cleanup = () => { if (inFlight.get(k) === promise) inFlight.delete(k); };
+  const cleanup = () => {
+    if (inFlight.get(k) === promise) inFlight.delete(k);
+  };
   promise.then(cleanup, cleanup);
   return promise;
 }
@@ -73,7 +75,9 @@ function releaseProbeSlot() {
 }
 
 function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 // Exposed for tests only — production code should not depend on these.

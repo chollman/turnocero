@@ -86,6 +86,7 @@ export default function PartidasPanel({ bggUsername, collection, onPlayClick, on
 
   // ── By-game mode state ──
   const [gamesPage, setGamesPage] = useState(1);
+  const [playedGamesFromServer, setPlayedGamesFromServer] = useState(null);
 
   const cooldownRemaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
   const inCooldown = cooldownRemaining > 0;
@@ -130,12 +131,31 @@ export default function PartidasPanel({ bggUsername, collection, onPlayClick, on
     return () => { cancelled = true; };
   }, [bggUsername, page, filter, onMetaChange, refreshTick]);
 
+  // Fetch the server-aggregated played-games list (derived from BggPlay).
+  // Authoritative when present: includes games the user played but doesn't
+  // own, and works for users with private collections (where the
+  // collection-derived list is empty/incomplete).
+  useEffect(() => {
+    let cancelled = false;
+    axios.get(`/api/bgg/juegos-jugados/${encodeURIComponent(bggUsername)}`)
+      .then(({ data }) => { if (!cancelled) setPlayedGamesFromServer(data); })
+      .catch(() => { if (!cancelled) setPlayedGamesFromServer([]); });
+    return () => { cancelled = true; };
+  }, [bggUsername, refreshTick]);
+
+  // Prefer the server-aggregated list when it has data. Fall back to the
+  // collection-derived list for users whose plays aren't synced into
+  // BggPlay yet (the legacy XML-cache path) — that fallback is what was
+  // shown before this change, with its caveats (owned games only, etc.).
   const playedGames = useMemo(() => {
+    if (playedGamesFromServer && playedGamesFromServer.length > 0) {
+      return playedGamesFromServer;
+    }
     if (!collection) return null;
     return [...collection]
       .filter((g) => (g.numPlays || 0) > 0)
       .sort((a, b) => (b.numPlays || 0) - (a.numPlays || 0));
-  }, [collection]);
+  }, [playedGamesFromServer, collection]);
 
   // Map of bggUsernameLower → Turnocero user for any player on the current page
   // that's also a Turnocero member. Used by PlayCard to render avatar + link.
