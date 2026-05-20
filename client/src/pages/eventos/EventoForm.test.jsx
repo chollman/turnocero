@@ -64,11 +64,29 @@ describe('<EventoForm>', () => {
     expect(await screen.findByText(/el título es obligatorio/i)).toBeInTheDocument();
   });
 
+  it('blocks submission when eventDate is empty and shows error', async () => {
+    const onSubmit = vi.fn();
+    render(<EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />);
+    fireEvent.change(screen.getByLabelText(/título/i), { target: { value: 'Sin fecha' } });
+    fireEvent.click(screen.getByRole('button', { name: /crear evento/i }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(await screen.findByText(/fecha y hora del evento son obligatorias/i)).toBeInTheDocument();
+  });
+
+  it('marks the eventDate field as required (aria-required + visible asterisk)', () => {
+    render(<EventoForm mode="create" onSubmit={() => {}} onCancel={() => {}} />);
+    const dateInput = screen.getByLabelText(/fecha y hora/i);
+    expect(dateInput.getAttribute('aria-required')).toBe('true');
+    // Label includes asterisk
+    expect(screen.getByText(/fecha y hora \*/i)).toBeInTheDocument();
+  });
+
   it('calls onSubmit with FormData containing the expected keys', async () => {
     const onSubmit = vi.fn().mockResolvedValue();
     render(<EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />);
     fireEvent.change(screen.getByLabelText(/título/i), { target: { value: 'Mi evento' } });
     fireEvent.change(screen.getByLabelText(/monto/i), { target: { value: '2500' } });
+    fireEvent.change(screen.getByLabelText(/fecha y hora/i), { target: { value: '2026-12-31T20:00' } });
     fireEvent.click(screen.getByRole('button', { name: /crear evento/i }));
     await new Promise(r => setTimeout(r, 0));
     expect(onSubmit).toHaveBeenCalledTimes(1);
@@ -76,6 +94,7 @@ describe('<EventoForm>', () => {
     expect(fd).toBeInstanceOf(FormData);
     expect(fd.get('title')).toBe('Mi evento');
     expect(fd.get('fee')).toBe('2500');
+    expect(fd.get('eventDate')).toBe('2026-12-31T20:00');
     // status default
     expect(fd.get('status')).toBe('open');
   });

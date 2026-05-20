@@ -25,7 +25,7 @@ const eventoSchema = new mongoose.Schema(
     conditions:      { type: String, trim: true, maxlength: 2000 },
     fee:             { type: Number, min: 0, default: 0 },
     transferDetails: { type: String, trim: true, maxlength: 500 },
-    eventDate:       { type: Date },
+    eventDate:       { type: Date, required: true },
     location:        { type: String, trim: true, maxlength: 300 },
     maxParticipants: { type: Number, min: 1 },
     image:           { url: String, publicId: String },

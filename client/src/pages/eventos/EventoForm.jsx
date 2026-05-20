@@ -54,6 +54,10 @@ export default function EventoForm({ mode = 'create', initialEvento = null, onSu
       setError('El título es obligatorio');
       return;
     }
+    if (!form.eventDate) {
+      setError('La fecha y hora del evento son obligatorias');
+      return;
+    }
     setError('');
     const fd = new FormData();
     // Send every field — even empty strings — so the server can clear a
@@ -167,7 +171,7 @@ export default function EventoForm({ mode = 'create', initialEvento = null, onSu
 
       <div className={styles.row}>
         <div className={styles.field} style={{ flex: 1 }}>
-          <label className={styles.fieldLabel} htmlFor="evento-date">Fecha y hora</label>
+          <label className={styles.fieldLabel} htmlFor="evento-date">Fecha y hora *</label>
           <input
             id="evento-date"
             name="eventDate"
@@ -175,6 +179,7 @@ export default function EventoForm({ mode = 'create', initialEvento = null, onSu
             onChange={handleChange}
             type="datetime-local"
             className={styles.input}
+            aria-required="true"
           />
         </div>
         <div className={styles.field} style={{ flex: 1 }}>

@@ -9,6 +9,23 @@ const { requireSection } = require('../middleware/sectionGate');
 
 router.use(requireSection('eventos'));
 
+// Cierra automáticamente los eventos abiertos cuya fecha ya pasó.
+// Se llama lazy al inicio de las rutas GET de listado y detalle: el primer
+// request después de la fecha "barre" el estado y persiste status='closed',
+// para que filtros y cards reflejen la realidad sin requerir un cron externo.
+async function closePastOpenEvents() {
+  try {
+    await Evento.updateMany(
+      { status: 'open', eventDate: { $ne: null, $lt: new Date() } },
+      { $set: { status: 'closed' } },
+    );
+  } catch (err) {
+    // best-effort: nunca tirar el request por una falla del sweep
+    // eslint-disable-next-line no-console
+    console.error('closePastOpenEvents failed:', err.message);
+  }
+}
+
 // Multer instance that also accepts PDF for comprobante uploads
 const COMPROBANTE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 const comprobanteUpload = multerLib({
@@ -23,6 +40,7 @@ const comprobanteUpload = multerLib({
 // GET /api/eventos — public, paginated
 router.get('/', optionalAuth, async (req, res) => {
   try {
+    await closePastOpenEvents();
     const page  = Math.max(1, parseInt(req.query.page)  || 1);
     const limit = Math.min(20, Math.max(1, parseInt(req.query.limit) || 10));
     const skip  = (page - 1) * limit;
@@ -30,6 +48,10 @@ router.get('/', optionalAuth, async (req, res) => {
     const filter = {};
     if (req.user?.isAdmin) {
       if (req.query.status) filter.status = req.query.status;
+    } else if (req.query.status === 'open' || req.query.status === 'closed') {
+      // Los chips públicos pueden filtrar entre open/closed; otros valores caen
+      // al default para que un user no pueda pedir 'draft' o 'cancelled'.
+      filter.status = req.query.status;
     } else {
       filter.status = { $in: ['open', 'closed'] };
     }
@@ -76,6 +98,17 @@ router.get('/', optionalAuth, async (req, res) => {
 // POST /api/eventos — admin only
 router.post('/', protect, requireAdmin, multer.single('image'), async (req, res) => {
   try {
+    if (!req.body.title?.trim()) {
+      return res.status(400).json({ message: 'El título es obligatorio' });
+    }
+    if (!req.body.eventDate) {
+      return res.status(400).json({ message: 'La fecha y hora del evento son obligatorias' });
+    }
+    const parsedDate = new Date(req.body.eventDate);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ message: 'La fecha del evento no es válida' });
+    }
+
     let image;
     if (req.file) {
       const result = await uploadToCloudinary(req.file.buffer, {
@@ -109,6 +142,7 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
 // GET /api/eventos/:id — public for open/closed; drafts y cancelled sólo para admins
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
+    await closePastOpenEvents();
     const evento = await Evento.findById(req.params.id)
       .populate('author', 'username displayName avatar')
       .populate('registrations.user', 'username displayName avatar');

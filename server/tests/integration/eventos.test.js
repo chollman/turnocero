@@ -101,6 +101,64 @@ describe('GET /api/eventos', () => {
     const res = await request(app).get('/api/eventos');
     expect(res.body.eventos[0].userRegistration).toBeNull();
   });
+
+  it('auto-closes open events whose eventDate is in the past', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const pastDate = new Date(Date.now() - 7 * 86400000);
+    const futureDate = new Date(Date.now() + 7 * 86400000);
+
+    const stale = await createEvento(admin, {
+      title:     'Pasado abierto',
+      status:    'open',
+      eventDate: pastDate,
+    });
+    const fresh = await createEvento(admin, {
+      title:     'Futuro abierto',
+      status:    'open',
+      eventDate: futureDate,
+    });
+    const draftPast = await createEvento(admin, {
+      title:     'Draft pasado',
+      status:    'draft',
+      eventDate: pastDate,
+    });
+
+    // List request triggers the sweep
+    await request(app).get('/api/eventos');
+
+    // Re-fetch from DB to confirm persistence
+    const staleAfter     = await Evento.findById(stale._id);
+    const freshAfter     = await Evento.findById(fresh._id);
+    const draftPastAfter = await Evento.findById(draftPast._id);
+
+    expect(staleAfter.status).toBe('closed');     // ← auto-closed
+    expect(freshAfter.status).toBe('open');       // ← future event untouched
+    expect(draftPastAfter.status).toBe('draft');  // ← drafts no auto-close
+  });
+
+  it('past open event no longer appears under ?status=open, only under ?status=closed', async () => {
+    const admin = await createUser({ isAdmin: true });
+    await createEvento(admin, {
+      title:     'Ayer abierto',
+      status:    'open',
+      eventDate: new Date(Date.now() - 86400000),
+    });
+
+    // Trigger sweep
+    await request(app).get('/api/eventos');
+
+    const openList = await request(app).get('/api/eventos?status=open');
+    expect(openList.body.eventos.map((e) => e.title)).not.toContain('Ayer abierto');
+
+    const closedList = await request(app).get('/api/eventos?status=closed');
+    expect(closedList.body.eventos.map((e) => e.title)).toContain('Ayer abierto');
+
+    // "Todos" (sin filtro, admin) tampoco lo pierde
+    const adminAll = await request(app)
+      .get('/api/eventos')
+      .set('Authorization', `Bearer ${tokenFor(admin)}`);
+    expect(adminAll.body.eventos.map((e) => e.title)).toContain('Ayer abierto');
+  });
 });
 
 describe('PUT /api/eventos/:id', () => {
@@ -272,11 +330,41 @@ describe('POST /api/eventos (admin only)', () => {
       .set('Authorization', `Bearer ${token}`)
       .field('title', 'Sin imagen')
       .field('fee', 0)
-      .field('location', 'Buenos Aires');
+      .field('location', 'Buenos Aires')
+      .field('eventDate', new Date(Date.now() + 7 * 86400000).toISOString());
 
     expect(res.status).toBe(201);
     expect(res.body.title).toBe('Sin imagen');
     expect(res.body.author.username).toBeDefined();
+  });
+
+  it('rejects creation without eventDate (400)', async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const res = await request(app)
+      .post('/api/eventos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('title', 'Sin fecha');
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/fecha/i);
+  });
+
+  it('rejects creation with an invalid eventDate (400)', async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const res = await request(app)
+      .post('/api/eventos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('title', 'Fecha mala')
+      .field('eventDate', 'no-es-una-fecha');
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects creation without title (400)', async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const res = await request(app)
+      .post('/api/eventos')
+      .set('Authorization', `Bearer ${token}`)
+      .field('eventDate', new Date(Date.now() + 86400000).toISOString());
+    expect(res.status).toBe(400);
   });
 });
 
