@@ -17,3 +17,6 @@
 - [No worktrees](feedback_no_worktrees.md) — user doesn't want to work in `.claude/worktrees/`; work directly in `~/Projects/turnocero/` and use feature branches there
 - [Cyberpunk glitch effect](feedback_cyberpunk_glitch.md) — default aesthetic for "impactful"/striking entrances; magenta+cyan RGB split, scanlines, scan beam, `steps(1)` frames — see ChatWindow.module.css
 - [BGG cache pattern](feedback_bgg_cache_pattern.md) — toda integración con BGG usa memoria → Mongo → BGG con `?refresh=1` y botón cliente con cooldown 60s
+- [BGG sync engine (Phase 4)](feedback_bgg_sync_engine.md) — probe page-1 + reconcile dirigido + reconcile completo cada 30d + hash drift; reemplaza el wipe-and-refetch destructivo
+- [BGG username case mismatch](feedback_bgg_username_case.md) — `User.bggUsername` case-preserved vs `BggPlay.bggUsername` lowercase; cross-model queries necesitan `collation strength: 2`
+- [withUserLock semantics](feedback_user_lock_semantics.md) — dedupe por key, no por work function; triggers de trabajos distintos deben ser mutuamente exclusivos en el caller

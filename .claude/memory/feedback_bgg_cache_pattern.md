@@ -31,3 +31,5 @@ Tests requeridos por la regla [[feedback-tests-required]]:
 - Cliente: test que confirma que el botón manda `?refresh=1` Y que entra en cooldown 60 s con countdown que se actualiza Y que se rehabilita al terminar (usar `vi.useFakeTimers({ shouldAdvanceTime: true })`).
 
 Comentario al inicio de `routes/bgg.js` documenta el patrón.
+
+**Sync de las cachés mutables** (BggCollection, BggPlay): cómo mantenerlas frescas con mínimo costo a BGG está en [[feedback-bgg-sync-engine]] (probe + reconcile dirigido + reconcile completo periódico). Si cambiás algo del cache pattern que afecta cómo se invalidan o refrescan los modelos L2, asegurate de que el sync engine siga siendo consistente.
