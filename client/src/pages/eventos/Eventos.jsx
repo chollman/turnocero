@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { Helmet } from 'react-helmet-async';
@@ -31,7 +31,8 @@ export default function Eventos() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [filter, setFilter] = useState('all');
+  // Default 'open' — al entrar el usuario ve sólo los eventos abiertos a inscripción.
+  const [filter, setFilter] = useState('open');
   const [viewMode, setViewMode] = useLocalStorageState('turnocero_eventos_view', 'timeline');
 
   const [creating, setCreating] = useState(false);
@@ -154,6 +155,22 @@ export default function Eventos() {
   }
 
   const now = Date.now();
+
+  // Divisor "Hoy" entre el último pasado y el primer futuro — sólo en filtro
+  // "Todos" y sólo cuando hay eventos a ambos lados de la línea temporal.
+  const firstFutureId = useMemo(() => {
+    if (filter !== 'all') return null;
+    const sorted = visibleEventos
+      .filter(e => e.eventDate)
+      .slice()
+      .sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
+    const future = sorted.find(e => new Date(e.eventDate).getTime() >= now);
+    const hasPast = sorted.some(e => new Date(e.eventDate).getTime() < now);
+    return future && hasPast ? future._id : null;
+    // `now` recomputa cada render — se omite del dep array a propósito;
+    // un drift sub-segundo en el divisor es irrelevante.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleEventos, filter]);
 
   return (
     <div className={styles.page}>
@@ -299,14 +316,21 @@ export default function Eventos() {
                 <span className={styles.monthHeaderCount}>{g.events.length} eventos</span>
               </div>
               {g.events.map((ev, i) => (
-                <TimelineRow
-                  key={ev._id}
-                  evento={ev}
-                  index={i}
-                  isHost={ev.author?._id === userId}
-                  userRegistrationStatus={ev.userRegistration?.status || null}
-                  now={now}
-                />
+                <Fragment key={ev._id}>
+                  {ev._id === firstFutureId && (
+                    <div className={styles.nowDivider} aria-label="A partir de hoy">
+                      <span className={styles.nowDividerLabel}>● Hoy · próximos eventos</span>
+                      <span className={styles.nowDividerRule} />
+                    </div>
+                  )}
+                  <TimelineRow
+                    evento={ev}
+                    index={i}
+                    isHost={ev.author?._id === userId}
+                    userRegistrationStatus={ev.userRegistration?.status || null}
+                    now={now}
+                  />
+                </Fragment>
               ))}
             </section>
           ))}

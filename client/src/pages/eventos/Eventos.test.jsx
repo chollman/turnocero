@@ -117,8 +117,8 @@ describe('<Eventos>', () => {
     expect(await screen.findByLabelText(/título/i)).toBeInTheDocument();
   });
 
-  it('admin: clicking the filter "Abiertos" passes status=open to the API', async () => {
-    let lastStatus = null;
+  it('default filter is "Abiertos" — first request passes status=open', async () => {
+    let lastStatus = 'sentinel';
     server.use(
       http.get('/api/eventos', ({ request }) => {
         const url = new URL(request.url);
@@ -127,9 +127,72 @@ describe('<Eventos>', () => {
       }),
     );
     renderPage({ user: { _id: 'admin', isAdmin: true } });
-    await waitFor(() => expect(lastStatus).toBeNull());
-    fireEvent.click(screen.getByRole('button', { name: /^abiertos$/i }));
     await waitFor(() => expect(lastStatus).toBe('open'));
+  });
+
+  it('shows the "Hoy" divider between past and future events when filter is Todos', async () => {
+    server.use(
+      http.get('/api/eventos', () => HttpResponse.json({
+        eventos: [
+          makeEvento({ _id: 'past',   title: 'Evento pasado',  eventDate: new Date(Date.now() - 7 * 86400000).toISOString() }),
+          makeEvento({ _id: 'future', title: 'Evento futuro',  eventDate: new Date(Date.now() + 7 * 86400000).toISOString() }),
+        ],
+        page: 1, pages: 1, total: 2,
+      })),
+    );
+    renderPage({ user: { _id: 'admin', isAdmin: true } });
+    await screen.findByText('Evento pasado');
+    // Click "Todos" to switch off the default 'open' filter
+    fireEvent.click(screen.getByRole('button', { name: /^todos$/i }));
+    await screen.findByText('Evento futuro');
+    expect(screen.getByText(/hoy · próximos eventos/i)).toBeInTheDocument();
+  });
+
+  it('does NOT show the "Hoy" divider when all events are future', async () => {
+    server.use(
+      http.get('/api/eventos', () => HttpResponse.json({
+        eventos: [
+          makeEvento({ _id: 'f1', title: 'Futuro A', eventDate: new Date(Date.now() + 86400000).toISOString() }),
+          makeEvento({ _id: 'f2', title: 'Futuro B', eventDate: new Date(Date.now() + 2 * 86400000).toISOString() }),
+        ],
+        page: 1, pages: 1, total: 2,
+      })),
+    );
+    renderPage({ user: { _id: 'admin', isAdmin: true } });
+    fireEvent.click(screen.getByRole('button', { name: /^todos$/i }));
+    await screen.findByText('Futuro A');
+    expect(screen.queryByText(/hoy · próximos eventos/i)).not.toBeInTheDocument();
+  });
+
+  it('does NOT show the "Hoy" divider when filter is not "Todos"', async () => {
+    server.use(
+      http.get('/api/eventos', () => HttpResponse.json({
+        eventos: [
+          makeEvento({ _id: 'past',   title: 'Pasado abierto', status: 'open', eventDate: new Date(Date.now() - 86400000).toISOString() }),
+          makeEvento({ _id: 'future', title: 'Futuro abierto', status: 'open', eventDate: new Date(Date.now() + 86400000).toISOString() }),
+        ],
+        page: 1, pages: 1, total: 2,
+      })),
+    );
+    renderPage({ user: { _id: 'me' } });
+    await screen.findByText('Futuro abierto');
+    // Default filter is 'open' — divider should NOT appear even with past+future
+    expect(screen.queryByText(/hoy · próximos eventos/i)).not.toBeInTheDocument();
+  });
+
+  it('clicking "Todos" clears the status filter', async () => {
+    let lastStatus = 'sentinel';
+    server.use(
+      http.get('/api/eventos', ({ request }) => {
+        const url = new URL(request.url);
+        lastStatus = url.searchParams.get('status');
+        return HttpResponse.json({ eventos: [], page: 1, pages: 1, total: 0 });
+      }),
+    );
+    renderPage({ user: { _id: 'admin', isAdmin: true } });
+    await waitFor(() => expect(lastStatus).toBe('open'));
+    fireEvent.click(screen.getByRole('button', { name: /^todos$/i }));
+    await waitFor(() => expect(lastStatus).toBeNull());
   });
 
   it('mine filter shows empty CTA "Cargar más eventos" when more pages exist', async () => {

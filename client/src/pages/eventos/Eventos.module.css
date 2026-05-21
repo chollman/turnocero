@@ -276,6 +276,38 @@
   text-transform: uppercase;
 }
 
+/* "Hoy" divider — separa pasado de futuro en filtro Todos */
+.nowDivider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 28px 0 18px -96px;
+  padding-left: 96px;
+  position: relative;
+  animation: nowPulse 2.4s ease-in-out infinite;
+}
+
+.nowDividerLabel {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.nowDividerRule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--amber), transparent 75%);
+}
+
+@keyframes nowPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+
 /* Poster grid */
 .posterGrid {
   display: grid;
@@ -358,6 +390,7 @@
   .timeline { padding-left: 76px; }
   .timeline::before { left: 72px; }
   .monthHeader { margin-left: -76px; padding-left: 76px; }
+  .nowDivider { margin-left: -76px; padding-left: 76px; }
 }
 
 @media (max-width: 580px) {
