@@ -81,15 +81,38 @@ async function reloadRegPopulated(evento, regId) {
 // Se llama lazy al inicio de las rutas GET de listado y detalle: el primer
 // request después de la fecha "barre" el estado y persiste status='closed',
 // para que filtros y cards reflejen la realidad sin requerir un cron externo.
-async function closePastOpenEvents() {
+// Si `req` se provee, además broadcastea evento:updated por cada item cerrado
+// para que los clientes en /eventos muevan el item de "Abiertos" a "Cerrados"
+// sin esperar al próximo refresh.
+async function closePastOpenEvents(req) {
   try {
-    await Evento.updateMany(
+    const candidates = await Evento.find(
       { status: "open", eventDate: { $ne: null, $lt: new Date() } },
+      "_id",
+    ).lean();
+    if (candidates.length === 0) return;
+    await Evento.updateMany(
+      { _id: { $in: candidates.map((c) => c._id) } },
       { $set: { status: "closed" } },
     );
+    if (!req) return;
+    // Emitir un payload mínimo — el listener cliente solo necesita saber que
+    // el item pasó a 'closed' para que matchesActiveFilter decida si lo saca
+    // del array. Los counts no cambian, así que no hace falta enviarlos.
+    for (const c of candidates) {
+      const idStr = c._id.toString();
+      const minimalPayload = { _id: idStr, status: "closed" };
+      emitToEventoRoom(req, idStr, "evento:updated", {
+        eventoId: idStr,
+        evento: minimalPayload,
+      });
+      emitToEventosList(req, "evento:updated", {
+        eventoId: idStr,
+        evento: minimalPayload,
+      });
+    }
   } catch (err) {
     // best-effort: nunca tirar el request por una falla del sweep
-
     console.error("closePastOpenEvents failed:", err.message);
   }
 }
@@ -113,7 +136,7 @@ const comprobanteUpload = multerLib({
 // GET /api/eventos — public, paginated
 router.get("/", optionalAuth, async (req, res) => {
   try {
-    await closePastOpenEvents();
+    await closePastOpenEvents(req);
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(20, Math.max(1, parseInt(req.query.limit) || 10));
     const skip = (page - 1) * limit;
@@ -258,7 +281,7 @@ router.post(
 // GET /api/eventos/:id — public for open/closed; drafts y cancelled sólo para admins
 router.get("/:id", optionalAuth, async (req, res) => {
   try {
-    await closePastOpenEvents();
+    await closePastOpenEvents(req);
     const evento = await Evento.findById(req.params.id)
       .populate("author", "username displayName avatar")
       .populate("registrations.user", "username displayName avatar");

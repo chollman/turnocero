@@ -146,6 +146,34 @@ describe("GET /api/eventos", () => {
     expect(draftPastAfter.status).toBe("draft"); // ← drafts no auto-close
   });
 
+  it("broadcastea evento:updated por cada evento auto-cerrado (regresión: los clientes no veían el cierre hasta refresh)", async () => {
+    global.__ioStub.__reset();
+    const admin = await createUser({ isAdmin: true });
+    const stale = await createEvento(admin, {
+      title: "Auto-close target",
+      status: "open",
+      eventDate: new Date(Date.now() - 7 * 86400000),
+    });
+
+    await request(app).get("/api/eventos");
+
+    const idStr = stale._id.toString();
+    // Debería haber emit a eventos:list + a evento:<id>
+    const listEmits = global.__ioStub.emitted.filter(
+      (e) => e.room === "eventos:list" && e.event === "evento:updated",
+    );
+    const roomEmits = global.__ioStub.emitted.filter(
+      (e) => e.room === `evento:${idStr}` && e.event === "evento:updated",
+    );
+    expect(listEmits.length).toBeGreaterThanOrEqual(1);
+    expect(roomEmits.length).toBeGreaterThanOrEqual(1);
+    // Y el payload trae el _id correcto + status='closed'.
+    expect(listEmits[0].payload).toMatchObject({
+      eventoId: idStr,
+      evento: { _id: idStr, status: "closed" },
+    });
+  });
+
   it("past open event no longer appears under ?status=open, only under ?status=closed", async () => {
     const admin = await createUser({ isAdmin: true });
     await createEvento(admin, {
