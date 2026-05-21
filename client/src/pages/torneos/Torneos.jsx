@@ -1,60 +1,73 @@
-import { useState, useEffect, useCallback } from 'react'
-import axios from 'axios'
-import { Helmet } from 'react-helmet-async'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
-import TorneoCard from './components/TorneoCard'
-import TorneoSkeleton from './TorneoSkeleton'
-import styles from './Torneos.module.css'
+import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
+import { Helmet } from "react-helmet-async";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import TorneoCard from "./components/TorneoCard";
+import TorneoSkeleton from "./TorneoSkeleton";
+import styles from "./Torneos.module.css";
 
 const STATUS_TABS = [
-  { id: 'all',          label: 'Todos',         filter: null },
-  { id: 'registration', label: 'Inscripción',   filter: 'registration' },
-  { id: 'in_progress',  label: 'En curso',      filter: 'in_progress' },
-  { id: 'finished',     label: 'Finalizados',   filter: 'finished' },
-]
+  { id: "all", label: "Todos", filter: null },
+  { id: "registration", label: "Inscripción", filter: "registration" },
+  { id: "in_progress", label: "En curso", filter: "in_progress" },
+  { id: "finished", label: "Finalizados", filter: "finished" },
+];
 
 export default function Torneos() {
-  const { isActuallyAdmin, viewAsUser } = useAuth()
-  const showAdminUI = isActuallyAdmin && !viewAsUser
+  const { isActuallyAdmin, viewAsUser } = useAuth();
+  const showAdminUI = isActuallyAdmin && !viewAsUser;
 
-  const [torneos, setTorneos]   = useState([])
-  const [tab, setTab]           = useState('all')
-  const [page, setPage]         = useState(1)
-  const [totalPages, setTotal]  = useState(1)
-  const [loading, setLoading]   = useState(true)
-  const [loadingMore, setMore]  = useState(false)
-  const navigate = useNavigate()
+  const [torneos, setTorneos] = useState([]);
+  const [tab, setTab] = useState("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotal] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setMore] = useState(false);
+  const navigate = useNavigate();
 
-  const load = useCallback(async (pageNum = 1, replace = true, statusFilter = null) => {
-    if (pageNum === 1) setLoading(true); else setMore(true)
-    try {
-      const params = { page: pageNum, limit: 12 }
-      if (statusFilter) params.status = statusFilter
-      const { data } = await axios.get('/api/torneos', { params })
-      setTorneos((prev) => replace ? data.torneos : [...prev, ...data.torneos])
-      setTotal(data.pages)
-      setPage(pageNum)
-    } catch { /* silently ignore */ } finally {
-      setLoading(false)
-      setMore(false)
-    }
-  }, [])
+  const load = useCallback(
+    async (pageNum = 1, replace = true, statusFilter = null) => {
+      if (pageNum === 1) setLoading(true);
+      else setMore(true);
+      try {
+        const params = { page: pageNum, limit: 12 };
+        if (statusFilter) params.status = statusFilter;
+        const { data } = await axios.get("/api/torneos", { params });
+        setTorneos((prev) =>
+          replace ? data.torneos : [...prev, ...data.torneos],
+        );
+        setTotal(data.pages);
+        setPage(pageNum);
+      } catch {
+        /* silently ignore */
+      } finally {
+        setLoading(false);
+        setMore(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
-    const f = STATUS_TABS.find((t) => t.id === tab)?.filter || null
-    load(1, true, f)
-  }, [tab, load])
+    const f = STATUS_TABS.find((t) => t.id === tab)?.filter || null;
+    load(1, true, f);
+  }, [tab, load]);
 
-  const showDrafts = showAdminUI && (tab === 'all')
-  const drafts = showDrafts ? torneos.filter((t) => t.status === 'draft') : []
-  const visible = showDrafts ? torneos.filter((t) => t.status !== 'draft') : torneos
+  const showDrafts = showAdminUI && tab === "all";
+  const drafts = showDrafts ? torneos.filter((t) => t.status === "draft") : [];
+  const visible = showDrafts
+    ? torneos.filter((t) => t.status !== "draft")
+    : torneos;
 
   return (
     <div className={styles.page}>
       <Helmet>
         <title>Torneos – Turnocero 🏆</title>
-        <meta name="description" content="Torneos de juegos de mesa organizados por la comunidad Turnocero." />
+        <meta
+          name="description"
+          content="Torneos de juegos de mesa organizados por la comunidad Turnocero."
+        />
       </Helmet>
 
       <div className={styles.inner}>
@@ -62,12 +75,14 @@ export default function Torneos() {
           <div className={styles.heroBlock}>
             <div className={styles.eyebrow}>◆ COMPETENCIAS</div>
             <h1 className={styles.title}>Torneos</h1>
-            <p className={styles.sub}>Seguí el progreso de las competencias de la comunidad.</p>
+            <p className={styles.sub}>
+              Seguí el progreso de las competencias de la comunidad.
+            </p>
           </div>
           {showAdminUI && (
             <button
               className={styles.newBtn}
-              onClick={() => navigate('/torneos/crear')}
+              onClick={() => navigate("/torneos/crear")}
             >
               + Nuevo torneo
             </button>
@@ -78,7 +93,7 @@ export default function Torneos() {
           {STATUS_TABS.map((t) => (
             <button
               key={t.id}
-              className={`${styles.tab} ${tab === t.id ? styles.tabActive : ''}`}
+              className={`${styles.tab} ${tab === t.id ? styles.tabActive : ""}`}
               onClick={() => setTab(t.id)}
             >
               {t.label}
@@ -88,9 +103,11 @@ export default function Torneos() {
 
         {loading ? (
           <div className={styles.feed}>
-            {[1, 2, 3].map((i) => <TorneoSkeleton key={i} />)}
+            {[1, 2, 3].map((i) => (
+              <TorneoSkeleton key={i} />
+            ))}
           </div>
-        ) : (visible.length === 0 && drafts.length === 0) ? (
+        ) : visible.length === 0 && drafts.length === 0 ? (
           <div className={styles.empty}>
             <span className={styles.emptyIcon}>🏆</span>
             <p className={styles.emptyTitle}>No hay torneos en esta vista</p>
@@ -106,29 +123,34 @@ export default function Torneos() {
               <div className={styles.draftsSection}>
                 <h3 className={styles.draftsTitle}>Borradores (solo admins)</h3>
                 <div className={styles.feed}>
-                  {drafts.map((t) => <TorneoCard key={t._id} torneo={t} />)}
+                  {drafts.map((t, i) => (
+                    <TorneoCard key={t._id} torneo={t} index={i} />
+                  ))}
                 </div>
               </div>
             )}
             <div className={styles.feed}>
-              {visible.map((t) => <TorneoCard key={t._id} torneo={t} />)}
+              {visible.map((t, i) => (
+                <TorneoCard key={t._id} torneo={t} index={i} />
+              ))}
             </div>
 
             {page < totalPages && (
               <button
                 className={styles.loadMoreBtn}
                 onClick={() => {
-                  const f = STATUS_TABS.find((t) => t.id === tab)?.filter || null
-                  load(page + 1, false, f)
+                  const f =
+                    STATUS_TABS.find((t) => t.id === tab)?.filter || null;
+                  load(page + 1, false, f);
                 }}
                 disabled={loadingMore}
               >
-                {loadingMore ? 'Cargando…' : 'Ver más torneos'}
+                {loadingMore ? "Cargando…" : "Ver más torneos"}
               </button>
             )}
           </>
         )}
       </div>
     </div>
-  )
+  );
 }

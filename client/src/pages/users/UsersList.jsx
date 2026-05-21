@@ -1,51 +1,56 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import axios from 'axios'
-import { useAuth } from '../../context/AuthContext'
-import ConfirmActionModal from '../../components/shared/ConfirmActionModal'
-import Avatar from '../../components/shared/Avatar'
-import styles from './UsersList.module.css'
-import UsersListSkeleton from './UsersListSkeleton'
+import { useState, useEffect, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
+import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
+import Avatar from "../../components/shared/Avatar";
+import styles from "./UsersList.module.css";
+import UsersListSkeleton from "./UsersListSkeleton";
 
 const SORT_OPTIONS = [
-  { value: 'alpha', label: 'A–Z' },
-  { value: 'activity', label: 'Más activos' },
-  { value: 'date_desc', label: 'Más nuevos' },
-  { value: 'date_asc', label: 'Más antiguos' },
-]
+  { value: "alpha", label: "A–Z" },
+  { value: "activity", label: "Más activos" },
+  { value: "date_desc", label: "Más nuevos" },
+  { value: "date_asc", label: "Más antiguos" },
+];
 
-function UserCard({ user, currentUser, isAdmin, onBan, onDelete }) {
-  const navigate = useNavigate()
+function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
+  const navigate = useNavigate();
   const displayLabel =
     user.displayName ||
-    [user.nombre, user.apellido].filter(Boolean).join(' ') ||
-    user.username
-  const totalActivity = user.tablesHosted + user.tablesAsPlayer
-  const joined = new Date(user.createdAt).toLocaleDateString('es-AR', {
-    month: 'short',
-    year: 'numeric',
-  })
+    [user.nombre, user.apellido].filter(Boolean).join(" ") ||
+    user.username;
+  const totalActivity = user.tablesHosted + user.tablesAsPlayer;
+  const joined = new Date(user.createdAt).toLocaleDateString("es-AR", {
+    month: "short",
+    year: "numeric",
+  });
 
-  const isSelf = currentUser?._id === user._id
-  const showAdminActions = isAdmin && !isSelf && !user.isAdmin
+  const isSelf = currentUser?._id === user._id;
+  const showAdminActions = isAdmin && !isSelf && !user.isAdmin;
 
   return (
     <div
-      className={`${styles.card} ${user.isBanned ? styles.cardBanned : ''}`}
+      className={`${styles.card} ${user.isBanned ? styles.cardBanned : ""}`}
+      style={{ "--i": index }}
       onClick={() => navigate(`/usuarios/${user._id}`)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          navigate(`/usuarios/${user._id}`)
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          navigate(`/usuarios/${user._id}`);
         }
       }}
     >
       {user.isBanned && (
         <span
           className={styles.bannedBadge}
-          title={user.bannedReason ? `Motivo: ${user.bannedReason}` : 'Usuario baneado'}
+          title={
+            user.bannedReason
+              ? `Motivo: ${user.bannedReason}`
+              : "Usuario baneado"
+          }
         >
           Baneado
         </span>
@@ -93,11 +98,41 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete }) {
                 aria-hidden="true"
               >
                 <rect x="3" y="3" width="18" height="18" rx="2.5" />
-                <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
-                <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
-                <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
-                <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
-                <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
+                <circle
+                  cx="8"
+                  cy="8"
+                  r="1.3"
+                  fill="currentColor"
+                  stroke="none"
+                />
+                <circle
+                  cx="16"
+                  cy="8"
+                  r="1.3"
+                  fill="currentColor"
+                  stroke="none"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="1.3"
+                  fill="currentColor"
+                  stroke="none"
+                />
+                <circle
+                  cx="8"
+                  cy="16"
+                  r="1.3"
+                  fill="currentColor"
+                  stroke="none"
+                />
+                <circle
+                  cx="16"
+                  cy="16"
+                  r="1.3"
+                  fill="currentColor"
+                  stroke="none"
+                />
               </svg>
               BG Watch
             </Link>
@@ -122,7 +157,7 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete }) {
         <div className={styles.statDivider} />
         <div className={styles.statItem}>
           <span
-            className={`${styles.statValue} ${totalActivity > 0 ? styles.statValueActive : ''}`}
+            className={`${styles.statValue} ${totalActivity > 0 ? styles.statValueActive : ""}`}
           >
             {totalActivity}
           </span>
@@ -131,21 +166,24 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete }) {
       </div>
 
       {showAdminActions && (
-        <div className={styles.adminActions} onClick={(e) => e.stopPropagation()}>
+        <div
+          className={styles.adminActions}
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             className={user.isBanned ? styles.unbanButton : styles.banButton}
             onClick={(e) => {
-              e.stopPropagation()
-              onBan(user)
+              e.stopPropagation();
+              onBan(user);
             }}
           >
-            {user.isBanned ? 'Desbanear' : 'Banear'}
+            {user.isBanned ? "Desbanear" : "Banear"}
           </button>
           <button
             className={styles.deleteButton}
             onClick={(e) => {
-              e.stopPropagation()
-              onDelete(user)
+              e.stopPropagation();
+              onDelete(user);
             }}
           >
             Eliminar
@@ -153,99 +191,107 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete }) {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 export default function UsersList() {
-  const { user: currentUser } = useAuth()
-  const isAdmin = !!currentUser?.isAdmin
-  const [users, setUsers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState('alpha')
-  const [activeOnly, setActiveOnly] = useState(false)
-  const [friendsOnly, setFriendsOnly] = useState(false)
-  const [bgWatchOnly, setBgWatchOnly] = useState(false)
-  const [searchInput, setSearchInput] = useState('')
+  const { user: currentUser } = useAuth();
+  const isAdmin = !!currentUser?.isAdmin;
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("alpha");
+  const [activeOnly, setActiveOnly] = useState(false);
+  const [friendsOnly, setFriendsOnly] = useState(false);
+  const [bgWatchOnly, setBgWatchOnly] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
 
-  const [banTarget, setBanTarget] = useState(null)
-  const [deleteTarget, setDeleteTarget] = useState(null)
-  const [actionLoading, setActionLoading] = useState(false)
-  const [actionError, setActionError] = useState('')
+  const [banTarget, setBanTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   const fetchUsers = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const params = { sortBy }
-      if (search) params.search = search
-      if (activeOnly) params.activeOnly = 'true'
-      if (friendsOnly) params.friendsOnly = 'true'
-      if (bgWatchOnly) params.bgWatchOnly = 'true'
-      const { data } = await axios.get('/api/users', { params })
-      setUsers(data)
+      const params = { sortBy };
+      if (search) params.search = search;
+      if (activeOnly) params.activeOnly = "true";
+      if (friendsOnly) params.friendsOnly = "true";
+      if (bgWatchOnly) params.bgWatchOnly = "true";
+      const { data } = await axios.get("/api/users", { params });
+      setUsers(data);
     } catch {
-      setUsers([])
+      setUsers([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [search, sortBy, activeOnly, friendsOnly, bgWatchOnly])
+  }, [search, sortBy, activeOnly, friendsOnly, bgWatchOnly]);
 
   useEffect(() => {
-    fetchUsers()
-  }, [fetchUsers])
+    fetchUsers();
+  }, [fetchUsers]);
 
   useEffect(() => {
-    const timeout = setTimeout(() => setSearch(searchInput), 350)
-    return () => clearTimeout(timeout)
-  }, [searchInput])
+    const timeout = setTimeout(() => setSearch(searchInput), 350);
+    return () => clearTimeout(timeout);
+  }, [searchInput]);
 
   const handleBanConfirm = async (reason) => {
-    if (!banTarget) return
-    setActionLoading(true)
-    setActionError('')
+    if (!banTarget) return;
+    setActionLoading(true);
+    setActionError("");
     try {
-      const { data } = await axios.patch(`/api/admin/users/${banTarget._id}/ban`, {
-        banned: !banTarget.isBanned,
-        reason: banTarget.isBanned ? '' : reason || '',
-      })
+      const { data } = await axios.patch(
+        `/api/admin/users/${banTarget._id}/ban`,
+        {
+          banned: !banTarget.isBanned,
+          reason: banTarget.isBanned ? "" : reason || "",
+        },
+      );
       setUsers((prev) =>
         prev.map((u) =>
           u._id === banTarget._id
-            ? { ...u, isBanned: data.isBanned, bannedAt: data.bannedAt, bannedReason: data.bannedReason }
-            : u
-        )
-      )
-      setBanTarget(null)
+            ? {
+                ...u,
+                isBanned: data.isBanned,
+                bannedAt: data.bannedAt,
+                bannedReason: data.bannedReason,
+              }
+            : u,
+        ),
+      );
+      setBanTarget(null);
     } catch (err) {
-      setActionError(err.response?.data?.message || 'Error al actualizar')
+      setActionError(err.response?.data?.message || "Error al actualizar");
     } finally {
-      setActionLoading(false)
+      setActionLoading(false);
     }
-  }
+  };
 
   const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return
-    setActionLoading(true)
-    setActionError('')
+    if (!deleteTarget) return;
+    setActionLoading(true);
+    setActionError("");
     try {
-      await axios.delete(`/api/admin/users/${deleteTarget._id}`)
-      setUsers((prev) => prev.filter((u) => u._id !== deleteTarget._id))
-      setDeleteTarget(null)
+      await axios.delete(`/api/admin/users/${deleteTarget._id}`);
+      setUsers((prev) => prev.filter((u) => u._id !== deleteTarget._id));
+      setDeleteTarget(null);
     } catch (err) {
-      setActionError(err.response?.data?.message || 'Error al eliminar')
+      setActionError(err.response?.data?.message || "Error al eliminar");
     } finally {
-      setActionLoading(false)
+      setActionLoading(false);
     }
-  }
+  };
 
   const closeModals = () => {
-    if (actionLoading) return
-    setBanTarget(null)
-    setDeleteTarget(null)
-    setActionError('')
-  }
+    if (actionLoading) return;
+    setBanTarget(null);
+    setDeleteTarget(null);
+    setActionError("");
+  };
 
-  const visibleUsers = isAdmin ? users : users.filter((u) => !u.isBanned)
+  const visibleUsers = isAdmin ? users : users.filter((u) => !u.isBanned);
 
   return (
     <div className={styles.page}>
@@ -256,20 +302,53 @@ export default function UsersList() {
           <p className={styles.heroSub}>Jugadores registrados en Turnocero</p>
         </div>
         <span className={styles.countBadge}>
-          {visibleUsers.length} jugador{visibleUsers.length !== 1 ? 'es' : ''}
+          {visibleUsers.length} jugador{visibleUsers.length !== 1 ? "es" : ""}
         </span>
       </div>
 
       {currentUser && !currentUser.bggUsername && (
         <Link to="/bg-watch" className={styles.bgWatchBanner}>
           <span className={styles.bgWatchBannerIcon} aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <rect x="3" y="3" width="18" height="18" rx="2.5" />
               <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
-              <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
-              <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
-              <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
-              <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
+              <circle
+                cx="16"
+                cy="8"
+                r="1.3"
+                fill="currentColor"
+                stroke="none"
+              />
+              <circle
+                cx="12"
+                cy="12"
+                r="1.3"
+                fill="currentColor"
+                stroke="none"
+              />
+              <circle
+                cx="8"
+                cy="16"
+                r="1.3"
+                fill="currentColor"
+                stroke="none"
+              />
+              <circle
+                cx="16"
+                cy="16"
+                r="1.3"
+                fill="currentColor"
+                stroke="none"
+              />
             </svg>
           </span>
           <div className={styles.bgWatchBannerBody}>
@@ -277,7 +356,8 @@ export default function UsersList() {
               ¿Ya conocés BG Watch?
             </strong>
             <p className={styles.bgWatchBannerSub}>
-              Conectá tu cuenta de BoardGameGeek y llevá registro de tus partidas desde Turnocero.
+              Conectá tu cuenta de BoardGameGeek y llevá registro de tus
+              partidas desde Turnocero.
             </p>
           </div>
           <span className={styles.bgWatchBannerCta}>Activá →</span>
@@ -289,8 +369,8 @@ export default function UsersList() {
           <span className={styles.searchIcon}>🔍</span>
           <input
             className={styles.searchInput}
-            type='text'
-            placeholder='Buscar por usuario o nombre…'
+            type="text"
+            placeholder="Buscar por usuario o nombre…"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
@@ -298,8 +378,8 @@ export default function UsersList() {
             <button
               className={styles.clearBtn}
               onClick={() => {
-                setSearchInput('')
-                setSearch('')
+                setSearchInput("");
+                setSearch("");
               }}
             >
               ✕
@@ -321,7 +401,7 @@ export default function UsersList() {
           </select>
 
           <button
-            className={`${styles.toggleBtn} ${activeOnly ? styles.toggleActive : ''}`}
+            className={`${styles.toggleBtn} ${activeOnly ? styles.toggleActive : ""}`}
             onClick={() => setActiveOnly((v) => !v)}
           >
             Solo activos
@@ -329,7 +409,7 @@ export default function UsersList() {
 
           {currentUser && (
             <button
-              className={`${styles.toggleBtn} ${friendsOnly ? styles.toggleActive : ''}`}
+              className={`${styles.toggleBtn} ${friendsOnly ? styles.toggleActive : ""}`}
               onClick={() => setFriendsOnly((v) => !v)}
             >
               Solo amigos
@@ -337,7 +417,7 @@ export default function UsersList() {
           )}
 
           <button
-            className={`${styles.toggleBtn} ${styles.toggleBgWatch} ${bgWatchOnly ? styles.toggleActive : ''}`}
+            className={`${styles.toggleBtn} ${styles.toggleBgWatch} ${bgWatchOnly ? styles.toggleActive : ""}`}
             onClick={() => setBgWatchOnly((v) => !v)}
             title="Mostrar solo jugadores con BG Watch activo"
           >
@@ -353,10 +433,34 @@ export default function UsersList() {
             >
               <rect x="3" y="3" width="18" height="18" rx="2.5" />
               <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
-              <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
-              <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
-              <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
-              <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
+              <circle
+                cx="16"
+                cy="8"
+                r="1.3"
+                fill="currentColor"
+                stroke="none"
+              />
+              <circle
+                cx="12"
+                cy="12"
+                r="1.3"
+                fill="currentColor"
+                stroke="none"
+              />
+              <circle
+                cx="8"
+                cy="16"
+                r="1.3"
+                fill="currentColor"
+                stroke="none"
+              />
+              <circle
+                cx="16"
+                cy="16"
+                r="1.3"
+                fill="currentColor"
+                stroke="none"
+              />
             </svg>
             Con BG Watch
           </button>
@@ -377,11 +481,11 @@ export default function UsersList() {
             <button
               className={styles.clearFiltersBtn}
               onClick={() => {
-                setSearchInput('')
-                setSearch('')
-                setActiveOnly(false)
-                setFriendsOnly(false)
-                setBgWatchOnly(false)
+                setSearchInput("");
+                setSearch("");
+                setActiveOnly(false);
+                setFriendsOnly(false);
+                setBgWatchOnly(false);
               }}
             >
               Limpiar filtros
@@ -390,7 +494,7 @@ export default function UsersList() {
         </div>
       ) : (
         <div className={styles.grid}>
-          {visibleUsers.map((u) => (
+          {visibleUsers.map((u, i) => (
             <UserCard
               key={u._id}
               user={u}
@@ -398,6 +502,7 @@ export default function UsersList() {
               isAdmin={isAdmin}
               onBan={setBanTarget}
               onDelete={setDeleteTarget}
+              index={i}
             />
           ))}
         </div>
@@ -405,15 +510,19 @@ export default function UsersList() {
 
       <ConfirmActionModal
         isOpen={!!banTarget}
-        title={banTarget?.isBanned ? 'Desbanear usuario' : 'Banear usuario'}
+        title={banTarget?.isBanned ? "Desbanear usuario" : "Banear usuario"}
         message={
           banTarget?.isBanned
             ? `¿Querés desbanear a @${banTarget?.username}? Podrá volver a iniciar sesión y usar la app.`
-            : `¿Querés banear a @${banTarget?.username}? No podrá iniciar sesión y será expulsado si ya tiene una sesión activa.${actionError ? `\n\n${actionError}` : ''}`
+            : `¿Querés banear a @${banTarget?.username}? No podrá iniciar sesión y será expulsado si ya tiene una sesión activa.${actionError ? `\n\n${actionError}` : ""}`
         }
-        confirmLabel={banTarget?.isBanned ? 'Desbanear' : 'Banear'}
-        variant={banTarget?.isBanned ? 'warning' : 'danger'}
-        inputLabel={banTarget && !banTarget.isBanned ? 'Motivo del baneo (opcional)' : undefined}
+        confirmLabel={banTarget?.isBanned ? "Desbanear" : "Banear"}
+        variant={banTarget?.isBanned ? "warning" : "danger"}
+        inputLabel={
+          banTarget && !banTarget.isBanned
+            ? "Motivo del baneo (opcional)"
+            : undefined
+        }
         inputPlaceholder="Por ejemplo: spam reiterado, comportamiento inapropiado…"
         loading={actionLoading}
         onConfirm={handleBanConfirm}
@@ -423,7 +532,7 @@ export default function UsersList() {
       <ConfirmActionModal
         isOpen={!!deleteTarget}
         title="Eliminar usuario"
-        message={`¿Querés eliminar a @${deleteTarget?.username}? Esta acción no se puede deshacer. El usuario podrá registrarse nuevamente con el mismo email y sus contenidos (mesas, mensajes, comentarios) figurarán como "Usuario eliminado".${actionError ? `\n\n${actionError}` : ''}`}
+        message={`¿Querés eliminar a @${deleteTarget?.username}? Esta acción no se puede deshacer. El usuario podrá registrarse nuevamente con el mismo email y sus contenidos (mesas, mensajes, comentarios) figurarán como "Usuario eliminado".${actionError ? `\n\n${actionError}` : ""}`}
         confirmLabel="Eliminar definitivamente"
         variant="danger"
         loading={actionLoading}
@@ -431,5 +540,5 @@ export default function UsersList() {
         onCancel={closeModals}
       />
     </div>
-  )
+  );
 }

@@ -9,6 +9,7 @@
   position: relative;
   transition: border-color var(--transition);
   animation: postIn 0.4s ease both;
+  animation-delay: calc(var(--i, 0) * 125ms);
 }
 
 .card:hover {
@@ -688,7 +689,7 @@
 
 .mesaTicket::before,
 .mesaTicket::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 16px;
   height: 16px;
@@ -1101,7 +1102,7 @@
 
 /* Scanline overlay — fades after the boot-in finishes. */
 .comments::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -1119,7 +1120,7 @@
 
 /* Horizontal scan beam that sweeps once from top to bottom. */
 .comments::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;

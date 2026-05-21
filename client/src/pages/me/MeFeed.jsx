@@ -1,47 +1,50 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import axios from 'axios'
-import { useAuth } from '../../context/AuthContext'
-import GameTile from '../../components/shared/GameTile'
-import FeedCardSkeleton from './FeedCardSkeleton'
-import FeedCard from './FeedCard'
-import styles from './MeFeed.module.css'
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
+import GameTile from "../../components/shared/GameTile";
+import FeedCardSkeleton from "./FeedCardSkeleton";
+import FeedCard from "./FeedCard";
+import styles from "./MeFeed.module.css";
 
 const FILTERS = [
-  { key: 'all', label: 'Todas' },
-  { key: 'host', label: 'Anfitrión' },
-  { key: 'player', label: 'Jugador' },
-  { key: 'cancelled', label: 'Canceladas' },
-]
+  { key: "all", label: "Todas" },
+  { key: "host", label: "Anfitrión" },
+  { key: "player", label: "Jugador" },
+  { key: "cancelled", label: "Canceladas" },
+];
 
-function seedFromId(id = '') {
-  let s = 0
-  for (let i = 0; i < id.length; i++) s = (s * 31 + id.charCodeAt(i)) >>> 0
-  return s
+function seedFromId(id = "") {
+  let s = 0;
+  for (let i = 0; i < id.length; i++) s = (s * 31 + id.charCodeAt(i)) >>> 0;
+  return s;
 }
 
 function daysUntil(dateStr) {
-  return Math.ceil((new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24))
+  return Math.ceil((new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
 }
 
 function formatNextMeta(table) {
-  const d = new Date(table.date)
+  const d = new Date(table.date);
   const weekday = d
-    .toLocaleString('es-AR', { weekday: 'short' })
+    .toLocaleString("es-AR", { weekday: "short" })
     .toUpperCase()
-    .replace('.', '')
+    .replace(".", "");
   const day = d
-    .toLocaleString('es-AR', { day: 'numeric', month: 'short' })
-    .toUpperCase()
-  const time = d.toLocaleString('es-AR', { hour: '2-digit', minute: '2-digit' })
-  const parts = [`${weekday} ${day} · ${time}`]
-  if (table.location) parts.push(table.location)
-  parts.push(`${table.players.length + 1}/${table.maxPlayers + 1} jugadores`)
-  return parts.join(' · ')
+    .toLocaleString("es-AR", { day: "numeric", month: "short" })
+    .toUpperCase();
+  const time = d.toLocaleString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const parts = [`${weekday} ${day} · ${time}`];
+  if (table.location) parts.push(table.location);
+  parts.push(`${table.players.length + 1}/${table.maxPlayers + 1} jugadores`);
+  return parts.join(" · ");
 }
 
 function SeatTrack({ filled, total }) {
-  const pct = total > 0 ? (filled / total) * 100 : 0
+  const pct = total > 0 ? (filled / total) * 100 : 0;
   return (
     <div className={styles.seatTrack}>
       <div className={styles.seatTrackFill} style={{ width: `${pct}%` }} />
@@ -53,21 +56,21 @@ function SeatTrack({ filled, total }) {
         />
       ))}
     </div>
-  )
+  );
 }
 
 function NextGameHighlight({ table }) {
-  const days = daysUntil(table.date)
+  const days = daysUntil(table.date);
   const daysLabel =
-    days <= 0 ? 'HOY' : days === 1 ? 'EN 1 DÍA' : `EN ${days} DÍAS`
-  const seed = seedFromId(table._id)
-  const filled = table.players.length + 1
-  const total = table.maxPlayers + 1
+    days <= 0 ? "HOY" : days === 1 ? "EN 1 DÍA" : `EN ${days} DÍAS`;
+  const seed = seedFromId(table._id);
+  const filled = table.players.length + 1;
+  const total = table.maxPlayers + 1;
 
   return (
     <div className={styles.nextGame}>
       <div className={styles.nextGameBgTile}>
-        <GameTile game={table.boardGame} seed={seed} size='100%' />
+        <GameTile game={table.boardGame} seed={seed} size="100%" />
       </div>
       <div className={styles.nextGameContent}>
         <div className={styles.nextGameTile}>
@@ -86,87 +89,88 @@ function NextGameHighlight({ table }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default function MeFeed() {
-  const { user } = useAuth()
-  const [tables, setTables] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [filter, setFilter] = useState('all')
-  const [includeFriends, setIncludeFriends] = useState(false)
-  const [hasFriends, setHasFriends] = useState(false)
+  const { user } = useAuth();
+  const [tables, setTables] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [filter, setFilter] = useState("all");
+  const [includeFriends, setIncludeFriends] = useState(false);
+  const [hasFriends, setHasFriends] = useState(false);
 
-  const uid = user?._id?.toString()
+  const uid = user?._id?.toString();
 
   useEffect(() => {
-    if (!uid) return
-    setLoading(true)
-    setError(null)
+    if (!uid) return;
+    setLoading(true);
+    setError(null);
     const url = includeFriends
-      ? '/api/tables/me/feed?includeFriends=true'
-      : '/api/tables/me/feed'
+      ? "/api/tables/me/feed?includeFriends=true"
+      : "/api/tables/me/feed";
     axios
       .get(url)
       .then((res) => setTables(res.data.tables))
-      .catch(() => setError('No se pudo cargar el historial.'))
-      .finally(() => setLoading(false))
-  }, [includeFriends, uid])
+      .catch(() => setError("No se pudo cargar el historial."))
+      .finally(() => setLoading(false));
+  }, [includeFriends, uid]);
 
   useEffect(() => {
-    if (!uid) return
+    if (!uid) return;
     axios
       .get(`/api/users/${uid}`)
       .then((res) => setHasFriends((res.data.friendsCount ?? 0) > 0))
-      .catch(() => {})
-  }, [uid])
+      .catch(() => {});
+  }, [uid]);
 
-  const now = new Date()
+  const now = new Date();
 
-  const isHostOf = (t) => (t.host._id || t.host).toString() === uid
+  const isHostOf = (t) => (t.host._id || t.host).toString() === uid;
 
   const applyFilter = (t) => {
-    if (filter === 'all') return true
-    if (filter === 'cancelled') return t.status === 'cancelled'
-    if (filter === 'host') return isHostOf(t)
-    if (filter === 'player') return !isHostOf(t)
-    return true
-  }
+    if (filter === "all") return true;
+    if (filter === "cancelled") return t.status === "cancelled";
+    if (filter === "host") return isHostOf(t);
+    if (filter === "player") return !isHostOf(t);
+    return true;
+  };
 
-  const filteredTables = tables.filter(applyFilter)
-  const upcoming = filteredTables.filter((t) => new Date(t.date) >= now)
-  const past = filteredTables.filter((t) => new Date(t.date) < now)
-  const nextGame = upcoming.length > 0 ? upcoming[upcoming.length - 1] : null
+  const filteredTables = tables.filter(applyFilter);
+  const upcoming = filteredTables.filter((t) => new Date(t.date) >= now);
+  const past = filteredTables.filter((t) => new Date(t.date) < now);
+  const nextGame = upcoming.length > 0 ? upcoming[upcoming.length - 1] : null;
 
   const countFor = (key) => {
-    if (key === 'all') return tables.length
-    if (key === 'cancelled')
-      return tables.filter((t) => t.status === 'cancelled').length
-    if (key === 'host') return tables.filter(isHostOf).length
-    if (key === 'player') return tables.filter((t) => !isHostOf(t)).length
-    return 0
-  }
+    if (key === "all") return tables.length;
+    if (key === "cancelled")
+      return tables.filter((t) => t.status === "cancelled").length;
+    if (key === "host") return tables.filter(isHostOf).length;
+    if (key === "player") return tables.filter((t) => !isHostOf(t)).length;
+    return 0;
+  };
 
-  const hostedCount = tables.filter(isHostOf).length
-  const upcomingAll = tables.filter((t) => new Date(t.date) >= now)
+  const hostedCount = tables.filter(isHostOf).length;
+  const upcomingAll = tables.filter((t) => new Date(t.date) >= now);
   const nextAll =
-    upcomingAll.length > 0 ? upcomingAll[upcomingAll.length - 1] : null
-  const days = nextAll ? daysUntil(nextAll.date) : null
+    upcomingAll.length > 0 ? upcomingAll[upcomingAll.length - 1] : null;
+  const days = nextAll ? daysUntil(nextAll.date) : null;
 
-  let subtitle = ''
+  let subtitle = "";
   if (days !== null && days >= 0) {
     subtitle =
       days === 0
-        ? 'Tu próxima partida es hoy.'
-        : `Tu próxima partida es en ${days} día${days !== 1 ? 's' : ''}.`
+        ? "Tu próxima partida es hoy."
+        : `Tu próxima partida es en ${days} día${days !== 1 ? "s" : ""}.`;
   }
   if (hostedCount > 0) {
-    subtitle += `${subtitle ? ' Y tenés' : 'Tenés'} ${hostedCount} mesa${hostedCount !== 1 ? 's' : ''} hosteada${hostedCount !== 1 ? 's' : ''} en total.`
+    subtitle += `${subtitle ? " Y tenés" : "Tenés"} ${hostedCount} mesa${hostedCount !== 1 ? "s" : ""} hosteada${hostedCount !== 1 ? "s" : ""} en total.`;
   }
-  if (!subtitle && !loading) subtitle = 'Empezá a jugar o creá tu primera mesa.'
+  if (!subtitle && !loading)
+    subtitle = "Empezá a jugar o creá tu primera mesa.";
 
-  const nombre = user?.nombre || user?.username || '…'
+  const nombre = user?.nombre || user?.username || "…";
 
   return (
     <div className={styles.page}>
@@ -174,12 +178,14 @@ export default function MeFeed() {
         <div className={styles.hero}>
           <div className={styles.eyebrow}>◆ MI FEED</div>
           <h1 className={styles.heroTitle}>Hola, {nombre}.</h1>
-          {loading
-            ? <div className={styles.heroSubSkeleton} />
-            : subtitle && <p className={styles.heroSub}>{subtitle}</p>}
+          {loading ? (
+            <div className={styles.heroSubSkeleton} />
+          ) : (
+            subtitle && <p className={styles.heroSub}>{subtitle}</p>
+          )}
         </div>
 
-        {!loading && !error && nextGame && filter === 'all' && (
+        {!loading && !error && nextGame && filter === "all" && (
           <NextGameHighlight table={nextGame} />
         )}
 
@@ -187,7 +193,7 @@ export default function MeFeed() {
           {FILTERS.map((f) => (
             <button
               key={f.key}
-              className={`${styles.filterBtn} ${filter === f.key ? styles.filterBtnActive : ''}`}
+              className={`${styles.filterBtn} ${filter === f.key ? styles.filterBtnActive : ""}`}
               onClick={() => setFilter(f.key)}
             >
               {f.label}
@@ -196,10 +202,10 @@ export default function MeFeed() {
           ))}
           {hasFriends && (
             <button
-              className={`${styles.filterBtn} ${styles.filterBtnFriends} ${includeFriends ? styles.filterBtnFriendsActive : ''}`}
+              className={`${styles.filterBtn} ${styles.filterBtnFriends} ${includeFriends ? styles.filterBtnFriendsActive : ""}`}
               onClick={() => setIncludeFriends((v) => !v)}
             >
-              🤝 {includeFriends ? 'Con amigos' : 'Amigos'}
+              🤝 {includeFriends ? "Con amigos" : "Amigos"}
             </button>
           )}
         </div>
@@ -214,7 +220,7 @@ export default function MeFeed() {
           <div className={styles.empty}>
             <span className={styles.emptyIcon}>🎲</span>
             <p>No hay mesas para mostrar.</p>
-            <Link to='/mesas' className={styles.emptyLink}>
+            <Link to="/mesas" className={styles.emptyLink}>
               Explorar mesas disponibles
             </Link>
           </div>
@@ -227,16 +233,28 @@ export default function MeFeed() {
                 <div className={styles.sectionLabel}>
                   PRÓXIMAS · {upcoming.length}
                 </div>
-                {upcoming.map((t) => (
-                  <FeedCard key={t._id} table={t} userId={uid} isPast={false} />
+                {upcoming.map((t, i) => (
+                  <FeedCard
+                    key={t._id}
+                    table={t}
+                    userId={uid}
+                    isPast={false}
+                    index={i}
+                  />
                 ))}
               </>
             )}
             {past.length > 0 && (
               <>
                 <div className={styles.sectionLabel}>HISTORIAL</div>
-                {past.map((t) => (
-                  <FeedCard key={t._id} table={t} userId={uid} isPast />
+                {past.map((t, i) => (
+                  <FeedCard
+                    key={t._id}
+                    table={t}
+                    userId={uid}
+                    isPast
+                    index={upcoming.length + i}
+                  />
                 ))}
               </>
             )}
@@ -244,5 +262,5 @@ export default function MeFeed() {
         )}
       </div>
     </div>
-  )
+  );
 }

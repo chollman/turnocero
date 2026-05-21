@@ -1,6 +1,7 @@
 .page {
   min-height: calc(100vh - 64px);
-  padding: var(--page-padding) var(--page-padding) var(--page-padding) var(--page-padding-left);
+  padding: var(--page-padding) var(--page-padding) var(--page-padding)
+    var(--page-padding-left);
 }
 
 @media (max-width: 959px) {
@@ -298,6 +299,19 @@
     border-color var(--transition),
     box-shadow var(--transition),
     transform var(--transition);
+  animation: userCardEnter 0.28s ease both;
+  animation-delay: calc(var(--i, 0) * 125ms);
+}
+
+@keyframes userCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .card:hover {
@@ -561,7 +575,8 @@
 
 @media (max-width: 640px) {
   .page {
-    padding: var(--navbar-h) var(--page-padding-mobile) var(--page-padding-mobile);
+    padding: var(--navbar-h) var(--page-padding-mobile)
+      var(--page-padding-mobile);
   }
 
   .card {

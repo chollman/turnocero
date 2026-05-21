@@ -11,12 +11,18 @@
   transition: all var(--transition);
   aspect-ratio: 3 / 4;
   animation: posterEnter 0.4s ease both;
-  animation-delay: calc(var(--i, 0) * 50ms);
+  animation-delay: calc(var(--i, 0) * 125ms);
 }
 
 @keyframes posterEnter {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .poster:hover {
@@ -34,18 +40,22 @@
   transition: transform 0.4s ease;
 }
 
-.poster:hover .image { transform: scale(1.04); }
+.poster:hover .image {
+  transform: scale(1.04);
+}
 
 /* Fallback — poster is intentionally dark in both themes (afiche cinematográfico). */
 .fallback {
   position: absolute;
   inset: 0;
   background:
-    repeating-linear-gradient(135deg,
+    repeating-linear-gradient(
+      135deg,
       var(--amber-10) 0,
       var(--amber-10) 14px,
       transparent 14px,
-      transparent 28px),
+      transparent 28px
+    ),
     radial-gradient(circle at 30% 20%, var(--amber-15), transparent 60%),
     linear-gradient(180deg, #16203a, #0a0d15);
   display: grid;
@@ -60,7 +70,9 @@
   color: rgba(255, 255, 255, 0.55);
 }
 
-.fallbackInner svg { opacity: 0.5; }
+.fallbackInner svg {
+  opacity: 0.5;
+}
 
 .fallbackInner span {
   font-family: var(--font-mono);
@@ -73,11 +85,13 @@
 .overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg,
+  background: linear-gradient(
+    180deg,
     rgba(0, 0, 0, 0.5) 0%,
     rgba(0, 0, 0, 0.05) 40%,
     rgba(10, 13, 21, 0.4) 60%,
-    rgba(10, 13, 21, 0.95) 100%);
+    rgba(10, 13, 21, 0.95) 100%
+  );
   z-index: 1;
 }
 
@@ -135,11 +149,21 @@
   backdrop-filter: blur(4px);
 }
 
-.status_open { color: var(--green); border-color: var(--green-25); background: var(--green-10); }
-.status_closed { color: rgba(255, 255, 255, 0.7); border-color: rgba(255, 255, 255, 0.15); }
+.status_open {
+  color: var(--green);
+  border-color: var(--green-25);
+  background: var(--green-10);
+}
+.status_closed {
+  color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.15);
+}
 .status_cancelled {
-  color: var(--red); border-color: var(--red-25); background: var(--red-10);
-  text-decoration: line-through; text-decoration-thickness: 1px;
+  color: var(--red);
+  border-color: var(--red-25);
+  background: var(--red-10);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .body {
@@ -199,7 +223,9 @@
   color: #fff;
 }
 
-.feeFree { color: var(--green); }
+.feeFree {
+  color: var(--green);
+}
 
 .cta {
   display: inline-flex;

@@ -285,6 +285,7 @@ export default function Compartidas() {
                 <Fragment key={post._id}>
                   <CompartidaCard
                     post={post}
+                    index={featured ? i + 1 : i}
                     onDeleted={handleDeleted}
                     onUpdated={handleUpdated}
                   />

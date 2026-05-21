@@ -8,9 +8,11 @@
   border-radius: 12px;
   text-decoration: none;
   color: inherit;
-  transition: background var(--transition), border-color var(--transition);
+  transition:
+    background var(--transition),
+    border-color var(--transition);
   animation: rowEnter 0.4s ease both;
-  animation-delay: calc(var(--i, 0) * 60ms);
+  animation-delay: calc(var(--i, 0) * 125ms);
 }
 
 @keyframes rowEnter {

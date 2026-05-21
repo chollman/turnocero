@@ -232,12 +232,18 @@
 
 .cardWrap {
   animation: cardEnter 0.28s ease both;
-  animation-delay: calc(var(--i, 0) * 50ms);
+  animation-delay: calc(var(--i, 0) * 125ms);
 }
 
 @keyframes cardEnter {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* List */
@@ -256,7 +262,6 @@
   padding: 4rem 0;
   color: var(--text-secondary);
 }
-
 
 .errorText {
   color: var(--red);
@@ -388,9 +393,13 @@
     font-weight: 700;
     letter-spacing: 0.02em;
     text-decoration: none;
-    box-shadow: 0 6px 20px var(--amber-glow), 0 0 0 4px var(--amber-10);
+    box-shadow:
+      0 6px 20px var(--amber-glow),
+      0 0 0 4px var(--amber-10);
     z-index: 50;
-    transition: background var(--transition), box-shadow var(--transition);
+    transition:
+      background var(--transition),
+      box-shadow var(--transition);
   }
 
   .fab:hover {
