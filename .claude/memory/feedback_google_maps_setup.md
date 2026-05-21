@@ -21,6 +21,14 @@ Los Map IDs se manejan en Cloud Console (Map Styles); para cambiar la paleta vis
 
 Ambos componentes leen las envs **dentro del render** (no en top-level del módulo) para permitir override en tests con `vi.stubEnv`. Cada uno tiene su propio `<APIProvider>` (vis.gl deduplica la carga del script).
 
+## Gotcha: el `mapId` no cambia in-place
+
+Google Maps solo acepta `mapId` al construir el mapa — cambiar el prop después NO re-estiliza nada, el primer mapId queda fijo. vis.gl no remountea automáticamente. **Siempre pasar `key={mapId}` al `<Map>`** para forzar remount cuando cambia el tema (ver `AddressMap.jsx`).
+
+## Gotcha: `colorScheme` es obligatorio con styles tipados
+
+En el editor nuevo de Cloud Console, cada Map Style tiene un "Style type" (Light/Dark). Estos styles tipados **solo se aplican si pasás también `colorScheme="LIGHT"` o `"DARK"` al `<Map>`**. Sin esto, el Map ID + Style están perfectamente configurados pero el estilo NO se renderiza, cae al default. Aplicar siempre `colorScheme={theme === 'light' ? 'LIGHT' : 'DARK'}` junto con el `mapId`.
+
 ## Backend geocoding cache (mismo patrón que BGG)
 
 - `server/models/GeocodeCache.js` — `{ query, lat, lng, formatted, lastFetchedAt }` con índice TTL de 30 días.

@@ -65,7 +65,15 @@ export default function AddressMap({ lat, lng, onChange, height = 280 }) {
     <div className={styles.map} style={{ height }}>
       <APIProvider apiKey={apiKey}>
         <Map
+          // key={mapId} fuerza un remount cuando cambia el tema. Google Maps
+          // solo acepta `mapId` al construir el mapa — sin remount, el primer
+          // estilo queda fijo aunque cambien las props.
+          key={mapId}
           mapId={mapId}
+          // colorScheme es obligatorio cuando el Map Style usa el nuevo sistema
+          // "tipado" (Style type = Light/Dark). Sin esto, los styles tipo Dark
+          // no se aplican aunque el Map ID esté correctamente asociado.
+          colorScheme={theme === 'light' ? 'LIGHT' : 'DARK'}
           defaultCenter={center}
           defaultZoom={hasMarker ? 15 : 13}
           gestureHandling="greedy"
