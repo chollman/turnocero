@@ -83,49 +83,51 @@ export default function TicketStub({
   // matcheaba la rama de status="rejected" y nunca llegaba a la de showForm,
   // dejando el click muerto.
   const inscriptionForm = (
-    <div className={styles.form}>
-      {evento.conditions && (
-        <div>
-          <div className={styles.formLabel}>◆ Condiciones</div>
-          <p className={styles.formText}>{evento.conditions}</p>
-        </div>
-      )}
-      {!isFree && evento.transferDetails && (
-        <div>
-          <div className={styles.formLabel}>
-            ◆ Datos de transferencia · {formatFee(evento.fee)}
+    <div className={styles.formContainer}>
+      <div className={styles.form}>
+        {evento.conditions && (
+          <div>
+            <div className={styles.formLabel}>◆ Condiciones</div>
+            <p className={styles.formText}>{evento.conditions}</p>
           </div>
-          <div className={styles.transferBox}>{evento.transferDetails}</div>
+        )}
+        {!isFree && evento.transferDetails && (
+          <div>
+            <div className={styles.formLabel}>
+              ◆ Datos de transferencia · {formatFee(evento.fee)}
+            </div>
+            <div className={styles.transferBox}>{evento.transferDetails}</div>
+          </div>
+        )}
+        {!isFree && (
+          <div>
+            <div className={styles.formLabel}>◆ Comprobante *</div>
+            <ComprobanteDropzone file={comprobante} onFile={setComprobante} />
+          </div>
+        )}
+        {localErr && <p className={styles.formError}>{localErr}</p>}
+        <div className={styles.formActions}>
+          <button
+            className={styles.ghostBtn}
+            type="button"
+            onClick={() => {
+              setShowForm(false);
+              setComprobante(null);
+              setLocalErr("");
+            }}
+            disabled={inscribing}
+          >
+            Cancelar
+          </button>
+          <button
+            className={styles.cta}
+            type="button"
+            onClick={handleSubmit}
+            disabled={inscribing || (!isFree && !comprobante)}
+          >
+            {inscribing ? "Enviando…" : "Confirmar"}
+          </button>
         </div>
-      )}
-      {!isFree && (
-        <div>
-          <div className={styles.formLabel}>◆ Comprobante *</div>
-          <ComprobanteDropzone file={comprobante} onFile={setComprobante} />
-        </div>
-      )}
-      {localErr && <p className={styles.formError}>{localErr}</p>}
-      <div className={styles.formActions}>
-        <button
-          className={styles.ghostBtn}
-          type="button"
-          onClick={() => {
-            setShowForm(false);
-            setComprobante(null);
-            setLocalErr("");
-          }}
-          disabled={inscribing}
-        >
-          Cancelar
-        </button>
-        <button
-          className={styles.cta}
-          type="button"
-          onClick={handleSubmit}
-          disabled={inscribing || (!isFree && !comprobante)}
-        >
-          {inscribing ? "Enviando…" : "Confirmar"}
-        </button>
       </div>
     </div>
   );
