@@ -1,13 +1,44 @@
 export const MESES_LARGO = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
 ];
 
-export const MESES_CORTO = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+export const MESES_CORTO = [
+  "ENE",
+  "FEB",
+  "MAR",
+  "ABR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AGO",
+  "SEP",
+  "OCT",
+  "NOV",
+  "DIC",
+];
 
-export const DIAS_LARGO  = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+export const DIAS_LARGO = [
+  "Domingo",
+  "Lunes",
+  "Martes",
+  "Miércoles",
+  "Jueves",
+  "Viernes",
+  "Sábado",
+];
 
-export const DIAS_CORTO  = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+export const DIAS_CORTO = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
 
 export function parseDate(s) {
   if (!s) return null;
@@ -19,21 +50,25 @@ export function dateParts(s) {
   const d = parseDate(s);
   if (!d) return null;
   return {
-    day:         d.getDate(),
-    month:       MESES_CORTO[d.getMonth()],
-    monthLong:   MESES_LARGO[d.getMonth()],
-    year:        d.getFullYear(),
-    weekday:     DIAS_CORTO[d.getDay()],
+    day: d.getDate(),
+    month: MESES_CORTO[d.getMonth()],
+    monthLong: MESES_LARGO[d.getMonth()],
+    year: d.getFullYear(),
+    weekday: DIAS_CORTO[d.getDay()],
     weekdayLong: DIAS_LARGO[d.getDay()],
-    time:        d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }),
-    monthKey:    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-    isoDate:     d,
+    time: d.toLocaleTimeString("es-AR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }),
+    monthKey: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+    isoDate: d,
   };
 }
 
 export function countdown(s, now = Date.now()) {
   const d = parseDate(s);
-  if (!d) return { text: '', tone: 'past' };
+  if (!d) return { text: "", tone: "past" };
   const diff = d.getTime() - now;
   const abs = Math.abs(diff);
   const minutes = Math.round(abs / 60000);
@@ -41,29 +76,51 @@ export function countdown(s, now = Date.now()) {
   const days = Math.round(abs / 86400000);
 
   if (diff < 0) {
-    if (days >= 2) return { text: `hace ${days} días`, tone: 'past' };
-    if (hours >= 1) return { text: `hace ${hours}h`, tone: 'past' };
-    return { text: 'finalizado', tone: 'past' };
+    if (days >= 2) return { text: `hace ${days} días`, tone: "past" };
+    if (hours >= 1) return { text: `hace ${hours}h`, tone: "past" };
+    return { text: "finalizado", tone: "past" };
   }
-  if (minutes < 60) return { text: `en ${minutes} min`, tone: 'urgent' };
-  if (hours < 24) return { text: `en ${hours}h`, tone: 'urgent' };
-  if (days <= 3) return { text: `en ${days} día${days > 1 ? 's' : ''}`, tone: 'urgent' };
-  if (days <= 14) return { text: `en ${days} días`, tone: 'soon' };
-  if (days <= 60) return { text: `en ${days} días`, tone: 'normal' };
+  if (minutes < 60) return { text: `en ${minutes} min`, tone: "urgent" };
+  if (hours < 24) return { text: `en ${hours}h`, tone: "urgent" };
+  if (days <= 3)
+    return { text: `en ${days} día${days > 1 ? "s" : ""}`, tone: "urgent" };
+  if (days <= 14) return { text: `en ${days} días`, tone: "soon" };
+  if (days <= 60) return { text: `en ${days} días`, tone: "normal" };
   const weeks = Math.round(days / 7);
-  if (weeks <= 12) return { text: `en ${weeks} semanas`, tone: 'normal' };
+  if (weeks <= 12) return { text: `en ${weeks} semanas`, tone: "normal" };
   const months = Math.round(days / 30);
-  return { text: `en ${months} meses`, tone: 'normal' };
+  return { text: `en ${months} meses`, tone: "normal" };
 }
 
 export function formatFee(fee) {
-  if (!fee || fee === 0) return 'Gratis';
-  return `$${Number(fee).toLocaleString('es-AR')}`;
+  if (!fee || fee === 0) return "Gratis";
+  return `$${Number(fee).toLocaleString("es-AR")}`;
+}
+
+// `datetime-local` inputs trabajan en hora local sin TZ. El server guarda en
+// UTC. Para evitar que un slice del ISO termine mostrando hora UTC dentro de
+// un picker local, convertimos explícitamente entre los dos formatos.
+
+// ISO UTC → "YYYY-MM-DDTHH:mm" en hora local del navegador.
+export function toLocalInputValue(s) {
+  const d = parseDate(s);
+  if (!d) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// "YYYY-MM-DDTHH:mm" (hora local) → ISO UTC para mandar al server.
+export function fromLocalInputValue(s) {
+  if (!s) return "";
+  // new Date() sin Z y sin offset interpreta el string como local.
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString();
 }
 
 export function formatDateLong(s) {
   const p = dateParts(s);
-  if (!p) return '';
+  if (!p) return "";
   return `${p.weekdayLong} ${p.day} de ${p.monthLong}, ${p.year} · ${p.time}`;
 }
 
@@ -80,8 +137,10 @@ export function groupByMonth(events) {
   }
   return Array.from(groups.values())
     .sort((a, b) => a.key.localeCompare(b.key))
-    .map(g => ({
+    .map((g) => ({
       ...g,
-      events: g.events.sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate)),
+      events: g.events.sort(
+        (a, b) => new Date(a.eventDate) - new Date(b.eventDate),
+      ),
     }));
 }

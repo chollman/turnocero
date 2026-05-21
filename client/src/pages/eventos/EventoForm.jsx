@@ -1,42 +1,51 @@
-import { useState } from 'react';
-import ImageDropzone from './ImageDropzone';
-import styles from './EventoForm.module.css';
+import { useState } from "react";
+import ImageDropzone from "./ImageDropzone";
+import { toLocalInputValue, fromLocalInputValue } from "../../utils/eventoDate";
+import styles from "./EventoForm.module.css";
 
 const EMPTY_FORM = {
-  title: '',
-  description: '',
-  conditions: '',
-  fee: '',
-  transferDetails: '',
-  eventDate: '',
-  location: '',
-  maxParticipants: '',
-  status: 'open',
+  title: "",
+  description: "",
+  conditions: "",
+  fee: "",
+  transferDetails: "",
+  eventDate: "",
+  location: "",
+  maxParticipants: "",
+  status: "open",
 };
 
 function valuesFromEvento(evento) {
   if (!evento) return { ...EMPTY_FORM };
   return {
-    title:           evento.title           || '',
-    description:     evento.description     || '',
-    conditions:      evento.conditions      || '',
-    fee:             evento.fee ?? '',
-    transferDetails: evento.transferDetails || '',
-    eventDate:       evento.eventDate ? String(evento.eventDate).slice(0, 16) : '',
-    location:        evento.location        || '',
-    maxParticipants: evento.maxParticipants ?? '',
-    status:          evento.status          || 'open',
+    title: evento.title || "",
+    description: evento.description || "",
+    conditions: evento.conditions || "",
+    fee: evento.fee ?? "",
+    transferDetails: evento.transferDetails || "",
+    // Convertimos el ISO UTC del server a hora local para precargar el picker;
+    // si no, el input mostraría la hora UTC con etiqueta engañosa "local".
+    eventDate: toLocalInputValue(evento.eventDate),
+    location: evento.location || "",
+    maxParticipants: evento.maxParticipants ?? "",
+    status: evento.status || "open",
   };
 }
 
-export default function EventoForm({ mode = 'create', initialEvento = null, onSubmit, onCancel, submitting = false }) {
+export default function EventoForm({
+  mode = "create",
+  initialEvento = null,
+  onSubmit,
+  onCancel,
+  submitting = false,
+}) {
   const [form, setForm] = useState(() => valuesFromEvento(initialEvento));
   const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(() => initialEvento?.image?.url || '');
-  const [error, setError] = useState('');
+  const [preview, setPreview] = useState(() => initialEvento?.image?.url || "");
+  const [error, setError] = useState("");
 
   function update(name, value) {
-    setForm(prev => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   }
 
   function handleChange(e) {
@@ -51,42 +60,54 @@ export default function EventoForm({ mode = 'create', initialEvento = null, onSu
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.title.trim()) {
-      setError('El título es obligatorio');
+      setError("El título es obligatorio");
       return;
     }
     if (!form.eventDate) {
-      setError('La fecha y hora del evento son obligatorias');
+      setError("La fecha y hora del evento son obligatorias");
       return;
     }
-    setError('');
+    setError("");
     const fd = new FormData();
     // Send every field — even empty strings — so the server can clear a
     // previously-set field by submitting it blank. Partial PUTs (e.g. cancel)
     // call the endpoint directly with only the keys they want to change.
     Object.entries(form).forEach(([k, v]) => {
-      fd.append(k, v == null ? '' : v);
+      if (k === "eventDate") {
+        // El picker entrega hora local; al server le mandamos siempre ISO UTC
+        // para que la fecha se interprete igual sin importar la TZ del host.
+        fd.append(k, fromLocalInputValue(v));
+      } else {
+        fd.append(k, v == null ? "" : v);
+      }
     });
-    if (file) fd.append('image', file);
+    if (file) fd.append("image", file);
     try {
       await onSubmit(fd);
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Error al guardar');
+      setError(
+        err?.response?.data?.message || err?.message || "Error al guardar",
+      );
     }
   }
 
-  const isEdit = mode === 'edit';
+  const isEdit = mode === "edit";
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <div className={styles.head}>
-        <span className={styles.eyebrow}>{isEdit ? 'Editar evento' : 'Nuevo evento'}</span>
+        <span className={styles.eyebrow}>
+          {isEdit ? "Editar evento" : "Nuevo evento"}
+        </span>
         <span className={styles.rule} />
       </div>
 
       <ImageDropzone preview={preview} onFile={handleFile} />
 
       <div className={styles.field}>
-        <label className={styles.fieldLabel} htmlFor="evento-title">Título *</label>
+        <label className={styles.fieldLabel} htmlFor="evento-title">
+          Título *
+        </label>
         <input
           id="evento-title"
           name="title"
@@ -99,7 +120,9 @@ export default function EventoForm({ mode = 'create', initialEvento = null, onSu
       </div>
 
       <div className={styles.field}>
-        <label className={styles.fieldLabel} htmlFor="evento-description">Descripción</label>
+        <label className={styles.fieldLabel} htmlFor="evento-description">
+          Descripción
+        </label>
         <textarea
           id="evento-description"
           name="description"
@@ -113,7 +136,9 @@ export default function EventoForm({ mode = 'create', initialEvento = null, onSu
       </div>
 
       <div className={styles.field}>
-        <label className={styles.fieldLabel} htmlFor="evento-conditions">Condiciones de inscripción</label>
+        <label className={styles.fieldLabel} htmlFor="evento-conditions">
+          Condiciones de inscripción
+        </label>
         <textarea
           id="evento-conditions"
           name="conditions"
@@ -128,7 +153,9 @@ export default function EventoForm({ mode = 'create', initialEvento = null, onSu
 
       <div className={styles.row}>
         <div className={styles.field} style={{ flex: 1 }}>
-          <label className={styles.fieldLabel} htmlFor="evento-fee">Monto ($ARS, 0 = gratis)</label>
+          <label className={styles.fieldLabel} htmlFor="evento-fee">
+            Monto ($ARS, 0 = gratis)
+          </label>
           <input
             id="evento-fee"
             name="fee"
@@ -141,7 +168,9 @@ export default function EventoForm({ mode = 'create', initialEvento = null, onSu
           />
         </div>
         <div className={styles.field} style={{ flex: 1 }}>
-          <label className={styles.fieldLabel} htmlFor="evento-max">Cupo máximo</label>
+          <label className={styles.fieldLabel} htmlFor="evento-max">
+            Cupo máximo
+          </label>
           <input
             id="evento-max"
             name="maxParticipants"
@@ -156,7 +185,9 @@ export default function EventoForm({ mode = 'create', initialEvento = null, onSu
       </div>
 
       <div className={styles.field}>
-        <label className={styles.fieldLabel} htmlFor="evento-transfer">Datos de transferencia</label>
+        <label className={styles.fieldLabel} htmlFor="evento-transfer">
+          Datos de transferencia
+        </label>
         <textarea
           id="evento-transfer"
           name="transferDetails"
@@ -171,7 +202,9 @@ export default function EventoForm({ mode = 'create', initialEvento = null, onSu
 
       <div className={styles.row}>
         <div className={styles.field} style={{ flex: 1 }}>
-          <label className={styles.fieldLabel} htmlFor="evento-date">Fecha y hora *</label>
+          <label className={styles.fieldLabel} htmlFor="evento-date">
+            Fecha y hora *
+          </label>
           <input
             id="evento-date"
             name="eventDate"
@@ -183,7 +216,9 @@ export default function EventoForm({ mode = 'create', initialEvento = null, onSu
           />
         </div>
         <div className={styles.field} style={{ flex: 1 }}>
-          <label className={styles.fieldLabel} htmlFor="evento-location">Lugar</label>
+          <label className={styles.fieldLabel} htmlFor="evento-location">
+            Lugar
+          </label>
           <input
             id="evento-location"
             name="location"
@@ -198,7 +233,9 @@ export default function EventoForm({ mode = 'create', initialEvento = null, onSu
       </div>
 
       <div className={styles.field}>
-        <label className={styles.fieldLabel} htmlFor="evento-status">Estado</label>
+        <label className={styles.fieldLabel} htmlFor="evento-status">
+          Estado
+        </label>
         <select
           id="evento-status"
           name="status"
@@ -216,11 +253,26 @@ export default function EventoForm({ mode = 'create', initialEvento = null, onSu
       {error && <p className={styles.error}>{error}</p>}
 
       <div className={styles.actions}>
-        <button type="button" className={styles.btnGhost} onClick={onCancel} disabled={submitting}>
+        <button
+          type="button"
+          className={styles.btnGhost}
+          onClick={onCancel}
+          disabled={submitting}
+        >
           Cancelar
         </button>
-        <button type="submit" className={styles.btnPrimary} disabled={submitting}>
-          {submitting ? (isEdit ? 'Guardando…' : 'Creando…') : (isEdit ? 'Guardar cambios' : 'Crear evento')}
+        <button
+          type="submit"
+          className={styles.btnPrimary}
+          disabled={submitting}
+        >
+          {submitting
+            ? isEdit
+              ? "Guardando…"
+              : "Creando…"
+            : isEdit
+              ? "Guardar cambios"
+              : "Crear evento"}
         </button>
       </div>
     </form>
