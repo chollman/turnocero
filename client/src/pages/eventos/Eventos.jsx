@@ -49,6 +49,15 @@ export default function Eventos() {
   const [submitting, setSubmitting] = useState(false);
   const formRef = useRef(null);
 
+  // `now` se mantiene en estado y se refresca con un interval para que las
+  // countdowns ("en X días") y el divisor "Hoy" se actualicen sin necesidad
+  // de re-renderizar manualmente. Date.now() en render rompe react-hooks/purity.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   const load = useCallback(
     async (pageNum = 1, replace = true) => {
       if (replace) setLoading(true);
@@ -155,11 +164,10 @@ export default function Eventos() {
 
   const groups = useMemo(() => groupByMonth(visibleEventos), [visibleEventos]);
   const upcoming = useMemo(() => {
-    const now = Date.now();
     return eventos.filter(
       (e) => e.status === "open" && new Date(e.eventDate) > now,
     ).length;
-  }, [eventos]);
+  }, [eventos, now]);
   const monthNow = MESES_LARGO[new Date().getMonth()];
   const yearNow = new Date().getFullYear();
 
@@ -202,8 +210,6 @@ export default function Eventos() {
     }
   }
 
-  const now = Date.now();
-
   // Divisor "Hoy" entre el último pasado y el primer futuro — sólo en filtro
   // "Todos" y sólo cuando hay eventos a ambos lados de la línea temporal.
   const firstFutureId = useMemo(() => {
@@ -215,8 +221,8 @@ export default function Eventos() {
     const future = sorted.find((e) => new Date(e.eventDate).getTime() >= now);
     const hasPast = sorted.some((e) => new Date(e.eventDate).getTime() < now);
     return future && hasPast ? future._id : null;
-    // `now` recomputa cada render — se omite del dep array a propósito;
-    // un drift sub-segundo en el divisor es irrelevante.
+    // `now` viene del state ticker (cada 30s); el dep array sigue omitiéndolo
+    // a propósito porque un drift sub-segundo en el divisor es irrelevante.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleEventos, filter]);
 

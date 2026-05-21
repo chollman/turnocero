@@ -116,7 +116,9 @@ describe("<EventoForm>", () => {
       target: { value: "2026-12-31T20:00" },
     });
     fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
-    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
     expect(onSubmit).toHaveBeenCalledTimes(1);
     const fd = onSubmit.mock.calls[0][0];
     expect(fd).toBeInstanceOf(FormData);

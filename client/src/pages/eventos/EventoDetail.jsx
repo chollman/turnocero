@@ -40,6 +40,14 @@ export default function EventoDetail() {
 
   const [actionError, setActionError] = useState("");
 
+  // Ticker para que TicketStub refresque su countdown ("en X días") sin
+  // re-renders manuales. Date.now() en render rompe react-hooks/purity.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -148,7 +156,14 @@ export default function EventoDetail() {
       socket.emit("leave:evento", id);
       socket.disconnect();
     };
-  }, [evento, evento._id, id, user._id]);
+    // Optional chaining a propósito: `evento` y `user` pueden ser null antes
+    // del fetch inicial y mientras se desautentica. Acceder con `.` crudo
+    // hace crashear el árbol entero; con `?.` el effect simplemente espera
+    // al primer estado válido. `evento` queda fuera del dep array a propósito
+    // — sólo nos interesa reconectar el socket cuando cambia el _id, no en
+    // cada update de counts/userRegistration que dispararía leave+rejoin.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [evento?._id, id, user?._id]);
 
   async function handleInscribirse(comprobanteFile) {
     if (!user) {
@@ -209,6 +224,22 @@ export default function EventoDetail() {
     }
   }
 
+  // El PUT del server devuelve `userRegistration: null` y no incluye
+  // `confirmedRegistrations` (el endpoint sólo conoce el evento, no el caller).
+  // Si mergeamos crudo con `...data`, perdemos la inscripción del admin que
+  // está viendo su propio evento; preservamos esos campos del estado previo.
+  function mergeEventoUpdate(prev, data, overrides = {}) {
+    return {
+      ...prev,
+      ...data,
+      userRegistration:
+        prev?.userRegistration ?? data?.userRegistration ?? null,
+      confirmedRegistrations:
+        data?.confirmedRegistrations ?? prev?.confirmedRegistrations ?? [],
+      ...overrides,
+    };
+  }
+
   async function handleSaveEdit(fd) {
     setSavingEdit(true);
     setActionError("");
@@ -216,7 +247,7 @@ export default function EventoDetail() {
       const { data } = await axios.put(`/api/eventos/${id}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setEvento((prev) => ({ ...prev, ...data }));
+      setEvento((prev) => mergeEventoUpdate(prev, data));
       setEditing(false);
     } catch (err) {
       setActionError(
@@ -236,7 +267,9 @@ export default function EventoDetail() {
       const { data } = await axios.put(`/api/eventos/${id}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setEvento((prev) => ({ ...prev, ...data, status: "cancelled" }));
+      setEvento((prev) =>
+        mergeEventoUpdate(prev, data, { status: "cancelled" }),
+      );
     } catch (err) {
       setActionError(
         err.response?.data?.message || "No pudimos cancelar el evento.",
@@ -252,7 +285,7 @@ export default function EventoDetail() {
       const { data } = await axios.put(`/api/eventos/${id}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setEvento((prev) => ({ ...prev, ...data, status: "open" }));
+      setEvento((prev) => mergeEventoUpdate(prev, data, { status: "open" }));
     } catch (err) {
       setActionError(
         err.response?.data?.message || "No pudimos reabrir el evento.",
@@ -505,6 +538,7 @@ export default function EventoDetail() {
             pendingCount={pendingCount}
             inscribing={inscribing}
             cancellingReg={cancellingReg}
+            now={now}
             onInscribirse={handleInscribirse}
             onCancelRegistration={handleCancelRegistration}
             onLoginRequest={() => setShowLoginPrompt(true)}

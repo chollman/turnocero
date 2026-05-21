@@ -169,7 +169,8 @@ router.get("/", optionalAuth, async (req, res) => {
       page,
       pages: Math.ceil(total / limit),
     });
-  } catch {
+  } catch (err) {
+    console.error("GET /api/eventos:", err.message);
     res.status(500).json({ message: "Error al obtener eventos" });
   }
 });
@@ -241,7 +242,8 @@ router.post(
       }
 
       res.status(201).json(populated);
-    } catch {
+    } catch (err) {
+      console.error("POST /api/eventos:", err.message);
       res.status(500).json({ message: "Error al crear el evento" });
     }
   },
@@ -316,7 +318,8 @@ router.get("/:id", optionalAuth, async (req, res) => {
       userRegistration,
       confirmedRegistrations,
     });
-  } catch {
+  } catch (err) {
+    console.error("GET /api/eventos/:id:", err.message);
     res.status(500).json({ message: "Error al obtener el evento" });
   }
 });
@@ -419,7 +422,8 @@ router.put(
       }
 
       res.json(payload);
-    } catch {
+    } catch (err) {
+      console.error("PUT /api/eventos/:id:", err.message);
       res.status(500).json({ message: "Error al editar el evento" });
     }
   },
@@ -464,7 +468,8 @@ router.delete("/:id", protect, requireAdmin, async (req, res) => {
     emitToEventosList(req, "evento:deleted", { eventoId: deletedId });
 
     res.json({ message: "Evento eliminado" });
-  } catch {
+  } catch (err) {
+    console.error("DELETE /api/eventos/:id:", err.message);
     res.status(500).json({ message: "Error al eliminar el evento" });
   }
 });
@@ -639,7 +644,8 @@ router.post(
             }
           : null,
       });
-    } catch {
+    } catch (err) {
+      console.error("POST /api/eventos/:id/inscribirse:", err.message);
       res.status(500).json({ message: "Error al procesar la inscripción" });
     }
   },
@@ -698,7 +704,8 @@ router.delete("/:id/inscribirse", protect, async (req, res) => {
       emitToEventosList(req, "evento:counts-changed", cancelCountsPayload);
 
     res.json({ message: "Inscripción cancelada" });
-  } catch {
+  } catch (err) {
+    console.error("DELETE /api/eventos/:id/inscribirse:", err.message);
     res.status(500).json({ message: "Error al cancelar la inscripción" });
   }
 });
@@ -743,7 +750,8 @@ router.get("/:id/inscripciones", protect, requireAdmin, async (req, res) => {
           .length,
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("GET /api/eventos/:id/inscripciones:", err.message);
     res.status(500).json({ message: "Error al obtener inscripciones" });
   }
 });
@@ -819,7 +827,11 @@ router.patch(
       }
 
       res.json({ message: "Inscripción confirmada", status: reg.status });
-    } catch {
+    } catch (err) {
+      console.error(
+        "PATCH /api/eventos/:id/inscripciones/:userId/confirmar:",
+        err.message,
+      );
       res.status(500).json({ message: "Error al confirmar la inscripción" });
     }
   },
@@ -886,7 +898,11 @@ router.patch(
         status: reg.status,
         permanentlyRejected: reg.permanentlyRejected,
       });
-    } catch {
+    } catch (err) {
+      console.error(
+        "PATCH /api/eventos/:id/inscripciones/:userId/rechazar:",
+        err.message,
+      );
       res.status(500).json({ message: "Error al rechazar la inscripción" });
     }
   },
@@ -956,7 +972,11 @@ router.patch(
         status: reg.status,
         submittedAt: reg.submittedAt,
       });
-    } catch {
+    } catch (err) {
+      console.error(
+        "PATCH /api/eventos/:id/inscripciones/:userId/revertir:",
+        err.message,
+      );
       res.status(500).json({ message: "Error al revertir la inscripción" });
     }
   },

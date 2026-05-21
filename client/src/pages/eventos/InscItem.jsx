@@ -1,46 +1,59 @@
-import { useState } from 'react';
-import Avatar from '../../components/shared/Avatar';
-import { getUserDisplay } from '../../utils/userDisplay';
-import { CheckIcon, XIcon, ExternalIcon, DocIcon, ImageIcon } from './EventoIcons';
-import styles from './InscItem.module.css';
+import { useState } from "react";
+import Avatar from "../../components/shared/Avatar";
+import { getUserDisplay } from "../../utils/userDisplay";
+import {
+  CheckIcon,
+  XIcon,
+  ExternalIcon,
+  DocIcon,
+  ImageIcon,
+} from "./EventoIcons";
+import styles from "./InscItem.module.css";
 
 function formatRelative(s, now = Date.now()) {
-  if (!s) return '—';
+  if (!s) return "—";
   const d = new Date(s);
   const diff = now - d.getTime();
   const minutes = Math.round(diff / 60000);
   const hours = Math.round(diff / 3600000);
   const days = Math.round(diff / 86400000);
-  if (minutes < 1) return 'recién';
+  if (minutes < 1) return "recién";
   if (minutes < 60) return `hace ${minutes} min`;
   if (hours < 24) return `hace ${hours}h`;
-  if (days < 30) return `hace ${days} día${days === 1 ? '' : 's'}`;
-  return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+  if (days < 30) return `hace ${days} día${days === 1 ? "" : "s"}`;
+  return d.toLocaleDateString("es-AR", { day: "numeric", month: "short" });
 }
 
-export default function InscItem({ reg, onAccept, onReject, onUndo, now = Date.now() }) {
+// `now` lo provee el caller (TriageColumn → EventoInscripciones). Si no llega,
+// formatRelative() aplica su propio fallback de Date.now() vía default param.
+export default function InscItem({ reg, onAccept, onReject, onUndo, now }) {
   const [accepting, setAccepting] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [banning, setBanning] = useState(false);
   const [undoing, setUndoing] = useState(false);
-  const [notes, setNotes] = useState(reg.adminNotes || '');
+  const [notes, setNotes] = useState(reg.adminNotes || "");
   const [showNotes, setShowNotes] = useState(false);
 
   const display = getUserDisplay(reg.user);
   const status = reg.status;
-  const isPdf = reg.comprobante?.resourceType === 'raw';
+  const isPdf = reg.comprobante?.resourceType === "raw";
   const isPermanent = !!reg.permanentlyRejected;
 
   async function handleAccept() {
     setAccepting(true);
-    try { await onAccept(reg, notes); }
-    finally { setAccepting(false); }
+    try {
+      await onAccept(reg, notes);
+    } finally {
+      setAccepting(false);
+    }
   }
 
   async function handleReject(permanent = false) {
-    if (permanent) setBanning(true); else setRejecting(true);
-    try { await onReject(reg, notes, permanent); }
-    finally {
+    if (permanent) setBanning(true);
+    else setRejecting(true);
+    try {
+      await onReject(reg, notes, permanent);
+    } finally {
       setRejecting(false);
       setBanning(false);
     }
@@ -48,8 +61,11 @@ export default function InscItem({ reg, onAccept, onReject, onUndo, now = Date.n
 
   async function handleUndo() {
     setUndoing(true);
-    try { await onUndo(reg); }
-    finally { setUndoing(false); }
+    try {
+      await onUndo(reg);
+    } finally {
+      setUndoing(false);
+    }
   }
 
   return (
@@ -58,10 +74,14 @@ export default function InscItem({ reg, onAccept, onReject, onUndo, now = Date.n
         <Avatar user={reg.user} size="md" />
         <div className={styles.userBlock}>
           <span className={styles.name}>{display.name}</span>
-          {reg.user?.username && <span className={styles.handle}>@{reg.user.username}</span>}
+          {reg.user?.username && (
+            <span className={styles.handle}>@{reg.user.username}</span>
+          )}
         </div>
         <span className={styles.meta}>
-          {status === 'pending' ? formatRelative(reg.submittedAt, now) : formatRelative(reg.reviewedAt, now)}
+          {status === "pending"
+            ? formatRelative(reg.submittedAt, now)
+            : formatRelative(reg.reviewedAt, now)}
         </span>
       </div>
 
@@ -73,32 +93,38 @@ export default function InscItem({ reg, onAccept, onReject, onUndo, now = Date.n
           className={styles.comprobante}
         >
           <span className={styles.thumb}>
-            {isPdf ? 'PDF' : <ImageIcon size={18} />}
+            {isPdf ? "PDF" : <ImageIcon size={18} />}
           </span>
           <span className={styles.comprobanteInfo}>
-            <span className={styles.comprobanteName}>{isPdf ? 'comprobante.pdf' : 'comprobante.jpg'}</span>
+            <span className={styles.comprobanteName}>
+              {isPdf ? "comprobante.pdf" : "comprobante.jpg"}
+            </span>
             <span className={styles.comprobanteOpen}>
               Abrir <ExternalIcon size={10} />
             </span>
           </span>
         </a>
-      ) : status === 'pending' ? (
+      ) : status === "pending" ? (
         <div className={styles.noComprobante}>
           <DocIcon size={14} /> Sin comprobante adjunto
         </div>
       ) : null}
 
-      {status === 'rejected' && (
-        <p className={`${styles.notes} ${isPermanent ? styles.notesPermanent : ''}`}>
-          {isPermanent ? '⛔ Bloqueado del evento' : '↺ Puede volver a intentar'}
-          {reg.adminNotes ? ` · ${reg.adminNotes}` : ''}
+      {status === "rejected" && (
+        <p
+          className={`${styles.notes} ${isPermanent ? styles.notesPermanent : ""}`}
+        >
+          {isPermanent
+            ? "⛔ Bloqueado del evento"
+            : "↺ Puede volver a intentar"}
+          {reg.adminNotes ? ` · ${reg.adminNotes}` : ""}
         </p>
       )}
-      {status === 'confirmed' && reg.adminNotes && (
+      {status === "confirmed" && reg.adminNotes && (
         <p className={styles.notes}>✦ {reg.adminNotes}</p>
       )}
 
-      {status === 'pending' && (
+      {status === "pending" && (
         <>
           {showNotes ? (
             <textarea
@@ -126,7 +152,8 @@ export default function InscItem({ reg, onAccept, onReject, onUndo, now = Date.n
               disabled={accepting || rejecting || banning}
               title="Rechazar este intento — el usuario puede volver a enviar un comprobante"
             >
-              <XIcon size={11} />&nbsp;{rejecting ? 'Rechazando…' : 'Rechazar'}
+              <XIcon size={11} />
+              &nbsp;{rejecting ? "Rechazando…" : "Rechazar"}
             </button>
             <button
               type="button"
@@ -134,7 +161,8 @@ export default function InscItem({ reg, onAccept, onReject, onUndo, now = Date.n
               onClick={handleAccept}
               disabled={accepting || rejecting || banning}
             >
-              <CheckIcon size={11} />&nbsp;{accepting ? 'Confirmando…' : 'Confirmar'}
+              <CheckIcon size={11} />
+              &nbsp;{accepting ? "Confirmando…" : "Confirmar"}
             </button>
           </div>
           <button
@@ -144,14 +172,19 @@ export default function InscItem({ reg, onAccept, onReject, onUndo, now = Date.n
             disabled={accepting || rejecting || banning}
             title="Bloquear permanentemente — el usuario no podrá volver a inscribirse en este evento"
           >
-            ⛔ {banning ? 'Bloqueando…' : 'Bloquear del evento'}
+            ⛔ {banning ? "Bloqueando…" : "Bloquear del evento"}
           </button>
         </>
       )}
 
-      {(status === 'confirmed' || status === 'rejected') && (
-        <button type="button" className={styles.btnUndo} onClick={handleUndo} disabled={undoing}>
-          ↺ {undoing ? 'Revirtiendo…' : 'Revertir decisión'}
+      {(status === "confirmed" || status === "rejected") && (
+        <button
+          type="button"
+          className={styles.btnUndo}
+          onClick={handleUndo}
+          disabled={undoing}
+        >
+          ↺ {undoing ? "Revirtiendo…" : "Revertir decisión"}
         </button>
       )}
     </div>
