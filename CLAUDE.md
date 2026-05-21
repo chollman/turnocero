@@ -202,9 +202,12 @@ Server-emitted events:
 | `torneo:registration-rejected` | `user:<id>` | admin rejects a tournament registration |
 | `torneo:advanced` | `user:<id>` | single-elim match winner advances (not on final) |
 | `torneo:eliminated` | `user:<id>` | single-elim match loser is out |
+| `evento:notification` | `user:<id>` | event notification (confirmed/rejected/cancelled/updated/reminder) — payload has `type` discriminator |
 
 ### NotificationContext
-Owns the Socket.IO connection for the authenticated user. On mount, loads persisted notifications from `GET /api/notifications` (MongoDB, last 60) and mirrors any updates back via `PATCH /api/notifications/read` and `DELETE /api/notifications`. Also drives in-app toasts (max 4 visible). `setActiveTable(tableId)` suppresses notifications for the currently open table and auto-marks them read. `unreadCount` drives the nav badge. DM messages are routed through `addDmListener` (consumed by `ChatContext`) rather than stored as persistent notifications.
+Owns the Socket.IO connection for the authenticated user. On mount, loads persisted notifications from `GET /api/notifications` (MongoDB, last 60) and mirrors any updates back via `PATCH /api/notifications/read` and `DELETE /api/notifications`. Also drives in-app toasts (max 4 visible). `setActiveTable(tableId)` / `setActiveEvento(eventoId)` / `setActiveTorneo` / `setActiveCompartida` suppress notifications for the currently open resource and auto-mark them read. `unreadCount` drives the nav badge. DM messages are routed through `addDmListener` (consumed by `ChatContext`) rather than stored as persistent notifications.
+
+**Notification types** (`server/models/Notification.js#NOTIFICATION_TYPES`): 22 types total spanning mesas, amigos, mensajes, compartidas, torneos, and eventos. Eventos types (`evento_confirmed`, `evento_rejected` con flag `permanentlyRejected`, `evento_cancelled`, `evento_updated` con `changedFields`, `evento_reminder` cron 24h) son los más recientes — disparados desde `routes/eventos.js` helpers `notifyOne` + `notifyActiveRegistrations` y desde `jobs/eventoReminders.js`. Cron jobs se booteanan en `server.js` (NO en `app.js` para que no corran en tests).
 
 ### Key API endpoints
 ```

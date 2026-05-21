@@ -32,6 +32,12 @@ const TYPE_TO_SECTION = {
   tournament_eliminated: 'torneos',
   tournament_started:    'torneos',
   tournament_finished:   'torneos',
+  // Eventos
+  evento_confirmed:      'eventos',
+  evento_rejected:       'eventos',
+  evento_cancelled:      'eventos',
+  evento_updated:        'eventos',
+  evento_reminder:       'eventos',
 };
 
 /**
@@ -58,6 +64,7 @@ async function saveNotification(recipientId, type, fields) {
     if (fields.fromUserId)   filter.fromUserId   = fields.fromUserId;
     if (fields.torneoId)     filter.torneoId     = fields.torneoId;
     if (fields.compartidaId) filter.compartidaId = fields.compartidaId;
+    if (fields.eventoId)     filter.eventoId     = fields.eventoId;
 
     if (AGGREGATING.has(type)) {
       const { tableName, ...updateFields } = fields;

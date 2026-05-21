@@ -14,6 +14,9 @@ const NOTIFICATION_TYPES = [
   'tournament_accepted', 'tournament_rejected',
   'tournament_advanced', 'tournament_eliminated',
   'tournament_started', 'tournament_finished',
+  // Eventos
+  'evento_confirmed', 'evento_rejected',
+  'evento_cancelled', 'evento_updated', 'evento_reminder',
 ];
 
 const notificationSchema = new mongoose.Schema(
@@ -48,6 +51,14 @@ const notificationSchema = new mongoose.Schema(
     // Compartida-related
     compartidaId: { type: String, default: null },
     compartidaTitle: { type: String, default: '' },
+    // Evento-related
+    eventoId:           { type: String, default: null },
+    eventoTitle:        { type: String, default: '' },
+    eventoDate:         { type: Date,   default: null },
+    permanentlyRejected:{ type: Boolean, default: false },
+    // Lista de campos que cambiaron en una edición de evento (para evento_updated).
+    // Strings tipo "eventDate" o "location".
+    changedFields:      { type: [String], default: undefined },
   },
   { timestamps: true }
 );
@@ -57,6 +68,7 @@ notificationSchema.index({ recipient: 1, type: 1, tableId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, fromUserId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, torneoId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, compartidaId: 1 });
+notificationSchema.index({ recipient: 1, type: 1, eventoId: 1 });
 // Auto-purge old notifications (90 days since last update). Lightweight retention policy.
 notificationSchema.index({ updatedAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 

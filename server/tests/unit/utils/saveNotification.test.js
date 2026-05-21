@@ -98,3 +98,67 @@ describe('saveNotification — section gating', () => {
     expect(result).not.toBeNull();
   });
 });
+
+describe('saveNotification — evento types', () => {
+  beforeEach(enableAllSections);
+
+  it('persists evento_confirmed with eventoId/eventoTitle/eventoDate', async () => {
+    const user = await createUser();
+    const date = new Date('2027-06-13T20:00:00Z');
+    const n = await saveNotification(user._id, 'evento_confirmed', {
+      eventoId: 'ev1', eventoTitle: 'Torneo Otoño', eventoDate: date,
+    });
+    expect(n).not.toBeNull();
+    expect(n.eventoId).toBe('ev1');
+    expect(n.eventoTitle).toBe('Torneo Otoño');
+    expect(n.eventoDate?.toISOString()).toBe(date.toISOString());
+    expect(n.count).toBe(1);
+  });
+
+  it('overwrites (no aggregating) on repeated calls for the same evento', async () => {
+    const user = await createUser();
+    await saveNotification(user._id, 'evento_confirmed', { eventoId: 'ev1', eventoTitle: 'A' });
+    const n = await saveNotification(user._id, 'evento_confirmed', { eventoId: 'ev1', eventoTitle: 'B' });
+    expect(n.count).toBe(1);
+    expect(n.eventoTitle).toBe('B');
+  });
+
+  it('keeps separate notifications for different eventoIds', async () => {
+    const user = await createUser();
+    await saveNotification(user._id, 'evento_reminder', { eventoId: 'ev1', eventoTitle: 'A' });
+    await saveNotification(user._id, 'evento_reminder', { eventoId: 'ev2', eventoTitle: 'B' });
+    const all = await Notification.find({ recipient: user._id, type: 'evento_reminder' });
+    expect(all.length).toBe(2);
+  });
+
+  it('persists permanentlyRejected flag on evento_rejected', async () => {
+    const user = await createUser();
+    const n = await saveNotification(user._id, 'evento_rejected', {
+      eventoId: 'ev1', eventoTitle: 'X', permanentlyRejected: true,
+    });
+    expect(n.permanentlyRejected).toBe(true);
+  });
+
+  it('persists changedFields array on evento_updated', async () => {
+    const user = await createUser();
+    const n = await saveNotification(user._id, 'evento_updated', {
+      eventoId: 'ev1', eventoTitle: 'X',
+      changedFields: ['eventDate', 'location'],
+    });
+    expect(n.changedFields).toEqual(['eventDate', 'location']);
+  });
+
+  it('respects section gating (eventos disabled → no persist for non-admins)', async () => {
+    await updateSiteConfig({ eventos: { enabled: false } }, null, null);
+    const user = await createUser({ isAdmin: false });
+    const result = await saveNotification(user._id, 'evento_confirmed', { eventoId: 'ev1' });
+    expect(result).toBeNull();
+  });
+
+  it('admins receive evento notifications even when section is off', async () => {
+    await updateSiteConfig({ eventos: { enabled: false } }, null, null);
+    const admin = await createUser({ isAdmin: true });
+    const result = await saveNotification(admin._id, 'evento_confirmed', { eventoId: 'ev1' });
+    expect(result).not.toBeNull();
+  });
+});

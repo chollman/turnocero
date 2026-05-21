@@ -13,6 +13,7 @@ const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const logger = require('./utils/logger');
 const { loadSiteConfig } = require('./utils/siteConfig');
+const { startSchedulers } = require('./jobs/scheduler');
 const app = require('./app');
 
 if (!process.env.JWT_SECRET) {
@@ -98,6 +99,9 @@ mongoose
   .then(async () => {
     logger.info('Connected to MongoDB');
     await loadSiteConfig();
+    // Arrancar cron jobs después de Mongo (necesitan el conn) y antes de listen.
+    // No se arrancan desde app.js para que los tests no los disparen.
+    startSchedulers({ io });
     server.listen(PORT, () => {
       logger.info(`Turnocero server running on port ${PORT}`);
     });

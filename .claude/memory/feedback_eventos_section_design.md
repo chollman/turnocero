@@ -1,9 +1,10 @@
 ---
 name: feedback-eventos-section-design
 description: "Decisiones de diseño/UX de la sección Eventos tras el rediseño completo: editorial hero, timeline+poster modes, ticket stub sidebar, 3-column triage admin, cancel reversible vs delete duro, conteo de inscriptos excluye rechazados, auto-close por fecha, rooms socket por evento + list room opt-in."
-metadata:
+metadata: 
   node_type: memory
   type: feedback
+  originSessionId: 83afa037-d078-4975-853f-ab164fc72ad7
 ---
 
 Rediseño completo de Eventos (mayo 2026) basado en handoff `handoff/eventos/`. Decisiones importantes que la próxima iteración debería respetar.
@@ -60,3 +61,35 @@ Rediseño completo de Eventos (mayo 2026) basado en handoff `handoff/eventos/`. 
 - 33 server tests cubren los flujos críticos: validación de campos, auto-close, partial PUT, permanent rejection + retry recycling, revertir, gates de admin, draft/cancelled visibility, list endpoint enrichment.
 - 114 client tests cubren componentes en aislamiento + pages con MSW.
 - Patrón de mock de socket: ninguno — los listeners no se mockean en tests, sólo se prueba con MSW + handlers HTTP.
+
+## Notificaciones a usuarios (2026-05)
+
+Cinco tipos persistentes + en tiempo real para inscriptos a eventos (admins no reciben notif — su flujo es el panel `/eventos/:id/inscripciones` con socket real-time):
+
+| Tipo | Disparador | Recipient |
+|---|---|---|
+| `evento_confirmed` | Admin confirma inscripción | User inscripto |
+| `evento_rejected`  | Admin rechaza inscripción (incluye flag `permanentlyRejected`) | User inscripto |
+| `evento_cancelled` | DELETE evento o PUT con status=cancelled | Confirmed + pending (excluye author) |
+| `evento_updated`   | PUT cambia `eventDate` o `location.{texto,lat,lng}` (incluye `changedFields`) | Confirmed + pending (excluye author) |
+| `evento_reminder`  | Cron `0 * * * *` (node-cron) cuando `eventDate` cae en `[now+23h, now+25h]` | Solo confirmed |
+
+**Helpers en `routes/eventos.js`**:
+- `notifyOne(req, recipientId, type, fields, actorId)` — persistente + socket emit; skip si recipient === actor.
+- `notifyActiveRegistrations(req, evento, type, extraFields, actorId)` — itera registrations con status confirmed+pending, excluye al author. Usado en cancel y update.
+
+**Cron de recordatorios** (`server/jobs/eventoReminders.js`):
+- Función `runOnce({ now })` testeable; corre con `cron.schedule('0 * * * *', ...)` desde `server/jobs/scheduler.js`.
+- Boot SOLO en `server.js`, NO en `app.js` — los tests requieren `app` y no deben disparar background jobs.
+- Idempotente vía compound index `(recipient, type, eventoId)` en Notification: ejecutar 2× para el mismo evento NO duplica notifs ni incrementa count.
+- Ventana de 2h (`[now+23h, now+25h]`) tolera atrasos de hasta 1h del cron sin perder eventos.
+
+**Socket event único**: `evento:notification` con payload `{ type: 'confirmed'|'rejected'|'cancelled'|'updated'|'reminder', eventoId, eventoTitle, eventoDate, permanentlyRejected?, changedFields? }`. El cliente lo mapea internamente a `evento_*` para state.
+
+**Cliente** (`NotificationContext.jsx`): `markReadEvento(eventoId)`, `setActiveEvento(eventoId)` (auto-mark-read al entrar a `/eventos/:id`). `notifKey` y `toastDedupKey` extendidos con `:e:<eventoId>`.
+
+**UI**: chip "Eventos" en `/notificaciones` page; `getNotifMeta()` con 5 entries (icon distintos por tipo, permanentlyRejected cambia 🥲→🚫 + sub-line "Permanente"). `ToastContainer` con templates para cada tipo (duración 5500-7000ms).
+
+**Sin web push del navegador** — solo in-app (decisión consciente: Socket.IO + DB ya cubre offline). Si en el futuro se quiere agregar, sería en otro PR: web-push lib + VAPID + PushSubscription model + service worker push handler + permission request flow.
+
+**SiteConfig section gate**: `eventos` desactivado → no se persisten notifs nuevas para users normales (admins reciben igual). El listener cliente también respeta `gated('evento:notification')`.

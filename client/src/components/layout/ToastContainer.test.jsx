@@ -23,6 +23,7 @@ function defaultNotificationsValue(toasts = []) {
     markReadFriend: vi.fn(),
     markReadTorneo: vi.fn(),
     markReadCompartida: vi.fn(),
+    markReadEvento: vi.fn(),
   };
 }
 
@@ -126,5 +127,65 @@ describe('<ToastContainer>', () => {
       { id: 't2', type: 'tournament_finished', torneoTitle: 'Liga', torneoId: 'tn1' },
     ]);
     expect(screen.getAllByRole('alert').length).toBe(2);
+  });
+
+  // ── Evento toasts ──
+  it('renders evento_confirmed toast with title and eventoTitle in body', () => {
+    renderToasts([
+      { id: 't1', type: 'evento_confirmed', eventoId: 'ev1', eventoTitle: 'Torneo Otoño' },
+    ]);
+    expect(screen.getByText('¡Inscripción confirmada!')).toBeInTheDocument();
+    expect(screen.getByText(/torneo otoño · estás dentro/i)).toBeInTheDocument();
+    expect(screen.getByText('🎉')).toBeInTheDocument();
+  });
+
+  it('evento_rejected with permanentlyRejected shows permanent text', () => {
+    renderToasts([
+      { id: 't1', type: 'evento_rejected', eventoId: 'ev1', eventoTitle: 'X', permanentlyRejected: true },
+    ]);
+    expect(screen.getByText(/rechazada \(permanente\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/no podrás volver a inscribirte a x/i)).toBeInTheDocument();
+    expect(screen.getByText('🚫')).toBeInTheDocument();
+  });
+
+  it('evento_rejected (single-time) shows non-permanent text + 🥲', () => {
+    renderToasts([
+      { id: 't1', type: 'evento_rejected', eventoId: 'ev1', eventoTitle: 'X', permanentlyRejected: false },
+    ]);
+    expect(screen.getByText('Inscripción rechazada')).toBeInTheDocument();
+    expect(screen.getByText('🥲')).toBeInTheDocument();
+  });
+
+  it('evento_cancelled shows correct title and body', () => {
+    renderToasts([
+      { id: 't1', type: 'evento_cancelled', eventoId: 'ev1', eventoTitle: 'Festa' },
+    ]);
+    expect(screen.getByText('Evento cancelado')).toBeInTheDocument();
+    expect(screen.getByText(/se canceló festa/i)).toBeInTheDocument();
+  });
+
+  it('evento_updated joins changedFields in body', () => {
+    renderToasts([
+      { id: 't1', type: 'evento_updated', eventoId: 'ev1', eventoTitle: 'X',
+        changedFields: ['eventDate', 'location'] },
+    ]);
+    expect(screen.getByText('Cambios en el evento')).toBeInTheDocument();
+    expect(screen.getByText(/x: nueva fecha \+ nueva ubicación/i)).toBeInTheDocument();
+  });
+
+  it('evento_reminder shows reminder text', () => {
+    renderToasts([
+      { id: 't1', type: 'evento_reminder', eventoId: 'ev1', eventoTitle: 'Big Game' },
+    ]);
+    expect(screen.getByText('¡Mañana!')).toBeInTheDocument();
+    expect(screen.getByText(/recordatorio: big game es mañana/i)).toBeInTheDocument();
+  });
+
+  it('clicking an evento toast navigates to /eventos/:eventoId', () => {
+    renderToasts([
+      { id: 't1', type: 'evento_confirmed', eventoId: 'ev1', eventoTitle: 'X' },
+    ]);
+    fireEvent.click(screen.getByRole('alert'));
+    expect(navigateMock).toHaveBeenCalledWith('/eventos/ev1');
   });
 });

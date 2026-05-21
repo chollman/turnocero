@@ -9,6 +9,7 @@ import styles from './Notifications.module.css';
 const CATEGORIES = {
   mesas:       new Set(['chat', 'comment', 'image', 'join_request', 'join_accepted', 'spot_opened', 'table_cancelled', 'join_rejected']),
   torneos:     new Set(['tournament_accepted', 'tournament_rejected', 'tournament_advanced', 'tournament_eliminated', 'tournament_started', 'tournament_finished']),
+  eventos:     new Set(['evento_confirmed', 'evento_rejected', 'evento_cancelled', 'evento_updated', 'evento_reminder']),
   amigos:      new Set(['friend_request', 'friend_accepted', 'dm']),
   compartidas: new Set(['compartida_comment', 'compartida_like']),
   admin:       new Set(['admin_chat']),
@@ -18,6 +19,7 @@ const CATEGORY_LABELS = {
   all:         'Todas',
   mesas:       'Mesas',
   torneos:     'Torneos',
+  eventos:     'Eventos',
   amigos:      'Amigos',
   compartidas: 'Compartidas',
   admin:       'Admin',
@@ -154,6 +156,51 @@ function getNotifMeta(n) {
         preview: `Tu solicitud para ${n.tableName} fue rechazada`,
         chipClass: 'request',
       };
+    case 'evento_confirmed':
+      return {
+        icon: '🎉',
+        countLabel: '¡Inscripción confirmada!',
+        preview: `Estás dentro de ${n.eventoTitle}`,
+        chipClass: 'accepted',
+      };
+    case 'evento_rejected':
+      return {
+        icon: n.permanentlyRejected ? '🚫' : '🥲',
+        countLabel: n.permanentlyRejected ? 'Rechazada (permanente)' : 'Inscripción rechazada',
+        preview: n.permanentlyRejected
+          ? `No podrás volver a inscribirte a ${n.eventoTitle}`
+          : `Tu inscripción a ${n.eventoTitle} fue rechazada`,
+        chipClass: 'request',
+      };
+    case 'evento_cancelled':
+      return {
+        icon: '❌',
+        countLabel: 'Evento cancelado',
+        preview: `Se canceló ${n.eventoTitle}`,
+        chipClass: 'request',
+      };
+    case 'evento_updated': {
+      const fields = Array.isArray(n.changedFields) ? n.changedFields : [];
+      const labels = fields.map((f) =>
+        f === 'eventDate' ? 'nueva fecha' :
+        f === 'location'  ? 'nueva ubicación' :
+        f
+      );
+      const detail = labels.length > 0 ? labels.join(' + ') : 'cambios';
+      return {
+        icon: '🔄',
+        countLabel: 'Cambios en el evento',
+        preview: `${n.eventoTitle}: ${detail}`,
+        chipClass: 'chat',
+      };
+    }
+    case 'evento_reminder':
+      return {
+        icon: '🔔',
+        countLabel: 'Mañana',
+        preview: `Recordatorio: ${n.eventoTitle} es mañana`,
+        chipClass: 'accepted',
+      };
     case 'dm':
       return {
         icon: '💬',
@@ -181,7 +228,7 @@ function getNotifMeta(n) {
 const getNotifTime = (n) => new Date(n.updatedAt || n.timestamp || 0).getTime();
 
 export default function Notifications() {
-  const { notifications, markRead, markReadFriend, markReadTorneo, markReadCompartida, markReadDm, markReadAdminChat, markAllRead, loadOlder, clearAll } = useNotifications();
+  const { notifications, markRead, markReadFriend, markReadTorneo, markReadCompartida, markReadEvento, markReadDm, markReadAdminChat, markAllRead, loadOlder, clearAll } = useNotifications();
   const { clearConversationUnread } = useChat();
   const [tab, setTab] = useState('all');
   const [category, setCategory] = useState('all');
@@ -224,6 +271,7 @@ export default function Notifications() {
       return;
     }
     if (n.compartidaId) return markReadCompartida(n.compartidaId);
+    if (n.eventoId) return markReadEvento(n.eventoId);
     if (n.type?.startsWith('tournament_')) return markReadTorneo(n.torneoId);
     if (n.fromUserId) return markReadFriend(n.fromUserId);
     return markRead(n.tableId);
@@ -311,10 +359,12 @@ export default function Notifications() {
           {filtered.map((n) => {
             const { icon, countLabel, preview, chipClass } = getNotifMeta(n);
             const isTorneo = n.type?.startsWith('tournament_');
+            const isEvento = n.type?.startsWith('evento_');
             const to =
               n.type === 'admin_chat' ? '/mensajes-admin' :
               n.type === 'dm' ? `/mensajes/${n.fromUserId}` :
               n.compartidaId ? `/compartidas/${n.compartidaId}` :
+              isEvento ? `/eventos/${n.eventoId}` :
               isTorneo ? `/torneos/${n.torneoId}` :
               n.fromUserId ? `/usuarios/${n.fromUserId}` :
               `/mesas/${n.tableId}`;
@@ -325,7 +375,7 @@ export default function Notifications() {
               markNotifRead(n);
             };
             return (
-              <li key={`${n.type ?? 'chat'}:${n.tableId ?? n.fromUserId ?? n.torneoId ?? n.compartidaId ?? 'global'}`}>
+              <li key={`${n.type ?? 'chat'}:${n.tableId ?? n.fromUserId ?? n.torneoId ?? n.compartidaId ?? n.eventoId ?? 'global'}`}>
                 <Link
                   to={to}
                   className={`${styles.card} ${n.read ? styles.cardRead : ''}`}
@@ -340,7 +390,7 @@ export default function Notifications() {
                       <span className={styles.cardGame}>
                         {n.type === 'admin_chat'
                           ? 'Chat de admins'
-                          : (n.tableName || n.fromUsername || n.torneoTitle || n.compartidaTitle || 'Compartida')}
+                          : (n.tableName || n.fromUsername || n.torneoTitle || n.compartidaTitle || n.eventoTitle || 'Compartida')}
                       </span>
                       {!n.read && (
                         <span className={`${styles.chip} ${styles[chipClass]}`}>

@@ -12,8 +12,8 @@ import { useNotifications } from '../../context/NotificationContext';
 import { useChat } from '../../context/ChatContext';
 
 let markReadMock, markReadFriendMock, markReadTorneoMock, markReadCompartidaMock,
-  markReadDmMock, markReadAdminChatMock, markAllReadMock, loadOlderMock, clearAllMock,
-  clearConversationUnreadMock;
+  markReadEventoMock, markReadDmMock, markReadAdminChatMock, markAllReadMock,
+  loadOlderMock, clearAllMock, clearConversationUnreadMock;
 
 function makeNotif(overrides = {}) {
   return {
@@ -35,6 +35,7 @@ function setup({ notifications = [] } = {}) {
     markReadFriend: markReadFriendMock,
     markReadTorneo: markReadTorneoMock,
     markReadCompartida: markReadCompartidaMock,
+    markReadEvento: markReadEventoMock,
     markReadDm: markReadDmMock,
     markReadAdminChat: markReadAdminChatMock,
     markAllRead: markAllReadMock,
@@ -54,6 +55,7 @@ beforeEach(() => {
   markReadFriendMock = vi.fn();
   markReadTorneoMock = vi.fn();
   markReadCompartidaMock = vi.fn();
+  markReadEventoMock = vi.fn();
   markReadDmMock = vi.fn();
   markReadAdminChatMock = vi.fn();
   markAllReadMock = vi.fn();
@@ -276,5 +278,82 @@ describe('<Notifications>', () => {
     });
     fireEvent.click(screen.getByRole('link'));
     expect(markReadAdminChatMock).toHaveBeenCalled();
+  });
+
+  // ── Eventos ──
+  describe('Eventos notifications', () => {
+    const ev = (overrides) => ({
+      _id: `n${Math.random()}`,
+      type: 'evento_confirmed',
+      read: false,
+      count: 1,
+      tableId: undefined,
+      eventoId: 'ev1',
+      eventoTitle: 'Torneo Otoño',
+      updatedAt: new Date().toISOString(),
+      ...overrides,
+    });
+
+    it('evento_confirmed renders with "Inscripción confirmada" chip', () => {
+      setup({ notifications: [ev()] });
+      expect(screen.getByText(/inscripción confirmada/i)).toBeInTheDocument();
+      expect(screen.getByText('Torneo Otoño')).toBeInTheDocument();
+    });
+
+    it('evento_rejected (single) shows "Inscripción rechazada"', () => {
+      setup({ notifications: [ev({ type: 'evento_rejected', permanentlyRejected: false })] });
+      expect(screen.getByText(/^inscripción rechazada$/i)).toBeInTheDocument();
+    });
+
+    it('evento_rejected (permanent) shows "Rechazada (permanente)"', () => {
+      setup({ notifications: [ev({ type: 'evento_rejected', permanentlyRejected: true })] });
+      expect(screen.getByText(/rechazada \(permanente\)/i)).toBeInTheDocument();
+    });
+
+    it('evento_cancelled shows "Evento cancelado"', () => {
+      setup({ notifications: [ev({ type: 'evento_cancelled' })] });
+      expect(screen.getByText(/evento cancelado/i)).toBeInTheDocument();
+    });
+
+    it('evento_updated lists changed fields in human-readable form', () => {
+      setup({
+        notifications: [ev({
+          type: 'evento_updated',
+          changedFields: ['eventDate', 'location'],
+        })],
+      });
+      expect(screen.getByText(/cambios en el evento/i)).toBeInTheDocument();
+      // El preview combina los cambios.
+      expect(screen.getByText(/nueva fecha.*nueva ubicación/i)).toBeInTheDocument();
+    });
+
+    it('evento_reminder shows "Mañana" chip', () => {
+      setup({ notifications: [ev({ type: 'evento_reminder' })] });
+      expect(screen.getByText(/^mañana$/i)).toBeInTheDocument();
+    });
+
+    it('clicking an evento notification links to /eventos/:eventoId and calls markReadEvento', () => {
+      setup({ notifications: [ev()] });
+      const link = screen.getByRole('link');
+      expect(link).toHaveAttribute('href', '/eventos/ev1');
+      fireEvent.click(link);
+      expect(markReadEventoMock).toHaveBeenCalledWith('ev1');
+    });
+
+    it('chip "Eventos" appears in category filter and filters correctly', () => {
+      setup({
+        notifications: [
+          makeNotif({ tableId: 't1' }),
+          ev({ type: 'evento_confirmed' }),
+        ],
+      });
+      // El chip de categoría tiene el label "Eventos" + posible badge de unread.
+      // Buscamos por accessible name flexible.
+      const eventosChip = screen.getByRole('button', { name: /eventos/i });
+      fireEvent.click(eventosChip);
+      // Solo aparece la notif de evento.
+      expect(screen.getByText('Torneo Otoño')).toBeInTheDocument();
+      expect(screen.queryByText('Mesa')).not.toBeInTheDocument();
+    });
   });
 });

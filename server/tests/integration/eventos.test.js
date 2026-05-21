@@ -1249,3 +1249,148 @@ describe("section gating", () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe("Notificaciones a usuarios — eventos", () => {
+  const Notification = require("../../models/Notification");
+
+  beforeEach(async () => {
+    await ensureEventosSectionOn();
+  });
+
+  it("confirmar inscripción → notif persistente 'evento_confirmed' al user", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser();
+    const evento = await createEvento(admin, {
+      title: "Torneo X",
+      registrations: [{ user: user._id, status: "pending" }],
+    });
+
+    const res = await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${user._id}/confirmar`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+    expect(res.status).toBe(200);
+
+    const notifs = await Notification.find({ recipient: user._id, type: "evento_confirmed" });
+    expect(notifs.length).toBe(1);
+    expect(notifs[0].eventoId).toBe(evento._id.toString());
+    expect(notifs[0].eventoTitle).toBe("Torneo X");
+  });
+
+  it("rechazar con permanent=true → notif persistente con flag permanentlyRejected", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser();
+    const evento = await createEvento(admin, {
+      registrations: [{ user: user._id, status: "pending" }],
+    });
+
+    await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${user._id}/rechazar`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .send({ permanent: true });
+
+    const notif = await Notification.findOne({ recipient: user._id, type: "evento_rejected" });
+    expect(notif).not.toBeNull();
+    expect(notif.permanentlyRejected).toBe(true);
+  });
+
+  it("DELETE evento → notif 'evento_cancelled' a confirmed+pending, NO al author", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const a = await createUser();
+    const b = await createUser();
+    const c = await createUser();
+    const evento = await createEvento(admin, {
+      registrations: [
+        { user: a._id, status: "confirmed" },
+        { user: b._id, status: "pending" },
+        { user: c._id, status: "rejected" }, // rechazados NO notifican
+      ],
+    });
+
+    await request(app)
+      .delete(`/api/eventos/${evento._id}`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    const notifsA = await Notification.find({ recipient: a._id, type: "evento_cancelled" });
+    const notifsB = await Notification.find({ recipient: b._id, type: "evento_cancelled" });
+    const notifsC = await Notification.find({ recipient: c._id, type: "evento_cancelled" });
+    const notifsAdmin = await Notification.find({ recipient: admin._id, type: "evento_cancelled" });
+    expect(notifsA.length).toBe(1);
+    expect(notifsB.length).toBe(1);
+    expect(notifsC.length).toBe(0);
+    expect(notifsAdmin.length).toBe(0);
+  });
+
+  it("PUT con status=cancelled → notif 'evento_cancelled' (no 'evento_updated')", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser();
+    const evento = await createEvento(admin, {
+      registrations: [{ user: user._id, status: "confirmed" }],
+    });
+
+    await request(app)
+      .put(`/api/eventos/${evento._id}`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .field("eventDate", evento.eventDate.toISOString())
+      .field("status", "cancelled");
+
+    const cancelled = await Notification.find({ recipient: user._id, type: "evento_cancelled" });
+    const updated = await Notification.find({ recipient: user._id, type: "evento_updated" });
+    expect(cancelled.length).toBe(1);
+    expect(updated.length).toBe(0);
+  });
+
+  it("PUT cambiando eventDate → notif 'evento_updated' con changedFields=['eventDate']", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser();
+    const evento = await createEvento(admin, {
+      registrations: [{ user: user._id, status: "confirmed" }],
+    });
+
+    const newDate = new Date(Date.now() + 30 * 86400000).toISOString();
+    await request(app)
+      .put(`/api/eventos/${evento._id}`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .field("eventDate", newDate);
+
+    const notif = await Notification.findOne({ recipient: user._id, type: "evento_updated" });
+    expect(notif).not.toBeNull();
+    expect(notif.changedFields).toContain("eventDate");
+  });
+
+  it("PUT cambiando location → notif 'evento_updated' con changedFields=['location']", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser();
+    const evento = await createEvento(admin, {
+      location: { texto: "Lugar viejo", lat: -34.6, lng: -58.4 },
+      registrations: [{ user: user._id, status: "confirmed" }],
+    });
+
+    await request(app)
+      .put(`/api/eventos/${evento._id}`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .field("eventDate", evento.eventDate.toISOString())
+      .field("location", JSON.stringify({ texto: "Lugar nuevo", lat: -34.7, lng: -58.5 }));
+
+    const notif = await Notification.findOne({ recipient: user._id, type: "evento_updated" });
+    expect(notif).not.toBeNull();
+    expect(notif.changedFields).toContain("location");
+  });
+
+  it("PUT solo cambiando descripción → NO notif", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser();
+    const evento = await createEvento(admin, {
+      description: "Vieja descripción",
+      registrations: [{ user: user._id, status: "confirmed" }],
+    });
+
+    await request(app)
+      .put(`/api/eventos/${evento._id}`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .field("eventDate", evento.eventDate.toISOString())
+      .field("description", "Nueva descripción");
+
+    const notifs = await Notification.find({ recipient: user._id, type: "evento_updated" });
+    expect(notifs.length).toBe(0);
+  });
+});

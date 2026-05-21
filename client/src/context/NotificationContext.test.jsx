@@ -52,6 +52,8 @@ function Probe() {
       <button onClick={() => n.setActiveTable(null)}>active-null</button>
       <button onClick={() => n.setActiveTorneo('tn1')}>active-tn1</button>
       <button onClick={() => n.setActiveCompartida('c1')}>active-c1</button>
+      <button onClick={() => n.markReadEvento('ev1')}>mark-evento-ev1</button>
+      <button onClick={() => n.setActiveEvento('ev1')}>active-evento-ev1</button>
       <button onClick={() => n.setAdminChatActive(true)}>admin-active-on</button>
       <button onClick={() => n.addToast({ type: 'noticia', noticiaId: 'n1', title: 't' })}>add-toast</button>
       <button onClick={() => n.toasts[0] && n.dismissToast(n.toasts[0].id)}>dismiss-first</button>
@@ -388,6 +390,69 @@ describe('NotificationContext', () => {
     fireSocketEvent('torneo:started', { torneoId: 'tn2', torneoTitle: 'Liga', round: 0 });
     fireSocketEvent('torneo:finished', { torneoId: 'tn3', torneoTitle: 'Copa', round: 0 });
     expect(screen.getByTestId('count').textContent).toBe('2');
+  });
+
+  it('evento:notification (confirmed) adds notification + toast', () => {
+    renderApp();
+    fireSocketEvent('evento:notification', {
+      type: 'confirmed', eventoId: 'ev1', eventoTitle: 'Torneo Otoño',
+    });
+    expect(screen.getByTestId('count').textContent).toBe('1');
+    expect(screen.getByTestId('toasts').textContent).toBe('1');
+  });
+
+  it('evento:notification (rejected with permanentlyRejected) preserves the flag', () => {
+    renderApp();
+    fireSocketEvent('evento:notification', {
+      type: 'rejected', eventoId: 'ev1', eventoTitle: 'X', permanentlyRejected: true,
+    });
+    expect(screen.getByTestId('count').textContent).toBe('1');
+  });
+
+  it('evento:notification (updated) preserves changedFields', () => {
+    renderApp();
+    fireSocketEvent('evento:notification', {
+      type: 'updated', eventoId: 'ev1', eventoTitle: 'X',
+      changedFields: ['eventDate', 'location'],
+    });
+    expect(screen.getByTestId('count').textContent).toBe('1');
+  });
+
+  it('evento:notification dedupes by (type, eventoId) — re-emit reemplaza', () => {
+    renderApp();
+    fireSocketEvent('evento:notification', {
+      type: 'confirmed', eventoId: 'ev1', eventoTitle: 'X',
+    });
+    fireSocketEvent('evento:notification', {
+      type: 'confirmed', eventoId: 'ev1', eventoTitle: 'X (cambió)',
+    });
+    expect(screen.getByTestId('count').textContent).toBe('1');
+  });
+
+  it('evento:notification ignora payloads sin type válido', () => {
+    renderApp();
+    fireSocketEvent('evento:notification', { type: 'foo-bar', eventoId: 'ev1' });
+    expect(screen.getByTestId('count').textContent).toBe('0');
+  });
+
+  it('markReadEvento marks notifs of that evento as read', () => {
+    renderApp();
+    fireSocketEvent('evento:notification', {
+      type: 'confirmed', eventoId: 'ev1', eventoTitle: 'X',
+    });
+    expect(parseInt(screen.getByTestId('unread').textContent)).toBe(1);
+    act(() => screen.getByText('mark-evento-ev1').click());
+    expect(parseInt(screen.getByTestId('unread').textContent)).toBe(0);
+  });
+
+  it('setActiveEvento marks notifs of that evento as read', () => {
+    renderApp();
+    fireSocketEvent('evento:notification', {
+      type: 'reminder', eventoId: 'ev1', eventoTitle: 'X',
+    });
+    expect(parseInt(screen.getByTestId('unread').textContent)).toBe(1);
+    act(() => screen.getByText('active-evento-ev1').click());
+    expect(parseInt(screen.getByTestId('unread').textContent)).toBe(0);
   });
 
   it('compartida:comment adds/increments a notification + toast', () => {

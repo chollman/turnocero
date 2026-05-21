@@ -15,6 +15,7 @@ const notifKey = (n) => {
   if (n.tableId)      return `${type}:t:${n.tableId}`;
   if (n.torneoId)     return `${type}:r:${n.torneoId}`;
   if (n.compartidaId) return `${type}:c:${n.compartidaId}`;
+  if (n.eventoId)     return `${type}:e:${n.eventoId}`;
   if (n.fromUserId)   return `${type}:u:${n.fromUserId}`;
   return type;
 };
@@ -36,6 +37,7 @@ const toastDedupKey = (t) => {
   if (t.tableId)      return `${t.type}:t:${t.tableId}`;
   if (t.torneoId)     return `${t.type}:r:${t.torneoId}`;
   if (t.compartidaId) return `${t.type}:c:${t.compartidaId}`;
+  if (t.eventoId)     return `${t.type}:e:${t.eventoId}`;
   if (t.fromUserId)   return `${t.type}:u:${t.fromUserId}`;
   return t.type;
 };
@@ -70,6 +72,7 @@ const EVENT_SECTION = {
   'compartida:comment': 'compartidas',
   'compartida:like':    'compartidas',
   'noticia:published':  'noticias',
+  'evento:notification': 'eventos',
 };
 
 export function NotificationProvider({ children }) {
@@ -353,6 +356,38 @@ export function NotificationProvider({ children }) {
       setToasts((prev) => pushToast(prev, { type: 'noticia', noticiaId: notif.noticiaId, title: notif.title }));
     }));
 
+    // ── Eventos ───────────────────────────────────────────────────────
+    // Único listener para los 5 tipos. El payload trae `type` que mapea 1-a-1
+    // a un enum de Notification ('evento_confirmed', 'evento_rejected', etc.).
+    // Lo convertimos a "type" interno para mantener el shape de los demás.
+    const EVENTO_TYPE_MAP = {
+      confirmed: 'evento_confirmed',
+      rejected:  'evento_rejected',
+      cancelled: 'evento_cancelled',
+      updated:   'evento_updated',
+      reminder:  'evento_reminder',
+    };
+    socket.on('evento:notification', gated('evento:notification', (payload) => {
+      // El server emite con `type` short ("confirmed") o ya largo ("evento_confirmed")
+      // — soportamos ambos para resistir cambios futuros del payload.
+      const rawType = payload?.type || '';
+      const notifType = EVENTO_TYPE_MAP[rawType] || rawType;
+      if (!notifType || !notifType.startsWith('evento_')) return;
+      const common = {
+        type: notifType,
+        eventoId: payload.eventoId,
+        eventoTitle: payload.eventoTitle,
+        eventoDate: payload.eventoDate || null,
+        permanentlyRejected: payload.permanentlyRejected || false,
+        changedFields: payload.changedFields || undefined,
+      };
+      setNotifications((prev) => {
+        const rest = prev.filter((n) => !(n.type === notifType && n.eventoId === common.eventoId));
+        return [...rest, { ...common, count: 1, read: false, timestamp: new Date().toISOString() }];
+      });
+      setToasts((prev) => pushToast(prev, common));
+    }));
+
     socket.on('site-config:updated', (config) => {
       applyServerConfig(config);
     });
@@ -387,6 +422,13 @@ export function NotificationProvider({ children }) {
       prev.map((n) => n.compartidaId === compartidaId ? { ...n, read: true } : n)
     );
     axios.patch('/api/notifications/read', { compartidaId }).catch(() => {});
+  }, []);
+
+  const markReadEvento = useCallback((eventoId) => {
+    setNotifications((prev) =>
+      prev.map((n) => n.eventoId === eventoId ? { ...n, read: true } : n)
+    );
+    axios.patch('/api/notifications/read', { eventoId }).catch(() => {});
   }, []);
 
   const markReadDm = useCallback((fromUserId) => {
@@ -442,6 +484,10 @@ export function NotificationProvider({ children }) {
     if (compartidaId) markReadCompartida(compartidaId);
   }, [markReadCompartida]);
 
+  const setActiveEvento = useCallback((eventoId) => {
+    if (eventoId) markReadEvento(eventoId);
+  }, [markReadEvento]);
+
   const dismissToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
@@ -486,6 +532,7 @@ export function NotificationProvider({ children }) {
       markReadFriend,
       markReadTorneo,
       markReadCompartida,
+      markReadEvento,
       markReadDm,
       markReadAdminChat,
       markAllRead,
@@ -494,6 +541,7 @@ export function NotificationProvider({ children }) {
       setActiveTable,
       setActiveTorneo,
       setActiveCompartida,
+      setActiveEvento,
       toasts,
       dismissToast,
       addToast,

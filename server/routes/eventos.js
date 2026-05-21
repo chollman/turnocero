@@ -8,6 +8,7 @@ const { protect, requireAdmin, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const { isValidCoord, attachDistance, buildBboxFilter } = require("../utils/geo");
 const { normalizeLocationInput, isEmptyLocation } = require("../utils/locationHelpers");
+const saveNotification = require("../utils/saveNotification");
 
 router.use(requireSection("eventos"));
 
@@ -48,6 +49,34 @@ function emitToEventosList(req, eventName, payload) {
     if (io) io.to("eventos:list").emit(eventName, payload);
   } catch {
     /* no-op */
+  }
+}
+
+// ── Notifications helpers ─────────────────────────────────────────────
+//
+// Notifica a un usuario individual: persiste + socket emit. Skip si el
+// recipient es el mismo que el actor (un admin que confirma su propia
+// inscripción, ej., no debería auto-notificarse).
+function notifyOne(req, recipientId, type, fields, actorId) {
+  if (recipientId == null) return;
+  if (actorId != null && recipientId.toString() === actorId.toString()) return;
+  saveNotification(recipientId, type, fields).catch(() => { /* best-effort */ });
+  emitToUser(req, recipientId, "evento:notification", { type, ...fields });
+}
+
+// Notifica a todos los inscriptos activos (confirmed + pending) de un evento,
+// excluyendo al autor del evento (el admin) si es el actor. Usado para cancel
+// y update.
+function notifyActiveRegistrations(req, evento, type, extraFields, actorId) {
+  const baseFields = {
+    eventoId: evento._id.toString(),
+    eventoTitle: evento.title,
+    eventoDate: evento.eventDate,
+    ...extraFields,
+  };
+  for (const reg of evento.registrations || []) {
+    if (reg.status !== "confirmed" && reg.status !== "pending") continue;
+    notifyOne(req, reg.user, type, baseFields, actorId);
   }
 }
 
@@ -425,6 +454,16 @@ router.put(
       if (!evento)
         return res.status(404).json({ message: "Evento no encontrado" });
 
+      // Snapshot pre-edit para detectar cambios significativos que deben
+      // notificarse a los inscriptos (fecha, lugar, cancelación).
+      const prevStatus = evento.status;
+      const prevEventDate = evento.eventDate ? evento.eventDate.getTime() : null;
+      const prevLocation = {
+        texto: evento.location?.texto || "",
+        lat: evento.location?.lat ?? null,
+        lng: evento.location?.lng ?? null,
+      };
+
       // Partial update: only modify fields that were actually sent in the body.
       // The form sends every field (empty string clears the value); a partial call
       // like cancellation can send just { status } without clobbering everything else.
@@ -518,6 +557,45 @@ router.put(
         });
       }
 
+      // ── Notificaciones a inscriptos sobre cambios significativos ──
+      // Cancelación (status pasó a "cancelled" recién): notif a confirmados+pending.
+      if (evento.status === "cancelled" && prevStatus !== "cancelled") {
+        notifyActiveRegistrations(
+          req,
+          evento,
+          "evento_cancelled",
+          {},
+          evento.author,
+        );
+      } else {
+        // Si NO se canceló, chequear si cambió fecha o ubicación. Otros campos
+        // (descripción, fee, etc.) no notifican — no son tan críticos.
+        const changedFields = [];
+        const newEventDate = evento.eventDate ? evento.eventDate.getTime() : null;
+        if (newEventDate !== prevEventDate) changedFields.push("eventDate");
+        const newLoc = {
+          texto: evento.location?.texto || "",
+          lat: evento.location?.lat ?? null,
+          lng: evento.location?.lng ?? null,
+        };
+        if (
+          newLoc.texto !== prevLocation.texto ||
+          newLoc.lat !== prevLocation.lat ||
+          newLoc.lng !== prevLocation.lng
+        ) {
+          changedFields.push("location");
+        }
+        if (changedFields.length > 0 && evento.status !== "draft") {
+          notifyActiveRegistrations(
+            req,
+            evento,
+            "evento_updated",
+            { changedFields },
+            evento.author,
+          );
+        }
+      }
+
       res.json(payload);
     } catch (err) {
       console.error("PUT /api/eventos/:id:", err.message);
@@ -558,6 +636,12 @@ router.delete("/:id", protect, requireAdmin, async (req, res) => {
     await Promise.all(destroys);
 
     const deletedId = evento._id.toString();
+
+    // Persistente + toast a los inscriptos activos ANTES de borrar — necesitamos
+    // los datos del evento todavía. Usamos "evento_cancelled" para eliminación
+    // (semánticamente similar para el user que se anota: el evento no va).
+    notifyActiveRegistrations(req, evento, "evento_cancelled", {}, evento.author);
+
     await evento.deleteOne();
 
     // Notificar a los viewers del detalle (cierran su pantalla) y a la lista.
@@ -923,6 +1007,20 @@ router.patch(
         });
       }
 
+      // Persistente + toast: el user inscripto recibe la notificación de que
+      // lo aceptaron, incluso si no tiene la app abierta en ese momento.
+      notifyOne(
+        req,
+        reg.user,
+        "evento_confirmed",
+        {
+          eventoId: eventoIdStr,
+          eventoTitle: evento.title,
+          eventoDate: evento.eventDate,
+        },
+        req.user._id,
+      );
+
       res.json({ message: "Inscripción confirmada", status: reg.status });
     } catch (err) {
       console.error(
@@ -989,6 +1087,22 @@ router.patch(
           counts: newCounts,
         });
       }
+
+      // Persistente + toast: el user inscripto recibe la notificación del
+      // rechazo. La flag `permanentlyRejected` distingue "esta vez" vs bloqueo
+      // permanente y la UI puede renderizar tonos distintos.
+      notifyOne(
+        req,
+        reg.user,
+        "evento_rejected",
+        {
+          eventoId: eventoIdStr,
+          eventoTitle: evento.title,
+          eventoDate: evento.eventDate,
+          permanentlyRejected: reg.permanentlyRejected,
+        },
+        req.user._id,
+      );
 
       res.json({
         message: "Inscripción rechazada",

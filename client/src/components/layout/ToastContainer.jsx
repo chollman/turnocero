@@ -30,12 +30,17 @@ const DURATION = {
   join_rejected:         5500,
   noticia:               6000,
   bgwatch_connected:     7000,
+  evento_confirmed:      6000,
+  evento_rejected:       6000,
+  evento_cancelled:      6000,
+  evento_updated:        5500,
+  evento_reminder:       7000,
 };
 
 function ToastItem({ toast, onDismiss }) {
   const navigate = useNavigate();
   const { openChat, conversations } = useChat();
-  const { markRead, markReadFriend, markReadTorneo, markReadCompartida } = useNotifications();
+  const { markRead, markReadFriend, markReadTorneo, markReadCompartida, markReadEvento } = useNotifications();
   const duration = DURATION[toast.type] ?? 4000;
   const [paused, setPaused] = useState(false);
   const timerRef = useRef(null);
@@ -74,6 +79,9 @@ function ToastItem({ toast, onDismiss }) {
     } else if (toast.type === 'compartida_comment' || toast.type === 'compartida_like') {
       markReadCompartida(toast.compartidaId);
       navigate(`/compartidas/${toast.compartidaId}`);
+    } else if (toast.type?.startsWith('evento_')) {
+      markReadEvento(toast.eventoId);
+      navigate(`/eventos/${toast.eventoId}`);
     } else if (toast.type === 'noticia') {
       navigate(`/noticias/${toast.noticiaId}`);
     } else if (toast.type === 'bgwatch_connected') {
@@ -112,7 +120,12 @@ function ToastItem({ toast, onDismiss }) {
     toast.type === 'table_cancelled'       ? '❌' :
     toast.type === 'join_rejected'         ? '🚷' :
     toast.type === 'noticia'               ? '📰' :
-    toast.type === 'bgwatch_connected'     ? '🎲' : '🎲';
+    toast.type === 'bgwatch_connected'     ? '🎲' :
+    toast.type === 'evento_confirmed'      ? '🎉' :
+    toast.type === 'evento_rejected'       ? (toast.permanentlyRejected ? '🚫' : '🥲') :
+    toast.type === 'evento_cancelled'      ? '❌' :
+    toast.type === 'evento_updated'        ? '🔄' :
+    toast.type === 'evento_reminder'       ? '🔔' : '🎲';
 
   const title =
     toast.type === 'join_accepted'         ? '¡Fuiste aceptado!' :
@@ -134,6 +147,11 @@ function ToastItem({ toast, onDismiss }) {
     toast.type === 'join_rejected'         ? 'Solicitud rechazada' :
     toast.type === 'noticia'               ? 'Nueva noticia' :
     toast.type === 'bgwatch_connected'     ? '¡Conectado a BG Watch!' :
+    toast.type === 'evento_confirmed'      ? '¡Inscripción confirmada!' :
+    toast.type === 'evento_rejected'       ? (toast.permanentlyRejected ? 'Rechazada (permanente)' : 'Inscripción rechazada') :
+    toast.type === 'evento_cancelled'      ? 'Evento cancelado' :
+    toast.type === 'evento_updated'        ? 'Cambios en el evento' :
+    toast.type === 'evento_reminder'       ? '¡Mañana!' :
     toast.tableName;
 
   const body =
@@ -181,7 +199,27 @@ function ToastItem({ toast, onDismiss }) {
                                             ? toast.title
                                             : toast.type === 'bgwatch_connected'
                                               ? 'Tocá para ir a tu BG Watch ahora →'
-                                              : `Ya sos parte de la mesa de ${toast.tableName}`;
+                                              : toast.type === 'evento_confirmed'
+                                                ? `${toast.eventoTitle} · Estás dentro`
+                                                : toast.type === 'evento_rejected'
+                                                  ? (toast.permanentlyRejected
+                                                      ? `No podrás volver a inscribirte a ${toast.eventoTitle}`
+                                                      : `${toast.eventoTitle}`)
+                                                  : toast.type === 'evento_cancelled'
+                                                    ? `Se canceló ${toast.eventoTitle}`
+                                                    : toast.type === 'evento_updated'
+                                                      ? (() => {
+                                                          const fields = Array.isArray(toast.changedFields) ? toast.changedFields : [];
+                                                          const labels = fields.map((f) =>
+                                                            f === 'eventDate' ? 'nueva fecha' :
+                                                            f === 'location' ? 'nueva ubicación' : f
+                                                          );
+                                                          const detail = labels.length ? labels.join(' + ') : 'cambios';
+                                                          return `${toast.eventoTitle}: ${detail}`;
+                                                        })()
+                                                      : toast.type === 'evento_reminder'
+                                                        ? `Recordatorio: ${toast.eventoTitle} es mañana`
+                                                        : `Ya sos parte de la mesa de ${toast.tableName}`;
 
   return (
     <div
