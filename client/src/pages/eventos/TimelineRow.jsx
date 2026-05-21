@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { dateParts, countdown, formatFee } from "../../utils/eventoDate";
-import { PinIcon, UsersIcon, ArrowIcon } from "./EventoIcons";
+import { PinIcon, UsersIcon } from "./EventoIcons";
 import styles from "./TimelineRow.module.css";
 
 const STATUS_BADGES = {
@@ -12,12 +12,15 @@ const STATUS_BADGES = {
   cancelled: { label: "Cancelado", className: "cancelled" },
 };
 
+// `now` lo provee siempre el caller (Eventos.jsx) para no romper la regla
+// react-hooks/purity con un default impuro (`Date.now()`). Si no se pasa,
+// countdown() aplica su propio fallback al evaluar la diff temporal.
 export default function TimelineRow({
   evento,
   index = 0,
   isHost = false,
   userRegistrationStatus = null,
-  now = Date.now(),
+  now,
 }) {
   const d = dateParts(evento.eventDate);
   const cd = countdown(evento.eventDate, now);
@@ -26,7 +29,7 @@ export default function TimelineRow({
   const confirmed = evento.registrationCount?.confirmed ?? 0;
   const pending = evento.registrationCount?.pending ?? 0;
   // Sólo cuentan inscripciones activas (pendientes + confirmadas).
-  // Los rechazados — sobre todo los rechazados permanentemente — NO reservan
+  // Los rechazados — mas que nada los rechazados permanentemente — NO reservan
   // slot ni se muestran como inscriptos en ninguna superficie pública.
   const participants = confirmed + pending;
   const totalInscriptions = participants;

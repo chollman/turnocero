@@ -842,6 +842,184 @@ describe("Rechazo con permanent flag", () => {
   });
 });
 
+describe("POST /api/eventos/:id/inscribirse — atomic insert (regresión: race condition)", () => {
+  it("dos inscripciones paralelas del mismo user solo crean un registro (segunda recibe 409)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { user, token } = await createAuthedUser();
+    const evento = await createEvento(admin, { fee: 0, status: "open" });
+
+    // Dos requests POST en paralelo desde el mismo usuario.
+    const [a, b] = await Promise.all([
+      request(app)
+        .post(`/api/eventos/${evento._id}/inscribirse`)
+        .set("Authorization", `Bearer ${token}`),
+      request(app)
+        .post(`/api/eventos/${evento._id}/inscribirse`)
+        .set("Authorization", `Bearer ${token}`),
+    ]);
+
+    // Una request gana (201), la otra detecta el conflicto (409 o 400 si llega
+    // a leer el doc actualizado antes del findOneAndUpdate). La invariante
+    // dura: solo hay UN registro para ese user en DB.
+    const statuses = [a.status, b.status].sort();
+    expect(statuses[0]).toBe(201);
+    expect([400, 409]).toContain(statuses[1]);
+
+    const refreshed = await Evento.findById(evento._id);
+    const regsForUser = refreshed.registrations.filter((r) =>
+      r.user.equals(user._id),
+    );
+    expect(regsForUser).toHaveLength(1);
+  });
+
+  it("la segunda inscripción no deja un comprobante huérfano en Cloudinary", async () => {
+    cloudMock.__resetMocks();
+    const admin = await createUser({ isAdmin: true });
+    const { token } = await createAuthedUser();
+    const evento = await createEvento(admin, {
+      fee: 2500,
+      transferDetails: "alias",
+      status: "open",
+    });
+
+    // Dos requests paralelos con comprobante. El segundo subirá el archivo a
+    // Cloudinary pero el findOneAndUpdate detectará el conflicto; el cleanup
+    // best-effort debe disparar destroy del asset huérfano.
+    const file = Buffer.from([0xff, 0xd8, 0xff]);
+    const [a, b] = await Promise.all([
+      request(app)
+        .post(`/api/eventos/${evento._id}/inscribirse`)
+        .set("Authorization", `Bearer ${token}`)
+        .attach("comprobante", file, {
+          filename: "a.jpg",
+          contentType: "image/jpeg",
+        }),
+      request(app)
+        .post(`/api/eventos/${evento._id}/inscribirse`)
+        .set("Authorization", `Bearer ${token}`)
+        .attach("comprobante", file, {
+          filename: "b.jpg",
+          contentType: "image/jpeg",
+        }),
+    ]);
+
+    const statuses = [a.status, b.status].sort();
+    expect(statuses[0]).toBe(201);
+    // Si el 409 path se activó (ambos subieron archivo), el cleanup debe
+    // haberse llamado al menos una vez para destruir el huérfano. Si el
+    // segundo cayó por el check sync (400), ni siquiera llegó al upload.
+    if (statuses[1] === 409) {
+      expect(cloudMock.cloudinary.uploader.destroy).toHaveBeenCalled();
+    }
+  });
+});
+
+describe("DELETE /api/eventos/:id cleanup (regresión: comprobantes huérfanos en Cloudinary)", () => {
+  beforeEach(() => {
+    cloudMock.__resetMocks();
+  });
+
+  it("destruye la imagen del evento + todos los comprobantes (incluido PDF como resource_type raw)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const p1 = await createUser({ username: "payer1" });
+    const p2 = await createUser({ username: "payer2" });
+    const p3 = await createUser({ username: "payer3" });
+
+    const evento = await createEvento(admin, {
+      registrations: [
+        {
+          user: p1._id,
+          status: "confirmed",
+          submittedAt: new Date(),
+          comprobante: {
+            url: "https://mock.cloudinary/c/p1.jpg",
+            publicId: "turnocero/eventos/x/comprobantes/p1",
+            resourceType: "image",
+          },
+        },
+        {
+          user: p2._id,
+          status: "pending",
+          submittedAt: new Date(),
+          comprobante: {
+            url: "https://mock.cloudinary/c/p2.pdf",
+            publicId: "turnocero/eventos/x/comprobantes/p2",
+            resourceType: "raw",
+          },
+        },
+        // Sin comprobante: no debe pasarse a destroy.
+        { user: p3._id, status: "rejected", submittedAt: new Date() },
+      ],
+    });
+    evento.image = {
+      url: "https://mock.cloudinary/banner.jpg",
+      publicId: "turnocero/eventos/banner-x",
+    };
+    await evento.save();
+
+    const res = await request(app)
+      .delete(`/api/eventos/${evento._id}`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(200);
+
+    // 1 imagen del evento + 2 comprobantes = 3 llamadas a destroy.
+    const calls = cloudMock.cloudinary.uploader.destroy.mock.calls;
+    expect(calls.length).toBe(3);
+
+    const ids = calls.map((c) => c[0]);
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        "turnocero/eventos/banner-x",
+        "turnocero/eventos/x/comprobantes/p1",
+        "turnocero/eventos/x/comprobantes/p2",
+      ]),
+    );
+
+    // El comprobante PDF debe destruirse con resource_type='raw'.
+    const pdfCall = calls.find(
+      (c) => c[0] === "turnocero/eventos/x/comprobantes/p2",
+    );
+    expect(pdfCall[1]).toEqual({ resource_type: "raw" });
+
+    // El evento ya no está en la DB.
+    const stillThere = await Evento.findById(evento._id);
+    expect(stillThere).toBeNull();
+  });
+
+  it("borra el documento aunque la limpieza de algún comprobante falle (best-effort)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const p1 = await createUser({ username: "payer1" });
+
+    const evento = await createEvento(admin, {
+      registrations: [
+        {
+          user: p1._id,
+          status: "pending",
+          submittedAt: new Date(),
+          comprobante: {
+            url: "https://mock.cloudinary/c/p1.jpg",
+            publicId: "turnocero/eventos/x/comprobantes/p1",
+            resourceType: "image",
+          },
+        },
+      ],
+    });
+
+    cloudMock.cloudinary.uploader.destroy.mockRejectedValueOnce(
+      new Error("cloudinary failed"),
+    );
+
+    const res = await request(app)
+      .delete(`/api/eventos/${evento._id}`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(200);
+    const stillThere = await Evento.findById(evento._id);
+    expect(stillThere).toBeNull();
+  });
+});
+
 describe("section gating", () => {
   it("blocks every route when eventos section is disabled (non-admin)", async () => {
     await updateSiteConfig({ eventos: { enabled: false } }, null, null);

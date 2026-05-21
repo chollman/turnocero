@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ImageDropzone from "./ImageDropzone";
 import { toLocalInputValue, fromLocalInputValue } from "../../utils/eventoDate";
 import styles from "./EventoForm.module.css";
@@ -41,8 +41,23 @@ export default function EventoForm({
 }) {
   const [form, setForm] = useState(() => valuesFromEvento(initialEvento));
   const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(() => initialEvento?.image?.url || "");
+  const [filePreview, setFilePreview] = useState("");
   const [error, setError] = useState("");
+
+  // Generamos la object URL del archivo en un effect para poder revocarla
+  // cuando cambia el archivo o cuando el form se desmonta. Antes hacíamos
+  // setPreview(URL.createObjectURL(f)) en cada change, dejando URLs colgadas.
+  useEffect(() => {
+    if (!file) {
+      setFilePreview("");
+      return undefined;
+    }
+    const url = URL.createObjectURL(file);
+    setFilePreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  const preview = filePreview || initialEvento?.image?.url || "";
 
   function update(name, value) {
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -54,7 +69,6 @@ export default function EventoForm({
 
   function handleFile(f) {
     setFile(f);
-    setPreview(URL.createObjectURL(f));
   }
 
   async function handleSubmit(e) {

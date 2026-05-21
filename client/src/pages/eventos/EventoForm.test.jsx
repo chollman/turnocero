@@ -157,4 +157,30 @@ describe("<EventoForm>", () => {
     expect(screen.getByRole("button", { name: /creando/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /cancelar/i })).toBeDisabled();
   });
+
+  it("revoca la object URL cuando el form se desmonta (regresión: memory leak)", () => {
+    const createSpy = vi
+      .spyOn(URL, "createObjectURL")
+      .mockReturnValue("blob:fake");
+    const revokeSpy = vi
+      .spyOn(URL, "revokeObjectURL")
+      .mockImplementation(() => {});
+
+    try {
+      const { unmount, container } = render(
+        <EventoForm mode="create" onSubmit={() => {}} onCancel={() => {}} />,
+      );
+      // Simular file pick — el form pasa por su useEffect y crea la object URL.
+      const fileInput = container.querySelector('input[type="file"]');
+      const fakeFile = new File(["a"], "img.jpg", { type: "image/jpeg" });
+      fireEvent.change(fileInput, { target: { files: [fakeFile] } });
+
+      expect(createSpy).toHaveBeenCalledTimes(1);
+      unmount();
+      expect(revokeSpy).toHaveBeenCalledWith("blob:fake");
+    } finally {
+      createSpy.mockRestore();
+      revokeSpy.mockRestore();
+    }
+  });
 });

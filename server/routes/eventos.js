@@ -432,8 +432,30 @@ router.delete("/:id", protect, requireAdmin, async (req, res) => {
     if (!evento)
       return res.status(404).json({ message: "Evento no encontrado" });
 
-    if (evento.image?.publicId)
-      await cloudinary.uploader.destroy(evento.image.publicId);
+    // Limpieza best-effort de assets en Cloudinary: imagen del evento +
+    // todos los comprobantes de las inscripciones (algunos pueden ser PDFs,
+    // que se subieron como resource_type='raw' y requieren ese flag al borrar).
+    // Disparamos todos los destroys en paralelo y atrapamos errores
+    // individualmente para que un fallo no impida la eliminación del documento.
+    const destroys = [];
+    if (evento.image?.publicId) {
+      destroys.push(
+        cloudinary.uploader.destroy(evento.image.publicId).catch(() => {}),
+      );
+    }
+    for (const reg of evento.registrations || []) {
+      if (reg.comprobante?.publicId) {
+        destroys.push(
+          cloudinary.uploader
+            .destroy(reg.comprobante.publicId, {
+              resource_type: reg.comprobante.resourceType || "image",
+            })
+            .catch(() => {}),
+        );
+      }
+    }
+    await Promise.all(destroys);
+
     const deletedId = evento._id.toString();
     await evento.deleteOne();
 
@@ -515,6 +537,7 @@ router.post(
       }
 
       let reg;
+      let workingEvento = evento;
       if (existing && existing.status === "rejected") {
         // Reciclar el registro rechazado no-permanente: vuelve a pendiente con nuevo comprobante.
         // Si el comprobante anterior estaba en Cloudinary, lo limpiamos.
@@ -534,27 +557,60 @@ router.post(
         existing.adminNotes = undefined;
         existing.comprobante = comprobante;
         reg = existing;
+        await evento.save();
       } else {
-        evento.registrations.push({
+        // Inscripción nueva: usamos findOneAndUpdate atómico para evitar la
+        // race en la que dos requests paralelos pasan el check "ya inscripto"
+        // y terminan creando dos entries para el mismo user. El filter
+        // `'registrations.user': { $ne }` garantiza que solo el primero
+        // matchee; los siguientes reciben null y devolvemos 409.
+        const newReg = {
           user: req.user._id,
           status: "pending",
           comprobante,
-        });
-        reg = evento.registrations[evento.registrations.length - 1];
+          submittedAt: new Date(),
+        };
+        workingEvento = await Evento.findOneAndUpdate(
+          {
+            _id: req.params.id,
+            status: "open",
+            "registrations.user": { $ne: req.user._id },
+          },
+          { $push: { registrations: newReg } },
+          { new: true },
+        );
+        if (!workingEvento) {
+          // Race detectada (o el evento pasó a non-open mientras subíamos el
+          // comprobante). Limpiamos el asset recién subido para no dejar huérfanos.
+          if (comprobante?.publicId) {
+            cloudinary.uploader
+              .destroy(comprobante.publicId, {
+                resource_type: comprobante.resourceType || "image",
+              })
+              .catch(() => {});
+          }
+          return res.status(409).json({
+            message: "Ya estás inscripto en este evento",
+          });
+        }
+        // Tomamos la entry recién pusheada (la última del array).
+        reg =
+          workingEvento.registrations[workingEvento.registrations.length - 1];
       }
-      await evento.save();
 
       // Notificar al host que tiene una nueva inscripción pendiente, y a todos
-      // los que estén viendo el evento que cambiaron los counts.
-      const newCounts = countsFor(evento);
-      const eventoIdStr = evento._id.toString();
+      // los que estén viendo el evento que cambiaron los counts. Usamos
+      // workingEvento (que es `evento` en el path recycle, o el resultado de
+      // findOneAndUpdate en el path nueva inscripción).
+      const newCounts = countsFor(workingEvento);
+      const eventoIdStr = workingEvento._id.toString();
       try {
-        const populated = await Evento.populate(evento, {
+        const populated = await Evento.populate(workingEvento, {
           path: "registrations.user",
           select: "username displayName avatar",
         });
         const populatedReg = populated.registrations.id(reg._id);
-        emitToUser(req, evento.author, "evento:registration-created", {
+        emitToUser(req, workingEvento.author, "evento:registration-created", {
           eventoId: eventoIdStr,
           registration: populatedReg ? populatedReg.toObject() : reg.toObject(),
           counts: newCounts,
@@ -563,8 +619,13 @@ router.post(
         /* no-op */
       }
       const countsPayload = { eventoId: eventoIdStr, counts: newCounts };
-      emitToEventoRoom(req, evento._id, "evento:counts-changed", countsPayload);
-      if (evento.status !== "draft")
+      emitToEventoRoom(
+        req,
+        workingEvento._id,
+        "evento:counts-changed",
+        countsPayload,
+      );
+      if (workingEvento.status !== "draft")
         emitToEventosList(req, "evento:counts-changed", countsPayload);
 
       res.status(201).json({
