@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../../context/AuthContext';
 import { dateParts } from '../../utils/eventoDate';
@@ -34,6 +35,86 @@ export default function EventoInscripciones() {
     return () => { cancelled = true; };
   }, [id]);
 
+  // Real-time: escuchar nuevas inscripciones y revisiones del propio evento.
+  // Sólo monta el socket cuando ya está cargado el evento (data) para evitar
+  // race con el 404/redirect.
+  useEffect(() => {
+    if (!data?.evento || !user?.isAdmin) return undefined;
+    const token = localStorage.getItem('token');
+    if (!token) return undefined;
+    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    const socket = io(socketUrl, { auth: { token }, transports: ['websocket'] });
+    // Emitir en `connect` (initial + reconnect). El server tiene los handlers
+    // de join:* registrados antes de su await de auth, sin race.
+    socket.on('connect', () => socket.emit('join:evento', id));
+
+    socket.on('evento:registration-created', (payload) => {
+      if (payload?.eventoId !== id) return;
+      setData(prev => {
+        if (!prev) return prev;
+        const exists = prev.registrations.some(r => r._id === payload.registration?._id);
+        const next = exists
+          ? prev.registrations.map(r => r._id === payload.registration._id ? payload.registration : r)
+          : [...prev.registrations, payload.registration];
+        return { ...prev, registrations: next };
+      });
+    });
+
+    socket.on('evento:registration-cancelled', (payload) => {
+      if (payload?.eventoId !== id) return;
+      setData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          registrations: prev.registrations.filter(r => r._id !== payload.registrationId),
+        };
+      });
+    });
+
+    socket.on('evento:registration-reviewed', (payload) => {
+      if (payload?.eventoId !== id) return;
+      setData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          registrations: prev.registrations.map(r =>
+            r.user?._id === payload.userId
+              ? {
+                  ...r,
+                  status:              payload.status,
+                  reviewedAt:          payload.reviewedAt,
+                  adminNotes:          payload.adminNotes ?? r.adminNotes,
+                  permanentlyRejected: !!payload.permanentlyRejected,
+                  submittedAt:         payload.submittedAt || r.submittedAt,
+                }
+              : r,
+          ),
+        };
+      });
+    });
+
+    socket.on('evento:updated', (payload) => {
+      if (payload?.eventoId !== id) return;
+      const ev = payload.evento;
+      if (!ev) return;
+      setData(prev => prev ? {
+        ...prev,
+        evento: {
+          ...prev.evento,
+          title:           ev.title,
+          status:          ev.status,
+          eventDate:       ev.eventDate,
+          maxParticipants: ev.maxParticipants,
+        },
+      } : prev);
+    });
+
+    return () => {
+      socket.emit('leave:evento', id);
+      socket.disconnect();
+    };
+  }, [data?.evento, id, user?.isAdmin]);
+
   const accept = useCallback(async (reg, adminNotes) => {
     setActionError('');
     try {
@@ -42,15 +123,9 @@ export default function EventoInscripciones() {
         ...prev,
         registrations: prev.registrations.map(r =>
           r.user._id === reg.user._id
-            ? { ...r, status: 'confirmed', reviewedAt: new Date().toISOString(), adminNotes }
+            ? { ...r, status: 'confirmed', reviewedAt: new Date().toISOString(), adminNotes, permanentlyRejected: false }
             : r
         ),
-        counts: {
-          ...prev.counts,
-          confirmed: prev.counts.confirmed + (reg.status !== 'confirmed' ? 1 : 0),
-          rejected:  prev.counts.rejected  - (reg.status === 'rejected'  ? 1 : 0),
-          pending:   prev.counts.pending   - (reg.status === 'pending'   ? 1 : 0),
-        },
       }));
     } catch (err) {
       setActionError(err.response?.data?.message || 'No pudimos confirmar la inscripción.');
@@ -77,12 +152,6 @@ export default function EventoInscripciones() {
               }
             : r
         ),
-        counts: {
-          ...prev.counts,
-          rejected:  prev.counts.rejected  + (reg.status !== 'rejected'  ? 1 : 0),
-          confirmed: prev.counts.confirmed - (reg.status === 'confirmed' ? 1 : 0),
-          pending:   prev.counts.pending   - (reg.status === 'pending'   ? 1 : 0),
-        },
       }));
     } catch (err) {
       setActionError(err.response?.data?.message || 'No pudimos rechazar la inscripción.');
@@ -112,12 +181,6 @@ export default function EventoInscripciones() {
               }
             : r
         ),
-        counts: {
-          ...prev.counts,
-          pending:   prev.counts.pending   + 1,
-          confirmed: prev.counts.confirmed - (reg.status === 'confirmed' ? 1 : 0),
-          rejected:  prev.counts.rejected  - (reg.status === 'rejected'  ? 1 : 0),
-        },
       }));
     } catch (err) {
       setActionError(err.response?.data?.message || 'No pudimos revertir la inscripción.');
@@ -130,6 +193,19 @@ export default function EventoInscripciones() {
       pending:   regs.filter(r => r.status === 'pending'),
       confirmed: regs.filter(r => r.status === 'confirmed'),
       rejected:  regs.filter(r => r.status === 'rejected'),
+    };
+  }, [data]);
+
+  // Derivamos counts de `registrations` para garantizar consistencia con las
+  // columnas. Antes había doble-conteo entre el optimistic update en los
+  // handlers (accept/reject/undo) y el listener de socket que también incrementa.
+  const counts = useMemo(() => {
+    const regs = data?.registrations || [];
+    return {
+      total:     regs.length,
+      pending:   regs.filter(r => r.status === 'pending').length,
+      confirmed: regs.filter(r => r.status === 'confirmed').length,
+      rejected:  regs.filter(r => r.status === 'rejected').length,
     };
   }, [data]);
 
@@ -153,7 +229,6 @@ export default function EventoInscripciones() {
   }
 
   const evento = data?.evento || {};
-  const counts = data?.counts || { total: 0, pending: 0, confirmed: 0, rejected: 0 };
   const d = dateParts(evento.eventDate);
   const now = Date.now();
 

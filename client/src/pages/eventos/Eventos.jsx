@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../../context/AuthContext';
 import useLocalStorageState from '../../utils/useLocalStorageState';
@@ -58,6 +59,52 @@ export default function Eventos() {
   }, [filter]);
 
   useEffect(() => { load(1, true); }, [load]);
+
+  // Real-time: la lista recibe broadcasts del room eventos:list para mantener
+  // counts/status/eventos nuevos al día sin recargar. Solo emite cuando el
+  // usuario está autenticado (el room requiere auth).
+  useEffect(() => {
+    if (!user) return undefined;
+    const token = localStorage.getItem('token');
+    if (!token) return undefined;
+    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    const socket = io(socketUrl, { auth: { token }, transports: ['websocket'] });
+    // Opt-in al room de broadcast. Emitir en `connect` cubre initial connect
+    // y reconnects. El server tiene el handler registrado pre-await, sin race.
+    socket.on('connect', () => socket.emit('join:eventos-list'));
+
+    socket.on('evento:created', (payload) => {
+      if (!payload?.evento) return;
+      setEventos(prev => {
+        if (prev.some(e => e._id === payload.evento._id)) return prev;
+        return [payload.evento, ...prev];
+      });
+    });
+
+    socket.on('evento:updated', (payload) => {
+      if (!payload?.eventoId || !payload.evento) return;
+      setEventos(prev => prev.map(e =>
+        e._id === payload.eventoId ? { ...e, ...payload.evento } : e,
+      ));
+    });
+
+    socket.on('evento:counts-changed', (payload) => {
+      if (!payload?.eventoId || !payload.counts) return;
+      setEventos(prev => prev.map(e =>
+        e._id === payload.eventoId ? { ...e, registrationCount: payload.counts } : e,
+      ));
+    });
+
+    socket.on('evento:deleted', (payload) => {
+      if (!payload?.eventoId) return;
+      setEventos(prev => prev.filter(e => e._id !== payload.eventoId));
+    });
+
+    return () => {
+      socket.emit('leave:eventos-list');
+      socket.disconnect();
+    };
+  }, [user]);
 
   // Client-side filter for "mine" (server doesn't support it).
   const visibleEventos = useMemo(() => {

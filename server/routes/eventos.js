@@ -9,6 +9,66 @@ const { requireSection } = require('../middleware/sectionGate');
 
 router.use(requireSection('eventos'));
 
+// Calcula el snapshot público de inscripciones de un evento.
+function countsFor(evento) {
+  const regs = evento.registrations || [];
+  return {
+    total:     regs.length,
+    pending:   regs.filter(r => r.status === 'pending').length,
+    confirmed: regs.filter(r => r.status === 'confirmed').length,
+  };
+}
+
+// Helpers de socket — best-effort, nunca tiran un request si fallan.
+function emitToUser(req, userId, eventName, payload) {
+  try {
+    const io = req.app.get('io');
+    if (io && userId) io.to(`user:${userId.toString()}`).emit(eventName, payload);
+  } catch { /* no-op */ }
+}
+function emitToEventoRoom(req, eventoId, eventName, payload) {
+  try {
+    const io = req.app.get('io');
+    if (io && eventoId) io.to(`evento:${eventoId.toString()}`).emit(eventName, payload);
+  } catch { /* no-op */ }
+}
+// Broadcast a la lista pública /eventos. Sólo se debería usar para eventos
+// no-draft para no leakear publicaciones internas a usuarios normales.
+function emitToEventosList(req, eventName, payload) {
+  try {
+    const io = req.app.get('io');
+    if (io) io.to('eventos:list').emit(eventName, payload);
+  } catch { /* no-op */ }
+}
+
+// Devuelve la subdoc de registro con su `user` populado a { _id, username,
+// displayName, avatar }. Necesario para que los clients del evento puedan
+// mostrar el usuario en la grilla de inscriptos confirmados sin re-fetch.
+async function reloadRegPopulated(evento, regId) {
+  await evento.populate({
+    path:   'registrations.user',
+    select: 'username displayName avatar',
+  });
+  const reg = evento.registrations.id(regId);
+  if (!reg) return null;
+  return {
+    _id:         reg._id.toString(),
+    status:      reg.status,
+    submittedAt: reg.submittedAt,
+    reviewedAt:  reg.reviewedAt,
+    adminNotes:  reg.adminNotes || null,
+    permanentlyRejected: !!reg.permanentlyRejected,
+    user: reg.user
+      ? {
+          _id:         reg.user._id?.toString?.() || reg.user._id,
+          username:    reg.user.username,
+          displayName: reg.user.displayName,
+          avatar:      reg.user.avatar,
+        }
+      : null,
+  };
+}
+
 // Cierra automáticamente los eventos abiertos cuya fecha ya pasó.
 // Se llama lazy al inicio de las rutas GET de listado y detalle: el primer
 // request después de la fecha "barre" el estado y persiste status='closed',
@@ -134,6 +194,20 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
     });
 
     const populated = await evento.populate('author', 'username displayName avatar');
+
+    // Broadcast a la lista (no drafts — son privados al admin).
+    if (populated.status !== 'draft') {
+      const obj = populated.toObject();
+      delete obj.registrations;
+      emitToEventosList(req, 'evento:created', {
+        evento: {
+          ...obj,
+          registrationCount: { total: 0, pending: 0, confirmed: 0 },
+          userRegistration:  null,
+        },
+      });
+    }
+
     res.status(201).json(populated);
   } catch {
     res.status(500).json({ message: 'Error al crear el evento' });
@@ -243,7 +317,28 @@ router.put('/:id', protect, requireAdmin, multer.single('image'), async (req, re
 
     const eventoObj = populated.toObject();
     delete eventoObj.registrations;
-    res.json({ ...eventoObj, registrationCount, userRegistration: null });
+    const payload = { ...eventoObj, registrationCount, userRegistration: null };
+
+    // Notificar a todos los que estén viendo el evento (room evento:<id>).
+    // Incluye cambios de status (cancel/reopen), edits del form, imagen nueva,
+    // etc. — los clientes mergean en su state local.
+    emitToEventoRoom(req, evento._id, 'evento:updated', {
+      eventoId: evento._id.toString(),
+      evento:   payload,
+    });
+
+    // Broadcast a la lista pública. Si el evento pasó a draft, mejor avisar
+    // como "deleted" para que los users normales lo saquen de su vista.
+    if (evento.status === 'draft') {
+      emitToEventosList(req, 'evento:deleted', { eventoId: evento._id.toString() });
+    } else {
+      emitToEventosList(req, 'evento:updated', {
+        eventoId: evento._id.toString(),
+        evento:   payload,
+      });
+    }
+
+    res.json(payload);
   } catch {
     res.status(500).json({ message: 'Error al editar el evento' });
   }
@@ -256,7 +351,12 @@ router.delete('/:id', protect, requireAdmin, async (req, res) => {
     if (!evento) return res.status(404).json({ message: 'Evento no encontrado' });
 
     if (evento.image?.publicId) await cloudinary.uploader.destroy(evento.image.publicId);
+    const deletedId = evento._id.toString();
     await evento.deleteOne();
+
+    // Notificar a los viewers del detalle (cierran su pantalla) y a la lista.
+    emitToEventoRoom(req, deletedId, 'evento:deleted', { eventoId: deletedId });
+    emitToEventosList(req, 'evento:deleted', { eventoId: deletedId });
 
     res.json({ message: 'Evento eliminado' });
   } catch {
@@ -338,6 +438,25 @@ router.post('/:id/inscribirse', protect, comprobanteUpload.single('comprobante')
     }
     await evento.save();
 
+    // Notificar al host que tiene una nueva inscripción pendiente, y a todos
+    // los que estén viendo el evento que cambiaron los counts.
+    const newCounts = countsFor(evento);
+    const eventoIdStr = evento._id.toString();
+    try {
+      const populated = await Evento.populate(evento, {
+        path: 'registrations.user', select: 'username displayName avatar',
+      });
+      const populatedReg = populated.registrations.id(reg._id);
+      emitToUser(req, evento.author, 'evento:registration-created', {
+        eventoId:     eventoIdStr,
+        registration: populatedReg ? populatedReg.toObject() : reg.toObject(),
+        counts:       newCounts,
+      });
+    } catch { /* no-op */ }
+    const countsPayload = { eventoId: eventoIdStr, counts: newCounts };
+    emitToEventoRoom(req, evento._id, 'evento:counts-changed', countsPayload);
+    if (evento.status !== 'draft') emitToEventosList(req, 'evento:counts-changed', countsPayload);
+
     res.status(201).json({
       _id:         reg._id,
       status:      reg.status,
@@ -370,8 +489,22 @@ router.delete('/:id/inscribirse', protect, async (req, res) => {
       }).catch(() => {});
     }
 
+    const removedRegId = reg._id?.toString();
+    const removedUserId = req.user._id.toString();
     evento.registrations.splice(idx, 1);
     await evento.save();
+
+    const newCounts = countsFor(evento);
+    const eventoIdStr = evento._id.toString();
+    emitToUser(req, evento.author, 'evento:registration-cancelled', {
+      eventoId:       eventoIdStr,
+      registrationId: removedRegId,
+      userId:         removedUserId,
+      counts:         newCounts,
+    });
+    const cancelCountsPayload = { eventoId: eventoIdStr, counts: newCounts };
+    emitToEventoRoom(req, evento._id, 'evento:counts-changed', cancelCountsPayload);
+    if (evento.status !== 'draft') emitToEventosList(req, 'evento:counts-changed', cancelCountsPayload);
 
     res.json({ message: 'Inscripción cancelada' });
   } catch {
@@ -429,6 +562,29 @@ router.patch('/:id/inscripciones/:userId/confirmar', protect, requireAdmin, asyn
     if (req.body.adminNotes?.trim()) reg.adminNotes = req.body.adminNotes.trim();
 
     await evento.save();
+
+    const newCounts = countsFor(evento);
+    const eventoIdStr = evento._id.toString();
+    const userIdStr = reg.user.toString();
+    const populatedReg = await reloadRegPopulated(evento, reg._id);
+    const reviewPayload = {
+      eventoId:            eventoIdStr,
+      userId:              userIdStr,
+      registrationId:      reg._id.toString(),
+      status:              'confirmed',
+      reviewedAt:          reg.reviewedAt,
+      adminNotes:          reg.adminNotes || null,
+      permanentlyRejected: false,
+      counts:              newCounts,
+      registration:        populatedReg,
+    };
+    emitToUser(req, userIdStr, 'evento:registration-reviewed', reviewPayload);
+    emitToEventoRoom(req, evento._id, 'evento:registration-reviewed', reviewPayload);
+    // La lista sólo necesita refrescar los counts.
+    if (evento.status !== 'draft') {
+      emitToEventosList(req, 'evento:counts-changed', { eventoId: eventoIdStr, counts: newCounts });
+    }
+
     res.json({ message: 'Inscripción confirmada', status: reg.status });
   } catch {
     res.status(500).json({ message: 'Error al confirmar la inscripción' });
@@ -451,6 +607,28 @@ router.patch('/:id/inscripciones/:userId/rechazar', protect, requireAdmin, async
     if (req.body.adminNotes?.trim()) reg.adminNotes = req.body.adminNotes.trim();
 
     await evento.save();
+
+    const newCounts = countsFor(evento);
+    const eventoIdStr = evento._id.toString();
+    const userIdStr = reg.user.toString();
+    const populatedReg = await reloadRegPopulated(evento, reg._id);
+    const reviewPayload = {
+      eventoId:            eventoIdStr,
+      userId:              userIdStr,
+      registrationId:      reg._id.toString(),
+      status:              'rejected',
+      reviewedAt:          reg.reviewedAt,
+      adminNotes:          reg.adminNotes || null,
+      permanentlyRejected: reg.permanentlyRejected,
+      counts:              newCounts,
+      registration:        populatedReg,
+    };
+    emitToUser(req, userIdStr, 'evento:registration-reviewed', reviewPayload);
+    emitToEventoRoom(req, evento._id, 'evento:registration-reviewed', reviewPayload);
+    if (evento.status !== 'draft') {
+      emitToEventosList(req, 'evento:counts-changed', { eventoId: eventoIdStr, counts: newCounts });
+    }
+
     res.json({
       message:              'Inscripción rechazada',
       status:               reg.status,
@@ -481,6 +659,29 @@ router.patch('/:id/inscripciones/:userId/revertir', protect, requireAdmin, async
     reg.permanentlyRejected = false;
 
     await evento.save();
+
+    const newCounts = countsFor(evento);
+    const eventoIdStr = evento._id.toString();
+    const userIdStr = reg.user.toString();
+    const populatedReg = await reloadRegPopulated(evento, reg._id);
+    const reviewPayload = {
+      eventoId:            eventoIdStr,
+      userId:              userIdStr,
+      registrationId:      reg._id.toString(),
+      status:              'pending',
+      reviewedAt:          null,
+      adminNotes:          null,
+      permanentlyRejected: false,
+      submittedAt:         reg.submittedAt,
+      counts:              newCounts,
+      registration:        populatedReg,
+    };
+    emitToUser(req, userIdStr, 'evento:registration-reviewed', reviewPayload);
+    emitToEventoRoom(req, evento._id, 'evento:registration-reviewed', reviewPayload);
+    if (evento.status !== 'draft') {
+      emitToEventosList(req, 'evento:counts-changed', { eventoId: eventoIdStr, counts: newCounts });
+    }
+
     res.json({
       message:     'Inscripción revertida a pendiente',
       status:      reg.status,

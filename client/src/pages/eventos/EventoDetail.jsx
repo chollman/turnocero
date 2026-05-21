@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../../context/AuthContext';
 import LoginPromptModal from '../../components/shared/LoginPromptModal';
@@ -56,6 +57,75 @@ export default function EventoDetail() {
     load();
     return () => { cancelled = true; };
   }, [id]);
+
+  // Real-time: cualquier viewer (incluido el user que se inscribió) recibe
+  // updates de status/counts del evento. El user dueño del registro recibe
+  // además `evento:registration-reviewed` por su personal room user:<id>.
+  useEffect(() => {
+    if (!evento) return undefined;
+    const token = localStorage.getItem('token');
+    if (!token) return undefined;
+    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    const socket = io(socketUrl, { auth: { token }, transports: ['websocket'] });
+    // Emitir en `connect` (initial + reconnect). El server registra todos los
+    // handlers ANTES de su auth-await, así que el emit no se pierde por race.
+    socket.on('connect', () => socket.emit('join:evento', id));
+
+    socket.on('evento:counts-changed', (payload) => {
+      if (payload?.eventoId !== id || !payload.counts) return;
+      setEvento(prev => prev ? { ...prev, registrationCount: payload.counts } : prev);
+    });
+
+    socket.on('evento:registration-reviewed', (payload) => {
+      if (payload?.eventoId !== id) return;
+      setEvento(prev => {
+        if (!prev) return prev;
+        const next = { ...prev };
+        if (payload.counts) next.registrationCount = payload.counts;
+
+        // Si soy el usuario afectado, actualizar mi userRegistration
+        if (user?._id && payload.userId === user._id) {
+          next.userRegistration = {
+            ...(prev.userRegistration || {}),
+            _id:                 payload.registrationId,
+            status:              payload.status,
+            submittedAt:         payload.submittedAt || prev.userRegistration?.submittedAt,
+            adminNotes:          payload.adminNotes ?? null,
+            permanentlyRejected: !!payload.permanentlyRejected,
+          };
+        }
+
+        // Mantener confirmedRegistrations al día: agregar al confirmar, sacar
+        // cuando deja de estar confirmado. Necesita el reg populated con
+        // info de user (vino en payload.registration).
+        const list = prev.confirmedRegistrations || [];
+        if (payload.status === 'confirmed' && payload.registration?.user) {
+          const exists = list.some(r => r._id === payload.registration._id);
+          next.confirmedRegistrations = exists
+            ? list.map(r => r._id === payload.registration._id
+                ? { _id: payload.registration._id, user: payload.registration.user }
+                : r)
+            : [...list, { _id: payload.registration._id, user: payload.registration.user }];
+        } else if (payload.status !== 'confirmed') {
+          next.confirmedRegistrations = list.filter(r =>
+            r._id !== payload.registrationId && r.user?._id !== payload.userId,
+          );
+        }
+
+        return next;
+      });
+    });
+
+    socket.on('evento:updated', (payload) => {
+      if (payload?.eventoId !== id || !payload.evento) return;
+      setEvento(prev => prev ? { ...prev, ...payload.evento } : payload.evento);
+    });
+
+    return () => {
+      socket.emit('leave:evento', id);
+      socket.disconnect();
+    };
+  }, [evento?._id, id, user?._id]);
 
   async function handleInscribirse(comprobanteFile) {
     if (!user) { setShowLoginPrompt(true); return; }

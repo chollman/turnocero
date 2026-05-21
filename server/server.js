@@ -51,13 +51,12 @@ io.use((socket, next) => {
 });
 
 io.on('connection', async (socket) => {
+  // 1) Joins síncronos.
   socket.join(`user:${socket.userId}`);
 
-  try {
-    const user = await User.findById(socket.userId).select('isAdmin');
-    if (user?.isAdmin) socket.join('admin:room');
-  } catch { /* non-fatal */ }
-
+  // 2) Registrar TODOS los handlers ANTES de cualquier `await` — así cuando
+  //    el cliente reciba `connect`, los `socket.on(...)` ya están registrados
+  //    y emits inmediatos no se pierden por race con la auth.
   socket.on('join:table', (tableId) => {
     socket.join(`table:${tableId}`);
   });
@@ -65,6 +64,30 @@ io.on('connection', async (socket) => {
   socket.on('leave:table', (tableId) => {
     socket.leave(`table:${tableId}`);
   });
+
+  socket.on('join:evento', (eventoId) => {
+    socket.join(`evento:${eventoId}`);
+  });
+
+  socket.on('leave:evento', (eventoId) => {
+    socket.leave(`evento:${eventoId}`);
+  });
+
+  // Lista pública /eventos. Opt-in via `join:eventos-list`; los emits a este
+  // room evitan datos sensibles (drafts no se broadcastean).
+  socket.on('join:eventos-list', () => {
+    socket.join('eventos:list');
+  });
+
+  socket.on('leave:eventos-list', () => {
+    socket.leave('eventos:list');
+  });
+
+  // 3) Trabajo async sin bloquear la registración de handlers de arriba.
+  try {
+    const user = await User.findById(socket.userId).select('isAdmin');
+    if (user?.isAdmin) socket.join('admin:room');
+  } catch { /* non-fatal */ }
 });
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/turnocero';
