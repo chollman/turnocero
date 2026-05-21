@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { dateParts, countdown, formatFee } from "../../utils/eventoDate";
 import { formatDistanceKm } from "../../utils/distance";
-import { formatLocation } from "../../utils/location";
+import { getLocationDisplay } from "../../utils/location";
 import { PinIcon, UsersIcon, ImageIcon, ArrowIcon } from "./EventoIcons";
 import styles from "./PosterCard.module.css";
 
@@ -32,12 +32,12 @@ export default function PosterCard({
   const detailUrl = `/eventos/${evento._id}`;
 
   const statusInfo = STATUS_BADGES[evento.status];
-  // location puede llegar como string legacy o subdoc { texto, lat, lng }.
+  // location puede llegar como string legacy o subdoc { texto, lat, lng, displayName }.
   const locationTexto = typeof evento.location === "string"
     ? evento.location
     : evento.location?.texto || "";
-  // En la card compacta mostramos solo la localidad.
-  const locationDisplay = formatLocation(locationTexto, "city");
+  // En la card compacta mostramos solo la localidad — o el displayName si está seteado.
+  const locationDisplay = getLocationDisplay(evento.location, "city");
   // formatDistanceKm devuelve null para distancias que redondean a 0m (incluye
   // 0 exacto), evitando "0 m" / "Aquí mismo" redundantes.
   const distanceLabel = formatDistanceKm(evento.distanceKm);

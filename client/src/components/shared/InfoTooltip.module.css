@@ -1,0 +1,90 @@
+.wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  vertical-align: middle;
+  /* Pequeño shift hacia abajo para alinear visualmente con la mid-line del
+     texto del label (los labels usan font-mono y la baseline cae un poco
+     debajo del centro óptico del círculo del ícono). */
+  transform: translateY(-1px);
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  /* --amber es legacy-naming: en realidad es el azul brand de Turnocero (#1888ef). */
+  color: var(--amber);
+  line-height: 0;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.trigger:hover,
+.trigger:focus-visible {
+  color: var(--amber-light);
+  background: var(--amber-10);
+  outline: none;
+}
+
+.tooltip {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  width: max-content;
+  max-width: 280px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.25));
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  /* fontFamily reset porque el wrapper suele estar dentro de un <label> con monospace */
+  font-family: var(--font-body, system-ui, sans-serif);
+  white-space: normal;
+  text-align: left;
+  pointer-events: none;
+  animation: fadeIn 100ms ease-out;
+}
+
+.tooltipTop {
+  bottom: calc(100% + 6px);
+}
+
+.tooltipBottom {
+  top: calc(100% + 6px);
+}
+
+.tooltip strong {
+  color: var(--text-primary);
+}
+
+.tooltip em {
+  color: var(--amber-light);
+  font-style: normal;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(2px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* En pantallas chicas: que no se salga del viewport */
+@media (max-width: 480px) {
+  .tooltip {
+    max-width: min(280px, calc(100vw - 32px));
+  }
+}

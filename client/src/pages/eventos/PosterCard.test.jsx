@@ -144,4 +144,20 @@ describe('<PosterCard>', () => {
     expect(screen.queryByText(/Av\. de Mayo 1123/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Provincia de Buenos Aires/)).not.toBeInTheDocument();
   });
+
+  it('shows displayName when set (override de la ciudad formateada)', () => {
+    renderCard({
+      event: {
+        location: {
+          texto: 'Av. de Mayo 1123, B1650 San Martín, Provincia de Buenos Aires, Argentina',
+          lat: -34.5,
+          lng: -58.5,
+          displayName: 'Bar de Pepe',
+        },
+      },
+    });
+    // El displayName reemplaza completamente el formato city.
+    expect(screen.getByText('Bar de Pepe')).toBeInTheDocument();
+    expect(screen.queryByText('San Martín')).not.toBeInTheDocument();
+  });
 });

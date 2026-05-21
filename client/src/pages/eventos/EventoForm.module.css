@@ -91,6 +91,12 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-muted);
+  /* min-height + inline-flex aseguran que TODOS los labels tengan la misma
+     altura, tengan o no un InfoTooltip al lado. Así los inputs alineados en
+     una `.row` (ej. Fecha + Lugar) quedan en la misma línea visual. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
 }
 
 .row {
@@ -110,6 +116,11 @@
   font-size: 14px;
   padding: 10px 12px;
   outline: none;
+  /* Altura uniforme — sin esto, <select> y <input type="datetime-local"> tienen
+     intrinsic-sizes ligeramente distintos por su UI nativa (picker icon, dropdown
+     arrow) y rompen la alineación visual en `.row`. */
+  box-sizing: border-box;
+  height: 42px;
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 
@@ -128,6 +139,11 @@
 .textarea {
   resize: vertical;
   font-family: var(--font-body);
+  /* El textarea NO debe tener altura fija (es multiline). Reseteamos el
+     height del shared selector y usamos min-height para que arranque
+     coherente con el resto pero crezca al escribir. */
+  height: auto;
+  min-height: 76px;
 }
 
 .error {
@@ -190,6 +206,84 @@
   cursor: not-allowed;
 }
 
+/* ─── Status chips (radiogroup para "Estado") ─── */
+.statusChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.statusChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.statusChip:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.statusChipDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Color del dot por status (always visible, even when chip is inactive — sirve
+   como pista visual del significado de cada estado). */
+.statusChipDot_draft     { background: var(--text-muted); }
+.statusChipDot_open      { background: var(--green); }
+.statusChipDot_closed    { background: var(--orange); }
+.statusChipDot_cancelled { background: var(--red); }
+
+/* Active state por status — el chip "se enciende" con su color. */
+.statusChip_draft {
+  background: var(--overlay-soft);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.statusChip_open {
+  background: var(--green-15);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.statusChip_closed {
+  background: var(--orange-15);
+  color: var(--orange);
+  border-color: var(--orange);
+}
+
+.statusChip_cancelled {
+  background: var(--red-15);
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* Cuando el chip está activo, el dot se agranda levemente y agrega un glow. */
+.statusChip_open .statusChipDot_open       { box-shadow: 0 0 0 3px var(--green-25); }
+.statusChip_closed .statusChipDot_closed   { box-shadow: 0 0 0 3px var(--orange-25); }
+.statusChip_cancelled .statusChipDot_cancelled { box-shadow: 0 0 0 3px var(--red-25); }
+.statusChip_draft .statusChipDot_draft     { box-shadow: 0 0 0 3px var(--overlay-soft); }
+
 /* ─── Ubicación (PlaceAutocomplete + manual fallback) ─── */
 .fieldHint {
   margin-left: 6px;
@@ -229,12 +323,15 @@
   background: var(--bg-elevated);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  /* Match con `.input` (10px) para que ambos lados de la row se vean cohesivos. */
+  border-radius: 10px;
   padding: 0 16px;
   font-size: 14px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
   white-space: nowrap;
+  box-sizing: border-box;
+  height: 42px;
 }
 
 .btnSearch:hover:not(:disabled) {

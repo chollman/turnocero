@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatLocation } from './location';
+import { formatLocation, getLocationDisplay } from './location';
 
 const FULL_AR = 'Av. de Mayo 1123, B1650 San Martín, Provincia de Buenos Aires, Argentina';
 const CABA = 'Av. Corrientes 1234, C1043 CABA, Argentina';
@@ -75,5 +75,47 @@ describe('formatLocation', () => {
 
   it('trims whitespace around comma-separated parts', () => {
     expect(formatLocation('Calle 1,   B1650 San Martín  , Argentina', 'city')).toBe('San Martín');
+  });
+});
+
+describe('getLocationDisplay', () => {
+  it('returns empty string for null/undefined', () => {
+    expect(getLocationDisplay(null)).toBe('');
+    expect(getLocationDisplay(undefined)).toBe('');
+  });
+
+  it('uses displayName when set (override de cualquier formato)', () => {
+    const loc = {
+      texto: 'Av. Corrientes 1234, B1650 San Martín, Provincia de Buenos Aires, Argentina',
+      lat: -34.6, lng: -58.4,
+      displayName: 'Bar de Pepe',
+    };
+    expect(getLocationDisplay(loc, 'city')).toBe('Bar de Pepe');
+    expect(getLocationDisplay(loc, 'regular')).toBe('Bar de Pepe');
+    expect(getLocationDisplay(loc, 'fullAddress')).toBe('Bar de Pepe');
+  });
+
+  it('ignora displayName si es whitespace', () => {
+    const loc = { texto: 'Florida 100, CABA', displayName: '   ' };
+    expect(getLocationDisplay(loc, 'city')).toBe('CABA');
+  });
+
+  it('falls back to formatLocation when displayName is empty', () => {
+    const loc = {
+      texto: 'Av. de Mayo 1123, B1650 San Martín, Provincia de Buenos Aires, Argentina',
+      lat: -34.6, lng: -58.4,
+      displayName: '',
+    };
+    expect(getLocationDisplay(loc, 'city')).toBe('San Martín');
+    expect(getLocationDisplay(loc, 'regular')).toBe('Av. de Mayo 1123, San Martín');
+  });
+
+  it('handles string-only legacy location (sin subdoc)', () => {
+    expect(getLocationDisplay('Bar Pepe')).toBe('Bar Pepe');
+    expect(getLocationDisplay('Av. Corrientes 1234, CABA, Argentina', 'city')).toBe('CABA');
+  });
+
+  it('trims displayName output', () => {
+    expect(getLocationDisplay({ texto: 'X', displayName: '  Bar Plaza  ' })).toBe('Bar Plaza');
   });
 });

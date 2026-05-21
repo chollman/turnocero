@@ -12,7 +12,7 @@ describe('normalizeLocationInput', () => {
 
   it('normalizes a plain string to { texto, lat: null, lng: null }', () => {
     expect(normalizeLocationInput('Bar La Esquina')).toEqual({
-      texto: 'Bar La Esquina', lat: null, lng: null,
+      texto: 'Bar La Esquina', lat: null, lng: null, displayName: '',
     });
   });
 
@@ -25,20 +25,20 @@ describe('normalizeLocationInput', () => {
   it('parses JSON string input (FormData use case)', () => {
     const json = JSON.stringify({ texto: 'Florida 100', lat: -34.6, lng: -58.4 });
     expect(normalizeLocationInput(json)).toEqual({
-      texto: 'Florida 100', lat: -34.6, lng: -58.4,
+      texto: 'Florida 100', lat: -34.6, lng: -58.4, displayName: '',
     });
   });
 
   it('falls back to string treatment if JSON parse fails', () => {
     // Empieza con { pero no es JSON válido.
     expect(normalizeLocationInput('{ broken')).toEqual({
-      texto: '{ broken', lat: null, lng: null,
+      texto: '{ broken', lat: null, lng: null, displayName: '',
     });
   });
 
   it('passes through object input with valid coords', () => {
     expect(normalizeLocationInput({ texto: 'X', lat: -34.6, lng: -58.4 })).toEqual({
-      texto: 'X', lat: -34.6, lng: -58.4,
+      texto: 'X', lat: -34.6, lng: -58.4, displayName: '',
     });
   });
 
@@ -58,6 +58,37 @@ describe('normalizeLocationInput', () => {
   it('handles non-string non-object input by returning undefined', () => {
     expect(normalizeLocationInput(42)).toBeUndefined();
     expect(normalizeLocationInput(true)).toBeUndefined();
+  });
+
+  it('preserves displayName when provided as object property', () => {
+    const result = normalizeLocationInput({
+      texto: 'Av. Corrientes 1234, CABA',
+      lat: -34.6,
+      lng: -58.4,
+      displayName: 'Bar de Pepe',
+    });
+    expect(result.displayName).toBe('Bar de Pepe');
+  });
+
+  it('defaults displayName to empty string when missing', () => {
+    const result = normalizeLocationInput({ texto: 'X', lat: -34.6, lng: -58.4 });
+    expect(result.displayName).toBe('');
+  });
+
+  it('trims and truncates displayName to 100 chars', () => {
+    const long = 'a'.repeat(200);
+    const result = normalizeLocationInput({ texto: 'X', displayName: `  ${long}  ` });
+    expect(result.displayName.length).toBe(100);
+  });
+
+  it('preserves displayName through JSON-string parsing (FormData path)', () => {
+    const json = JSON.stringify({
+      texto: 'Florida 100',
+      lat: -34.6,
+      lng: -58.4,
+      displayName: 'Bar Plaza',
+    });
+    expect(normalizeLocationInput(json).displayName).toBe('Bar Plaza');
   });
 });
 
@@ -92,36 +123,36 @@ describe('locationForCreate', () => {
   it('falls back to user.direccion when input is empty', () => {
     const user = { texto: 'Mi casa', lat: -34.6, lng: -58.4 };
     expect(locationForCreate({}, user)).toEqual({
-      texto: 'Mi casa', lat: -34.6, lng: -58.4,
+      texto: 'Mi casa', lat: -34.6, lng: -58.4, displayName: '',
     });
     expect(locationForCreate(null, user)).toEqual({
-      texto: 'Mi casa', lat: -34.6, lng: -58.4,
+      texto: 'Mi casa', lat: -34.6, lng: -58.4, displayName: '',
     });
     expect(locationForCreate({ texto: '', lat: null, lng: null }, user)).toEqual({
-      texto: 'Mi casa', lat: -34.6, lng: -58.4,
+      texto: 'Mi casa', lat: -34.6, lng: -58.4, displayName: '',
     });
   });
 
   it('returns user.direccion with only texto if user has no coords', () => {
     const user = { texto: 'Mi casa', lat: null, lng: null };
     expect(locationForCreate({}, user)).toEqual({
-      texto: 'Mi casa', lat: null, lng: null,
+      texto: 'Mi casa', lat: null, lng: null, displayName: '',
     });
   });
 
   it('returns user.direccion with only coords if user has no texto', () => {
     const user = { texto: '', lat: -34.6, lng: -58.4 };
     expect(locationForCreate({}, user)).toEqual({
-      texto: '', lat: -34.6, lng: -58.4,
+      texto: '', lat: -34.6, lng: -58.4, displayName: '',
     });
   });
 
   it('returns the (empty) normalized input when both input and user are empty', () => {
     // `{}` normaliza a `{ texto: '', lat: null, lng: null }` y no hay fallback
     // posible — devuelve esa forma vacía como está.
-    expect(locationForCreate({}, null)).toEqual({ texto: '', lat: null, lng: null });
+    expect(locationForCreate({}, null)).toEqual({ texto: '', lat: null, lng: null, displayName: '' });
     expect(locationForCreate({}, { texto: '', lat: null, lng: null }))
-      .toEqual({ texto: '', lat: null, lng: null });
+      .toEqual({ texto: '', lat: null, lng: null, displayName: '' });
   });
 
   it('returns undefined when input is undefined and no user fallback', () => {

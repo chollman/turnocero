@@ -33,10 +33,17 @@ const eventoSchema = new mongoose.Schema(
     // Migrado de String a subdocumento en 2026-05 para soportar cálculo
     // de distancias. Docs viejos con `location: "texto"` se normalizan al
     // hidratar vía `pre('init')` hook abajo — sin script de migración.
+    //
+    // `displayName` (opcional) es un alias amigable que el admin puede setear
+    // — ej. "Bar de Pepe" en vez de "Av. Corrientes 1234, CABA". Cuando está
+    // presente, las pantallas que muestran la ubicación lo usan en lugar del
+    // texto formateado. La dirección real (texto + coords) se sigue usando
+    // para distancia y mapa.
     location: {
-      texto: { type: String, trim: true, maxlength: 300, default: '' },
-      lat:   { type: Number, default: null },
-      lng:   { type: Number, default: null },
+      texto:       { type: String, trim: true, maxlength: 300, default: '' },
+      lat:         { type: Number, default: null },
+      lng:         { type: Number, default: null },
+      displayName: { type: String, trim: true, maxlength: 100, default: '' },
     },
     maxParticipants: { type: Number, min: 1 },
     image:           { url: String, publicId: String },

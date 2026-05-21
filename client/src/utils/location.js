@@ -19,6 +19,27 @@
  * @param {"fullAddress"|"city"|"regular"} mode
  * @returns {string}
  */
+/**
+ * Devuelve qué mostrar para una location en un componente:
+ *   - Si tiene `displayName` (alias amigable seteado por el admin), lo usa tal cual.
+ *   - Si no, formatea el texto crudo según el `mode` (city/regular/fullAddress).
+ *
+ * Centraliza el "override del nombre" para que cualquier pantalla lo respete
+ * sin tener que duplicar el check en cada componente.
+ *
+ * @param {Object|string|null|undefined} location  subdoc { texto, displayName? } o string legacy
+ * @param {"fullAddress"|"city"|"regular"} mode    formato a aplicar si no hay displayName
+ * @returns {string}
+ */
+export function getLocationDisplay(location, mode = 'fullAddress') {
+  if (!location) return '';
+  if (typeof location === 'string') return formatLocation(location, mode);
+  if (location.displayName && location.displayName.trim()) {
+    return location.displayName.trim();
+  }
+  return formatLocation(location.texto || '', mode);
+}
+
 export function formatLocation(texto, mode = 'fullAddress') {
   if (!texto) return '';
 

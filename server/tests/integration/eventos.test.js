@@ -311,7 +311,28 @@ describe("POST /api/eventos — location obligatoria", () => {
       .field("location", JSON.stringify({ texto: "Bar X", lat: -34.5, lng: -58.5 }));
 
     expect(res.status).toBe(201);
-    expect(res.body.location).toEqual({ texto: "Bar X", lat: -34.5, lng: -58.5 });
+    expect(res.body.location).toEqual({
+      texto: "Bar X", lat: -34.5, lng: -58.5, displayName: "",
+    });
+  });
+
+  it("persiste displayName cuando el admin lo provee", async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const res = await request(app)
+      .post("/api/eventos")
+      .set("Authorization", `Bearer ${token}`)
+      .field("title", "Mi evento")
+      .field("eventDate", new Date(Date.now() + 14 * 86400000).toISOString())
+      .field("location", JSON.stringify({
+        texto: "Av. Corrientes 1234, CABA",
+        lat: -34.6,
+        lng: -58.4,
+        displayName: "Bar de Pepe",
+      }));
+
+    expect(res.status).toBe(201);
+    expect(res.body.location.displayName).toBe("Bar de Pepe");
+    expect(res.body.location.texto).toBe("Av. Corrientes 1234, CABA");
   });
 
   it("acepta texto sin coords (el user tipeó libre, sin picar sugerencia)", async () => {

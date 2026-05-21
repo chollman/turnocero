@@ -21,6 +21,22 @@ vi.mock("../../components/shared/PlaceAutocomplete", () => ({
   ),
 }));
 
+// DateTimePicker es un componente custom complejo con popover. Lo mockeamos
+// para que estos tests puedan llenar la fecha como un input regular.
+vi.mock("../../components/shared/DateTimePicker", () => ({
+  default: ({ value, onChange, id, name, required }) => (
+    <input
+      id={id}
+      name={name}
+      type="datetime-local"
+      data-testid="datetime-picker"
+      value={value || ""}
+      onChange={(e) => onChange?.(e.target.value)}
+      aria-required={required || undefined}
+    />
+  ),
+}));
+
 // Mock socket.io-client capturando los listeners para dispararlos manualmente.
 const socketListeners = new Map();
 vi.mock("socket.io-client", () => ({
@@ -455,10 +471,8 @@ describe("<Eventos>", () => {
     fireEvent.change(screen.getByLabelText(/^lugar$/i), {
       target: { value: "Bar Pepe" },
     });
-    // Cambiar status a draft para crear un draft
-    fireEvent.change(screen.getByLabelText(/estado/i), {
-      target: { value: "draft" },
-    });
+    // Cambiar status a draft para crear un draft — ahora es un chip clickeable.
+    fireEvent.click(screen.getByRole("radio", { name: /borrador/i }));
     fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
 
     // El draft creado debe aparecer en la lista (porque el filter cambió a Borradores)

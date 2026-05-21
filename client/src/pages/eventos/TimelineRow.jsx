@@ -3,7 +3,7 @@ import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { dateParts, countdown, formatFee } from "../../utils/eventoDate";
 import { formatDistanceKm } from "../../utils/distance";
-import { formatLocation } from "../../utils/location";
+import { getLocationDisplay } from "../../utils/location";
 import { PinIcon, UsersIcon } from "./EventoIcons";
 import styles from "./TimelineRow.module.css";
 
@@ -33,8 +33,9 @@ export default function TimelineRow({
   const locationTexto = typeof evento.location === "string"
     ? evento.location
     : evento.location?.texto || "";
-  // En la lista mostramos solo la localidad — el texto completo se ve en el detalle.
-  const locationDisplay = formatLocation(locationTexto, "city");
+  // En la lista mostramos solo la localidad — el texto completo se ve en el
+  // detalle. getLocationDisplay respeta displayName si está seteado.
+  const locationDisplay = getLocationDisplay(evento.location, "city");
   // formatDistanceKm devuelve null para distancias que redondean a 0m (incluye
   // 0 exacto), evitando "0 m" / "Aquí mismo" redundantes.
   const distanceLabel = formatDistanceKm(evento.distanceKm);

@@ -9,15 +9,26 @@
   background: var(--bg-elevated);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
+  font-family: var(--font-body, inherit);
   font-size: 14px;
-  font-family: inherit;
   outline: none;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  /* Mismo height fijo que los demás inputs de forms para alineación en flex rows. */
+  box-sizing: border-box;
+  height: 42px;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+  /* Sin esto el browser usa un fade del color de texto (típicamente blanco al
+     50%) y queda distinto al resto de los inputs del form. */
+  opacity: 1;
 }
 
 .input:focus {
   border-color: var(--amber);
+  box-shadow: 0 0 0 3px var(--amber-glow);
 }
 
 .input:disabled {

@@ -1,11 +1,21 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
+import InfoTooltip from "../../components/shared/InfoTooltip";
+import DateTimePicker from "../../components/shared/DateTimePicker";
 import ImageDropzone from "./ImageDropzone";
 import { toLocalInputValue, fromLocalInputValue } from "../../utils/eventoDate";
 import styles from "./EventoForm.module.css";
 
-const EMPTY_LOCATION = { texto: "", lat: null, lng: null };
+const EMPTY_LOCATION = { texto: "", lat: null, lng: null, displayName: "" };
+
+// Opciones de estado para los chips. Cada uno tiene su color identificable.
+const STATUS_OPTIONS = [
+  { value: "draft",     label: "Borrador",  description: "No visible para los usuarios" },
+  { value: "open",      label: "Abierto",   description: "Inscripciones habilitadas" },
+  { value: "closed",    label: "Cerrado",   description: "Sin inscripciones" },
+  { value: "cancelled", label: "Cancelado", description: "Evento cancelado" },
+];
 
 const EMPTY_FORM = {
   title: "",
@@ -23,11 +33,13 @@ const EMPTY_FORM = {
 // Defensivo en cliente para evitar romper la edición.
 function normalizeIncomingLocation(loc) {
   if (loc == null) return { ...EMPTY_LOCATION };
-  if (typeof loc === "string") return { texto: loc, lat: null, lng: null };
+  if (typeof loc === "string")
+    return { texto: loc, lat: null, lng: null, displayName: "" };
   return {
     texto: loc.texto || "",
     lat: loc.lat ?? null,
     lng: loc.lng ?? null,
+    displayName: loc.displayName || "",
   };
 }
 
@@ -91,10 +103,20 @@ export default function EventoForm({
   // ── Ubicación ──
   const updateLocationTexto = (texto) =>
     setForm((prev) => ({ ...prev, location: { ...prev.location, texto } }));
+  const updateLocationDisplayName = (displayName) =>
+    setForm((prev) => ({
+      ...prev,
+      location: { ...prev.location, displayName },
+    }));
   const handlePlaceSelect = ({ lat, lng, formattedAddress }) =>
     setForm((prev) => ({
       ...prev,
-      location: { texto: formattedAddress || prev.location.texto, lat, lng },
+      location: {
+        ...prev.location,
+        texto: formattedAddress || prev.location.texto,
+        lat,
+        lng,
+      },
     }));
   const handleManualGeocode = async () => {
     const q = form.location.texto.trim();
@@ -108,12 +130,17 @@ export default function EventoForm({
       const { data } = await axios.get("/api/geocode", { params: { q } });
       setForm((prev) => ({
         ...prev,
-        location: { texto: data.formatted || prev.location.texto, lat: data.lat, lng: data.lng },
+        location: {
+          texto: data.formatted || prev.location.texto,
+          lat: data.lat,
+          lng: data.lng,
+        },
       }));
     } catch (err) {
-      const msg = err.response?.status === 404
-        ? "No se encontró la dirección. Intentá ser más específico o picá una sugerencia."
-        : err.response?.data?.message || "Error al buscar la dirección.";
+      const msg =
+        err.response?.status === 404
+          ? "No se encontró la dirección. Intentá ser más específico o picá una sugerencia."
+          : err.response?.data?.message || "Error al buscar la dirección.";
       setError(msg);
       setTimeout(() => setError(""), 3000);
     } finally {
@@ -181,170 +208,213 @@ export default function EventoForm({
           existe y suele ser secundaria. En mobile siempre se apila. */}
       <div className={`${styles.split} ${isEdit ? styles.splitStacked : ""}`}>
         <div className={styles.splitImage}>
-          <ImageDropzone preview={preview} onFile={handleFile} />
+          <div className={styles.field}>
+            {/* Span (no <label htmlFor>) porque ImageDropzone tiene su propio
+                file input oculto + handler de click — el wrapper completo es
+                el área clickeable, no necesita asociación HTML formal. */}
+            <span className={styles.fieldLabel}>Carátula del evento</span>
+            <ImageDropzone preview={preview} onFile={handleFile} />
+          </div>
         </div>
 
         <div className={styles.splitFields}>
           <div className={styles.field}>
-        <label className={styles.fieldLabel} htmlFor="evento-title">
-          Título *
-        </label>
-        <input
-          id="evento-title"
-          name="title"
-          value={form.title}
-          onChange={handleChange}
-          placeholder="Ej. Torneo de Catán · Otoño 2026"
-          className={styles.input}
-          maxLength={200}
-        />
-      </div>
-
-      <div className={styles.field}>
-        <label className={styles.fieldLabel} htmlFor="evento-description">
-          Descripción
-        </label>
-        <textarea
-          id="evento-description"
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          placeholder="Contá de qué se trata el evento."
-          className={styles.textarea}
-          rows={3}
-          maxLength={3000}
-        />
-      </div>
-
-      <div className={styles.field}>
-        <label className={styles.fieldLabel} htmlFor="evento-conditions">
-          Condiciones de inscripción
-        </label>
-        <textarea
-          id="evento-conditions"
-          name="conditions"
-          value={form.conditions}
-          onChange={handleChange}
-          placeholder="Reglas, cancelaciones, requisitos."
-          className={styles.textarea}
-          rows={3}
-          maxLength={2000}
-        />
-      </div>
-
-      <div className={styles.row}>
-        <div className={styles.field} style={{ flex: 1 }}>
-          <label className={styles.fieldLabel} htmlFor="evento-fee">
-            Monto ($ARS, 0 = gratis)
-          </label>
-          <input
-            id="evento-fee"
-            name="fee"
-            value={form.fee}
-            onChange={handleChange}
-            type="number"
-            min="0"
-            className={styles.input}
-            placeholder="0"
-          />
-        </div>
-        <div className={styles.field} style={{ flex: 1 }}>
-          <label className={styles.fieldLabel} htmlFor="evento-max">
-            Cupo máximo
-          </label>
-          <input
-            id="evento-max"
-            name="maxParticipants"
-            value={form.maxParticipants}
-            onChange={handleChange}
-            type="number"
-            min="1"
-            className={styles.input}
-            placeholder="vacío = sin límite"
-          />
-        </div>
-      </div>
-
-      <div className={styles.field}>
-        <label className={styles.fieldLabel} htmlFor="evento-transfer">
-          Datos de transferencia
-        </label>
-        <textarea
-          id="evento-transfer"
-          name="transferDetails"
-          value={form.transferDetails}
-          onChange={handleChange}
-          placeholder="Alias / CBU / Titular / Instrucciones."
-          className={styles.textarea}
-          rows={2}
-          maxLength={500}
-        />
-      </div>
-
-      <div className={styles.row}>
-        <div className={styles.field} style={{ flex: 1 }}>
-          <label className={styles.fieldLabel} htmlFor="evento-date">
-            Fecha y hora *
-          </label>
-          <input
-            id="evento-date"
-            name="eventDate"
-            value={form.eventDate}
-            onChange={handleChange}
-            type="datetime-local"
-            className={styles.input}
-            aria-required="true"
-          />
-        </div>
-        <div className={styles.field} style={{ flex: 1 }}>
-          <label className={styles.fieldLabel} htmlFor="evento-location">
-            Lugar *
-          </label>
-          <p className={styles.locationHelp}>
-            Empezá a escribir y elegí una sugerencia. Si no aparece, escribí la dirección y tocá <strong>Buscar</strong>.
-          </p>
-          <div className={styles.locationRow}>
-            <PlaceAutocomplete
-              value={form.location.texto}
-              onChange={updateLocationTexto}
-              onSelect={handlePlaceSelect}
-              placeholder="Bar / Club / Casa"
+            <label className={styles.fieldLabel} htmlFor="evento-title">
+              Título *
+            </label>
+            <input
+              id="evento-title"
+              name="title"
+              value={form.title}
+              onChange={handleChange}
+              placeholder="Ej. Torneo de Catán · Otoño 2026"
+              className={styles.input}
+              maxLength={200}
             />
-            <button
-              type="button"
-              className={styles.btnSearch}
-              onClick={handleManualGeocode}
-              disabled={geocoding}
-              title="Buscar la dirección que tipeaste (sin picar sugerencia)"
-            >
-              {geocoding ? "…" : "Buscar"}
-            </button>
           </div>
-          {form.location.lat != null && form.location.lng != null && (
-            <p className={styles.coordsHint}>
-              📍 {form.location.lat.toFixed(5)}, {form.location.lng.toFixed(5)}
-            </p>
-          )}
-        </div>
-      </div>
 
-      <div className={styles.field}>
-        <label className={styles.fieldLabel} htmlFor="evento-status">
-          Estado
-        </label>
-        <select
-          id="evento-status"
-          name="status"
-          value={form.status}
-          onChange={handleChange}
-          className={styles.select}
-        >
-          <option value="draft">Borrador (no visible)</option>
-          <option value="open">Abierto (inscripciones habilitadas)</option>
-          <option value="closed">Cerrado (sin inscripciones)</option>
-          <option value="cancelled">Cancelado</option>
-        </select>
-      </div>
+          <div className={styles.field}>
+            <label className={styles.fieldLabel} htmlFor="evento-description">
+              Descripción
+            </label>
+            <textarea
+              id="evento-description"
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              placeholder="Contá de qué se trata el evento."
+              className={styles.textarea}
+              rows={3}
+              maxLength={3000}
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.fieldLabel} htmlFor="evento-conditions">
+              Condiciones de inscripción
+            </label>
+            <textarea
+              id="evento-conditions"
+              name="conditions"
+              value={form.conditions}
+              onChange={handleChange}
+              placeholder="Reglas, cancelaciones, requisitos."
+              className={styles.textarea}
+              rows={3}
+              maxLength={2000}
+            />
+          </div>
+
+          <div className={styles.row}>
+            <div className={styles.field} style={{ flex: 1 }}>
+              <label className={styles.fieldLabel} htmlFor="evento-fee">
+                Monto ($ARS, 0 = gratis)
+              </label>
+              <input
+                id="evento-fee"
+                name="fee"
+                value={form.fee}
+                onChange={handleChange}
+                type="number"
+                min="0"
+                className={styles.input}
+                placeholder="0"
+              />
+            </div>
+            <div className={styles.field} style={{ flex: 1 }}>
+              <label className={styles.fieldLabel} htmlFor="evento-max">
+                Cupo máximo
+              </label>
+              <input
+                id="evento-max"
+                name="maxParticipants"
+                value={form.maxParticipants}
+                onChange={handleChange}
+                type="number"
+                min="1"
+                className={styles.input}
+                placeholder="Vacío = Sin límite"
+              />
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.fieldLabel} htmlFor="evento-transfer">
+              Datos de transferencia
+            </label>
+            <textarea
+              id="evento-transfer"
+              name="transferDetails"
+              value={form.transferDetails}
+              onChange={handleChange}
+              placeholder="Alias / CBU / Titular / Instrucciones."
+              className={styles.textarea}
+              rows={2}
+              maxLength={500}
+            />
+          </div>
+
+          <div className={styles.row}>
+            <div className={styles.field} style={{ flex: 1 }}>
+              <label className={styles.fieldLabel} htmlFor="evento-date">
+                Fecha y hora *
+              </label>
+              <DateTimePicker
+                id="evento-date"
+                name="eventDate"
+                value={form.eventDate}
+                onChange={(v) => update("eventDate", v)}
+                required
+              />
+            </div>
+            <div className={styles.field} style={{ flex: 1 }}>
+              <label className={styles.fieldLabel} htmlFor="evento-location">
+                Lugar *
+                <InfoTooltip label="Ayuda sobre el campo Lugar">
+                  Empezá a escribir y elegí una sugerencia. Si no aparece,
+                  escribí la dirección y tocá <strong>Buscar</strong>.
+                </InfoTooltip>
+              </label>
+              <div className={styles.locationRow}>
+                <PlaceAutocomplete
+                  value={form.location.texto}
+                  onChange={updateLocationTexto}
+                  onSelect={handlePlaceSelect}
+                  placeholder="Dirección del evento"
+                />
+                <button
+                  type="button"
+                  className={styles.btnSearch}
+                  onClick={handleManualGeocode}
+                  disabled={geocoding}
+                  title="Buscar la dirección que tipeaste (sin picar sugerencia)"
+                >
+                  {geocoding ? "…" : "Buscar"}
+                </button>
+              </div>
+              {form.location.lat != null && form.location.lng != null && (
+                <p className={styles.coordsHint}>
+                  📍 {form.location.lat.toFixed(5)},{" "}
+                  {form.location.lng.toFixed(5)}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.fieldLabel} htmlFor="evento-display-name">
+              Nombre de ubicación personalizado{" "}
+              <span className={styles.fieldHint}>(opcional)</span>
+              <InfoTooltip label="Ayuda sobre el nombre de ubicación personalizado">
+                Si lo completás, aparece <strong>en lugar</strong> de la
+                dirección formateada en cards y listados. Ej:{" "}
+                <em>&quot;Bar de Pepe&quot;</em>,{" "}
+                <em>&quot;Casa de Lucía&quot;</em>,{" "}
+                <em>&quot;Centro Cultural&quot;</em>. La dirección real sigue
+                usándose para distancia y mapa.
+              </InfoTooltip>
+            </label>
+            <input
+              id="evento-display-name"
+              name="locationDisplayName"
+              type="text"
+              className={styles.input}
+              value={form.location.displayName}
+              onChange={(e) => updateLocationDisplayName(e.target.value)}
+              placeholder="Ej. Bar de Pepe"
+              maxLength={100}
+            />
+          </div>
+
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>Estado</span>
+            <div
+              className={styles.statusChips}
+              role="radiogroup"
+              aria-label="Estado del evento"
+            >
+              {STATUS_OPTIONS.map((opt) => {
+                const isActive = form.status === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={isActive}
+                    className={`${styles.statusChip} ${isActive ? styles[`statusChip_${opt.value}`] : ''}`}
+                    onClick={() => update('status', opt.value)}
+                    title={opt.description}
+                  >
+                    <span
+                      className={`${styles.statusChipDot} ${styles[`statusChipDot_${opt.value}`]}`}
+                      aria-hidden="true"
+                    />
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 

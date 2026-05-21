@@ -17,6 +17,23 @@ vi.mock("../../components/shared/PlaceAutocomplete", () => ({
   ),
 }));
 
+// DateTimePicker es un componente custom complejo con popover. Lo mockeamos
+// para que los tests del EventoForm puedan llenar la fecha como un input
+// regular. Su comportamiento real se cubre en DateTimePicker.test.jsx.
+vi.mock("../../components/shared/DateTimePicker", () => ({
+  default: ({ value, onChange, id, name, required }) => (
+    <input
+      id={id}
+      name={name}
+      type="datetime-local"
+      data-testid="datetime-picker"
+      value={value || ""}
+      onChange={(e) => onChange?.(e.target.value)}
+      aria-required={required || undefined}
+    />
+  ),
+}));
+
 import EventoForm from "./EventoForm";
 import { useAuth } from "../../context/AuthContext";
 
@@ -45,8 +62,12 @@ describe("<EventoForm>", () => {
       screen.getByLabelText(/datos de transferencia/i),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/fecha y hora/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/lugar/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/estado/i)).toBeInTheDocument();
+    // Regex estricto — InfoTooltip suma un botón con aria-label "Ayuda sobre el campo Lugar".
+    expect(screen.getByLabelText(/^lugar$/i)).toBeInTheDocument();
+    // Estado ahora es un radiogroup de chips, no un select.
+    expect(screen.getByRole("radiogroup", { name: /estado del evento/i })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /borrador/i })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /abierto/i })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /crear evento/i }),
     ).toBeInTheDocument();
@@ -212,7 +233,7 @@ describe("<EventoForm>", () => {
     await new Promise((r) => setTimeout(r, 0));
     const fd = onSubmit.mock.calls[0][0];
     const locJson = fd.get("location");
-    expect(locJson).toBe(JSON.stringify({ texto: "Bar X", lat: -34.6, lng: -58.4 }));
+    expect(locJson).toBe(JSON.stringify({ texto: "Bar X", lat: -34.6, lng: -58.4, displayName: "" }));
   });
 
   it("normalizes a legacy string location into the subdoc when seeded", () => {
@@ -257,6 +278,93 @@ describe("<EventoForm>", () => {
     // No debe decir "(opcional)" en el contexto del lugar.
     expect(screen.queryByText(/usamos la dirección de tu perfil/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/se publica sin ubicación/i)).not.toBeInTheDocument();
+  });
+
+  it("permite setear un displayName y lo serializa en el FormData", async () => {
+    const onSubmit = vi.fn().mockResolvedValue();
+    renderForm(
+      <EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />,
+    );
+    fireEvent.change(screen.getByLabelText(/título/i), { target: { value: "Mi evento" } });
+    fireEvent.change(screen.getByLabelText(/fecha y hora/i), { target: { value: "2027-01-01T20:00" } });
+    fireEvent.change(screen.getByLabelText(/^lugar$/i), { target: { value: "Av. Corrientes 1234" } });
+    // Usamos getByPlaceholderText porque el label "Nombre de ubicación personalizado"
+    // tiene un <span> interno que confunde a getByLabelText con regex.
+    fireEvent.change(screen.getByPlaceholderText("Ej. Bar de Pepe"), {
+      target: { value: "Bar de Pepe" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
+    await new Promise((r) => setTimeout(r, 0));
+    const fd = onSubmit.mock.calls[0][0];
+    const loc = JSON.parse(fd.get("location"));
+    expect(loc.displayName).toBe("Bar de Pepe");
+    expect(loc.texto).toBe("Av. Corrientes 1234");
+  });
+
+  it("los textos de ayuda están detrás de un InfoTooltip — ocultos hasta hover/click", () => {
+    renderForm(
+      <EventoForm mode="create" onSubmit={() => {}} onCancel={() => {}} />,
+    );
+    // El texto del help NO está visible al cargar el form.
+    expect(screen.queryByText(/elegí una sugerencia/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/aparece en lugar de la dirección/i)).not.toBeInTheDocument();
+
+    // Pero hay botones de InfoTooltip junto a los labels.
+    expect(screen.getByRole("button", { name: /ayuda sobre el campo lugar/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /ayuda sobre el nombre de ubicación personalizado/i })).toBeInTheDocument();
+
+    // Al clickear uno, su contenido aparece.
+    fireEvent.click(screen.getByRole("button", { name: /ayuda sobre el campo lugar/i }));
+    expect(screen.getByRole("tooltip")).toHaveTextContent(/elegí una sugerencia/i);
+  });
+
+  it("Estado: clickear un chip cambia el status (aria-checked) y el resto queda inactivo", () => {
+    renderForm(
+      <EventoForm mode="create" onSubmit={() => {}} onCancel={() => {}} />,
+    );
+    // Default = "open" → ese chip arranca con aria-checked="true".
+    const abierto = screen.getByRole("radio", { name: /abierto/i });
+    const borrador = screen.getByRole("radio", { name: /borrador/i });
+    expect(abierto).toHaveAttribute("aria-checked", "true");
+    expect(borrador).toHaveAttribute("aria-checked", "false");
+
+    fireEvent.click(borrador);
+
+    expect(borrador).toHaveAttribute("aria-checked", "true");
+    expect(abierto).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("Estado: serializa el status seleccionado en el FormData", async () => {
+    const onSubmit = vi.fn().mockResolvedValue();
+    renderForm(
+      <EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />,
+    );
+    fireEvent.change(screen.getByLabelText(/título/i), { target: { value: "X" } });
+    fireEvent.change(screen.getByLabelText(/fecha y hora/i), {
+      target: { value: "2027-01-01T20:00" },
+    });
+    fireEvent.change(screen.getByLabelText(/^lugar$/i), { target: { value: "Bar" } });
+    fireEvent.click(screen.getByRole("radio", { name: /cancelado/i }));
+    fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
+    await new Promise((r) => setTimeout(r, 0));
+    const fd = onSubmit.mock.calls[0][0];
+    expect(fd.get("status")).toBe("cancelled");
+  });
+
+  it("pre-carga displayName desde initialEvento en modo edit", () => {
+    renderForm(
+      <EventoForm
+        mode="edit"
+        initialEvento={{
+          title: "Evento",
+          eventDate: "2026-06-13T17:00:00",
+          location: { texto: "Av. X", lat: -34.6, lng: -58.4, displayName: "Bar Plaza" },
+        }}
+        onSubmit={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+    expect(screen.getByPlaceholderText("Ej. Bar de Pepe")).toHaveValue("Bar Plaza");
   });
 
   it("revoca la object URL cuando el form se desmonta (regresión: memory leak)", () => {

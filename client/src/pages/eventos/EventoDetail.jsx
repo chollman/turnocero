@@ -9,7 +9,7 @@ import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { dateParts, formatFee } from "../../utils/eventoDate";
 import { formatDistanceKm } from "../../utils/distance";
-import { formatLocation } from "../../utils/location";
+import { getLocationDisplay } from "../../utils/location";
 import TicketStub from "./TicketStub";
 import EventoForm from "./EventoForm";
 import { ArrowLeftIcon, ImageIcon } from "./EventoIcons";
@@ -461,9 +461,10 @@ export default function EventoDetail() {
                         ? evento.location
                         : evento.location?.texto || "";
                       // En el detalle mostramos "calle, ciudad" — formato cómodo,
-                      // sin ruido de provincia/país. La dirección completa queda
-                      // accesible en el title (tooltip).
-                      const display = formatLocation(t, "regular");
+                      // sin ruido de provincia/país. Si el admin seteó displayName,
+                      // se usa eso. La dirección completa queda accesible en el
+                      // title (tooltip).
+                      const display = getLocationDisplay(evento.location, "regular");
                       return (
                         <span title={t}>{display || "Por confirmar"}</span>
                       );
