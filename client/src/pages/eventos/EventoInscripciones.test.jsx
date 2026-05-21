@@ -111,6 +111,16 @@ describe("<EventoInscripciones>", () => {
     expect(screen.getByText("User d")).toBeInTheDocument();
   });
 
+  it("Cupo cuenta pendientes + confirmadas (no rechazadas), consistente con Eventos/EventoDetail", async () => {
+    // Fixture: 2 pending + 1 confirmed + 1 rejected → cupo ocupado = 3
+    renderInsc();
+    await screen.findByText("User a");
+    // El stat de "Cupo" muestra 3/24 (no 1/24 que era el bug). Subimos al
+    // wrapper `.stat` desde el label para inspeccionar todo el bloque.
+    const cupoStat = screen.getByText(/^cupo$/i).parentElement;
+    expect(cupoStat.textContent).toMatch(/3.*\/.*24/);
+  });
+
   it("accepting calls the confirmar endpoint with the right user id", async () => {
     let confirmedUserId = null;
     server.use(

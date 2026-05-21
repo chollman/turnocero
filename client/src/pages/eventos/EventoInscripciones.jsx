@@ -265,11 +265,17 @@ export default function EventoInscripciones() {
   // handlers (accept/reject/undo) y el listener de socket que también incrementa.
   const counts = useMemo(() => {
     const regs = data?.registrations || [];
+    const pending = regs.filter((r) => r.status === "pending").length;
+    const confirmed = regs.filter((r) => r.status === "confirmed").length;
     return {
       total: regs.length,
-      pending: regs.filter((r) => r.status === "pending").length,
-      confirmed: regs.filter((r) => r.status === "confirmed").length,
+      pending,
+      confirmed,
       rejected: regs.filter((r) => r.status === "rejected").length,
+      // El cupo ocupado incluye pendientes + confirmadas (las rechazadas no
+      // ocupan). Mismo criterio que TicketStub/TimelineRow/PosterCard para
+      // que el contador "X/max" sea consistente en toda la app.
+      occupied: pending + confirmed,
     };
   }, [data]);
 
@@ -340,7 +346,7 @@ export default function EventoInscripciones() {
             <div className={styles.stat}>
               <span className={styles.statLabel}>Cupo</span>
               <span className={styles.statValue}>
-                <span className={styles.statAccent}>{counts.confirmed}</span>
+                <span className={styles.statAccent}>{counts.occupied}</span>
                 <span className={styles.statMutedInline}>
                   /{evento.maxParticipants}
                 </span>
