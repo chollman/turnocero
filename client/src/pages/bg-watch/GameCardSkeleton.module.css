@@ -1,0 +1,63 @@
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.bone {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 0;
+}
+
+.info {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  height: 14px;
+  width: 70%;
+}
+.year {
+  height: 11px;
+  width: 35%;
+}
+
+.ratings {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.rating {
+  height: 30px;
+  flex: 1;
+  border-radius: 6px;
+}

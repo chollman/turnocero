@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import axios from 'axios';
-import Pagination from './Pagination';
-import styles from './BgWatchProfile.module.css';
+import { useEffect, useRef, useState } from "react";
+import axios from "axios";
+import Pagination from "./Pagination";
+import GameCardSkeleton from "./GameCardSkeleton";
+import styles from "./BgWatchProfile.module.css";
 
 const COLLECTION_PAGE_SIZE = 24;
 
@@ -10,13 +11,19 @@ function StarRating({ value }) {
   return <span className={styles.rating}>{Number(value).toFixed(1)}</span>;
 }
 
-function GameCard({ game }) {
+function GameCard({ game, index = 0 }) {
   return (
-    <div className={styles.gameCard}>
-      {game.thumbnail
-        ? <img src={game.thumbnail} alt={game.name} className={styles.gameThumbnail} loading="lazy" />
-        : <div className={styles.gameThumbnailPlaceholder}>🎲</div>
-      }
+    <div className={styles.gameCard} style={{ "--i": index }}>
+      {game.thumbnail ? (
+        <img
+          src={game.thumbnail}
+          alt={game.name}
+          className={styles.gameThumbnail}
+          loading="lazy"
+        />
+      ) : (
+        <div className={styles.gameThumbnailPlaceholder}>🎲</div>
+      )}
       <div className={styles.gameInfo}>
         <div className={styles.gameName}>{game.name}</div>
         {game.yearPublished && (
@@ -43,7 +50,11 @@ function GameCard({ game }) {
   );
 }
 
-export default function ColeccionPanel({ bggUsername, onLoaded, canRefresh = false }) {
+export default function ColeccionPanel({
+  bggUsername,
+  onLoaded,
+  canRefresh = false,
+}) {
   const [collection, setCollection] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -53,7 +64,10 @@ export default function ColeccionPanel({ bggUsername, onLoaded, canRefresh = fal
   const [now, setNow] = useState(() => Date.now());
   const forceRefreshRef = useRef(false);
 
-  const cooldownRemaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+  const cooldownRemaining = Math.max(
+    0,
+    Math.ceil((cooldownUntil - now) / 1000),
+  );
   const inCooldown = cooldownRemaining > 0;
 
   useEffect(() => {
@@ -70,12 +84,13 @@ export default function ColeccionPanel({ bggUsername, onLoaded, canRefresh = fal
       ? `/api/bgg/coleccion/${encodeURIComponent(bggUsername)}?refresh=1`
       : `/api/bgg/coleccion/${encodeURIComponent(bggUsername)}`;
     forceRefreshRef.current = false;
-    axios.get(url)
+    axios
+      .get(url)
       .then(({ data, headers }) => {
         if (cancelled) return;
         setCollection(data);
         // Server-driven cooldown — sync from header.
-        const headerMs = Number(headers?.['x-refresh-cooldown-ms'] || 0);
+        const headerMs = Number(headers?.["x-refresh-cooldown-ms"] || 0);
         setCooldownUntil(headerMs > 0 ? Date.now() + headerMs : 0);
         setNow(Date.now());
         if (onLoaded) onLoaded(data);
@@ -83,26 +98,39 @@ export default function ColeccionPanel({ bggUsername, onLoaded, canRefresh = fal
       .catch((err) => {
         if (cancelled) return;
         // 429 includes the cooldown header — sync the countdown.
-        const headerMs = Number(err.response?.headers?.['x-refresh-cooldown-ms'] || 0);
+        const headerMs = Number(
+          err.response?.headers?.["x-refresh-cooldown-ms"] || 0,
+        );
         if (headerMs > 0) {
           setCooldownUntil(Date.now() + headerMs);
           setNow(Date.now());
         }
-        setError(err.response?.data?.message || 'No se pudo cargar la colección');
+        setError(
+          err.response?.data?.message || "No se pudo cargar la colección",
+        );
       })
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [bggUsername, onLoaded, refreshTick]);
 
-  const totalPages = collection ? Math.ceil(collection.length / COLLECTION_PAGE_SIZE) : 0;
+  const totalPages = collection
+    ? Math.ceil(collection.length / COLLECTION_PAGE_SIZE)
+    : 0;
   const slice = collection
-    ? collection.slice((page - 1) * COLLECTION_PAGE_SIZE, page * COLLECTION_PAGE_SIZE)
+    ? collection.slice(
+        (page - 1) * COLLECTION_PAGE_SIZE,
+        page * COLLECTION_PAGE_SIZE,
+      )
     : [];
 
   const handlePage = (p) => {
     setPage(p);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -119,17 +147,18 @@ export default function ColeccionPanel({ bggUsername, onLoaded, canRefresh = fal
             }}
             disabled={loading || inCooldown}
             aria-label="Actualizar colección"
-            style={{ marginLeft: 'auto' }}
+            style={{ marginLeft: "auto" }}
           >
-            ↻ {inCooldown ? `Esperá ${cooldownRemaining}s` : 'Actualizar'}
+            ↻ {inCooldown ? `Esperá ${cooldownRemaining}s` : "Actualizar"}
           </button>
         )}
       </div>
 
       {loading && (
-        <div className={styles.stateCenter}>
-          <span className={styles.loadingDice}>🎲</span>
-          <p>Cargando colección…</p>
+        <div className={styles.gameGrid}>
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <GameCardSkeleton key={i} />
+          ))}
         </div>
       )}
 
@@ -153,8 +182,8 @@ export default function ColeccionPanel({ bggUsername, onLoaded, canRefresh = fal
             </span>
           </div>
           <div className={styles.gameGrid}>
-            {slice.map((game) => (
-              <GameCard key={game.id} game={game} />
+            {slice.map((game, i) => (
+              <GameCard key={game.id} game={game} index={i} />
             ))}
           </div>
           <Pagination page={page} totalPages={totalPages} onPage={handlePage} />
