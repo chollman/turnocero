@@ -86,29 +86,38 @@ async function reloadRegPopulated(evento, regId) {
 // sin esperar al próximo refresh.
 async function closePastOpenEvents(req) {
   try {
-    const candidates = await Evento.find(
-      { status: "open", eventDate: { $ne: null, $lt: new Date() } },
-      "_id",
-    ).lean();
+    // Traer docs completos con author populated — necesario porque algunos
+    // clientes (los que tienen chip "Cerrados" activo) van a AGREGAR el item
+    // a su lista cuando llegue el broadcast, y necesitan title/author/etc.
+    // para renderizar la card. Si emitiéramos sólo {_id, status} mostrarían
+    // una card vacía.
+    const candidates = await Evento.find({
+      status: "open",
+      eventDate: { $ne: null, $lt: new Date() },
+    }).populate("author", "username displayName avatar");
     if (candidates.length === 0) return;
     await Evento.updateMany(
       { _id: { $in: candidates.map((c) => c._id) } },
       { $set: { status: "closed" } },
     );
     if (!req) return;
-    // Emitir un payload mínimo — el listener cliente solo necesita saber que
-    // el item pasó a 'closed' para que matchesActiveFilter decida si lo saca
-    // del array. Los counts no cambian, así que no hace falta enviarlos.
     for (const c of candidates) {
       const idStr = c._id.toString();
-      const minimalPayload = { _id: idStr, status: "closed" };
+      const obj = c.toObject();
+      delete obj.registrations;
+      const payload = {
+        ...obj,
+        status: "closed", // el doc en memoria aún tenía status='open'
+        registrationCount: countsFor(c),
+        userRegistration: null,
+      };
       emitToEventoRoom(req, idStr, "evento:updated", {
         eventoId: idStr,
-        evento: minimalPayload,
+        evento: payload,
       });
       emitToEventosList(req, "evento:updated", {
         eventoId: idStr,
-        evento: minimalPayload,
+        evento: payload,
       });
     }
   } catch (err) {

@@ -146,11 +146,12 @@ describe("GET /api/eventos", () => {
     expect(draftPastAfter.status).toBe("draft"); // ← drafts no auto-close
   });
 
-  it("broadcastea evento:updated por cada evento auto-cerrado (regresión: los clientes no veían el cierre hasta refresh)", async () => {
+  it("broadcastea evento:updated por cada evento auto-cerrado con payload COMPLETO (regresión: payload mínimo dejaba cards vacías en chip 'Cerrados')", async () => {
     global.__ioStub.__reset();
-    const admin = await createUser({ isAdmin: true });
+    const admin = await createUser({ isAdmin: true, username: "host_admin" });
     const stale = await createEvento(admin, {
       title: "Auto-close target",
+      location: "Bar X",
       status: "open",
       eventDate: new Date(Date.now() - 7 * 86400000),
     });
@@ -158,20 +159,22 @@ describe("GET /api/eventos", () => {
     await request(app).get("/api/eventos");
 
     const idStr = stale._id.toString();
-    // Debería haber emit a eventos:list + a evento:<id>
     const listEmits = global.__ioStub.emitted.filter(
       (e) => e.room === "eventos:list" && e.event === "evento:updated",
     );
-    const roomEmits = global.__ioStub.emitted.filter(
-      (e) => e.room === `evento:${idStr}` && e.event === "evento:updated",
-    );
     expect(listEmits.length).toBeGreaterThanOrEqual(1);
-    expect(roomEmits.length).toBeGreaterThanOrEqual(1);
-    // Y el payload trae el _id correcto + status='closed'.
-    expect(listEmits[0].payload).toMatchObject({
-      eventoId: idStr,
-      evento: { _id: idStr, status: "closed" },
-    });
+
+    // El payload debe traer doc COMPLETO con title, location, author populated
+    // y registrationCount — para que clientes en chip "Cerrados" puedan
+    // renderizar la card recién agregada.
+    const evento = listEmits[0].payload.evento;
+    expect(evento.status).toBe("closed");
+    expect(evento.title).toBe("Auto-close target");
+    expect(evento.location).toBe("Bar X");
+    expect(evento.author).toBeTruthy();
+    expect(evento.author.username).toBe("host_admin");
+    expect(evento.registrationCount).toBeDefined();
+    expect(evento.registrations).toBeUndefined(); // not leaked
   });
 
   it("past open event no longer appears under ?status=open, only under ?status=closed", async () => {
