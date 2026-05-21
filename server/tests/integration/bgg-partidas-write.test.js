@@ -1,7 +1,6 @@
 const request = require("supertest");
 const app = require("../../app");
 const BggPlay = require("../../models/BggPlay");
-const User = require("../../models/User");
 const { createAuthedUser, authHeader } = require("../helpers/auth");
 const bggRouter = require("../../routes/bgg");
 const { encrypt } = require("../../utils/encryption");
@@ -83,7 +82,7 @@ function makeFetchMock(routes) {
   for (const [key, val] of Object.entries(routes)) {
     queues[key] = Array.isArray(val) ? [...val] : val;
   }
-  return vi.fn(async (url, opts) => {
+  return vi.fn(async (url) => {
     const u = String(url);
     let key;
     if (u.includes("/login/api/v1")) key = "login";
@@ -173,7 +172,12 @@ describe("BGG write endpoints — BGG-first verification", () => {
         login: loginResponse(),
         geekplay: geekplayResponse({ playid: 999 }),
         plays: playsXmlResponse([
-          { id: 999, date: "2026-05-20", gameId: 174430, gameName: "Gloomhaven" },
+          {
+            id: 999,
+            date: "2026-05-20",
+            gameId: 174430,
+            gameName: "Gloomhaven",
+          },
         ]),
         thing: thingXmlResponse(),
       });
@@ -284,7 +288,12 @@ describe("BGG write endpoints — BGG-first verification", () => {
         plays: [
           emptyPlaysResponse(),
           playsXmlResponse([
-            { id: 999, date: "2026-05-20", gameId: 174430, gameName: "Gloomhaven" },
+            {
+              id: 999,
+              date: "2026-05-20",
+              gameId: 174430,
+              gameName: "Gloomhaven",
+            },
           ]),
         ],
         thing: thingXmlResponse(),
@@ -314,7 +323,12 @@ describe("BGG write endpoints — BGG-first verification", () => {
         login: loginResponse(),
         geekplay: geekplayResponse({ playid: 999 }),
         plays: playsXmlResponse([
-          { id: 999, date: "2026-05-20", gameId: 174430, gameName: "Gloomhaven" },
+          {
+            id: 999,
+            date: "2026-05-20",
+            gameId: 174430,
+            gameName: "Gloomhaven",
+          },
         ]),
         thing: thingXmlResponse(),
       });
@@ -475,7 +489,12 @@ describe("BGG write endpoints — BGG-first verification", () => {
         geekplay: geekplayResponse({}),
         // BGG still has the play on both attempts → delete didn't take.
         plays: playsXmlResponse([
-          { id: 555, date: "2026-05-19", gameId: 174430, gameName: "Gloomhaven" },
+          {
+            id: 555,
+            date: "2026-05-19",
+            gameId: 174430,
+            gameName: "Gloomhaven",
+          },
         ]),
         thing: thingXmlResponse(),
       });

@@ -1,23 +1,23 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
-import { io } from 'socket.io-client';
-import { Helmet } from 'react-helmet-async';
-import { useAuth } from '../../context/AuthContext';
-import LoginPromptModal from '../../components/shared/LoginPromptModal';
-import Avatar from '../../components/shared/Avatar';
-import { getUserDisplay } from '../../utils/userDisplay';
-import { dateParts, formatFee } from '../../utils/eventoDate';
-import TicketStub from './TicketStub';
-import EventoForm from './EventoForm';
-import { ArrowLeftIcon, ImageIcon } from './EventoIcons';
-import styles from './EventoDetail.module.css';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import axios from "axios";
+import { io } from "socket.io-client";
+import { Helmet } from "react-helmet-async";
+import { useAuth } from "../../context/AuthContext";
+import LoginPromptModal from "../../components/shared/LoginPromptModal";
+import Avatar from "../../components/shared/Avatar";
+import { getUserDisplay } from "../../utils/userDisplay";
+import { dateParts, formatFee } from "../../utils/eventoDate";
+import TicketStub from "./TicketStub";
+import EventoForm from "./EventoForm";
+import { ArrowLeftIcon, ImageIcon } from "./EventoIcons";
+import styles from "./EventoDetail.module.css";
 
 const STATUS_EYEBROW = {
-  open:      'Inscripciones abiertas',
-  closed:    'Inscripciones cerradas',
-  cancelled: 'Evento cancelado',
-  draft:     'Borrador · no visible',
+  open: "Inscripciones abiertas",
+  closed: "Inscripciones cerradas",
+  cancelled: "Evento cancelado",
+  draft: "Borrador · no visible",
 };
 
 export default function EventoDetail() {
@@ -26,8 +26,8 @@ export default function EventoDetail() {
   const { user } = useAuth();
   const userId = user?._id;
 
-  const [evento, setEvento]     = useState(null);
-  const [loading, setLoading]   = useState(true);
+  const [evento, setEvento] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [lightbox, setLightbox] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -38,7 +38,7 @@ export default function EventoDetail() {
   const [editing, setEditing] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
 
-  const [actionError, setActionError] = useState('');
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +55,9 @@ export default function EventoDetail() {
       }
     }
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   // Real-time: cualquier viewer (incluido el user que se inscribió) recibe
@@ -63,22 +65,27 @@ export default function EventoDetail() {
   // además `evento:registration-reviewed` por su personal room user:<id>.
   useEffect(() => {
     if (!evento) return undefined;
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) return undefined;
-    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-    const socket = io(socketUrl, { auth: { token }, transports: ['websocket'] });
+    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
+    const socket = io(socketUrl, {
+      auth: { token },
+      transports: ["websocket"],
+    });
     // Emitir en `connect` (initial + reconnect). El server registra todos los
     // handlers ANTES de su auth-await, así que el emit no se pierde por race.
-    socket.on('connect', () => socket.emit('join:evento', id));
+    socket.on("connect", () => socket.emit("join:evento", id));
 
-    socket.on('evento:counts-changed', (payload) => {
+    socket.on("evento:counts-changed", (payload) => {
       if (payload?.eventoId !== id || !payload.counts) return;
-      setEvento(prev => prev ? { ...prev, registrationCount: payload.counts } : prev);
+      setEvento((prev) =>
+        prev ? { ...prev, registrationCount: payload.counts } : prev,
+      );
     });
 
-    socket.on('evento:registration-reviewed', (payload) => {
+    socket.on("evento:registration-reviewed", (payload) => {
       if (payload?.eventoId !== id) return;
-      setEvento(prev => {
+      setEvento((prev) => {
         if (!prev) return prev;
         const next = { ...prev };
         if (payload.counts) next.registrationCount = payload.counts;
@@ -87,10 +94,11 @@ export default function EventoDetail() {
         if (user?._id && payload.userId === user._id) {
           next.userRegistration = {
             ...(prev.userRegistration || {}),
-            _id:                 payload.registrationId,
-            status:              payload.status,
-            submittedAt:         payload.submittedAt || prev.userRegistration?.submittedAt,
-            adminNotes:          payload.adminNotes ?? null,
+            _id: payload.registrationId,
+            status: payload.status,
+            submittedAt:
+              payload.submittedAt || prev.userRegistration?.submittedAt,
+            adminNotes: payload.adminNotes ?? null,
             permanentlyRejected: !!payload.permanentlyRejected,
           };
         }
@@ -99,16 +107,29 @@ export default function EventoDetail() {
         // cuando deja de estar confirmado. Necesita el reg populated con
         // info de user (vino en payload.registration).
         const list = prev.confirmedRegistrations || [];
-        if (payload.status === 'confirmed' && payload.registration?.user) {
-          const exists = list.some(r => r._id === payload.registration._id);
+        if (payload.status === "confirmed" && payload.registration?.user) {
+          const exists = list.some((r) => r._id === payload.registration._id);
           next.confirmedRegistrations = exists
-            ? list.map(r => r._id === payload.registration._id
-                ? { _id: payload.registration._id, user: payload.registration.user }
-                : r)
-            : [...list, { _id: payload.registration._id, user: payload.registration.user }];
-        } else if (payload.status !== 'confirmed') {
-          next.confirmedRegistrations = list.filter(r =>
-            r._id !== payload.registrationId && r.user?._id !== payload.userId,
+            ? list.map((r) =>
+                r._id === payload.registration._id
+                  ? {
+                      _id: payload.registration._id,
+                      user: payload.registration.user,
+                    }
+                  : r,
+              )
+            : [
+                ...list,
+                {
+                  _id: payload.registration._id,
+                  user: payload.registration.user,
+                },
+              ];
+        } else if (payload.status !== "confirmed") {
+          next.confirmedRegistrations = list.filter(
+            (r) =>
+              r._id !== payload.registrationId &&
+              r.user?._id !== payload.userId,
           );
         }
 
@@ -116,38 +137,48 @@ export default function EventoDetail() {
       });
     });
 
-    socket.on('evento:updated', (payload) => {
+    socket.on("evento:updated", (payload) => {
       if (payload?.eventoId !== id || !payload.evento) return;
-      setEvento(prev => prev ? { ...prev, ...payload.evento } : payload.evento);
+      setEvento((prev) =>
+        prev ? { ...prev, ...payload.evento } : payload.evento,
+      );
     });
 
     return () => {
-      socket.emit('leave:evento', id);
+      socket.emit("leave:evento", id);
       socket.disconnect();
     };
-  }, [evento?._id, id, user?._id]);
+  }, [evento, evento._id, id, user._id]);
 
   async function handleInscribirse(comprobanteFile) {
-    if (!user) { setShowLoginPrompt(true); return; }
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
     setInscribing(true);
-    setActionError('');
+    setActionError("");
     try {
       const fd = new FormData();
-      if (comprobanteFile) fd.append('comprobante', comprobanteFile);
-      const { data: userReg } = await axios.post(`/api/eventos/${id}/inscribirse`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setEvento(prev => ({
+      if (comprobanteFile) fd.append("comprobante", comprobanteFile);
+      const { data: userReg } = await axios.post(
+        `/api/eventos/${id}/inscribirse`,
+        fd,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
+      setEvento((prev) => ({
         ...prev,
         userRegistration: userReg,
         registrationCount: {
           ...prev.registrationCount,
-          total:   (prev.registrationCount?.total   || 0) + 1,
+          total: (prev.registrationCount?.total || 0) + 1,
           pending: (prev.registrationCount?.pending || 0) + 1,
         },
       }));
     } catch (err) {
-      const msg = err.response?.data?.message || 'No pudimos enviar tu inscripción.';
+      const msg =
+        err.response?.data?.message || "No pudimos enviar tu inscripción.";
       setActionError(msg);
       throw err;
     } finally {
@@ -157,20 +188,22 @@ export default function EventoDetail() {
 
   async function handleCancelRegistration() {
     setCancellingReg(true);
-    setActionError('');
+    setActionError("");
     try {
       await axios.delete(`/api/eventos/${id}/inscribirse`);
-      setEvento(prev => ({
+      setEvento((prev) => ({
         ...prev,
         userRegistration: null,
         registrationCount: {
           ...prev.registrationCount,
-          total:   Math.max(0, (prev.registrationCount?.total   || 1) - 1),
+          total: Math.max(0, (prev.registrationCount?.total || 1) - 1),
           pending: Math.max(0, (prev.registrationCount?.pending || 1) - 1),
         },
       }));
     } catch (err) {
-      setActionError(err.response?.data?.message || 'No pudimos cancelar tu inscripción.');
+      setActionError(
+        err.response?.data?.message || "No pudimos cancelar tu inscripción.",
+      );
     } finally {
       setCancellingReg(false);
     }
@@ -178,15 +211,17 @@ export default function EventoDetail() {
 
   async function handleSaveEdit(fd) {
     setSavingEdit(true);
-    setActionError('');
+    setActionError("");
     try {
       const { data } = await axios.put(`/api/eventos/${id}`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      setEvento(prev => ({ ...prev, ...data }));
+      setEvento((prev) => ({ ...prev, ...data }));
       setEditing(false);
     } catch (err) {
-      setActionError(err.response?.data?.message || 'No pudimos guardar los cambios.');
+      setActionError(
+        err.response?.data?.message || "No pudimos guardar los cambios.",
+      );
       throw err;
     } finally {
       setSavingEdit(false);
@@ -194,30 +229,34 @@ export default function EventoDetail() {
   }
 
   async function handleCancelEvent() {
-    setActionError('');
+    setActionError("");
     try {
       const fd = new FormData();
-      fd.append('status', 'cancelled');
+      fd.append("status", "cancelled");
       const { data } = await axios.put(`/api/eventos/${id}`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      setEvento(prev => ({ ...prev, ...data, status: 'cancelled' }));
+      setEvento((prev) => ({ ...prev, ...data, status: "cancelled" }));
     } catch (err) {
-      setActionError(err.response?.data?.message || 'No pudimos cancelar el evento.');
+      setActionError(
+        err.response?.data?.message || "No pudimos cancelar el evento.",
+      );
     }
   }
 
   async function handleReopenEvent() {
-    setActionError('');
+    setActionError("");
     try {
       const fd = new FormData();
-      fd.append('status', 'open');
+      fd.append("status", "open");
       const { data } = await axios.put(`/api/eventos/${id}`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      setEvento(prev => ({ ...prev, ...data, status: 'open' }));
+      setEvento((prev) => ({ ...prev, ...data, status: "open" }));
     } catch (err) {
-      setActionError(err.response?.data?.message || 'No pudimos reabrir el evento.');
+      setActionError(
+        err.response?.data?.message || "No pudimos reabrir el evento.",
+      );
     }
   }
 
@@ -237,7 +276,9 @@ export default function EventoDetail() {
         <div className={styles.notFound}>
           <p className={styles.notFoundEyebrow}>◆ 404</p>
           <h1 className={styles.notFoundTitle}>Evento no encontrado</h1>
-          <Link to="/eventos" className={styles.notFoundLink}>← Volver a eventos</Link>
+          <Link to="/eventos" className={styles.notFoundLink}>
+            ← Volver a eventos
+          </Link>
         </div>
       </div>
     );
@@ -257,13 +298,27 @@ export default function EventoDetail() {
     <div className={styles.page}>
       <Helmet>
         <title>{evento.title} — Turnocero</title>
-        <meta name="description" content={evento.description?.slice(0, 160) || `Evento: ${evento.title}`} />
+        <meta
+          name="description"
+          content={
+            evento.description?.slice(0, 160) || `Evento: ${evento.title}`
+          }
+        />
       </Helmet>
 
       {lightbox && evento.image?.url && (
         <div className={styles.lightbox} onClick={() => setLightbox(false)}>
-          <button className={styles.lightboxClose} onClick={() => setLightbox(false)}>✕</button>
-          <img src={evento.image.url} alt={evento.title} className={styles.lightboxImg} />
+          <button
+            className={styles.lightboxClose}
+            onClick={() => setLightbox(false)}
+          >
+            ✕
+          </button>
+          <img
+            src={evento.image.url}
+            alt={evento.title}
+            className={styles.lightboxImg}
+          />
         </div>
       )}
 
@@ -297,7 +352,11 @@ export default function EventoDetail() {
                     onClick={() => setLightbox(true)}
                     aria-label="Ver imagen ampliada"
                   >
-                    <img src={evento.image.url} alt={evento.title} className={styles.heroImg} />
+                    <img
+                      src={evento.image.url}
+                      alt={evento.title}
+                      className={styles.heroImg}
+                    />
                   </button>
                 ) : (
                   <div className={styles.heroFallback}>
@@ -311,7 +370,7 @@ export default function EventoDetail() {
 
               <div className={styles.titleBlock}>
                 <div className={styles.eyebrow}>
-                  {STATUS_EYEBROW[evento.status] || ''}
+                  {STATUS_EYEBROW[evento.status] || ""}
                 </div>
                 <h1 className={styles.title}>{evento.title}</h1>
               </div>
@@ -320,17 +379,27 @@ export default function EventoDetail() {
                 <div className={styles.metaCell}>
                   <span className={styles.metaLabel}>Cuándo</span>
                   <span className={styles.metaValue}>
-                    {d ? `${d.weekdayLong} ${d.day} ${d.monthLong}` : 'A confirmar'}
+                    {d
+                      ? `${d.weekdayLong} ${d.day} ${d.monthLong}`
+                      : "A confirmar"}
                   </span>
-                  {d && <span className={`${styles.metaValue} ${styles.metaTime}`}>{d.time} hs</span>}
+                  {d && (
+                    <span className={`${styles.metaValue} ${styles.metaTime}`}>
+                      {d.time} hs
+                    </span>
+                  )}
                 </div>
                 <div className={styles.metaCell}>
                   <span className={styles.metaLabel}>Dónde</span>
-                  <span className={styles.metaValue}>{evento.location || 'Por confirmar'}</span>
+                  <span className={styles.metaValue}>
+                    {evento.location || "Por confirmar"}
+                  </span>
                 </div>
                 <div className={styles.metaCell}>
                   <span className={styles.metaLabel}>Inscripción</span>
-                  <span className={`${styles.metaValue} ${isFree ? styles.metaValueFree : ''}`}>
+                  <span
+                    className={`${styles.metaValue} ${isFree ? styles.metaValueFree : ""}`}
+                  >
                     {formatFee(evento.fee)}
                   </span>
                 </div>
@@ -377,10 +446,16 @@ export default function EventoDetail() {
                   <div className={styles.hostCard}>
                     <Avatar user={evento.author} size="xl" />
                     <div className={styles.hostCardDetails}>
-                      <div className={styles.hostCardLabel}>Host del evento</div>
-                      <div className={styles.hostCardName}>{authorDisplay.name}</div>
+                      <div className={styles.hostCardLabel}>
+                        Host del evento
+                      </div>
+                      <div className={styles.hostCardName}>
+                        {authorDisplay.name}
+                      </div>
                       {evento.author.username && (
-                        <div className={styles.hostCardSub}>@{evento.author.username}</div>
+                        <div className={styles.hostCardSub}>
+                          @{evento.author.username}
+                        </div>
                       )}
                     </div>
                     {!authorDisplay.isDeleted && evento.author?._id && (
@@ -399,12 +474,13 @@ export default function EventoDetail() {
                 <section className={styles.section}>
                   <div className={styles.sectionHead}>
                     <span className={styles.sectionLabel}>
-                      ◆ Inscriptos confirmados · {evento.confirmedRegistrations.length}
+                      ◆ Inscriptos confirmados ·{" "}
+                      {evento.confirmedRegistrations.length}
                     </span>
                     <span className={styles.sectionRule} />
                   </div>
                   <div className={styles.participantsGrid}>
-                    {evento.confirmedRegistrations.map(r => {
+                    {evento.confirmedRegistrations.map((r) => {
                       const d2 = getUserDisplay(r.user);
                       return (
                         <div key={r._id} className={styles.participant}>
@@ -432,10 +508,22 @@ export default function EventoDetail() {
             onInscribirse={handleInscribirse}
             onCancelRegistration={handleCancelRegistration}
             onLoginRequest={() => setShowLoginPrompt(true)}
-            onOpenInscripciones={isHost ? () => navigate(`/eventos/${id}/inscripciones`) : undefined}
+            onOpenInscripciones={
+              isHost
+                ? () => navigate(`/eventos/${id}/inscripciones`)
+                : undefined
+            }
             onEdit={isHost ? () => setEditing(true) : undefined}
-            onCancelEvent={isHost && evento.status !== 'cancelled' ? handleCancelEvent : undefined}
-            onReopen={isHost && evento.status === 'cancelled' ? handleReopenEvent : undefined}
+            onCancelEvent={
+              isHost && evento.status !== "cancelled"
+                ? handleCancelEvent
+                : undefined
+            }
+            onReopen={
+              isHost && evento.status === "cancelled"
+                ? handleReopenEvent
+                : undefined
+            }
           />
         </aside>
       </div>

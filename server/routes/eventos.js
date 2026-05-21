@@ -704,6 +704,20 @@ router.patch(
       if (!reg)
         return res.status(404).json({ message: "Inscripción no encontrada" });
 
+      // Cap check: si la registración aún no está confirmada, confirmarla
+      // suma un slot al total confirmado. Re-confirmar una ya confirmada es
+      // idempotente y no consume cupo, así que se permite siempre.
+      if (evento.maxParticipants && reg.status !== "confirmed") {
+        const confirmedCount = evento.registrations.filter(
+          (r) => r.status === "confirmed",
+        ).length;
+        if (confirmedCount >= evento.maxParticipants) {
+          return res.status(400).json({
+            message: "El evento ya alcanzó el cupo máximo de confirmados",
+          });
+        }
+      }
+
       reg.status = "confirmed";
       reg.reviewedAt = new Date();
       reg.reviewedBy = req.user._id;

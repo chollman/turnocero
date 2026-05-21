@@ -494,6 +494,74 @@ describe("PATCH /api/eventos/:id/inscripciones/:userId/confirmar", () => {
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(403);
   });
+
+  it("rechaza la confirmación si ya se alcanzó el cupo máximo (regresión: overbooking)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const filler1 = await createUser({ username: "filler1" });
+    const filler2 = await createUser({ username: "filler2" });
+    const extra = await createUser({ username: "extra" });
+    const evento = await createEvento(admin, {
+      maxParticipants: 2,
+      registrations: [
+        { user: filler1._id, status: "confirmed", submittedAt: new Date() },
+        { user: filler2._id, status: "confirmed", submittedAt: new Date() },
+        { user: extra._id, status: "pending", submittedAt: new Date() },
+      ],
+    });
+
+    const res = await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${extra._id}/confirmar`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/cupo/i);
+
+    // La registración debe seguir pending — no se promovió.
+    const refreshed = await Evento.findById(evento._id);
+    const reg = refreshed.registrations.find((r) => r.user.equals(extra._id));
+    expect(reg.status).toBe("pending");
+  });
+
+  it("re-confirmar a un usuario ya confirmado es idempotente y no falla por cupo", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const usr1 = await createUser({ username: "usr1" });
+    const usr2 = await createUser({ username: "usr2" });
+    const evento = await createEvento(admin, {
+      maxParticipants: 2,
+      registrations: [
+        { user: usr1._id, status: "confirmed", submittedAt: new Date() },
+        { user: usr2._id, status: "confirmed", submittedAt: new Date() },
+      ],
+    });
+
+    const res = await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${usr1._id}/confirmar`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(200);
+  });
+
+  it("permite confirmar a un rechazado (no permanente) si todavía hay cupo", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const usr1 = await createUser({ username: "usr1" });
+    const usr2 = await createUser({ username: "usr2" });
+    const evento = await createEvento(admin, {
+      maxParticipants: 2,
+      registrations: [
+        { user: usr1._id, status: "confirmed", submittedAt: new Date() },
+        { user: usr2._id, status: "rejected", submittedAt: new Date() },
+      ],
+    });
+
+    const res = await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${usr2._id}/confirmar`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(200);
+    const refreshed = await Evento.findById(evento._id);
+    const reg = refreshed.registrations.find((r) => r.user.equals(usr2._id));
+    expect(reg.status).toBe("confirmed");
+  });
 });
 
 describe("Rechazo con permanent flag", () => {
