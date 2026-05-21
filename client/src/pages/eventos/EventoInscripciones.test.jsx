@@ -59,10 +59,12 @@ describe('<EventoInscripciones>', () => {
     expect(await screen.findByText('home')).toBeInTheDocument();
   });
 
-  it('renders the title and 3 columns with counts', async () => {
+  it('renders the event title as H1 (host identification) + 3 columns with counts', async () => {
     renderInsc();
-    expect(await screen.findByRole('heading', { name: /inscripciones/i })).toBeInTheDocument();
-    expect(screen.getByText(/torneo catán/i)).toBeInTheDocument();
+    // H1 ahora es el título del evento, no la palabra "Inscripciones"
+    expect(await screen.findByRole('heading', { name: /torneo catán/i, level: 1 })).toBeInTheDocument();
+    // Y un eyebrow indicando contexto
+    expect(screen.getByText(/gestión de inscripciones/i)).toBeInTheDocument();
     expect(screen.getByText(/pendientes de revisión/i)).toBeInTheDocument();
     expect(screen.getAllByText(/confirmadas/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/rechazadas/i).length).toBeGreaterThan(0);

@@ -44,6 +44,19 @@
 
 .contextLink:hover { color: var(--amber-light); }
 
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
 .title {
   font-family: var(--font-display);
   font-size: clamp(1.8rem, 4vw, 2.6rem);
@@ -52,6 +65,7 @@
   line-height: 1;
   color: var(--text-primary);
   margin: 0;
+  text-wrap: balance;
 }
 
 .subtitle {

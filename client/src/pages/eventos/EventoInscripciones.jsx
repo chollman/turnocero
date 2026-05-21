@@ -241,9 +241,10 @@ export default function EventoInscripciones() {
       <header className={styles.header}>
         <div className={styles.context}>
           <Link to={`/eventos/${id}`} className={styles.contextLink}>
-            <ArrowLeftIcon size={11} /> {evento.title}
+            <ArrowLeftIcon size={11} /> Volver al evento
           </Link>
-          <h1 className={styles.title}>Inscripciones</h1>
+          <span className={styles.eyebrow}>◆ Gestión de inscripciones</span>
+          <h1 className={styles.title}>{evento.title || 'Evento'}</h1>
           {d && (
             <span className={styles.subtitle}>
               {d.weekdayLong} {d.day} {d.monthLong} · {d.time} hs
