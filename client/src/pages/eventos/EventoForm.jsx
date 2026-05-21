@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
+import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
 import ImageDropzone from "./ImageDropzone";
 import { toLocalInputValue, fromLocalInputValue } from "../../utils/eventoDate";
 import styles from "./EventoForm.module.css";
+
+const EMPTY_LOCATION = { texto: "", lat: null, lng: null };
 
 const EMPTY_FORM = {
   title: "",
@@ -10,13 +14,25 @@ const EMPTY_FORM = {
   fee: "",
   transferDetails: "",
   eventDate: "",
-  location: "",
+  location: { ...EMPTY_LOCATION },
   maxParticipants: "",
   status: "open",
 };
 
+// El server normaliza pero podríamos recibir respuestas legacy si algo cachea.
+// Defensivo en cliente para evitar romper la edición.
+function normalizeIncomingLocation(loc) {
+  if (loc == null) return { ...EMPTY_LOCATION };
+  if (typeof loc === "string") return { texto: loc, lat: null, lng: null };
+  return {
+    texto: loc.texto || "",
+    lat: loc.lat ?? null,
+    lng: loc.lng ?? null,
+  };
+}
+
 function valuesFromEvento(evento) {
-  if (!evento) return { ...EMPTY_FORM };
+  if (!evento) return { ...EMPTY_FORM, location: { ...EMPTY_LOCATION } };
   return {
     title: evento.title || "",
     description: evento.description || "",
@@ -26,7 +42,7 @@ function valuesFromEvento(evento) {
     // Convertimos el ISO UTC del server a hora local para precargar el picker;
     // si no, el input mostraría la hora UTC con etiqueta engañosa "local".
     eventDate: toLocalInputValue(evento.eventDate),
-    location: evento.location || "",
+    location: normalizeIncomingLocation(evento.location),
     maxParticipants: evento.maxParticipants ?? "",
     status: evento.status || "open",
   };
@@ -43,6 +59,7 @@ export default function EventoForm({
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState("");
   const [error, setError] = useState("");
+  const [geocoding, setGeocoding] = useState(false);
 
   // Generamos la object URL del archivo en un effect para poder revocarla
   // cuando cambia el archivo o cuando el form se desmonta. Antes hacíamos
@@ -71,6 +88,39 @@ export default function EventoForm({
     setFile(f);
   }
 
+  // ── Ubicación ──
+  const updateLocationTexto = (texto) =>
+    setForm((prev) => ({ ...prev, location: { ...prev.location, texto } }));
+  const handlePlaceSelect = ({ lat, lng, formattedAddress }) =>
+    setForm((prev) => ({
+      ...prev,
+      location: { texto: formattedAddress || prev.location.texto, lat, lng },
+    }));
+  const handleManualGeocode = async () => {
+    const q = form.location.texto.trim();
+    if (q.length < 3) {
+      setError("Escribí una dirección de al menos 3 caracteres.");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+    setGeocoding(true);
+    try {
+      const { data } = await axios.get("/api/geocode", { params: { q } });
+      setForm((prev) => ({
+        ...prev,
+        location: { texto: data.formatted || prev.location.texto, lat: data.lat, lng: data.lng },
+      }));
+    } catch (err) {
+      const msg = err.response?.status === 404
+        ? "No se encontró la dirección. Intentá ser más específico o picá una sugerencia."
+        : err.response?.data?.message || "Error al buscar la dirección.";
+      setError(msg);
+      setTimeout(() => setError(""), 3000);
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.title.trim()) {
@@ -79,6 +129,10 @@ export default function EventoForm({
     }
     if (!form.eventDate) {
       setError("La fecha y hora del evento son obligatorias");
+      return;
+    }
+    if (!form.location.texto.trim()) {
+      setError("El lugar del evento es obligatorio");
       return;
     }
     setError("");
@@ -91,6 +145,11 @@ export default function EventoForm({
         // El picker entrega hora local; al server le mandamos siempre ISO UTC
         // para que la fecha se interprete igual sin importar la TZ del host.
         fd.append(k, fromLocalInputValue(v));
+      } else if (k === "location") {
+        // location es subdoc { texto, lat, lng } — FormData no soporta objetos,
+        // así que la serializamos como JSON. Server hace JSON.parse en
+        // normalizeLocationInput.
+        fd.append(k, JSON.stringify(v));
       } else {
         fd.append(k, v == null ? "" : v);
       }
@@ -116,9 +175,17 @@ export default function EventoForm({
         <span className={styles.rule} />
       </div>
 
-      <ImageDropzone preview={preview} onFile={handleFile} />
+      {/* En create: split (dropzone izquierda + inputs derecha) para que la
+          imagen guíe el flujo visual. En edit: stacked (dropzone arriba) —
+          al editar lo importante es ver los campos pre-cargados, la imagen ya
+          existe y suele ser secundaria. En mobile siempre se apila. */}
+      <div className={`${styles.split} ${isEdit ? styles.splitStacked : ""}`}>
+        <div className={styles.splitImage}>
+          <ImageDropzone preview={preview} onFile={handleFile} />
+        </div>
 
-      <div className={styles.field}>
+        <div className={styles.splitFields}>
+          <div className={styles.field}>
         <label className={styles.fieldLabel} htmlFor="evento-title">
           Título *
         </label>
@@ -231,18 +298,33 @@ export default function EventoForm({
         </div>
         <div className={styles.field} style={{ flex: 1 }}>
           <label className={styles.fieldLabel} htmlFor="evento-location">
-            Lugar
+            Lugar *
           </label>
-          <input
-            id="evento-location"
-            name="location"
-            value={form.location}
-            onChange={handleChange}
-            type="text"
-            className={styles.input}
-            placeholder="Bar / Club / Casa"
-            maxLength={300}
-          />
+          <p className={styles.locationHelp}>
+            Empezá a escribir y elegí una sugerencia. Si no aparece, escribí la dirección y tocá <strong>Buscar</strong>.
+          </p>
+          <div className={styles.locationRow}>
+            <PlaceAutocomplete
+              value={form.location.texto}
+              onChange={updateLocationTexto}
+              onSelect={handlePlaceSelect}
+              placeholder="Bar / Club / Casa"
+            />
+            <button
+              type="button"
+              className={styles.btnSearch}
+              onClick={handleManualGeocode}
+              disabled={geocoding}
+              title="Buscar la dirección que tipeaste (sin picar sugerencia)"
+            >
+              {geocoding ? "…" : "Buscar"}
+            </button>
+          </div>
+          {form.location.lat != null && form.location.lng != null && (
+            <p className={styles.coordsHint}>
+              📍 {form.location.lat.toFixed(5)}, {form.location.lng.toFixed(5)}
+            </p>
+          )}
         </div>
       </div>
 
@@ -262,6 +344,8 @@ export default function EventoForm({
           <option value="closed">Cerrado (sin inscripciones)</option>
           <option value="cancelled">Cancelado</option>
         </select>
+      </div>
+        </div>
       </div>
 
       {error && <p className={styles.error}>{error}</p>}

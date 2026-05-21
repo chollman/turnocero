@@ -8,6 +8,8 @@ import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { dateParts, formatFee } from "../../utils/eventoDate";
+import { formatDistanceKm } from "../../utils/distance";
+import { formatLocation } from "../../utils/location";
 import TicketStub from "./TicketStub";
 import EventoForm from "./EventoForm";
 import { ArrowLeftIcon, ImageIcon } from "./EventoIcons";
@@ -454,7 +456,28 @@ export default function EventoDetail() {
                 <div className={styles.metaCell}>
                   <span className={styles.metaLabel}>Dónde</span>
                   <span className={styles.metaValue}>
-                    {evento.location || "Por confirmar"}
+                    {(() => {
+                      const t = typeof evento.location === "string"
+                        ? evento.location
+                        : evento.location?.texto || "";
+                      // En el detalle mostramos "calle, ciudad" — formato cómodo,
+                      // sin ruido de provincia/país. La dirección completa queda
+                      // accesible en el title (tooltip).
+                      const display = formatLocation(t, "regular");
+                      return (
+                        <span title={t}>{display || "Por confirmar"}</span>
+                      );
+                    })()}
+                    {(() => {
+                      // formatDistanceKm devuelve null para distancias que
+                      // redondean a 0m (evita "0 m" / "Aquí mismo" redundantes).
+                      const d = formatDistanceKm(evento.distanceKm);
+                      return d ? (
+                        <span style={{ marginLeft: 6, color: "var(--green)", fontWeight: 600, fontSize: "0.85em" }}>
+                          · {d}
+                        </span>
+                      ) : null;
+                    })()}
                   </span>
                 </div>
                 <div className={styles.metaCell}>

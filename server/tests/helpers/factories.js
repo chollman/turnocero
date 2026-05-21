@@ -4,17 +4,27 @@ const Noticia = require('../../models/Noticia');
 const Torneo = require('../../models/Torneo');
 const Evento = require('../../models/Evento');
 
+// Acepta location como string legacy (la convertimos al subdoc nuevo) o
+// como objeto { texto, lat, lng }. Sin esto, tests que pasan strings caen
+// silenciosamente al subdoc vacío porque Mongoose no castea string → subdoc.
+function normalizeLocationForFactory(loc) {
+  if (loc == null) return undefined;
+  if (typeof loc === 'string') return { texto: loc, lat: null, lng: null };
+  return loc;
+}
+
 async function createTable(host, overrides = {}) {
+  const { location: locOverride, ...rest } = overrides;
   return Table.create({
     host: host._id,
-    boardGame: overrides.boardGame || 'Catán',
-    date: overrides.date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // a week away
-    location: overrides.location || 'Buenos Aires',
-    maxPlayers: overrides.maxPlayers ?? 4,
-    privacy: overrides.privacy || 'public',
-    notes: overrides.notes || '',
-    players: overrides.players || [],
-    ...overrides,
+    boardGame: 'Catán',
+    date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // a week away
+    location: normalizeLocationForFactory(locOverride) ?? { texto: 'Buenos Aires', lat: null, lng: null },
+    maxPlayers: 4,
+    privacy: 'public',
+    notes: '',
+    players: [],
+    ...rest,
   });
 }
 
@@ -61,18 +71,20 @@ async function createTorneo(createdBy, overrides = {}) {
 }
 
 async function createEvento(author, overrides = {}) {
+  const { location: locOverride, ...rest } = overrides;
   return Evento.create({
     author: author._id,
-    title: overrides.title || 'Test Event',
-    description: overrides.description || '',
-    conditions: overrides.conditions || '',
-    fee: overrides.fee ?? 0,
-    transferDetails: overrides.transferDetails || '',
-    eventDate: overrides.eventDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-    location: overrides.location || 'Buenos Aires',
-    maxParticipants: overrides.maxParticipants ?? 20,
-    status: overrides.status || 'open',
-    registrations: overrides.registrations || [],
+    title: 'Test Event',
+    description: '',
+    conditions: '',
+    fee: 0,
+    transferDetails: '',
+    eventDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+    location: normalizeLocationForFactory(locOverride) ?? { texto: 'Buenos Aires', lat: null, lng: null },
+    maxParticipants: 20,
+    status: 'open',
+    registrations: [],
+    ...rest,
   });
 }
 

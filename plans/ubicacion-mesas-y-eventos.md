@@ -1,10 +1,10 @@
-# Ubicación en mesas y distancias usuario ↔ mesas
+# Ubicación en mesas y eventos con distancias usuario ↔ item
 
 ## Estado al 2026-05-21
 
-✅ **Done** — todas las fases ejecutadas, suite verde (1199 client + 397 server), deployable.
+✅ **Done** — todas las fases ejecutadas, suite verde (1206 client + 426 server), deployable.
 
-Cubre la migración del schema `Table.location` a subdocumento con coords, el cálculo de distancias con Haversine, el filtro por radio en el dashboard, y todas las iteraciones de UX en los forms de mesas (creación simplificada, edición con mapa).
+Cubre la migración de `Table.location` Y `Evento.location` a subdocumento con coords, el cálculo de distancias con Haversine, el filtro por radio en `/mesas` (pendiente en `/eventos`), y las iteraciones de UX en los forms (creación simplificada sin mapa, edición de Tables con mapa).
 
 | Fase | Estado | Resultado |
 |---|---|---|
@@ -18,8 +18,13 @@ Cubre la migración del schema `Table.location` a subdocumento con coords, el c�
 | 7. TableDetail | ✅ | `location.texto` + distancia inline (42/42 tests) |
 | 8. Botones −/+ en slider | ✅ | Fine-tune de a 1km, deshabilitados en extremos (13/13 tests, 5 nuevos) |
 | 9. Simplificación CreateTable | ✅ | Removido mapa, location opcional, fallback a `user.direccion` server-side (10/10 client + 31/31 server tests, 8 nuevos) |
+| 10. Refactor helpers a utils compartidos | ✅ | `utils/locationHelpers.js` + `utils/geo.js` extendido. Reuso entre tables + eventos (19/19 tests unitarios) |
+| 11. Eventos: schema migration + lazy init hook | ✅ | `Evento.location` String → subdoc (4/4 tests) |
+| 12. Eventos: API con distancia + JSON FormData | ✅ | POST/PUT acepta JSON string en FormData; GET con `distanceKm` + `?maxDistanceKm` (51/51 tests, 10 nuevos) |
+| 13. EventoForm con PlaceAutocomplete | ✅ | Sin mapa (como CreateTable simplificado), hint condicional, location serializa como JSON en FormData (14/14 tests, 4 nuevos) |
+| 14. Display: PosterCard, TimelineRow, EventoDetail | ✅ | Defensive `locationTexto` + distance badge inline (44/44 tests existentes + 3 nuevos en PosterCard) |
 
-**Suite total final**: 1596 tests pasando (1199 client + 397 server). Cobertura mantenida >80% client.
+**Suite total final**: 1632 tests pasando (1206 client + 426 server). Cobertura mantenida >80% client.
 
 ## Decisiones tomadas
 
@@ -33,13 +38,10 @@ Cubre la migración del schema `Table.location` a subdocumento con coords, el c�
 ## Pieces clave
 
 ### Backend
-- `server/utils/geo.js` — `haversineKm()` + `isValidCoord()`.
-- `server/models/Table.js` — `location: { texto, lat, lng }` + `pre('init')` hook que normaliza string legacy.
-- `server/routes/tables.js`:
-  - `normalizeLocationInput()` — acepta string o objeto, descarta coords inválidas.
-  - `isEmptyLocation()` + `locationForCreate()` — fallback POST a `user.direccion` cuando el host no especifica ubicación. PUT NO usa este fallback (el host puede borrar location intencionalmente).
-  - `attachDistance()` — agrega `distanceKm` por table.
-  - `buildBboxFilter()` — bounding box ~cuadrado para `?maxDistanceKm`, refine en memoria.
+- `server/utils/geo.js` — `haversineKm()` + `isValidCoord()` + `attachDistance()` + `buildBboxFilter()`.
+- `server/utils/locationHelpers.js` — `normalizeLocationInput()` (acepta string, JSON string, u objeto) + `isEmptyLocation()` + `locationForCreate()` (fallback a user.direccion en POST). Compartido por Table y Evento.
+- `server/models/{Table,Evento}.js` — `location: { texto, lat, lng }` + `pre('init')` hook que normaliza string legacy en cada uno.
+- `server/routes/{tables,eventos}.js` — imports de los helpers; POST usa `locationForCreate` (fallback al perfil), PUT usa `normalizeLocationInput` puro (sin fallback). `GET` agrega `distanceKm` por item y soporta `?maxDistanceKm=N` (bbox + Haversine refine en memoria).
 
 ### Frontend
 - `client/src/hooks/useDebouncedValue.js` — hook genérico, 300ms default. **Convención**: todo input → API debe usarlo.
@@ -48,6 +50,8 @@ Cubre la migración del schema `Table.location` a subdocumento con coords, el c�
 - `client/src/pages/dashboard/TableCard.jsx` — badge verde de distancia.
 - `client/src/pages/tables/CreateTable.jsx` — `<PlaceAutocomplete>` + fallback Buscar **sin mapa**. Hint condicional según `user.direccion`: muestra el texto del perfil como fallback o un link a `/perfil` si no tiene.
 - `client/src/pages/tables/EditTable.jsx` — `<PlaceAutocomplete>` + `<AddressMap>` + fallback Buscar. Mantiene el mapa para fine-tuning visual al editar.
+- `client/src/pages/eventos/EventoForm.jsx` — mismo patrón que CreateTable (sin mapa), serializa `location` como JSON string en FormData. Hint condicional. Usado para create + edit.
+- `client/src/pages/eventos/{PosterCard,TimelineRow,EventoDetail}.jsx` — defensive `locationTexto` (handle string legacy o subdoc) + `formatDistanceKm(distanceKm)` inline en verde junto al lugar.
 
 ## Algoritmo de filtro por radio
 
@@ -70,9 +74,9 @@ Esto escala bien porque el bbox reduce drásticamente el set antes del refine. S
 
 ## Pendientes (otros PRs)
 
-- **Eventos** ([feedback_eventos_section_design.md](../.claude/memory/feedback_eventos_section_design.md)): replicar el mismo patrón en `Evento.location` — schema migration + form + EventoDetail con distancia + filtro en `/eventos`.
+- **Slider de radio en `/eventos`** (spawn-task ya en cola): el backend ya devuelve `distanceKm` + acepta `?maxDistanceKm` para eventos. Solo falta replicar el slider UI del Dashboard en `Eventos.jsx`.
 - **Audit de inputs debounceables** (spawn-task ya en cola): refactorear todos los inputs en `client/src/` que disparen `/api/*` sin debounce para que usen `useDebouncedValue`. Sospechosos: `UsersList`, CreateTable BGG search, etc.
-- **Backfill opcional de coords** en mesas viejas: script one-off que geocodee `location.texto` de mesas activas vía `/api/geocode` y guarde las coords. Decisión: ¿automático o lo dejamos para que el host las actualice manualmente?
+- **Backfill opcional de coords** en mesas/eventos viejos: script one-off que geocodee `location.texto` de items activos vía `/api/geocode` y guarde las coords. Decisión: ¿automático o lo dejamos para que el host las actualice manualmente?
 - **Driving distance / ETA**: requeriría habilitar **Routes API** (USD 5/1000). Sustituiría o complementaría el Haversine en casos específicos (ej. "Mesas a menos de 30 min en auto").
 
 ## Referencias
@@ -80,5 +84,5 @@ Esto escala bien porque el bbox reduce drásticamente el set antes del refine. S
 - Memoria: [feedback_debounce_inputs.md](../.claude/memory/feedback_debounce_inputs.md), [feedback_google_maps_setup.md](../.claude/memory/feedback_google_maps_setup.md)
 - Plan relacionado: [google-maps-migration.md](./google-maps-migration.md)
 - Tests:
-  - Backend: `server/tests/integration/tables.test.js`, `server/tests/unit/utils/geo.test.js`, `server/tests/unit/models/Table.test.js`
-  - Frontend: `Dashboard.test.jsx`, `TableCard.test.jsx`, `CreateTable.test.jsx`, `EditTable.test.jsx`, `TableDetail.test.jsx`, `useDebouncedValue.test.js`, `distance.test.js`
+  - Backend: `server/tests/integration/{tables,eventos}.test.js`, `server/tests/unit/utils/{geo,locationHelpers}.test.js`, `server/tests/unit/models/{Table,Evento}.test.js`
+  - Frontend: `Dashboard.test.jsx`, `TableCard.test.jsx`, `CreateTable.test.jsx`, `EditTable.test.jsx`, `TableDetail.test.jsx`, `EventoForm.test.jsx`, `PosterCard.test.jsx`, `useDebouncedValue.test.js`, `distance.test.js`

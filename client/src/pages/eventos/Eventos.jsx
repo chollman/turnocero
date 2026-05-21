@@ -261,7 +261,13 @@ export default function Eventos() {
       const matchesFilter =
         filter === "all" || filter === "mine" || filter === data.status;
       if (matchesFilter) {
-        setEventos((prev) => [data, ...prev]);
+        // Dedup: el server emite `evento:created` por socket al actor también,
+        // y la socket suele llegar ANTES que la response HTTP. Sin esta guarda
+        // el evento aparecía duplicado (ver feedback_optimistic_vs_socket.md).
+        setEventos((prev) => {
+          if (prev.some((e) => e._id === data._id)) return prev;
+          return [data, ...prev];
+        });
       } else {
         setFilter(data.status);
       }

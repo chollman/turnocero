@@ -6,6 +6,8 @@ const { cloudinary, uploadToCloudinary } = require("../config/cloudinary");
 const Evento = require("../models/Evento");
 const { protect, requireAdmin, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const { isValidCoord, attachDistance, buildBboxFilter } = require("../utils/geo");
+const { normalizeLocationInput, isEmptyLocation } = require("../utils/locationHelpers");
 
 router.use(requireSection("eventos"));
 
@@ -161,18 +163,18 @@ router.get("/", optionalAuth, async (req, res) => {
       filter.status = { $in: ["open", "closed"] };
     }
 
-    const [eventos, total] = await Promise.all([
-      Evento.find(filter)
-        .populate("author", "username displayName avatar")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-      Evento.countDocuments(filter),
-    ]);
+    const userLat = req.user?.direccion?.lat ?? null;
+    const userLng = req.user?.direccion?.lng ?? null;
+    const maxKmRaw = parseFloat(req.query.maxDistanceKm);
+    const maxKm = Number.isFinite(maxKmRaw) && maxKmRaw > 0 ? maxKmRaw : null;
+    const filterByDistance = maxKm !== null && isValidCoord(userLat, userLng);
 
     const userIdStr = req.user?._id?.toString();
-    const enriched = eventos.map((ev) => {
-      const obj = ev.toObject();
+
+    // Enriquece cada evento con counts + userRegistration. Reutilizable en
+    // ambos modos (con o sin filtro de distancia).
+    const enrichOne = (ev) => {
+      const obj = typeof ev.toObject === "function" ? ev.toObject() : ev;
       const regs = obj.registrations || [];
       const registrationCount = {
         total: regs.length,
@@ -193,7 +195,38 @@ router.get("/", optionalAuth, async (req, res) => {
       }
       delete obj.registrations;
       return { ...obj, registrationCount, userRegistration };
-    });
+    };
+
+    if (filterByDistance) {
+      // Modo filtro: bbox en Mongo + refine Haversine en memoria + paginación post-refine.
+      const bbox = buildBboxFilter(userLat, userLng, maxKm);
+      const all = await Evento.find({ ...filter, ...bbox })
+        .populate("author", "username displayName avatar")
+        .sort({ createdAt: -1 });
+      const withDistance = attachDistance(all, userLat, userLng)
+        .filter((ev) => ev.distanceKm !== null && ev.distanceKm <= maxKm)
+        .map(enrichOne);
+      const total = withDistance.length;
+      const slice = withDistance.slice(skip, skip + limit);
+      return res.json({
+        eventos: slice,
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+      });
+    }
+
+    const [eventos, total] = await Promise.all([
+      Evento.find(filter)
+        .populate("author", "username displayName avatar")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Evento.countDocuments(filter),
+    ]);
+
+    const withDistance = attachDistance(eventos, userLat, userLng);
+    const enriched = withDistance.map(enrichOne);
 
     res.json({
       eventos: enriched,
@@ -245,6 +278,15 @@ router.post(
         image = { url: result.secure_url, publicId: result.public_id };
       }
 
+      // Location obligatoria — sin fallback al direccion del perfil del admin.
+      // Es info importante del evento y siempre debe especificarse explícitamente.
+      const normalizedLocation = normalizeLocationInput(req.body.location);
+      if (isEmptyLocation(normalizedLocation)) {
+        return res
+          .status(400)
+          .json({ message: "El lugar del evento es obligatorio" });
+      }
+
       const evento = await Evento.create({
         title: req.body.title?.trim(),
         description: req.body.description?.trim() || undefined,
@@ -252,7 +294,7 @@ router.post(
         fee: parseFloat(req.body.fee) || 0,
         transferDetails: req.body.transferDetails?.trim() || undefined,
         eventDate: req.body.eventDate || undefined,
-        location: req.body.location?.trim() || undefined,
+        location: normalizedLocation,
         maxParticipants: req.body.maxParticipants
           ? parseInt(req.body.maxParticipants)
           : undefined,
@@ -399,8 +441,16 @@ router.put(
         evento.transferDetails = req.body.transferDetails.trim() || undefined;
       if (req.body.eventDate !== undefined)
         evento.eventDate = req.body.eventDate || undefined;
-      if (req.body.location !== undefined)
-        evento.location = req.body.location.trim() || undefined;
+      if (req.body.location !== undefined) {
+        // Location obligatoria también en update — no permitir limpiarla.
+        const normalizedLocation = normalizeLocationInput(req.body.location);
+        if (isEmptyLocation(normalizedLocation)) {
+          return res
+            .status(400)
+            .json({ message: "El lugar del evento es obligatorio" });
+        }
+        evento.location = normalizedLocation;
+      }
       if (req.body.maxParticipants !== undefined) {
         evento.maxParticipants = req.body.maxParticipants
           ? parseInt(req.body.maxParticipants)

@@ -1,10 +1,39 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+
+vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
+
+// PlaceAutocomplete tiene su propio test — acá lo simplificamos a un input.
+vi.mock("../../components/shared/PlaceAutocomplete", () => ({
+  default: ({ value, onChange, placeholder }) => (
+    <input
+      data-testid="place-autocomplete"
+      aria-label="lugar"
+      value={value || ""}
+      onChange={(e) => onChange?.(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
+}));
+
 import EventoForm from "./EventoForm";
+import { useAuth } from "../../context/AuthContext";
+
+beforeEach(() => {
+  // Default: sin direccion. Tests específicos sobreescriben.
+  useAuth.mockReturnValue({ user: { _id: "me", username: "me" } });
+});
+
+// Wrapper helper para no repetir MemoryRouter en cada render. Recibe el JSX
+// directamente para que los tests existentes solo cambien `render` → `renderForm`.
+function renderForm(jsx) {
+  return render(<MemoryRouter>{jsx}</MemoryRouter>);
+}
 
 describe("<EventoForm>", () => {
   it("renders all main fields in create mode", () => {
-    render(
+    renderForm(
       <EventoForm mode="create" onSubmit={() => {}} onCancel={() => {}} />,
     );
     expect(screen.getByLabelText(/título/i)).toBeInTheDocument();
@@ -24,7 +53,7 @@ describe("<EventoForm>", () => {
   });
 
   it('shows the "Editar evento" eyebrow in edit mode', () => {
-    render(
+    renderForm(
       <EventoForm
         mode="edit"
         initialEvento={{
@@ -44,7 +73,7 @@ describe("<EventoForm>", () => {
   });
 
   it("seeds the form with initial values", () => {
-    render(
+    renderForm(
       <EventoForm
         mode="edit"
         initialEvento={{
@@ -66,7 +95,7 @@ describe("<EventoForm>", () => {
 
   it("blocks submission when title is empty and shows error", async () => {
     const onSubmit = vi.fn();
-    render(
+    renderForm(
       <EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />,
     );
     fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
@@ -78,7 +107,7 @@ describe("<EventoForm>", () => {
 
   it("blocks submission when eventDate is empty and shows error", async () => {
     const onSubmit = vi.fn();
-    render(
+    renderForm(
       <EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />,
     );
     fireEvent.change(screen.getByLabelText(/título/i), {
@@ -92,7 +121,7 @@ describe("<EventoForm>", () => {
   });
 
   it("marks the eventDate field as required (aria-required + visible asterisk)", () => {
-    render(
+    renderForm(
       <EventoForm mode="create" onSubmit={() => {}} onCancel={() => {}} />,
     );
     const dateInput = screen.getByLabelText(/fecha y hora/i);
@@ -103,7 +132,7 @@ describe("<EventoForm>", () => {
 
   it("calls onSubmit with FormData containing the expected keys", async () => {
     const onSubmit = vi.fn().mockResolvedValue();
-    render(
+    renderForm(
       <EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />,
     );
     fireEvent.change(screen.getByLabelText(/título/i), {
@@ -114,6 +143,11 @@ describe("<EventoForm>", () => {
     });
     fireEvent.change(screen.getByLabelText(/fecha y hora/i), {
       target: { value: "2026-12-31T20:00" },
+    });
+    // location es obligatoria desde 2026-05 — el mock de PlaceAutocomplete
+    // expone aria-label "lugar".
+    fireEvent.change(screen.getByLabelText(/^lugar$/i), {
+      target: { value: "Bar Pepe" },
     });
     fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
     await new Promise((r) => {
@@ -140,7 +174,7 @@ describe("<EventoForm>", () => {
 
   it("calls onCancel when Cancel is clicked", () => {
     const onCancel = vi.fn();
-    render(
+    renderForm(
       <EventoForm mode="create" onSubmit={() => {}} onCancel={onCancel} />,
     );
     fireEvent.click(screen.getByRole("button", { name: /cancelar/i }));
@@ -148,7 +182,7 @@ describe("<EventoForm>", () => {
   });
 
   it("disables both buttons while submitting", () => {
-    render(
+    renderForm(
       <EventoForm
         mode="create"
         onSubmit={() => {}}
@@ -160,6 +194,71 @@ describe("<EventoForm>", () => {
     expect(screen.getByRole("button", { name: /cancelar/i })).toBeDisabled();
   });
 
+  it("serializes location as JSON string in FormData", async () => {
+    const onSubmit = vi.fn().mockResolvedValue();
+    renderForm(
+      <EventoForm
+        mode="edit"
+        initialEvento={{
+          title: "Liga",
+          eventDate: "2026-06-13T17:00:00",
+          location: { texto: "Bar X", lat: -34.6, lng: -58.4 },
+        }}
+        onSubmit={onSubmit}
+        onCancel={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /guardar cambios/i }));
+    await new Promise((r) => setTimeout(r, 0));
+    const fd = onSubmit.mock.calls[0][0];
+    const locJson = fd.get("location");
+    expect(locJson).toBe(JSON.stringify({ texto: "Bar X", lat: -34.6, lng: -58.4 }));
+  });
+
+  it("normalizes a legacy string location into the subdoc when seeded", () => {
+    renderForm(
+      <EventoForm
+        mode="edit"
+        initialEvento={{
+          title: "X",
+          eventDate: "2026-06-13T17:00:00",
+          location: "Bar viejo",  // legacy string
+        }}
+        onSubmit={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+    expect(screen.getByTestId("place-autocomplete")).toHaveValue("Bar viejo");
+  });
+
+  it("location es obligatoria: bloquea submit si está vacía y muestra error", async () => {
+    const onSubmit = vi.fn();
+    renderForm(
+      <EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />,
+    );
+    // Lleno título y fecha pero NO lugar.
+    fireEvent.change(screen.getByLabelText(/título/i), { target: { value: "Sin lugar" } });
+    fireEvent.change(screen.getByLabelText(/fecha y hora/i), {
+      target: { value: "2027-01-01T20:00" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(/lugar.*obligatorio/i),
+    ).toBeInTheDocument();
+  });
+
+  it("label de Lugar muestra asterisco (obligatorio), no '(opcional)'", () => {
+    renderForm(
+      <EventoForm mode="create" onSubmit={() => {}} onCancel={() => {}} />,
+    );
+    // El label "Lugar *" debe estar.
+    expect(screen.getByText(/lugar \*/i)).toBeInTheDocument();
+    // No debe decir "(opcional)" en el contexto del lugar.
+    expect(screen.queryByText(/usamos la dirección de tu perfil/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/se publica sin ubicación/i)).not.toBeInTheDocument();
+  });
+
   it("revoca la object URL cuando el form se desmonta (regresión: memory leak)", () => {
     const createSpy = vi
       .spyOn(URL, "createObjectURL")
@@ -169,7 +268,7 @@ describe("<EventoForm>", () => {
       .mockImplementation(() => {});
 
     try {
-      const { unmount, container } = render(
+      const { unmount, container } = renderForm(
         <EventoForm mode="create" onSubmit={() => {}} onCancel={() => {}} />,
       );
       // Simular file pick — el form pasa por su useEffect y crea la object URL.

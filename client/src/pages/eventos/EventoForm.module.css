@@ -29,6 +29,54 @@
   background: var(--border);
 }
 
+/* ─── Split layout: dropzone izquierda + inputs derecha ─── */
+.split {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.splitImage {
+  flex: 0 0 300px;
+  /* Sticky para que la imagen siga visible mientras se scrollean los inputs.
+     `top: 16px` deja un margen del viewport top en pantallas chicas. */
+  position: sticky;
+  top: 16px;
+}
+
+.splitFields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .split {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .splitImage {
+    flex: 0 0 auto;
+    width: 100%;
+    position: static;
+  }
+}
+
+/* Modo edit: stacked (dropzone arriba) — siempre, independiente del viewport.
+   Mismas reglas que el breakpoint mobile pero forzadas. */
+.splitStacked {
+  flex-direction: column;
+  gap: 16px;
+}
+
+.splitStacked .splitImage {
+  flex: 0 0 auto;
+  width: 100%;
+  position: static;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -140,4 +188,67 @@
 .btnGhost:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ─── Ubicación (PlaceAutocomplete + manual fallback) ─── */
+.fieldHint {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.locationHelp {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+.locationLink {
+  color: var(--amber);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.locationLink:hover {
+  text-decoration: underline;
+}
+
+.locationRow {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.locationRow > div:first-child {
+  flex: 1;
+}
+
+.btnSearch {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.btnSearch:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--amber);
+}
+
+.btnSearch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.coordsHint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 6px 0 0;
 }

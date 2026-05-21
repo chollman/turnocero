@@ -103,4 +103,45 @@ describe('<PosterCard>', () => {
     expect(meta.textContent).toContain('5');
     expect(meta.textContent).not.toContain('8');
   });
+
+  it('renders location.texto when location is a subdocument', () => {
+    renderCard({
+      event: { location: { texto: 'Av. Corrientes 1234', lat: -34.6, lng: -58.4 } },
+    });
+    expect(screen.getByText('Av. Corrientes 1234')).toBeInTheDocument();
+  });
+
+  it('shows distance badge when distanceKm is provided', () => {
+    renderCard({
+      event: {
+        location: { texto: 'CABA', lat: -34.6, lng: -58.4 },
+        distanceKm: 12.34,
+      },
+    });
+    expect(screen.getByText(/12,3 km/)).toBeInTheDocument();
+  });
+
+  it('does NOT show distance when distanceKm is null', () => {
+    renderCard({
+      event: { location: { texto: 'CABA' }, distanceKm: null },
+    });
+    expect(screen.queryByText(/km/)).not.toBeInTheDocument();
+  });
+
+  it('shows only the city (not the full address) when location is a Google formatted_address', () => {
+    renderCard({
+      event: {
+        location: {
+          texto: 'Av. de Mayo 1123, B1650 San Martín, Provincia de Buenos Aires, Argentina',
+          lat: -34.5,
+          lng: -58.5,
+        },
+      },
+    });
+    // Solo la localidad debe estar visible.
+    expect(screen.getByText('San Martín')).toBeInTheDocument();
+    // La dirección completa NO debe aparecer (queda solo en el title tooltip).
+    expect(screen.queryByText(/Av\. de Mayo 1123/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Provincia de Buenos Aires/)).not.toBeInTheDocument();
+  });
 });

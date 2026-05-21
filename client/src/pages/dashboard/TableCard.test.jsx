@@ -236,12 +236,16 @@ describe('<TableCard>', () => {
     expect(screen.queryByText(/km/)).not.toBeInTheDocument();
   });
 
-  it('uses "Aquí mismo" instead of "0 m" for distanceKm === 0', () => {
+  it('does NOT show distance badge for distanceKm === 0 (la dirección ya lo dice todo)', () => {
     renderCard(makeTable({
       location: { texto: 'Casa', lat: -34.6, lng: -58.4 },
       distanceKm: 0,
     }));
-    expect(screen.getByText(/aquí mismo/i)).toBeInTheDocument();
+    // Sin badge "Aquí mismo" ni "0 m" — la celda de ubicación es suficiente.
+    expect(screen.queryByText(/aquí mismo/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/0 m/)).not.toBeInTheDocument();
+    // La ubicación sí se muestra.
+    expect(screen.getByText('Casa')).toBeInTheDocument();
   });
 
   it('handleCancel (host) confirms and DELETEs the table', async () => {

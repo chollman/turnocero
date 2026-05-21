@@ -30,7 +30,14 @@ const eventoSchema = new mongoose.Schema(
     fee:             { type: Number, min: 0, default: 0 },
     transferDetails: { type: String, trim: true, maxlength: 500 },
     eventDate:       { type: Date, required: true },
-    location:        { type: String, trim: true, maxlength: 300 },
+    // Migrado de String a subdocumento en 2026-05 para soportar cálculo
+    // de distancias. Docs viejos con `location: "texto"` se normalizan al
+    // hidratar vía `pre('init')` hook abajo — sin script de migración.
+    location: {
+      texto: { type: String, trim: true, maxlength: 300, default: '' },
+      lat:   { type: Number, default: null },
+      lng:   { type: Number, default: null },
+    },
     maxParticipants: { type: Number, min: 1 },
     image:           { url: String, publicId: String },
     status:          { type: String, enum: ['draft', 'open', 'closed', 'cancelled'], default: 'open' },
@@ -39,5 +46,15 @@ const eventoSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Lazy migration: normaliza `location` viejo (string plano) al nuevo shape.
+// Corre solo al hidratar docs existentes — los nuevos ya nacen con la forma
+// correcta. Sin esto, queries sobre eventos viejos tirarían CastError porque
+// Mongoose espera el subdoc.
+eventoSchema.pre('init', (doc) => {
+  if (typeof doc.location === 'string') {
+    doc.location = { texto: doc.location, lat: null, lng: null };
+  }
+});
 
 module.exports = mongoose.model('Evento', eventoSchema);

@@ -7,6 +7,20 @@ import { server } from "../../test/server";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
+// EventoForm internamente usa PlaceAutocomplete que carga Google Maps;
+// lo mockeamos para que el form real pueda renderizarse en jsdom.
+vi.mock("../../components/shared/PlaceAutocomplete", () => ({
+  default: ({ value, onChange, placeholder }) => (
+    <input
+      data-testid="place-autocomplete"
+      aria-label="lugar"
+      value={value || ""}
+      onChange={(e) => onChange?.(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
+}));
+
 // Mock socket.io-client capturando los listeners para dispararlos manualmente.
 const socketListeners = new Map();
 vi.mock("socket.io-client", () => ({
@@ -431,12 +445,15 @@ describe("<Eventos>", () => {
     await screen.findByText(/no hay eventos/i);
     // Click "Nuevo evento" → abre el form
     fireEvent.click(screen.getByRole("button", { name: /nuevo evento/i }));
-    // Llenar título y fecha (mínimo para submit)
+    // Llenar título, fecha y lugar (los 3 son obligatorios)
     fireEvent.change(await screen.findByLabelText(/título/i), {
       target: { value: "Mi Draft" },
     });
     fireEvent.change(screen.getByLabelText(/fecha y hora/i), {
       target: { value: "2027-01-01T20:00" },
+    });
+    fireEvent.change(screen.getByLabelText(/^lugar$/i), {
+      target: { value: "Bar Pepe" },
     });
     // Cambiar status a draft para crear un draft
     fireEvent.change(screen.getByLabelText(/estado/i), {
@@ -508,5 +525,61 @@ describe("<Eventos>", () => {
     });
 
     expect(screen.queryByText("Va a cerrar")).not.toBeInTheDocument();
+  });
+
+  it("crear un evento NO lo duplica si el socket emit llega antes que la response (regresión)", async () => {
+    localStorage.setItem("token", "fake");
+    const newEvento = makeEvento({
+      _id: "new1",
+      title: "Recién Creado",
+      status: "open",
+    });
+
+    // Delay la POST response para garantizar que el socket llegue primero
+    // (caso típico en localhost: el broadcast Socket.IO es ~instantáneo, el
+    // HTTP response viaja por el mismo ciclo pero tarda más).
+    let resolvePost;
+    const postPromise = new Promise((resolve) => { resolvePost = resolve; });
+
+    server.use(
+      http.get("/api/eventos", () =>
+        HttpResponse.json({ eventos: [], page: 1, pages: 1, total: 0 }),
+      ),
+      http.post("/api/eventos", async () => {
+        await postPromise;
+        return HttpResponse.json(newEvento);
+      }),
+    );
+
+    renderPage({ user: { _id: "admin1", isAdmin: true } });
+    // Esperar a que cargue la lista vacía.
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /nuevo evento/i })).toBeInTheDocument();
+    });
+
+    // Abrir el form y submitearlo con datos mínimos.
+    fireEvent.click(screen.getByRole("button", { name: /nuevo evento/i }));
+    fireEvent.change(await screen.findByLabelText(/título/i), {
+      target: { value: "Recién Creado" },
+    });
+    fireEvent.change(screen.getByLabelText(/fecha y hora/i), {
+      target: { value: "2027-01-01T20:00" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
+
+    // POST queda colgado en postPromise. Disparamos el socket emit primero
+    // (simulando el race condition real).
+    await triggerSocket("evento:created", { evento: newEvento });
+
+    // El evento ya debería estar en la lista por el socket.
+    expect(screen.getByText("Recién Creado")).toBeInTheDocument();
+
+    // Ahora resolvemos el POST. handleCreate continúa y intenta agregar
+    // — sin el dedup que agregamos, aparecía DOS veces.
+    resolvePost();
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Recién Creado")).toHaveLength(1);
+    });
   });
 });

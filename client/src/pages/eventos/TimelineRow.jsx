@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { dateParts, countdown, formatFee } from "../../utils/eventoDate";
+import { formatDistanceKm } from "../../utils/distance";
+import { formatLocation } from "../../utils/location";
 import { PinIcon, UsersIcon } from "./EventoIcons";
 import styles from "./TimelineRow.module.css";
 
@@ -28,6 +30,14 @@ export default function TimelineRow({
   const hasMax = !!(evento.maxParticipants && evento.maxParticipants > 0);
   const confirmed = evento.registrationCount?.confirmed ?? 0;
   const pending = evento.registrationCount?.pending ?? 0;
+  const locationTexto = typeof evento.location === "string"
+    ? evento.location
+    : evento.location?.texto || "";
+  // En la lista mostramos solo la localidad — el texto completo se ve en el detalle.
+  const locationDisplay = formatLocation(locationTexto, "city");
+  // formatDistanceKm devuelve null para distancias que redondean a 0m (incluye
+  // 0 exacto), evitando "0 m" / "Aquí mismo" redundantes.
+  const distanceLabel = formatDistanceKm(evento.distanceKm);
   // Sólo cuentan inscripciones activas (pendientes + confirmadas).
   // Los rechazados — mas que nada los rechazados permanentemente — NO reservan
   // slot ni se muestran como inscriptos en ninguna superficie pública.
@@ -115,9 +125,14 @@ export default function TimelineRow({
         </h3>
 
         <div className={styles.meta}>
-          {evento.location && (
-            <span className={styles.metaItem}>
-              <PinIcon size={12} /> {evento.location}
+          {locationDisplay && (
+            <span className={styles.metaItem} title={locationTexto}>
+              <PinIcon size={12} /> {locationDisplay}
+              {distanceLabel && (
+                <span style={{ marginLeft: 4, color: "var(--green)", fontWeight: 600 }}>
+                  · {distanceLabel}
+                </span>
+              )}
             </span>
           )}
           <span className={styles.metaItem}>

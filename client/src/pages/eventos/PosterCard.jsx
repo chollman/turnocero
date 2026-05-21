@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { dateParts, countdown, formatFee } from "../../utils/eventoDate";
+import { formatDistanceKm } from "../../utils/distance";
+import { formatLocation } from "../../utils/location";
 import { PinIcon, UsersIcon, ImageIcon, ArrowIcon } from "./EventoIcons";
 import styles from "./PosterCard.module.css";
 
@@ -30,6 +32,15 @@ export default function PosterCard({
   const detailUrl = `/eventos/${evento._id}`;
 
   const statusInfo = STATUS_BADGES[evento.status];
+  // location puede llegar como string legacy o subdoc { texto, lat, lng }.
+  const locationTexto = typeof evento.location === "string"
+    ? evento.location
+    : evento.location?.texto || "";
+  // En la card compacta mostramos solo la localidad.
+  const locationDisplay = formatLocation(locationTexto, "city");
+  // formatDistanceKm devuelve null para distancias que redondean a 0m (incluye
+  // 0 exacto), evitando "0 m" / "Aquí mismo" redundantes.
+  const distanceLabel = formatDistanceKm(evento.distanceKm);
 
   let ctaLabel = "Inscribirme";
   if (isHost) ctaLabel = "Administrar";
@@ -87,9 +98,14 @@ export default function PosterCard({
       <div className={styles.body}>
         <h3 className={styles.title}>{evento.title}</h3>
         <div className={styles.meta}>
-          {evento.location && (
-            <span>
-              <PinIcon size={11} /> {evento.location}
+          {locationDisplay && (
+            <span title={locationTexto}>
+              <PinIcon size={11} /> {locationDisplay}
+              {distanceLabel && (
+                <span style={{ marginLeft: 4, color: "var(--green)", fontWeight: 600 }}>
+                  · {distanceLabel}
+                </span>
+              )}
             </span>
           )}
           <span>

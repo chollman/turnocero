@@ -12,11 +12,17 @@ describe('formatDistanceKm', () => {
     expect(formatDistanceKm(Infinity)).toBeNull();
   });
 
-  it('returns "Aquí mismo" for exactly 0km', () => {
-    expect(formatDistanceKm(0)).toBe('Aquí mismo');
+  it('returns null for exactly 0km (no "Aquí mismo" badge — la dirección ya lo dice todo)', () => {
+    expect(formatDistanceKm(0)).toBeNull();
+  });
+
+  it('returns null for distances that round to 0m (evita mostrar "0 m")', () => {
+    expect(formatDistanceKm(0.001)).toBeNull(); // 1m → redondea a 0m
+    expect(formatDistanceKm(0.004)).toBeNull(); // 4m → redondea a 0m
   });
 
   it('formats sub-kilometer distances in meters (rounded to 10m)', () => {
+    expect(formatDistanceKm(0.01)).toBe('10 m'); // umbral mínimo visible
     expect(formatDistanceKm(0.85)).toBe('850 m');
     expect(formatDistanceKm(0.853)).toBe('850 m');
     expect(formatDistanceKm(0.857)).toBe('860 m');

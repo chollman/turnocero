@@ -170,7 +170,9 @@ describe("GET /api/eventos", () => {
     const evento = listEmits[0].payload.evento;
     expect(evento.status).toBe("closed");
     expect(evento.title).toBe("Auto-close target");
-    expect(evento.location).toBe("Bar X");
+    // location ahora es subdoc { texto, lat, lng } — el legacy string se
+    // normaliza al hidratar vía pre('init') hook del model.
+    expect(evento.location.texto).toBe("Bar X");
     expect(evento.author).toBeTruthy();
     expect(evento.author.username).toBe("host_admin");
     expect(evento.registrationCount).toBeDefined();
@@ -206,6 +208,127 @@ describe("GET /api/eventos", () => {
   });
 });
 
+describe("GET /api/eventos — distance computation", () => {
+  const obelisco = { lat: -34.6037, lng: -58.3816 };
+  const laPlata  = { lat: -34.9215, lng: -57.9545 };  // ~56km
+  const rosario  = { lat: -32.9442, lng: -60.6505 };  // ~280km
+
+  async function setupEventos() {
+    const admin = await createUser({ isAdmin: true });
+    await createEvento(admin, { title: "Cerca", location: { texto: "Obelisco", ...obelisco } });
+    await createEvento(admin, { title: "Medio", location: { texto: "La Plata", ...laPlata } });
+    await createEvento(admin, { title: "Lejos", location: { texto: "Rosario", ...rosario } });
+    await createEvento(admin, { title: "Sin coords", location: { texto: "Sin coords" } });
+    return admin;
+  }
+
+  it("incluye distanceKm por cada evento cuando el user tiene direccion", async () => {
+    await setupEventos();
+    const user = await createUser();
+    user.direccion = { texto: "Obelisco", ...obelisco };
+    await user.save();
+
+    const res = await request(app)
+      .get("/api/eventos")
+      .set("Authorization", `Bearer ${tokenFor(user)}`);
+
+    expect(res.status).toBe(200);
+    const byTitle = Object.fromEntries(res.body.eventos.map((e) => [e.title, e.distanceKm]));
+    expect(byTitle["Cerca"]).toBeCloseTo(0, 1);
+    expect(byTitle["Medio"]).toBeGreaterThan(50);
+    expect(byTitle["Medio"]).toBeLessThan(62);
+    expect(byTitle["Lejos"]).toBeGreaterThan(270);
+    expect(byTitle["Sin coords"]).toBeNull();
+  });
+
+  it("filtra por ?maxDistanceKm cuando el user tiene direccion", async () => {
+    await setupEventos();
+    const user = await createUser();
+    user.direccion = { texto: "Obelisco", ...obelisco };
+    await user.save();
+
+    const res = await request(app)
+      .get("/api/eventos")
+      .query({ maxDistanceKm: 100 })
+      .set("Authorization", `Bearer ${tokenFor(user)}`);
+
+    expect(res.status).toBe(200);
+    const titles = res.body.eventos.map((e) => e.title).sort();
+    expect(titles).toEqual(["Cerca", "Medio"]);
+    expect(res.body.total).toBe(2);
+  });
+
+  it("ignora ?maxDistanceKm cuando el user no tiene direccion", async () => {
+    await setupEventos();
+    const user = await createUser();
+    const res = await request(app)
+      .get("/api/eventos")
+      .query({ maxDistanceKm: 10 })
+      .set("Authorization", `Bearer ${tokenFor(user)}`);
+    expect(res.status).toBe(200);
+    expect(res.body.eventos.length).toBe(4);
+  });
+});
+
+describe("POST /api/eventos — location obligatoria", () => {
+  it("rechaza con 400 si el admin no manda location (sin fallback al perfil)", async () => {
+    // Aunque el admin tenga direccion en el perfil, location NO se hereda
+    // para eventos: el lugar del evento siempre debe especificarse explícito.
+    const { user: admin, token } = await createAuthedUser({ isAdmin: true });
+    admin.direccion = { texto: "Av. Corrientes 1234", lat: -34.6, lng: -58.4 };
+    await admin.save();
+
+    const res = await request(app)
+      .post("/api/eventos")
+      .set("Authorization", `Bearer ${token}`)
+      .field("title", "Mi evento")
+      .field("eventDate", new Date(Date.now() + 14 * 86400000).toISOString());
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/lugar.*obligatorio/i);
+  });
+
+  it("rechaza con 400 si location se manda vacío (texto vacío)", async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const res = await request(app)
+      .post("/api/eventos")
+      .set("Authorization", `Bearer ${token}`)
+      .field("title", "Mi evento")
+      .field("eventDate", new Date(Date.now() + 14 * 86400000).toISOString())
+      .field("location", JSON.stringify({ texto: "", lat: null, lng: null }));
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/lugar.*obligatorio/i);
+  });
+
+  it("acepta location como string JSON desde FormData", async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const res = await request(app)
+      .post("/api/eventos")
+      .set("Authorization", `Bearer ${token}`)
+      .field("title", "Mi evento")
+      .field("eventDate", new Date(Date.now() + 14 * 86400000).toISOString())
+      .field("location", JSON.stringify({ texto: "Bar X", lat: -34.5, lng: -58.5 }));
+
+    expect(res.status).toBe(201);
+    expect(res.body.location).toEqual({ texto: "Bar X", lat: -34.5, lng: -58.5 });
+  });
+
+  it("acepta texto sin coords (el user tipeó libre, sin picar sugerencia)", async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const res = await request(app)
+      .post("/api/eventos")
+      .set("Authorization", `Bearer ${token}`)
+      .field("title", "Mi evento")
+      .field("eventDate", new Date(Date.now() + 14 * 86400000).toISOString())
+      .field("location", JSON.stringify({ texto: "Bar Pepe", lat: null, lng: null }));
+
+    expect(res.status).toBe(201);
+    expect(res.body.location.texto).toBe("Bar Pepe");
+    expect(res.body.location.lat).toBeNull();
+  });
+});
+
 describe("PUT /api/eventos/:id", () => {
   it("partial update preserves untouched fields (regression: cancel was clobbering eventDate, description, etc.)", async () => {
     const admin = await createUser({ isAdmin: true });
@@ -231,7 +354,8 @@ describe("PUT /api/eventos/:id", () => {
     expect(res.body.status).toBe("cancelled");
     expect(res.body.description).toBe("Una descripción importante");
     expect(res.body.conditions).toBe("Condiciones puntuales");
-    expect(res.body.location).toBe("Bar La Torre");
+    // location ahora es subdoc { texto, lat, lng } — el legacy string se normaliza.
+    expect(res.body.location.texto).toBe("Bar La Torre");
     expect(res.body.eventDate).toBeTruthy();
     expect(res.body.fee).toBe(3500);
     expect(res.body.maxParticipants).toBe(24);
@@ -244,26 +368,41 @@ describe("PUT /api/eventos/:id", () => {
     expect(list.body.eventos.map((e) => e.title)).toContain("Evento original");
   });
 
-  it("full form update can still clear individual fields with empty strings", async () => {
+  it("full form update can clear optional fields with empty strings (pero NO location)", async () => {
     const admin = await createUser({ isAdmin: true });
     const evento = await createEvento(admin, {
       title: "Con descripción",
       description: "va a desaparecer",
-      location: "va a desaparecer",
+      location: "va a quedar igual",
       status: "open",
     });
 
+    // Limpia description (opcional) sin tocar location (obligatoria).
     const res = await request(app)
       .put(`/api/eventos/${evento._id}`)
       .set("Authorization", `Bearer ${tokenFor(admin)}`)
       .field("title", "Renombrado")
-      .field("description", "")
-      .field("location", "");
+      .field("description", "");
 
     expect(res.status).toBe(200);
     expect(res.body.title).toBe("Renombrado");
     expect(res.body.description).toBeFalsy();
-    expect(res.body.location).toBeFalsy();
+    // location no se tocó (no estaba en el body) → preserva el valor anterior.
+    expect(res.body.location.texto).toBe("va a quedar igual");
+  });
+
+  it("PUT rechaza con 400 si se intenta limpiar location explícitamente", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin, { title: "X", location: "Bar Pepe" });
+
+    const res = await request(app)
+      .put(`/api/eventos/${evento._id}`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .field("title", "X")
+      .field("location", "");
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/lugar.*obligatorio/i);
   });
 
   describe("imagen vieja vs upload nuevo (regresión: el destroy ocurría antes del upload)", () => {

@@ -47,7 +47,7 @@ Si las 4 se cumplen → es bug, eliminar el optimistic numérico. Si solo agarra
 **Auditoría confirmó que no se repite** (2026-05-21):
 
 - `TableDetail.sendMessage`/`handleAddComment`: arrays con dedup por `_id` en el listener (`prev.some(m => m._id === data._id) ? prev : [...prev, data]`) → safe.
-- `Eventos.handleCreate`: prepend optimistic + `evento:created` broadcast, pero el listener tiene `prev.some(e => e._id) → prev` → safe.
+- ~~`Eventos.handleCreate`: prepend optimistic + `evento:created` broadcast, pero el listener tiene `prev.some(e => e._id) → prev` → safe.~~ **CORREGIDO 2026-05-21**: la auditoría se equivocó. El listener dedupea, pero `handleCreate` por sí solo NO. Cuando el socket llega primero (caso típico en localhost), el evento se agrega via socket, luego `handleCreate` agrega de nuevo SIN chequear → duplicado. Fix: agregar el mismo `prev.some(e => e._id === data._id) ? prev : [data, ...prev]` también en `handleCreate`. **Regla**: el dedup tiene que vivir en AMBOS lados de la race (socket listener Y optimistic handler), no solo uno.
 - `CompartidaCard.handleLike`: el socket `compartida:like` solo notifica al autor, no toca el like count → safe.
 - `NotificationContext` y `ChatContext` cuentan en el RECIPIENT (que no hace HTTP), sin race posible.
 
