@@ -92,6 +92,31 @@ export default function Eventos() {
     load(1, true);
   }, [load]);
 
+  // Predicado que decide si un evento debe aparecer bajo el filter activo.
+  // Lo usan los listeners de socket para no agregar eventos que no califican
+  // (ej. un draft broadcasteado a un cliente con chip "Abiertos") y para sacar
+  // los que dejaron de calificar tras un evento:updated. `filter` y `userId`
+  // se capturan por closure — re-ejecutar el effect del socket cuando cambian
+  // no es problema porque los listeners se re-registran con el filter nuevo.
+  const matchesActiveFilter = useCallback(
+    (ev) => {
+      if (!ev) return false;
+      if (filter === "all") return true;
+      if (filter === "mine") {
+        if (!user) return false;
+        const isHost = ev.author?._id === userId;
+        const hasReg =
+          ev.userRegistration?.status &&
+          ["pending", "confirmed", "rejected"].includes(
+            ev.userRegistration.status,
+          );
+        return isHost || hasReg;
+      }
+      return ev.status === filter;
+    },
+    [filter, user, userId],
+  );
+
   // Real-time: la lista recibe broadcasts del room eventos:list para mantener
   // counts/status/eventos nuevos al día sin recargar. Solo emite cuando el
   // usuario está autenticado (el room requiere auth).
@@ -110,6 +135,9 @@ export default function Eventos() {
 
     socket.on("evento:created", (payload) => {
       if (!payload?.evento) return;
+      // Solo agregarlo si matchea el filter activo — un evento closed
+      // broadcasteado no debería aparecer en la lista "Abiertos".
+      if (!matchesActiveFilter(payload.evento)) return;
       setEventos((prev) => {
         if (prev.some((e) => e._id === payload.evento._id)) return prev;
         return [payload.evento, ...prev];
@@ -118,11 +146,22 @@ export default function Eventos() {
 
     socket.on("evento:updated", (payload) => {
       if (!payload?.eventoId || !payload.evento) return;
-      setEventos((prev) =>
-        prev.map((e) =>
-          e._id === payload.eventoId ? { ...e, ...payload.evento } : e,
-        ),
-      );
+      const merged = { ...payload.evento };
+      // Si el evento cambió de status y ya no matchea el filter activo,
+      // sacarlo del array para mantener la vista consistente.
+      const stillVisible = matchesActiveFilter(merged);
+      setEventos((prev) => {
+        if (!stillVisible)
+          return prev.filter((e) => e._id !== payload.eventoId);
+        const exists = prev.some((e) => e._id === payload.eventoId);
+        if (exists) {
+          return prev.map((e) =>
+            e._id === payload.eventoId ? { ...e, ...payload.evento } : e,
+          );
+        }
+        // Si pasó a estar visible recién (ej. draft → open), agregarlo.
+        return [payload.evento, ...prev];
+      });
     });
 
     socket.on("evento:counts-changed", (payload) => {
@@ -145,7 +184,10 @@ export default function Eventos() {
       socket.emit("leave:eventos-list");
       socket.disconnect();
     };
-  }, [user]);
+    // matchesActiveFilter cambia cuando cambia el filter activo — re-registrar
+    // los listeners con la closure nueva es el comportamiento deseado, sin
+    // necesidad de mantener una ref.
+  }, [user, matchesActiveFilter]);
 
   // Client-side filter for "mine" (server doesn't support it).
   const visibleEventos = useMemo(() => {

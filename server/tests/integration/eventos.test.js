@@ -456,6 +456,37 @@ describe("POST /api/eventos (admin only)", () => {
       .field("eventDate", new Date(Date.now() + 86400000).toISOString());
     expect(res.status).toBe(400);
   });
+
+  it("rechaza creación con status inválido devolviendo 400 (no 500 de mongoose)", async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const res = await request(app)
+      .post("/api/eventos")
+      .set("Authorization", `Bearer ${token}`)
+      .field("title", "Status raro")
+      .field("eventDate", new Date(Date.now() + 86400000).toISOString())
+      .field("status", "garbage");
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/status inválido/i);
+  });
+});
+
+describe("PUT /api/eventos/:id status validation", () => {
+  it("rechaza un PUT con status inválido devolviendo 400 (regresión: antes moría con 500 en mongoose)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin);
+
+    const res = await request(app)
+      .put(`/api/eventos/${evento._id}`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .field("status", "garbage");
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/status inválido/i);
+
+    // El evento no debe haber cambiado.
+    const refreshed = await Evento.findById(evento._id);
+    expect(refreshed.status).toBe(evento.status);
+  });
 });
 
 describe("PATCH /api/eventos/:id/inscripciones/:userId/confirmar", () => {

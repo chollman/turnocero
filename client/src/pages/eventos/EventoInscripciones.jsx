@@ -56,10 +56,14 @@ export default function EventoInscripciones() {
   }, [id, authLoading, user?.isAdmin]);
 
   // Real-time: escuchar nuevas inscripciones y revisiones del propio evento.
-  // Sólo monta el socket cuando ya está cargado el evento (data) para evitar
-  // race con el 404/redirect.
+  // El socket se monta cuando hay admin autenticado e id, y NO depende de
+  // `data` — si dependiera, cada incoming update reescribiría data.evento
+  // (vía evento:updated) y dispararía un leave+rejoin del socket. El check
+  // de `data?.evento` que estaba antes era defensivo pero innecesario: el
+  // server ignora los join:evento de eventos inexistentes, y los listeners
+  // usan setData(prev => prev ? ... : prev) para no-op si data llega null.
   useEffect(() => {
-    if (!data?.evento || !user?.isAdmin) return undefined;
+    if (!user?.isAdmin) return undefined;
     const token = localStorage.getItem("token");
     if (!token) return undefined;
     const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
@@ -146,7 +150,7 @@ export default function EventoInscripciones() {
       socket.emit("leave:evento", id);
       socket.disconnect();
     };
-  }, [data?.evento, id, user?.isAdmin]);
+  }, [id, user?.isAdmin]);
 
   const accept = useCallback(
     async (reg, adminNotes) => {

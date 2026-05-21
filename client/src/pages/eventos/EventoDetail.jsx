@@ -147,8 +147,11 @@ export default function EventoDetail() {
 
     socket.on("evento:updated", (payload) => {
       if (payload?.eventoId !== id || !payload.evento) return;
+      // Mismo problema que el PUT directo: el payload trae userRegistration:null
+      // porque el server no conoce al caller del socket. Usamos el helper que
+      // preserva la inscripción del usuario que está mirando.
       setEvento((prev) =>
-        prev ? { ...prev, ...payload.evento } : payload.evento,
+        prev ? mergeEventoUpdate(prev, payload.evento) : payload.evento,
       );
     });
 

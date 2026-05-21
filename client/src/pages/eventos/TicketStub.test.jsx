@@ -118,6 +118,29 @@ describe("<TicketStub>", () => {
     expect(screen.getByText(/inscripción rechazada/i)).toBeInTheDocument();
   });
 
+  it('"Volver a intentar" abre el form de inscripción (regresión: el click no respondía porque el ladder no llegaba a la rama showForm)', () => {
+    render(
+      <TicketStub
+        evento={makeEvento({ fee: 2500 })}
+        user={{ _id: "u1" }}
+        userRegistration={{ status: "rejected", permanentlyRejected: false }}
+        onInscribirse={noop}
+      />,
+    );
+    // Estado inicial: vemos el banner de rechazo + el botón "Volver a intentar".
+    expect(screen.getByText(/inscripción rechazada/i)).toBeInTheDocument();
+    const retry = screen.getByRole("button", { name: /volver a intentar/i });
+    fireEvent.click(retry);
+    // Tras el click, el form debe estar visible — confirmamos por el botón
+    // "Confirmar" del propio form y el botón "Cancelar".
+    expect(
+      screen.getByRole("button", { name: /^confirmar$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^cancelar$/i }),
+    ).toBeInTheDocument();
+  });
+
   it("shows host admin actions when isHost is true", () => {
     const onOpenInscripciones = vi.fn();
     const onEdit = vi.fn();

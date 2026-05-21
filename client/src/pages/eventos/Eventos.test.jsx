@@ -7,6 +7,29 @@ import { server } from "../../test/server";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
+// Mock socket.io-client capturando los listeners para dispararlos manualmente.
+const socketListeners = new Map();
+vi.mock("socket.io-client", () => ({
+  io: () => {
+    socketListeners.clear();
+    return {
+      on: (event, fn) => {
+        socketListeners.set(event, fn);
+      },
+      off: () => {},
+      emit: () => {},
+      disconnect: () => {},
+      connect: () => {},
+    };
+  },
+}));
+async function triggerSocket(event, payload) {
+  const { act } = await import("@testing-library/react");
+  const fn = socketListeners.get(event);
+  if (!fn) throw new Error(`No listener for ${event}`);
+  act(() => fn(payload));
+}
+
 import Eventos from "./Eventos";
 import { useAuth } from "../../context/AuthContext";
 
@@ -372,5 +395,67 @@ describe("<Eventos>", () => {
 
     // El draft creado debe aparecer en la lista (porque el filter cambió a Borradores)
     expect(await screen.findByText("Mi Draft")).toBeInTheDocument();
+  });
+
+  it("socket evento:created NO inserta eventos que no matchean el filter activo (regresión)", async () => {
+    localStorage.setItem("token", "fake");
+    server.use(
+      http.get("/api/eventos", () =>
+        HttpResponse.json({
+          eventos: [
+            makeEvento({
+              _id: "open1",
+              title: "Abierto Existente",
+              status: "open",
+            }),
+          ],
+          page: 1,
+          pages: 1,
+          total: 1,
+        }),
+      ),
+    );
+    renderPage({ user: { _id: "u1", isAdmin: false } });
+    await screen.findByText("Abierto Existente");
+
+    // Broadcast llega anunciando un closed creado por otro admin (caso raro
+    // pero posible si el server lo broadcastea — el filter "Abiertos" no
+    // debería incorporarlo).
+    await triggerSocket("evento:created", {
+      evento: makeEvento({
+        _id: "closed1",
+        title: "Cerrado Intruso",
+        status: "closed",
+      }),
+    });
+
+    expect(screen.queryByText("Cerrado Intruso")).not.toBeInTheDocument();
+    expect(screen.getByText("Abierto Existente")).toBeInTheDocument();
+  });
+
+  it("socket evento:updated saca de la vista los items que dejaron de matchear el filter (regresión)", async () => {
+    localStorage.setItem("token", "fake");
+    server.use(
+      http.get("/api/eventos", () =>
+        HttpResponse.json({
+          eventos: [
+            makeEvento({ _id: "ev1", title: "Va a cerrar", status: "open" }),
+          ],
+          page: 1,
+          pages: 1,
+          total: 1,
+        }),
+      ),
+    );
+    renderPage({ user: { _id: "u1", isAdmin: false } });
+    await screen.findByText("Va a cerrar");
+
+    // Otro admin cierra el evento mientras yo estoy viendo "Abiertos".
+    await triggerSocket("evento:updated", {
+      eventoId: "ev1",
+      evento: { _id: "ev1", title: "Va a cerrar", status: "closed" },
+    });
+
+    expect(screen.queryByText("Va a cerrar")).not.toBeInTheDocument();
   });
 });

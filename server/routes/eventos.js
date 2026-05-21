@@ -197,6 +197,12 @@ router.post(
           .status(400)
           .json({ message: "La fecha del evento no es válida" });
       }
+      const VALID_STATUSES = ["draft", "open", "closed", "cancelled"];
+      if (req.body.status && !VALID_STATUSES.includes(req.body.status)) {
+        return res.status(400).json({
+          message: `Status inválido. Debe ser uno de: ${VALID_STATUSES.join(", ")}`,
+        });
+      }
 
       let image;
       if (req.file) {
@@ -332,6 +338,15 @@ router.put(
   multer.single("image"),
   async (req, res) => {
     try {
+      // Validar status temprano contra el enum antes de hacer queries.
+      // Sin esto, un valor inválido moría en mongoose validation → 500 genérico.
+      const VALID_STATUSES = ["draft", "open", "closed", "cancelled"];
+      if (req.body.status && !VALID_STATUSES.includes(req.body.status)) {
+        return res.status(400).json({
+          message: `Status inválido. Debe ser uno de: ${VALID_STATUSES.join(", ")}`,
+        });
+      }
+
       const evento = await Evento.findById(req.params.id);
       if (!evento)
         return res.status(404).json({ message: "Evento no encontrado" });

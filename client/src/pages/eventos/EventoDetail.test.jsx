@@ -1,11 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
+
+// Mock socket.io-client capturando los listeners para poder dispararlos
+// manualmente desde los tests. `__lastSocket` siempre apunta al último socket
+// creado, y `__emit(event, payload)` invoca el handler registrado.
+const socketListeners = new Map();
+let _lastSocket = null;
+vi.mock("socket.io-client", () => ({
+  io: () => {
+    socketListeners.clear();
+    const s = {
+      on: (event, fn) => {
+        socketListeners.set(event, fn);
+      },
+      off: () => {},
+      emit: () => {},
+      disconnect: () => {},
+      connect: () => {},
+    };
+    _lastSocket = s;
+    return s;
+  },
+}));
+
+function triggerSocket(event, payload) {
+  const fn = socketListeners.get(event);
+  if (!fn) throw new Error(`No listener registered for ${event}`);
+  act(() => fn(payload));
+}
 
 import EventoDetail from "./EventoDetail";
 import { useAuth } from "../../context/AuthContext";
@@ -163,6 +191,43 @@ describe("<EventoDetail>", () => {
     await screen.findByRole("heading", { name: "Mi Evento" });
     expect(screen.getByText("Organizer")).toBeInTheDocument();
     expect(screen.getByText("@organizer")).toBeInTheDocument();
+  });
+
+  it("socket evento:updated no pisa userRegistration con null (regresión: el broadcast hacía perder el badge de inscripción)", async () => {
+    // User no-host con inscripción confirmada.
+    setupEvento(
+      makeEvento({
+        title: "Original",
+        userRegistration: { status: "confirmed", _id: "myReg" },
+      }),
+    );
+    // Token presente para que el useEffect del socket avance.
+    localStorage.setItem("token", "fake-token");
+    renderDetail({ user: { _id: "me" } });
+    // Badge inicial visible.
+    expect(
+      await screen.findByText(/inscripción confirmada/i),
+    ).toBeInTheDocument();
+
+    // Otro admin edita el evento → server emite con userRegistration:null.
+    triggerSocket("evento:updated", {
+      eventoId: "e1",
+      evento: {
+        _id: "e1",
+        title: "Renombrado",
+        status: "open",
+        registrationCount: { total: 1, pending: 0, confirmed: 1 },
+        userRegistration: null,
+      },
+    });
+
+    // El título cambia pero el badge de inscripción confirmada sigue.
+    expect(
+      await screen.findByRole("heading", { name: /renombrado/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/inscripción confirmada/i)).toBeInTheDocument();
+
+    localStorage.removeItem("token");
   });
 
   it("guarda edits sin pisar confirmedRegistrations (regresión: PUT no incluye ese campo)", async () => {
