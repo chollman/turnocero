@@ -193,6 +193,48 @@ describe("<EventoDetail>", () => {
     expect(screen.getByText("@organizer")).toBeInTheDocument();
   });
 
+  it("handleInscribirse NO suma optimistamente a counts (regresión: contaba de a 2 por race con socket)", async () => {
+    setupEvento(
+      makeEvento({
+        fee: 0,
+        status: "open",
+        registrationCount: { total: 2, pending: 1, confirmed: 1 },
+      }),
+    );
+    server.use(
+      http.post("/api/eventos/:id/inscribirse", () =>
+        HttpResponse.json({ _id: "myReg", status: "pending" }, { status: 201 }),
+      ),
+    );
+    localStorage.setItem("token", "fake");
+    renderDetail({ user: { _id: "me" } });
+    await screen.findByRole("heading", { name: "Mi Evento" });
+
+    // Counts iniciales: active = pending(1) + confirmed(1) = 2.
+    // El meta-strip muestra "2 de 20" en la celda Cupo.
+    fireEvent.click(
+      await screen.findByRole("button", { name: /^inscribirme/i }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^confirmar$/i }));
+
+    // Esperar a que el POST resuelva (aparece estado "Pendiente de revisión").
+    await screen.findByText(/pendiente de revisión/i);
+
+    // El handler NO debe haber sumado optimistamente — los counts siguen igual
+    // hasta que llegue el socket evento:counts-changed (que simulamos abajo).
+    expect(screen.getByText(/2 de 20/)).toBeInTheDocument();
+
+    // Simulamos el broadcast del server. El handler debe REEMPLAZAR (no sumar).
+    triggerSocket("evento:counts-changed", {
+      eventoId: "e1",
+      counts: { total: 3, pending: 2, confirmed: 1 },
+    });
+    // Active count nuevo = 2+1 = 3.
+    expect(await screen.findByText(/3 de 20/)).toBeInTheDocument();
+
+    localStorage.removeItem("token");
+  });
+
   it("socket evento:updated no pisa userRegistration con null (regresión: el broadcast hacía perder el badge de inscripción)", async () => {
     // User no-host con inscripción confirmada.
     setupEvento(

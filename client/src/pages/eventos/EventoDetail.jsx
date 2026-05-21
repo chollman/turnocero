@@ -185,14 +185,14 @@ export default function EventoDetail() {
           headers: { "Content-Type": "multipart/form-data" },
         },
       );
+      // Sólo actualizamos `userRegistration` localmente. Los counts los
+      // refresca el broadcast `evento:counts-changed` que el server emite
+      // antes de responder — si los tocamos optimistamente acá, doblamos:
+      // el socket entrega el count autoritativo (+1) y el optimistic suma
+      // 1 encima → +2.
       setEvento((prev) => ({
         ...prev,
         userRegistration: userReg,
-        registrationCount: {
-          ...prev.registrationCount,
-          total: (prev.registrationCount?.total || 0) + 1,
-          pending: (prev.registrationCount?.pending || 0) + 1,
-        },
       }));
     } catch (err) {
       const msg =
@@ -209,14 +209,12 @@ export default function EventoDetail() {
     setActionError("");
     try {
       await axios.delete(`/api/eventos/${id}/inscribirse`);
+      // Mismo patrón que handleInscribirse: el socket evento:counts-changed
+      // ya viene con el count autoritativo, así que no tocamos counts acá.
+      // Sólo limpiamos userRegistration.
       setEvento((prev) => ({
         ...prev,
         userRegistration: null,
-        registrationCount: {
-          ...prev.registrationCount,
-          total: Math.max(0, (prev.registrationCount?.total || 1) - 1),
-          pending: Math.max(0, (prev.registrationCount?.pending || 1) - 1),
-        },
       }));
     } catch (err) {
       setActionError(
