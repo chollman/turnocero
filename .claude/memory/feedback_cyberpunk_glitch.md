@@ -1,7 +1,7 @@
 ---
 name: feedback-cyberpunk-glitch
-description: "Cyberpunk glitch is the user's preferred aesthetic for \"impactful\" / \"striking\" effects — use it as the default when asked for an impressive entrance/transition."
-metadata: 
+description: 'Cyberpunk glitch is the user''s preferred aesthetic for "impactful" / "striking" effects — use it as the default when asked for an impressive entrance/transition.'
+metadata:
   node_type: memory
   type: feedback
   originSessionId: f182a745-93aa-4191-b084-7968b30e2f8b
@@ -23,4 +23,21 @@ When the user asks for an "efecto impactante", "algo llamativo", a striking entr
 - Always respect `prefers-reduced-motion: reduce` (disable animation + hide pseudo-elements).
 - Use accent-color tokens (`var(--amber)`, `var(--purple)`) sparingly for variety in intermediate frames; the magenta + cyan should dominate.
 
-This is for *impactful moments*, not everyday transitions — applying it to mundane UI (button hovers, page nav) would dilute the effect. Reserve for first-mount entrances of important overlays/windows.
+This is for _impactful moments_, not everyday transitions — applying it to mundane UI (button hovers, page nav) would dilute the effect. Reserve for first-mount entrances of important overlays/windows.
+
+## Gotcha — scroll fantasma del beam (`::after`)
+
+El scan beam termina con `transform: translateY(100%)` (queda posicionado justo debajo de la caja del contenedor). Como es un pseudo-elemento `position: absolute`, ese box transformado **se suma al `scrollHeight` del documento** — efectivamente duplicando la altura del contenedor en el scroll. Resultado: scroll vacío más allá del contenido, y en layouts con sidebar fijo + main content, parece que "se scrollea el sidebar" porque el body es más largo de lo que debería.
+
+**Fix**: `overflow: clip` en el contenedor animado.
+
+- **NO usar `overflow: hidden`** — rompe `position: sticky` en descendientes (ej. el `TicketStub` del aside en EventoDetail). `clip` no crea contexto de scroll y preserva sticky.
+- Síntoma típico: `element.scrollHeight ≈ 2× element.offsetHeight` y `body.scrollHeight` infla cuando el efecto está activo.
+- Aplicar al mismo elemento que tiene el `position: relative` + animación + pseudo-elementos.
+
+**Ya aplicado en:**
+
+- `.comments` de [CompartidaCard.module.css](client/src/pages/compartidas/CompartidaCard.module.css) (aparición al expandir comentarios — más notorio en la última card del feed).
+- `.main` y `.aside` de [EventoDetail.module.css](client/src/pages/eventos/EventoDetail.module.css) (boot-in del detalle + cascade del TicketStub).
+
+Cualquier nueva aplicación del efecto cyber-glitch con beam debe incluir `overflow: clip` desde el inicio.

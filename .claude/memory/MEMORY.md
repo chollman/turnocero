@@ -15,7 +15,7 @@
 - [Theme support](feedback_theme_support.md) — every new feature/screen must work in both dark and light themes; use CSS variables, never hardcoded colors
 - [Dev scripts](reference_dev_scripts.md) — root has `npm run dev` (concurrently) + `dev:server` / `dev:client`; CLAUDE.md only documents the split form
 - [No worktrees](feedback_no_worktrees.md) — user doesn't want to work in `.claude/worktrees/`; work directly in `~/Projects/turnocero/` and use feature branches there
-- [Cyberpunk glitch effect](feedback_cyberpunk_glitch.md) — default aesthetic for "impactful"/striking entrances; magenta+cyan RGB split, scanlines, scan beam, `steps(1)` frames — see ChatWindow.module.css
+- [Cyberpunk glitch effect](feedback_cyberpunk_glitch.md) — default aesthetic for "impactful"/striking entrances; magenta+cyan RGB split, scanlines, scan beam, `steps(1)` frames — see ChatWindow.module.css. **Gotcha**: el beam `::after` con `translateY(100%)` infla `scrollHeight` del documento — siempre `overflow: clip` (no `hidden`, rompe sticky) en el contenedor animado.
 - [BGG cache pattern](feedback_bgg_cache_pattern.md) — toda integración con BGG usa memoria → Mongo → BGG con `?refresh=1` y botón cliente con cooldown 60s
 - [BGG sync engine (Phase 4)](feedback_bgg_sync_engine.md) — probe page-1 + reconcile dirigido + reconcile completo cada 30d + hash drift; reemplaza el wipe-and-refetch destructivo
 - [Prefer BggPlay aggregations over collection](feedback_bgg_prefer_plays_aggregation.md) — toda vista derivada (top games, stats, listas) debe salir de aggregations sobre BggPlay; la colección omite plays unowned y rompe con perfiles privados
