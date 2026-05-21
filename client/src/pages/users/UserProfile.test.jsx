@@ -4,25 +4,24 @@ import { MemoryRouter } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../test/server';
 
-// Mocks BEFORE importing UserProfile — leaflet crashes in jsdom.
-vi.mock('leaflet', () => ({
-  default: {
-    map: () => ({
-      remove: () => {},
-      setView: () => {},
-      on: () => {},
-    }),
-    tileLayer: () => ({ addTo: () => {} }),
-    divIcon: () => ({}),
-    marker: () => ({
-      addTo: () => ({ on: () => {}, setLatLng: () => {}, setIcon: () => {} }),
-      on: () => {},
-      setLatLng: () => {},
-      setIcon: () => {},
-    }),
-  },
+// Mocks BEFORE importing UserProfile.
+// Los componentes de Google Maps se renderizan como stubs livianos — sus
+// tests propios cubren el comportamiento real.
+vi.mock('../../components/shared/AddressMap', () => ({
+  default: ({ lat, lng }) => (
+    <div data-testid="address-map" data-lat={lat ?? ''} data-lng={lng ?? ''} />
+  ),
 }));
-vi.mock('leaflet/dist/leaflet.css', () => ({}));
+vi.mock('../../components/shared/PlaceAutocomplete', () => ({
+  default: ({ value, onChange, placeholder }) => (
+    <input
+      data-testid="place-autocomplete"
+      value={value || ''}
+      onChange={(e) => onChange?.(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
+}));
 
 vi.mock('../../context/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('../../context/SiteConfigContext', () => ({ useSiteConfig: vi.fn() }));
@@ -323,5 +322,90 @@ describe('UserProfile — Reconciliar todo con BGG', () => {
     setup({ user: connectedUser });
     fireEvent.click(screen.getByRole('button', { name: /reconciliar todo con bgg/i }));
     expect(await screen.findByText('BGG offline')).toBeInTheDocument();
+  });
+});
+
+describe('UserProfile — Dirección (Google Maps)', () => {
+  it('renders PlaceAutocomplete and AddressMap', () => {
+    setup({ user: { _id: 'u1', username: 'cha', email: 'a@b.com' } });
+    expect(screen.getByTestId('place-autocomplete')).toBeInTheDocument();
+    expect(screen.getByTestId('address-map')).toBeInTheDocument();
+  });
+
+  it('pre-loads the autocomplete with saved direccion.texto', () => {
+    setup({
+      user: {
+        _id: 'u1',
+        username: 'cha',
+        email: 'a@b.com',
+        direccion: { texto: 'Av. Corrientes 1234, CABA', lat: -34.6, lng: -58.4 },
+      },
+    });
+    expect(screen.getByTestId('place-autocomplete')).toHaveValue('Av. Corrientes 1234, CABA');
+  });
+
+  it('passes saved coords to AddressMap as data-* for inspection', () => {
+    setup({
+      user: {
+        _id: 'u1',
+        username: 'cha',
+        email: 'a@b.com',
+        direccion: { texto: 'X', lat: -34.6, lng: -58.4 },
+      },
+    });
+    const map = screen.getByTestId('address-map');
+    expect(map).toHaveAttribute('data-lat', '-34.6');
+    expect(map).toHaveAttribute('data-lng', '-58.4');
+  });
+
+  it('calls /api/geocode when "Buscar" is clicked, updates coords on success', async () => {
+    server.use(
+      http.get('/api/geocode', ({ request }) => {
+        const url = new URL(request.url);
+        expect(url.searchParams.get('q')).toBe('Florida 100');
+        return HttpResponse.json({
+          lat: -34.6, lng: -58.4, formatted: 'Florida 100, CABA', cached: false,
+        });
+      }),
+    );
+    setup({
+      user: {
+        _id: 'u1', username: 'cha', email: 'a@b.com',
+        direccion: { texto: 'Florida 100', lat: null, lng: null },
+      },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    // El handler vuelve y setea el form — esperamos a que el map muestre nuevas coords.
+    await waitFor(() => {
+      expect(screen.getByTestId('address-map')).toHaveAttribute('data-lat', '-34.6');
+    });
+    expect(screen.getByTestId('place-autocomplete')).toHaveValue('Florida 100, CABA');
+  });
+
+  it('shows a friendly error when /api/geocode returns 404', async () => {
+    server.use(
+      http.get('/api/geocode', () =>
+        HttpResponse.json({ message: 'No se encontró esa dirección.' }, { status: 404 }),
+      ),
+    );
+    setup({
+      user: {
+        _id: 'u1', username: 'cha', email: 'a@b.com',
+        direccion: { texto: 'asdfqwer1234', lat: null, lng: null },
+      },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    expect(await screen.findByText(/no se encontró la dirección/i)).toBeInTheDocument();
+  });
+
+  it('refuses to geocode if the typed text is too short', () => {
+    setup({
+      user: {
+        _id: 'u1', username: 'cha', email: 'a@b.com',
+        direccion: { texto: 'ab', lat: null, lng: null },
+      },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    expect(screen.getByText(/al menos 3 caracteres/i)).toBeInTheDocument();
   });
 });

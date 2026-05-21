@@ -1,0 +1,36 @@
+.map {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+
+/* Custom marker — círculo amber con anillo. */
+.pin {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: 3px solid var(--bg-card);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  /* AdvancedMarker centra el child en la coord, así que no hace falta translate. */
+}
+
+.error {
+  margin: 0;
+  padding: 16px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+
+.error code {
+  background: var(--bg-dark);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+}

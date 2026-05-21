@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse, delay } from 'msw';
 import { server } from '../../test/server';
 
 vi.mock('./Pagination', () => ({
@@ -47,7 +47,16 @@ beforeEach(() => {
 });
 
 describe('<ColeccionPanel>', () => {
-  it('shows loading state initially', () => {
+  it('shows loading state initially', async () => {
+    // Override con delay para garantizar que el render ve el estado de carga
+    // antes de que MSW resuelva. Sin esto el handler default resuelve sync y
+    // el assertion compite contra el primer paint post-fetch (flaky).
+    server.use(
+      http.get('/api/bgg/coleccion/:bggUsername', async () => {
+        await delay(50);
+        return HttpResponse.json([]);
+      }),
+    );
     renderPanel();
     expect(screen.getByText(/cargando colección/i)).toBeInTheDocument();
   });

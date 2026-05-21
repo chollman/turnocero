@@ -5,17 +5,16 @@ import { useAuth } from '../../context/AuthContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useNotifications } from '../../context/NotificationContext';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 import MiBgWatchCard from './MiBgWatchCard';
 import Avatar from '../../components/shared/Avatar';
 import AvatarCropModal from '../../components/shared/AvatarCropModal';
+import AddressMap from '../../components/shared/AddressMap';
+import PlaceAutocomplete from '../../components/shared/PlaceAutocomplete';
 import styles from './UserProfile.module.css';
 
 const AVATAR_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
-const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 const BGWATCH_BANNER_DISMISS_KEY = 'turnocero_bgwatch_profile_banner_dismissed';
 
 const PROBE_OUTCOME_LABEL = {
@@ -35,17 +34,6 @@ function relativeTimeEs(date) {
   return new Date(date).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-const buildMarkerIcon = () => {
-  const amber = getComputedStyle(document.documentElement).getPropertyValue('--amber').trim() || '#1888ef';
-  const ring = getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() || '#ffffff';
-  return L.divIcon({
-    className: '',
-    html: `<div style="width:18px;height:18px;background:${amber};border:3px solid ${ring};border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-  });
-};
-
 const MoonIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
@@ -62,6 +50,8 @@ const SunIcon = () => (
 export default function UserProfile() {
   const { user, updateProfile, refreshUser } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
+  // theme se sigue usando para Apariencia (toggle dark/light); el mapa lo lee
+  // por su cuenta vía useTheme dentro de AddressMap.
   const { theme, setTheme } = useTheme();
   const { addToast } = useNotifications();
   const bgwatchEnabled = isSectionEnabled('bgwatch');
@@ -119,10 +109,6 @@ export default function UserProfile() {
   const [avatarError, setAvatarError] = useState('');
   const avatarInputRef = useRef(null);
 
-  const mapContainerRef = useRef(null);
-  const mapRef = useRef(null);
-  const markerRef = useRef(null);
-  const updateMarkerRef = useRef(null);
   const errorTimerRef = useRef(null);
   const successTimerRef = useRef(null);
 
@@ -147,78 +133,50 @@ export default function UserProfile() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id]);
 
-  useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
-
-    const center = (user?.direccion?.lat && user?.direccion?.lng)
-      ? [user.direccion.lat, user.direccion.lng]
-      : [-34.6037, -58.3816];
-
-    const map = L.map(mapContainerRef.current, { center, zoom: 13 });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>',
-    }).addTo(map);
-    mapRef.current = map;
-
-    const placeMarker = (lat, lng) => {
-      if (markerRef.current) {
-        markerRef.current.setLatLng([lat, lng]);
-      } else {
-        const m = L.marker([lat, lng], { icon: buildMarkerIcon(), draggable: true }).addTo(map);
-        m.on('dragend', (e) => {
-          const pos = e.target.getLatLng();
-          setForm((prev) => ({ ...prev, lat: pos.lat, lng: pos.lng }));
-        });
-        markerRef.current = m;
-      }
-      map.setView([lat, lng], 15);
-      setForm((prev) => ({ ...prev, lat, lng }));
-    };
-
-    updateMarkerRef.current = placeMarker;
-
-    if (user?.direccion?.lat && user?.direccion?.lng) {
-      placeMarker(user.direccion.lat, user.direccion.lng);
-    }
-
-    map.on('click', (e) => placeMarker(e.latlng.lat, e.latlng.lng));
-
-    return () => {
-      map.remove();
-      mapRef.current = null;
-      markerRef.current = null;
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (markerRef.current) {
-      markerRef.current.setIcon(buildMarkerIcon());
-    }
-  }, [theme]);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleGeocode = async () => {
-    if (!form.direccionTexto.trim()) return;
+  // Usuario eligió una sugerencia del autocomplete → set texto + coords.
+  const handlePlaceSelect = ({ lat, lng, formattedAddress }) => {
+    setForm((prev) => ({
+      ...prev,
+      direccionTexto: formattedAddress || prev.direccionTexto,
+      lat,
+      lng,
+    }));
+  };
+
+  // Click en el mapa o drag del marker → solo coords (el texto queda como esté).
+  const handleMapChange = (lat, lng) => {
+    setForm((prev) => ({ ...prev, lat, lng }));
+  };
+
+  // Fallback: el usuario tipeó algo pero no picó una sugerencia.
+  // Llama a /api/geocode (cache server-side) para resolver el texto.
+  const handleManualGeocode = async () => {
+    const q = form.direccionTexto.trim();
+    if (q.length < 3) {
+      setError('Escribí una dirección de al menos 3 caracteres.');
+      clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => setError(''), 3000);
+      return;
+    }
     setGeocoding(true);
     try {
-      const res = await fetch(
-        `${NOMINATIM}?format=json&q=${encodeURIComponent(form.direccionTexto)}&limit=1`,
-        { headers: { 'Accept-Language': 'es' } }
-      );
-      const data = await res.json();
-      if (data.length > 0) {
-        updateMarkerRef.current?.(parseFloat(data[0].lat), parseFloat(data[0].lon));
-      } else {
-        setError('No se encontró la dirección. Intentá ser más específico.');
-        clearTimeout(errorTimerRef.current);
-        errorTimerRef.current = setTimeout(() => setError(''), 3000);
-      }
-    } catch {
-      setError('Error al buscar la dirección.');
+      const { data } = await axios.get('/api/geocode', { params: { q } });
+      setForm((prev) => ({
+        ...prev,
+        direccionTexto: data.formatted || prev.direccionTexto,
+        lat: data.lat,
+        lng: data.lng,
+      }));
+    } catch (err) {
+      const msg = err.response?.status === 404
+        ? 'No se encontró la dirección. Intentá ser más específico o picá una sugerencia.'
+        : err.response?.data?.message || 'Error al buscar la dirección.';
+      setError(msg);
       clearTimeout(errorTimerRef.current);
       errorTimerRef.current = setTimeout(() => setError(''), 3000);
     } finally {
@@ -727,22 +685,22 @@ export default function UserProfile() {
             <div className={styles.section}>
               <div className={styles.sectionLabel}>Dirección</div>
               <p className={styles.hint}>
-                Escribí tu dirección y hacé clic en <strong>Buscar</strong>, o cliqueá directamente en el mapa para marcar tu ubicación.
+                Empezá a escribir y elegí una opción del menú, o cliqueá directamente en el mapa para marcar tu ubicación.
               </p>
 
               <div className={styles.geocodeRow}>
-                <input
-                  className={styles.input}
-                  name="direccionTexto"
+                <PlaceAutocomplete
                   value={form.direccionTexto}
-                  onChange={handleChange}
+                  onChange={(text) => setForm((prev) => ({ ...prev, direccionTexto: text }))}
+                  onSelect={handlePlaceSelect}
                   placeholder="Ej: Av. Corrientes 1234, Buenos Aires"
                 />
                 <button
                   type="button"
                   className={styles.btnSearch}
-                  onClick={handleGeocode}
+                  onClick={handleManualGeocode}
                   disabled={geocoding}
+                  title="Buscar la dirección que tipeaste (si no querés usar las sugerencias)"
                 >
                   {geocoding ? '…' : 'Buscar'}
                 </button>
@@ -754,7 +712,11 @@ export default function UserProfile() {
                 </p>
               )}
 
-              <div ref={mapContainerRef} className={styles.map} />
+              <AddressMap
+                lat={form.lat}
+                lng={form.lng}
+                onChange={handleMapChange}
+              />
             </div>
 
             <div className={styles.actions}>

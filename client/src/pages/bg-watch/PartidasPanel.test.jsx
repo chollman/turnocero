@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse, delay } from 'msw';
 import { server } from '../../test/server';
 
 vi.mock('./PlayCard', () => ({
@@ -45,6 +45,12 @@ beforeEach(() => {
 
 describe('<PartidasPanel>', () => {
   it('shows loading state initially in list mode', () => {
+    server.use(
+      http.get('/api/bgg/partidas/:bggUsername', async () => {
+        await delay(50);
+        return HttpResponse.json({ plays: [], page: 1, total: 0, totalPages: 1 });
+      }),
+    );
     renderPanel();
     expect(screen.getByText(/cargando partidas/i)).toBeInTheDocument();
   });
