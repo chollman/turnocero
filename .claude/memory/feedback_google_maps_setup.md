@@ -29,11 +29,25 @@ Google Maps solo acepta `mapId` al construir el mapa — cambiar el prop despué
 
 En el editor nuevo de Cloud Console, cada Map Style tiene un "Style type" (Light/Dark). Estos styles tipados **solo se aplican si pasás también `colorScheme="LIGHT"` o `"DARK"` al `<Map>`**. Sin esto, el Map ID + Style están perfectamente configurados pero el estilo NO se renderiza, cae al default. Aplicar siempre `colorScheme={theme === 'light' ? 'LIGHT' : 'DARK'}` junto con el `mapId`.
 
-## Reuso en Tables (Mesas) — 2026-05
+## Reuso en Tables y Eventos — 2026-05
 
-Mismo patrón aplicado a `Table.location`: migrado de `String` a `{ texto, lat, lng }` con `pre('init')` hook para lazy upgrade. `CreateTable` + `EditTable` reusan `<PlaceAutocomplete>` + `<AddressMap>`. Distancia user↔mesa se calcula con **Haversine puro** (sin APIs de Google) en `server/utils/geo.js`, expuesta como `distanceKm` en cada item de `GET /api/tables`, con filtro server-side `?maxDistanceKm=N` (bbox + refine en memoria, sin requerir 2dsphere). UI: badge verde en TableCard via helper `client/src/utils/distance.js#formatDistanceKm` ("Aquí mismo" / "850 m" / "12,3 km" / "250 km"). Slider de radio en dashboard con `useDebouncedValue(300ms)`.
+Mismo patrón aplicado a `Table.location` Y `Evento.location`: migrado de `String` a `{ texto, lat, lng, displayName? }` con `pre('init')` hook para lazy upgrade. Forms reusan `<PlaceAutocomplete>` + `<AddressMap>` (Tables) / solo `<PlaceAutocomplete>` (Eventos). Distancia user↔item se calcula con **Haversine puro** (sin APIs de Google) en `server/utils/geo.js`, expuesta como `distanceKm` en cada item de `GET /api/tables` y `GET /api/eventos`, con filtro server-side `?maxDistanceKm=N` (bbox + refine en memoria, sin requerir 2dsphere). UI: badge verde via helper `client/src/utils/distance.js#formatDistanceKm` ("850 m" / "12,3 km" / "250 km" — `null` para 0 y distancias < 10m que redondean a 0). Slider de radio en dashboard con `useDebouncedValue(300ms)`.
 
-Eventos pendiente — mismo patrón en otro PR.
+**Diferencias entre Tables y Eventos**:
+- Tables: location opcional, fallback al `user.direccion` en POST (no en PUT). Edit con `<AddressMap>` visual.
+- Eventos: location **obligatoria** (sin fallback), validación tanto en frontend (handleSubmit) como server (POST/PUT). Form sin mapa.
+- Eventos suma `location.displayName` (opcional, max 100): alias del lugar que reemplaza al `texto` formateado en cards/listas (ej. "Bar de Pepe" en vez de "Av. X 1234, CABA"). La dirección real sigue usándose para distancia y mapa.
+
+## Helpers de display de location
+
+`client/src/utils/location.js`:
+- `formatLocation(texto, mode)` — modos: `fullAddress` (default), `city` (solo localidad, strippea código postal AR), `regular` (calle + ciudad sin provincia/país). Heurística: descarta país (Argentina/Uruguay/Chile/Brasil) + provincia (`"Provincia de X"`, `"X Province"`), agarra último elemento → ciudad. Funciona con string libre (sin comas → devuelve tal cual).
+- `getLocationDisplay(location, mode)` — wrapper que respeta `location.displayName` si está seteado, sino cae a `formatLocation(location.texto, mode)`. **Usar este helper en componentes de display** en vez de `formatLocation` directo — centraliza la lógica del override.
+
+Convención de display por superficie:
+- **Listas/cards**: `getLocationDisplay(loc, 'city')` — máxima brevedad.
+- **Detalle**: `getLocationDisplay(loc, 'regular')` — calle + ciudad.
+- **Tooltip `title`**: siempre `loc.texto` crudo para que el user pueda ver la dirección completa.
 
 ## Backend geocoding cache (mismo patrón que BGG)
 

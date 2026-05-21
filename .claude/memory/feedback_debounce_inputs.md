@@ -32,5 +32,6 @@ Pasar el segundo argumento explícito cuando se aparte del default: `useDebounce
 
 - **Sliders**: aplicar el mismo patrón. El `value` del slider hace `setRadiusKm`, `useDebouncedValue(radiusKm, 300)` driveea el re-fetch. La UI muestra el valor INMEDIATO (no debounced) para feedback visual.
 - **Autocompletes de Google Places**: `PlaceAutocomplete` ya tiene su propio debounce interno (300ms hardcoded) — no aplicar `useDebouncedValue` por afuera.
+- **DateTimePicker shared**: NO usa debounce. El user pickea valores discretos (día, hora) que disparan onChange inmediato.
 
 Ver también: [feedback_google_maps_setup.md](feedback_google_maps_setup.md) para Places Autocomplete.
