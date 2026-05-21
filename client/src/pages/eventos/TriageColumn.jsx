@@ -37,10 +37,11 @@ export default function TriageColumn({
         {items.length === 0 ? (
           <div className={styles.empty}>{emptyText}</div>
         ) : (
-          items.map((reg) => (
+          items.map((reg, i) => (
             <InscItem
               key={reg._id || (reg.user?._id ?? reg.user)}
               reg={reg}
+              index={i}
               onAccept={onAccept}
               onReject={onReject}
               onUndo={onUndo}

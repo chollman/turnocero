@@ -147,9 +147,16 @@ describe("<EventoInscripciones>", () => {
     await waitFor(() => expect(rejectedUserId).toBe("a"));
   });
 
-  it("shows the undo button on rejected items", async () => {
+  it("shows the undo button on rejected items after expanding details", async () => {
     renderInsc();
     await screen.findByText("User d");
+    // El "Ver detalles" del rechazado (User d) está en la columna Rechazadas.
+    // Hay varios toggles (uno por cada item colapsado — pending #2+, confirmed,
+    // rejected); el de User d es el último porque Rechazadas es la última columna.
+    const verDetallesBtns = screen.getAllByRole("button", {
+      name: /ver detalles/i,
+    });
+    fireEvent.click(verDetallesBtns[verDetallesBtns.length - 1]);
     expect(
       screen.getAllByRole("button", { name: /revertir/i }).length,
     ).toBeGreaterThan(0);
@@ -171,9 +178,16 @@ describe("<EventoInscripciones>", () => {
     );
     renderInsc();
     await screen.findByText("User d");
+    // El toggle de Confirmadas (User c) es el penúltimo de los toggles
+    // en orden de DOM: pending#2 → confirmed → rejected.
+    const verDetallesBtns = screen.getAllByRole("button", {
+      name: /ver detalles/i,
+    });
+    // Penúltimo = confirmed (User c)
+    fireEvent.click(verDetallesBtns[verDetallesBtns.length - 2]);
     const undoBtns = screen.getAllByRole("button", { name: /revertir/i });
-    fireEvent.click(undoBtns[0]); // first one is for confirmed 'User c' (alphabetical first)
-    await waitFor(() => expect(revertedUserId).not.toBeNull());
+    fireEvent.click(undoBtns[0]);
+    await waitFor(() => expect(revertedUserId).toBe("c"));
   });
 
   it("renders 404 state when API returns 404", async () => {

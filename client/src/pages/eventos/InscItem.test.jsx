@@ -101,7 +101,7 @@ describe("<InscItem>", () => {
     expect(onReject.mock.calls[0][2]).toBe(true);
   });
 
-  it('shows "Puede volver a intentar" label on non-permanent rejected', () => {
+  it("rejected: muestra pill compacto y oculta detalles hasta que se expanda", () => {
     render(
       <InscItem
         reg={makeReg({
@@ -114,10 +114,24 @@ describe("<InscItem>", () => {
         onUndo={() => {}}
       />,
     );
+    // Pill compacto siempre visible
+    expect(screen.getByText(/puede reintentar/i)).toBeInTheDocument();
+    // Detalles ocultos por default
+    expect(
+      screen.queryByText(/puede volver a intentar/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /revertir/i }),
+    ).not.toBeInTheDocument();
+    // Click en "Ver detalles" los revela
+    fireEvent.click(screen.getByRole("button", { name: /ver detalles/i }));
     expect(screen.getByText(/puede volver a intentar/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /revertir/i }),
+    ).toBeInTheDocument();
   });
 
-  it('shows "Bloqueado del evento" label on permanently rejected', () => {
+  it("rejected (permanente): muestra pill bloqueado y revela label largo al expandir", () => {
     render(
       <InscItem
         reg={makeReg({
@@ -130,12 +144,46 @@ describe("<InscItem>", () => {
         onUndo={() => {}}
       />,
     );
+    expect(screen.getByText(/bloqueado/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/bloqueado del evento/i),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /ver detalles/i }));
     expect(screen.getByText(/bloqueado del evento/i)).toBeInTheDocument();
   });
 
-  it("shows undo button for confirmed/rejected", () => {
+  it("confirmed: muestra pill compacto y revela undo + notas al expandir", () => {
     const onUndo = vi.fn();
-    const { rerender } = render(
+    render(
+      <InscItem
+        reg={makeReg({
+          status: "confirmed",
+          reviewedAt: new Date().toISOString(),
+          adminNotes: "Pago recibido por transferencia",
+        })}
+        onAccept={() => {}}
+        onReject={() => {}}
+        onUndo={onUndo}
+      />,
+    );
+    expect(screen.getByText(/confirmada/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/pago recibido por transferencia/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /revertir/i }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /ver detalles/i }));
+    expect(
+      screen.getByText(/pago recibido por transferencia/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /revertir/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('toggle alterna entre "Ver detalles" y "Ocultar detalles"', () => {
+    render(
       <InscItem
         reg={makeReg({
           status: "confirmed",
@@ -143,25 +191,87 @@ describe("<InscItem>", () => {
         })}
         onAccept={() => {}}
         onReject={() => {}}
-        onUndo={onUndo}
+        onUndo={() => {}}
+      />,
+    );
+    const toggle = screen.getByRole("button", { name: /ver detalles/i });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(toggle);
+    expect(
+      screen.getByRole("button", { name: /ocultar detalles/i }),
+    ).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(screen.getByRole("button", { name: /ocultar detalles/i }));
+    expect(
+      screen.getByRole("button", { name: /ver detalles/i }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("pending (primero, index=0): vista completa sin toggle", () => {
+    render(
+      <InscItem
+        reg={makeReg()}
+        index={0}
+        onAccept={() => {}}
+        onReject={() => {}}
+        onUndo={() => {}}
       />,
     );
     expect(
-      screen.getByRole("button", { name: /revertir/i }),
+      screen.queryByRole("button", { name: /ver detalles/i }),
+    ).not.toBeInTheDocument();
+    // Pending muestra el botón Rechazar directamente, sin necesitar expandir
+    expect(
+      screen.getByRole("button", { name: /^rechazar$/i }),
     ).toBeInTheDocument();
-    rerender(
+  });
+
+  it("pending (siguientes, index>0): vista compacta con toggle", () => {
+    render(
       <InscItem
-        reg={makeReg({
-          status: "rejected",
-          reviewedAt: new Date().toISOString(),
-          adminNotes: "comprobante ilegible",
-        })}
+        reg={makeReg()}
+        index={1}
         onAccept={() => {}}
         onReject={() => {}}
-        onUndo={onUndo}
+        onUndo={() => {}}
       />,
     );
-    expect(screen.getByText(/comprobante ilegible/)).toBeInTheDocument();
+    // Pill compacto visible, sin Rechazar/Confirmar aún
+    expect(screen.getByText(/pendiente/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^rechazar$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^confirmar$/i }),
+    ).not.toBeInTheDocument();
+    // Click en "Ver detalles" revela acciones
+    fireEvent.click(screen.getByRole("button", { name: /ver detalles/i }));
+    expect(
+      screen.getByRole("button", { name: /^rechazar$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^confirmar$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /bloquear del evento/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("pending colapsado: index default (0) sigue mostrando vista completa", () => {
+    // Regresión: tests existentes que no pasan `index` deben seguir funcionando
+    render(
+      <InscItem
+        reg={makeReg()}
+        onAccept={() => {}}
+        onReject={() => {}}
+        onUndo={() => {}}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: /ver detalles/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^confirmar$/i }),
+    ).toBeInTheDocument();
   });
 
   it("allows toggling notes input", () => {
