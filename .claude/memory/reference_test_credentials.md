@@ -1,7 +1,7 @@
 ---
 name: reference-test-credentials
 description: Test user credentials for logging into the Turnocero preview/dev environment to verify authenticated pages
-metadata: 
+metadata:
   node_type: memory
   type: reference
   originSessionId: b4176895-872a-4701-8775-6200559db029
