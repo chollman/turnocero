@@ -90,14 +90,27 @@ router.get('/', protect, geocodeLimiter, async (req, res) => {
       { upsert: true, setDefaultsOnInsert: true }
     );
 
+    // Algunos status (REQUEST_DENIED, OVER_QUERY_LIMIT) vienen con HTTP 200
+    // + status en el body. Capturarlos también acá.
+    if (response.data.status && response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
+      const detail = response.data.error_message || '';
+      console.warn('[geocode] Google returned non-OK status:', response.data.status, detail);
+      return res.status(502).json({
+        message: `Error de Google Geocoding: ${response.data.status}${detail ? ` — ${detail}` : ''}`,
+      });
+    }
+
     return res.json({ lat, lng, formatted, cached: false });
   } catch (err) {
     // Errores de Google (network, timeout, quota exceeded) → 502.
     if (err.response?.data?.status) {
+      const detail = err.response.data.error_message || '';
+      console.warn('[geocode] Google API error:', err.response.data.status, detail);
       return res.status(502).json({
-        message: `Error de Google Geocoding: ${err.response.data.status}`,
+        message: `Error de Google Geocoding: ${err.response.data.status}${detail ? ` — ${detail}` : ''}`,
       });
     }
+    console.warn('[geocode] Unexpected error:', err.message);
     return res.status(500).json({ message: 'Error al consultar geocoding.' });
   }
 });

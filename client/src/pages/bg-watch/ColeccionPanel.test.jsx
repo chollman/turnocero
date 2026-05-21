@@ -11,6 +11,9 @@ vi.mock('./Pagination', () => ({
     </div>
   ),
 }));
+vi.mock('./GameCardSkeleton', () => ({
+  default: () => <div data-testid="game-card-skeleton" />,
+}));
 
 import ColeccionPanel from './ColeccionPanel';
 
@@ -47,10 +50,8 @@ beforeEach(() => {
 });
 
 describe('<ColeccionPanel>', () => {
-  it('shows loading state initially', async () => {
-    // Override con delay para garantizar que el render ve el estado de carga
-    // antes de que MSW resuelva. Sin esto el handler default resuelve sync y
-    // el assertion compite contra el primer paint post-fetch (flaky).
+  it('shows loading skeletons initially', () => {
+    // Delay garantiza que vemos el estado de loading antes de que MSW resuelva.
     server.use(
       http.get('/api/bgg/coleccion/:bggUsername', async () => {
         await delay(50);
@@ -58,7 +59,8 @@ describe('<ColeccionPanel>', () => {
       }),
     );
     renderPanel();
-    expect(screen.getByText(/cargando colección/i)).toBeInTheDocument();
+    // El componente muestra 8 GameCardSkeleton mientras carga.
+    expect(screen.getAllByTestId('game-card-skeleton').length).toBeGreaterThan(0);
   });
 
   it('shows empty state when user has no owned games', async () => {

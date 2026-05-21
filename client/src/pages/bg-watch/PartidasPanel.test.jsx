@@ -9,6 +9,12 @@ vi.mock('./PlayCard', () => ({
     <div data-testid="play-card" onClick={onClick}>{play.id}</div>
   ),
 }));
+vi.mock('./PlayCardSkeleton', () => ({
+  default: () => <div data-testid="play-card-skeleton" />,
+}));
+vi.mock('./GameCardSkeleton', () => ({
+  default: () => <div data-testid="game-card-skeleton" />,
+}));
 vi.mock('./Pagination', () => ({ default: () => <div data-testid="pagination" /> }));
 vi.mock('./useBggUserMap', () => ({ default: () => ({}) }));
 
@@ -44,7 +50,8 @@ beforeEach(() => {
 });
 
 describe('<PartidasPanel>', () => {
-  it('shows loading state initially in list mode', () => {
+  it('shows loading skeletons initially in list mode', () => {
+    // Delay garantiza que vemos el estado de loading antes de que MSW resuelva.
     server.use(
       http.get('/api/bgg/partidas/:bggUsername', async () => {
         await delay(50);
@@ -52,7 +59,8 @@ describe('<PartidasPanel>', () => {
       }),
     );
     renderPanel();
-    expect(screen.getByText(/cargando partidas/i)).toBeInTheDocument();
+    // El componente muestra 5 PlayCardSkeleton mientras carga.
+    expect(screen.getAllByTestId('play-card-skeleton').length).toBeGreaterThan(0);
   });
 
   it('shows the four filter chips in list mode', async () => {
