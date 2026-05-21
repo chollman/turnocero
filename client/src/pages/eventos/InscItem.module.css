@@ -217,3 +217,31 @@
 
 .btnUndo:hover:not(:disabled) { color: var(--text-primary); border-color: var(--border-strong); }
 .btnUndo:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btnBan {
+  background: transparent;
+  color: var(--red);
+  border: 1px dashed var(--red-25);
+  padding: 7px;
+  border-radius: 7px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btnBan:hover:not(:disabled) {
+  background: var(--red-10);
+  border-style: solid;
+  border-color: var(--red-25);
+}
+
+.btnBan:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.notesPermanent {
+  color: var(--red);
+  background: var(--red-10);
+  border-left: 3px solid var(--red);
+}

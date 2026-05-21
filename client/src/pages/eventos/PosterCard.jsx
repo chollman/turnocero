@@ -13,8 +13,12 @@ export default function PosterCard({ evento, index = 0, isHost = false, userRegi
   const d = dateParts(evento.eventDate);
   const isFree = !evento.fee;
   const cd = countdown(evento.eventDate, now);
-  const participants = evento.registrationCount?.confirmed ?? 0;
-  const totalInscriptions = evento.registrationCount?.total ?? participants;
+  // Sólo cuentan inscripciones activas (pending + confirmed). Rechazados no
+  // ocupan slot — especialmente los permanentemente rechazados.
+  const confirmed = evento.registrationCount?.confirmed ?? 0;
+  const pending = evento.registrationCount?.pending ?? 0;
+  const participants = confirmed + pending;
+  const totalInscriptions = participants;
   const detailUrl = `/eventos/${evento._id}`;
 
   const statusInfo = STATUS_BADGES[evento.status];

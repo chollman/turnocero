@@ -79,9 +79,10 @@ router.get('/', optionalAuth, async (req, res) => {
         const reg = regs.find(r => r.user?.toString() === userIdStr);
         if (reg) {
           userRegistration = {
-            _id:         reg._id,
-            status:      reg.status,
-            submittedAt: reg.submittedAt,
+            _id:                 reg._id,
+            status:              reg.status,
+            submittedAt:         reg.submittedAt,
+            permanentlyRejected: !!reg.permanentlyRejected,
           };
         }
       }
@@ -179,9 +180,11 @@ router.get('/:id', optionalAuth, async (req, res) => {
       );
       if (reg) {
         userRegistration = {
-          _id:         reg._id,
-          status:      reg.status,
-          submittedAt: reg.submittedAt,
+          _id:                 reg._id,
+          status:              reg.status,
+          submittedAt:         reg.submittedAt,
+          permanentlyRejected: !!reg.permanentlyRejected,
+          adminNotes:          reg.adminNotes || null,
           comprobante: reg.comprobante
             ? { url: reg.comprobante.url, resourceType: reg.comprobante.resourceType }
             : null,
@@ -271,7 +274,15 @@ router.post('/:id/inscribirse', protect, comprobanteUpload.single('comprobante')
     const existing = evento.registrations.find(
       r => r.user.toString() === req.user._id.toString()
     );
-    if (existing) return res.status(400).json({ message: 'Ya estás inscripto en este evento' });
+    // Bloqueo permanente: 403, no permite reintentar.
+    if (existing?.permanentlyRejected) {
+      return res.status(403).json({ message: 'Fuiste rechazado de este evento y no podés volver a inscribirte.' });
+    }
+    // Ya inscripto (pending / confirmed): bloquear.
+    if (existing && existing.status !== 'rejected') {
+      return res.status(400).json({ message: 'Ya estás inscripto en este evento' });
+    }
+    // Rechazado pero NO permanente: el flujo más abajo recicla el registro existente.
 
     if (evento.maxParticipants) {
       const confirmed = evento.registrations.filter(r => r.status === 'confirmed').length;
@@ -301,10 +312,32 @@ router.post('/:id/inscribirse', protect, comprobanteUpload.single('comprobante')
       };
     }
 
-    evento.registrations.push({ user: req.user._id, status: 'pending', comprobante });
+    let reg;
+    if (existing && existing.status === 'rejected') {
+      // Reciclar el registro rechazado no-permanente: vuelve a pendiente con nuevo comprobante.
+      // Si el comprobante anterior estaba en Cloudinary, lo limpiamos.
+      if (existing.comprobante?.publicId) {
+        try {
+          await cloudinary.uploader.destroy(existing.comprobante.publicId, {
+            resource_type: existing.comprobante.resourceType || 'image',
+          });
+        } catch {
+          // no-op, no bloqueamos el reintento por una falla de cleanup
+        }
+      }
+      existing.status      = 'pending';
+      existing.submittedAt = new Date();
+      existing.reviewedAt  = undefined;
+      existing.reviewedBy  = undefined;
+      existing.adminNotes  = undefined;
+      existing.comprobante = comprobante;
+      reg = existing;
+    } else {
+      evento.registrations.push({ user: req.user._id, status: 'pending', comprobante });
+      reg = evento.registrations[evento.registrations.length - 1];
+    }
     await evento.save();
 
-    const reg = evento.registrations[evento.registrations.length - 1];
     res.status(201).json({
       _id:         reg._id,
       status:      reg.status,
@@ -360,7 +393,13 @@ router.get('/:id/inscripciones', protect, requireAdmin, async (req, res) => {
     }
 
     res.json({
-      evento:        { _id: evento._id, title: evento.title, status: evento.status },
+      evento: {
+        _id:             evento._id,
+        title:           evento.title,
+        status:          evento.status,
+        eventDate:       evento.eventDate,
+        maxParticipants: evento.maxParticipants,
+      },
       registrations,
       counts: {
         total:     evento.registrations.length,
@@ -383,9 +422,10 @@ router.patch('/:id/inscripciones/:userId/confirmar', protect, requireAdmin, asyn
     const reg = evento.registrations.find(r => r.user.toString() === req.params.userId);
     if (!reg) return res.status(404).json({ message: 'Inscripción no encontrada' });
 
-    reg.status     = 'confirmed';
-    reg.reviewedAt = new Date();
-    reg.reviewedBy = req.user._id;
+    reg.status              = 'confirmed';
+    reg.reviewedAt          = new Date();
+    reg.reviewedBy          = req.user._id;
+    reg.permanentlyRejected = false; // limpiar el bloqueo si lo había
     if (req.body.adminNotes?.trim()) reg.adminNotes = req.body.adminNotes.trim();
 
     await evento.save();
@@ -404,15 +444,50 @@ router.patch('/:id/inscripciones/:userId/rechazar', protect, requireAdmin, async
     const reg = evento.registrations.find(r => r.user.toString() === req.params.userId);
     if (!reg) return res.status(404).json({ message: 'Inscripción no encontrada' });
 
-    reg.status     = 'rejected';
-    reg.reviewedAt = new Date();
-    reg.reviewedBy = req.user._id;
+    reg.status              = 'rejected';
+    reg.reviewedAt          = new Date();
+    reg.reviewedBy          = req.user._id;
+    reg.permanentlyRejected = req.body.permanent === true || req.body.permanent === 'true';
     if (req.body.adminNotes?.trim()) reg.adminNotes = req.body.adminNotes.trim();
 
     await evento.save();
-    res.json({ message: 'Inscripción rechazada', status: reg.status });
+    res.json({
+      message:              'Inscripción rechazada',
+      status:               reg.status,
+      permanentlyRejected:  reg.permanentlyRejected,
+    });
   } catch {
     res.status(500).json({ message: 'Error al rechazar la inscripción' });
+  }
+});
+
+// PATCH /api/eventos/:id/inscripciones/:userId/revertir — admin only
+// Vuelve un registro confirmed/rejected a 'pending' como si el usuario recién
+// se hubiera inscripto: limpia adminNotes / reviewedAt / reviewedBy /
+// permanentlyRejected y resetea submittedAt. El comprobante se mantiene.
+router.patch('/:id/inscripciones/:userId/revertir', protect, requireAdmin, async (req, res) => {
+  try {
+    const evento = await Evento.findById(req.params.id);
+    if (!evento) return res.status(404).json({ message: 'Evento no encontrado' });
+
+    const reg = evento.registrations.find(r => r.user.toString() === req.params.userId);
+    if (!reg) return res.status(404).json({ message: 'Inscripción no encontrada' });
+
+    reg.status              = 'pending';
+    reg.submittedAt         = new Date();
+    reg.reviewedAt          = undefined;
+    reg.reviewedBy          = undefined;
+    reg.adminNotes          = undefined;
+    reg.permanentlyRejected = false;
+
+    await evento.save();
+    res.json({
+      message:     'Inscripción revertida a pendiente',
+      status:      reg.status,
+      submittedAt: reg.submittedAt,
+    });
+  } catch {
+    res.status(500).json({ message: 'Error al revertir la inscripción' });
   }
 });
 

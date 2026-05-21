@@ -57,15 +57,24 @@ export default function EventoInscripciones() {
     }
   }, [id]);
 
-  const reject = useCallback(async (reg, adminNotes) => {
+  const reject = useCallback(async (reg, adminNotes, permanent = false) => {
     setActionError('');
     try {
-      await axios.patch(`/api/eventos/${id}/inscripciones/${reg.user._id}/rechazar`, { adminNotes });
+      await axios.patch(`/api/eventos/${id}/inscripciones/${reg.user._id}/rechazar`, {
+        adminNotes,
+        permanent,
+      });
       setData(prev => ({
         ...prev,
         registrations: prev.registrations.map(r =>
           r.user._id === reg.user._id
-            ? { ...r, status: 'rejected', reviewedAt: new Date().toISOString(), adminNotes }
+            ? {
+                ...r,
+                status:              'rejected',
+                reviewedAt:          new Date().toISOString(),
+                adminNotes,
+                permanentlyRejected: !!permanent,
+              }
             : r
         ),
         counts: {
@@ -80,27 +89,40 @@ export default function EventoInscripciones() {
     }
   }, [id]);
 
-  // "Undo" returns the registration to pending state on the server side too.
-  // We reuse the rejection endpoint with a special flag? Actually the server has
-  // no "set-back-to-pending" route. As a workaround, undo just re-reads the
-  // page so the admin can decide again. For now, optimistic local-only undo
-  // (state shifts back to pending in the UI; admin must call the correct endpoint manually).
+  // Revertir: vuelve el registro a 'pending' como si el usuario recién se
+  // hubiera inscripto. Persiste server-side (limpia reviewedAt/Notes/permanent).
   const undo = useCallback(async (reg) => {
-    setData(prev => ({
-      ...prev,
-      registrations: prev.registrations.map(r =>
-        r.user._id === reg.user._id
-          ? { ...r, status: 'pending', reviewedAt: null, adminNotes: '' }
-          : r
-      ),
-      counts: {
-        ...prev.counts,
-        pending:   prev.counts.pending   + 1,
-        confirmed: prev.counts.confirmed - (reg.status === 'confirmed' ? 1 : 0),
-        rejected:  prev.counts.rejected  - (reg.status === 'rejected'  ? 1 : 0),
-      },
-    }));
-  }, []);
+    setActionError('');
+    try {
+      const { data: result } = await axios.patch(
+        `/api/eventos/${id}/inscripciones/${reg.user._id}/revertir`,
+      );
+      setData(prev => ({
+        ...prev,
+        registrations: prev.registrations.map(r =>
+          r.user._id === reg.user._id
+            ? {
+                ...r,
+                status:              'pending',
+                submittedAt:         result.submittedAt,
+                reviewedAt:          null,
+                reviewedBy:          null,
+                adminNotes:          null,
+                permanentlyRejected: false,
+              }
+            : r
+        ),
+        counts: {
+          ...prev.counts,
+          pending:   prev.counts.pending   + 1,
+          confirmed: prev.counts.confirmed - (reg.status === 'confirmed' ? 1 : 0),
+          rejected:  prev.counts.rejected  - (reg.status === 'rejected'  ? 1 : 0),
+        },
+      }));
+    } catch (err) {
+      setActionError(err.response?.data?.message || 'No pudimos revertir la inscripción.');
+    }
+  }, [id]);
 
   const groups = useMemo(() => {
     const regs = data?.registrations || [];

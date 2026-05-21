@@ -113,6 +113,21 @@ describe('<EventoInscripciones>', () => {
     expect(screen.getAllByRole('button', { name: /revertir/i }).length).toBeGreaterThan(0);
   });
 
+  it('clicking "Revertir decisión" calls PATCH .../revertir and moves the reg back to pending', async () => {
+    let revertedUserId = null;
+    server.use(
+      http.patch('/api/eventos/:id/inscripciones/:userId/revertir', ({ params }) => {
+        revertedUserId = params.userId;
+        return HttpResponse.json({ status: 'pending', submittedAt: new Date().toISOString() });
+      }),
+    );
+    renderInsc();
+    await screen.findByText('User d');
+    const undoBtns = screen.getAllByRole('button', { name: /revertir/i });
+    fireEvent.click(undoBtns[0]); // first one is for confirmed 'User c' (alphabetical first)
+    await waitFor(() => expect(revertedUserId).not.toBeNull());
+  });
+
   it('renders 404 state when API returns 404', async () => {
     server.use(http.get('/api/eventos/:id/inscripciones', () => HttpResponse.json({ message: 'nf' }, { status: 404 })));
     renderInsc();

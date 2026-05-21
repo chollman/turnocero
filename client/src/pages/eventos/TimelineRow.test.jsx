@@ -126,8 +126,33 @@ describe('<TimelineRow>', () => {
   });
 
   it('renders without maxParticipants (open cupo)', () => {
-    renderRow({ event: { maxParticipants: null, registrationCount: { total: 42, pending: 0, confirmed: 0 } } });
+    renderRow({ event: { maxParticipants: null, registrationCount: { total: 42, pending: 5, confirmed: 37 } } });
+    // Active count only: pending + confirmed (excluye rejected y permanentemente rechazados)
     expect(screen.getByText(/42 inscripciones/)).toBeInTheDocument();
+  });
+
+  it('does NOT count permanently-rejected users in the inscriptos label (regression)', () => {
+    // total=10 includes the 3 permanently-rejected. Display should show 7, not 10.
+    renderRow({
+      event: {
+        maxParticipants: null,
+        registrationCount: { total: 10, pending: 2, confirmed: 5 },
+      },
+    });
+    expect(screen.getByText(/^7 inscripciones$/)).toBeInTheDocument();
+    expect(screen.queryByText(/10 inscripciones/)).not.toBeInTheDocument();
+  });
+
+  it('with cupo: rejected users do not occupy slots in the bar', () => {
+    // 20 cupos, 4 rejected (don't count), 5 pending + 3 confirmed = 8 active
+    renderRow({
+      event: {
+        maxParticipants: 20,
+        registrationCount: { total: 12, pending: 5, confirmed: 3 },
+      },
+    });
+    expect(screen.getByText(/8\/20 inscriptos/)).toBeInTheDocument();
+    expect(screen.getByText('8/20 cupos')).toBeInTheDocument();
   });
 
   it('does not render countdown when event is past', () => {

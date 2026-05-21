@@ -25,10 +25,11 @@ export default function TimelineRow({
   const hasMax = !!(evento.maxParticipants && evento.maxParticipants > 0);
   const confirmed = evento.registrationCount?.confirmed ?? 0;
   const pending = evento.registrationCount?.pending ?? 0;
-  // Cuentan al cupo todas las inscripciones activas (pendientes + confirmadas),
-  // porque cada inscripción ocupa un lugar tentativo hasta que el admin la confirma o rechaza.
+  // Sólo cuentan inscripciones activas (pendientes + confirmadas).
+  // Los rechazados — sobre todo los rechazados permanentemente — NO reservan
+  // slot ni se muestran como inscriptos en ninguna superficie pública.
   const participants = confirmed + pending;
-  const totalInscriptions = evento.registrationCount?.total ?? participants;
+  const totalInscriptions = participants;
   const isFull = hasMax && participants >= evento.maxParticipants;
   const fillPct = hasMax
     ? Math.min(100, (participants / evento.maxParticipants) * 100)

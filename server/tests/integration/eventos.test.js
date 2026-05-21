@@ -402,6 +402,259 @@ describe('PATCH /api/eventos/:id/inscripciones/:userId/confirmar', () => {
   });
 });
 
+describe('Rechazo con permanent flag', () => {
+  it('rechazo no-permanente permite re-inscribirse (recicla el registro)', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { user, token } = await createAuthedUser();
+    const evento = await createEvento(admin, {
+      fee: 0,
+      registrations: [
+        { user: user._id, status: 'pending', submittedAt: new Date() },
+      ],
+    });
+
+    // Admin rechaza sin permanent
+    const reject = await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${user._id}/rechazar`)
+      .set('Authorization', `Bearer ${tokenFor(admin)}`)
+      .send({ permanent: false, adminNotes: 'Comprobante ilegible' });
+    expect(reject.status).toBe(200);
+    expect(reject.body.permanentlyRejected).toBe(false);
+
+    // User vuelve a inscribirse
+    const retry = await request(app)
+      .post(`/api/eventos/${evento._id}/inscribirse`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(retry.status).toBe(201);
+    expect(retry.body.status).toBe('pending');
+
+    // Sólo hay UN registro (se recicló, no se duplicó)
+    const refreshed = await Evento.findById(evento._id);
+    const userRegs = refreshed.registrations.filter((r) => r.user.equals(user._id));
+    expect(userRegs.length).toBe(1);
+    expect(userRegs[0].status).toBe('pending');
+    expect(userRegs[0].adminNotes).toBeFalsy(); // notas previas limpiadas
+    expect(userRegs[0].reviewedAt).toBeFalsy();
+  });
+
+  it('rechazo no-permanente con evento pagado recicla el registro y limpia comprobante anterior', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { user, token } = await createAuthedUser();
+    const evento = await createEvento(admin, {
+      fee: 1500,
+      registrations: [
+        {
+          user:        user._id,
+          status:      'rejected',
+          submittedAt: new Date(),
+          reviewedAt:  new Date(),
+          adminNotes:  'Comprobante ilegible',
+          comprobante: {
+            url:          'https://res.cloudinary.com/x/image/upload/v1/turnocero/eventos/y/c.png',
+            publicId:     'turnocero/eventos/y/c',
+            resourceType: 'image',
+            uploadedAt:   new Date(),
+          },
+        },
+      ],
+    });
+
+    // PNG mínimo (8 bytes header)
+    const minimalPng = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    const retry = await request(app)
+      .post(`/api/eventos/${evento._id}/inscribirse`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('comprobante', minimalPng, { filename: 'new.png', contentType: 'image/png' });
+
+    expect(retry.status).toBe(201);
+    expect(retry.body.status).toBe('pending');
+    expect(retry.body.comprobante).toBeTruthy();
+
+    const refreshed = await Evento.findById(evento._id);
+    const userRegs = refreshed.registrations.filter((r) => r.user.equals(user._id));
+    expect(userRegs.length).toBe(1);
+    expect(userRegs[0].status).toBe('pending');
+    expect(userRegs[0].comprobante.publicId).not.toBe('turnocero/eventos/y/c'); // new file
+  });
+
+  it('rechazo permanente bloquea reintentos con 403', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { user, token } = await createAuthedUser();
+    const evento = await createEvento(admin, {
+      fee: 0,
+      registrations: [
+        { user: user._id, status: 'pending', submittedAt: new Date() },
+      ],
+    });
+
+    // Admin rechaza permanente
+    const reject = await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${user._id}/rechazar`)
+      .set('Authorization', `Bearer ${tokenFor(admin)}`)
+      .send({ permanent: true });
+    expect(reject.status).toBe(200);
+    expect(reject.body.permanentlyRejected).toBe(true);
+
+    // User intenta volver: 403
+    const retry = await request(app)
+      .post(`/api/eventos/${evento._id}/inscribirse`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(retry.status).toBe(403);
+    expect(retry.body.message).toMatch(/no podés volver/i);
+  });
+
+  it('GET /:id devuelve userRegistration.permanentlyRejected al usuario afectado', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { user, token } = await createAuthedUser();
+    const evento = await createEvento(admin, {
+      registrations: [
+        {
+          user:                user._id,
+          status:              'rejected',
+          submittedAt:         new Date(),
+          reviewedAt:          new Date(),
+          permanentlyRejected: true,
+          adminNotes:          'Comportamiento en eventos previos',
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .get(`/api/eventos/${evento._id}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.userRegistration.status).toBe('rejected');
+    expect(res.body.userRegistration.permanentlyRejected).toBe(true);
+    expect(res.body.userRegistration.adminNotes).toBe('Comportamiento en eventos previos');
+  });
+
+  it('rejected (perm o no) no cuentan en registrationCount.confirmed/pending; el cliente los excluye del cupo', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const p1 = await createUser({ username: 'player_one' });
+    const p2 = await createUser({ username: 'player_two' });
+    const p3 = await createUser({ username: 'player_three' });
+
+    const evento = await createEvento(admin, {
+      registrations: [
+        { user: p1._id, status: 'confirmed', submittedAt: new Date() },
+        { user: p2._id, status: 'pending',   submittedAt: new Date() },
+        { user: p3._id, status: 'rejected',  permanentlyRejected: true, submittedAt: new Date() },
+      ],
+    });
+
+    const res = await request(app).get(`/api/eventos/${evento._id}`);
+    expect(res.body.registrationCount).toEqual({ total: 3, pending: 1, confirmed: 1 });
+    // El cliente computa participants = pending + confirmed = 2 → el permanentemente
+    // rechazado no entra. Validamos el contrato del endpoint.
+  });
+
+  it('revertir vuelve un registro confirmed a pending limpiando todo el contexto admin', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser({ username: 'someuser_revert' });
+    const oldDate = new Date('2026-01-01T10:00:00');
+    const evento = await createEvento(admin, {
+      registrations: [
+        {
+          user:        user._id,
+          status:      'confirmed',
+          submittedAt: oldDate,
+          reviewedAt:  new Date(),
+          reviewedBy:  admin._id,
+          adminNotes:  'OK, pagó al toque',
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${user._id}/revertir`)
+      .set('Authorization', `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('pending');
+
+    const refreshed = await Evento.findById(evento._id);
+    const reg = refreshed.registrations.find((r) => r.user.equals(user._id));
+    expect(reg.status).toBe('pending');
+    expect(reg.submittedAt.getTime()).toBeGreaterThan(oldDate.getTime()); // reset al ahora
+    expect(reg.reviewedAt).toBeFalsy();
+    expect(reg.reviewedBy).toBeFalsy();
+    expect(reg.adminNotes).toBeFalsy();
+    expect(reg.permanentlyRejected).toBe(false);
+  });
+
+  it('revertir un permanentemente rechazado lo destrabra y vuelve a pending', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { user, token } = await createAuthedUser();
+    const evento = await createEvento(admin, {
+      fee: 0,
+      registrations: [
+        {
+          user:                user._id,
+          status:              'rejected',
+          permanentlyRejected: true,
+          adminNotes:          'no',
+          submittedAt:         new Date(),
+          reviewedAt:          new Date(),
+        },
+      ],
+    });
+
+    // Admin revierte
+    await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${user._id}/revertir`)
+      .set('Authorization', `Bearer ${tokenFor(admin)}`);
+
+    const refreshed = await Evento.findById(evento._id);
+    const reg = refreshed.registrations.find((r) => r.user.equals(user._id));
+    expect(reg.status).toBe('pending');
+    expect(reg.permanentlyRejected).toBe(false);
+
+    // Ya no está bloqueado para inscribirse... aunque al ser pending,
+    // no es que vaya a inscribirse de nuevo — su registro ya está activo.
+    // Verificamos que el endpoint POST /inscribirse ahora reconoce "ya inscripto".
+    const retry = await request(app)
+      .post(`/api/eventos/${evento._id}/inscribirse`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(retry.status).toBe(400);
+    expect(retry.body.message).toMatch(/ya estás inscripto/i);
+  });
+
+  it('revertir requiere admin (403 para usuarios normales)', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const target = await createUser({ username: 'target_user' });
+    const { token } = await createAuthedUser({ isAdmin: false });
+    const evento = await createEvento(admin, {
+      registrations: [
+        { user: target._id, status: 'rejected', submittedAt: new Date() },
+      ],
+    });
+
+    const res = await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${target._id}/revertir`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('confirmar limpia el flag permanentlyRejected', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser({ username: 'someuser' });
+    const evento = await createEvento(admin, {
+      registrations: [
+        { user: user._id, status: 'rejected', permanentlyRejected: true, submittedAt: new Date() },
+      ],
+    });
+
+    await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${user._id}/confirmar`)
+      .set('Authorization', `Bearer ${tokenFor(admin)}`);
+
+    const refreshed = await Evento.findById(evento._id);
+    const reg = refreshed.registrations.find((r) => r.user.equals(user._id));
+    expect(reg.status).toBe('confirmed');
+    expect(reg.permanentlyRejected).toBe(false);
+  });
+});
+
 describe('section gating', () => {
   it('blocks every route when eventos section is disabled (non-admin)', async () => {
     await updateSiteConfig({ eventos: { enabled: false } }, null, null);

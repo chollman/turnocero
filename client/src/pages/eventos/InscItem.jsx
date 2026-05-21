@@ -21,6 +21,7 @@ function formatRelative(s, now = Date.now()) {
 export default function InscItem({ reg, onAccept, onReject, onUndo, now = Date.now() }) {
   const [accepting, setAccepting] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  const [banning, setBanning] = useState(false);
   const [undoing, setUndoing] = useState(false);
   const [notes, setNotes] = useState(reg.adminNotes || '');
   const [showNotes, setShowNotes] = useState(false);
@@ -28,6 +29,7 @@ export default function InscItem({ reg, onAccept, onReject, onUndo, now = Date.n
   const display = getUserDisplay(reg.user);
   const status = reg.status;
   const isPdf = reg.comprobante?.resourceType === 'raw';
+  const isPermanent = !!reg.permanentlyRejected;
 
   async function handleAccept() {
     setAccepting(true);
@@ -35,10 +37,13 @@ export default function InscItem({ reg, onAccept, onReject, onUndo, now = Date.n
     finally { setAccepting(false); }
   }
 
-  async function handleReject() {
-    setRejecting(true);
-    try { await onReject(reg, notes); }
-    finally { setRejecting(false); }
+  async function handleReject(permanent = false) {
+    if (permanent) setBanning(true); else setRejecting(true);
+    try { await onReject(reg, notes, permanent); }
+    finally {
+      setRejecting(false);
+      setBanning(false);
+    }
   }
 
   async function handleUndo() {
@@ -83,7 +88,13 @@ export default function InscItem({ reg, onAccept, onReject, onUndo, now = Date.n
         </div>
       ) : null}
 
-      {(status === 'rejected' || status === 'confirmed') && reg.adminNotes && (
+      {status === 'rejected' && (
+        <p className={`${styles.notes} ${isPermanent ? styles.notesPermanent : ''}`}>
+          {isPermanent ? '⛔ Bloqueado del evento' : '↺ Puede volver a intentar'}
+          {reg.adminNotes ? ` · ${reg.adminNotes}` : ''}
+        </p>
+      )}
+      {status === 'confirmed' && reg.adminNotes && (
         <p className={styles.notes}>✦ {reg.adminNotes}</p>
       )}
 
@@ -111,8 +122,9 @@ export default function InscItem({ reg, onAccept, onReject, onUndo, now = Date.n
             <button
               type="button"
               className={styles.btnReject}
-              onClick={handleReject}
-              disabled={accepting || rejecting}
+              onClick={() => handleReject(false)}
+              disabled={accepting || rejecting || banning}
+              title="Rechazar este intento — el usuario puede volver a enviar un comprobante"
             >
               <XIcon size={11} />&nbsp;{rejecting ? 'Rechazando…' : 'Rechazar'}
             </button>
@@ -120,11 +132,20 @@ export default function InscItem({ reg, onAccept, onReject, onUndo, now = Date.n
               type="button"
               className={styles.btnAccept}
               onClick={handleAccept}
-              disabled={accepting || rejecting}
+              disabled={accepting || rejecting || banning}
             >
               <CheckIcon size={11} />&nbsp;{accepting ? 'Confirmando…' : 'Confirmar'}
             </button>
           </div>
+          <button
+            type="button"
+            className={styles.btnBan}
+            onClick={() => handleReject(true)}
+            disabled={accepting || rejecting || banning}
+            title="Bloquear permanentemente — el usuario no podrá volver a inscribirse en este evento"
+          >
+            ⛔ {banning ? 'Bloqueando…' : 'Bloquear del evento'}
+          </button>
         </>
       )}
 

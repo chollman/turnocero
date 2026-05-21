@@ -82,4 +82,25 @@ describe('<PosterCard>', () => {
     const link = container.querySelector('a');
     expect(link.getAttribute('href')).toBe('/eventos/e1');
   });
+
+  it('does NOT count permanently-rejected users in the slot count (regression)', () => {
+    // total=10 includes 4 perm-rejected; display should show 6, not 10
+    renderCard({ event: { maxParticipants: 32, registrationCount: { total: 10, pending: 2, confirmed: 4 } } });
+    expect(screen.getByText('6/32')).toBeInTheDocument();
+    expect(screen.queryByText('10/32')).not.toBeInTheDocument();
+  });
+
+  it('uses active count when no maxParticipants (excludes rejected)', () => {
+    const { container } = renderCard({
+      event: {
+        maxParticipants: null,
+        registrationCount: { total: 8, pending: 1, confirmed: 4 },
+      },
+    });
+    // active = 5 (pending + confirmed). The meta block has the cupo text;
+    // it should contain "5" and never "8".
+    const meta = container.querySelector('[class*="meta"]');
+    expect(meta.textContent).toContain('5');
+    expect(meta.textContent).not.toContain('8');
+  });
 });

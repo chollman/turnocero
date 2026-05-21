@@ -8,6 +8,10 @@ const registrationSchema = new mongoose.Schema(
     reviewedAt:  { type: Date },
     reviewedBy:  { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     adminNotes:  { type: String, trim: true, maxlength: 500 },
+    // Cuando el host rechaza, puede marcar "permanente": el usuario queda bloqueado
+    // del evento y no puede volver a inscribirse. Si es false/undefined, el rechazo
+    // es "esta vez" y el usuario puede reintentar (reusa el slot del registro).
+    permanentlyRejected: { type: Boolean, default: false },
     comprobante: {
       url:          String,
       publicId:     String,

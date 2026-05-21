@@ -35,12 +35,42 @@ describe('<InscItem>', () => {
     expect(onAccept).toHaveBeenCalled();
   });
 
-  it('calls onReject when reject clicked', async () => {
+  it('calls onReject with permanent=false when "Rechazar" clicked', async () => {
     const onReject = vi.fn().mockResolvedValue();
     render(<InscItem reg={makeReg()} onAccept={() => {}} onReject={onReject} onUndo={() => {}} />);
-    fireEvent.click(screen.getByRole('button', { name: /rechazar/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^rechazar$/i }));
     await new Promise(r => setTimeout(r, 0));
     expect(onReject).toHaveBeenCalled();
+    expect(onReject.mock.calls[0][2]).toBe(false);
+  });
+
+  it('calls onReject with permanent=true when "Bloquear del evento" clicked', async () => {
+    const onReject = vi.fn().mockResolvedValue();
+    render(<InscItem reg={makeReg()} onAccept={() => {}} onReject={onReject} onUndo={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /bloquear del evento/i }));
+    await new Promise(r => setTimeout(r, 0));
+    expect(onReject).toHaveBeenCalled();
+    expect(onReject.mock.calls[0][2]).toBe(true);
+  });
+
+  it('shows "Puede volver a intentar" label on non-permanent rejected', () => {
+    render(
+      <InscItem
+        reg={makeReg({ status: 'rejected', reviewedAt: new Date().toISOString(), permanentlyRejected: false })}
+        onAccept={() => {}} onReject={() => {}} onUndo={() => {}}
+      />,
+    );
+    expect(screen.getByText(/puede volver a intentar/i)).toBeInTheDocument();
+  });
+
+  it('shows "Bloqueado del evento" label on permanently rejected', () => {
+    render(
+      <InscItem
+        reg={makeReg({ status: 'rejected', reviewedAt: new Date().toISOString(), permanentlyRejected: true })}
+        onAccept={() => {}} onReject={() => {}} onUndo={() => {}}
+      />,
+    );
+    expect(screen.getByText(/bloqueado del evento/i)).toBeInTheDocument();
   });
 
   it('shows undo button for confirmed/rejected', () => {

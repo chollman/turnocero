@@ -211,11 +211,33 @@ export default function TicketStub({
               )}
             </>
           ) : status === 'rejected' ? (
-            <div className={`${styles.state} ${styles.stateRejected}`}>
-              <XIcon size={20} />
-              <span className={styles.stateTitle}>Inscripción rechazada</span>
-              <span className={styles.stateSub}>Contactá al organizador para más info</span>
-            </div>
+            <>
+              <div className={`${styles.state} ${styles.stateRejected}`}>
+                <XIcon size={20} />
+                <span className={styles.stateTitle}>
+                  {userRegistration?.permanentlyRejected
+                    ? 'Inscripción rechazada permanentemente'
+                    : 'Inscripción rechazada'}
+                </span>
+                <span className={styles.stateSub}>
+                  {userRegistration?.permanentlyRejected
+                    ? 'El organizador te bloqueó del evento. No podés volver a intentar.'
+                    : 'Podés volver a enviar tu comprobante'}
+                </span>
+                {userRegistration?.adminNotes && (
+                  <span className={styles.stateSub}>✦ {userRegistration.adminNotes}</span>
+                )}
+              </div>
+              {!userRegistration?.permanentlyRejected && (
+                <button
+                  type="button"
+                  className={styles.cta}
+                  onClick={() => { setShowForm(true); setLocalErr(''); }}
+                >
+                  Volver a intentar {isFree ? '· Gratis' : `· ${formatFee(evento.fee)}`}
+                </button>
+              )}
+            </>
           ) : evento.status === 'cancelled' ? (
             <button className={styles.ghostBtn} disabled type="button">Evento cancelado</button>
           ) : evento.status === 'closed' ? (
