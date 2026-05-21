@@ -297,9 +297,37 @@ export default function EventoDetail() {
   if (loading) {
     return (
       <div className={styles.page}>
-        <div className={styles.skeletonHero} />
-        <div className={styles.skeletonTitle} />
-        <div className={styles.skeletonMeta} />
+        <div className={styles.skelBack} />
+        <div className={styles.layout}>
+          <div className={styles.skelMain}>
+            <div className={styles.skelHero} />
+            <div className={styles.skelTitleBlock}>
+              <div className={styles.skelEyebrow} />
+              <div className={styles.skelTitle} />
+              <div className={styles.skelTitleShort} />
+            </div>
+            <div className={styles.skelMeta}>
+              <div className={styles.skelMetaCell} />
+              <div className={styles.skelMetaCell} />
+              <div className={styles.skelMetaCell} />
+              <div className={styles.skelMetaCell} />
+            </div>
+            <div className={styles.skelSection}>
+              <div className={styles.skelSectionHead} />
+              <div className={styles.skelLine} />
+              <div className={styles.skelLine} />
+              <div className={`${styles.skelLine} ${styles.skelLineShort}`} />
+            </div>
+            <div className={styles.skelSection}>
+              <div className={styles.skelSectionHead} />
+              <div className={styles.skelLine} />
+              <div className={`${styles.skelLine} ${styles.skelLineShort}`} />
+            </div>
+          </div>
+          <aside className={styles.aside}>
+            <div className={styles.skelStub} />
+          </aside>
+        </div>
       </div>
     );
   }

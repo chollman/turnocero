@@ -34,12 +34,258 @@
 .layout {
   display: grid;
   grid-template-columns: 1fr 340px;
-  gap: 44px;
+  gap: 0.75rem;
   align-items: start;
 }
 
 .main {
   min-width: 0;
+  position: relative;
+  /* `overflow: clip` contiene los pseudo-elementos animados (scanlines y
+     beam): el `::after` termina con `transform: translateY(100%)`, que
+     sin clip extiende `scrollHeight` del documento y mete scroll fantasma.
+     `clip` (vs hidden) no rompe `position: sticky` en descendientes. */
+  overflow: clip;
+  /* Cyberpunk-glitch boot-in: el main "arranca" con RGB split (magenta +
+     cyan), pequeños jitters de translate/skew y un wipe de clip-path.
+     `steps(1, end)` mantiene cada frame nítido para que se lea como un
+     boot-up staccato, igual que la sección de comentarios de Compartidas. */
+  animation: eventoMainGlitchSlide 0.55s steps(1, end) both;
+  will-change: transform, clip-path, opacity, filter;
+}
+
+@keyframes eventoMainGlitchSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(-32px) skewX(0deg);
+    clip-path: inset(0 0 100% 0);
+    filter: brightness(2) contrast(1.2);
+  }
+  6% {
+    opacity: 1;
+    transform: translateY(-22px) skewX(-4deg);
+    clip-path: inset(0 0 70% 0);
+    filter: drop-shadow(4px 0 0 #ff2a6d) drop-shadow(-4px 0 0 #05d9e8)
+      brightness(1.4);
+  }
+  14% {
+    transform: translateY(-10px) skewX(3deg);
+    clip-path: inset(0 0 40% 0);
+    filter: drop-shadow(-5px 0 0 #ff2a6d) drop-shadow(5px 0 0 #05d9e8)
+      hue-rotate(15deg);
+  }
+  24% {
+    transform: translateY(2px) skewX(-2deg);
+    clip-path: inset(0 0 15% 0);
+    filter: drop-shadow(3px 0 0 var(--amber)) drop-shadow(-3px 0 0 #05d9e8)
+      saturate(1.5);
+  }
+  34% {
+    transform: translateY(-4px) skewX(1deg);
+    clip-path: inset(0 0 0 0);
+    filter: drop-shadow(-4px 0 0 #ff2a6d) drop-shadow(4px 0 0 #05d9e8);
+  }
+  46% {
+    transform: translateY(2px);
+    clip-path: inset(0 0 0 0);
+    filter: drop-shadow(2px 0 0 #ff2a6d) drop-shadow(-2px 0 0 #05d9e8);
+  }
+  60% {
+    transform: translateY(-1px);
+    filter: drop-shadow(1px 0 0 #ff2a6d) drop-shadow(-1px 0 0 #05d9e8);
+  }
+  80% {
+    transform: translateY(0);
+    filter: none;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0 0 0 0);
+    filter: none;
+  }
+}
+
+/* Scanline overlay — se desvanece después del boot-in. */
+.main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(5, 217, 232, 0.07) 0,
+    rgba(5, 217, 232, 0.07) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: screen;
+  animation: eventoMainCyberScanlines 0.55s steps(1, end) both;
+}
+
+/* Beam horizontal que barre una vez de arriba a abajo. */
+.main::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 45%,
+    rgba(255, 42, 109, 0) 47%,
+    rgba(255, 42, 109, 0.85) 49%,
+    #ffffff 50%,
+    rgba(5, 217, 232, 0.85) 51%,
+    rgba(5, 217, 232, 0) 53%,
+    transparent 55%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  animation: eventoMainCyberScanBeam 0.55s linear both;
+}
+
+@keyframes eventoMainCyberScanlines {
+  0% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eventoMainCyberScanBeam {
+  0% {
+    transform: translateY(-100%);
+    opacity: 1;
+  }
+  90% {
+    transform: translateY(100%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* Stagger de las piezas internas — arrancan después de que el glitch
+   se asienta, para que los datos parezcan "poblar" el panel post boot. */
+.main > * {
+  animation: eventoMainRowIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  position: relative;
+  z-index: 1;
+}
+
+.main > *:nth-child(1) {
+  animation-delay: 0.4s;
+}
+.main > *:nth-child(2) {
+  animation-delay: 0.46s;
+}
+.main > *:nth-child(3) {
+  animation-delay: 0.52s;
+}
+.main > *:nth-child(4) {
+  animation-delay: 0.56s;
+}
+.main > *:nth-child(5) {
+  animation-delay: 0.6s;
+}
+.main > *:nth-child(n + 6) {
+  animation-delay: 0.62s;
+}
+
+@keyframes eventoMainRowIn {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Aside — mismo boot-in glitch que .main pero con delay 0.4s para que
+   entre en cascada cuando el main ya se asentó. Reusa los keyframes
+   `eventoMainGlitchSlide` / `eventoMainCyberScanlines` / `eventoMainCyberScanBeam`. */
+.aside {
+  position: relative;
+  /* Mismo motivo que `.main`: el beam termina con translateY(100%) y sin
+     clip extiende el scroll del documento. */
+  overflow: clip;
+  animation: eventoMainGlitchSlide 0.55s steps(1, end) 0.4s both;
+  will-change: transform, clip-path, opacity, filter;
+}
+
+.aside::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(5, 217, 232, 0.07) 0,
+    rgba(5, 217, 232, 0.07) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: screen;
+  animation: eventoMainCyberScanlines 0.55s steps(1, end) 0.4s both;
+}
+
+.aside::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 45%,
+    rgba(255, 42, 109, 0) 47%,
+    rgba(255, 42, 109, 0.85) 49%,
+    #ffffff 50%,
+    rgba(5, 217, 232, 0.85) 51%,
+    rgba(5, 217, 232, 0) 53%,
+    transparent 55%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  animation: eventoMainCyberScanBeam 0.55s linear 0.4s both;
+}
+
+/* Cuando el aside contiene el skeleton del stub, no animamos: el cascade
+   se reserva al contenido real (cuando se monta el TicketStub). Evita la
+   doble entrada (skeleton glitchea, después el real glitchea otra vez). */
+.aside:has(.skelStub) {
+  animation: none;
+}
+.aside:has(.skelStub)::before,
+.aside:has(.skelStub)::after {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main,
+  .main > *,
+  .aside {
+    animation: none;
+  }
+  .main::before,
+  .main::after,
+  .aside::before,
+  .aside::after {
+    display: none;
+  }
 }
 
 /* Hero image */
@@ -386,10 +632,20 @@
   letter-spacing: 0.1em;
 }
 
-/* Skeleton */
-.skeletonHero,
-.skeletonTitle,
-.skeletonMeta {
+/* Skeleton — replica la estructura real (back + layout + main/aside) */
+.skelMain {
+  min-width: 0;
+}
+
+.skelBack,
+.skelHero,
+.skelEyebrow,
+.skelTitle,
+.skelTitleShort,
+.skelMetaCell,
+.skelSectionHead,
+.skelLine,
+.skelStub {
   background: linear-gradient(
     90deg,
     var(--bg-elevated) 25%,
@@ -398,20 +654,91 @@
   );
   background-size: 400% 100%;
   animation: detailShimmer 1.6s ease-in-out infinite;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
-.skeletonHero {
+.skelBack {
+  width: 140px;
+  height: 14px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.skelHero {
   aspect-ratio: 16 / 9;
+  width: 100%;
+  margin-bottom: 28px;
+  border-radius: 18px;
+}
+
+.skelTitleBlock {
   margin-bottom: 28px;
 }
-.skeletonTitle {
-  height: 56px;
-  width: 70%;
-  margin-bottom: 24px;
+
+.skelEyebrow {
+  width: 180px;
+  height: 12px;
+  margin-bottom: 14px;
+  border-radius: 4px;
 }
-.skeletonMeta {
-  height: 92px;
+
+.skelTitle {
+  width: 80%;
+  height: clamp(2rem, 4vw, 3rem);
+  margin-bottom: 10px;
+  border-radius: 6px;
+}
+
+.skelTitleShort {
+  width: 45%;
+  height: clamp(2rem, 4vw, 3rem);
+  border-radius: 6px;
+}
+
+.skelMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 24px 0 32px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.skelMetaCell {
+  flex: 1 1 100px;
+  height: 44px;
+  border-radius: 6px;
+}
+
+.skelSection {
+  margin-bottom: 40px;
+}
+
+.skelSectionHead {
+  width: 200px;
+  height: 12px;
+  margin-bottom: 18px;
+  border-radius: 4px;
+}
+
+.skelLine {
+  width: 100%;
+  height: 14px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+}
+
+.skelLineShort {
+  width: 55%;
+}
+
+.skelStub {
+  width: 100%;
+  height: 380px;
+  border-radius: 16px;
+  position: sticky;
+  top: 24px;
 }
 
 @keyframes detailShimmer {
