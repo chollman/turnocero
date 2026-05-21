@@ -6,7 +6,8 @@ const User = require('../models/User');
 const { protect, optionalAuth } = require('../middleware/auth');
 const { requireSection } = require('../middleware/sectionGate');
 const saveNotification = require('../utils/saveNotification');
-const { haversineKm, isValidCoord } = require('../utils/geo');
+const { isValidCoord, attachDistance, buildBboxFilter } = require('../utils/geo');
+const { normalizeLocationInput, locationForCreate } = require('../utils/locationHelpers');
 
 router.use(requireSection('mesas'));
 
@@ -43,88 +44,9 @@ const populateTable = (query) =>
     .populate('pendingRequests', POPULATE_USER_FIELDS)
     .populate('images.uploader', 'username displayName avatar');
 
-// ── Location helpers ─────────────────────────────────────────────────
-//
-// `req.body.location` puede venir como:
-//   - undefined (no se está actualizando)
-//   - "string" (clientes legacy)
-//   - { texto, lat, lng } (clientes nuevos)
-//
-// Normalizamos siempre al subdocumento. Si lat/lng vienen inválidos,
-// los descartamos (null) en vez de tirar 400 — mejor UX que rechazar
-// el guardado por una coord rota.
-function normalizeLocationInput(loc) {
-  if (loc == null) return undefined;
-  if (typeof loc === 'string') {
-    return { texto: loc.slice(0, 200), lat: null, lng: null };
-  }
-  if (typeof loc === 'object') {
-    const texto = typeof loc.texto === 'string' ? loc.texto.slice(0, 200) : '';
-    const latRaw = loc.lat;
-    const lngRaw = loc.lng;
-    const lat = typeof latRaw === 'number' && isValidCoord(latRaw, lngRaw ?? 0) ? latRaw : null;
-    const lng = typeof lngRaw === 'number' && isValidCoord(latRaw ?? 0, lngRaw) ? lngRaw : null;
-    // Sólo guardamos coords si AMBAS son válidas (una sola no sirve).
-    const bothValid = lat !== null && lng !== null;
-    return { texto, lat: bothValid ? lat : null, lng: bothValid ? lng : null };
-  }
-  return undefined;
-}
-
-// Considera "vacía" una location sin texto Y sin coords. Usada para decidir
-// si fallbackear al direccion del perfil del host (solo en POST create).
-function isEmptyLocation(loc) {
-  if (!loc) return true;
-  return !loc.texto && loc.lat == null && loc.lng == null;
-}
-
-// Para POST /tables: si el host no especificó ubicación, heredar la del perfil
-// (si la tiene). Si el perfil tampoco tiene, la mesa queda sin ubicación.
-// PUT NO usa este fallback — el host puede borrar location intencionalmente.
-function locationForCreate(input, userDireccion) {
-  const normalized = normalizeLocationInput(input);
-  if (!isEmptyLocation(normalized)) return normalized;
-
-  const hasUserCoords = userDireccion?.lat != null && userDireccion?.lng != null;
-  const hasUserTexto = Boolean(userDireccion?.texto);
-  if (!hasUserCoords && !hasUserTexto) return normalized;
-
-  return {
-    texto: userDireccion.texto || '',
-    lat: hasUserCoords ? userDireccion.lat : null,
-    lng: hasUserCoords ? userDireccion.lng : null,
-  };
-}
-
-// Agrega `distanceKm` a cada table cuando el user tiene direccion con coords.
-// Si la table no tiene coords, distanceKm queda null.
-function attachDistance(tables, userLat, userLng) {
-  if (!isValidCoord(userLat, userLng)) {
-    return tables.map((t) => {
-      const obj = typeof t.toObject === 'function' ? t.toObject() : t;
-      return { ...obj, distanceKm: null };
-    });
-  }
-  return tables.map((t) => {
-    const obj = typeof t.toObject === 'function' ? t.toObject() : t;
-    const tLat = obj.location?.lat;
-    const tLng = obj.location?.lng;
-    const km = (tLat != null && tLng != null) ? haversineKm(userLat, userLng, tLat, tLng) : null;
-    return { ...obj, distanceKm: km };
-  });
-}
-
-// Devuelve un $match adicional que recorta a un bounding box cuadrado de
-// lado ~2R km alrededor del user. Reduce dramáticamente el set que después
-// refinamos con Haversine en memoria, sin requerir índice 2dsphere.
-function buildBboxFilter(userLat, userLng, maxKm) {
-  const latDelta = maxKm / 111;
-  const lngDelta = maxKm / (111 * Math.cos(userLat * Math.PI / 180) || 1);
-  return {
-    'location.lat': { $gte: userLat - latDelta, $lte: userLat + latDelta },
-    'location.lng': { $gte: userLng - lngDelta, $lte: userLng + lngDelta },
-  };
-}
+// Los helpers de location (normalizeLocationInput, locationForCreate) viven
+// en utils/locationHelpers.js — compartidos con eventos.js.
+// Los helpers geo (attachDistance, buildBboxFilter) viven en utils/geo.js.
 
 // GET /api/tables — public (anon sees only public tables); supports ?page, ?limit, ?search
 // Cuando el user tiene direccion con coords, agrega `distanceKm` por table.
