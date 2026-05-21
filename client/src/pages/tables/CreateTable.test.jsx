@@ -10,10 +10,28 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => navigateMock };
 });
 
+vi.mock('../../context/AuthContext', () => ({ useAuth: vi.fn() }));
+
+// Mock de PlaceAutocomplete — su test propio cubre el comportamiento.
+// AddressMap fue removido del form de creación (2026-05).
+vi.mock('../../components/shared/PlaceAutocomplete', () => ({
+  default: ({ value, onChange, placeholder }) => (
+    <input
+      data-testid="place-autocomplete"
+      value={value || ''}
+      onChange={(e) => onChange?.(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
+}));
+
 import CreateTable from './CreateTable';
+import { useAuth } from '../../context/AuthContext';
 
 beforeEach(() => {
   navigateMock.mockReset();
+  // Default: usuario sin direccion. Tests específicos sobreescriben.
+  useAuth.mockReturnValue({ user: { _id: 'me', username: 'me' } });
 });
 
 function renderPage() {
@@ -109,5 +127,35 @@ describe('<CreateTable>', () => {
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith('/mesas/newtable-id');
     });
+  });
+});
+
+describe('<CreateTable> — Ubicación (opcional, sin mapa)', () => {
+  it('no renderiza un mapa en el form de creación', () => {
+    renderPage();
+    // AddressMap fue removido del flujo de creación.
+    expect(screen.queryByTestId('address-map')).not.toBeInTheDocument();
+  });
+
+  it('muestra label "Ubicación" con el hint "(opcional)"', () => {
+    renderPage();
+    expect(screen.getByText('Ubicación')).toBeInTheDocument();
+    expect(screen.getByText(/\(opcional\)/)).toBeInTheDocument();
+  });
+
+  it('cuando el user tiene direccion en el perfil, muestra hint de fallback con el texto', () => {
+    useAuth.mockReturnValue({
+      user: { _id: 'me', username: 'me', direccion: { texto: 'Av. Corrientes 1234', lat: -34.6, lng: -58.4 } },
+    });
+    renderPage();
+    expect(screen.getByText(/usamos la dirección de tu perfil/i)).toBeInTheDocument();
+    expect(screen.getByText('Av. Corrientes 1234')).toBeInTheDocument();
+  });
+
+  it('cuando el user NO tiene direccion, muestra link al perfil', () => {
+    useAuth.mockReturnValue({ user: { _id: 'me', username: 'me' } });
+    renderPage();
+    expect(screen.getByText(/la mesa se publica sin ubicación/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /agregá una dirección a tu perfil/i })).toHaveAttribute('href', '/perfil');
   });
 });

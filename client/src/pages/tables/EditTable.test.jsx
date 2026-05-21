@@ -6,6 +6,23 @@ import { server } from '../../test/server';
 
 vi.mock('../../context/AuthContext', () => ({ useAuth: vi.fn() }));
 
+// Mocks de los componentes de mapa — sus tests propios cubren el comportamiento.
+vi.mock('../../components/shared/AddressMap', () => ({
+  default: ({ lat, lng }) => (
+    <div data-testid="address-map" data-lat={lat ?? ''} data-lng={lng ?? ''} />
+  ),
+}));
+vi.mock('../../components/shared/PlaceAutocomplete', () => ({
+  default: ({ value, onChange, placeholder }) => (
+    <input
+      data-testid="place-autocomplete"
+      value={value || ''}
+      onChange={(e) => onChange?.(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
+}));
+
 const navigateMock = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');

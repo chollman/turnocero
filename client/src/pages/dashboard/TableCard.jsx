@@ -7,6 +7,7 @@ import LoginPromptModal from '../../components/shared/LoginPromptModal';
 import Avatar from '../../components/shared/Avatar';
 import { GhostIcon } from '../../components/shared/UserRef';
 import { getUserDisplay } from '../../utils/userDisplay';
+import { formatDistanceKm } from '../../utils/distance';
 import styles from './TableCard.module.css';
 
 // --- helpers ---
@@ -123,6 +124,12 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
   const [flashing, setFlashing] = useState(false);
 
   const hostInfo = getUserDisplay(table.host);
+  // `table.location` puede llegar como string (legacy) o subdoc { texto, lat, lng }.
+  // Normalizamos al subdoc para que el resto del render sea uniforme.
+  const locationTexto = typeof table.location === 'string'
+    ? table.location
+    : table.location?.texto || '';
+  const distanceLabel = formatDistanceKm(table.distanceKm);
   const isHost = user && table.host && (table.host._id === user._id || table.host._id?.toString() === user._id?.toString());
   const isPlayer = user && table.players.some(
     (p) => (p._id || p).toString() === (user._id || user).toString()
@@ -230,7 +237,12 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
               : <strong>{table.host.username}</strong>}
           </span>
           <span className={styles.listMetaItem}>👥 {table.players.length + 1} / {table.maxPlayers + 1}</span>
-          {table.location && <span className={styles.listMetaItem}>📍 {table.location}</span>}
+          {locationTexto && (
+            <span className={styles.listMetaItem}>
+              📍 {locationTexto}
+              {distanceLabel && <span className={styles.distanceInline}> · {distanceLabel}</span>}
+            </span>
+          )}
         </div>
 
         <div className={styles.listActions}>
@@ -312,10 +324,11 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
       <div className={styles.body}>
         <h3 className={styles.gameName}>{table.boardGame}</h3>
 
-        {table.location && (
+        {locationTexto && (
           <div className={styles.location}>
             <PinIcon size={13} />
-            <span>{table.location}</span>
+            <span>{locationTexto}</span>
+            {distanceLabel && <span className={styles.distanceBadge}>{distanceLabel}</span>}
           </div>
         )}
 

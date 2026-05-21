@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
+import useDebouncedValue from '../../hooks/useDebouncedValue'
 import TableCard from './TableCard'
 import TableCardSkeleton from './TableCardSkeleton'
 import styles from './Dashboard.module.css'
@@ -11,7 +12,8 @@ const TABS = [
   { id: 'mine', label: 'Mis mesas' },
 ]
 
-const DEBOUNCE_MS = 400
+// Radio máximo del slider de distancia (km). 0 = sin filtro.
+const MAX_RADIUS_KM = 100
 
 const GridIcon = () => (
   <svg width='15' height='15' viewBox='0 0 15 15' fill='currentColor'>
@@ -32,33 +34,28 @@ const ListIcon = () => (
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const hasDireccion = Boolean(user?.direccion?.lat && user?.direccion?.lng)
   const [tables, setTables] = useState([])
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
+  // Refactor: usar useDebouncedValue compartido en vez del setTimeout manual.
+  const debouncedSearch = useDebouncedValue(search, 400)
+  // Slider de radio. 0 = sin filtro (default). Solo se aplica si user tiene direccion.
+  const [radiusKm, setRadiusKm] = useState(0)
+  const debouncedRadius = useDebouncedValue(radiusKm, 300)
   const [page, setPage] = useState(1)
   const [refetchKey, setRefetchKey] = useState(0)
   const [viewMode, setViewMode] = useState('grid')
-  const debounceTimer = useRef(null)
 
-  const handleSearchChange = (e) => {
-    const value = e.target.value
-    setSearch(value)
-    clearTimeout(debounceTimer.current)
-    debounceTimer.current = setTimeout(() => {
-      setDebouncedSearch(value)
-      setPage(1)
-    }, DEBOUNCE_MS)
-  }
+  // Resetear página al cambiar search o radio.
+  useEffect(() => { setPage(1) }, [debouncedSearch, debouncedRadius])
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [page])
-
-  useEffect(() => () => clearTimeout(debounceTimer.current), [])
 
   useEffect(() => {
     let cancelled = false
@@ -69,6 +66,7 @@ export default function Dashboard() {
         const url = activeTab === 'mine' ? '/api/tables/mine' : '/api/tables'
         const params = { page, limit: 12 }
         if (debouncedSearch) params.search = debouncedSearch
+        if (hasDireccion && debouncedRadius > 0) params.maxDistanceKm = debouncedRadius
         const { data } = await axios.get(url, { params })
         if (!cancelled) {
           setTables(data.tables)
@@ -88,7 +86,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true
     }
-  }, [activeTab, page, debouncedSearch, refetchKey])
+  }, [activeTab, page, debouncedSearch, debouncedRadius, hasDireccion, refetchKey])
 
   const handleTabChange = (id) => {
     if (id === activeTab) return
@@ -215,10 +213,59 @@ export default function Dashboard() {
               className={styles.search}
               placeholder='Buscar juego o host…'
               value={search}
-              onChange={handleSearchChange}
+              onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
+
+        {/* Filtro por radio (logged-in only) */}
+        {user && (
+          <div className={styles.radiusRow}>
+            <div className={styles.radiusLabel}>
+              <span className={styles.radiusIcon} aria-hidden='true'>📍</span>
+              <span>
+                {hasDireccion
+                  ? (radiusKm > 0
+                      ? <>Mostrando mesas a <strong>menos de {radiusKm} km</strong> de tu ubicación</>
+                      : <>Filtrá por <strong>distancia</strong> desde tu ubicación</>)
+                  : <>Agregá tu dirección en <Link to='/perfil' className={styles.radiusInlineLink}>tu perfil</Link> para filtrar mesas por distancia</>}
+              </span>
+            </div>
+            <div className={styles.radiusControls}>
+              <button
+                type='button'
+                className={styles.radiusStep}
+                onClick={() => setRadiusKm((r) => Math.max(0, r - 1))}
+                disabled={!hasDireccion || radiusKm <= 0}
+                aria-label='Disminuir radio 1 km'
+                title='−1 km'
+              >−</button>
+              <input
+                type='range'
+                min='0'
+                max={MAX_RADIUS_KM}
+                step='1'
+                value={radiusKm}
+                onChange={(e) => setRadiusKm(Number(e.target.value))}
+                className={styles.radiusSlider}
+                disabled={!hasDireccion}
+                aria-label='Radio máximo en kilómetros'
+                title={hasDireccion ? `Radio: ${radiusKm || 'Sin límite'}` : 'Agregá tu dirección en el perfil para activar este filtro'}
+              />
+              <button
+                type='button'
+                className={styles.radiusStep}
+                onClick={() => setRadiusKm((r) => Math.min(MAX_RADIUS_KM, r + 1))}
+                disabled={!hasDireccion || radiusKm >= MAX_RADIUS_KM}
+                aria-label='Aumentar radio 1 km'
+                title='+1 km'
+              >+</button>
+              <span className={styles.radiusValue}>
+                {radiusKm > 0 ? `${radiusKm} km` : 'Sin límite'}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         {loading ? (

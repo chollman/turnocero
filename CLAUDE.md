@@ -102,6 +102,10 @@ The Vite dev server proxies `/api/*` to `http://localhost:4000/api`, so all fron
 - Mongoose pre-save hook auto-sets `status = 'full'` when `players.length >= maxPlayers` and reverts to `'open'` if a player leaves
 - `privacy: 'private'` tables use a join-request flow: `POST /:id/join` adds to `pendingRequests`; host accepts/rejects via `POST /:id/requests/:userId/accept|reject`
 - Host can edit (PUT) or cancel (DELETE → `status = 'cancelled'`); cancelled tables are excluded from all list queries
+- `location` is a subdocument `{ texto, lat, lng }` (migrated from `String` in 2026-05). A `pre('init')` hook normalizes legacy string values lazily on hydrate. Tables created via the new flow always get coords via Places Autocomplete or the geocoding fallback.
+
+### Distance to tables
+When the authenticated user has `direccion.lat/lng`, `GET /api/tables` decorates each item with `distanceKm` (great-circle, computed via Haversine in `server/utils/geo.js#haversineKm`). The optional `?maxDistanceKm=N` query filters to tables within N km of the user (bounding-box pre-filter in Mongo + Haversine refine in memory; no GeoJSON migration required). Tables without coords show `distanceKm: null` and are excluded when the radius filter is active. UI: green badge in TableCard via `client/src/utils/distance.js#formatDistanceKm` ("Aquí mismo" / "850 m" / "12,3 km" / "250 km"); radius slider (1–100km, `useDebouncedValue` 300ms) in the dashboard.
 
 ### Compartidas
 Social posts that users create to share moments from their sessions. Stored in the `Compartida` model:

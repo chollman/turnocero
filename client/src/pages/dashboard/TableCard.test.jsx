@@ -213,6 +213,37 @@ describe('<TableCard>', () => {
     await waitFor(() => expect(onUpdate).toHaveBeenCalled());
   });
 
+  it('renders location.texto when location is a subdocument', () => {
+    renderCard(makeTable({
+      location: { texto: 'Av. Corrientes 1234', lat: -34.6, lng: -58.4 },
+    }));
+    expect(screen.getByText('Av. Corrientes 1234')).toBeInTheDocument();
+  });
+
+  it('shows the distance badge when distanceKm is present', () => {
+    renderCard(makeTable({
+      location: { texto: 'CABA', lat: -34.6, lng: -58.4 },
+      distanceKm: 12.34,
+    }));
+    expect(screen.getByText(/12,3 km/)).toBeInTheDocument();
+  });
+
+  it('does NOT show the distance badge when distanceKm is null', () => {
+    renderCard(makeTable({
+      location: { texto: 'CABA', lat: null, lng: null },
+      distanceKm: null,
+    }));
+    expect(screen.queryByText(/km/)).not.toBeInTheDocument();
+  });
+
+  it('uses "Aquí mismo" instead of "0 m" for distanceKm === 0', () => {
+    renderCard(makeTable({
+      location: { texto: 'Casa', lat: -34.6, lng: -58.4 },
+      distanceKm: 0,
+    }));
+    expect(screen.getByText(/aquí mismo/i)).toBeInTheDocument();
+  });
+
   it('handleCancel (host) confirms and DELETEs the table', async () => {
     const onCancel = vi.fn();
     const table = makeTable({ host: { _id: 'me', username: 'me', avatar: { url: '', publicId: '' } } });

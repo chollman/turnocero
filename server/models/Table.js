@@ -33,11 +33,14 @@ const tableSchema = new mongoose.Schema(
         ref: 'User',
       },
     ],
+    // Migrado de String a subdocumento en 2026-05 para soportar cálculo
+    // de distancias. Docs viejos que aún tienen `location: "texto"` se
+    // normalizan al hidratar vía `pre('init')` hook abajo — no hace falta
+    // script de migración (lazy upgrade en cada read).
     location: {
-      type: String,
-      trim: true,
-      maxlength: [200, 'Location cannot exceed 200 characters'],
-      default: '',
+      texto: { type: String, trim: true, maxlength: [200, 'Location cannot exceed 200 characters'], default: '' },
+      lat:   { type: Number, default: null },
+      lng:   { type: Number, default: null },
     },
     description: {
       type: String,
@@ -93,6 +96,16 @@ tableSchema.virtual('totalPlayers').get(function () {
 // Virtual: available seats
 tableSchema.virtual('availableSeats').get(function () {
   return this.maxPlayers - this.players.length;
+});
+
+// Lazy migration: normaliza `location` viejo (string plano) al nuevo shape.
+// Corre solo al hidratar docs existentes — los nuevos ya nacen con la forma
+// correcta. Sin esto, queries sobre tables viejas tirarían CastError porque
+// Mongoose espera el subdoc.
+tableSchema.pre('init', (doc) => {
+  if (typeof doc.location === 'string') {
+    doc.location = { texto: doc.location, lat: null, lng: null };
+  }
 });
 
 // Auto-update status based on player count

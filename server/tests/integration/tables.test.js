@@ -185,6 +185,237 @@ describe('POST /api/tables/:id/leave', () => {
   });
 });
 
+describe('GET /api/tables — distance computation', () => {
+  // Coords de referencia.
+  const obelisco  = { lat: -34.6037, lng: -58.3816 };
+  const laPlata   = { lat: -34.9215, lng: -57.9545 };  // ~56 km del Obelisco
+  const rosario   = { lat: -32.9442, lng: -60.6505 };  // ~280 km del Obelisco
+
+  async function setupTables() {
+    const host = await createUser();
+    const t1 = await createTable(host, {
+      boardGame: 'Catán', location: { texto: 'Obelisco', ...obelisco },
+    });
+    const t2 = await createTable(host, {
+      boardGame: 'Carcassonne', location: { texto: 'La Plata', ...laPlata },
+    });
+    const t3 = await createTable(host, {
+      boardGame: 'Brass', location: { texto: 'Rosario', ...rosario },
+    });
+    const t4 = await createTable(host, {
+      boardGame: 'Wingspan', location: { texto: 'Sin coords' },  // sin lat/lng
+    });
+    return { host, t1, t2, t3, t4 };
+  }
+
+  it('includes distanceKm for each table when the user has direccion coords', async () => {
+    await setupTables();
+    const user = await createUser();
+    user.direccion = { texto: 'Obelisco', ...obelisco };
+    await user.save();
+
+    const res = await request(app)
+      .get('/api/tables')
+      .set('Authorization', `Bearer ${tokenFor(user)}`);
+
+    expect(res.status).toBe(200);
+    const byGame = Object.fromEntries(res.body.tables.map((t) => [t.boardGame, t.distanceKm]));
+    expect(byGame['Catán']).toBeCloseTo(0, 1);
+    expect(byGame['Carcassonne']).toBeGreaterThan(50);
+    expect(byGame['Carcassonne']).toBeLessThan(62);
+    expect(byGame['Brass']).toBeGreaterThan(270);
+    expect(byGame['Brass']).toBeLessThan(295);
+    expect(byGame['Wingspan']).toBeNull(); // sin coords
+  });
+
+  it('returns distanceKm: null on all tables when user has no direccion', async () => {
+    await setupTables();
+    const user = await createUser();  // sin direccion seteada
+    const res = await request(app)
+      .get('/api/tables')
+      .set('Authorization', `Bearer ${tokenFor(user)}`);
+
+    expect(res.status).toBe(200);
+    res.body.tables.forEach((t) => expect(t.distanceKm).toBeNull());
+  });
+
+  it('filters by ?maxDistanceKm and excludes tables without coords', async () => {
+    await setupTables();
+    const user = await createUser();
+    user.direccion = { texto: 'Obelisco', ...obelisco };
+    await user.save();
+
+    // Solo Catán (0km) y Carcassonne (~56km) entran dentro de 100km. Brass (~280) y Wingspan (sin coords) afuera.
+    const res = await request(app)
+      .get('/api/tables')
+      .query({ maxDistanceKm: 100 })
+      .set('Authorization', `Bearer ${tokenFor(user)}`);
+
+    expect(res.status).toBe(200);
+    const games = res.body.tables.map((t) => t.boardGame).sort();
+    expect(games).toEqual(['Carcassonne', 'Catán']);
+    expect(res.body.total).toBe(2);
+  });
+
+  it('ignores ?maxDistanceKm when the user has no direccion (falls back to normal listing)', async () => {
+    await setupTables();
+    const user = await createUser();  // sin direccion
+    const res = await request(app)
+      .get('/api/tables')
+      .query({ maxDistanceKm: 10 })
+      .set('Authorization', `Bearer ${tokenFor(user)}`);
+    expect(res.status).toBe(200);
+    expect(res.body.tables.length).toBe(4);  // sin filtro aplicado
+  });
+
+  it('treats invalid maxDistanceKm (negative, zero, NaN) as "no filter"', async () => {
+    await setupTables();
+    const user = await createUser();
+    user.direccion = { texto: 'Obelisco', ...obelisco };
+    await user.save();
+
+    for (const value of [-5, 0, 'abc']) {
+      const res = await request(app)
+        .get('/api/tables')
+        .query({ maxDistanceKm: value })
+        .set('Authorization', `Bearer ${tokenFor(user)}`);
+      expect(res.status).toBe(200);
+      expect(res.body.tables.length).toBe(4);
+    }
+  });
+});
+
+describe('POST /api/tables — location subdocument', () => {
+  it('persists location as { texto, lat, lng } when sent as object', async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post('/api/tables')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        boardGame: 'Catán',
+        date: new Date(Date.now() + 86400000).toISOString(),
+        maxPlayers: 4,
+        location: { texto: 'Av. Corrientes 1234', lat: -34.6037, lng: -58.3816 },
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.location).toEqual({
+      texto: 'Av. Corrientes 1234',
+      lat: -34.6037,
+      lng: -58.3816,
+    });
+  });
+
+  it('normalizes legacy string location to { texto, lat: null, lng: null }', async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post('/api/tables')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        boardGame: 'Catán',
+        date: new Date(Date.now() + 86400000).toISOString(),
+        maxPlayers: 4,
+        location: 'Mi casa',
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.location).toEqual({ texto: 'Mi casa', lat: null, lng: null });
+  });
+
+  it('drops invalid coords but keeps texto', async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post('/api/tables')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        boardGame: 'Catán',
+        date: new Date(Date.now() + 86400000).toISOString(),
+        maxPlayers: 4,
+        location: { texto: 'Algo', lat: 999, lng: -58.3 },  // lat fuera de rango
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.location.texto).toBe('Algo');
+    expect(res.body.location.lat).toBeNull();
+    expect(res.body.location.lng).toBeNull();
+  });
+});
+
+describe('POST /api/tables — fallback a user.direccion cuando no se especifica location', () => {
+  it('hereda la direccion del perfil si el host no manda location', async () => {
+    const { user, token } = await createAuthedUser();
+    user.direccion = { texto: 'Av. Corrientes 1234, CABA', lat: -34.6037, lng: -58.3816 };
+    await user.save();
+
+    const res = await request(app)
+      .post('/api/tables')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        boardGame: 'Catán',
+        date: new Date(Date.now() + 86400000).toISOString(),
+        maxPlayers: 4,
+        // sin location
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.location).toEqual({
+      texto: 'Av. Corrientes 1234, CABA',
+      lat: -34.6037,
+      lng: -58.3816,
+    });
+  });
+
+  it('hereda direccion del perfil cuando se manda location vacía', async () => {
+    const { user, token } = await createAuthedUser();
+    user.direccion = { texto: 'Florida 100', lat: -34.6, lng: -58.4 };
+    await user.save();
+
+    const res = await request(app)
+      .post('/api/tables')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        boardGame: 'Catán',
+        date: new Date(Date.now() + 86400000).toISOString(),
+        maxPlayers: 4,
+        location: { texto: '', lat: null, lng: null },
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.location.texto).toBe('Florida 100');
+    expect(res.body.location.lat).toBe(-34.6);
+    expect(res.body.location.lng).toBe(-58.4);
+  });
+
+  it('NO hereda si el host especificó alguna parte de location', async () => {
+    const { user, token } = await createAuthedUser();
+    user.direccion = { texto: 'Perfil', lat: -34.6, lng: -58.4 };
+    await user.save();
+
+    const res = await request(app)
+      .post('/api/tables')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        boardGame: 'Catán',
+        date: new Date(Date.now() + 86400000).toISOString(),
+        maxPlayers: 4,
+        location: { texto: 'Bar de Pepe' },  // sin coords pero con texto
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.location.texto).toBe('Bar de Pepe');
+    expect(res.body.location.lat).toBeNull();
+    expect(res.body.location.lng).toBeNull();
+  });
+
+  it('crea mesa sin ubicación si ni el host ni el perfil tienen direccion', async () => {
+    const { token } = await createAuthedUser();  // sin direccion
+    const res = await request(app)
+      .post('/api/tables')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        boardGame: 'Catán',
+        date: new Date(Date.now() + 86400000).toISOString(),
+        maxPlayers: 4,
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.location).toEqual({ texto: '', lat: null, lng: null });
+  });
+});
+
 describe('PUT /api/tables/:id (host only)', () => {
   it('host can update fields', async () => {
     const host = await createUser();
@@ -199,7 +430,9 @@ describe('PUT /api/tables/:id (host only)', () => {
         description: 'fresh',
       });
     expect(res.status).toBe(200);
-    expect(res.body.location).toBe('new place');
+    // `location` ahora es un subdocumento { texto, lat, lng }.
+    // Strings legacy entrantes se normalizan al nuevo shape.
+    expect(res.body.location).toEqual({ texto: 'new place', lat: null, lng: null });
     expect(res.body.description).toBe('fresh');
   });
 

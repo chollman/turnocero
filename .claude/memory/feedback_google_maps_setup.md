@@ -29,6 +29,12 @@ Google Maps solo acepta `mapId` al construir el mapa — cambiar el prop despué
 
 En el editor nuevo de Cloud Console, cada Map Style tiene un "Style type" (Light/Dark). Estos styles tipados **solo se aplican si pasás también `colorScheme="LIGHT"` o `"DARK"` al `<Map>`**. Sin esto, el Map ID + Style están perfectamente configurados pero el estilo NO se renderiza, cae al default. Aplicar siempre `colorScheme={theme === 'light' ? 'LIGHT' : 'DARK'}` junto con el `mapId`.
 
+## Reuso en Tables (Mesas) — 2026-05
+
+Mismo patrón aplicado a `Table.location`: migrado de `String` a `{ texto, lat, lng }` con `pre('init')` hook para lazy upgrade. `CreateTable` + `EditTable` reusan `<PlaceAutocomplete>` + `<AddressMap>`. Distancia user↔mesa se calcula con **Haversine puro** (sin APIs de Google) en `server/utils/geo.js`, expuesta como `distanceKm` en cada item de `GET /api/tables`, con filtro server-side `?maxDistanceKm=N` (bbox + refine en memoria, sin requerir 2dsphere). UI: badge verde en TableCard via helper `client/src/utils/distance.js#formatDistanceKm` ("Aquí mismo" / "850 m" / "12,3 km" / "250 km"). Slider de radio en dashboard con `useDebouncedValue(300ms)`.
+
+Eventos pendiente — mismo patrón en otro PR.
+
 ## Backend geocoding cache (mismo patrón que BGG)
 
 - `server/models/GeocodeCache.js` — `{ query, lat, lng, formatted, lastFetchedAt }` con índice TTL de 30 días.

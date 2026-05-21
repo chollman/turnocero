@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
+import PlaceAutocomplete from '../../components/shared/PlaceAutocomplete';
 import styles from './CreateTable.module.css';
 
 const defaultDate = () => {
@@ -11,13 +13,18 @@ const defaultDate = () => {
 };
 
 export default function CreateTable() {
+  const { user } = useAuth();
+  const profileDireccionTexto = user?.direccion?.texto || '';
+  const hasProfileDireccion = Boolean(profileDireccionTexto || (user?.direccion?.lat != null && user?.direccion?.lng != null));
+
   const [form, setForm] = useState({
     date: defaultDate(),
     maxPlayers: 3,
-    location: '',
+    location: { texto: '', lat: null, lng: null },
     description: '',
     privacy: 'public',
   });
+  const [geocoding, setGeocoding] = useState(false);
   const [boardGameInput, setBoardGameInput] = useState('');
   const [boardGameSelected, setBoardGameSelected] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
@@ -89,6 +96,36 @@ export default function CreateTable() {
 
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+
+  // ── Ubicación ──
+  // El mapa se removió de la creación para simplificar el flujo. Si el usuario
+  // no completa, el server fallbackea a `user.direccion` (si la tiene). Para
+  // ajuste fino post-creación, el host puede editar la mesa.
+  const updateLocationTexto = (texto) =>
+    setForm((f) => ({ ...f, location: { ...f.location, texto } }));
+  const handlePlaceSelect = ({ lat, lng, formattedAddress }) =>
+    setForm((f) => ({ ...f, location: { texto: formattedAddress || f.location.texto, lat, lng } }));
+  const handleManualGeocode = async () => {
+    const q = form.location.texto.trim();
+    if (q.length < 3) {
+      setError('Escribí una dirección de al menos 3 caracteres.');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    setGeocoding(true);
+    try {
+      const { data } = await axios.get('/api/geocode', { params: { q } });
+      setForm((f) => ({ ...f, location: { texto: data.formatted || f.location.texto, lat: data.lat, lng: data.lng } }));
+    } catch (err) {
+      const msg = err.response?.status === 404
+        ? 'No se encontró la dirección. Intentá ser más específico o picá una sugerencia.'
+        : err.response?.data?.message || 'Error al buscar la dirección.';
+      setError(msg);
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setGeocoding(false);
+    }
+  };
 
   const handleGameInputChange = (e) => {
     setBoardGameInput(e.target.value);
@@ -220,16 +257,38 @@ export default function CreateTable() {
             </div>
 
             <div className={styles.field}>
-              <label className={styles.label}>Ubicación</label>
-              <input
-                type="text"
-                name="location"
-                value={form.location}
-                onChange={handleChange}
-                className={styles.input}
-                placeholder="Casa, bar, club… (opcional)"
-                maxLength={200}
-              />
+              <label className={styles.label}>
+                Ubicación
+                <span className={styles.labelHint}>(opcional)</span>
+              </label>
+              <p className={styles.locationHint}>
+                {hasProfileDireccion
+                  ? <>Si lo dejás vacío, usamos la dirección de tu perfil: <strong>{profileDireccionTexto || 'tus coordenadas guardadas'}</strong>.</>
+                  : <>Si lo dejás vacío, la mesa se publica sin ubicación. <Link to="/perfil" className={styles.locationLink}>Agregá una dirección a tu perfil</Link> para usarla por default.</>
+                }
+              </p>
+              <div className={styles.geocodeRow}>
+                <PlaceAutocomplete
+                  value={form.location.texto}
+                  onChange={updateLocationTexto}
+                  onSelect={handlePlaceSelect}
+                  placeholder="Empezá a escribir una dirección…"
+                />
+                <button
+                  type="button"
+                  className={styles.btnSearch}
+                  onClick={handleManualGeocode}
+                  disabled={geocoding}
+                  title="Buscar la dirección que tipeaste (sin picar sugerencia)"
+                >
+                  {geocoding ? '…' : 'Buscar'}
+                </button>
+              </div>
+              {form.location.lat != null && form.location.lng != null && (
+                <p className={styles.coordsHint}>
+                  📍 {form.location.lat.toFixed(5)}, {form.location.lng.toFixed(5)}
+                </p>
+              )}
             </div>
 
             <div className={styles.field}>

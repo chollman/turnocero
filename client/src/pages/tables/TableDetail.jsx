@@ -8,6 +8,7 @@ import GameTile from '../../components/shared/GameTile'
 import LoginPromptModal from '../../components/shared/LoginPromptModal'
 import Avatar from '../../components/shared/Avatar'
 import { getUserDisplay, DELETED_USER_LABEL } from '../../utils/userDisplay'
+import { formatDistanceKm } from '../../utils/distance'
 import TableDetailSkeleton from './TableDetailSkeleton'
 import styles from './TableDetail.module.css'
 
@@ -494,6 +495,11 @@ export default function TableDetail() {
     (r) => (r._id || r).toString() === user._id.toString()
   )
   const isPrivate = table.privacy === 'private'
+  // `table.location` puede ser string legacy o subdoc { texto, lat, lng }.
+  const locationTexto = typeof table.location === 'string'
+    ? table.location
+    : table.location?.texto || ''
+  const distanceLabel = formatDistanceKm(table.distanceKm)
   const isFollowing = !isAnon && (table.followers || []).some((f) => f.toString() === user._id.toString())
   const filled = table.players.length + 1
   const total = table.maxPlayers + 1
@@ -594,8 +600,11 @@ export default function TableDetail() {
                 <span className={styles.heroChipDot}>●</span>
                 {getDateChip(table.date)}
               </span>
-              {table.location && (
-                <span className={styles.heroChip}>📍 {table.location}</span>
+              {locationTexto && (
+                <span className={styles.heroChip}>
+                  📍 {locationTexto}
+                  {distanceLabel && <span style={{ marginLeft: 6, color: 'var(--green)', fontWeight: 700 }}>· {distanceLabel}</span>}
+                </span>
               )}
             </div>
           </div>
@@ -607,10 +616,13 @@ export default function TableDetail() {
             <span className={styles.mobileMetaIcon}>📅</span>
             <span>{getDateChip(table.date)}</span>
           </div>
-          {table.location && (
+          {locationTexto && (
             <div className={styles.mobileMetaRow}>
               <span className={styles.mobileMetaIcon}>📍</span>
-              <span>{table.location}</span>
+              <span>
+                {locationTexto}
+                {distanceLabel && <span style={{ marginLeft: 6, color: 'var(--green)', fontWeight: 700 }}> · {distanceLabel}</span>}
+              </span>
             </div>
           )}
         </div>

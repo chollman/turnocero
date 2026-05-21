@@ -97,3 +97,129 @@ describe('<Dashboard>', () => {
     expect(await screen.findByText(/Error al cargar las mesas/i)).toBeInTheDocument();
   });
 });
+
+describe('<Dashboard> — radius filter', () => {
+  it('shows a CTA to add address when the user has no direccion', async () => {
+    useAuth.mockReturnValue({ user: { _id: 'me', username: 'me' } });  // sin direccion
+    renderDashboard();
+    expect(await screen.findByText(/agregá tu dirección/i)).toBeInTheDocument();
+    // El link va a /perfil.
+    const link = screen.getByRole('link', { name: /tu perfil/i });
+    expect(link).toHaveAttribute('href', '/perfil');
+    // Slider deshabilitado.
+    expect(screen.getByLabelText(/radio máximo/i)).toBeDisabled();
+  });
+
+  it('enables the slider and shows the prompt when user has direccion', async () => {
+    useAuth.mockReturnValue({
+      user: { _id: 'me', username: 'me', direccion: { texto: 'CABA', lat: -34.6, lng: -58.4 } },
+    });
+    renderDashboard();
+    expect(await screen.findByText(/filtrá por/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/radio máximo/i)).not.toBeDisabled();
+  });
+
+  it('updates the displayed label and fires a re-fetch with ?maxDistanceKm when slider moves', async () => {
+    useAuth.mockReturnValue({
+      user: { _id: 'me', username: 'me', direccion: { texto: 'CABA', lat: -34.6, lng: -58.4 } },
+    });
+    let lastUrl = null;
+    server.use(
+      http.get('/api/tables', ({ request }) => {
+        lastUrl = request.url;
+        return HttpResponse.json({
+          tables: [makeTable({ boardGame: 'Wingspan' })],
+          page: 1, pages: 1, total: 1,
+        });
+      }),
+    );
+    renderDashboard();
+    await screen.findByText(/Wingspan/);
+
+    const slider = screen.getByLabelText(/radio máximo/i);
+    fireEvent.change(slider, { target: { value: '25' } });
+
+    // Label refleja el valor inmediato (radiusValue span tiene exactamente "25 km").
+    expect(await screen.findByText('25 km')).toBeInTheDocument();
+    // El fetch con el nuevo radio se dispara después del debounce (300ms).
+    await waitFor(() => {
+      expect(lastUrl).toMatch(/maxDistanceKm=25/);
+    }, { timeout: 1500 });
+  });
+
+  it('does NOT send maxDistanceKm when slider is at 0', async () => {
+    useAuth.mockReturnValue({
+      user: { _id: 'me', username: 'me', direccion: { texto: 'CABA', lat: -34.6, lng: -58.4 } },
+    });
+    let lastUrl = null;
+    server.use(
+      http.get('/api/tables', ({ request }) => {
+        lastUrl = request.url;
+        return HttpResponse.json({ tables: [], page: 1, pages: 1, total: 0 });
+      }),
+    );
+    renderDashboard();
+    await waitFor(() => expect(lastUrl).not.toBeNull());
+    expect(lastUrl).not.toMatch(/maxDistanceKm/);
+  });
+
+  it('renders − and + step buttons next to the slider', async () => {
+    useAuth.mockReturnValue({
+      user: { _id: 'me', username: 'me', direccion: { texto: 'CABA', lat: -34.6, lng: -58.4 } },
+    });
+    renderDashboard();
+    expect(await screen.findByRole('button', { name: /disminuir radio/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /aumentar radio/i })).toBeInTheDocument();
+  });
+
+  it('"+" button increments radius by 1 km', async () => {
+    useAuth.mockReturnValue({
+      user: { _id: 'me', username: 'me', direccion: { texto: 'CABA', lat: -34.6, lng: -58.4 } },
+    });
+    renderDashboard();
+    const plus = await screen.findByRole('button', { name: /aumentar radio/i });
+    fireEvent.click(plus);
+    expect(await screen.findByText('1 km')).toBeInTheDocument();
+    fireEvent.click(plus);
+    fireEvent.click(plus);
+    expect(await screen.findByText('3 km')).toBeInTheDocument();
+  });
+
+  it('"−" button decrements radius by 1 km but never below 0', async () => {
+    useAuth.mockReturnValue({
+      user: { _id: 'me', username: 'me', direccion: { texto: 'CABA', lat: -34.6, lng: -58.4 } },
+    });
+    renderDashboard();
+    const slider = await screen.findByLabelText(/radio máximo/i);
+    fireEvent.change(slider, { target: { value: '3' } });
+    expect(await screen.findByText('3 km')).toBeInTheDocument();
+
+    const minus = screen.getByRole('button', { name: /disminuir radio/i });
+    fireEvent.click(minus);
+    fireEvent.click(minus);
+    expect(await screen.findByText('1 km')).toBeInTheDocument();
+    fireEvent.click(minus);
+    // Llegó a 0 → label cambia a "Sin límite".
+    expect(await screen.findByText('Sin límite')).toBeInTheDocument();
+    // "−" queda deshabilitado en 0.
+    expect(minus).toBeDisabled();
+  });
+
+  it('"+" button is disabled when radius reaches MAX (100km)', async () => {
+    useAuth.mockReturnValue({
+      user: { _id: 'me', username: 'me', direccion: { texto: 'CABA', lat: -34.6, lng: -58.4 } },
+    });
+    renderDashboard();
+    const slider = await screen.findByLabelText(/radio máximo/i);
+    fireEvent.change(slider, { target: { value: '100' } });
+    expect(await screen.findByText('100 km')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /aumentar radio/i })).toBeDisabled();
+  });
+
+  it('both step buttons are disabled when user has no direccion', async () => {
+    useAuth.mockReturnValue({ user: { _id: 'me', username: 'me' } });
+    renderDashboard();
+    expect(await screen.findByRole('button', { name: /disminuir radio/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /aumentar radio/i })).toBeDisabled();
+  });
+});

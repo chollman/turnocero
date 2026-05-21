@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import PlaceAutocomplete from '../../components/shared/PlaceAutocomplete';
+import AddressMap from '../../components/shared/AddressMap';
 import styles from './CreateTable.module.css';
 
 export default function EditTable() {
@@ -14,6 +16,7 @@ export default function EditTable() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [geocoding, setGeocoding] = useState(false);
 
   useEffect(() => {
     const fetchTable = async () => {
@@ -28,10 +31,15 @@ export default function EditTable() {
         }
         setMinPlayers(data.players.length);
         setBoardGame(data.boardGame);
+        // El server normaliza location al subdocumento, pero defendamos contra
+        // respuestas legacy (string) por si llega cacheada en algún cliente.
+        const loc = typeof data.location === 'string'
+          ? { texto: data.location, lat: null, lng: null }
+          : { texto: data.location?.texto || '', lat: data.location?.lat ?? null, lng: data.location?.lng ?? null };
         setForm({
           date: new Date(data.date).toISOString().slice(0, 16),
           maxPlayers: data.maxPlayers,
-          location: data.location || '',
+          location: loc,
           description: data.description || '',
           privacy: data.privacy || 'public',
         });
@@ -46,6 +54,35 @@ export default function EditTable() {
 
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+
+  // ── Ubicación ──
+  const updateLocationTexto = (texto) =>
+    setForm((f) => ({ ...f, location: { ...f.location, texto } }));
+  const handlePlaceSelect = ({ lat, lng, formattedAddress }) =>
+    setForm((f) => ({ ...f, location: { texto: formattedAddress || f.location.texto, lat, lng } }));
+  const handleMapChange = (lat, lng) =>
+    setForm((f) => ({ ...f, location: { ...f.location, lat, lng } }));
+  const handleManualGeocode = async () => {
+    const q = form.location.texto.trim();
+    if (q.length < 3) {
+      setError('Escribí una dirección de al menos 3 caracteres.');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    setGeocoding(true);
+    try {
+      const { data } = await axios.get('/api/geocode', { params: { q } });
+      setForm((f) => ({ ...f, location: { texto: data.formatted || f.location.texto, lat: data.lat, lng: data.lng } }));
+    } catch (err) {
+      const msg = err.response?.status === 404
+        ? 'No se encontró la dirección. Intentá ser más específico o picá una sugerencia.'
+        : err.response?.data?.message || 'Error al buscar la dirección.';
+      setError(msg);
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setGeocoding(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -133,15 +170,39 @@ export default function EditTable() {
 
             <div className={styles.field}>
               <label className={styles.label}>Ubicación</label>
-              <input
-                type="text"
-                name="location"
-                value={form.location}
-                onChange={handleChange}
-                className={styles.input}
-                placeholder="Casa, bar, club… (opcional)"
-                maxLength={200}
-              />
+              <p className={styles.locationHint}>
+                Empezá a escribir y elegí una sugerencia, o cliqueá en el mapa para marcar el lugar exacto. Opcional.
+              </p>
+              <div className={styles.geocodeRow}>
+                <PlaceAutocomplete
+                  value={form.location.texto}
+                  onChange={updateLocationTexto}
+                  onSelect={handlePlaceSelect}
+                  placeholder="Casa, bar, club…"
+                />
+                <button
+                  type="button"
+                  className={styles.btnSearch}
+                  onClick={handleManualGeocode}
+                  disabled={geocoding}
+                  title="Buscar la dirección que tipeaste (sin picar sugerencia)"
+                >
+                  {geocoding ? '…' : 'Buscar'}
+                </button>
+              </div>
+              {form.location.lat != null && form.location.lng != null && (
+                <p className={styles.coordsHint}>
+                  📍 {form.location.lat.toFixed(5)}, {form.location.lng.toFixed(5)}
+                </p>
+              )}
+              <div style={{ marginTop: 8 }}>
+                <AddressMap
+                  lat={form.location.lat}
+                  lng={form.location.lng}
+                  onChange={handleMapChange}
+                  height={220}
+                />
+              </div>
             </div>
 
             <div className={styles.field}>
