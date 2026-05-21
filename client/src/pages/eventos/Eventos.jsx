@@ -39,7 +39,13 @@ export default function Eventos() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   // Default 'open' — al entrar el usuario ve sólo los eventos abiertos a inscripción.
-  const [filter, setFilter] = useState("open");
+  // Persistimos en localStorage para que la elección sobreviva entre sesiones;
+  // si el chip guardado deja de ser visible (admin degradado, logout), un effect
+  // de abajo lo resetea a 'open'.
+  const [filter, setFilter] = useLocalStorageState(
+    "turnocero_eventos_filter",
+    "open",
+  );
   const [viewMode, setViewMode] = useLocalStorageState(
     "turnocero_eventos_view",
     "timeline",
@@ -222,6 +228,15 @@ export default function Eventos() {
       (f) => (!f.adminOnly || isAdmin) && (!f.requiresAuth || !!user),
     );
   }, [isAdmin, user]);
+
+  // Si el filtro persistido en localStorage ya no es visible para este usuario
+  // (admin degradado a usuario regular, o usuario que cerró sesión y tenía
+  // "mine" guardado), volver al default "open".
+  useEffect(() => {
+    if (!visibleFilters.some((f) => f.value === filter)) {
+      setFilter("open");
+    }
+  }, [visibleFilters, filter, setFilter]);
 
   function startCreating() {
     setCreating(true);

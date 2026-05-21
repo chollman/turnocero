@@ -158,6 +158,57 @@ describe("<Eventos>", () => {
     ).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("persists filter selection via localStorage", async () => {
+    renderPage({ user: { _id: "me", isAdmin: false } });
+    await screen.findByText("Open House");
+    fireEvent.click(screen.getByRole("button", { name: /cerrados/i }));
+    await waitFor(() =>
+      expect(
+        JSON.parse(localStorage.getItem("turnocero_eventos_filter")),
+      ).toBe("closed"),
+    );
+  });
+
+  it("reads stored filter on mount and requests it from the server", async () => {
+    let lastStatus = "sentinel";
+    server.use(
+      http.get("/api/eventos", ({ request }) => {
+        const url = new URL(request.url);
+        lastStatus = url.searchParams.get("status");
+        return HttpResponse.json({ eventos: [], page: 1, pages: 1, total: 0 });
+      }),
+    );
+    localStorage.setItem(
+      "turnocero_eventos_filter",
+      JSON.stringify("closed"),
+    );
+    renderPage({ user: { _id: "me", isAdmin: false } });
+    await waitFor(() => expect(lastStatus).toBe("closed"));
+  });
+
+  it("resets stored filter to 'open' when it is no longer visible (e.g., 'draft' for non-admin)", async () => {
+    localStorage.setItem(
+      "turnocero_eventos_filter",
+      JSON.stringify("draft"),
+    );
+    let lastStatus = "sentinel";
+    server.use(
+      http.get("/api/eventos", ({ request }) => {
+        const url = new URL(request.url);
+        lastStatus = url.searchParams.get("status");
+        return HttpResponse.json({ eventos: [], page: 1, pages: 1, total: 0 });
+      }),
+    );
+    renderPage({ user: { _id: "me", isAdmin: false } });
+    // Should fall back to 'open' (draft is admin-only)
+    await waitFor(() => expect(lastStatus).toBe("open"));
+    await waitFor(() =>
+      expect(
+        JSON.parse(localStorage.getItem("turnocero_eventos_filter")),
+      ).toBe("open"),
+    );
+  });
+
   it('admin: clicking "Nuevo evento" reveals the EventoForm', async () => {
     renderPage({ user: { _id: "admin", isAdmin: true } });
     await screen.findByText("Open House");
