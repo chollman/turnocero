@@ -54,8 +54,8 @@ export default function Eventos() {
   // de re-renderizar manualmente. Date.now() en render rompe react-hooks/purity.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(id);
+    const tickerId = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(tickerId);
   }, []);
 
   const load = useCallback(
@@ -210,8 +210,12 @@ export default function Eventos() {
       (e) => e.status === "open" && new Date(e.eventDate) > now,
     ).length;
   }, [eventos, now]);
-  const monthNow = MESES_LARGO[new Date().getMonth()];
-  const yearNow = new Date().getFullYear();
+  // Derivamos del ticker `now` (refrescado cada 30s) para que el hero
+  // "Agenda · Mes Año" siga al cambio de mes si la pestaña queda abierta
+  // cruzando medianoche del último día.
+  const nowDate = new Date(now);
+  const monthNow = MESES_LARGO[nowDate.getMonth()];
+  const yearNow = nowDate.getFullYear();
 
   const visibleFilters = useMemo(() => {
     return ALL_FILTERS.filter(

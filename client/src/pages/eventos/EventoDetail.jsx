@@ -44,8 +44,8 @@ export default function EventoDetail() {
   // re-renders manuales. Date.now() en render rompe react-hooks/purity.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(id);
+    const tickerId = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(tickerId);
   }, []);
 
   useEffect(() => {

@@ -22,8 +22,8 @@ export default function EventoInscripciones() {
   // Sin esto, Date.now() inline en render rompe react-hooks/purity.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(id);
+    const tickerId = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(tickerId);
   }, []);
 
   useEffect(() => {
