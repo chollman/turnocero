@@ -816,7 +816,9 @@ async function verifyPlayOnBgg(bggUsername, playId, { gameId, playdate } = {}) {
     } catch (e) {
       // Network/upstream blip — retry once, then give up.
       if (attempt === 0) continue;
-      const err = new Error(`No se pudo verificar la partida en BGG: ${e.message}`);
+      const err = new Error(
+        `No se pudo verificar la partida en BGG: ${e.message}`,
+      );
       err.status = 502;
       throw err;
     }
@@ -1117,7 +1119,9 @@ router.get("/juegos-jugados/:bggUsername", async (req, res) => {
       `[bgg/juegos-jugados] aggregation failed for ${lower}:`,
       err.message,
     );
-    res.status(500).json({ message: "No se pudieron computar los juegos jugados" });
+    res
+      .status(500)
+      .json({ message: "No se pudieron computar los juegos jugados" });
   }
 });
 
@@ -1644,7 +1648,11 @@ router.post("/partidas", protect, async (req, res) => {
       }
     }
 
-    res.json({ success: true, playid: String(newPlayId), play: playToApi(verified) });
+    res.json({
+      success: true,
+      playid: String(newPlayId),
+      play: playToApi(verified),
+    });
   } catch (err) {
     console.error("Create play failed:", err);
     res
@@ -1694,7 +1702,11 @@ router.delete("/partidas/:playId", protect, async (req, res) => {
       return res.status(e.status || 500).json({ message: e.message });
     }
 
-    const stillThere = await verifyPlayOnBgg(user.bggUsername, playId, verifyOpts);
+    const stillThere = await verifyPlayOnBgg(
+      user.bggUsername,
+      playId,
+      verifyOpts,
+    );
     if (stillThere) {
       return res.status(502).json({
         message: "BGG no confirmó el borrado de la partida. Intentá de nuevo.",

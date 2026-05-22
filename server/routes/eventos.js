@@ -1409,7 +1409,10 @@ router.get("/:id/ludoteca", optionalAuth, async (req, res) => {
     }
     // Drafts/cancelled solo visibles a admins (consistente con GET /:id).
     const isAdmin = !!req.user?.isAdmin;
-    if ((evento.status === "draft" || evento.status === "cancelled") && !isAdmin) {
+    if (
+      (evento.status === "draft" || evento.status === "cancelled") &&
+      !isAdmin
+    ) {
       return res.status(404).json({ message: "Evento no encontrado" });
     }
     res.json({ items: evento.ludoteca || [] });
@@ -1427,7 +1430,9 @@ router.post("/:id/ludoteca", protect, async (req, res) => {
       return res.status(400).json({ message: "bggGameId inválido" });
     }
     if (notes && typeof notes === "string" && notes.length > 200) {
-      return res.status(400).json({ message: "Las notas no pueden superar 200 caracteres" });
+      return res
+        .status(400)
+        .json({ message: "Las notas no pueden superar 200 caracteres" });
     }
 
     const evento = await Evento.findById(req.params.id).select(
@@ -1527,7 +1532,9 @@ router.patch("/:id/ludoteca/:itemId", protect, async (req, res) => {
       return res.status(400).json({ message: "notes debe ser string" });
     }
     if (notes && notes.length > 200) {
-      return res.status(400).json({ message: "Las notas no pueden superar 200 caracteres" });
+      return res
+        .status(400)
+        .json({ message: "Las notas no pueden superar 200 caracteres" });
     }
 
     const evento = await Evento.findById(req.params.id).select(
@@ -1619,7 +1626,10 @@ router.get("/:id/mesas", optionalAuth, async (req, res) => {
       return res.status(404).json({ message: "Evento no encontrado" });
     }
     const isAdmin = !!req.user?.isAdmin;
-    if ((evento.status === "draft" || evento.status === "cancelled") && !isAdmin) {
+    if (
+      (evento.status === "draft" || evento.status === "cancelled") &&
+      !isAdmin
+    ) {
       return res.status(404).json({ message: "Evento no encontrado" });
     }
     const result = await listTables({

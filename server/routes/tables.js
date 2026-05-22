@@ -319,7 +319,10 @@ router.post(
         if (!canActInEvento(evento, req.user)) {
           return res
             .status(403)
-            .json({ message: "Solo inscriptos confirmados pueden crear mesas en este evento" });
+            .json({
+              message:
+                "Solo inscriptos confirmados pueden crear mesas en este evento",
+            });
         }
         validatedEventoId = evento._id;
       }
@@ -542,11 +545,9 @@ router.post(
             (r) => r.toString() === req.user._id.toString(),
           )
         ) {
-          return res
-            .status(400)
-            .json({
-              message: "Ya enviaste una solicitud para unirte a esta mesa",
-            });
+          return res.status(400).json({
+            message: "Ya enviaste una solicitud para unirte a esta mesa",
+          });
         }
         table.pendingRequests.push(req.user._id);
         await table.save();
@@ -633,11 +634,9 @@ router.post(
       }
 
       if (table.status === "cancelled") {
-        return res
-          .status(400)
-          .json({
-            message: "No se pueden aceptar solicitudes en una mesa cancelada",
-          });
+        return res.status(400).json({
+          message: "No se pueden aceptar solicitudes en una mesa cancelada",
+        });
       }
 
       if (table.players.length >= table.maxPlayers) {
