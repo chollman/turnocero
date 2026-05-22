@@ -639,8 +639,16 @@ router.delete("/:id", protect, requireAdmin, async (req, res) => {
 
     // Persistente + toast a los inscriptos activos ANTES de borrar — necesitamos
     // los datos del evento todavía. Usamos "evento_cancelled" para eliminación
-    // (semánticamente similar para el user que se anota: el evento no va).
-    notifyActiveRegistrations(req, evento, "evento_cancelled", {}, evento.author);
+    // (semánticamente similar para el user que se anota: el evento no va), pero
+    // marcamos `eventoDeleted: true` para que el cliente no abra el deep-link
+    // a /eventos/:id (404) y en su lugar mande a la lista.
+    notifyActiveRegistrations(
+      req,
+      evento,
+      "evento_cancelled",
+      { eventoDeleted: true },
+      evento.author,
+    );
 
     await evento.deleteOne();
 

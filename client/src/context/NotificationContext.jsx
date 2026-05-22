@@ -381,6 +381,9 @@ export function NotificationProvider({ children }) {
         eventoDate: payload.eventoDate || null,
         permanentlyRejected: payload.permanentlyRejected || false,
         changedFields: payload.changedFields || undefined,
+        // Flag para distinguir cancelación (el evento existe) vs eliminación
+        // (el evento ya no existe → el deep-link a /eventos/:id rompería).
+        eventoDeleted: payload.eventoDeleted || false,
       };
       setNotifications((prev) => {
         const rest = prev.filter((n) => !(n.type === notifType && n.eventoId === common.eventoId));

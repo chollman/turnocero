@@ -1,12 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import FileDropzone from '../../components/shared/FileDropzone';
 import { DocIcon, ImageIcon } from './EventoIcons';
 import styles from './ComprobanteDropzone.module.css';
 
 export default function ComprobanteDropzone({ file, onFile }) {
-  const inputRef = useRef(null);
-  const [dragOver, setDragOver] = useState(false);
   const [objectUrl, setObjectUrl] = useState(null);
-
   const isPdf = file?.type === 'application/pdf';
 
   useEffect(() => {
@@ -19,40 +17,15 @@ export default function ComprobanteDropzone({ file, onFile }) {
     return () => URL.revokeObjectURL(url);
   }, [file, isPdf]);
 
-  function handleDrop(e) {
-    e.preventDefault();
-    setDragOver(false);
-    const f = e.dataTransfer.files?.[0];
-    if (f) onFile(f);
-  }
-
-  function handleChange(e) {
-    const f = e.target.files?.[0];
-    if (f) onFile(f);
-  }
-
-  const classes = [
-    styles.dropzone,
-    file ? styles.active : '',
-    dragOver ? styles.dragOver : '',
-  ].filter(Boolean).join(' ');
-
   return (
-    <div
-      className={classes}
-      onDrop={handleDrop}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-      onDragLeave={() => setDragOver(false)}
-      onClick={() => inputRef.current?.click()}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          inputRef.current?.click();
-        }
-      }}
-      aria-label="Subir comprobante"
+    <FileDropzone
+      accept="image/jpeg,image/png,image/webp,application/pdf"
+      onFile={onFile}
+      ariaLabel="Subir comprobante"
+      className={styles.dropzone}
+      activeClassName={styles.active}
+      dragOverClassName={styles.dragOver}
+      hasFile={!!file}
     >
       {objectUrl ? (
         <img src={objectUrl} alt="comprobante" className={styles.preview} />
@@ -69,13 +42,6 @@ export default function ComprobanteDropzone({ file, onFile }) {
           <span className={styles.sub}>JPG · PNG · PDF · 10MB máx</span>
         </div>
       )}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,application/pdf"
-        className={styles.input}
-        onChange={handleChange}
-      />
-    </div>
+    </FileDropzone>
   );
 }

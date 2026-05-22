@@ -162,7 +162,10 @@
 
 .btnAccept {
   background: var(--green);
-  color: #001712;
+  /* Texto oscuro sobre verde brillante: mismo patrón que TorneoDetail.btnConfirmWinner.
+     #000 es theme-agnostic — `--green` no cambia entre dark/light, así que el contraste
+     se mantiene en ambos modos. */
+  color: #000;
   border: none;
   padding: 8px;
   border-radius: 7px;
@@ -178,7 +181,8 @@
   transition: all var(--transition);
 }
 
-.btnAccept:hover:not(:disabled) { background: #1aef9a; }
+/* Hover aclarado vía filter: theme-agnostic y sigue cualquier cambio futuro de --green. */
+.btnAccept:hover:not(:disabled) { filter: brightness(1.15); }
 .btnAccept:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btnReject {

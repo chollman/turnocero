@@ -59,6 +59,10 @@ const notificationSchema = new mongoose.Schema(
     // Lista de campos que cambiaron en una edición de evento (para evento_updated).
     // Strings tipo "eventDate" o "location".
     changedFields:      { type: [String], default: undefined },
+    // Flag para evento_cancelled cuando el evento fue ELIMINADO (no solo cancelado).
+    // El cliente lo usa para que el deep-link de la notif no rompa en 404
+    // — en su lugar lleva a la lista /eventos y rotula la card como "Eliminado".
+    eventoDeleted:      { type: Boolean, default: false },
   },
   { timestamps: true }
 );

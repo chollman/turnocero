@@ -175,8 +175,10 @@ function getNotifMeta(n) {
     case 'evento_cancelled':
       return {
         icon: '❌',
-        countLabel: 'Evento cancelado',
-        preview: `Se canceló ${n.eventoTitle}`,
+        countLabel: n.eventoDeleted ? 'Evento eliminado' : 'Evento cancelado',
+        preview: n.eventoDeleted
+          ? `${n.eventoTitle} ya no está disponible`
+          : `Se canceló ${n.eventoTitle}`,
         chipClass: 'request',
       };
     case 'evento_updated': {
@@ -364,7 +366,8 @@ export default function Notifications() {
               n.type === 'admin_chat' ? '/mensajes-admin' :
               n.type === 'dm' ? `/mensajes/${n.fromUserId}` :
               n.compartidaId ? `/compartidas/${n.compartidaId}` :
-              isEvento ? `/eventos/${n.eventoId}` :
+              // Evento eliminado: la URL del detalle tira 404. Mandamos a la lista.
+              isEvento ? (n.eventoDeleted ? '/eventos' : `/eventos/${n.eventoId}`) :
               isTorneo ? `/torneos/${n.torneoId}` :
               n.fromUserId ? `/usuarios/${n.fromUserId}` :
               `/mesas/${n.tableId}`;

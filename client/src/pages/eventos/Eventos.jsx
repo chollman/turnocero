@@ -11,6 +11,7 @@ import { io } from "socket.io-client";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import useLocalStorageState from "../../utils/useLocalStorageState";
 import useTickingNow from "../../utils/useTickingNow";
@@ -36,6 +37,7 @@ const MAX_RADIUS_KM = 100;
 
 export default function Eventos() {
   const { user } = useAuth();
+  const { addToast } = useNotifications();
   const isAdmin = !!user?.isAdmin;
   const userId = user?._id;
   const hasDireccion = Boolean(user?.direccion?.lat && user?.direccion?.lng);
@@ -92,14 +94,22 @@ export default function Eventos() {
         );
         setTotalPages(data.pages);
         setPage(pageNum);
-      } catch {
-        // silent
+      } catch (err) {
+        // Mostramos toast solo en errores reales (no canceled / abort). Si el
+        // fetch falla, antes el feed quedaba vacío sin feedback al user.
+        if (err?.code !== "ERR_CANCELED") {
+          addToast({
+            type: "error",
+            title: "No pudimos cargar los eventos",
+            message: "Reintentá en unos segundos.",
+          });
+        }
       } finally {
         setLoading(false);
         setLoadingMore(false);
       }
     },
-    [filter, hasDireccion, debouncedRadius],
+    [filter, hasDireccion, debouncedRadius, addToast],
   );
 
   useEffect(() => {

@@ -35,6 +35,8 @@ const DURATION = {
   evento_cancelled:      6000,
   evento_updated:        5500,
   evento_reminder:       7000,
+  // Toasts disparados manualmente (errores transitorios del client).
+  error:                 5000,
 };
 
 function ToastItem({ toast, onDismiss }) {
@@ -81,11 +83,14 @@ function ToastItem({ toast, onDismiss }) {
       navigate(`/compartidas/${toast.compartidaId}`);
     } else if (toast.type?.startsWith('evento_')) {
       markReadEvento(toast.eventoId);
-      navigate(`/eventos/${toast.eventoId}`);
+      // Evento eliminado: /eventos/:id devolvería 404, mandamos a la lista.
+      navigate(toast.eventoDeleted ? '/eventos' : `/eventos/${toast.eventoId}`);
     } else if (toast.type === 'noticia') {
       navigate(`/noticias/${toast.noticiaId}`);
     } else if (toast.type === 'bgwatch_connected') {
       navigate(`/bg-watch/${encodeURIComponent(toast.bggUsername)}`);
+    } else if (toast.type === 'error') {
+      // Toasts de error: el click solo los descarta, no navega a ningún lado.
     } else {
       if (toast.tableId) markRead(toast.tableId);
       navigate(`/mesas/${toast.tableId}`);
@@ -125,7 +130,8 @@ function ToastItem({ toast, onDismiss }) {
     toast.type === 'evento_rejected'       ? (toast.permanentlyRejected ? '🚫' : '🥲') :
     toast.type === 'evento_cancelled'      ? '❌' :
     toast.type === 'evento_updated'        ? '🔄' :
-    toast.type === 'evento_reminder'       ? '🔔' : '🎲';
+    toast.type === 'evento_reminder'       ? '🔔' :
+    toast.type === 'error'                 ? '⚠️' : '🎲';
 
   const title =
     toast.type === 'join_accepted'         ? '¡Fuiste aceptado!' :
@@ -149,9 +155,10 @@ function ToastItem({ toast, onDismiss }) {
     toast.type === 'bgwatch_connected'     ? '¡Conectado a BG Watch!' :
     toast.type === 'evento_confirmed'      ? '¡Inscripción confirmada!' :
     toast.type === 'evento_rejected'       ? (toast.permanentlyRejected ? 'Rechazada (permanente)' : 'Inscripción rechazada') :
-    toast.type === 'evento_cancelled'      ? 'Evento cancelado' :
+    toast.type === 'evento_cancelled'      ? (toast.eventoDeleted ? 'Evento eliminado' : 'Evento cancelado') :
     toast.type === 'evento_updated'        ? 'Cambios en el evento' :
     toast.type === 'evento_reminder'       ? '¡Mañana!' :
+    toast.type === 'error'                 ? (toast.title || 'Algo salió mal') :
     toast.tableName;
 
   const body =
@@ -206,7 +213,9 @@ function ToastItem({ toast, onDismiss }) {
                                                       ? `No podrás volver a inscribirte a ${toast.eventoTitle}`
                                                       : `${toast.eventoTitle}`)
                                                   : toast.type === 'evento_cancelled'
-                                                    ? `Se canceló ${toast.eventoTitle}`
+                                                    ? (toast.eventoDeleted
+                                                        ? `${toast.eventoTitle} ya no está disponible`
+                                                        : `Se canceló ${toast.eventoTitle}`)
                                                     : toast.type === 'evento_updated'
                                                       ? (() => {
                                                           const fields = Array.isArray(toast.changedFields) ? toast.changedFields : [];
@@ -219,7 +228,9 @@ function ToastItem({ toast, onDismiss }) {
                                                         })()
                                                       : toast.type === 'evento_reminder'
                                                         ? `Recordatorio: ${toast.eventoTitle} es mañana`
-                                                        : `Ya sos parte de la mesa de ${toast.tableName}`;
+                                                        : toast.type === 'error'
+                                                          ? (toast.message || '')
+                                                          : `Ya sos parte de la mesa de ${toast.tableName}`;
 
   return (
     <div

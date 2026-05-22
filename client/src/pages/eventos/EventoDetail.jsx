@@ -233,10 +233,22 @@ export default function EventoDetail() {
     }
   }
 
-  // El PUT del server devuelve `userRegistration: null` y no incluye
-  // `confirmedRegistrations` (el endpoint sólo conoce el evento, no el caller).
-  // Si mergeamos crudo con `...data`, perdemos la inscripción del admin que
-  // está viendo su propio evento; preservamos esos campos del estado previo.
+  // Helper para mergear updates que vienen del server (PUT response o
+  // socket `evento:updated`) preservando los campos viewer-dependientes que
+  // el server no puede llenar:
+  //
+  //   - `userRegistration`: el server lo deriva del caller del request,
+  //     pero un broadcast a la `evento:<id>` room no tiene contexto del
+  //     viewer. Llega siempre como null y pisaría el badge "inscripto" en
+  //     pantalla.
+  //   - `confirmedRegistrations`: el PUT del server NO popula este campo
+  //     (sólo conoce el evento, no quién mira); mergear crudo lo borraría
+  //     y vaciaría la lista de inscriptos.
+  //
+  // Patrón aplicable a cualquier detail page que mezcle (a) datos del
+  // evento/objeto que cambian con cada update y (b) datos derivados del
+  // viewer que el server no puede recalcular en un broadcast. Si otro
+  // feature necesita esto, copiar el helper local hasta tener 3+ usuarios.
   function mergeEventoUpdate(prev, data, overrides = {}) {
     return {
       ...prev,

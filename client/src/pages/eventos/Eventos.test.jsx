@@ -6,6 +6,9 @@ import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
+vi.mock("../../context/NotificationContext", () => ({
+  useNotifications: vi.fn(),
+}));
 
 // EventoForm internamente usa PlaceAutocomplete que carga Google Maps;
 // lo mockeamos para que el form real pueda renderizarse en jsdom.
@@ -62,9 +65,11 @@ async function triggerSocket(event, payload) {
 
 import Eventos from "./Eventos";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 
-function renderPage({ user = { _id: "me", username: "me" } } = {}) {
+function renderPage({ user = { _id: "me", username: "me" }, addToast = vi.fn() } = {}) {
   useAuth.mockReturnValue({ user });
+  useNotifications.mockReturnValue({ addToast });
   return render(
     <HelmetProvider>
       <MemoryRouter>
@@ -126,6 +131,20 @@ describe("<Eventos>", () => {
     renderPage();
     await screen.findByText("Open House");
     expect(screen.getByText("Torneo Nocturno")).toBeInTheDocument();
+  });
+
+  it("dispara un toast de error cuando /api/eventos falla (regresión: silent catch dejaba al user sin feedback)", async () => {
+    server.use(
+      http.get("/api/eventos", () =>
+        HttpResponse.json({ message: "boom" }, { status: 500 }),
+      ),
+    );
+    const addToast = vi.fn();
+    renderPage({ addToast });
+    await waitFor(() => expect(addToast).toHaveBeenCalled());
+    const call = addToast.mock.calls[0][0];
+    expect(call.type).toBe("error");
+    expect(call.title).toMatch(/no pudimos cargar/i);
   });
 
   it('regular users do not see the "Nuevo evento" button', async () => {

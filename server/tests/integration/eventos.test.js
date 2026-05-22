@@ -1484,6 +1484,11 @@ describe("Notificaciones a usuarios — eventos", () => {
     expect(notifsB.length).toBe(1);
     expect(notifsC.length).toBe(0);
     expect(notifsAdmin.length).toBe(0);
+
+    // DELETE marca eventoDeleted=true para que el cliente no abra el deep-link
+    // a /eventos/:id (que ya devolvería 404).
+    expect(notifsA[0].eventoDeleted).toBe(true);
+    expect(notifsB[0].eventoDeleted).toBe(true);
   });
 
   it("PUT con status=cancelled → notif 'evento_cancelled' (no 'evento_updated')", async () => {
@@ -1509,6 +1514,8 @@ describe("Notificaciones a usuarios — eventos", () => {
     });
     expect(cancelled.length).toBe(1);
     expect(updated.length).toBe(0);
+    // PUT con status=cancelled NO marca eventoDeleted (el evento sigue existiendo).
+    expect(cancelled[0].eventoDeleted).toBe(false);
   });
 
   it("PUT cambiando eventDate → notif 'evento_updated' con changedFields=['eventDate']", async () => {
