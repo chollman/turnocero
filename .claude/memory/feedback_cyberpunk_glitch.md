@@ -41,3 +41,22 @@ El scan beam termina con `transform: translateY(100%)` (queda posicionado justo 
 - `.main` y `.aside` de [EventoDetail.module.css](client/src/pages/eventos/EventoDetail.module.css) (boot-in del detalle + cascade del TicketStub).
 
 Cualquier nueva aplicación del efecto cyber-glitch con beam debe incluir `overflow: clip` desde el inicio.
+
+## Gotcha #2 — stagger en `.container > *` aplica a children dinámicos
+
+Cuando un container usa `.container > * { animation: rowIn ... ; animation-delay: 0.4s+ }` con `opacity: 0 → 1`, **cualquier child nuevo montado después también recibe el delay**. Ejemplo: si agregás tabs y `.container > *:nth-child(2) { animation-delay: 0.46s }`, al cambiar de tab React monta el contenido nuevo como segundo child y queda **invisible ~500ms** — el click parece no hacer nada.
+
+**Fix:** scopear el stagger excluyendo al elemento que marca el inicio de contenido dinámico:
+
+```css
+.tabs,
+.tabs ~ * {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+```
+
+Ya aplicado en `.main` de [EventoDetail.module.css](client/src/pages/eventos/EventoDetail.module.css) — las tabs (`Detalle · Ludoteca · Mesas`) y todo lo que sigue al `<nav>` aparecen instantáneamente. El stagger se mantiene para el resto del contenido (hero, ticket stub).
+
+Aplicable a cualquier container con boot-in animado al que después se agregue contenido condicional o un cambio de pestañas.
