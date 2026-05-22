@@ -79,12 +79,16 @@ export default function UserProfile() {
     setBgWatchBannerDismissed(true);
   };
 
+  // Ref + input ref del campo de BGG username. Antes esto se hacía con
+  // `document.getElementById('bgg-username-field').querySelector('input')`
+  // — frágil ante renames del ID o cambios de estructura. El ID se mantiene
+  // solo para el anchor link `href="#bgg-username-field"` del browser.
+  const bggFieldRef = useRef(null);
+  const bggInputRef = useRef(null);
   const handleFocusBggField = (e) => {
     e.preventDefault();
-    const field = document.getElementById('bgg-username-field');
-    if (!field) return;
-    field.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    field.querySelector('input')?.focus({ preventScroll: true });
+    bggFieldRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    bggInputRef.current?.focus({ preventScroll: true });
   };
 
   const [form, setForm] = useState({
@@ -544,11 +548,16 @@ export default function UserProfile() {
               </div>
 
               {bgwatchEnabled && (
-              <div className={styles.field} id="bgg-username-field">
+              <div
+                className={styles.field}
+                id="bgg-username-field"
+                ref={bggFieldRef}
+              >
                 <label className={styles.label}>Usuario en BGG</label>
                 <div className={styles.inputPrefix}>
                   <span className={styles.prefix}>BGG</span>
                   <input
+                    ref={bggInputRef}
                     className={`${styles.input} ${styles.inputWithPrefix}`}
                     name="bggUsername"
                     value={form.bggUsername}

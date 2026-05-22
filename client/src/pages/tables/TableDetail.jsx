@@ -109,7 +109,7 @@ const LockIcon = ({ size = 11 }) => (
 export default function TableDetail() {
   const { id } = useParams();
   const { user } = useAuth();
-  const { setActiveTable } = useNotifications();
+  const { setActiveTable, addToast } = useNotifications();
   const navigate = useNavigate();
 
   const [table, setTable] = useState(null);
@@ -202,6 +202,10 @@ export default function TableDetail() {
       return;
     }
     setFollowLoading(true);
+    // Snapshot ANTES del optimistic update — el rollback en el catch
+    // necesita el valor previo. Mantener `currentFollowers` en la closure
+    // hace el contrato explícito (no `prev` adentro del setter, que perdería
+    // ref si llega un broadcast del socket entre el optimistic y el catch).
     const currentFollowers = table.followers || [];
     const isFollowing = currentFollowers.some(
       (f) => f.toString() === user._id.toString(),
@@ -214,7 +218,13 @@ export default function TableDetail() {
       const { data } = await axios.post(`/api/tables/${id}/follow`);
       setTable((prev) => ({ ...prev, followers: data.followers }));
     } catch {
+      // Rollback explícito al snapshot pre-optimistic + toast — sin el
+      // toast el usuario veía el toggle "ir y volver" sin entender por qué.
       setTable((prev) => ({ ...prev, followers: currentFollowers }));
+      addToast({
+        type: "error",
+        message: "No pudimos actualizar tu follow. Probá de nuevo.",
+      });
     } finally {
       setFollowLoading(false);
     }
@@ -315,6 +325,10 @@ export default function TableDetail() {
       setTable((prev) => ({ ...prev, reactions: data.reactions }));
     } catch {
       setTable((prev) => ({ ...prev, reactions: currentReactions }));
+      addToast({
+        type: "error",
+        message: "No pudimos guardar tu reacción.",
+      });
     }
   };
 
