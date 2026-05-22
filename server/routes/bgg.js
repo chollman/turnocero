@@ -1,11 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const { XMLParser } = require("fast-xml-parser");
 const { protect } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const { getSessionCookie, clearSession } = require("../utils/bggAuth");
 const User = require("../models/User");
-const BggGame = require("../models/BggGame");
 const BggCollection = require("../models/BggCollection");
 const BggPlay = require("../models/BggPlay");
 const { computePlayHash } = require("../utils/bggHash");
@@ -38,18 +36,27 @@ const {
   getManualRefreshRemainingMs,
   stampManualRefresh,
 } = require("../services/bgg/bggCooldown");
+const {
+  parser,
+  parsePlaysXml,
+  playToApi,
+} = require("../services/bgg/bggParse");
+const {
+  BGG_API,
+  fetchBgg,
+  resolveGame,
+  resolveGamesBatch,
+  resolveCollection,
+} = require("../services/bgg/bggResolve");
 
 const PROBE_THROTTLE_MS = 5 * 60 * 1000; // 5 min between background probes
 const FULL_RECONCILE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days between background full reconciles
 
 router.use(requireSection("bgwatch"));
 
-// Patrón de cache layer-2: BggGame (Mongo persistente, inmutable) +
-// L1 in-memory (services/bgg/bggCache.js) + L3 BGG XML API.
-// `resolveGame` y `resolveGamesBatch` (más abajo) implementan el flow
-// memoria → Mongo → BGG. Endpoints per-user (collection, partidas)
-// respetan `?refresh=1` para bypassear L1.
-const BGG_API = "https://boardgamegeek.com/xmlapi2";
+// Patrón de cache layer-2 vive en services/bgg/bggResolve.js (BggGame
+// persistente + L1 in-memory). Acá solo queda lo que coordina entre
+// L1/L2 y mutaciones BGG locales.
 const BGG_GEEKPLAY = "https://boardgamegeek.com/geekplay.php";
 
 // `clearUserCache` orquesta L1 (in-memory) + L2 (Mongo persistente).
@@ -64,330 +71,6 @@ async function clearUserCache(bggUsername) {
     BggCollection.deleteOne({ bggUsername: lower }),
     BggPlay.deleteMany({ bggUsername: lower }),
   ]);
-}
-
-async function fetchBgg(url) {
-  const headers = { "User-Agent": "Turnocero/1.0" };
-  if (process.env.BGG_API_KEY)
-    headers.Authorization = `Bearer ${process.env.BGG_API_KEY}`;
-
-  let res = await fetch(url, { headers });
-
-  if (res.status === 202) {
-    // BGG encola el pedido — reintentar una vez después de 2s
-    await new Promise((r) => {
-      setTimeout(r, 2000);
-    });
-    res = await fetch(url, { headers });
-  }
-
-  if (!res.ok) {
-    const err = new Error(`BGG responded with ${res.status}`);
-    err.status = res.status;
-    throw err;
-  }
-
-  return res.text();
-}
-
-const parser = new XMLParser({
-  ignoreAttributes: false,
-  attributeNamePrefix: "@_",
-});
-
-const GAME_CACHE_TTL = 30 * 60 * 1000; // 30 minutos
-
-// ── Game resolution helpers (memoria → Mongo → BGG) ──────────────────
-function parseGameItem(item) {
-  const nameRaw = item.name;
-  const nameArr = Array.isArray(nameRaw) ? nameRaw : [nameRaw];
-  const primary = nameArr.find((n) => n["@_type"] === "primary") || nameArr[0];
-  const thumb =
-    typeof item.thumbnail === "string"
-      ? item.thumbnail
-      : item.thumbnail?.["#text"] || null;
-  const img =
-    typeof item.image === "string" ? item.image : item.image?.["#text"] || null;
-  return {
-    id: Number(item["@_id"]),
-    name: primary?.["@_value"] || "",
-    thumbnail: thumb || null,
-    image: img || null,
-    year: item.yearpublished?.["@_value"]
-      ? Number(item.yearpublished["@_value"])
-      : null,
-    minPlayers: item.minplayers?.["@_value"]
-      ? Number(item.minplayers["@_value"])
-      : null,
-    maxPlayers: item.maxplayers?.["@_value"]
-      ? Number(item.maxplayers["@_value"])
-      : null,
-  };
-}
-
-function gameDocToObject(doc) {
-  return {
-    id: doc.gameId,
-    name: doc.name,
-    thumbnail: doc.thumbnail,
-    image: doc.image,
-    year: doc.yearPublished,
-    minPlayers: doc.minPlayers,
-    maxPlayers: doc.maxPlayers,
-  };
-}
-
-async function persistGame(game) {
-  await BggGame.updateOne(
-    { gameId: game.id },
-    {
-      $set: {
-        name: game.name,
-        thumbnail: game.thumbnail,
-        image: game.image,
-        yearPublished: game.year,
-        minPlayers: game.minPlayers,
-        maxPlayers: game.maxPlayers,
-        lastFetchedAt: new Date(),
-      },
-    },
-    { upsert: true },
-  );
-}
-
-async function resolveGame(gameId) {
-  const id = Number(gameId);
-  if (!Number.isFinite(id) || id <= 0) return null;
-
-  const cached = getCached(`game:${id}`, GAME_CACHE_TTL);
-  if (cached) return cached;
-
-  const doc = await BggGame.findOne({ gameId: id }).lean();
-  if (doc) {
-    const game = gameDocToObject(doc);
-    setCached(`game:${id}`, game);
-    return game;
-  }
-
-  const xml = await fetchBgg(`${BGG_API}/thing?id=${id}&type=boardgame`);
-  const parsed = parser.parse(xml);
-  const item = parsed?.items?.item;
-  if (!item) return null;
-  const game = parseGameItem(item);
-  await persistGame(game);
-  setCached(`game:${id}`, game);
-  return game;
-}
-
-async function resolveGamesBatch(gameIds) {
-  const ids = [
-    ...new Set(
-      (gameIds || [])
-        .map((g) => Number(g))
-        .filter((n) => Number.isFinite(n) && n > 0),
-    ),
-  ];
-  const result = new Map();
-  if (ids.length === 0) return result;
-
-  const missingAfterMemory = [];
-  for (const id of ids) {
-    const cached = getCached(`game:${id}`, GAME_CACHE_TTL);
-    if (cached) result.set(id, cached);
-    else missingAfterMemory.push(id);
-  }
-  if (missingAfterMemory.length === 0) return result;
-
-  const docs = await BggGame.find({
-    gameId: { $in: missingAfterMemory },
-  }).lean();
-  const foundInMongo = new Set();
-  for (const doc of docs) {
-    const game = gameDocToObject(doc);
-    result.set(doc.gameId, game);
-    setCached(`game:${doc.gameId}`, game);
-    foundInMongo.add(doc.gameId);
-  }
-  const stillMissing = missingAfterMemory.filter((id) => !foundInMongo.has(id));
-  if (stillMissing.length === 0) return result;
-
-  const CHUNK_SIZE = 20;
-  for (let i = 0; i < stillMissing.length; i += CHUNK_SIZE) {
-    const chunk = stillMissing.slice(i, i + CHUNK_SIZE);
-    try {
-      const thingXml = await fetchBgg(`${BGG_API}/thing?id=${chunk.join(",")}`);
-      const thingParsed = parser.parse(thingXml);
-      const thingItems = thingParsed?.items?.item;
-      if (!thingItems) {
-        console.warn(
-          `[bgg/resolveGamesBatch] /thing returned no items for ids: ${chunk.join(",")}`,
-        );
-        continue;
-      }
-      const arr = Array.isArray(thingItems) ? thingItems : [thingItems];
-      for (const item of arr) {
-        const game = parseGameItem(item);
-        if (!Number.isFinite(game.id) || game.id <= 0) continue;
-        await persistGame(game);
-        setCached(`game:${game.id}`, game);
-        result.set(game.id, game);
-      }
-    } catch (e) {
-      console.warn(
-        `[bgg/resolveGamesBatch] /thing batch failed for ids ${chunk.join(",")}: ${e.message || e}`,
-      );
-    }
-  }
-
-  return result;
-}
-
-// ── Collection resolution helper (memoria → Mongo[TTL 6h] → BGG) ─────
-const COLLECTION_MONGO_TTL = 6 * 60 * 60 * 1000; // 6 horas
-
-function parseCollectionXml(xml) {
-  const parsed = parser.parse(xml);
-  const root = parsed?.items;
-  if (!root) return null;
-  const rawItems = root.item || [];
-  const items = Array.isArray(rawItems) ? rawItems : [rawItems];
-  return items.map((item) => {
-    const stats = item.stats || {};
-    const rating = stats.rating || {};
-    return {
-      id: item["@_objectid"],
-      name:
-        typeof item.name === "object"
-          ? (item.name["#text"] ?? item.name["@_sortindex"])
-          : item.name,
-      thumbnail: item.thumbnail || null,
-      image: item.image || null,
-      yearPublished: item.yearpublished ? Number(item.yearpublished) : null,
-      userRating:
-        rating["@_value"] && rating["@_value"] !== "N/A"
-          ? Number(rating["@_value"])
-          : null,
-      bggRating: rating.average?.["@_value"]
-        ? Number(rating.average["@_value"])
-        : null,
-      numPlays: item.numplays ? Number(item.numplays) : 0,
-    };
-  });
-}
-
-async function resolveCollection(bggUsername, opts = {}) {
-  const { forceRefresh = false } = opts;
-  const lower = bggUsername.toLowerCase();
-  const cacheKey = `coleccion:${lower}`;
-
-  if (!forceRefresh) {
-    const cached = getCached(cacheKey);
-    if (cached) return cached;
-
-    const doc = await BggCollection.findOne({ bggUsername: lower }).lean();
-    if (
-      doc &&
-      Date.now() - doc.lastFetchedAt.getTime() < COLLECTION_MONGO_TTL
-    ) {
-      setCached(cacheKey, doc.games);
-      return doc.games;
-    }
-  }
-
-  const xml = await fetchBgg(
-    `${BGG_API}/collection?username=${encodeURIComponent(bggUsername)}&own=1&stats=1`,
-  );
-  const games = parseCollectionXml(xml);
-  if (!games) {
-    const err = new Error("Usuario de BGG no encontrado o sin colección");
-    err.status = 404;
-    throw err;
-  }
-
-  await BggCollection.updateOne(
-    { bggUsername: lower },
-    { $set: { games, lastFetchedAt: new Date() } },
-    { upsert: true },
-  );
-  setCached(cacheKey, games);
-  return games;
-}
-
-// ── Play parsing + full-sync helpers ─────────────────────────────────
-function parsePlay(play) {
-  const playerNode = play.players?.player;
-  const playersArr = playerNode
-    ? Array.isArray(playerNode)
-      ? playerNode
-      : [playerNode]
-    : [];
-  const commentsRaw = play.comments;
-  const comments =
-    typeof commentsRaw === "string"
-      ? commentsRaw
-      : commentsRaw?.["#text"] || null;
-  return {
-    playId: String(play["@_id"]),
-    date: play["@_date"] || null,
-    gameName: play.item?.["@_name"] || null,
-    gameId: play.item?.["@_objectid"] ? String(play.item["@_objectid"]) : null,
-    gameThumbnail: null,
-    quantity: play["@_quantity"] ? Number(play["@_quantity"]) : 1,
-    duration: play["@_length"] ? Number(play["@_length"]) : null,
-    location: play["@_location"] || null,
-    incomplete: play["@_incomplete"] === "1" || play["@_incomplete"] === 1,
-    nowinstats: play["@_nowinstats"] === "1" || play["@_nowinstats"] === 1,
-    comments: comments || null,
-    players: playersArr.map((p) => ({
-      name: p["@_name"] || null,
-      username: p["@_username"] || null,
-      userid: p["@_userid"] ? Number(p["@_userid"]) : null,
-      position: p["@_startposition"] || null,
-      color: p["@_color"] || null,
-      score:
-        p["@_score"] !== undefined && p["@_score"] !== ""
-          ? String(p["@_score"])
-          : null,
-      win: p["@_win"] === "1" || p["@_win"] === 1,
-      new: p["@_new"] === "1" || p["@_new"] === 1,
-      rating:
-        p["@_rating"] && p["@_rating"] !== "0" ? Number(p["@_rating"]) : null,
-    })),
-  };
-}
-
-// Returns null when the XML has no <plays> root (used to signal "BGG user
-// not found"). Returns { plays, total } otherwise — `total` is 0 for users
-// with no plays but who exist on BGG.
-function parsePlaysXml(xml) {
-  const parsed = parser.parse(xml);
-  const root = parsed?.plays;
-  if (!root) return null;
-  const rawPlays = root.play || [];
-  const arr = Array.isArray(rawPlays) ? rawPlays : [rawPlays];
-  return {
-    plays: arr.map(parsePlay),
-    total: root["@_total"] ? Number(root["@_total"]) : arr.length,
-  };
-}
-
-// Re-shape an internal play (playId) to the API contract (id) used by the
-// existing /partidas response and React keys.
-function playToApi(p) {
-  return {
-    id: p.playId,
-    date: p.date,
-    gameName: p.gameName,
-    gameId: p.gameId,
-    gameThumbnail: p.gameThumbnail,
-    quantity: p.quantity,
-    duration: p.duration,
-    location: p.location,
-    incomplete: p.incomplete,
-    nowinstats: p.nowinstats,
-    comments: p.comments,
-    players: p.players,
-  };
 }
 
 const SYNC_MAX_PAGES = 200; // safety: ~6000 plays
