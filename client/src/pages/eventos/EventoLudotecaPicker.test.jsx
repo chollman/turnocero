@@ -21,8 +21,18 @@ beforeEach(() => {
   server.use(
     http.get("/api/bgg/coleccion/:user", () =>
       HttpResponse.json([
-        { id: "13", name: "Catan", thumbnail: "thumb.jpg", yearPublished: 1995 },
-        { id: "266192", name: "Wingspan", thumbnail: null, yearPublished: 2019 },
+        {
+          id: "13",
+          name: "Catan",
+          thumbnail: "thumb.jpg",
+          yearPublished: 1995,
+        },
+        {
+          id: "266192",
+          name: "Wingspan",
+          thumbnail: null,
+          yearPublished: 2019,
+        },
       ]),
     ),
     http.get("/api/bgg/search", () => HttpResponse.json([])),
@@ -53,7 +63,9 @@ describe("<EventoLudotecaPicker>", () => {
         onAdded={() => {}}
       />,
     );
-    expect(screen.getByLabelText(/buscar juego en boardgame/i)).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/buscar juego en boardgame/i),
+    ).toBeInTheDocument();
     // No "Mi colección" tab visible
     expect(
       screen.queryByRole("tab", { name: /mi colecci.n/i }),
@@ -70,9 +82,7 @@ describe("<EventoLudotecaPicker>", () => {
         onAdded={() => {}}
       />,
     );
-    expect(
-      await screen.findByText("Catan"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Catan")).toBeInTheDocument();
     expect(screen.getByText("Wingspan")).toBeInTheDocument();
   });
 
@@ -154,7 +164,9 @@ describe("<EventoLudotecaPicker>", () => {
     await screen.findByRole("button", { name: /agregar a la ludoteca/i });
     fireEvent.click(screen.getByRole("button", { name: /elegir otro/i }));
     // Back to the collection — game still listed
-    expect(await screen.findByRole("button", { name: /catan/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /catan/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows a connect-BGG hint on the collection tab when user has no bggUsername", () => {
@@ -168,6 +180,8 @@ describe("<EventoLudotecaPicker>", () => {
       />,
     );
     // Tab "Mi colección" doesn't show — only "Buscar BGG" available
-    expect(screen.getByLabelText(/buscar juego en boardgame/i)).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/buscar juego en boardgame/i),
+    ).toBeInTheDocument();
   });
 });

@@ -45,7 +45,9 @@ export default function EventoDetail() {
   const userId = user?._id;
 
   const requestedTab = searchParams.get("tab");
-  const activeTab = VALID_TABS.includes(requestedTab) ? requestedTab : "detalle";
+  const activeTab = VALID_TABS.includes(requestedTab)
+    ? requestedTab
+    : "detalle";
   const setActiveTab = (tab) => {
     const next = new URLSearchParams(searchParams);
     if (tab === "detalle") next.delete("tab");
@@ -458,11 +460,11 @@ export default function EventoDetail() {
   // mesas del evento. El server REVALIDA, así que esto es solo UX.
   // Computación inline (no useMemo) porque está después del early-return de
   // `loading`/`notFound` — hooks condicionales rompen la regla de React.
-  const canActInEvento = !!user && (
-    user.isAdmin ||
-    isHost ||
-    evento?.userRegistration?.status === "confirmed"
-  );
+  const canActInEvento =
+    !!user &&
+    (user.isAdmin ||
+      isHost ||
+      evento?.userRegistration?.status === "confirmed");
 
   // Las tabs se muestran solo a usuarios autenticados — guests sólo ven el
   // detalle (vista actual). En edit mode (admin editando) las tabs se ocultan
@@ -602,181 +604,187 @@ export default function EventoDetail() {
 
           {(activeTab === "detalle" || editing) &&
             (editing ? (
-            <EventoForm
-              mode="edit"
-              initialEvento={evento}
-              onSubmit={handleSaveEdit}
-              onCancel={() => setEditing(false)}
-              submitting={savingEdit}
-            />
-          ) : (
-            <>
-              <div className={styles.hero}>
-                {evento.image?.url ? (
-                  <button
-                    type="button"
-                    className={styles.heroBtn}
-                    onClick={() => setLightbox(true)}
-                    aria-label="Ver imagen ampliada"
-                  >
-                    <img
-                      src={evento.image.url}
-                      alt={evento.title}
-                      className={styles.heroImg}
-                    />
-                  </button>
-                ) : (
-                  <div className={styles.heroFallback}>
-                    <div className={styles.heroFallbackInner}>
-                      <ImageIcon size={48} />
-                      <span>imagen del evento · {evento.title}</span>
+              <EventoForm
+                mode="edit"
+                initialEvento={evento}
+                onSubmit={handleSaveEdit}
+                onCancel={() => setEditing(false)}
+                submitting={savingEdit}
+              />
+            ) : (
+              <>
+                <div className={styles.hero}>
+                  {evento.image?.url ? (
+                    <button
+                      type="button"
+                      className={styles.heroBtn}
+                      onClick={() => setLightbox(true)}
+                      aria-label="Ver imagen ampliada"
+                    >
+                      <img
+                        src={evento.image.url}
+                        alt={evento.title}
+                        className={styles.heroImg}
+                      />
+                    </button>
+                  ) : (
+                    <div className={styles.heroFallback}>
+                      <div className={styles.heroFallbackInner}>
+                        <ImageIcon size={48} />
+                        <span>imagen del evento · {evento.title}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-
-              <div className={styles.titleBlock}>
-                <div className={styles.eyebrow}>
-                  {STATUS_EYEBROW[evento.status] || ""}
-                </div>
-                <h1 className={styles.title}>{evento.title}</h1>
-              </div>
-
-              <div className={styles.metaStrip}>
-                <div className={styles.metaCell}>
-                  <span className={styles.metaLabel}>Cuándo</span>
-                  <span className={styles.metaValue}>
-                    {d
-                      ? `${d.weekdayLong} ${d.day} ${d.monthLong}`
-                      : "A confirmar"}
-                  </span>
-                  {d && (
-                    <span className={`${styles.metaValue} ${styles.metaTime}`}>
-                      {d.time} hs
-                    </span>
                   )}
                 </div>
-                <div className={styles.metaCell}>
-                  <span className={styles.metaLabel}>Dónde</span>
-                  <span className={styles.metaValue}>
-                    {(() => {
-                      const t = typeof evento.location === "string"
-                        ? evento.location
-                        : evento.location?.texto || "";
-                      // En el detalle mostramos "calle, ciudad" — formato cómodo,
-                      // sin ruido de provincia/país. Si el admin seteó displayName,
-                      // se usa eso. La dirección completa queda accesible en el
-                      // title (tooltip).
-                      const display = getLocationDisplay(evento.location, "regular");
-                      return (
-                        <span title={t}>{display || "Por confirmar"}</span>
-                      );
-                    })()}
-                    {(() => {
-                      // formatDistanceKm devuelve null para distancias que
-                      // redondean a 0m (evita "0 m" / "Aquí mismo" redundantes).
-                      const d = formatDistanceKm(evento.distanceKm);
-                      return d ? (
-                        <span className={styles.distanceBadge}>· {d}</span>
-                      ) : null;
-                    })()}
-                  </span>
-                </div>
-                <div className={styles.metaCell}>
-                  <span className={styles.metaLabel}>Inscripción</span>
-                  <span
-                    className={`${styles.metaValue} ${isFree ? styles.metaValueFree : ""}`}
-                  >
-                    {formatFee(evento.fee)}
-                  </span>
-                </div>
-                <div className={styles.metaCell}>
-                  <span className={styles.metaLabel}>Cupo</span>
-                  <span className={styles.metaValue}>
-                    {hasMax
-                      ? `${activeCount} de ${evento.maxParticipants}`
-                      : `${activeCount} inscriptos`}
-                  </span>
-                </div>
-              </div>
 
-              {evento.description && (
-                <section className={styles.section}>
-                  <div className={styles.sectionHead}>
-                    <span className={styles.sectionLabel}>◆ Descripción</span>
-                    <span className={styles.sectionRule} />
+                <div className={styles.titleBlock}>
+                  <div className={styles.eyebrow}>
+                    {STATUS_EYEBROW[evento.status] || ""}
                   </div>
-                  <p className={styles.body}>{evento.description}</p>
-                </section>
-              )}
+                  <h1 className={styles.title}>{evento.title}</h1>
+                </div>
 
-              {evento.conditions && (
-                <section className={styles.section}>
-                  <div className={styles.sectionHead}>
-                    <span className={styles.sectionLabel}>◆ Condiciones</span>
-                    <span className={styles.sectionRule} />
-                  </div>
-                  <p className={styles.body}>{evento.conditions}</p>
-                </section>
-              )}
-
-              {evento.author && (
-                <section className={styles.section}>
-                  <div className={styles.sectionHead}>
-                    <span className={styles.sectionLabel}>◆ Organiza</span>
-                    <span className={styles.sectionRule} />
-                  </div>
-                  <div className={styles.hostCard}>
-                    <Avatar user={evento.author} size="xl" />
-                    <div className={styles.hostCardDetails}>
-                      <div className={styles.hostCardLabel}>
-                        Host del evento
-                      </div>
-                      <div className={styles.hostCardName}>
-                        {authorDisplay.name}
-                      </div>
-                      {evento.author.username && (
-                        <div className={styles.hostCardSub}>
-                          @{evento.author.username}
-                        </div>
-                      )}
-                    </div>
-                    {!authorDisplay.isDeleted && evento.author?._id && (
-                      <Link
-                        to={`/usuarios/${evento.author._id}`}
-                        className={styles.hostCardLink}
+                <div className={styles.metaStrip}>
+                  <div className={styles.metaCell}>
+                    <span className={styles.metaLabel}>Cuándo</span>
+                    <span className={styles.metaValue}>
+                      {d
+                        ? `${d.weekdayLong} ${d.day} ${d.monthLong}`
+                        : "A confirmar"}
+                    </span>
+                    {d && (
+                      <span
+                        className={`${styles.metaValue} ${styles.metaTime}`}
                       >
-                        Ver perfil
-                      </Link>
+                        {d.time} hs
+                      </span>
                     )}
                   </div>
-                </section>
-              )}
-
-              {evento.confirmedRegistrations?.length > 0 && (
-                <section className={styles.section}>
-                  <div className={styles.sectionHead}>
-                    <span className={styles.sectionLabel}>
-                      ◆ Inscriptos confirmados ·{" "}
-                      {evento.confirmedRegistrations.length}
+                  <div className={styles.metaCell}>
+                    <span className={styles.metaLabel}>Dónde</span>
+                    <span className={styles.metaValue}>
+                      {(() => {
+                        const t =
+                          typeof evento.location === "string"
+                            ? evento.location
+                            : evento.location?.texto || "";
+                        // En el detalle mostramos "calle, ciudad" — formato cómodo,
+                        // sin ruido de provincia/país. Si el admin seteó displayName,
+                        // se usa eso. La dirección completa queda accesible en el
+                        // title (tooltip).
+                        const display = getLocationDisplay(
+                          evento.location,
+                          "regular",
+                        );
+                        return (
+                          <span title={t}>{display || "Por confirmar"}</span>
+                        );
+                      })()}
+                      {(() => {
+                        // formatDistanceKm devuelve null para distancias que
+                        // redondean a 0m (evita "0 m" / "Aquí mismo" redundantes).
+                        const d = formatDistanceKm(evento.distanceKm);
+                        return d ? (
+                          <span className={styles.distanceBadge}>· {d}</span>
+                        ) : null;
+                      })()}
                     </span>
-                    <span className={styles.sectionRule} />
                   </div>
-                  <div className={styles.participantsGrid}>
-                    {evento.confirmedRegistrations.map((r) => {
-                      const d2 = getUserDisplay(r.user);
-                      return (
-                        <div key={r._id} className={styles.participant}>
-                          <Avatar user={r.user} size="sm" />
-                          <span>{d2.name}</span>
+                  <div className={styles.metaCell}>
+                    <span className={styles.metaLabel}>Inscripción</span>
+                    <span
+                      className={`${styles.metaValue} ${isFree ? styles.metaValueFree : ""}`}
+                    >
+                      {formatFee(evento.fee)}
+                    </span>
+                  </div>
+                  <div className={styles.metaCell}>
+                    <span className={styles.metaLabel}>Cupo</span>
+                    <span className={styles.metaValue}>
+                      {hasMax
+                        ? `${activeCount} de ${evento.maxParticipants}`
+                        : `${activeCount} inscriptos`}
+                    </span>
+                  </div>
+                </div>
+
+                {evento.description && (
+                  <section className={styles.section}>
+                    <div className={styles.sectionHead}>
+                      <span className={styles.sectionLabel}>◆ Descripción</span>
+                      <span className={styles.sectionRule} />
+                    </div>
+                    <p className={styles.body}>{evento.description}</p>
+                  </section>
+                )}
+
+                {evento.conditions && (
+                  <section className={styles.section}>
+                    <div className={styles.sectionHead}>
+                      <span className={styles.sectionLabel}>◆ Condiciones</span>
+                      <span className={styles.sectionRule} />
+                    </div>
+                    <p className={styles.body}>{evento.conditions}</p>
+                  </section>
+                )}
+
+                {evento.author && (
+                  <section className={styles.section}>
+                    <div className={styles.sectionHead}>
+                      <span className={styles.sectionLabel}>◆ Organiza</span>
+                      <span className={styles.sectionRule} />
+                    </div>
+                    <div className={styles.hostCard}>
+                      <Avatar user={evento.author} size="xl" />
+                      <div className={styles.hostCardDetails}>
+                        <div className={styles.hostCardLabel}>
+                          Host del evento
                         </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
-            </>
-          ))}
+                        <div className={styles.hostCardName}>
+                          {authorDisplay.name}
+                        </div>
+                        {evento.author.username && (
+                          <div className={styles.hostCardSub}>
+                            @{evento.author.username}
+                          </div>
+                        )}
+                      </div>
+                      {!authorDisplay.isDeleted && evento.author?._id && (
+                        <Link
+                          to={`/usuarios/${evento.author._id}`}
+                          className={styles.hostCardLink}
+                        >
+                          Ver perfil
+                        </Link>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+                {evento.confirmedRegistrations?.length > 0 && (
+                  <section className={styles.section}>
+                    <div className={styles.sectionHead}>
+                      <span className={styles.sectionLabel}>
+                        ◆ Inscriptos confirmados ·{" "}
+                        {evento.confirmedRegistrations.length}
+                      </span>
+                      <span className={styles.sectionRule} />
+                    </div>
+                    <div className={styles.participantsGrid}>
+                      {evento.confirmedRegistrations.map((r) => {
+                        const d2 = getUserDisplay(r.user);
+                        return (
+                          <div key={r._id} className={styles.participant}>
+                            <Avatar user={r.user} size="sm" />
+                            <span>{d2.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+              </>
+            ))}
         </main>
 
         <aside className={styles.aside}>

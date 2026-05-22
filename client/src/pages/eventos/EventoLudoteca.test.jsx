@@ -48,7 +48,9 @@ beforeEach(() => {
 describe("<EventoLudoteca>", () => {
   it("shows empty state when there are no items", async () => {
     renderIt({ items: [] });
-    expect(await screen.findByText(/todav.a no hay juegos/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/todav.a no hay juegos/i),
+    ).toBeInTheDocument();
   });
 
   it("renders item cards with game name + addedBy + notes", () => {
@@ -116,8 +118,12 @@ describe("<EventoLudoteca>", () => {
       { _id: "i2", gameName: "B", addedBy: { _id: "u2", username: "b" } },
     ];
     renderIt({ items });
-    expect(screen.getByRole("button", { name: /quitar a/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /quitar b/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /quitar a/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /quitar b/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows the delete button on every item for the event author", () => {
@@ -129,7 +135,9 @@ describe("<EventoLudoteca>", () => {
       items,
       evento: { _id: "ev1", author: { _id: "host1" } },
     });
-    expect(screen.getByRole("button", { name: /quitar x/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /quitar x/i }),
+    ).toBeInTheDocument();
   });
 
   it("fetches items when 'items' prop is not provided", async () => {
@@ -137,14 +145,21 @@ describe("<EventoLudoteca>", () => {
       http.get("/api/eventos/:id/ludoteca", () =>
         HttpResponse.json({
           items: [
-            { _id: "i1", gameName: "Wingspan", addedBy: { _id: "u1", username: "alice" } },
+            {
+              _id: "i1",
+              gameName: "Wingspan",
+              addedBy: { _id: "u1", username: "alice" },
+            },
           ],
         }),
       ),
     );
     render(
       <MemoryRouter>
-        <EventoLudoteca eventoId="ev1" evento={{ _id: "ev1", author: { _id: "host1" } }} />
+        <EventoLudoteca
+          eventoId="ev1"
+          evento={{ _id: "ev1", author: { _id: "host1" } }}
+        />
       </MemoryRouter>,
     );
     expect(await screen.findByText("Wingspan")).toBeInTheDocument();

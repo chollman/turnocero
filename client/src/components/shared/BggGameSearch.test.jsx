@@ -5,9 +5,7 @@ import { server } from "../../test/server";
 import BggGameSearch from "./BggGameSearch";
 
 beforeEach(() => {
-  server.use(
-    http.get("/api/bgg/search", () => HttpResponse.json([])),
-  );
+  server.use(http.get("/api/bgg/search", () => HttpResponse.json([])));
 });
 
 describe("<BggGameSearch>", () => {

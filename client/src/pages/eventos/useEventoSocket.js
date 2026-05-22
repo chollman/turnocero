@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { io } from 'socket.io-client';
+import { useEffect, useRef } from "react";
+import { io } from "socket.io-client";
 
 /**
  * Custom hook que monta una conexión Socket.IO para el detalle de un evento
@@ -27,55 +27,71 @@ import { io } from 'socket.io-client';
  * @param {(payload: object) => void} [callbacks.onLudotecaChanged]
  * @param {(payload: object) => void} [callbacks.onMesaCreated]
  */
-export default function useEventoSocket(id, {
-  onCountsChanged,
-  onReviewed,
-  onUpdated,
-  onLudotecaChanged,
-  onMesaCreated,
-} = {}) {
-  const cbRef = useRef({ onCountsChanged, onReviewed, onUpdated, onLudotecaChanged, onMesaCreated });
+export default function useEventoSocket(
+  id,
+  {
+    onCountsChanged,
+    onReviewed,
+    onUpdated,
+    onLudotecaChanged,
+    onMesaCreated,
+  } = {},
+) {
+  const cbRef = useRef({
+    onCountsChanged,
+    onReviewed,
+    onUpdated,
+    onLudotecaChanged,
+    onMesaCreated,
+  });
   // Actualizar refs en cada render — los listeners usan la versión más
   // reciente del callback, pero NO disparan reconexión del socket.
-  cbRef.current = { onCountsChanged, onReviewed, onUpdated, onLudotecaChanged, onMesaCreated };
+  cbRef.current = {
+    onCountsChanged,
+    onReviewed,
+    onUpdated,
+    onLudotecaChanged,
+    onMesaCreated,
+  };
 
   useEffect(() => {
     if (!id) return undefined;
-    const token = typeof window !== 'undefined'
-      ? window.localStorage?.getItem('token')
-      : null;
+    const token =
+      typeof window !== "undefined"
+        ? window.localStorage?.getItem("token")
+        : null;
     if (!token) return undefined;
 
-    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
     const socket = io(socketUrl, {
       auth: { token },
-      transports: ['websocket'],
+      transports: ["websocket"],
     });
-    socket.on('connect', () => socket.emit('join:evento', id));
+    socket.on("connect", () => socket.emit("join:evento", id));
 
-    socket.on('evento:counts-changed', (payload) => {
+    socket.on("evento:counts-changed", (payload) => {
       if (payload?.eventoId !== id) return;
       cbRef.current.onCountsChanged?.(payload);
     });
-    socket.on('evento:registration-reviewed', (payload) => {
+    socket.on("evento:registration-reviewed", (payload) => {
       if (payload?.eventoId !== id) return;
       cbRef.current.onReviewed?.(payload);
     });
-    socket.on('evento:updated', (payload) => {
+    socket.on("evento:updated", (payload) => {
       if (payload?.eventoId !== id) return;
       cbRef.current.onUpdated?.(payload);
     });
-    socket.on('evento:ludoteca-changed', (payload) => {
+    socket.on("evento:ludoteca-changed", (payload) => {
       if (payload?.eventoId !== id) return;
       cbRef.current.onLudotecaChanged?.(payload);
     });
-    socket.on('evento:mesa-created', (payload) => {
+    socket.on("evento:mesa-created", (payload) => {
       if (payload?.eventoId !== id) return;
       cbRef.current.onMesaCreated?.(payload);
     });
 
     return () => {
-      socket.emit('leave:evento', id);
+      socket.emit("leave:evento", id);
       socket.disconnect();
     };
   }, [id]);

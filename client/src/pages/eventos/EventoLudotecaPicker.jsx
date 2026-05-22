@@ -60,10 +60,10 @@ export default function EventoLudotecaPicker({
     if (!selectedGame || submitting) return;
     setSubmitting(true);
     try {
-      const { data } = await axios.post(
-        `/api/eventos/${eventoId}/ludoteca`,
-        { bggGameId: selectedGame.id, notes: notes.trim() },
-      );
+      const { data } = await axios.post(`/api/eventos/${eventoId}/ludoteca`, {
+        bggGameId: selectedGame.id,
+        notes: notes.trim(),
+      });
       onAdded?.(data.item);
       addToast({
         type: "evento_ludoteca_added",

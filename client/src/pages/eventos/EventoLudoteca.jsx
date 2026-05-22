@@ -82,8 +82,7 @@ export default function EventoLudoteca({
       addToast({
         type: "error",
         title: "Error",
-        message:
-          err.response?.data?.message || "No pudimos quitar el juego.",
+        message: err.response?.data?.message || "No pudimos quitar el juego.",
       });
     } finally {
       setDeletingId(null);
@@ -170,9 +169,7 @@ export default function EventoLudoteca({
                 <div className={styles.addedBy}>
                   <Avatar user={item.addedBy} size="xs" />
                   <span className={styles.addedByName}>
-                    {item.addedBy?.displayName ||
-                      item.addedBy?.username ||
-                      "?"}
+                    {item.addedBy?.displayName || item.addedBy?.username || "?"}
                   </span>
                 </div>
               </div>

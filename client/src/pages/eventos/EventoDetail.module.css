@@ -830,6 +830,17 @@
 }
 
 /* ─── Tabs del detalle (Detalle · Ludoteca · Mesas) ─── */
+/* La nav de tabs Y el contenido que viene debajo deben aparecer al instante
+   al cambiar de tab — sino la animación staggered de `.main > *`
+   (animation-delay 0.4s+, opacity 0 → 1) los deja invisibles ~500ms y el
+   click "no parece hacer nada". */
+.tabs,
+.tabs ~ * {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
 .tabs {
   display: flex;
   gap: 4px;

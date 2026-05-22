@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../../context/AuthContext';
-import useDebouncedValue from '../../hooks/useDebouncedValue';
-import PlaceAutocomplete from '../../components/shared/PlaceAutocomplete';
-import styles from './CreateTable.module.css';
+import { useState, useEffect, useRef } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
+import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
+import styles from "./CreateTable.module.css";
 
 const defaultDate = () => {
   const d = new Date();
@@ -15,25 +15,28 @@ const defaultDate = () => {
 
 export default function CreateTable() {
   const { user } = useAuth();
-  const profileDireccionTexto = user?.direccion?.texto || '';
-  const hasProfileDireccion = Boolean(profileDireccionTexto || (user?.direccion?.lat != null && user?.direccion?.lng != null));
+  const profileDireccionTexto = user?.direccion?.texto || "";
+  const hasProfileDireccion = Boolean(
+    profileDireccionTexto ||
+    (user?.direccion?.lat != null && user?.direccion?.lng != null),
+  );
 
   const [form, setForm] = useState({
     date: defaultDate(),
     maxPlayers: 3,
-    location: { texto: '', lat: null, lng: null },
-    description: '',
-    privacy: 'public',
+    location: { texto: "", lat: null, lng: null },
+    description: "",
+    privacy: "public",
   });
   const [geocoding, setGeocoding] = useState(false);
-  const [boardGameInput, setBoardGameInput] = useState('');
+  const [boardGameInput, setBoardGameInput] = useState("");
   const debouncedBoardGameInput = useDebouncedValue(boardGameInput, 400);
   const [boardGameSelected, setBoardGameSelected] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [searching, setSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [noResults, setNoResults] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const searchRef = useRef(null);
   const abortRef = useRef(null);
@@ -43,7 +46,7 @@ export default function CreateTable() {
   // Si la mesa se está creando desde el detalle de un evento, el query param
   // `?evento=<id>` se propaga al POST. El server valida permisos contra el
   // evento (canActInEvento). Sin el param, la mesa es global.
-  const eventoId = searchParams.get('evento') || null;
+  const eventoId = searchParams.get("evento") || null;
 
   useEffect(() => {
     if (debouncedBoardGameInput.length < 3 || boardGameSelected) {
@@ -74,9 +77,12 @@ export default function CreateTable() {
     const signal = abortRef.current.signal;
     (async () => {
       try {
-        const res = await axios.get(`/api/bgg/search?q=${encodeURIComponent(debouncedBoardGameInput)}`, {
-          signal,
-        });
+        const res = await axios.get(
+          `/api/bgg/search?q=${encodeURIComponent(debouncedBoardGameInput)}`,
+          {
+            signal,
+          },
+        );
         if (signal.aborted) return;
         searchCache.current.set(q, res.data);
         setSuggestions(res.data);
@@ -102,8 +108,8 @@ export default function CreateTable() {
         setShowDropdown(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   const handleChange = (e) =>
@@ -116,24 +122,35 @@ export default function CreateTable() {
   const updateLocationTexto = (texto) =>
     setForm((f) => ({ ...f, location: { ...f.location, texto } }));
   const handlePlaceSelect = ({ lat, lng, formattedAddress }) =>
-    setForm((f) => ({ ...f, location: { texto: formattedAddress || f.location.texto, lat, lng } }));
+    setForm((f) => ({
+      ...f,
+      location: { texto: formattedAddress || f.location.texto, lat, lng },
+    }));
   const handleManualGeocode = async () => {
     const q = form.location.texto.trim();
     if (q.length < 3) {
-      setError('Escribí una dirección de al menos 3 caracteres.');
-      setTimeout(() => setError(''), 3000);
+      setError("Escribí una dirección de al menos 3 caracteres.");
+      setTimeout(() => setError(""), 3000);
       return;
     }
     setGeocoding(true);
     try {
-      const { data } = await axios.get('/api/geocode', { params: { q } });
-      setForm((f) => ({ ...f, location: { texto: data.formatted || f.location.texto, lat: data.lat, lng: data.lng } }));
+      const { data } = await axios.get("/api/geocode", { params: { q } });
+      setForm((f) => ({
+        ...f,
+        location: {
+          texto: data.formatted || f.location.texto,
+          lat: data.lat,
+          lng: data.lng,
+        },
+      }));
     } catch (err) {
-      const msg = err.response?.status === 404
-        ? 'No se encontró la dirección. Intentá ser más específico o picá una sugerencia.'
-        : err.response?.data?.message || 'Error al buscar la dirección.';
+      const msg =
+        err.response?.status === 404
+          ? "No se encontró la dirección. Intentá ser más específico o picá una sugerencia."
+          : err.response?.data?.message || "Error al buscar la dirección.";
       setError(msg);
-      setTimeout(() => setError(''), 3000);
+      setTimeout(() => setError(""), 3000);
     } finally {
       setGeocoding(false);
     }
@@ -152,7 +169,13 @@ export default function CreateTable() {
       setBoardGameSelected(res.data);
       setBoardGameInput(res.data.name);
     } catch {
-      setBoardGameSelected({ name: game.name, id: game.id, thumbnail: null, image: null, year: game.year });
+      setBoardGameSelected({
+        name: game.name,
+        id: game.id,
+        thumbnail: null,
+        image: null,
+        year: game.year,
+      });
       setBoardGameInput(game.name);
     } finally {
       setSearching(false);
@@ -161,14 +184,14 @@ export default function CreateTable() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     if (!boardGameSelected) {
-      setError('Seleccioná un juego del catálogo de BGG');
+      setError("Seleccioná un juego del catálogo de BGG");
       return;
     }
     setLoading(true);
     try {
-      const { data } = await axios.post('/api/tables', {
+      const { data } = await axios.post("/api/tables", {
         ...form,
         boardGame: boardGameSelected.name,
         bggId: boardGameSelected.id,
@@ -181,7 +204,7 @@ export default function CreateTable() {
       });
       navigate(`/mesas/${data._id}`);
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al crear la mesa');
+      setError(err.response?.data?.message || "Error al crear la mesa");
     } finally {
       setLoading(false);
     }
@@ -192,15 +215,15 @@ export default function CreateTable() {
       <div className={styles.inner}>
         <div className={styles.hero}>
           <div className={styles.eyebrow}>
-            ◆ NUEVA MESA{eventoId ? ' · DENTRO DEL EVENTO' : ''}
+            ◆ NUEVA MESA{eventoId ? " · DENTRO DEL EVENTO" : ""}
           </div>
           <h1 className={styles.heroTitle}>
-            {eventoId ? 'Armá una mesa para el evento' : 'Convocá una partida'}
+            {eventoId ? "Armá una mesa para el evento" : "Convocá una partida"}
           </h1>
           <p className={styles.heroSub}>
             {eventoId
-              ? 'La mesa va a ser visible dentro del evento, no en /mesas global.'
-              : 'Elegí juego, lugar y horario. La comunidad se encarga del resto.'}
+              ? "La mesa va a ser visible dentro del evento, no en /mesas global."
+              : "Elegí juego, lugar y horario. La comunidad se encarga del resto."}
           </p>
         </div>
 
@@ -215,13 +238,21 @@ export default function CreateTable() {
                   type="text"
                   value={boardGameInput}
                   onChange={handleGameInputChange}
-                  onFocus={() => suggestions.length > 0 && !boardGameSelected && setShowDropdown(true)}
-                  className={`${styles.input} ${boardGameSelected ? styles.inputSelected : ''}`}
+                  onFocus={() =>
+                    suggestions.length > 0 &&
+                    !boardGameSelected &&
+                    setShowDropdown(true)
+                  }
+                  className={`${styles.input} ${boardGameSelected ? styles.inputSelected : ""}`}
                   placeholder="Buscá un juego en BGG…"
                   autoComplete="off"
                 />
-                {searching && <div className={styles.searchHint}>Buscando…</div>}
-                {noResults && <div className={styles.searchHint}>Sin resultados en BGG</div>}
+                {searching && (
+                  <div className={styles.searchHint}>Buscando…</div>
+                )}
+                {noResults && (
+                  <div className={styles.searchHint}>Sin resultados en BGG</div>
+                )}
                 {showDropdown && (
                   <ul className={styles.suggestions}>
                     {suggestions.map((game) => (
@@ -230,12 +261,25 @@ export default function CreateTable() {
                         className={styles.suggestionItem}
                         onMouseDown={() => handleSelectGame(game)}
                       >
-                        {game.thumbnail
-                          ? <img src={game.thumbnail} alt="" className={styles.suggestionThumb} />
-                          : <div className={styles.suggestionThumbPlaceholder}>🎲</div>
-                        }
-                        <span className={styles.suggestionName}>{game.name}</span>
-                        {game.year && <span className={styles.suggestionYear}>{game.year}</span>}
+                        {game.thumbnail ? (
+                          <img
+                            src={game.thumbnail}
+                            alt=""
+                            className={styles.suggestionThumb}
+                          />
+                        ) : (
+                          <div className={styles.suggestionThumbPlaceholder}>
+                            🎲
+                          </div>
+                        )}
+                        <span className={styles.suggestionName}>
+                          {game.name}
+                        </span>
+                        {game.year && (
+                          <span className={styles.suggestionYear}>
+                            {game.year}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -265,15 +309,31 @@ export default function CreateTable() {
                   <button
                     type="button"
                     className={styles.counterMinus}
-                    onClick={() => setForm((f) => ({ ...f, maxPlayers: Math.max(1, f.maxPlayers - 1) }))}
-                  >−</button>
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        maxPlayers: Math.max(1, f.maxPlayers - 1),
+                      }))
+                    }
+                  >
+                    −
+                  </button>
                   <span className={styles.counterVal}>{form.maxPlayers}</span>
                   <button
                     type="button"
                     className={styles.counterPlus}
-                    onClick={() => setForm((f) => ({ ...f, maxPlayers: Math.min(20, f.maxPlayers + 1) }))}
-                  >+</button>
-                  <span className={styles.counterTotal}>Total: {Number(form.maxPlayers) + 1}</span>
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        maxPlayers: Math.min(20, f.maxPlayers + 1),
+                      }))
+                    }
+                  >
+                    +
+                  </button>
+                  <span className={styles.counterTotal}>
+                    Total: {Number(form.maxPlayers) + 1}
+                  </span>
                 </div>
               </div>
             </div>
@@ -284,10 +344,23 @@ export default function CreateTable() {
                 <span className={styles.labelHint}>(opcional)</span>
               </label>
               <p className={styles.locationHint}>
-                {hasProfileDireccion
-                  ? <>Si lo dejás vacío, usamos la dirección de tu perfil: <strong>{profileDireccionTexto || 'tus coordenadas guardadas'}</strong>.</>
-                  : <>Si lo dejás vacío, la mesa se publica sin ubicación. <Link to="/perfil" className={styles.locationLink}>Agregá una dirección a tu perfil</Link> para usarla por default.</>
-                }
+                {hasProfileDireccion ? (
+                  <>
+                    Si lo dejás vacío, usamos la dirección de tu perfil:{" "}
+                    <strong>
+                      {profileDireccionTexto || "tus coordenadas guardadas"}
+                    </strong>
+                    .
+                  </>
+                ) : (
+                  <>
+                    Si lo dejás vacío, la mesa se publica sin ubicación.{" "}
+                    <Link to="/perfil" className={styles.locationLink}>
+                      Agregá una dirección a tu perfil
+                    </Link>{" "}
+                    para usarla por default.
+                  </>
+                )}
               </p>
               <div className={styles.geocodeRow}>
                 <PlaceAutocomplete
@@ -303,12 +376,13 @@ export default function CreateTable() {
                   disabled={geocoding}
                   title="Buscar la dirección que tipeaste (sin picar sugerencia)"
                 >
-                  {geocoding ? '…' : 'Buscar'}
+                  {geocoding ? "…" : "Buscar"}
                 </button>
               </div>
               {form.location.lat != null && form.location.lng != null && (
                 <p className={styles.coordsHint}>
-                  📍 {form.location.lat.toFixed(5)}, {form.location.lng.toFixed(5)}
+                  📍 {form.location.lat.toFixed(5)},{" "}
+                  {form.location.lng.toFixed(5)}
                 </p>
               )}
             </div>
@@ -331,31 +405,43 @@ export default function CreateTable() {
               <div className={styles.privacyGrid}>
                 <button
                   type="button"
-                  className={`${styles.privacyCard} ${form.privacy === 'public' ? styles.privacyCardSelected : ''}`}
-                  onClick={() => setForm((f) => ({ ...f, privacy: 'public' }))}
+                  className={`${styles.privacyCard} ${form.privacy === "public" ? styles.privacyCardSelected : ""}`}
+                  onClick={() => setForm((f) => ({ ...f, privacy: "public" }))}
                 >
                   <span className={styles.privacyIcon}>🌐</span>
                   <span className={styles.privacyLabel}>Pública</span>
-                  <span className={styles.privacyDesc}>Cualquiera puede unirse al instante</span>
+                  <span className={styles.privacyDesc}>
+                    Cualquiera puede unirse al instante
+                  </span>
                 </button>
                 <button
                   type="button"
-                  className={`${styles.privacyCard} ${form.privacy === 'private' ? styles.privacyCardSelected : ''}`}
-                  onClick={() => setForm((f) => ({ ...f, privacy: 'private' }))}
+                  className={`${styles.privacyCard} ${form.privacy === "private" ? styles.privacyCardSelected : ""}`}
+                  onClick={() => setForm((f) => ({ ...f, privacy: "private" }))}
                 >
                   <span className={styles.privacyIcon}>🔒</span>
                   <span className={styles.privacyLabel}>Privada</span>
-                  <span className={styles.privacyDesc}>Aprobás cada solicitud</span>
+                  <span className={styles.privacyDesc}>
+                    Aprobás cada solicitud
+                  </span>
                 </button>
               </div>
             </div>
 
             <div className={styles.actions}>
-              <button type="button" className={styles.btnGhost} onClick={() => navigate('/')}>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={() => navigate("/")}
+              >
                 Cancelar
               </button>
-              <button type="submit" className={styles.btnPrimary} disabled={loading}>
-                {loading ? 'Creando…' : '🎲 Crear mesa'}
+              <button
+                type="submit"
+                className={styles.btnPrimary}
+                disabled={loading}
+              >
+                {loading ? "Creando…" : "🎲 Crear mesa"}
               </button>
             </div>
           </form>
