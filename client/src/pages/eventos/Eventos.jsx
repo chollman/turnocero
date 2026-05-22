@@ -208,17 +208,29 @@ export default function Eventos() {
   }, [user, matchesActiveFilter]);
 
   // Client-side filter for "mine" (server doesn't support it).
+  // El server ordena por `createdAt` desc — ordenamos por `eventDate` ASC para
+  // que la grilla de posters y la timeline coincidan (la timeline re-ordena
+  // por mes internamente, así que esta sort es lo que arregla la vista cards).
+  // Eventos sin eventDate van al final.
   const visibleEventos = useMemo(() => {
-    if (filter !== "mine") return eventos;
-    if (!user) return [];
-    return eventos.filter((ev) => {
-      const isHost = ev.author?._id === userId;
-      const hasReg =
-        ev.userRegistration?.status &&
-        ["pending", "confirmed", "rejected"].includes(
-          ev.userRegistration.status,
-        );
-      return isHost || hasReg;
+    const base =
+      filter !== "mine"
+        ? eventos
+        : !user
+          ? []
+          : eventos.filter((ev) => {
+              const isHost = ev.author?._id === userId;
+              const hasReg =
+                ev.userRegistration?.status &&
+                ["pending", "confirmed", "rejected"].includes(
+                  ev.userRegistration.status,
+                );
+              return isHost || hasReg;
+            });
+    return base.slice().sort((a, b) => {
+      const ta = a.eventDate ? new Date(a.eventDate).getTime() : Infinity;
+      const tb = b.eventDate ? new Date(b.eventDate).getTime() : Infinity;
+      return ta - tb;
     });
   }, [eventos, filter, user, userId]);
 
