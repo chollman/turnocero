@@ -9,8 +9,8 @@ import styles from "./EventoMesas.module.css";
  * Pestaña "Mesas del Evento" dentro del detalle del evento.
  *
  * Lista las mesas asociadas a este evento (no visibles en /mesas global).
- * Reusa <TableCard> tal cual — el componente ya muestra todo (juego, host,
- * fecha, lugares, distance, status).
+ * Reusa <TableCard> tal cual — el componente ya muestra los campos
+ * relevantes (juego, host, fecha, lugares, distance, status).
  *
  * Permisos para "Crear mesa en el evento":
  *   - Confirmed registrants + author + admin (validado server-side en POST

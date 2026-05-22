@@ -230,7 +230,9 @@ describe("<EventoForm>", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: /guardar cambios/i }));
-    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
     const fd = onSubmit.mock.calls[0][0];
     const locJson = fd.get("location");
     expect(locJson).toBe(JSON.stringify({ texto: "Bar X", lat: -34.6, lng: -58.4, displayName: "" }));
@@ -294,7 +296,9 @@ describe("<EventoForm>", () => {
       target: { value: "Bar de Pepe" },
     });
     fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
-    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
     const fd = onSubmit.mock.calls[0][0];
     const loc = JSON.parse(fd.get("location"));
     expect(loc.displayName).toBe("Bar de Pepe");
@@ -346,7 +350,9 @@ describe("<EventoForm>", () => {
     fireEvent.change(screen.getByLabelText(/^lugar$/i), { target: { value: "Bar" } });
     fireEvent.click(screen.getByRole("radio", { name: /cancelado/i }));
     fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
-    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => {
+      setTimeout(r, 0);
+    });
     const fd = onSubmit.mock.calls[0][0];
     expect(fd.get("status")).toBe("cancelled");
   });

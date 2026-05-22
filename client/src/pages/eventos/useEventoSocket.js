@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { io } from "socket.io-client";
 
 /**
@@ -44,15 +44,19 @@ export default function useEventoSocket(
     onLudotecaChanged,
     onMesaCreated,
   });
-  // Actualizar refs en cada render — los listeners usan la versión más
+  // Actualizar refs después del commit — los listeners usan la versión más
   // reciente del callback, pero NO disparan reconexión del socket.
-  cbRef.current = {
-    onCountsChanged,
-    onReviewed,
-    onUpdated,
-    onLudotecaChanged,
-    onMesaCreated,
-  };
+  // useLayoutEffect (en vez de asignar durante render) cumple con la regla
+  // react-hooks/refs y queda sincrónico antes de cualquier paint.
+  useLayoutEffect(() => {
+    cbRef.current = {
+      onCountsChanged,
+      onReviewed,
+      onUpdated,
+      onLudotecaChanged,
+      onMesaCreated,
+    };
+  });
 
   useEffect(() => {
     if (!id) return undefined;

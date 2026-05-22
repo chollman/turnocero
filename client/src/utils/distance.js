@@ -18,7 +18,7 @@ export function formatDistanceKm(km) {
     const meters = Math.round((km * 1000) / 10) * 10;
     // Distancia tan chica que redondea a 0m (incluye km === 0) → null.
     // Sirve para no mostrar "0 m" o "Aquí mismo" cuando el evento es en
-    // tu propia dirección — la celda de ubicación ya lo dice todo.
+    // tu propia dirección — la celda de ubicación ya da contexto suficiente.
     if (meters === 0) return null;
     return `${meters} m`;
   }

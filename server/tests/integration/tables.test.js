@@ -221,11 +221,11 @@ describe('GET /api/tables — distance computation', () => {
     expect(res.status).toBe(200);
     const byGame = Object.fromEntries(res.body.tables.map((t) => [t.boardGame, t.distanceKm]));
     expect(byGame['Catán']).toBeCloseTo(0, 1);
-    expect(byGame['Carcassonne']).toBeGreaterThan(50);
-    expect(byGame['Carcassonne']).toBeLessThan(62);
-    expect(byGame['Brass']).toBeGreaterThan(270);
-    expect(byGame['Brass']).toBeLessThan(295);
-    expect(byGame['Wingspan']).toBeNull(); // sin coords
+    expect(byGame.Carcassonne).toBeGreaterThan(50);
+    expect(byGame.Carcassonne).toBeLessThan(62);
+    expect(byGame.Brass).toBeGreaterThan(270);
+    expect(byGame.Brass).toBeLessThan(295);
+    expect(byGame.Wingspan).toBeNull(); // sin coords
   });
 
   it('returns distanceKm: null on all tables when user has no direccion', async () => {

@@ -104,6 +104,15 @@ export default function EventoDetail() {
   const [editing, setEditing] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Ludoteca state — al tope para que el badge "Ludoteca (N)" se actualice
+  // en vivo via socket sin esperar a que el user abra esa tab.
+  const [ludotecaItems, setLudotecaItems] = useState(null);
+  // Mesas state — mismo patrón. Fetcheado por separado al GET del evento
+  // (la lista de mesas asociadas no viene en `evento.ludoteca` porque son
+  // documentos del modelo `Table` con `eventoId`). El badge Mesas (N) usa
+  // este state.
+  const [mesasItems, setMesasItems] = useState(null);
+
   // Ticker para que TicketStub refresque su countdown ("en X días").
   const now = useTickingNow();
 
@@ -144,15 +153,6 @@ export default function EventoDetail() {
   // refs para no reconectar el socket en cada render (antes el effect tenía
   // un eslint-disable de exhaustive-deps por esta razón). Conecta en paralelo
   // con el fetch HTTP — todos los callbacks tolerán prev=null si llegan antes.
-  // Ludoteca state — al tope para que el badge "Ludoteca (N)" se actualice
-  // en vivo via socket sin esperar a que el user abra esa tab.
-  const [ludotecaItems, setLudotecaItems] = useState(null);
-  // Mesas state — mismo patrón. Fetcheado por separado al GET del evento
-  // (la lista de mesas asociadas no viene en `evento.ludoteca` porque son
-  // documentos del modelo `Table` con `eventoId`). El badge Mesas (N) usa
-  // este state.
-  const [mesasItems, setMesasItems] = useState(null);
-
   useEventoSocket(id, {
     onLudotecaChanged: (payload) => {
       if (!payload) return;

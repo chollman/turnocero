@@ -149,7 +149,8 @@ export default async function middleware(request) {
       headers: { 'content-type': 'text/html; charset=utf-8' },
     })
   } catch {
-    return
+    // Edge runtime swallows the error — falling through returns undefined,
+    // which Vercel interprets as "continue to the SPA shell".
   }
 }
 

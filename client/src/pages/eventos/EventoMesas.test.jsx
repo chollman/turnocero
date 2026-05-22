@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
@@ -18,11 +19,14 @@ import EventoMesas from "./EventoMesas";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 
-let lastLocation = null;
+// Mutable holder leído por los asserts del test. La asignación se hace en
+// useEffect (no durante render) para cumplir con react-hooks/immutability.
+const lastLocationRef = { current: null };
 function LocationProbe() {
-  // Lee location del Router para verificar navigate.
-  const { useLocation } = require("react-router-dom");
-  lastLocation = useLocation();
+  const location = useLocation();
+  useEffect(() => {
+    lastLocationRef.current = location;
+  }, [location]);
   return null;
 }
 
@@ -41,7 +45,7 @@ function renderIt({ canAdd = false } = {}) {
 }
 
 beforeEach(() => {
-  lastLocation = null;
+  lastLocationRef.current = null;
   useAuth.mockReturnValue({ user: { _id: "me", username: "me" } });
   useNotifications.mockReturnValue({ addToast: vi.fn() });
   server.use(
@@ -100,8 +104,8 @@ describe("<EventoMesas>", () => {
     await screen.findByText(/todav.a no hay mesas/i);
     fireEvent.click(screen.getByRole("button", { name: /crear mesa/i }));
     await waitFor(() => {
-      expect(lastLocation?.pathname).toBe("/mesas/crear");
-      expect(lastLocation?.search).toBe("?evento=ev1");
+      expect(lastLocationRef.current?.pathname).toBe("/mesas/crear");
+      expect(lastLocationRef.current?.search).toBe("?evento=ev1");
     });
   });
 });

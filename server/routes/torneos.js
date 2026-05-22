@@ -1056,7 +1056,6 @@ router.post(
           advancedTo = next;
         }
 
-        const io = req.app.get("io");
         const winnerId = String(match.winner);
         const loserId =
           String(match.playerA) === winnerId

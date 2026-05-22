@@ -32,7 +32,7 @@ beforeEach(async () => {
   global.__ioStub.__reset();
   // SiteConfig default tiene `mesas`, `torneos`, `miFeed` con enabled:false —
   // saveNotification cortaría las notifs de mesas para non-admins. Habilitamos
-  // todo para que los tests ejerciten el pipeline de emit aislado del gating.
+  // cada sección para que los tests ejerciten el pipeline de emit sin gating.
   const all = {};
   for (const key of SiteConfig.SECTION_KEYS) all[key] = { enabled: true };
   await loadSiteConfig();

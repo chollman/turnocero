@@ -21,7 +21,9 @@ describe("<BggGameSearch>", () => {
     const input = screen.getByLabelText(/buscar juego/i);
     fireEvent.change(input, { target: { value: "ca" } });
     // Wait past debounce
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => {
+      setTimeout(r, 400);
+    });
     expect(calls).toBe(0);
   });
 

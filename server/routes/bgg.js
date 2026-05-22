@@ -883,11 +883,11 @@ function scoreSearchMatch(name, query) {
   if (normalized === q) return 0; // match exacto
   // Prefijo con separador típico: "LOOP: ..." / "LOOP - ..." / "LOOP's ..."
   if (
-    normalized.startsWith(q + " ") ||
-    normalized.startsWith(q + ":") ||
-    normalized.startsWith(q + "-") ||
-    normalized.startsWith(q + "'") ||
-    normalized.startsWith(q + ",")
+    normalized.startsWith(`${q} `) ||
+    normalized.startsWith(`${q}:`) ||
+    normalized.startsWith(`${q}-`) ||
+    normalized.startsWith(`${q}'`) ||
+    normalized.startsWith(`${q},`)
   )
     return 1;
   // Palabra completa en cualquier posición (word boundary)

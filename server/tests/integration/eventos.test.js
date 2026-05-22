@@ -314,7 +314,7 @@ describe("GET /api/eventos", () => {
   it("broadcastea evento:updated por cada evento auto-cerrado con payload COMPLETO (regresión: payload mínimo dejaba cards vacías en chip 'Cerrados')", async () => {
     global.__ioStub.__reset();
     const admin = await createUser({ isAdmin: true, username: "host_admin" });
-    const stale = await createEvento(admin, {
+    await createEvento(admin, {
       title: "Auto-close target",
       location: "Bar X",
       status: "open",

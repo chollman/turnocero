@@ -155,7 +155,7 @@ describe("<EventoInscripciones>", () => {
     renderInsc();
     await screen.findByText("User a");
     // El stat de "Cupo" muestra 3/24 (no 1/24 que era el bug). Subimos al
-    // wrapper `.stat` desde el label para inspeccionar todo el bloque.
+    // wrapper `.stat` desde el label para inspeccionar el bloque completo.
     const cupoStat = screen.getByText(/^cupo$/i).parentElement;
     expect(cupoStat.textContent).toMatch(/3.*\/.*24/);
   });

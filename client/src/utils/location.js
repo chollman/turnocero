@@ -86,7 +86,7 @@ function extractCity(parts) {
   if (candidates.length > 1 && COUNTRY_TOKENS.has(candidates[candidates.length - 1])) {
     candidates.pop();
   }
-  // Strip provincias ("Provincia de XXX", "Provincia XXX", "XXX Province").
+  // Strip provincias ("Provincia de <X>", "Provincia <X>", "<X> Province").
   candidates = candidates.filter((p) => !/^Provincia(\s+de)?\s+/i.test(p) && !/\sProvince$/i.test(p));
 
   if (candidates.length === 0) return '';

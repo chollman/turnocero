@@ -1,6 +1,5 @@
 const emitNotification = require("../../../utils/emitNotification");
 const { emitNotificationReq } = require("../../../utils/emitNotification");
-const Notification = require("../../../models/Notification");
 const SiteConfig = require("../../../models/SiteConfig");
 const {
   loadSiteConfig,

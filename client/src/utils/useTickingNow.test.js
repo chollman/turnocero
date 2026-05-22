@@ -47,7 +47,7 @@ describe('useTickingNow', () => {
   });
 
   it('clears the interval on unmount (no leak)', () => {
-    const clearSpy = vi.spyOn(global, 'clearInterval');
+    const clearSpy = vi.spyOn(window, 'clearInterval');
     const { unmount } = renderHook(() => useTickingNow());
     unmount();
     expect(clearSpy).toHaveBeenCalled();

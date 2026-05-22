@@ -11,16 +11,15 @@
 
 const request = require("supertest");
 const app = require("../../app");
-const Evento = require("../../models/Evento");
 const Table = require("../../models/Table");
-const { createUser, createAuthedUser, tokenFor } = require("../helpers/auth");
+const { createUser, createAuthedUser } = require("../helpers/auth");
 const { createTable, createEvento } = require("../helpers/factories");
 const SiteConfig = require("../../models/SiteConfig");
 const { loadSiteConfig, updateSiteConfig } = require("../../utils/siteConfig");
 
 async function enableAllSections() {
   // eventos + mesas both default-off para non-admins en site config seed.
-  // Habilitamos todo aquí para aislar los tests del gating.
+  // Habilitamos cada sección para aislar los tests del gating.
   const all = {};
   for (const key of SiteConfig.SECTION_KEYS) all[key] = { enabled: true };
   await loadSiteConfig();

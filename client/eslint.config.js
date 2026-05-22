@@ -6,6 +6,7 @@ import { createRequire } from 'module';
 const sharedRules = createRequire(import.meta.url)('../eslint.shared.cjs');
 
 export default [
+  { ignores: ['dist/**', 'dev-dist/**', 'coverage/**', 'node_modules/**'] },
   js.configs.recommended,
   {
     files: ['src/**/*.{js,jsx}'],
@@ -21,5 +22,14 @@ export default [
       ...sharedRules,
       'no-console': 'warn',
     },
+  },
+  // Vercel Edge middleware — runs on the Edge runtime with Web APIs + process.env.
+  {
+    files: ['middleware.js'],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+      sourceType: 'module',
+    },
+    rules: sharedRules,
   },
 ];
