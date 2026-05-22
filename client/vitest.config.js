@@ -24,6 +24,17 @@ export default defineConfig({
         'src/test/**',
         'src/**/*.module.css',
       ],
+      // Thresholds tomados ~3-7% por debajo del baseline real
+      // (2026-05-22: stmts 82, branches 74, fns 75, lines 85). La idea
+      // no es ser estricto — es atajar regresiones grandes en `npm run
+      // test:coverage` antes de que entren a master. Subir gradualmente
+      // a medida que sube el baseline.
+      thresholds: {
+        statements: 75,
+        branches: 68,
+        functions: 70,
+        lines: 80,
+      },
     },
   },
 });
