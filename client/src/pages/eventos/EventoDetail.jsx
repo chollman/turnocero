@@ -1,10 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  useParams,
-  useNavigate,
-  useLocation,
-  Link,
-} from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
