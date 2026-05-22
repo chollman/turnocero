@@ -5,8 +5,11 @@ const Table = require('../models/Table');
 const Compartida = require('../models/Compartida');
 const { optionalAuth } = require('../middleware/auth');
 const { requireSection } = require('../middleware/sectionGate');
+const validateObjectId = require('../middleware/validateObjectId');
 
 router.use(requireSection('comunidad'));
+
+router.param('id', validateObjectId('id'));
 
 // GET /api/users — public list with optional search, sortBy, activeOnly
 router.get('/', optionalAuth, async (req, res) => {

@@ -5,8 +5,11 @@ const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
 const Noticia = require('../models/Noticia');
 const { protect, requireAdmin, optionalAuth } = require('../middleware/auth');
 const { requireSection } = require('../middleware/sectionGate');
+const validateObjectId = require('../middleware/validateObjectId');
 
 router.use(requireSection('noticias'));
+
+router.param('id', validateObjectId('id'));
 
 // GET /api/noticias — public, newest first, paginated
 router.get('/', optionalAuth, async (req, res) => {

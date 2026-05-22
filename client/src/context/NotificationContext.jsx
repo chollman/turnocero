@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useCallback,
+  useMemo,
 } from "react";
 import { io } from "socket.io-client";
 import axios from "axios";
@@ -1074,40 +1075,73 @@ export function NotificationProvider({ children }) {
     .reduce((sum, n) => sum + (n.count || 1), 0);
 
   // Bell badge: exclude dm and admin_chat (they have their own badges on the chat icons)
-  const totalUnread = notifications
-    .filter((n) => !n.read && n.type !== "dm" && n.type !== "admin_chat")
-    .reduce((sum, n) => sum + (n.count || 1), 0);
+  const totalUnread = useMemo(
+    () =>
+      notifications
+        .filter((n) => !n.read && n.type !== "dm" && n.type !== "admin_chat")
+        .reduce((sum, n) => sum + (n.count || 1), 0),
+    [notifications],
+  );
+
+  const value = useMemo(
+    () => ({
+      notifications,
+      unreadCount: totalUnread,
+      dmUnreadTotal,
+      markRead,
+      markReadFriend,
+      markReadTorneo,
+      markReadCompartida,
+      markReadEvento,
+      markReadDm,
+      markReadAdminChat,
+      markAllRead,
+      loadOlder,
+      clearAll,
+      setActiveTable,
+      setActiveTorneo,
+      setActiveCompartida,
+      setActiveEvento,
+      toasts,
+      dismissToast,
+      addToast,
+      addDmListener,
+      addFriendListener,
+      notifyFriendAdded,
+      adminChatUnread,
+      setAdminChatActive,
+    }),
+    [
+      notifications,
+      totalUnread,
+      dmUnreadTotal,
+      markRead,
+      markReadFriend,
+      markReadTorneo,
+      markReadCompartida,
+      markReadEvento,
+      markReadDm,
+      markReadAdminChat,
+      markAllRead,
+      loadOlder,
+      clearAll,
+      setActiveTable,
+      setActiveTorneo,
+      setActiveCompartida,
+      setActiveEvento,
+      toasts,
+      dismissToast,
+      addToast,
+      addDmListener,
+      addFriendListener,
+      notifyFriendAdded,
+      adminChatUnread,
+      setAdminChatActive,
+    ],
+  );
 
   return (
-    <NotificationContext.Provider
-      value={{
-        notifications,
-        unreadCount: totalUnread,
-        dmUnreadTotal,
-        markRead,
-        markReadFriend,
-        markReadTorneo,
-        markReadCompartida,
-        markReadEvento,
-        markReadDm,
-        markReadAdminChat,
-        markAllRead,
-        loadOlder,
-        clearAll,
-        setActiveTable,
-        setActiveTorneo,
-        setActiveCompartida,
-        setActiveEvento,
-        toasts,
-        dismissToast,
-        addToast,
-        addDmListener,
-        addFriendListener,
-        notifyFriendAdded,
-        adminChatUnread,
-        setAdminChatActive,
-      }}
-    >
+    <NotificationContext.Provider value={value}>
       {children}
     </NotificationContext.Provider>
   );

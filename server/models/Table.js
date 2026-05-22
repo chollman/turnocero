@@ -116,6 +116,13 @@ const tableSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Indexes — el listado /api/tables filtra por status (excluye 'cancelled')
+// y ordena por date. /api/tables/mine consulta por host. El "spot opened"
+// notifier resuelve por players. Sin estos, full collection scans.
+tableSchema.index({ status: 1, date: 1 });
+tableSchema.index({ host: 1 });
+tableSchema.index({ players: 1 });
+
 // Virtual: total seats (host + maxPlayers)
 tableSchema.virtual("totalPlayers").get(function () {
   return this.maxPlayers + 1;

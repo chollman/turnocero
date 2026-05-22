@@ -5,9 +5,14 @@ const Comment = require("../models/Comment");
 const Table = require("../models/Table");
 const { protect } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
 
 router.use(requireSection("mesas"));
+
+// `:id` viene del parent mount (`/api/tables/:id/comments`); `:commentId` es propio.
+router.use(validateObjectId("id"));
+router.param("commentId", validateObjectId("commentId"));
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);

@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   useRef,
 } from "react";
 import axios from "axios";
@@ -198,22 +199,30 @@ export function ChatProvider({ children }) {
   // dmUnreadTotal viene de NotificationContext (fuente única). Re-exportamos
   // para los consumidores (Navbar, ChatLauncher) sin romper su contrato.
 
-  return (
-    <ChatContext.Provider
-      value={{
-        conversations,
-        openOrder,
-        openChat,
-        closeChat,
-        clearConversationUnread,
-        minimizeChat,
-        sendMessage,
-        dmUnreadTotal,
-      }}
-    >
-      {children}
-    </ChatContext.Provider>
+  const value = useMemo(
+    () => ({
+      conversations,
+      openOrder,
+      openChat,
+      closeChat,
+      clearConversationUnread,
+      minimizeChat,
+      sendMessage,
+      dmUnreadTotal,
+    }),
+    [
+      conversations,
+      openOrder,
+      openChat,
+      closeChat,
+      clearConversationUnread,
+      minimizeChat,
+      sendMessage,
+      dmUnreadTotal,
+    ],
   );
+
+  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }
 
 export function useChat() {

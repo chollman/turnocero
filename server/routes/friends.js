@@ -4,9 +4,12 @@ const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { protect } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
 
 router.use(requireSection("amigos"));
+
+router.param("id", validateObjectId("id"));
 
 // POST /api/friends/:id/request — send friend request
 router.post("/:id/request", protect, async (req, res) => {

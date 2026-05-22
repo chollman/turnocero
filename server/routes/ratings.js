@@ -5,8 +5,12 @@ const Rating = require('../models/Rating');
 const Table = require('../models/Table');
 const { protect } = require('../middleware/auth');
 const { requireSection } = require('../middleware/sectionGate');
+const validateObjectId = require('../middleware/validateObjectId');
 
 router.use(requireSection('mesas'));
+
+// `:id` viene del parent mount (`/api/tables/:id/ratings`).
+router.use(validateObjectId('id'));
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);

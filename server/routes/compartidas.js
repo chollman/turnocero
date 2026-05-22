@@ -8,9 +8,14 @@ const Table = require("../models/Table");
 const Evento = require("../models/Evento");
 const { protect, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
 
 router.use(requireSection("compartidas"));
+
+router.param("id", validateObjectId("id"));
+router.param("imgId", validateObjectId("imgId"));
+router.param("cid", validateObjectId("cid"));
 
 const parsePagination = (query) => {
   const page = Math.max(1, parseInt(query.page) || 1);

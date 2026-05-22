@@ -11,6 +11,23 @@ const VIEW_AS_USER_KEY = 'viewAsUser';
 
 axios.defaults.withCredentials = true;
 
+// Safari/Firefox en modo privado tiran QuotaExceededError al escribir Storage,
+// y SSR no expone `window`. Wrappear evita romper el provider entero.
+const safeStorage = (getStorage) => ({
+  get: (key) => {
+    try { return getStorage()?.getItem(key) ?? null; } catch { return null; }
+  },
+  set: (key, value) => {
+    try { getStorage()?.setItem(key, value); } catch { /* swallow */ }
+  },
+  remove: (key) => {
+    try { getStorage()?.removeItem(key); } catch { /* swallow */ }
+  },
+});
+
+const local = safeStorage(() => (typeof window !== 'undefined' ? window.localStorage : null));
+const session = safeStorage(() => (typeof window !== 'undefined' ? window.sessionStorage : null));
+
 const setAuthHeader = (token) => {
   if (token) {
     axios.defaults.headers.common.Authorization = `Bearer ${token}`;
@@ -25,15 +42,15 @@ export const AuthProvider = ({ children }) => {
   const [realUser, setRealUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [viewAsUser, setViewAsUserState] = useState(
-    () => typeof window !== 'undefined' && localStorage.getItem(VIEW_AS_USER_KEY) === 'true'
+    () => local.get(VIEW_AS_USER_KEY) === 'true'
   );
   const navigate = useNavigate();
 
   const setViewAsUser = (value) => {
     const v = !!value;
     setViewAsUserState(v);
-    if (v) localStorage.setItem(VIEW_AS_USER_KEY, 'true');
-    else localStorage.removeItem(VIEW_AS_USER_KEY);
+    if (v) local.set(VIEW_AS_USER_KEY, 'true');
+    else local.remove(VIEW_AS_USER_KEY);
   };
 
   useEffect(() => {
@@ -45,13 +62,13 @@ export const AuthProvider = ({ children }) => {
         const isBan = status === 403 && err.response?.data?.code === 'banned' && !isAuthRoute;
         const isUnauth = status === 401 && !isAuthRoute;
         if (isUnauth || isBan) {
-          localStorage.removeItem('token');
-          localStorage.removeItem(VIEW_AS_USER_KEY);
+          local.remove('token');
+          local.remove(VIEW_AS_USER_KEY);
           setAuthHeader(null);
           setRealUser(null);
           setViewAsUserState(false);
           if (isBan) {
-            sessionStorage.setItem('bannedMessage', err.response?.data?.message || 'Tu cuenta ha sido suspendida.');
+            session.set('bannedMessage', err.response?.data?.message || 'Tu cuenta ha sido suspendida.');
           }
           navigate('/login', { replace: true });
         }
@@ -62,7 +79,7 @@ export const AuthProvider = ({ children }) => {
   }, [navigate]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = local.get('token');
     if (!token) {
       setAuthHeader(null);
       setLoading(false);
@@ -73,7 +90,7 @@ export const AuthProvider = ({ children }) => {
       .then(({ data }) => setRealUser(data))
       .catch(() => {
         setRealUser(null);
-        localStorage.removeItem('token');
+        local.remove('token');
         setAuthHeader(null);
       })
       .finally(() => setLoading(false));
@@ -81,7 +98,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const { data } = await axios.post('/api/auth/login', { email, password });
-    localStorage.setItem('token', data.token);
+    local.set('token', data.token);
     setAuthHeader(data.token);
     setRealUser(data.user);
     return data;
@@ -96,7 +113,7 @@ export const AuthProvider = ({ children }) => {
 
   const verifyEmail = async (email, code) => {
     const { data } = await axios.post('/api/auth/verify-email', { email, code });
-    localStorage.setItem('token', data.token);
+    local.set('token', data.token);
     setAuthHeader(data.token);
     setRealUser(data.user);
     return data;
@@ -119,9 +136,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     await axios.post('/api/auth/logout').catch(() => {});
-    localStorage.removeItem('token');
-    localStorage.removeItem(VIEW_AS_USER_KEY);
-    sessionStorage.removeItem('bannedMessage');
+    local.remove('token');
+    local.remove(VIEW_AS_USER_KEY);
+    session.remove('bannedMessage');
     setAuthHeader(null);
     setRealUser(null);
     setViewAsUserState(false);

@@ -5,9 +5,14 @@ const Message = require("../models/Message");
 const Table = require("../models/Table");
 const { protect } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
 
 router.use(requireSection("mesas"));
+
+// `:id` viene del parent mount (`/api/tables/:id/messages`), por lo que
+// router.param('id') no se dispara — validamos con middleware.
+router.use(validateObjectId("id"));
 
 const isParticipant = (table, userId) => {
   const id = userId.toString();

@@ -15,6 +15,7 @@ const logger = require('./utils/logger');
 const { loadSiteConfig } = require('./utils/siteConfig');
 const { startSchedulers } = require('./jobs/scheduler');
 const app = require('./app');
+const { socketCorsOptions } = require('./config/cors');
 
 if (!process.env.JWT_SECRET) {
   logger.error('JWT_SECRET environment variable is required');
@@ -26,15 +27,8 @@ if (!process.env.MONGODB_URI) {
 
 const server = http.createServer(app);
 
-const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
-  : ['http://localhost:3000'];
-
 const io = new Server(server, {
-  cors: {
-    origin: allowedOrigins,
-    credentials: true,
-  },
+  cors: socketCorsOptions,
 });
 
 app.set('io', io);

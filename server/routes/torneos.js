@@ -10,9 +10,16 @@ const TorneoGame = require("../models/TorneoGame");
 const User = require("../models/User");
 const { protect, requireAdmin } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
 
 router.use(requireSection("torneos"));
+
+router.param("id", validateObjectId("id"));
+router.param("userId", validateObjectId("userId"));
+router.param("matchId", validateObjectId("matchId"));
+router.param("gameId", validateObjectId("gameId"));
+router.param("groupId", validateObjectId("groupId"));
 const {
   generateLeagueFixture,
   generateSingleElimBracket,

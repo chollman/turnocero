@@ -104,6 +104,15 @@ const eventoSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Indexes — listados y dashboards filtran por status + ordenan por eventDate
+// o createdAt. Sin estos, GET /api/eventos hace collection scans.
+eventoSchema.index({ status: 1, eventDate: 1 });
+eventoSchema.index({ status: 1, createdAt: -1 });
+// Lookup "¿en qué eventos estoy inscripto?" + filtros del cron de reminders.
+eventoSchema.index({ "registrations.user": 1 });
+// Cron de reminders barre por eventDate y filtra por reminderSentAt nulo.
+eventoSchema.index({ eventDate: 1, reminderSentAt: 1 });
+
 // Lazy migration: normaliza `location` viejo (string plano) al nuevo shape.
 // Corre solo al hidratar docs existentes — los nuevos ya nacen con la forma
 // correcta. Sin esto, queries sobre eventos viejos tirarían CastError porque

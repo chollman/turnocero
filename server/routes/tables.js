@@ -5,6 +5,7 @@ const Table = require("../models/Table");
 const User = require("../models/User");
 const { protect, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
 const {
   isValidCoord,
@@ -20,6 +21,9 @@ const {
 // archivo). El helper `listTables` se exporta abajo y se reusa desde
 // eventos.js — donde el gate de sección es `'eventos'`, no `'mesas'`.
 router.use(requireSection("mesas"));
+
+router.param("id", validateObjectId("id"));
+router.param("userId", validateObjectId("userId"));
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -197,26 +201,6 @@ router.get("/top-games", optionalAuth, async (req, res) => {
       { $project: { _id: 0, game: "$_id", count: 1 } },
     ]);
     res.json(games);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// GET /api/tables/showcase — public; active upcoming tables count + one random table for auth pages
-router.get("/showcase", async (req, res) => {
-  try {
-    const filter = { status: { $ne: "cancelled" }, date: { $gte: new Date() } };
-    const total = await Table.countDocuments(filter);
-    let table = null;
-    if (total > 0) {
-      const skip = Math.floor(Math.random() * total);
-      table = await Table.findOne(filter)
-        .skip(skip)
-        .populate("host", POPULATE_USER_FIELDS)
-        .select("boardGame host location date players maxPlayers")
-        .lean();
-    }
-    res.json({ total, table });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }

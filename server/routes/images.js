@@ -6,9 +6,14 @@ const { cloudinary, uploadToCloudinary } = require("../config/cloudinary");
 const Table = require("../models/Table");
 const { protect } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
 
 router.use(requireSection("mesas"));
+
+// `:id` viene del parent mount (`/api/tables/:id/images`); `:imageId` es propio.
+router.use(validateObjectId("id"));
+router.param("imageId", validateObjectId("imageId"));
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);

@@ -2,8 +2,11 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const { protect, requireAdmin } = require('../middleware/auth');
+const validateObjectId = require('../middleware/validateObjectId');
 const User = require('../models/User');
 const Table = require('../models/Table');
+
+router.param('id', validateObjectId('id'));
 
 // GET /api/admin/collections
 router.get('/collections', protect, requireAdmin, async (req, res) => {

@@ -7,9 +7,12 @@ const Notification = require("../models/Notification");
 const User = require("../models/User");
 const { protect } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
 
 router.use(requireSection("dms"));
+
+router.param("userId", validateObjectId("userId"));
 
 // GET /api/dm — list of conversations (latest message per contact + unread count)
 router.get("/", protect, async (req, res) => {
