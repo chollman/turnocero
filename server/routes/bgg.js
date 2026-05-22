@@ -27,97 +27,39 @@ const {
 // bggSearch junto a scoreSearchMatch para que el ranking de búsqueda
 // quede en un solo módulo testeable.
 const { scoreSearchMatch } = require("../services/bgg/bggSearch");
+const {
+  cache,
+  getCached,
+  setCached,
+  clearPartidasCache,
+  clearL1Cache,
+} = require("../services/bgg/bggCache");
+const {
+  getManualRefreshRemainingMs,
+  stampManualRefresh,
+} = require("../services/bgg/bggCooldown");
 
 const PROBE_THROTTLE_MS = 5 * 60 * 1000; // 5 min between background probes
 const FULL_RECONCILE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days between background full reconciles
-const MANUAL_REFRESH_COOLDOWN_MS = 60 * 1000; // 1 min between manual "Actualizar" button clicks per panel
-
-// Server-enforced cooldown for the "Actualizar" button on BG Watch panels.
-// Persisted in User.bggSync.lastManualRefresh{Partidas,Coleccion}At so the
-// cooldown survives page reloads and is uniform across clients. The button
-// only renders for the profile owner (or admin) on the client, but these
-// helpers gate the endpoint regardless of auth — a direct curl hit with
-// ?refresh=1 is throttled too. Returns 0 when refresh is allowed, otherwise
-// the milliseconds remaining.
-async function getManualRefreshRemainingMs(bggUsername, panel) {
-  if (!bggUsername) return 0;
-  const field =
-    panel === "partidas"
-      ? "bggSync.lastManualRefreshPartidasAt"
-      : "bggSync.lastManualRefreshColeccionAt";
-  const user = await User.findOne({ bggUsername })
-    .collation({ locale: "en", strength: 2 })
-    .select(field)
-    .lean();
-  if (!user) return 0; // no Turnocero user owns this bggUsername — can't persist, allow
-  const last =
-    panel === "partidas"
-      ? user.bggSync?.lastManualRefreshPartidasAt
-      : user.bggSync?.lastManualRefreshColeccionAt;
-  if (!last) return 0;
-  const elapsed = Date.now() - new Date(last).getTime();
-  return elapsed >= MANUAL_REFRESH_COOLDOWN_MS
-    ? 0
-    : MANUAL_REFRESH_COOLDOWN_MS - elapsed;
-}
-
-async function stampManualRefresh(bggUsername, panel) {
-  if (!bggUsername) return;
-  const field =
-    panel === "partidas"
-      ? "bggSync.lastManualRefreshPartidasAt"
-      : "bggSync.lastManualRefreshColeccionAt";
-  await User.updateOne(
-    { bggUsername },
-    { $set: { [field]: new Date() } },
-  ).collation({ locale: "en", strength: 2 });
-}
 
 router.use(requireSection("bgwatch"));
 
-// Persistent cache pattern: memoria → Mongo → BGG.
-// `BggGame` stores the immutable bits (name, image, thumbnail, year, players)
-// once per gameId and is shared across all users. The in-memory `cache` Map
-// below is kept as an L1 layer to avoid repeated Mongo round-trips within a
-// short window. For future entities (collection, plays) follow the same
-// pattern: add a model + a `resolveXxx` helper.
+// Patrón de cache layer-2: BggGame (Mongo persistente, inmutable) +
+// L1 in-memory (services/bgg/bggCache.js) + L3 BGG XML API.
+// `resolveGame` y `resolveGamesBatch` (más abajo) implementan el flow
+// memoria → Mongo → BGG. Endpoints per-user (collection, partidas)
+// respetan `?refresh=1` para bypassear L1.
 const BGG_API = "https://boardgamegeek.com/xmlapi2";
 const BGG_GEEKPLAY = "https://boardgamegeek.com/geekplay.php";
-const CACHE_TTL = 30 * 60 * 1000; // 30 minutos (el botón "Actualizar" del cliente bypassa esto con ?refresh=1)
-const cache = new Map();
 
-function getCached(key, ttl = CACHE_TTL) {
-  const entry = cache.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.ts > ttl) {
-    cache.delete(key);
-    return null;
-  }
-  return entry.data;
-}
-
-function setCached(key, data) {
-  cache.set(key, { data, ts: Date.now() });
-}
-
-function clearPartidasCache(bggUsername) {
-  const prefix = `partidas:${String(bggUsername).toLowerCase()}:`;
-  for (const key of cache.keys()) {
-    if (key.startsWith(prefix)) cache.delete(key);
-  }
-}
-
-// Clears every cached artifact specific to one BGG username: in-memory
-// plays (all pages/filters), in-memory collection, OG metadata, and the
-// persistent `BggCollection` Mongo doc. Called when a user reconnects
-// their BGG account so subsequent reads come fresh from BGG and don't
-// show stale state from a previous session. Returns a Promise — callers
-// should await to ensure Mongo deletion has settled before the next read.
+// `clearUserCache` orquesta L1 (in-memory) + L2 (Mongo persistente).
+// Llamado cuando un user reconnect su BGG account así reads subsiguientes
+// vienen fresh de BGG y no muestran state stale de una sesión previa.
+// Async — los callers deben await para asegurar que la deletion de Mongo
+// se settled antes del próximo read.
 async function clearUserCache(bggUsername) {
   const lower = String(bggUsername).toLowerCase();
-  cache.delete(`coleccion:${lower}`);
-  cache.delete(`og:${lower}`);
-  clearPartidasCache(bggUsername);
+  clearL1Cache(bggUsername);
   await Promise.all([
     BggCollection.deleteOne({ bggUsername: lower }),
     BggPlay.deleteMany({ bggUsername: lower }),
