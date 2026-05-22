@@ -17,9 +17,11 @@ const logger = require("../utils/logger");
  */
 function startSchedulers({ io } = {}) {
   // Recordatorios 24h antes de eventos — corre cada hora al minuto 0.
+  // Pasamos `io` para que el job emita el `evento:notification` en tiempo
+  // real (cierre del gap del cron — antes solo persistía).
   cron.schedule("0 * * * *", async () => {
     try {
-      const result = await eventoReminders.runOnce();
+      const result = await eventoReminders.runOnce({ io });
       if (result.notifsCreated > 0) {
         logger.info("[eventoReminders] tick", result);
       }

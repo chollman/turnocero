@@ -137,13 +137,12 @@ export default function ListFilters({
                   {hasDireccion ? (
                     radiusKm > 0 ? (
                       <>
-                        Resultados a{" "}
-                        <strong>menos de {radiusKm} km</strong> de tu ubicación
+                        Resultados a <strong>menos de {radiusKm} km</strong> de
+                        tu ubicación
                       </>
                     ) : (
                       <>
-                        Filtrá por <strong>distancia</strong> desde tu
-                        ubicación
+                        Filtrá por <strong>distancia</strong> desde tu ubicación
                       </>
                     )
                   ) : (

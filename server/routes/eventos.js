@@ -7,9 +7,16 @@ const Evento = require("../models/Evento");
 const { protect, requireAdmin, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const validateObjectId = require("../middleware/validateObjectId");
-const { isValidCoord, attachDistance, buildBboxFilter } = require("../utils/geo");
-const { normalizeLocationInput, isEmptyLocation } = require("../utils/locationHelpers");
-const saveNotification = require("../utils/saveNotification");
+const {
+  isValidCoord,
+  attachDistance,
+  buildBboxFilter,
+} = require("../utils/geo");
+const {
+  normalizeLocationInput,
+  isEmptyLocation,
+} = require("../utils/locationHelpers");
+const { emitNotificationReq } = require("../utils/emitNotification");
 
 router.use(requireSection("eventos"));
 
@@ -61,14 +68,33 @@ function emitToEventosList(req, eventName, payload) {
 
 // ── Notifications helpers ─────────────────────────────────────────────
 //
-// Notifica a un usuario individual: persiste + socket emit. Skip si el
-// recipient es el mismo que el actor (un admin que confirma su propia
-// inscripción, ej., no debería auto-notificarse).
+// Notifica a un usuario individual: persiste + socket emit (vía
+// emitNotificationReq → contrato unificado con notifId + count absoluto).
+// Skip si el recipient es el mismo que el actor (un admin que confirma su
+// propia inscripción, ej., no debería auto-notificarse).
+//
+// Devuelve una Promise para que el caller pueda awaitearla — si no la
+// awaitea, el emit puede ocurrir DESPUÉS de res.json y los tests pierden
+// el evento. En prod no afecta correctness; en tests sí.
 function notifyOne(req, recipientId, type, fields, actorId) {
-  if (recipientId == null) return;
-  if (actorId != null && recipientId.toString() === actorId.toString()) return;
-  saveNotification(recipientId, type, fields).catch(() => { /* best-effort */ });
-  emitToUser(req, recipientId, "evento:notification", { type, ...fields });
+  if (recipientId == null) return Promise.resolve();
+  if (actorId != null && recipientId.toString() === actorId.toString()) {
+    return Promise.resolve();
+  }
+  // `type` también va en el payload del socket (el client lo usa como
+  // discriminador para el listener único `evento:notification`).
+  return emitNotificationReq(
+    req,
+    recipientId,
+    type,
+    fields,
+    "evento:notification",
+    {
+      type,
+    },
+  ).catch(() => {
+    /* best-effort */
+  });
 }
 
 // Notifica a todos los inscriptos activos (confirmed + pending) de un evento,
@@ -81,10 +107,12 @@ function notifyActiveRegistrations(req, evento, type, extraFields, actorId) {
     eventoDate: evento.eventDate,
     ...extraFields,
   };
+  const promises = [];
   for (const reg of evento.registrations || []) {
     if (reg.status !== "confirmed" && reg.status !== "pending") continue;
-    notifyOne(req, reg.user, type, baseFields, actorId);
+    promises.push(notifyOne(req, reg.user, type, baseFields, actorId));
   }
+  return Promise.all(promises);
 }
 
 // Devuelve la subdoc de registro con su `user` populado a { _id, username,
@@ -298,7 +326,10 @@ router.get("/mine", protect, async (req, res) => {
         { author: uid },
         {
           registrations: {
-            $elemMatch: { user: uid, status: { $in: ["confirmed", "pending"] } },
+            $elemMatch: {
+              user: uid,
+              status: { $in: ["confirmed", "pending"] },
+            },
           },
         },
       ],
@@ -412,11 +443,7 @@ router.get("/:id/og", async (req, res) => {
     const evento = await Evento.findById(req.params.id)
       .populate("author", "username displayName")
       .select("title description eventDate location image status author");
-    if (
-      !evento ||
-      evento.status === "draft" ||
-      evento.status === "cancelled"
-    ) {
+    if (!evento || evento.status === "draft" || evento.status === "cancelled") {
       return res.status(404).json({});
     }
     res.json({
@@ -427,9 +454,7 @@ router.get("/:id/og", async (req, res) => {
       location:
         typeof evento.location === "string"
           ? evento.location
-          : evento.location?.displayName ||
-            evento.location?.texto ||
-            null,
+          : evento.location?.displayName || evento.location?.texto || null,
       host: evento.author?.displayName || evento.author?.username || null,
     });
   } catch {
@@ -536,7 +561,9 @@ router.put(
       // Snapshot pre-edit para detectar cambios significativos que deben
       // notificarse a los inscriptos (fecha, lugar, cancelación).
       const prevStatus = evento.status;
-      const prevEventDate = evento.eventDate ? evento.eventDate.getTime() : null;
+      const prevEventDate = evento.eventDate
+        ? evento.eventDate.getTime()
+        : null;
       const prevLocation = {
         texto: evento.location?.texto || "",
         lat: evento.location?.lat ?? null,
@@ -639,7 +666,7 @@ router.put(
       // ── Notificaciones a inscriptos sobre cambios significativos ──
       // Cancelación (status pasó a "cancelled" recién): notif a confirmados+pending.
       if (evento.status === "cancelled" && prevStatus !== "cancelled") {
-        notifyActiveRegistrations(
+        await notifyActiveRegistrations(
           req,
           evento,
           "evento_cancelled",
@@ -650,7 +677,9 @@ router.put(
         // Si NO se canceló, chequear si cambió fecha o ubicación. Otros campos
         // (descripción, fee, etc.) no notifican — no son tan críticos.
         const changedFields = [];
-        const newEventDate = evento.eventDate ? evento.eventDate.getTime() : null;
+        const newEventDate = evento.eventDate
+          ? evento.eventDate.getTime()
+          : null;
         if (newEventDate !== prevEventDate) changedFields.push("eventDate");
         const newLoc = {
           texto: evento.location?.texto || "",
@@ -665,7 +694,7 @@ router.put(
           changedFields.push("location");
         }
         if (changedFields.length > 0 && evento.status !== "draft") {
-          notifyActiveRegistrations(
+          await notifyActiveRegistrations(
             req,
             evento,
             "evento_updated",
@@ -721,7 +750,7 @@ router.delete("/:id", protect, requireAdmin, async (req, res) => {
     // (semánticamente similar para el user que se anota: el evento no va), pero
     // marcamos `eventoDeleted: true` para que el cliente no abra el deep-link
     // a /eventos/:id (404) y en su lugar mande a la lista.
-    notifyActiveRegistrations(
+    await notifyActiveRegistrations(
       req,
       evento,
       "evento_cancelled",
@@ -1096,7 +1125,7 @@ router.patch(
 
       // Persistente + toast: el user inscripto recibe la notificación de que
       // lo aceptaron, incluso si no tiene la app abierta en ese momento.
-      notifyOne(
+      await notifyOne(
         req,
         reg.user,
         "evento_confirmed",
@@ -1202,7 +1231,7 @@ router.patch(
       // Persistente + toast: el user inscripto recibe la notificación del
       // rechazo. La flag `permanentlyRejected` distingue "esta vez" vs bloqueo
       // permanente y la UI puede renderizar tonos distintos.
-      notifyOne(
+      await notifyOne(
         req,
         reg.user,
         "evento_rejected",

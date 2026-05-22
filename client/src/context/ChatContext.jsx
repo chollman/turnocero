@@ -1,7 +1,14 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import axios from 'axios';
-import { useAuth } from './AuthContext';
-import { useNotifications } from './NotificationContext';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
+import axios from "axios";
+import { useAuth } from "./AuthContext";
+import { useNotifications } from "./NotificationContext";
 
 const ChatContext = createContext(null);
 
@@ -9,15 +16,21 @@ const MAX_WINDOWS = 3;
 
 export function ChatProvider({ children }) {
   const { user } = useAuth();
-  const { addDmListener, addToast, markReadDm } = useNotifications();
+  const { addDmListener, addToast, markReadDm, dmUnreadTotal } =
+    useNotifications();
 
-  // conversations: { [userId]: { user: {_id, username}, messages: [], unread: 0, minimized: false, loaded: false } }
+  // conversations: { [userId]: { user: {_id, username}, messages: [], minimized: false, loaded: false } }
+  // El conteo de no-leídos vive en NotificationContext (fuente única). Antes
+  // este context mantenía un `conv.unread` paralelo que podía desincronizarse
+  // del listado de /notificaciones.
   const [conversations, setConversations] = useState({});
   // openOrder: array of userIds in opening order (left to right on screen)
   const [openOrder, setOpenOrder] = useState([]);
   // Ref to avoid stale closures in the dm listener
   const openOrderRef = useRef([]);
-  useEffect(() => { openOrderRef.current = openOrder; }, [openOrder]);
+  useEffect(() => {
+    openOrderRef.current = openOrder;
+  }, [openOrder]);
   // Tracks which conversations have been loaded to avoid duplicate API calls
   const loadedRef = useRef({});
 
@@ -29,16 +42,29 @@ export function ChatProvider({ children }) {
       loadedRef.current = {};
       return;
     }
-    axios.get('/api/dm').then(({ data }) => {
-      const next = {};
-      data.forEach(({ contact, lastMessage, unread }) => {
-        next[contact._id] = { user: contact, messages: [], lastMessage, unread, minimized: false, loaded: false };
-      });
-      setConversations(next);
-    }).catch(() => {});
+    axios
+      .get("/api/dm")
+      .then(({ data }) => {
+        const next = {};
+        data.forEach(({ contact, lastMessage }) => {
+          next[contact._id] = {
+            user: contact,
+            messages: [],
+            lastMessage,
+            minimized: false,
+            loaded: false,
+          };
+        });
+        setConversations(next);
+      })
+      .catch(() => {});
   }, [user]);
 
-  // Register DM message handler with NotificationContext
+  // Register DM message handler with NotificationContext.
+  // El conteo de no-leídos lo maneja NotificationContext (fuente única). Acá
+  // sólo actualizamos el contenido de la conversación (lastMessage, messages
+  // si está cargada) y decidimos si toastear / marcar leída automáticamente
+  // si la ventana está abierta + no minimizada.
   useEffect(() => {
     if (!user) return;
     const cleanup = addDmListener((msg) => {
@@ -48,7 +74,6 @@ export function ChatProvider({ children }) {
       setConversations((prev) => {
         const conv = prev[fromId];
         const isMinimized = conv?.minimized ?? false;
-        const shouldIncrementUnread = !isCurrentlyOpen || isMinimized;
 
         if (isCurrentlyOpen && !isMinimized) {
           axios.patch(`/api/dm/${fromId}/read`).catch(() => {});
@@ -58,10 +83,14 @@ export function ChatProvider({ children }) {
         return {
           ...prev,
           [fromId]: {
-            user: conv?.user || { _id: fromId, username: msg.from.username || '?' },
-            messages: conv?.loaded ? [...(conv.messages || []), msg] : (conv?.messages || []),
+            user: conv?.user || {
+              _id: fromId,
+              username: msg.from.username || "?",
+            },
+            messages: conv?.loaded
+              ? [...(conv.messages || []), msg]
+              : conv?.messages || [],
             lastMessage: msg,
-            unread: shouldIncrementUnread ? (conv?.unread || 0) + 1 : 0,
             minimized: conv?.minimized ?? false,
             loaded: conv?.loaded ?? false,
           },
@@ -70,7 +99,7 @@ export function ChatProvider({ children }) {
 
       if (!isCurrentlyOpen) {
         addToast({
-          type: msg.isNewConversation ? 'dm_new' : 'dm',
+          type: msg.isNewConversation ? "dm_new" : "dm",
           fromUserId: fromId,
           fromUsername: msg.from.username,
           messagePreview: msg.content.slice(0, 60),
@@ -80,55 +109,69 @@ export function ChatProvider({ children }) {
     return cleanup;
   }, [user, addDmListener, addToast, markReadDm]);
 
-  const openChat = useCallback((contactUser) => {
-    const id = contactUser._id.toString();
+  const openChat = useCallback(
+    (contactUser) => {
+      const id = contactUser._id.toString();
 
-    setConversations((prev) => ({
-      ...prev,
-      [id]: {
-        user: contactUser,
-        messages: prev[id]?.messages || [],
-        unread: 0,
-        minimized: false,
-        loaded: prev[id]?.loaded ?? false,
-      },
-    }));
+      setConversations((prev) => ({
+        ...prev,
+        [id]: {
+          user: contactUser,
+          messages: prev[id]?.messages || [],
+          minimized: false,
+          loaded: prev[id]?.loaded ?? false,
+        },
+      }));
 
-    setOpenOrder((prev) => {
-      if (prev.includes(id)) {
-        setConversations((c) => ({ ...c, [id]: { ...c[id], minimized: false } }));
-        return prev;
+      setOpenOrder((prev) => {
+        if (prev.includes(id)) {
+          setConversations((c) => ({
+            ...c,
+            [id]: { ...c[id], minimized: false },
+          }));
+          return prev;
+        }
+        const next = [...prev, id];
+        return next.length > MAX_WINDOWS
+          ? next.slice(next.length - MAX_WINDOWS)
+          : next;
+      });
+
+      // Load messages only once (ref guards against React Strict Mode double-invoke)
+      if (!loadedRef.current[id]) {
+        loadedRef.current[id] = true;
+        axios
+          .get(`/api/dm/${id}`)
+          .then(({ data }) => {
+            setConversations((c) => ({
+              ...c,
+              [id]: { ...c[id], messages: data, loaded: true },
+            }));
+          })
+          .catch(() => {
+            loadedRef.current[id] = false;
+          });
+        axios.patch(`/api/dm/${id}/read`).catch(() => {});
       }
-      const next = [...prev, id];
-      return next.length > MAX_WINDOWS ? next.slice(next.length - MAX_WINDOWS) : next;
-    });
-
-    // Load messages only once (ref guards against React Strict Mode double-invoke)
-    if (!loadedRef.current[id]) {
-      loadedRef.current[id] = true;
-      axios.get(`/api/dm/${id}`).then(({ data }) => {
-        setConversations((c) => ({
-          ...c,
-          [id]: { ...c[id], messages: data, loaded: true },
-        }));
-      }).catch(() => { loadedRef.current[id] = false; });
-      axios.patch(`/api/dm/${id}/read`).catch(() => {});
-    }
-    markReadDm(id);
-  }, [markReadDm]);
+      markReadDm(id);
+    },
+    [markReadDm],
+  );
 
   const closeChat = useCallback((userId) => {
     const id = userId.toString();
     setOpenOrder((prev) => prev.filter((x) => x !== id));
   }, []);
 
-  const clearConversationUnread = useCallback((userId) => {
-    const id = userId.toString();
-    setConversations((prev) => {
-      if (!prev[id]) return prev;
-      return { ...prev, [id]: { ...prev[id], unread: 0 } };
-    });
-  }, []);
+  // Kept for backwards compatibility — los consumidores que llamaban a esto
+  // hoy delegan al markReadDm de NotificationContext. Wrapper no-op para no
+  // romper signatures.
+  const clearConversationUnread = useCallback(
+    (userId) => {
+      markReadDm(userId.toString());
+    },
+    [markReadDm],
+  );
 
   const minimizeChat = useCallback((userId) => {
     const id = userId.toString();
@@ -152,19 +195,22 @@ export function ChatProvider({ children }) {
     return msg;
   }, []);
 
-  const dmUnreadTotal = Object.values(conversations).reduce((sum, c) => sum + (c.unread || 0), 0);
+  // dmUnreadTotal viene de NotificationContext (fuente única). Re-exportamos
+  // para los consumidores (Navbar, ChatLauncher) sin romper su contrato.
 
   return (
-    <ChatContext.Provider value={{
-      conversations,
-      openOrder,
-      openChat,
-      closeChat,
-      clearConversationUnread,
-      minimizeChat,
-      sendMessage,
-      dmUnreadTotal,
-    }}>
+    <ChatContext.Provider
+      value={{
+        conversations,
+        openOrder,
+        openChat,
+        closeChat,
+        clearConversationUnread,
+        minimizeChat,
+        sendMessage,
+        dmUnreadTotal,
+      }}
+    >
       {children}
     </ChatContext.Provider>
   );
@@ -172,6 +218,6 @@ export function ChatProvider({ children }) {
 
 export function useChat() {
   const ctx = useContext(ChatContext);
-  if (!ctx) throw new Error('useChat must be used within ChatProvider');
+  if (!ctx) throw new Error("useChat must be used within ChatProvider");
   return ctx;
 }

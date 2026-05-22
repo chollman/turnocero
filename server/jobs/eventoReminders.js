@@ -1,7 +1,7 @@
-const Evento = require('../models/Evento');
-const User = require('../models/User');
-const saveNotification = require('../utils/saveNotification');
-const logger = require('../utils/logger');
+const Evento = require("../models/Evento");
+const User = require("../models/User");
+const emitNotification = require("../utils/emitNotification");
+const logger = require("../utils/logger");
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -22,9 +22,13 @@ const HOUR_MS = 60 * 60 * 1000;
  *
  * @param {object} [opts]
  * @param {Date}   [opts.now]  Inyectable para tests; default = new Date().
+ * @param {object} [opts.io]   Instancia de Socket.IO para emitir el reminder
+ *                             en tiempo real al recipient. Opcional — si falta,
+ *                             la notif igual se persiste y el user la verá al
+ *                             próximo GET /api/notifications (degraded mode).
  * @returns {Promise<{ scanned24: number, scanned2: number, notifsCreated: number }>}
  */
-async function runOnce({ now = new Date() } = {}) {
+async function runOnce({ now = new Date(), io = null } = {}) {
   let notifsCreated = 0;
 
   // Helper: notifica confirmed regs filtrando por user.eventoReminderHours.
@@ -34,14 +38,14 @@ async function runOnce({ now = new Date() } = {}) {
     const userIds = new Set();
     for (const ev of eventos) {
       for (const reg of ev.registrations || []) {
-        if (reg.status === 'confirmed' && reg.user) {
+        if (reg.status === "confirmed" && reg.user) {
           userIds.add(reg.user.toString());
         }
       }
     }
     if (userIds.size === 0) return;
     const users = await User.find({ _id: { $in: [...userIds] } }).select(
-      '_id eventoReminderHours',
+      "_id eventoReminderHours",
     );
     const prefByUserId = new Map(
       users.map((u) => [
@@ -54,18 +58,28 @@ async function runOnce({ now = new Date() } = {}) {
 
     for (const evento of eventos) {
       for (const reg of evento.registrations || []) {
-        if (reg.status !== 'confirmed' || !reg.user) continue;
+        if (reg.status !== "confirmed" || !reg.user) continue;
         const pref = prefByUserId.get(reg.user.toString());
         if (pref !== targetHours) continue;
         try {
-          const result = await saveNotification(reg.user, 'evento_reminder', {
-            eventoId: evento._id.toString(),
-            eventoTitle: evento.title,
-            eventoDate: evento.eventDate,
+          // emitNotification persiste + emite con notifId/count (contrato
+          // unificado). Sin `io` solo persiste — el user verá el reminder
+          // al próximo GET /api/notifications.
+          const result = await emitNotification({
+            io,
+            recipientId: reg.user,
+            type: "evento_reminder",
+            fields: {
+              eventoId: evento._id.toString(),
+              eventoTitle: evento.title,
+              eventoDate: evento.eventDate,
+            },
+            socketEvent: "evento:notification",
+            extra: { type: "evento_reminder" },
           });
           if (result) notifsCreated += 1;
         } catch (err) {
-          logger.error('[eventoReminders] saveNotification failed', {
+          logger.error("[eventoReminders] emitNotification failed", {
             recipientId: reg.user?.toString(),
             eventoId: evento._id.toString(),
             error: err.message,
@@ -79,7 +93,7 @@ async function runOnce({ now = new Date() } = {}) {
   const window24End = new Date(now.getTime() + 25 * HOUR_MS);
   const eventos24 = await Evento.find({
     eventDate: { $gte: now, $lte: window24End },
-    status: { $in: ['open', 'closed'] },
+    status: { $in: ["open", "closed"] },
     $or: [{ reminderSentAt: null }, { reminderSentAt: { $exists: false } }],
   });
   await notifyForWindow(eventos24, 24);
@@ -88,7 +102,7 @@ async function runOnce({ now = new Date() } = {}) {
     try {
       await ev.save();
     } catch (err) {
-      logger.error('[eventoReminders] save reminderSentAt failed', {
+      logger.error("[eventoReminders] save reminderSentAt failed", {
         eventoId: ev._id.toString(),
         error: err.message,
       });
@@ -100,7 +114,7 @@ async function runOnce({ now = new Date() } = {}) {
   const window2End = new Date(now.getTime() + 3 * HOUR_MS);
   const eventos2 = await Evento.find({
     eventDate: { $gte: now, $lte: window2End },
-    status: { $in: ['open', 'closed'] },
+    status: { $in: ["open", "closed"] },
     $or: [{ reminder2hSentAt: null }, { reminder2hSentAt: { $exists: false } }],
   });
   await notifyForWindow(eventos2, 2);
@@ -109,7 +123,7 @@ async function runOnce({ now = new Date() } = {}) {
     try {
       await ev.save();
     } catch (err) {
-      logger.error('[eventoReminders] save reminder2hSentAt failed', {
+      logger.error("[eventoReminders] save reminder2hSentAt failed", {
         eventoId: ev._id.toString(),
         error: err.message,
       });

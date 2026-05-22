@@ -9,12 +9,14 @@ Claude's persistent memory for this project lives in `.claude/memory/` inside th
 On each new machine, after cloning, run this **once** to link it to where Claude Code expects to find it.
 
 The slug in the target path is derived from the absolute path of the repo with `/` replaced by `-` and leading `-` removed. Check the exact slug with:
+
 ```bash
 ls ~/.claude/projects/   # macOS/Linux
 ls $env:USERPROFILE\.claude\projects\   # Windows
 ```
 
 **macOS / Linux** (adjust repo path to where you cloned it):
+
 ```bash
 REPO="$HOME/Projects/ClaudioHollman/turnocero"
 SLUG=$(echo "$REPO" | sed 's|^/||; s|/|-|g')
@@ -22,6 +24,7 @@ ln -s "$REPO/.claude/memory" "$HOME/.claude/projects/$SLUG/memory"
 ```
 
 **Windows** (PowerShell — adjust repo path):
+
 ```powershell
 New-Item -ItemType SymbolicLink `
   -Path "C:\Users\<username>\.claude\projects\c--Users-<username>-Projects-ClaudioHollman-turnocero\memory" `
@@ -32,7 +35,7 @@ After that, Claude will read and write memories directly from the repo folder.
 
 ## Project Overview
 
-**Turnocero** is a full-stack web app for the Argentine board-game community. Core feature: organize *mesas* (game sessions) — create, join, chat, and manage them. Additional features: *Compartidas* (social posts about sessions), *Noticias* (admin news/announcements), *Torneos* (admin-managed tournaments — league, single-elimination, and multi-table groups), *Eventos* (paid events with admin-confirmed registrations), a friends system, direct messages between friends, *Utilidades* (small tabletop tools), and public browsing without login. The UI and all user-facing content are in **Argentine Spanish**. The app is deployed as a **PWA** (vite-plugin-pwa; assets in `client/public/`).
+**Turnocero** is a full-stack web app for the Argentine board-game community. Core feature: organize _mesas_ (game sessions) — create, join, chat, and manage them. Additional features: _Compartidas_ (social posts about sessions), _Noticias_ (admin news/announcements), _Torneos_ (admin-managed tournaments — league, single-elimination, and multi-table groups), _Eventos_ (paid events with admin-confirmed registrations), a friends system, direct messages between friends, _Utilidades_ (small tabletop tools), and public browsing without login. The UI and all user-facing content are in **Argentine Spanish**. The app is deployed as a **PWA** (vite-plugin-pwa; assets in `client/public/`).
 
 ## Development Commands
 
@@ -75,12 +78,14 @@ Always write commit messages in **English**.
 ## Architecture
 
 ### Monorepo structure
+
 - `client/` — React 18 + Vite frontend
 - `server/` — Express + Mongoose + Socket.IO backend
 
 The Vite dev server proxies `/api/*` to `http://localhost:4000/api`, so all frontend API calls use relative `/api/...` paths. The Socket.IO client connects directly to `http://localhost:4000` (or `VITE_API_URL`).
 
 ### Auth flow
+
 1. `POST /api/auth/register` creates an **unverified** user, emails a 6-digit code via Resend, and returns `{ email, message }` — **no JWT is issued yet**. Login is blocked until the email is verified.
 2. `POST /api/auth/verify-email { email, code }` validates the code (5-attempt cap, 15-min TTL) and returns `{ user, token }`. Tokens are 24h JWTs.
 3. `POST /api/auth/login` returns `{ user, token }` or **403 with `code: 'email_not_verified'`** if the email hasn't been verified yet (frontend redirects to `/verificar-email?email=...`).
@@ -89,7 +94,9 @@ The Vite dev server proxies `/api/*` to `http://localhost:4000/api`, so all fron
 6. Routes are gated by a combination of `<PublicRoute>` (auth pages), `<PrivateRoute>`, `<AdminRoute>`, and `<SectionGate section="...">` (driven by `SiteConfig` — see below).
 
 ### App shell and layout
+
 `App.jsx` renders a two-column shell for authenticated users:
+
 - `<Sidebar />` — left nav (desktop), authenticated only
 - `<Navbar />` — top bar (mobile), authenticated only
 - `<BottomNav />` — bottom nav (mobile), authenticated only
@@ -98,6 +105,7 @@ The Vite dev server proxies `/api/*` to `http://localhost:4000/api`, so all fron
 - `<BoardGameBackground />` — decorative canvas background rendered behind all content
 
 ### Table lifecycle
+
 - Created with `status: 'open'`, `host = currentUser`, `players = []`, `privacy = 'public'`
 - Mongoose pre-save hook auto-sets `status = 'full'` when `players.length >= maxPlayers` and reverts to `'open'` if a player leaves
 - `privacy: 'private'` tables use a join-request flow: `POST /:id/join` adds to `pendingRequests`; host accepts/rejects via `POST /:id/requests/:userId/accept|reject`
@@ -105,10 +113,13 @@ The Vite dev server proxies `/api/*` to `http://localhost:4000/api`, so all fron
 - `location` is a subdocument `{ texto, lat, lng }` (migrated from `String` in 2026-05). A `pre('init')` hook normalizes legacy string values lazily on hydrate. Tables created via the new flow always get coords via Places Autocomplete or the geocoding fallback.
 
 ### Distance to tables
+
 When the authenticated user has `direccion.lat/lng`, `GET /api/tables` decorates each item with `distanceKm` (great-circle, computed via Haversine in `server/utils/geo.js#haversineKm`). The optional `?maxDistanceKm=N` query filters to tables within N km of the user (bounding-box pre-filter in Mongo + Haversine refine in memory; no GeoJSON migration required). Tables without coords show `distanceKm: null` and are excluded when the radius filter is active. UI: green badge in TableCard via `client/src/utils/distance.js#formatDistanceKm` ("Aquí mismo" / "850 m" / "12,3 km" / "250 km"); radius slider (1–100km, `useDebouncedValue` 300ms) in the dashboard.
 
 ### Compartidas
+
 Social posts that users create to share moments from their sessions. Stored in the `Compartida` model:
+
 - `privacy`: `'public'` | `'friends'` | `'private'` — visibility governed by `User.friends[]`
 - `linkedTable`: optional ref to a Table the author participated in
 - Supports likes (toggle), images (max 3, Cloudinary, `turnocero/compartidas/:id/`), and comments (`CompartidaComment` model)
@@ -116,21 +127,26 @@ Social posts that users create to share moments from their sessions. Stored in t
 - Public compartidas are browsable without login; `GET /api/compartidas/:id/og` serves OG metadata for crawlers
 
 ### Noticias
+
 Admin-only announcements. `Noticia` model: title, body, image (Cloudinary, `turnocero/noticias/`), optional link + linkLabel. Read publicly; write requires `isAdmin`.
 
 ### Torneos
+
 Admin-managed tournaments. Three formats supported:
+
 - **Liga**: head-to-head round-robin (3/1/0 scoring).
 - **Eliminación simple**: single-elimination bracket with byes.
 - **Grupos**: multi-phase tournament with multi-player tables (most realistic for board-game tournaments). Players are split into groups of `tableSize`, each group plays `gamesPerGroup` games, top `qualifiersPerGroup` advance to the next phase. Repeats until a single final table.
 
 Models:
+
 - `Torneo`: `title`, `description`, `game` (free-text), `format`, `status` (`draft` → `registration` → `in_progress` → `finished`), `inscriptionMode` (`open` | `admin_only`), `image`, `maxParticipants`, `createdBy`, `participants` (ordered by seed), `pendingRegistrations`, `rejectedRegistrations`, `winner`, `runnerUp`. **Groups-specific:** `tableSize`, `gamesPerGroup`, `qualifiersPerGroup`, `currentPhase`.
 - `TorneoMatch` (liga + single_elim only): `torneo`, `round`, `matchIndex`, `playerA`, `playerB`, `nextMatch` (single_elim, with `isUpperSlot`), `winner`, `isDraw` (league only), `status` (`pending` | `completed` | `bye`), `playedAt`.
 - `TorneoGroup` (groups only): `torneo`, `phase`, `tableNumber`, `players`, `advancedPlayers` (top-C, editable by admin before next-phase generation), `status` (`pending` | `in_progress` | `completed`), `completedAt`.
 - `TorneoGame` (groups only): `torneo`, `group`, `gameNumber`, `results: [{ player, score, position }]`, `status`, `playedAt`. Position is auto-derived from score within a game (1st = highest score; ties share position).
 
 Inscription modes:
+
 - `open`: users self-register; admin accepts/rejects. State machine: `draft → registration → in_progress → finished`.
 - `admin_only`: admin adds users directly via `POST /api/torneos/:id/participants/:userId` (search-and-pick UI). Registration state is optional; admin may go `draft → in_progress` directly. The register button is hidden from regular users.
 
@@ -139,6 +155,7 @@ Lifecycle for **groups**: admin creates as `draft` → adds participants (or ope
 Lifecycle for **league/single_elim** (unchanged): same as above but uses `TorneoMatch` and `generateLeagueFixture()` / `generateSingleElimBracket()` (NCAA seeding with byes pre-advanced).
 
 Standings:
+
 - League: 3/1/0 head-to-head sum (`computeStandings`).
 - Groups: sum of PV (native game score) per player across all games of the group (`computeGroupStandings`). Tiebreak: seed order (stable).
 
@@ -147,28 +164,35 @@ Notifications: 5 non-aggregating types — `tournament_accepted`, `tournament_re
 Drafts are visible only to admins (filtered server-side; 404 in detail for non-admins). Users see only `registration` / `in_progress` / `finished`. When `inscriptionMode === 'admin_only'`, `registration` status renders as "Inscripción cerrada" in the card.
 
 ### Eventos
+
 Admin-managed paid (or free) one-off events with manual registration confirmation. `Evento` model: `title`, `description`, `conditions`, `fee` (number, 0 = free), `transferDetails`, `eventDate`, `location`, `maxParticipants`, `image` (Cloudinary, `turnocero/eventos/`), `status` (`draft` | `open` | `closed` | `cancelled`), `author`, and an embedded `registrations` array.
 
 Each registration: `{ user, status: 'pending' | 'confirmed' | 'rejected', submittedAt, reviewedAt, reviewedBy, adminNotes, comprobante: { url, publicId, resourceType ('image' | 'raw' for PDF), uploadedAt } }`. The `comprobante` is a payment receipt the user uploads when they self-register; admins review and confirm/reject via `PATCH /api/eventos/:id/inscripciones/:userId/confirmar|rechazar`. Comprobantes accept images and PDFs (PDFs are stored as Cloudinary `resource_type: 'raw'`).
 
 ### Utilidades
+
 Small standalone tabletop tools, intentionally **forced-dark** regardless of the active theme (they ignore `data-theme`): `/utilidades/dado` (dice roller), `/utilidades/temporizador` (timer), `/utilidades/selector-de-dedos` (touch-finger random picker). The hub `/utilidades` lists them via `UtilCard`. Keep this dark-mood convention for any new immersive tool screens.
 
 ### Panel Admin and SiteConfig (section toggles)
+
 `SiteConfig` is a single MongoDB document (`_id: 'singleton'`) that controls which top-level sections are enabled site-wide. Section keys: `mesas`, `compartidas`, `noticias`, `torneos`, `eventos`, `comunidad`, `miFeed`, `amigos`, `dms`, `bgwatch`, `utilidades`. Defaults preserve historical hardcoded admin-only-ness for `mesas`, `torneos`, and `miFeed` (default `enabled: false`); all others default `true`. Admins flip toggles in `/panel-admin`; server enforces via `requireSection` middleware, client gates via `<SectionGate section="...">` (see [`App.jsx`](client/src/App.jsx)). When you add a new top-level feature, plumb it through `SECTION_KEYS`, the route guard, and the panel — see `feedback_panel_admin_toggles.md`.
 
 `SiteConfigContext` loads the config once on app boot and exposes `isSectionEnabled(key)`. Routes wrapped in `<SectionGate>` redirect/hide for disabled sections; admins always see disabled sections (with a banner) unless they enable "view as user".
 
 ### Admin "view as user" mode
+
 `AuthContext` exposes both `isActuallyAdmin` (real DB flag) and the effective `user.isAdmin` (which an admin can suppress via the `AdminViewToggle`). Use `isActuallyAdmin` only for structural admin pages that must stay reachable even when previewing (`/panel-admin`, `/base-de-datos`, `/mensajes-admin`); for everything else (UI, conditionals, server-fetched data filters), respect the effective `user.isAdmin` so the preview is faithful. See `feedback_admin_view_as_user.md`.
 
 ### Email verification & password reset
+
 Registration creates the user in an unverified state and emails a 6-digit code (in dev, the code is also logged to the server console — see commit 92013cf). Routes: `POST /api/auth/verify-email` (with code), `POST /api/auth/resend-verification` (rate-limited via `emailLimiter`), `POST /api/auth/forgot-password` (emails reset link), `POST /api/auth/reset-password` (with token). Frontend pages: `/verificar-email`, `/recuperar-contrasenia`, `/restablecer-contrasenia` (all `PublicRoute`).
 
 ### Friends system
+
 Stored on the `User` model: `friends: [ObjectId]` and `friendRequests: [{ from, sentAt }]`. Managed via `/api/friends/:id/request|accept|reject` and `DELETE /api/friends/:id`. The friends list gates `'friends'`-privacy Compartidas and DM access.
 
 ### Direct Messages (DM)
+
 Friends-only real-time chat. `DirectMessage` model: `from`, `to`, `content` (max 1000 chars), `readByRecipient`.
 
 - `GET /api/dm` returns a conversation list (latest message + unread count per contact, via aggregation)
@@ -176,12 +200,14 @@ Friends-only real-time chat. `DirectMessage` model: `from`, `to`, `content` (max
 - `POST /api/dm/:userId` sends a message; emits `dm:message` to recipient's socket with an `isNewConversation` flag
 - `PATCH /api/dm/:userId/read` marks all messages from that user as read
 
-**ChatContext** manages the desktop DM experience (up to 3 floating chat windows). It registers a listener with `NotificationContext.addDmListener` to receive incoming messages, increments per-conversation unread counts, and exposes `openChat`, `closeChat`, `minimizeChat`, `sendMessage`, and `dmUnreadTotal`. On mobile (< 960 px), clicking a conversation navigates to `/mensajes/:userId` (the `DirectChat` page) instead of opening a floating window.
+**ChatContext** manages the desktop DM experience (up to 3 floating chat windows). It registers a listener with `NotificationContext.addDmListener` to receive incoming messages and exposes `openChat`, `closeChat`, `minimizeChat`, `sendMessage`, and `dmUnreadTotal`. **`dmUnreadTotal` is derived from `NotificationContext`** (single source of truth — the `dm` notification's `count`), NOT from a parallel per-conversation counter. ChatContext re-exports it so consumers (Navbar, ChatLauncher) stay the same. On mobile (< 960 px), clicking a conversation navigates to `/mensajes/:userId` (the `DirectChat` page) instead of opening a floating window.
 
 ### Admin Chat
-Shared real-time chat room visible only to admins. `AdminMessage` model: `from`, `content` (max 2000 chars). On socket connect, admins auto-join `admin:room`. The `admin:message` event is broadcast to that room. `NotificationContext` tracks an `adminChatUnread` counter (via `setAdminChatActive`). Routes: `GET /api/admin-chat` (last 100 messages), `POST /api/admin-chat`.
+
+Shared real-time chat room visible only to admins. `AdminMessage` model: `from`, `content` (max 2000 chars). The `admin:message` event is emitted **per-admin** (to each admin's `user:<id>` room) instead of broadcast to `admin:room` — this ensures every admin's socket receives exactly one event with its own `notifId`+`count`, preventing double-count when an admin happens to be in both rooms. `NotificationContext` tracks an `adminChatUnread` counter (via `setAdminChatActive`). Routes: `GET /api/admin-chat` (last 100 messages), `POST /api/admin-chat`.
 
 ### Socket.IO rooms and events
+
 Each authenticated socket auto-joins `user:<userId>`. Admins also auto-join `admin:room`. When entering a table detail page, the client emits `join:table <tableId>` to join `table:<tableId>`.
 
 Server-emitted events:
@@ -205,11 +231,31 @@ Server-emitted events:
 | `evento:notification` | `user:<id>` | event notification (confirmed/rejected/cancelled/updated/reminder) — payload has `type` discriminator |
 
 ### NotificationContext
-Owns the Socket.IO connection for the authenticated user. On mount, loads persisted notifications from `GET /api/notifications` (MongoDB, last 60) and mirrors any updates back via `PATCH /api/notifications/read` and `DELETE /api/notifications`. Also drives in-app toasts (max 4 visible). `setActiveTable(tableId)` / `setActiveEvento(eventoId)` / `setActiveTorneo` / `setActiveCompartida` suppress notifications for the currently open resource and auto-mark them read. `unreadCount` drives the nav badge. DM messages are routed through `addDmListener` (consumed by `ChatContext`) rather than stored as persistent notifications.
+
+Owns the Socket.IO connection for the authenticated user. On mount, loads persisted notifications from `GET /api/notifications` (MongoDB, last 60) and mirrors any updates back via `PATCH /api/notifications/read` and `DELETE /api/notifications`. Also drives in-app toasts (max 4 visible). `setActiveTable(tableId)` / `setActiveEvento(eventoId)` / `setActiveTorneo` / `setActiveCompartida` suppress notifications for the currently open resource and auto-mark them read. `unreadCount` drives the nav badge, `dmUnreadTotal` drives the chat icon. DM messages are routed through `addDmListener` (consumed by `ChatContext`) AND tracked as a persistent `dm` notification.
+
+**Notification contract — server-pushed absolute count (post-2026-05-22 refactor):**
+
+Every Socket.IO event emitted for a persisted notification MUST go through `server/utils/emitNotification.js#emitNotificationReq(req, recipientId, type, fields, socketEvent, extra?)`. The helper does `saveNotification` then emits with these extra fields auto-injected into the payload:
+
+- `notifId` — the Notification doc's `_id` (string)
+- `count` — the absolute post-upsert count (server is the source of truth)
+- `timestamp` — the doc's `updatedAt`
+
+The client (`NotificationContext.jsx`) uses these to:
+
+- Dedupe via `mergeNotifs` by `notifId` (no more timestamp-based races).
+- **Set** (not increment) the local `count` from `payload.count`. **Never do `count: n.count + 1` in a listener** — it re-introduces the double-count drift bug.
+- Reset `count: 0` on `markRead*` so the next event starts from a clean slate (server $inc resets when notif is marked read too).
+
+For routes that need to emit-and-respond, **always await** `emitNotificationReq(...)` before `res.json(...)` — fire-and-forget breaks test ordering AND can drop emits if the request finishes first.
+
+For the cron job (`server/jobs/eventoReminders.js`), the scheduler passes `io` into `runOnce({ io })` and the job uses `emitNotification({ io, ... })` directly (no `req`).
 
 **Notification types** (`server/models/Notification.js#NOTIFICATION_TYPES`): 22 types total spanning mesas, amigos, mensajes, compartidas, torneos, and eventos. Eventos types (`evento_confirmed`, `evento_rejected` con flag `permanentlyRejected`, `evento_cancelled`, `evento_updated` con `changedFields`, `evento_reminder` cron 24h) son los más recientes — disparados desde `routes/eventos.js` helpers `notifyOne` + `notifyActiveRegistrations` y desde `jobs/eventoReminders.js`. Cron jobs se booteanan en `server.js` (NO en `app.js` para que no corran en tests).
 
 ### Key API endpoints
+
 ```
 POST   /api/auth/register|login                 — rate-limited (authLimiter)
 POST   /api/auth/verify-email                   — confirm with 6-digit code
@@ -339,6 +385,7 @@ GET    /api/admin/*                             — isAdmin only
 ```
 
 ### Frontend pages
+
 ```
 App (ThemeProvider + AuthProvider + SiteConfigProvider + NotificationProvider + ChatProvider + Router)
 ├── components/layout/          ← shell (GuestNavbar/GuestSidebar/GuestBottomNav, Sidebar, Navbar,
@@ -384,7 +431,9 @@ App (ThemeProvider + AuthProvider + SiteConfigProvider + NotificationProvider + 
 ```
 
 ### Image uploads
+
 All image uploads go through Multer (memory storage, no disk) before Cloudinary. Constraints: 5 MB max per file; accepted types: `image/jpeg`, `image/png`, `image/webp`, `image/gif`. Cloudinary folders by resource type:
+
 - Tables: `turnocero/tables/<tableId>/` (transformed to max 1200 px wide)
 - Compartidas: `turnocero/compartidas/<compartidaId>/`
 - Noticias: `turnocero/noticias/`
@@ -397,6 +446,7 @@ All image uploads go through Multer (memory storage, no disk) before Cloudinary.
 `User.avatar` is a `{ url, publicId }` subdocument (was a `String` until 2026-05). A `pre('init')` hook in [server/models/User.js](server/models/User.js) normalizes legacy string values into the new shape on hydrate, so old documents migrate lazily on next save — no migration script.
 
 All user avatar slots in the UI go through `<Avatar user={...} size="xs|sm|md|lg|xl" />` in [client/src/components/shared/Avatar.jsx](client/src/components/shared/Avatar.jsx). It handles three states:
+
 - Has avatar URL → renders `<img loading="lazy">`.
 - No avatar → initials over a deterministic brand color hashed from `_id` (palette: `--amber`, `--red`, `--green`, `--orange`, `--purple`). The same user always gets the same color.
 - Deleted user (per `getUserDisplay`) → `<GhostIcon>` on a muted background.
@@ -410,28 +460,35 @@ When adding a new server route that returns a populated user reference, **includ
 Upload UI: [client/src/components/shared/AvatarCropModal.jsx](client/src/components/shared/AvatarCropModal.jsx) wraps `react-easy-crop` (1:1 aspect, round shape, pan/zoom), outputs a 600×600 JPEG @ 0.9 client-side, then the server transform (see Image uploads) reduces it to 400×400 WebP.
 
 ### Server error format
+
 All error responses return `{ message: '<string>' }`. Status codes: `400` validation/bad request, `401` unauthenticated, `403` forbidden, `404` not found, `500` server error.
 
 Two rate limiters in `routes/auth.js`:
+
 - `authLimiter` (10/15min per IP): `/register`, `/login`, `/verify-email`, `/reset-password`.
 - `emailLimiter` (3/15min per IP, stricter — these trigger outbound email): `/resend-verification`, `/forgot-password`. Both always respond `200` with a generic message to avoid leaking which emails are registered.
 
 The `403` for unverified login includes `code: 'email_not_verified'` plus `email` in the body; the `403` for banned accounts includes `code: 'banned'` plus `bannedReason` if set.
 
 ### OG / Vercel middleware
+
 `client/middleware.js` intercepts compartida share links for social crawlers (WhatsApp, Twitter, Facebook, etc.) and injects OG meta tags from `GET /api/compartidas/:id/og`. `client/vercel.json` rewrites all other paths to `/index.html` for SPA routing.
 
 ### Notification persistence
+
 `server/utils/saveNotification.js` upserts notifications rather than creating new ones. Types `chat`, `comment`, `image`, and `join_request` aggregate (increment count on existing); all others overwrite.
 
 ### Styling and theming
+
 CSS Modules per component. Global CSS variables in `client/src/index.css` define two themes:
+
 - **Dark** (default, applied when `<html data-theme="dark">` or no attribute): the Blizzard-style dark navy palette.
 - **Light** (applied when `<html data-theme="light">`): overrides only the neutrals (`--bg-*`, `--text-*`, `--border`, `--overlay-*`, `--shadow-*`); brand accents (`--amber`, `--red`, `--green`, `--orange`, `--purple`) stay the same in both.
 
 `ThemeContext` ([`client/src/context/ThemeContext.jsx`](client/src/context/ThemeContext.jsx)) owns the current theme, persists it to `localStorage` under `turnocero_theme`, and applies `data-theme` to `<html>`. It is the outermost provider in [`App.jsx`](client/src/App.jsx) (wraps `AuthProvider` so login/splash also respect the theme). An inline script in [`client/index.html`](client/index.html) reads the stored preference and applies `data-theme` before React hydrates, to avoid a FOUC.
 
 The toggle UI lives in the "Apariencia" section at the top of `/perfil`. Available tokens (use these instead of literal colors):
+
 - Backgrounds: `--bg-dark`, `--bg-card`, `--bg-elevated`, `--bg-hover`
 - Text: `--text-primary`, `--text-secondary`, `--text-muted`
 - Borders: `--border`, `--border-amber`
@@ -467,6 +524,7 @@ EMAIL_FROM=onboarding@resend.dev
 ```
 
 The client needs `client/.env` (or `client/.env.local`) for:
+
 ```
 VITE_API_URL=http://localhost:4000
 ```
@@ -478,16 +536,19 @@ User-facing name is **BG Watch**; pages live under [client/src/pages/bg-watch/](
 The `/api/bgg` routes proxy the **BoardGameGeek XML API2** server-side (avoids the CORS issue that broke the earlier direct-from-browser attempt — see git history for PRs #13–#22). Per-user lookups use an in-memory L1 cache (30 min) that the client can bypass with `?refresh=1`. Game details, user collections and user plays go through persistent Mongo L2 layers so they survive restarts and are shared across all users.
 
 **Persistent layers:**
+
 - `BggGame` ([server/models/BggGame.js](server/models/BggGame.js)) — game details and thumbnails. No TTL (immutable). Helpers: `resolveGame(id)`, `resolveGamesBatch(ids)`.
 - `BggCollection` ([server/models/BggCollection.js](server/models/BggCollection.js)) — one doc per `bggUsername` with the user's owned-games array. **6 h TTL** via `lastFetchedAt`. Helper: `resolveCollection(bggUsername, { forceRefresh })`.
 - `BggPlay` ([server/models/BggPlay.js](server/models/BggPlay.js)) — one doc per `(bggUsername, playId)` storing every play. Populated by **explicit user action** (the "Sincronizar con BGG" button in `/perfil`), not automatically — see below.
 
 **Cache layering — `memoria → Mongo → BGG`:**
+
 - `GET /game/:id`, `/search` (thumbnail batch), `/partidas/:user` (thumbnail enrichment) all flow through `resolveGame*` helpers.
 - `GET /coleccion/:user` flows through `resolveCollection`. `?refresh=1` skips both L1 and the Mongo TTL check.
 - `GET /partidas/:user` checks `BggPlay.exists` for that user. If true → serves from Mongo (paginated + filtered as Mongo queries, no BGG call) and `?refresh=1` triggers an incremental delta sync. If false → falls back to the BGG XML + in-memory cache path (legacy behavior for users who never clicked "Sincronizar").
 
 **Plays sync model (Phase 3):**
+
 - `POST /api/bgg/sync` (auth required) wipes `BggPlay` for the authenticated user's `bggUsername` and refetches every page from BGG. Updates `User.bggSync.lastFullSyncAt` and `lastFullSyncCount`. Triggered by the "↻ Sincronizar con BGG" button.
 - `POST/PUT/DELETE /api/bgg/partidas` keep `BggPlay` in sync after Turnocero-driven mutations (only when records exist for that user — see `upsertPlayFromMutation`).
 - `?refresh=1` on `/partidas` runs a lightweight delta sync (`mindate=last-play-date - 1d`) to catch newly logged plays. It does NOT catch edits/deletes the user made directly on BGG's web UI — that's what the full-sync button is for.
@@ -498,12 +559,14 @@ To add a new persistent entity follow the same pattern: model + `resolveXxx` hel
 `PartidasPanel` and `ColeccionPanel` expose an **"Actualizar"** button that fires a refetch with `?refresh=1` (server skips its in-memory cache and goes to BGG). After clicking, the button is disabled for **60 s** with a visible countdown ("Esperá Xs"), then re-enables. The cooldown is purely client-side, per-panel — navigating away and back resets it.
 
 Read endpoints (no auth needed for any of these):
+
 - `GET /api/bgg/search?q=<term>` — game name search (sorted by year desc, top 15)
 - `GET /api/bgg/game/:id` — game details (name, image, year, min/max players)
 - `GET /api/bgg/coleccion/:bggUsername` — full owned collection with ratings + numPlays
 - `GET /api/bgg/partidas/:bggUsername?page&mindate&maxdate&id` — paginated plays (10/page client-side, re-paginated from BGG's 30/page). Enriched with full player data (name, username, score, win, new, rating, color), `comments`, `incomplete`, `nowinstats` flags, and game thumbnails (batch-fetched).
 
 Write endpoints (auth required, BGG account must be connected):
+
 - `POST /api/bgg/partidas` — create play
 - `PUT /api/bgg/partidas/:playId` — edit play
 - `DELETE /api/bgg/partidas/:playId` — delete play
@@ -513,6 +576,7 @@ Write endpoints (auth required, BGG account must be connected):
 **Caveat**: `geekplay.php` is not officially documented and could change without notice. If writes start failing, check the endpoint structure first.
 
 User profile flow:
+
 - `/perfil` has a "Conexión con BoardGameGeek" section to connect/disconnect the BGG account. Endpoints: `POST /api/auth/bgg-connect`, `DELETE /api/auth/bgg-connection`.
 - `User.bggCredentials` (subdocument) is excluded from `toJSON`; only derived flags `bggConnected`, `bggInvalid`, `bggConnectedAt` are exposed to clients.
 - Changing `bggUsername` automatically clears stored credentials.
@@ -522,13 +586,15 @@ User profile flow:
 **Stack**: Vitest (both workspaces) + supertest + mongodb-memory-server (server integration) + @testing-library/react + jsdom + MSW (client component tests).
 
 **Root scripts** (run both workspaces):
+
 - `npm test` → server + client unit + integration tests
 - `npm run test:coverage` → coverage reports in both `server/coverage/` and `client/coverage/`
 - `npm run test:server` / `npm run test:client` to run just one side
 
-**Current coverage** (2026-05-18, fifteenth session): server ~40% lines (utilities ~80%, routes 20-90%); client **81.62% lines / 78.97% statements** — **meta 80% superada** (utils 98%, shared/admin ~80-100%, torneos components AdminPanel 90.9% + GroupsView 53%+ + TorneoDetail 74%+, **TableDetail 63.24%**, BG Watch panels 63%+, admin pages 100%, utilidades 100%, layout 80%+, **TODOS los contexts cubiertos**, TableCard + CompartidaCard ampliados, skeletons smoke tests, PasswordInput, LoginPromptModal, PageTransition animation). **Total 1146 tests** (193 server + 953 client en 105 archivos). Plan and rollout tracked in [plans/testing-infrastructure.md](plans/testing-infrastructure.md).
+**Current coverage** (2026-05-22): **518 server tests + 1377 client tests = 1895 total**. Server includes notification contract regressions (`notificationsContract.test.js`) verifying every notif emit carries `notifId`+`count`. Client includes double-count regressions in `NotificationContext.test.jsx` (replay same payload twice ≠ double; markRead resets count). Plan and rollout tracked in [plans/testing-infrastructure.md](plans/testing-infrastructure.md).
 
 **Layout — server** (`server/`):
+
 - `tests/setup.js` — connects `MongoMemoryServer`, sets `JWT_SECRET` + `BGG_CREDS_KEY` test env vars, clears all collections between tests.
 - `tests/helpers/auth.js` — `createUser(overrides)`, `createAuthedUser(overrides)`, `tokenFor(user)`, `authHeader(token)`.
 - `tests/helpers/factories.js` — `createTable`, `createCompartida`, `createNoticia`, `createTorneo`, `createEvento`.
@@ -537,6 +603,7 @@ User profile flow:
 - `tests/integration/*.test.js` — supertest-driven API tests; require `app` from `../../app` (not `server.js`, which boots Mongo/socket).
 
 **Layout — client** (`client/`):
+
 - `src/test/setup.js` — `@testing-library/jest-dom`, jsdom polyfills (`URL.createObjectURL`, canvas, matchMedia, IntersectionObserver), MSW lifecycle.
 - `src/test/server.js` — MSW server with sensible default handlers (`/api/auth/me` → 401, `/api/site-config`, `/api/notifications`); override per test via `server.use(...)`.
 - `src/test/wrappers/AllProviders.jsx` — `<AllProviders>` (Helmet + Theme + MemoryRouter) for context-light components, `<RouterOnly>` for pure presentationals that just need `<Link>`.
@@ -548,6 +615,7 @@ User profile flow:
 **Coverage**: HTML reports at `server/coverage/index.html` and `client/coverage/index.html`. No enforcement threshold currently; that's intentional during backfill.
 
 **Convention** (active, post-backfill): **every new component, route, hook, util, or method ships with its corresponding tests in the same PR/commit** — both client and server. No exceptions, even for "small" additions. Concretely:
+
 - New client component `Foo.jsx` → `Foo.test.jsx` next to it.
 - New client util `bar.js` → `bar.test.js` in `client/src/utils/`.
 - New server route → integration test in `server/tests/integration/`.

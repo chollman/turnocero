@@ -67,7 +67,10 @@ import Eventos from "./Eventos";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 
-function renderPage({ user = { _id: "me", username: "me" }, addToast = vi.fn() } = {}) {
+function renderPage({
+  user = { _id: "me", username: "me" },
+  addToast = vi.fn(),
+} = {}) {
   useAuth.mockReturnValue({ user });
   useNotifications.mockReturnValue({ addToast });
   return render(
@@ -241,9 +244,9 @@ describe("<Eventos>", () => {
     openFilters();
     fireEvent.click(screen.getByRole("button", { name: /cerrados/i }));
     await waitFor(() =>
-      expect(
-        JSON.parse(localStorage.getItem("turnocero_eventos_filter")),
-      ).toBe("closed"),
+      expect(JSON.parse(localStorage.getItem("turnocero_eventos_filter"))).toBe(
+        "closed",
+      ),
     );
   });
 
@@ -256,19 +259,13 @@ describe("<Eventos>", () => {
         return HttpResponse.json({ eventos: [], page: 1, pages: 1, total: 0 });
       }),
     );
-    localStorage.setItem(
-      "turnocero_eventos_filter",
-      JSON.stringify("closed"),
-    );
+    localStorage.setItem("turnocero_eventos_filter", JSON.stringify("closed"));
     renderPage({ user: { _id: "me", isAdmin: false } });
     await waitFor(() => expect(lastStatus).toBe("closed"));
   });
 
   it("resets stored filter to 'open' when it is no longer visible (e.g., 'draft' for non-admin)", async () => {
-    localStorage.setItem(
-      "turnocero_eventos_filter",
-      JSON.stringify("draft"),
-    );
+    localStorage.setItem("turnocero_eventos_filter", JSON.stringify("draft"));
     let lastStatus = "sentinel";
     server.use(
       http.get("/api/eventos", ({ request }) => {
@@ -281,9 +278,9 @@ describe("<Eventos>", () => {
     // Should fall back to 'open' (draft is admin-only)
     await waitFor(() => expect(lastStatus).toBe("open"));
     await waitFor(() =>
-      expect(
-        JSON.parse(localStorage.getItem("turnocero_eventos_filter")),
-      ).toBe("open"),
+      expect(JSON.parse(localStorage.getItem("turnocero_eventos_filter"))).toBe(
+        "open",
+      ),
     );
   });
 
@@ -594,12 +591,18 @@ describe("<Eventos>", () => {
   });
 
   it("renders the radius slider + step buttons for logged-in users", async () => {
-    renderPage({ user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } } });
+    renderPage({
+      user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } },
+    });
     await screen.findByText("Open House");
     openFilters();
     expect(screen.getByLabelText(/radio máximo/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /disminuir radio/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /aumentar radio/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /disminuir radio/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /aumentar radio/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows the 'Agregá tu dirección' CTA and disables controls when user has no direccion", async () => {
@@ -607,10 +610,17 @@ describe("<Eventos>", () => {
     await screen.findByText("Open House");
     openFilters();
     expect(screen.getByText(/agregá tu dirección/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /tu perfil/i })).toHaveAttribute("href", "/perfil");
+    expect(screen.getByRole("link", { name: /tu perfil/i })).toHaveAttribute(
+      "href",
+      "/perfil",
+    );
     expect(screen.getByLabelText(/radio máximo/i)).toBeDisabled();
-    expect(screen.getByRole("button", { name: /disminuir radio/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /aumentar radio/i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /disminuir radio/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /aumentar radio/i }),
+    ).toBeDisabled();
   });
 
   it("sends ?maxDistanceKm after the debounce when the slider moves", async () => {
@@ -626,11 +636,15 @@ describe("<Eventos>", () => {
         });
       }),
     );
-    renderPage({ user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } } });
+    renderPage({
+      user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } },
+    });
     await screen.findByText("Cercano");
     openFilters();
 
-    fireEvent.change(screen.getByLabelText(/radio máximo/i), { target: { value: "25" } });
+    fireEvent.change(screen.getByLabelText(/radio máximo/i), {
+      target: { value: "25" },
+    });
     expect(await screen.findByText("25 km")).toBeInTheDocument();
     await waitFor(
       () => {
@@ -648,13 +662,17 @@ describe("<Eventos>", () => {
         return HttpResponse.json({ eventos: [], page: 1, pages: 1, total: 0 });
       }),
     );
-    renderPage({ user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } } });
+    renderPage({
+      user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } },
+    });
     await waitFor(() => expect(lastUrl).not.toBeNull());
     expect(lastUrl).not.toMatch(/maxDistanceKm/);
   });
 
   it('"+" / "−" buttons step the radius by 1 km and clamp at the bounds', async () => {
-    renderPage({ user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } } });
+    renderPage({
+      user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } },
+    });
     await screen.findByRole("button", { name: /^filtros/i });
     openFilters();
     const plus = await screen.findByRole("button", { name: /aumentar radio/i });
@@ -672,7 +690,9 @@ describe("<Eventos>", () => {
     expect(minus).toBeDisabled();
 
     // Push the slider to the max and check the "+" disables.
-    fireEvent.change(screen.getByLabelText(/radio máximo/i), { target: { value: "100" } });
+    fireEvent.change(screen.getByLabelText(/radio máximo/i), {
+      target: { value: "100" },
+    });
     expect(await screen.findByText("100 km")).toBeInTheDocument();
     expect(plus).toBeDisabled();
   });
@@ -689,7 +709,9 @@ describe("<Eventos>", () => {
     // (caso típico en localhost: el broadcast Socket.IO es ~instantáneo, el
     // HTTP response viaja por el mismo ciclo pero tarda más).
     let resolvePost;
-    const postPromise = new Promise((resolve) => { resolvePost = resolve; });
+    const postPromise = new Promise((resolve) => {
+      resolvePost = resolve;
+    });
 
     server.use(
       http.get("/api/eventos", () =>
@@ -704,7 +726,9 @@ describe("<Eventos>", () => {
     renderPage({ user: { _id: "admin1", isAdmin: true } });
     // Esperar a que cargue la lista vacía.
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /nuevo evento/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /nuevo evento/i }),
+      ).toBeInTheDocument();
     });
 
     // Abrir el form y submitearlo con datos mínimos.
