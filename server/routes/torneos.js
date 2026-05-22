@@ -12,7 +12,16 @@ const { protect, requireAdmin } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const validateObjectId = require("../middleware/validateObjectId");
 const { parsePagination } = require("../utils/paginate");
+const { escapeRegex } = require("../utils/regex");
+const { clamp } = require("../utils/clamp");
 const { emitNotificationReq } = require("../utils/emitNotification");
+const {
+  VALID_TRANSITIONS,
+  buildAndInsertMatches,
+  buildAndInsertGroupsForPhase,
+  cascadeClearWinner,
+  getFinalRound,
+} = require("../services/torneoService");
 
 router.use(requireSection("torneos"));
 
@@ -22,10 +31,7 @@ router.param("matchId", validateObjectId("matchId"));
 router.param("gameId", validateObjectId("gameId"));
 router.param("groupId", validateObjectId("groupId"));
 const {
-  generateLeagueFixture,
-  generateSingleElimBracket,
   computeStandings,
-  generateGroupsPhase,
   computeGroupStandings,
   validateNextPhase,
 } = require("../utils/tournamentGeneration");
@@ -33,7 +39,7 @@ const {
 const USER_FIELDS = "username displayName nombre apellido avatar";
 
 // ─────────────────────────────────────────────────────────────────
-// Helpers
+// Helpers (los de business logic viven en services/torneoService.js)
 // ─────────────────────────────────────────────────────────────────
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -42,142 +48,11 @@ function isAdmin(req) {
   return !!req.user?.isAdmin;
 }
 
-/** Hide drafts from non-admins. */
+// Oculta drafts a los no-admin (los drafts existen pero no son visibles
+// hasta que el admin los promueva a 'registration' o 'in_progress').
 function visibleStatusFilter(req) {
   if (isAdmin(req)) return {};
   return { status: { $ne: "draft" } };
-}
-
-/**
- * State transitions allowed.
- * Note: `draft → in_progress` is only valid for `inscriptionMode === 'admin_only'`
- * (validation enforced in the handler, not the table).
- */
-const VALID_TRANSITIONS = {
-  draft: new Set(["registration", "in_progress"]),
-  registration: new Set(["in_progress", "draft"]),
-  in_progress: new Set(["finished"]),
-  finished: new Set([]),
-};
-
-/** Generates and inserts the match documents for a torneo, then patches nextMatch refs. */
-async function buildAndInsertMatches(torneo) {
-  const ids = torneo.participants.map((p) => p._id || p);
-  const raw =
-    torneo.format === "league"
-      ? generateLeagueFixture(ids)
-      : generateSingleElimBracket(ids);
-
-  if (raw.length === 0) {
-    throw new Error(
-      "No se pudieron generar los partidos: faltan participantes.",
-    );
-  }
-
-  // Insert without nextMatch refs first.
-  const docs = raw.map((m) => ({
-    torneo: torneo._id,
-    round: m.round,
-    matchIndex: m.matchIndex,
-    playerA: m.playerA || null,
-    playerB: m.playerB || null,
-    isUpperSlot: m.isUpperSlot ?? true,
-    winner: m.winner || null,
-    status: m.status,
-    playedAt: m.playedAt || null,
-  }));
-  const inserted = await TorneoMatch.insertMany(docs);
-
-  // For single_elim, patch nextMatch refs by (round, matchIndex) lookup.
-  if (torneo.format === "single_elim") {
-    const byKey = new Map(
-      inserted.map((doc) => [`${doc.round}-${doc.matchIndex}`, doc]),
-    );
-    const ops = [];
-    raw.forEach((m, idx) => {
-      if (!m.nextMatchKey) return;
-      const next = byKey.get(m.nextMatchKey);
-      if (!next) return;
-      ops.push({
-        updateOne: {
-          filter: { _id: inserted[idx]._id },
-          update: { $set: { nextMatch: next._id } },
-        },
-      });
-    });
-    if (ops.length > 0) await TorneoMatch.bulkWrite(ops);
-  }
-
-  return inserted;
-}
-
-/** Builds the groups + games for the given phase of a groups-format torneo. */
-async function buildAndInsertGroupsForPhase(
-  torneo,
-  phaseNumber,
-  playerIds,
-  tableSizeOverride,
-) {
-  const tableSize = tableSizeOverride ?? torneo.tableSize;
-  const layout = generateGroupsPhase(playerIds, tableSize);
-  if (layout.length === 0) throw new Error("No se pudieron armar los grupos.");
-
-  // Insert groups
-  const groupDocs = layout.map((g) => ({
-    torneo: torneo._id,
-    phase: phaseNumber,
-    tableNumber: g.tableNumber,
-    players: g.players,
-    advancedPlayers: [],
-    status: "in_progress",
-  }));
-  const insertedGroups = await TorneoGroup.insertMany(groupDocs);
-
-  // Insert games (P per group)
-  const gameDocs = [];
-  for (const group of insertedGroups) {
-    for (let n = 1; n <= torneo.gamesPerGroup; n++) {
-      gameDocs.push({
-        torneo: torneo._id,
-        group: group._id,
-        gameNumber: n,
-        results: [],
-        status: "pending",
-      });
-    }
-  }
-  if (gameDocs.length > 0) await TorneoGame.insertMany(gameDocs);
-
-  return insertedGroups;
-}
-
-/** Recursively clears downstream match winners for single_elim when a result is undone. */
-async function cascadeClearWinner(
-  matchId,
-  slotKey /* 'playerA' | 'playerB' */,
-) {
-  const match = await TorneoMatch.findById(matchId);
-  if (!match) return;
-  // Capture old winner before clearing slot, to know which slot to clear in *its* nextMatch.
-  const wasWinner = match.winner ? String(match.winner) : null;
-  match[slotKey] = null;
-  // If the match also had a winner already, clear it (it depended on the slot we just nulled).
-  if (match.status === "completed" && wasWinner) {
-    match.winner = null;
-    match.isDraw = false;
-    match.status = "pending";
-    match.playedAt = null;
-  }
-  await match.save();
-
-  if (match.nextMatch && wasWinner) {
-    const child = await TorneoMatch.findById(match.nextMatch);
-    if (!child) return;
-    const childSlot = match.isUpperSlot ? "playerA" : "playerB";
-    if (child[childSlot] && String(child[childSlot]) === wasWinner) {
-      await cascadeClearWinner(child._id, childSlot);
-    }
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1641,26 +1516,5 @@ router.get(
     }
   },
 );
-
-// ─────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────
-
-async function getFinalRound(torneoId) {
-  const last = await TorneoMatch.findOne({ torneo: torneoId })
-    .sort({ round: -1 })
-    .select("round")
-    .lean();
-  return last?.round || 0;
-}
-
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function clamp(n, lo, hi) {
-  if (!Number.isFinite(n)) return lo;
-  return Math.max(lo, Math.min(hi, n));
-}
 
 module.exports = router;

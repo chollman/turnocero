@@ -9,6 +9,7 @@ const BggGame = require("../models/BggGame");
 const BggCollection = require("../models/BggCollection");
 const BggPlay = require("../models/BggPlay");
 const { computePlayHash } = require("../utils/bggHash");
+const { escapeRegex } = require("../utils/regex");
 const {
   withUserLock,
   sleep,
@@ -861,11 +862,6 @@ async function upsertPlayFromBgg(bggUsername, parsedPlay) {
   return doc;
 }
 
-// Escape regex special chars. Usado por scoreSearchMatch.
-function escapeRegex(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 // Quita artículos al inicio para normalizar el match — "The LOOP" matchea
 // igual que "LOOP" para el bucket de relevancia. Aproxima lo que BGG hace
 // con `sortindex` en su web (ignora "The", "A", "An").
@@ -1527,9 +1523,8 @@ router.get("/og/:bggUsername", async (req, res) => {
 
   try {
     // Look up the Turnocero user by bggUsername (case-insensitive) for displayName.
-    const escaped = bggUsername.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const userDoc = await User.findOne({
-      bggUsername: new RegExp(`^${escaped}$`, "i"),
+      bggUsername: new RegExp(`^${escapeRegex(bggUsername)}$`, "i"),
     })
       .select("username displayName")
       .lean();

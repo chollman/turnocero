@@ -19,6 +19,7 @@ const {
 const { emitNotificationReq } = require("../utils/emitNotification");
 const { canActInEvento } = require("../utils/eventoPermissions");
 const { parsePagination } = require("../utils/paginate");
+const { escapeRegex } = require("../utils/regex");
 const {
   emitToUser,
   emitToEventoRoom,
@@ -262,8 +263,7 @@ router.get("/", optionalAuth, async (req, res) => {
     // la query con caracteres especiales.
     const searchRaw = (req.query.search || "").trim();
     if (searchRaw) {
-      const escaped = searchRaw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      filter.title = { $regex: escaped, $options: "i" };
+      filter.title = { $regex: escapeRegex(searchRaw), $options: "i" };
     }
 
     const userLat = req.user?.direccion?.lat ?? null;

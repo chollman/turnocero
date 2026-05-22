@@ -7,6 +7,7 @@ const { protect, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const validateObjectId = require("../middleware/validateObjectId");
 const { parsePagination } = require("../utils/paginate");
+const { escapeRegex } = require("../utils/regex");
 const { emitNotificationReq } = require("../utils/emitNotification");
 const {
   isValidCoord,
@@ -36,8 +37,7 @@ const validate = (req, res, next) => {
 
 const buildSearchClause = async (search) => {
   if (!search) return null;
-  const escaped = search.slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const rx = new RegExp(escaped, "i");
+  const rx = new RegExp(escapeRegex(search.slice(0, 100)), "i");
   const matchingHosts = await User.find({ username: rx }).select("_id");
   return {
     $or: [
