@@ -5,6 +5,7 @@ import { io } from "socket.io-client";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import useTickingNow from "../../utils/useTickingNow";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
@@ -52,13 +53,8 @@ export default function EventoDetail() {
 
   const [actionError, setActionError] = useState("");
 
-  // Ticker para que TicketStub refresque su countdown ("en X días") sin
-  // re-renders manuales. Date.now() en render rompe react-hooks/purity.
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const tickerId = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(tickerId);
-  }, []);
+  // Ticker para que TicketStub refresque su countdown ("en X días").
+  const now = useTickingNow();
 
   useEffect(() => {
     let cancelled = false;

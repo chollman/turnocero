@@ -5,6 +5,7 @@ import { io } from "socket.io-client";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { dateParts } from "../../utils/eventoDate";
+import useTickingNow from "../../utils/useTickingNow";
 import TriageColumn from "./TriageColumn";
 import { ArrowLeftIcon } from "./EventoIcons";
 import styles from "./EventoInscripciones.module.css";
@@ -19,12 +20,7 @@ export default function EventoInscripciones() {
   const [actionError, setActionError] = useState("");
 
   // Ticker para refrescar las "horas relativas" de las inscripciones cada 30s.
-  // Sin esto, Date.now() inline en render rompe react-hooks/purity.
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const tickerId = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(tickerId);
-  }, []);
+  const now = useTickingNow();
 
   useEffect(() => {
     // Esperar a que termine el auth-loading y verificar admin antes de pegar

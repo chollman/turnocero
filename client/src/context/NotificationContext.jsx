@@ -81,6 +81,7 @@ export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [toasts, setToasts] = useState([]);
   const activeTableRef = useRef(null);
+  const activeEventoRef = useRef(null);
   const adminChatActiveRef = useRef(false);
   const dmListenersRef = useRef(new Set());
   const friendListenersRef = useRef(new Set());
@@ -385,6 +386,11 @@ export function NotificationProvider({ children }) {
         const rest = prev.filter((n) => !(n.type === notifType && n.eventoId === common.eventoId));
         return [...rest, { ...common, count: 1, read: false, timestamp: new Date().toISOString() }];
       });
+      // Si el user está viendo el detalle del evento, no toasteamos
+      // — el evento ya está visible en pantalla (mismo patrón que mesas).
+      // La notif persistente igual se guarda y se marca leída por
+      // setActiveEvento → markReadEvento (efecto de B1).
+      if (activeEventoRef.current === common.eventoId) return;
       setToasts((prev) => pushToast(prev, common));
     }));
 
@@ -485,6 +491,7 @@ export function NotificationProvider({ children }) {
   }, [markReadCompartida]);
 
   const setActiveEvento = useCallback((eventoId) => {
+    activeEventoRef.current = eventoId;
     if (eventoId) markReadEvento(eventoId);
   }, [markReadEvento]);
 

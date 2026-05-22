@@ -3,13 +3,8 @@ import { dateParts, countdown, formatFee } from "../../utils/eventoDate";
 import { formatDistanceKm } from "../../utils/distance";
 import { getLocationDisplay } from "../../utils/location";
 import { PinIcon, UsersIcon, ImageIcon, ArrowIcon } from "./EventoIcons";
+import { getEventoStatusBadge } from "../../utils/eventoStatus";
 import styles from "./PosterCard.module.css";
-
-const STATUS_BADGES = {
-  open: { label: "Abierto", className: "open" },
-  closed: { label: "Cerrado", className: "closed" },
-  cancelled: { label: "Cancelado", className: "cancelled" },
-};
 
 // `now` viene del caller (Eventos.jsx) para mantener la pureza del render —
 // si no se pasa, countdown() aplica su propio fallback.
@@ -31,7 +26,7 @@ export default function PosterCard({
   const totalInscriptions = participants;
   const detailUrl = `/eventos/${evento._id}`;
 
-  const statusInfo = STATUS_BADGES[evento.status];
+  const statusInfo = getEventoStatusBadge(evento.status);
   // location puede llegar como string legacy o subdoc { texto, lat, lng, displayName }.
   const locationTexto = typeof evento.location === "string"
     ? evento.location

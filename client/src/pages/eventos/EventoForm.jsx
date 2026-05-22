@@ -5,17 +5,10 @@ import InfoTooltip from "../../components/shared/InfoTooltip";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import ImageDropzone from "./ImageDropzone";
 import { toLocalInputValue, fromLocalInputValue } from "../../utils/eventoDate";
+import { EVENTO_STATUS_OPTIONS as STATUS_OPTIONS } from "../../utils/eventoStatus";
 import styles from "./EventoForm.module.css";
 
 const EMPTY_LOCATION = { texto: "", lat: null, lng: null, displayName: "" };
-
-// Opciones de estado para los chips. Cada uno tiene su color identificable.
-const STATUS_OPTIONS = [
-  { value: "draft",     label: "Borrador",  description: "No visible para los usuarios" },
-  { value: "open",      label: "Abierto",   description: "Inscripciones habilitadas" },
-  { value: "closed",    label: "Cerrado",   description: "Sin inscripciones" },
-  { value: "cancelled", label: "Cancelado", description: "Evento cancelado" },
-];
 
 const EMPTY_FORM = {
   title: "",

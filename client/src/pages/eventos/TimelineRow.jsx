@@ -5,14 +5,8 @@ import { dateParts, countdown, formatFee } from "../../utils/eventoDate";
 import { formatDistanceKm } from "../../utils/distance";
 import { getLocationDisplay } from "../../utils/location";
 import { PinIcon, UsersIcon } from "./EventoIcons";
+import { getEventoStatusBadge } from "../../utils/eventoStatus";
 import styles from "./TimelineRow.module.css";
-
-const STATUS_BADGES = {
-  open: { label: "Abierto", className: "open" },
-  draft: { label: "Borrador", className: "draft" },
-  closed: { label: "Cerrado", className: "closed" },
-  cancelled: { label: "Cancelado", className: "cancelled" },
-};
 
 // `now` lo provee siempre el caller (Eventos.jsx) para no romper la regla
 // react-hooks/purity con un default impuro (`Date.now()`). Si no se pasa,
@@ -63,7 +57,7 @@ export default function TimelineRow({
           ? styles.dotMuted
           : "";
 
-  const statusInfo = STATUS_BADGES[evento.status];
+  const statusInfo = getEventoStatusBadge(evento.status);
   const author = evento.author;
   const authorDisplay = getUserDisplay(author);
 

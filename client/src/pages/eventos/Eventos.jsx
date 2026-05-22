@@ -13,6 +13,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import useLocalStorageState from "../../utils/useLocalStorageState";
+import useTickingNow from "../../utils/useTickingNow";
 import { groupByMonth, MESES_LARGO } from "../../utils/eventoDate";
 import TimelineRow from "./TimelineRow";
 import PosterCard from "./PosterCard";
@@ -64,14 +65,9 @@ export default function Eventos() {
   const [submitting, setSubmitting] = useState(false);
   const formRef = useRef(null);
 
-  // `now` se mantiene en estado y se refresca con un interval para que las
-  // countdowns ("en X días") y el divisor "Hoy" se actualicen sin necesidad
-  // de re-renderizar manualmente. Date.now() en render rompe react-hooks/purity.
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const tickerId = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(tickerId);
-  }, []);
+  // `now` se refresca cada 30s para que las countdowns ("en X días") y el
+  // divisor "Hoy" se actualicen sin necesidad de re-renderizar manualmente.
+  const now = useTickingNow();
 
   const load = useCallback(
     async (pageNum = 1, replace = true) => {

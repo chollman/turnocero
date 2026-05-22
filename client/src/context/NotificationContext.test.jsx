@@ -455,6 +455,29 @@ describe('NotificationContext', () => {
     expect(parseInt(screen.getByTestId('unread').textContent)).toBe(0);
   });
 
+  it('setActiveEvento suprime toasts del evento activo (notif persistente igual se guarda)', () => {
+    renderApp();
+    // Usuario está viendo el detalle del evento ev1.
+    act(() => screen.getByText('active-evento-ev1').click());
+    // Llega una notif del MISMO evento → no toast, pero sí notif.
+    fireSocketEvent('evento:notification', {
+      type: 'confirmed', eventoId: 'ev1', eventoTitle: 'X',
+    });
+    expect(screen.getByTestId('count').textContent).toBe('1');
+    expect(screen.getByTestId('toasts').textContent).toBe('0');
+  });
+
+  it('setActiveEvento NO suprime toasts de OTRO evento', () => {
+    renderApp();
+    // Usuario está viendo ev1, pero llega una notif de ev2 → toast normal.
+    act(() => screen.getByText('active-evento-ev1').click());
+    fireSocketEvent('evento:notification', {
+      type: 'confirmed', eventoId: 'ev2', eventoTitle: 'Otro',
+    });
+    expect(screen.getByTestId('count').textContent).toBe('1');
+    expect(screen.getByTestId('toasts').textContent).toBe('1');
+  });
+
   it('compartida:comment adds/increments a notification + toast', () => {
     renderApp();
     fireSocketEvent('compartida:comment', { compartidaId: 'c1', compartidaTitle: 'Post A', commenterUsername: 'bob', commentPreview: 'nice', timestamp: 1 });
