@@ -18,6 +18,15 @@ const {
   tryAcquireReconcileSlot,
   releaseReconcileSlot,
 } = require("../utils/bggSync");
+const {
+  computeGameStats,
+  computePlayedGames,
+  computeTopPlayedGame,
+} = require("../services/bgg/bggAggregations");
+// `stripLeadingArticle` no se usa directamente acá pero vive en
+// bggSearch junto a scoreSearchMatch para que el ranking de búsqueda
+// quede en un solo módulo testeable.
+const { scoreSearchMatch } = require("../services/bgg/bggSearch");
 
 const PROBE_THROTTLE_MS = 5 * 60 * 1000; // 5 min between background probes
 const FULL_RECONCILE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days between background full reconciles
@@ -862,37 +871,6 @@ async function upsertPlayFromBgg(bggUsername, parsedPlay) {
   return doc;
 }
 
-// Quita artículos al inicio para normalizar el match — "The LOOP" matchea
-// igual que "LOOP" para el bucket de relevancia. Aproxima lo que BGG hace
-// con `sortindex` en su web (ignora "The", "A", "An").
-function stripLeadingArticle(s) {
-  return s.replace(/^(the|a|an)\s+/i, "");
-}
-
-// Bucket de relevancia (más bajo = mejor match) sobre el nombre normalizado.
-// Aproxima el ranking server-side de BGG sin depender del endpoint web
-// gateado por Cloudflare. NO replica el factor de popularidad (no tenemos
-// numowned/numratings en cache) — el tiebreak es nombre más corto + año desc.
-function scoreSearchMatch(name, query) {
-  const normalized = stripLeadingArticle(name).toLowerCase();
-  const q = query.toLowerCase();
-  if (normalized === q) return 0; // match exacto
-  // Prefijo con separador típico: "LOOP: ..." / "LOOP - ..." / "LOOP's ..."
-  if (
-    normalized.startsWith(`${q} `) ||
-    normalized.startsWith(`${q}:`) ||
-    normalized.startsWith(`${q}-`) ||
-    normalized.startsWith(`${q}'`) ||
-    normalized.startsWith(`${q},`)
-  )
-    return 1;
-  // Palabra completa en cualquier posición (word boundary)
-  if (new RegExp(`\\b${escapeRegex(q)}\\b`, "i").test(normalized)) return 2;
-  // Subcadena
-  if (normalized.includes(q)) return 3;
-  return 4;
-}
-
 // GET /api/bgg/search?q=<query>
 router.get("/search", async (req, res) => {
   const q = (req.query.q || "").trim();
@@ -1039,121 +1017,6 @@ const PAGES_PER_BGG = BGG_PAGE_SIZE / PAGE_SIZE; // 3 client pages per BGG page
 // Returns { wins, rated, avgDuration, lastDate } where rated is the number of
 // plays in which we could identify the owner (plays without a matching player
 // are excluded from the win rate denominator).
-async function computeGameStats(lowerBggUsername, gameId) {
-  // $reduce gives us a deterministic "owner found?" sentinel (`null` means
-  // no player whose username matches `bggUsername`). $arrayElemAt on an
-  // empty array is supposed to return null too, but its interaction with
-  // downstream $ne/$eq turned out brittle in practice — $reduce is
-  // explicit about producing a null when no match exists.
-  const agg = await BggPlay.aggregate([
-    { $match: { bggUsername: lowerBggUsername, gameId: String(gameId) } },
-    {
-      $project: {
-        duration: 1,
-        date: 1,
-        ownerMatch: {
-          $reduce: {
-            input: { $ifNull: ["$players", []] },
-            initialValue: null,
-            in: {
-              $cond: [
-                {
-                  $eq: [
-                    { $toLower: { $ifNull: ["$$this.username", ""] } },
-                    lowerBggUsername,
-                  ],
-                },
-                { win: { $eq: ["$$this.win", true] } },
-                "$$value",
-              ],
-            },
-          },
-        },
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        rated: {
-          $sum: { $cond: [{ $ne: ["$ownerMatch", null] }, 1, 0] },
-        },
-        wins: {
-          $sum: { $cond: [{ $eq: ["$ownerMatch.win", true] }, 1, 0] },
-        },
-        avgDuration: {
-          $avg: { $cond: [{ $gt: ["$duration", 0] }, "$duration", null] },
-        },
-        lastDate: { $max: "$date" },
-      },
-    },
-  ]);
-  if (!agg.length) {
-    return { wins: 0, rated: 0, avgDuration: null, lastDate: null };
-  }
-  const row = agg[0];
-  return {
-    wins: row.wins || 0,
-    rated: row.rated || 0,
-    avgDuration: row.avgDuration != null ? Math.round(row.avgDuration) : null,
-    lastDate: row.lastDate || null,
-  };
-}
-
-// Aggregates the user's BggPlay docs into a per-game played-counts list,
-// summing `quantity` per gameId. Returns one entry per game the user has
-// played (in their log), sorted by numPlays desc. Powers the "Por juego"
-// view in PartidasPanel — replaces the collection-derived list, which
-// missed plays of unowned games and broke for users with private
-// collections.
-async function computePlayedGames(lowerBggUsername) {
-  const agg = await BggPlay.aggregate([
-    { $match: { bggUsername: lowerBggUsername, gameId: { $ne: null } } },
-    {
-      $group: {
-        _id: "$gameId",
-        numPlays: { $sum: { $ifNull: ["$quantity", 1] } },
-        name: { $last: "$gameName" },
-        thumbnail: { $last: "$gameThumbnail" },
-      },
-    },
-    { $sort: { numPlays: -1, _id: 1 } },
-  ]);
-  return agg.map((row) => ({
-    id: row._id,
-    name: row.name || null,
-    thumbnail: row.thumbnail || null,
-    numPlays: row.numPlays,
-  }));
-}
-
-// Aggregates the user's BggPlay docs to find the single most-played game,
-// summing `quantity` per gameId. Returns null when there are no plays with
-// a gameId. Designed for the stats card on /bg-watch/:user — only called on
-// the unfiltered page=1 request.
-async function computeTopPlayedGame(lowerBggUsername) {
-  const agg = await BggPlay.aggregate([
-    { $match: { bggUsername: lowerBggUsername, gameId: { $ne: null } } },
-    {
-      $group: {
-        _id: "$gameId",
-        count: { $sum: { $ifNull: ["$quantity", 1] } },
-        name: { $last: "$gameName" },
-        thumbnail: { $last: "$gameThumbnail" },
-      },
-    },
-    { $sort: { count: -1, _id: 1 } },
-    { $limit: 1 },
-  ]);
-  if (!agg.length || !agg[0].count) return null;
-  const top = agg[0];
-  return {
-    id: top._id,
-    name: top.name || null,
-    thumbnail: top.thumbnail || null,
-    numPlays: top.count,
-  };
-}
-
 // GET /api/bgg/juegos-jugados/:bggUsername — list of games the user has
 // played, derived from BggPlay aggregation. Returns [] when the user has
 // no plays in Mongo so the client can fall back to the collection-derived
