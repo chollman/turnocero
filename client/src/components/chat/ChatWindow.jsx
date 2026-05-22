@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useChat } from '../../context/ChatContext';
+import { useNotifications } from '../../context/NotificationContext';
 import Avatar from '../shared/Avatar';
 import styles from './ChatWindow.module.css';
 
@@ -10,6 +11,7 @@ function formatTime(date) {
 
 export default function ChatWindow({ userId, index, currentUserId }) {
   const { conversations, closeChat, minimizeChat, sendMessage } = useChat();
+  const { addToast } = useNotifications();
   const conv = conversations[userId];
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -42,7 +44,14 @@ export default function ChatWindow({ userId, index, currentUserId }) {
     try {
       await sendMessage(userId, content);
     } catch {
+      // Restaurar el input para reintentar + avisar al usuario.
+      // Convención: errores de POST/PUT/DELETE van por toast,
+      // no como state local silencioso (memory: errors-as-toasts).
       setInput(content);
+      addToast({
+        type: 'error',
+        message: 'No pudimos enviar el mensaje. Probá de nuevo.',
+      });
     } finally {
       setSending(false);
     }
@@ -53,7 +62,19 @@ export default function ChatWindow({ userId, index, currentUserId }) {
       className={`${styles.window} ${conv.minimized ? styles.minimized : ''}`}
       style={{ right: rightOffset }}
     >
-      <div className={styles.header} onClick={() => minimizeChat(userId)}>
+      <div
+        className={styles.header}
+        onClick={() => minimizeChat(userId)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            minimizeChat(userId);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label={conv.minimized ? `Expandir chat con ${conv.user.username}` : `Minimizar chat con ${conv.user.username}`}
+      >
         <div className={styles.headerLeft}>
           <Avatar user={conv.user} size="sm" />
           <span className={styles.username}>{conv.user.username}</span>

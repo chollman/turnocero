@@ -125,8 +125,11 @@ export default function VerifyEmail() {
         <form onSubmit={handleSubmit} className={styles.form}>
           {!stateEmail && !queryEmail && (
             <div className={styles.field}>
-              <label className={styles.label}>Email</label>
+              <label className={styles.label} htmlFor="verify-email">
+                Email
+              </label>
               <input
+                id="verify-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -138,8 +141,11 @@ export default function VerifyEmail() {
           )}
 
           <div className={styles.field}>
-            <label className={styles.label}>Código</label>
+            <label className={styles.label} htmlFor="verify-code">
+              Código
+            </label>
             <input
+              id="verify-code"
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"

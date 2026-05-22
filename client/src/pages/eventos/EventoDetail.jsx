@@ -563,6 +563,8 @@ export default function EventoDetail() {
             src={evento.image.url}
             alt={evento.title}
             className={styles.lightboxImg}
+            loading="lazy"
+            decoding="async"
           />
         )}
       </Modal>
@@ -703,6 +705,7 @@ export default function EventoDetail() {
                         src={evento.image.url}
                         alt={evento.title}
                         className={styles.heroImg}
+                        decoding="async"
                       />
                     </button>
                   ) : (

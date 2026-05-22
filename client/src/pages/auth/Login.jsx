@@ -124,8 +124,11 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
-            <label className={styles.label}>Usuario o email</label>
+            <label className={styles.label} htmlFor="login-email">
+              Usuario o email
+            </label>
             <input
+              id="login-email"
               type="text"
               name="email"
               value={form.email}
@@ -138,8 +141,11 @@ export default function Login() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Contraseña</label>
+            <label className={styles.label} htmlFor="login-password">
+              Contraseña
+            </label>
             <PasswordInput
+              id="login-password"
               name="password"
               value={form.password}
               onChange={handleChange}

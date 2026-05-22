@@ -15,11 +15,12 @@ const EyeOff = () => (
   </svg>
 );
 
-export default function PasswordInput({ name, value, onChange, placeholder, required, minLength, className, autoComplete }) {
+export default function PasswordInput({ id, name, value, onChange, placeholder, required, minLength, className, autoComplete }) {
   const [show, setShow] = useState(false);
   return (
     <div className={styles.wrap}>
       <input
+        id={id}
         type={show ? 'text' : 'password'}
         name={name}
         value={value}

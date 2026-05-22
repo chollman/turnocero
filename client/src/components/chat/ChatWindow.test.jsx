@@ -3,6 +3,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../../context/ChatContext', () => ({ useChat: vi.fn() }));
+vi.mock('../../context/NotificationContext', () => ({
+  useNotifications: () => ({ addToast: vi.fn() }),
+}));
 
 import ChatWindow from './ChatWindow';
 import { useChat } from '../../context/ChatContext';

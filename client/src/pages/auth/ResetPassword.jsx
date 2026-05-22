@@ -93,8 +93,11 @@ export default function ResetPassword() {
             {error && <div className={styles.errorBox}>{error}</div>}
             <form onSubmit={handleSubmit} className={styles.form}>
               <div className={styles.field}>
-                <label className={styles.label}>Nueva contraseña</label>
+                <label className={styles.label} htmlFor="reset-password">
+                  Nueva contraseña
+                </label>
                 <PasswordInput
+                  id="reset-password"
                   name="password"
                   value={form.password}
                   onChange={handleChange}
@@ -107,8 +110,11 @@ export default function ResetPassword() {
               </div>
 
               <div className={styles.field}>
-                <label className={styles.label}>Confirmar contraseña</label>
+                <label className={styles.label} htmlFor="reset-confirm">
+                  Confirmar contraseña
+                </label>
                 <PasswordInput
+                  id="reset-confirm"
                   name="confirm"
                   value={form.confirm}
                   onChange={handleChange}

@@ -162,7 +162,11 @@ export default function BgWatchPerGameView() {
         <div className={styles.gameHero}>
           <div className={styles.gameHeroImage}>
             {game?.image || game?.thumbnail ? (
-              <img src={game.image || game.thumbnail} alt={game.name} />
+              <img
+                src={game.image || game.thumbnail}
+                alt={game.name}
+                decoding="async"
+              />
             ) : (
               <span className={styles.playThumbFallback}>🎲</span>
             )}
