@@ -7,6 +7,9 @@ const AGGREGATING = new Set([
   'chat', 'comment', 'image', 'join_request',
   'dm', 'admin_chat',
   'compartida_comment', 'compartida_like',
+  // Cuando varios users agregan juegos / crean mesas en el mismo evento,
+  // los inscriptos reciben UNA notif con count incrementado por evento.
+  'evento_ludoteca_added', 'evento_mesa_created',
 ]);
 
 // Mapea tipo de notificación → sección controlada por SiteConfig.
@@ -33,11 +36,13 @@ const TYPE_TO_SECTION = {
   tournament_started:    'torneos',
   tournament_finished:   'torneos',
   // Eventos
-  evento_confirmed:      'eventos',
-  evento_rejected:       'eventos',
-  evento_cancelled:      'eventos',
-  evento_updated:        'eventos',
-  evento_reminder:       'eventos',
+  evento_confirmed:        'eventos',
+  evento_rejected:         'eventos',
+  evento_cancelled:        'eventos',
+  evento_updated:          'eventos',
+  evento_reminder:         'eventos',
+  evento_ludoteca_added:   'eventos',
+  evento_mesa_created:     'eventos',
 };
 
 /**

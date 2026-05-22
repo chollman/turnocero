@@ -17,6 +17,9 @@ const NOTIFICATION_TYPES = [
   // Eventos
   'evento_confirmed', 'evento_rejected',
   'evento_cancelled', 'evento_updated', 'evento_reminder',
+  // Eventos — sub-recursos (ludoteca y mesas del evento). Aggregating:
+  // un usuario que agrega 3 juegos seguidos genera UNA notif con count=3.
+  'evento_ludoteca_added', 'evento_mesa_created',
 ];
 
 const notificationSchema = new mongoose.Schema(
@@ -63,6 +66,13 @@ const notificationSchema = new mongoose.Schema(
     // El cliente lo usa para que el deep-link de la notif no rompa en 404
     // — en su lugar lleva a la lista /eventos y rotula la card como "Eliminado".
     eventoDeleted:      { type: Boolean, default: false },
+    // Para evento_ludoteca_added: el nombre del último juego agregado y quién.
+    gameName:           { type: String, default: '' },
+    addedByUsername:    { type: String, default: '' },
+    // Para evento_mesa_created: el id de la mesa creada + host. `gameName`
+    // se reusa del campo de arriba (es el mismo metadata).
+    eventoTableId:      { type: String, default: null },
+    hostUsername:       { type: String, default: '' },
   },
   { timestamps: true }
 );

@@ -16,6 +16,9 @@ const {
   locationForCreate,
 } = require("../utils/locationHelpers");
 
+// NOTA: requireSection('mesas') aplica SOLO al router (las rutas de este
+// archivo). El helper `listTables` se exporta abajo y se reusa desde
+// eventos.js — donde el gate de sección es `'eventos'`, no `'mesas'`.
 router.use(requireSection("mesas"));
 
 const validate = (req, res, next) => {
@@ -60,62 +63,81 @@ const populateTable = (query) =>
 // en utils/locationHelpers.js — compartidos con eventos.js.
 // Los helpers geo (attachDistance, buildBboxFilter) viven en utils/geo.js.
 
-// GET /api/tables — public (anon sees only public tables); supports ?page, ?limit, ?search
-// Cuando el user tiene direccion con coords, agrega `distanceKm` por table.
-// `?maxDistanceKm=N` (auth required) filtra a mesas dentro de N km del user
-// — tables sin coords se excluyen del set filtrado.
-router.get("/", optionalAuth, async (req, res) => {
-  try {
-    const { page, limit, skip } = parsePagination(req.query);
-    const searchClause = await buildSearchClause(req.query.search);
-    const privacyFilter = req.user ? {} : { privacy: { $ne: "private" } };
-    const baseFilter = {
-      status: { $ne: "cancelled" },
-      ...privacyFilter,
-      ...searchClause,
-    };
+// Helper reusable que ejecuta el listado de mesas paginado con todas las
+// opciones (search, distance, evento). Lo expone tables.js para reuso desde
+// el router de eventos (`GET /api/eventos/:id/mesas`). El handler global de
+// abajo es un wrapper fino que delega acá.
+//
+// `eventoId`:
+//   - `null`  → solo mesas globales (filtro estricto eventoId:null, también
+//               cuenta los docs viejos sin el campo).
+//   - String  → solo mesas asociadas a ese evento.
+async function listTables({ user, query, eventoId = null }) {
+  const { page, limit, skip } = parsePagination(query);
+  const searchClause = await buildSearchClause(query.search);
+  const privacyFilter = user ? {} : { privacy: { $ne: "private" } };
+  const scopeFilter =
+    eventoId == null
+      ? { $or: [{ eventoId: null }, { eventoId: { $exists: false } }] }
+      : { eventoId };
+  const baseFilter = {
+    status: { $ne: "cancelled" },
+    ...privacyFilter,
+    ...scopeFilter,
+    ...searchClause,
+  };
 
-    const userLat = req.user?.direccion?.lat ?? null;
-    const userLng = req.user?.direccion?.lng ?? null;
-    const maxKmRaw = parseFloat(req.query.maxDistanceKm);
-    const maxKm = Number.isFinite(maxKmRaw) && maxKmRaw > 0 ? maxKmRaw : null;
-    const filterByDistance = maxKm !== null && isValidCoord(userLat, userLng);
+  const userLat = user?.direccion?.lat ?? null;
+  const userLng = user?.direccion?.lng ?? null;
+  const maxKmRaw = parseFloat(query.maxDistanceKm);
+  const maxKm = Number.isFinite(maxKmRaw) && maxKmRaw > 0 ? maxKmRaw : null;
+  const filterByDistance = maxKm !== null && isValidCoord(userLat, userLng);
 
-    if (filterByDistance) {
-      // Modo filtro: bbox en Mongo + refine Haversine en memoria + paginación post-refine.
-      // No paginamos en Mongo porque la cantidad de matches dentro del bbox es acotada.
-      const bbox = buildBboxFilter(userLat, userLng, maxKm);
-      const all = await populateTable(
-        Table.find({ ...baseFilter, ...bbox }),
-      ).sort({ date: -1 });
-      const withDistance = attachDistance(all, userLat, userLng).filter(
-        (t) => t.distanceKm !== null && t.distanceKm <= maxKm,
-      );
-      const total = withDistance.length;
-      const slice = withDistance.slice(skip, skip + limit);
-      return res.json({
-        tables: slice,
-        total,
-        page,
-        pages: Math.ceil(total / limit),
-      });
-    }
-
-    // Modo normal: paginar en Mongo, después agregar distanceKm a la página.
-    const [tables, total] = await Promise.all([
-      populateTable(Table.find(baseFilter))
-        .sort({ date: -1 })
-        .skip(skip)
-        .limit(limit),
-      Table.countDocuments(baseFilter),
-    ]);
-    const enriched = attachDistance(tables, userLat, userLng);
-    res.json({
-      tables: enriched,
+  if (filterByDistance) {
+    const bbox = buildBboxFilter(userLat, userLng, maxKm);
+    const all = await populateTable(
+      Table.find({ ...baseFilter, ...bbox }),
+    ).sort({ date: -1 });
+    const withDistance = attachDistance(all, userLat, userLng).filter(
+      (t) => t.distanceKm !== null && t.distanceKm <= maxKm,
+    );
+    const total = withDistance.length;
+    const slice = withDistance.slice(skip, skip + limit);
+    return {
+      tables: slice,
       total,
       page,
       pages: Math.ceil(total / limit),
+    };
+  }
+
+  const [tables, total] = await Promise.all([
+    populateTable(Table.find(baseFilter))
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit),
+    Table.countDocuments(baseFilter),
+  ]);
+  const enriched = attachDistance(tables, userLat, userLng);
+  return {
+    tables: enriched,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  };
+}
+
+// GET /api/tables — public (anon sees only public tables); supports ?page, ?limit, ?search
+// Solo lista mesas GLOBALES (eventoId:null). Las mesas asociadas a un evento
+// se listan via `GET /api/eventos/:id/mesas` y NUNCA aparecen acá.
+router.get("/", optionalAuth, async (req, res) => {
+  try {
+    const result = await listTables({
+      user: req.user,
+      query: req.query,
+      eventoId: null,
     });
+    res.json(result);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
@@ -266,12 +288,40 @@ router.post(
         bggThumbnail,
         bggImage,
         bggYear,
+        eventoId,
       } = req.body;
 
       if (!boardGame || !date || !maxPlayers) {
         return res
           .status(400)
           .json({ message: "Game, date and max players are required" });
+      }
+
+      // Scoping a evento: si se manda `eventoId`, validar permisos contra
+      // canActInEvento (admin del sitio | author del evento | confirmed
+      // registrant). El evento debe existir, no estar draft/cancelled, y
+      // el user debe tener permiso.
+      let validatedEventoId = null;
+      if (eventoId) {
+        const Evento = require("../models/Evento");
+        const { canActInEvento } = require("../utils/eventoPermissions");
+        const evento = await Evento.findById(eventoId).select(
+          "_id author status registrations",
+        );
+        if (!evento) {
+          return res.status(404).json({ message: "Evento no encontrado" });
+        }
+        if (evento.status === "cancelled" || evento.status === "draft") {
+          return res
+            .status(400)
+            .json({ message: "No podés crear mesas en este evento" });
+        }
+        if (!canActInEvento(evento, req.user)) {
+          return res
+            .status(403)
+            .json({ message: "Solo inscriptos confirmados pueden crear mesas en este evento" });
+        }
+        validatedEventoId = evento._id;
       }
 
       const table = await Table.create({
@@ -288,9 +338,56 @@ router.post(
         bggThumbnail: bggThumbnail || null,
         bggImage: bggImage || null,
         bggYear: bggYear || null,
+        eventoId: validatedEventoId,
       });
 
       await table.populate("host", POPULATE_USER_FIELDS);
+
+      // Si la mesa es del evento, notificar a los demás confirmados (excepto
+      // al host de la mesa, que es el actor). Notificación agregable: si el
+      // mismo evento tiene varias mesas creadas, los inscriptos reciben UNA
+      // notif con count incrementado. Además broadcast `evento:mesa-created`
+      // al room del evento para refrescar el listado en EventoDetail.
+      if (validatedEventoId) {
+        const Evento = require("../models/Evento");
+        const evento = await Evento.findById(validatedEventoId).select(
+          "_id title registrations",
+        );
+        if (evento) {
+          const actorId = req.user._id.toString();
+          const recipients = (evento.registrations || [])
+            .filter((r) => r.status === "confirmed")
+            .map((r) => r.user.toString())
+            .filter((id) => id !== actorId);
+          await Promise.all(
+            recipients.map((userId) =>
+              emitNotificationReq(
+                req,
+                userId,
+                "evento_mesa_created",
+                {
+                  eventoId: evento._id.toString(),
+                  eventoTitle: evento.title,
+                  eventoTableId: table._id.toString(),
+                  gameName: table.boardGame,
+                  hostUsername: req.user.username,
+                },
+                "evento:notification",
+                { type: "evento_mesa_created" },
+              ).catch(() => {}),
+            ),
+          );
+          // Broadcast al room del evento (refresca la tab "Mesas" sin
+          // depender de las notifs persistentes).
+          const io = req.app.get("io");
+          if (io) {
+            io.to(`evento:${evento._id}`).emit("evento:mesa-created", {
+              eventoId: evento._id.toString(),
+              tableId: table._id.toString(),
+            });
+          }
+        }
+      }
 
       res.status(201).json(table);
     } catch (err) {
@@ -796,3 +893,7 @@ router.delete(
 );
 
 module.exports = router;
+// Exportamos `listTables` para que el router de eventos (`GET /api/eventos/:id/mesas`)
+// pueda reutilizar exactamente el mismo pipeline (paginación, search, distance,
+// privacy) sin duplicar lógica.
+module.exports.listTables = listTables;

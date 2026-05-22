@@ -1781,5 +1781,9 @@ module.exports.clearUserCache = clearUserCache;
 // Exposed so other routes can kick off an initial / periodic full reconcile
 // in the background after a relevant event (BGG connect, scheduled refresh).
 module.exports.triggerBackgroundReconcile = triggerBackgroundReconcile;
+// Exposed for routes that necesitan hidratar metadata de un juego BGG
+// (e.g. POST /api/eventos/:id/ludoteca, que recibe solo bggGameId del cliente
+// y completa name/thumbnail/year server-side).
+module.exports.resolveGame = resolveGame;
 // Internal: clear the in-memory L1 cache. Tests use this to isolate runs.
 module.exports.__resetCache = () => cache.clear();

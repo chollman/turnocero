@@ -17,6 +17,9 @@ const {
   isEmptyLocation,
 } = require("../utils/locationHelpers");
 const { emitNotificationReq } = require("../utils/emitNotification");
+const { canActInEvento } = require("../utils/eventoPermissions");
+const { resolveGame } = require("./bgg");
+const { listTables } = require("./tables");
 
 router.use(requireSection("eventos"));
 
@@ -95,6 +98,51 @@ function notifyOne(req, recipientId, type, fields, actorId) {
   ).catch(() => {
     /* best-effort */
   });
+}
+
+// Cancela todas las mesas asociadas al evento (en cascada cuando el evento
+// se cancela o elimina). Emite `table:cancelled` a cada participante de cada
+// mesa para que su UI lo refleje sin refresh. Idempotente: si una mesa ya
+// está cancelled, no se toca.
+async function cancelAssociatedTables(req, eventoId) {
+  const Table = require("../models/Table");
+  const tables = await Table.find({
+    eventoId,
+    status: { $ne: "cancelled" },
+  }).select("_id boardGame host players followers");
+  if (tables.length === 0) return;
+
+  await Table.updateMany(
+    { _id: { $in: tables.map((t) => t._id) } },
+    { $set: { status: "cancelled" } },
+  );
+
+  // Notif persistente + emit a cada participante (members + followers, sin host
+  // duplicado). Reusa el mismo helper que el handler DELETE /api/tables/:id.
+  for (const table of tables) {
+    const hostId = table.host.toString();
+    const recipients = new Set([
+      ...table.players.map((p) => p.toString()),
+      ...table.followers.map((f) => f.toString()),
+    ]);
+    recipients.delete(hostId);
+    // El host también recibe notif: la cancelación no fue iniciada por él.
+    recipients.add(hostId);
+    await Promise.all(
+      [...recipients].map((userId) =>
+        emitNotificationReq(
+          req,
+          userId,
+          "table_cancelled",
+          {
+            tableId: table._id.toString(),
+            tableName: table.boardGame,
+          },
+          "table:cancelled",
+        ).catch(() => {}),
+      ),
+    );
+  }
 }
 
 // Notifica a todos los inscriptos activos (confirmed + pending) de un evento,
@@ -673,6 +721,8 @@ router.put(
           {},
           evento.author,
         );
+        // Cascade: cancelar todas las mesas del evento + notif a participantes.
+        await cancelAssociatedTables(req, evento._id);
       } else {
         // Si NO se canceló, chequear si cambió fecha o ubicación. Otros campos
         // (descripción, fee, etc.) no notifican — no son tan críticos.
@@ -757,6 +807,11 @@ router.delete("/:id", protect, requireAdmin, async (req, res) => {
       { eventoDeleted: true },
       evento.author,
     );
+
+    // Cascade: cancelar todas las mesas asociadas (igual que en PUT cuando
+    // status pasa a 'cancelled'). Sin esto las mesas quedarían "huérfanas"
+    // con eventoId apuntando a un Evento que ya no existe.
+    await cancelAssociatedTables(req, evento._id);
 
     await evento.deleteOne();
 
@@ -1332,5 +1387,251 @@ router.patch(
     }
   },
 );
+
+// ─────────────────────────────────────────────────────────────────────
+// Ludoteca del Evento
+// Cada user (confirmed registrant + admin del evento + admin del sitio)
+// puede agregar juegos. La metadata BGG (name, thumbnail, year, players)
+// se hidrata server-side via resolveGame() — el cliente solo manda
+// `bggGameId` + `notes` opcional.
+// ─────────────────────────────────────────────────────────────────────
+
+const POPULATE_LUDOTECA_USER = "username displayName avatar";
+
+// GET /:id/ludoteca — público (visible para cualquiera que pueda ver el evento)
+router.get("/:id/ludoteca", optionalAuth, async (req, res) => {
+  try {
+    const evento = await Evento.findById(req.params.id)
+      .select("status author ludoteca")
+      .populate("ludoteca.addedBy", POPULATE_LUDOTECA_USER);
+    if (!evento) {
+      return res.status(404).json({ message: "Evento no encontrado" });
+    }
+    // Drafts/cancelled solo visibles a admins (consistente con GET /:id).
+    const isAdmin = !!req.user?.isAdmin;
+    if ((evento.status === "draft" || evento.status === "cancelled") && !isAdmin) {
+      return res.status(404).json({ message: "Evento no encontrado" });
+    }
+    res.json({ items: evento.ludoteca || [] });
+  } catch (err) {
+    res.status(500).json({ message: "Error al cargar la ludoteca" });
+  }
+});
+
+// POST /:id/ludoteca — agregar juego (confirmados + admin)
+router.post("/:id/ludoteca", protect, async (req, res) => {
+  try {
+    const { bggGameId, notes } = req.body;
+    const numericId = Number(bggGameId);
+    if (!Number.isFinite(numericId) || numericId <= 0) {
+      return res.status(400).json({ message: "bggGameId inválido" });
+    }
+    if (notes && typeof notes === "string" && notes.length > 200) {
+      return res.status(400).json({ message: "Las notas no pueden superar 200 caracteres" });
+    }
+
+    const evento = await Evento.findById(req.params.id).select(
+      "status author registrations ludoteca title",
+    );
+    if (!evento) {
+      return res.status(404).json({ message: "Evento no encontrado" });
+    }
+    if (evento.status === "cancelled") {
+      return res.status(400).json({ message: "El evento está cancelado" });
+    }
+    if (!canActInEvento(evento, req.user)) {
+      return res
+        .status(403)
+        .json({ message: "Solo inscriptos confirmados pueden agregar juegos" });
+    }
+
+    // Dedupe lógico por (addedBy, bggGameId) — un user no agrega el mismo juego dos veces.
+    const myId = req.user._id.toString();
+    const alreadyMine = (evento.ludoteca || []).some(
+      (item) =>
+        item.bggGameId === numericId && item.addedBy.toString() === myId,
+    );
+    if (alreadyMine) {
+      return res.status(409).json({ message: "Ya agregaste este juego" });
+    }
+
+    // Hidratar metadata desde BGG (cache 30min memoria + Mongo permanente).
+    const game = await resolveGame(numericId);
+    if (!game) {
+      return res
+        .status(404)
+        .json({ message: "Juego no encontrado en BoardGameGeek" });
+    }
+
+    evento.ludoteca.push({
+      bggGameId: numericId,
+      gameName: game.name,
+      thumbnail: game.thumbnail || "",
+      image: game.image || "",
+      year: game.year ?? null,
+      minPlayers: game.minPlayers ?? null,
+      maxPlayers: game.maxPlayers ?? null,
+      addedBy: req.user._id,
+      addedAt: new Date(),
+      notes: (notes || "").trim(),
+    });
+    await evento.save();
+
+    // Devolvemos el item con addedBy populated para que el cliente lo renderice.
+    await evento.populate("ludoteca.addedBy", POPULATE_LUDOTECA_USER);
+    const newItem = evento.ludoteca[evento.ludoteca.length - 1];
+
+    // Broadcast al room del evento para que las pestañas abiertas refresquen.
+    emitToEventoRoom(req, evento._id, "evento:ludoteca-changed", {
+      eventoId: evento._id.toString(),
+      action: "added",
+      item: newItem,
+    });
+
+    // Notificación persistente a todos los confirmados excepto al actor.
+    const actorId = req.user._id.toString();
+    const recipients = (evento.registrations || [])
+      .filter((r) => r.status === "confirmed")
+      .map((r) => r.user.toString())
+      .filter((id) => id !== actorId);
+    await Promise.all(
+      recipients.map((userId) =>
+        emitNotificationReq(
+          req,
+          userId,
+          "evento_ludoteca_added",
+          {
+            eventoId: evento._id.toString(),
+            eventoTitle: evento.title,
+            gameName: game.name,
+            addedByUsername: req.user.username,
+          },
+          "evento:notification",
+          { type: "evento_ludoteca_added" },
+        ).catch(() => {}),
+      ),
+    );
+
+    res.status(201).json({ item: newItem });
+  } catch (err) {
+    console.error("POST /api/eventos/:id/ludoteca:", err.message);
+    res.status(500).json({ message: "Error al agregar el juego" });
+  }
+});
+
+// PATCH /:id/ludoteca/:itemId — editar notas (owner o admin)
+router.patch("/:id/ludoteca/:itemId", protect, async (req, res) => {
+  try {
+    const { notes } = req.body;
+    if (notes != null && typeof notes !== "string") {
+      return res.status(400).json({ message: "notes debe ser string" });
+    }
+    if (notes && notes.length > 200) {
+      return res.status(400).json({ message: "Las notas no pueden superar 200 caracteres" });
+    }
+
+    const evento = await Evento.findById(req.params.id).select(
+      "ludoteca status author",
+    );
+    if (!evento) {
+      return res.status(404).json({ message: "Evento no encontrado" });
+    }
+    const item = evento.ludoteca.id(req.params.itemId);
+    if (!item) {
+      return res.status(404).json({ message: "Juego no encontrado" });
+    }
+    const isOwner = item.addedBy.toString() === req.user._id.toString();
+    const isAdmin =
+      !!req.user.isAdmin ||
+      evento.author.toString() === req.user._id.toString();
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "No podés editar este juego" });
+    }
+
+    item.notes = (notes || "").trim();
+    await evento.save();
+
+    await evento.populate("ludoteca.addedBy", POPULATE_LUDOTECA_USER);
+    const updated = evento.ludoteca.id(req.params.itemId);
+
+    emitToEventoRoom(req, evento._id, "evento:ludoteca-changed", {
+      eventoId: evento._id.toString(),
+      action: "updated",
+      item: updated,
+    });
+
+    res.json({ item: updated });
+  } catch (err) {
+    console.error("PATCH /api/eventos/:id/ludoteca/:itemId:", err.message);
+    res.status(500).json({ message: "Error al editar el juego" });
+  }
+});
+
+// DELETE /:id/ludoteca/:itemId — quitar juego (owner o admin)
+router.delete("/:id/ludoteca/:itemId", protect, async (req, res) => {
+  try {
+    const evento = await Evento.findById(req.params.id).select(
+      "ludoteca author",
+    );
+    if (!evento) {
+      return res.status(404).json({ message: "Evento no encontrado" });
+    }
+    const item = evento.ludoteca.id(req.params.itemId);
+    if (!item) {
+      return res.status(404).json({ message: "Juego no encontrado" });
+    }
+    const isOwner = item.addedBy.toString() === req.user._id.toString();
+    const isAdmin =
+      !!req.user.isAdmin ||
+      evento.author.toString() === req.user._id.toString();
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "No podés quitar este juego" });
+    }
+
+    const itemId = item._id.toString();
+    item.deleteOne();
+    await evento.save();
+
+    emitToEventoRoom(req, evento._id, "evento:ludoteca-changed", {
+      eventoId: evento._id.toString(),
+      action: "removed",
+      itemId,
+    });
+
+    res.json({ removed: itemId });
+  } catch (err) {
+    console.error("DELETE /api/eventos/:id/ludoteca/:itemId:", err.message);
+    res.status(500).json({ message: "Error al quitar el juego" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Mesas del Evento
+// Listado de mesas asociadas al evento. Reusa el pipeline del listado
+// global (`listTables` exportado por routes/tables.js) — paginación,
+// search, distance, privacy gating funcionan idéntico. Cambia solo el
+// filtro: en vez de `eventoId:null` se filtra por el id del evento.
+// ─────────────────────────────────────────────────────────────────────
+router.get("/:id/mesas", optionalAuth, async (req, res) => {
+  try {
+    const evento = await Evento.findById(req.params.id).select("status");
+    if (!evento) {
+      return res.status(404).json({ message: "Evento no encontrado" });
+    }
+    const isAdmin = !!req.user?.isAdmin;
+    if ((evento.status === "draft" || evento.status === "cancelled") && !isAdmin) {
+      return res.status(404).json({ message: "Evento no encontrado" });
+    }
+    const result = await listTables({
+      user: req.user,
+      query: req.query,
+      eventoId: req.params.id,
+    });
+    res.json(result);
+  } catch (err) {
+    console.error("GET /api/eventos/:id/mesas:", err.message);
+    res.status(500).json({ message: "Error al cargar las mesas del evento" });
+  }
+});
 
 module.exports = router;
