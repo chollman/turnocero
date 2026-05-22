@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import useDebouncedValue from '../../hooks/useDebouncedValue';
 import PlaceAutocomplete from '../../components/shared/PlaceAutocomplete';
 import styles from './CreateTable.module.css';
 
@@ -26,6 +27,7 @@ export default function CreateTable() {
   });
   const [geocoding, setGeocoding] = useState(false);
   const [boardGameInput, setBoardGameInput] = useState('');
+  const debouncedBoardGameInput = useDebouncedValue(boardGameInput, 400);
   const [boardGameSelected, setBoardGameSelected] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -39,7 +41,7 @@ export default function CreateTable() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (boardGameInput.length < 3 || boardGameSelected) {
+    if (debouncedBoardGameInput.length < 3 || boardGameSelected) {
       setSuggestions([]);
       setShowDropdown(false);
       setSearching(false);
@@ -47,13 +49,14 @@ export default function CreateTable() {
       return;
     }
 
-    const q = boardGameInput.toLowerCase();
+    const q = debouncedBoardGameInput.toLowerCase();
 
     const cached = searchCache.current.get(q);
     if (cached) {
       setSuggestions(cached);
       setShowDropdown(cached.length > 0);
       setNoResults(cached.length === 0);
+      setSearching(false);
       return;
     }
 
@@ -61,13 +64,15 @@ export default function CreateTable() {
     setNoResults(false);
     setShowDropdown(false);
 
-    const timer = setTimeout(async () => {
-      if (abortRef.current) abortRef.current.abort();
-      abortRef.current = new AbortController();
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+    const signal = abortRef.current.signal;
+    (async () => {
       try {
-        const res = await axios.get(`/api/bgg/search?q=${encodeURIComponent(boardGameInput)}`, {
-          signal: abortRef.current.signal,
+        const res = await axios.get(`/api/bgg/search?q=${encodeURIComponent(debouncedBoardGameInput)}`, {
+          signal,
         });
+        if (signal.aborted) return;
         searchCache.current.set(q, res.data);
         setSuggestions(res.data);
         if (res.data.length > 0) {
@@ -78,11 +83,13 @@ export default function CreateTable() {
       } catch (err) {
         if (!axios.isCancel(err)) setSuggestions([]);
       } finally {
-        setSearching(false);
+        if (!signal.aborted) setSearching(false);
       }
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [boardGameInput, boardGameSelected]);
+    })();
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, [debouncedBoardGameInput, boardGameSelected]);
 
   useEffect(() => {
     const handler = (e) => {

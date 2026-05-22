@@ -1,6 +1,6 @@
-const cron = require('node-cron');
-const eventoReminders = require('./eventoReminders');
-const logger = require('../utils/logger');
+const cron = require("node-cron");
+const eventoReminders = require("./eventoReminders");
+const logger = require("../utils/logger");
 
 /**
  * Registra y arranca todos los cron jobs de la app.
@@ -16,21 +16,21 @@ const logger = require('../utils/logger');
  */
 function startSchedulers({ io } = {}) {
   // Recordatorios 24h antes de eventos — corre cada hora al minuto 0.
-  cron.schedule('0 * * * *', async () => {
+  cron.schedule("0 * * * *", async () => {
     try {
       const result = await eventoReminders.runOnce();
       if (result.notifsCreated > 0) {
-        logger.info('[eventoReminders] tick', result);
+        logger.info("[eventoReminders] tick", result);
       }
     } catch (err) {
-      logger.error('[eventoReminders] tick failed', { error: err.message });
+      logger.error("[eventoReminders] tick failed", { error: err.message });
     }
   });
 
   // Marcador defensivo: el cron arranca al cargarse. Si en el futuro suman más
   // jobs, agregarlos acá manteniendo el mismo patrón (try/catch + logger.info
   // solo cuando hicieron trabajo).
-  logger.info('[scheduler] cron jobs started');
+  logger.info("[scheduler] cron jobs started");
 }
 
 module.exports = { startSchedulers };

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../test/server';
@@ -91,5 +91,44 @@ describe('<AddParticipantModal>', () => {
     const closeButtons = screen.getAllByRole('button', { name: 'Cerrar' });
     fireEvent.click(closeButtons[closeButtons.length - 1]);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  describe('debounce', () => {
+    it('does NOT call /api/users while typing — only after the 250ms debounce settles', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: false });
+      try {
+        let callCount = 0;
+        server.use(
+          http.get('/api/users', () => {
+            callCount += 1;
+            return HttpResponse.json([]);
+          }),
+        );
+        renderModal();
+
+        // Mount: el primer fetch (debouncedSearch === '') sale enseguida.
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(0);
+        });
+        const baseline = callCount;
+        expect(baseline).toBeGreaterThanOrEqual(1);
+
+        const input = screen.getByPlaceholderText(/buscar usuario/i);
+        fireEvent.change(input, { target: { value: 'al' } });
+        // Antes del delay → sin nuevo fetch.
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(150);
+        });
+        expect(callCount).toBe(baseline);
+
+        // Pasados los 250ms → dispara el fetch con el query.
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(250);
+        });
+        expect(callCount).toBe(baseline + 1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

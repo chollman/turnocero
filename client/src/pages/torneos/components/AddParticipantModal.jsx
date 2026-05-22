@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
+import useDebouncedValue from '../../../hooks/useDebouncedValue'
 import UserRef from '../../../components/shared/UserRef'
 import { getUserDisplay } from '../../../utils/userDisplay'
 import ModalPortal from '../../../components/shared/ModalPortal'
@@ -7,32 +8,33 @@ import styles from '../TorneoDetail.module.css'
 
 export default function AddParticipantModal({ torneo, onClose, onChange }) {
   const [search, setSearch]       = useState('')
+  const debouncedSearch = useDebouncedValue(search, 250)
   const [results, setResults]     = useState([])
   const [loading, setLoading]     = useState(false)
   const [adding, setAdding]       = useState(null)
   const [error, setError]         = useState('')
-  const debounceRef = useRef(null)
 
   const participantIds = new Set((torneo.participants || []).map((p) => String(p._id || p)))
   const pendingIds     = new Set((torneo.pendingRegistrations || []).map((r) => String(r.user?._id || r.user)))
   const cupoLleno = torneo.maxParticipants && (torneo.participants?.length || 0) >= torneo.maxParticipants
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(async () => {
+    let cancelled = false
+    const load = async () => {
       setLoading(true)
       setError('')
       try {
-        const { data } = await axios.get('/api/users', { params: search ? { search } : {} })
-        setResults(data || [])
+        const { data } = await axios.get('/api/users', { params: debouncedSearch ? { search: debouncedSearch } : {} })
+        if (!cancelled) setResults(data || [])
       } catch (err) {
-        setError(err.response?.data?.message || 'Error al buscar usuarios')
+        if (!cancelled) setError(err.response?.data?.message || 'Error al buscar usuarios')
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
-    }, 250)
-    return () => clearTimeout(debounceRef.current)
-  }, [search])
+    }
+    load()
+    return () => { cancelled = true }
+  }, [debouncedSearch])
 
   const addUser = async (userId) => {
     setAdding(userId); setError('')

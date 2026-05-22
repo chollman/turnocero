@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import Avatar from "../../components/shared/Avatar";
 import styles from "./UsersList.module.css";
@@ -204,7 +205,7 @@ export default function UsersList() {
   const [activeOnly, setActiveOnly] = useState(false);
   const [friendsOnly, setFriendsOnly] = useState(false);
   const [bgWatchOnly, setBgWatchOnly] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 350);
 
   const [banTarget, setBanTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -215,7 +216,7 @@ export default function UsersList() {
     setLoading(true);
     try {
       const params = { sortBy };
-      if (search) params.search = search;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (activeOnly) params.activeOnly = "true";
       if (friendsOnly) params.friendsOnly = "true";
       if (bgWatchOnly) params.bgWatchOnly = "true";
@@ -226,16 +227,11 @@ export default function UsersList() {
     } finally {
       setLoading(false);
     }
-  }, [search, sortBy, activeOnly, friendsOnly, bgWatchOnly]);
+  }, [debouncedSearch, sortBy, activeOnly, friendsOnly, bgWatchOnly]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setSearch(searchInput), 350);
-    return () => clearTimeout(timeout);
-  }, [searchInput]);
 
   const handleBanConfirm = async (reason) => {
     if (!banTarget) return;
@@ -371,16 +367,13 @@ export default function UsersList() {
             className={styles.searchInput}
             type="text"
             placeholder="Buscar por usuario o nombre…"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
-          {searchInput && (
+          {search && (
             <button
               className={styles.clearBtn}
-              onClick={() => {
-                setSearchInput("");
-                setSearch("");
-              }}
+              onClick={() => setSearch("")}
             >
               ✕
             </button>
@@ -481,7 +474,6 @@ export default function UsersList() {
             <button
               className={styles.clearFiltersBtn}
               onClick={() => {
-                setSearchInput("");
                 setSearch("");
                 setActiveOnly(false);
                 setFriendsOnly(false);

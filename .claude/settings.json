@@ -1,6 +1,17 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__Claude_Preview__preview_eval",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/preview-login.js"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",

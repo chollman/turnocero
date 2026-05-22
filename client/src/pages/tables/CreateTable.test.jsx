@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../test/server';
@@ -157,5 +157,44 @@ describe('<CreateTable> — Ubicación (opcional, sin mapa)', () => {
     renderPage();
     expect(screen.getByText(/la mesa se publica sin ubicación/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /agregá una dirección a tu perfil/i })).toHaveAttribute('href', '/perfil');
+  });
+});
+
+describe('<CreateTable> — debounce BGG search', () => {
+  it('does NOT call /api/bgg/search while typing — only after the 400ms debounce settles', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: false });
+    try {
+      let callCount = 0;
+      server.use(
+        http.get('/api/bgg/search', () => {
+          callCount += 1;
+          return HttpResponse.json([]);
+        }),
+      );
+      renderPage();
+
+      const input = screen.getByPlaceholderText(/buscá un juego/i);
+      fireEvent.change(input, { target: { value: 'cat' } });
+      // Antes del delay no debe haber pegado al backend.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(200);
+      });
+      expect(callCount).toBe(0);
+
+      // Más cambios dentro del delay → reinicia el timer.
+      fireEvent.change(input, { target: { value: 'catan' } });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+      expect(callCount).toBe(0);
+
+      // Tras los 400ms desde el último cambio → fetch dispara una sola vez.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+      expect(callCount).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

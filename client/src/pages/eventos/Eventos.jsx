@@ -9,7 +9,9 @@ import {
 import axios from "axios";
 import { io } from "socket.io-client";
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 import useLocalStorageState from "../../utils/useLocalStorageState";
 import { groupByMonth, MESES_LARGO } from "../../utils/eventoDate";
 import TimelineRow from "./TimelineRow";
@@ -28,16 +30,23 @@ const ALL_FILTERS = [
   { value: "cancelled", label: "Cancelados", adminOnly: true },
 ];
 
+// Radio máximo del slider de distancia (km). 0 = sin filtro.
+const MAX_RADIUS_KM = 100;
+
 export default function Eventos() {
   const { user } = useAuth();
   const isAdmin = !!user?.isAdmin;
   const userId = user?._id;
+  const hasDireccion = Boolean(user?.direccion?.lat && user?.direccion?.lng);
 
   const [eventos, setEventos] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  // Slider de radio. 0 = sin filtro (default). Solo se aplica si user tiene direccion.
+  const [radiusKm, setRadiusKm] = useState(0);
+  const debouncedRadius = useDebouncedValue(radiusKm, 300);
   // Default 'open' — al entrar el usuario ve sólo los eventos abiertos a inscripción.
   // Persistimos en localStorage para que la elección sobreviva entre sesiones;
   // si el chip guardado deja de ser visible (admin degradado, logout), un effect
@@ -78,6 +87,9 @@ export default function Eventos() {
         ) {
           params.status = filter;
         }
+        if (hasDireccion && debouncedRadius > 0) {
+          params.maxDistanceKm = debouncedRadius;
+        }
         const { data } = await axios.get("/api/eventos", { params });
         setEventos((prev) =>
           replace ? data.eventos : [...prev, ...data.eventos],
@@ -91,7 +103,7 @@ export default function Eventos() {
         setLoadingMore(false);
       }
     },
-    [filter],
+    [filter, hasDireccion, debouncedRadius],
   );
 
   useEffect(() => {
@@ -386,6 +398,55 @@ export default function Eventos() {
           )}
         </div>
       </div>
+
+      {/* Filtro por radio (logged-in only) */}
+      {user && (
+        <div className={styles.radiusRow}>
+          <div className={styles.radiusLabel}>
+            <span className={styles.radiusIcon} aria-hidden="true">📍</span>
+            <span>
+              {hasDireccion
+                ? (radiusKm > 0
+                    ? <>Mostrando eventos a <strong>menos de {radiusKm} km</strong> de tu ubicación</>
+                    : <>Filtrá por <strong>distancia</strong> desde tu ubicación</>)
+                : <>Agregá tu dirección en <Link to="/perfil" className={styles.radiusInlineLink}>tu perfil</Link> para filtrar eventos por distancia</>}
+            </span>
+          </div>
+          <div className={styles.radiusControls}>
+            <button
+              type="button"
+              className={styles.radiusStep}
+              onClick={() => setRadiusKm((r) => Math.max(0, r - 1))}
+              disabled={!hasDireccion || radiusKm <= 0}
+              aria-label="Disminuir radio 1 km"
+              title="−1 km"
+            >−</button>
+            <input
+              type="range"
+              min="0"
+              max={MAX_RADIUS_KM}
+              step="1"
+              value={radiusKm}
+              onChange={(e) => setRadiusKm(Number(e.target.value))}
+              className={styles.radiusSlider}
+              disabled={!hasDireccion}
+              aria-label="Radio máximo en kilómetros"
+              title={hasDireccion ? `Radio: ${radiusKm || 'Sin límite'}` : 'Agregá tu dirección en el perfil para activar este filtro'}
+            />
+            <button
+              type="button"
+              className={styles.radiusStep}
+              onClick={() => setRadiusKm((r) => Math.min(MAX_RADIUS_KM, r + 1))}
+              disabled={!hasDireccion || radiusKm >= MAX_RADIUS_KM}
+              aria-label="Aumentar radio 1 km"
+              title="+1 km"
+            >+</button>
+            <span className={styles.radiusValue}>
+              {radiusKm > 0 ? `${radiusKm} km` : 'Sin límite'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Create form */}
       {isAdmin && creating && (

@@ -42,3 +42,6 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code — hook cache (contains short-lived test JWTs)
+.claude/cache/

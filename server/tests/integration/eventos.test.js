@@ -158,7 +158,6 @@ describe("GET /api/eventos", () => {
 
     await request(app).get("/api/eventos");
 
-    const idStr = stale._id.toString();
     const listEmits = global.__ioStub.emitted.filter(
       (e) => e.room === "eventos:list" && e.event === "evento:updated",
     );
@@ -210,15 +209,27 @@ describe("GET /api/eventos", () => {
 
 describe("GET /api/eventos — distance computation", () => {
   const obelisco = { lat: -34.6037, lng: -58.3816 };
-  const laPlata  = { lat: -34.9215, lng: -57.9545 };  // ~56km
-  const rosario  = { lat: -32.9442, lng: -60.6505 };  // ~280km
+  const laPlata = { lat: -34.9215, lng: -57.9545 }; // ~56km
+  const rosario = { lat: -32.9442, lng: -60.6505 }; // ~280km
 
   async function setupEventos() {
     const admin = await createUser({ isAdmin: true });
-    await createEvento(admin, { title: "Cerca", location: { texto: "Obelisco", ...obelisco } });
-    await createEvento(admin, { title: "Medio", location: { texto: "La Plata", ...laPlata } });
-    await createEvento(admin, { title: "Lejos", location: { texto: "Rosario", ...rosario } });
-    await createEvento(admin, { title: "Sin coords", location: { texto: "Sin coords" } });
+    await createEvento(admin, {
+      title: "Cerca",
+      location: { texto: "Obelisco", ...obelisco },
+    });
+    await createEvento(admin, {
+      title: "Medio",
+      location: { texto: "La Plata", ...laPlata },
+    });
+    await createEvento(admin, {
+      title: "Lejos",
+      location: { texto: "Rosario", ...rosario },
+    });
+    await createEvento(admin, {
+      title: "Sin coords",
+      location: { texto: "Sin coords" },
+    });
     return admin;
   }
 
@@ -233,7 +244,9 @@ describe("GET /api/eventos — distance computation", () => {
       .set("Authorization", `Bearer ${tokenFor(user)}`);
 
     expect(res.status).toBe(200);
-    const byTitle = Object.fromEntries(res.body.eventos.map((e) => [e.title, e.distanceKm]));
+    const byTitle = Object.fromEntries(
+      res.body.eventos.map((e) => [e.title, e.distanceKm]),
+    );
     expect(byTitle["Cerca"]).toBeCloseTo(0, 1);
     expect(byTitle["Medio"]).toBeGreaterThan(50);
     expect(byTitle["Medio"]).toBeLessThan(62);
@@ -308,11 +321,17 @@ describe("POST /api/eventos — location obligatoria", () => {
       .set("Authorization", `Bearer ${token}`)
       .field("title", "Mi evento")
       .field("eventDate", new Date(Date.now() + 14 * 86400000).toISOString())
-      .field("location", JSON.stringify({ texto: "Bar X", lat: -34.5, lng: -58.5 }));
+      .field(
+        "location",
+        JSON.stringify({ texto: "Bar X", lat: -34.5, lng: -58.5 }),
+      );
 
     expect(res.status).toBe(201);
     expect(res.body.location).toEqual({
-      texto: "Bar X", lat: -34.5, lng: -58.5, displayName: "",
+      texto: "Bar X",
+      lat: -34.5,
+      lng: -58.5,
+      displayName: "",
     });
   });
 
@@ -323,12 +342,15 @@ describe("POST /api/eventos — location obligatoria", () => {
       .set("Authorization", `Bearer ${token}`)
       .field("title", "Mi evento")
       .field("eventDate", new Date(Date.now() + 14 * 86400000).toISOString())
-      .field("location", JSON.stringify({
-        texto: "Av. Corrientes 1234, CABA",
-        lat: -34.6,
-        lng: -58.4,
-        displayName: "Bar de Pepe",
-      }));
+      .field(
+        "location",
+        JSON.stringify({
+          texto: "Av. Corrientes 1234, CABA",
+          lat: -34.6,
+          lng: -58.4,
+          displayName: "Bar de Pepe",
+        }),
+      );
 
     expect(res.status).toBe(201);
     expect(res.body.location.displayName).toBe("Bar de Pepe");
@@ -342,7 +364,10 @@ describe("POST /api/eventos — location obligatoria", () => {
       .set("Authorization", `Bearer ${token}`)
       .field("title", "Mi evento")
       .field("eventDate", new Date(Date.now() + 14 * 86400000).toISOString())
-      .field("location", JSON.stringify({ texto: "Bar Pepe", lat: null, lng: null }));
+      .field(
+        "location",
+        JSON.stringify({ texto: "Bar Pepe", lat: null, lng: null }),
+      );
 
     expect(res.status).toBe(201);
     expect(res.body.location.texto).toBe("Bar Pepe");
@@ -414,7 +439,10 @@ describe("PUT /api/eventos/:id", () => {
 
   it("PUT rechaza con 400 si se intenta limpiar location explícitamente", async () => {
     const admin = await createUser({ isAdmin: true });
-    const evento = await createEvento(admin, { title: "X", location: "Bar Pepe" });
+    const evento = await createEvento(admin, {
+      title: "X",
+      location: "Bar Pepe",
+    });
 
     const res = await request(app)
       .put(`/api/eventos/${evento._id}`)
@@ -1270,7 +1298,10 @@ describe("Notificaciones a usuarios — eventos", () => {
       .set("Authorization", `Bearer ${tokenFor(admin)}`);
     expect(res.status).toBe(200);
 
-    const notifs = await Notification.find({ recipient: user._id, type: "evento_confirmed" });
+    const notifs = await Notification.find({
+      recipient: user._id,
+      type: "evento_confirmed",
+    });
     expect(notifs.length).toBe(1);
     expect(notifs[0].eventoId).toBe(evento._id.toString());
     expect(notifs[0].eventoTitle).toBe("Torneo X");
@@ -1288,7 +1319,10 @@ describe("Notificaciones a usuarios — eventos", () => {
       .set("Authorization", `Bearer ${tokenFor(admin)}`)
       .send({ permanent: true });
 
-    const notif = await Notification.findOne({ recipient: user._id, type: "evento_rejected" });
+    const notif = await Notification.findOne({
+      recipient: user._id,
+      type: "evento_rejected",
+    });
     expect(notif).not.toBeNull();
     expect(notif.permanentlyRejected).toBe(true);
   });
@@ -1310,10 +1344,22 @@ describe("Notificaciones a usuarios — eventos", () => {
       .delete(`/api/eventos/${evento._id}`)
       .set("Authorization", `Bearer ${tokenFor(admin)}`);
 
-    const notifsA = await Notification.find({ recipient: a._id, type: "evento_cancelled" });
-    const notifsB = await Notification.find({ recipient: b._id, type: "evento_cancelled" });
-    const notifsC = await Notification.find({ recipient: c._id, type: "evento_cancelled" });
-    const notifsAdmin = await Notification.find({ recipient: admin._id, type: "evento_cancelled" });
+    const notifsA = await Notification.find({
+      recipient: a._id,
+      type: "evento_cancelled",
+    });
+    const notifsB = await Notification.find({
+      recipient: b._id,
+      type: "evento_cancelled",
+    });
+    const notifsC = await Notification.find({
+      recipient: c._id,
+      type: "evento_cancelled",
+    });
+    const notifsAdmin = await Notification.find({
+      recipient: admin._id,
+      type: "evento_cancelled",
+    });
     expect(notifsA.length).toBe(1);
     expect(notifsB.length).toBe(1);
     expect(notifsC.length).toBe(0);
@@ -1333,8 +1379,14 @@ describe("Notificaciones a usuarios — eventos", () => {
       .field("eventDate", evento.eventDate.toISOString())
       .field("status", "cancelled");
 
-    const cancelled = await Notification.find({ recipient: user._id, type: "evento_cancelled" });
-    const updated = await Notification.find({ recipient: user._id, type: "evento_updated" });
+    const cancelled = await Notification.find({
+      recipient: user._id,
+      type: "evento_cancelled",
+    });
+    const updated = await Notification.find({
+      recipient: user._id,
+      type: "evento_updated",
+    });
     expect(cancelled.length).toBe(1);
     expect(updated.length).toBe(0);
   });
@@ -1352,7 +1404,10 @@ describe("Notificaciones a usuarios — eventos", () => {
       .set("Authorization", `Bearer ${tokenFor(admin)}`)
       .field("eventDate", newDate);
 
-    const notif = await Notification.findOne({ recipient: user._id, type: "evento_updated" });
+    const notif = await Notification.findOne({
+      recipient: user._id,
+      type: "evento_updated",
+    });
     expect(notif).not.toBeNull();
     expect(notif.changedFields).toContain("eventDate");
   });
@@ -1369,9 +1424,15 @@ describe("Notificaciones a usuarios — eventos", () => {
       .put(`/api/eventos/${evento._id}`)
       .set("Authorization", `Bearer ${tokenFor(admin)}`)
       .field("eventDate", evento.eventDate.toISOString())
-      .field("location", JSON.stringify({ texto: "Lugar nuevo", lat: -34.7, lng: -58.5 }));
+      .field(
+        "location",
+        JSON.stringify({ texto: "Lugar nuevo", lat: -34.7, lng: -58.5 }),
+      );
 
-    const notif = await Notification.findOne({ recipient: user._id, type: "evento_updated" });
+    const notif = await Notification.findOne({
+      recipient: user._id,
+      type: "evento_updated",
+    });
     expect(notif).not.toBeNull();
     expect(notif.changedFields).toContain("location");
   });
@@ -1390,7 +1451,10 @@ describe("Notificaciones a usuarios — eventos", () => {
       .field("eventDate", evento.eventDate.toISOString())
       .field("description", "Nueva descripción");
 
-    const notifs = await Notification.find({ recipient: user._id, type: "evento_updated" });
+    const notifs = await Notification.find({
+      recipient: user._id,
+      type: "evento_updated",
+    });
     expect(notifs.length).toBe(0);
   });
 });

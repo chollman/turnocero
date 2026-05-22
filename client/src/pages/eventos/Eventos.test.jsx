@@ -541,6 +541,85 @@ describe("<Eventos>", () => {
     expect(screen.queryByText("Va a cerrar")).not.toBeInTheDocument();
   });
 
+  it("renders the radius slider + step buttons for logged-in users", async () => {
+    renderPage({ user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } } });
+    await screen.findByText("Open House");
+    expect(screen.getByLabelText(/radio máximo/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /disminuir radio/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /aumentar radio/i })).toBeInTheDocument();
+  });
+
+  it("shows the 'Agregá tu dirección' CTA and disables controls when user has no direccion", async () => {
+    renderPage({ user: { _id: "me" } });
+    await screen.findByText("Open House");
+    expect(screen.getByText(/agregá tu dirección/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /tu perfil/i })).toHaveAttribute("href", "/perfil");
+    expect(screen.getByLabelText(/radio máximo/i)).toBeDisabled();
+    expect(screen.getByRole("button", { name: /disminuir radio/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /aumentar radio/i })).toBeDisabled();
+  });
+
+  it("sends ?maxDistanceKm after the debounce when the slider moves", async () => {
+    let lastUrl = null;
+    server.use(
+      http.get("/api/eventos", ({ request }) => {
+        lastUrl = request.url;
+        return HttpResponse.json({
+          eventos: [makeEvento({ _id: "a", title: "Cercano" })],
+          page: 1,
+          pages: 1,
+          total: 1,
+        });
+      }),
+    );
+    renderPage({ user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } } });
+    await screen.findByText("Cercano");
+
+    fireEvent.change(screen.getByLabelText(/radio máximo/i), { target: { value: "25" } });
+    expect(await screen.findByText("25 km")).toBeInTheDocument();
+    await waitFor(
+      () => {
+        expect(lastUrl).toMatch(/maxDistanceKm=25/);
+      },
+      { timeout: 1500 },
+    );
+  });
+
+  it("does NOT send maxDistanceKm when the slider stays at 0", async () => {
+    let lastUrl = null;
+    server.use(
+      http.get("/api/eventos", ({ request }) => {
+        lastUrl = request.url;
+        return HttpResponse.json({ eventos: [], page: 1, pages: 1, total: 0 });
+      }),
+    );
+    renderPage({ user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } } });
+    await waitFor(() => expect(lastUrl).not.toBeNull());
+    expect(lastUrl).not.toMatch(/maxDistanceKm/);
+  });
+
+  it('"+" / "−" buttons step the radius by 1 km and clamp at the bounds', async () => {
+    renderPage({ user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } } });
+    const plus = await screen.findByRole("button", { name: /aumentar radio/i });
+    fireEvent.click(plus);
+    expect(await screen.findByText("1 km")).toBeInTheDocument();
+    fireEvent.click(plus);
+    fireEvent.click(plus);
+    expect(await screen.findByText("3 km")).toBeInTheDocument();
+
+    const minus = screen.getByRole("button", { name: /disminuir radio/i });
+    fireEvent.click(minus);
+    fireEvent.click(minus);
+    fireEvent.click(minus);
+    expect(await screen.findByText(/sin límite/i)).toBeInTheDocument();
+    expect(minus).toBeDisabled();
+
+    // Push the slider to the max and check the "+" disables.
+    fireEvent.change(screen.getByLabelText(/radio máximo/i), { target: { value: "100" } });
+    expect(await screen.findByText("100 km")).toBeInTheDocument();
+    expect(plus).toBeDisabled();
+  });
+
   it("crear un evento NO lo duplica si el socket emit llega antes que la response (regresión)", async () => {
     localStorage.setItem("token", "fake");
     const newEvento = makeEvento({

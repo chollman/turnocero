@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../test/server';
@@ -139,5 +139,43 @@ describe('<DatabaseViewer>', () => {
     });
     const btn = screen.getByRole('button', { name: 'Admin ✓' });
     expect(btn).toBeDisabled();
+  });
+
+  describe('debounce', () => {
+    it('does NOT request the collection with the new search before the 300ms debounce settles', async () => {
+      const calls = [];
+      server.use(
+        http.get('/api/admin/collections/:name', ({ request }) => {
+          calls.push(new URL(request.url).searchParams.get('search'));
+          return HttpResponse.json({ docs: [], page: 1, pages: 1, total: 0 });
+        }),
+      );
+      // Render con timers reales — esperamos a que cargue el listado de colecciones y aparezca el input.
+      renderViewer();
+      const input = await screen.findByPlaceholderText(/buscar en la colección/i);
+      await waitFor(() => expect(calls.length).toBeGreaterThanOrEqual(1));
+      const baseline = calls.length;
+      expect(calls.at(-1)).toBeNull();
+
+      // Cambiamos a fake timers para controlar el debounce.
+      vi.useFakeTimers({ shouldAdvanceTime: false });
+      try {
+        fireEvent.change(input, { target: { value: 'foo' } });
+        // Antes del delay: no debe haber un nuevo request.
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(150);
+        });
+        expect(calls.length).toBe(baseline);
+
+        // Tras los 300ms → llega request con ?search=foo.
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(300);
+        });
+        expect(calls.length).toBe(baseline + 1);
+        expect(calls.at(-1)).toBe('foo');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

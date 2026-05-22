@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import useDebouncedValue from '../../hooks/useDebouncedValue';
 import DatabaseSkeleton from './DatabaseSkeleton';
 import styles from './DatabaseViewer.module.css';
 
@@ -38,7 +39,7 @@ function DatabaseViewerInner() {
   const [error, setError] = useState('');
   const [toggling, setToggling] = useState(null);
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   useEffect(() => {
     axios.get('/api/admin/collections')
@@ -49,13 +50,7 @@ function DatabaseViewerInner() {
       .catch(() => setError('No se pudieron cargar las colecciones'));
   }, []);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
+  useEffect(() => { setPage(1); }, [debouncedSearch]);
 
   useEffect(() => {
     if (!activeCol) return;

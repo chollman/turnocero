@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../test/server';
@@ -267,5 +267,56 @@ describe('<UsersList>', () => {
     });
     await screen.findByText('@superadmin');
     expect(screen.getByText('Admin')).toBeInTheDocument();
+  });
+
+  describe('debounce', () => {
+    it('does NOT call /api/users while typing — only after the 350ms debounce settles', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: false });
+      try {
+        let callCount = 0;
+        server.use(
+          http.get('/api/users', () => {
+            callCount += 1;
+            return HttpResponse.json([]);
+          }),
+        );
+        useAuth.mockReturnValue({ user: { _id: 'me', isAdmin: false } });
+        render(
+          <MemoryRouter>
+            <UsersList />
+          </MemoryRouter>,
+        );
+
+        // El fetch del mount inicial ocurre (debouncedSearch === '' desde el primer render).
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(0);
+        });
+        const baseline = callCount;
+        expect(baseline).toBeGreaterThanOrEqual(1);
+
+        // El usuario tipea — antes del delay no debe haber nuevo fetch.
+        const input = screen.getByPlaceholderText(/buscar por usuario/i);
+        fireEvent.change(input, { target: { value: 'al' } });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(200);
+        });
+        expect(callCount).toBe(baseline);
+
+        // Más cambios antes del delay → siguen sin pegarle al backend.
+        fireEvent.change(input, { target: { value: 'ali' } });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(200);
+        });
+        expect(callCount).toBe(baseline);
+
+        // Una vez pasados los 350ms desde el último cambio → dispara fetch con el valor estable.
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(350);
+        });
+        expect(callCount).toBe(baseline + 1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });
