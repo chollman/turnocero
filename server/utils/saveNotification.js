@@ -1,6 +1,7 @@
 const Notification = require("../models/Notification");
 const User = require("../models/User");
 const { isSectionEnabled } = require("./siteConfig");
+const logger = require("./logger");
 
 // These types accumulate count across multiple events for the same target
 const AGGREGATING = new Set([
@@ -96,10 +97,11 @@ async function saveNotification(recipientId, type, fields) {
       { upsert: true, new: true },
     );
   } catch (err) {
-    console.error(
-      `[saveNotification] failed for recipient=${recipientId} type=${type}:`,
-      err.message,
-    );
+    logger.error("saveNotification failed", {
+      recipientId: String(recipientId),
+      type,
+      error: err.message,
+    });
     return null;
   }
 }

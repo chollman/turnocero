@@ -20,6 +20,7 @@ const { emitNotificationReq } = require("../utils/emitNotification");
 const { canActInEvento } = require("../utils/eventoPermissions");
 const { parsePagination } = require("../utils/paginate");
 const { escapeRegex } = require("../utils/regex");
+const logger = require("../utils/logger");
 const {
   emitToUser,
   emitToEventoRoom,
@@ -167,7 +168,7 @@ router.get("/", optionalAuth, async (req, res) => {
       pages: Math.ceil(total / limit),
     });
   } catch (err) {
-    console.error("GET /api/eventos:", err.message);
+    logger.error("GET /api/eventos failed", { error: err.message });
     res.status(500).json({ message: "Error al obtener eventos" });
   }
 });
@@ -198,7 +199,7 @@ router.get("/mine", protect, async (req, res) => {
       .limit(50);
     res.json({ eventos });
   } catch (err) {
-    console.error("GET /api/eventos/mine:", err.message);
+    logger.error("GET /api/eventos/mine failed", { error: err.message });
     res.status(500).json({ message: "Error al obtener tus eventos" });
   }
 });
@@ -286,7 +287,7 @@ router.post(
 
       res.status(201).json(populated);
     } catch (err) {
-      console.error("POST /api/eventos:", err.message);
+      logger.error("POST /api/eventos failed", { error: err.message });
       res.status(500).json({ message: "Error al crear el evento" });
     }
   },
@@ -390,7 +391,7 @@ router.get("/:id", optionalAuth, async (req, res) => {
       confirmedRegistrations,
     });
   } catch (err) {
-    console.error("GET /api/eventos/:id:", err.message);
+    logger.error("GET /api/eventos/:id failed", { error: err.message });
     res.status(500).json({ message: "Error al obtener el evento" });
   }
 });
@@ -566,7 +567,7 @@ router.put(
 
       res.json(payload);
     } catch (err) {
-      console.error("PUT /api/eventos/:id:", err.message);
+      logger.error("PUT /api/eventos/:id failed", { error: err.message });
       res.status(500).json({ message: "Error al editar el evento" });
     }
   },
@@ -631,7 +632,7 @@ router.delete("/:id", protect, requireAdmin, async (req, res) => {
 
     res.json({ message: "Evento eliminado" });
   } catch (err) {
-    console.error("DELETE /api/eventos/:id:", err.message);
+    logger.error("DELETE /api/eventos/:id failed", { error: err.message });
     res.status(500).json({ message: "Error al eliminar el evento" });
   }
 });
@@ -807,7 +808,7 @@ router.post(
           : null,
       });
     } catch (err) {
-      console.error("POST /api/eventos/:id/inscribirse:", err.message);
+      logger.error("POST /api/eventos/:id/inscribirse failed", { error: err.message });
       res.status(500).json({ message: "Error al procesar la inscripción" });
     }
   },
@@ -867,7 +868,7 @@ router.delete("/:id/inscribirse", protect, async (req, res) => {
 
     res.json({ message: "Inscripción cancelada" });
   } catch (err) {
-    console.error("DELETE /api/eventos/:id/inscribirse:", err.message);
+    logger.error("DELETE /api/eventos/:id/inscribirse failed", { error: err.message });
     res.status(500).json({ message: "Error al cancelar la inscripción" });
   }
 });
@@ -913,7 +914,7 @@ router.get("/:id/inscripciones", protect, requireAdmin, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("GET /api/eventos/:id/inscripciones:", err.message);
+    logger.error("GET /api/eventos/:id/inscripciones failed", { error: err.message });
     res.status(500).json({ message: "Error al obtener inscripciones" });
   }
 });
@@ -1004,10 +1005,7 @@ router.patch(
 
       res.json({ message: "Inscripción confirmada", status: reg.status });
     } catch (err) {
-      console.error(
-        "PATCH /api/eventos/:id/inscripciones/:userId/confirmar:",
-        err.message,
-      );
+      logger.error("PATCH /api/eventos/:id/inscripciones/:userId/confirmar failed", { error: err.message });
       res.status(500).json({ message: "Error al confirmar la inscripción" });
     }
   },
@@ -1053,11 +1051,10 @@ router.patch(
             resource_type: staleResourceType,
           });
         } catch (cleanupErr) {
-          console.error(
-            "Cloudinary destroy falló para comprobante rechazado permanentemente:",
-            stalePublicId,
-            cleanupErr.message,
-          );
+          logger.error("Cloudinary destroy failed for permanently-rejected comprobante", {
+            publicId: stalePublicId,
+            error: cleanupErr.message,
+          });
         }
         reg.comprobante = undefined;
       }
@@ -1115,10 +1112,7 @@ router.patch(
         permanentlyRejected: reg.permanentlyRejected,
       });
     } catch (err) {
-      console.error(
-        "PATCH /api/eventos/:id/inscripciones/:userId/rechazar:",
-        err.message,
-      );
+      logger.error("PATCH /api/eventos/:id/inscripciones/:userId/rechazar failed", { error: err.message });
       res.status(500).json({ message: "Error al rechazar la inscripción" });
     }
   },
@@ -1189,10 +1183,7 @@ router.patch(
         submittedAt: reg.submittedAt,
       });
     } catch (err) {
-      console.error(
-        "PATCH /api/eventos/:id/inscripciones/:userId/revertir:",
-        err.message,
-      );
+      logger.error("PATCH /api/eventos/:id/inscripciones/:userId/revertir failed", { error: err.message });
       res.status(500).json({ message: "Error al revertir la inscripción" });
     }
   },
@@ -1329,7 +1320,7 @@ router.post("/:id/ludoteca", protect, async (req, res) => {
 
     res.status(201).json({ item: newItem });
   } catch (err) {
-    console.error("POST /api/eventos/:id/ludoteca:", err.message);
+    logger.error("POST /api/eventos/:id/ludoteca failed", { error: err.message });
     res.status(500).json({ message: "Error al agregar el juego" });
   }
 });
@@ -1379,7 +1370,7 @@ router.patch("/:id/ludoteca/:itemId", protect, async (req, res) => {
 
     res.json({ item: updated });
   } catch (err) {
-    console.error("PATCH /api/eventos/:id/ludoteca/:itemId:", err.message);
+    logger.error("PATCH /api/eventos/:id/ludoteca/:itemId failed", { error: err.message });
     res.status(500).json({ message: "Error al editar el juego" });
   }
 });
@@ -1417,7 +1408,7 @@ router.delete("/:id/ludoteca/:itemId", protect, async (req, res) => {
 
     res.json({ removed: itemId });
   } catch (err) {
-    console.error("DELETE /api/eventos/:id/ludoteca/:itemId:", err.message);
+    logger.error("DELETE /api/eventos/:id/ludoteca/:itemId failed", { error: err.message });
     res.status(500).json({ message: "Error al quitar el juego" });
   }
 });
@@ -1449,7 +1440,7 @@ router.get("/:id/mesas", optionalAuth, async (req, res) => {
     });
     res.json(result);
   } catch (err) {
-    console.error("GET /api/eventos/:id/mesas:", err.message);
+    logger.error("GET /api/eventos/:id/mesas failed", { error: err.message });
     res.status(500).json({ message: "Error al cargar las mesas del evento" });
   }
 });

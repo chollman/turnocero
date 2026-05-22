@@ -14,6 +14,7 @@ const {
   emitToEventoRoom,
   emitToEventosList,
 } = require("../utils/socketHelpers");
+const logger = require("../utils/logger");
 
 // Snapshot público de inscripciones de un evento. Pura sobre el array
 // embebido; el client lo usa para los chips "X/Y inscriptos".
@@ -192,7 +193,7 @@ async function closePastOpenEvents(req) {
     }
   } catch (err) {
     // best-effort: nunca tirar el request por una falla del sweep
-    console.error("closePastOpenEvents failed:", err.message);
+    logger.error("closePastOpenEvents failed", { error: err.message });
   }
 }
 
