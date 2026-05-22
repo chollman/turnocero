@@ -4,6 +4,7 @@ import axios from "axios";
 import { io } from "socket.io-client";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { dateParts } from "../../utils/eventoDate";
 import useTickingNow from "../../utils/useTickingNow";
 import TriageColumn from "./TriageColumn";
@@ -13,11 +14,11 @@ import styles from "./EventoInscripciones.module.css";
 export default function EventoInscripciones() {
   const { id } = useParams();
   const { isActuallyAdmin, loading: authLoading } = useAuth();
+  const { addToast } = useNotifications();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [actionError, setActionError] = useState("");
 
   // Ticker para refrescar las "horas relativas" de las inscripciones cada 30s.
   const now = useTickingNow();
@@ -126,17 +127,17 @@ export default function EventoInscripciones() {
       if (payload?.eventoId !== id) return;
       const ev = payload.evento;
       if (!ev) return;
+      // Spread completo del payload sobre el evento previo. Antes lista white-
+      // listeada de campos (title/status/eventDate/maxParticipants) — si el
+      // server agregaba un campo nuevo al broadcast, este listener no lo
+      // reflejaba. El spread genérico es seguro porque el payload del server
+      // (PUT response → emitToEventoRoom) NO incluye registrations ni counts;
+      // ver `routes/eventos.js`. Solo el evento "header".
       setData((prev) =>
         prev
           ? {
               ...prev,
-              evento: {
-                ...prev.evento,
-                title: ev.title,
-                status: ev.status,
-                eventDate: ev.eventDate,
-                maxParticipants: ev.maxParticipants,
-              },
+              evento: { ...prev.evento, ...ev },
             }
           : prev,
       );
@@ -150,7 +151,6 @@ export default function EventoInscripciones() {
 
   const accept = useCallback(
     async (reg, adminNotes) => {
-      setActionError("");
       try {
         await axios.patch(
           `/api/eventos/${id}/inscripciones/${reg.user._id}/confirmar`,
@@ -171,17 +171,18 @@ export default function EventoInscripciones() {
           ),
         }));
       } catch (err) {
-        setActionError(
-          err.response?.data?.message || "No pudimos confirmar la inscripción.",
-        );
+        addToast({
+          type: "error",
+          title: "No pudimos confirmar la inscripción",
+          message: err.response?.data?.message || "Reintentá en unos segundos.",
+        });
       }
     },
-    [id],
+    [id, addToast],
   );
 
   const reject = useCallback(
     async (reg, adminNotes, permanent = false) => {
-      setActionError("");
       try {
         await axios.patch(
           `/api/eventos/${id}/inscripciones/${reg.user._id}/rechazar`,
@@ -205,19 +206,20 @@ export default function EventoInscripciones() {
           ),
         }));
       } catch (err) {
-        setActionError(
-          err.response?.data?.message || "No pudimos rechazar la inscripción.",
-        );
+        addToast({
+          type: "error",
+          title: "No pudimos rechazar la inscripción",
+          message: err.response?.data?.message || "Reintentá en unos segundos.",
+        });
       }
     },
-    [id],
+    [id, addToast],
   );
 
   // Revertir: vuelve el registro a 'pending' como si el usuario recién se
   // hubiera inscripto. Persiste server-side (limpia reviewedAt/Notes/permanent).
   const undo = useCallback(
     async (reg) => {
-      setActionError("");
       try {
         const { data: result } = await axios.patch(
           `/api/eventos/${id}/inscripciones/${reg.user._id}/revertir`,
@@ -239,12 +241,14 @@ export default function EventoInscripciones() {
           ),
         }));
       } catch (err) {
-        setActionError(
-          err.response?.data?.message || "No pudimos revertir la inscripción.",
-        );
+        addToast({
+          type: "error",
+          title: "No pudimos revertir la inscripción",
+          message: err.response?.data?.message || "Reintentá en unos segundos.",
+        });
       }
     },
-    [id],
+    [id, addToast],
   );
 
   const groups = useMemo(() => {
@@ -351,8 +355,6 @@ export default function EventoInscripciones() {
           )}
         </div>
       </header>
-
-      {actionError && <p className={styles.actionError}>{actionError}</p>}
 
       <div className={styles.columns}>
         <TriageColumn

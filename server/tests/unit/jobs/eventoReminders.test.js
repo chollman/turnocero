@@ -60,23 +60,80 @@ describe('eventoReminders.runOnce', () => {
     expect(allNotifs.length).toBe(0);
   });
 
-  it('does NOT notify events outside the [now+23h, now+25h] window', async () => {
+  it('does NOT notify events outside the [now, now+25h] window', async () => {
     const admin = await createUser({ isAdmin: true });
     const user = await createUser();
     const now = new Date('2027-06-12T12:00:00Z');
-    // Far future
+    // Far future (más de 25h)
     const farAway = new Date('2027-06-20T12:00:00Z');
     // Already past
     const past = new Date('2027-06-10T12:00:00Z');
-    // Just outside (22h ahead)
-    const tooSoon = new Date('2027-06-13T10:00:00Z');
 
     await createEventoAt(admin, farAway, [{ user: user._id, status: 'confirmed' }]);
     await createEventoAt(admin, past,    [{ user: user._id, status: 'confirmed' }]);
-    await createEventoAt(admin, tooSoon, [{ user: user._id, status: 'confirmed' }]);
 
     const result = await runOnce({ now });
     expect(result.notifsCreated).toBe(0);
+  });
+
+  it('B5 — eventos atrasados (cron tardó) entran al rango y reciben reminder (no se pierden)', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser();
+    // El cron debería haber corrido a las 12:00 pero corrió a las 14:00 (2h tarde).
+    // Evento a las 13:00 — ya pasó la ventana clásica [+23h, +25h] del cron viejo.
+    const now = new Date('2027-06-12T14:00:00Z');
+    const eventoAt = new Date('2027-06-13T13:00:00Z'); // ~23h adelante, hubiera estado en la ventana exacta del cron de las 12:00
+
+    await createEventoAt(admin, eventoAt, [
+      { user: user._id, status: 'confirmed' },
+    ]);
+
+    const result = await runOnce({ now });
+    expect(result.notifsCreated).toBe(1);
+  });
+
+  it('B5 — evento con reminderSentAt no se re-notifica (idempotente via flag, no via window)', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser();
+    const now = new Date('2027-06-12T12:00:00Z');
+    const inWindow = new Date('2027-06-13T13:00:00Z');
+
+    const evento = await createEventoAt(admin, inWindow, [
+      { user: user._id, status: 'confirmed' },
+    ]);
+
+    // Primera corrida: notifica + marca reminderSentAt
+    let result = await runOnce({ now });
+    expect(result.scanned).toBe(1);
+    expect(result.notifsCreated).toBe(1);
+
+    const refreshed = await Evento.findById(evento._id);
+    expect(refreshed.reminderSentAt).toBeTruthy();
+
+    // Segunda corrida (incluso si la primera notif fue borrada, no debería
+    // re-notificar porque reminderSentAt ya está seteado).
+    await Notification.deleteMany({ type: 'evento_reminder' });
+    result = await runOnce({ now });
+    expect(result.scanned).toBe(0);
+    expect(result.notifsCreated).toBe(0);
+  });
+
+  it('B5 — evento sin confirmed registrants igual queda marcado (no se reintenta)', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser();
+    const now = new Date('2027-06-12T12:00:00Z');
+    const inWindow = new Date('2027-06-13T13:00:00Z');
+
+    const evento = await createEventoAt(admin, inWindow, [
+      { user: user._id, status: 'pending' },
+    ]);
+
+    const result = await runOnce({ now });
+    expect(result.notifsCreated).toBe(0);
+
+    // Igual queda marcado — ya lo chequeamos y no hay a quién notificar.
+    const refreshed = await Evento.findById(evento._id);
+    expect(refreshed.reminderSentAt).toBeTruthy();
   });
 
   it('skips draft and cancelled events', async () => {

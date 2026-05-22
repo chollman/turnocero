@@ -166,6 +166,27 @@
   color: var(--on-amber);
 }
 
+.searchInput {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  min-width: 180px;
+  transition: border-color var(--transition);
+}
+
+.searchInput::placeholder {
+  color: var(--text-muted);
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+
 .controlsRight {
   display: flex;
   align-items: center;

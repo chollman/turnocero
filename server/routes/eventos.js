@@ -6,11 +6,18 @@ const { cloudinary, uploadToCloudinary } = require("../config/cloudinary");
 const Evento = require("../models/Evento");
 const { protect, requireAdmin, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const validateObjectId = require("../middleware/validateObjectId");
 const { isValidCoord, attachDistance, buildBboxFilter } = require("../utils/geo");
 const { normalizeLocationInput, isEmptyLocation } = require("../utils/locationHelpers");
 const saveNotification = require("../utils/saveNotification");
 
 router.use(requireSection("eventos"));
+
+// Validación temprana de ObjectId en cualquier ruta que use :id o :userId.
+// Antes, un string malformado pegaba a Mongoose y devolvía CastError 500 o
+// silenciosamente null → 404. Ahora devolvemos 400 sin tocar la DB.
+router.param("id", validateObjectId("id"));
+router.param("userId", validateObjectId("userId"));
 
 // Calcula el snapshot público de inscripciones de un evento.
 function countsFor(evento) {
@@ -190,6 +197,16 @@ router.get("/", optionalAuth, async (req, res) => {
       filter.status = req.query.status;
     } else {
       filter.status = { $in: ["open", "closed"] };
+    }
+
+    // Búsqueda case-insensitive por título. Si llegan muchos eventos al feed
+    // los chips de status no alcanzan; el input debounced del cliente manda
+    // ?search=. Escapamos regex metacharacters para que el usuario no rompa
+    // la query con caracteres especiales.
+    const searchRaw = (req.query.search || "").trim();
+    if (searchRaw) {
+      const escaped = searchRaw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.title = { $regex: escaped, $options: "i" };
     }
 
     const userLat = req.user?.direccion?.lat ?? null;
@@ -1060,8 +1077,10 @@ router.patch(
       reg.status = "rejected";
       reg.reviewedAt = new Date();
       reg.reviewedBy = req.user._id;
-      reg.permanentlyRejected =
-        req.body.permanent === true || req.body.permanent === "true";
+      // Estricto: solo boolean `true`. El cliente manda JSON (no FormData
+      // string), así que la coerción de "true" → true que existía antes era
+      // defensa innecesaria contra clients que no respetan el contrato.
+      reg.permanentlyRejected = req.body.permanent === true;
       if (req.body.adminNotes?.trim())
         reg.adminNotes = req.body.adminNotes.trim();
 

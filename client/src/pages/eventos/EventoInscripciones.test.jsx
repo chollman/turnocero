@@ -6,9 +6,13 @@ import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
+vi.mock("../../context/NotificationContext", () => ({
+  useNotifications: vi.fn(),
+}));
 
 import EventoInscripciones from "./EventoInscripciones";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 function makeReg(id, status, overrides = {}) {
   return {
@@ -35,7 +39,7 @@ function setupResponse(payload) {
   );
 }
 
-function renderInsc({ user = { _id: "admin", isAdmin: true } } = {}) {
+function renderInsc({ user = { _id: "admin", isAdmin: true }, addToast = vi.fn() } = {}) {
   // El componente usa isActuallyAdmin (no user.isAdmin) — esta página es
   // admin estructural y se mantiene reachable aún con "view as user" activo.
   useAuth.mockReturnValue({
@@ -43,6 +47,7 @@ function renderInsc({ user = { _id: "admin", isAdmin: true } } = {}) {
     isActuallyAdmin: !!user?.isAdmin,
     loading: false,
   });
+  useNotifications.mockReturnValue({ addToast });
   return render(
     <HelmetProvider>
       <MemoryRouter initialEntries={["/eventos/e1/inscripciones"]}>
@@ -91,6 +96,7 @@ describe("<EventoInscripciones>", () => {
       isActuallyAdmin: true,
       loading: false,
     });
+    useNotifications.mockReturnValue({ addToast: vi.fn() });
     render(
       <HelmetProvider>
         <MemoryRouter initialEntries={["/eventos/e1/inscripciones"]}>
@@ -152,6 +158,25 @@ describe("<EventoInscripciones>", () => {
     // wrapper `.stat` desde el label para inspeccionar todo el bloque.
     const cupoStat = screen.getByText(/^cupo$/i).parentElement;
     expect(cupoStat.textContent).toMatch(/3.*\/.*24/);
+  });
+
+  it("B6/B7 — un fallo del PATCH dispara toast global (no estado local inline)", async () => {
+    server.use(
+      http.patch(
+        "/api/eventos/:id/inscripciones/:userId/confirmar",
+        () => HttpResponse.json({ message: "boom" }, { status: 500 }),
+      ),
+    );
+    const addToast = vi.fn();
+    renderInsc({ addToast });
+    await screen.findByText("User a");
+    const accepts = screen.getAllByRole("button", { name: /^confirmar$/i });
+    fireEvent.click(accepts[0]);
+    await waitFor(() => expect(addToast).toHaveBeenCalled());
+    const call = addToast.mock.calls[0][0];
+    expect(call.type).toBe("error");
+    expect(call.title).toMatch(/no pudimos confirmar/i);
+    expect(call.message).toMatch(/boom|reintent/i);
   });
 
   it("accepting calls the confirmar endpoint with the right user id", async () => {

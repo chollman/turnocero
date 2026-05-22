@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { act, render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { http, HttpResponse } from "msw";
@@ -160,6 +160,40 @@ describe("<EventoDetail>", () => {
     renderDetail({ user: { _id: "me" } });
     fireEvent.click(await screen.findByRole("button", { name: /editar/i }));
     expect(await screen.findByLabelText(/título/i)).toBeInTheDocument();
+  });
+
+  it("B6/B7 — un fallo del POST /inscribirse dispara toast global y re-throw para que el TicketStub no cierre el form", async () => {
+    setupEvento(makeEvento({ fee: 0 }));
+    server.use(
+      http.post("/api/eventos/:id/inscribirse", () =>
+        HttpResponse.json({ message: "no cupo" }, { status: 400 }),
+      ),
+    );
+    const addToast = vi.fn();
+    const setActiveEvento = vi.fn();
+    useAuth.mockReturnValue({ user: { _id: "me" } });
+    useNotifications.mockReturnValue({ setActiveEvento, addToast });
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/eventos/e1"]}>
+          <Routes>
+            <Route path="/eventos/:id" element={<EventoDetail />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+    await screen.findByRole("heading", { name: "Mi Evento" });
+    fireEvent.click(screen.getByRole("button", { name: /^inscribirme/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^confirmar$/i }));
+    await waitFor(() => expect(addToast).toHaveBeenCalled());
+    const call = addToast.mock.calls[0][0];
+    expect(call.type).toBe("error");
+    expect(call.title).toMatch(/no pudimos enviar/i);
+    // El form sigue abierto (no se cerró) — el throw del handler signaliza
+    // a TicketStub que no debe limpiar su state.
+    expect(
+      screen.getByRole("button", { name: /^confirmar$/i }),
+    ).toBeInTheDocument();
   });
 
   it("setActiveEvento se llama con el id al montar y con null al desmontar (suprime toasts del evento activo y los marca leídos)", async () => {

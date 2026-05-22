@@ -1,5 +1,6 @@
 const cron = require("node-cron");
 const eventoReminders = require("./eventoReminders");
+const closePastEventos = require("./closePastEventos");
 const logger = require("../utils/logger");
 
 /**
@@ -24,6 +25,22 @@ function startSchedulers({ io } = {}) {
       }
     } catch (err) {
       logger.error("[eventoReminders] tick failed", { error: err.message });
+    }
+  });
+
+  // Sweep diario: cierra eventos cuyo eventDate ya pasó y siguen 'open'.
+  // El handler lazy en routes/eventos.js sigue activo como fallback (cubre
+  // el caso "el cron no corrió pero el user abre la página"); este cron
+  // descomprime el feed para no hacer el barrido en cada request. 02:30 AM
+  // local es buena hora — feed prácticamente sin tráfico.
+  cron.schedule("30 2 * * *", async () => {
+    try {
+      const result = await closePastEventos.runOnce();
+      if (result.closed > 0) {
+        logger.info("[closePastEventos] tick", result);
+      }
+    } catch (err) {
+      logger.error("[closePastEventos] tick failed", { error: err.message });
     }
   });
 

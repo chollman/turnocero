@@ -60,6 +60,8 @@ export default function TicketStub({
   const status = userRegistration?.status || null;
 
   async function handleSubmit() {
+    // Validación local (no llega a la API): este mensaje SÍ vive inline
+    // porque es feedback al campo de comprobante mientras se llena el form.
     if (!isFree && !comprobante) {
       setLocalErr("Adjuntá el comprobante para continuar.");
       return;
@@ -69,12 +71,10 @@ export default function TicketStub({
       await onInscribirse(comprobante);
       setShowForm(false);
       setComprobante(null);
-    } catch (err) {
-      setLocalErr(
-        err?.response?.data?.message ||
-          err?.message ||
-          "No pudimos enviar tu inscripción.",
-      );
+    } catch {
+      // El error del server ya lo muestra el padre vía toast global
+      // (addToast). No duplicamos acá — solo mantenemos el form abierto
+      // para que el usuario pueda reintentar.
     }
   }
 

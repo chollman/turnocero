@@ -50,6 +50,10 @@ export default function Eventos() {
   // Slider de radio. 0 = sin filtro (default). Solo se aplica si user tiene direccion.
   const [radiusKm, setRadiusKm] = useState(0);
   const debouncedRadius = useDebouncedValue(radiusKm, 300);
+  // Búsqueda por título. Debounce 300ms para no saturar el endpoint en cada
+  // tecla. El server escapa los metacharacters de regex.
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   // Default 'open' — al entrar el usuario ve sólo los eventos abiertos a inscripción.
   // Persistimos en localStorage para que la elección sobreviva entre sesiones;
   // si el chip guardado deja de ser visible (admin degradado, logout), un effect
@@ -88,6 +92,9 @@ export default function Eventos() {
         if (hasDireccion && debouncedRadius > 0) {
           params.maxDistanceKm = debouncedRadius;
         }
+        if (debouncedSearch.trim()) {
+          params.search = debouncedSearch.trim();
+        }
         const { data } = await axios.get("/api/eventos", { params });
         setEventos((prev) =>
           replace ? data.eventos : [...prev, ...data.eventos],
@@ -109,7 +116,7 @@ export default function Eventos() {
         setLoadingMore(false);
       }
     },
-    [filter, hasDireccion, debouncedRadius, addToast],
+    [filter, hasDireccion, debouncedRadius, debouncedSearch, addToast],
   );
 
   useEffect(() => {
@@ -378,6 +385,15 @@ export default function Eventos() {
             </button>
           ))}
         </div>
+
+        <input
+          type="search"
+          className={styles.searchInput}
+          placeholder="Buscar por nombre…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          aria-label="Buscar eventos por nombre"
+        />
 
         <div className={styles.controlsRight}>
           <div

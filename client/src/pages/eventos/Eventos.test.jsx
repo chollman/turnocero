@@ -133,6 +133,25 @@ describe("<Eventos>", () => {
     expect(screen.getByText("Torneo Nocturno")).toBeInTheDocument();
   });
 
+  it("M3 — escribir en el input de búsqueda manda ?search= debounced", async () => {
+    let lastSearch = null;
+    let calls = 0;
+    server.use(
+      http.get("/api/eventos", ({ request }) => {
+        calls += 1;
+        const url = new URL(request.url);
+        lastSearch = url.searchParams.get("search");
+        return HttpResponse.json({ eventos: [], page: 1, pages: 0, total: 0 });
+      }),
+    );
+    renderPage();
+    const input = await screen.findByLabelText(/buscar eventos por nombre/i);
+    fireEvent.change(input, { target: { value: "Catan" } });
+    // Debounce 300ms — esperamos a que dispare un fetch con ?search=
+    await waitFor(() => expect(lastSearch).toBe("Catan"));
+    expect(calls).toBeGreaterThan(1); // al menos 1 fetch inicial + 1 con search
+  });
+
   it("dispara un toast de error cuando /api/eventos falla (regresión: silent catch dejaba al user sin feedback)", async () => {
     server.use(
       http.get("/api/eventos", () =>

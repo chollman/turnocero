@@ -562,6 +562,14 @@
   white-space: nowrap;
 }
 
+/* Badge de distancia al lado del nombre de la ubicación. */
+.distanceBadge {
+  margin-left: 6px;
+  color: var(--green);
+  font-weight: 600;
+  font-size: 0.85em;
+}
+
 /* Lightbox */
 .lightbox {
   position: fixed;
@@ -572,6 +580,13 @@
   place-items: center;
   cursor: zoom-out;
   padding: 24px;
+}
+
+/* Contenedor del dialog dentro del backdrop. display:contents para que
+   los hijos (img + close button) sigan posicionados respecto al backdrop. */
+.lightboxContent {
+  display: contents;
+  outline: none;
 }
 
 .lightboxClose {

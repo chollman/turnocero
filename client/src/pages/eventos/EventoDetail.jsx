@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { io } from "socket.io-client";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import useTickingNow from "../../utils/useTickingNow";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
+import Modal from "../../components/shared/Modal";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { dateParts, formatFee } from "../../utils/eventoDate";
@@ -14,6 +14,7 @@ import { formatDistanceKm } from "../../utils/distance";
 import { getLocationDisplay } from "../../utils/location";
 import TicketStub from "./TicketStub";
 import EventoForm from "./EventoForm";
+import useEventoSocket from "./useEventoSocket";
 import { ArrowLeftIcon, ImageIcon } from "./EventoIcons";
 import styles from "./EventoDetail.module.css";
 
@@ -28,7 +29,7 @@ export default function EventoDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { setActiveEvento } = useNotifications();
+  const { setActiveEvento, addToast } = useNotifications();
   const userId = user?._id;
 
   // Mientras el usuario esté viendo este evento, las notificaciones que
@@ -50,8 +51,6 @@ export default function EventoDetail() {
 
   const [editing, setEditing] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
-
-  const [actionError, setActionError] = useState("");
 
   // Ticker para que TicketStub refresque su countdown ("en X días").
   const now = useTickingNow();
@@ -76,31 +75,18 @@ export default function EventoDetail() {
     };
   }, [id]);
 
-  // Real-time: cualquier viewer (incluido el user que se inscribió) recibe
-  // updates de status/counts del evento. El user dueño del registro recibe
-  // además `evento:registration-reviewed` por su personal room user:<id>.
-  useEffect(() => {
-    if (!evento) return undefined;
-    const token = localStorage.getItem("token");
-    if (!token) return undefined;
-    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
-    const socket = io(socketUrl, {
-      auth: { token },
-      transports: ["websocket"],
-    });
-    // Emitir en `connect` (initial + reconnect). El server registra todos los
-    // handlers ANTES de su auth-await, así que el emit no se pierde por race.
-    socket.on("connect", () => socket.emit("join:evento", id));
-
-    socket.on("evento:counts-changed", (payload) => {
-      if (payload?.eventoId !== id || !payload.counts) return;
+  // Real-time: extraído al hook useEventoSocket. Mantiene los callbacks en
+  // refs para no reconectar el socket en cada render (antes el effect tenía
+  // un eslint-disable de exhaustive-deps por esta razón). Conecta en paralelo
+  // con el fetch HTTP — todos los callbacks tolerán prev=null si llegan antes.
+  useEventoSocket(id, {
+    onCountsChanged: (payload) => {
+      if (!payload.counts) return;
       setEvento((prev) =>
         prev ? { ...prev, registrationCount: payload.counts } : prev,
       );
-    });
-
-    socket.on("evento:registration-reviewed", (payload) => {
-      if (payload?.eventoId !== id) return;
+    },
+    onReviewed: (payload) => {
       setEvento((prev) => {
         if (!prev) return prev;
         const next = { ...prev };
@@ -120,8 +106,12 @@ export default function EventoDetail() {
         }
 
         // Mantener confirmedRegistrations al día: agregar al confirmar, sacar
-        // cuando deja de estar confirmado. Necesita el reg populated con
-        // info de user (vino en payload.registration).
+        // cuando deja de estar confirmado. Contrato del server (ver
+        // reloadRegPopulated + emitToEventoRoom en server/routes/eventos.js):
+        //   - `payload.registration.user` SIEMPRE viene populated con
+        //     { _id, username, displayName, avatar } cuando status==='confirmed'.
+        //   - Si el server cambia ese contrato, hay que actualizar este
+        //     handler y el de socket en EventoInscripciones.jsx.
         const list = prev.confirmedRegistrations || [];
         if (payload.status === "confirmed" && payload.registration?.user) {
           const exists = list.some((r) => r._id === payload.registration._id);
@@ -151,38 +141,33 @@ export default function EventoDetail() {
 
         return next;
       });
-    });
-
-    socket.on("evento:updated", (payload) => {
-      if (payload?.eventoId !== id || !payload.evento) return;
-      // Mismo problema que el PUT directo: el payload trae userRegistration:null
-      // porque el server no conoce al caller del socket. Usamos el helper que
-      // preserva la inscripción del usuario que está mirando.
+    },
+    onUpdated: (payload) => {
+      if (!payload.evento) return;
+      // El payload trae userRegistration:null porque el server no conoce al
+      // caller del socket. mergeEventoUpdate preserva la inscripción del user
+      // y la lista de confirmados del estado previo.
       setEvento((prev) =>
         prev ? mergeEventoUpdate(prev, payload.evento) : payload.evento,
       );
-    });
+    },
+  });
 
-    return () => {
-      socket.emit("leave:evento", id);
-      socket.disconnect();
-    };
-    // Optional chaining a propósito: `evento` y `user` pueden ser null antes
-    // del fetch inicial y mientras se desautentica. Acceder con `.` crudo
-    // hace crashear el árbol entero; con `?.` el effect simplemente espera
-    // al primer estado válido. `evento` queda fuera del dep array a propósito
-    // — sólo nos interesa reconectar el socket cuando cambia el _id, no en
-    // cada update de counts/userRegistration que dispararía leave+rejoin.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [evento?._id, id, user?._id]);
-
+  // Contrato de error en estos handlers (post B6+B7):
+  //   - Errores del server SIEMPRE se muestran como toast global (addToast).
+  //   - Los handlers que se llaman desde un caller que necesita saber del
+  //     fail para no cerrar su UI (TicketStub form, EventoForm) re-lanzan
+  //     el error después del toast — el caller atrapa y mantiene su UI.
+  //   - Los handlers que no necesitan signal (cancel/reopen del host) NO
+  //     re-lanzan. El toast es suficiente.
+  // El state local `actionError` + `<p>` inline fueron eliminados — el toast
+  // global lo reemplaza con auto-dismiss y centralización.
   async function handleInscribirse(comprobanteFile) {
     if (!user) {
       setShowLoginPrompt(true);
       return;
     }
     setInscribing(true);
-    setActionError("");
     try {
       const fd = new FormData();
       if (comprobanteFile) fd.append("comprobante", comprobanteFile);
@@ -203,9 +188,11 @@ export default function EventoDetail() {
         userRegistration: userReg,
       }));
     } catch (err) {
-      const msg =
-        err.response?.data?.message || "No pudimos enviar tu inscripción.";
-      setActionError(msg);
+      addToast({
+        type: "error",
+        title: "No pudimos enviar tu inscripción",
+        message: err.response?.data?.message || "Reintentá en unos segundos.",
+      });
       throw err;
     } finally {
       setInscribing(false);
@@ -214,7 +201,6 @@ export default function EventoDetail() {
 
   async function handleCancelRegistration() {
     setCancellingReg(true);
-    setActionError("");
     try {
       await axios.delete(`/api/eventos/${id}/inscribirse`);
       // Mismo patrón que handleInscribirse: el socket evento:counts-changed
@@ -225,9 +211,11 @@ export default function EventoDetail() {
         userRegistration: null,
       }));
     } catch (err) {
-      setActionError(
-        err.response?.data?.message || "No pudimos cancelar tu inscripción.",
-      );
+      addToast({
+        type: "error",
+        title: "No pudimos cancelar tu inscripción",
+        message: err.response?.data?.message || "Reintentá en unos segundos.",
+      });
     } finally {
       setCancellingReg(false);
     }
@@ -263,7 +251,6 @@ export default function EventoDetail() {
 
   async function handleSaveEdit(fd) {
     setSavingEdit(true);
-    setActionError("");
     try {
       const { data } = await axios.put(`/api/eventos/${id}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -271,9 +258,11 @@ export default function EventoDetail() {
       setEvento((prev) => mergeEventoUpdate(prev, data));
       setEditing(false);
     } catch (err) {
-      setActionError(
-        err.response?.data?.message || "No pudimos guardar los cambios.",
-      );
+      addToast({
+        type: "error",
+        title: "No pudimos guardar los cambios",
+        message: err.response?.data?.message || "Reintentá en unos segundos.",
+      });
       throw err;
     } finally {
       setSavingEdit(false);
@@ -281,7 +270,6 @@ export default function EventoDetail() {
   }
 
   async function handleCancelEvent() {
-    setActionError("");
     try {
       const fd = new FormData();
       fd.append("status", "cancelled");
@@ -292,14 +280,15 @@ export default function EventoDetail() {
         mergeEventoUpdate(prev, data, { status: "cancelled" }),
       );
     } catch (err) {
-      setActionError(
-        err.response?.data?.message || "No pudimos cancelar el evento.",
-      );
+      addToast({
+        type: "error",
+        title: "No pudimos cancelar el evento",
+        message: err.response?.data?.message || "Reintentá en unos segundos.",
+      });
     }
   }
 
   async function handleReopenEvent() {
-    setActionError("");
     try {
       const fd = new FormData();
       fd.append("status", "open");
@@ -308,9 +297,11 @@ export default function EventoDetail() {
       });
       setEvento((prev) => mergeEventoUpdate(prev, data, { status: "open" }));
     } catch (err) {
-      setActionError(
-        err.response?.data?.message || "No pudimos reabrir el evento.",
-      );
+      addToast({
+        type: "error",
+        title: "No pudimos reabrir el evento",
+        message: err.response?.data?.message || "Reintentá en unos segundos.",
+      });
     }
   }
 
@@ -388,21 +379,29 @@ export default function EventoDetail() {
         />
       </Helmet>
 
-      {lightbox && evento.image?.url && (
-        <div className={styles.lightbox} onClick={() => setLightbox(false)}>
-          <button
-            className={styles.lightboxClose}
-            onClick={() => setLightbox(false)}
-          >
-            ✕
-          </button>
+      <Modal
+        isOpen={!!lightbox && !!evento.image?.url}
+        onClose={() => setLightbox(false)}
+        ariaLabel={`Imagen ampliada: ${evento.title}`}
+        backdropClassName={styles.lightbox}
+        className={styles.lightboxContent}
+      >
+        <button
+          className={styles.lightboxClose}
+          onClick={() => setLightbox(false)}
+          type="button"
+          aria-label="Cerrar imagen"
+        >
+          ✕
+        </button>
+        {evento.image?.url && (
           <img
             src={evento.image.url}
             alt={evento.title}
             className={styles.lightboxImg}
           />
-        </div>
-      )}
+        )}
+      </Modal>
 
       <LoginPromptModal
         isOpen={showLoginPrompt}
@@ -492,9 +491,7 @@ export default function EventoDetail() {
                       // redondean a 0m (evita "0 m" / "Aquí mismo" redundantes).
                       const d = formatDistanceKm(evento.distanceKm);
                       return d ? (
-                        <span style={{ marginLeft: 6, color: "var(--green)", fontWeight: 600, fontSize: "0.85em" }}>
-                          · {d}
-                        </span>
+                        <span className={styles.distanceBadge}>· {d}</span>
                       ) : null;
                     })()}
                   </span>
@@ -516,10 +513,6 @@ export default function EventoDetail() {
                   </span>
                 </div>
               </div>
-
-              {actionError && (
-                <p className={styles.actionError}>{actionError}</p>
-              )}
 
               {evento.description && (
                 <section className={styles.section}>

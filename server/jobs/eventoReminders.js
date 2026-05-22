@@ -21,15 +21,18 @@ const logger = require('../utils/logger');
  * @returns {Promise<{ scanned: number, notifsCreated: number }>}
  */
 async function runOnce({ now = new Date() } = {}) {
-  // Ventana [now + 23h, now + 25h]: el cron corre cada hora, así que con una
-  // ventana de 2h cubrimos casos donde el cron se atrasa ~1h sin perder eventos.
+  // Ventana amplia [now, now + 25h] combinada con `reminderSentAt == null`:
+  // si el cron se atrasa más de 1h, los eventos que caen entre las 23h-25h
+  // anteriores siguen siendo candidatos hasta que el job se ejecute. Cuando
+  // se notifica, marcamos `reminderSentAt` para garantizar que cada evento
+  // recibe el reminder UNA sola vez aunque haya re-runs o ventanas solapadas.
   const HOUR_MS = 60 * 60 * 1000;
-  const windowStart = new Date(now.getTime() + 23 * HOUR_MS);
-  const windowEnd   = new Date(now.getTime() + 25 * HOUR_MS);
+  const windowEnd = new Date(now.getTime() + 25 * HOUR_MS);
 
   const eventos = await Evento.find({
-    eventDate: { $gte: windowStart, $lte: windowEnd },
+    eventDate: { $gte: now, $lte: windowEnd },
     status: { $in: ['open', 'closed'] },
+    $or: [{ reminderSentAt: null }, { reminderSentAt: { $exists: false } }],
   });
 
   let notifsCreated = 0;
@@ -43,7 +46,8 @@ async function runOnce({ now = new Date() } = {}) {
           eventoDate: evento.eventDate,
         });
         // saveNotification devuelve null cuando la sección está OFF y el user
-        // no es admin. No contamos esos casos.
+        // no es admin. No contamos esos casos pero igual marcamos el evento
+        // como notificado (no vamos a reintentar).
         if (result) notifsCreated += 1;
       } catch (err) {
         logger.error('[eventoReminders] saveNotification failed', {
@@ -52,6 +56,17 @@ async function runOnce({ now = new Date() } = {}) {
           error: err.message,
         });
       }
+    }
+    // Aún si no hubo ningún confirmed, marcamos para no reintentar mañana
+    // — no hay nadie a quien notificar. Esto sirve también como "checked".
+    evento.reminderSentAt = now;
+    try {
+      await evento.save();
+    } catch (err) {
+      logger.error('[eventoReminders] save reminderSentAt failed', {
+        eventoId: evento._id.toString(),
+        error: err.message,
+      });
     }
   }
 

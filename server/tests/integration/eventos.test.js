@@ -15,6 +15,63 @@ beforeEach(async () => {
   await ensureEventosSectionOn();
 });
 
+describe("M3 — Búsqueda por título en GET /api/eventos", () => {
+  it("filtra por ?search= case-insensitive sobre el título", async () => {
+    const admin = await createUser({ isAdmin: true });
+    await createEvento(admin, { title: "Torneo de Catan", status: "open" });
+    await createEvento(admin, { title: "Carcassonne Nocturno", status: "open" });
+    await createEvento(admin, { title: "Workshop CATAN", status: "open" });
+
+    const res = await request(app).get("/api/eventos?search=catan");
+    expect(res.status).toBe(200);
+    const titles = res.body.eventos.map((e) => e.title).sort();
+    expect(titles).toEqual(["Torneo de Catan", "Workshop CATAN"]);
+  });
+
+  it("escapa metacharacters de regex para no romper la query", async () => {
+    const admin = await createUser({ isAdmin: true });
+    await createEvento(admin, { title: "Evento (especial)", status: "open" });
+
+    const res = await request(app).get("/api/eventos?search=(especial)");
+    expect(res.status).toBe(200);
+    expect(res.body.eventos.length).toBe(1);
+  });
+
+  it("sin search devuelve todos como antes", async () => {
+    const admin = await createUser({ isAdmin: true });
+    await createEvento(admin, { title: "A", status: "open" });
+    await createEvento(admin, { title: "B", status: "open" });
+
+    const res = await request(app).get("/api/eventos");
+    expect(res.body.eventos.length).toBe(2);
+  });
+});
+
+describe("B8 — Validación de ObjectId en params", () => {
+  it("GET /:id con string malformado responde 400 (no 500/404)", async () => {
+    const res = await request(app).get("/api/eventos/not-an-id");
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/inválido/i);
+  });
+
+  it("PATCH /:id/inscripciones/:userId con userId inválido responde 400", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin);
+    const res = await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/garbage/confirmar`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+    expect(res.status).toBe(400);
+  });
+
+  it("POST /:id/inscribirse con id inválido responde 400 sin pegar a Mongo", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/eventos/notvalid/inscribirse")
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+});
+
 describe("GET /api/eventos", () => {
   it("returns paginated open/closed eventos publicly", async () => {
     const admin = await createUser({ isAdmin: true });
