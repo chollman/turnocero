@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import {
   useParams,
   useNavigate,
-  useSearchParams,
+  useLocation,
   Link,
 } from "react-router-dom";
 import axios from "axios";
@@ -39,20 +39,37 @@ const VALID_TABS = ["detalle", "ludoteca", "mesas"];
 export default function EventoDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const { user } = useAuth();
   const { setActiveEvento, addToast } = useNotifications();
   const userId = user?._id;
 
-  const requestedTab = searchParams.get("tab");
-  const activeTab = VALID_TABS.includes(requestedTab)
-    ? requestedTab
-    : "detalle";
+  // Tab activo: useState como fuente única de verdad. Inicializa leyendo el
+  // query param `?tab=`; deep-link funciona, y un setState provoca re-render
+  // inmediato sin depender de la reactividad de useSearchParams (que en
+  // algunas versiones de react-router-dom no dispara re-render al setear).
+  const [activeTab, setActiveTabState] = useState(() => {
+    const urlTab = new URLSearchParams(window.location.search).get("tab");
+    return VALID_TABS.includes(urlTab) ? urlTab : "detalle";
+  });
+  // Sync URL ↔ state cuando el user vuelve atrás/adelante (cambia location.search).
+  useEffect(() => {
+    const urlTab = new URLSearchParams(location.search).get("tab");
+    const validated = VALID_TABS.includes(urlTab) ? urlTab : "detalle";
+    setActiveTabState((prev) => (prev === validated ? prev : validated));
+  }, [location.search]);
+  // Setter público: actualiza state y refleja en URL via replaceState (sin
+  // crear entrada en el history para cada click).
   const setActiveTab = (tab) => {
-    const next = new URLSearchParams(searchParams);
+    setActiveTabState(tab);
+    const next = new URLSearchParams(window.location.search);
     if (tab === "detalle") next.delete("tab");
     else next.set("tab", tab);
-    setSearchParams(next, { replace: true });
+    const search = next.toString();
+    const newUrl = search
+      ? `${window.location.pathname}?${search}`
+      : window.location.pathname;
+    window.history.replaceState(null, "", newUrl);
   };
 
   // Mientras el usuario esté viendo este evento, las notificaciones que
