@@ -147,7 +147,7 @@ function AppRoutes() {
           <Route path="/torneos/:id/editar" element={<SectionGate section="torneos"><EditTorneo /></SectionGate>} />
           <Route path="/eventos" element={<PrivateRoute><SectionGate section="eventos"><Eventos /></SectionGate></PrivateRoute>} />
           <Route path="/eventos/:id" element={<PrivateRoute><SectionGate section="eventos"><EventoDetail /></SectionGate></PrivateRoute>} />
-          <Route path="/eventos/:id/inscripciones" element={<PrivateRoute><SectionGate section="eventos"><EventoInscripciones /></SectionGate></PrivateRoute>} />
+          <Route path="/eventos/:id/inscripciones" element={<AdminRoute><SectionGate section="eventos"><EventoInscripciones /></SectionGate></AdminRoute>} />
           <Route path="/compartidas" element={<SectionGate section="compartidas"><Compartidas /></SectionGate>} />
           <Route path="/compartidas/:id" element={<SectionGate section="compartidas"><CompartidaPost /></SectionGate>} />
           <Route path="/bg-watch" element={<SectionGate section="bgwatch"><BgWatchLanding /></SectionGate>} />

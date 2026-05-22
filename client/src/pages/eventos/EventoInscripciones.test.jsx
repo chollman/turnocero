@@ -36,7 +36,13 @@ function setupResponse(payload) {
 }
 
 function renderInsc({ user = { _id: "admin", isAdmin: true } } = {}) {
-  useAuth.mockReturnValue({ user, loading: false });
+  // El componente usa isActuallyAdmin (no user.isAdmin) — esta página es
+  // admin estructural y se mantiene reachable aún con "view as user" activo.
+  useAuth.mockReturnValue({
+    user,
+    isActuallyAdmin: !!user?.isAdmin,
+    loading: false,
+  });
   return render(
     <HelmetProvider>
       <MemoryRouter initialEntries={["/eventos/e1/inscripciones"]}>
@@ -74,6 +80,33 @@ describe("<EventoInscripciones>", () => {
   it("redirects non-admin users away", async () => {
     renderInsc({ user: { _id: "me", isAdmin: false } });
     expect(await screen.findByText("home")).toBeInTheDocument();
+  });
+
+  it("respeta isActuallyAdmin (admin estructural — sigue reachable aún con 'view as user' activo)", async () => {
+    // Admin real que está previewando como usuario regular: user.isAdmin
+    // refleja el modo preview (false), pero isActuallyAdmin sigue true.
+    // La página debe cargar normalmente.
+    useAuth.mockReturnValue({
+      user: { _id: "admin", isAdmin: false },
+      isActuallyAdmin: true,
+      loading: false,
+    });
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/eventos/e1/inscripciones"]}>
+          <Routes>
+            <Route
+              path="/eventos/:id/inscripciones"
+              element={<EventoInscripciones />}
+            />
+            <Route path="/" element={<div>home</div>} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+    expect(
+      await screen.findByRole("heading", { name: /torneo catán/i, level: 1 }),
+    ).toBeInTheDocument();
   });
 
   it("no dispara fetch a /inscripciones para no-admins (regresión: 403 inútil)", async () => {

@@ -924,6 +924,126 @@ describe("Rechazo con permanent flag", () => {
     expect(retry.body.message).toMatch(/no podés volver/i);
   });
 
+  it("rechazo permanente con comprobante limpia el archivo en Cloudinary y borra el subdoc", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { user } = await createAuthedUser();
+    const evento = await createEvento(admin, {
+      fee: 1500,
+      registrations: [
+        {
+          user: user._id,
+          status: "pending",
+          submittedAt: new Date(),
+          comprobante: {
+            url: "https://mock.cloudinary/c/perma.pdf",
+            publicId: "turnocero/eventos/x/perma",
+            resourceType: "raw",
+            uploadedAt: new Date(),
+          },
+        },
+      ],
+    });
+
+    cloudMock.__resetMocks();
+    const reject = await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${user._id}/rechazar`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .send({ permanent: true });
+    expect(reject.status).toBe(200);
+    expect(reject.body.permanentlyRejected).toBe(true);
+
+    // Cloudinary destroy con publicId + resourceType correctos
+    expect(cloudMock.cloudinary.uploader.destroy).toHaveBeenCalledWith(
+      "turnocero/eventos/x/perma",
+      { resource_type: "raw" },
+    );
+
+    // El comprobante quedó limpio en el doc (no queda referencia al orphan)
+    const refreshed = await Evento.findById(evento._id);
+    const reg = refreshed.registrations.find((r) => r.user.equals(user._id));
+    expect(reg.status).toBe("rejected");
+    expect(reg.permanentlyRejected).toBe(true);
+    expect(reg.comprobante?.publicId).toBeFalsy();
+  });
+
+  it("rechazo NO-permanente preserva el comprobante (auditoría / reciclado)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { user } = await createAuthedUser();
+    const evento = await createEvento(admin, {
+      fee: 1500,
+      registrations: [
+        {
+          user: user._id,
+          status: "pending",
+          submittedAt: new Date(),
+          comprobante: {
+            url: "https://mock.cloudinary/c/keepme.jpg",
+            publicId: "turnocero/eventos/x/keepme",
+            resourceType: "image",
+            uploadedAt: new Date(),
+          },
+        },
+      ],
+    });
+
+    cloudMock.__resetMocks();
+    const reject = await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${user._id}/rechazar`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .send({ permanent: false });
+    expect(reject.status).toBe(200);
+    expect(reject.body.permanentlyRejected).toBe(false);
+
+    // No se llama destroy
+    expect(cloudMock.cloudinary.uploader.destroy).not.toHaveBeenCalled();
+
+    // Comprobante intacto
+    const refreshed = await Evento.findById(evento._id);
+    const reg = refreshed.registrations.find((r) => r.user.equals(user._id));
+    expect(reg.comprobante?.publicId).toBe("turnocero/eventos/x/keepme");
+  });
+
+  it("rechazo permanente persiste aunque Cloudinary destroy falle (best-effort)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { user } = await createAuthedUser();
+    const evento = await createEvento(admin, {
+      fee: 1500,
+      registrations: [
+        {
+          user: user._id,
+          status: "pending",
+          submittedAt: new Date(),
+          comprobante: {
+            url: "https://mock.cloudinary/c/fail.jpg",
+            publicId: "turnocero/eventos/x/fail",
+            resourceType: "image",
+            uploadedAt: new Date(),
+          },
+        },
+      ],
+    });
+
+    cloudMock.__resetMocks();
+    cloudMock.cloudinary.uploader.destroy.mockRejectedValueOnce(
+      new Error("cloudinary down"),
+    );
+    const reject = await request(app)
+      .patch(`/api/eventos/${evento._id}/inscripciones/${user._id}/rechazar`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`)
+      .send({ permanent: true });
+    // El reject sigue 200 — el cleanup es best-effort
+    expect(reject.status).toBe(200);
+    expect(reject.body.permanentlyRejected).toBe(true);
+
+    const refreshed = await Evento.findById(evento._id);
+    const reg = refreshed.registrations.find((r) => r.user.equals(user._id));
+    expect(reg.status).toBe("rejected");
+    expect(reg.permanentlyRejected).toBe(true);
+    // El subdoc igual se limpia (tradeoff aceptado: si destroy falla, el
+    // archivo queda como orphan en Cloudinary pero el DB no lo referencia).
+    expect(reg.comprobante?.publicId).toBeFalsy();
+  });
+
   it("GET /:id devuelve userRegistration.permanentlyRejected al usuario afectado", async () => {
     const admin = await createUser({ isAdmin: true });
     const { user, token } = await createAuthedUser();

@@ -11,7 +11,7 @@ import styles from "./EventoInscripciones.module.css";
 
 export default function EventoInscripciones() {
   const { id } = useParams();
-  const { user, loading: authLoading } = useAuth();
+  const { isActuallyAdmin, loading: authLoading } = useAuth();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,7 @@ export default function EventoInscripciones() {
     // a la API. Un usuario regular ya queda fuera por el <Navigate> de abajo;
     // no tiene sentido gastar un request 403.
     if (authLoading) return undefined;
-    if (!user?.isAdmin) {
+    if (!isActuallyAdmin) {
       setLoading(false);
       return undefined;
     }
@@ -53,7 +53,7 @@ export default function EventoInscripciones() {
     return () => {
       cancelled = true;
     };
-  }, [id, authLoading, user?.isAdmin]);
+  }, [id, authLoading, isActuallyAdmin]);
 
   // Real-time: escuchar nuevas inscripciones y revisiones del propio evento.
   // El socket se monta cuando hay admin autenticado e id, y NO depende de
@@ -63,7 +63,7 @@ export default function EventoInscripciones() {
   // server ignora los join:evento de eventos inexistentes, y los listeners
   // usan setData(prev => prev ? ... : prev) para no-op si data llega null.
   useEffect(() => {
-    if (!user?.isAdmin) return undefined;
+    if (!isActuallyAdmin) return undefined;
     const token = localStorage.getItem("token");
     if (!token) return undefined;
     const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
@@ -150,7 +150,7 @@ export default function EventoInscripciones() {
       socket.emit("leave:evento", id);
       socket.disconnect();
     };
-  }, [id, user?.isAdmin]);
+  }, [id, isActuallyAdmin]);
 
   const accept = useCallback(
     async (reg, adminNotes) => {
@@ -279,7 +279,7 @@ export default function EventoInscripciones() {
     };
   }, [data]);
 
-  if (!authLoading && !user?.isAdmin) return <Navigate to="/" replace />;
+  if (!authLoading && !isActuallyAdmin) return <Navigate to="/" replace />;
 
   if (loading) {
     return (

@@ -6,6 +6,9 @@ import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
+vi.mock("../../context/NotificationContext", () => ({
+  useNotifications: vi.fn(),
+}));
 
 // Mock socket.io-client capturando los listeners para poder dispararlos
 // manualmente desde los tests. `__lastSocket` siempre apunta al último socket
@@ -37,6 +40,7 @@ function triggerSocket(event, payload) {
 
 import EventoDetail from "./EventoDetail";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 function makeEvento(overrides = {}) {
   return {
@@ -68,8 +72,9 @@ function setupEvento(evento) {
   server.use(http.get("/api/eventos/:id", () => HttpResponse.json(evento)));
 }
 
-function renderDetail({ user = null, eventoId = "e1" } = {}) {
+function renderDetail({ user = null, eventoId = "e1", setActiveEvento = vi.fn() } = {}) {
   useAuth.mockReturnValue({ user });
+  useNotifications.mockReturnValue({ setActiveEvento });
   return render(
     <HelmetProvider>
       <MemoryRouter initialEntries={[`/eventos/${eventoId}`]}>
@@ -155,6 +160,16 @@ describe("<EventoDetail>", () => {
     renderDetail({ user: { _id: "me" } });
     fireEvent.click(await screen.findByRole("button", { name: /editar/i }));
     expect(await screen.findByLabelText(/título/i)).toBeInTheDocument();
+  });
+
+  it("setActiveEvento se llama con el id al montar y con null al desmontar (suprime toasts del evento activo y los marca leídos)", async () => {
+    const setActiveEvento = vi.fn();
+    const { unmount } = renderDetail({ eventoId: "e1", setActiveEvento });
+    await screen.findByRole("heading", { name: "Mi Evento" });
+    expect(setActiveEvento).toHaveBeenCalledWith("e1");
+    setActiveEvento.mockClear();
+    unmount();
+    expect(setActiveEvento).toHaveBeenCalledWith(null);
   });
 
   it("renders 404 state when API returns 404", async () => {

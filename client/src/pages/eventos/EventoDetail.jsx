@@ -4,6 +4,7 @@ import axios from "axios";
 import { io } from "socket.io-client";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
@@ -26,7 +27,16 @@ export default function EventoDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { setActiveEvento } = useNotifications();
   const userId = user?._id;
+
+  // Mientras el usuario esté viendo este evento, las notificaciones que
+  // lleguen para él se marcan leídas y los toasts se suprimen (mismo
+  // patrón que TableDetail/TorneoDetail).
+  useEffect(() => {
+    setActiveEvento(id);
+    return () => setActiveEvento(null);
+  }, [id, setActiveEvento]);
 
   const [evento, setEvento] = useState(null);
   const [loading, setLoading] = useState(true);

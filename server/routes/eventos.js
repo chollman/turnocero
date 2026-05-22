@@ -1057,6 +1057,28 @@ router.patch(
       if (req.body.adminNotes?.trim())
         reg.adminNotes = req.body.adminNotes.trim();
 
+      // Rechazo permanente: limpiar el comprobante en Cloudinary. El user
+      // no podrá reintentar (403), así que el path de "reciclar" — que es
+      // el único otro lugar donde se destruía el comprobante viejo — nunca
+      // se ejecuta y el archivo queda como orphan permanente. Best-effort:
+      // si Cloudinary falla, el reject ya quedó persistido y solo loggeamos.
+      if (reg.permanentlyRejected && reg.comprobante?.publicId) {
+        const stalePublicId = reg.comprobante.publicId;
+        const staleResourceType = reg.comprobante.resourceType || "image";
+        try {
+          await cloudinary.uploader.destroy(stalePublicId, {
+            resource_type: staleResourceType,
+          });
+        } catch (cleanupErr) {
+          console.error(
+            "Cloudinary destroy falló para comprobante rechazado permanentemente:",
+            stalePublicId,
+            cleanupErr.message,
+          );
+        }
+        reg.comprobante = undefined;
+      }
+
       await evento.save();
 
       const newCounts = countsFor(evento);
