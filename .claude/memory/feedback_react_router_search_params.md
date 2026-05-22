@@ -1,7 +1,7 @@
 ---
 name: feedback-react-router-search-params
 description: useSearchParams de react-router-dom no dispara re-render en este proyecto cuando se llama setSearchParams — usar useState como fuente única + sync manual via useLocation + history.replaceState.
-metadata: 
+metadata:
   node_type: memory
   type: feedback
   originSessionId: 12809272-6ba5-42b7-9140-52782f4d77f7

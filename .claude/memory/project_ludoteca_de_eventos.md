@@ -1,7 +1,7 @@
 ---
 name: project-ludoteca-de-eventos
-description: "Feature en vuelo (branch ludoteca-de-eventos, no mergeada a master) — agrega \"Ludoteca del Evento\" y \"Mesas del Evento\" dentro del detalle de cada Evento, con tabs y permisos para confirmed registrants."
-metadata: 
+description: 'Feature en vuelo (branch ludoteca-de-eventos, no mergeada a master) — agrega "Ludoteca del Evento" y "Mesas del Evento" dentro del detalle de cada Evento, con tabs y permisos para confirmed registrants.'
+metadata:
   node_type: memory
   type: project
   originSessionId: 12809272-6ba5-42b7-9140-52782f4d77f7
@@ -21,6 +21,7 @@ metadata:
 - **UI**: tabs en `EventoDetail.jsx` (`Detalle · Ludoteca · Mesas`) sincronizadas con `?tab=`. Componentes nuevos en `client/src/pages/eventos/`: `EventoLudoteca.jsx`, `EventoLudotecaPicker.jsx`, `EventoMesas.jsx`. Componente shared nuevo: `client/src/components/shared/BggGameSearch.jsx` (extraído de `CreatePlayModal`).
 
 **Patrones reusables (relevantes para otras features):**
+
 - Para sincronizar `?param=` con state, ver [[feedback-react-router-search-params]] — `useSearchParams` no dispara re-render.
 - Picker de juegos BGG con colección + búsqueda: ver `EventoLudotecaPicker.jsx`. Reusable si otra feature lo necesita.
 
