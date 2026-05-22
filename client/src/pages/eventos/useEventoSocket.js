@@ -13,6 +13,8 @@ import { io } from 'socket.io-client';
  *   - `evento:registration-reviewed` → payload: { eventoId, userId, registrationId,
  *        status, reviewedAt, adminNotes, permanentlyRejected, counts, registration }
  *   - `evento:updated` → payload: { eventoId, evento }
+ *   - `evento:ludoteca-changed` → payload: { eventoId, action: 'added'|'updated'|'removed', item?, itemId? }
+ *   - `evento:mesa-created` → payload: { eventoId, tableId }
  *
  * Si el cliente no tiene token guardado (logout / sesión expirada) el hook
  * no abre socket y los callbacks nunca se llaman.
@@ -22,16 +24,20 @@ import { io } from 'socket.io-client';
  * @param {(payload: object) => void} [callbacks.onCountsChanged]
  * @param {(payload: object) => void} [callbacks.onReviewed]
  * @param {(payload: object) => void} [callbacks.onUpdated]
+ * @param {(payload: object) => void} [callbacks.onLudotecaChanged]
+ * @param {(payload: object) => void} [callbacks.onMesaCreated]
  */
 export default function useEventoSocket(id, {
   onCountsChanged,
   onReviewed,
   onUpdated,
+  onLudotecaChanged,
+  onMesaCreated,
 } = {}) {
-  const cbRef = useRef({ onCountsChanged, onReviewed, onUpdated });
+  const cbRef = useRef({ onCountsChanged, onReviewed, onUpdated, onLudotecaChanged, onMesaCreated });
   // Actualizar refs en cada render — los listeners usan la versión más
   // reciente del callback, pero NO disparan reconexión del socket.
-  cbRef.current = { onCountsChanged, onReviewed, onUpdated };
+  cbRef.current = { onCountsChanged, onReviewed, onUpdated, onLudotecaChanged, onMesaCreated };
 
   useEffect(() => {
     if (!id) return undefined;
@@ -58,6 +64,14 @@ export default function useEventoSocket(id, {
     socket.on('evento:updated', (payload) => {
       if (payload?.eventoId !== id) return;
       cbRef.current.onUpdated?.(payload);
+    });
+    socket.on('evento:ludoteca-changed', (payload) => {
+      if (payload?.eventoId !== id) return;
+      cbRef.current.onLudotecaChanged?.(payload);
+    });
+    socket.on('evento:mesa-created', (payload) => {
+      if (payload?.eventoId !== id) return;
+      cbRef.current.onMesaCreated?.(payload);
     });
 
     return () => {

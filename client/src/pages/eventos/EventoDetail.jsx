@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  useParams,
+  useNavigate,
+  useSearchParams,
+  Link,
+} from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
@@ -14,6 +19,8 @@ import { formatDistanceKm } from "../../utils/distance";
 import { getLocationDisplay } from "../../utils/location";
 import TicketStub from "./TicketStub";
 import EventoForm from "./EventoForm";
+import EventoLudoteca from "./EventoLudoteca";
+import EventoMesas from "./EventoMesas";
 import useEventoSocket from "./useEventoSocket";
 import { ArrowLeftIcon, ImageIcon } from "./EventoIcons";
 import styles from "./EventoDetail.module.css";
@@ -25,12 +32,26 @@ const STATUS_EYEBROW = {
   draft: "Borrador · no visible",
 };
 
+// Tabs válidos. Defaults a 'detalle' (vista actual). El estado se sincroniza
+// con `?tab=` para deep-link y back-button friendly.
+const VALID_TABS = ["detalle", "ludoteca", "mesas"];
+
 export default function EventoDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { setActiveEvento, addToast } = useNotifications();
   const userId = user?._id;
+
+  const requestedTab = searchParams.get("tab");
+  const activeTab = VALID_TABS.includes(requestedTab) ? requestedTab : "detalle";
+  const setActiveTab = (tab) => {
+    const next = new URLSearchParams(searchParams);
+    if (tab === "detalle") next.delete("tab");
+    else next.set("tab", tab);
+    setSearchParams(next, { replace: true });
+  };
 
   // Mientras el usuario esté viendo este evento, las notificaciones que
   // lleguen para él se marcan leídas y los toasts se suprimen (mismo
@@ -79,7 +100,30 @@ export default function EventoDetail() {
   // refs para no reconectar el socket en cada render (antes el effect tenía
   // un eslint-disable de exhaustive-deps por esta razón). Conecta en paralelo
   // con el fetch HTTP — todos los callbacks tolerán prev=null si llegan antes.
+  // Ludoteca state — al tope para que el badge "Ludoteca (N)" se actualice
+  // en vivo via socket sin esperar a que el user abra esa tab.
+  const [ludotecaItems, setLudotecaItems] = useState(null);
+
   useEventoSocket(id, {
+    onLudotecaChanged: (payload) => {
+      if (!payload) return;
+      setLudotecaItems((prev) => {
+        const list = prev || [];
+        if (payload.action === "added" && payload.item) {
+          if (list.some((it) => it._id === payload.item._id)) return list;
+          return [...list, payload.item];
+        }
+        if (payload.action === "updated" && payload.item) {
+          return list.map((it) =>
+            it._id === payload.item._id ? payload.item : it,
+          );
+        }
+        if (payload.action === "removed" && payload.itemId) {
+          return list.filter((it) => it._id !== payload.itemId);
+        }
+        return list;
+      });
+    },
     onCountsChanged: (payload) => {
       if (!payload.counts) return;
       setEvento((prev) =>
@@ -405,6 +449,27 @@ export default function EventoDetail() {
   const isHost = userId && evento.author?._id === userId;
   const authorDisplay = getUserDisplay(evento.author);
 
+  // canActInEvento (mirror del helper server-side):
+  //   - admin del sitio: sí
+  //   - author del evento: sí
+  //   - registrant con status='confirmed': sí
+  //   - el resto (pending, rejected, stranger, guest): no
+  // Habilita los botones "Agregar juego" en la ludoteca y "Crear mesa" en
+  // mesas del evento. El server REVALIDA, así que esto es solo UX.
+  // Computación inline (no useMemo) porque está después del early-return de
+  // `loading`/`notFound` — hooks condicionales rompen la regla de React.
+  const canActInEvento = !!user && (
+    user.isAdmin ||
+    isHost ||
+    evento?.userRegistration?.status === "confirmed"
+  );
+
+  // Las tabs se muestran solo a usuarios autenticados — guests sólo ven el
+  // detalle (vista actual). En edit mode (admin editando) las tabs se ocultan
+  // para no distraer del form.
+  const showTabs = !!user && !editing;
+  const ludotecaCount = ludotecaItems?.length ?? 0;
+
   return (
     <div className={styles.page}>
       <Helmet>
@@ -482,7 +547,61 @@ export default function EventoDetail() {
 
       <div className={styles.layout}>
         <main className={styles.main}>
-          {editing ? (
+          {showTabs && (
+            <nav
+              className={styles.tabs}
+              role="tablist"
+              aria-label="Secciones del evento"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "detalle"}
+                className={`${styles.tab} ${activeTab === "detalle" ? styles.tabActive : ""}`}
+                onClick={() => setActiveTab("detalle")}
+              >
+                Detalle
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "ludoteca"}
+                className={`${styles.tab} ${activeTab === "ludoteca" ? styles.tabActive : ""}`}
+                onClick={() => setActiveTab("ludoteca")}
+              >
+                Ludoteca
+                {ludotecaCount > 0 && (
+                  <span className={styles.tabBadge}>{ludotecaCount}</span>
+                )}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "mesas"}
+                className={`${styles.tab} ${activeTab === "mesas" ? styles.tabActive : ""}`}
+                onClick={() => setActiveTab("mesas")}
+              >
+                Mesas
+              </button>
+            </nav>
+          )}
+
+          {activeTab === "ludoteca" && !editing && (
+            <EventoLudoteca
+              eventoId={id}
+              evento={evento}
+              items={ludotecaItems}
+              setItems={setLudotecaItems}
+              canAdd={canActInEvento}
+            />
+          )}
+
+          {activeTab === "mesas" && !editing && (
+            <EventoMesas eventoId={id} canAdd={canActInEvento} />
+          )}
+
+          {(activeTab === "detalle" || editing) &&
+            (editing ? (
             <EventoForm
               mode="edit"
               initialEvento={evento}
@@ -657,7 +776,7 @@ export default function EventoDetail() {
                 </section>
               )}
             </>
-          )}
+          ))}
         </main>
 
         <aside className={styles.aside}>

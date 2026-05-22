@@ -9,7 +9,7 @@ import styles from './Notifications.module.css';
 const CATEGORIES = {
   mesas:       new Set(['chat', 'comment', 'image', 'join_request', 'join_accepted', 'spot_opened', 'table_cancelled', 'join_rejected']),
   torneos:     new Set(['tournament_accepted', 'tournament_rejected', 'tournament_advanced', 'tournament_eliminated', 'tournament_started', 'tournament_finished']),
-  eventos:     new Set(['evento_confirmed', 'evento_rejected', 'evento_cancelled', 'evento_updated', 'evento_reminder']),
+  eventos:     new Set(['evento_confirmed', 'evento_rejected', 'evento_cancelled', 'evento_updated', 'evento_reminder', 'evento_ludoteca_added', 'evento_mesa_created']),
   amigos:      new Set(['friend_request', 'friend_accepted', 'dm']),
   compartidas: new Set(['compartida_comment', 'compartida_like']),
   admin:       new Set(['admin_chat']),
@@ -203,6 +203,28 @@ function getNotifMeta(n) {
         preview: `Recordatorio: ${n.eventoTitle} es mañana`,
         chipClass: 'accepted',
       };
+    case 'evento_ludoteca_added': {
+      const who = n.addedByUsername || 'alguien';
+      const game = n.gameName ? `“${n.gameName}”` : 'un juego';
+      const noun = n.count === 1 ? 'juego nuevo' : 'juegos nuevos';
+      return {
+        icon: '🎲',
+        countLabel: `${n.count} ${noun} en la ludoteca`,
+        preview: `${who} sumó ${game} a ${n.eventoTitle}`,
+        chipClass: 'chat',
+      };
+    }
+    case 'evento_mesa_created': {
+      const who = n.hostUsername || 'alguien';
+      const game = n.gameName ? `“${n.gameName}”` : 'una partida';
+      const noun = n.count === 1 ? 'mesa nueva' : 'mesas nuevas';
+      return {
+        icon: '🎯',
+        countLabel: `${n.count} ${noun} en el evento`,
+        preview: `${who} armó ${game} en ${n.eventoTitle}`,
+        chipClass: 'chat',
+      };
+    }
     case 'dm':
       return {
         icon: '💬',

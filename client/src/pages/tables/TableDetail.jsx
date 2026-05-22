@@ -582,8 +582,21 @@ export default function TableDetail() {
           </div>
           <div className={styles.heroGradient} />
 
-          <button className={styles.backBtn} onClick={() => navigate(-1)}>
-            ← Volver
+          <button
+            className={styles.backBtn}
+            onClick={() => {
+              // Si la mesa pertenece a un evento, "volver" lleva al detalle
+              // del evento (tab Mesas) en lugar de hacer history.back —
+              // garantiza que la navegación tenga sentido aunque el user
+              // haya llegado a la mesa via deep-link o notif.
+              if (table.eventoId) {
+                navigate(`/eventos/${table.eventoId}?tab=mesas`);
+              } else {
+                navigate(-1);
+              }
+            }}
+          >
+            ← {table.eventoId ? 'Volver al evento' : 'Volver'}
           </button>
 
           <div className={styles.heroBadges}>

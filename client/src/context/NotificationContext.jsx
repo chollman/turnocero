@@ -850,6 +850,10 @@ export function NotificationProvider({ children }) {
       cancelled: "evento_cancelled",
       updated: "evento_updated",
       reminder: "evento_reminder",
+      // Sub-recursos del evento (Fase 2). Llegan agregables — el count viene
+      // del server (contrato post-emitNotification: payload.count).
+      ludoteca_added: "evento_ludoteca_added",
+      mesa_created: "evento_mesa_created",
     };
     socket.on(
       "evento:notification",
@@ -869,7 +873,18 @@ export function NotificationProvider({ children }) {
           // Flag para distinguir cancelación (el evento existe) vs eliminación
           // (el evento ya no existe → el deep-link a /eventos/:id rompería).
           eventoDeleted: payload.eventoDeleted || false,
+          // Sub-recursos: payload trae metadata adicional (last game name,
+          // last user, last tableId). Ver server/models/Notification.js.
+          gameName: payload.gameName || "",
+          addedByUsername: payload.addedByUsername || "",
+          eventoTableId: payload.eventoTableId || null,
+          hostUsername: payload.hostUsername || "",
         };
+        // `count` absoluto del server cuando viene (aggregating types post-
+        // emitNotification). Fallback a 1 para los tipos non-aggregating.
+        const incomingCount =
+          typeof payload.count === "number" ? payload.count : 1;
+        const incomingNotifId = payload.notifId || null;
         setNotifications((prev) => {
           const rest = prev.filter(
             (n) => !(n.type === notifType && n.eventoId === common.eventoId),
@@ -878,9 +893,11 @@ export function NotificationProvider({ children }) {
             ...rest,
             {
               ...common,
-              count: 1,
+              _id: incomingNotifId,
+              notifId: incomingNotifId,
+              count: incomingCount,
               read: false,
-              timestamp: new Date().toISOString(),
+              timestamp: payload.timestamp || new Date().toISOString(),
             },
           ];
         });

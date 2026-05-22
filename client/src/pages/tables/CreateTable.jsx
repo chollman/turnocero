@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
@@ -39,6 +39,11 @@ export default function CreateTable() {
   const abortRef = useRef(null);
   const searchCache = useRef(new Map());
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Si la mesa se está creando desde el detalle de un evento, el query param
+  // `?evento=<id>` se propaga al POST. El server valida permisos contra el
+  // evento (canActInEvento). Sin el param, la mesa es global.
+  const eventoId = searchParams.get('evento') || null;
 
   useEffect(() => {
     if (debouncedBoardGameInput.length < 3 || boardGameSelected) {
@@ -171,6 +176,8 @@ export default function CreateTable() {
         bggImage: boardGameSelected.image,
         bggYear: boardGameSelected.year,
         maxPlayers: Number(form.maxPlayers),
+        // Sólo se incluye si veníamos desde /eventos/:id/mesas con ?evento=
+        ...(eventoId ? { eventoId } : {}),
       });
       navigate(`/mesas/${data._id}`);
     } catch (err) {
@@ -184,9 +191,17 @@ export default function CreateTable() {
     <div className={styles.page}>
       <div className={styles.inner}>
         <div className={styles.hero}>
-          <div className={styles.eyebrow}>◆ NUEVA MESA</div>
-          <h1 className={styles.heroTitle}>Convocá una partida</h1>
-          <p className={styles.heroSub}>Elegí juego, lugar y horario. La comunidad se encarga del resto.</p>
+          <div className={styles.eyebrow}>
+            ◆ NUEVA MESA{eventoId ? ' · DENTRO DEL EVENTO' : ''}
+          </div>
+          <h1 className={styles.heroTitle}>
+            {eventoId ? 'Armá una mesa para el evento' : 'Convocá una partida'}
+          </h1>
+          <p className={styles.heroSub}>
+            {eventoId
+              ? 'La mesa va a ser visible dentro del evento, no en /mesas global.'
+              : 'Elegí juego, lugar y horario. La comunidad se encarga del resto.'}
+          </p>
         </div>
 
         <div className={styles.formCard}>
