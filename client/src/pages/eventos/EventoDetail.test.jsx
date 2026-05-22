@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { http, HttpResponse } from "msw";
@@ -72,7 +78,11 @@ function setupEvento(evento) {
   server.use(http.get("/api/eventos/:id", () => HttpResponse.json(evento)));
 }
 
-function renderDetail({ user = null, eventoId = "e1", setActiveEvento = vi.fn() } = {}) {
+function renderDetail({
+  user = null,
+  eventoId = "e1",
+  setActiveEvento = vi.fn(),
+} = {}) {
   useAuth.mockReturnValue({ user });
   useNotifications.mockReturnValue({ setActiveEvento });
   return render(
@@ -172,7 +182,9 @@ describe("<EventoDetail>", () => {
     try {
       renderDetail();
       await screen.findByRole("heading", { name: "Mi Evento" });
-      fireEvent.click(screen.getByRole("button", { name: /compartir evento/i }));
+      fireEvent.click(
+        screen.getByRole("button", { name: /compartir evento/i }),
+      );
       await waitFor(() => expect(shareMock).toHaveBeenCalled());
       const call = shareMock.mock.calls[0][0];
       expect(call.title).toMatch(/Mi Evento/);
@@ -209,7 +221,9 @@ describe("<EventoDetail>", () => {
         </HelmetProvider>,
       );
       await screen.findByRole("heading", { name: "Mi Evento" });
-      fireEvent.click(screen.getByRole("button", { name: /compartir evento/i }));
+      fireEvent.click(
+        screen.getByRole("button", { name: /compartir evento/i }),
+      );
       await waitFor(() => expect(writeText).toHaveBeenCalled());
       expect(writeText.mock.calls[0][0]).toMatch(/\/eventos\/e1/);
       expect(addToast).toHaveBeenCalled();

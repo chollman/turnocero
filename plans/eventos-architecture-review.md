@@ -4,18 +4,19 @@
 
 **29 / 30 ítems implementados.** Plan ejecutado en cinco lotes durante esta y la sesión previa.
 
-| Lote | Ítems |
-|---|---|
-| 1 (críticos) | ✅ B1, B2, B3 |
-| 2 (inconsistencias) | ✅ I1, I2, I3, I4, I5, I6, I7, I8 |
-| 3 (bugs + deuda técnica) | ✅ B4, B5, B6+B7, B8, B9, M1, M2, M3, M5, M7, M8, M10 |
-| 4 (features) | ✅ F1, F3 (cubierto en I7), F5, F6 |
-| 5 (tests) | ✅ T1, T3, T4 (T2 y T5 ya estaban cubiertos en la sesión previa) |
-| Skip / abierto | ⏸ M4 (premature opt), M6 (PR separado cross-feature), M9 (depende de habilitar light theme), F2 (email transaccional), F4 (filtro pasados/próximos) |
+| Lote                     | Ítems                                                                                                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 (críticos)             | ✅ B1, B2, B3                                                                                                                                       |
+| 2 (inconsistencias)      | ✅ I1, I2, I3, I4, I5, I6, I7, I8                                                                                                                   |
+| 3 (bugs + deuda técnica) | ✅ B4, B5, B6+B7, B8, B9, M1, M2, M3, M5, M7, M8, M10                                                                                               |
+| 4 (features)             | ✅ F1, F3 (cubierto en I7), F5, F6                                                                                                                  |
+| 5 (tests)                | ✅ T1, T3, T4 (T2 y T5 ya estaban cubiertos en la sesión previa)                                                                                    |
+| Skip / abierto           | ⏸ M4 (premature opt), M6 (PR separado cross-feature), M9 (depende de habilitar light theme), F2 (email transaccional), F4 (filtro pasados/próximos) |
 
 **Suite final**: cliente 1344/1344 verdes (132 archivos), server 502/502 verdes (33 archivos). Tests nuevos agregados en esta sesión (T1: +12 integration, T3: +1 E2E, T4: +1 client) + estabilización con polling helper de las notificaciones fire-and-forget que eran pre-flaky.
 
 **Patrones nuevos extraídos como memoria** (aplicables a otras secciones):
+
 - `feedback_errors_as_toasts.md` (B6+B7) — errores PUT/POST/DELETE como `addToast`, no state local
 - `feedback_shared_modal.md` (M1) — `<Modal>` shared para overlays con focus mgmt
 - `feedback_validate_objectid_param.md` (B8) — `router.param("id", validateObjectId)`
@@ -30,6 +31,7 @@
 Revisión arquitectónica de la sección de Eventos de Turnocero como segunda iteración tras el rediseño de mayo 2026 (ver `feedback_eventos_section_design.md`). El objetivo es enumerar bugs, inconsistencias y oportunidades de mejora encontradas en los flujos completos (servidor, cliente, sockets, notificaciones, tests, integración cross-feature). Este documento es un reporte; no contiene cambios de código y la priorización sirve para decidir qué atacar en futuras tareas.
 
 Material auditado:
+
 - **Servidor**: [`server/models/Evento.js`](server/models/Evento.js), [`server/routes/eventos.js`](server/routes/eventos.js), [`server/jobs/eventoReminders.js`](server/jobs/eventoReminders.js), [`server/jobs/scheduler.js`](server/jobs/scheduler.js), [`server/server.js`](server/server.js), [`server/models/Notification.js`](server/models/Notification.js), [`server/utils/saveNotification.js`](server/utils/saveNotification.js).
 - **Cliente**: 21 componentes + 13 tests + 1 utils en [`client/src/pages/eventos/`](client/src/pages/eventos/); rutas en [`client/src/App.jsx`](client/src/App.jsx); contextos relacionados ([`NotificationContext`](client/src/context/NotificationContext.jsx), [`ToastContainer`](client/src/components/layout/ToastContainer.jsx)); navegación ([`Sidebar`](client/src/components/layout/Sidebar.jsx), [`BottomNav`](client/src/components/layout/BottomNav.jsx)).
 
@@ -48,6 +50,7 @@ Totales: **9 bugs/correcciones**, **8 inconsistencias arquitectónicas**, **10 m
 ## 🔴 BUGS CRÍTICOS (prioridad alta)
 
 ### B1 — `EventoDetail` no marca notificaciones como leídas al entrar al detalle
+
 **Ubicación**: [`client/src/pages/eventos/EventoDetail.jsx`](client/src/pages/eventos/EventoDetail.jsx) (todo el componente — falta el `useEffect`)
 
 **Síntoma**: cuando el usuario abre `/eventos/:id` después de recibir una notificación tipo `evento_confirmed`/`evento_rejected`/`evento_cancelled`/`evento_updated`/`evento_reminder`, el badge de notificaciones sigue mostrando esa notif como no-leída. Toasts del mismo evento se siguen mostrando aunque el usuario esté viendo el detalle.
@@ -55,6 +58,7 @@ Totales: **9 bugs/correcciones**, **8 inconsistencias arquitectónicas**, **10 m
 **Causa**: el componente nunca importa `useNotifications` ni llama a `setActiveEvento(id)`. `NotificationContext` expone ese setter ([`NotificationContext.jsx:487-489`](client/src/context/NotificationContext.jsx)) específicamente para este caso de uso, igual que `setActiveTable`/`setActiveTorneo` que sí están enchufados en `TableDetail`/`TorneoDetail`.
 
 **Fix**: agregar al inicio del componente:
+
 ```jsx
 const { setActiveEvento } = useNotifications();
 useEffect(() => {
@@ -68,6 +72,7 @@ useEffect(() => {
 ---
 
 ### B2 — `/eventos/:id/inscripciones` no usa `<AdminRoute>` en la definición de la ruta
+
 **Ubicación**: [`client/src/App.jsx:150`](client/src/App.jsx)
 
 **Síntoma**: la ruta solo se envuelve en `<PrivateRoute><SectionGate section="eventos">`. La protección de admin queda solo en el `if (!user?.isAdmin) return <Navigate to="/" />` dentro de `EventoInscripciones`. Si un usuario no-admin entra a la URL directa, el componente se monta, dispara su `useEffect` de fetch contra `GET /api/eventos/:id/inscripciones`, recibe un 403 del backend, y recién entonces redirige.
@@ -75,9 +80,18 @@ useEffect(() => {
 **Comparación**: `/base-de-datos` ([App.jsx:139](client/src/App.jsx)), `/panel-admin` ([App.jsx:140](client/src/App.jsx)) y `/mensajes-admin` ([App.jsx:159](client/src/App.jsx)) sí usan `<AdminRoute>`.
 
 **Fix**: envolver en `<AdminRoute>` y usar `isActuallyAdmin` (no `user.isAdmin`) — esta es una página estructural admin que debe seguir reachable aún con "view as user" activo (ver `feedback_admin_view_as_user.md`):
+
 ```jsx
-<Route path="/eventos/:id/inscripciones"
-  element={<AdminRoute><SectionGate section="eventos"><EventoInscripciones /></SectionGate></AdminRoute>} />
+<Route
+  path="/eventos/:id/inscripciones"
+  element={
+    <AdminRoute>
+      <SectionGate section="eventos">
+        <EventoInscripciones />
+      </SectionGate>
+    </AdminRoute>
+  }
+/>
 ```
 
 Y dentro de [`EventoInscripciones.jsx:34`](client/src/pages/eventos/EventoInscripciones.jsx) cambiar el guard imperativo por `isActuallyAdmin`.
@@ -87,6 +101,7 @@ Y dentro de [`EventoInscripciones.jsx:34`](client/src/pages/eventos/EventoInscri
 ---
 
 ### B3 — Comprobantes huérfanos en Cloudinary cuando admin rechaza con `permanent: true`
+
 **Ubicación**: [`server/routes/eventos.js`](server/routes/eventos.js) (PATCH `/:id/inscripciones/:userId/rechazar`)
 
 **Síntoma**: cuando un admin rechaza una inscripción con `permanent: true`, el comprobante (imagen o PDF) NO se borra de Cloudinary. El usuario queda bloqueado para reintentar (403 en POST `/inscribirse`), así que tampoco se ejecuta el path que limpia el comprobante viejo (líneas 727-746). El archivo queda como huérfano permanente.
@@ -98,6 +113,7 @@ Y dentro de [`EventoInscripciones.jsx:34`](client/src/pages/eventos/EventoInscri
 ---
 
 ### B4 — Race entre fetch HTTP y conexión del socket en `EventoDetail`
+
 **Ubicación**: [`client/src/pages/eventos/EventoDetail.jsx:53-171`](client/src/pages/eventos/EventoDetail.jsx)
 
 **Síntoma**: el `useEffect` que conecta el socket depende de `evento?._id` (l.171), pero el socket recién se crea DESPUÉS del fetch HTTP exitoso (l.53-71). Si en la ventana entre fetch start y socket connect ocurre un `evento:counts-changed` (otro usuario se inscribe, admin confirma), el cliente no lo recibe. Los counts pueden quedar 1 atrás hasta el próximo evento socket.
@@ -111,11 +127,13 @@ Adicionalmente: este componente abre una **conexión Socket.IO propia** (línea 
 ---
 
 ### B5 — `evento_reminder` puede perder eventos si el cron se atrasa más de 1h
+
 **Ubicación**: [`server/jobs/eventoReminders.js`](server/jobs/eventoReminders.js) — ventana [now+23h, now+25h]
 
 **Síntoma**: el cron corre cada hora (`0 * * * *`). Si una corrida se demora >1h (deploy, contención DB, restart de container), un evento cuya ventana de 24h cae en ese hueco no recibe reminder, porque al próximo tick ya no está en la ventana [+23h, +25h].
 
 **Fix**: cambiar de "evento dentro de ventana" a "evento dentro de ventana **AND** no tuvo reminder enviado todavía". Hay dos formas:
+
 - (a) agregar `reminderSentAt: Date` al `eventoSchema`; el cron filtra `reminderSentAt: { $exists: false }` y lo seta al notificar (consistente, sobrevive deploys). Tirar test de regresión.
 - (b) confiar en la idempotencia del `saveNotification` upsert (que ya garantiza una notif por `(recipient, type, eventoId)`) y ampliar la ventana a `[now+0h, now+25h]` filtrando los que ya tienen notif registrada. Más invasivo, menos eficiente.
 
@@ -126,6 +144,7 @@ Recomiendo (a).
 ---
 
 ### B6 — `EventoDetail` mantiene state local `actionError` y muestra inline en vez de toast
+
 **Ubicación**: [`EventoDetail.jsx:43, 502-504`](client/src/pages/eventos/EventoDetail.jsx), [`EventoInscripciones.jsx:19`](client/src/pages/eventos/EventoInscripciones.jsx), [`TicketStub.jsx:62-78`](client/src/pages/eventos/TicketStub.jsx)
 
 **Síntoma**: errores de PUT/POST/DELETE se renderizan como `<p className={styles.actionError}>{actionError}</p>` sin auto-dismiss, sin centralización, y no aparecen como toast global. El resto del proyecto usa toasts del `NotificationContext` con auto-dismiss para errores transitorios.
@@ -137,6 +156,7 @@ Recomiendo (a).
 ---
 
 ### B7 — `EventoDetail` lanza `throw err` después de setear `actionError` — double error path
+
 **Ubicación**: [`EventoDetail.jsx:199-207`](client/src/pages/eventos/EventoDetail.jsx) (handleInscribirse) y [`EventoDetail.jsx:255-263`](client/src/pages/eventos/EventoDetail.jsx) (handleSaveEdit)
 
 **Síntoma**: el handler hace `setActionError(msg)` y luego `throw err`. El caller (`TicketStub`/`EventoForm`) atrapa el throw y muestra su propio error. Resultado: dos lugares mostrando el mismo mensaje. `handleCancelRegistration` (l.221-227) NO hace throw — inconsistente.
@@ -148,6 +168,7 @@ Recomiendo (a).
 ---
 
 ### B8 — Validación de ObjectId ausente en endpoints `:id`
+
 **Ubicación**: múltiples handlers en [`server/routes/eventos.js`](server/routes/eventos.js): GET `/:id`, PUT `/:id`, DELETE `/:id`, POST `/:id/inscribirse`, PATCH `/:id/inscripciones/:userId/*`
 
 **Síntoma**: `req.params.id` se pasa directo a `Evento.findById()`. Si llega un string que no parsea como ObjectId, Mongoose lanza `CastError` (status 500 sin un global error handler que lo traduzca) o devuelve null (404). No hay 400 explícito.
@@ -159,6 +180,7 @@ Recomiendo (a).
 ---
 
 ### B9 — `permanent` flag coerciona string `'true'` en rechazar, pero ningún otro endpoint hace eso
+
 **Ubicación**: [`server/routes/eventos.js:1055-1056`](server/routes/eventos.js)
 
 **Síntoma**: `reg.permanentlyRejected = req.body.permanent === true || req.body.permanent === 'true'`. Esto es defensivo contra clients que mandan strings, pero ningún otro endpoint del proyecto lo hace. Pequeña inconsistencia.
@@ -172,6 +194,7 @@ Recomiendo (a).
 ## 🟠 INCONSISTENCIAS ARQUITECTÓNICAS
 
 ### I1 — Falta supresión de toasts para el evento activo (sí existe para mesas)
+
 **Ubicación**: [`NotificationContext.jsx:359-389`](client/src/context/NotificationContext.jsx)
 
 **Síntoma**: para `chat:notification` (mesas), el context chequea `activeTableRef.current === notif.tableId` y suprime el toast. Para `evento:notification` no hay equivalente. Si el usuario está viendo `/eventos/X` y le confirman su inscripción a X, recibe toast Y notif persistente. Solo se quiere la notif (no el toast).
@@ -181,6 +204,7 @@ Recomiendo (a).
 ---
 
 ### I2 — Tres componentes mantienen su propio `now` ticker
+
 **Ubicación**: [`Eventos.jsx:71-74`](client/src/pages/eventos/Eventos.jsx), [`EventoDetail.jsx:47-51`](client/src/pages/eventos/EventoDetail.jsx), [`EventoInscripciones.jsx:24-27`](client/src/pages/eventos/EventoInscripciones.jsx)
 
 **Síntoma**: cada uno hace `setInterval(() => setNow(Date.now()), 30000)` con cleanup. Lógica copiada 3 veces.
@@ -190,6 +214,7 @@ Recomiendo (a).
 ---
 
 ### I3 — Status badge mapping duplicado en tres componentes
+
 **Ubicación**: [`PosterCard.jsx`](client/src/pages/eventos/PosterCard.jsx), [`TimelineRow.jsx`](client/src/pages/eventos/TimelineRow.jsx), [`InscItem.jsx`](client/src/pages/eventos/InscItem.jsx)
 
 **Síntoma**: cada componente define su propio `STATUS_BADGES` / `STATUS_OPTIONS` para `open`/`closed`/`cancelled`/`draft` etc. Tres copias que se pueden desincronizar.
@@ -199,6 +224,7 @@ Recomiendo (a).
 ---
 
 ### I4 — `ComprobanteDropzone` e `ImageDropzone` casi idénticos
+
 **Ubicación**: [`ComprobanteDropzone.jsx`](client/src/pages/eventos/ComprobanteDropzone.jsx) (81 líneas), [`ImageDropzone.jsx`](client/src/pages/eventos/ImageDropzone.jsx) (62 líneas)
 
 **Síntoma**: la lógica de drag/drop, file picker, preview y validación es la misma; difieren en accept (`image/*` vs `image/*,application/pdf`) y label.
@@ -208,7 +234,9 @@ Recomiendo (a).
 ---
 
 ### I5 — Hardcoded colors que rompen el light theme
+
 **Ubicación**:
+
 - [`InscItem.module.css:165`](client/src/pages/eventos/InscItem.module.css) — `#001712`, `#1aef9a`
 - [`PosterCard.module.css:60`](client/src/pages/eventos/PosterCard.module.css) — `#16203a`
 - [`EventoDetail.module.css:68-142`](client/src/pages/eventos/EventoDetail.module.css) — drop-shadow rgb específicos (efectos visuales)
@@ -222,6 +250,7 @@ Ver `feedback_theme_support.md`.
 ---
 
 ### I6 — `mergeEventoUpdate` helper local que debería ser util compartido
+
 **Ubicación**: [`EventoDetail.jsx:234-244`](client/src/pages/eventos/EventoDetail.jsx)
 
 **Síntoma**: helper privado para preservar `userRegistration` y `confirmedRegistrations` al mergear updates del server. El comentario es claro y útil. Si otros detalles (torneos, compartidas) tienen el mismo problema, deberíamos extraer.
@@ -231,6 +260,7 @@ Ver `feedback_theme_support.md`.
 ---
 
 ### I7 — `evento_cancelled` se usa para cancelación Y eliminación del evento
+
 **Ubicación**: [`server/routes/eventos.js:562`](server/routes/eventos.js) (PUT status=cancelled) y [`server/routes/eventos.js:643`](server/routes/eventos.js) (DELETE evento)
 
 **Síntoma**: el usuario recibe el mismo tipo de notif en dos casos semánticamente distintos. Para el destinatario es lo mismo (el evento no va), pero el evento ya no existe → el deep-link de la notif a `/eventos/:id` rompe en 404.
@@ -242,6 +272,7 @@ Ver `feedback_theme_support.md`.
 ---
 
 ### I8 — Errores silenciados sin logging en el cliente
+
 **Ubicación**: [`Eventos.jsx:99-101`](client/src/pages/eventos/Eventos.jsx) y similares
 
 **Síntoma**: `catch { /* silent */ }` en el fetch principal. Si la API falla, el usuario ve loading infinito o lista vacía sin mensaje.
@@ -253,6 +284,7 @@ Ver `feedback_theme_support.md`.
 ## 🟡 MEJORAS DE DEUDA TÉCNICA
 
 ### M1 — Modales sin focus management
+
 **Ubicación**: [`EventoDetail.jsx:373-386`](client/src/pages/eventos/EventoDetail.jsx) (lightbox), [`TicketStub.jsx:254-277`](client/src/pages/eventos/TicketStub.jsx) (confirmación)
 
 **Síntoma**: modales sin `role="dialog"` / `aria-modal="true"`, sin focus trap, sin restauración de focus al cerrar. Cierre con click outside pero sin tecla Escape (lightbox sí escucha onClick en backdrop).
@@ -262,6 +294,7 @@ Ver `feedback_theme_support.md`.
 ---
 
 ### M2 — `confirmedRegistrations` mantenido a mano via socket merging
+
 **Ubicación**: [`EventoDetail.jsx:119-144`](client/src/pages/eventos/EventoDetail.jsx)
 
 **Síntoma**: el cliente reconstruye un array de confirmados por sucesivos `evento:registration-reviewed` events. La lógica es correcta pero frágil — un payload sin `registration.user` populated lo rompe (el server siempre populates en la línea 1006, pero esto está implícito).
@@ -271,6 +304,7 @@ Ver `feedback_theme_support.md`.
 ---
 
 ### M3 — `Eventos.jsx` no tiene búsqueda por texto
+
 **Ubicación**: [`Eventos.jsx`](client/src/pages/eventos/Eventos.jsx)
 
 **Síntoma**: hay filtro por status (open/closed/mine/draft/cancelled) y por distancia (slider), pero no por nombre del evento. Esperable a futuro.
@@ -280,6 +314,7 @@ Ver `feedback_theme_support.md`.
 ---
 
 ### M4 — `now` ticker re-renderiza toda la página
+
 **Ubicación**: [`Eventos.jsx:67-74`](client/src/pages/eventos/Eventos.jsx)
 
 **Síntoma**: cada 30s se actualiza el state `now`, re-renderizando toda la lista de eventos aunque solo los countdowns la usan. Para 10-20 eventos no se nota, pero a escala podría.
@@ -291,6 +326,7 @@ Esperar a tener el problema; no premature optimization.
 ---
 
 ### M5 — Inline styles en JSX en vez de CSS classes
+
 **Ubicación**: [`EventoDetail.jsx:477-479`](client/src/pages/eventos/EventoDetail.jsx) — `style={{ marginLeft: 6, color: "var(--green)", fontWeight: 600, fontSize: "0.85em" }}`
 
 **Síntoma**: badges de distancia con inline styles. Diluye CSS Modules.
@@ -300,6 +336,7 @@ Esperar a tener el problema; no premature optimization.
 ---
 
 ### M6 — Socket por componente (EventoDetail, EventoInscripciones, Eventos)
+
 **Ubicación**: cada uno crea `io(socketUrl, {...})` con su propio token
 
 **Síntoma**: tres componentes de la sección abren cada uno su socket. Hay overhead de connection/disconnection en cada navegación.
@@ -311,6 +348,7 @@ Es un refactor mayor pero limpia un patrón que se repite también en Torneos, M
 ---
 
 ### M7 — Lazy `closePastOpenEvents` corre en cada `GET /` y `GET /:id`
+
 **Ubicación**: [`server/routes/eventos.js:118-158, 177, 362`](server/routes/eventos.js)
 
 **Síntoma**: en cada request de lectura, el server busca eventos `open` cuya fecha pasó y los cierra. Es lazy migration, funciona, pero hay carga acumulativa si el feed se hittea mucho.
@@ -320,6 +358,7 @@ Es un refactor mayor pero limpia un patrón que se repite también en Torneos, M
 ---
 
 ### M8 — `mergeEventoUpdate` no aplica a `EventoInscripciones`
+
 **Ubicación**: [`EventoInscripciones.jsx`](client/src/pages/eventos/EventoInscripciones.jsx)
 
 **Síntoma**: `EventoInscripciones` mergea updates de socket con map/filter ad-hoc. Si el server expande el payload de `evento:updated`, hay que actualizar acá.
@@ -329,6 +368,7 @@ Es un refactor mayor pero limpia un patrón que se repite también en Torneos, M
 ---
 
 ### M9 — Tests de UI no cubren temas (light mode)
+
 **Ubicación**: tests de eventos componentes
 
 **Síntoma**: ningún test cambia el theme y verifica que los colores se vean correctos. Los hardcoded colors de I5 pasarían silenciosamente.
@@ -338,6 +378,7 @@ Es un refactor mayor pero limpia un patrón que se repite también en Torneos, M
 ---
 
 ### M10 — `useEffect` con `eslint-disable react-hooks/exhaustive-deps` justificado pero frágil
+
 **Ubicación**: [`EventoDetail.jsx:170`](client/src/pages/eventos/EventoDetail.jsx)
 
 **Síntoma**: el effect ignora `evento` en deps por buena razón (no queremos reconectar el socket en cada update). El comentario es excelente. Pero si alguien edita el effect y olvida la regla, se desconecta y reconecta a cada cambio.
@@ -349,6 +390,7 @@ Es un refactor mayor pero limpia un patrón que se repite también en Torneos, M
 ## 🔵 OPORTUNIDADES DE FEATURE
 
 ### F1 — Compartidas vinculadas a Evento
+
 **Estado**: `Compartida` tiene `linkedTable`, no `linkedEvento`.
 
 **Idea**: permitir a los usuarios postear una compartida diciendo "estuve en este evento". Aumenta engagement entre features. Implica agregar el ref en el modelo y UI en `CreateCompartidaForm`.
@@ -356,6 +398,7 @@ Es un refactor mayor pero limpia un patrón que se repite también en Torneos, M
 ---
 
 ### F2 — Email transaccional al confirmar/rechazar inscripción
+
 **Estado**: el server populates `email` en `GET /:id/inscripciones` pero ningún handler llama a `sendEmail()` al cambiar status.
 
 **Idea**: usar Resend para mandar email con detalles del evento al confirmar, similar a verification email. Más útil para eventos pagos donde el comprobante implica una transacción real.
@@ -363,11 +406,13 @@ Es un refactor mayor pero limpia un patrón que se repite también en Torneos, M
 ---
 
 ### F3 — Notificación con flag `eventoDeleted: true` y deep-link no-roto
+
 **Ver I7**. Si vamos por el camino de `evento_deleted` como type separado, el deep-link en la notif puede saltar a `/eventos` (lista) con un mensaje "el evento fue eliminado" en vez de a `/eventos/:id` que tira 404.
 
 ---
 
 ### F4 — Filtro de eventos pasados vs próximos
+
 **Estado**: Eventos.jsx filtra por status. No por "es del pasado" / "es del futuro".
 
 **Idea**: un toggle "Próximos" / "Pasados" más allá del filtro de status. Si tenés muchos eventos cancelados pasados, el feed se contamina.
@@ -375,6 +420,7 @@ Es un refactor mayor pero limpia un patrón que se repite también en Torneos, M
 ---
 
 ### F5 — `Web Share API` para compartir evento
+
 **Estado**: hay OG metadata para compartidas (`/api/compartidas/:id/og`), no para eventos.
 
 **Idea**: agregar `GET /api/eventos/:id/og` y un botón "Compartir" que use `navigator.share()` o copia el link. Útil para promocionar.
@@ -382,6 +428,7 @@ Es un refactor mayor pero limpia un patrón que se repite también en Torneos, M
 ---
 
 ### F6 — Recordatorios opt-in/out por usuario
+
 **Estado**: `evento_reminder` se envía a todos los confirmed.
 
 **Idea**: permitir al usuario configurar "quiero recordatorio a las 24h" / "quiero a las 2h" / "no quiero recordatorio". Pequeña pero recurrente.
@@ -391,18 +438,23 @@ Es un refactor mayor pero limpia un patrón que se repite también en Torneos, M
 ## 📊 HUECOS DE TESTS
 
 ### ✅ T1 — `GET /api/eventos/:id/inscripciones` con test de integración directo
+
 [`server/tests/integration/eventos.test.js`](server/tests/integration/eventos.test.js) — describe **"T1 — GET /api/eventos/:id/inscripciones (admin only)"** (12 tests): 401/403/400/404 paths, populate de email, counts agregados, `?status=` whitelist + filtros, drafts accesibles a admin.
 
 ### ✅ T2 — `EventoDetail` con test del flujo `setActiveEvento`
+
 [`client/src/pages/eventos/EventoDetail.test.jsx`](client/src/pages/eventos/EventoDetail.test.jsx) — test "setActiveEvento se llama con el id al montar y con null al desmontar (suprime toasts del evento activo y los marca leídos)". Verifica el fix de B1.
 
 ### ✅ T3 — Test E2E que cubre create → inscribirse → triage → confirmar
+
 [`server/tests/integration/eventos.test.js`](server/tests/integration/eventos.test.js) — describe **"T3 — Flujo end-to-end: crear → inscribirse → confirmar"**: admin crea evento, user se inscribe, admin lista pendientes, admin confirma → user ve `userRegistration=confirmed`, counts consistentes, notif persistente recibida.
 
 ### ✅ T4 — Test del race fetch HTTP / socket connect en `EventoDetail`
+
 [`client/src/pages/eventos/EventoDetail.test.jsx`](client/src/pages/eventos/EventoDetail.test.jsx) — test **"T4 — el socket conecta en paralelo con el fetch HTTP y los handlers toleran prev=null si llegan antes de que el fetch resuelva"**: difiere el GET con una promise gated y verifica que los broadcasts que llegan durante el loading no crashean (gracias al `prev ? ... : prev` en los handlers) y los posteriores sí aplican.
 
 ### ✅ T5 — Test del fallback de cron atrasado
+
 [`server/tests/unit/jobs/eventoReminders.test.js`](server/tests/unit/jobs/eventoReminders.test.js) — tests "B5 — eventos atrasados (cron tardó) entran al rango y reciben reminder (no se pierden)", "B5 — evento con reminderSentAt no se re-notifica (idempotente via flag, no via window)" y "B5 — evento sin confirmed registrants igual queda marcado (no se reintenta)".
 
 ---
