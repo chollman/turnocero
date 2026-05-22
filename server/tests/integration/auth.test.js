@@ -281,6 +281,50 @@ describe("PUT /api/auth/profile", () => {
       .send({ nombre: "x" });
     expect(res.status).toBe(401);
   });
+
+  it("F6 — acepta eventoReminderHours válido y persiste el valor", async () => {
+    const user = await createUser();
+    const res = await request(app)
+      .put("/api/auth/profile")
+      .set("Authorization", `Bearer ${tokenFor(user)}`)
+      .send({ eventoReminderHours: 2 });
+    expect(res.status).toBe(200);
+    expect(res.body.eventoReminderHours).toBe(2);
+    // Round-trip: re-cargar al user de la DB.
+    const User = require("../../models/User");
+    const refreshed = await User.findById(user._id);
+    expect(refreshed.eventoReminderHours).toBe(2);
+  });
+
+  it("F6 — acepta 0 (opt-out) y persiste", async () => {
+    const user = await createUser();
+    const res = await request(app)
+      .put("/api/auth/profile")
+      .set("Authorization", `Bearer ${tokenFor(user)}`)
+      .send({ eventoReminderHours: 0 });
+    expect(res.status).toBe(200);
+    expect(res.body.eventoReminderHours).toBe(0);
+  });
+
+  it("F6 — rechaza valores fuera del enum [0, 2, 24]", async () => {
+    const user = await createUser();
+    const res = await request(app)
+      .put("/api/auth/profile")
+      .set("Authorization", `Bearer ${tokenFor(user)}`)
+      .send({ eventoReminderHours: 7 });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/inválido/i);
+  });
+
+  it("F6 — coerciona strings del <select> (\"2\" → 2)", async () => {
+    const user = await createUser();
+    const res = await request(app)
+      .put("/api/auth/profile")
+      .set("Authorization", `Bearer ${tokenFor(user)}`)
+      .send({ eventoReminderHours: "2" });
+    expect(res.status).toBe(200);
+    expect(res.body.eventoReminderHours).toBe(2);
+  });
 });
 
 describe("PUT /api/auth/avatar + DELETE /api/auth/avatar", () => {

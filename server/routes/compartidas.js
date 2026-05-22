@@ -5,6 +5,7 @@ const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
 const Compartida = require('../models/Compartida');
 const CompartidaComment = require('../models/CompartidaComment');
 const Table = require('../models/Table');
+const Evento = require('../models/Evento');
 const { protect, optionalAuth } = require('../middleware/auth');
 const { requireSection } = require('../middleware/sectionGate');
 const saveNotification = require('../utils/saveNotification');
@@ -22,7 +23,8 @@ const POPULATE_AUTHOR_FIELDS = 'username avatar displayName bggUsername';
 const populateCompartida = (query) =>
   query
     .populate('author', POPULATE_AUTHOR_FIELDS)
-    .populate('linkedTable', 'boardGame date maxPlayers players host status location');
+    .populate('linkedTable', 'boardGame date maxPlayers players host status location')
+    .populate('linkedEvento', 'title eventDate location image status');
 
 // ── Privacy filter helper ──────────────────────────────────────────────────
 const visibilityFilter = (user) => {
@@ -151,7 +153,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 // ── POST /api/compartidas — create ───────────────────────────────────────────
 router.post('/', protect, async (req, res) => {
   try {
-    const { title, body, linkedTable, privacy } = req.body;
+    const { title, body, linkedTable, linkedEvento, privacy } = req.body;
 
     if (!title?.trim() && !body?.trim()) {
       return res.status(400).json({ message: 'La compartida necesita al menos un título o texto' });
@@ -170,20 +172,38 @@ router.post('/', protect, async (req, res) => {
       }
     }
 
+    // Validate linkedEvento: el user fue parte (author o inscripción confirmed/pending).
+    // Rechazados quedan fuera — no participaron.
+    if (linkedEvento) {
+      const evento = await Evento.findById(linkedEvento);
+      if (!evento) return res.status(404).json({ message: 'Evento no encontrado' });
+      const uid = req.user._id.toString();
+      const isAuthor = evento.author.toString() === uid;
+      const isActive = (evento.registrations || []).some(
+        (r) =>
+          r.user?.toString() === uid &&
+          (r.status === 'confirmed' || r.status === 'pending'),
+      );
+      if (!isAuthor && !isActive) {
+        return res.status(403).json({
+          message: 'Solo podés vincular eventos en los que participaste',
+        });
+      }
+    }
+
     const compartida = await Compartida.create({
       author: req.user._id,
       title: title?.trim() || '',
       body: body?.trim() || '',
       linkedTable: linkedTable || null,
+      linkedEvento: linkedEvento || null,
       privacy: privacy || 'public',
     });
 
-    await compartida.populate('author', POPULATE_AUTHOR_FIELDS);
-    if (compartida.linkedTable) {
-      await compartida.populate('linkedTable', 'boardGame date maxPlayers players host status location');
-    }
-
-    res.status(201).json(compartida);
+    const populated = await populateCompartida(
+      Compartida.findById(compartida._id),
+    );
+    res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ message: 'Error al crear la compartida' });
   }
@@ -198,15 +218,38 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Solo el autor puede editar esta compartida' });
     }
 
-    const { title, body, privacy, linkedTable } = req.body;
+    const { title, body, privacy, linkedTable, linkedEvento } = req.body;
     if (title !== undefined) compartida.title = title.trim();
     if (body !== undefined) compartida.body = body.trim();
     if (privacy !== undefined) compartida.privacy = privacy;
     if (linkedTable !== undefined) compartida.linkedTable = linkedTable || null;
+    if (linkedEvento !== undefined) {
+      // Validar participación si se está seteando (no si se está limpiando).
+      if (linkedEvento) {
+        const evento = await Evento.findById(linkedEvento);
+        if (!evento)
+          return res.status(404).json({ message: 'Evento no encontrado' });
+        const uid = req.user._id.toString();
+        const isAuthor = evento.author.toString() === uid;
+        const isActive = (evento.registrations || []).some(
+          (r) =>
+            r.user?.toString() === uid &&
+            (r.status === 'confirmed' || r.status === 'pending'),
+        );
+        if (!isAuthor && !isActive) {
+          return res.status(403).json({
+            message: 'Solo podés vincular eventos en los que participaste',
+          });
+        }
+      }
+      compartida.linkedEvento = linkedEvento || null;
+    }
 
     await compartida.save();
-    await populateCompartida(Promise.resolve(compartida));
-    res.json(compartida);
+    const populated = await populateCompartida(
+      Compartida.findById(compartida._id),
+    );
+    res.json(populated);
   } catch (err) {
     res.status(500).json({ message: 'Error al editar la compartida' });
   }

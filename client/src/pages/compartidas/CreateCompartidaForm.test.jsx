@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext'
 
 function setup({
   user = { _id: 'me', username: 'me', avatar: { url: '', publicId: '' } },
+  myEventos = [],
 } = {}) {
   useAuth.mockReturnValue({ user })
   server.use(
@@ -19,6 +20,7 @@ function setup({
         tables: [{ _id: 't1', boardGame: 'Catán', status: 'open' }],
       }),
     ),
+    http.get('/api/eventos/mine', () => HttpResponse.json({ eventos: myEventos })),
   )
   return render(
     <MemoryRouter>
@@ -130,6 +132,70 @@ describe('<CreateCompartidaForm>', () => {
     await waitFor(() => {
       expect(screen.getByRole('option', { name: 'Catán' })).toBeInTheDocument()
     })
+  })
+
+  it("F1 — muestra select de eventos cuando el user tiene eventos donde participó", async () => {
+    setup({
+      myEventos: [
+        { _id: 'ev1', title: 'Torneo Catán', eventDate: '2027-01-01' },
+        { _id: 'ev2', title: 'Sábado de Eventos', eventDate: '2027-01-02' },
+      ],
+    })
+    await waitFor(() => {
+      expect(
+        screen.getByRole('option', { name: 'Torneo Catán' }),
+      ).toBeInTheDocument()
+    })
+    expect(
+      screen.getByRole('option', { name: 'Sábado de Eventos' }),
+    ).toBeInTheDocument()
+  })
+
+  it("F1 — no muestra select de eventos cuando el user no tiene (lista vacía)", async () => {
+    setup({ myEventos: [] })
+    await screen.findByPlaceholderText(/título/i)
+    expect(
+      screen.queryByLabelText(/vincular evento/i),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Catán' })).toBeInTheDocument()
+  })
+
+  it("F1 — incluye linkedEvento en el body del POST cuando se selecciona", async () => {
+    const onCreated = vi.fn()
+    let captured = null
+    useAuth.mockReturnValue({
+      user: { _id: 'me', username: 'me', avatar: { url: '', publicId: '' } },
+    })
+    server.use(
+      http.get('/api/tables/mine', () => HttpResponse.json({ tables: [] })),
+      http.get('/api/eventos/mine', () =>
+        HttpResponse.json({
+          eventos: [{ _id: 'ev1', title: 'Mi evento', eventDate: '2027-01-01' }],
+        }),
+      ),
+      http.post('/api/compartidas', async ({ request }) => {
+        captured = await request.json()
+        return HttpResponse.json({ _id: 'new', body: 'x', images: [] })
+      }),
+    )
+    render(
+      <MemoryRouter>
+        <CreateCompartidaForm onCreated={onCreated} onCancel={vi.fn()} />
+      </MemoryRouter>,
+    )
+    fireEvent.change(
+      screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
+      { target: { value: 'x' } },
+    )
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'Mi evento' })).toBeInTheDocument()
+    })
+    fireEvent.change(screen.getByLabelText(/vincular evento/i), {
+      target: { value: 'ev1' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /publicar compartida/i }))
+    await waitFor(() => expect(onCreated).toHaveBeenCalled())
+    expect(captured.linkedEvento).toBe('ev1')
   })
 
   it('shows an error message when POST fails', async () => {

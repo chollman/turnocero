@@ -168,6 +168,75 @@ describe('eventoReminders.runOnce', () => {
     expect(notifs[0].count).toBe(1);
   });
 
+  it('F6 — user con eventoReminderHours=0 NO recibe reminder 24h (opt-out)', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const optedOut = await createUser({ eventoReminderHours: 0 });
+    const wantsIt = await createUser({ eventoReminderHours: 24 });
+    const now = new Date('2027-06-12T12:00:00Z');
+    const inWindow = new Date('2027-06-13T13:00:00Z');
+
+    await createEventoAt(admin, inWindow, [
+      { user: optedOut._id, status: 'confirmed' },
+      { user: wantsIt._id, status: 'confirmed' },
+    ]);
+
+    const result = await runOnce({ now });
+    expect(result.notifsCreated).toBe(1);
+
+    const optedNotifs = await Notification.find({
+      recipient: optedOut._id,
+      type: 'evento_reminder',
+    });
+    const wantedNotifs = await Notification.find({
+      recipient: wantsIt._id,
+      type: 'evento_reminder',
+    });
+    expect(optedNotifs.length).toBe(0);
+    expect(wantedNotifs.length).toBe(1);
+  });
+
+  it('F6 — user con eventoReminderHours=2 recibe el reminder en la ventana 2h, NO en la 24h', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser({ eventoReminderHours: 2 });
+    const now = new Date('2027-06-12T12:00:00Z');
+    const in24h = new Date('2027-06-13T13:00:00Z'); // 25h
+    const in2h = new Date('2027-06-12T14:00:00Z'); // 2h
+
+    // Evento a 24h con user.preference=2h → NO notifica todavía
+    await createEventoAt(admin, in24h, [
+      { user: user._id, status: 'confirmed' },
+    ]);
+    let result = await runOnce({ now });
+    expect(result.notifsCreated).toBe(0);
+
+    // Evento a 2h con user.preference=2h → notifica ahora
+    await createEventoAt(admin, in2h, [
+      { user: user._id, status: 'confirmed' },
+    ]);
+    result = await runOnce({ now });
+    expect(result.notifsCreated).toBe(1);
+  });
+
+  it('F6 — user 24h y otro 2h en mismo evento: solo el 24h recibe en la ventana 24h', async () => {
+    const admin = await createUser({ isAdmin: true });
+    const a = await createUser({ eventoReminderHours: 24 });
+    const b = await createUser({ eventoReminderHours: 2 });
+    const now = new Date('2027-06-12T12:00:00Z');
+    const in24h = new Date('2027-06-13T13:00:00Z');
+
+    await createEventoAt(admin, in24h, [
+      { user: a._id, status: 'confirmed' },
+      { user: b._id, status: 'confirmed' },
+    ]);
+
+    const result = await runOnce({ now });
+    expect(result.notifsCreated).toBe(1);
+    const aNotifs = await Notification.find({ recipient: a._id, type: 'evento_reminder' });
+    const bNotifs = await Notification.find({ recipient: b._id, type: 'evento_reminder' });
+    expect(aNotifs.length).toBe(1);
+    expect(bNotifs.length).toBe(0);
+  });
+
   it('includes "closed" status events too (not just "open")', async () => {
     const admin = await createUser({ isAdmin: true });
     const user = await createUser();

@@ -286,6 +286,34 @@ router.get("/", optionalAuth, async (req, res) => {
   }
 });
 
+// GET /api/eventos/mine — eventos donde el user es author o inscripción activa.
+// Usado por el formulario de Compartidas para listar candidatos para vincular.
+// Devuelve forma ligera (no incluye registrations ni counts) — solo lo justo
+// para renderizar un <option> en un select.
+router.get("/mine", protect, async (req, res) => {
+  try {
+    const uid = req.user._id;
+    const eventos = await Evento.find({
+      $or: [
+        { author: uid },
+        {
+          registrations: {
+            $elemMatch: { user: uid, status: { $in: ["confirmed", "pending"] } },
+          },
+        },
+      ],
+      status: { $in: ["open", "closed"] }, // ocultamos drafts y cancelled
+    })
+      .select("title eventDate status image")
+      .sort({ eventDate: -1 })
+      .limit(50);
+    res.json({ eventos });
+  } catch (err) {
+    console.error("GET /api/eventos/mine:", err.message);
+    res.status(500).json({ message: "Error al obtener tus eventos" });
+  }
+});
+
 // POST /api/eventos — admin only
 router.post(
   "/",
@@ -374,6 +402,40 @@ router.post(
     }
   },
 );
+
+// GET /api/eventos/:id/og — metadata pública para crawlers de redes sociales.
+// El middleware del cliente (client/middleware.js) detecta el UA y consulta
+// este endpoint para armar OG tags. NO requiere auth y NO devuelve drafts ni
+// cancelled. Mismo patrón que /api/compartidas/:id/og.
+router.get("/:id/og", async (req, res) => {
+  try {
+    const evento = await Evento.findById(req.params.id)
+      .populate("author", "username displayName")
+      .select("title description eventDate location image status author");
+    if (
+      !evento ||
+      evento.status === "draft" ||
+      evento.status === "cancelled"
+    ) {
+      return res.status(404).json({});
+    }
+    res.json({
+      title: evento.title,
+      description: evento.description?.slice(0, 160) || null,
+      image: evento.image?.url || null,
+      eventDate: evento.eventDate,
+      location:
+        typeof evento.location === "string"
+          ? evento.location
+          : evento.location?.displayName ||
+            evento.location?.texto ||
+            null,
+      host: evento.author?.displayName || evento.author?.username || null,
+    });
+  } catch {
+    res.status(500).json({});
+  }
+});
 
 // GET /api/eventos/:id — public for open/closed; drafts y cancelled sólo para admins
 router.get("/:id", optionalAuth, async (req, res) => {

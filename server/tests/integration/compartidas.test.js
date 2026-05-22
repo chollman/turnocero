@@ -116,17 +116,17 @@ describe('POST /api/compartidas/:id/like (toggle)', () => {
 });
 
 describe('PUT/DELETE /api/compartidas/:id permissions', () => {
-  // NOTE: PUT /:id currently 500s due to a bug (chains .populate on a Promise).
-  // The data IS saved before the error, so we assert via DB. A separate task
-  // tracks the route fix.
-  it('author update is persisted to the DB (even though the response currently 500s)', async () => {
+  it('author update persists and responds 200 with the populated doc', async () => {
+    // Bug histórico (populateCompartida(Promise.resolve(doc))) arreglado en F1
+    // al usar Compartida.findById(...) como Query mongoose-able.
     const { user, token } = await createAuthedUser();
     const compartida = await createCompartida(user, { body: 'old' });
-    await request(app)
+    const res = await request(app)
       .put(`/api/compartidas/${compartida._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ body: 'new', privacy: 'public' });
-    const Compartida = require('../../models/Compartida');
+    expect(res.status).toBe(200);
+    expect(res.body.body).toBe('new');
     const refreshed = await Compartida.findById(compartida._id);
     expect(refreshed.body).toBe('new');
   });
@@ -139,6 +139,61 @@ describe('PUT/DELETE /api/compartidas/:id permissions', () => {
       .put(`/api/compartidas/${compartida._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ body: 'hijacked' });
+    expect(res.status).toBe(403);
+  });
+
+  it('F1 — linkedEvento requiere que el user haya participado (author o reg active)', async () => {
+    const Evento = require('../../models/Evento');
+    const admin = await createUser({ isAdmin: true });
+    const { user, token } = await createAuthedUser();
+    // Evento donde el user NO participó.
+    const stranger = await Evento.create({
+      title: 'Sin mí',
+      eventDate: new Date(Date.now() + 7 * 86400000),
+      author: admin._id,
+      status: 'open',
+      location: { texto: 'X', lat: null, lng: null, displayName: '' },
+    });
+    const res = await request(app)
+      .post('/api/compartidas')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ body: 'hola', linkedEvento: stranger._id.toString() });
+    expect(res.status).toBe(403);
+    expect(res.body.message).toMatch(/participaste/i);
+    // Evento donde sí participó (confirmed).
+    const joined = await Evento.create({
+      title: 'Conmigo',
+      eventDate: new Date(Date.now() + 7 * 86400000),
+      author: admin._id,
+      status: 'open',
+      location: { texto: 'X', lat: null, lng: null, displayName: '' },
+      registrations: [{ user: user._id, status: 'confirmed' }],
+    });
+    const ok = await request(app)
+      .post('/api/compartidas')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ body: 'hola', linkedEvento: joined._id.toString() });
+    expect(ok.status).toBe(201);
+    expect(ok.body.linkedEvento?._id).toBe(joined._id.toString());
+    expect(ok.body.linkedEvento?.title).toBe('Conmigo');
+  });
+
+  it('F1 — rechazados NO pueden vincular el evento (status=rejected no es activo)', async () => {
+    const Evento = require('../../models/Evento');
+    const admin = await createUser({ isAdmin: true });
+    const { user, token } = await createAuthedUser();
+    const evento = await Evento.create({
+      title: 'X',
+      eventDate: new Date(Date.now() + 7 * 86400000),
+      author: admin._id,
+      status: 'open',
+      location: { texto: 'X', lat: null, lng: null, displayName: '' },
+      registrations: [{ user: user._id, status: 'rejected' }],
+    });
+    const res = await request(app)
+      .post('/api/compartidas')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ body: 'hola', linkedEvento: evento._id.toString() });
     expect(res.status).toBe(403);
   });
 

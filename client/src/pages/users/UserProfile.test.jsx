@@ -154,6 +154,36 @@ describe('<UserProfile> — Avatar section', () => {
     expect(refreshUser).not.toHaveBeenCalled();
   });
 
+  it("F6 — el select de recordatorios refleja user.eventoReminderHours y envía el nuevo valor en updateProfile", async () => {
+    const updateProfile = vi.fn().mockResolvedValue();
+    setup({
+      user: {
+        _id: 'u1',
+        username: 'cha',
+        email: 'a@b.com',
+        eventoReminderHours: 2,
+      },
+      updateProfile,
+    });
+    const select = screen.getByLabelText(/avisarme/i);
+    expect(select.value).toBe('2');
+
+    fireEvent.change(select, { target: { value: '0' } });
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }));
+
+    await waitFor(() => expect(updateProfile).toHaveBeenCalled());
+    const payload = updateProfile.mock.calls[0][0];
+    expect(payload.eventoReminderHours).toBe(0);
+  });
+
+  it("F6 — default 24h cuando el user no tiene preferencia seteada", () => {
+    setup({
+      user: { _id: 'u1', username: 'cha', email: 'a@b.com' },
+    });
+    const select = screen.getByLabelText(/avisarme/i);
+    expect(select.value).toBe('24');
+  });
+
   it('"Quitar avatar" calls DELETE /api/auth/avatar after window.confirm', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const refreshUser = vi.fn();

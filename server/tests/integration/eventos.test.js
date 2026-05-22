@@ -15,6 +15,110 @@ beforeEach(async () => {
   await ensureEventosSectionOn();
 });
 
+describe("F5 — GET /api/eventos/:id/og (metadata pública para crawlers)", () => {
+  it("devuelve title + description + image + eventDate + location + host para evento open", async () => {
+    const admin = await createUser({ isAdmin: true, displayName: "Hosty" });
+    const evento = await createEvento(admin, {
+      title: "Torneo Web Share",
+      description: "Vení a jugar este sábado",
+      status: "open",
+    });
+    const res = await request(app).get(`/api/eventos/${evento._id}/og`);
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe("Torneo Web Share");
+    expect(res.body.description).toBe("Vení a jugar este sábado");
+    expect(res.body.host).toBe("Hosty");
+    expect(res.body.eventDate).toBeTruthy();
+    expect(res.body.location).toBeTruthy();
+  });
+
+  it("404 para drafts (no se exponen a crawlers públicos)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin, { status: "draft" });
+    const res = await request(app).get(`/api/eventos/${evento._id}/og`);
+    expect(res.status).toBe(404);
+  });
+
+  it("404 para cancelled", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin, { status: "cancelled" });
+    const res = await request(app).get(`/api/eventos/${evento._id}/og`);
+    expect(res.status).toBe(404);
+  });
+
+  it("404 con id inválido (validateObjectId)", async () => {
+    const res = await request(app).get("/api/eventos/not-valid/og");
+    // ObjectId middleware devuelve 400, NO 404 — el endpoint nunca pega a Mongo.
+    expect(res.status).toBe(400);
+  });
+
+  it("respeta displayName de location si está seteado", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin, {
+      title: "Con alias",
+      status: "open",
+      location: {
+        texto: "Av. Real 1234, CABA",
+        lat: -34.6,
+        lng: -58.4,
+        displayName: "Bar de Pepe",
+      },
+    });
+    const res = await request(app).get(`/api/eventos/${evento._id}/og`);
+    expect(res.status).toBe(200);
+    expect(res.body.location).toBe("Bar de Pepe");
+  });
+});
+
+describe("F1 — GET /api/eventos/mine (eventos donde el user participó)", () => {
+  it("devuelve eventos donde el user es author o tiene inscripción active", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { user, token } = await createAuthedUser();
+    const e1 = await createEvento(admin, {
+      title: "Mío como inscripto",
+      status: "open",
+      registrations: [{ user: user._id, status: "confirmed" }],
+    });
+    const e2 = await createEvento(user, {
+      title: "Mío como author",
+      status: "open",
+    });
+    await createEvento(admin, { title: "Ajeno", status: "open" });
+    // Rechazado: NO debería aparecer
+    await createEvento(admin, {
+      title: "Rechazado",
+      status: "open",
+      registrations: [{ user: user._id, status: "rejected" }],
+    });
+
+    const res = await request(app)
+      .get("/api/eventos/mine")
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    const titles = res.body.eventos.map((e) => e.title).sort();
+    expect(titles).toEqual(["Mío como author", "Mío como inscripto"]);
+    void e1; void e2;
+  });
+
+  it("oculta drafts y cancelled aún si el user es author", async () => {
+    const { user, token } = await createAuthedUser();
+    await createEvento(user, { title: "Borrador", status: "draft" });
+    await createEvento(user, { title: "Cancelado", status: "cancelled" });
+    await createEvento(user, { title: "Visible", status: "open" });
+
+    const res = await request(app)
+      .get("/api/eventos/mine")
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.eventos.map((e) => e.title)).toEqual(["Visible"]);
+  });
+
+  it("401 sin auth", async () => {
+    const res = await request(app).get("/api/eventos/mine");
+    expect(res.status).toBe(401);
+  });
+});
+
 describe("M3 — Búsqueda por título en GET /api/eventos", () => {
   it("filtra por ?search= case-insensitive sobre el título", async () => {
     const admin = await createUser({ isAdmin: true });

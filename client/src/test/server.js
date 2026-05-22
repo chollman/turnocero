@@ -22,6 +22,9 @@ export const defaultHandlers = [
     })
   ),
   http.get('/api/notifications', () => HttpResponse.json([])),
+  // Default vacío para /api/eventos/mine — usado por CreateCompartidaForm.
+  // Tests específicos pueden overridear con server.use(...).
+  http.get('/api/eventos/mine', () => HttpResponse.json({ eventos: [] })),
 ];
 
 export const server = setupServer(...defaultHandlers);

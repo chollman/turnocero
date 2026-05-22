@@ -14,17 +14,21 @@ function nextSuffix() {
  */
 async function createUser(overrides = {}) {
   const suffix = nextSuffix();
+  // Defaults primero, luego spread de overrides — así un test puede pasar
+  // cualquier campo del schema (eventoReminderHours, direccion, etc.) sin
+  // tener que enumerarlo acá.
   const user = await User.create({
-    username: overrides.username || `user_${suffix}`,
-    email: overrides.email || `user_${suffix}@test.local`,
-    password: overrides.password || 'Password123',
-    emailVerified: overrides.emailVerified !== false,
-    isAdmin: !!overrides.isAdmin,
-    isBanned: !!overrides.isBanned,
-    bannedReason: overrides.bannedReason || '',
-    displayName: overrides.displayName || '',
-    bggUsername: overrides.bggUsername || '',
-    friends: overrides.friends || [],
+    username: `user_${suffix}`,
+    email: `user_${suffix}@test.local`,
+    password: 'Password123',
+    emailVerified: true,
+    isAdmin: false,
+    isBanned: false,
+    bannedReason: '',
+    displayName: '',
+    bggUsername: '',
+    friends: [],
+    ...overrides,
   });
   return user;
 }

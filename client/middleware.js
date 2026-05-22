@@ -55,6 +55,42 @@ async function handleCompartida(url, id, apiUrl) {
   return ogHtml({ title, desc, image, imageIsLarge: hasImage, canonicalUrl })
 }
 
+async function handleEvento(url, id, apiUrl) {
+  const canonicalUrl = `${url.origin}/eventos/${id}`
+  const apiRes = await fetch(`${apiUrl}/api/eventos/${id}/og`)
+  if (!apiRes.ok) return null
+  const data = await apiRes.json()
+
+  const title = `${data.title} – Evento en Turnocero 🎲`
+  const descParts = []
+  if (data.eventDate) {
+    try {
+      const d = new Date(data.eventDate)
+      descParts.push(
+        d.toLocaleDateString('es-AR', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+        }),
+      )
+    } catch { /* ignore */ }
+  }
+  if (data.location) descParts.push(data.location)
+  if (data.host) descParts.push(`organiza ${data.host}`)
+  const desc = data.description
+    ? data.description
+    : descParts.length
+      ? descParts.join(' · ')
+      : 'Sumate a este evento en Turnocero, la comunidad de juegos de mesa.'
+
+  const hasImage = Boolean(data.image)
+  const image = hasImage
+    ? data.image.replace('/upload/', '/upload/w_1200,h_630,c_fill,g_auto/')
+    : `${url.origin}/og-default.png`
+
+  return ogHtml({ title, desc, image, imageIsLarge: true, canonicalUrl })
+}
+
 async function handleBgWatch(url, bggUsername, apiUrl) {
   const canonicalUrl = `${url.origin}/bg-watch/${bggUsername}`
   const apiRes = await fetch(`${apiUrl}/api/bgg/og/${encodeURIComponent(bggUsername)}`)
@@ -89,8 +125,9 @@ export default async function middleware(request) {
   const url = new URL(request.url)
 
   const compartidaMatch = url.pathname.match(/^\/compartidas\/([a-f\d]{24})$/i)
+  const eventoMatch = url.pathname.match(/^\/eventos\/([a-f\d]{24})$/i)
   const bgWatchMatch = url.pathname.match(/^\/bg-watch\/([^/]+)$/i)
-  if (!compartidaMatch && !bgWatchMatch) return
+  if (!compartidaMatch && !eventoMatch && !bgWatchMatch) return
 
   const ua = request.headers.get('user-agent') || ''
   if (!CRAWLER.test(ua)) return
@@ -102,6 +139,8 @@ export default async function middleware(request) {
     let html = null
     if (compartidaMatch) {
       html = await handleCompartida(url, compartidaMatch[1], apiUrl)
+    } else if (eventoMatch) {
+      html = await handleEvento(url, eventoMatch[1], apiUrl)
     } else if (bgWatchMatch) {
       html = await handleBgWatch(url, decodeURIComponent(bgWatchMatch[1]), apiUrl)
     }
@@ -115,5 +154,5 @@ export default async function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/compartidas/:id*', '/bg-watch/:username*'],
+  matcher: ['/compartidas/:id*', '/eventos/:id*', '/bg-watch/:username*'],
 }

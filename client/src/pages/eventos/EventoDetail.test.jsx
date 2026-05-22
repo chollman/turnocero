@@ -162,6 +162,75 @@ describe("<EventoDetail>", () => {
     expect(await screen.findByLabelText(/título/i)).toBeInTheDocument();
   });
 
+  it("F5 — botón Compartir usa navigator.share cuando está disponible", async () => {
+    const shareMock = vi.fn().mockResolvedValue(undefined);
+    const canShareMock = vi.fn().mockReturnValue(true);
+    const originalShare = navigator.share;
+    const originalCanShare = navigator.canShare;
+    navigator.share = shareMock;
+    navigator.canShare = canShareMock;
+    try {
+      renderDetail();
+      await screen.findByRole("heading", { name: "Mi Evento" });
+      fireEvent.click(screen.getByRole("button", { name: /compartir evento/i }));
+      await waitFor(() => expect(shareMock).toHaveBeenCalled());
+      const call = shareMock.mock.calls[0][0];
+      expect(call.title).toMatch(/Mi Evento/);
+      expect(call.url).toMatch(/\/eventos\/e1/);
+    } finally {
+      navigator.share = originalShare;
+      navigator.canShare = originalCanShare;
+    }
+  });
+
+  it("F5 — sin navigator.share, cae a clipboard + toast", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const originalShare = navigator.share;
+    const originalClipboard = navigator.clipboard;
+    delete navigator.share;
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    const addToast = vi.fn();
+    useAuth.mockReturnValue({ user: null });
+    useNotifications.mockReturnValue({
+      setActiveEvento: vi.fn(),
+      addToast,
+    });
+    try {
+      render(
+        <HelmetProvider>
+          <MemoryRouter initialEntries={["/eventos/e1"]}>
+            <Routes>
+              <Route path="/eventos/:id" element={<EventoDetail />} />
+            </Routes>
+          </MemoryRouter>
+        </HelmetProvider>,
+      );
+      await screen.findByRole("heading", { name: "Mi Evento" });
+      fireEvent.click(screen.getByRole("button", { name: /compartir evento/i }));
+      await waitFor(() => expect(writeText).toHaveBeenCalled());
+      expect(writeText.mock.calls[0][0]).toMatch(/\/eventos\/e1/);
+      expect(addToast).toHaveBeenCalled();
+    } finally {
+      navigator.share = originalShare;
+      Object.defineProperty(navigator, "clipboard", {
+        value: originalClipboard,
+        configurable: true,
+      });
+    }
+  });
+
+  it("F5 — botón Compartir NO se muestra en eventos cancelled", async () => {
+    setupEvento(makeEvento({ status: "cancelled" }));
+    renderDetail();
+    await screen.findByRole("heading", { name: "Mi Evento" });
+    expect(
+      screen.queryByRole("button", { name: /compartir evento/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("B6/B7 — un fallo del POST /inscribirse dispara toast global y re-throw para que el TicketStub no cierre el form", async () => {
     setupEvento(makeEvento({ fee: 0 }));
     server.use(

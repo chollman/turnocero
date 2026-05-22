@@ -53,7 +53,12 @@ const eventoSchema = new mongoose.Schema(
     // Marcado por el cron de eventoReminders cuando ya envió el recordatorio
     // 24h. Permite filtrar y NO depender de la ventana [now+23h, now+25h]
     // si el cron se atrasa más de 1h (eventos podrían caerse del rango).
-    reminderSentAt:  { type: Date, default: null },
+    reminderSentAt:    { type: Date, default: null },
+    // Mismo principio para el recordatorio "2h antes" (opt-in via
+    // User.eventoReminderHours). Campo independiente porque un evento puede
+    // tener users con preferencia 24h y otros con 2h — cada ventana se marca
+    // por separado.
+    reminder2hSentAt:  { type: Date, default: null },
   },
   { timestamps: true }
 );

@@ -1,76 +1,127 @@
 const Evento = require('../models/Evento');
+const User = require('../models/User');
 const saveNotification = require('../utils/saveNotification');
 const logger = require('../utils/logger');
 
+const HOUR_MS = 60 * 60 * 1000;
+
 /**
- * Job: recordatorio 24h antes del evento.
+ * Job: recordatorios pre-evento. Soporta dos ventanas configurables por usuario
+ * (User.eventoReminderHours):
+ *   - 24h antes (default histórico)
+ *   - 2h antes
+ *   - 0 = opt-out (no recibe)
  *
- * Cada corrida busca eventos con `eventDate` en una ventana de [now+23h, now+25h]
- * y status `open` o `closed`. Para cada uno, crea una notificación `evento_reminder`
- * a cada inscripción `confirmed`.
+ * Idempotencia:
+ *   - `Evento.reminderSentAt` marca la ventana 24h ya disparada.
+ *   - `Evento.reminder2hSentAt` marca la ventana 2h.
+ *   - `saveNotification` upsertea por `(recipient, type, eventoId)` — incluso
+ *     si ambas ventanas notifican al mismo user, solo queda 1 notif persistida.
  *
- * Idempotencia: `saveNotification` usa upsert por `(recipient, type, eventoId)`,
- * así que correr el job dos veces para el mismo evento NO duplica notifs ni
- * incrementa contadores (es de tipo no-aggregating).
- *
- * Diseñado para correrse cada hora; con la ventana de 2h hay margen de tolerancia
- * para que un evento siempre caiga en al menos una corrida aunque el cron se atrase.
+ * Diseñado para correrse cada hora; ventanas amplias para tolerar atrasos.
  *
  * @param {object} [opts]
  * @param {Date}   [opts.now]  Inyectable para tests; default = new Date().
- * @returns {Promise<{ scanned: number, notifsCreated: number }>}
+ * @returns {Promise<{ scanned24: number, scanned2: number, notifsCreated: number }>}
  */
 async function runOnce({ now = new Date() } = {}) {
-  // Ventana amplia [now, now + 25h] combinada con `reminderSentAt == null`:
-  // si el cron se atrasa más de 1h, los eventos que caen entre las 23h-25h
-  // anteriores siguen siendo candidatos hasta que el job se ejecute. Cuando
-  // se notifica, marcamos `reminderSentAt` para garantizar que cada evento
-  // recibe el reminder UNA sola vez aunque haya re-runs o ventanas solapadas.
-  const HOUR_MS = 60 * 60 * 1000;
-  const windowEnd = new Date(now.getTime() + 25 * HOUR_MS);
+  let notifsCreated = 0;
 
-  const eventos = await Evento.find({
-    eventDate: { $gte: now, $lte: windowEnd },
+  // Helper: notifica confirmed regs filtrando por user.eventoReminderHours.
+  // Carga las preferencias en batch para no hacer N queries al userset.
+  async function notifyForWindow(eventos, targetHours) {
+    if (eventos.length === 0) return;
+    const userIds = new Set();
+    for (const ev of eventos) {
+      for (const reg of ev.registrations || []) {
+        if (reg.status === 'confirmed' && reg.user) {
+          userIds.add(reg.user.toString());
+        }
+      }
+    }
+    if (userIds.size === 0) return;
+    const users = await User.find({ _id: { $in: [...userIds] } }).select(
+      '_id eventoReminderHours',
+    );
+    const prefByUserId = new Map(
+      users.map((u) => [
+        u._id.toString(),
+        // Default 24 cuando el field es null/undefined (users históricos sin
+        // el campo seteado mantienen el comportamiento previo).
+        u.eventoReminderHours ?? 24,
+      ]),
+    );
+
+    for (const evento of eventos) {
+      for (const reg of evento.registrations || []) {
+        if (reg.status !== 'confirmed' || !reg.user) continue;
+        const pref = prefByUserId.get(reg.user.toString());
+        if (pref !== targetHours) continue;
+        try {
+          const result = await saveNotification(reg.user, 'evento_reminder', {
+            eventoId: evento._id.toString(),
+            eventoTitle: evento.title,
+            eventoDate: evento.eventDate,
+          });
+          if (result) notifsCreated += 1;
+        } catch (err) {
+          logger.error('[eventoReminders] saveNotification failed', {
+            recipientId: reg.user?.toString(),
+            eventoId: evento._id.toString(),
+            error: err.message,
+          });
+        }
+      }
+    }
+  }
+
+  // ── Ventana 24h: eventos en [now, now+25h], reminderSentAt null ─────────
+  const window24End = new Date(now.getTime() + 25 * HOUR_MS);
+  const eventos24 = await Evento.find({
+    eventDate: { $gte: now, $lte: window24End },
     status: { $in: ['open', 'closed'] },
     $or: [{ reminderSentAt: null }, { reminderSentAt: { $exists: false } }],
   });
-
-  let notifsCreated = 0;
-  for (const evento of eventos) {
-    for (const reg of evento.registrations || []) {
-      if (reg.status !== 'confirmed') continue;
-      try {
-        const result = await saveNotification(reg.user, 'evento_reminder', {
-          eventoId: evento._id.toString(),
-          eventoTitle: evento.title,
-          eventoDate: evento.eventDate,
-        });
-        // saveNotification devuelve null cuando la sección está OFF y el user
-        // no es admin. No contamos esos casos pero igual marcamos el evento
-        // como notificado (no vamos a reintentar).
-        if (result) notifsCreated += 1;
-      } catch (err) {
-        logger.error('[eventoReminders] saveNotification failed', {
-          recipientId: reg.user?.toString(),
-          eventoId: evento._id.toString(),
-          error: err.message,
-        });
-      }
-    }
-    // Aún si no hubo ningún confirmed, marcamos para no reintentar mañana
-    // — no hay nadie a quien notificar. Esto sirve también como "checked".
-    evento.reminderSentAt = now;
+  await notifyForWindow(eventos24, 24);
+  for (const ev of eventos24) {
+    ev.reminderSentAt = now;
     try {
-      await evento.save();
+      await ev.save();
     } catch (err) {
       logger.error('[eventoReminders] save reminderSentAt failed', {
-        eventoId: evento._id.toString(),
+        eventoId: ev._id.toString(),
         error: err.message,
       });
     }
   }
 
-  return { scanned: eventos.length, notifsCreated };
+  // ── Ventana 2h: eventos en [now, now+3h], reminder2hSentAt null ─────────
+  // Ventana ligeramente más amplia que [+1h, +3h] para tolerar cron atrasado.
+  const window2End = new Date(now.getTime() + 3 * HOUR_MS);
+  const eventos2 = await Evento.find({
+    eventDate: { $gte: now, $lte: window2End },
+    status: { $in: ['open', 'closed'] },
+    $or: [{ reminder2hSentAt: null }, { reminder2hSentAt: { $exists: false } }],
+  });
+  await notifyForWindow(eventos2, 2);
+  for (const ev of eventos2) {
+    ev.reminder2hSentAt = now;
+    try {
+      await ev.save();
+    } catch (err) {
+      logger.error('[eventoReminders] save reminder2hSentAt failed', {
+        eventoId: ev._id.toString(),
+        error: err.message,
+      });
+    }
+  }
+
+  return {
+    scanned: eventos24.length,
+    scanned24: eventos24.length,
+    scanned2: eventos2.length,
+    notifsCreated,
+  };
 }
 
 module.exports = { runOnce };

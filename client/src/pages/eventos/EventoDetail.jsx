@@ -288,6 +288,44 @@ export default function EventoDetail() {
     }
   }
 
+  async function handleShare() {
+    // Web Share API es asíncrona y solo está disponible en contextos seguros
+    // (https + permisos del navegador). Caemos al clipboard si no está
+    // disponible o el user cancela.
+    const url = `${window.location.origin}/eventos/${id}`;
+    const shareData = {
+      title: `${evento.title} – Turnocero`,
+      text: evento.description
+        ? evento.description.slice(0, 200)
+        : `Sumate a este evento en Turnocero.`,
+      url,
+    };
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch (err) {
+      // AbortError = user canceló: no es error, no mostramos toast.
+      if (err?.name === "AbortError") return;
+    }
+    // Fallback: copiar al clipboard.
+    try {
+      await navigator.clipboard.writeText(url);
+      addToast({
+        type: "error",
+        title: "Link copiado",
+        message: "Pegá el enlace del evento donde quieras compartirlo.",
+      });
+    } catch {
+      addToast({
+        type: "error",
+        title: "No pudimos compartir",
+        message: "Copiá el link manualmente desde la barra de direcciones.",
+      });
+    }
+  }
+
   async function handleReopenEvent() {
     try {
       const fd = new FormData();
@@ -409,9 +447,38 @@ export default function EventoDetail() {
         onClose={() => setShowLoginPrompt(false)}
       />
 
-      <Link to="/eventos" className={styles.back}>
-        <ArrowLeftIcon size={11} /> Volver a eventos
-      </Link>
+      <div className={styles.headerRow}>
+        <Link to="/eventos" className={styles.back}>
+          <ArrowLeftIcon size={11} /> Volver a eventos
+        </Link>
+        {evento.status !== "draft" && evento.status !== "cancelled" && (
+          <button
+            type="button"
+            onClick={handleShare}
+            className={styles.shareBtn}
+            aria-label="Compartir evento"
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+            Compartir
+          </button>
+        )}
+      </div>
 
       <div className={styles.layout}>
         <main className={styles.main}>

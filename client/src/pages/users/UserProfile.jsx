@@ -97,6 +97,7 @@ export default function UserProfile() {
     direccionTexto: '',
     lat: null,
     lng: null,
+    eventoReminderHours: 24,
   });
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
@@ -129,6 +130,7 @@ export default function UserProfile() {
       direccionTexto: user.direccion?.texto || '',
       lat: user.direccion?.lat ?? null,
       lng: user.direccion?.lng ?? null,
+      eventoReminderHours: user.eventoReminderHours ?? 24,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id]);
@@ -314,6 +316,7 @@ export default function UserProfile() {
           lat: form.lat,
           lng: form.lng,
         },
+        eventoReminderHours: Number(form.eventoReminderHours),
       });
       setSuccess('Perfil guardado correctamente.');
       clearTimeout(successTimerRef.current);
@@ -717,6 +720,31 @@ export default function UserProfile() {
                 lng={form.lng}
                 onChange={handleMapChange}
               />
+            </div>
+
+            <div className={styles.section}>
+              <div className={styles.sectionLabel}>Recordatorios de eventos</div>
+              <p className={styles.hint}>
+                Cuándo querés que te avisemos sobre los eventos donde estás
+                inscripto. Aplica solo a eventos pagos o con cupo confirmado.
+              </p>
+              <div className={styles.formGroup}>
+                <label htmlFor="eventoReminderHours" className={styles.label}>
+                  Avisarme
+                </label>
+                <select
+                  id="eventoReminderHours"
+                  name="eventoReminderHours"
+                  className={styles.input}
+                  value={form.eventoReminderHours}
+                  onChange={handleChange}
+                  disabled={saving}
+                >
+                  <option value={24}>24 horas antes</option>
+                  <option value={2}>2 horas antes</option>
+                  <option value={0}>No quiero recordatorios</option>
+                </select>
+              </div>
             </div>
 
             <div className={styles.actions}>

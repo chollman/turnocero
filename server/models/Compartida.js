@@ -32,6 +32,11 @@ const compartidaSchema = new mongoose.Schema(
       ref: 'Table',
       default: null,
     },
+    linkedEvento: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Evento',
+      default: null,
+    },
     privacy: {
       type: String,
       enum: ['public', 'friends', 'private'],

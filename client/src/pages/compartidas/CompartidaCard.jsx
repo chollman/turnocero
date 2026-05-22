@@ -172,6 +172,7 @@ export default function CompartidaCard({
   const { isSectionEnabled } = useSiteConfig();
   const mesasEnabled = isSectionEnabled("mesas");
   const bgwatchEnabled = isSectionEnabled("bgwatch");
+  const eventosEnabled = isSectionEnabled("eventos");
   const [post, setPost] = useState(initialPost);
   const [liked, setLiked] = useState(() =>
     user
@@ -341,6 +342,7 @@ export default function CompartidaCard({
     ? table.maxPlayers - (table.players?.length || 0)
     : 0;
   const tableOpen = table?.status === "open";
+  const evento = eventosEnabled ? post.linkedEvento : null;
   const bodyLong = post.body.length > 220;
   const displayBody =
     expanded || !bodyLong ? post.body : `${post.body.slice(0, 220)}…`;
@@ -819,6 +821,26 @@ export default function CompartidaCard({
             className={`${styles.mesaCta} ${tableOpen ? styles.mesaCtaOpen : ""}`}
           >
             {tableOpen ? "Unirse" : "Ver mesa"}
+          </Link>
+        </div>
+      )}
+
+      {/* ── Linked Evento (mismo patrón que mesa) ── */}
+      {evento && (
+        <div className={styles.mesaTicket}>
+          <div className={styles.mesaTile} aria-hidden="true">
+            <span style={{ fontSize: 22 }}>🎟️</span>
+          </div>
+          <div className={styles.mesaInfo}>
+            <span className={styles.mesaLabel}>◆ Evento enlazado</span>
+            <span className={styles.mesaGame}>{evento.title}</span>
+            <span className={styles.mesaMeta}>
+              {formatTableDate(evento.eventDate)}
+              {evento.location?.texto ? ` · ${evento.location.texto}` : ""}
+            </span>
+          </div>
+          <Link to={`/eventos/${evento._id}`} className={styles.mesaCta}>
+            Ver evento
           </Link>
         </div>
       )}

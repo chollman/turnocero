@@ -342,7 +342,16 @@ router.get('/me', protect, async (req, res) => {
 // PUT /api/auth/profile — protected
 router.put('/profile', protect, async (req, res) => {
   try {
-    const { displayName, nombre, apellido, direccion, telegram, celular, bggUsername } = req.body;
+    const {
+      displayName,
+      nombre,
+      apellido,
+      direccion,
+      telegram,
+      celular,
+      bggUsername,
+      eventoReminderHours,
+    } = req.body;
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -369,6 +378,16 @@ router.put('/profile', protect, async (req, res) => {
         lat: direccion.lat ?? user.direccion?.lat ?? null,
         lng: direccion.lng ?? user.direccion?.lng ?? null,
       };
+    }
+    if (eventoReminderHours !== undefined) {
+      // Coerción explícita: el cliente puede mandar string del <select>.
+      const n = Number(eventoReminderHours);
+      if (![0, 2, 24].includes(n)) {
+        return res
+          .status(400)
+          .json({ message: 'Valor inválido para recordatorios' });
+      }
+      user.eventoReminderHours = n;
     }
 
     await user.save({ validateModifiedOnly: true });

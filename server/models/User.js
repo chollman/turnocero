@@ -56,6 +56,15 @@ const userSchema = new mongoose.Schema(
       lat: { type: Number, default: null },
       lng: { type: Number, default: null },
     },
+    // Horas antes del evento en las que el user quiere recibir el recordatorio.
+    // 0 = opt-out (no recibe nada). Default 24 (mantiene el comportamiento
+    // histórico para users existentes). El cron de eventoReminders filtra por
+    // este campo cuando decide a quién notificar.
+    eventoReminderHours: {
+      type: Number,
+      enum: [0, 2, 24],
+      default: 24,
+    },
     telegram: {
       type: String,
       default: '',

@@ -10,13 +10,15 @@ const PRIVACY_OPTIONS = [
   { value: 'private', label: 'Solo yo',  desc: 'Privado' },
 ]
 
-export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTableId }) {
+export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTableId, prefilledEventoId }) {
   const { user } = useAuth()
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [privacy, setPrivacy] = useState('public')
   const [linkedTableId, setLinkedTableId] = useState(prefilledTableId || '')
+  const [linkedEventoId, setLinkedEventoId] = useState(prefilledEventoId || '')
   const [myTables, setMyTables] = useState([])
+  const [myEventos, setMyEventos] = useState([])
   const [images, setImages] = useState([]) // [{ file, preview }]
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -26,6 +28,9 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
     axios.get('/api/tables/mine').then(({ data }) => {
       const active = (data.tables || []).filter((t) => t.status !== 'cancelled')
       setMyTables(active)
+    }).catch(() => {})
+    axios.get('/api/eventos/mine').then(({ data }) => {
+      setMyEventos(data.eventos || [])
     }).catch(() => {})
   }, [])
 
@@ -66,6 +71,7 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
         body: body.trim(),
         privacy,
         linkedTable: linkedTableId || undefined,
+        linkedEvento: linkedEventoId || undefined,
       })
       createdId = created._id
 
@@ -177,6 +183,23 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
             <option key={t._id} value={t._id}>{t.boardGame}</option>
           ))}
         </select>
+
+        {/* Linked evento picker — solo se muestra si el usuario tiene
+            eventos donde participó (author o inscripción active). */}
+        {myEventos.length > 0 && (
+          <select
+            className={styles.tableSelect}
+            value={linkedEventoId}
+            onChange={(e) => setLinkedEventoId(e.target.value)}
+            disabled={loading}
+            aria-label="Vincular evento"
+          >
+            <option value="">Vincular evento (opcional)</option>
+            {myEventos.map((e) => (
+              <option key={e._id} value={e._id}>{e.title}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Privacy */}
