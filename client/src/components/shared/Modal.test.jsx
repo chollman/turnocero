@@ -29,10 +29,11 @@ describe('<Modal>', () => {
 
   it('click en backdrop llama onClose por defecto', () => {
     const onClose = vi.fn();
-    const { container } = render(
+    render(
       <Modal isOpen onClose={onClose} ariaLabel="x" backdropClassName="bd">x</Modal>,
     );
-    const bd = container.querySelector('.bd');
+    // Modal usa createPortal → el backdrop vive en document.body, no en container.
+    const bd = document.body.querySelector('.bd');
     fireEvent.click(bd);
     expect(onClose).toHaveBeenCalled();
   });
@@ -50,10 +51,10 @@ describe('<Modal>', () => {
 
   it('dismissOnBackdrop=false no cierra con click en backdrop', () => {
     const onClose = vi.fn();
-    const { container } = render(
+    render(
       <Modal isOpen onClose={onClose} ariaLabel="x" backdropClassName="bd" dismissOnBackdrop={false}>x</Modal>,
     );
-    fireEvent.click(container.querySelector('.bd'));
+    fireEvent.click(document.body.querySelector('.bd'));
     expect(onClose).not.toHaveBeenCalled();
   });
 

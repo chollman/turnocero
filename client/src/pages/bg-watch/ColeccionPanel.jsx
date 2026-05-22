@@ -14,9 +14,9 @@ function StarRating({ value }) {
 function GameCard({ game, index = 0 }) {
   return (
     <div className={styles.gameCard} style={{ "--i": index }}>
-      {game.thumbnail ? (
+      {game.image || game.thumbnail ? (
         <img
-          src={game.thumbnail}
+          src={game.image || game.thumbnail}
           alt={game.name}
           className={styles.gameThumbnail}
           loading="lazy"

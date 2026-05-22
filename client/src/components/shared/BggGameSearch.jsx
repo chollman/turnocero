@@ -11,7 +11,7 @@ import styles from "./BggGameSearch.module.css";
  *   - EventoLudotecaPicker — agregar un juego a la ludoteca del evento
  *
  * Props:
- *   onPick({ id, name, thumbnail, year }) — callback cuando el user elige.
+ *   onPick({ id, name, thumbnail, image, year }) — callback cuando el user elige.
  *   placeholder?: string — texto del input. Default "Buscá un juego en BGG…"
  *   autoFocus?: boolean — default true. Útil para modales.
  *   minChars?: number — caracteres mínimos antes de buscar. Default 3 (BGG
@@ -81,6 +81,7 @@ export default function BggGameSearch({
                     id: g.id,
                     name: g.name,
                     thumbnail: g.thumbnail,
+                    image: g.image,
                     year: g.year,
                   })
                 }

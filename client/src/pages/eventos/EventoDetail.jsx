@@ -47,16 +47,33 @@ export default function EventoDetail() {
     const urlTab = new URLSearchParams(window.location.search).get("tab");
     return VALID_TABS.includes(urlTab) ? urlTab : "detalle";
   });
+  // Dirección del slide al cambiar de tab: "right" cuando el user va hacia
+  // adelante en el orden VALID_TABS (Detalle → Ludoteca → Mesas), "left"
+  // hacia atrás. Default "right" para que el primer mount también deslice.
+  const [tabDirection, setTabDirection] = useState("right");
   // Sync URL ↔ state cuando el user vuelve atrás/adelante (cambia location.search).
   useEffect(() => {
     const urlTab = new URLSearchParams(location.search).get("tab");
     const validated = VALID_TABS.includes(urlTab) ? urlTab : "detalle";
-    setActiveTabState((prev) => (prev === validated ? prev : validated));
+    setActiveTabState((prev) => {
+      if (prev === validated) return prev;
+      const fromIdx = VALID_TABS.indexOf(prev);
+      const toIdx = VALID_TABS.indexOf(validated);
+      setTabDirection(toIdx > fromIdx ? "right" : "left");
+      return validated;
+    });
   }, [location.search]);
   // Setter público: actualiza state y refleja en URL via replaceState (sin
   // crear entrada en el history para cada click).
   const setActiveTab = (tab) => {
-    setActiveTabState(tab);
+    setActiveTabState((prev) => {
+      if (prev !== tab) {
+        const fromIdx = VALID_TABS.indexOf(prev);
+        const toIdx = VALID_TABS.indexOf(tab);
+        setTabDirection(toIdx > fromIdx ? "right" : "left");
+      }
+      return tab;
+    });
     const next = new URLSearchParams(window.location.search);
     if (tab === "detalle") next.delete("tab");
     else next.set("tab", tab);
@@ -98,6 +115,19 @@ export default function EventoDetail() {
         const { data } = await axios.get(`/api/eventos/${id}`);
         if (cancelled) return;
         setEvento(data);
+        setLudotecaItems(data.ludoteca || []);
+        // Mesas: fetch en paralelo. Falla silenciosa (UI cae al fetch
+        // propio de EventoMesas como fallback si seguimos en la página).
+        axios
+          .get(`/api/eventos/${id}/mesas`)
+          .then(({ data: mesasData }) => {
+            if (cancelled) return;
+            setMesasItems(mesasData.tables || []);
+          })
+          .catch(() => {
+            if (cancelled) return;
+            setMesasItems([]);
+          });
       } catch (err) {
         if (!cancelled && err.response?.status === 404) setNotFound(true);
       } finally {
@@ -117,6 +147,11 @@ export default function EventoDetail() {
   // Ludoteca state — al tope para que el badge "Ludoteca (N)" se actualice
   // en vivo via socket sin esperar a que el user abra esa tab.
   const [ludotecaItems, setLudotecaItems] = useState(null);
+  // Mesas state — mismo patrón. Fetcheado por separado al GET del evento
+  // (la lista de mesas asociadas no viene en `evento.ludoteca` porque son
+  // documentos del modelo `Table` con `eventoId`). El badge Mesas (N) usa
+  // este state.
+  const [mesasItems, setMesasItems] = useState(null);
 
   useEventoSocket(id, {
     onLudotecaChanged: (payload) => {
@@ -208,6 +243,17 @@ export default function EventoDetail() {
       setEvento((prev) =>
         prev ? mergeEventoUpdate(prev, payload.evento) : payload.evento,
       );
+    },
+    onMesaCreated: (payload) => {
+      // El server emite `evento:mesa-created` con `{ eventoId, tableId }`.
+      // No incluye el table populado, así que pedimos la lista entera (es
+      // chica y poco frecuente). Dedupe por _id en handleAdded del child
+      // cubre la race optimistic vs socket (ver feedback_optimistic_vs_socket).
+      if (!payload?.tableId) return;
+      axios
+        .get(`/api/eventos/${id}/mesas`)
+        .then(({ data }) => setMesasItems(data.tables || []))
+        .catch(() => {});
     },
   });
 
@@ -483,6 +529,7 @@ export default function EventoDetail() {
   // para no distraer del form.
   const showTabs = !!user && !editing;
   const ludotecaCount = ludotecaItems?.length ?? 0;
+  const mesasCount = mesasItems?.length ?? 0;
 
   return (
     <div className={styles.page}>
@@ -596,23 +643,42 @@ export default function EventoDetail() {
                 onClick={() => setActiveTab("mesas")}
               >
                 Mesas
+                {mesasCount > 0 && (
+                  <span className={styles.tabBadge}>{mesasCount}</span>
+                )}
               </button>
             </nav>
           )}
 
-          {activeTab === "ludoteca" && !editing && (
-            <EventoLudoteca
-              eventoId={id}
-              evento={evento}
-              items={ludotecaItems}
-              setItems={setLudotecaItems}
-              canAdd={canActInEvento}
-            />
-          )}
+          {/* Wrapper aislante: `.tabContentWrap` es sibling de `.tabs` y
+              recibe el `animation: none !important` de la regla global —
+              .tabContent adentro NO es sibling de .tabs, así que su slide
+              corre sin interferencia. `key={activeTab}` fuerza remount en
+              cada switch para re-disparar el keyframe. */}
+          <div className={styles.tabContentWrap}>
+            <div
+              className={styles.tabContent}
+              data-direction={tabDirection}
+              key={activeTab}
+            >
+              {activeTab === "ludoteca" && !editing && (
+                <EventoLudoteca
+                  eventoId={id}
+                  evento={evento}
+                  items={ludotecaItems}
+                  setItems={setLudotecaItems}
+                  canAdd={canActInEvento}
+                />
+              )}
 
-          {activeTab === "mesas" && !editing && (
-            <EventoMesas eventoId={id} canAdd={canActInEvento} />
-          )}
+              {activeTab === "mesas" && !editing && (
+                <EventoMesas
+                  eventoId={id}
+                  items={mesasItems}
+                  setItems={setMesasItems}
+                  canAdd={canActInEvento}
+                />
+              )}
 
           {(activeTab === "detalle" || editing) &&
             (editing ? (
@@ -797,6 +863,8 @@ export default function EventoDetail() {
                 )}
               </>
             ))}
+            </div>
+          </div>
         </main>
 
         <aside className={styles.aside}>

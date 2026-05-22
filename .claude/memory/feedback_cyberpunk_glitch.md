@@ -60,3 +60,38 @@ Cuando un container usa `.container > * { animation: rowIn ... ; animation-delay
 Ya aplicado en `.main` de [EventoDetail.module.css](client/src/pages/eventos/EventoDetail.module.css) — las tabs (`Detalle · Ludoteca · Mesas`) y todo lo que sigue al `<nav>` aparecen instantáneamente. El stagger se mantiene para el resto del contenido (hero, ticket stub).
 
 Aplicable a cualquier container con boot-in animado al que después se agregue contenido condicional o un cambio de pestañas.
+
+## Gotcha #3 — el kill-switch de Gotcha #2 también mata animaciones nuevas que SÍ querés
+
+El `.tabs ~ * { animation: none !important }` es absoluto: si después querés meter, por ejemplo, un slide entre tabs, la animación queda silenciada y NO se puede vencer con specificity normal (es `!important`). Tratar de pelearla con más `!important` arma una guerra cascada que es frágil.
+
+**Fix limpio**: aislar el elemento animado en un wrapper. El wrapper es el que es sibling de `.tabs` y recibe el kill-switch; el elemento animado adentro **no es sibling** de `.tabs`, así que la regla no lo matchea.
+
+```jsx
+<nav className={styles.tabs}>...</nav>
+<div className={styles.tabContentWrap}>          {/* sibling de .tabs → animation: none */}
+  <div                                            {/* NO sibling de .tabs → animation libre */}
+    className={styles.tabContent}
+    key={activeTab}                                {/* re-mount en cada switch */}
+    data-direction={tabDirection}                  {/* "right" | "left" */}
+  >
+    {/* tab body */}
+  </div>
+</div>
+```
+
+```css
+.tabContent {
+  animation: 0.24s ease-out both;
+}
+.tabContent[data-direction="right"] { animation-name: tabSlideInRight; }
+.tabContent[data-direction="left"]  { animation-name: tabSlideInLeft; }
+@keyframes tabSlideInRight { from { transform: translateX(28px); opacity: 0; } to { ... } }
+@keyframes tabSlideInLeft  { from { transform: translateX(-28px); opacity: 0; } to { ... } }
+```
+
+Dirección computada en el setter del tab activo: comparar índices en el array de orden (`VALID_TABS`) — forward = `"right"`, back = `"left"`. `key={activeTab}` fuerza unmount/mount en cada switch para re-disparar el keyframe (sin esto, React mantendría el div y la animación no se vuelve a ejecutar).
+
+Ya aplicado en [EventoDetail.jsx](client/src/pages/eventos/EventoDetail.jsx) (slide entre Detalle · Ludoteca · Mesas) + [EventoDetail.module.css](client/src/pages/eventos/EventoDetail.module.css).
+
+**Patrón general**: cuando hay una regla con `!important` que necesitás respetar para un caso pero esquivar para otro, no pelees con specificity — cambiá la estructura DOM para que el selector deje de matchear el caso que querés exonerar.

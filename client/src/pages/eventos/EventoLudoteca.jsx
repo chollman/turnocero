@@ -67,7 +67,14 @@ export default function EventoLudoteca({
   }, [eventoId, itemsProp]);
 
   const handleAdded = (newItem) => {
-    setItems((prev) => [...(prev || []), newItem]);
+    // Dedupe por _id: si el socket event ya entregó el item antes de que el
+    // POST resuelva (race común — ver [[feedback-optimistic-vs-socket]]),
+    // este append duplicaría. Mismo patrón que `onLudotecaChanged` en el parent.
+    setItems((prev) => {
+      const list = prev || [];
+      if (list.some((it) => it._id === newItem._id)) return list;
+      return [...list, newItem];
+    });
   };
 
   const handleDelete = async (item) => {
@@ -136,9 +143,9 @@ export default function EventoLudoteca({
         <ul className={styles.grid}>
           {items.map((item) => (
             <li key={item._id} className={styles.card}>
-              {item.thumbnail ? (
+              {item.image || item.thumbnail ? (
                 <img
-                  src={item.thumbnail}
+                  src={item.image || item.thumbnail}
                   alt={item.gameName}
                   className={styles.thumb}
                   loading="lazy"

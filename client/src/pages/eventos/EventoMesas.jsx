@@ -19,23 +19,45 @@ import styles from "./EventoMesas.module.css";
  * Click "Crear mesa" → navega a /mesas/crear?evento=<id> — CreateTable lee
  * el query param y lo manda en el POST. Al éxito redirige a /mesas/:id.
  */
-export default function EventoMesas({ eventoId, canAdd = false }) {
+export default function EventoMesas({
+  eventoId,
+  items: itemsProp,
+  setItems: setItemsProp,
+  canAdd = false,
+}) {
   const navigate = useNavigate();
   const { addToast } = useNotifications();
-  const [tables, setTables] = useState(null);
+
+  // Si el parent maneja el state (EventoDetail lo levanta para alimentar el
+  // badge "Mesas (N)" en la tab), usamos ese. Si no (uso standalone / tests),
+  // mantenemos un state local con fetch propio.
+  const [localTables, setLocalTables] = useState(itemsProp ?? null);
+  useEffect(() => {
+    if (itemsProp !== undefined) setLocalTables(itemsProp);
+  }, [itemsProp]);
+
+  const tables = localTables;
+  const setTables = (updater) => {
+    setLocalTables((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      setItemsProp?.(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
+    if (itemsProp !== undefined) return; // managed by parent
     let cancelled = false;
-    setTables(null);
+    setLocalTables(null);
     axios
       .get(`/api/eventos/${eventoId}/mesas`)
       .then(({ data }) => {
         if (cancelled) return;
-        setTables(data.tables || []);
+        setLocalTables(data.tables || []);
       })
       .catch(() => {
         if (cancelled) return;
-        setTables([]);
+        setLocalTables([]);
         addToast({
           type: "error",
           title: "Error",
@@ -45,7 +67,7 @@ export default function EventoMesas({ eventoId, canAdd = false }) {
     return () => {
       cancelled = true;
     };
-  }, [eventoId, addToast]);
+  }, [eventoId, addToast, itemsProp]);
 
   const handleCreate = () => {
     navigate(`/mesas/crear?evento=${eventoId}`);

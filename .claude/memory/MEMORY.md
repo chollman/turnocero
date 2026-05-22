@@ -37,3 +37,5 @@
 - [Test credentials](reference_test_credentials.md) — login de prueba para verificar páginas autenticadas en el preview/dev server
 - [react-router-dom useSearchParams no es reactivo](feedback_react_router_search_params.md) — `setSearchParams` actualiza la URL pero NO dispara re-render; usar `useState` + `useLocation` + `history.replaceState` para sincronizar query params reactivos
 - [Ludoteca + Mesas del Evento (in-flight)](project_ludoteca_de_eventos.md) — branch `ludoteca-de-eventos` no mergeada: tabs en EventoDetail, `Evento.ludoteca` embedded + `Table.eventoId`, `canActInEvento` helper, cascade de cancel, 2 tipos nuevos de notif
+- [Modal shared usa portal — NO inline](feedback_modal_portal_required.md) — `<Modal>` renderiza con `createPortal(..., document.body)`; ancestros con `will-change: transform` + `overflow: clip` (ej. `.main` en EventoDetail) clippeaban el backdrop fixed
+- [BGG: usar `image` (high-res) en renders ≥150px](feedback_bgg_image_over_thumbnail.md) — server siempre persistió `thumbnail` + `image` en BggGame/BggCollection/Evento.ludoteca; faltaba consumir `image` del lado cliente para evitar pixelado

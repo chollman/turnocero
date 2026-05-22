@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 // Modal accesible:
 //   - role="dialog" + aria-modal="true"
@@ -48,7 +49,11 @@ export default function Modal({
 
   if (!isOpen) return null;
 
-  return (
+  // Portal a document.body para escapar de ancestros que crean containing
+  // block para `position: fixed` (transform / will-change / filter / contain
+  // / etc.) y/o tienen `overflow: clip|hidden`. Sin esto, el backdrop fixed
+  // se clippea al box del ancestro (visible en EventoDetail .main).
+  return createPortal(
     <div
       className={backdropClassName}
       onClick={() => {
@@ -68,6 +73,7 @@ export default function Modal({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

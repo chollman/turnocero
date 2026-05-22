@@ -841,12 +841,45 @@
   transform: none !important;
 }
 
+/* Slide entre tabs. `.tabContent` está DENTRO de `.tabContentWrap` (que sí
+   recibe el `animation: none` de arriba), así que su animación corre sin
+   conflicto. Re-mounting via `key={activeTab}` en el JSX dispara el keyframe
+   en cada switch. `data-direction` decide desde dónde entra. */
+.tabContent {
+  animation: 0.24s ease-out both;
+}
+.tabContent[data-direction="right"] {
+  animation-name: tabSlideInRight;
+}
+.tabContent[data-direction="left"] {
+  animation-name: tabSlideInLeft;
+}
+@keyframes tabSlideInRight {
+  from {
+    transform: translateX(28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes tabSlideInLeft {
+  from {
+    transform: translateX(-28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 .tabs {
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 24px;
-  overflow-x: auto;
 }
 
 .tab {

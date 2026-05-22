@@ -147,9 +147,9 @@ export default function EventoLudotecaPicker({
       {selectedGame && (
         <div className={styles.confirm}>
           <div className={styles.preview}>
-            {selectedGame.thumbnail ? (
+            {selectedGame.image || selectedGame.thumbnail ? (
               <img
-                src={selectedGame.thumbnail}
+                src={selectedGame.image || selectedGame.thumbnail}
                 alt={selectedGame.name}
                 className={styles.previewThumb}
               />
@@ -272,14 +272,15 @@ function CollectionTab({ bggUsername, onPick, myAddedIds }) {
                       id: numericId,
                       name: g.name,
                       thumbnail: g.thumbnail,
+                      image: g.image,
                       year: g.yearPublished,
                     })
                   }
                   title={already ? "Ya lo agregaste" : g.name}
                 >
-                  {g.thumbnail ? (
+                  {g.image || g.thumbnail ? (
                     <img
-                      src={g.thumbnail}
+                      src={g.image || g.thumbnail}
                       alt={g.name}
                       className={styles.collectionThumb}
                       loading="lazy"

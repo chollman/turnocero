@@ -861,6 +861,42 @@ async function upsertPlayFromBgg(bggUsername, parsedPlay) {
   return doc;
 }
 
+// Escape regex special chars. Usado por scoreSearchMatch.
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Quita artículos al inicio para normalizar el match — "The LOOP" matchea
+// igual que "LOOP" para el bucket de relevancia. Aproxima lo que BGG hace
+// con `sortindex` en su web (ignora "The", "A", "An").
+function stripLeadingArticle(s) {
+  return s.replace(/^(the|a|an)\s+/i, "");
+}
+
+// Bucket de relevancia (más bajo = mejor match) sobre el nombre normalizado.
+// Aproxima el ranking server-side de BGG sin depender del endpoint web
+// gateado por Cloudflare. NO replica el factor de popularidad (no tenemos
+// numowned/numratings en cache) — el tiebreak es nombre más corto + año desc.
+function scoreSearchMatch(name, query) {
+  const normalized = stripLeadingArticle(name).toLowerCase();
+  const q = query.toLowerCase();
+  if (normalized === q) return 0; // match exacto
+  // Prefijo con separador típico: "LOOP: ..." / "LOOP - ..." / "LOOP's ..."
+  if (
+    normalized.startsWith(q + " ") ||
+    normalized.startsWith(q + ":") ||
+    normalized.startsWith(q + "-") ||
+    normalized.startsWith(q + "'") ||
+    normalized.startsWith(q + ",")
+  )
+    return 1;
+  // Palabra completa en cualquier posición (word boundary)
+  if (new RegExp(`\\b${escapeRegex(q)}\\b`, "i").test(normalized)) return 2;
+  // Subcadena
+  if (normalized.includes(q)) return 3;
+  return 4;
+}
+
 // GET /api/bgg/search?q=<query>
 router.get("/search", async (req, res) => {
   const q = (req.query.q || "").trim();
@@ -892,18 +928,37 @@ router.get("/search", async (req, res) => {
         const year = item.yearpublished?.["@_value"]
           ? Number(item.yearpublished["@_value"])
           : null;
-        return { id: Number(item["@_id"]), name, year, thumbnail: null };
+        return {
+          id: Number(item["@_id"]),
+          name,
+          year,
+          thumbnail: null,
+          image: null,
+        };
       })
       .filter((g) => g.name)
-      .sort((a, b) => (b.year || 0) - (a.year || 0))
-      .slice(0, 15);
+      // Ranking por relevancia (bucket de match → nombre corto → año desc).
+      // xmlapi2/search no devuelve los items en ningún orden útil; este sort
+      // los pone más cerca del orden que BGG usa en su autocomplete (que está
+      // gateado por Cloudflare desde Node, ver historia de PR).
+      .sort((a, b) => {
+        const sa = scoreSearchMatch(a.name, q);
+        const sb = scoreSearchMatch(b.name, q);
+        if (sa !== sb) return sa - sb;
+        if (a.name.length !== b.name.length)
+          return a.name.length - b.name.length;
+        return (b.year || 0) - (a.year || 0);
+      })
+      .slice(0, 30);
 
-    // Batch-resolve thumbnails (memoria → Mongo → BGG, compartido entre usuarios)
+    // Batch-resolve thumbnails + images (memoria → Mongo → BGG, compartido entre usuarios)
     if (results.length > 0) {
       try {
         const gamesMap = await resolveGamesBatch(results.map((g) => g.id));
         results.forEach((g) => {
-          g.thumbnail = gamesMap.get(g.id)?.thumbnail || null;
+          const game = gamesMap.get(g.id);
+          g.thumbnail = game?.thumbnail || null;
+          g.image = game?.image || null;
         });
       } catch {
         // thumbnails son opcionales, no bloqueamos el resultado
