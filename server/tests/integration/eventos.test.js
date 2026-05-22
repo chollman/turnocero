@@ -97,7 +97,8 @@ describe("F1 — GET /api/eventos/mine (eventos donde el user participó)", () =
     expect(res.status).toBe(200);
     const titles = res.body.eventos.map((e) => e.title).sort();
     expect(titles).toEqual(["Mío como author", "Mío como inscripto"]);
-    void e1; void e2;
+    void e1;
+    void e2;
   });
 
   it("oculta drafts y cancelled aún si el user es author", async () => {
@@ -123,7 +124,10 @@ describe("M3 — Búsqueda por título en GET /api/eventos", () => {
   it("filtra por ?search= case-insensitive sobre el título", async () => {
     const admin = await createUser({ isAdmin: true });
     await createEvento(admin, { title: "Torneo de Catan", status: "open" });
-    await createEvento(admin, { title: "Carcassonne Nocturno", status: "open" });
+    await createEvento(admin, {
+      title: "Carcassonne Nocturno",
+      status: "open",
+    });
     await createEvento(admin, { title: "Workshop CATAN", status: "open" });
 
     const res = await request(app).get("/api/eventos?search=catan");
@@ -408,10 +412,10 @@ describe("GET /api/eventos — distance computation", () => {
     const byTitle = Object.fromEntries(
       res.body.eventos.map((e) => [e.title, e.distanceKm]),
     );
-    expect(byTitle["Cerca"]).toBeCloseTo(0, 1);
-    expect(byTitle["Medio"]).toBeGreaterThan(50);
-    expect(byTitle["Medio"]).toBeLessThan(62);
-    expect(byTitle["Lejos"]).toBeGreaterThan(270);
+    expect(byTitle.Cerca).toBeCloseTo(0, 1);
+    expect(byTitle.Medio).toBeGreaterThan(50);
+    expect(byTitle.Medio).toBeLessThan(62);
+    expect(byTitle.Lejos).toBeGreaterThan(270);
     expect(byTitle["Sin coords"]).toBeNull();
   });
 
@@ -1562,6 +1566,34 @@ describe("section gating", () => {
 describe("Notificaciones a usuarios — eventos", () => {
   const Notification = require("../../models/Notification");
 
+  // notifyOne (routes/eventos.js) usa `saveNotification(...).catch()` sin
+  // await — el handler responde antes de que la persistencia se complete.
+  // En tests, queremos verificar el side-effect pero el query puede pegarle
+  // a Mongo antes de que la promise interna termine. Estos helpers polean
+  // hasta 1s para neutralizar la flakiness sin tener que esperar siempre.
+  async function waitForNotifs(query, expectedLength = 1) {
+    let notifs = [];
+    for (let i = 0; i < 20; i += 1) {
+      notifs = await Notification.find(query);
+      if (notifs.length >= expectedLength) break;
+      await new Promise((r) => {
+        setTimeout(r, 50);
+      });
+    }
+    return notifs;
+  }
+  async function waitForNotif(query) {
+    let notif = null;
+    for (let i = 0; i < 20; i += 1) {
+      notif = await Notification.findOne(query);
+      if (notif) break;
+      await new Promise((r) => {
+        setTimeout(r, 50);
+      });
+    }
+    return notif;
+  }
+
   beforeEach(async () => {
     await ensureEventosSectionOn();
   });
@@ -1579,7 +1611,7 @@ describe("Notificaciones a usuarios — eventos", () => {
       .set("Authorization", `Bearer ${tokenFor(admin)}`);
     expect(res.status).toBe(200);
 
-    const notifs = await Notification.find({
+    const notifs = await waitForNotifs({
       recipient: user._id,
       type: "evento_confirmed",
     });
@@ -1600,7 +1632,7 @@ describe("Notificaciones a usuarios — eventos", () => {
       .set("Authorization", `Bearer ${tokenFor(admin)}`)
       .send({ permanent: true });
 
-    const notif = await Notification.findOne({
+    const notif = await waitForNotif({
       recipient: user._id,
       type: "evento_rejected",
     });
@@ -1625,13 +1657,18 @@ describe("Notificaciones a usuarios — eventos", () => {
       .delete(`/api/eventos/${evento._id}`)
       .set("Authorization", `Bearer ${tokenFor(admin)}`);
 
-    const notifsA = await Notification.find({
+    const notifsA = await waitForNotifs({
       recipient: a._id,
       type: "evento_cancelled",
     });
-    const notifsB = await Notification.find({
+    const notifsB = await waitForNotifs({
       recipient: b._id,
       type: "evento_cancelled",
+    });
+    // Para usuarios rejected y para el author NO debería haber notif —
+    // damos a la cola tiempo igual para descartar falsos negativos.
+    await new Promise((r) => {
+      setTimeout(r, 200);
     });
     const notifsC = await Notification.find({
       recipient: c._id,
@@ -1665,7 +1702,7 @@ describe("Notificaciones a usuarios — eventos", () => {
       .field("eventDate", evento.eventDate.toISOString())
       .field("status", "cancelled");
 
-    const cancelled = await Notification.find({
+    const cancelled = await waitForNotifs({
       recipient: user._id,
       type: "evento_cancelled",
     });
@@ -1692,7 +1729,7 @@ describe("Notificaciones a usuarios — eventos", () => {
       .set("Authorization", `Bearer ${tokenFor(admin)}`)
       .field("eventDate", newDate);
 
-    const notif = await Notification.findOne({
+    const notif = await waitForNotif({
       recipient: user._id,
       type: "evento_updated",
     });
@@ -1717,7 +1754,7 @@ describe("Notificaciones a usuarios — eventos", () => {
         JSON.stringify({ texto: "Lugar nuevo", lat: -34.7, lng: -58.5 }),
       );
 
-    const notif = await Notification.findOne({
+    const notif = await waitForNotif({
       recipient: user._id,
       type: "evento_updated",
     });
@@ -1744,5 +1781,384 @@ describe("Notificaciones a usuarios — eventos", () => {
       type: "evento_updated",
     });
     expect(notifs.length).toBe(0);
+  });
+});
+
+describe("T1 — GET /api/eventos/:id/inscripciones (admin only)", () => {
+  it("non-admin gets 403 (requireAdmin gate)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { token } = await createAuthedUser();
+    const evento = await createEvento(admin);
+
+    const res = await request(app)
+      .get(`/api/eventos/${evento._id}/inscripciones`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("anonymous gets 401 (protect gate)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin);
+
+    const res = await request(app).get(
+      `/api/eventos/${evento._id}/inscripciones`,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("400 con id inválido (validateObjectId, no Mongo cast 500)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const res = await request(app)
+      .get(`/api/eventos/not-valid/inscripciones`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+    expect(res.status).toBe(400);
+  });
+
+  it("404 si el evento no existe", async () => {
+    const admin = await createUser({ isAdmin: true });
+    // ObjectId válido pero no asociado a ningún doc.
+    const missingId = "507f1f77bcf86cd799439011";
+    const res = await request(app)
+      .get(`/api/eventos/${missingId}/inscripciones`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+    expect(res.status).toBe(404);
+  });
+
+  it("devuelve registrations + counts + evento (meta) para admin", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const u1 = await createUser({ username: "user1", email: "user1@x.com" });
+    const u2 = await createUser({ username: "user2", email: "user2@x.com" });
+    const u3 = await createUser({ username: "user3", email: "user3@x.com" });
+    const u4 = await createUser({ username: "user4", email: "user4@x.com" });
+    const evento = await createEvento(admin, {
+      title: "Inscripciones meta",
+      maxParticipants: 10,
+      registrations: [
+        { user: u1._id, status: "pending", submittedAt: new Date() },
+        { user: u2._id, status: "confirmed", submittedAt: new Date() },
+        { user: u3._id, status: "rejected", submittedAt: new Date() },
+        { user: u4._id, status: "pending", submittedAt: new Date() },
+      ],
+    });
+
+    const res = await request(app)
+      .get(`/api/eventos/${evento._id}/inscripciones`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(200);
+    // Meta del evento (no el doc entero, solo headline data)
+    expect(res.body.evento._id).toBe(evento._id.toString());
+    expect(res.body.evento.title).toBe("Inscripciones meta");
+    expect(res.body.evento.maxParticipants).toBe(10);
+
+    // Counts agregados, independientes del filtro
+    expect(res.body.counts).toEqual({
+      total: 4,
+      pending: 2,
+      confirmed: 1,
+      rejected: 1,
+    });
+
+    // Sin filtro: las 4 registrations
+    expect(res.body.registrations).toHaveLength(4);
+  });
+
+  it("populate de user incluye email (admin necesita contactar al inscripto)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser({
+      username: "contacto",
+      email: "contacto@x.com",
+      displayName: "Contacto",
+    });
+    const evento = await createEvento(admin, {
+      registrations: [
+        { user: user._id, status: "pending", submittedAt: new Date() },
+      ],
+    });
+
+    const res = await request(app)
+      .get(`/api/eventos/${evento._id}/inscripciones`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(200);
+    const reg = res.body.registrations[0];
+    expect(reg.user.email).toBe("contacto@x.com");
+    expect(reg.user.username).toBe("contacto");
+    expect(reg.user.displayName).toBe("Contacto");
+    // avatar también poblado (puede venir null si el user no subió uno)
+    expect(reg.user).toHaveProperty("avatar");
+  });
+
+  it("?status=pending filtra solo pending (counts siguen siendo globales)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const u1 = await createUser({ username: "pen1" });
+    const u2 = await createUser({ username: "con1" });
+    const u3 = await createUser({ username: "pen2" });
+    const evento = await createEvento(admin, {
+      registrations: [
+        { user: u1._id, status: "pending" },
+        { user: u2._id, status: "confirmed" },
+        { user: u3._id, status: "pending" },
+      ],
+    });
+
+    const res = await request(app)
+      .get(`/api/eventos/${evento._id}/inscripciones?status=pending`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.registrations).toHaveLength(2);
+    expect(res.body.registrations.every((r) => r.status === "pending")).toBe(
+      true,
+    );
+    // Counts NO se ven afectados por el filtro — siguen siendo agregados totales.
+    expect(res.body.counts.total).toBe(3);
+    expect(res.body.counts.pending).toBe(2);
+    expect(res.body.counts.confirmed).toBe(1);
+  });
+
+  it("?status=confirmed filtra solo confirmed", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const u1 = await createUser({ username: "conf1" });
+    const u2 = await createUser({ username: "pend1" });
+    const evento = await createEvento(admin, {
+      registrations: [
+        { user: u1._id, status: "confirmed" },
+        { user: u2._id, status: "pending" },
+      ],
+    });
+
+    const res = await request(app)
+      .get(`/api/eventos/${evento._id}/inscripciones?status=confirmed`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.registrations).toHaveLength(1);
+    expect(res.body.registrations[0].status).toBe("confirmed");
+  });
+
+  it("?status=rejected filtra solo rejected", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const u1 = await createUser({ username: "rej1" });
+    const u2 = await createUser({ username: "pen3" });
+    const evento = await createEvento(admin, {
+      registrations: [
+        { user: u1._id, status: "rejected" },
+        { user: u2._id, status: "pending" },
+      ],
+    });
+
+    const res = await request(app)
+      .get(`/api/eventos/${evento._id}/inscripciones?status=rejected`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.registrations).toHaveLength(1);
+    expect(res.body.registrations[0].status).toBe("rejected");
+  });
+
+  it("?status=invalido es ignorado (no filtra, devuelve todas)", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const u1 = await createUser({ username: "xxx1" });
+    const u2 = await createUser({ username: "xxx2" });
+    const evento = await createEvento(admin, {
+      registrations: [
+        { user: u1._id, status: "pending" },
+        { user: u2._id, status: "confirmed" },
+      ],
+    });
+
+    const res = await request(app)
+      .get(`/api/eventos/${evento._id}/inscripciones?status=garbage`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(200);
+    // Status no whitelisteado → no filtra.
+    expect(res.body.registrations).toHaveLength(2);
+  });
+
+  it("evento sin registrations devuelve array vacío y counts en cero", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const evento = await createEvento(admin, { registrations: [] });
+
+    const res = await request(app)
+      .get(`/api/eventos/${evento._id}/inscripciones`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.registrations).toEqual([]);
+    expect(res.body.counts).toEqual({
+      total: 0,
+      pending: 0,
+      confirmed: 0,
+      rejected: 0,
+    });
+  });
+
+  it("admin puede acceder a inscripciones de un evento en draft", async () => {
+    // Drafts están ocultos a non-admins en GET /:id, pero el endpoint de
+    // inscripciones debe seguir funcionando para que el admin pueda armar el
+    // evento antes de publicarlo.
+    const admin = await createUser({ isAdmin: true });
+    const user = await createUser();
+    const evento = await createEvento(admin, {
+      status: "draft",
+      registrations: [{ user: user._id, status: "pending" }],
+    });
+
+    const res = await request(app)
+      .get(`/api/eventos/${evento._id}/inscripciones`)
+      .set("Authorization", `Bearer ${tokenFor(admin)}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.registrations).toHaveLength(1);
+  });
+});
+
+describe("T3 — Flujo end-to-end: crear → inscribirse → confirmar", () => {
+  const Notification = require("../../models/Notification");
+
+  beforeEach(() => {
+    cloudMock.__resetMocks();
+  });
+
+  it("admin publica evento → user se inscribe → admin lista pendientes → admin confirma → user ve userRegistration=confirmed + recibe notif", async () => {
+    const admin = await createUser({
+      isAdmin: true,
+      username: "host",
+      displayName: "Host",
+    });
+    const { user, token: userToken } = await createAuthedUser({
+      username: "inscripto",
+      email: "inscripto@x.com",
+    });
+    const adminToken = tokenFor(admin);
+
+    // 1) Admin crea evento (pasamos status=open vía field + location JSON)
+    const createRes = await request(app)
+      .post("/api/eventos")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .field("title", "Torneo E2E")
+      .field("description", "Flujo completo")
+      .field("conditions", "")
+      .field("fee", "0")
+      .field("transferDetails", "")
+      .field(
+        "eventDate",
+        new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+      )
+      .field(
+        "location",
+        JSON.stringify({
+          texto: "Av. Real 1234, CABA",
+          lat: -34.6,
+          lng: -58.4,
+        }),
+      )
+      .field("maxParticipants", "8")
+      .field("status", "open");
+
+    expect(createRes.status).toBe(201);
+    const eventoId = createRes.body._id;
+    expect(createRes.body.status).toBe("open");
+
+    // 2) User no inscripto: GET /:id devuelve userRegistration=null
+    const beforeRes = await request(app)
+      .get(`/api/eventos/${eventoId}`)
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(beforeRes.status).toBe(200);
+    expect(beforeRes.body.userRegistration).toBeFalsy();
+    expect(beforeRes.body.registrationCount.pending).toBe(0);
+    expect(beforeRes.body.registrationCount.confirmed).toBe(0);
+
+    // 3) User se inscribe (evento gratis, sin comprobante)
+    const inscRes = await request(app)
+      .post(`/api/eventos/${eventoId}/inscribirse`)
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(inscRes.status).toBe(201);
+    expect(inscRes.body.status).toBe("pending");
+    const registrationId = inscRes.body._id;
+
+    // 4) GET /:id ahora devuelve userRegistration=pending + count.pending=1
+    const afterInscRes = await request(app)
+      .get(`/api/eventos/${eventoId}`)
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(afterInscRes.status).toBe(200);
+    expect(afterInscRes.body.userRegistration.status).toBe("pending");
+    expect(afterInscRes.body.userRegistration._id).toBe(registrationId);
+    expect(afterInscRes.body.registrationCount.pending).toBe(1);
+    expect(afterInscRes.body.registrationCount.confirmed).toBe(0);
+
+    // 5) Admin lista inscripciones — ve al user con status=pending
+    const listRes = await request(app)
+      .get(`/api/eventos/${eventoId}/inscripciones`)
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(listRes.status).toBe(200);
+    expect(listRes.body.registrations).toHaveLength(1);
+    expect(listRes.body.registrations[0].user._id).toBe(user._id.toString());
+    expect(listRes.body.registrations[0].user.email).toBe("inscripto@x.com");
+    expect(listRes.body.registrations[0].status).toBe("pending");
+    expect(listRes.body.counts.pending).toBe(1);
+
+    // 6) Admin confirma — endpoint devuelve 200 y registración actualizada
+    const confirmRes = await request(app)
+      .patch(`/api/eventos/${eventoId}/inscripciones/${user._id}/confirmar`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ adminNotes: "Comprobante OK" });
+    expect(confirmRes.status).toBe(200);
+
+    // 7) Persistencia: la registración pasa a confirmed con adminNotes
+    const refreshedEvento = await Evento.findById(eventoId);
+    const reg = refreshedEvento.registrations.find((r) =>
+      r.user.equals(user._id),
+    );
+    expect(reg.status).toBe("confirmed");
+    expect(reg.adminNotes).toBe("Comprobante OK");
+    expect(reg.reviewedAt).toBeTruthy();
+    expect(reg.reviewedBy?.toString()).toBe(admin._id.toString());
+
+    // 8) GET /:id desde el user ahora devuelve userRegistration=confirmed
+    const finalRes = await request(app)
+      .get(`/api/eventos/${eventoId}`)
+      .set("Authorization", `Bearer ${userToken}`);
+    expect(finalRes.status).toBe(200);
+    expect(finalRes.body.userRegistration.status).toBe("confirmed");
+    expect(finalRes.body.registrationCount.pending).toBe(0);
+    expect(finalRes.body.registrationCount.confirmed).toBe(1);
+
+    // 9) confirmedRegistrations expone al usuario con los campos públicos
+    const confirmed = finalRes.body.confirmedRegistrations;
+    expect(confirmed).toHaveLength(1);
+    expect(confirmed[0].user._id).toBe(user._id.toString());
+    expect(confirmed[0].user.username).toBe("inscripto");
+    // Email NO se filtra acá (es info pública del evento, no admin)
+    expect(confirmed[0].user.email).toBeUndefined();
+
+    // 10) El user recibió una notif persistente evento_confirmed.
+    // notifyOne fire-and-forget (no await): el handler responde antes de que
+    // saveNotification termine su upsert. Poleamos hasta 1s para evitar
+    // flakiness — basta con que la operación complete en algún momento.
+    let notifs = [];
+    for (let i = 0; i < 20; i += 1) {
+      notifs = await Notification.find({
+        recipient: user._id,
+        type: "evento_confirmed",
+      });
+      if (notifs.length > 0) break;
+      await new Promise((resolve) => {
+        setTimeout(resolve, 50);
+      });
+    }
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].eventoId).toBe(eventoId);
+    expect(notifs[0].eventoTitle).toBe("Torneo E2E");
+
+    // 11) Admin lista de nuevo y ve el conteo actualizado
+    const finalListRes = await request(app)
+      .get(`/api/eventos/${eventoId}/inscripciones`)
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(finalListRes.body.counts.confirmed).toBe(1);
+    expect(finalListRes.body.counts.pending).toBe(0);
+    expect(finalListRes.body.registrations[0].status).toBe("confirmed");
   });
 });

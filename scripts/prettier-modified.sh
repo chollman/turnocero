@@ -1,25 +1,23 @@
 #!/usr/bin/env bash
-# Formats and lints files that Claude Code modified during the current turn.
+# Format + lint files Claude Code touched in the current turn.
 #
-# Triggered by the Stop hook in .claude/settings.json. Pairs with a
-# PostToolUse hook that appends each Edit/Write/MultiEdit target path to
-# the queue file.
+# Wired in .claude/settings.json:
+#   - PostToolUse hook on Edit|Write|MultiEdit appends each tool_input.file_path
+#     to /tmp/turnocero-prettier-queue.txt (one path per line, can repeat).
+#   - Stop hook runs this script at the end of the turn.
 #
-# Pipeline per turn:
-#   1. Drain + dedupe the queue.
-#   2. Prettier --write --ignore-unknown over every file (skips unparseable).
-#   3. ESLint --fix per workspace (client/ and server/) — invoked via each
-#      workspace's local binary so the flat config walks up correctly.
-#      Files outside those workspaces skip the lint step.
+# Pipeline:
+#   1. Drain + dedupe the queue, then truncate so the next turn starts clean.
+#   2. Prettier --write --ignore-unknown across every surviving path.
+#   3. ESLint --fix per workspace (client/, server/) using each workspace's
+#      local binary so its flat config resolves from the right CWD.
 #
-# Idempotent:
-#   - No queue file → exit 0
-#   - Queue exists but empty → exit 0
-#   - Files in queue that no longer exist → skipped (Edit could've been
-#     on a path that was renamed/deleted later in the turn)
-#
-# Errors in prettier / eslint never break the Stop hook (|| true). Real
-# diagnostics go to stderr for visibility.
+# Idempotent and silent on the happy path:
+#   - Missing queue file        → exit 0
+#   - Empty queue               → exit 0
+#   - Paths that no longer exist (renamed / deleted later in the turn) skipped
+#   - Paths outside client/ and server/ skip the lint step (no flat config)
+#   - Prettier / ESLint failures never break the Stop hook (`|| true`)
 
 set -euo pipefail
 
@@ -28,39 +26,39 @@ QUEUE_FILE="${PRETTIER_QUEUE_FILE:-/tmp/turnocero-prettier-queue.txt}"
 
 [ -f "$QUEUE_FILE" ] || exit 0
 
-# Drain and dedupe in one shot. Truncate before formatting so a slow
-# format doesn't drop appends from the next turn.
-files=$(sort -u "$QUEUE_FILE" | sed '/^$/d' || true)
+# Snapshot + truncate atomically-ish: a slow format must not drop appends
+# that the next turn's PostToolUse hook may add while we run.
+queued="$(sort -u "$QUEUE_FILE" | sed '/^$/d' || true)"
 : > "$QUEUE_FILE"
 
-[ -z "$files" ] && exit 0
+[ -z "$queued" ] && exit 0
 
-# Filter to paths that still exist as regular files.
+# Keep only paths that still resolve to a regular file in the working tree.
 existing=()
-while IFS= read -r f; do
-  [ -f "$f" ] && existing+=("$f")
-done <<< "$files"
+while IFS= read -r path; do
+  [ -f "$path" ] && existing+=("$path")
+done <<< "$queued"
 
 [ "${#existing[@]}" -eq 0 ] && exit 0
 
 cd "$REPO_ROOT"
 
-# ── 1. Prettier ──────────────────────────────────────────────────────
-# --no-install: rely on the locally-installed prettier (added as devDep
-# at root); fail fast if it's missing instead of downloading silently.
-# --log-level=warn: quiet on successful format, noisy on real problems.
+# ── 1. Prettier ─────────────────────────────────────────────────────────
+# --no-install: rely on the locally-installed prettier (root devDep). Fail
+# fast if it's missing instead of silently downloading at hook time.
+# --ignore-unknown: skip files prettier doesn't have a parser for.
+# --log-level=warn: quiet on success, noisy on real diagnostics.
 npx --no-install prettier --write --ignore-unknown --log-level=warn "${existing[@]}" || true
 
-# ── 2. ESLint --fix per workspace ────────────────────────────────────
-# Group files by workspace prefix so each invocation uses the correct
-# flat config (client/eslint.config.js, server/eslint.config.js). Files
-# outside both workspaces are skipped — no config applies to them.
+# ── 2. ESLint --fix per workspace ───────────────────────────────────────
+# Each workspace has its own flat config (client/eslint.config.js,
+# server/eslint.config.js) that must resolve from inside the workspace.
+# Bucket the queue by prefix; ignore everything outside both workspaces.
 client_files=()
 server_files=()
-for f in "${existing[@]}"; do
-  # Normalize to absolute then strip the repo root for the prefix check
-  abs="$(cd "$(dirname "$f")" && pwd)/$(basename "$f")"
-  rel="${abs#$REPO_ROOT/}"
+for path in "${existing[@]}"; do
+  abs="$(cd "$(dirname "$path")" && pwd)/$(basename "$path")"
+  rel="${abs#"$REPO_ROOT"/}"
   case "$rel" in
     client/*) client_files+=("$abs") ;;
     server/*) server_files+=("$abs") ;;
@@ -70,11 +68,8 @@ done
 run_eslint() {
   local workspace="$1"; shift
   local bin="$REPO_ROOT/$workspace/node_modules/.bin/eslint"
-  if [ ! -x "$bin" ]; then
-    return 0  # workspace not installed — skip silently
-  fi
-  # Filter to extensions ESLint will recognize. --no-error-on-unmatched-pattern
-  # keeps it quiet when all paths get filtered out.
+  [ -x "$bin" ] || return 0  # workspace not installed yet — skip
+
   local lintable=()
   for f in "$@"; do
     case "$f" in
@@ -82,7 +77,9 @@ run_eslint() {
     esac
   done
   [ "${#lintable[@]}" -eq 0 ] && return 0
-  (cd "$REPO_ROOT/$workspace" && "$bin" --fix --no-error-on-unmatched-pattern "${lintable[@]}") || true
+
+  (cd "$REPO_ROOT/$workspace" \
+    && "$bin" --fix --no-error-on-unmatched-pattern "${lintable[@]}") || true
 }
 
 [ "${#client_files[@]}" -gt 0 ] && run_eslint client "${client_files[@]}"

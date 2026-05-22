@@ -1,8 +1,8 @@
 # Reporte arquitectónico — Sección Eventos
 
-## Estado (actualizado 2026-05-21)
+## Estado (actualizado 2026-05-22)
 
-**26 / 30 ítems implementados.** Plan ejecutado en cuatro lotes durante esta sesión.
+**29 / 30 ítems implementados.** Plan ejecutado en cinco lotes durante esta y la sesión previa.
 
 | Lote | Ítems |
 |---|---|
@@ -10,15 +10,18 @@
 | 2 (inconsistencias) | ✅ I1, I2, I3, I4, I5, I6, I7, I8 |
 | 3 (bugs + deuda técnica) | ✅ B4, B5, B6+B7, B8, B9, M1, M2, M3, M5, M7, M8, M10 |
 | 4 (features) | ✅ F1, F3 (cubierto en I7), F5, F6 |
-| Skip / abierto | ⏸ M4 (premature opt), M6 (PR separado cross-feature), M9 (depende de habilitar light theme), F2 (email transaccional), F4 (filtro pasados/próximos), T1-T5 (huecos de tests adicionales) |
+| 5 (tests) | ✅ T1, T3, T4 (T2 y T5 ya estaban cubiertos en la sesión previa) |
+| Skip / abierto | ⏸ M4 (premature opt), M6 (PR separado cross-feature), M9 (depende de habilitar light theme), F2 (email transaccional), F4 (filtro pasados/próximos) |
 
-**Suite final**: cliente 1343/1343 verdes (132 archivos), server 489/489 verdes (33 archivos). Tests nuevos agregados en el proceso (~80 tests netos).
+**Suite final**: cliente 1344/1344 verdes (132 archivos), server 502/502 verdes (33 archivos). Tests nuevos agregados en esta sesión (T1: +12 integration, T3: +1 E2E, T4: +1 client) + estabilización con polling helper de las notificaciones fire-and-forget que eran pre-flaky.
 
 **Patrones nuevos extraídos como memoria** (aplicables a otras secciones):
 - `feedback_errors_as_toasts.md` (B6+B7) — errores PUT/POST/DELETE como `addToast`, no state local
 - `feedback_shared_modal.md` (M1) — `<Modal>` shared para overlays con focus mgmt
 - `feedback_validate_objectid_param.md` (B8) — `router.param("id", validateObjectId)`
 - `feedback_cron_idempotency_flag.md` (B5) — flag `xxxSentAt` en el doc, no ventanas estrechas
+
+**Patrón aprendido en T1-T4** (no se memorizó porque es específico de testing y aplica a cualquier route que use `notifyOne` / fire-and-forget): los tests que verifican side-effects de `notifyOne` (que dispara `saveNotification(...).catch()` sin await) son inherentemente flaky — el HTTP response vuelve antes de que el upsert termine. Solución: helper de poll-with-timeout (`waitForNotifs`/`waitForNotif`, 20 × 50ms) en vez de un `find` instantáneo. Aplicado a las 6 aserciones del describe "Notificaciones a usuarios — eventos" + el assert final de T3.
 
 ---
 
@@ -387,20 +390,20 @@ Es un refactor mayor pero limpia un patrón que se repite también en Torneos, M
 
 ## 📊 HUECOS DE TESTS
 
-### T1 — `GET /api/eventos/:id/inscripciones` sin test de integración directo
-[`server/routes/eventos.js:895-938`](server/routes/eventos.js). No hay un `describe()` específico que cubra el filter por status, la populate de `email`, los counts.
+### ✅ T1 — `GET /api/eventos/:id/inscripciones` con test de integración directo
+[`server/tests/integration/eventos.test.js`](server/tests/integration/eventos.test.js) — describe **"T1 — GET /api/eventos/:id/inscripciones (admin only)"** (12 tests): 401/403/400/404 paths, populate de email, counts agregados, `?status=` whitelist + filtros, drafts accesibles a admin.
 
-### T2 — `EventoDetail` sin test del flujo `setActiveEvento` (porque B1 no existe todavía)
-Cuando se arregle B1, agregar test que monte `EventoDetail` y verifique que `setActiveEvento` se llama al mount y `setActiveEvento(null)` al unmount.
+### ✅ T2 — `EventoDetail` con test del flujo `setActiveEvento`
+[`client/src/pages/eventos/EventoDetail.test.jsx`](client/src/pages/eventos/EventoDetail.test.jsx) — test "setActiveEvento se llama con el id al montar y con null al desmontar (suprime toasts del evento activo y los marca leídos)". Verifica el fix de B1.
 
-### T3 — Sin test E2E que cubra create → inscribirse → triage → confirmar
-Hay tests aislados de cada paso pero no del flujo entero. Vitest con MSW podría hacerlo, o tirar un test de integración a server.
+### ✅ T3 — Test E2E que cubre create → inscribirse → triage → confirmar
+[`server/tests/integration/eventos.test.js`](server/tests/integration/eventos.test.js) — describe **"T3 — Flujo end-to-end: crear → inscribirse → confirmar"**: admin crea evento, user se inscribe, admin lista pendientes, admin confirma → user ve `userRegistration=confirmed`, counts consistentes, notif persistente recibida.
 
-### T4 — Sin test del race fetch HTTP / socket connect en `EventoDetail` (B4)
-Difícil de tester con jsdom puro, pero un caso edge mockeable.
+### ✅ T4 — Test del race fetch HTTP / socket connect en `EventoDetail`
+[`client/src/pages/eventos/EventoDetail.test.jsx`](client/src/pages/eventos/EventoDetail.test.jsx) — test **"T4 — el socket conecta en paralelo con el fetch HTTP y los handlers toleran prev=null si llegan antes de que el fetch resuelva"**: difiere el GET con una promise gated y verifica que los broadcasts que llegan durante el loading no crashean (gracias al `prev ? ... : prev` en los handlers) y los posteriores sí aplican.
 
-### T5 — Sin test del fallback de cron atrasado (B5)
-Cuando se implemente `reminderSentAt`, agregar test unit del job con time travel.
+### ✅ T5 — Test del fallback de cron atrasado
+[`server/tests/unit/jobs/eventoReminders.test.js`](server/tests/unit/jobs/eventoReminders.test.js) — tests "B5 — eventos atrasados (cron tardó) entran al rango y reciben reminder (no se pierden)", "B5 — evento con reminderSentAt no se re-notifica (idempotente via flag, no via window)" y "B5 — evento sin confirmed registrants igual queda marcado (no se reintenta)".
 
 ---
 

@@ -451,4 +451,85 @@ describe("<EventoDetail>", () => {
     expect(screen.getByText("Alice")).toBeInTheDocument();
     expect(screen.getByText("Bob")).toBeInTheDocument();
   });
+
+  it("T4 — el socket conecta en paralelo con el fetch HTTP y los handlers toleran prev=null si llegan antes de que el fetch resuelva", async () => {
+    // Diferimos el GET /api/eventos/:id para mantener al cliente en estado de
+    // loading mientras emitimos un broadcast por el socket. Esto reproduce la
+    // ventana entre fetch-start y respuesta del server donde antes (con el
+    // useEffect que dependía de `evento?._id` para conectar el socket) el
+    // cliente se perdía los broadcasts. Con useEventoSocket dependiendo solo
+    // de `id`, el socket queda abierto desde el primer render.
+    let resolveGet;
+    const gating = new Promise((r) => {
+      resolveGet = r;
+    });
+
+    const eventoHttp = makeEvento({
+      registrationCount: { total: 2, pending: 1, confirmed: 1 },
+    });
+    server.use(
+      http.get("/api/eventos/:id", async () => {
+        await gating;
+        return HttpResponse.json(eventoHttp);
+      }),
+    );
+
+    // Reset socket capture antes de render — confiamos en que el mock recrea
+    // el socket cada vez que se invoca `io(...)`.
+    socketListeners.clear();
+    _lastSocket = null;
+    localStorage.setItem("token", "fake-token");
+
+    try {
+      renderDetail({ user: { _id: "me" } });
+
+      // El socket se construye y registra sus listeners ANTES de que el
+      // fetch HTTP resuelva (no espera evento._id, depende solo del id de la URL).
+      await waitFor(() => expect(_lastSocket).not.toBeNull());
+      expect(socketListeners.has("evento:counts-changed")).toBe(true);
+      expect(socketListeners.has("evento:registration-reviewed")).toBe(true);
+      expect(socketListeners.has("evento:updated")).toBe(true);
+
+      // Mientras el fetch sigue pendiente, llega un broadcast. El handler
+      // está envuelto en `setEvento((prev) => prev ? ... : prev)`, así que
+      // tolera prev=null y no crashea.
+      expect(() =>
+        triggerSocket("evento:counts-changed", {
+          eventoId: "e1",
+          counts: { total: 9, pending: 9, confirmed: 9 },
+        }),
+      ).not.toThrow();
+      expect(() =>
+        triggerSocket("evento:registration-reviewed", {
+          eventoId: "e1",
+          userId: "someone",
+          status: "confirmed",
+          counts: { total: 9, pending: 9, confirmed: 9 },
+        }),
+      ).not.toThrow();
+      expect(() =>
+        triggerSocket("evento:updated", {
+          eventoId: "e1",
+          evento: { ...eventoHttp, title: "Renombrado prematuro" },
+        }),
+      ).not.toThrow();
+
+      // Ahora dejamos pasar el fetch. El estado renderizado debe venir del
+      // HTTP, no de los sockets que llegaron antes (esos se descartaron por
+      // prev=null). "Cupo: 2 de 20" — active = pending + confirmed = 1+1 = 2.
+      resolveGet();
+      await screen.findByRole("heading", { name: "Mi Evento" });
+      expect(screen.getByText(/2 de 20/)).toBeInTheDocument();
+
+      // Y un broadcast posterior sí se aplica — confirma que los listeners
+      // siguen vivos después del fetch (no se reconectó el socket).
+      triggerSocket("evento:counts-changed", {
+        eventoId: "e1",
+        counts: { total: 5, pending: 4, confirmed: 1 },
+      });
+      expect(await screen.findByText(/5 de 20/)).toBeInTheDocument();
+    } finally {
+      localStorage.removeItem("token");
+    }
+  });
 });
