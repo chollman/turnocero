@@ -1,12 +1,12 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const tableSchema = new mongoose.Schema(
   {
     boardGame: {
       type: String,
-      required: [true, 'Board game name is required'],
+      required: [true, "Board game name is required"],
       trim: true,
-      maxlength: [100, 'Game name cannot exceed 100 characters'],
+      maxlength: [100, "Game name cannot exceed 100 characters"],
     },
     bggId: { type: Number, default: null },
     bggThumbnail: { type: String, default: null },
@@ -14,23 +14,23 @@ const tableSchema = new mongoose.Schema(
     bggYear: { type: Number, default: null },
     date: {
       type: Date,
-      required: [true, 'Date is required'],
+      required: [true, "Date is required"],
     },
     maxPlayers: {
       type: Number,
-      required: [true, 'Max players quantity is required'],
-      min: [1, 'Must allow at least 1 additional player'],
-      max: [20, 'Cannot exceed 20 additional players'],
+      required: [true, "Max players quantity is required"],
+      min: [1, "Must allow at least 1 additional player"],
+      max: [20, "Cannot exceed 20 additional players"],
     },
     host: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     players: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: "User",
       },
     ],
     // Migrado de String a subdocumento en 2026-05 para soportar cálculo
@@ -38,49 +38,66 @@ const tableSchema = new mongoose.Schema(
     // normalizan al hidratar vía `pre('init')` hook abajo — no hace falta
     // script de migración (lazy upgrade en cada read).
     location: {
-      texto: { type: String, trim: true, maxlength: [200, 'Location cannot exceed 200 characters'], default: '' },
-      lat:   { type: Number, default: null },
-      lng:   { type: Number, default: null },
+      texto: {
+        type: String,
+        trim: true,
+        maxlength: [200, "Location cannot exceed 200 characters"],
+        default: "",
+      },
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
     },
     description: {
       type: String,
       trim: true,
-      maxlength: [500, 'Description cannot exceed 500 characters'],
-      default: '',
+      maxlength: [500, "Description cannot exceed 500 characters"],
+      default: "",
     },
     status: {
       type: String,
-      enum: ['open', 'full', 'cancelled'],
-      default: 'open',
+      enum: ["open", "full", "cancelled"],
+      default: "open",
     },
     privacy: {
       type: String,
-      enum: ['public', 'private'],
-      default: 'public',
+      enum: ["public", "private"],
+      default: "public",
     },
     pendingRequests: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: "User",
       },
     ],
     reactions: [
       {
-        user:  { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-        emoji: { type: String, enum: ['❤️', '🎲', '🔥', '👍', '😄'], required: true },
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        emoji: {
+          type: String,
+          enum: ["❤️", "🎲", "🔥", "👍", "😄"],
+          required: true,
+        },
       },
     ],
     followers: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: "User",
       },
     ],
     images: [
       {
-        url:       { type: String, required: true },
-        publicId:  { type: String, required: true },
-        uploader:  { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        url: { type: String, required: true },
+        publicId: { type: String, required: true },
+        uploader: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
         createdAt: { type: Date, default: Date.now },
       },
     ],
@@ -89,18 +106,23 @@ const tableSchema = new mongoose.Schema(
     // en el listado global). El listado global filtra `eventoId: null`. El
     // detalle (TableDetail) funciona igual sin importar el scope; cambia solo
     // dónde se lista y quién puede crearla.
-    eventoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Evento', default: null, index: true },
+    eventoId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Evento",
+      default: null,
+      index: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Virtual: total seats (host + maxPlayers)
-tableSchema.virtual('totalPlayers').get(function () {
+tableSchema.virtual("totalPlayers").get(function () {
   return this.maxPlayers + 1;
 });
 
 // Virtual: available seats
-tableSchema.virtual('availableSeats').get(function () {
+tableSchema.virtual("availableSeats").get(function () {
   return this.maxPlayers - this.players.length;
 });
 
@@ -108,20 +130,20 @@ tableSchema.virtual('availableSeats').get(function () {
 // Corre solo al hidratar docs existentes — los nuevos ya nacen con la forma
 // correcta. Sin esto, queries sobre tables viejas tirarían CastError porque
 // Mongoose espera el subdoc.
-tableSchema.pre('init', (doc) => {
-  if (typeof doc.location === 'string') {
+tableSchema.pre("init", (doc) => {
+  if (typeof doc.location === "string") {
     doc.location = { texto: doc.location, lat: null, lng: null };
   }
 });
 
 // Auto-update status based on player count
-tableSchema.pre('save', function (next) {
+tableSchema.pre("save", function (next) {
   if (this.players.length >= this.maxPlayers) {
-    this.status = 'full';
-  } else if (this.status === 'full') {
-    this.status = 'open';
+    this.status = "full";
+  } else if (this.status === "full") {
+    this.status = "open";
   }
   next();
 });
 
-module.exports = mongoose.model('Table', tableSchema);
+module.exports = mongoose.model("Table", tableSchema);

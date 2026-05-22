@@ -26,8 +26,7 @@ function canActInEvento(evento, user) {
   if (user.isAdmin) return true;
   if (String(evento.author) === String(user._id)) return true;
   return (evento.registrations || []).some(
-    (r) =>
-      String(r.user) === String(user._id) && r.status === 'confirmed',
+    (r) => String(r.user) === String(user._id) && r.status === "confirmed",
   );
 }
 
