@@ -1,5 +1,27 @@
 const mongoose = require('mongoose');
 
+// Ludoteca del Evento: cada user (confirmed registrant o admin del evento)
+// agrega juegos que va a llevar/proponer para jugar el día del evento.
+// La metadata (name/thumbnail/year/min-max players) se hidrata server-side
+// vía `resolveGame()` del módulo BGG al persistir — el cliente solo manda
+// `bggGameId` + `notes` opcional. Dedupe lógico por (bggGameId, addedBy) se
+// chequea en el route (un user no agrega 2× el mismo juego).
+const ludotecaItemSchema = new mongoose.Schema(
+  {
+    bggGameId:  { type: Number, required: true },
+    gameName:   { type: String, required: true, trim: true, maxlength: 200 },
+    thumbnail:  { type: String, default: '' },
+    image:      { type: String, default: '' },
+    year:       { type: Number, default: null },
+    minPlayers: { type: Number, default: null },
+    maxPlayers: { type: Number, default: null },
+    addedBy:    { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    addedAt:    { type: Date, default: Date.now },
+    notes:      { type: String, trim: true, maxlength: 200, default: '' },
+  },
+  { _id: true }
+);
+
 const registrationSchema = new mongoose.Schema(
   {
     user:        { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -50,6 +72,9 @@ const eventoSchema = new mongoose.Schema(
     status:          { type: String, enum: ['draft', 'open', 'closed', 'cancelled'], default: 'open' },
     author:          { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     registrations:   [registrationSchema],
+    // Ludoteca del Evento — juegos que van a estar disponibles el día del evento,
+    // aportados por registrants confirmados y/o el admin del evento.
+    ludoteca:        { type: [ludotecaItemSchema], default: [] },
     // Marcado por el cron de eventoReminders cuando ya envió el recordatorio
     // 24h. Permite filtrar y NO depender de la ventana [now+23h, now+25h]
     // si el cron se atrasa más de 1h (eventos podrían caerse del rango).

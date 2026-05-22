@@ -84,6 +84,12 @@ const tableSchema = new mongoose.Schema(
         createdAt: { type: Date, default: Date.now },
       },
     ],
+    // Scoping al evento — null = mesa global (visible en /mesas); ObjectId =
+    // mesa "del evento" (sólo visible dentro del detalle del evento, NUNCA
+    // en el listado global). El listado global filtra `eventoId: null`. El
+    // detalle (TableDetail) funciona igual sin importar el scope; cambia solo
+    // dónde se lista y quién puede crearla.
+    eventoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Evento', default: null, index: true },
   },
   { timestamps: true }
 );
