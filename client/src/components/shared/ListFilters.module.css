@@ -1,0 +1,225 @@
+.wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+/* ─── Trigger button ─── */
+.trigger {
+  height: 36px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 0 12px;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.trigger:hover {
+  border-color: var(--amber);
+  color: var(--amber-light);
+}
+
+.triggerActive {
+  border-color: var(--amber);
+  color: var(--amber-light);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--amber);
+  color: var(--on-amber);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ─── Popover ─── */
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: min(360px, calc(100vw - 32px));
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md, 0 8px 28px rgba(0, 0, 0, 0.28));
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: popoverIn 0.12s ease-out;
+}
+
+@keyframes popoverIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionTitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* ─── Chips ─── */
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.chipActive {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--on-amber);
+}
+
+/* ─── Radius filter ─── */
+.radiusLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.radiusIcon {
+  flex-shrink: 0;
+}
+
+.radiusInlineLink {
+  color: var(--amber);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.radiusInlineLink:hover {
+  text-decoration: underline;
+}
+
+.radiusControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.radiusSlider {
+  flex: 1;
+  height: 4px;
+  accent-color: var(--amber);
+  cursor: pointer;
+  min-width: 0;
+}
+
+.radiusSlider:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.radiusStep {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.radiusStep:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.radiusStep:active:not(:disabled) {
+  background: var(--amber-15);
+}
+
+.radiusStep:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.radiusValue {
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 64px;
+  text-align: right;
+}
+
+@media (max-width: 880px) {
+  .popover {
+    right: auto;
+    left: 0;
+    width: min(320px, calc(100vw - 24px));
+  }
+}

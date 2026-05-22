@@ -79,6 +79,13 @@ function renderPage({ user = { _id: "me", username: "me" }, addToast = vi.fn() }
   );
 }
 
+// Abre el popover de ListFilters. Los chips y el slider de distancia viven
+// dentro de ese popover (no en línea), así que cualquier test que interactúe
+// con ellos debe abrirlo primero.
+function openFilters() {
+  fireEvent.click(screen.getByRole("button", { name: /^filtros/i }));
+}
+
 function makeEvento(overrides = {}) {
   return {
     _id: overrides._id || `e${Math.random()}`,
@@ -180,6 +187,7 @@ describe("<Eventos>", () => {
     expect(
       screen.getByRole("button", { name: /nuevo evento/i }),
     ).toBeInTheDocument();
+    openFilters();
     expect(
       screen.getByRole("button", { name: /borradores/i }),
     ).toBeInTheDocument();
@@ -202,6 +210,7 @@ describe("<Eventos>", () => {
   it('shows "Mis inscr." chip only for logged-in users', async () => {
     renderPage({ user: { _id: "me", isAdmin: false } });
     await screen.findByText("Open House");
+    openFilters();
     expect(
       screen.getByRole("button", { name: /mis inscr\./i }),
     ).toBeInTheDocument();
@@ -229,6 +238,7 @@ describe("<Eventos>", () => {
   it("persists filter selection via localStorage", async () => {
     renderPage({ user: { _id: "me", isAdmin: false } });
     await screen.findByText("Open House");
+    openFilters();
     fireEvent.click(screen.getByRole("button", { name: /cerrados/i }));
     await waitFor(() =>
       expect(
@@ -322,6 +332,7 @@ describe("<Eventos>", () => {
     renderPage({ user: { _id: "admin", isAdmin: true } });
     await screen.findByText("Evento pasado");
     // Click "Todos" to switch off the default 'open' filter
+    openFilters();
     fireEvent.click(screen.getByRole("button", { name: /^todos$/i }));
     await screen.findByText("Evento futuro");
     expect(screen.getByText(/hoy · próximos eventos/i)).toBeInTheDocument();
@@ -350,8 +361,9 @@ describe("<Eventos>", () => {
       ),
     );
     renderPage({ user: { _id: "admin", isAdmin: true } });
-    fireEvent.click(screen.getByRole("button", { name: /^todos$/i }));
     await screen.findByText("Futuro A");
+    openFilters();
+    fireEvent.click(screen.getByRole("button", { name: /^todos$/i }));
     expect(
       screen.queryByText(/hoy · próximos eventos/i),
     ).not.toBeInTheDocument();
@@ -400,6 +412,7 @@ describe("<Eventos>", () => {
     );
     renderPage({ user: { _id: "admin", isAdmin: true } });
     await waitFor(() => expect(lastStatus).toBe("open"));
+    openFilters();
     fireEvent.click(screen.getByRole("button", { name: /^todos$/i }));
     await waitFor(() => expect(lastStatus).toBeNull());
   });
@@ -417,6 +430,7 @@ describe("<Eventos>", () => {
     );
     renderPage({ user: { _id: "me", isAdmin: false } });
     await screen.findByText("Open House");
+    openFilters();
     fireEvent.click(screen.getByRole("button", { name: /mis inscr\./i }));
     expect(
       await screen.findByRole("button", { name: /cargar más eventos/i }),
@@ -582,6 +596,7 @@ describe("<Eventos>", () => {
   it("renders the radius slider + step buttons for logged-in users", async () => {
     renderPage({ user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } } });
     await screen.findByText("Open House");
+    openFilters();
     expect(screen.getByLabelText(/radio máximo/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /disminuir radio/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /aumentar radio/i })).toBeInTheDocument();
@@ -590,6 +605,7 @@ describe("<Eventos>", () => {
   it("shows the 'Agregá tu dirección' CTA and disables controls when user has no direccion", async () => {
     renderPage({ user: { _id: "me" } });
     await screen.findByText("Open House");
+    openFilters();
     expect(screen.getByText(/agregá tu dirección/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /tu perfil/i })).toHaveAttribute("href", "/perfil");
     expect(screen.getByLabelText(/radio máximo/i)).toBeDisabled();
@@ -612,6 +628,7 @@ describe("<Eventos>", () => {
     );
     renderPage({ user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } } });
     await screen.findByText("Cercano");
+    openFilters();
 
     fireEvent.change(screen.getByLabelText(/radio máximo/i), { target: { value: "25" } });
     expect(await screen.findByText("25 km")).toBeInTheDocument();
@@ -638,6 +655,8 @@ describe("<Eventos>", () => {
 
   it('"+" / "−" buttons step the radius by 1 km and clamp at the bounds', async () => {
     renderPage({ user: { _id: "me", direccion: { texto: "CABA", lat: -34.6, lng: -58.4 } } });
+    await screen.findByRole("button", { name: /^filtros/i });
+    openFilters();
     const plus = await screen.findByRole("button", { name: /aumentar radio/i });
     fireEvent.click(plus);
     expect(await screen.findByText("1 km")).toBeInTheDocument();

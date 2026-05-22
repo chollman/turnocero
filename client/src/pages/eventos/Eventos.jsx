@@ -9,13 +9,13 @@ import {
 import axios from "axios";
 import { io } from "socket.io-client";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import useLocalStorageState from "../../utils/useLocalStorageState";
 import useTickingNow from "../../utils/useTickingNow";
 import { groupByMonth, MESES_LARGO } from "../../utils/eventoDate";
+import ListFilters from "../../components/shared/ListFilters";
 import TimelineRow from "./TimelineRow";
 import PosterCard from "./PosterCard";
 import EventoSkeleton from "./EventoSkeleton";
@@ -260,20 +260,15 @@ export default function Eventos() {
   const monthNow = MESES_LARGO[nowDate.getMonth()];
   const yearNow = nowDate.getFullYear();
 
-  const visibleFilters = useMemo(() => {
-    return ALL_FILTERS.filter(
-      (f) => (!f.adminOnly || isAdmin) && (!f.requiresAuth || !!user),
-    );
-  }, [isAdmin, user]);
-
   // Si el filtro persistido en localStorage ya no es visible para este usuario
   // (admin degradado a usuario regular, o usuario que cerró sesión y tenía
   // "mine" guardado), volver al default "open".
   useEffect(() => {
-    if (!visibleFilters.some((f) => f.value === filter)) {
-      setFilter("open");
-    }
-  }, [visibleFilters, filter, setFilter]);
+    const def = ALL_FILTERS.find((f) => f.value === filter);
+    const visible =
+      def && (!def.adminOnly || isAdmin) && (!def.requiresAuth || !!user);
+    if (!visible) setFilter("open");
+  }, [filter, isAdmin, user, setFilter]);
 
   function startCreating() {
     setCreating(true);
@@ -373,19 +368,6 @@ export default function Eventos() {
 
       {/* Controls */}
       <div className={styles.controls}>
-        <div className={styles.chips}>
-          {visibleFilters.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              className={`${styles.chip} ${filter === f.value ? styles.chipActive : ""}`}
-              onClick={() => setFilter(f.value)}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
         <input
           type="search"
           className={styles.searchInput}
@@ -396,6 +378,20 @@ export default function Eventos() {
         />
 
         <div className={styles.controlsRight}>
+          <ListFilters
+            chips={ALL_FILTERS}
+            activeChip={filter}
+            onChipChange={setFilter}
+            defaultChip="open"
+            isAdmin={isAdmin}
+            isAuthenticated={!!user}
+            showDistance={!!user}
+            radiusKm={radiusKm}
+            onRadiusChange={setRadiusKm}
+            hasDireccion={hasDireccion}
+            maxRadiusKm={MAX_RADIUS_KM}
+          />
+
           <div
             className={styles.viewToggle}
             role="group"
@@ -432,55 +428,6 @@ export default function Eventos() {
           )}
         </div>
       </div>
-
-      {/* Filtro por radio (logged-in only) */}
-      {user && (
-        <div className={styles.radiusRow}>
-          <div className={styles.radiusLabel}>
-            <span className={styles.radiusIcon} aria-hidden="true">📍</span>
-            <span>
-              {hasDireccion
-                ? (radiusKm > 0
-                    ? <>Mostrando eventos a <strong>menos de {radiusKm} km</strong> de tu ubicación</>
-                    : <>Filtrá por <strong>distancia</strong> desde tu ubicación</>)
-                : <>Agregá tu dirección en <Link to="/perfil" className={styles.radiusInlineLink}>tu perfil</Link> para filtrar eventos por distancia</>}
-            </span>
-          </div>
-          <div className={styles.radiusControls}>
-            <button
-              type="button"
-              className={styles.radiusStep}
-              onClick={() => setRadiusKm((r) => Math.max(0, r - 1))}
-              disabled={!hasDireccion || radiusKm <= 0}
-              aria-label="Disminuir radio 1 km"
-              title="−1 km"
-            >−</button>
-            <input
-              type="range"
-              min="0"
-              max={MAX_RADIUS_KM}
-              step="1"
-              value={radiusKm}
-              onChange={(e) => setRadiusKm(Number(e.target.value))}
-              className={styles.radiusSlider}
-              disabled={!hasDireccion}
-              aria-label="Radio máximo en kilómetros"
-              title={hasDireccion ? `Radio: ${radiusKm || 'Sin límite'}` : 'Agregá tu dirección en el perfil para activar este filtro'}
-            />
-            <button
-              type="button"
-              className={styles.radiusStep}
-              onClick={() => setRadiusKm((r) => Math.min(MAX_RADIUS_KM, r + 1))}
-              disabled={!hasDireccion || radiusKm >= MAX_RADIUS_KM}
-              aria-label="Aumentar radio 1 km"
-              title="+1 km"
-            >+</button>
-            <span className={styles.radiusValue}>
-              {radiusKm > 0 ? `${radiusKm} km` : 'Sin límite'}
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* Create form */}
       {isAdmin && creating && (

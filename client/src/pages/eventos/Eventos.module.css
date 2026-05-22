@@ -134,43 +134,13 @@
   margin-bottom: 32px;
 }
 
-.chips {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.chip {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  padding: 7px 13px;
-  border-radius: 999px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transition: all var(--transition);
-  cursor: pointer;
-}
-
-.chip:hover {
-  border-color: var(--border-strong);
-  color: var(--text-primary);
-}
-
-.chipActive {
-  background: var(--amber);
-  border-color: var(--amber);
-  color: var(--on-amber);
-}
-
 .searchInput {
+  height: 36px;
+  box-sizing: border-box;
   background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text-primary);
-  padding: 7px 12px;
+  padding: 0 12px;
   border-radius: 8px;
   font-family: var(--font-mono);
   font-size: 12px;
@@ -194,6 +164,8 @@
 }
 
 .viewToggle {
+  height: 36px;
+  box-sizing: border-box;
   display: flex;
   gap: 2px;
   background: var(--bg-card);
@@ -204,7 +176,7 @@
 
 .viewBtn {
   width: 32px;
-  height: 30px;
+  height: 100%;
   display: grid;
   place-items: center;
   background: transparent;
@@ -224,13 +196,15 @@
 }
 
 .newBtn {
+  height: 36px;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   gap: 7px;
   background: var(--amber);
   color: var(--on-amber);
   border: none;
-  padding: 9px 16px;
+  padding: 0 16px;
   border-radius: 8px;
   font-family: var(--font-display);
   font-size: 13px;
@@ -244,107 +218,6 @@
 .newBtn:hover {
   background: var(--amber-light);
   box-shadow: 0 4px 22px var(--amber-glow);
-}
-
-/* ─── Radius filter ─── */
-.radiusRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 10px 14px;
-  margin-bottom: 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-
-.radiusLabel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.radiusIcon {
-  flex-shrink: 0;
-}
-
-.radiusInlineLink {
-  color: var(--amber);
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.radiusInlineLink:hover {
-  text-decoration: underline;
-}
-
-.radiusControls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 220px;
-}
-
-.radiusSlider {
-  flex: 1;
-  height: 4px;
-  accent-color: var(--amber);
-  cursor: pointer;
-}
-
-.radiusSlider:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-
-.radiusStep {
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1;
-  cursor: pointer;
-  user-select: none;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-}
-
-.radiusStep:hover:not(:disabled) {
-  background: var(--bg-hover);
-  border-color: var(--amber);
-  color: var(--amber);
-}
-
-.radiusStep:active:not(:disabled) {
-  background: var(--amber-15);
-}
-
-.radiusStep:disabled {
-  cursor: not-allowed;
-  opacity: 0.35;
-}
-
-.radiusValue {
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  min-width: 70px;
-  text-align: right;
 }
 
 /* Form wrapper */
@@ -583,19 +456,6 @@
   }
   .controlsRight {
     flex-wrap: wrap;
-  }
-
-  .radiusRow {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    margin-bottom: 14px;
-  }
-  .radiusLabel {
-    font-size: 12px;
-  }
-  .radiusControls {
-    width: 100%;
   }
 
   .formWrap {
