@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { io } from "socket.io-client";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -10,6 +9,10 @@ import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
 import { formatDistanceKm } from "../../utils/distance";
 import TableDetailSkeleton from "./TableDetailSkeleton";
+import TableChat from "./TableChat";
+import TableComments from "./TableComments";
+import TableGallery from "./TableGallery";
+import TableRatings from "./TableRatings";
 import styles from "./TableDetail.module.css";
 
 const REACTION_EMOJIS = ["❤️", "🎲", "🔥", "👍", "😄"];
@@ -45,22 +48,6 @@ function PlayerBgWatchLink({ user }) {
     </Link>
   );
 }
-
-const formatDate = (dateStr) =>
-  new Date(dateStr).toLocaleDateString("es-AR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-const formatTime = (dateStr) =>
-  new Date(dateStr).toLocaleTimeString("es-AR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 
 function hashStr(str) {
   let h = 0;
@@ -119,26 +106,6 @@ const LockIcon = ({ size = 11 }) => (
   </svg>
 );
 
-const SendIcon = () => (
-  <svg
-    width="15"
-    height="15"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="22" y1="2" x2="11" y2="13" />
-    <polygon
-      points="22 2 15 22 11 13 2 9 22 2"
-      fill="currentColor"
-      stroke="none"
-    />
-  </svg>
-);
-
 export default function TableDetail() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -146,35 +113,10 @@ export default function TableDetail() {
   const navigate = useNavigate();
 
   const [table, setTable] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
   const [loadingTable, setLoadingTable] = useState(true);
-  const [error, setError] = useState("");
   const [pendingRequests, setPendingRequests] = useState([]);
   const [requestError, setRequestError] = useState("");
   const [requestLoading, setRequestLoading] = useState(null);
-
-  const [comments, setComments] = useState([]);
-  const [commentInput, setCommentInput] = useState("");
-  const [submittingComment, setSubmittingComment] = useState(false);
-  const [commentError, setCommentError] = useState("");
-  const [editingCommentId, setEditingCommentId] = useState(null);
-  const [editingContent, setEditingContent] = useState("");
-
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [imageError, setImageError] = useState("");
-  const [lightboxImage, setLightboxImage] = useState(null);
-  const fileInputRef = useRef(null);
-
-  const [ratings, setRatings] = useState([]);
-  const [ratingsAvg, setRatingsAvg] = useState(null);
-  const [ratingsCount, setRatingsCount] = useState(0);
-  const [myRatingScore, setMyRatingScore] = useState(0);
-  const [myRatingComment, setMyRatingComment] = useState("");
-  const [hoverScore, setHoverScore] = useState(0);
-  const [submittingRating, setSubmittingRating] = useState(false);
-  const [ratingError, setRatingError] = useState("");
 
   const [joinLoading, setJoinLoading] = useState(false);
   const [joinError, setJoinError] = useState("");
@@ -187,9 +129,6 @@ export default function TableDetail() {
   const [accessError, setAccessError] = useState("");
 
   const [mobileTab, setMobileTab] = useState("chat");
-
-  const socketRef = useRef(null);
-  const messageListRef = useRef(null);
 
   const isParticipant = (t) => {
     if (!t || !user) return false;
@@ -233,62 +172,11 @@ export default function TableDetail() {
     // Refetch only when id changes; user-dependent gating is re-evaluated on next render
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (!table) return;
-    let cancelled = false;
-    Promise.all([
-      axios.get(`/api/tables/${id}/messages`).catch(() => ({ data: [] })),
-      axios.get(`/api/tables/${id}/comments`).catch(() => ({ data: [] })),
-      axios.get(`/api/tables/${id}/ratings`).catch(() => null),
-    ]).then(([msgs, cmts, rt]) => {
-      if (cancelled) return;
-      setMessages(msgs.data);
-      setComments(cmts.data);
-      if (rt) {
-        setRatings(rt.data.ratings);
-        setRatingsAvg(rt.data.avg);
-        setRatingsCount(rt.data.count);
-        const mine =
-          user &&
-          rt.data.ratings.find(
-            (r) => (r.rater._id || r.rater).toString() === user._id.toString(),
-          );
-        if (mine) {
-          setMyRatingScore(mine.score);
-          setMyRatingComment(mine.comment || "");
-        }
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [table, id, user]);
-
-  useEffect(() => {
-    if (!table || !user) return;
-    const token = localStorage.getItem("token");
-    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
-    const socket = io(socketUrl, {
-      auth: { token },
-      transports: ["websocket"],
-    });
-    socketRef.current = socket;
-    socket.emit("join:table", id);
-    socket.on("chat:message", (msg) => {
-      setMessages((prev) =>
-        prev.some((m) => m._id === msg._id) ? prev : [...prev, msg],
-      );
-    });
-    return () => {
-      socket.emit("leave:table", id);
-      socket.disconnect();
-    };
-  }, [table, id, user]);
-
-  useEffect(() => {
-    const list = messageListRef.current;
-    if (list) list.scrollTop = list.scrollHeight;
-  }, [messages]);
+  // Comments, ratings, gallery e images se manejan en sus sub-componentes
+  // ahora — cada uno fetchea lo suyo y owna su state. El chat (messages
+  // + socket + auto-scroll) también vive en TableChat. TableDetail solo
+  // coordina la data del propio recurso (`table`) y los flujos de
+  // join/leave/follow/cancel.
 
   const handleRequest = async (userId, action) => {
     setRequestLoading(userId + action);
@@ -430,145 +318,12 @@ export default function TableDetail() {
     }
   };
 
-  const handleImageUpload = useCallback(
-    async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      e.target.value = "";
-      setImageError("");
-      setUploadingImage(true);
-      const formData = new FormData();
-      formData.append("image", file);
-      try {
-        const { data } = await axios.post(
-          `/api/tables/${id}/images`,
-          formData,
-          {
-            headers: { "Content-Type": "multipart/form-data" },
-          },
-        );
-        setTable((prev) => ({ ...prev, images: data }));
-      } catch (err) {
-        setImageError(
-          err.response?.data?.message || "Error al subir la imagen",
-        );
-      } finally {
-        setUploadingImage(false);
-      }
-    },
-    [id],
-  );
-
-  const handleImageDelete = async (imageId) => {
-    if (!window.confirm("¿Eliminar esta imagen?")) return;
-    setImageError("");
-    try {
-      await axios.delete(`/api/tables/${id}/images/${imageId}`);
-      setTable((prev) => ({
-        ...prev,
-        images: prev.images.filter((img) => img._id !== imageId),
-      }));
-    } catch (err) {
-      setImageError(
-        err.response?.data?.message || "Error al eliminar la imagen",
-      );
-    }
-  };
-
-  const handleAddComment = async (e) => {
-    e.preventDefault();
-    const content = commentInput.trim();
-    if (!content || submittingComment) return;
-    setSubmittingComment(true);
-    setCommentError("");
-    try {
-      const { data } = await axios.post(`/api/tables/${id}/comments`, {
-        content,
-      });
-      setComments((prev) => [...prev, data]);
-      setCommentInput("");
-    } catch (err) {
-      setCommentError(err.response?.data?.message || "Error al comentar");
-    } finally {
-      setSubmittingComment(false);
-    }
-  };
-
-  const handleEditComment = async (commentId) => {
-    const content = editingContent.trim();
-    if (!content) return;
-    setCommentError("");
-    try {
-      const { data } = await axios.put(
-        `/api/tables/${id}/comments/${commentId}`,
-        { content },
-      );
-      setComments((prev) => prev.map((c) => (c._id === commentId ? data : c)));
-      setEditingCommentId(null);
-      setEditingContent("");
-    } catch (err) {
-      setCommentError(err.response?.data?.message || "Error al editar");
-    }
-  };
-
-  const handleDeleteComment = async (commentId) => {
-    if (!window.confirm("¿Eliminar este comentario?")) return;
-    setCommentError("");
-    try {
-      await axios.delete(`/api/tables/${id}/comments/${commentId}`);
-      setComments((prev) => prev.filter((c) => c._id !== commentId));
-    } catch (err) {
-      setCommentError(err.response?.data?.message || "Error al eliminar");
-    }
-  };
-
-  const handleSubmitRating = async (e) => {
-    e.preventDefault();
-    if (!myRatingScore || submittingRating) return;
-    setSubmittingRating(true);
-    setRatingError("");
-    try {
-      const { data } = await axios.post(`/api/tables/${id}/ratings`, {
-        score: myRatingScore,
-        comment: myRatingComment,
-      });
-      setRatings((prev) => {
-        const withoutMine = prev.filter(
-          (r) => (r.rater._id || r.rater).toString() !== user._id.toString(),
-        );
-        return [data.rating, ...withoutMine];
-      });
-      setRatingsAvg(data.avg);
-      setRatingsCount(data.count);
-    } catch (err) {
-      setRatingError(
-        err.response?.data?.message || "Error al enviar la valoración",
-      );
-    } finally {
-      setSubmittingRating(false);
-    }
-  };
-
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    const content = input.trim();
-    if (!content || sending) return;
-    setSending(true);
-    setInput("");
-    try {
-      const { data } = await axios.post(`/api/tables/${id}/messages`, {
-        content,
-      });
-      setMessages((prev) =>
-        prev.some((m) => m._id === data._id) ? prev : [...prev, data],
-      );
-    } catch (err) {
-      setError(err.response?.data?.message || "Error al enviar el mensaje");
-      setInput(content);
-    } finally {
-      setSending(false);
-    }
-  };
+  // Callback usado por TableGallery para sincronizar `table.images` cuando
+  // sube/borra una imagen — TableGallery owna el upload/delete pero el
+  // padre necesita el array actualizado para sus chequeos de count.
+  const handleImagesChange = useCallback((nextImages) => {
+    setTable((prev) => ({ ...prev, images: nextImages }));
+  }, []);
 
   if (loadingTable) {
     return <TableDetailSkeleton />;
@@ -1031,440 +786,63 @@ export default function TableDetail() {
               )}
 
               {/* Gallery */}
-              {(() => {
-                const images = table.images || [];
-                const canUpload =
+              <TableGallery
+                tableId={id}
+                images={table.images || []}
+                canUpload={
                   isParticipant(table) &&
                   !isViewingAsAdmin &&
-                  images.length < 10;
-                return (
-                  <div
-                    className={`${styles.card} ${!isGuest && mobileTab !== "fotos" ? styles.mobileHidden : ""}`}
-                  >
-                    <div className={styles.galleryHeader}>
-                      <span className={styles.eyebrow}>
-                        FOTOS DE LA MESA
-                        {images.length > 0 && (
-                          <span className={styles.galleryBadge}>
-                            {images.length}/10
-                          </span>
-                        )}
-                      </span>
-                      {canUpload && (
-                        <>
-                          <button
-                            className={styles.btnUpload}
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={uploadingImage}
-                          >
-                            {uploadingImage ? "Subiendo…" : "+ Foto"}
-                          </button>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp,image/gif"
-                            style={{ display: "none" }}
-                            onChange={handleImageUpload}
-                          />
-                        </>
-                      )}
-                    </div>
-                    {imageError && (
-                      <p className={styles.galleryError}>{imageError}</p>
-                    )}
-                    {images.length === 0 ? (
-                      <p className={styles.galleryEmpty}>
-                        {isParticipant(table)
-                          ? "Todavía no hay fotos. ¡Subí la primera!"
-                          : "Todavía no hay fotos."}
-                      </p>
-                    ) : (
-                      <div className={styles.imageGrid}>
-                        {images.map((img) => {
-                          const isUploader =
-                            user &&
-                            (img.uploader?._id || img.uploader)?.toString() ===
-                              user._id.toString();
-                          const canDelete =
-                            isUploader || isHost || user?.isAdmin;
-                          return (
-                            <div key={img._id} className={styles.imageThumb}>
-                              <img
-                                src={img.url}
-                                alt="Foto de la mesa"
-                                className={styles.thumbImg}
-                                onClick={() => setLightboxImage(img.url)}
-                              />
-                              {canDelete && (
-                                <button
-                                  className={styles.btnDeleteImg}
-                                  onClick={() => handleImageDelete(img._id)}
-                                  title="Eliminar imagen"
-                                >
-                                  ✕
-                                </button>
-                              )}
-                              {img.uploader?.username && (
-                                <span className={styles.uploaderLabel}>
-                                  {img.uploader.username}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+                  (table.images || []).length < 10
+                }
+                canDeleteImage={(img) => {
+                  const isUploader =
+                    user &&
+                    (img.uploader?._id || img.uploader)?.toString() ===
+                      user._id.toString();
+                  return isUploader || isHost || user?.isAdmin;
+                }}
+                onImagesChange={handleImagesChange}
+                className={
+                  !isGuest && mobileTab !== "fotos" ? styles.mobileHidden : ""
+                }
+              />
 
               {/* Comments */}
-              <div
-                className={`${styles.card} ${!isGuest && mobileTab !== "resenas" ? styles.mobileHidden : ""}`}
-              >
-                <div className={styles.sectionRow}>
-                  <span className={styles.eyebrow}>
-                    COMENTARIOS
-                    {comments.length > 0 && (
-                      <span className={styles.commentsBadge}>
-                        {comments.length}
-                      </span>
-                    )}
-                  </span>
-                </div>
-                {commentError && (
-                  <p className={styles.commentError}>{commentError}</p>
-                )}
-                {comments.length === 0 ? (
-                  <p className={styles.commentsEmpty}>
-                    Nadie comentó todavía. ¡Sé el primero!
-                  </p>
-                ) : (
-                  <div className={styles.commentsList}>
-                    {comments.map((comment) => {
-                      const authorInfo = getUserDisplay(comment.author);
-                      const isOwn =
-                        user &&
-                        comment.author &&
-                        (comment.author._id || comment.author).toString() ===
-                          user._id.toString();
-                      const canDelete = isOwn || isHost || user?.isAdmin;
-                      return (
-                        <div key={comment._id} className={styles.commentItem}>
-                          <Avatar user={comment.author} size="sm" />
-                          <div className={styles.commentBody}>
-                            <div className={styles.commentMeta}>
-                              <span className={styles.commentAuthor}>
-                                {authorInfo.isDeleted
-                                  ? DELETED_USER_LABEL
-                                  : comment.author.username}
-                              </span>
-                              <span className={styles.commentTime}>
-                                {formatDate(comment.createdAt)}
-                              </span>
-                              {comment.editedAt && (
-                                <span className={styles.editedBadge}>
-                                  editado
-                                </span>
-                              )}
-                            </div>
-                            {editingCommentId === comment._id ? (
-                              <div className={styles.editForm}>
-                                <textarea
-                                  className={styles.editTextarea}
-                                  value={editingContent}
-                                  onChange={(e) =>
-                                    setEditingContent(e.target.value)
-                                  }
-                                  maxLength={500}
-                                  rows={2}
-                                />
-                                <div className={styles.editActions}>
-                                  <button
-                                    className={styles.btnSaveEdit}
-                                    onClick={() =>
-                                      handleEditComment(comment._id)
-                                    }
-                                  >
-                                    Guardar
-                                  </button>
-                                  <button
-                                    className={styles.btnCancelEdit}
-                                    onClick={() => setEditingCommentId(null)}
-                                  >
-                                    Cancelar
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <p className={styles.commentContent}>
-                                {comment.content}
-                              </p>
-                            )}
-                          </div>
-                          {editingCommentId !== comment._id && (
-                            <div className={styles.commentActions}>
-                              {isOwn && (
-                                <button
-                                  className={styles.btnCommentEdit}
-                                  onClick={() => {
-                                    setEditingCommentId(comment._id);
-                                    setEditingContent(comment.content);
-                                  }}
-                                >
-                                  Editar
-                                </button>
-                              )}
-                              {canDelete && (
-                                <button
-                                  className={styles.btnCommentDelete}
-                                  onClick={() =>
-                                    handleDeleteComment(comment._id)
-                                  }
-                                >
-                                  Eliminar
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {isAnon ? (
-                  <button
-                    className={styles.btnComment}
-                    onClick={() =>
-                      setLoginPrompt(
-                        "Iniciá sesión para comentar en esta mesa.",
-                      )
-                    }
-                    type="button"
-                  >
-                    Iniciá sesión para comentar
-                  </button>
-                ) : (
-                  <form
-                    className={styles.addCommentForm}
-                    onSubmit={handleAddComment}
-                  >
-                    <textarea
-                      className={styles.commentTextarea}
-                      placeholder="Escribí un comentario…"
-                      value={commentInput}
-                      onChange={(e) => setCommentInput(e.target.value)}
-                      maxLength={500}
-                      rows={2}
-                      disabled={submittingComment}
-                    />
-                    <button
-                      className={styles.btnComment}
-                      type="submit"
-                      disabled={!commentInput.trim() || submittingComment}
-                    >
-                      {submittingComment ? "…" : "Comentar"}
-                    </button>
-                  </form>
-                )}
-              </div>
+              <TableComments
+                tableId={id}
+                user={user}
+                isHost={isHost}
+                isAnon={isAnon}
+                onRequireLogin={setLoginPrompt}
+                className={
+                  !isGuest && mobileTab !== "resenas" ? styles.mobileHidden : ""
+                }
+              />
 
               {/* Ratings */}
-              {(() => {
-                const gameDatePassed = new Date(table.date) < new Date();
-                const canRate = gameDatePassed && isParticipant(table);
-                return (
-                  <div
-                    className={`${styles.ratingsCard} ${!isGuest && mobileTab !== "resenas" ? styles.mobileHidden : ""}`}
-                  >
-                    <div className={styles.sectionRow}>
-                      <span className={styles.eyebrow}>
-                        ¿CÓMO ESTUVO LA SESIÓN?
-                      </span>
-                      {ratingsCount > 0 && ratingsAvg !== null && (
-                        <span className={styles.ratingsAvgBadge}>
-                          {"★".repeat(Math.round(ratingsAvg))}
-                          {"☆".repeat(5 - Math.round(ratingsAvg))}{" "}
-                          {ratingsAvg.toFixed(1)} ({ratingsCount})
-                        </span>
-                      )}
-                    </div>
-                    {canRate && (
-                      <form
-                        className={styles.ratingForm}
-                        onSubmit={handleSubmitRating}
-                      >
-                        <span className={styles.ratingLabel}>
-                          Tu puntuación
-                        </span>
-                        <div className={styles.starRow}>
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              type="button"
-                              className={`${styles.starBtn} ${star <= (hoverScore || myRatingScore) ? styles.starActive : ""}`}
-                              onMouseEnter={() => setHoverScore(star)}
-                              onMouseLeave={() => setHoverScore(0)}
-                              onClick={() => setMyRatingScore(star)}
-                              aria-label={`${star} estrellas`}
-                            >
-                              ★
-                            </button>
-                          ))}
-                        </div>
-                        <textarea
-                          className={styles.ratingTextarea}
-                          placeholder="Comentario opcional (máx. 300 caracteres)…"
-                          value={myRatingComment}
-                          onChange={(e) => setMyRatingComment(e.target.value)}
-                          maxLength={300}
-                          rows={2}
-                          disabled={submittingRating}
-                        />
-                        {ratingError && (
-                          <p className={styles.ratingError}>{ratingError}</p>
-                        )}
-                        <button
-                          className={styles.btnSubmitRating}
-                          type="submit"
-                          disabled={!myRatingScore || submittingRating}
-                        >
-                          {submittingRating
-                            ? "…"
-                            : myRatingScore
-                              ? "Enviar valoración"
-                              : "Seleccioná una puntuación"}
-                        </button>
-                      </form>
-                    )}
-                    {ratings.length === 0 ? (
-                      <p className={styles.ratingsEmpty}>
-                        Todavía no hay valoraciones.
-                      </p>
-                    ) : (
-                      <div className={styles.ratingsList}>
-                        {ratings.map((r) => {
-                          const raterInfo = getUserDisplay(r.rater);
-                          return (
-                            <div key={r._id} className={styles.ratingItem}>
-                              <Avatar user={r.rater} size="sm" />
-                              <div className={styles.ratingBody}>
-                                <div className={styles.ratingMeta}>
-                                  <span className={styles.ratingUsername}>
-                                    {raterInfo.isDeleted
-                                      ? DELETED_USER_LABEL
-                                      : r.rater.username}
-                                  </span>
-                                  <span className={styles.ratingStars}>
-                                    {"★".repeat(r.score)}
-                                    {"☆".repeat(5 - r.score)}
-                                  </span>
-                                </div>
-                                {r.comment && (
-                                  <p className={styles.ratingComment}>
-                                    {r.comment}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              <TableRatings
+                tableId={id}
+                user={user}
+                canRate={
+                  new Date(table.date) < new Date() && isParticipant(table)
+                }
+                className={
+                  !isGuest && mobileTab !== "resenas" ? styles.mobileHidden : ""
+                }
+              />
             </div>
 
             {/* Right column: Chat */}
             {!isGuest && (
-              <div
-                className={`${styles.chatPanel} ${mobileTab !== "chat" ? styles.mobileHidden : ""}`}
-              >
-                <div className={styles.chatHeader}>
-                  <span className={styles.eyebrow}>CHAT DE LA MESA</span>
-                  <span className={styles.chatSubtitle}>
-                    {isViewingAsAdmin
-                      ? "Vista de administrador"
-                      : "Solo visible para los participantes"}
-                  </span>
-                </div>
-
-                <div className={styles.messageList} ref={messageListRef}>
-                  {messages.length === 0 && (
-                    <p className={styles.emptyChat}>
-                      Nadie habló todavía. ¡Rompé el hielo! 🎲
-                    </p>
-                  )}
-                  {messages.map((msg) => {
-                    const senderInfo = getUserDisplay(msg.sender);
-                    const isOwn =
-                      msg.sender &&
-                      (msg.sender._id || msg.sender).toString() ===
-                        user._id.toString();
-                    return (
-                      <div
-                        key={msg._id}
-                        className={`${styles.message} ${isOwn ? styles.ownMessage : styles.otherMessage}`}
-                      >
-                        {!isOwn && <Avatar user={msg.sender} size="xs" />}
-                        <div className={styles.msgContent}>
-                          {!isOwn && (
-                            <span className={styles.senderName}>
-                              {senderInfo.isDeleted
-                                ? DELETED_USER_LABEL
-                                : msg.sender.username}
-                            </span>
-                          )}
-                          <div className={styles.bubble}>{msg.content}</div>
-                          <span className={styles.messageTime}>
-                            {formatTime(msg.createdAt)}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {error && <p className={styles.chatError}>{error}</p>}
-
-                {!isViewingAsAdmin && (
-                  <form className={styles.inputRow} onSubmit={sendMessage}>
-                    <input
-                      className={styles.chatInput}
-                      type="text"
-                      placeholder="Escribí un mensaje…"
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      maxLength={1000}
-                    />
-                    <button
-                      className={styles.sendCircle}
-                      type="submit"
-                      disabled={!input.trim() || sending}
-                    >
-                      <SendIcon />
-                    </button>
-                  </form>
-                )}
-              </div>
+              <TableChat
+                tableId={id}
+                user={user}
+                isViewingAsAdmin={isViewingAsAdmin}
+                className={mobileTab !== "chat" ? styles.mobileHidden : ""}
+              />
             )}
           </div>
         </div>
-
-        {/* Lightbox */}
-        {lightboxImage && (
-          <div
-            className={styles.lightboxOverlay}
-            onClick={() => setLightboxImage(null)}
-          >
-            <img
-              src={lightboxImage}
-              alt="Vista ampliada"
-              className={styles.lightboxImg}
-            />
-          </div>
-        )}
       </div>
     </>
   );
