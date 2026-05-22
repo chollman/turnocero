@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import GameTile from '../../components/shared/GameTile';
 import Logo from '../../components/shared/Logo';
 import styles from './Auth.module.css';
 import { ShowcaseCard } from './Login';
+import { getErrorMessage } from '../../utils/getErrorMessage';
+import { useShowcaseTables } from '../../hooks/useShowcaseTables';
 
 export default function ForgotPassword() {
   const { requestPasswordReset } = useAuth();
@@ -13,12 +14,7 @@ export default function ForgotPassword() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showcase, setShowcase] = useState(null);
-  const [seed] = useState(() => Math.floor(Math.random() * 100));
-
-  useEffect(() => {
-    axios.get('/api/tables/showcase').then(({ data }) => setShowcase(data)).catch(() => {});
-  }, []);
+  const { showcase, seed } = useShowcaseTables();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,7 +24,7 @@ export default function ForgotPassword() {
       await requestPasswordReset(email);
       setSubmitted(true);
     } catch (err) {
-      setError(err.response?.data?.message || 'No pudimos procesar el pedido.');
+      setError(getErrorMessage(err, 'No pudimos procesar el pedido.'));
     } finally {
       setLoading(false);
     }

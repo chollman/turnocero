@@ -1,8 +1,7 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
-const VIEW_AS_USER_KEY = 'viewAsUser';
+import { STORAGE_KEYS } from '../utils/storageKeys';
 
 // Note (long-term): consider migrating to a custom domain (e.g. turnocero.com +
 // api.turnocero.com) so auth cookies become first-party (SameSite=lax). Safari's ITP
@@ -42,15 +41,15 @@ export const AuthProvider = ({ children }) => {
   const [realUser, setRealUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [viewAsUser, setViewAsUserState] = useState(
-    () => local.get(VIEW_AS_USER_KEY) === 'true'
+    () => local.get(STORAGE_KEYS.VIEW_AS_USER) === 'true'
   );
   const navigate = useNavigate();
 
   const setViewAsUser = (value) => {
     const v = !!value;
     setViewAsUserState(v);
-    if (v) local.set(VIEW_AS_USER_KEY, 'true');
-    else local.remove(VIEW_AS_USER_KEY);
+    if (v) local.set(STORAGE_KEYS.VIEW_AS_USER, 'true');
+    else local.remove(STORAGE_KEYS.VIEW_AS_USER);
   };
 
   useEffect(() => {
@@ -62,13 +61,13 @@ export const AuthProvider = ({ children }) => {
         const isBan = status === 403 && err.response?.data?.code === 'banned' && !isAuthRoute;
         const isUnauth = status === 401 && !isAuthRoute;
         if (isUnauth || isBan) {
-          local.remove('token');
-          local.remove(VIEW_AS_USER_KEY);
+          local.remove(STORAGE_KEYS.TOKEN);
+          local.remove(STORAGE_KEYS.VIEW_AS_USER);
           setAuthHeader(null);
           setRealUser(null);
           setViewAsUserState(false);
           if (isBan) {
-            session.set('bannedMessage', err.response?.data?.message || 'Tu cuenta ha sido suspendida.');
+            session.set(STORAGE_KEYS.BANNED_MESSAGE, err.response?.data?.message || 'Tu cuenta ha sido suspendida.');
           }
           navigate('/login', { replace: true });
         }
@@ -79,7 +78,7 @@ export const AuthProvider = ({ children }) => {
   }, [navigate]);
 
   useEffect(() => {
-    const token = local.get('token');
+    const token = local.get(STORAGE_KEYS.TOKEN);
     if (!token) {
       setAuthHeader(null);
       setLoading(false);
@@ -90,7 +89,7 @@ export const AuthProvider = ({ children }) => {
       .then(({ data }) => setRealUser(data))
       .catch(() => {
         setRealUser(null);
-        local.remove('token');
+        local.remove(STORAGE_KEYS.TOKEN);
         setAuthHeader(null);
       })
       .finally(() => setLoading(false));
@@ -98,7 +97,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const { data } = await axios.post('/api/auth/login', { email, password });
-    local.set('token', data.token);
+    local.set(STORAGE_KEYS.TOKEN, data.token);
     setAuthHeader(data.token);
     setRealUser(data.user);
     return data;
@@ -113,7 +112,7 @@ export const AuthProvider = ({ children }) => {
 
   const verifyEmail = async (email, code) => {
     const { data } = await axios.post('/api/auth/verify-email', { email, code });
-    local.set('token', data.token);
+    local.set(STORAGE_KEYS.TOKEN, data.token);
     setAuthHeader(data.token);
     setRealUser(data.user);
     return data;
@@ -136,9 +135,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     await axios.post('/api/auth/logout').catch(() => {});
-    local.remove('token');
-    local.remove(VIEW_AS_USER_KEY);
-    session.remove('bannedMessage');
+    local.remove(STORAGE_KEYS.TOKEN);
+    local.remove(STORAGE_KEYS.VIEW_AS_USER);
+    session.remove(STORAGE_KEYS.BANNED_MESSAGE);
     setAuthHeader(null);
     setRealUser(null);
     setViewAsUserState(false);

@@ -1,12 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import PasswordInput from "./PasswordInput";
 import GameTile from "../../components/shared/GameTile";
 import Logo from "../../components/shared/Logo";
 import styles from "./Auth.module.css";
 import { ShowcaseCard } from "./Login";
+import {
+  isValidPassword,
+  PASSWORD_REQUIREMENTS,
+} from "../../utils/passwordValidation";
+import { getErrorMessage } from "../../utils/getErrorMessage";
+import { useShowcaseTables } from "../../hooks/useShowcaseTables";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -19,15 +24,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [showcase, setShowcase] = useState(null);
-  const [seed] = useState(() => Math.floor(Math.random() * 100));
-
-  useEffect(() => {
-    axios
-      .get("/api/tables/showcase")
-      .then(({ data }) => setShowcase(data))
-      .catch(() => {});
-  }, []);
+  const { showcase, seed } = useShowcaseTables();
 
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -40,14 +37,8 @@ export default function Register() {
       setError("Las contraseñas no coinciden");
       return;
     }
-    if (
-      form.password.length < 8 ||
-      !/[A-Z]/.test(form.password) ||
-      !/\d/.test(form.password)
-    ) {
-      setError(
-        "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número",
-      );
+    if (!isValidPassword(form.password)) {
+      setError(PASSWORD_REQUIREMENTS);
       return;
     }
 
@@ -56,7 +47,7 @@ export default function Register() {
       await register(form.username, form.email, form.password);
       navigate("/verificar-email", { state: { email: form.email } });
     } catch (err) {
-      setError(err.response?.data?.message || "Error al registrarse");
+      setError(getErrorMessage(err, "Error al registrarse"));
     } finally {
       setLoading(false);
     }

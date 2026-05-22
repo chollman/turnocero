@@ -18,6 +18,12 @@ const {
 } = require("../utils/locationHelpers");
 const { emitNotificationReq } = require("../utils/emitNotification");
 const { canActInEvento } = require("../utils/eventoPermissions");
+const { parsePagination } = require("../utils/paginate");
+const {
+  emitToUser,
+  emitToEventoRoom,
+  emitToEventosList,
+} = require("../utils/socketHelpers");
 const { resolveGame } = require("./bgg");
 const { listTables } = require("./tables");
 
@@ -39,35 +45,9 @@ function countsFor(evento) {
   };
 }
 
-// Helpers de socket — best-effort, nunca tiran un request si fallan.
-function emitToUser(req, userId, eventName, payload) {
-  try {
-    const io = req.app.get("io");
-    if (io && userId)
-      io.to(`user:${userId.toString()}`).emit(eventName, payload);
-  } catch {
-    /* no-op */
-  }
-}
-function emitToEventoRoom(req, eventoId, eventName, payload) {
-  try {
-    const io = req.app.get("io");
-    if (io && eventoId)
-      io.to(`evento:${eventoId.toString()}`).emit(eventName, payload);
-  } catch {
-    /* no-op */
-  }
-}
-// Broadcast a la lista pública /eventos. Sólo se debería usar para eventos
-// no-draft para no leakear publicaciones internas a usuarios normales.
-function emitToEventosList(req, eventName, payload) {
-  try {
-    const io = req.app.get("io");
-    if (io) io.to("eventos:list").emit(eventName, payload);
-  } catch {
-    /* no-op */
-  }
-}
+// Helpers de socket (emitToUser / emitToEventoRoom / emitToEventosList)
+// viven en `server/utils/socketHelpers.js` — un único lugar compartido con
+// otros routers en lugar de copias locales por archivo.
 
 // ── Notifications helpers ─────────────────────────────────────────────
 //
@@ -260,9 +240,10 @@ const comprobanteUpload = multerLib({
 router.get("/", optionalAuth, async (req, res) => {
   try {
     await closePastOpenEvents(req);
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit) || 10));
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = parsePagination(req.query, {
+      defaultLimit: 10,
+      maxLimit: 20,
+    });
 
     const filter = {};
     if (req.user?.isAdmin) {

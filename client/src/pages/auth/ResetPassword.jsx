@@ -1,12 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import PasswordInput from './PasswordInput';
 import GameTile from '../../components/shared/GameTile';
 import Logo from '../../components/shared/Logo';
 import styles from './Auth.module.css';
 import { ShowcaseCard } from './Login';
+import {
+  isValidPassword,
+  PASSWORD_REQUIREMENTS,
+} from '../../utils/passwordValidation';
+import { getErrorMessage } from '../../utils/getErrorMessage';
+import { STORAGE_KEYS } from '../../utils/storageKeys';
+import { useShowcaseTables } from '../../hooks/useShowcaseTables';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -19,12 +25,7 @@ export default function ResetPassword() {
   const [form, setForm] = useState({ password: '', confirm: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showcase, setShowcase] = useState(null);
-  const [seed] = useState(() => Math.floor(Math.random() * 100));
-
-  useEffect(() => {
-    axios.get('/api/tables/showcase').then(({ data }) => setShowcase(data)).catch(() => {});
-  }, []);
+  const { showcase, seed } = useShowcaseTables();
 
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -37,22 +38,18 @@ export default function ResetPassword() {
       setError('Las contraseñas no coinciden');
       return;
     }
-    if (
-      form.password.length < 8 ||
-      !/[A-Z]/.test(form.password) ||
-      !/\d/.test(form.password)
-    ) {
-      setError('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número');
+    if (!isValidPassword(form.password)) {
+      setError(PASSWORD_REQUIREMENTS);
       return;
     }
 
     setLoading(true);
     try {
       await resetPassword(email, token, form.password);
-      sessionStorage.setItem('flashMessage', 'Contraseña actualizada. Iniciá sesión con la nueva.');
+      sessionStorage.setItem(STORAGE_KEYS.FLASH_MESSAGE, 'Contraseña actualizada. Iniciá sesión con la nueva.');
       navigate('/login', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || 'No pudimos restablecer la contraseña.');
+      setError(getErrorMessage(err, 'No pudimos restablecer la contraseña.'));
     } finally {
       setLoading(false);
     }

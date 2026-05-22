@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import PasswordInput from './PasswordInput';
 import GameTile from '../../components/shared/GameTile';
 import Logo from '../../components/shared/Logo';
 import styles from './Auth.module.css';
+import { getErrorMessage } from '../../utils/getErrorMessage';
+import { STORAGE_KEYS } from '../../utils/storageKeys';
+import { useShowcaseTables } from '../../hooks/useShowcaseTables';
 
 function formatShowcaseDate(dateStr) {
   const d = new Date(dateStr);
@@ -49,27 +51,25 @@ export default function Login() {
   const { login } = useAuth();
   const { loaded: siteConfigLoaded, isSectionEnabled } = useSiteConfig();
   const navigate = useNavigate();
-  const [showcase, setShowcase] = useState(null);
-  const [seed] = useState(() => Math.floor(Math.random() * 100));
+  // Login es la única auth page que suprime el fetch cuando la sección
+  // 'mesas' está deshabilitada (site-wide setting de admin). Pasamos
+  // `enabled` al hook para no disparar el request hasta que el guard
+  // esté satisfecho.
+  const showcaseEnabled = siteConfigLoaded && isSectionEnabled('mesas');
+  const { showcase, seed } = useShowcaseTables({ enabled: showcaseEnabled });
 
   useEffect(() => {
-    const bannedMsg = sessionStorage.getItem('bannedMessage');
+    const bannedMsg = sessionStorage.getItem(STORAGE_KEYS.BANNED_MESSAGE);
     if (bannedMsg) {
       setError(bannedMsg);
-      sessionStorage.removeItem('bannedMessage');
+      sessionStorage.removeItem(STORAGE_KEYS.BANNED_MESSAGE);
     }
-    const flashMsg = sessionStorage.getItem('flashMessage');
+    const flashMsg = sessionStorage.getItem(STORAGE_KEYS.FLASH_MESSAGE);
     if (flashMsg) {
       setFlash(flashMsg);
-      sessionStorage.removeItem('flashMessage');
+      sessionStorage.removeItem(STORAGE_KEYS.FLASH_MESSAGE);
     }
   }, []);
-
-  useEffect(() => {
-    if (!siteConfigLoaded) return;
-    if (!isSectionEnabled('mesas')) return;
-    axios.get('/api/tables/showcase').then(({ data }) => setShowcase(data)).catch(() => {});
-  }, [siteConfigLoaded, isSectionEnabled]);
 
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -88,7 +88,7 @@ export default function Login() {
         navigate('/verificar-email', { state: { email: data.email || form.email } });
         return;
       }
-      setError(data?.message || 'Error al iniciar sesión');
+      setError(getErrorMessage(err, 'Error al iniciar sesión'));
     } finally {
       setLoading(false);
     }

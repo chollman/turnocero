@@ -9,6 +9,7 @@ const Evento = require("../models/Evento");
 const { protect, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const validateObjectId = require("../middleware/validateObjectId");
+const { parsePagination } = require("../utils/paginate");
 const { emitNotificationReq } = require("../utils/emitNotification");
 
 router.use(requireSection("compartidas"));
@@ -16,12 +17,6 @@ router.use(requireSection("compartidas"));
 router.param("id", validateObjectId("id"));
 router.param("imgId", validateObjectId("imgId"));
 router.param("cid", validateObjectId("cid"));
-
-const parsePagination = (query) => {
-  const page = Math.max(1, parseInt(query.page) || 1);
-  const limit = Math.min(50, Math.max(1, parseInt(query.limit) || 20));
-  return { page, limit, skip: (page - 1) * limit };
-};
 
 const POPULATE_AUTHOR_FIELDS = "username avatar displayName bggUsername";
 

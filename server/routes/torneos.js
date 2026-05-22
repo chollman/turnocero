@@ -11,6 +11,7 @@ const User = require("../models/User");
 const { protect, requireAdmin } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const validateObjectId = require("../middleware/validateObjectId");
+const { parsePagination } = require("../utils/paginate");
 const { emitNotificationReq } = require("../utils/emitNotification");
 
 router.use(requireSection("torneos"));
@@ -186,9 +187,10 @@ async function cascadeClearWinner(
 // GET /api/torneos — paginated list (?status, ?game, ?page, ?limit)
 router.get("/", protect, requireAdmin, async (req, res) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit) || 12));
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = parsePagination(req.query, {
+      defaultLimit: 12,
+      maxLimit: 20,
+    });
 
     const filter = { ...visibleStatusFilter(req) };
     if (req.query.status) {

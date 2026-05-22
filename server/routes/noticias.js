@@ -6,6 +6,7 @@ const Noticia = require('../models/Noticia');
 const { protect, requireAdmin, optionalAuth } = require('../middleware/auth');
 const { requireSection } = require('../middleware/sectionGate');
 const validateObjectId = require('../middleware/validateObjectId');
+const { parsePagination } = require('../utils/paginate');
 
 router.use(requireSection('noticias'));
 
@@ -14,9 +15,10 @@ router.param('id', validateObjectId('id'));
 // GET /api/noticias — public, newest first, paginated
 router.get('/', optionalAuth, async (req, res) => {
   try {
-    const page  = Math.max(1, parseInt(req.query.page)  || 1);
-    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit) || 10));
-    const skip  = (page - 1) * limit;
+    const { page, limit, skip } = parsePagination(req.query, {
+      defaultLimit: 10,
+      maxLimit: 20,
+    });
 
     const [noticias, total] = await Promise.all([
       Noticia.find()

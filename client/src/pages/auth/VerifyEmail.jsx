@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import GameTile from '../../components/shared/GameTile';
 import Logo from '../../components/shared/Logo';
 import styles from './Auth.module.css';
 import { ShowcaseCard } from './Login';
+import { getErrorMessage } from '../../utils/getErrorMessage';
+import { STORAGE_KEYS } from '../../utils/storageKeys';
+import { useShowcaseTables } from '../../hooks/useShowcaseTables';
 
-const PENDING_EMAIL_KEY = 'turnocero_pending_verify_email';
 const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function VerifyEmail() {
@@ -18,7 +19,7 @@ export default function VerifyEmail() {
 
   const stateEmail = location.state?.email;
   const queryEmail = searchParams.get('email');
-  const storedEmail = typeof window !== 'undefined' ? sessionStorage.getItem(PENDING_EMAIL_KEY) : '';
+  const storedEmail = typeof window !== 'undefined' ? sessionStorage.getItem(STORAGE_KEYS.PENDING_VERIFY_EMAIL) : '';
   const initialEmail = stateEmail || queryEmail || storedEmail || '';
 
   const [email, setEmail] = useState(initialEmail);
@@ -28,20 +29,15 @@ export default function VerifyEmail() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [showcase, setShowcase] = useState(null);
-  const [seed] = useState(() => Math.floor(Math.random() * 100));
+  const { showcase, seed } = useShowcaseTables();
 
   const cooldownTimer = useRef(null);
 
   useEffect(() => {
     if (initialEmail) {
-      sessionStorage.setItem(PENDING_EMAIL_KEY, initialEmail);
+      sessionStorage.setItem(STORAGE_KEYS.PENDING_VERIFY_EMAIL, initialEmail);
     }
   }, [initialEmail]);
-
-  useEffect(() => {
-    axios.get('/api/tables/showcase').then(({ data }) => setShowcase(data)).catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -68,10 +64,10 @@ export default function VerifyEmail() {
     setLoading(true);
     try {
       await verifyEmail(email, code);
-      sessionStorage.removeItem(PENDING_EMAIL_KEY);
+      sessionStorage.removeItem(STORAGE_KEYS.PENDING_VERIFY_EMAIL);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'No pudimos verificar tu email.');
+      setError(getErrorMessage(err, 'No pudimos verificar tu email.'));
     } finally {
       setLoading(false);
     }
@@ -90,7 +86,7 @@ export default function VerifyEmail() {
       setSuccess('Si la cuenta existe y no está verificada, te enviamos un código nuevo.');
       setCooldown(RESEND_COOLDOWN_SECONDS);
     } catch (err) {
-      setError(err.response?.data?.message || 'No pudimos reenviar el código.');
+      setError(getErrorMessage(err, 'No pudimos reenviar el código.'));
     } finally {
       setResending(false);
     }

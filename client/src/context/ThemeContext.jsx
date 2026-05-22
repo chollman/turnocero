@@ -1,12 +1,16 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { STORAGE_KEYS } from '../utils/storageKeys';
 
-const THEME_KEY = 'turnocero_theme';
 const VALID_THEMES = ['dark', 'light'];
 
 const getInitialTheme = () => {
   if (typeof window === 'undefined') return 'dark';
-  const stored = localStorage.getItem(THEME_KEY);
-  return VALID_THEMES.includes(stored) ? stored : 'dark';
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.THEME);
+    return VALID_THEMES.includes(stored) ? stored : 'dark';
+  } catch {
+    return 'dark';
+  }
 };
 
 const ThemeContext = createContext(null);
@@ -17,7 +21,7 @@ export const ThemeProvider = ({ children }) => {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     try {
-      localStorage.setItem(THEME_KEY, theme);
+      localStorage.setItem(STORAGE_KEYS.THEME, theme);
     } catch {
       /* ignore quota errors */
     }

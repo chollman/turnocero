@@ -6,6 +6,7 @@ const User = require("../models/User");
 const { protect, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const validateObjectId = require("../middleware/validateObjectId");
+const { parsePagination } = require("../utils/paginate");
 const { emitNotificationReq } = require("../utils/emitNotification");
 const {
   isValidCoord,
@@ -31,12 +32,6 @@ const validate = (req, res, next) => {
     return res.status(400).json({ message: errors.array()[0].msg });
   }
   next();
-};
-
-const parsePagination = (query) => {
-  const page = Math.max(1, parseInt(query.page) || 1);
-  const limit = Math.min(50, Math.max(1, parseInt(query.limit) || 20));
-  return { page, limit, skip: (page - 1) * limit };
 };
 
 const buildSearchClause = async (search) => {
