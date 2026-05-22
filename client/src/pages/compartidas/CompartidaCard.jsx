@@ -7,6 +7,8 @@ import GameTile from "../../components/shared/GameTile";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
+import CompartidaComments from "./CompartidaComments";
+import { useCompartidaLike } from "./useCompartidaLike";
 import styles from "./CompartidaCard.module.css";
 
 function buildShareData(post) {
@@ -174,27 +176,17 @@ export default function CompartidaCard({
   const bgwatchEnabled = isSectionEnabled("bgwatch");
   const eventosEnabled = isSectionEnabled("eventos");
   const [post, setPost] = useState(initialPost);
-  const [liked, setLiked] = useState(() =>
-    user
-      ? initialPost.likes.some(
-          (l) => (l._id || l).toString() === user._id.toString(),
-        )
-      : false,
-  );
-  const [heartPopping, setHeartPopping] = useState(false);
   const [loginPrompt, setLoginPrompt] = useState("");
-  const [likeCount, setLikeCount] = useState(initialPost.likes.length);
+  const {
+    liked,
+    count: likeCount,
+    popping: heartPopping,
+    toggle: toggleLike,
+  } = useCompartidaLike({ post: initialPost, user });
   const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState([]);
-  const [commentsLoaded, setCommentsLoaded] = useState(false);
-  const [loadingComments, setLoadingComments] = useState(false);
   const [commentCount, setCommentCount] = useState(
     initialPost.commentCount ?? 0,
   );
-  const [commentInput, setCommentInput] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [editingCid, setEditingCid] = useState(null);
-  const [editContent, setEditContent] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(post.title);
@@ -204,7 +196,6 @@ export default function CompartidaCard({
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const menuRef = useRef(null);
-  const commentInputRef = useRef(null);
 
   const authorInfo = getUserDisplay(post.author);
   const isAuthor =
@@ -222,89 +213,19 @@ export default function CompartidaCard({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleLike = async () => {
+  // Check síncrono de auth antes del toggle async — el modal de login
+  // debe aparecer en el mismo tick del click, no esperar la Promise.
+  const handleLike = () => {
     if (!user) {
       setLoginPrompt("Iniciá sesión para dar like a esta compartida.");
       return;
     }
-    const prev = liked;
-    setLiked(!liked);
-    setLikeCount((c) => c + (liked ? -1 : 1));
-    if (!prev) {
-      setHeartPopping(true);
-      setTimeout(() => setHeartPopping(false), 350);
-    }
-    try {
-      await axios.post(`/api/compartidas/${post._id}/like`);
-    } catch {
-      setLiked(prev);
-      setLikeCount((c) => c + (prev ? 1 : -1));
-    }
+    toggleLike();
   };
 
-  const toggleComments = async () => {
-    if (!showComments && !commentsLoaded) {
-      setShowComments(true);
-      setLoadingComments(true);
-      try {
-        const { data } = await axios.get(
-          `/api/compartidas/${post._id}/comments`,
-        );
-        setComments(data);
-        setCommentsLoaded(true);
-        setCommentCount(data.length);
-      } catch {
-        /* silently ignore */
-      } finally {
-        setLoadingComments(false);
-      }
-    } else {
-      setShowComments((s) => !s);
-    }
-  };
-
-  const handleAddComment = async (e) => {
-    e.preventDefault();
-    if (!commentInput.trim() || submitting) return;
-    setSubmitting(true);
-    try {
-      const { data } = await axios.post(
-        `/api/compartidas/${post._id}/comments`,
-        { content: commentInput.trim() },
-      );
-      setComments((c) => [...c, data]);
-      setCommentCount((n) => n + 1);
-      setCommentInput("");
-    } catch {
-      /* silently ignore */
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleEditComment = async (cid) => {
-    if (!editContent.trim()) return;
-    try {
-      const { data } = await axios.put(
-        `/api/compartidas/${post._id}/comments/${cid}`,
-        { content: editContent.trim() },
-      );
-      setComments((cs) => cs.map((c) => (c._id === cid ? data : c)));
-      setEditingCid(null);
-    } catch {
-      /* silently ignore */
-    }
-  };
-
-  const handleDeleteComment = async (cid) => {
-    try {
-      await axios.delete(`/api/compartidas/${post._id}/comments/${cid}`);
-      setComments((cs) => cs.filter((c) => c._id !== cid));
-      setCommentCount((n) => Math.max(0, n - 1));
-    } catch {
-      /* silently ignore */
-    }
-  };
+  // El componente CompartidaComments owna su propio fetch/state. Acá solo
+  // toggleamos visibilidad — el componente fetchea cuando se monta.
+  const toggleComments = () => setShowComments((s) => !s);
 
   const handleDelete = async () => {
     if (!window.confirm("¿Eliminar esta compartida?")) return;
@@ -483,153 +404,13 @@ export default function CompartidaCard({
           </div>
 
           {showComments && (
-            <div className={styles.comments}>
-              {loadingComments ? (
-                <div className={styles.commentsLoader}>
-                  <span className={styles.commentsLoaderDot} />
-                  <span className={styles.commentsLoaderDot} />
-                  <span className={styles.commentsLoaderDot} />
-                </div>
-              ) : comments.length === 0 ? (
-                <p className={styles.noComments}>
-                  Sin comentarios aún. ¡Sé el primero!
-                </p>
-              ) : (
-                <div className={styles.commentsHead}>
-                  ◆ Dejá tu comentario
-                  {commentCount > 1 ? ` (${commentCount})` : ""}
-                </div>
-              )}
-              {comments.map((c) => {
-                const cAuthorInfo = getUserDisplay(c.author);
-                const isOwn =
-                  user &&
-                  c.author &&
-                  (c.author._id || c.author).toString() === user._id.toString();
-                const canDel = isOwn || isAuthor || user?.isAdmin;
-                return (
-                  <div key={c._id} className={styles.comment}>
-                    <Avatar user={c.author} size="xs" />
-                    <div className={styles.commentBody}>
-                      <div className={styles.commentMeta}>
-                        <span className={styles.commentAuthor}>
-                          {cAuthorInfo.name}
-                        </span>
-                        <span className={styles.commentTime}>
-                          {timeAgo(c.createdAt)}
-                        </span>
-                        {c.editedAt && (
-                          <span className={styles.editedBadge}>editado</span>
-                        )}
-                      </div>
-                      {editingCid === c._id ? (
-                        <div className={styles.inlineEdit}>
-                          <textarea
-                            className={styles.inlineEditArea}
-                            value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
-                            rows={2}
-                            maxLength={500}
-                          />
-                          <div className={styles.inlineEditActions}>
-                            <button
-                              className={styles.btnSave}
-                              onClick={() => handleEditComment(c._id)}
-                            >
-                              Guardar
-                            </button>
-                            <button
-                              className={styles.btnGhost}
-                              onClick={() => setEditingCid(null)}
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className={styles.commentText}>{c.content}</p>
-                      )}
-                      {editingCid !== c._id && (
-                        <div className={styles.commentActions}>
-                          {isOwn && (
-                            <button
-                              className={styles.commentActionBtn}
-                              onClick={() => {
-                                setEditingCid(c._id);
-                                setEditContent(c.content);
-                              }}
-                            >
-                              Editar
-                            </button>
-                          )}
-                          {canDel && (
-                            <button
-                              className={`${styles.commentActionBtn} ${styles.commentActionDanger}`}
-                              onClick={() => handleDeleteComment(c._id)}
-                            >
-                              Eliminar
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {user ? (
-                <form
-                  className={styles.commentForm}
-                  onSubmit={handleAddComment}
-                >
-                  <Avatar user={user} size="xs" />
-                  <input
-                    ref={commentInputRef}
-                    className={styles.commentInput}
-                    placeholder="Escribí un comentario…"
-                    value={commentInput}
-                    onChange={(e) => setCommentInput(e.target.value)}
-                    maxLength={500}
-                    disabled={submitting}
-                  />
-                  <button
-                    type="submit"
-                    className={styles.commentSubmit}
-                    disabled={!commentInput.trim() || submitting}
-                    aria-label="Enviar comentario"
-                  >
-                    {submitting ? (
-                      "…"
-                    ) : (
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <line x1="22" y1="2" x2="11" y2="13" />
-                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                      </svg>
-                    )}
-                  </button>
-                </form>
-              ) : (
-                <button
-                  className={styles.guestCommentCta}
-                  onClick={() =>
-                    setLoginPrompt(
-                      "Iniciá sesión para comentar en esta compartida.",
-                    )
-                  }
-                  type="button"
-                >
-                  Iniciá sesión para comentar
-                </button>
-              )}
-            </div>
+            <CompartidaComments
+              compartidaId={post._id}
+              user={user}
+              canDeleteOthers={isAuthor || !!user?.isAdmin}
+              onRequireLogin={setLoginPrompt}
+              onCountChange={setCommentCount}
+            />
           )}
         </article>
 
@@ -996,150 +777,13 @@ export default function CompartidaCard({
 
         {/* ── Comments ── */}
         {showComments && (
-          <div className={styles.comments}>
-            {loadingComments ? (
-              <div className={styles.commentsLoader}>
-                <span className={styles.commentsLoaderDot} />
-                <span className={styles.commentsLoaderDot} />
-                <span className={styles.commentsLoaderDot} />
-              </div>
-            ) : comments.length === 0 ? (
-              <p className={styles.noComments}>
-                Sin comentarios aún. ¡Sé el primero!
-              </p>
-            ) : (
-              <div className={styles.commentsHead}>
-                ◆ Dejá tu comentario
-                {commentCount > 1 ? ` (${commentCount})` : ""}
-              </div>
-            )}
-            {comments.map((c) => {
-              const cAuthorInfo = getUserDisplay(c.author);
-              const isOwn =
-                user &&
-                c.author &&
-                (c.author._id || c.author).toString() === user._id.toString();
-              const canDel = isOwn || isAuthor || user?.isAdmin;
-              return (
-                <div key={c._id} className={styles.comment}>
-                  <Avatar user={c.author} size="xs" />
-                  <div className={styles.commentBody}>
-                    <div className={styles.commentMeta}>
-                      <span className={styles.commentAuthor}>
-                        {cAuthorInfo.name}
-                      </span>
-                      <span className={styles.commentTime}>
-                        {timeAgo(c.createdAt)}
-                      </span>
-                      {c.editedAt && (
-                        <span className={styles.editedBadge}>editado</span>
-                      )}
-                    </div>
-                    {editingCid === c._id ? (
-                      <div className={styles.inlineEdit}>
-                        <textarea
-                          className={styles.inlineEditArea}
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          rows={2}
-                          maxLength={500}
-                        />
-                        <div className={styles.inlineEditActions}>
-                          <button
-                            className={styles.btnSave}
-                            onClick={() => handleEditComment(c._id)}
-                          >
-                            Guardar
-                          </button>
-                          <button
-                            className={styles.btnGhost}
-                            onClick={() => setEditingCid(null)}
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className={styles.commentText}>{c.content}</p>
-                    )}
-                    {editingCid !== c._id && (
-                      <div className={styles.commentActions}>
-                        {isOwn && (
-                          <button
-                            className={styles.commentActionBtn}
-                            onClick={() => {
-                              setEditingCid(c._id);
-                              setEditContent(c.content);
-                            }}
-                          >
-                            Editar
-                          </button>
-                        )}
-                        {canDel && (
-                          <button
-                            className={`${styles.commentActionBtn} ${styles.commentActionDanger}`}
-                            onClick={() => handleDeleteComment(c._id)}
-                          >
-                            Eliminar
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-
-            {user ? (
-              <form className={styles.commentForm} onSubmit={handleAddComment}>
-                <Avatar user={user} size="xs" />
-                <input
-                  ref={commentInputRef}
-                  className={styles.commentInput}
-                  placeholder="Escribí un comentario…"
-                  value={commentInput}
-                  onChange={(e) => setCommentInput(e.target.value)}
-                  maxLength={500}
-                  disabled={submitting}
-                />
-                <button
-                  type="submit"
-                  className={styles.commentSubmit}
-                  disabled={!commentInput.trim() || submitting}
-                  aria-label="Enviar comentario"
-                >
-                  {submitting ? (
-                    "…"
-                  ) : (
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <line x1="22" y1="2" x2="11" y2="13" />
-                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                    </svg>
-                  )}
-                </button>
-              </form>
-            ) : (
-              <button
-                className={styles.guestCommentCta}
-                onClick={() =>
-                  setLoginPrompt(
-                    "Iniciá sesión para comentar en esta compartida.",
-                  )
-                }
-                type="button"
-              >
-                Iniciá sesión para comentar
-              </button>
-            )}
-          </div>
+          <CompartidaComments
+            compartidaId={post._id}
+            user={user}
+            canDeleteOthers={isAuthor || !!user?.isAdmin}
+            onRequireLogin={setLoginPrompt}
+            onCountChange={setCommentCount}
+          />
         )}
       </article>
 
