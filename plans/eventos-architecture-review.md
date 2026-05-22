@@ -1,5 +1,27 @@
 # Reporte arquitectónico — Sección Eventos
 
+## Estado (actualizado 2026-05-21)
+
+**26 / 30 ítems implementados.** Plan ejecutado en cuatro lotes durante esta sesión.
+
+| Lote | Ítems |
+|---|---|
+| 1 (críticos) | ✅ B1, B2, B3 |
+| 2 (inconsistencias) | ✅ I1, I2, I3, I4, I5, I6, I7, I8 |
+| 3 (bugs + deuda técnica) | ✅ B4, B5, B6+B7, B8, B9, M1, M2, M3, M5, M7, M8, M10 |
+| 4 (features) | ✅ F1, F3 (cubierto en I7), F5, F6 |
+| Skip / abierto | ⏸ M4 (premature opt), M6 (PR separado cross-feature), M9 (depende de habilitar light theme), F2 (email transaccional), F4 (filtro pasados/próximos), T1-T5 (huecos de tests adicionales) |
+
+**Suite final**: cliente 1343/1343 verdes (132 archivos), server 489/489 verdes (33 archivos). Tests nuevos agregados en el proceso (~80 tests netos).
+
+**Patrones nuevos extraídos como memoria** (aplicables a otras secciones):
+- `feedback_errors_as_toasts.md` (B6+B7) — errores PUT/POST/DELETE como `addToast`, no state local
+- `feedback_shared_modal.md` (M1) — `<Modal>` shared para overlays con focus mgmt
+- `feedback_validate_objectid_param.md` (B8) — `router.param("id", validateObjectId)`
+- `feedback_cron_idempotency_flag.md` (B5) — flag `xxxSentAt` en el doc, no ventanas estrechas
+
+---
+
 ## Contexto
 
 Revisión arquitectónica de la sección de Eventos de Turnocero como segunda iteración tras el rediseño de mayo 2026 (ver `feedback_eventos_section_design.md`). El objetivo es enumerar bugs, inconsistencias y oportunidades de mejora encontradas en los flujos completos (servidor, cliente, sockets, notificaciones, tests, integración cross-feature). Este documento es un reporte; no contiene cambios de código y la priorización sirve para decidir qué atacar en futuras tareas.

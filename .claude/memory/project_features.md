@@ -21,7 +21,7 @@ The app has grown significantly beyond what CLAUDE.md documents. Current feature
 - Route: `/compartidas`, `/compartidas/:id`
 - Server: `GET|POST|PUT|DELETE /api/compartidas` and nested endpoints for likes, images, comments
 - Privacy model: `public` | `friends` | `private`
-- Can optionally link to a Table the author participated in
+- Can optionally link to a Table (`linkedTable`) OR an Evento (`linkedEvento`) the author participated in — both fields validated server-side (must be author or have an active reg). Frontend list de candidatos: `/api/tables/mine` + `/api/eventos/mine`.
 - Supports: likes (toggle), images (max 3, Cloudinary), comments (CRUD), "Compartida del día" (most-liked in last 24h)
 - Public compartidas are visible without auth; friends/private respect the friends graph
 - OG endpoint: `GET /api/compartidas/:id/og` for crawlers
