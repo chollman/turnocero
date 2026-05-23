@@ -1,13 +1,13 @@
 ---
 name: project-ludoteca-de-eventos
-description: 'Feature en vuelo (branch ludoteca-de-eventos, no mergeada a master) — agrega "Ludoteca del Evento" y "Mesas del Evento" dentro del detalle de cada Evento, con tabs y permisos para confirmed registrants.'
+description: 'Feature mergeada a master — agrega "Ludoteca del Evento" y "Mesas del Evento" dentro del detalle de cada Evento, con tabs y permisos para confirmed registrants.'
 metadata:
   node_type: memory
   type: project
   originSessionId: 12809272-6ba5-42b7-9140-52782f4d77f7
 ---
 
-**Branch:** `ludoteca-de-eventos` (pusheada a `origin`, no mergeada a `master` al 2026-05-22). Si vas a tocar el área de Eventos, primero `git checkout ludoteca-de-eventos` para no romper la feature, o coordinar el merge.
+**Estado (2026-05-22):** mergeada a master. Commits originales en master: `9290998` (schema phase 1), `408291e` (server endpoints phase 2), `aa1b29c` (client UI phase 3), `d201fee` (docs), `875e89d` (polish — tab slide + mesas count). La branch local `ludoteca-de-eventos` quedó congelada antes del lint-zero (`6faf3dc`) y se puede borrar — todos sus commits ya están en master.
 
 **Why:** Un Evento hoy es estático (fecha, lugar, condiciones, inscripciones). Faltaba el lado operativo del día del encuentro: qué juegos van a estar y qué mesas armar. Con esto el detalle del evento gana 2 pestañas nuevas: Ludoteca (juegos aportados por la comunidad) y Mesas (sub-mesas scoped al evento).
 
