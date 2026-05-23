@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
+import { API } from '../api/endpoints';
 
 const SECTION_KEYS = [
   'mesas',
@@ -41,7 +42,7 @@ export function SiteConfigProvider({ children }) {
 
   useEffect(() => {
     let cancelled = false;
-    axios.get('/api/site-config')
+    axios.get(API.siteConfig)
       .then(({ data }) => {
         if (cancelled) return;
         setSections(data.sections || defaultSections());
@@ -70,7 +71,7 @@ export function SiteConfigProvider({ children }) {
   }, []);
 
   const updateConfig = useCallback(async (patch) => {
-    const { data } = await axios.patch('/api/site-config', { sections: patch });
+    const { data } = await axios.patch(API.siteConfig, { sections: patch });
     applyServerConfig(data);
     return data;
   }, [applyServerConfig]);

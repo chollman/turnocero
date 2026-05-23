@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { STORAGE_KEYS } from '../utils/storageKeys';
+import { API } from '../api/endpoints';
 
 // Note (long-term): consider migrating to a custom domain (e.g. turnocero.com +
 // api.turnocero.com) so auth cookies become first-party (SameSite=lax). Safari's ITP
@@ -85,7 +86,7 @@ export const AuthProvider = ({ children }) => {
       return;
     }
     setAuthHeader(token);
-    axios.get('/api/auth/me')
+    axios.get(API.auth.ME)
       .then(({ data }) => setRealUser(data))
       .catch(() => {
         setRealUser(null);
@@ -96,7 +97,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const { data } = await axios.post('/api/auth/login', { email, password });
+    const { data } = await axios.post(API.auth.LOGIN, { email, password });
     local.set(STORAGE_KEYS.TOKEN, data.token);
     setAuthHeader(data.token);
     setRealUser(data.user);
@@ -106,12 +107,12 @@ export const AuthProvider = ({ children }) => {
   // Creates an unverified account. No session is established here — the user
   // must complete /verify-email with the code we sent to confirm ownership.
   const register = async (username, email, password) => {
-    const { data } = await axios.post('/api/auth/register', { username, email, password });
+    const { data } = await axios.post(API.auth.REGISTER, { username, email, password });
     return data; // { email, message }
   };
 
   const verifyEmail = async (email, code) => {
-    const { data } = await axios.post('/api/auth/verify-email', { email, code });
+    const { data } = await axios.post(API.auth.VERIFY_EMAIL, { email, code });
     local.set(STORAGE_KEYS.TOKEN, data.token);
     setAuthHeader(data.token);
     setRealUser(data.user);
@@ -119,22 +120,22 @@ export const AuthProvider = ({ children }) => {
   };
 
   const requestEmailVerification = async (email) => {
-    const { data } = await axios.post('/api/auth/resend-verification', { email });
+    const { data } = await axios.post(API.auth.RESEND_VERIFICATION, { email });
     return data;
   };
 
   const requestPasswordReset = async (email) => {
-    const { data } = await axios.post('/api/auth/forgot-password', { email });
+    const { data } = await axios.post(API.auth.FORGOT_PASSWORD, { email });
     return data;
   };
 
   const resetPassword = async (email, token, password) => {
-    const { data } = await axios.post('/api/auth/reset-password', { email, token, password });
+    const { data } = await axios.post(API.auth.RESET_PASSWORD, { email, token, password });
     return data;
   };
 
   const logout = async () => {
-    await axios.post('/api/auth/logout').catch(() => {});
+    await axios.post(API.auth.LOGOUT).catch(() => {});
     local.remove(STORAGE_KEYS.TOKEN);
     local.remove(STORAGE_KEYS.VIEW_AS_USER);
     session.remove(STORAGE_KEYS.BANNED_MESSAGE);
@@ -144,13 +145,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const refreshUser = async () => {
-    const { data } = await axios.get('/api/auth/me');
+    const { data } = await axios.get(API.auth.ME);
     setRealUser(data);
     return data;
   };
 
   const updateProfile = async (data) => {
-    const { data: updated } = await axios.put('/api/auth/profile', data);
+    const { data: updated } = await axios.put(API.auth.PROFILE, data);
     setRealUser(updated);
     return updated;
   };

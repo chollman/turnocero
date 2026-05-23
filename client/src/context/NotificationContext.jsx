@@ -10,6 +10,7 @@ import {
 import axios from "axios";
 import { useAuth } from "./AuthContext";
 import { useSiteConfig } from "./SiteConfigContext";
+import { API } from "../api/endpoints";
 import {
   EVENT_SECTION,
   mergeNotifs,
@@ -67,7 +68,7 @@ export function NotificationProvider({ children }) {
     }
     let cancelled = false;
     axios
-      .get("/api/notifications")
+      .get(API.notifications.LIST)
       .then(({ data }) => {
         if (cancelled) return;
         // Merge con local state que llegó via socket mientras el GET estaba in-flight.
@@ -145,35 +146,35 @@ export function NotificationProvider({ children }) {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.tableId === tableId),
     );
-    axios.patch("/api/notifications/read", { tableId }).catch(() => {});
+    axios.patch(API.notifications.READ, { tableId }).catch(() => {});
   }, []);
 
   const markReadFriend = useCallback((fromUserId) => {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.fromUserId === fromUserId),
     );
-    axios.patch("/api/notifications/read", { fromUserId }).catch(() => {});
+    axios.patch(API.notifications.READ, { fromUserId }).catch(() => {});
   }, []);
 
   const markReadTorneo = useCallback((torneoId) => {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.torneoId === torneoId),
     );
-    axios.patch("/api/notifications/read", { torneoId }).catch(() => {});
+    axios.patch(API.notifications.READ, { torneoId }).catch(() => {});
   }, []);
 
   const markReadCompartida = useCallback((compartidaId) => {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.compartidaId === compartidaId),
     );
-    axios.patch("/api/notifications/read", { compartidaId }).catch(() => {});
+    axios.patch(API.notifications.READ, { compartidaId }).catch(() => {});
   }, []);
 
   const markReadEvento = useCallback((eventoId) => {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.eventoId === eventoId),
     );
-    axios.patch("/api/notifications/read", { eventoId }).catch(() => {});
+    axios.patch(API.notifications.READ, { eventoId }).catch(() => {});
   }, []);
 
   const markReadDm = useCallback((fromUserId) => {
@@ -189,17 +190,17 @@ export function NotificationProvider({ children }) {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.type === "admin_chat"),
     );
-    axios.patch("/api/admin-chat/read").catch(() => {});
+    axios.patch(API.adminChat.READ).catch(() => {});
   }, []);
 
   const clearAll = useCallback(() => {
     setNotifications([]);
-    axios.delete("/api/notifications").catch(() => {});
+    axios.delete(API.notifications.CLEAR).catch(() => {});
   }, []);
 
   const markAllRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    axios.patch("/api/notifications/read", {}).catch(() => {});
+    axios.patch(API.notifications.READ, {}).catch(() => {});
   }, []);
 
   const loadOlder = useCallback(async () => {
@@ -209,7 +210,7 @@ export function NotificationProvider({ children }) {
     }, null);
     if (oldest == null) return { count: 0 };
     try {
-      const { data } = await axios.get("/api/notifications", {
+      const { data } = await axios.get(API.notifications.LIST, {
         params: { before: new Date(oldest).toISOString(), limit: 20 },
       });
       setNotifications((prev) => mergeNotifs(prev, data));

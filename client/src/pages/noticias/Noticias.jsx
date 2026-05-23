@@ -3,6 +3,7 @@ import axios from 'axios'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { API } from '../../api/endpoints'
 import styles from './Noticias.module.css'
 
 function timeAgo(date) {
@@ -119,7 +120,7 @@ function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
       fd.append('link',      editLink.trim())
       fd.append('linkLabel', editLinkLabel.trim())
       if (newFile) fd.append('image', newFile)
-      const { data } = await axios.put(`/api/noticias/${noticia._id}`, fd, {
+      const { data } = await axios.put(API.noticias.DETAIL(noticia._id), fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       setNoticia(data)
@@ -134,7 +135,7 @@ function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`/api/noticias/${noticia._id}`)
+      await axios.delete(API.noticias.DETAIL(noticia._id))
       onDeleted(noticia._id)
     } catch { /* silently ignore */ }
   }
@@ -297,7 +298,7 @@ function CreateForm({ onCreated, onCancel }) {
       if (body.trim())  fd.append('body',  body.trim())
       if (link.trim())      fd.append('link',      link.trim())
       if (linkLabel.trim()) fd.append('linkLabel', linkLabel.trim())
-      const { data } = await axios.post('/api/noticias', fd, {
+      const { data } = await axios.post(API.noticias.LIST, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       onCreated(data)
@@ -376,7 +377,7 @@ export default function Noticias() {
   const load = useCallback(async (pageNum = 1, replace = true) => {
     if (pageNum === 1) setLoading(true); else setMore(true)
     try {
-      const { data } = await axios.get('/api/noticias', { params: { page: pageNum, limit: 10 } })
+      const { data } = await axios.get(API.noticias.LIST, { params: { page: pageNum, limit: 10 } })
       setNoticias((prev) => replace ? data.noticias : [...prev, ...data.noticias])
       setTotal(data.pages)
       setPage(pageNum)

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
+import { API } from '../../api/endpoints'
 import useDebouncedValue from '../../hooks/useDebouncedValue'
 import TableCard from './TableCard'
 import TableCardSkeleton from './TableCardSkeleton'
@@ -63,7 +64,7 @@ export default function Dashboard() {
       setLoading(true)
       setError('')
       try {
-        const url = activeTab === 'mine' ? '/api/tables/mine' : '/api/tables'
+        const url = activeTab === 'mine' ? API.tables.MINE : API.tables.LIST
         const params = { page, limit: 12 }
         if (debouncedSearch) params.search = debouncedSearch
         if (hasDireccion && debouncedRadius > 0) params.maxDistanceKm = debouncedRadius

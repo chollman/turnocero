@@ -19,6 +19,7 @@
 //     limpio.
 
 import axios from "axios";
+import { API } from "../api/endpoints";
 
 // ── Keys y dedup ─────────────────────────────────────────────────────
 
@@ -548,7 +549,7 @@ export function applyAdminMessageNotif({
     // El user ya está mirando el admin chat → marcar leído en server, no
     // generar notif local. (El listener de chat aparte mostrará el mensaje
     // directamente.)
-    axios.patch("/api/admin-chat/read").catch(() => {});
+    axios.patch(API.adminChat.READ).catch(() => {});
     return;
   }
 

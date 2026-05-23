@@ -10,6 +10,7 @@ import {
 import axios from "axios";
 import { useAuth } from "./AuthContext";
 import { useNotifications } from "./NotificationContext";
+import { API } from "../api/endpoints";
 
 const ChatContext = createContext(null);
 
@@ -44,7 +45,7 @@ export function ChatProvider({ children }) {
       return;
     }
     axios
-      .get("/api/dm")
+      .get(API.dm.CONVERSATIONS)
       .then(({ data }) => {
         const next = {};
         data.forEach(({ contact, lastMessage }) => {
@@ -77,7 +78,7 @@ export function ChatProvider({ children }) {
         const isMinimized = conv?.minimized ?? false;
 
         if (isCurrentlyOpen && !isMinimized) {
-          axios.patch(`/api/dm/${fromId}/read`).catch(() => {});
+          axios.patch(API.dm.READ(fromId)).catch(() => {});
           markReadDm(fromId);
         }
 
@@ -142,7 +143,7 @@ export function ChatProvider({ children }) {
       if (!loadedRef.current[id]) {
         loadedRef.current[id] = true;
         axios
-          .get(`/api/dm/${id}`)
+          .get(API.dm.HISTORY(id))
           .then(({ data }) => {
             setConversations((c) => ({
               ...c,
@@ -152,7 +153,7 @@ export function ChatProvider({ children }) {
           .catch(() => {
             loadedRef.current[id] = false;
           });
-        axios.patch(`/api/dm/${id}/read`).catch(() => {});
+        axios.patch(API.dm.READ(id)).catch(() => {});
       }
       markReadDm(id);
     },
@@ -184,7 +185,7 @@ export function ChatProvider({ children }) {
 
   const sendMessage = useCallback(async (userId, content) => {
     const id = userId.toString();
-    const { data: msg } = await axios.post(`/api/dm/${id}`, { content });
+    const { data: msg } = await axios.post(API.dm.SEND(id), { content });
     setConversations((prev) => ({
       ...prev,
       [id]: {

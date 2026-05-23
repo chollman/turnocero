@@ -4,6 +4,7 @@ import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import CompartidaCard from "./CompartidaCard";
@@ -60,7 +61,7 @@ export default function Compartidas() {
     if (pageNum === 1) setLoading(true);
     else setLoadingMore(true);
     try {
-      const { data } = await axios.get("/api/compartidas", {
+      const { data } = await axios.get(API.compartidas.LIST, {
         params: { page: pageNum, limit: 10 },
       });
       setPosts((prev) =>

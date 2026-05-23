@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { API } from '../../api/endpoints';
 import { io } from 'socket.io-client';
 import { getUserDisplay, DELETED_USER_LABEL } from '../../utils/userDisplay';
 import Avatar from '../../components/shared/Avatar';
@@ -35,7 +36,7 @@ export default function AdminChat() {
 
   useEffect(() => {
     if (!isActuallyAdmin) return;
-    axios.get('/api/admin-chat')
+    axios.get(API.adminChat.LIST)
       .then(({ data }) => setMessages(data))
       .catch(() => {});
 
@@ -64,7 +65,7 @@ export default function AdminChat() {
     setSending(true);
     setInput('');
     try {
-      await axios.post('/api/admin-chat', { content });
+      await axios.post(API.adminChat.SEND, { content });
     } catch {
       setInput(content);
     } finally {

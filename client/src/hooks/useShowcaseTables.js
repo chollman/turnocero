@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API } from "../api/endpoints";
 
 // Fetch del showcase (mesa random + total) usado en las 5 auth pages
 // (Login, Register, ForgotPassword, ResetPassword, VerifyEmail). Antes
@@ -28,7 +29,7 @@ export function useShowcaseTables({ enabled = true } = {}) {
     if (!enabled) return undefined;
     let cancelled = false;
     axios
-      .get("/api/tables/showcase")
+      .get(API.tables.SHOWCASE)
       .then(({ data }) => {
         if (!cancelled) setShowcase(data);
       })

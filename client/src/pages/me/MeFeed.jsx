@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import { API } from "../../api/endpoints";
 import GameTile from "../../components/shared/GameTile";
 import FeedCardSkeleton from "./FeedCardSkeleton";
 import FeedCard from "./FeedCard";
@@ -107,11 +108,10 @@ export default function MeFeed() {
     if (!uid) return;
     setLoading(true);
     setError(null);
-    const url = includeFriends
-      ? "/api/tables/me/feed?includeFriends=true"
-      : "/api/tables/me/feed";
     axios
-      .get(url)
+      .get(API.tables.MY_FEED, {
+        params: includeFriends ? { includeFriends: "true" } : undefined,
+      })
       .then((res) => setTables(res.data.tables))
       .catch(() => setError("No se pudo cargar el historial."))
       .finally(() => setLoading(false));
