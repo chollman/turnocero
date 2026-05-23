@@ -4,18 +4,10 @@ const { protect } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const { getSessionCookie, clearSession } = require("../utils/bggAuth");
 const User = require("../models/User");
-const BggCollection = require("../models/BggCollection");
 const BggPlay = require("../models/BggPlay");
 const { computePlayHash } = require("../utils/bggHash");
 const { escapeRegex } = require("../utils/regex");
-const {
-  withUserLock,
-  sleep,
-  tryAcquireProbeSlot,
-  releaseProbeSlot,
-  tryAcquireReconcileSlot,
-  releaseReconcileSlot,
-} = require("../utils/bggSync");
+const { sleep, withUserLock } = require("../utils/bggSync");
 const {
   computeGameStats,
   computePlayedGames,
@@ -30,7 +22,6 @@ const {
   getCached,
   setCached,
   clearPartidasCache,
-  clearL1Cache,
 } = require("../services/bgg/bggCache");
 const {
   getManualRefreshRemainingMs,
@@ -48,378 +39,23 @@ const {
   resolveGamesBatch,
   resolveCollection,
 } = require("../services/bgg/bggResolve");
-
-const PROBE_THROTTLE_MS = 5 * 60 * 1000; // 5 min between background probes
-const FULL_RECONCILE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days between background full reconciles
+const {
+  PROBE_THROTTLE_MS,
+  FULL_RECONCILE_INTERVAL_MS,
+  clearUserCache,
+  reconcileFull,
+  probe,
+  stampProbeOutcome,
+  triggerBackgroundProbe,
+  triggerBackgroundReconcile,
+} = require("../services/bgg/bggSyncEngine");
 
 router.use(requireSection("bgwatch"));
 
-// Patrón de cache layer-2 vive en services/bgg/bggResolve.js (BggGame
-// persistente + L1 in-memory). Acá solo queda lo que coordina entre
-// L1/L2 y mutaciones BGG locales.
+// El sync engine (probe + reconcile + slot management) vive en
+// services/bgg/bggSyncEngine.js. Acá solo quedan los handlers HTTP +
+// los helpers de mutation (verifyPlayOnBgg, geekplay.php).
 const BGG_GEEKPLAY = "https://boardgamegeek.com/geekplay.php";
-
-// `clearUserCache` orquesta L1 (in-memory) + L2 (Mongo persistente).
-// Llamado cuando un user reconnect su BGG account así reads subsiguientes
-// vienen fresh de BGG y no muestran state stale de una sesión previa.
-// Async — los callers deben await para asegurar que la deletion de Mongo
-// se settled antes del próximo read.
-async function clearUserCache(bggUsername) {
-  const lower = String(bggUsername).toLowerCase();
-  clearL1Cache(bggUsername);
-  await Promise.all([
-    BggCollection.deleteOne({ bggUsername: lower }),
-    BggPlay.deleteMany({ bggUsername: lower }),
-  ]);
-}
-
-const SYNC_MAX_PAGES = 200; // safety: ~6000 plays
-const RECONCILE_INTER_PAGE_MS = 500;
-
-// Idempotent, non-destructive sync of a user's plays with BGG. Replaces the
-// old syncPlaysFull, which wiped BggPlay before refetching — that had an
-// inconsistency window and lost data if BGG failed mid-sync.
-//
-// Walks /plays?username=X&page=N, upserting by playId. Uses the locally
-// stored `hash` field to skip writes when content is unchanged.
-//
-// Options:
-//   full        — if false, exits as soon as an entire page already matches
-//                 locally (used by the drift-detection probe in reconcile
-//                 dirigido). If true, walks every page. Default: false.
-//   background  — if true, sleeps RECONCILE_INTER_PAGE_MS between pages so
-//                 a large user's reconcile doesn't spike outbound traffic.
-//                 Default: false.
-//
-// Delete detection:
-//   full=true   — anything local that wasn't seen in the walk is deleted.
-//   full=false  — only local plays whose date is strictly greater than the
-//                 oldest seen date are deleted (conservative boundary: if a
-//                 BGG date spans the early-exit page boundary, we don't
-//                 risk wrongly deleting it).
-//
-// Returns { inserted, updated, deleted, total, pages }.
-async function reconcileFull(
-  bggUsername,
-  { full = false, background = false } = {},
-) {
-  const lower = bggUsername.toLowerCase();
-  const seen = new Set();
-  let inserted = 0;
-  let updated = 0;
-  let total = 0;
-  let pages = 0;
-  let minSeenDate = null;
-
-  for (let page = 1; page <= SYNC_MAX_PAGES; page++) {
-    const xml = await fetchBgg(
-      `${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=${page}`,
-    );
-    const parsed = parsePlaysXml(xml);
-    if (!parsed) {
-      const err = new Error("Usuario de BGG no encontrado");
-      err.status = 404;
-      throw err;
-    }
-    const { plays, total: pageTotal } = parsed;
-    total = pageTotal;
-    pages = page;
-    if (plays.length === 0) break;
-
-    const gameIds = [...new Set(plays.map((p) => p.gameId).filter(Boolean))];
-    let gamesMap = new Map();
-    try {
-      gamesMap = await resolveGamesBatch(gameIds);
-    } catch {
-      /* best-effort */
-    }
-
-    // Build per-play docs with hash; look up local hashes for the same IDs.
-    const pagePlayIds = plays.map((p) => p.playId);
-    const localDocs = await BggPlay.find(
-      { bggUsername: lower, playId: { $in: pagePlayIds } },
-      { playId: 1, hash: 1 },
-    ).lean();
-    const localHashByPlayId = new Map(localDocs.map((d) => [d.playId, d.hash]));
-
-    const ops = [];
-    let allMatch = true;
-    for (const p of plays) {
-      seen.add(p.playId);
-      if (p.date && (!minSeenDate || p.date < minSeenDate))
-        minSeenDate = p.date;
-
-      const doc = {
-        ...p,
-        bggUsername: lower,
-        gameThumbnail: p.gameId
-          ? gamesMap.get(Number(p.gameId))?.thumbnail || null
-          : null,
-      };
-      doc.hash = computePlayHash(doc);
-
-      const localHash = localHashByPlayId.get(p.playId);
-      if (!localHash) {
-        ops.push({
-          updateOne: {
-            filter: { bggUsername: lower, playId: p.playId },
-            update: { $set: doc },
-            upsert: true,
-          },
-        });
-        inserted++;
-        allMatch = false;
-      } else if (localHash !== doc.hash) {
-        ops.push({
-          updateOne: {
-            filter: { bggUsername: lower, playId: p.playId },
-            update: { $set: doc },
-            upsert: false,
-          },
-        });
-        updated++;
-        allMatch = false;
-      }
-      // else: identical content, nothing to write.
-    }
-
-    if (ops.length > 0) {
-      await BggPlay.bulkWrite(ops, { ordered: false });
-    }
-
-    if (!full && allMatch) break;
-    if (seen.size >= total) break;
-    if (background) await sleep(RECONCILE_INTER_PAGE_MS);
-  }
-
-  // Delete detection.
-  let deleted = 0;
-  const seenIds = [...seen];
-  if (full) {
-    // Walked everything — anything not seen is gone.
-    const result = await BggPlay.deleteMany({
-      bggUsername: lower,
-      playId: { $nin: seenIds },
-    });
-    deleted = result.deletedCount || 0;
-  } else if (minSeenDate) {
-    // Conservative: only delete plays strictly newer than the oldest date
-    // we saw. Anything at exactly minSeenDate might span the early-exit
-    // page boundary, so leave it for a future full reconcile to settle.
-    const result = await BggPlay.deleteMany({
-      bggUsername: lower,
-      date: { $gt: minSeenDate },
-      playId: { $nin: seenIds },
-    });
-    deleted = result.deletedCount || 0;
-  }
-
-  return { inserted, updated, deleted, total, pages };
-}
-
-// Cheap drift-detection probe. One request to BGG. If the `total` count
-// matches what we have locally and the 30 most-recent plays all have
-// matching hashes, we're in sync (the common case). Otherwise:
-//   - count mismatch → delegate to reconcileFull({ full: false }) to walk
-//     pages until we find an already-synced page boundary.
-//   - count matches but some hashes differ → upsert just those plays
-//     (covers in-place edits to recent plays).
-//
-// Returns { outcome, inserted, updated, deleted, total } where outcome is
-// 'no_drift' | 'edits_only' | 'reconciled'. Throws on BGG failure (caller
-// should mark the outcome as 'failed').
-async function probe(bggUsername) {
-  const lower = bggUsername.toLowerCase();
-  const xml = await fetchBgg(
-    `${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=1`,
-  );
-  const parsed = parsePlaysXml(xml);
-  if (!parsed) {
-    const err = new Error("Usuario de BGG no encontrado");
-    err.status = 404;
-    throw err;
-  }
-  const { plays, total: remoteTotal } = parsed;
-  const localTotal = await BggPlay.countDocuments({ bggUsername: lower });
-
-  if (remoteTotal !== localTotal) {
-    const result = await reconcileFull(bggUsername, {
-      full: false,
-      background: false,
-    });
-    return { outcome: "reconciled", ...result };
-  }
-
-  // Same count — check the 30 most-recent plays for in-place edits.
-  if (plays.length === 0) {
-    return {
-      outcome: "no_drift",
-      inserted: 0,
-      updated: 0,
-      deleted: 0,
-      total: remoteTotal,
-    };
-  }
-
-  const pagePlayIds = plays.map((p) => p.playId);
-  const localDocs = await BggPlay.find(
-    { bggUsername: lower, playId: { $in: pagePlayIds } },
-    { playId: 1, hash: 1 },
-  ).lean();
-  const localHashByPlayId = new Map(localDocs.map((d) => [d.playId, d.hash]));
-
-  // Determine which plays need writing before resolving game thumbnails
-  // (saves a BGG request when nothing's changed).
-  const dirty = [];
-  let inserted = 0;
-  let updated = 0;
-  for (const p of plays) {
-    const baseDoc = { ...p, bggUsername: lower, gameThumbnail: null };
-    const hash = computePlayHash(baseDoc);
-    const localHash = localHashByPlayId.get(p.playId);
-    if (!localHash) {
-      dirty.push({ play: p, hash, kind: "insert" });
-      inserted++;
-    } else if (localHash !== hash) {
-      dirty.push({ play: p, hash, kind: "update" });
-      updated++;
-    }
-  }
-
-  if (dirty.length === 0) {
-    return {
-      outcome: "no_drift",
-      inserted: 0,
-      updated: 0,
-      deleted: 0,
-      total: remoteTotal,
-    };
-  }
-
-  // Resolve thumbnails just for the dirty plays.
-  const dirtyGameIds = [
-    ...new Set(dirty.map((d) => d.play.gameId).filter(Boolean)),
-  ];
-  let gamesMap = new Map();
-  try {
-    gamesMap = await resolveGamesBatch(dirtyGameIds);
-  } catch {
-    /* best-effort */
-  }
-
-  const ops = dirty.map(({ play, hash, kind }) => {
-    const doc = {
-      ...play,
-      bggUsername: lower,
-      gameThumbnail: play.gameId
-        ? gamesMap.get(Number(play.gameId))?.thumbnail || null
-        : null,
-      hash,
-    };
-    return {
-      updateOne: {
-        filter: { bggUsername: lower, playId: play.playId },
-        update: { $set: doc },
-        upsert: kind === "insert",
-      },
-    };
-  });
-  await BggPlay.bulkWrite(ops, { ordered: false });
-  return {
-    outcome: "edits_only",
-    inserted,
-    updated,
-    deleted: 0,
-    total: remoteTotal,
-  };
-}
-
-// Persists the probe outcome on the user document. Best-effort — failures
-// here don't propagate (the probe itself already succeeded or failed).
-//
-// User.bggUsername is stored verbatim (case-preserved). BggPlay.bggUsername
-// is normalized lowercase. Callers may pass either casing, so we match
-// case-insensitively via Mongo collation.
-async function stampProbeOutcome(bggUsername, outcome) {
-  try {
-    await User.updateOne(
-      { bggUsername },
-      {
-        $set: {
-          "bggSync.lastProbedAt": new Date(),
-          "bggSync.lastProbeOutcome": outcome,
-        },
-      },
-      { collation: { locale: "en", strength: 2 } },
-    );
-  } catch (err) {
-    console.warn(`[bgg/probe] stamp failed for ${bggUsername}: ${err.message}`);
-  }
-}
-
-// Fire-and-forget probe wrapped with: per-user lock, global slot cap, and
-// outcome stamping. Returns nothing — never await this from a request
-// handler.
-function triggerBackgroundProbe(bggUsername) {
-  if (!tryAcquireProbeSlot()) return;
-  withUserLock(bggUsername, () => probe(bggUsername))
-    .then((result) => stampProbeOutcome(bggUsername, result.outcome))
-    .catch((err) => {
-      console.warn(
-        `[bgg/probe] background failed for ${bggUsername}: ${err.message}`,
-      );
-      return stampProbeOutcome(bggUsername, "failed");
-    })
-    .finally(() => releaseProbeSlot());
-}
-
-// Stamps a successful full reconcile on the user document. Best-effort.
-// Updates all four bggSync timing fields so the next /bg-watch visit
-// neither re-triggers a probe (within PROBE_THROTTLE_MS) nor a periodic
-// reconcile (within FULL_RECONCILE_INTERVAL_MS).
-//
-// Case-insensitive match (collation strength 2) — see stampProbeOutcome.
-async function stampReconcileResult(bggUsername, result) {
-  try {
-    const now = new Date();
-    await User.updateOne(
-      { bggUsername },
-      {
-        $set: {
-          "bggSync.lastFullSyncAt": now,
-          "bggSync.lastFullSyncCount": result.total,
-          "bggSync.lastProbedAt": now,
-          "bggSync.lastProbeOutcome": "reconciled",
-        },
-      },
-      { collation: { locale: "en", strength: 2 } },
-    );
-  } catch (err) {
-    console.warn(
-      `[bgg/reconcile] stamp failed for ${bggUsername}: ${err.message}`,
-    );
-  }
-}
-
-// Fire-and-forget full reconcile in the background. Used by autosync on
-// bgg-connect (first time a user attaches their BGG account) and by the
-// periodic 30-day refresh (Slice 6). Returns true if the slot was acquired
-// and the work was scheduled, false if the global cap is full (in which
-// case the next trigger for this user will try again).
-function triggerBackgroundReconcile(bggUsername) {
-  if (!tryAcquireReconcileSlot()) return false;
-  withUserLock(bggUsername, () =>
-    reconcileFull(bggUsername, { full: true, background: true }),
-  )
-    .then((result) => stampReconcileResult(bggUsername.toLowerCase(), result))
-    .catch((err) => {
-      console.warn(
-        `[bgg/reconcile] background failed for ${bggUsername}: ${err.message}`,
-      );
-    })
-    .finally(() => releaseReconcileSlot());
-  return true;
-}
 
 // Fetches plays from BGG narrowed by game + date so we can confirm
 // geekplay.php actually persisted the mutation (it can silently 200
