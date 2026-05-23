@@ -361,7 +361,8 @@ router.get(
     await closePastOpenEvents(req);
     const evento = await Evento.findById(req.params.id)
       .populate("author", "username displayName avatar")
-      .populate("registrations.user", "username displayName avatar");
+      .populate("registrations.user", "username displayName avatar")
+      .populate("ludoteca.addedBy", POPULATE_LUDOTECA_USER);
 
     if (!evento) throw httpError(404, "Evento no encontrado");
     if (

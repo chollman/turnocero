@@ -68,6 +68,15 @@ function FavoriteGames({ games }) {
 export default function UserProfilePublic() {
   const { id } = useParams();
   const navigate = useNavigate();
+  // React Router v6 mantiene `idx` en `window.history.state` para trackear su
+  // stack. idx > 0 = hubo navegación in-app previa (sea por click o por reload
+  // de una URL a la que el user llegó navegando), así que back saca al user al
+  // sitio del que vino. idx === 0 (o sin state) = llegó directo (tab nuevo,
+  // link compartido) y caemos al fallback /usuarios. `location.key !== 'default'`
+  // no servía: sobrevive al reload y daba falsos positivos.
+  const canGoBack = (window.history.state?.idx ?? 0) > 0;
+  const goBack = () => (canGoBack ? navigate(-1) : navigate('/usuarios'));
+  const backLabel = canGoBack ? '← Volver' : '← Jugadores';
   const { user: currentUser, refreshUser } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
   const { notifyFriendAdded } = useNotifications();
@@ -137,8 +146,8 @@ export default function UserProfilePublic() {
       <div className={styles.page}>
         <div className={styles.stateCenter}>
           <p>{error || 'Usuario no encontrado'}</p>
-          <button className={styles.backBtn} onClick={() => navigate('/usuarios')}>
-            ← Volver a jugadores
+          <button className={styles.backBtn} onClick={goBack}>
+            {canGoBack ? '← Volver' : '← Volver a jugadores'}
           </button>
         </div>
       </div>
@@ -168,8 +177,8 @@ export default function UserProfilePublic() {
 
       <div className={styles.inner}>
         {/* Back button */}
-        <button className={styles.backBtn} onClick={() => navigate('/usuarios')}>
-          ← Jugadores
+        <button className={styles.backBtn} onClick={goBack}>
+          {backLabel}
         </button>
 
         {/* Hero row: avatar + name + actions */}

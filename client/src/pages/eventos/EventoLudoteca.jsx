@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -142,9 +143,34 @@ export default function EventoLudoteca({
         </div>
       ) : (
         <ul className={styles.grid}>
-          {items.map((item) => (
+          {items.map((item) => {
+            const bggUrl = item.bggGameId
+              ? `https://boardgamegeek.com/boardgame/${item.bggGameId}`
+              : null;
+            return (
             <li key={item._id} className={styles.card}>
-              {item.image || item.thumbnail ? (
+              {bggUrl ? (
+                <a
+                  href={bggUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.thumbLink}
+                  aria-label={`Ver ${item.gameName} en BoardGameGeek`}
+                >
+                  {item.image || item.thumbnail ? (
+                    <img
+                      src={item.image || item.thumbnail}
+                      alt={item.gameName}
+                      className={styles.thumb}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className={styles.thumbFallback} aria-hidden="true">
+                      🎲
+                    </div>
+                  )}
+                </a>
+              ) : item.image || item.thumbnail ? (
                 <img
                   src={item.image || item.thumbnail}
                   alt={item.gameName}
@@ -157,7 +183,23 @@ export default function EventoLudoteca({
                 </div>
               )}
               <div className={styles.body}>
-                <div className={styles.name}>{item.gameName}</div>
+                <div className={styles.name}>
+                  {bggUrl ? (
+                    <a
+                      href={bggUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.nameLink}
+                    >
+                      {item.gameName}
+                      <span className={styles.bggArrow} aria-hidden="true">
+                        ↗
+                      </span>
+                    </a>
+                  ) : (
+                    item.gameName
+                  )}
+                </div>
                 {item.year && (
                   <div className={styles.year}>
                     {item.year}
@@ -174,12 +216,24 @@ export default function EventoLudoteca({
                 {item.notes && (
                   <div className={styles.notes}>“{item.notes}”</div>
                 )}
-                <div className={styles.addedBy}>
-                  <Avatar user={item.addedBy} size="xs" />
-                  <span className={styles.addedByName}>
-                    {item.addedBy?.displayName || item.addedBy?.username || "?"}
-                  </span>
-                </div>
+                {item.addedBy?._id ? (
+                  <Link
+                    to={`/usuarios/${item.addedBy._id}`}
+                    className={styles.addedBy}
+                  >
+                    <Avatar user={item.addedBy} size="xs" />
+                    <span className={styles.addedByName}>
+                      {item.addedBy.displayName ||
+                        item.addedBy.username ||
+                        "?"}
+                    </span>
+                  </Link>
+                ) : (
+                  <div className={styles.addedBy}>
+                    <Avatar user={item.addedBy} size="xs" />
+                    <span className={styles.addedByName}>?</span>
+                  </div>
+                )}
               </div>
               {canDelete(item) && (
                 <button
@@ -193,7 +247,8 @@ export default function EventoLudoteca({
                 </button>
               )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
 
