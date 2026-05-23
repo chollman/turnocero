@@ -39,6 +39,10 @@ router.get(
 
 Cuando lo toques por otro motivo. No es un objetivo en sí mismo — la migración es gradual. Si vas a tocar un handler de un router viejo, aprovechá y migrá todo el router (es más limpio que dejar la mitad migrada).
 
+**Migrados al 2026-05-22:** `noticias.js`, `friends.js`, `compartidas.js` (13 handlers), `dm.js` (4 handlers).
+
+**Pendientes:** `auth.js`, `bgg.js`, `tables.js`, `torneos.js`, `eventos.js`, `users.js`, `notifications.js`, `siteConfig.js`, `adminChat.js`, `geocode.js`, sub-routers (`messages.js`, `comments.js`, `images.js`, `ratings.js`), `admin.js`.
+
 ## Gotcha: sync throws
 
 El asyncHandler actual hace `Promise.resolve(fn()).catch(next)`. Si `fn()` es una función no-async y tira **sincrónicamente**, el throw escapa de `Promise.resolve` y NO se captura. Esto está documentado en `tests/unit/utils/asyncHandler.test.js`.
