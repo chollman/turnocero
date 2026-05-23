@@ -158,6 +158,37 @@ describe('<CreateTable> — Ubicación (opcional, sin mapa)', () => {
     expect(screen.getByText(/la mesa se publica sin ubicación/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /agregá una dirección a tu perfil/i })).toHaveAttribute('href', '/perfil');
   });
+
+  it('cuando hay ?evento=<id>, no renderiza la sección de Ubicación', () => {
+    render(
+      <MemoryRouter initialEntries={['/mesas/crear?evento=ev123']}>
+        <CreateTable />
+      </MemoryRouter>,
+    );
+    // La sección entera (label + input + hint) se omite — la ubicación se
+    // hereda del evento server-side, no hay nada que mostrar.
+    expect(screen.queryByText('Ubicación')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('place-autocomplete')).not.toBeInTheDocument();
+  });
+
+  it('cuando hay ?evento= con eventDate en nav state, swap el datetime-local por un time picker', () => {
+    render(
+      <MemoryRouter
+        initialEntries={[
+          {
+            pathname: '/mesas/crear',
+            search: '?evento=ev123',
+            state: { eventDate: '2030-06-15T16:00:00.000Z' },
+          },
+        ]}
+      >
+        <CreateTable />
+      </MemoryRouter>,
+    );
+    // No hay "Fecha y hora" — solo "Hora *"
+    expect(screen.queryByLabelText(/fecha y hora/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/^Hora \*$/)).toBeInTheDocument();
+  });
 });
 
 describe('<CreateTable> — debounce BGG search', () => {

@@ -22,6 +22,7 @@ import styles from "./EventoMesas.module.css";
  */
 export default function EventoMesas({
   eventoId,
+  eventDate,
   items: itemsProp,
   setItems: setItemsProp,
   canAdd = false,
@@ -71,7 +72,12 @@ export default function EventoMesas({
   }, [eventoId, addToast, itemsProp]);
 
   const handleCreate = () => {
-    navigate(`/mesas/crear?evento=${eventoId}`);
+    // Pasamos `eventDate` por navigation state para que CreateTable lockee el
+    // día de la mesa sin tener que fetchear el evento de nuevo. Si el user
+    // refresca el form (state se pierde), CreateTable hace fallback a fetch.
+    navigate(`/mesas/crear?evento=${eventoId}`, {
+      state: eventDate ? { eventDate } : undefined,
+    });
   };
 
   // onUpdate/onCancel callbacks para que TableCard pueda mutar el state local

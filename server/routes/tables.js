@@ -290,11 +290,13 @@ router.post(
     // registrant). El evento debe existir, no estar draft/cancelled, y
     // el user debe tener permiso.
     let validatedEventoId = null;
+    let eventoLocation = null;
+    let resolvedDate = date;
     if (eventoId) {
       const Evento = require("../models/Evento");
       const { canActInEvento } = require("../utils/eventoPermissions");
       const evento = await Evento.findById(eventoId).select(
-        "_id author status registrations",
+        "_id author status registrations location eventDate",
       );
       if (!evento) throw httpError(404, "Evento no encontrado");
       if (evento.status === "cancelled" || evento.status === "draft") {
@@ -307,16 +309,50 @@ router.post(
         );
       }
       validatedEventoId = evento._id;
+      // La ubicación de las mesas del evento se hereda del evento (single
+      // source of truth). Ignoramos cualquier `location` del body para que
+      // un cliente no pueda crear una mesa "del evento" en otra dirección.
+      eventoLocation = evento.location
+        ? {
+            texto: evento.location.texto || "",
+            lat: evento.location.lat ?? null,
+            lng: evento.location.lng ?? null,
+            displayName: evento.location.displayName || "",
+          }
+        : null;
+      // El día se fuerza al del evento; la hora-del-día la elige el host.
+      // Defensivo: si un cliente bypassea el form, no puede crear una mesa
+      // "del evento" en otra fecha.
+      if (evento.eventDate && date) {
+        const requested = new Date(date);
+        const base = new Date(evento.eventDate);
+        if (!Number.isNaN(requested.getTime())) {
+          base.setHours(
+            requested.getHours(),
+            requested.getMinutes(),
+            requested.getSeconds(),
+            0,
+          );
+          resolvedDate = base;
+        } else {
+          resolvedDate = base;
+        }
+      } else if (evento.eventDate) {
+        resolvedDate = evento.eventDate;
+      }
     }
 
     let table;
     try {
       table = await Table.create({
         boardGame,
-        date,
+        date: resolvedDate,
         maxPlayers,
-        // Fallback al direccion del perfil si el host no especificó ubicación.
-        location: locationForCreate(location, req.user.direccion),
+        // Si la mesa está dentro de un evento, location = location del evento.
+        // Si no, fallback al direccion del perfil si el host no especificó.
+        location: validatedEventoId
+          ? eventoLocation
+          : locationForCreate(location, req.user.direccion),
         description,
         privacy: privacy || "public",
         host: req.user._id,

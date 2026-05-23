@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
@@ -11,8 +16,19 @@ const defaultDate = () => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   d.setHours(18, 0, 0, 0);
-  return d.toISOString().slice(0, 16);
+  return toLocalDatetimeInput(d);
 };
+
+// `datetime-local` y `time` inputs esperan strings en LOCAL time (no UTC).
+// `.toISOString()` aplica timezone shift, así que armamos el string a mano.
+function toLocalDatetimeInput(d) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function toLocalTimeInput(d) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 export default function CreateTable() {
   const { user } = useAuth();
@@ -43,11 +59,43 @@ export default function CreateTable() {
   const abortRef = useRef(null);
   const searchCache = useRef(new Map());
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   // Si la mesa se está creando desde el detalle de un evento, el query param
   // `?evento=<id>` se propaga al POST. El server valida permisos contra el
   // evento (canActInEvento). Sin el param, la mesa es global.
   const eventoId = searchParams.get("evento") || null;
+  // EventoMesas pasa `eventDate` por navigation state al hacer "Crear mesa"
+  // para no tener que refetchear el evento acá. Si el user refresca el form
+  // (state se pierde), caemos a un fetch defensivo abajo.
+  const [eventDate, setEventDate] = useState(
+    () => location.state?.eventDate || null,
+  );
+  // Hora elegida por el user para el día del evento (HH:MM). Default = la hora
+  // misma del evento, fallback 18:00.
+  const [timeOfDay, setTimeOfDay] = useState("18:00");
+
+  // Si el form se carga con ?evento= pero sin state (refresh / link directo),
+  // fetcheamos el evento para conocer su fecha.
+  useEffect(() => {
+    if (!eventoId || eventDate) return undefined;
+    const ac = new AbortController();
+    axios
+      .get(API.eventos.DETAIL(eventoId), { signal: ac.signal })
+      .then(({ data }) => {
+        if (ac.signal.aborted) return;
+        if (data?.eventDate) setEventDate(data.eventDate);
+      })
+      .catch(() => {});
+    return () => ac.abort();
+  }, [eventoId, eventDate]);
+
+  // Cuando llega `eventDate`, seedeamos el time picker con la hora del evento.
+  useEffect(() => {
+    if (!eventDate) return;
+    const d = new Date(eventDate);
+    if (!Number.isNaN(d.getTime())) setTimeOfDay(toLocalTimeInput(d));
+  }, [eventDate]);
 
   useEffect(() => {
     if (debouncedBoardGameInput.length < 3 || boardGameSelected) {
@@ -190,8 +238,25 @@ export default function CreateTable() {
     }
     setLoading(true);
     try {
+      // Si la mesa va dentro de un evento, NO mandamos location: el server la
+      // hereda del evento (single source of truth). Sacarlo del payload evita
+      // que el server caiga al fallback "user.direccion" si el form viniera
+      // con location vacía.
+      const { location: _location, date: formDate, ...rest } = form;
+      const basePayload = eventoId ? rest : form;
+      // Dentro de un evento, el día se fuerza al del evento y el user solo
+      // edita la hora. Si todavía no llegó `eventDate`, mandamos el formDate
+      // como estaba — el server hace el override defensivo de todas formas.
+      let dateToSend = formDate;
+      if (eventoId && eventDate) {
+        const base = new Date(eventDate);
+        const [h, m] = (timeOfDay || "00:00").split(":").map(Number);
+        base.setHours(h || 0, m || 0, 0, 0);
+        dateToSend = toLocalDatetimeInput(base);
+      }
       const { data } = await axios.post(API.tables.LIST, {
-        ...form,
+        ...basePayload,
+        date: dateToSend,
         boardGame: boardGameSelected.name,
         bggId: boardGameSelected.id,
         bggThumbnail: boardGameSelected.thumbnail,
@@ -288,15 +353,31 @@ export default function CreateTable() {
 
             <div className={styles.twoCol}>
               <div className={styles.field}>
-                <label className={styles.label}>Fecha y hora *</label>
-                <input
-                  type="datetime-local"
-                  name="date"
-                  value={form.date}
-                  onChange={handleChange}
-                  className={styles.input}
-                  required
-                />
+                {eventoId ? (
+                  <>
+                    <label className={styles.label}>Hora *</label>
+                    <input
+                      type="time"
+                      name="time"
+                      value={timeOfDay}
+                      onChange={(e) => setTimeOfDay(e.target.value)}
+                      className={styles.input}
+                      required
+                    />
+                  </>
+                ) : (
+                  <>
+                    <label className={styles.label}>Fecha y hora *</label>
+                    <input
+                      type="datetime-local"
+                      name="date"
+                      value={form.date}
+                      onChange={handleChange}
+                      className={styles.input}
+                      required
+                    />
+                  </>
+                )}
               </div>
 
               <div className={styles.field}>
@@ -337,54 +418,56 @@ export default function CreateTable() {
               </div>
             </div>
 
-            <div className={styles.field}>
-              <label className={styles.label}>
-                Ubicación
-                <span className={styles.labelHint}>(opcional)</span>
-              </label>
-              <p className={styles.locationHint}>
-                {hasProfileDireccion ? (
-                  <>
-                    Si lo dejás vacío, usamos la dirección de tu perfil:{" "}
-                    <strong>
-                      {profileDireccionTexto || "tus coordenadas guardadas"}
-                    </strong>
-                    .
-                  </>
-                ) : (
-                  <>
-                    Si lo dejás vacío, la mesa se publica sin ubicación.{" "}
-                    <Link to="/perfil" className={styles.locationLink}>
-                      Agregá una dirección a tu perfil
-                    </Link>{" "}
-                    para usarla por default.
-                  </>
-                )}
-              </p>
-              <div className={styles.geocodeRow}>
-                <PlaceAutocomplete
-                  value={form.location.texto}
-                  onChange={updateLocationTexto}
-                  onSelect={handlePlaceSelect}
-                  placeholder="Empezá a escribir una dirección…"
-                />
-                <button
-                  type="button"
-                  className={styles.btnSearch}
-                  onClick={handleManualGeocode}
-                  disabled={geocoding}
-                  title="Buscar la dirección que tipeaste (sin picar sugerencia)"
-                >
-                  {geocoding ? "…" : "Buscar"}
-                </button>
-              </div>
-              {form.location.lat != null && form.location.lng != null && (
-                <p className={styles.coordsHint}>
-                  📍 {form.location.lat.toFixed(5)},{" "}
-                  {form.location.lng.toFixed(5)}
+            {!eventoId && (
+              <div className={styles.field}>
+                <label className={styles.label}>
+                  Ubicación
+                  <span className={styles.labelHint}>(opcional)</span>
+                </label>
+                <p className={styles.locationHint}>
+                  {hasProfileDireccion ? (
+                    <>
+                      Si lo dejás vacío, usamos la dirección de tu perfil:{" "}
+                      <strong>
+                        {profileDireccionTexto || "tus coordenadas guardadas"}
+                      </strong>
+                      .
+                    </>
+                  ) : (
+                    <>
+                      Si lo dejás vacío, la mesa se publica sin ubicación.{" "}
+                      <Link to="/perfil" className={styles.locationLink}>
+                        Agregá una dirección a tu perfil
+                      </Link>{" "}
+                      para usarla por default.
+                    </>
+                  )}
                 </p>
-              )}
-            </div>
+                <div className={styles.geocodeRow}>
+                  <PlaceAutocomplete
+                    value={form.location.texto}
+                    onChange={updateLocationTexto}
+                    onSelect={handlePlaceSelect}
+                    placeholder="Empezá a escribir una dirección…"
+                  />
+                  <button
+                    type="button"
+                    className={styles.btnSearch}
+                    onClick={handleManualGeocode}
+                    disabled={geocoding}
+                    title="Buscar la dirección que tipeaste (sin picar sugerencia)"
+                  >
+                    {geocoding ? "…" : "Buscar"}
+                  </button>
+                </div>
+                {form.location.lat != null && form.location.lng != null && (
+                  <p className={styles.coordsHint}>
+                    📍 {form.location.lat.toFixed(5)},{" "}
+                    {form.location.lng.toFixed(5)}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className={styles.field}>
               <label className={styles.label}>Descripción</label>
@@ -431,7 +514,15 @@ export default function CreateTable() {
               <button
                 type="button"
                 className={styles.btnGhost}
-                onClick={() => navigate("/")}
+                onClick={() => {
+                  // Volvemos a la pantalla previa si hay historial in-app
+                  // (React Router trackea su stack con `idx`). Si no, caemos
+                  // al evento (cuando vinimos con ?evento=) o a Home.
+                  const canGoBack = (window.history.state?.idx ?? 0) > 0;
+                  if (canGoBack) navigate(-1);
+                  else if (eventoId) navigate(`/eventos/${eventoId}?tab=mesas`);
+                  else navigate("/");
+                }}
               >
                 Cancelar
               </button>

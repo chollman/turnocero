@@ -685,6 +685,7 @@ export default function EventoDetail() {
               {activeTab === "mesas" && !editing && (
                 <EventoMesas
                   eventoId={id}
+                  eventDate={evento.eventDate}
                   items={mesasItems}
                   setItems={setMesasItems}
                   canAdd={canActInEvento}

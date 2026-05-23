@@ -138,6 +138,67 @@ describe("POST /api/tables — body.eventoId", () => {
     expect(res.status).toBe(201);
     expect(res.body.eventoId).toBeNull();
   });
+
+  it("forces the mesa's date to the event's day, keeping the time-of-day from the body", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { user, token } = await createAuthedUser();
+    const eventDate = new Date("2030-06-15T16:00:00.000Z");
+    const evento = await createEvento(admin, {
+      eventDate,
+      registrations: [
+        { user: user._id, status: "confirmed", submittedAt: new Date() },
+      ],
+    });
+    // El user pide una fecha en OTRO día (2030-06-20 a las 21:30) — el server
+    // debe respetar solo la hora (21:30) y forzar el día al del evento (15/6).
+    const wrongDay = new Date("2030-06-20T21:30:00.000Z");
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catan",
+        date: wrongDay.toISOString(),
+        maxPlayers: 4,
+        eventoId: evento._id.toString(),
+      });
+    expect(res.status).toBe(201);
+    const persisted = await Table.findById(res.body._id).lean();
+    const persistedDate = new Date(persisted.date);
+    // El día (UTC) debe coincidir con el del evento — no con el del body.
+    expect(persistedDate.getUTCFullYear()).toBe(2030);
+    expect(persistedDate.getUTCMonth()).toBe(5); // junio
+    expect(persistedDate.getUTCDate()).toBe(15);
+    // La hora/min UTC debe coincidir con la solicitada (21:30).
+    expect(persistedDate.getUTCHours()).toBe(21);
+    expect(persistedDate.getUTCMinutes()).toBe(30);
+  });
+
+  it("inherits the event's location and IGNORES any location in the body", async () => {
+    const admin = await createUser({ isAdmin: true });
+    const { user, token } = await createAuthedUser();
+    const evento = await createEvento(admin, {
+      location: { texto: "Bar del Evento", lat: -34.6, lng: -58.4 },
+      registrations: [
+        { user: user._id, status: "confirmed", submittedAt: new Date() },
+      ],
+    });
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Wingspan",
+        date: new Date(Date.now() + 86400000).toISOString(),
+        maxPlayers: 4,
+        eventoId: evento._id.toString(),
+        // Cliente intenta inyectar otra ubicación — el server debe ignorarla.
+        location: { texto: "Otra dirección", lat: 0, lng: 0 },
+      });
+    expect(res.status).toBe(201);
+    const persisted = await Table.findById(res.body._id).lean();
+    expect(persisted.location.texto).toBe("Bar del Evento");
+    expect(persisted.location.lat).toBe(-34.6);
+    expect(persisted.location.lng).toBe(-58.4);
+  });
 });
 
 describe("GET /api/tables — excludes event-scoped tables", () => {
