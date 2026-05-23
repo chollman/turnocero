@@ -7,6 +7,22 @@ const Evento = require("../models/Evento");
 const { protect, requireAdmin, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const validateObjectId = require("../middleware/validateObjectId");
+const userRateLimit = require("../middleware/userRateLimit");
+
+// Inscribirse sube un comprobante a Cloudinary y persiste un registro —
+// cualquier loop bug del cliente nos puede llenar la cuenta de Cloudinary.
+// Ludoteca dispara batch resolveGame contra BGG (1 fetch /thing por cada
+// game no cacheado), también vale la pena proteger.
+const eventoSubscribeLimiter = userRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: "Demasiados intentos de inscripción, esperá unos minutos.",
+});
+const eventoLudotecaLimiter = userRateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 30,
+  message: "Demasiadas operaciones en la ludoteca, esperá un momento.",
+});
 const {
   isValidCoord,
   attachDistance,
@@ -641,6 +657,7 @@ router.delete("/:id", protect, requireAdmin, async (req, res) => {
 router.post(
   "/:id/inscribirse",
   protect,
+  eventoSubscribeLimiter,
   comprobanteUpload.single("comprobante"),
   async (req, res) => {
     try {
@@ -1223,7 +1240,7 @@ router.get("/:id/ludoteca", optionalAuth, async (req, res) => {
 });
 
 // POST /:id/ludoteca — agregar juego (confirmados + admin)
-router.post("/:id/ludoteca", protect, async (req, res) => {
+router.post("/:id/ludoteca", protect, eventoLudotecaLimiter, async (req, res) => {
   try {
     const { bggGameId, notes } = req.body;
     const numericId = Number(bggGameId);

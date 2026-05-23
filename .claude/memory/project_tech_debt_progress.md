@@ -1,8 +1,10 @@
 ---
 name: tech-debt-audit-progress
-description: Estado de ejecución del plan plans/tech-debt-audit.md — qué se cerró, qué queda
-metadata:
+description: "Estado de ejecución del plan plans/tech-debt-audit.md — qué se cerró, qué queda"
+metadata: 
+  node_type: memory
   type: project
+  originSessionId: bc824901-f315-4750-8b4f-7540f219ff94
 ---
 
 Progreso del **tech-debt audit** (`plans/tech-debt-audit.md`, ejecutado en sesiones del 2026-05-22). Plan original: 4 fases + 30+ items.
@@ -42,20 +44,22 @@ Progreso del **tech-debt audit** (`plans/tech-debt-audit.md`, ejecutado en sesio
 
 ### Fase 4 — Infraestructura
 - **P4.1** coverage thresholds en Vitest (commit `a10bad5`): server 55/47/55/55, client 75/68/70/80 (~3-7% bajo baseline real).
-- **P4.3** logger estructurado: commits `d9d3104` (eventos + saveNotification) + `219e1a4` (BGG modules). Logs JSON con stack trace preservado.
-- **P4.4** `client/src/api/endpoints.js` como fuente única: commit `2f5abf9` — ver [[api-endpoints-pattern]].
+- **P4.3** logger estructurado: commits `d9d3104` (eventos + saveNotification) + `219e1a4` (BGG modules) + cierre `geocode.js`. Logs JSON con stack trace preservado.
+- **P4.4** `client/src/api/endpoints.js` como fuente única: commits `2f5abf9` (infra) + `18482d8` (cierre — 56 archivos migrados). Ver [[api-endpoints-pattern]].
+- **P4.5** rate limiting per-user (`server/middleware/userRateLimit.js`) aplicado a `POST /api/bgg/sync` (3/5min), BGG mutations POST/PUT/DELETE (30/5min), `POST /api/eventos/:id/inscribirse` (5/15min), `POST /api/eventos/:id/ludoteca` (30/5min). Key por `req.user._id` (no IP — endpoints authed). Skip en NODE_ENV=test.
+- **P4.6** lease distribuido para crons (`server/models/CronLease.js` + `server/utils/cronLease.js#withLease`). Aplicado en `scheduler.js` a `eventoReminders` y `closePastEventos`. Garantiza que si N instancias del server arrancan crons simultáneos, solo una procesa por tick. TTL doc con expires:0 + cleanup explícito al terminar.
 
 ## Pendiente (incremental, al toque oportunístico)
 
-- **P1.6** restante: migrar `auth.js`, `bgg.js`, `tables.js`, `torneos.js`, `eventos.js`, `compartidas.js`, `dm.js`, etc. a `asyncHandler` cuando se toquen.
-- **P4.4** restante: migrar a `API` namespace en UserProfile, CreateTable, TableDetail+subs, EventoDetail/Form/Inscripciones, TorneoDetail/CreateTorneo, CompartidaPost/Card subs, Messages/DirectChat, DatabaseViewer, ChatLauncher, BggGameSearch.
-- **P3.1** auditar `eslint-disable-next-line react-hooks/exhaustive-deps` sin comentario en TableDetail:234, NotificationContext (ya migrado a listeners — verificar si sigue), BottomNav:245.
+- **P1.6** restante: migrar `auth.js`, `bgg.js`, `tables.js`, `torneos.js`, `eventos.js`, `compartidas.js`, `dm.js`, etc. a `asyncHandler` cuando se toquen. `httpError` + `errorHandler` ya están, solo falta cambiar la sintaxis de los handlers.
+- **P2.7** `isSameId` aplicado donde se toca: el helper existe + tiene tests, pero los ~180 call sites con `a.toString() !== b.toString()` no se migraron en bloque. Migrar oportunísticamente cuando se toca un router/service.
+- **P3.1** auditar `eslint-disable-next-line react-hooks/exhaustive-deps` sin comentario en TableDetail:234, BottomNav:245 (NotificationContext ya migrado a listeners).
 - **P3.3** migrar `let cancelled = false` a `AbortController` en fetchs (TableDetail tenía uno; CreateTable es la referencia correcta).
 - **P4.2** tests faltantes en `App.jsx`, `Modal.jsx`, `GameTile.jsx`.
-- **P4.5** rate limiting en `POST /api/bgg/sync`, `POST /api/bgg/partidas`, `POST /api/eventos/:id/ludoteca`, `POST /api/eventos/:id/inscribirse`.
-- **P4.6** safeguard de race en cron `eventoReminders` (mutex/lease en Mongo).
 
-## Métricas finales (post-fase)
+## Métricas finales (post-audit, 2026-05-22)
 
-Tests verde al cierre: **808 server + 1550 client = 2358 total** (vs 518 + 1377 = 1895 antes del audit — +463 tests en la fase).
+Tests verde al cierre: **818 server + 1550 client = 2368 total** (vs 518 + 1377 = 1895 antes del audit — +473 tests en la fase).
 ESLint en 0 (lo seguía estando desde `6faf3dc`).
+
+**Estado: el plan está sustancialmente cerrado.** Lo que queda son ítems de polish incremental (`P1.6` resto, `P2.7` migración, `P3.1` / `P3.3` / `P4.2`) — todos al toque oportunístico cuando se modifique cada archivo.

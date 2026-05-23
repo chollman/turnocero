@@ -2,11 +2,28 @@ const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const userRateLimit = require("../middleware/userRateLimit");
 const User = require("../models/User");
 const BggPlay = require("../models/BggPlay");
 const logger = require("../utils/logger");
 const { escapeRegex } = require("../utils/regex");
 const { withUserLock } = require("../utils/bggSync");
+
+// Rate limits para endpoints caros (BGG-bound). El sync re-fetchea TODAS las
+// pages de plays del user — es de lejos lo más caro que tenemos. Las
+// mutations (POST/PUT/DELETE) hablan a geekplay.php que no es endpoint
+// público de BGG; pegarle agresivo nos puede traer baneo. Per-user limits
+// (no per-IP) porque todos los endpoints son authed.
+const bggSyncLimiter = userRateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 3, // 3 full-syncs cada 5 min — más que suficiente para uso humano
+  message: "Demasiados syncs con BGG, esperá unos minutos.",
+});
+const bggMutationLimiter = userRateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 30, // 30 partidas creadas/editadas/borradas cada 5 min
+  message: "Demasiadas operaciones sobre BGG, esperá un momento.",
+});
 const {
   computeGameStats,
   computePlayedGames,
@@ -525,7 +542,7 @@ router.get("/og/:bggUsername", async (req, res) => {
 //
 // Used by the "Reconciliar all con BGG" button as a manual fallback for
 // edits to old plays that the lightweight probe misses.
-router.post("/sync", protect, async (req, res) => {
+router.post("/sync", protect, bggSyncLimiter, async (req, res) => {
   try {
     const user = req.user;
     if (!user.bggUsername) {
@@ -578,7 +595,7 @@ router.post("/sync", protect, async (req, res) => {
 // submit to geekplay.php, then verify the play exists on BGG by fetching
 // it back, then mirror to Mongo using BGG's canonical representation.
 // If any step fails the response is 502 and Mongo is left untouched.
-router.post("/partidas", protect, async (req, res) => {
+router.post("/partidas", protect, bggMutationLimiter, async (req, res) => {
   try {
     const user = req.user;
     if (!user.bggUsername) {
@@ -649,7 +666,7 @@ router.post("/partidas", protect, async (req, res) => {
 
 // DELETE /api/bgg/partidas/:playId — delete a play from BGG. Verifies the
 // play is actually gone from BGG before removing the Mongo mirror.
-router.delete("/partidas/:playId", protect, async (req, res) => {
+router.delete("/partidas/:playId", protect, bggMutationLimiter, async (req, res) => {
   try {
     const user = req.user;
     if (!user.bggUsername) {
@@ -723,7 +740,7 @@ router.delete("/partidas/:playId", protect, async (req, res) => {
 
 // PUT /api/bgg/partidas/:playId — edit an existing play in BGG. Same
 // BGG-first verification flow as POST.
-router.put("/partidas/:playId", protect, async (req, res) => {
+router.put("/partidas/:playId", protect, bggMutationLimiter, async (req, res) => {
   try {
     const user = req.user;
     if (!user.bggUsername) {

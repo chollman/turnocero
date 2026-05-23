@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 const { Client } = require('@googlemaps/google-maps-services-js');
 const GeocodeCache = require('../models/GeocodeCache');
 const { protect } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -94,7 +95,10 @@ router.get('/', protect, geocodeLimiter, async (req, res) => {
     // + status en el body. Capturarlos también acá.
     if (response.data.status && response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
       const detail = response.data.error_message || '';
-      console.warn('[geocode] Google returned non-OK status:', response.data.status, detail);
+      logger.warn('[geocode] Google returned non-OK status', {
+        status: response.data.status,
+        detail,
+      });
       return res.status(502).json({
         message: `Error de Google Geocoding: ${response.data.status}${detail ? ` — ${detail}` : ''}`,
       });
@@ -105,12 +109,15 @@ router.get('/', protect, geocodeLimiter, async (req, res) => {
     // Errores de Google (network, timeout, quota exceeded) → 502.
     if (err.response?.data?.status) {
       const detail = err.response.data.error_message || '';
-      console.warn('[geocode] Google API error:', err.response.data.status, detail);
+      logger.warn('[geocode] Google API error', {
+        status: err.response.data.status,
+        detail,
+      });
       return res.status(502).json({
         message: `Error de Google Geocoding: ${err.response.data.status}${detail ? ` — ${detail}` : ''}`,
       });
     }
-    console.warn('[geocode] Unexpected error:', err.message);
+    logger.warn('[geocode] Unexpected error', { error: err.message });
     return res.status(500).json({ message: 'Error al consultar geocoding.' });
   }
 });
