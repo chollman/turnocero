@@ -2,12 +2,10 @@ const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
-const { getSessionCookie, clearSession } = require("../utils/bggAuth");
 const User = require("../models/User");
 const BggPlay = require("../models/BggPlay");
-const { computePlayHash } = require("../utils/bggHash");
 const { escapeRegex } = require("../utils/regex");
-const { sleep, withUserLock } = require("../utils/bggSync");
+const { withUserLock } = require("../utils/bggSync");
 const {
   computeGameStats,
   computePlayedGames,
@@ -49,88 +47,20 @@ const {
   triggerBackgroundProbe,
   triggerBackgroundReconcile,
 } = require("../services/bgg/bggSyncEngine");
+const {
+  buildPlayForm,
+  validatePlayBody,
+  submitToGeekplay,
+  verifyPlayOnBgg,
+  upsertPlayFromBgg,
+} = require("../services/bgg/bggMutations");
 
 router.use(requireSection("bgwatch"));
 
 // El sync engine (probe + reconcile + slot management) vive en
-// services/bgg/bggSyncEngine.js. Acá solo quedan los handlers HTTP +
-// los helpers de mutation (verifyPlayOnBgg, geekplay.php).
-const BGG_GEEKPLAY = "https://boardgamegeek.com/geekplay.php";
-
-// Fetches plays from BGG narrowed by game + date so we can confirm
-// geekplay.php actually persisted the mutation (it can silently 200
-// without writing). Returns the parsed play (enriched with thumbnail)
-// if BGG has it with the expected playId, or null if not.
-//
-// NOTE: BGG's /xmlapi2/plays does NOT support filtering by play id.
-// The `id` query param is the GAME (thing) id. To pinpoint a single
-// play we narrow with id=gameId + mindate=date + maxdate=date, then
-// scan the result for the expected playId.
-//
-// One retry at 600ms because BGG's plays index can lag a hair behind
-// a fresh geekplay POST.
-async function verifyPlayOnBgg(bggUsername, playId, { gameId, playdate } = {}) {
-  const params = new URLSearchParams({ username: bggUsername });
-  if (gameId) params.set("id", String(gameId));
-  if (playdate) {
-    params.set("mindate", playdate);
-    params.set("maxdate", playdate);
-  }
-  const url = `${BGG_API}/plays?${params.toString()}`;
-  console.log(`[bgg/verify] GET ${url} (looking for playId=${playId})`);
-
-  for (let attempt = 0; attempt < 2; attempt++) {
-    if (attempt > 0) await sleep(600);
-    let xml;
-    try {
-      xml = await fetchBgg(url);
-    } catch (e) {
-      // Network/upstream blip — retry once, then give up.
-      if (attempt === 0) continue;
-      const err = new Error(
-        `No se pudo verificar la partida en BGG: ${e.message}`,
-      );
-      err.status = 502;
-      throw err;
-    }
-    const parsed = parsePlaysXml(xml);
-    if (!parsed) continue;
-    const play = parsed.plays.find((p) => p.playId === String(playId));
-    if (!play) {
-      console.log(
-        `[bgg/verify] attempt ${attempt + 1}: ${parsed.plays.length} play(s) returned, none matched playId=${playId}`,
-      );
-      continue;
-    }
-
-    let thumbnail = null;
-    if (play.gameId) {
-      try {
-        const game = await resolveGame(play.gameId);
-        thumbnail = game?.thumbnail || null;
-      } catch {
-        /* best-effort */
-      }
-    }
-    return { ...play, gameThumbnail: thumbnail };
-  }
-  return null;
-}
-
-// Upserts a BggPlay from a play already parsed off the BGG XML response.
-// Use this after verifyPlayOnBgg succeeds — the doc matches what BGG has,
-// not what the client sent.
-async function upsertPlayFromBgg(bggUsername, parsedPlay) {
-  const lower = bggUsername.toLowerCase();
-  const doc = { ...parsedPlay, bggUsername: lower };
-  doc.hash = computePlayHash(doc);
-  await BggPlay.updateOne(
-    { bggUsername: lower, playId: doc.playId },
-    { $set: doc },
-    { upsert: true },
-  );
-  return doc;
-}
+// services/bgg/bggSyncEngine.js. Las mutations contra geekplay.php
+// (POST/PUT/DELETE partidas) viven en services/bgg/bggMutations.js.
+// Acá solo quedan los handlers HTTP.
 
 // GET /api/bgg/search?q=<query>
 router.get("/search", async (req, res) => {
@@ -509,132 +439,6 @@ router.get("/partidas/:bggUsername", async (req, res) => {
     res.status(502).json({ message: "No se pudo conectar con BGG" });
   }
 });
-
-// Build geekplay.php form body. If `playId` is set, it's an edit; otherwise create.
-function buildPlayForm(body, playId = null) {
-  const {
-    objectid,
-    playdate,
-    length,
-    location,
-    quantity = 1,
-    comments,
-    incomplete = false,
-    nowinstats = false,
-    players = [],
-  } = body;
-
-  const qty = Math.max(1, Math.min(99, parseInt(quantity) || 1));
-  const len =
-    length != null && length !== "" ? Math.max(0, parseInt(length) || 0) : null;
-
-  const form = new URLSearchParams();
-  form.set("ajax", "1");
-  form.set("action", "save");
-  form.set("version", "2");
-  form.set("objecttype", "thing");
-  if (playId) form.set("playid", String(playId));
-  form.set("objectid", String(objectid));
-  form.set("playdate", String(playdate));
-  if (len != null) form.set("length", String(len));
-  if (location) form.set("location", String(location).slice(0, 100));
-  form.set("quantity", String(qty));
-  if (comments) form.set("comments", String(comments).slice(0, 1000));
-  form.set("incomplete", incomplete ? "1" : "0");
-  form.set("nowinstats", nowinstats ? "1" : "0");
-
-  players.forEach((p, i) => {
-    const idx = `players[${i}]`;
-    if (p.name) form.set(`${idx}[name]`, String(p.name).slice(0, 100));
-    if (p.username)
-      form.set(`${idx}[username]`, String(p.username).slice(0, 50));
-    form.set(`${idx}[position]`, String(p.position ?? i + 1));
-    if (p.color) form.set(`${idx}[color]`, String(p.color).slice(0, 30));
-    if (p.score != null && p.score !== "")
-      form.set(`${idx}[score]`, String(p.score).slice(0, 30));
-    form.set(`${idx}[new]`, p.new ? "1" : "0");
-    if (p.rating != null && Number(p.rating) > 0)
-      form.set(`${idx}[rating]`, String(p.rating));
-    form.set(`${idx}[win]`, p.win ? "1" : "0");
-  });
-
-  return form;
-}
-
-function validatePlayBody(body) {
-  if (!/^\d+$/.test(String(body.objectid || ""))) {
-    return "ID de juego inválido";
-  }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.playdate || ""))) {
-    return "Fecha inválida (formato YYYY-MM-DD)";
-  }
-  if (!Array.isArray(body.players)) {
-    return "Lista de jugadores inválida";
-  }
-  return null;
-}
-
-async function submitToGeekplay(user, form, label) {
-  let cookie;
-  try {
-    cookie = await getSessionCookie(user._id);
-  } catch (e) {
-    throw Object.assign(e, { status: e.status || 500 });
-  }
-
-  const formBody = form.toString();
-  console.log(`[bgg/geekplay ${label}] POST body: ${formBody}`);
-
-  let bggRes;
-  try {
-    bggRes = await fetch(BGG_GEEKPLAY, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Cookie: cookie,
-        "User-Agent": "Turnocero/1.0",
-        Origin: "https://boardgamegeek.com",
-        Referer: "https://boardgamegeek.com/",
-        "X-Requested-With": "XMLHttpRequest",
-      },
-      body: formBody,
-    });
-  } catch (e) {
-    throw Object.assign(new Error(`No se pudo contactar BGG: ${e.message}`), {
-      status: 502,
-    });
-  }
-
-  if (bggRes.status === 401 || bggRes.status === 403) {
-    clearSession(user._id);
-    throw Object.assign(
-      new Error("Sesión BGG inválida. Reconectá en /perfil."),
-      { status: 401 },
-    );
-  }
-  if (!bggRes.ok) {
-    const text = await bggRes.text().catch(() => "");
-    console.warn(
-      `[bgg/geekplay ${label}] HTTP ${bggRes.status}:`,
-      text.slice(0, 500),
-    );
-    throw Object.assign(new Error(`BGG respondió ${bggRes.status}`), {
-      status: 502,
-    });
-  }
-
-  const text = await bggRes.text();
-  console.log(
-    `[bgg/geekplay ${label}] HTTP ${bggRes.status} body: ${text.slice(0, 500)}`,
-  );
-  let payload;
-  try {
-    payload = JSON.parse(text);
-  } catch {
-    payload = { raw: text.slice(0, 200) };
-  }
-  return payload;
-}
 
 // GET /api/bgg/og/:bggUsername — public OG metadata for /bg-watch/:username crawlers.
 // Returns displayName (Turnocero user if connected), play count, collection size,
