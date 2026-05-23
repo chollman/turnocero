@@ -7,7 +7,6 @@ import {
   useCallback,
   useMemo,
 } from "react";
-import { io } from "socket.io-client";
 import axios from "axios";
 import { useAuth } from "./AuthContext";
 import { useSiteConfig } from "./SiteConfigContext";
@@ -16,24 +15,17 @@ import {
   mergeNotifs,
   pushToast,
   markReadByPredicate,
-  applyChatNotif,
-  applyCommentNotif,
-  applyImageNotif,
-  applyJoinRequestNotif,
-  applyJoinAcceptedNotif,
-  applyJoinRejectedNotif,
-  applySpotOpenedNotif,
-  applyTableCancelledNotif,
-  applyFriendRequestNotif,
-  applyFriendAcceptedNotif,
-  applyDmMessageNotif,
-  applyAdminMessageNotif,
-  applyTorneoNotif,
-  applyCompartidaCommentNotif,
-  applyCompartidaLikeNotif,
-  applyNoticiaPublishedNotif,
-  applyEventoNotif,
 } from "./notificationReducers";
+import { useNotificationSocket } from "./notificationListeners/useNotificationSocket";
+import { useTableNotificationListeners } from "./notificationListeners/useTableNotificationListeners";
+import { useFriendNotificationListeners } from "./notificationListeners/useFriendNotificationListeners";
+import { useDmNotificationListeners } from "./notificationListeners/useDmNotificationListeners";
+import { useAdminChatNotificationListeners } from "./notificationListeners/useAdminChatNotificationListeners";
+import { useTorneoNotificationListeners } from "./notificationListeners/useTorneoNotificationListeners";
+import { useCompartidaNotificationListeners } from "./notificationListeners/useCompartidaNotificationListeners";
+import { useNoticiaNotificationListeners } from "./notificationListeners/useNoticiaNotificationListeners";
+import { useEventoNotificationListeners } from "./notificationListeners/useEventoNotificationListeners";
+import { useSiteConfigSocketListener } from "./notificationListeners/useSiteConfigSocketListener";
 
 const NotificationContext = createContext(null);
 
@@ -52,15 +44,19 @@ export function NotificationProvider({ children }) {
     sectionCheckRef.current = isSectionEnabled;
   }, [isSectionEnabled]);
 
-  // Wrap a socket handler with a section-enabled check. If the section is OFF
-  // for the current user (and they're not admin), drop the event silently
-  // (defense-in-depth — el server no debería emitir pero el filtro extra
-  // evita bugs).
-  const gated = (event, handler) => (payload) => {
-    const section = EVENT_SECTION[event];
-    if (section && !sectionCheckRef.current(section)) return;
-    handler(payload);
-  };
+  // Wrap un socket handler con check de section-enabled. Si la sección
+  // está OFF para el user, droppea silenciosamente (defense-in-depth — el
+  // server no debería emitir pero el filtro extra evita bugs). Memoizado
+  // con useCallback para que los useEffects de los hooks de listeners no
+  // re-corran innecesariamente.
+  const gated = useCallback(
+    (event, handler) => (payload) => {
+      const section = EVENT_SECTION[event];
+      if (section && !sectionCheckRef.current(section)) return;
+      handler(payload);
+    },
+    [],
+  );
 
   // Load from server when user is available; reset entirely on logout.
   useEffect(() => {
@@ -74,7 +70,7 @@ export function NotificationProvider({ children }) {
       .get("/api/notifications")
       .then(({ data }) => {
         if (cancelled) return;
-        // Merge with any local state arrived via socket while the GET was in-flight.
+        // Merge con local state que llegó via socket mientras el GET estaba in-flight.
         setNotifications((local) => mergeNotifs(data, local));
       })
       .catch(() => {});
@@ -83,197 +79,61 @@ export function NotificationProvider({ children }) {
     };
   }, [user]);
 
-  // Socket lifecycle + listeners. La lógica de cada listener vive en
-  // `notificationReducers.js` — acá solo conectamos el socket, hacemos los
-  // checks de "active resource" (notif suprimida cuando el user ya está
-  // viendo el recurso), y delegamos.
-  useEffect(() => {
-    if (!user) return;
-    const token = localStorage.getItem("token");
-    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
-    const socket = io(socketUrl, {
-      auth: { token },
-      transports: ["websocket"],
-    });
+  // ── Socket + listeners por dominio ──────────────────────────────────
+  // useNotificationSocket maneja lifecycle (connect/disconnect on user).
+  // Cada hook de listeners attachea los socket.on(...) de su dominio y
+  // limpia con socket.off(...) al cleanup. La lógica de cada reducer vive
+  // en `notificationReducers.js`. Esto reemplazó al useEffect monolítico
+  // de ~190 líneas con 25+ listeners en línea (tech-debt P1.1).
+  const socket = useNotificationSocket(user);
 
-    // ── Mesas / Tables ──
-    socket.on(
-      "chat:notification",
-      gated("chat:notification", (payload) => {
-        if (activeTableRef.current === payload.tableId) return;
-        applyChatNotif({ setNotifications, setToasts, payload });
-      }),
-    );
-    socket.on(
-      "table:comment",
-      gated("table:comment", (payload) => {
-        if (activeTableRef.current === payload.tableId) return;
-        applyCommentNotif({ setNotifications, setToasts, payload });
-      }),
-    );
-    socket.on(
-      "table:image",
-      gated("table:image", (payload) => {
-        if (activeTableRef.current === payload.tableId) return;
-        applyImageNotif({ setNotifications, setToasts, payload });
-      }),
-    );
-    socket.on(
-      "join:request",
-      gated("join:request", (payload) => {
-        if (activeTableRef.current === payload.tableId) return;
-        applyJoinRequestNotif({ setNotifications, setToasts, payload });
-      }),
-    );
-    socket.on(
-      "join:accepted",
-      gated("join:accepted", (payload) => {
-        if (activeTableRef.current === payload.tableId) return;
-        applyJoinAcceptedNotif({ setNotifications, setToasts, payload });
-      }),
-    );
-    socket.on(
-      "join:rejected",
-      gated("join:rejected", (payload) =>
-        applyJoinRejectedNotif({ setNotifications, setToasts, payload }),
-      ),
-    );
-    socket.on(
-      "table:spot-opened",
-      gated("table:spot-opened", (payload) => {
-        if (activeTableRef.current === payload.tableId) return;
-        applySpotOpenedNotif({ setNotifications, setToasts, payload });
-      }),
-    );
-    socket.on(
-      "table:cancelled",
-      gated("table:cancelled", (payload) =>
-        applyTableCancelledNotif({ setNotifications, setToasts, payload }),
-      ),
-    );
-
-    // ── Friends ──
-    socket.on(
-      "friend:request",
-      gated("friend:request", (payload) =>
-        applyFriendRequestNotif({ setNotifications, setToasts, payload }),
-      ),
-    );
-    socket.on(
-      "friend:accepted",
-      gated("friend:accepted", (payload) =>
-        applyFriendAcceptedNotif({
-          setNotifications,
-          setToasts,
-          payload,
-          onAccepted: () => {
-            refreshUser().catch(() => {});
-            friendListenersRef.current.forEach((fn) => fn());
-          },
-        }),
-      ),
-    );
-
-    // ── DM ──
-    socket.on(
-      "dm:message",
-      gated("dm:message", (payload) =>
-        applyDmMessageNotif({
-          setNotifications,
-          payload,
-          onMessage: (msg) =>
-            dmListenersRef.current.forEach((fn) => fn(msg)),
-        }),
-      ),
-    );
-
-    // ── Admin chat ──
-    socket.on("admin:message", (payload) =>
-      applyAdminMessageNotif({
-        setNotifications,
-        payload,
-        isActive: () => adminChatActiveRef.current,
-      }),
-    );
-
-    // ── Torneos ── (6 tipos parametrizados con el mismo reducer)
-    const dispatchTorneo = (type) => (payload) =>
-      applyTorneoNotif({ setNotifications, setToasts, payload, type });
-    socket.on(
-      "torneo:registration-accepted",
-      gated(
-        "torneo:registration-accepted",
-        dispatchTorneo("tournament_accepted"),
-      ),
-    );
-    socket.on(
-      "torneo:registration-rejected",
-      gated(
-        "torneo:registration-rejected",
-        dispatchTorneo("tournament_rejected"),
-      ),
-    );
-    socket.on(
-      "torneo:advanced",
-      gated("torneo:advanced", dispatchTorneo("tournament_advanced")),
-    );
-    socket.on(
-      "torneo:eliminated",
-      gated("torneo:eliminated", dispatchTorneo("tournament_eliminated")),
-    );
-    socket.on(
-      "torneo:started",
-      gated("torneo:started", dispatchTorneo("tournament_started")),
-    );
-    socket.on(
-      "torneo:finished",
-      gated("torneo:finished", dispatchTorneo("tournament_finished")),
-    );
-
-    // ── Compartidas ──
-    socket.on(
-      "compartida:comment",
-      gated("compartida:comment", (payload) =>
-        applyCompartidaCommentNotif({ setNotifications, setToasts, payload }),
-      ),
-    );
-    socket.on(
-      "compartida:like",
-      gated("compartida:like", (payload) =>
-        applyCompartidaLikeNotif({ setNotifications, setToasts, payload }),
-      ),
-    );
-
-    // ── Noticias ──
-    socket.on(
-      "noticia:published",
-      gated("noticia:published", (payload) =>
-        applyNoticiaPublishedNotif({ setToasts, payload }),
-      ),
-    );
-
-    // ── Eventos ── (7 tipos en un solo evento socket — el type viene en payload)
-    socket.on(
-      "evento:notification",
-      gated("evento:notification", (payload) =>
-        applyEventoNotif({
-          setNotifications,
-          setToasts,
-          payload,
-          isActive: (eventoId) => activeEventoRef.current === eventoId,
-        }),
-      ),
-    );
-
-    // ── Site config ──
-    socket.on("site-config:updated", (config) => {
-      applyServerConfig(config);
-    });
-
-    return () => socket.disconnect();
-    // refreshUser is intentionally omitted — including it would reconnect the
-    // socket on every render.
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  useTableNotificationListeners({
+    socket,
+    gated,
+    activeTableRef,
+    setNotifications,
+    setToasts,
+  });
+  useFriendNotificationListeners({
+    socket,
+    gated,
+    setNotifications,
+    setToasts,
+    refreshUser,
+    friendListenersRef,
+  });
+  useDmNotificationListeners({
+    socket,
+    gated,
+    setNotifications,
+    dmListenersRef,
+  });
+  useAdminChatNotificationListeners({
+    socket,
+    setNotifications,
+    adminChatActiveRef,
+  });
+  useTorneoNotificationListeners({
+    socket,
+    gated,
+    setNotifications,
+    setToasts,
+  });
+  useCompartidaNotificationListeners({
+    socket,
+    gated,
+    setNotifications,
+    setToasts,
+  });
+  useNoticiaNotificationListeners({ socket, gated, setToasts });
+  useEventoNotificationListeners({
+    socket,
+    gated,
+    activeEventoRef,
+    setNotifications,
+    setToasts,
+  });
+  useSiteConfigSocketListener({ socket, applyServerConfig });
 
   // ── markRead helpers ────────────────────────────────────────────────
   // Cada uno setea read: true + count: 0 en las notifs que matchean el

@@ -9,11 +9,17 @@ const socketEvents = new Map();
 const socketOnMock = vi.fn((event, handler) => {
   socketEvents.set(event, handler);
 });
+// Post-split (P1.1), cada hook hace cleanup con socket.off(). Mantenemos
+// el handler en el map para que los tests que disparan eventos post-unmount
+// puedan seguir invocándolo y verificar que el cleanup interno (Sets de
+// listeners, refs) limpió correctamente.
+const socketOffMock = vi.fn();
 const socketDisconnectMock = vi.fn();
 const socketEmitMock = vi.fn();
 vi.mock("socket.io-client", () => ({
   io: vi.fn(() => ({
     on: socketOnMock,
+    off: socketOffMock,
     disconnect: socketDisconnectMock,
     emit: socketEmitMock,
   })),
