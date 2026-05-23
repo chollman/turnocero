@@ -129,9 +129,9 @@ function AppRoutes() {
           <Route path="/restablecer-contrasenia" element={<PublicRoute><ResetPassword /></PublicRoute>} />
           <Route path="/" element={<SectionGate section="compartidas"><Compartidas /></SectionGate>} />
           <Route path="/mesas" element={<SectionGate section="mesas"><Dashboard /></SectionGate>} />
-          <Route path="/mesas/crear" element={<SectionGate section="mesas"><CreateTable /></SectionGate>} />
+          <Route path="/mesas/crear" element={<PrivateRoute><SectionGate section="mesas"><CreateTable /></SectionGate></PrivateRoute>} />
           <Route path="/mesas/:id" element={<SectionGate section="mesas"><TableDetail /></SectionGate>} />
-          <Route path="/mesas/:id/editar" element={<SectionGate section="mesas"><EditTable /></SectionGate>} />
+          <Route path="/mesas/:id/editar" element={<PrivateRoute><SectionGate section="mesas"><EditTable /></SectionGate></PrivateRoute>} />
           <Route path="/notificaciones" element={<PrivateRoute><Notifications /></PrivateRoute>} />
           <Route path="/perfil" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
           <Route path="/usuarios" element={<PrivateRoute><SectionGate section="comunidad"><UsersList /></SectionGate></PrivateRoute>} />
@@ -142,9 +142,9 @@ function AppRoutes() {
           <Route path="/noticias" element={<SectionGate section="noticias"><Noticias /></SectionGate>} />
           <Route path="/noticias/:id" element={<SectionGate section="noticias"><NoticiaDetail /></SectionGate>} />
           <Route path="/torneos" element={<SectionGate section="torneos"><Torneos /></SectionGate>} />
-          <Route path="/torneos/crear" element={<SectionGate section="torneos"><CreateTorneo /></SectionGate>} />
+          <Route path="/torneos/crear" element={<AdminRoute><SectionGate section="torneos"><CreateTorneo /></SectionGate></AdminRoute>} />
           <Route path="/torneos/:id" element={<SectionGate section="torneos"><TorneoDetail /></SectionGate>} />
-          <Route path="/torneos/:id/editar" element={<SectionGate section="torneos"><EditTorneo /></SectionGate>} />
+          <Route path="/torneos/:id/editar" element={<AdminRoute><SectionGate section="torneos"><EditTorneo /></SectionGate></AdminRoute>} />
           <Route path="/eventos" element={<PrivateRoute><SectionGate section="eventos"><Eventos /></SectionGate></PrivateRoute>} />
           <Route path="/eventos/:id" element={<PrivateRoute><SectionGate section="eventos"><EventoDetail /></SectionGate></PrivateRoute>} />
           <Route path="/eventos/:id/inscripciones" element={<AdminRoute><SectionGate section="eventos"><EventoInscripciones /></SectionGate></AdminRoute>} />
