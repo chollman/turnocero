@@ -13,7 +13,7 @@
   user-select: none;
   animation: fallDown linear infinite;
   will-change: transform;
-  text-shadow: 0 0 12px rgba(24, 136, 239, 0.35);
+  text-shadow: 0 0 12px var(--amber-35);
 }
 
 @keyframes fallDown {

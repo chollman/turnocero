@@ -57,7 +57,7 @@
       transparent 28px
     ),
     radial-gradient(circle at 30% 20%, var(--amber-15), transparent 60%),
-    linear-gradient(180deg, #16203a, #0a0d15);
+    linear-gradient(180deg, #16203a, var(--bg-dark));
   display: grid;
   place-items: center;
 }
@@ -268,7 +268,7 @@
   color: rgba(245, 166, 35, 0.22);
   text-transform: uppercase;
   transform: rotate(-12deg);
-  border: 3px dashed rgba(245, 166, 35, 0.3);
+  border: 3px dashed var(--orange-30);
   padding: 6px 18px;
   border-radius: 8px;
 }

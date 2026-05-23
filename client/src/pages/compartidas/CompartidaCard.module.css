@@ -100,13 +100,13 @@
   letter-spacing: 0.15em;
   font-weight: 700;
   text-transform: uppercase;
-  background: #1888ef;
+  background: var(--amber);
   color: #fff;
   padding: 5px 11px;
   border-radius: 999px;
   z-index: 3;
   transform: rotate(2deg);
-  box-shadow: 0 6px 20px rgba(24, 136, 239, 0.4);
+  box-shadow: 0 6px 20px var(--amber-40);
 }
 
 @media (max-width: 940px) {
@@ -605,7 +605,7 @@
 .polaroidPhoto {
   width: 100%;
   aspect-ratio: 1;
-  background: linear-gradient(135deg, #1a2438, #0a0d15);
+  background: linear-gradient(135deg, #1a2438, var(--bg-dark));
   display: grid;
   place-items: center;
   overflow: hidden;
