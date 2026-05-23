@@ -32,6 +32,7 @@
 const BggPlay = require("../../models/BggPlay");
 const BggCollection = require("../../models/BggCollection");
 const User = require("../../models/User");
+const logger = require("../../utils/logger");
 const { computePlayHash } = require("../../utils/bggHash");
 const {
   withUserLock,
@@ -347,7 +348,10 @@ async function stampProbeOutcome(bggUsername, outcome) {
       { collation: { locale: "en", strength: 2 } },
     );
   } catch (err) {
-    console.warn(`[bgg/probe] stamp failed for ${bggUsername}: ${err.message}`);
+    logger.warn("[bgg/probe] stamp failed", {
+      bggUsername,
+      error: err.message,
+    });
   }
 }
 
@@ -358,9 +362,10 @@ function triggerBackgroundProbe(bggUsername) {
   withUserLock(bggUsername, () => probe(bggUsername))
     .then((result) => stampProbeOutcome(bggUsername, result.outcome))
     .catch((err) => {
-      console.warn(
-        `[bgg/probe] background failed for ${bggUsername}: ${err.message}`,
-      );
+      logger.warn("[bgg/probe] background failed", {
+        bggUsername,
+        error: err.message,
+      });
       return stampProbeOutcome(bggUsername, "failed");
     })
     .finally(() => releaseProbeSlot());
@@ -388,9 +393,10 @@ async function stampReconcileResult(bggUsername, result) {
       { collation: { locale: "en", strength: 2 } },
     );
   } catch (err) {
-    console.warn(
-      `[bgg/reconcile] stamp failed for ${bggUsername}: ${err.message}`,
-    );
+    logger.warn("[bgg/reconcile] stamp failed", {
+      bggUsername,
+      error: err.message,
+    });
   }
 }
 
@@ -406,9 +412,10 @@ function triggerBackgroundReconcile(bggUsername) {
   )
     .then((result) => stampReconcileResult(bggUsername.toLowerCase(), result))
     .catch((err) => {
-      console.warn(
-        `[bgg/reconcile] background failed for ${bggUsername}: ${err.message}`,
-      );
+      logger.warn("[bgg/reconcile] background failed", {
+        bggUsername,
+        error: err.message,
+      });
     })
     .finally(() => releaseReconcileSlot());
   return true;

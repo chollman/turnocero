@@ -17,6 +17,7 @@
 
 const BggGame = require("../../models/BggGame");
 const BggCollection = require("../../models/BggCollection");
+const logger = require("../../utils/logger");
 const {
   getCached,
   setCached,
@@ -147,9 +148,9 @@ async function resolveGamesBatch(gameIds) {
       const thingParsed = parser.parse(thingXml);
       const thingItems = thingParsed?.items?.item;
       if (!thingItems) {
-        console.warn(
-          `[bgg/resolveGamesBatch] /thing returned no items for ids: ${chunk.join(",")}`,
-        );
+        logger.warn("[bgg/resolveGamesBatch] /thing returned no items", {
+          ids: chunk,
+        });
         continue;
       }
       const arr = Array.isArray(thingItems) ? thingItems : [thingItems];
@@ -161,9 +162,10 @@ async function resolveGamesBatch(gameIds) {
         result.set(game.id, game);
       }
     } catch (e) {
-      console.warn(
-        `[bgg/resolveGamesBatch] /thing batch failed for ids ${chunk.join(",")}: ${e.message || e}`,
-      );
+      logger.warn("[bgg/resolveGamesBatch] /thing batch failed", {
+        ids: chunk,
+        error: e.message || String(e),
+      });
     }
   }
 

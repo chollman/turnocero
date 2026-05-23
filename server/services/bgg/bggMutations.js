@@ -22,6 +22,7 @@
 // por primera vez, las mutations sí lo actualizan.
 
 const BggPlay = require("../../models/BggPlay");
+const logger = require("../../utils/logger");
 const { computePlayHash } = require("../../utils/bggHash");
 const { sleep } = require("../../utils/bggSync");
 const { getSessionCookie, clearSession } = require("../../utils/bggAuth");
@@ -117,7 +118,7 @@ async function submitToGeekplay(user, form, label) {
   }
 
   const formBody = form.toString();
-  console.log(`[bgg/geekplay ${label}] POST body: ${formBody}`);
+  logger.info(`[bgg/geekplay ${label}] POST`, { body: formBody });
 
   let bggRes;
   try {
@@ -148,19 +149,20 @@ async function submitToGeekplay(user, form, label) {
   }
   if (!bggRes.ok) {
     const text = await bggRes.text().catch(() => "");
-    console.warn(
-      `[bgg/geekplay ${label}] HTTP ${bggRes.status}:`,
-      text.slice(0, 500),
-    );
+    logger.warn(`[bgg/geekplay ${label}] non-ok response`, {
+      status: bggRes.status,
+      body: text.slice(0, 500),
+    });
     throw Object.assign(new Error(`BGG respondió ${bggRes.status}`), {
       status: 502,
     });
   }
 
   const text = await bggRes.text();
-  console.log(
-    `[bgg/geekplay ${label}] HTTP ${bggRes.status} body: ${text.slice(0, 500)}`,
-  );
+  logger.info(`[bgg/geekplay ${label}] response`, {
+    status: bggRes.status,
+    body: text.slice(0, 500),
+  });
   let payload;
   try {
     payload = JSON.parse(text);
@@ -190,7 +192,7 @@ async function verifyPlayOnBgg(bggUsername, playId, { gameId, playdate } = {}) {
     params.set("maxdate", playdate);
   }
   const url = `${BGG_API}/plays?${params.toString()}`;
-  console.log(`[bgg/verify] GET ${url} (looking for playId=${playId})`);
+  logger.info("[bgg/verify] GET", { url, playId });
 
   for (let attempt = 0; attempt < 2; attempt++) {
     if (attempt > 0) await sleep(600);
@@ -210,9 +212,11 @@ async function verifyPlayOnBgg(bggUsername, playId, { gameId, playdate } = {}) {
     if (!parsed) continue;
     const play = parsed.plays.find((p) => p.playId === String(playId));
     if (!play) {
-      console.log(
-        `[bgg/verify] attempt ${attempt + 1}: ${parsed.plays.length} play(s) returned, none matched playId=${playId}`,
-      );
+      logger.info("[bgg/verify] no match this attempt", {
+        attempt: attempt + 1,
+        playsReturned: parsed.plays.length,
+        playId,
+      });
       continue;
     }
 

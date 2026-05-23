@@ -4,6 +4,7 @@ const { protect } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const User = require("../models/User");
 const BggPlay = require("../models/BggPlay");
+const logger = require("../utils/logger");
 const { escapeRegex } = require("../utils/regex");
 const { withUserLock } = require("../utils/bggSync");
 const {
@@ -220,10 +221,10 @@ router.get("/juegos-jugados/:bggUsername", async (req, res) => {
     const items = await computePlayedGames(lower);
     res.json(items);
   } catch (err) {
-    console.error(
-      `[bgg/juegos-jugados] aggregation failed for ${lower}:`,
-      err.message,
-    );
+    logger.error("[bgg/juegos-jugados] aggregation failed", {
+      bggUsername: lower,
+      error: err.message,
+    });
     res
       .status(500)
       .json({ message: "No se pudieron computar los juegos jugados" });
@@ -285,9 +286,10 @@ router.get("/partidas/:bggUsername", async (req, res) => {
         );
         await stampProbeOutcome(lower, result.outcome);
       } catch (e) {
-        console.warn(
-          `[bgg/partidas] sync probe failed for ${lower}: ${e.message || e}`,
-        );
+        logger.warn("[bgg/partidas] sync probe failed", {
+          bggUsername: lower,
+          error: e.message || String(e),
+        });
         await stampProbeOutcome(lower, "failed");
       }
     } else {
@@ -562,7 +564,10 @@ router.post("/sync", protect, async (req, res) => {
     if (err.status === 404) {
       return res.status(404).json({ message: "Usuario de BGG no encontrado" });
     }
-    console.error("BGG full sync failed:", err);
+    logger.error("[bgg/sync] full sync failed", {
+      error: err.message,
+      stack: err.stack,
+    });
     res
       .status(502)
       .json({ message: err.message || "No se pudo sincronizar con BGG" });
@@ -595,7 +600,7 @@ router.post("/partidas", protect, async (req, res) => {
 
     const newPlayId = payload.playid || payload.numplays || null;
     if (!newPlayId) {
-      console.warn("[bgg/POST] geekplay returned no playid:", payload);
+      logger.warn("[bgg/POST] geekplay returned no playid", { payload });
       return res.status(502).json({
         message: "BGG no devolvió un ID de partida. La partida no se guardó.",
       });
@@ -622,7 +627,7 @@ router.post("/partidas", protect, async (req, res) => {
       try {
         await upsertPlayFromBgg(user.bggUsername, verified);
       } catch (e) {
-        console.warn("[bgg/POST] mirror to Mongo failed:", e.message);
+        logger.warn("[bgg/POST] mirror to Mongo failed", { error: e.message });
       }
     }
 
@@ -632,7 +637,10 @@ router.post("/partidas", protect, async (req, res) => {
       play: playToApi(verified),
     });
   } catch (err) {
-    console.error("Create play failed:", err);
+    logger.error("[bgg/POST] create play failed", {
+      error: err.message,
+      stack: err.stack,
+    });
     res
       .status(500)
       .json({ message: err.message || "Error al crear la partida" });
@@ -698,12 +706,15 @@ router.delete("/partidas/:playId", protect, async (req, res) => {
         playId: String(playId),
       });
     } catch (e) {
-      console.warn("[bgg/DELETE] mirror to Mongo failed:", e.message);
+      logger.warn("[bgg/DELETE] mirror to Mongo failed", { error: e.message });
     }
 
     res.json({ success: true });
   } catch (err) {
-    console.error("Delete play failed:", err);
+    logger.error("[bgg/DELETE] delete play failed", {
+      error: err.message,
+      stack: err.stack,
+    });
     res
       .status(500)
       .json({ message: err.message || "Error al eliminar la partida" });
@@ -751,13 +762,16 @@ router.put("/partidas/:playId", protect, async (req, res) => {
       try {
         await upsertPlayFromBgg(user.bggUsername, verified);
       } catch (e) {
-        console.warn("[bgg/PUT] mirror to Mongo failed:", e.message);
+        logger.warn("[bgg/PUT] mirror to Mongo failed", { error: e.message });
       }
     }
 
     res.json({ success: true, playid: playId, play: playToApi(verified) });
   } catch (err) {
-    console.error("Edit play failed:", err);
+    logger.error("[bgg/PUT] edit play failed", {
+      error: err.message,
+      stack: err.stack,
+    });
     res
       .status(500)
       .json({ message: err.message || "Error al editar la partida" });
