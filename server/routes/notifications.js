@@ -2,11 +2,14 @@ const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
 const { protect } = require('../middleware/auth');
+const asyncHandler = require('../utils/asyncHandler');
 
 // GET /api/notifications — own notifications, newest first
 // Query: ?before=<isoDate> ?limit=<n> (default 60, max 100)
-router.get('/', protect, async (req, res) => {
-  try {
+router.get(
+  '/',
+  protect,
+  asyncHandler(async (req, res) => {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 60));
     const filter = { recipient: req.user._id };
     if (req.query.before) {
@@ -18,15 +21,15 @@ router.get('/', protect, async (req, res) => {
       .limit(limit)
       .lean();
     res.json(notifs);
-  } catch {
-    res.status(500).json({ message: 'Error al cargar notificaciones' });
-  }
-});
+  }),
+);
 
 // PATCH /api/notifications/read — mark matching notifications as read
 // Body: { tableId } or { fromUserId } or { torneoId } or { compartidaId } or { type } or {} (mark all)
-router.patch('/read', protect, async (req, res) => {
-  try {
+router.patch(
+  '/read',
+  protect,
+  asyncHandler(async (req, res) => {
     const { tableId, fromUserId, torneoId, compartidaId, type } = req.body;
     const filter = { recipient: req.user._id, read: false };
     if (tableId)      filter.tableId      = tableId;
@@ -36,19 +39,17 @@ router.patch('/read', protect, async (req, res) => {
     if (type)         filter.type         = type;
     await Notification.updateMany(filter, { $set: { read: true } });
     res.json({ ok: true });
-  } catch {
-    res.status(500).json({ message: 'Error al marcar como leído' });
-  }
-});
+  }),
+);
 
 // DELETE /api/notifications — clear all
-router.delete('/', protect, async (req, res) => {
-  try {
+router.delete(
+  '/',
+  protect,
+  asyncHandler(async (req, res) => {
     await Notification.deleteMany({ recipient: req.user._id });
     res.json({ ok: true });
-  } catch {
-    res.status(500).json({ message: 'Error al limpiar notificaciones' });
-  }
-});
+  }),
+);
 
 module.exports = router;

@@ -8,20 +8,14 @@ const { protect } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
+const asyncHandler = require("../utils/asyncHandler");
+const httpError = require("../utils/httpError");
 
 router.use(requireSection("mesas"));
 
 // `:id` viene del parent mount (`/api/tables/:id/images`); `:imageId` es propio.
 router.use(validateObjectId("id"));
 router.param("imageId", validateObjectId("imageId"));
-
-const validate = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ message: errors.array()[0].msg });
-  }
-  next();
-};
 
 const isMember = (table, userId) => {
   const uid = userId.toString();
@@ -32,31 +26,29 @@ const isMember = (table, userId) => {
 };
 
 // POST /api/tables/:id/images — members only; max 10 images per table
-router.post("/", protect, multer.single("image"), async (req, res) => {
-  // multer errors (file size, type)
-  if (!req.file) {
-    return res.status(400).json({ message: "No se recibió ninguna imagen" });
-  }
+router.post(
+  "/",
+  protect,
+  multer.single("image"),
+  asyncHandler(async (req, res) => {
+    // multer errors (file size, type)
+    if (!req.file) {
+      throw httpError(400, "No se recibió ninguna imagen");
+    }
 
-  try {
     const table = await Table.findById(req.params.id);
-    if (!table) return res.status(404).json({ message: "Table not found" });
+    if (!table) throw httpError(404, "Table not found");
     if (table.status === "cancelled") {
-      return res
-        .status(400)
-        .json({ message: "No se pueden subir imágenes a una mesa cancelada" });
+      throw httpError(400, "No se pueden subir imágenes a una mesa cancelada");
     }
     if (!isMember(table, req.user._id)) {
-      return res
-        .status(403)
-        .json({
-          message: "Solo los miembros de la mesa pueden subir imágenes",
-        });
+      throw httpError(
+        403,
+        "Solo los miembros de la mesa pueden subir imágenes",
+      );
     }
     if (table.images.length >= 10) {
-      return res
-        .status(400)
-        .json({ message: "La mesa ya tiene el máximo de 10 imágenes" });
+      throw httpError(400, "La mesa ya tiene el máximo de 10 imágenes");
     }
 
     const result = await uploadToCloudinary(req.file.buffer, {
@@ -99,45 +91,38 @@ router.post("/", protect, multer.single("image"), async (req, res) => {
     );
 
     res.status(201).json(table.images);
-  } catch (err) {
-    res.status(500).json({ message: "Error al subir la imagen" });
-  }
-});
+  }),
+);
 
 // DELETE /api/tables/:id/images/:imageId — uploader or host
 router.delete(
   "/:imageId",
   protect,
   [param("imageId").isMongoId().withMessage("Invalid image ID")],
-  validate,
-  async (req, res) => {
-    try {
-      const table = await Table.findById(req.params.id);
-      if (!table) return res.status(404).json({ message: "Table not found" });
+  asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) throw httpError(400, errors.array()[0].msg);
 
-      const image = table.images.id(req.params.imageId);
-      if (!image)
-        return res.status(404).json({ message: "Imagen no encontrada" });
+    const table = await Table.findById(req.params.id);
+    if (!table) throw httpError(404, "Table not found");
 
-      const uid = req.user._id.toString();
-      const isUploader = image.uploader.toString() === uid;
-      const isHost = table.host.toString() === uid;
+    const image = table.images.id(req.params.imageId);
+    if (!image) throw httpError(404, "Imagen no encontrada");
 
-      if (!isUploader && !isHost && !req.user.isAdmin) {
-        return res
-          .status(403)
-          .json({ message: "No tenés permiso para eliminar esta imagen" });
-      }
+    const uid = req.user._id.toString();
+    const isUploader = image.uploader.toString() === uid;
+    const isHost = table.host.toString() === uid;
 
-      await cloudinary.uploader.destroy(image.publicId);
-      image.deleteOne();
-      await table.save();
-
-      res.json({ message: "Imagen eliminada" });
-    } catch {
-      res.status(500).json({ message: "Error al eliminar la imagen" });
+    if (!isUploader && !isHost && !req.user.isAdmin) {
+      throw httpError(403, "No tenés permiso para eliminar esta imagen");
     }
-  },
+
+    await cloudinary.uploader.destroy(image.publicId);
+    image.deleteOne();
+    await table.save();
+
+    res.json({ message: "Imagen eliminada" });
+  }),
 );
 
 module.exports = router;

@@ -15,6 +15,8 @@ const { parsePagination } = require("../utils/paginate");
 const { escapeRegex } = require("../utils/regex");
 const { clamp } = require("../utils/clamp");
 const { emitNotificationReq } = require("../utils/emitNotification");
+const asyncHandler = require("../utils/asyncHandler");
+const httpError = require("../utils/httpError");
 const {
   VALID_TRANSITIONS,
   buildAndInsertMatches,
@@ -60,8 +62,11 @@ function visibleStatusFilter(req) {
 // ─────────────────────────────────────────────────────────────────
 
 // GET /api/torneos — paginated list (?status, ?game, ?page, ?limit)
-router.get("/", protect, requireAdmin, async (req, res) => {
-  try {
+router.get(
+  "/",
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const { page, limit, skip } = parsePagination(req.query, {
       defaultLimit: 12,
       maxLimit: 20,
@@ -71,7 +76,7 @@ router.get("/", protect, requireAdmin, async (req, res) => {
     if (req.query.status) {
       const requested = String(req.query.status);
       if (requested === "draft" && !isAdmin(req)) {
-        return res.status(403).json({ message: "Acceso restringido" });
+        throw httpError(403, "Acceso restringido");
       }
       filter.status = requested;
     }
@@ -106,10 +111,8 @@ router.get("/", protect, requireAdmin, async (req, res) => {
       page,
       pages: Math.ceil(total / limit),
     });
-  } catch (err) {
-    res.status(500).json({ message: "Error al obtener torneos" });
-  }
-});
+  }),
+);
 
 // POST /api/torneos — admin only, multipart with optional image
 router.post(
@@ -117,37 +120,33 @@ router.post(
   protect,
   requireAdmin,
   multer.single("image"),
-  async (req, res) => {
-    try {
-      const {
-        title,
-        description,
-        game,
-        format,
-        maxParticipants,
-        inscriptionMode,
-        tableSize,
-        gamesPerGroup,
-        qualifiersPerGroup,
-      } = req.body;
-      if (!title?.trim() || !game?.trim() || !format) {
-        return res
-          .status(400)
-          .json({
-            message: "Faltan campos obligatorios (título, juego, formato)",
-          });
-      }
-      if (!["league", "single_elim", "groups"].includes(format)) {
-        return res.status(400).json({ message: "Formato inválido" });
-      }
-      if (
-        inscriptionMode &&
-        !["open", "admin_only"].includes(inscriptionMode)
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Modo de inscripción inválido" });
-      }
+  asyncHandler(async (req, res) => {
+    const {
+      title,
+      description,
+      game,
+      format,
+      maxParticipants,
+      inscriptionMode,
+      tableSize,
+      gamesPerGroup,
+      qualifiersPerGroup,
+    } = req.body;
+    if (!title?.trim() || !game?.trim() || !format) {
+      throw httpError(
+        400,
+        "Faltan campos obligatorios (título, juego, formato)",
+      );
+    }
+    if (!["league", "single_elim", "groups"].includes(format)) {
+      throw httpError(400, "Formato inválido");
+    }
+    if (
+      inscriptionMode &&
+      !["open", "admin_only"].includes(inscriptionMode)
+    ) {
+      throw httpError(400, "Modo de inscripción inválido");
+    }
 
       let image;
       if (req.file) {
@@ -180,23 +179,24 @@ router.post(
           : 2;
       }
 
-      const torneo = await Torneo.create(data);
-      const populated = await Torneo.findById(torneo._id).populate(
-        "createdBy",
-        USER_FIELDS,
-      );
-      res.status(201).json(populated);
-    } catch (err) {
-      res.status(500).json({ message: "Error al crear el torneo" });
-    }
-  },
+    const torneo = await Torneo.create(data);
+    const populated = await Torneo.findById(torneo._id).populate(
+      "createdBy",
+      USER_FIELDS,
+    );
+    res.status(201).json(populated);
+  }),
 );
 
 // GET /api/torneos/:id — admin only
-router.get("/:id", protect, requireAdmin, async (req, res) => {
-  try {
-    if (!isValidId(req.params.id))
-      return res.status(404).json({ message: "Torneo no encontrado" });
+router.get(
+  "/:id",
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    if (!isValidId(req.params.id)) {
+      throw httpError(404, "Torneo no encontrado");
+    }
     const torneo = await Torneo.findById(req.params.id)
       .populate("createdBy", USER_FIELDS)
       .populate("participants", USER_FIELDS)
@@ -204,10 +204,9 @@ router.get("/:id", protect, requireAdmin, async (req, res) => {
       .populate("winner", USER_FIELDS)
       .populate("runnerUp", USER_FIELDS)
       .lean();
-    if (!torneo)
-      return res.status(404).json({ message: "Torneo no encontrado" });
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
     if (torneo.status === "draft" && !isAdmin(req)) {
-      return res.status(404).json({ message: "Torneo no encontrado" });
+      throw httpError(404, "Torneo no encontrado");
     }
     // Hide pending registrations from non-admins (privacy).
     if (!isAdmin(req)) {
@@ -215,10 +214,8 @@ router.get("/:id", protect, requireAdmin, async (req, res) => {
       torneo.rejectedRegistrations = [];
     }
     res.json(torneo);
-  } catch (err) {
-    res.status(500).json({ message: "Error al obtener el torneo" });
-  }
-});
+  }),
+);
 
 // PUT /api/torneos/:id — admin only, metadata + optional new image
 router.put(
@@ -226,11 +223,9 @@ router.put(
   protect,
   requireAdmin,
   multer.single("image"),
-  async (req, res) => {
-    try {
-      const torneo = await Torneo.findById(req.params.id);
-      if (!torneo)
-        return res.status(404).json({ message: "Torneo no encontrado" });
+  asyncHandler(async (req, res) => {
+    const torneo = await Torneo.findById(req.params.id);
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
 
       const {
         title,
@@ -281,30 +276,29 @@ router.put(
         torneo.image = { url: result.secure_url, publicId: result.public_id };
       }
 
-      await torneo.save();
-      const populated = await Torneo.findById(torneo._id)
-        .populate("createdBy", USER_FIELDS)
-        .populate("participants", USER_FIELDS);
-      res.json(populated);
-    } catch (err) {
-      res.status(500).json({ message: "Error al editar el torneo" });
-    }
-  },
+    await torneo.save();
+    const populated = await Torneo.findById(torneo._id)
+      .populate("createdBy", USER_FIELDS)
+      .populate("participants", USER_FIELDS);
+    res.json(populated);
+  }),
 );
 
 // DELETE /api/torneos/:id — admin only, only if draft or has no matches yet
-router.delete("/:id", protect, requireAdmin, async (req, res) => {
-  try {
+router.delete(
+  "/:id",
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const torneo = await Torneo.findById(req.params.id);
-    if (!torneo)
-      return res.status(404).json({ message: "Torneo no encontrado" });
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
 
     const matchCount = await TorneoMatch.countDocuments({ torneo: torneo._id });
     if (matchCount > 0 && torneo.status !== "draft") {
-      return res.status(400).json({
-        message:
-          "No se puede eliminar: el torneo tiene partidos generados. Cambialo a borrador primero.",
-      });
+      throw httpError(
+        400,
+        "No se puede eliminar: el torneo tiene partidos generados. Cambialo a borrador primero.",
+      );
     }
 
     if (torneo.image?.publicId) {
@@ -320,44 +314,37 @@ router.delete("/:id", protect, requireAdmin, async (req, res) => {
     await torneo.deleteOne();
 
     res.json({ message: "Torneo eliminado" });
-  } catch (err) {
-    res.status(500).json({ message: "Error al eliminar el torneo" });
-  }
-});
+  }),
+);
 
 // ─────────────────────────────────────────────────────────────────
 // Inscripción (usuarios) y aprobación (admins)
 // ─────────────────────────────────────────────────────────────────
 
 // POST /api/torneos/:id/register — auth user creates a pending registration
-router.post("/:id/register", protect, async (req, res) => {
-  try {
+router.post(
+  "/:id/register",
+  protect,
+  asyncHandler(async (req, res) => {
     const torneo = await Torneo.findById(req.params.id);
-    if (!torneo)
-      return res.status(404).json({ message: "Torneo no encontrado" });
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
     if (torneo.status !== "registration") {
-      return res
-        .status(400)
-        .json({ message: "La inscripción no está abierta" });
+      throw httpError(400, "La inscripción no está abierta");
     }
     const userId = req.user._id;
     if (torneo.participants.some((p) => String(p) === String(userId))) {
-      return res.status(400).json({ message: "Ya estás inscripto" });
+      throw httpError(400, "Ya estás inscripto");
     }
     if (
       torneo.pendingRegistrations.some((r) => String(r.user) === String(userId))
     ) {
-      return res
-        .status(400)
-        .json({ message: "Ya tenés una inscripción pendiente" });
+      throw httpError(400, "Ya tenés una inscripción pendiente");
     }
     if (
       torneo.maxParticipants &&
       torneo.participants.length >= torneo.maxParticipants
     ) {
-      return res
-        .status(400)
-        .json({ message: "El torneo ya alcanzó el cupo máximo" });
+      throw httpError(400, "El torneo ya alcanzó el cupo máximo");
     }
     torneo.pendingRegistrations.push({ user: userId, requestedAt: new Date() });
     // Allow re-applying after a previous rejection.
@@ -368,85 +355,67 @@ router.post("/:id/register", protect, async (req, res) => {
     res.json({
       message: "Inscripción enviada, esperá la aprobación del admin",
     });
-  } catch (err) {
-    res.status(500).json({ message: "Error al inscribirse" });
-  }
-});
+  }),
+);
 
 // DELETE /api/torneos/:id/register — auth user cancels own pending registration
-router.delete("/:id/register", protect, async (req, res) => {
-  try {
+router.delete(
+  "/:id/register",
+  protect,
+  asyncHandler(async (req, res) => {
     const torneo = await Torneo.findById(req.params.id);
-    if (!torneo)
-      return res.status(404).json({ message: "Torneo no encontrado" });
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
     const userId = String(req.user._id);
     const before = torneo.pendingRegistrations.length;
     torneo.pendingRegistrations = torneo.pendingRegistrations.filter(
       (r) => String(r.user) !== userId,
     );
     if (torneo.pendingRegistrations.length === before) {
-      return res
-        .status(400)
-        .json({ message: "No tenés una inscripción pendiente" });
+      throw httpError(400, "No tenés una inscripción pendiente");
     }
     await torneo.save();
     res.json({ message: "Inscripción cancelada" });
-  } catch (err) {
-    res.status(500).json({ message: "Error al cancelar la inscripción" });
-  }
-});
+  }),
+);
 
 // POST /api/torneos/:id/participants/:userId — admin adds a user directly (admin_only mode)
 router.post(
   "/:id/participants/:userId",
   protect,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const torneo = await Torneo.findById(req.params.id);
-      if (!torneo)
-        return res.status(404).json({ message: "Torneo no encontrado" });
-      if (torneo.status === "finished") {
-        return res
-          .status(400)
-          .json({ message: "El torneo ya está finalizado" });
-      }
-      if (torneo.status === "in_progress") {
-        return res
-          .status(400)
-          .json({
-            message:
-              "No se pueden agregar participantes con el torneo en curso",
-          });
-      }
-
-      const { userId } = req.params;
-      if (!isValidId(userId))
-        return res.status(400).json({ message: "Usuario inválido" });
-
-      const user = await User.findById(userId).select(
-        "_id username displayName isBanned",
+  asyncHandler(async (req, res) => {
+    const torneo = await Torneo.findById(req.params.id);
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
+    if (torneo.status === "finished") {
+      throw httpError(400, "El torneo ya está finalizado");
+    }
+    if (torneo.status === "in_progress") {
+      throw httpError(
+        400,
+        "No se pueden agregar participantes con el torneo en curso",
       );
-      if (!user)
-        return res.status(404).json({ message: "Usuario no encontrado" });
-      if (user.isBanned)
-        return res
-          .status(400)
-          .json({ message: "No se puede agregar un usuario suspendido" });
+    }
 
-      if (torneo.participants.some((p) => String(p) === String(userId))) {
-        return res
-          .status(400)
-          .json({ message: "El usuario ya es participante" });
-      }
-      if (
-        torneo.maxParticipants &&
-        torneo.participants.length >= torneo.maxParticipants
-      ) {
-        return res
-          .status(400)
-          .json({ message: "El torneo alcanzó el cupo máximo" });
-      }
+    const { userId } = req.params;
+    if (!isValidId(userId)) throw httpError(400, "Usuario inválido");
+
+    const user = await User.findById(userId).select(
+      "_id username displayName isBanned",
+    );
+    if (!user) throw httpError(404, "Usuario no encontrado");
+    if (user.isBanned) {
+      throw httpError(400, "No se puede agregar un usuario suspendido");
+    }
+
+    if (torneo.participants.some((p) => String(p) === String(userId))) {
+      throw httpError(400, "El usuario ya es participante");
+    }
+    if (
+      torneo.maxParticipants &&
+      torneo.participants.length >= torneo.maxParticipants
+    ) {
+      throw httpError(400, "El torneo alcanzó el cupo máximo");
+    }
 
       // If there's a pending registration for this user, remove it (admin promoted directly).
       torneo.pendingRegistrations = torneo.pendingRegistrations.filter(
@@ -458,14 +427,11 @@ router.post(
       torneo.participants.push(userId);
       await torneo.save();
 
-      const populated = await Torneo.findById(torneo._id)
-        .populate("participants", USER_FIELDS)
-        .populate("pendingRegistrations.user", USER_FIELDS);
-      res.json(populated);
-    } catch (err) {
-      res.status(500).json({ message: "Error al agregar el participante" });
-    }
-  },
+    const populated = await Torneo.findById(torneo._id)
+      .populate("participants", USER_FIELDS)
+      .populate("pendingRegistrations.user", USER_FIELDS);
+    res.json(populated);
+  }),
 );
 
 // POST /api/torneos/:id/registrations/:userId/accept — admin
@@ -473,33 +439,26 @@ router.post(
   "/:id/registrations/:userId/accept",
   protect,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const torneo = await Torneo.findById(req.params.id);
-      if (!torneo)
-        return res.status(404).json({ message: "Torneo no encontrado" });
-      if (torneo.status !== "registration") {
-        return res
-          .status(400)
-          .json({ message: "La inscripción no está abierta" });
-      }
-      const { userId } = req.params;
-      const idx = torneo.pendingRegistrations.findIndex(
-        (r) => String(r.user) === String(userId),
-      );
-      if (idx < 0)
-        return res
-          .status(404)
-          .json({ message: "No hay inscripción pendiente para ese usuario" });
+  asyncHandler(async (req, res) => {
+    const torneo = await Torneo.findById(req.params.id);
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
+    if (torneo.status !== "registration") {
+      throw httpError(400, "La inscripción no está abierta");
+    }
+    const { userId } = req.params;
+    const idx = torneo.pendingRegistrations.findIndex(
+      (r) => String(r.user) === String(userId),
+    );
+    if (idx < 0) {
+      throw httpError(404, "No hay inscripción pendiente para ese usuario");
+    }
 
-      if (
-        torneo.maxParticipants &&
-        torneo.participants.length >= torneo.maxParticipants
-      ) {
-        return res
-          .status(400)
-          .json({ message: "El torneo ya alcanzó el cupo máximo" });
-      }
+    if (
+      torneo.maxParticipants &&
+      torneo.participants.length >= torneo.maxParticipants
+    ) {
+      throw httpError(400, "El torneo ya alcanzó el cupo máximo");
+    }
 
       torneo.pendingRegistrations.splice(idx, 1);
       if (!torneo.participants.some((p) => String(p) === String(userId))) {
@@ -515,14 +474,11 @@ router.post(
         "torneo:registration-accepted",
       );
 
-      const populated = await Torneo.findById(torneo._id)
-        .populate("participants", USER_FIELDS)
-        .populate("pendingRegistrations.user", USER_FIELDS);
-      res.json(populated);
-    } catch (err) {
-      res.status(500).json({ message: "Error al aceptar la inscripción" });
-    }
-  },
+    const populated = await Torneo.findById(torneo._id)
+      .populate("participants", USER_FIELDS)
+      .populate("pendingRegistrations.user", USER_FIELDS);
+    res.json(populated);
+  }),
 );
 
 // POST /api/torneos/:id/registrations/:userId/reject — admin
@@ -530,19 +486,16 @@ router.post(
   "/:id/registrations/:userId/reject",
   protect,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const torneo = await Torneo.findById(req.params.id);
-      if (!torneo)
-        return res.status(404).json({ message: "Torneo no encontrado" });
-      const { userId } = req.params;
-      const idx = torneo.pendingRegistrations.findIndex(
-        (r) => String(r.user) === String(userId),
-      );
-      if (idx < 0)
-        return res
-          .status(404)
-          .json({ message: "No hay inscripción pendiente para ese usuario" });
+  asyncHandler(async (req, res) => {
+    const torneo = await Torneo.findById(req.params.id);
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
+    const { userId } = req.params;
+    const idx = torneo.pendingRegistrations.findIndex(
+      (r) => String(r.user) === String(userId),
+    );
+    if (idx < 0) {
+      throw httpError(404, "No hay inscripción pendiente para ese usuario");
+    }
 
       torneo.pendingRegistrations.splice(idx, 1);
       if (
@@ -562,15 +515,12 @@ router.post(
         "torneo:registration-rejected",
       );
 
-      const populated = await Torneo.findById(torneo._id).populate(
-        "pendingRegistrations.user",
-        USER_FIELDS,
-      );
-      res.json(populated);
-    } catch (err) {
-      res.status(500).json({ message: "Error al rechazar la inscripción" });
-    }
-  },
+    const populated = await Torneo.findById(torneo._id).populate(
+      "pendingRegistrations.user",
+      USER_FIELDS,
+    );
+    res.json(populated);
+  }),
 );
 
 // DELETE /api/torneos/:id/participants/:userId — admin removes a participant (only draft/registration)
@@ -578,58 +528,48 @@ router.delete(
   "/:id/participants/:userId",
   protect,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const torneo = await Torneo.findById(req.params.id);
-      if (!torneo)
-        return res.status(404).json({ message: "Torneo no encontrado" });
-      if (!["draft", "registration"].includes(torneo.status)) {
-        return res
-          .status(400)
-          .json({
-            message:
-              "No se pueden remover participantes una vez iniciado el torneo",
-          });
-      }
-      const before = torneo.participants.length;
-      torneo.participants = torneo.participants.filter(
-        (p) => String(p) !== String(req.params.userId),
+  asyncHandler(async (req, res) => {
+    const torneo = await Torneo.findById(req.params.id);
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
+    if (!["draft", "registration"].includes(torneo.status)) {
+      throw httpError(
+        400,
+        "No se pueden remover participantes una vez iniciado el torneo",
       );
-      if (torneo.participants.length === before) {
-        return res
-          .status(404)
-          .json({ message: "Ese usuario no es participante" });
-      }
-      await torneo.save();
-      const populated = await Torneo.findById(torneo._id).populate(
-        "participants",
-        USER_FIELDS,
-      );
-      res.json(populated);
-    } catch (err) {
-      res.status(500).json({ message: "Error al remover el participante" });
     }
-  },
+    const before = torneo.participants.length;
+    torneo.participants = torneo.participants.filter(
+      (p) => String(p) !== String(req.params.userId),
+    );
+    if (torneo.participants.length === before) {
+      throw httpError(404, "Ese usuario no es participante");
+    }
+    await torneo.save();
+    const populated = await Torneo.findById(torneo._id).populate(
+      "participants",
+      USER_FIELDS,
+    );
+    res.json(populated);
+  }),
 );
 
 // PATCH /api/torneos/:id/seeds — admin reorders participants (allowed in draft/registration only)
-router.patch("/:id/seeds", protect, requireAdmin, async (req, res) => {
-  try {
+router.patch(
+  "/:id/seeds",
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const torneo = await Torneo.findById(req.params.id);
-    if (!torneo)
-      return res.status(404).json({ message: "Torneo no encontrado" });
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
     if (!["draft", "registration"].includes(torneo.status)) {
-      return res
-        .status(400)
-        .json({
-          message: "No se pueden reordenar seeds una vez iniciado el torneo",
-        });
+      throw httpError(
+        400,
+        "No se pueden reordenar seeds una vez iniciado el torneo",
+      );
     }
     const { participantIds } = req.body;
     if (!Array.isArray(participantIds)) {
-      return res
-        .status(400)
-        .json({ message: "participantIds debe ser un array" });
+      throw httpError(400, "participantIds debe ser un array");
     }
     const current = new Set(torneo.participants.map((p) => String(p)));
     const incoming = new Set(participantIds.map(String));
@@ -637,12 +577,10 @@ router.patch("/:id/seeds", protect, requireAdmin, async (req, res) => {
       current.size !== incoming.size ||
       [...current].some((id) => !incoming.has(id))
     ) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "El orden enviado debe contener exactamente los mismos participantes",
-        });
+      throw httpError(
+        400,
+        "El orden enviado debe contener exactamente los mismos participantes",
+      );
     }
     torneo.participants = participantIds;
     await torneo.save();
@@ -651,33 +589,32 @@ router.patch("/:id/seeds", protect, requireAdmin, async (req, res) => {
       USER_FIELDS,
     );
     res.json(populated);
-  } catch (err) {
-    res.status(500).json({ message: "Error al reordenar los seeds" });
-  }
-});
+  }),
+);
 
 // ─────────────────────────────────────────────────────────────────
 // Estado del torneo
 // ─────────────────────────────────────────────────────────────────
 
 // PATCH /api/torneos/:id/status — admin changes status; generates matches/groups on registration → in_progress
-router.patch("/:id/status", protect, requireAdmin, async (req, res) => {
-  try {
+router.patch(
+  "/:id/status",
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const torneo = await Torneo.findById(req.params.id);
-    if (!torneo)
-      return res.status(404).json({ message: "Torneo no encontrado" });
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
 
     const { status: next } = req.body;
     if (!["draft", "registration", "in_progress", "finished"].includes(next)) {
-      return res.status(400).json({ message: "Estado inválido" });
+      throw httpError(400, "Estado inválido");
     }
     const allowed = VALID_TRANSITIONS[torneo.status];
     if (!allowed.has(next)) {
-      return res
-        .status(400)
-        .json({
-          message: `Transición no permitida: ${torneo.status} → ${next}`,
-        });
+      throw httpError(
+        400,
+        `Transición no permitida: ${torneo.status} → ${next}`,
+      );
     }
     // Constraint: draft → in_progress only allowed for admin_only torneos.
     if (
@@ -685,17 +622,15 @@ router.patch("/:id/status", protect, requireAdmin, async (req, res) => {
       next === "in_progress" &&
       torneo.inscriptionMode !== "admin_only"
     ) {
-      return res.status(400).json({
-        message:
-          'Para arrancar el torneo abrí inscripciones primero, o configurá el modo "Yo agrego participantes".',
-      });
+      throw httpError(
+        400,
+        'Para arrancar el torneo abrí inscripciones primero, o configurá el modo "Yo agrego participantes".',
+      );
     }
 
     if (next === "in_progress") {
       if (torneo.participants.length < 2) {
-        return res
-          .status(400)
-          .json({ message: "Se necesitan al menos 2 participantes" });
+        throw httpError(400, "Se necesitan al menos 2 participantes");
       }
       // Wipe any pre-existing match/group data (e.g., back-and-forth admin testing).
       await TorneoMatch.deleteMany({ torneo: torneo._id });
@@ -720,10 +655,10 @@ router.patch("/:id/status", protect, requireAdmin, async (req, res) => {
           phase: torneo.currentPhase,
         });
         if (finalGroups.length !== 1) {
-          return res.status(400).json({
-            message:
-              "Para finalizar un torneo de Grupos, la fase actual debe tener una sola mesa final.",
-          });
+          throw httpError(
+            400,
+            "Para finalizar un torneo de Grupos, la fase actual debe tener una sola mesa final.",
+          );
         }
         const finalGroup = finalGroups[0];
         const finalGames = await TorneoGame.find({ group: finalGroup._id });
@@ -790,28 +725,22 @@ router.patch("/:id/status", protect, requireAdmin, async (req, res) => {
       .populate("winner", USER_FIELDS)
       .populate("runnerUp", USER_FIELDS);
     res.json(populated);
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: err.message || "Error al cambiar el estado" });
-  }
-});
+  }),
+);
 
 // POST /api/torneos/:id/reset — admin wipes all match/group/game data and regenerates from current participants
-router.post("/:id/reset", protect, requireAdmin, async (req, res) => {
-  try {
+router.post(
+  "/:id/reset",
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const torneo = await Torneo.findById(req.params.id);
-    if (!torneo)
-      return res.status(404).json({ message: "Torneo no encontrado" });
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
     if (!["in_progress", "finished"].includes(torneo.status)) {
-      return res
-        .status(400)
-        .json({ message: "Solo se puede reiniciar un torneo ya iniciado" });
+      throw httpError(400, "Solo se puede reiniciar un torneo ya iniciado");
     }
     if (torneo.participants.length < 2) {
-      return res
-        .status(400)
-        .json({ message: "Se necesitan al menos 2 participantes" });
+      throw httpError(400, "Se necesitan al menos 2 participantes");
     }
 
     await TorneoMatch.deleteMany({ torneo: torneo._id });
@@ -838,25 +767,23 @@ router.post("/:id/reset", protect, requireAdmin, async (req, res) => {
       .populate("winner", USER_FIELDS)
       .populate("runnerUp", USER_FIELDS);
     res.json(populated);
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: err.message || "Error al reiniciar el torneo" });
-  }
-});
+  }),
+);
 
 // ─────────────────────────────────────────────────────────────────
 // Matches
 // ─────────────────────────────────────────────────────────────────
 
 // GET /api/torneos/:id/matches — admin only; populated playerA/B/winner
-router.get("/:id/matches", protect, requireAdmin, async (req, res) => {
-  try {
+router.get(
+  "/:id/matches",
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const torneo = await Torneo.findById(req.params.id).select("status").lean();
-    if (!torneo)
-      return res.status(404).json({ message: "Torneo no encontrado" });
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
     if (torneo.status === "draft" && !isAdmin(req)) {
-      return res.status(404).json({ message: "Torneo no encontrado" });
+      throw httpError(404, "Torneo no encontrado");
     }
     const matches = await TorneoMatch.find({ torneo: req.params.id })
       .populate("playerA", USER_FIELDS)
@@ -865,65 +792,53 @@ router.get("/:id/matches", protect, requireAdmin, async (req, res) => {
       .sort({ round: 1, matchIndex: 1 })
       .lean();
     res.json(matches);
-  } catch (err) {
-    res.status(500).json({ message: "Error al obtener los partidos" });
-  }
-});
+  }),
+);
 
 // POST /api/torneos/:id/matches/:matchId/result — admin records winner or draw
 router.post(
   "/:id/matches/:matchId/result",
   protect,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const torneo = await Torneo.findById(req.params.id);
-      if (!torneo)
-        return res.status(404).json({ message: "Torneo no encontrado" });
-      if (torneo.status !== "in_progress") {
-        return res.status(400).json({ message: "El torneo no está en curso" });
-      }
-      const match = await TorneoMatch.findOne({
-        _id: req.params.matchId,
-        torneo: torneo._id,
-      });
-      if (!match)
-        return res.status(404).json({ message: "Partido no encontrado" });
-      if (match.status === "bye")
-        return res
-          .status(400)
-          .json({ message: "Es un bye, no se carga resultado" });
-      if (!match.playerA || !match.playerB) {
-        return res
-          .status(400)
-          .json({ message: "Aún faltan jugadores en este partido" });
-      }
+  asyncHandler(async (req, res) => {
+    const torneo = await Torneo.findById(req.params.id);
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
+    if (torneo.status !== "in_progress") {
+      throw httpError(400, "El torneo no está en curso");
+    }
+    const match = await TorneoMatch.findOne({
+      _id: req.params.matchId,
+      torneo: torneo._id,
+    });
+    if (!match) throw httpError(404, "Partido no encontrado");
+    if (match.status === "bye") {
+      throw httpError(400, "Es un bye, no se carga resultado");
+    }
+    if (!match.playerA || !match.playerB) {
+      throw httpError(400, "Aún faltan jugadores en este partido");
+    }
 
-      const { winnerId, draw } = req.body;
+    const { winnerId, draw } = req.body;
 
-      if (draw) {
-        if (torneo.format !== "league") {
-          return res
-            .status(400)
-            .json({ message: "Solo se permite empate en formato liga" });
-        }
-        match.winner = null;
-        match.isDraw = true;
-      } else {
-        if (!winnerId)
-          return res.status(400).json({ message: "Falta winnerId" });
-        const a = String(match.playerA);
-        const b = String(match.playerB);
-        if (String(winnerId) !== a && String(winnerId) !== b) {
-          return res
-            .status(400)
-            .json({
-              message: "El ganador debe ser uno de los jugadores del partido",
-            });
-        }
-        match.winner = winnerId;
-        match.isDraw = false;
+    if (draw) {
+      if (torneo.format !== "league") {
+        throw httpError(400, "Solo se permite empate en formato liga");
       }
+      match.winner = null;
+      match.isDraw = true;
+    } else {
+      if (!winnerId) throw httpError(400, "Falta winnerId");
+      const a = String(match.playerA);
+      const b = String(match.playerB);
+      if (String(winnerId) !== a && String(winnerId) !== b) {
+        throw httpError(
+          400,
+          "El ganador debe ser uno de los jugadores del partido",
+        );
+      }
+      match.winner = winnerId;
+      match.isDraw = false;
+    }
 
       match.status = "completed";
       match.playedAt = new Date();
@@ -979,16 +894,13 @@ router.post(
         }
       }
 
-      const populated = await TorneoMatch.findById(match._id)
-        .populate("playerA", USER_FIELDS)
-        .populate("playerB", USER_FIELDS)
-        .populate("winner", USER_FIELDS)
-        .lean();
-      res.json({ match: populated, advancedTo });
-    } catch (err) {
-      res.status(500).json({ message: "Error al registrar el resultado" });
-    }
-  },
+    const populated = await TorneoMatch.findById(match._id)
+      .populate("playerA", USER_FIELDS)
+      .populate("playerB", USER_FIELDS)
+      .populate("winner", USER_FIELDS)
+      .lean();
+    res.json({ match: populated, advancedTo });
+  }),
 );
 
 // DELETE /api/torneos/:id/matches/:matchId/result — admin undoes a result
@@ -996,25 +908,20 @@ router.delete(
   "/:id/matches/:matchId/result",
   protect,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const torneo = await Torneo.findById(req.params.id);
-      if (!torneo)
-        return res.status(404).json({ message: "Torneo no encontrado" });
-      if (torneo.status !== "in_progress") {
-        return res.status(400).json({ message: "El torneo no está en curso" });
-      }
-      const match = await TorneoMatch.findOne({
-        _id: req.params.matchId,
-        torneo: torneo._id,
-      });
-      if (!match)
-        return res.status(404).json({ message: "Partido no encontrado" });
-      if (match.status !== "completed") {
-        return res
-          .status(400)
-          .json({ message: "Este partido no tiene resultado cargado" });
-      }
+  asyncHandler(async (req, res) => {
+    const torneo = await Torneo.findById(req.params.id);
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
+    if (torneo.status !== "in_progress") {
+      throw httpError(400, "El torneo no está en curso");
+    }
+    const match = await TorneoMatch.findOne({
+      _id: req.params.matchId,
+      torneo: torneo._id,
+    });
+    if (!match) throw httpError(404, "Partido no encontrado");
+    if (match.status !== "completed") {
+      throw httpError(400, "Este partido no tiene resultado cargado");
+    }
 
       const previousWinner = match.winner ? String(match.winner) : null;
       match.winner = null;
@@ -1038,26 +945,25 @@ router.delete(
         }
       }
 
-      const populated = await TorneoMatch.findById(match._id)
-        .populate("playerA", USER_FIELDS)
-        .populate("playerB", USER_FIELDS)
-        .populate("winner", USER_FIELDS)
-        .lean();
-      res.json(populated);
-    } catch (err) {
-      res.status(500).json({ message: "Error al deshacer el resultado" });
-    }
-  },
+    const populated = await TorneoMatch.findById(match._id)
+      .populate("playerA", USER_FIELDS)
+      .populate("playerB", USER_FIELDS)
+      .populate("winner", USER_FIELDS)
+      .lean();
+    res.json(populated);
+  }),
 );
 
 // GET /api/torneos/:id/standings — admin only (computed standings for league)
-router.get("/:id/standings", protect, requireAdmin, async (req, res) => {
-  try {
+router.get(
+  "/:id/standings",
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const torneo = await Torneo.findById(req.params.id).lean();
-    if (!torneo)
-      return res.status(404).json({ message: "Torneo no encontrado" });
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
     if (torneo.status === "draft" && !isAdmin(req)) {
-      return res.status(404).json({ message: "Torneo no encontrado" });
+      throw httpError(404, "Torneo no encontrado");
     }
     if (torneo.format !== "league") {
       return res.json({ format: torneo.format, standings: [] });
@@ -1065,23 +971,23 @@ router.get("/:id/standings", protect, requireAdmin, async (req, res) => {
     const matches = await TorneoMatch.find({ torneo: torneo._id }).lean();
     const standings = computeStandings(matches, torneo.participants);
     res.json({ format: torneo.format, standings });
-  } catch (err) {
-    res.status(500).json({ message: "Error al calcular las posiciones" });
-  }
-});
+  }),
+);
 
 // ─────────────────────────────────────────────────────────────────
 // Groups (formato 'groups')
 // ─────────────────────────────────────────────────────────────────
 
 // GET /api/torneos/:id/groups — admin only; returns all groups for a phase + their games + standings
-router.get("/:id/groups", protect, requireAdmin, async (req, res) => {
-  try {
+router.get(
+  "/:id/groups",
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const torneo = await Torneo.findById(req.params.id).lean();
-    if (!torneo)
-      return res.status(404).json({ message: "Torneo no encontrado" });
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
     if (torneo.status === "draft" && !isAdmin(req)) {
-      return res.status(404).json({ message: "Torneo no encontrado" });
+      throw httpError(404, "Torneo no encontrado");
     }
     if (torneo.format !== "groups") {
       return res.json({ phase: 0, totalPhases: 0, groups: [] });
@@ -1118,36 +1024,29 @@ router.get("/:id/groups", protect, requireAdmin, async (req, res) => {
       tableSize: torneo.tableSize,
       groups: enriched,
     });
-  } catch (err) {
-    res.status(500).json({ message: "Error al cargar los grupos" });
-  }
-});
+  }),
+);
 
 // POST /api/torneos/:id/games/:gameId/result — admin records score for each player in a game
 router.post(
   "/:id/games/:gameId/result",
   protect,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const torneo = await Torneo.findById(req.params.id);
-      if (!torneo)
-        return res.status(404).json({ message: "Torneo no encontrado" });
-      if (torneo.format !== "groups") {
-        return res
-          .status(400)
-          .json({ message: "Este endpoint es solo para torneos por grupos" });
-      }
-      if (torneo.status !== "in_progress") {
-        return res.status(400).json({ message: "El torneo no está en curso" });
-      }
+  asyncHandler(async (req, res) => {
+    const torneo = await Torneo.findById(req.params.id);
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
+    if (torneo.format !== "groups") {
+      throw httpError(400, "Este endpoint es solo para torneos por grupos");
+    }
+    if (torneo.status !== "in_progress") {
+      throw httpError(400, "El torneo no está en curso");
+    }
 
-      const game = await TorneoGame.findOne({
-        _id: req.params.gameId,
-        torneo: torneo._id,
-      });
-      if (!game)
-        return res.status(404).json({ message: "Partida no encontrada" });
+    const game = await TorneoGame.findOne({
+      _id: req.params.gameId,
+      torneo: torneo._id,
+    });
+    if (!game) throw httpError(404, "Partida no encontrada");
 
       const { results } = req.body;
       if (!Array.isArray(results) || results.length === 0) {
@@ -1166,32 +1065,29 @@ router.post(
       for (const r of results) {
         const playerId = String(r.playerId || r.player);
         if (!validPlayerIds.has(playerId)) {
-          return res
-            .status(400)
-            .json({
-              message: "Un resultado contiene un jugador que no es del grupo",
-            });
+          throw httpError(
+            400,
+            "Un resultado contiene un jugador que no es del grupo",
+          );
         }
         if (playerIdsSeen.has(playerId)) {
-          return res
-            .status(400)
-            .json({ message: "Hay jugadores duplicados en los resultados" });
+          throw httpError(
+            400,
+            "Hay jugadores duplicados en los resultados",
+          );
         }
         playerIdsSeen.add(playerId);
         const score = Number(r.score);
         if (!Number.isFinite(score)) {
-          return res
-            .status(400)
-            .json({ message: "Todos los scores deben ser números válidos" });
+          throw httpError(400, "Todos los scores deben ser números válidos");
         }
         parsed.push({ player: playerId, score });
       }
       if (parsed.length !== group.players.length) {
-        return res
-          .status(400)
-          .json({
-            message: "Hay que cargar el score de todos los jugadores del grupo",
-          });
+        throw httpError(
+          400,
+          "Hay que cargar el score de todos los jugadores del grupo",
+        );
       }
 
       // Derive positions: highest score = 1, ties get same position (1, 1, 3, 4 style).
@@ -1238,14 +1134,11 @@ router.post(
         await group.save();
       }
 
-      const populated = await TorneoGame.findById(game._id)
-        .populate("results.player", USER_FIELDS)
-        .lean();
-      res.json({ game: populated, group: group.toObject() });
-    } catch (err) {
-      res.status(500).json({ message: "Error al registrar el resultado" });
-    }
-  },
+    const populated = await TorneoGame.findById(game._id)
+      .populate("results.player", USER_FIELDS)
+      .lean();
+    res.json({ game: populated, group: group.toObject() });
+  }),
 );
 
 // DELETE /api/torneos/:id/games/:gameId/result — admin undoes a game result
@@ -1253,43 +1146,36 @@ router.delete(
   "/:id/games/:gameId/result",
   protect,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const torneo = await Torneo.findById(req.params.id);
-      if (!torneo)
-        return res.status(404).json({ message: "Torneo no encontrado" });
-      if (torneo.format !== "groups") {
-        return res
-          .status(400)
-          .json({ message: "Este endpoint es solo para torneos por grupos" });
-      }
-      if (torneo.status !== "in_progress") {
-        return res.status(400).json({ message: "El torneo no está en curso" });
-      }
+  asyncHandler(async (req, res) => {
+    const torneo = await Torneo.findById(req.params.id);
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
+    if (torneo.format !== "groups") {
+      throw httpError(400, "Este endpoint es solo para torneos por grupos");
+    }
+    if (torneo.status !== "in_progress") {
+      throw httpError(400, "El torneo no está en curso");
+    }
 
-      const game = await TorneoGame.findOne({
-        _id: req.params.gameId,
-        torneo: torneo._id,
-      });
-      if (!game)
-        return res.status(404).json({ message: "Partida no encontrada" });
+    const game = await TorneoGame.findOne({
+      _id: req.params.gameId,
+      torneo: torneo._id,
+    });
+    if (!game) throw httpError(404, "Partida no encontrada");
 
-      const group = await TorneoGroup.findById(game.group);
-      if (!group)
-        return res.status(404).json({ message: "Grupo no encontrado" });
+    const group = await TorneoGroup.findById(game.group);
+    if (!group) throw httpError(404, "Grupo no encontrado");
 
-      // Can't undo if next phase is already generated past this group.
-      const nextPhaseExists = await TorneoGroup.exists({
-        torneo: torneo._id,
-        phase: { $gt: group.phase },
-      });
-      if (nextPhaseExists) {
-        return res
-          .status(400)
-          .json({
-            message: "No se puede deshacer: ya se generó la siguiente fase",
-          });
-      }
+    // Can't undo if next phase is already generated past this group.
+    const nextPhaseExists = await TorneoGroup.exists({
+      torneo: torneo._id,
+      phase: { $gt: group.phase },
+    });
+    if (nextPhaseExists) {
+      throw httpError(
+        400,
+        "No se puede deshacer: ya se generó la siguiente fase",
+      );
+    }
 
       game.results = [];
       game.status = "pending";
@@ -1304,15 +1190,12 @@ router.delete(
         await group.save();
       }
 
-      res.json({
-        message: "Resultado deshecho",
-        gameId: game._id,
-        groupId: group._id,
-      });
-    } catch (err) {
-      res.status(500).json({ message: "Error al deshacer el resultado" });
-    }
-  },
+    res.json({
+      message: "Resultado deshecho",
+      gameId: game._id,
+      groupId: group._id,
+    });
+  }),
 );
 
 // PATCH /api/torneos/:id/groups/:groupId/advanced — admin edits the list of advanced players
@@ -1320,109 +1203,90 @@ router.patch(
   "/:id/groups/:groupId/advanced",
   protect,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const torneo = await Torneo.findById(req.params.id);
-      if (!torneo)
-        return res.status(404).json({ message: "Torneo no encontrado" });
-      if (torneo.format !== "groups") {
-        return res
-          .status(400)
-          .json({ message: "Este endpoint es solo para torneos por grupos" });
-      }
-
-      const group = await TorneoGroup.findOne({
-        _id: req.params.groupId,
-        torneo: torneo._id,
-      });
-      if (!group)
-        return res.status(404).json({ message: "Grupo no encontrado" });
-      if (group.status !== "completed") {
-        return res.status(400).json({ message: "El grupo todavía no terminó" });
-      }
-      const nextPhaseExists = await TorneoGroup.exists({
-        torneo: torneo._id,
-        phase: { $gt: group.phase },
-      });
-      if (nextPhaseExists) {
-        return res
-          .status(400)
-          .json({
-            message:
-              "No se pueden editar los promovidos: ya se generó la siguiente fase",
-          });
-      }
-
-      const { advancedPlayers } = req.body;
-      if (!Array.isArray(advancedPlayers)) {
-        return res
-          .status(400)
-          .json({ message: "advancedPlayers debe ser un array" });
-      }
-
-      const playerSet = new Set(group.players.map((id) => String(id)));
-      for (const id of advancedPlayers) {
-        if (!playerSet.has(String(id))) {
-          return res
-            .status(400)
-            .json({ message: "Hay un usuario que no pertenece al grupo" });
-        }
-      }
-
-      group.advancedPlayers = advancedPlayers;
-      await group.save();
-
-      const populated = await TorneoGroup.findById(group._id)
-        .populate("advancedPlayers", USER_FIELDS)
-        .lean();
-      res.json(populated);
-    } catch (err) {
-      res.status(500).json({ message: "Error al actualizar los promovidos" });
+  asyncHandler(async (req, res) => {
+    const torneo = await Torneo.findById(req.params.id);
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
+    if (torneo.format !== "groups") {
+      throw httpError(400, "Este endpoint es solo para torneos por grupos");
     }
-  },
+
+    const group = await TorneoGroup.findOne({
+      _id: req.params.groupId,
+      torneo: torneo._id,
+    });
+    if (!group) throw httpError(404, "Grupo no encontrado");
+    if (group.status !== "completed") {
+      throw httpError(400, "El grupo todavía no terminó");
+    }
+    const nextPhaseExists = await TorneoGroup.exists({
+      torneo: torneo._id,
+      phase: { $gt: group.phase },
+    });
+    if (nextPhaseExists) {
+      throw httpError(
+        400,
+        "No se pueden editar los promovidos: ya se generó la siguiente fase",
+      );
+    }
+
+    const { advancedPlayers } = req.body;
+    if (!Array.isArray(advancedPlayers)) {
+      throw httpError(400, "advancedPlayers debe ser un array");
+    }
+
+    const playerSet = new Set(group.players.map((id) => String(id)));
+    for (const id of advancedPlayers) {
+      if (!playerSet.has(String(id))) {
+        throw httpError(400, "Hay un usuario que no pertenece al grupo");
+      }
+    }
+
+    group.advancedPlayers = advancedPlayers;
+    await group.save();
+
+    const populated = await TorneoGroup.findById(group._id)
+      .populate("advancedPlayers", USER_FIELDS)
+      .lean();
+    res.json(populated);
+  }),
 );
 
 // POST /api/torneos/:id/next-phase — admin generates the next phase from current-phase advancers
-router.post("/:id/next-phase", protect, requireAdmin, async (req, res) => {
-  try {
+router.post(
+  "/:id/next-phase",
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const torneo = await Torneo.findById(req.params.id);
-    if (!torneo)
-      return res.status(404).json({ message: "Torneo no encontrado" });
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
     if (torneo.format !== "groups") {
-      return res
-        .status(400)
-        .json({ message: "Este endpoint es solo para torneos por grupos" });
+      throw httpError(400, "Este endpoint es solo para torneos por grupos");
     }
     if (torneo.status !== "in_progress") {
-      return res.status(400).json({ message: "El torneo no está en curso" });
+      throw httpError(400, "El torneo no está en curso");
     }
 
     const phase = torneo.currentPhase;
     const groups = await TorneoGroup.find({ torneo: torneo._id, phase });
     if (groups.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "No hay grupos en la fase actual" });
+      throw httpError(400, "No hay grupos en la fase actual");
     }
     if (groups.some((g) => g.status !== "completed")) {
-      return res
-        .status(400)
-        .json({ message: "Hay grupos sin terminar en la fase actual" });
+      throw httpError(400, "Hay grupos sin terminar en la fase actual");
     }
 
     const advancers = [];
     for (const g of groups) {
       if (!g.advancedPlayers || g.advancedPlayers.length === 0) {
-        return res
-          .status(400)
-          .json({
-            message: `El grupo de la mesa #${g.tableNumber} no tiene promovidos`,
-          });
+        throw httpError(
+          400,
+          `El grupo de la mesa #${g.tableNumber} no tiene promovidos`,
+        );
       }
       for (const p of g.advancedPlayers) advancers.push(p);
     }
     if (await TorneoGroup.exists({ torneo: torneo._id, phase: phase + 1 })) {
-      return res.status(400).json({ message: "La siguiente fase ya existe" });
+      throw httpError(400, "La siguiente fase ya existe");
     }
 
     const requestedTableSize = req.body?.tableSize
@@ -1444,6 +1308,9 @@ router.post("/:id/next-phase", protect, requireAdmin, async (req, res) => {
     } else if (requestedTableSize) {
       tableSizeToUse = requestedTableSize;
     } else {
+      // Custom: necesitamos devolver `suggestions` además del message.
+      // El errorHandler central solo expone { message }; usamos res.status
+      // directo para preservar el contrato.
       return res.status(400).json({
         message:
           validation.warnings.join(" ") ||
@@ -1481,40 +1348,32 @@ router.post("/:id/next-phase", protect, requireAdmin, async (req, res) => {
       message: "Fase siguiente generada",
       currentPhase: torneo.currentPhase,
     });
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: err.message || "Error al generar la siguiente fase" });
-  }
-});
+  }),
+);
 
 // GET /api/torneos/:id/next-phase/preview — admin previews how next phase would lay out
 router.get(
   "/:id/next-phase/preview",
   protect,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const torneo = await Torneo.findById(req.params.id).lean();
-      if (!torneo)
-        return res.status(404).json({ message: "Torneo no encontrado" });
-      if (torneo.format !== "groups")
-        return res.json({ valid: false, warnings: ["No aplica"] });
-      const groups = await TorneoGroup.find({
-        torneo: torneo._id,
-        phase: torneo.currentPhase,
-      });
-      const advancers = groups.flatMap((g) => g.advancedPlayers || []);
-      const validation = validateNextPhase(advancers.length, torneo.tableSize);
-      res.json({
-        advancersCount: advancers.length,
-        defaultTableSize: torneo.tableSize,
-        ...validation,
-      });
-    } catch (err) {
-      res.status(500).json({ message: "Error al calcular la vista previa" });
+  asyncHandler(async (req, res) => {
+    const torneo = await Torneo.findById(req.params.id).lean();
+    if (!torneo) throw httpError(404, "Torneo no encontrado");
+    if (torneo.format !== "groups") {
+      return res.json({ valid: false, warnings: ["No aplica"] });
     }
-  },
+    const groups = await TorneoGroup.find({
+      torneo: torneo._id,
+      phase: torneo.currentPhase,
+    });
+    const advancers = groups.flatMap((g) => g.advancedPlayers || []);
+    const validation = validateNextPhase(advancers.length, torneo.tableSize);
+    res.json({
+      advancersCount: advancers.length,
+      defaultTableSize: torneo.tableSize,
+      ...validation,
+    });
+  }),
 );
 
 module.exports = router;

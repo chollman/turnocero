@@ -37,11 +37,30 @@ router.get(
 
 ## Cuándo migrar un router
 
-Cuando lo toques por otro motivo. No es un objetivo en sí mismo — la migración es gradual. Si vas a tocar un handler de un router viejo, aprovechá y migrá todo el router (es más limpio que dejar la mitad migrada).
+**Cierre 2026-05-22: todos los routers ya están migrados.** Si tocás un router viejo y ves un `try/catch` con `res.status(500).json({ message })` genérico, es bug — migralo en el momento.
 
-**Migrados al 2026-05-22:** `noticias.js`, `friends.js`, `compartidas.js` (13 handlers), `dm.js` (4 handlers).
+Si agregás un router nuevo, usá el patrón desde el día 1.
 
-**Pendientes:** `auth.js`, `bgg.js`, `tables.js`, `torneos.js`, `eventos.js`, `users.js`, `notifications.js`, `siteConfig.js`, `adminChat.js`, `geocode.js`, sub-routers (`messages.js`, `comments.js`, `images.js`, `ratings.js`), `admin.js`.
+## Estado final (commits 41887ca → cierre ronda 3)
+
+**Migrados:** `noticias.js`, `friends.js`, `compartidas.js`, `dm.js`, `siteConfig.js`, `notifications.js`, `adminChat.js`, `geocode.js`, `users.js`, `admin.js`, `ratings.js`, `images.js`, `messages.js`, `comments.js`, `auth.js`, `tables.js`, `eventos.js`, `torneos.js`, `bgg.js` — los **19 routers** de la app.
+
+## Patrones especiales que mantienen try/catch interno
+
+No todos los handlers se migran al patrón puro `throw httpError(...)`. Algunos preservan try/catch interno por razones específicas:
+
+- **OG endpoints** (`compartidas/:id/og`, `eventos/:id/og`, `bgg/og/:bggUsername`): los crawlers esperan body vacío `{}` en 404/500, no `{ message }`. El try/catch interno usa `res.status(NNN).json({})`.
+- **Respuestas anti-leak** (`auth/resend-verification`, `auth/forgot-password`): siempre 200 con generic message para no exponer si el email está registrado. El catch va a generic response, no a 500.
+- **Cooldowns con headers** (`bgg/coleccion/:bggUsername`, `bgg/partidas/:bggUsername`): 429 con `X-Refresh-Cooldown-Ms` header + `retryAfterMs` en body — `res.status(429).json()` directo en vez de throw.
+- **Códigos especiales** (`auth/login`, `auth/verify-email`): respuestas como `{ code: 'banned' | 'email_not_verified', ... }` van directo con `res.status(403).json()` — no son errores semánticos sino control flow.
+- **Errores con extras** (`torneos/:id/next-phase`): cuando el response necesita campos extra además de `message` (ej. `suggestions`), `res.status(400).json()` directo.
+- **Mongoose ValidationError → 400 con mensaje específico**: cada router con `create()` / `save()` define un helper `rethrowValidation(err)` que detecta `err.name === 'ValidationError'` o `err.code === 11000` y los re-tira como `httpError(400, primerMensaje)`. Sin esto el errorHandler los dejaría como 500 "Error interno del servidor".
+
+## Gotcha 5xx explícitos
+
+Cuando hacés `throw httpError(502, "Error de BGG: REQUEST_DENIED")` querés que ese mensaje SE EXPONGA al cliente, no que el errorHandler lo enmascare como "Error interno del servidor". El flag `err.isExplicit` (que setea `httpError`) le dice al errorHandler que el caller construyó el mensaje deliberadamente para user-facing.
+
+Si re-tirás un error catched de un service (`throw e` o `e.status === 404`) sin envolverlo en `httpError`, ese error NO tiene `isExplicit` → el errorHandler lo enmascara. Para preservar el mensaje, envolvé: `throw httpError(e.status || 500, e.message)`.
 
 ## Gotcha: sync throws
 

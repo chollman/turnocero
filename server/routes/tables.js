@@ -18,6 +18,8 @@ const {
   normalizeLocationInput,
   locationForCreate,
 } = require("../utils/locationHelpers");
+const asyncHandler = require("../utils/asyncHandler");
+const httpError = require("../utils/httpError");
 
 // NOTA: requireSection('mesas') aplica SOLO al router (las rutas de este
 // archivo). El helper `listTables` se exporta abajo y se reusa desde
@@ -27,13 +29,22 @@ router.use(requireSection("mesas"));
 router.param("id", validateObjectId("id"));
 router.param("userId", validateObjectId("userId"));
 
-const validate = (req, res, next) => {
+// Convierte el resultado de express-validator en un httpError 400 con el
+// primer mensaje. Usado en TODOS los handlers que tienen middlewares de
+// `body()`/`param()` antes del asyncHandler.
+function checkValidation(req) {
   const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ message: errors.array()[0].msg });
+  if (!errors.isEmpty()) throw httpError(400, errors.array()[0].msg);
+}
+
+// Mongoose ValidationError → 400 con el primer mensaje.
+function rethrowValidation(err) {
+  if (err.name === "ValidationError") {
+    const messages = Object.values(err.errors).map((e) => e.message);
+    throw httpError(400, messages[0]);
   }
-  next();
-};
+  throw err;
+}
 
 const buildSearchClause = async (search) => {
   if (!search) return null;
@@ -129,22 +140,24 @@ async function listTables({ user, query, eventoId = null }) {
 // GET /api/tables — public (anon sees only public tables); supports ?page, ?limit, ?search
 // Solo lista mesas GLOBALES (eventoId:null). Las mesas asociadas a un evento
 // se listan via `GET /api/eventos/:id/mesas` y NUNCA aparecen acá.
-router.get("/", optionalAuth, async (req, res) => {
-  try {
+router.get(
+  "/",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
     const result = await listTables({
       user: req.user,
       query: req.query,
       eventoId: null,
     });
     res.json(result);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  }),
+);
 
 // GET /api/tables/mine — protected; returns tables where user is host or player
-router.get("/mine", protect, async (req, res) => {
-  try {
+router.get(
+  "/mine",
+  protect,
+  asyncHandler(async (req, res) => {
     const { page, limit, skip } = parsePagination(req.query);
     const searchClause = await buildSearchClause(req.query.search);
     const baseFilter = {
@@ -162,15 +175,15 @@ router.get("/mine", protect, async (req, res) => {
       Table.countDocuments(filter),
     ]);
     res.json({ tables, total, page, pages: Math.ceil(total / limit) });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  }),
+);
 
 // GET /api/me/feed — protected; all tables for current user (all statuses), sorted date desc
 // ?includeFriends=true also includes friends' tables
-router.get("/me/feed", protect, async (req, res) => {
-  try {
+router.get(
+  "/me/feed",
+  protect,
+  asyncHandler(async (req, res) => {
     let ids = [req.user._id];
     if (req.query.includeFriends === "true") {
       const me = await User.findById(req.user._id).select("friends").lean();
@@ -179,14 +192,14 @@ router.get("/me/feed", protect, async (req, res) => {
     const filter = { $or: [{ host: { $in: ids } }, { players: { $in: ids } }] };
     const tables = await populateTable(Table.find(filter)).sort({ date: -1 });
     res.json({ tables, total: tables.length });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  }),
+);
 
 // GET /api/tables/top-games — most-played games in the last 7 days (public)
-router.get("/top-games", optionalAuth, async (req, res) => {
-  try {
+router.get(
+  "/top-games",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const games = await Table.aggregate([
       { $match: { status: { $ne: "cancelled" }, createdAt: { $gte: since } } },
@@ -196,14 +209,13 @@ router.get("/top-games", optionalAuth, async (req, res) => {
       { $project: { _id: 0, game: "$_id", count: 1 } },
     ]);
     res.json(games);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  }),
+);
 
 // GET /api/tables/showcase — public; active upcoming tables count + one random table for auth pages
-router.get("/showcase", async (req, res) => {
-  try {
+router.get(
+  "/showcase",
+  asyncHandler(async (req, res) => {
     const filter = { status: { $ne: "cancelled" }, date: { $gte: new Date() } };
     const total = await Table.countDocuments(filter);
     let table = null;
@@ -216,10 +228,8 @@ router.get("/showcase", async (req, res) => {
         .lean();
     }
     res.json({ total, table });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  }),
+);
 
 // POST /api/tables — protected
 // `location` acepta string (legacy) o { texto, lat, lng } (nuevo).
@@ -253,60 +263,54 @@ router.post(
       .isIn(["public", "private"])
       .withMessage("Invalid privacy value"),
   ],
-  validate,
-  async (req, res) => {
-    try {
-      const {
-        boardGame,
-        date,
-        maxPlayers,
-        location,
-        description,
-        privacy,
-        bggId,
-        bggThumbnail,
-        bggImage,
-        bggYear,
-        eventoId,
-      } = req.body;
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
 
-      if (!boardGame || !date || !maxPlayers) {
-        return res
-          .status(400)
-          .json({ message: "Game, date and max players are required" });
+    const {
+      boardGame,
+      date,
+      maxPlayers,
+      location,
+      description,
+      privacy,
+      bggId,
+      bggThumbnail,
+      bggImage,
+      bggYear,
+      eventoId,
+    } = req.body;
+
+    if (!boardGame || !date || !maxPlayers) {
+      throw httpError(400, "Game, date and max players are required");
+    }
+
+    // Scoping a evento: si se manda `eventoId`, validar permisos contra
+    // canActInEvento (admin del sitio | author del evento | confirmed
+    // registrant). El evento debe existir, no estar draft/cancelled, y
+    // el user debe tener permiso.
+    let validatedEventoId = null;
+    if (eventoId) {
+      const Evento = require("../models/Evento");
+      const { canActInEvento } = require("../utils/eventoPermissions");
+      const evento = await Evento.findById(eventoId).select(
+        "_id author status registrations",
+      );
+      if (!evento) throw httpError(404, "Evento no encontrado");
+      if (evento.status === "cancelled" || evento.status === "draft") {
+        throw httpError(400, "No podés crear mesas en este evento");
       }
-
-      // Scoping a evento: si se manda `eventoId`, validar permisos contra
-      // canActInEvento (admin del sitio | author del evento | confirmed
-      // registrant). El evento debe existir, no estar draft/cancelled, y
-      // el user debe tener permiso.
-      let validatedEventoId = null;
-      if (eventoId) {
-        const Evento = require("../models/Evento");
-        const { canActInEvento } = require("../utils/eventoPermissions");
-        const evento = await Evento.findById(eventoId).select(
-          "_id author status registrations",
+      if (!canActInEvento(evento, req.user)) {
+        throw httpError(
+          403,
+          "Solo inscriptos confirmados pueden crear mesas en este evento",
         );
-        if (!evento) {
-          return res.status(404).json({ message: "Evento no encontrado" });
-        }
-        if (evento.status === "cancelled" || evento.status === "draft") {
-          return res
-            .status(400)
-            .json({ message: "No podés crear mesas en este evento" });
-        }
-        if (!canActInEvento(evento, req.user)) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "Solo inscriptos confirmados pueden crear mesas en este evento",
-            });
-        }
-        validatedEventoId = evento._id;
       }
+      validatedEventoId = evento._id;
+    }
 
-      const table = await Table.create({
+    let table;
+    try {
+      table = await Table.create({
         boardGame,
         date,
         maxPlayers,
@@ -322,64 +326,60 @@ router.post(
         bggYear: bggYear || null,
         eventoId: validatedEventoId,
       });
+    } catch (err) {
+      rethrowValidation(err);
+    }
 
-      await table.populate("host", POPULATE_USER_FIELDS);
+    await table.populate("host", POPULATE_USER_FIELDS);
 
-      // Si la mesa es del evento, notificar a los demás confirmados (excepto
-      // al host de la mesa, que es el actor). Notificación agregable: si el
-      // mismo evento tiene varias mesas creadas, los inscriptos reciben UNA
-      // notif con count incrementado. Además broadcast `evento:mesa-created`
-      // al room del evento para refrescar el listado en EventoDetail.
-      if (validatedEventoId) {
-        const Evento = require("../models/Evento");
-        const evento = await Evento.findById(validatedEventoId).select(
-          "_id title registrations",
+    // Si la mesa es del evento, notificar a los demás confirmados (excepto
+    // al host de la mesa, que es el actor). Notificación agregable: si el
+    // mismo evento tiene varias mesas creadas, los inscriptos reciben UNA
+    // notif con count incrementado. Además broadcast `evento:mesa-created`
+    // al room del evento para refrescar el listado en EventoDetail.
+    if (validatedEventoId) {
+      const Evento = require("../models/Evento");
+      const evento = await Evento.findById(validatedEventoId).select(
+        "_id title registrations",
+      );
+      if (evento) {
+        const actorId = req.user._id.toString();
+        const recipients = (evento.registrations || [])
+          .filter((r) => r.status === "confirmed")
+          .map((r) => r.user.toString())
+          .filter((id) => id !== actorId);
+        await Promise.all(
+          recipients.map((userId) =>
+            emitNotificationReq(
+              req,
+              userId,
+              "evento_mesa_created",
+              {
+                eventoId: evento._id.toString(),
+                eventoTitle: evento.title,
+                eventoTableId: table._id.toString(),
+                gameName: table.boardGame,
+                hostUsername: req.user.username,
+              },
+              "evento:notification",
+              { type: "evento_mesa_created" },
+            ).catch(() => {}),
+          ),
         );
-        if (evento) {
-          const actorId = req.user._id.toString();
-          const recipients = (evento.registrations || [])
-            .filter((r) => r.status === "confirmed")
-            .map((r) => r.user.toString())
-            .filter((id) => id !== actorId);
-          await Promise.all(
-            recipients.map((userId) =>
-              emitNotificationReq(
-                req,
-                userId,
-                "evento_mesa_created",
-                {
-                  eventoId: evento._id.toString(),
-                  eventoTitle: evento.title,
-                  eventoTableId: table._id.toString(),
-                  gameName: table.boardGame,
-                  hostUsername: req.user.username,
-                },
-                "evento:notification",
-                { type: "evento_mesa_created" },
-              ).catch(() => {}),
-            ),
-          );
-          // Broadcast al room del evento (refresca la tab "Mesas" sin
-          // depender de las notifs persistentes).
-          const io = req.app.get("io");
-          if (io) {
-            io.to(`evento:${evento._id}`).emit("evento:mesa-created", {
-              eventoId: evento._id.toString(),
-              tableId: table._id.toString(),
-            });
-          }
+        // Broadcast al room del evento (refresca la tab "Mesas" sin
+        // depender de las notifs persistentes).
+        const io = req.app.get("io");
+        if (io) {
+          io.to(`evento:${evento._id}`).emit("evento:mesa-created", {
+            eventoId: evento._id.toString(),
+            tableId: table._id.toString(),
+          });
         }
       }
-
-      res.status(201).json(table);
-    } catch (err) {
-      if (err.name === "ValidationError") {
-        const messages = Object.values(err.errors).map((e) => e.message);
-        return res.status(400).json({ message: messages[0] });
-      }
-      res.status(500).json({ message: "Server error" });
     }
-  },
+
+    res.status(201).json(table);
+  }),
 );
 
 // GET /api/tables/:id — public; private tables require auth
@@ -387,19 +387,15 @@ router.get(
   "/:id",
   optionalAuth,
   [param("id").isMongoId().withMessage("Invalid table ID")],
-  validate,
-  async (req, res) => {
-    try {
-      const table = await populateTable(Table.findById(req.params.id));
-      if (!table) return res.status(404).json({ message: "Table not found" });
-      if (table.privacy === "private" && !req.user) {
-        return res.status(403).json({ message: "Esta mesa es privada" });
-      }
-      res.json(table);
-    } catch (err) {
-      res.status(500).json({ message: "Server error" });
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
+    const table = await populateTable(Table.findById(req.params.id));
+    if (!table) throw httpError(404, "Table not found");
+    if (table.privacy === "private" && !req.user) {
+      throw httpError(403, "Esta mesa es privada");
     }
-  },
+    res.json(table);
+  }),
 );
 
 // PUT /api/tables/:id — protected, host only
@@ -430,55 +426,50 @@ router.put(
       .isIn(["public", "private"])
       .withMessage("Invalid privacy value"),
   ],
-  validate,
-  async (req, res) => {
-    try {
-      const table = await Table.findById(req.params.id);
-      if (!table) return res.status(404).json({ message: "Table not found" });
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
 
-      if (table.status === "cancelled") {
-        return res
-          .status(400)
-          .json({ message: "No se puede editar una mesa cancelada" });
-      }
+    const table = await Table.findById(req.params.id);
+    if (!table) throw httpError(404, "Table not found");
 
-      if (table.host.toString() !== req.user._id.toString()) {
-        return res
-          .status(403)
-          .json({ message: "Solo el host puede editar esta mesa" });
-      }
-
-      const newMaxPlayers = Number(req.body.maxPlayers);
-      if (newMaxPlayers < table.players.length) {
-        return res.status(400).json({
-          message: `No podés reducir los lugares por debajo de los jugadores actuales (${table.players.length})`,
-        });
-      }
-
-      table.date = req.body.date;
-      table.maxPlayers = newMaxPlayers;
-      if (Object.prototype.hasOwnProperty.call(req.body, "location")) {
-        table.location = normalizeLocationInput(req.body.location) ?? {
-          texto: "",
-          lat: null,
-          lng: null,
-        };
-      }
-      if (Object.prototype.hasOwnProperty.call(req.body, "description")) {
-        table.description = req.body.description || "";
-      }
-      if (req.body.privacy) table.privacy = req.body.privacy;
-
-      await table.save();
-      await populateTable(Table.findById(table._id)).then((t) => res.json(t));
-    } catch (err) {
-      if (err.name === "ValidationError") {
-        const messages = Object.values(err.errors).map((e) => e.message);
-        return res.status(400).json({ message: messages[0] });
-      }
-      res.status(500).json({ message: "Server error" });
+    if (table.status === "cancelled") {
+      throw httpError(400, "No se puede editar una mesa cancelada");
     }
-  },
+
+    if (table.host.toString() !== req.user._id.toString()) {
+      throw httpError(403, "Solo el host puede editar esta mesa");
+    }
+
+    const newMaxPlayers = Number(req.body.maxPlayers);
+    if (newMaxPlayers < table.players.length) {
+      throw httpError(
+        400,
+        `No podés reducir los lugares por debajo de los jugadores actuales (${table.players.length})`,
+      );
+    }
+
+    table.date = req.body.date;
+    table.maxPlayers = newMaxPlayers;
+    if (Object.prototype.hasOwnProperty.call(req.body, "location")) {
+      table.location = normalizeLocationInput(req.body.location) ?? {
+        texto: "",
+        lat: null,
+        lng: null,
+      };
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "description")) {
+      table.description = req.body.description || "";
+    }
+    if (req.body.privacy) table.privacy = req.body.privacy;
+
+    try {
+      await table.save();
+    } catch (err) {
+      rethrowValidation(err);
+    }
+    const populated = await populateTable(Table.findById(table._id));
+    res.json(populated);
+  }),
 );
 
 // POST /api/tables/:id/join — protected
@@ -487,80 +478,69 @@ router.post(
   "/:id/join",
   protect,
   [param("id").isMongoId().withMessage("Invalid table ID")],
-  validate,
-  async (req, res) => {
-    try {
-      const table = await Table.findById(req.params.id);
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
 
-      if (!table) {
-        return res.status(404).json({ message: "Table not found" });
+    const table = await Table.findById(req.params.id);
+    if (!table) throw httpError(404, "Table not found");
+
+    if (table.status === "cancelled") {
+      throw httpError(400, "This table has been cancelled");
+    }
+
+    if (table.host.toString() === req.user._id.toString()) {
+      throw httpError(400, "You are the host of this table");
+    }
+
+    if (table.players.some((p) => p.toString() === req.user._id.toString())) {
+      throw httpError(400, "You already joined this table");
+    }
+
+    if (table.players.length >= table.maxPlayers) {
+      throw httpError(400, "This table is full");
+    }
+
+    if (table.privacy === "private") {
+      if (
+        table.pendingRequests.some(
+          (r) => r.toString() === req.user._id.toString(),
+        )
+      ) {
+        throw httpError(
+          400,
+          "Ya enviaste una solicitud para unirte a esta mesa",
+        );
       }
-
-      if (table.status === "cancelled") {
-        return res
-          .status(400)
-          .json({ message: "This table has been cancelled" });
-      }
-
-      if (table.host.toString() === req.user._id.toString()) {
-        return res
-          .status(400)
-          .json({ message: "You are the host of this table" });
-      }
-
-      if (table.players.some((p) => p.toString() === req.user._id.toString())) {
-        return res
-          .status(400)
-          .json({ message: "You already joined this table" });
-      }
-
-      if (table.players.length >= table.maxPlayers) {
-        return res.status(400).json({ message: "This table is full" });
-      }
-
-      if (table.privacy === "private") {
-        if (
-          table.pendingRequests.some(
-            (r) => r.toString() === req.user._id.toString(),
-          )
-        ) {
-          return res.status(400).json({
-            message: "Ya enviaste una solicitud para unirte a esta mesa",
-          });
-        }
-        table.pendingRequests.push(req.user._id);
-        await table.save();
-        const populated = await populateTable(Table.findById(table._id));
-
-        await emitNotificationReq(
-          req,
-          table.host,
-          "join_request",
-          {
-            tableId: table._id.toString(),
-            tableName: table.boardGame,
-            lastRequesterUsername: req.user.username,
-          },
-          "join:request",
-          { requesterUsername: req.user.username },
-        ).catch(() => {});
-
-        return res.json({ requested: true, table: populated });
-      }
-
-      table.players.push(req.user._id);
-      // Remove from followers if they were following
-      const followerIdx = table.followers.findIndex(
-        (f) => f.toString() === req.user._id.toString(),
-      );
-      if (followerIdx !== -1) table.followers.splice(followerIdx, 1);
+      table.pendingRequests.push(req.user._id);
       await table.save();
       const populated = await populateTable(Table.findById(table._id));
-      res.json({ requested: false, table: populated });
-    } catch (err) {
-      res.status(500).json({ message: "Server error" });
+
+      await emitNotificationReq(
+        req,
+        table.host,
+        "join_request",
+        {
+          tableId: table._id.toString(),
+          tableName: table.boardGame,
+          lastRequesterUsername: req.user.username,
+        },
+        "join:request",
+        { requesterUsername: req.user.username },
+      ).catch(() => {});
+
+      return res.json({ requested: true, table: populated });
     }
-  },
+
+    table.players.push(req.user._id);
+    // Remove from followers if they were following
+    const followerIdx = table.followers.findIndex(
+      (f) => f.toString() === req.user._id.toString(),
+    );
+    if (followerIdx !== -1) table.followers.splice(followerIdx, 1);
+    await table.save();
+    const populated = await populateTable(Table.findById(table._id));
+    res.json({ requested: false, table: populated });
+  }),
 );
 
 // DELETE /api/tables/:id/request — protected; cancel own pending request
@@ -568,28 +548,24 @@ router.delete(
   "/:id/request",
   protect,
   [param("id").isMongoId().withMessage("Invalid table ID")],
-  validate,
-  async (req, res) => {
-    try {
-      const table = await Table.findById(req.params.id);
-      if (!table) return res.status(404).json({ message: "Table not found" });
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
 
-      const idx = table.pendingRequests.findIndex(
-        (r) => r.toString() === req.user._id.toString(),
-      );
-      if (idx === -1)
-        return res
-          .status(400)
-          .json({ message: "No tenés una solicitud pendiente en esta mesa" });
+    const table = await Table.findById(req.params.id);
+    if (!table) throw httpError(404, "Table not found");
 
-      table.pendingRequests.splice(idx, 1);
-      await table.save();
-      const populated = await populateTable(Table.findById(table._id));
-      res.json({ requested: false, table: populated });
-    } catch (err) {
-      res.status(500).json({ message: "Server error" });
+    const idx = table.pendingRequests.findIndex(
+      (r) => r.toString() === req.user._id.toString(),
+    );
+    if (idx === -1) {
+      throw httpError(400, "No tenés una solicitud pendiente en esta mesa");
     }
-  },
+
+    table.pendingRequests.splice(idx, 1);
+    await table.save();
+    const populated = await populateTable(Table.findById(table._id));
+    res.json({ requested: false, table: populated });
+  }),
 );
 
 // POST /api/tables/:id/requests/:userId/accept — protected, host only
@@ -600,52 +576,47 @@ router.post(
     param("id").isMongoId().withMessage("Invalid table ID"),
     param("userId").isMongoId().withMessage("Invalid user ID"),
   ],
-  validate,
-  async (req, res) => {
-    try {
-      const table = await Table.findById(req.params.id);
-      if (!table) return res.status(404).json({ message: "Table not found" });
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
 
-      if (table.host.toString() !== req.user._id.toString()) {
-        return res
-          .status(403)
-          .json({ message: "Solo el host puede aceptar solicitudes" });
-      }
+    const table = await Table.findById(req.params.id);
+    if (!table) throw httpError(404, "Table not found");
 
-      if (table.status === "cancelled") {
-        return res.status(400).json({
-          message: "No se pueden aceptar solicitudes en una mesa cancelada",
-        });
-      }
-
-      if (table.players.length >= table.maxPlayers) {
-        return res.status(400).json({ message: "La mesa está llena" });
-      }
-
-      const idx = table.pendingRequests.findIndex(
-        (r) => r.toString() === req.params.userId,
-      );
-      if (idx === -1)
-        return res.status(404).json({ message: "Solicitud no encontrada" });
-
-      table.pendingRequests.splice(idx, 1);
-      table.players.push(req.params.userId);
-      await table.save();
-      const populated = await populateTable(Table.findById(table._id));
-
-      await emitNotificationReq(
-        req,
-        req.params.userId,
-        "join_accepted",
-        { tableId: req.params.id, tableName: table.boardGame },
-        "join:accepted",
-      ).catch(() => {});
-
-      res.json(populated);
-    } catch (err) {
-      res.status(500).json({ message: "Server error" });
+    if (table.host.toString() !== req.user._id.toString()) {
+      throw httpError(403, "Solo el host puede aceptar solicitudes");
     }
-  },
+
+    if (table.status === "cancelled") {
+      throw httpError(
+        400,
+        "No se pueden aceptar solicitudes en una mesa cancelada",
+      );
+    }
+
+    if (table.players.length >= table.maxPlayers) {
+      throw httpError(400, "La mesa está llena");
+    }
+
+    const idx = table.pendingRequests.findIndex(
+      (r) => r.toString() === req.params.userId,
+    );
+    if (idx === -1) throw httpError(404, "Solicitud no encontrada");
+
+    table.pendingRequests.splice(idx, 1);
+    table.players.push(req.params.userId);
+    await table.save();
+    const populated = await populateTable(Table.findById(table._id));
+
+    await emitNotificationReq(
+      req,
+      req.params.userId,
+      "join_accepted",
+      { tableId: req.params.id, tableName: table.boardGame },
+      "join:accepted",
+    ).catch(() => {});
+
+    res.json(populated);
+  }),
 );
 
 // POST /api/tables/:id/requests/:userId/reject — protected, host only
@@ -656,41 +627,35 @@ router.post(
     param("id").isMongoId().withMessage("Invalid table ID"),
     param("userId").isMongoId().withMessage("Invalid user ID"),
   ],
-  validate,
-  async (req, res) => {
-    try {
-      const table = await Table.findById(req.params.id);
-      if (!table) return res.status(404).json({ message: "Table not found" });
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
 
-      if (table.host.toString() !== req.user._id.toString()) {
-        return res
-          .status(403)
-          .json({ message: "Solo el host puede rechazar solicitudes" });
-      }
+    const table = await Table.findById(req.params.id);
+    if (!table) throw httpError(404, "Table not found");
 
-      const idx = table.pendingRequests.findIndex(
-        (r) => r.toString() === req.params.userId,
-      );
-      if (idx === -1)
-        return res.status(404).json({ message: "Solicitud no encontrada" });
-
-      table.pendingRequests.splice(idx, 1);
-      await table.save();
-
-      await emitNotificationReq(
-        req,
-        req.params.userId,
-        "join_rejected",
-        { tableId: table._id.toString(), tableName: table.boardGame },
-        "join:rejected",
-      ).catch(() => {});
-
-      const populated = await populateTable(Table.findById(table._id));
-      res.json(populated);
-    } catch (err) {
-      res.status(500).json({ message: "Server error" });
+    if (table.host.toString() !== req.user._id.toString()) {
+      throw httpError(403, "Solo el host puede rechazar solicitudes");
     }
-  },
+
+    const idx = table.pendingRequests.findIndex(
+      (r) => r.toString() === req.params.userId,
+    );
+    if (idx === -1) throw httpError(404, "Solicitud no encontrada");
+
+    table.pendingRequests.splice(idx, 1);
+    await table.save();
+
+    await emitNotificationReq(
+      req,
+      req.params.userId,
+      "join_rejected",
+      { tableId: table._id.toString(), tableName: table.boardGame },
+      "join:rejected",
+    ).catch(() => {});
+
+    const populated = await populateTable(Table.findById(table._id));
+    res.json(populated);
+  }),
 );
 
 // POST /api/tables/:id/leave — protected
@@ -698,50 +663,44 @@ router.post(
   "/:id/leave",
   protect,
   [param("id").isMongoId().withMessage("Invalid table ID")],
-  validate,
-  async (req, res) => {
-    try {
-      const table = await Table.findById(req.params.id);
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
 
-      if (!table) {
-        return res.status(404).json({ message: "Table not found" });
-      }
+    const table = await Table.findById(req.params.id);
+    if (!table) throw httpError(404, "Table not found");
 
-      const playerIndex = table.players.findIndex(
-        (p) => p.toString() === req.user._id.toString(),
-      );
+    const playerIndex = table.players.findIndex(
+      (p) => p.toString() === req.user._id.toString(),
+    );
 
-      if (playerIndex === -1) {
-        return res.status(400).json({ message: "You are not in this table" });
-      }
-
-      table.players.splice(playerIndex, 1);
-      await table.save();
-      const populated = await populateTable(Table.findById(table._id));
-
-      // Notify followers that a spot opened
-      if (
-        table.players.length < table.maxPlayers &&
-        table.followers.length > 0
-      ) {
-        await Promise.all(
-          table.followers.map((followerId) =>
-            emitNotificationReq(
-              req,
-              followerId,
-              "spot_opened",
-              { tableId: table._id.toString(), tableName: table.boardGame },
-              "table:spot-opened",
-            ).catch(() => {}),
-          ),
-        );
-      }
-
-      res.json(populated);
-    } catch (err) {
-      res.status(500).json({ message: "Server error" });
+    if (playerIndex === -1) {
+      throw httpError(400, "You are not in this table");
     }
-  },
+
+    table.players.splice(playerIndex, 1);
+    await table.save();
+    const populated = await populateTable(Table.findById(table._id));
+
+    // Notify followers that a spot opened
+    if (
+      table.players.length < table.maxPlayers &&
+      table.followers.length > 0
+    ) {
+      await Promise.all(
+        table.followers.map((followerId) =>
+          emitNotificationReq(
+            req,
+            followerId,
+            "spot_opened",
+            { tableId: table._id.toString(), tableName: table.boardGame },
+            "table:spot-opened",
+          ).catch(() => {}),
+        ),
+      );
+    }
+
+    res.json(populated);
+  }),
 );
 
 // POST /api/tables/:id/follow — protected; toggle follow; any non-member logged-in user
@@ -749,35 +708,33 @@ router.post(
   "/:id/follow",
   protect,
   [param("id").isMongoId().withMessage("Invalid table ID")],
-  validate,
-  async (req, res) => {
-    try {
-      const table = await Table.findById(req.params.id);
-      if (!table) return res.status(404).json({ message: "Table not found" });
-      if (table.status === "cancelled")
-        return res.status(400).json({ message: "Table is cancelled" });
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
 
-      const uid = req.user._id.toString();
-      if (
-        table.host.toString() === uid ||
-        table.players.some((p) => p.toString() === uid)
-      ) {
-        return res.status(400).json({ message: "Ya sos miembro de esta mesa" });
-      }
-
-      const idx = table.followers.findIndex((f) => f.toString() === uid);
-      if (idx !== -1) {
-        table.followers.splice(idx, 1);
-      } else {
-        table.followers.push(req.user._id);
-      }
-
-      await table.save();
-      res.json({ followers: table.followers, isFollowing: idx === -1 });
-    } catch (err) {
-      res.status(500).json({ message: "Server error" });
+    const table = await Table.findById(req.params.id);
+    if (!table) throw httpError(404, "Table not found");
+    if (table.status === "cancelled") {
+      throw httpError(400, "Table is cancelled");
     }
-  },
+
+    const uid = req.user._id.toString();
+    if (
+      table.host.toString() === uid ||
+      table.players.some((p) => p.toString() === uid)
+    ) {
+      throw httpError(400, "Ya sos miembro de esta mesa");
+    }
+
+    const idx = table.followers.findIndex((f) => f.toString() === uid);
+    if (idx !== -1) {
+      table.followers.splice(idx, 1);
+    } else {
+      table.followers.push(req.user._id);
+    }
+
+    await table.save();
+    res.json({ followers: table.followers, isFollowing: idx === -1 });
+  }),
 );
 
 // POST /api/tables/:id/react — protected; any logged-in user; toggles/replaces emoji reaction
@@ -790,36 +747,34 @@ router.post(
       .isIn(["❤️", "🎲", "🔥", "👍", "😄"])
       .withMessage("Invalid emoji"),
   ],
-  validate,
-  async (req, res) => {
-    try {
-      const table = await Table.findById(req.params.id);
-      if (!table) return res.status(404).json({ message: "Table not found" });
-      if (table.status === "cancelled")
-        return res.status(400).json({ message: "Table is cancelled" });
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
 
-      const { emoji } = req.body;
-      const uid = req.user._id.toString();
-      const existingIdx = table.reactions.findIndex(
-        (r) => r.user.toString() === uid,
-      );
-
-      if (existingIdx !== -1) {
-        if (table.reactions[existingIdx].emoji === emoji) {
-          table.reactions.splice(existingIdx, 1);
-        } else {
-          table.reactions[existingIdx].emoji = emoji;
-        }
-      } else {
-        table.reactions.push({ user: req.user._id, emoji });
-      }
-
-      await table.save();
-      res.json({ reactions: table.reactions });
-    } catch (err) {
-      res.status(500).json({ message: "Server error" });
+    const table = await Table.findById(req.params.id);
+    if (!table) throw httpError(404, "Table not found");
+    if (table.status === "cancelled") {
+      throw httpError(400, "Table is cancelled");
     }
-  },
+
+    const { emoji } = req.body;
+    const uid = req.user._id.toString();
+    const existingIdx = table.reactions.findIndex(
+      (r) => r.user.toString() === uid,
+    );
+
+    if (existingIdx !== -1) {
+      if (table.reactions[existingIdx].emoji === emoji) {
+        table.reactions.splice(existingIdx, 1);
+      } else {
+        table.reactions[existingIdx].emoji = emoji;
+      }
+    } else {
+      table.reactions.push({ user: req.user._id, emoji });
+    }
+
+    await table.save();
+    res.json({ reactions: table.reactions });
+  }),
 );
 
 // DELETE /api/tables/:id — protected, host only
@@ -827,47 +782,39 @@ router.delete(
   "/:id",
   protect,
   [param("id").isMongoId().withMessage("Invalid table ID")],
-  validate,
-  async (req, res) => {
-    try {
-      const table = await Table.findById(req.params.id);
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
 
-      if (!table) {
-        return res.status(404).json({ message: "Table not found" });
-      }
+    const table = await Table.findById(req.params.id);
+    if (!table) throw httpError(404, "Table not found");
 
-      if (table.host.toString() !== req.user._id.toString()) {
-        return res
-          .status(403)
-          .json({ message: "Only the host can cancel this table" });
-      }
-
-      table.status = "cancelled";
-      await table.save();
-
-      const hostId = req.user._id.toString();
-      const recipients = new Set([
-        ...table.players.map((p) => p.toString()),
-        ...table.followers.map((f) => f.toString()),
-      ]);
-      recipients.delete(hostId);
-      await Promise.all(
-        [...recipients].map((userId) =>
-          emitNotificationReq(
-            req,
-            userId,
-            "table_cancelled",
-            { tableId: table._id.toString(), tableName: table.boardGame },
-            "table:cancelled",
-          ).catch(() => {}),
-        ),
-      );
-
-      res.json({ message: "Table cancelled successfully" });
-    } catch (err) {
-      res.status(500).json({ message: "Server error" });
+    if (table.host.toString() !== req.user._id.toString()) {
+      throw httpError(403, "Only the host can cancel this table");
     }
-  },
+
+    table.status = "cancelled";
+    await table.save();
+
+    const hostId = req.user._id.toString();
+    const recipients = new Set([
+      ...table.players.map((p) => p.toString()),
+      ...table.followers.map((f) => f.toString()),
+    ]);
+    recipients.delete(hostId);
+    await Promise.all(
+      [...recipients].map((userId) =>
+        emitNotificationReq(
+          req,
+          userId,
+          "table_cancelled",
+          { tableId: table._id.toString(), tableName: table.boardGame },
+          "table:cancelled",
+        ).catch(() => {}),
+      ),
+    );
+
+    res.json({ message: "Table cancelled successfully" });
+  }),
 );
 
 module.exports = router;

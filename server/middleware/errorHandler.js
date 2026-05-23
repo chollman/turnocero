@@ -32,11 +32,14 @@ function statusFor(err) {
 }
 
 function messageFor(err, status) {
-  // Solo exponemos el message del error si es 4xx (intencional). Para 5xx
-  // devolvemos un mensaje genérico — el error real podría contener detalles
-  // internos (paths de fs, secrets en stack traces, etc.) que no queremos
-  // mandar al cliente.
+  // 4xx intencional → exponer message tal cual.
   if (status >= 400 && status < 500 && err.message) return err.message;
+  // 5xx explícitos (creados con utils/httpError — el caller los construyó
+  // deliberadamente como user-facing, ej. "Error de Google Geocoding: ...")
+  // → también exponer.
+  if (err.isExplicit && err.message) return err.message;
+  // 5xx no esperados (bug, DB down, libs externas) → mensaje genérico para
+  // no leakear detalles internos (paths fs, secrets en stack traces, etc.).
   return 'Error interno del servidor';
 }
 

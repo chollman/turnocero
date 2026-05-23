@@ -28,7 +28,7 @@ Progreso del **tech-debt audit** (`plans/tech-debt-audit.md`, ejecutado en sesio
 - **P1.3** CompartidaCard (1155 → 799 líneas): commit `7cc34fb` — extraído `CompartidaComments` (eliminó ~298 líneas de duplicación entre featured/normal) + hook `useCompartidaLike`.
 - **P1.4** BGG router (1856 → 779 líneas, -58%): 5 commits secuenciales (`8323dfd`, `b142adb`, `8454467`, `1434a5d`, `a1f9186`) extrayendo a `server/services/bgg/`: aggregations, search, cache L1, cooldown, parse, resolve, syncEngine, mutations. Ver [[service-layer-pattern]].
 - **P1.5** torneos.js + eventos.js: commits `2e03a86` + `aeb2466` — business logic a `server/services/torneoService.js` + `server/services/eventoService.js`.
-- **P1.6** asyncHandler + errorHandler central: commit `a85eeb5` — infra creada, **solo noticias + friends migrados** ([[asyncHandler-errorHandler-pattern]]). Migración del resto es incremental.
+- **P1.6** asyncHandler + errorHandler central: commit `a85eeb5` (infra) + `41887ca` (compartidas + dm) + ronda completa (todos los routers). **19/19 routers migrados** ([[asyncHandler-errorHandler-pattern]]). Patterns especiales documentados para OG endpoints, anti-leak responses, cooldowns con headers, ValidationError.
 
 ### Fase 2 — Hooks y utils (commit `0971bb7`)
 - **P2.1** `useApi`, **P2.2** `useShowcaseTables`, **P2.3** `passwordValidation`, **P2.4** `storageKeys`, **P2.5** `getErrorMessage`, **P2.6** `socketHelpers`, **P2.7** `idCompare.isSameId`, **P2.8** `paginate.parsePagination`. Ver [[shared-helpers-catalog]].
@@ -51,7 +51,6 @@ Progreso del **tech-debt audit** (`plans/tech-debt-audit.md`, ejecutado en sesio
 
 ## Pendiente (incremental, al toque oportunístico)
 
-- **P1.6** restante: migrar `auth.js`, `bgg.js`, `tables.js`, `torneos.js`, `eventos.js`, `compartidas.js`, `dm.js`, etc. a `asyncHandler` cuando se toquen. `httpError` + `errorHandler` ya están, solo falta cambiar la sintaxis de los handlers.
 - **P2.7** `isSameId` aplicado donde se toca: el helper existe + tiene tests, pero los ~180 call sites con `a.toString() !== b.toString()` no se migraron en bloque. Migrar oportunísticamente cuando se toca un router/service.
 - **P3.1** auditar `eslint-disable-next-line react-hooks/exhaustive-deps` sin comentario en TableDetail:234, BottomNav:245 (NotificationContext ya migrado a listeners).
 - **P3.3** migrar `let cancelled = false` a `AbortController` en fetchs (TableDetail tenía uno; CreateTable es la referencia correcta).

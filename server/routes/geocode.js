@@ -4,6 +4,8 @@ const { Client } = require('@googlemaps/google-maps-services-js');
 const GeocodeCache = require('../models/GeocodeCache');
 const { protect } = require('../middleware/auth');
 const logger = require('../utils/logger');
+const asyncHandler = require('../utils/asyncHandler');
+const httpError = require('../utils/httpError');
 
 const router = express.Router();
 
@@ -37,17 +39,21 @@ const normalizeQuery = (q) =>
  * Errores:
  *   400 si q está vacío o muy corto
  *   404 si Google no encontró nada
- *   500 si Google falla
+ *   502 si Google responde con error o falla red
+ *   500 si geocoding no está configurado
  */
-router.get('/', protect, geocodeLimiter, async (req, res) => {
-  const raw = (req.query.q || '').toString();
-  if (raw.trim().length < 3) {
-    return res.status(400).json({ message: 'La dirección debe tener al menos 3 caracteres.' });
-  }
+router.get(
+  '/',
+  protect,
+  geocodeLimiter,
+  asyncHandler(async (req, res) => {
+    const raw = (req.query.q || '').toString();
+    if (raw.trim().length < 3) {
+      throw httpError(400, 'La dirección debe tener al menos 3 caracteres.');
+    }
 
-  const query = normalizeQuery(raw);
+    const query = normalizeQuery(raw);
 
-  try {
     // Cache hit.
     const cached = await GeocodeCache.findOne({ query }).lean();
     if (cached) {
@@ -62,23 +68,44 @@ router.get('/', protect, geocodeLimiter, async (req, res) => {
     // Cache miss — llamar a Google.
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ message: 'Geocoding no está configurado en el servidor.' });
+      throw httpError(500, 'Geocoding no está configurado en el servidor.');
     }
 
-    const response = await googleClient.geocode({
-      params: {
-        address: raw.trim(),
-        key: apiKey,
-        // Sesgar a Argentina (más probable que la dirección sea local).
-        region: 'ar',
-        language: 'es',
-      },
-      timeout: 5000,
-    });
+    // Capturamos los errores del client de Google acá adentro para preservar
+    // el mensaje específico ("Error de Google Geocoding: <status>"). El
+    // errorHandler central solo expone err.message en 4xx; con un 502 sin
+    // catch quedaría como "Error interno del servidor".
+    let response;
+    try {
+      response = await googleClient.geocode({
+        params: {
+          address: raw.trim(),
+          key: apiKey,
+          // Sesgar a Argentina (más probable que la dirección sea local).
+          region: 'ar',
+          language: 'es',
+        },
+        timeout: 5000,
+      });
+    } catch (err) {
+      if (err.response?.data?.status) {
+        const detail = err.response.data.error_message || '';
+        logger.warn('[geocode] Google API error', {
+          status: err.response.data.status,
+          detail,
+        });
+        throw httpError(
+          502,
+          `Error de Google Geocoding: ${err.response.data.status}${detail ? ` — ${detail}` : ''}`,
+        );
+      }
+      logger.warn('[geocode] Unexpected error', { error: err.message });
+      throw httpError(500, 'Error al consultar geocoding.');
+    }
 
     const result = response.data.results?.[0];
     if (!result) {
-      return res.status(404).json({ message: 'No se encontró esa dirección.' });
+      throw httpError(404, 'No se encontró esa dirección.');
     }
 
     const { lat, lng } = result.geometry.location;
@@ -99,27 +126,14 @@ router.get('/', protect, geocodeLimiter, async (req, res) => {
         status: response.data.status,
         detail,
       });
-      return res.status(502).json({
-        message: `Error de Google Geocoding: ${response.data.status}${detail ? ` — ${detail}` : ''}`,
-      });
+      throw httpError(
+        502,
+        `Error de Google Geocoding: ${response.data.status}${detail ? ` — ${detail}` : ''}`,
+      );
     }
 
     return res.json({ lat, lng, formatted, cached: false });
-  } catch (err) {
-    // Errores de Google (network, timeout, quota exceeded) → 502.
-    if (err.response?.data?.status) {
-      const detail = err.response.data.error_message || '';
-      logger.warn('[geocode] Google API error', {
-        status: err.response.data.status,
-        detail,
-      });
-      return res.status(502).json({
-        message: `Error de Google Geocoding: ${err.response.data.status}${detail ? ` — ${detail}` : ''}`,
-      });
-    }
-    logger.warn('[geocode] Unexpected error', { error: err.message });
-    return res.status(500).json({ message: 'Error al consultar geocoding.' });
-  }
-});
+  }),
+);
 
 module.exports = router;

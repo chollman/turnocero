@@ -8,6 +8,8 @@ const BggPlay = require("../models/BggPlay");
 const logger = require("../utils/logger");
 const { escapeRegex } = require("../utils/regex");
 const { withUserLock } = require("../utils/bggSync");
+const asyncHandler = require("../utils/asyncHandler");
+const httpError = require("../utils/httpError");
 
 // Rate limits para endpoints caros (BGG-bound). El sync re-fetchea TODAS las
 // pages de plays del user — es de lejos lo más caro que tenemos. Las
@@ -81,22 +83,28 @@ router.use(requireSection("bgwatch"));
 // Acá solo quedan los handlers HTTP.
 
 // GET /api/bgg/search?q=<query>
-router.get("/search", async (req, res) => {
-  const q = (req.query.q || "").trim();
-  if (q.length < 3) return res.json([]);
+router.get(
+  "/search",
+  asyncHandler(async (req, res) => {
+    const q = (req.query.q || "").trim();
+    if (q.length < 3) return res.json([]);
 
-  const cacheKey = `search:${q.toLowerCase()}`;
-  const cached = getCached(cacheKey);
-  if (cached) return res.json(cached);
+    const cacheKey = `search:${q.toLowerCase()}`;
+    const cached = getCached(cacheKey);
+    if (cached) return res.json(cached);
 
-  try {
-    const xml = await fetchBgg(
-      `${BGG_API}/search?query=${encodeURIComponent(q)}&type=boardgame`,
-    );
-    const parsed = parser.parse(xml);
+    // try/catch interno: el contrato es responder 502 con mensaje custom de
+    // "No se pudo conectar con BGG" cuando fetchBgg falla — no queremos
+    // exponer detalles del upstream. asyncHandler envuelve igual para
+    // cualquier rejection que se escape.
+    try {
+      const xml = await fetchBgg(
+        `${BGG_API}/search?query=${encodeURIComponent(q)}&type=boardgame`,
+      );
+      const parsed = parser.parse(xml);
 
-    const root = parsed?.items;
-    if (!root) return res.json([]);
+      const root = parsed?.items;
+      if (!root) return res.json([]);
 
     const rawItems = root.item || [];
     const items = Array.isArray(rawItems) ? rawItems : [rawItems];
@@ -148,70 +156,76 @@ router.get("/search", async (req, res) => {
       }
     }
 
-    setCached(cacheKey, results);
-    res.json(results);
-  } catch (err) {
-    res.status(502).json({ message: "No se pudo conectar con BGG" });
-  }
-});
+      setCached(cacheKey, results);
+      res.json(results);
+    } catch {
+      throw httpError(502, "No se pudo conectar con BGG");
+    }
+  }),
+);
 
 // GET /api/bgg/game/:id
-router.get("/game/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
-  if (!id || id <= 0)
-    return res.status(400).json({ message: "Invalid game ID" });
+router.get(
+  "/game/:id",
+  asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (!id || id <= 0) throw httpError(400, "Invalid game ID");
 
-  try {
-    const game = await resolveGame(id);
-    if (!game) return res.status(404).json({ message: "Juego no encontrado" });
-    res.json(game);
-  } catch (err) {
-    if (err.status === 404)
-      return res.status(404).json({ message: "Juego no encontrado" });
-    res.status(502).json({ message: "No se pudo conectar con BGG" });
-  }
-});
+    try {
+      const game = await resolveGame(id);
+      if (!game) throw httpError(404, "Juego no encontrado");
+      res.json(game);
+    } catch (err) {
+      if (err.isExplicit) throw err; // propaga el 404 ya armado
+      if (err.status === 404) throw httpError(404, "Juego no encontrado");
+      throw httpError(502, "No se pudo conectar con BGG");
+    }
+  }),
+);
 
 // GET /api/bgg/coleccion/:bggUsername
-router.get("/coleccion/:bggUsername", async (req, res) => {
-  const { bggUsername } = req.params;
-  const forceRefresh = req.query.refresh === "1";
+router.get(
+  "/coleccion/:bggUsername",
+  asyncHandler(async (req, res) => {
+    const { bggUsername } = req.params;
+    const forceRefresh = req.query.refresh === "1";
 
-  // Server-side cooldown for the manual "Actualizar" button (60s per panel).
-  // Applies to anyone hitting ?refresh=1 — the client only shows the button
-  // to owner/admin, but we throttle here regardless of auth.
-  if (forceRefresh) {
-    const remaining = await getManualRefreshRemainingMs(
-      bggUsername,
-      "coleccion",
-    );
-    if (remaining > 0) {
+    // Server-side cooldown for the manual "Actualizar" button (60s per panel).
+    // Applies to anyone hitting ?refresh=1 — the client only shows the button
+    // to owner/admin, but we throttle here regardless of auth. 429 con header
+    // X-Refresh-Cooldown-Ms y retryAfterMs en el body — necesita res.status
+    // directo para preservar la forma.
+    if (forceRefresh) {
+      const remaining = await getManualRefreshRemainingMs(
+        bggUsername,
+        "coleccion",
+      );
+      if (remaining > 0) {
+        res.setHeader("X-Refresh-Cooldown-Ms", String(remaining));
+        return res.status(429).json({
+          message: `Esperá ${Math.ceil(remaining / 1000)}s antes de actualizar.`,
+          retryAfterMs: remaining,
+        });
+      }
+      await stampManualRefresh(bggUsername, "coleccion");
+    }
+
+    try {
+      const collection = await resolveCollection(bggUsername, { forceRefresh });
+      const remaining = await getManualRefreshRemainingMs(
+        bggUsername,
+        "coleccion",
+      );
       res.setHeader("X-Refresh-Cooldown-Ms", String(remaining));
-      return res.status(429).json({
-        message: `Esperá ${Math.ceil(remaining / 1000)}s antes de actualizar.`,
-        retryAfterMs: remaining,
-      });
+      res.json(collection);
+    } catch (err) {
+      if (err.status === 404) {
+        throw httpError(404, err.message || "Usuario de BGG no encontrado");
+      }
+      throw httpError(502, "No se pudo conectar con BGG");
     }
-    await stampManualRefresh(bggUsername, "coleccion");
-  }
-
-  try {
-    const collection = await resolveCollection(bggUsername, { forceRefresh });
-    const remaining = await getManualRefreshRemainingMs(
-      bggUsername,
-      "coleccion",
-    );
-    res.setHeader("X-Refresh-Cooldown-Ms", String(remaining));
-    res.json(collection);
-  } catch (err) {
-    if (err.status === 404) {
-      return res
-        .status(404)
-        .json({ message: err.message || "Usuario de BGG no encontrado" });
-    }
-    res.status(502).json({ message: "No se pudo conectar con BGG" });
-  }
-});
+  }),
+);
 
 // GET /api/bgg/partidas/:bggUsername
 const PAGE_SIZE = 10;
@@ -231,27 +245,30 @@ const PAGES_PER_BGG = BGG_PAGE_SIZE / PAGE_SIZE; // 3 client pages per BGG page
 // no plays in Mongo so the client can fall back to the collection-derived
 // list (only useful for users on the L1/L3 fallback path; for synced
 // users the server-derived list is authoritative).
-router.get("/juegos-jugados/:bggUsername", async (req, res) => {
-  const { bggUsername } = req.params;
-  const lower = bggUsername.toLowerCase();
-  try {
-    const items = await computePlayedGames(lower);
-    res.json(items);
-  } catch (err) {
-    logger.error("[bgg/juegos-jugados] aggregation failed", {
-      bggUsername: lower,
-      error: err.message,
-    });
-    res
-      .status(500)
-      .json({ message: "No se pudieron computar los juegos jugados" });
-  }
-});
+router.get(
+  "/juegos-jugados/:bggUsername",
+  asyncHandler(async (req, res) => {
+    const { bggUsername } = req.params;
+    const lower = bggUsername.toLowerCase();
+    try {
+      const items = await computePlayedGames(lower);
+      res.json(items);
+    } catch (err) {
+      logger.error("[bgg/juegos-jugados] aggregation failed", {
+        bggUsername: lower,
+        error: err.message,
+      });
+      throw httpError(500, "No se pudieron computar los juegos jugados");
+    }
+  }),
+);
 
-router.get("/partidas/:bggUsername", async (req, res) => {
-  const { bggUsername } = req.params;
-  const lower = bggUsername.toLowerCase();
-  const clientPage = Math.max(1, parseInt(req.query.page) || 1);
+router.get(
+  "/partidas/:bggUsername",
+  asyncHandler(async (req, res) => {
+    const { bggUsername } = req.params;
+    const lower = bggUsername.toLowerCase();
+    const clientPage = Math.max(1, parseInt(req.query.page) || 1);
 
   const dateRe = /^\d{4}-\d{2}-\d{2}$/;
   const mindate = dateRe.test(req.query.mindate || "")
@@ -418,57 +435,64 @@ router.get("/partidas/:bggUsername", async (req, res) => {
     }
   }
 
-  try {
-    const params = new URLSearchParams({
-      username: bggUsername,
-      page: String(bggPage),
-    });
-    if (mindate) params.set("mindate", mindate);
-    if (maxdate) params.set("maxdate", maxdate);
-    if (gameId) params.set("id", gameId);
-    const xml = await fetchBgg(`${BGG_API}/plays?${params.toString()}`);
-    const parsed = parsePlaysXml(xml);
-    if (!parsed)
-      return res.status(404).json({ message: "Usuario de BGG no encontrado" });
-    const { plays: parsedInternal, total } = parsed;
+    try {
+      const params = new URLSearchParams({
+        username: bggUsername,
+        page: String(bggPage),
+      });
+      if (mindate) params.set("mindate", mindate);
+      if (maxdate) params.set("maxdate", maxdate);
+      if (gameId) params.set("id", gameId);
+      const xml = await fetchBgg(`${BGG_API}/plays?${params.toString()}`);
+      const parsed = parsePlaysXml(xml);
+      if (!parsed) throw httpError(404, "Usuario de BGG no encontrado");
+      const { plays: parsedInternal, total } = parsed;
 
-    // Enrich thumbnails via the shared BggGame cache (no per-user data here)
-    const uniqueGameIds = [
-      ...new Set(parsedInternal.map((p) => p.gameId).filter(Boolean)),
-    ];
-    const gamesMap = await resolveGamesBatch(uniqueGameIds);
-    parsedInternal.forEach((p) => {
-      if (p.gameId)
-        p.gameThumbnail = gamesMap.get(Number(p.gameId))?.thumbnail || null;
-    });
+      // Enrich thumbnails via the shared BggGame cache (no per-user data here)
+      const uniqueGameIds = [
+        ...new Set(parsedInternal.map((p) => p.gameId).filter(Boolean)),
+      ];
+      const gamesMap = await resolveGamesBatch(uniqueGameIds);
+      parsedInternal.forEach((p) => {
+        if (p.gameId)
+          p.gameThumbnail = gamesMap.get(Number(p.gameId))?.thumbnail || null;
+      });
 
-    const apiPlays = parsedInternal.map(playToApi);
-    const fullPageData = { total, plays: apiPlays };
-    setCached(cacheKey, fullPageData);
+      const apiPlays = parsedInternal.map(playToApi);
+      const fullPageData = { total, plays: apiPlays };
+      setCached(cacheKey, fullPageData);
 
-    res.json({
-      total,
-      page: clientPage,
-      pageSize: PAGE_SIZE,
-      plays: apiPlays.slice(offsetWithinBgg, offsetWithinBgg + PAGE_SIZE),
-    });
-  } catch (err) {
-    if (err.status === 404)
-      return res.status(404).json({ message: "Usuario de BGG no encontrado" });
-    res.status(502).json({ message: "No se pudo conectar con BGG" });
-  }
-});
+      res.json({
+        total,
+        page: clientPage,
+        pageSize: PAGE_SIZE,
+        plays: apiPlays.slice(offsetWithinBgg, offsetWithinBgg + PAGE_SIZE),
+      });
+    } catch (err) {
+      if (err.isExplicit) throw err;
+      if (err.status === 404) {
+        throw httpError(404, "Usuario de BGG no encontrado");
+      }
+      throw httpError(502, "No se pudo conectar con BGG");
+    }
+  }),
+);
 
 // GET /api/bgg/og/:bggUsername — public OG metadata for /bg-watch/:username crawlers.
 // Returns displayName (Turnocero user if connected), play count, collection size,
 // and the user's top-played game with thumbnail. Cached 30 min per username.
-router.get("/og/:bggUsername", async (req, res) => {
-  const { bggUsername } = req.params;
-  const cacheKey = `og:${bggUsername.toLowerCase()}`;
-  const cached = getCached(cacheKey, 30 * 60 * 1000);
-  if (cached) return res.json(cached);
+router.get(
+  "/og/:bggUsername",
+  asyncHandler(async (req, res) => {
+    const { bggUsername } = req.params;
+    const cacheKey = `og:${bggUsername.toLowerCase()}`;
+    const cached = getCached(cacheKey, 30 * 60 * 1000);
+    if (cached) return res.json(cached);
 
-  try {
+    // OG: mantiene try/catch interno con body vacío en 404/500 (contrato de
+    // crawlers, igual que compartidas/og y noticias/og). asyncHandler
+    // captura cualquier rejection que escape.
+    try {
     // Look up the Turnocero user by bggUsername (case-insensitive) for displayName.
     const userDoc = await User.findOne({
       bggUsername: new RegExp(`^${escapeRegex(bggUsername)}$`, "i"),
@@ -526,13 +550,14 @@ router.get("/og/:bggUsername", async (req, res) => {
       return res.status(404).json({});
     }
 
-    const data = { displayName, bggUsername, partidas, juegos, topGame };
-    setCached(cacheKey, data);
-    res.json(data);
-  } catch {
-    res.status(500).json({});
-  }
-});
+      const data = { displayName, bggUsername, partidas, juegos, topGame };
+      setCached(cacheKey, data);
+      res.json(data);
+    } catch {
+      res.status(500).json({});
+    }
+  }),
+);
 
 // POST /api/bgg/sync — full reconciliation of the authenticated user's BGG
 // plays. Walks every page, upserting by playId and detecting deletes by
@@ -542,18 +567,31 @@ router.get("/og/:bggUsername", async (req, res) => {
 //
 // Used by the "Reconciliar all con BGG" button as a manual fallback for
 // edits to old plays that the lightweight probe misses.
-router.post("/sync", protect, bggSyncLimiter, async (req, res) => {
-  try {
+router.post(
+  "/sync",
+  protect,
+  bggSyncLimiter,
+  asyncHandler(async (req, res) => {
     const user = req.user;
     if (!user.bggUsername) {
-      return res
-        .status(400)
-        .json({ message: "Configurá tu username de BGG en el perfil" });
+      throw httpError(400, "Configurá tu username de BGG en el perfil");
     }
 
-    const result = await withUserLock(user.bggUsername, () =>
-      reconcileFull(user.bggUsername, { full: true, background: false }),
-    );
+    let result;
+    try {
+      result = await withUserLock(user.bggUsername, () =>
+        reconcileFull(user.bggUsername, { full: true, background: false }),
+      );
+    } catch (err) {
+      if (err.status === 404) {
+        throw httpError(404, "Usuario de BGG no encontrado");
+      }
+      logger.error("[bgg/sync] full sync failed", {
+        error: err.message,
+        stack: err.stack,
+      });
+      throw httpError(502, err.message || "No se pudo sincronizar con BGG");
+    }
 
     // Persist sync metadata on the user — see stampReconcileResult for the
     // shared semantics; same fields are mirrored here for the sync path.
@@ -577,50 +615,40 @@ router.post("/sync", protect, bggSyncLimiter, async (req, res) => {
       total: result.total,
       pages: result.pages,
     });
-  } catch (err) {
-    if (err.status === 404) {
-      return res.status(404).json({ message: "Usuario de BGG no encontrado" });
-    }
-    logger.error("[bgg/sync] full sync failed", {
-      error: err.message,
-      stack: err.stack,
-    });
-    res
-      .status(502)
-      .json({ message: err.message || "No se pudo sincronizar con BGG" });
-  }
-});
+  }),
+);
 
 // POST /api/bgg/partidas — create a play in BGG. The flow is BGG-first:
 // submit to geekplay.php, then verify the play exists on BGG by fetching
 // it back, then mirror to Mongo using BGG's canonical representation.
 // If any step fails the response is 502 and Mongo is left untouched.
-router.post("/partidas", protect, bggMutationLimiter, async (req, res) => {
-  try {
+router.post(
+  "/partidas",
+  protect,
+  bggMutationLimiter,
+  asyncHandler(async (req, res) => {
     const user = req.user;
     if (!user.bggUsername) {
-      return res
-        .status(400)
-        .json({ message: "Configurá tu username de BGG en el perfil" });
+      throw httpError(400, "Configurá tu username de BGG en el perfil");
     }
     const validationError = validatePlayBody(req.body);
-    if (validationError)
-      return res.status(400).json({ message: validationError });
+    if (validationError) throw httpError(400, validationError);
 
     const form = buildPlayForm(req.body, null);
     let payload;
     try {
       payload = await submitToGeekplay(user, form, "POST");
     } catch (e) {
-      return res.status(e.status || 500).json({ message: e.message });
+      throw httpError(e.status || 500, e.message);
     }
 
     const newPlayId = payload.playid || payload.numplays || null;
     if (!newPlayId) {
       logger.warn("[bgg/POST] geekplay returned no playid", { payload });
-      return res.status(502).json({
-        message: "BGG no devolvió un ID de partida. La partida no se guardó.",
-      });
+      throw httpError(
+        502,
+        "BGG no devolvió un ID de partida. La partida no se guardó.",
+      );
     }
 
     const verified = await verifyPlayOnBgg(user.bggUsername, newPlayId, {
@@ -628,10 +656,10 @@ router.post("/partidas", protect, bggMutationLimiter, async (req, res) => {
       playdate: req.body.playdate,
     });
     if (!verified) {
-      return res.status(502).json({
-        message:
-          "BGG no confirmó la partida después de guardarla. Intentá de nuevo.",
-      });
+      throw httpError(
+        502,
+        "BGG no confirmó la partida después de guardarla. Intentá de nuevo.",
+      );
     }
 
     clearPartidasCache(user.bggUsername);
@@ -653,30 +681,23 @@ router.post("/partidas", protect, bggMutationLimiter, async (req, res) => {
       playid: String(newPlayId),
       play: playToApi(verified),
     });
-  } catch (err) {
-    logger.error("[bgg/POST] create play failed", {
-      error: err.message,
-      stack: err.stack,
-    });
-    res
-      .status(500)
-      .json({ message: err.message || "Error al crear la partida" });
-  }
-});
+  }),
+);
 
 // DELETE /api/bgg/partidas/:playId — delete a play from BGG. Verifies the
 // play is actually gone from BGG before removing the Mongo mirror.
-router.delete("/partidas/:playId", protect, bggMutationLimiter, async (req, res) => {
-  try {
+router.delete(
+  "/partidas/:playId",
+  protect,
+  bggMutationLimiter,
+  asyncHandler(async (req, res) => {
     const user = req.user;
     if (!user.bggUsername) {
-      return res
-        .status(400)
-        .json({ message: "Configurá tu username de BGG en el perfil" });
+      throw httpError(400, "Configurá tu username de BGG en el perfil");
     }
     const { playId } = req.params;
     if (!/^\d+$/.test(String(playId))) {
-      return res.status(400).json({ message: "ID de partida inválido" });
+      throw httpError(400, "ID de partida inválido");
     }
 
     // We need gameId + date to narrow the verification query. Look up the
@@ -702,7 +723,7 @@ router.delete("/partidas/:playId", protect, bggMutationLimiter, async (req, res)
     try {
       await submitToGeekplay(user, form, "DELETE");
     } catch (e) {
-      return res.status(e.status || 500).json({ message: e.message });
+      throw httpError(e.status || 500, e.message);
     }
 
     const stillThere = await verifyPlayOnBgg(
@@ -711,9 +732,10 @@ router.delete("/partidas/:playId", protect, bggMutationLimiter, async (req, res)
       verifyOpts,
     );
     if (stillThere) {
-      return res.status(502).json({
-        message: "BGG no confirmó el borrado de la partida. Intentá de nuevo.",
-      });
+      throw httpError(
+        502,
+        "BGG no confirmó el borrado de la partida. Intentá de nuevo.",
+      );
     }
 
     clearPartidasCache(user.bggUsername);
@@ -727,40 +749,32 @@ router.delete("/partidas/:playId", protect, bggMutationLimiter, async (req, res)
     }
 
     res.json({ success: true });
-  } catch (err) {
-    logger.error("[bgg/DELETE] delete play failed", {
-      error: err.message,
-      stack: err.stack,
-    });
-    res
-      .status(500)
-      .json({ message: err.message || "Error al eliminar la partida" });
-  }
-});
+  }),
+);
 
 // PUT /api/bgg/partidas/:playId — edit an existing play in BGG. Same
 // BGG-first verification flow as POST.
-router.put("/partidas/:playId", protect, bggMutationLimiter, async (req, res) => {
-  try {
+router.put(
+  "/partidas/:playId",
+  protect,
+  bggMutationLimiter,
+  asyncHandler(async (req, res) => {
     const user = req.user;
     if (!user.bggUsername) {
-      return res
-        .status(400)
-        .json({ message: "Configurá tu username de BGG en el perfil" });
+      throw httpError(400, "Configurá tu username de BGG en el perfil");
     }
     const { playId } = req.params;
     if (!/^\d+$/.test(String(playId))) {
-      return res.status(400).json({ message: "ID de partida inválido" });
+      throw httpError(400, "ID de partida inválido");
     }
     const validationError = validatePlayBody(req.body);
-    if (validationError)
-      return res.status(400).json({ message: validationError });
+    if (validationError) throw httpError(400, validationError);
 
     const form = buildPlayForm(req.body, playId);
     try {
       await submitToGeekplay(user, form, "PUT");
     } catch (e) {
-      return res.status(e.status || 500).json({ message: e.message });
+      throw httpError(e.status || 500, e.message);
     }
 
     const verified = await verifyPlayOnBgg(user.bggUsername, playId, {
@@ -768,9 +782,10 @@ router.put("/partidas/:playId", protect, bggMutationLimiter, async (req, res) =>
       playdate: req.body.playdate,
     });
     if (!verified) {
-      return res.status(502).json({
-        message: "BGG no confirmó la edición de la partida. Intentá de nuevo.",
-      });
+      throw httpError(
+        502,
+        "BGG no confirmó la edición de la partida. Intentá de nuevo.",
+      );
     }
 
     clearPartidasCache(user.bggUsername);
@@ -784,16 +799,8 @@ router.put("/partidas/:playId", protect, bggMutationLimiter, async (req, res) =>
     }
 
     res.json({ success: true, playid: playId, play: playToApi(verified) });
-  } catch (err) {
-    logger.error("[bgg/PUT] edit play failed", {
-      error: err.message,
-      stack: err.stack,
-    });
-    res
-      .status(500)
-      .json({ message: err.message || "Error al editar la partida" });
-  }
-});
+  }),
+);
 
 module.exports = router;
 // Exposed for other routes (e.g. auth's bgg-connect handler) that need to

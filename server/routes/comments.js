@@ -7,6 +7,8 @@ const { protect } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
+const asyncHandler = require("../utils/asyncHandler");
+const httpError = require("../utils/httpError");
 
 router.use(requireSection("mesas"));
 
@@ -14,29 +16,26 @@ router.use(requireSection("mesas"));
 router.use(validateObjectId("id"));
 router.param("commentId", validateObjectId("commentId"));
 
-const validate = (req, res, next) => {
+const checkValidation = (req) => {
   const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ message: errors.array()[0].msg });
-  }
-  next();
+  if (!errors.isEmpty()) throw httpError(400, errors.array()[0].msg);
 };
 
 // GET /api/tables/:id/comments — any logged-in user
-router.get("/", protect, async (req, res) => {
-  try {
+router.get(
+  "/",
+  protect,
+  asyncHandler(async (req, res) => {
     const table = await Table.findById(req.params.id);
-    if (!table) return res.status(404).json({ message: "Table not found" });
+    if (!table) throw httpError(404, "Table not found");
 
     const comments = await Comment.find({ table: req.params.id })
       .populate("author", "username displayName avatar")
       .sort({ createdAt: 1 });
 
     res.json(comments);
-  } catch {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  }),
+);
 
 // POST /api/tables/:id/comments — any logged-in user
 router.post(
@@ -50,59 +49,55 @@ router.post(
       .isLength({ max: 500 })
       .withMessage("El comentario no puede superar los 500 caracteres"),
   ],
-  validate,
-  async (req, res) => {
-    try {
-      const table = await Table.findById(req.params.id);
-      if (!table) return res.status(404).json({ message: "Table not found" });
-      if (table.status === "cancelled") {
-        return res
-          .status(400)
-          .json({
-            message: "No se pueden agregar comentarios a una mesa cancelada",
-          });
-      }
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
 
-      const comment = await Comment.create({
-        table: req.params.id,
-        author: req.user._id,
-        content: req.body.content,
-      });
-
-      await comment.populate("author", "username displayName avatar");
-
-      // Notify members and followers (except the author)
-      const uid = req.user._id.toString();
-      const recipients = new Set([
-        table.host.toString(),
-        ...table.players.map((p) => p.toString()),
-        ...table.followers.map((f) => f.toString()),
-      ]);
-      recipients.delete(uid);
-      const commentPreview = req.body.content.slice(0, 60);
-      await Promise.all(
-        [...recipients].map((userId) =>
-          emitNotificationReq(
-            req,
-            userId,
-            "comment",
-            {
-              tableId: table._id.toString(),
-              tableName: table.boardGame,
-              lastCommenterUsername: req.user.username,
-              lastCommentPreview: commentPreview,
-            },
-            "table:comment",
-            { commenterUsername: req.user.username, commentPreview },
-          ).catch(() => {}),
-        ),
+    const table = await Table.findById(req.params.id);
+    if (!table) throw httpError(404, "Table not found");
+    if (table.status === "cancelled") {
+      throw httpError(
+        400,
+        "No se pueden agregar comentarios a una mesa cancelada",
       );
-
-      res.status(201).json(comment);
-    } catch {
-      res.status(500).json({ message: "Server error" });
     }
-  },
+
+    const comment = await Comment.create({
+      table: req.params.id,
+      author: req.user._id,
+      content: req.body.content,
+    });
+
+    await comment.populate("author", "username displayName avatar");
+
+    // Notify members and followers (except the author)
+    const uid = req.user._id.toString();
+    const recipients = new Set([
+      table.host.toString(),
+      ...table.players.map((p) => p.toString()),
+      ...table.followers.map((f) => f.toString()),
+    ]);
+    recipients.delete(uid);
+    const commentPreview = req.body.content.slice(0, 60);
+    await Promise.all(
+      [...recipients].map((userId) =>
+        emitNotificationReq(
+          req,
+          userId,
+          "comment",
+          {
+            tableId: table._id.toString(),
+            tableName: table.boardGame,
+            lastCommenterUsername: req.user.username,
+            lastCommentPreview: commentPreview,
+          },
+          "table:comment",
+          { commenterUsername: req.user.username, commentPreview },
+        ).catch(() => {}),
+      ),
+    );
+
+    res.status(201).json(comment);
+  }),
 );
 
 // PUT /api/tables/:id/comments/:commentId — author only
@@ -118,29 +113,23 @@ router.put(
       .isLength({ max: 500 })
       .withMessage("El comentario no puede superar los 500 caracteres"),
   ],
-  validate,
-  async (req, res) => {
-    try {
-      const comment = await Comment.findById(req.params.commentId);
-      if (!comment)
-        return res.status(404).json({ message: "Comment not found" });
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
 
-      if (comment.author.toString() !== req.user._id.toString()) {
-        return res
-          .status(403)
-          .json({ message: "Solo el autor puede editar este comentario" });
-      }
+    const comment = await Comment.findById(req.params.commentId);
+    if (!comment) throw httpError(404, "Comment not found");
 
-      comment.content = req.body.content;
-      comment.editedAt = new Date();
-      await comment.save();
-      await comment.populate("author", "username displayName avatar");
-
-      res.json(comment);
-    } catch {
-      res.status(500).json({ message: "Server error" });
+    if (comment.author.toString() !== req.user._id.toString()) {
+      throw httpError(403, "Solo el autor puede editar este comentario");
     }
-  },
+
+    comment.content = req.body.content;
+    comment.editedAt = new Date();
+    await comment.save();
+    await comment.populate("author", "username displayName avatar");
+
+    res.json(comment);
+  }),
 );
 
 // DELETE /api/tables/:id/comments/:commentId — author, host, or admin
@@ -148,29 +137,23 @@ router.delete(
   "/:commentId",
   protect,
   [param("commentId").isMongoId().withMessage("Invalid comment ID")],
-  validate,
-  async (req, res) => {
-    try {
-      const comment = await Comment.findById(req.params.commentId);
-      if (!comment)
-        return res.status(404).json({ message: "Comment not found" });
+  asyncHandler(async (req, res) => {
+    checkValidation(req);
 
-      const table = await Table.findById(req.params.id);
-      const isAuthor = comment.author.toString() === req.user._id.toString();
-      const isHost = table && table.host.toString() === req.user._id.toString();
+    const comment = await Comment.findById(req.params.commentId);
+    if (!comment) throw httpError(404, "Comment not found");
 
-      if (!isAuthor && !isHost && !req.user.isAdmin) {
-        return res
-          .status(403)
-          .json({ message: "No tenés permiso para eliminar este comentario" });
-      }
+    const table = await Table.findById(req.params.id);
+    const isAuthor = comment.author.toString() === req.user._id.toString();
+    const isHost = table && table.host.toString() === req.user._id.toString();
 
-      await comment.deleteOne();
-      res.json({ message: "Comment deleted" });
-    } catch {
-      res.status(500).json({ message: "Server error" });
+    if (!isAuthor && !isHost && !req.user.isAdmin) {
+      throw httpError(403, "No tenés permiso para eliminar este comentario");
     }
-  },
+
+    await comment.deleteOne();
+    res.json({ message: "Comment deleted" });
+  }),
 );
 
 module.exports = router;

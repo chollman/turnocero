@@ -20,6 +20,8 @@ const {
   verificationEmail,
   passwordResetEmail,
 } = require('../utils/email');
+const asyncHandler = require('../utils/asyncHandler');
+const httpError = require('../utils/httpError');
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -55,27 +57,49 @@ const generateToken = (id) => {
   });
 };
 
+// Helper: convierte un Mongoose ValidationError o un E11000 (dup key) en un
+// httpError 400 con mensaje user-facing. Los demás errores se dejan pasar al
+// errorHandler central como 500 genérico.
+function rethrowAsValidation(err) {
+  if (err.name === 'ValidationError') {
+    const messages = Object.values(err.errors).map((e) => e.message);
+    throw httpError(400, messages[0]);
+  }
+  if (err.code === 11000) {
+    throw httpError(400, 'Email or username already in use');
+  }
+  throw err;
+}
+
 // POST /api/auth/register — public, rate-limited.
 // Creates an unverified account, emails a 6-digit code, does NOT issue a JWT.
 // Client must call /verify-email with the code to complete signup.
-router.post('/register', authLimiter, async (req, res) => {
-  try {
+router.post(
+  '/register',
+  authLimiter,
+  asyncHandler(async (req, res) => {
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
-      return res.status(400).json({ message: 'All fields are required' });
+      throw httpError(400, 'All fields are required');
     }
 
     const code = generateCode();
-    const user = await User.create({
-      username,
-      email,
-      password,
-      emailVerified: false,
-      emailVerificationCodeHash: hashToken(code),
-      emailVerificationExpiresAt: new Date(Date.now() + VERIFICATION_CODE_TTL_MS),
-      emailVerificationAttempts: 0,
-    });
+    let user;
+    try {
+      user = await User.create({
+        username,
+        email,
+        password,
+        emailVerified: false,
+        emailVerificationCodeHash: hashToken(code),
+        emailVerificationExpiresAt: new Date(Date.now() + VERIFICATION_CODE_TTL_MS),
+        emailVerificationAttempts: 0,
+      });
+    } catch (err) {
+      logger.error('Register failed', { name: err.name, code: err.code, msg: err.message });
+      rethrowAsValidation(err);
+    }
 
     // Send email — if it fails we still return 201 so the user can request a resend.
     try {
@@ -93,39 +117,29 @@ router.post('/register', authLimiter, async (req, res) => {
       email: user.email,
       message: 'Te enviamos un código a tu email para verificar la cuenta.',
     });
-  } catch (err) {
-    logger.error('Register failed', { name: err.name, code: err.code, msg: err.message });
-    if (err.name === 'ValidationError') {
-      const messages = Object.values(err.errors).map((e) => e.message);
-      return res.status(400).json({ message: messages[0] });
-    }
-    // MongoDB duplicate key (unique index violation)
-    if (err.code === 11000) {
-      return res.status(400).json({ message: 'Email or username already in use' });
-    }
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+  }),
+);
 
 // POST /api/auth/login — public, rate-limited
-router.post('/login', authLimiter, async (req, res) => {
-  try {
+router.post(
+  '/login',
+  authLimiter,
+  asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
+      throw httpError(400, 'Email and password are required');
     }
 
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
+    if (!user) throw httpError(401, 'Invalid email or password');
 
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
+    if (!isMatch) throw httpError(401, 'Invalid email or password');
 
+    // Email not verified + banned son control flow, NO errores — necesitamos
+    // mandar fields extra (code, email, message). El errorHandler solo
+    // expone { message }, así que estos van con res.status().json() directo.
     if (!user.emailVerified) {
       return res.status(403).json({
         code: 'email_not_verified',
@@ -147,44 +161,44 @@ router.post('/login', authLimiter, async (req, res) => {
 
     res.cookie('token', token, COOKIE_OPTIONS);
     res.json({ user, token });
-  } catch (err) {
-    logger.error('Login failed', { name: err.name, code: err.code, msg: err.message });
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+  }),
+);
 
 // POST /api/auth/verify-email — public, rate-limited.
 // Body: { email, code }. On success returns { user, token } like /login.
-router.post('/verify-email', authLimiter, async (req, res) => {
-  try {
+router.post(
+  '/verify-email',
+  authLimiter,
+  asyncHandler(async (req, res) => {
     const { email, code } = req.body || {};
-    if (!email || !code) {
-      return res.status(400).json({ message: 'Email y código son requeridos' });
-    }
+    if (!email || !code) throw httpError(400, 'Email y código son requeridos');
 
     const user = await User.findOne({ email: String(email).toLowerCase().trim() }).select(
       '+emailVerificationCodeHash +emailVerificationExpiresAt +emailVerificationAttempts'
     );
 
     // Generic error to avoid leaking which emails are registered / verified.
-    const genericFail = () => res.status(400).json({ message: 'Código inválido o expirado' });
+    const genericFailMsg = 'Código inválido o expirado';
 
-    if (!user || user.emailVerified) return genericFail();
-    if (!user.emailVerificationCodeHash || !user.emailVerificationExpiresAt) return genericFail();
-    if (user.emailVerificationExpiresAt.getTime() < Date.now()) return genericFail();
+    if (!user || user.emailVerified) throw httpError(400, genericFailMsg);
+    if (!user.emailVerificationCodeHash || !user.emailVerificationExpiresAt) {
+      throw httpError(400, genericFailMsg);
+    }
+    if (user.emailVerificationExpiresAt.getTime() < Date.now()) {
+      throw httpError(400, genericFailMsg);
+    }
 
     if ((user.emailVerificationAttempts || 0) >= MAX_VERIFICATION_ATTEMPTS) {
-      return res.status(429).json({
-        message: 'Demasiados intentos. Pedí un código nuevo.',
-      });
+      throw httpError(429, 'Demasiados intentos. Pedí un código nuevo.');
     }
 
     if (!compareToken(code, user.emailVerificationCodeHash)) {
       user.emailVerificationAttempts = (user.emailVerificationAttempts || 0) + 1;
       await user.save({ validateModifiedOnly: true });
-      return genericFail();
+      throw httpError(400, genericFailMsg);
     }
 
+    // Banned check: control flow con code:banned (mismo motivo que /login).
     if (user.isBanned) {
       return res.status(403).json({
         code: 'banned',
@@ -203,14 +217,13 @@ router.post('/verify-email', authLimiter, async (req, res) => {
     const token = generateToken(user._id);
     res.cookie('token', token, COOKIE_OPTIONS);
     res.json({ user, token });
-  } catch (err) {
-    logger.error('Verify email failed', { msg: err.message });
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+  }),
+);
 
 // POST /api/auth/resend-verification — public, stricter rate limit.
 // Always responds 200 with a generic message to avoid leaking account state.
+// Por eso el handler mantiene su propio try/catch (los catch caen también a
+// 200 generic en vez de bubble al errorHandler).
 router.post('/resend-verification', emailLimiter, async (req, res) => {
   const generic = { message: 'Si la cuenta existe y no está verificada, te enviamos un nuevo código.' };
   try {
@@ -249,7 +262,7 @@ router.post('/resend-verification', emailLimiter, async (req, res) => {
 });
 
 // POST /api/auth/forgot-password — public, stricter rate limit.
-// Always responds 200 with a generic message.
+// Always responds 200 with a generic message. Mismo motivo que resend.
 router.post('/forgot-password', emailLimiter, async (req, res) => {
   const generic = { message: 'Si existe una cuenta con ese email, te enviamos un link para recuperar la contraseña.' };
   try {
@@ -288,23 +301,24 @@ router.post('/forgot-password', emailLimiter, async (req, res) => {
 
 // POST /api/auth/reset-password — public, rate-limited.
 // Body: { email, token, password }. On success returns 200 (no auto-login).
-router.post('/reset-password', authLimiter, async (req, res) => {
-  try {
+router.post(
+  '/reset-password',
+  authLimiter,
+  asyncHandler(async (req, res) => {
     const { email, token, password } = req.body || {};
-    if (!email || !token || !password) {
-      return res.status(400).json({ message: 'Datos incompletos' });
-    }
+    if (!email || !token || !password) throw httpError(400, 'Datos incompletos');
 
     const user = await User.findOne({ email: String(email).toLowerCase().trim() }).select(
       '+passwordResetTokenHash +passwordResetExpiresAt'
     );
 
-    const invalid = () =>
-      res.status(400).json({ message: 'El link es inválido o expiró. Pedí uno nuevo.' });
+    const invalidMsg = 'El link es inválido o expiró. Pedí uno nuevo.';
 
-    if (!user || !user.passwordResetTokenHash || !user.passwordResetExpiresAt) return invalid();
-    if (user.passwordResetExpiresAt.getTime() < Date.now()) return invalid();
-    if (!compareToken(token, user.passwordResetTokenHash)) return invalid();
+    if (!user || !user.passwordResetTokenHash || !user.passwordResetExpiresAt) {
+      throw httpError(400, invalidMsg);
+    }
+    if (user.passwordResetExpiresAt.getTime() < Date.now()) throw httpError(400, invalidMsg);
+    if (!compareToken(token, user.passwordResetTokenHash)) throw httpError(400, invalidMsg);
 
     user.password = password; // pre-save hook hashes
     user.passwordResetTokenHash = null;
@@ -313,17 +327,15 @@ router.post('/reset-password', authLimiter, async (req, res) => {
     // (which requires control of the inbox) is sufficient proof of ownership.
     if (!user.emailVerified) user.emailVerified = true;
 
-    await user.save({ validateModifiedOnly: true });
-    res.status(200).json({ message: 'Contraseña actualizada' });
-  } catch (err) {
-    logger.error('Reset password failed', { name: err.name, msg: err.message });
-    if (err.name === 'ValidationError') {
-      const messages = Object.values(err.errors).map((e) => e.message);
-      return res.status(400).json({ message: messages[0] });
+    try {
+      await user.save({ validateModifiedOnly: true });
+    } catch (err) {
+      logger.error('Reset password failed', { name: err.name, msg: err.message });
+      rethrowAsValidation(err);
     }
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+    res.status(200).json({ message: 'Contraseña actualizada' });
+  }),
+);
 
 // POST /api/auth/logout — public
 router.post('/logout', (req, res) => {
@@ -340,8 +352,10 @@ router.get('/me', protect, async (req, res) => {
 });
 
 // PUT /api/auth/profile — protected
-router.put('/profile', protect, async (req, res) => {
-  try {
+router.put(
+  '/profile',
+  protect,
+  asyncHandler(async (req, res) => {
     const {
       displayName,
       nombre,
@@ -353,7 +367,7 @@ router.put('/profile', protect, async (req, res) => {
       eventoReminderHours,
     } = req.body;
     const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) throw httpError(404, 'User not found');
 
     if (displayName !== undefined) user.displayName = displayName;
     if (nombre !== undefined) user.nombre = nombre;
@@ -383,31 +397,30 @@ router.put('/profile', protect, async (req, res) => {
       // Coerción explícita: el cliente puede mandar string del <select>.
       const n = Number(eventoReminderHours);
       if (![0, 2, 24].includes(n)) {
-        return res
-          .status(400)
-          .json({ message: 'Valor inválido para recordatorios' });
+        throw httpError(400, 'Valor inválido para recordatorios');
       }
       user.eventoReminderHours = n;
     }
 
-    await user.save({ validateModifiedOnly: true });
-    res.json(user);
-  } catch (err) {
-    logger.error('Profile update failed', { msg: err.message });
-    if (err.name === 'ValidationError') {
-      const messages = Object.values(err.errors).map((e) => e.message);
-      return res.status(400).json({ message: messages[0] });
+    try {
+      await user.save({ validateModifiedOnly: true });
+    } catch (err) {
+      logger.error('Profile update failed', { msg: err.message });
+      rethrowAsValidation(err);
     }
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+    res.json(user);
+  }),
+);
 
 // PUT /api/auth/avatar — protected, multipart (field: 'avatar')
-router.put('/avatar', protect, multer.single('avatar'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ message: 'Imagen requerida' });
+router.put(
+  '/avatar',
+  protect,
+  multer.single('avatar'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) throw httpError(400, 'Imagen requerida');
     const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) throw httpError(404, 'User not found');
 
     const result = await uploadToCloudinary(req.file.buffer, {
       folder: `turnocero/users/${user._id}`,
@@ -423,41 +436,37 @@ router.put('/avatar', protect, multer.single('avatar'), async (req, res) => {
     user.avatar = { url: result.secure_url, publicId: result.public_id };
     await user.save({ validateModifiedOnly: true });
     res.json(user);
-  } catch (err) {
-    logger.error('Avatar upload failed', { msg: err.message });
-    res.status(500).json({ message: 'Error al subir avatar' });
-  }
-});
+  }),
+);
 
 // DELETE /api/auth/avatar — protected
-router.delete('/avatar', protect, async (req, res) => {
-  try {
+router.delete(
+  '/avatar',
+  protect,
+  asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) throw httpError(404, 'User not found');
     if (user.avatar?.publicId) {
       await cloudinary.uploader.destroy(user.avatar.publicId).catch(() => {});
     }
     user.avatar = { url: '', publicId: '' };
     await user.save({ validateModifiedOnly: true });
     res.json(user);
-  } catch (err) {
-    logger.error('Avatar remove failed', { msg: err.message });
-    res.status(500).json({ message: 'Error al quitar avatar' });
-  }
-});
+  }),
+);
 
 // POST /api/auth/bgg-connect — validates BGG password and stores encrypted
-router.post('/bgg-connect', protect, async (req, res) => {
-  try {
+router.post(
+  '/bgg-connect',
+  protect,
+  asyncHandler(async (req, res) => {
     const { password } = req.body;
     if (!password || typeof password !== 'string') {
-      return res.status(400).json({ message: 'Password de BGG requerida' });
+      throw httpError(400, 'Password de BGG requerida');
     }
     const user = req.user;
     if (!user.bggUsername) {
-      return res.status(400).json({
-        message: 'Configurá primero tu username de BGG en el perfil',
-      });
+      throw httpError(400, 'Configurá primero tu username de BGG en el perfil');
     }
 
     // Validate by attempting login (do NOT store on failure)
@@ -465,7 +474,7 @@ router.post('/bgg-connect', protect, async (req, res) => {
       await loginToBgg(user.bggUsername, password);
     } catch (e) {
       const status = e.status === 401 ? 401 : 502;
-      return res.status(status).json({ message: e.message });
+      throw httpError(status, e.message);
     }
 
     user.bggCredentials.encryptedPassword = encrypt(password);
@@ -489,15 +498,14 @@ router.post('/bgg-connect', protect, async (req, res) => {
     bggRouter.triggerBackgroundReconcile(user.bggUsername);
 
     res.json(user);
-  } catch (err) {
-    logger.error('BGG connect failed', { msg: err.message });
-    res.status(500).json({ message: 'Error al conectar con BGG' });
-  }
-});
+  }),
+);
 
 // DELETE /api/auth/bgg-connection — removes stored BGG credentials
-router.delete('/bgg-connection', protect, async (req, res) => {
-  try {
+router.delete(
+  '/bgg-connection',
+  protect,
+  asyncHandler(async (req, res) => {
     const user = req.user;
     user.bggCredentials.encryptedPassword = '';
     user.bggCredentials.connectedAt = null;
@@ -507,10 +515,7 @@ router.delete('/bgg-connection', protect, async (req, res) => {
     clearSession(user._id);
 
     res.json(user);
-  } catch (err) {
-    logger.error('BGG disconnect failed', { msg: err.message });
-    res.status(500).json({ message: 'Error al desconectar BGG' });
-  }
-});
+  }),
+);
 
 module.exports = router;

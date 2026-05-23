@@ -5,26 +5,32 @@ const { protect, requireAdmin } = require('../middleware/auth');
 const validateObjectId = require('../middleware/validateObjectId');
 const User = require('../models/User');
 const Table = require('../models/Table');
+const asyncHandler = require('../utils/asyncHandler');
+const httpError = require('../utils/httpError');
 
 router.param('id', validateObjectId('id'));
 
 // GET /api/admin/collections
-router.get('/collections', protect, requireAdmin, async (req, res) => {
-  try {
+router.get(
+  '/collections',
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const cols = await mongoose.connection.db.listCollections().toArray();
     const names = cols
       .map((c) => c.name)
       .filter((n) => !n.startsWith('system.'))
       .sort();
     res.json(names);
-  } catch {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+  }),
+);
 
 // GET /api/admin/collections/:name
-router.get('/collections/:name', protect, requireAdmin, async (req, res) => {
-  try {
+router.get(
+  '/collections/:name',
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const { name } = req.params;
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
@@ -58,38 +64,40 @@ router.get('/collections/:name', protect, requireAdmin, async (req, res) => {
     ]);
 
     res.json({ docs, total, page, pages: Math.ceil(total / limit) || 1 });
-  } catch {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+  }),
+);
 
 // PATCH /api/admin/users/:id/admin — toggle isAdmin
-router.patch('/users/:id/admin', protect, requireAdmin, async (req, res) => {
-  try {
+router.patch(
+  '/users/:id/admin',
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const target = await User.findById(req.params.id);
-    if (!target) return res.status(404).json({ message: 'User not found' });
+    if (!target) throw httpError(404, 'User not found');
     target.isAdmin = !target.isAdmin;
     await target.save({ validateModifiedOnly: true });
     res.json({ _id: target._id, username: target.username, isAdmin: target.isAdmin });
-  } catch {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+  }),
+);
 
 // PATCH /api/admin/users/:id/ban — toggle ban
-router.patch('/users/:id/ban', protect, requireAdmin, async (req, res) => {
-  try {
+router.patch(
+  '/users/:id/ban',
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const { banned, reason } = req.body;
     if (typeof banned !== 'boolean') {
-      return res.status(400).json({ message: 'El campo "banned" debe ser booleano' });
+      throw httpError(400, 'El campo "banned" debe ser booleano');
     }
     if (req.params.id === req.user._id.toString()) {
-      return res.status(400).json({ message: 'No podés banearte a vos mismo' });
+      throw httpError(400, 'No podés banearte a vos mismo');
     }
     const target = await User.findById(req.params.id);
-    if (!target) return res.status(404).json({ message: 'Usuario no encontrado' });
+    if (!target) throw httpError(404, 'Usuario no encontrado');
     if (target.isAdmin) {
-      return res.status(400).json({ message: 'No podés banear a otro admin' });
+      throw httpError(400, 'No podés banear a otro admin');
     }
 
     target.isBanned = banned;
@@ -104,21 +112,22 @@ router.patch('/users/:id/ban', protect, requireAdmin, async (req, res) => {
       bannedAt: target.bannedAt,
       bannedReason: target.bannedReason,
     });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+  }),
+);
 
 // DELETE /api/admin/users/:id — hard delete user
-router.delete('/users/:id', protect, requireAdmin, async (req, res) => {
-  try {
+router.delete(
+  '/users/:id',
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     if (req.params.id === req.user._id.toString()) {
-      return res.status(400).json({ message: 'No podés eliminarte a vos mismo' });
+      throw httpError(400, 'No podés eliminarte a vos mismo');
     }
     const target = await User.findById(req.params.id);
-    if (!target) return res.status(404).json({ message: 'Usuario no encontrado' });
+    if (!target) throw httpError(404, 'Usuario no encontrado');
     if (target.isAdmin) {
-      return res.status(400).json({ message: 'No podés eliminar a otro admin' });
+      throw httpError(400, 'No podés eliminar a otro admin');
     }
 
     const id = target._id;
@@ -152,9 +161,7 @@ router.delete('/users/:id', protect, requireAdmin, async (req, res) => {
     await User.findByIdAndDelete(id);
 
     res.json({ _id: id, deleted: true });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+  }),
+);
 
 module.exports = router;

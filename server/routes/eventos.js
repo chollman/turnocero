@@ -37,6 +37,18 @@ const { canActInEvento } = require("../utils/eventoPermissions");
 const { parsePagination } = require("../utils/paginate");
 const { escapeRegex } = require("../utils/regex");
 const logger = require("../utils/logger");
+const asyncHandler = require("../utils/asyncHandler");
+const httpError = require("../utils/httpError");
+
+// Mongoose ValidationError → 400 con el primer mensaje. Re-tira otros errores
+// para que caigan al errorHandler central como 500 genérico.
+function rethrowValidation(err) {
+  if (err.name === "ValidationError") {
+    const messages = Object.values(err.errors).map((e) => e.message);
+    throw httpError(400, messages[0]);
+  }
+  throw err;
+}
 const {
   emitToUser,
   emitToEventoRoom,
@@ -84,8 +96,10 @@ const comprobanteUpload = multerLib({
 });
 
 // GET /api/eventos — public, paginated
-router.get("/", optionalAuth, async (req, res) => {
-  try {
+router.get(
+  "/",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
     await closePastOpenEvents(req);
     const { page, limit, skip } = parsePagination(req.query, {
       defaultLimit: 10,
@@ -183,18 +197,17 @@ router.get("/", optionalAuth, async (req, res) => {
       page,
       pages: Math.ceil(total / limit),
     });
-  } catch (err) {
-    logger.error("GET /api/eventos failed", { error: err.message });
-    res.status(500).json({ message: "Error al obtener eventos" });
-  }
-});
+  }),
+);
 
 // GET /api/eventos/mine — eventos donde el user es author o inscripción activa.
 // Usado por el formulario de Compartidas para listar candidatos para vincular.
 // Devuelve forma ligera (no incluye registrations ni counts) — solo lo justo
 // para renderizar un <option> en un select.
-router.get("/mine", protect, async (req, res) => {
-  try {
+router.get(
+  "/mine",
+  protect,
+  asyncHandler(async (req, res) => {
     const uid = req.user._id;
     const eventos = await Evento.find({
       $or: [
@@ -214,11 +227,8 @@ router.get("/mine", protect, async (req, res) => {
       .sort({ eventDate: -1 })
       .limit(50);
     res.json({ eventos });
-  } catch (err) {
-    logger.error("GET /api/eventos/mine failed", { error: err.message });
-    res.status(500).json({ message: "Error al obtener tus eventos" });
-  }
-});
+  }),
+);
 
 // POST /api/eventos — admin only
 router.post(
@@ -226,48 +236,44 @@ router.post(
   protect,
   requireAdmin,
   multer.single("image"),
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
+    if (!req.body.title?.trim()) {
+      throw httpError(400, "El título es obligatorio");
+    }
+    if (!req.body.eventDate) {
+      throw httpError(400, "La fecha y hora del evento son obligatorias");
+    }
+    const parsedDate = new Date(req.body.eventDate);
+    if (Number.isNaN(parsedDate.getTime())) {
+      throw httpError(400, "La fecha del evento no es válida");
+    }
+    const VALID_STATUSES = ["draft", "open", "closed", "cancelled"];
+    if (req.body.status && !VALID_STATUSES.includes(req.body.status)) {
+      throw httpError(
+        400,
+        `Status inválido. Debe ser uno de: ${VALID_STATUSES.join(", ")}`,
+      );
+    }
+
+    let image;
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer, {
+        folder: "turnocero/eventos",
+        transformation: [{ width: 1200, crop: "limit" }],
+      });
+      image = { url: result.secure_url, publicId: result.public_id };
+    }
+
+    // Location obligatoria — sin fallback al direccion del perfil del admin.
+    // Es info importante del evento y siempre debe especificarse explícitamente.
+    const normalizedLocation = normalizeLocationInput(req.body.location);
+    if (isEmptyLocation(normalizedLocation)) {
+      throw httpError(400, "El lugar del evento es obligatorio");
+    }
+
+    let evento;
     try {
-      if (!req.body.title?.trim()) {
-        return res.status(400).json({ message: "El título es obligatorio" });
-      }
-      if (!req.body.eventDate) {
-        return res
-          .status(400)
-          .json({ message: "La fecha y hora del evento son obligatorias" });
-      }
-      const parsedDate = new Date(req.body.eventDate);
-      if (Number.isNaN(parsedDate.getTime())) {
-        return res
-          .status(400)
-          .json({ message: "La fecha del evento no es válida" });
-      }
-      const VALID_STATUSES = ["draft", "open", "closed", "cancelled"];
-      if (req.body.status && !VALID_STATUSES.includes(req.body.status)) {
-        return res.status(400).json({
-          message: `Status inválido. Debe ser uno de: ${VALID_STATUSES.join(", ")}`,
-        });
-      }
-
-      let image;
-      if (req.file) {
-        const result = await uploadToCloudinary(req.file.buffer, {
-          folder: "turnocero/eventos",
-          transformation: [{ width: 1200, crop: "limit" }],
-        });
-        image = { url: result.secure_url, publicId: result.public_id };
-      }
-
-      // Location obligatoria — sin fallback al direccion del perfil del admin.
-      // Es info importante del evento y siempre debe especificarse explícitamente.
-      const normalizedLocation = normalizeLocationInput(req.body.location);
-      if (isEmptyLocation(normalizedLocation)) {
-        return res
-          .status(400)
-          .json({ message: "El lugar del evento es obligatorio" });
-      }
-
-      const evento = await Evento.create({
+      evento = await Evento.create({
         title: req.body.title?.trim(),
         description: req.body.description?.trim() || undefined,
         conditions: req.body.conditions?.trim() || undefined,
@@ -282,76 +288,86 @@ router.post(
         image,
         author: req.user._id,
       });
-
-      const populated = await evento.populate(
-        "author",
-        "username displayName avatar",
-      );
-
-      // Broadcast a la lista (no drafts — son privados al admin).
-      if (populated.status !== "draft") {
-        const obj = populated.toObject();
-        delete obj.registrations;
-        emitToEventosList(req, "evento:created", {
-          evento: {
-            ...obj,
-            registrationCount: { total: 0, pending: 0, confirmed: 0 },
-            userRegistration: null,
-          },
-        });
-      }
-
-      res.status(201).json(populated);
     } catch (err) {
       logger.error("POST /api/eventos failed", { error: err.message });
-      res.status(500).json({ message: "Error al crear el evento" });
+      rethrowValidation(err);
     }
-  },
+
+    const populated = await evento.populate(
+      "author",
+      "username displayName avatar",
+    );
+
+    // Broadcast a la lista (no drafts — son privados al admin).
+    if (populated.status !== "draft") {
+      const obj = populated.toObject();
+      delete obj.registrations;
+      emitToEventosList(req, "evento:created", {
+        evento: {
+          ...obj,
+          registrationCount: { total: 0, pending: 0, confirmed: 0 },
+          userRegistration: null,
+        },
+      });
+    }
+
+    res.status(201).json(populated);
+  }),
 );
 
 // GET /api/eventos/:id/og — metadata pública para crawlers de redes sociales.
 // El middleware del cliente (client/middleware.js) detecta el UA y consulta
 // este endpoint para armar OG tags. NO requiere auth y NO devuelve drafts ni
 // cancelled. Mismo patrón que /api/compartidas/:id/og.
-router.get("/:id/og", async (req, res) => {
-  try {
-    const evento = await Evento.findById(req.params.id)
-      .populate("author", "username displayName")
-      .select("title description eventDate location image status author");
-    if (!evento || evento.status === "draft" || evento.status === "cancelled") {
-      return res.status(404).json({});
+router.get(
+  "/:id/og",
+  asyncHandler(async (req, res) => {
+    // Mantenemos try/catch interno: contrato body-vacío en 404/500 para
+    // crawlers OG (no { message }, como noticias/og y compartidas/og).
+    try {
+      const evento = await Evento.findById(req.params.id)
+        .populate("author", "username displayName")
+        .select("title description eventDate location image status author");
+      if (
+        !evento ||
+        evento.status === "draft" ||
+        evento.status === "cancelled"
+      ) {
+        return res.status(404).json({});
+      }
+      res.json({
+        title: evento.title,
+        description: evento.description?.slice(0, 160) || null,
+        image: evento.image?.url || null,
+        eventDate: evento.eventDate,
+        location:
+          typeof evento.location === "string"
+            ? evento.location
+            : evento.location?.displayName || evento.location?.texto || null,
+        host: evento.author?.displayName || evento.author?.username || null,
+      });
+    } catch {
+      res.status(500).json({});
     }
-    res.json({
-      title: evento.title,
-      description: evento.description?.slice(0, 160) || null,
-      image: evento.image?.url || null,
-      eventDate: evento.eventDate,
-      location:
-        typeof evento.location === "string"
-          ? evento.location
-          : evento.location?.displayName || evento.location?.texto || null,
-      host: evento.author?.displayName || evento.author?.username || null,
-    });
-  } catch {
-    res.status(500).json({});
-  }
-});
+  }),
+);
 
 // GET /api/eventos/:id — public for open/closed; drafts y cancelled sólo para admins
-router.get("/:id", optionalAuth, async (req, res) => {
-  try {
+router.get(
+  "/:id",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
     await closePastOpenEvents(req);
     const evento = await Evento.findById(req.params.id)
       .populate("author", "username displayName avatar")
       .populate("registrations.user", "username displayName avatar");
 
-    if (!evento)
-      return res.status(404).json({ message: "Evento no encontrado" });
+    if (!evento) throw httpError(404, "Evento no encontrado");
     if (
       !req.user?.isAdmin &&
       (evento.status === "draft" || evento.status === "cancelled")
     ) {
-      return res.status(404).json({ message: "Evento no encontrado" });
+      throw httpError(404, "Evento no encontrado");
     }
 
     const registrationCount = {
@@ -406,11 +422,8 @@ router.get("/:id", optionalAuth, async (req, res) => {
       userRegistration,
       confirmedRegistrations,
     });
-  } catch (err) {
-    logger.error("GET /api/eventos/:id failed", { error: err.message });
-    res.status(500).json({ message: "Error al obtener el evento" });
-  }
-});
+  }),
+);
 
 // PUT /api/eventos/:id — admin only
 router.put(
@@ -418,20 +431,19 @@ router.put(
   protect,
   requireAdmin,
   multer.single("image"),
-  async (req, res) => {
-    try {
-      // Validar status temprano contra el enum antes de hacer queries.
-      // Sin esto, un valor inválido moría en mongoose validation → 500 genérico.
-      const VALID_STATUSES = ["draft", "open", "closed", "cancelled"];
-      if (req.body.status && !VALID_STATUSES.includes(req.body.status)) {
-        return res.status(400).json({
-          message: `Status inválido. Debe ser uno de: ${VALID_STATUSES.join(", ")}`,
-        });
-      }
+  asyncHandler(async (req, res) => {
+    // Validar status temprano contra el enum antes de hacer queries.
+    // Sin esto, un valor inválido moría en mongoose validation → 500 genérico.
+    const VALID_STATUSES = ["draft", "open", "closed", "cancelled"];
+    if (req.body.status && !VALID_STATUSES.includes(req.body.status)) {
+      throw httpError(
+        400,
+        `Status inválido. Debe ser uno de: ${VALID_STATUSES.join(", ")}`,
+      );
+    }
 
-      const evento = await Evento.findById(req.params.id);
-      if (!evento)
-        return res.status(404).json({ message: "Evento no encontrado" });
+    const evento = await Evento.findById(req.params.id);
+    if (!evento) throw httpError(404, "Evento no encontrado");
 
       // Snapshot pre-edit para detectar cambios significativos que deben
       // notificarse a los inscriptos (fecha, lugar, cancelación).
@@ -465,9 +477,7 @@ router.put(
         // Location obligatoria también en update — no permitir limpiarla.
         const normalizedLocation = normalizeLocationInput(req.body.location);
         if (isEmptyLocation(normalizedLocation)) {
-          return res
-            .status(400)
-            .json({ message: "El lugar del evento es obligatorio" });
+          throw httpError(400, "El lugar del evento es obligatorio");
         }
         evento.location = normalizedLocation;
       }
@@ -495,7 +505,11 @@ router.put(
         }
       }
 
-      await evento.save();
+      try {
+        await evento.save();
+      } catch (err) {
+        rethrowValidation(err);
+      }
       const populated = await evento.populate(
         "author",
         "username displayName avatar",
@@ -582,19 +596,17 @@ router.put(
       }
 
       res.json(payload);
-    } catch (err) {
-      logger.error("PUT /api/eventos/:id failed", { error: err.message });
-      res.status(500).json({ message: "Error al editar el evento" });
-    }
-  },
+  }),
 );
 
 // DELETE /api/eventos/:id — admin only
-router.delete("/:id", protect, requireAdmin, async (req, res) => {
-  try {
+router.delete(
+  "/:id",
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const evento = await Evento.findById(req.params.id);
-    if (!evento)
-      return res.status(404).json({ message: "Evento no encontrado" });
+    if (!evento) throw httpError(404, "Evento no encontrado");
 
     // Limpieza best-effort de assets en Cloudinary: imagen del evento +
     // todos los comprobantes de las inscripciones (algunos pueden ser PDFs,
@@ -647,11 +659,8 @@ router.delete("/:id", protect, requireAdmin, async (req, res) => {
     emitToEventosList(req, "evento:deleted", { eventoId: deletedId });
 
     res.json({ message: "Evento eliminado" });
-  } catch (err) {
-    logger.error("DELETE /api/eventos/:id failed", { error: err.message });
-    res.status(500).json({ message: "Error al eliminar el evento" });
-  }
-});
+  }),
+);
 
 // POST /api/eventos/:id/inscribirse — auth required, multipart (comprobante opcional si fee=0)
 router.post(
@@ -659,51 +668,42 @@ router.post(
   protect,
   eventoSubscribeLimiter,
   comprobanteUpload.single("comprobante"),
-  async (req, res) => {
-    try {
-      const evento = await Evento.findById(req.params.id);
-      if (!evento)
-        return res.status(404).json({ message: "Evento no encontrado" });
-      if (evento.status !== "open")
-        return res
-          .status(400)
-          .json({ message: "Las inscripciones están cerradas" });
+  asyncHandler(async (req, res) => {
+    const evento = await Evento.findById(req.params.id);
+    if (!evento) throw httpError(404, "Evento no encontrado");
+    if (evento.status !== "open") {
+      throw httpError(400, "Las inscripciones están cerradas");
+    }
 
-      const existing = evento.registrations.find(
-        (r) => r.user.toString() === req.user._id.toString(),
+    const existing = evento.registrations.find(
+      (r) => r.user.toString() === req.user._id.toString(),
+    );
+    // Bloqueo permanente: 403, no permite reintentar.
+    if (existing?.permanentlyRejected) {
+      throw httpError(
+        403,
+        "Fuiste rechazado de este evento y no podés volver a inscribirte.",
       );
-      // Bloqueo permanente: 403, no permite reintentar.
-      if (existing?.permanentlyRejected) {
-        return res.status(403).json({
-          message:
-            "Fuiste rechazado de este evento y no podés volver a inscribirte.",
-        });
-      }
-      // Ya inscripto (pending / confirmed): bloquear.
-      if (existing && existing.status !== "rejected") {
-        return res
-          .status(400)
-          .json({ message: "Ya estás inscripto en este evento" });
-      }
-      // Rechazado pero NO permanente: el flujo más abajo recicla el registro existente.
+    }
+    // Ya inscripto (pending / confirmed): bloquear.
+    if (existing && existing.status !== "rejected") {
+      throw httpError(400, "Ya estás inscripto en este evento");
+    }
+    // Rechazado pero NO permanente: el flujo más abajo recicla el registro existente.
 
-      if (evento.maxParticipants) {
-        const confirmed = evento.registrations.filter(
-          (r) => r.status === "confirmed",
-        ).length;
-        if (confirmed >= evento.maxParticipants) {
-          return res
-            .status(400)
-            .json({ message: "El evento ya alcanzó el cupo máximo" });
-        }
+    if (evento.maxParticipants) {
+      const confirmed = evento.registrations.filter(
+        (r) => r.status === "confirmed",
+      ).length;
+      if (confirmed >= evento.maxParticipants) {
+        throw httpError(400, "El evento ya alcanzó el cupo máximo");
       }
+    }
 
-      // Comprobante required for paid events
-      if (evento.fee > 0 && !req.file) {
-        return res
-          .status(400)
-          .json({ message: "Debés adjuntar el comprobante de transferencia" });
-      }
+    // Comprobante required for paid events
+    if (evento.fee > 0 && !req.file) {
+      throw httpError(400, "Debés adjuntar el comprobante de transferencia");
+    }
 
       let comprobante;
       if (req.file) {
@@ -774,9 +774,7 @@ router.post(
               })
               .catch(() => {});
           }
-          return res.status(409).json({
-            message: "Ya estás inscripto en este evento",
-          });
+          throw httpError(409, "Ya estás inscripto en este evento");
         }
         // Tomamos la entry recién pusheada (la última del array).
         reg =
@@ -824,31 +822,23 @@ router.post(
             }
           : null,
       });
-    } catch (err) {
-      logger.error("POST /api/eventos/:id/inscribirse failed", { error: err.message });
-      res.status(500).json({ message: "Error al procesar la inscripción" });
-    }
-  },
+  }),
 );
 
 // DELETE /api/eventos/:id/inscribirse — cancel own pending registration
-router.delete("/:id/inscribirse", protect, async (req, res) => {
-  try {
+router.delete(
+  "/:id/inscribirse",
+  protect,
+  asyncHandler(async (req, res) => {
     const evento = await Evento.findById(req.params.id);
-    if (!evento)
-      return res.status(404).json({ message: "Evento no encontrado" });
+    if (!evento) throw httpError(404, "Evento no encontrado");
 
     const idx = evento.registrations.findIndex(
       (r) => r.user.toString() === req.user._id.toString(),
     );
-    if (idx === -1)
-      return res
-        .status(404)
-        .json({ message: "No estás inscripto en este evento" });
+    if (idx === -1) throw httpError(404, "No estás inscripto en este evento");
     if (evento.registrations[idx].status !== "pending") {
-      return res
-        .status(400)
-        .json({ message: "Solo podés cancelar inscripciones pendientes" });
+      throw httpError(400, "Solo podés cancelar inscripciones pendientes");
     }
 
     const reg = evento.registrations[idx];
@@ -884,21 +874,20 @@ router.delete("/:id/inscribirse", protect, async (req, res) => {
       emitToEventosList(req, "evento:counts-changed", cancelCountsPayload);
 
     res.json({ message: "Inscripción cancelada" });
-  } catch (err) {
-    logger.error("DELETE /api/eventos/:id/inscribirse failed", { error: err.message });
-    res.status(500).json({ message: "Error al cancelar la inscripción" });
-  }
-});
+  }),
+);
 
 // GET /api/eventos/:id/inscripciones — admin only
-router.get("/:id/inscripciones", protect, requireAdmin, async (req, res) => {
-  try {
+router.get(
+  "/:id/inscripciones",
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const evento = await Evento.findById(req.params.id).populate(
       "registrations.user",
       "username displayName avatar email",
     );
-    if (!evento)
-      return res.status(404).json({ message: "Evento no encontrado" });
+    if (!evento) throw httpError(404, "Evento no encontrado");
 
     let registrations = evento.registrations.toObject
       ? evento.registrations.toObject()
@@ -930,42 +919,37 @@ router.get("/:id/inscripciones", protect, requireAdmin, async (req, res) => {
           .length,
       },
     });
-  } catch (err) {
-    logger.error("GET /api/eventos/:id/inscripciones failed", { error: err.message });
-    res.status(500).json({ message: "Error al obtener inscripciones" });
-  }
-});
+  }),
+);
 
 // PATCH /api/eventos/:id/inscripciones/:userId/confirmar — admin only
 router.patch(
   "/:id/inscripciones/:userId/confirmar",
   protect,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const evento = await Evento.findById(req.params.id);
-      if (!evento)
-        return res.status(404).json({ message: "Evento no encontrado" });
+  asyncHandler(async (req, res) => {
+    const evento = await Evento.findById(req.params.id);
+    if (!evento) throw httpError(404, "Evento no encontrado");
 
-      const reg = evento.registrations.find(
-        (r) => r.user.toString() === req.params.userId,
-      );
-      if (!reg)
-        return res.status(404).json({ message: "Inscripción no encontrada" });
+    const reg = evento.registrations.find(
+      (r) => r.user.toString() === req.params.userId,
+    );
+    if (!reg) throw httpError(404, "Inscripción no encontrada");
 
-      // Cap check: si la registración aún no está confirmada, confirmarla
-      // suma un slot al total confirmado. Re-confirmar una ya confirmada es
-      // idempotente y no consume cupo, así que se permite siempre.
-      if (evento.maxParticipants && reg.status !== "confirmed") {
-        const confirmedCount = evento.registrations.filter(
-          (r) => r.status === "confirmed",
-        ).length;
-        if (confirmedCount >= evento.maxParticipants) {
-          return res.status(400).json({
-            message: "El evento ya alcanzó el cupo máximo de confirmados",
-          });
-        }
+    // Cap check: si la registración aún no está confirmada, confirmarla
+    // suma un slot al total confirmado. Re-confirmar una ya confirmada es
+    // idempotente y no consume cupo, así que se permite siempre.
+    if (evento.maxParticipants && reg.status !== "confirmed") {
+      const confirmedCount = evento.registrations.filter(
+        (r) => r.status === "confirmed",
+      ).length;
+      if (confirmedCount >= evento.maxParticipants) {
+        throw httpError(
+          400,
+          "El evento ya alcanzó el cupo máximo de confirmados",
+        );
       }
+    }
 
       reg.status = "confirmed";
       reg.reviewedAt = new Date();
@@ -1021,11 +1005,7 @@ router.patch(
       );
 
       res.json({ message: "Inscripción confirmada", status: reg.status });
-    } catch (err) {
-      logger.error("PATCH /api/eventos/:id/inscripciones/:userId/confirmar failed", { error: err.message });
-      res.status(500).json({ message: "Error al confirmar la inscripción" });
-    }
-  },
+  }),
 );
 
 // PATCH /api/eventos/:id/inscripciones/:userId/rechazar — admin only
@@ -1033,17 +1013,14 @@ router.patch(
   "/:id/inscripciones/:userId/rechazar",
   protect,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const evento = await Evento.findById(req.params.id);
-      if (!evento)
-        return res.status(404).json({ message: "Evento no encontrado" });
+  asyncHandler(async (req, res) => {
+    const evento = await Evento.findById(req.params.id);
+    if (!evento) throw httpError(404, "Evento no encontrado");
 
-      const reg = evento.registrations.find(
-        (r) => r.user.toString() === req.params.userId,
-      );
-      if (!reg)
-        return res.status(404).json({ message: "Inscripción no encontrada" });
+    const reg = evento.registrations.find(
+      (r) => r.user.toString() === req.params.userId,
+    );
+    if (!reg) throw httpError(404, "Inscripción no encontrada");
 
       reg.status = "rejected";
       reg.reviewedAt = new Date();
@@ -1128,11 +1105,7 @@ router.patch(
         status: reg.status,
         permanentlyRejected: reg.permanentlyRejected,
       });
-    } catch (err) {
-      logger.error("PATCH /api/eventos/:id/inscripciones/:userId/rechazar failed", { error: err.message });
-      res.status(500).json({ message: "Error al rechazar la inscripción" });
-    }
-  },
+  }),
 );
 
 // PATCH /api/eventos/:id/inscripciones/:userId/revertir — admin only
@@ -1143,17 +1116,14 @@ router.patch(
   "/:id/inscripciones/:userId/revertir",
   protect,
   requireAdmin,
-  async (req, res) => {
-    try {
-      const evento = await Evento.findById(req.params.id);
-      if (!evento)
-        return res.status(404).json({ message: "Evento no encontrado" });
+  asyncHandler(async (req, res) => {
+    const evento = await Evento.findById(req.params.id);
+    if (!evento) throw httpError(404, "Evento no encontrado");
 
-      const reg = evento.registrations.find(
-        (r) => r.user.toString() === req.params.userId,
-      );
-      if (!reg)
-        return res.status(404).json({ message: "Inscripción no encontrada" });
+    const reg = evento.registrations.find(
+      (r) => r.user.toString() === req.params.userId,
+    );
+    if (!reg) throw httpError(404, "Inscripción no encontrada");
 
       reg.status = "pending";
       reg.submittedAt = new Date();
@@ -1199,11 +1169,7 @@ router.patch(
         status: reg.status,
         submittedAt: reg.submittedAt,
       });
-    } catch (err) {
-      logger.error("PATCH /api/eventos/:id/inscripciones/:userId/revertir failed", { error: err.message });
-      res.status(500).json({ message: "Error al revertir la inscripción" });
-    }
-  },
+  }),
 );
 
 // ─────────────────────────────────────────────────────────────────────
@@ -1217,55 +1183,53 @@ router.patch(
 const POPULATE_LUDOTECA_USER = "username displayName avatar";
 
 // GET /:id/ludoteca — público (visible para cualquiera que pueda ver el evento)
-router.get("/:id/ludoteca", optionalAuth, async (req, res) => {
-  try {
+router.get(
+  "/:id/ludoteca",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
     const evento = await Evento.findById(req.params.id)
       .select("status author ludoteca")
       .populate("ludoteca.addedBy", POPULATE_LUDOTECA_USER);
-    if (!evento) {
-      return res.status(404).json({ message: "Evento no encontrado" });
-    }
+    if (!evento) throw httpError(404, "Evento no encontrado");
     // Drafts/cancelled solo visibles a admins (consistente con GET /:id).
     const isAdmin = !!req.user?.isAdmin;
     if (
       (evento.status === "draft" || evento.status === "cancelled") &&
       !isAdmin
     ) {
-      return res.status(404).json({ message: "Evento no encontrado" });
+      throw httpError(404, "Evento no encontrado");
     }
     res.json({ items: evento.ludoteca || [] });
-  } catch (err) {
-    res.status(500).json({ message: "Error al cargar la ludoteca" });
-  }
-});
+  }),
+);
 
 // POST /:id/ludoteca — agregar juego (confirmados + admin)
-router.post("/:id/ludoteca", protect, eventoLudotecaLimiter, async (req, res) => {
-  try {
+router.post(
+  "/:id/ludoteca",
+  protect,
+  eventoLudotecaLimiter,
+  asyncHandler(async (req, res) => {
     const { bggGameId, notes } = req.body;
     const numericId = Number(bggGameId);
     if (!Number.isFinite(numericId) || numericId <= 0) {
-      return res.status(400).json({ message: "bggGameId inválido" });
+      throw httpError(400, "bggGameId inválido");
     }
     if (notes && typeof notes === "string" && notes.length > 200) {
-      return res
-        .status(400)
-        .json({ message: "Las notas no pueden superar 200 caracteres" });
+      throw httpError(400, "Las notas no pueden superar 200 caracteres");
     }
 
     const evento = await Evento.findById(req.params.id).select(
       "status author registrations ludoteca title",
     );
-    if (!evento) {
-      return res.status(404).json({ message: "Evento no encontrado" });
-    }
+    if (!evento) throw httpError(404, "Evento no encontrado");
     if (evento.status === "cancelled") {
-      return res.status(400).json({ message: "El evento está cancelado" });
+      throw httpError(400, "El evento está cancelado");
     }
     if (!canActInEvento(evento, req.user)) {
-      return res
-        .status(403)
-        .json({ message: "Solo inscriptos confirmados pueden agregar juegos" });
+      throw httpError(
+        403,
+        "Solo inscriptos confirmados pueden agregar juegos",
+      );
     }
 
     // Dedupe lógico por (addedBy, bggGameId) — un user no agrega el mismo juego dos veces.
@@ -1275,15 +1239,13 @@ router.post("/:id/ludoteca", protect, eventoLudotecaLimiter, async (req, res) =>
         item.bggGameId === numericId && item.addedBy.toString() === myId,
     );
     if (alreadyMine) {
-      return res.status(409).json({ message: "Ya agregaste este juego" });
+      throw httpError(409, "Ya agregaste este juego");
     }
 
     // Hidratar metadata desde BGG (cache 30min memoria + Mongo permanente).
     const game = await resolveGame(numericId);
     if (!game) {
-      return res
-        .status(404)
-        .json({ message: "Juego no encontrado en BoardGameGeek" });
+      throw httpError(404, "Juego no encontrado en BoardGameGeek");
     }
 
     evento.ludoteca.push({
@@ -1336,41 +1298,34 @@ router.post("/:id/ludoteca", protect, eventoLudotecaLimiter, async (req, res) =>
     );
 
     res.status(201).json({ item: newItem });
-  } catch (err) {
-    logger.error("POST /api/eventos/:id/ludoteca failed", { error: err.message });
-    res.status(500).json({ message: "Error al agregar el juego" });
-  }
-});
+  }),
+);
 
 // PATCH /:id/ludoteca/:itemId — editar notas (owner o admin)
-router.patch("/:id/ludoteca/:itemId", protect, async (req, res) => {
-  try {
+router.patch(
+  "/:id/ludoteca/:itemId",
+  protect,
+  asyncHandler(async (req, res) => {
     const { notes } = req.body;
     if (notes != null && typeof notes !== "string") {
-      return res.status(400).json({ message: "notes debe ser string" });
+      throw httpError(400, "notes debe ser string");
     }
     if (notes && notes.length > 200) {
-      return res
-        .status(400)
-        .json({ message: "Las notas no pueden superar 200 caracteres" });
+      throw httpError(400, "Las notas no pueden superar 200 caracteres");
     }
 
     const evento = await Evento.findById(req.params.id).select(
       "ludoteca status author",
     );
-    if (!evento) {
-      return res.status(404).json({ message: "Evento no encontrado" });
-    }
+    if (!evento) throw httpError(404, "Evento no encontrado");
     const item = evento.ludoteca.id(req.params.itemId);
-    if (!item) {
-      return res.status(404).json({ message: "Juego no encontrado" });
-    }
+    if (!item) throw httpError(404, "Juego no encontrado");
     const isOwner = item.addedBy.toString() === req.user._id.toString();
     const isAdmin =
       !!req.user.isAdmin ||
       evento.author.toString() === req.user._id.toString();
     if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: "No podés editar este juego" });
+      throw httpError(403, "No podés editar este juego");
     }
 
     item.notes = (notes || "").trim();
@@ -1386,31 +1341,26 @@ router.patch("/:id/ludoteca/:itemId", protect, async (req, res) => {
     });
 
     res.json({ item: updated });
-  } catch (err) {
-    logger.error("PATCH /api/eventos/:id/ludoteca/:itemId failed", { error: err.message });
-    res.status(500).json({ message: "Error al editar el juego" });
-  }
-});
+  }),
+);
 
 // DELETE /:id/ludoteca/:itemId — quitar juego (owner o admin)
-router.delete("/:id/ludoteca/:itemId", protect, async (req, res) => {
-  try {
+router.delete(
+  "/:id/ludoteca/:itemId",
+  protect,
+  asyncHandler(async (req, res) => {
     const evento = await Evento.findById(req.params.id).select(
       "ludoteca author",
     );
-    if (!evento) {
-      return res.status(404).json({ message: "Evento no encontrado" });
-    }
+    if (!evento) throw httpError(404, "Evento no encontrado");
     const item = evento.ludoteca.id(req.params.itemId);
-    if (!item) {
-      return res.status(404).json({ message: "Juego no encontrado" });
-    }
+    if (!item) throw httpError(404, "Juego no encontrado");
     const isOwner = item.addedBy.toString() === req.user._id.toString();
     const isAdmin =
       !!req.user.isAdmin ||
       evento.author.toString() === req.user._id.toString();
     if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: "No podés quitar este juego" });
+      throw httpError(403, "No podés quitar este juego");
     }
 
     const itemId = item._id.toString();
@@ -1424,11 +1374,8 @@ router.delete("/:id/ludoteca/:itemId", protect, async (req, res) => {
     });
 
     res.json({ removed: itemId });
-  } catch (err) {
-    logger.error("DELETE /api/eventos/:id/ludoteca/:itemId failed", { error: err.message });
-    res.status(500).json({ message: "Error al quitar el juego" });
-  }
-});
+  }),
+);
 
 // ─────────────────────────────────────────────────────────────────────
 // Mesas del Evento
@@ -1437,18 +1384,18 @@ router.delete("/:id/ludoteca/:itemId", protect, async (req, res) => {
 // search, distance, privacy gating funcionan idéntico. Cambia solo el
 // filtro: en vez de `eventoId:null` se filtra por el id del evento.
 // ─────────────────────────────────────────────────────────────────────
-router.get("/:id/mesas", optionalAuth, async (req, res) => {
-  try {
+router.get(
+  "/:id/mesas",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
     const evento = await Evento.findById(req.params.id).select("status");
-    if (!evento) {
-      return res.status(404).json({ message: "Evento no encontrado" });
-    }
+    if (!evento) throw httpError(404, "Evento no encontrado");
     const isAdmin = !!req.user?.isAdmin;
     if (
       (evento.status === "draft" || evento.status === "cancelled") &&
       !isAdmin
     ) {
-      return res.status(404).json({ message: "Evento no encontrado" });
+      throw httpError(404, "Evento no encontrado");
     }
     const result = await listTables({
       user: req.user,
@@ -1456,10 +1403,7 @@ router.get("/:id/mesas", optionalAuth, async (req, res) => {
       eventoId: req.params.id,
     });
     res.json(result);
-  } catch (err) {
-    logger.error("GET /api/eventos/:id/mesas failed", { error: err.message });
-    res.status(500).json({ message: "Error al cargar las mesas del evento" });
-  }
-});
+  }),
+);
 
 module.exports = router;

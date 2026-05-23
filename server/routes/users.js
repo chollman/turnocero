@@ -6,14 +6,18 @@ const Compartida = require('../models/Compartida');
 const { optionalAuth } = require('../middleware/auth');
 const { requireSection } = require('../middleware/sectionGate');
 const validateObjectId = require('../middleware/validateObjectId');
+const asyncHandler = require('../utils/asyncHandler');
+const httpError = require('../utils/httpError');
 
 router.use(requireSection('comunidad'));
 
 router.param('id', validateObjectId('id'));
 
 // GET /api/users — public list with optional search, sortBy, activeOnly
-router.get('/', optionalAuth, async (req, res) => {
-  try {
+router.get(
+  '/',
+  optionalAuth,
+  asyncHandler(async (req, res) => {
     const { search, sortBy, activeOnly, friendsOnly, bgWatchOnly } = req.query;
     const isAdmin = !!req.user?.isAdmin;
 
@@ -99,16 +103,15 @@ router.get('/', optionalAuth, async (req, res) => {
     }
 
     res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: 'Error al obtener usuarios' });
-  }
-});
+  }),
+);
 
 // POST /api/users/by-bgg-usernames — batch resolve BGG usernames to Turnocero users.
 // Public (no auth). Used by BG Watch surfaces to link play participants to their
 // Turnocero profile when they're members. Capped at 50 usernames per request.
-router.post('/by-bgg-usernames', async (req, res) => {
-  try {
+router.post(
+  '/by-bgg-usernames',
+  asyncHandler(async (req, res) => {
     const raw = Array.isArray(req.body?.usernames) ? req.body.usernames : [];
     const lowered = [...new Set(
       raw
@@ -135,21 +138,21 @@ router.post('/by-bgg-usernames', async (req, res) => {
     ]);
 
     res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: 'Error al buscar usuarios por BGG' });
-  }
-});
+  }),
+);
 
 // GET /api/users/:id — public profile + stats; relationship fields are null for anon
-router.get('/:id', optionalAuth, async (req, res) => {
-  try {
+router.get(
+  '/:id',
+  optionalAuth,
+  asyncHandler(async (req, res) => {
     const isAdmin = !!req.user?.isAdmin;
     const user = await User.findById(req.params.id)
       .select('username displayName nombre apellido avatar telegram celular bggUsername direccion createdAt friendRequests friends isBanned')
       .lean();
 
-    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
-    if (user.isBanned && !isAdmin) return res.status(404).json({ message: 'Usuario no encontrado' });
+    if (!user) throw httpError(404, 'Usuario no encontrado');
+    if (user.isBanned && !isAdmin) throw httpError(404, 'Usuario no encontrado');
 
     const userId = user._id;
 
@@ -228,9 +231,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
         lastActivity,
       },
     });
-  } catch (err) {
-    res.status(500).json({ message: 'Error al obtener usuario' });
-  }
-});
+  }),
+);
 
 module.exports = router;

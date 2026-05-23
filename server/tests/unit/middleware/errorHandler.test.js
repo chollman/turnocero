@@ -126,4 +126,22 @@ describe("errorHandler", () => {
     errorHandler(httpError(400, "ID inválido"), mockReq(), res, () => {});
     expect(res.json).toHaveBeenCalledWith({ message: "ID inválido" });
   });
+
+  it("expone err.message en 5xx si viene de httpError (isExplicit)", () => {
+    // Para casos como 502 "Error de Google Geocoding: REQUEST_DENIED" —
+    // el caller lo construyó deliberadamente como user-facing.
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = mockRes();
+    errorHandler(
+      httpError(502, "Error de Google Geocoding: REQUEST_DENIED"),
+      mockReq(),
+      res,
+      () => {},
+    );
+    expect(res.status).toHaveBeenCalledWith(502);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Error de Google Geocoding: REQUEST_DENIED",
+    });
+    errSpy.mockRestore();
+  });
 });
