@@ -131,6 +131,8 @@ function ToastItem({ toast, onDismiss }) {
     toast.type === 'evento_cancelled'      ? '❌' :
     toast.type === 'evento_updated'        ? '🔄' :
     toast.type === 'evento_reminder'       ? '🔔' :
+    toast.type === 'evento_ludoteca_added' ? '🎲' :
+    toast.type === 'evento_mesa_created'   ? '🎯' :
     toast.type === 'error'                 ? '⚠️' : '🎲';
 
   const title =
@@ -158,6 +160,8 @@ function ToastItem({ toast, onDismiss }) {
     toast.type === 'evento_cancelled'      ? (toast.eventoDeleted ? 'Evento eliminado' : 'Evento cancelado') :
     toast.type === 'evento_updated'        ? 'Cambios en el evento' :
     toast.type === 'evento_reminder'       ? '¡Mañana!' :
+    toast.type === 'evento_ludoteca_added' ? 'Nuevo juego en la ludoteca' :
+    toast.type === 'evento_mesa_created'   ? 'Nueva mesa en el evento' :
     toast.type === 'error'                 ? (toast.title || 'Algo salió mal') :
     toast.tableName;
 
@@ -228,9 +232,21 @@ function ToastItem({ toast, onDismiss }) {
                                                         })()
                                                       : toast.type === 'evento_reminder'
                                                         ? `Recordatorio: ${toast.eventoTitle} es mañana`
-                                                        : toast.type === 'error'
-                                                          ? (toast.message || '')
-                                                          : `Ya sos parte de la mesa de ${toast.tableName}`;
+                                                        : toast.type === 'evento_ludoteca_added'
+                                                          ? (() => {
+                                                              const who = toast.addedByUsername || 'alguien';
+                                                              const game = toast.gameName ? `“${toast.gameName}”` : 'un juego';
+                                                              return `${who} sumó ${game} a ${toast.eventoTitle}`;
+                                                            })()
+                                                          : toast.type === 'evento_mesa_created'
+                                                            ? (() => {
+                                                                const who = toast.hostUsername || 'alguien';
+                                                                const game = toast.gameName ? `“${toast.gameName}”` : 'una partida';
+                                                                return `${who} armó ${game} en ${toast.eventoTitle}`;
+                                                              })()
+                                                            : toast.type === 'error'
+                                                              ? (toast.message || '')
+                                                              : `Ya sos parte de la mesa de ${toast.tableName}`;
 
   return (
     <div
