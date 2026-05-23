@@ -28,31 +28,37 @@ export default function Torneos() {
   const navigate = useNavigate();
 
   const load = useCallback(
-    async (pageNum = 1, replace = true, statusFilter = null) => {
+    async (pageNum = 1, replace = true, statusFilter = null, signal) => {
       if (pageNum === 1) setLoading(true);
       else setMore(true);
       try {
         const params = { page: pageNum, limit: 12 };
         if (statusFilter) params.status = statusFilter;
-        const { data } = await axios.get(API.torneos.LIST, { params });
+        const { data } = await axios.get(API.torneos.LIST, { params, signal });
+        if (signal?.aborted) return;
         setTorneos((prev) =>
           replace ? data.torneos : [...prev, ...data.torneos],
         );
         setTotal(data.pages);
         setPage(pageNum);
-      } catch {
+      } catch (err) {
+        if (axios.isCancel(err)) return;
         /* silently ignore */
       } finally {
-        setLoading(false);
-        setMore(false);
+        if (!signal?.aborted) {
+          setLoading(false);
+          setMore(false);
+        }
       }
     },
     [],
   );
 
   useEffect(() => {
+    const ac = new AbortController();
     const f = STATUS_TABS.find((t) => t.id === tab)?.filter || null;
-    load(1, true, f);
+    load(1, true, f, ac.signal);
+    return () => ac.abort();
   }, [tab, load]);
 
   const showDrafts = showAdminUI && tab === "all";

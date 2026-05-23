@@ -31,11 +31,16 @@ export default function NoticiaDetail() {
   const [copied, setCopied]     = useState(false)
 
   useEffect(() => {
+    const ac = new AbortController()
     setLoading(true)
-    axios.get(API.noticias.DETAIL(id))
-      .then(({ data }) => setNoticia(data))
-      .catch((err) => { if (err.response?.status === 404) setNotFound(true) })
-      .finally(() => setLoading(false))
+    axios.get(API.noticias.DETAIL(id), { signal: ac.signal })
+      .then(({ data }) => { if (!ac.signal.aborted) setNoticia(data) })
+      .catch((err) => {
+        if (axios.isCancel(err)) return
+        if (err.response?.status === 404) setNotFound(true)
+      })
+      .finally(() => { if (!ac.signal.aborted) setLoading(false) })
+    return () => ac.abort()
   }, [id])
 
   const handleCopy = () => {

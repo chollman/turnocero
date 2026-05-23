@@ -67,9 +67,10 @@ export default function TorneoDetail() {
   const [reorderingSeeds, setReordering] = useState(false)
   const [addingParticipants, setAddingParticipants] = useState(false)
 
-  const loadAll = useCallback(async () => {
+  const loadAll = useCallback(async (signal) => {
     try {
-      const t = await axios.get(API.torneos.DETAIL(id))
+      const t = await axios.get(API.torneos.DETAIL(id), { signal })
+      if (signal?.aborted) return
       const torneoData = t.data
       setTorneo(torneoData)
 
@@ -77,9 +78,13 @@ export default function TorneoDetail() {
       // loads /groups separately.
       if (torneoData.format !== 'groups') {
         const [m, s] = await Promise.all([
-          axios.get(API.torneos.MATCHES(id)),
-          axios.get(API.torneos.STANDINGS(id)).catch(() => ({ data: { standings: [] } })),
+          axios.get(API.torneos.MATCHES(id), { signal }),
+          axios.get(API.torneos.STANDINGS(id), { signal }).catch((err) => {
+            if (axios.isCancel(err)) throw err
+            return { data: { standings: [] } }
+          }),
         ])
+        if (signal?.aborted) return
         setMatches(m.data || [])
         setStandings(s.data?.standings || [])
       } else {
@@ -89,13 +94,18 @@ export default function TorneoDetail() {
       const defaultTab = TABS_BY_FORMAT[torneoData.format]?.[0]
       setActiveTab((prev) => prev || defaultTab)
     } catch (err) {
+      if (axios.isCancel(err)) return
       if (err.response?.status === 404) setNotFound(true)
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [id])
 
-  useEffect(() => { loadAll() }, [loadAll])
+  useEffect(() => {
+    const ac = new AbortController()
+    loadAll(ac.signal)
+    return () => ac.abort()
+  }, [loadAll])
 
   const refresh = () => loadAll()
 

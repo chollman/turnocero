@@ -213,7 +213,7 @@ export default function UsersList() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (signal) => {
     setLoading(true);
     try {
       const params = { sortBy };
@@ -221,17 +221,21 @@ export default function UsersList() {
       if (activeOnly) params.activeOnly = "true";
       if (friendsOnly) params.friendsOnly = "true";
       if (bgWatchOnly) params.bgWatchOnly = "true";
-      const { data } = await axios.get(API.users.LIST, { params });
+      const { data } = await axios.get(API.users.LIST, { params, signal });
+      if (signal?.aborted) return;
       setUsers(data);
-    } catch {
+    } catch (err) {
+      if (axios.isCancel(err)) return;
       setUsers([]);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, [debouncedSearch, sortBy, activeOnly, friendsOnly, bgWatchOnly]);
 
   useEffect(() => {
-    fetchUsers();
+    const ac = new AbortController();
+    fetchUsers(ac.signal);
+    return () => ac.abort();
   }, [fetchUsers]);
 
   const handleBanConfirm = async (reason) => {

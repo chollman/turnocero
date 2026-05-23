@@ -105,24 +105,34 @@ export default function MeFeed() {
   const uid = user?._id?.toString();
 
   useEffect(() => {
-    if (!uid) return;
+    if (!uid) return undefined;
+    const ac = new AbortController();
     setLoading(true);
     setError(null);
     axios
       .get(API.tables.MY_FEED, {
         params: includeFriends ? { includeFriends: "true" } : undefined,
+        signal: ac.signal,
       })
-      .then((res) => setTables(res.data.tables))
-      .catch(() => setError("No se pudo cargar el historial."))
-      .finally(() => setLoading(false));
+      .then((res) => { if (!ac.signal.aborted) setTables(res.data.tables); })
+      .catch((err) => {
+        if (axios.isCancel(err)) return;
+        setError("No se pudo cargar el historial.");
+      })
+      .finally(() => { if (!ac.signal.aborted) setLoading(false); });
+    return () => ac.abort();
   }, [includeFriends, uid]);
 
   useEffect(() => {
-    if (!uid) return;
+    if (!uid) return undefined;
+    const ac = new AbortController();
     axios
-      .get(API.users.DETAIL(uid))
-      .then((res) => setHasFriends((res.data.friendsCount ?? 0) > 0))
+      .get(API.users.DETAIL(uid), { signal: ac.signal })
+      .then((res) => {
+        if (!ac.signal.aborted) setHasFriends((res.data.friendsCount ?? 0) > 0);
+      })
       .catch(() => {});
+    return () => ac.abort();
   }, [uid]);
 
   const now = new Date();

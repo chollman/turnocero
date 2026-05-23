@@ -146,9 +146,13 @@ export default function TableDetail() {
   }, [id, setActiveTable]);
 
   useEffect(() => {
+    const ac = new AbortController();
     const fetchTable = async () => {
       try {
-        const { data } = await axios.get(API.tables.DETAIL(id));
+        const { data } = await axios.get(API.tables.DETAIL(id), {
+          signal: ac.signal,
+        });
+        if (ac.signal.aborted) return;
         if (
           data.privacy === "private" &&
           !isParticipant(data) &&
@@ -160,16 +164,18 @@ export default function TableDetail() {
         setTable(data);
         setPendingRequests(data.pendingRequests || []);
       } catch (err) {
+        if (axios.isCancel(err)) return;
         if (err.response?.status === 403) {
           setAccessError("Esta mesa es privada");
         } else {
           navigate("/", { replace: true });
         }
       } finally {
-        setLoadingTable(false);
+        if (!ac.signal.aborted) setLoadingTable(false);
       }
     };
     fetchTable();
+    return () => ac.abort();
     // Intencionalmente solo `[id]`: `user`/`isParticipant` se usan dentro pero
     // NO queremos refetchear cuando cambia el user — la mesa es la misma, el
     // gating de privacy se re-evalúa con el render normal. `navigate` y los

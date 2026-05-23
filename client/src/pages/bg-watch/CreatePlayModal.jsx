@@ -21,15 +21,19 @@ function GameSearch({ onPick }) {
 
   useEffect(() => {
     clearTimeout(timerRef.current);
-    if (q.trim().length < 3) { setResults([]); return; }
+    if (q.trim().length < 3) { setResults([]); return undefined; }
+    const ac = new AbortController();
     timerRef.current = setTimeout(() => {
       setLoading(true);
-      axios.get(API.bgg.SEARCH, { params: { q: q.trim() } })
-        .then(({ data }) => setResults(data || []))
-        .catch(() => setResults([]))
-        .finally(() => setLoading(false));
+      axios.get(API.bgg.SEARCH, { params: { q: q.trim() }, signal: ac.signal })
+        .then(({ data }) => { if (!ac.signal.aborted) setResults(data || []); })
+        .catch((err) => { if (!axios.isCancel(err)) setResults([]); })
+        .finally(() => { if (!ac.signal.aborted) setLoading(false); });
     }, 350);
-    return () => clearTimeout(timerRef.current);
+    return () => {
+      clearTimeout(timerRef.current);
+      ac.abort();
+    };
   }, [q]);
 
   return (

@@ -82,15 +82,21 @@ export default function UserProfilePublic() {
   const [friendLoading, setFriendLoading] = useState(false);
 
   useEffect(() => {
+    const ac = new AbortController();
     setLoading(true);
     setError(null);
-    axios.get(API.users.DETAIL(id))
+    axios.get(API.users.DETAIL(id), { signal: ac.signal })
       .then(({ data }) => {
+        if (ac.signal.aborted) return;
         setProfile(data);
         setRelationship(data.relationship ?? 'none');
       })
-      .catch(() => setError('No se pudo cargar el perfil'))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (axios.isCancel(err)) return;
+        setError('No se pudo cargar el perfil');
+      })
+      .finally(() => { if (!ac.signal.aborted) setLoading(false); });
+    return () => ac.abort();
   }, [id]);
 
   const handleFriendAction = async (action) => {

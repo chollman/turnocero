@@ -32,11 +32,13 @@ export default function CompartidasSidebar() {
     if (!user || !mesasEnabled) {
       setTables([]);
       setTopGames([]);
-      return;
+      return undefined;
     }
+    const ac = new AbortController();
     axios
-      .get(API.tables.MINE, { params: { limit: 4 } })
+      .get(API.tables.MINE, { params: { limit: 4 }, signal: ac.signal })
       .then(({ data }) => {
+        if (ac.signal.aborted) return;
         const upcoming = (data.tables || [])
           .filter(
             (t) => t.status !== "cancelled" && new Date(t.date) >= new Date(),
@@ -48,9 +50,11 @@ export default function CompartidasSidebar() {
       .catch(() => {});
 
     axios
-      .get(API.tables.TOP_GAMES)
-      .then(({ data }) => setTopGames(data))
+      .get(API.tables.TOP_GAMES, { signal: ac.signal })
+      .then(({ data }) => { if (!ac.signal.aborted) setTopGames(data); })
       .catch(() => {});
+
+    return () => ac.abort();
   }, [user, mesasEnabled]);
 
   return (

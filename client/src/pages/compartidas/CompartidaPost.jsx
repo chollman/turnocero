@@ -22,14 +22,17 @@ export default function CompartidaPost() {
   }, [id, setActiveCompartida])
 
   useEffect(() => {
-    axios.get(API.compartidas.DETAIL(id))
-      .then(({ data }) => setPost(data))
+    const ac = new AbortController()
+    axios.get(API.compartidas.DETAIL(id), { signal: ac.signal })
+      .then(({ data }) => { if (!ac.signal.aborted) setPost(data) })
       .catch((err) => {
+        if (axios.isCancel(err)) return
         if (err.response?.status === 404) setError('Esta compartida no existe o fue eliminada.')
         else if (err.response?.status === 403) setError('No tenés acceso a esta compartida.')
         else setError('Error al cargar la compartida.')
       })
-      .finally(() => setLoading(false))
+      .finally(() => { if (!ac.signal.aborted) setLoading(false) })
+    return () => ac.abort()
   }, [id])
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''

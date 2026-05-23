@@ -20,9 +20,13 @@ export default function EditTable() {
   const [geocoding, setGeocoding] = useState(false);
 
   useEffect(() => {
+    const ac = new AbortController();
     const fetchTable = async () => {
       try {
-        const { data } = await axios.get(API.tables.DETAIL(id));
+        const { data } = await axios.get(API.tables.DETAIL(id), {
+          signal: ac.signal,
+        });
+        if (ac.signal.aborted) return;
         const isHost =
           data.host._id === user._id ||
           data.host._id?.toString() === user._id?.toString();
@@ -44,13 +48,15 @@ export default function EditTable() {
           description: data.description || '',
           privacy: data.privacy || 'public',
         });
-      } catch {
+      } catch (err) {
+        if (axios.isCancel(err)) return;
         navigate('/');
       } finally {
-        setFetching(false);
+        if (!ac.signal.aborted) setFetching(false);
       }
     };
     fetchTable();
+    return () => ac.abort();
   }, [id, user._id, navigate]);
 
   const handleChange = (e) =>

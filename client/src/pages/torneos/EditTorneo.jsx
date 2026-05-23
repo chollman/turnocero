@@ -28,8 +28,10 @@ export default function EditTorneo() {
   const [error, setError]       = useState('')
 
   useEffect(() => {
-    axios.get(API.torneos.DETAIL(id))
+    const ac = new AbortController()
+    axios.get(API.torneos.DETAIL(id), { signal: ac.signal })
       .then(({ data }) => {
+        if (ac.signal.aborted) return
         setTitle(data.title || '')
         setDesc(data.description || '')
         setGame(data.game || '')
@@ -42,8 +44,12 @@ export default function EditTorneo() {
         setQualif(data.qualifiersPerGroup ?? 2)
         setCurrentImage(data.image?.url || null)
       })
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false))
+      .catch((err) => {
+        if (axios.isCancel(err)) return
+        setNotFound(true)
+      })
+      .finally(() => { if (!ac.signal.aborted) setLoading(false) })
+    return () => ac.abort()
   }, [id])
 
   const handleFile = (f) => {
