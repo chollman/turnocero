@@ -17,12 +17,6 @@ metadata:
 
 ---
 
-## Don't reintegrate BGG API without solving CORS first
-**Why:** Multiple PRs (#13–#21) were built and then fully reverted (#22) because the BoardGameGeek API blocked all proxy and client-side fetch approaches. Significant time was wasted.
-**How to apply:** If Claudio asks about game search or BGG again, flag the unresolved CORS issue before writing any code.
-
----
-
 ## CSS Modules per component; use existing CSS variables
 **Why:** The project uses CSS Modules consistently. Global variables (`--bg-dark`, `--amber`, `--green`, `--red`, etc.) are defined in `client/src/index.css`.
 **How to apply:** Never add inline styles or global CSS for new components. Always use a `.module.css` file and reference the design tokens. See [[padding-system]] for the page padding variables.

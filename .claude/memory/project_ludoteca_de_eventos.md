@@ -7,7 +7,7 @@ metadata:
   originSessionId: 12809272-6ba5-42b7-9140-52782f4d77f7
 ---
 
-**Estado (2026-05-22):** mergeada a master. Commits originales en master: `9290998` (schema phase 1), `408291e` (server endpoints phase 2), `aa1b29c` (client UI phase 3), `d201fee` (docs), `875e89d` (polish — tab slide + mesas count). La branch local `ludoteca-de-eventos` quedó congelada antes del lint-zero (`6faf3dc`) y se puede borrar — todos sus commits ya están en master.
+**Estado (2026-05-22):** mergeada a master. Commits originales en master: `9290998` (schema phase 1), `408291e` (server endpoints phase 2), `aa1b29c` (client UI phase 3), `d201fee` (docs), `875e89d` (polish — tab slide + mesas count).
 
 **Why:** Un Evento hoy es estático (fecha, lugar, condiciones, inscripciones). Faltaba el lado operativo del día del encuentro: qué juegos van a estar y qué mesas armar. Con esto el detalle del evento gana 2 pestañas nuevas: Ludoteca (juegos aportados por la comunidad) y Mesas (sub-mesas scoped al evento).
 
@@ -24,5 +24,3 @@ metadata:
 
 - Para sincronizar `?param=` con state, ver [[feedback-react-router-search-params]] — `useSearchParams` no dispara re-render.
 - Picker de juegos BGG con colección + búsqueda: ver `EventoLudotecaPicker.jsx`. Reusable si otra feature lo necesita.
-
-**Pending al cierre del session:** Fase 4 del plan original (verificación E2E + docs) — no se ejecutó. Si se merge la branch, considerar correr el smoke manual descrito en `/Users/claudiohollman/.claude/plans/glittery-juggling-rainbow.md`.
