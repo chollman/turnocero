@@ -2,6 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import UserRef from '../../../components/shared/UserRef'
 import { getUserDisplay } from '../../../utils/userDisplay'
+import { API } from '../../../api/endpoints'
 import styles from '../TorneoDetail.module.css'
 
 export default function RegistrationsList({ torneo, onChange }) {
@@ -35,7 +36,7 @@ function RegistrationItem({ registration, torneoId, onChange }) {
   const accept = async () => {
     setBusy(true)
     try {
-      const { data } = await axios.post(`/api/torneos/${torneoId}/registrations/${userId}/accept`)
+      const { data } = await axios.post(API.torneos.REGISTRATION_ACCEPT(torneoId, userId))
       onChange(data)
     } catch { /* user can retry */ } finally { setBusy(false) }
   }
@@ -43,7 +44,7 @@ function RegistrationItem({ registration, torneoId, onChange }) {
   const reject = async () => {
     setBusy(true)
     try {
-      const { data } = await axios.post(`/api/torneos/${torneoId}/registrations/${userId}/reject`)
+      const { data } = await axios.post(API.torneos.REGISTRATION_REJECT(torneoId, userId))
       onChange(data)
     } catch { /* user can retry */ } finally { setBusy(false) }
   }

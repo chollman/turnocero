@@ -120,7 +120,7 @@ export default function MeFeed() {
   useEffect(() => {
     if (!uid) return;
     axios
-      .get(`/api/users/${uid}`)
+      .get(API.users.DETAIL(uid))
       .then((res) => setHasFriends((res.data.friendsCount ?? 0) > 0))
       .catch(() => {});
   }, [uid]);

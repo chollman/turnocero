@@ -3,6 +3,7 @@ import axios from "axios";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
 import { getErrorMessage } from "../../utils/getErrorMessage";
+import { API } from "../../api/endpoints";
 import styles from "./TableDetail.module.css";
 
 // Sección "¿Cómo estuvo la sesión?" — listado de ratings + form para
@@ -30,7 +31,7 @@ export default function TableRatings({
   useEffect(() => {
     let cancelled = false;
     axios
-      .get(`/api/tables/${tableId}/ratings`)
+      .get(API.tables.RATINGS(tableId))
       .then(({ data }) => {
         if (cancelled) return;
         setRatings(data.ratings);
@@ -61,7 +62,7 @@ export default function TableRatings({
     setSubmitting(true);
     setError("");
     try {
-      const { data } = await axios.post(`/api/tables/${tableId}/ratings`, {
+      const { data } = await axios.post(API.tables.RATINGS(tableId), {
         score: myScore,
         comment: myComment,
       });

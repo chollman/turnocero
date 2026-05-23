@@ -26,4 +26,4 @@ Esto se aplica automáticamente a cualquier handler con `:id` o `:userId` en la 
 
 **Orden importa:** declarar `router.param` ANTES de las rutas que lo usan, pero por debajo de cualquier `router.use(...)` global del router (auth, section gate, etc.).
 
-Aplicar a routers de mesas, torneos, compartidas, noticias cuando se toquen — actualmente solo eventos tiene esto.
+**Estado (2026-05-22, P0.2 del audit, commit `9435802`):** aplicado en **todos** los routers que exponen `:id`, `:userId`, `:matchId`, `:gameId`, `:groupId`, `:commentId`, `:imageId`, `:imgId`, `:cid` — eventos, torneos, tables, bgg, compartidas, noticias, friends, dm, users, comments, messages, ratings, images, adminChat, admin. Sub-routers montados sobre `/api/tables/:id/...` usan `router.use(...)` porque el param viene del parent mount, no del propio router.

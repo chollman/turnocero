@@ -4,6 +4,7 @@ import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { API } from "../../api/endpoints";
 import useTickingNow from "../../utils/useTickingNow";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Modal from "../../components/shared/Modal";
@@ -121,14 +122,14 @@ export default function EventoDetail() {
     async function load() {
       setLoading(true);
       try {
-        const { data } = await axios.get(`/api/eventos/${id}`);
+        const { data } = await axios.get(API.eventos.DETAIL(id));
         if (cancelled) return;
         setEvento(data);
         setLudotecaItems(data.ludoteca || []);
         // Mesas: fetch en paralelo. Falla silenciosa (UI cae al fetch
         // propio de EventoMesas como fallback si seguimos en la página).
         axios
-          .get(`/api/eventos/${id}/mesas`)
+          .get(API.eventos.MESAS(id))
           .then(({ data: mesasData }) => {
             if (cancelled) return;
             setMesasItems(mesasData.tables || []);
@@ -251,7 +252,7 @@ export default function EventoDetail() {
       // cubre la race optimistic vs socket (ver feedback_optimistic_vs_socket).
       if (!payload?.tableId) return;
       axios
-        .get(`/api/eventos/${id}/mesas`)
+        .get(API.eventos.MESAS(id))
         .then(({ data }) => setMesasItems(data.tables || []))
         .catch(() => {});
     },
@@ -276,7 +277,7 @@ export default function EventoDetail() {
       const fd = new FormData();
       if (comprobanteFile) fd.append("comprobante", comprobanteFile);
       const { data: userReg } = await axios.post(
-        `/api/eventos/${id}/inscribirse`,
+        API.eventos.INSCRIBIRSE(id),
         fd,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -306,7 +307,7 @@ export default function EventoDetail() {
   async function handleCancelRegistration() {
     setCancellingReg(true);
     try {
-      await axios.delete(`/api/eventos/${id}/inscribirse`);
+      await axios.delete(API.eventos.INSCRIBIRSE(id));
       // Mismo patrón que handleInscribirse: el socket evento:counts-changed
       // ya viene con el count autoritativo, así que no tocamos counts acá.
       // Sólo limpiamos userRegistration.
@@ -356,7 +357,7 @@ export default function EventoDetail() {
   async function handleSaveEdit(fd) {
     setSavingEdit(true);
     try {
-      const { data } = await axios.put(`/api/eventos/${id}`, fd, {
+      const { data } = await axios.put(API.eventos.DETAIL(id), fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setEvento((prev) => mergeEventoUpdate(prev, data));
@@ -377,7 +378,7 @@ export default function EventoDetail() {
     try {
       const fd = new FormData();
       fd.append("status", "cancelled");
-      const { data } = await axios.put(`/api/eventos/${id}`, fd, {
+      const { data } = await axios.put(API.eventos.DETAIL(id), fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setEvento((prev) =>
@@ -434,7 +435,7 @@ export default function EventoDetail() {
     try {
       const fd = new FormData();
       fd.append("status", "open");
-      const { data } = await axios.put(`/api/eventos/${id}`, fd, {
+      const { data } = await axios.put(API.eventos.DETAIL(id), fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setEvento((prev) => mergeEventoUpdate(prev, data, { status: "open" }));

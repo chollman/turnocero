@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
+import { API } from '../../api/endpoints'
 import styles from './MiBgWatchCard.module.css'
 
 function formatDate(iso) {
@@ -45,12 +46,12 @@ export default function MiBgWatchCard({ bggUsername }) {
     setError(false)
 
     const partidasReq = axios
-      .get(`/api/bgg/partidas/${encodeURIComponent(bggUsername)}`, { params: { page: 1 } })
+      .get(API.bgg.PARTIDAS(bggUsername), { params: { page: 1 } })
       .then((r) => r.data)
       .catch(() => null)
 
     const coleccionReq = axios
-      .get(`/api/bgg/coleccion/${encodeURIComponent(bggUsername)}`)
+      .get(API.bgg.COLECCION(bggUsername))
       .then((r) => r.data)
       .catch(() => null)
 

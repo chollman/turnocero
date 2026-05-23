@@ -4,6 +4,7 @@ import axios from 'axios'
 import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../../context/AuthContext'
 import { useNotifications } from '../../context/NotificationContext'
+import { API } from '../../api/endpoints'
 import UserRef from '../../components/shared/UserRef'
 import AdminPanel from './components/AdminPanel'
 import RegistrationsList from './components/RegistrationsList'
@@ -68,7 +69,7 @@ export default function TorneoDetail() {
 
   const loadAll = useCallback(async () => {
     try {
-      const t = await axios.get(`/api/torneos/${id}`)
+      const t = await axios.get(API.torneos.DETAIL(id))
       const torneoData = t.data
       setTorneo(torneoData)
 
@@ -76,8 +77,8 @@ export default function TorneoDetail() {
       // loads /groups separately.
       if (torneoData.format !== 'groups') {
         const [m, s] = await Promise.all([
-          axios.get(`/api/torneos/${id}/matches`),
-          axios.get(`/api/torneos/${id}/standings`).catch(() => ({ data: { standings: [] } })),
+          axios.get(API.torneos.MATCHES(id)),
+          axios.get(API.torneos.STANDINGS(id)).catch(() => ({ data: { standings: [] } })),
         ])
         setMatches(m.data || [])
         setStandings(s.data?.standings || [])
@@ -100,14 +101,14 @@ export default function TorneoDetail() {
 
   const handleRecord = async (payload) => {
     if (!recordingMatch) return
-    await axios.post(`/api/torneos/${id}/matches/${recordingMatch._id}/result`, payload)
+    await axios.post(API.torneos.MATCH_RESULT(id, recordingMatch._id), payload)
     setRecording(null)
     await loadAll()
   }
 
   const handleUndoResult = async (match) => {
     try {
-      await axios.delete(`/api/torneos/${id}/matches/${match._id}/result`)
+      await axios.delete(API.torneos.MATCH_RESULT(id, match._id))
       await loadAll()
     } catch (err) {
       alert(err.response?.data?.message || 'Error al deshacer')

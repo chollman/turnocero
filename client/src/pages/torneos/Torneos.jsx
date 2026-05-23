@@ -3,6 +3,7 @@ import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { API } from "../../api/endpoints";
 import TorneoCard from "./components/TorneoCard";
 import TorneoSkeleton from "./TorneoSkeleton";
 import styles from "./Torneos.module.css";
@@ -33,7 +34,7 @@ export default function Torneos() {
       try {
         const params = { page: pageNum, limit: 12 };
         if (statusFilter) params.status = statusFilter;
-        const { data } = await axios.get("/api/torneos", { params });
+        const { data } = await axios.get(API.torneos.LIST, { params });
         setTorneos((prev) =>
           replace ? data.torneos : [...prev, ...data.torneos],
         );

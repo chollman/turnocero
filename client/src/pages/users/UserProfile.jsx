@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { API } from '../../api/endpoints';
 import MiBgWatchCard from './MiBgWatchCard';
 import Avatar from '../../components/shared/Avatar';
 import AvatarCropModal from '../../components/shared/AvatarCropModal';
@@ -171,7 +172,7 @@ export default function UserProfile() {
     }
     setGeocoding(true);
     try {
-      const { data } = await axios.get('/api/geocode', { params: { q } });
+      const { data } = await axios.get(API.geocode, { params: { q } });
       setForm((prev) => ({
         ...prev,
         direccionTexto: data.formatted || prev.direccionTexto,
@@ -202,7 +203,7 @@ export default function UserProfile() {
     setBggBusy(true);
     setBggError('');
     try {
-      await axios.post('/api/auth/bgg-connect', { password: bggPassword });
+      await axios.post(API.auth.BGG_CONNECT, { password: bggPassword });
       await refreshUser();
       setBggPassword('');
       addToast({
@@ -221,7 +222,7 @@ export default function UserProfile() {
     setSyncError('');
     setSyncSuccess('');
     try {
-      const { data } = await axios.post('/api/bgg/sync');
+      const { data } = await axios.post(API.bgg.SYNC);
       await refreshUser();
       const changes = [];
       if (data.inserted) changes.push(`${data.inserted} nuevas`);
@@ -241,7 +242,7 @@ export default function UserProfile() {
     setBggBusy(true);
     setBggError('');
     try {
-      await axios.delete('/api/auth/bgg-connection');
+      await axios.delete(API.auth.BGG_CONNECTION);
       await refreshUser();
     } catch (err) {
       setBggError(err.response?.data?.message || 'Error al desconectar.');
@@ -272,7 +273,7 @@ export default function UserProfile() {
     try {
       const formData = new FormData();
       formData.append('avatar', blob, 'avatar.jpg');
-      await axios.put('/api/auth/avatar', formData, {
+      await axios.put(API.auth.AVATAR, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       await refreshUser();
@@ -293,7 +294,7 @@ export default function UserProfile() {
     setAvatarBusy(true);
     setAvatarError('');
     try {
-      await axios.delete('/api/auth/avatar');
+      await axios.delete(API.auth.AVATAR);
       await refreshUser();
     } catch (err) {
       setAvatarError(err.response?.data?.message || 'Error al quitar el avatar.');

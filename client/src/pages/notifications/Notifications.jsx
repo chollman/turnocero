@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { useNotifications } from "../../context/NotificationContext";
 import { useChat } from "../../context/ChatContext";
+import { API } from "../../api/endpoints";
 import { formatTimeAgo } from "../../utils/time";
 import styles from "./Notifications.module.css";
 
@@ -332,7 +333,7 @@ export default function Notifications() {
   const markNotifRead = (n) => {
     if (n.type === "admin_chat") return markReadAdminChat();
     if (n.type === "dm") {
-      axios.patch(`/api/dm/${n.fromUserId}/read`).catch(() => {});
+      axios.patch(API.dm.READ(n.fromUserId)).catch(() => {});
       markReadDm(n.fromUserId);
       clearConversationUnread(n.fromUserId);
       return;

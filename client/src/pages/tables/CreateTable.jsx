@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
 import styles from "./CreateTable.module.css";
@@ -77,12 +78,10 @@ export default function CreateTable() {
     const signal = abortRef.current.signal;
     (async () => {
       try {
-        const res = await axios.get(
-          `/api/bgg/search?q=${encodeURIComponent(debouncedBoardGameInput)}`,
-          {
-            signal,
-          },
-        );
+        const res = await axios.get(API.bgg.SEARCH, {
+          params: { q: debouncedBoardGameInput },
+          signal,
+        });
         if (signal.aborted) return;
         searchCache.current.set(q, res.data);
         setSuggestions(res.data);
@@ -135,7 +134,7 @@ export default function CreateTable() {
     }
     setGeocoding(true);
     try {
-      const { data } = await axios.get("/api/geocode", { params: { q } });
+      const { data } = await axios.get(API.geocode, { params: { q } });
       setForm((f) => ({
         ...f,
         location: {
@@ -165,7 +164,7 @@ export default function CreateTable() {
     setShowDropdown(false);
     setSearching(true);
     try {
-      const res = await axios.get(`/api/bgg/game/${game.id}`);
+      const res = await axios.get(API.bgg.GAME(game.id));
       setBoardGameSelected(res.data);
       setBoardGameInput(res.data.name);
     } catch {
@@ -191,7 +190,7 @@ export default function CreateTable() {
     }
     setLoading(true);
     try {
-      const { data } = await axios.post("/api/tables", {
+      const { data } = await axios.post(API.tables.LIST, {
         ...form,
         boardGame: boardGameSelected.name,
         bggId: boardGameSelected.id,

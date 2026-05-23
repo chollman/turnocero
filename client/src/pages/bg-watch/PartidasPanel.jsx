@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { API } from "../../api/endpoints";
 import PlayCard from "./PlayCard";
 import PlayCardSkeleton from "./PlayCardSkeleton";
 import GameCardSkeleton from "./GameCardSkeleton";
@@ -119,19 +120,17 @@ export default function PartidasPanel({
     setLoading(true);
     setError(null);
 
-    const params = new URLSearchParams({ page: String(page) });
+    const params = { page };
     const range = dateRangeFor(filter);
-    if (range.mindate) params.set("mindate", range.mindate);
-    if (range.maxdate) params.set("maxdate", range.maxdate);
+    if (range.mindate) params.mindate = range.mindate;
+    if (range.maxdate) params.maxdate = range.maxdate;
     if (forceRefreshRef.current) {
-      params.set("refresh", "1");
+      params.refresh = 1;
       forceRefreshRef.current = false;
     }
 
     axios
-      .get(
-        `/api/bgg/partidas/${encodeURIComponent(bggUsername)}?${params.toString()}`,
-      )
+      .get(API.bgg.PARTIDAS(bggUsername), { params })
       .then(({ data, headers }) => {
         if (cancelled) return;
         setPlays(data);
@@ -177,7 +176,7 @@ export default function PartidasPanel({
   useEffect(() => {
     let cancelled = false;
     axios
-      .get(`/api/bgg/juegos-jugados/${encodeURIComponent(bggUsername)}`)
+      .get(API.bgg.JUEGOS_JUGADOS(bggUsername))
       .then(({ data }) => {
         if (!cancelled) setPlayedGamesFromServer(data);
       })

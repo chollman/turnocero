@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../../../context/NotificationContext'
+import { API } from '../../../api/endpoints'
 import styles from '../TorneoDetail.module.css'
 
 export default function RegisterButton({ torneo, user, onChange }) {
@@ -41,7 +42,7 @@ export default function RegisterButton({ torneo, user, onChange }) {
   const register = async () => {
     setBusy(true); setError('')
     try {
-      await axios.post(`/api/torneos/${torneo._id}/register`)
+      await axios.post(API.torneos.REGISTER(torneo._id))
       addToast({
         type: 'tournament_pending',
         torneoId: torneo._id,
@@ -57,7 +58,7 @@ export default function RegisterButton({ torneo, user, onChange }) {
   const cancel = async () => {
     setBusy(true); setError('')
     try {
-      await axios.delete(`/api/torneos/${torneo._id}/register`)
+      await axios.delete(API.torneos.REGISTER(torneo._id))
       onChange()
     } catch (err) {
       setError(err.response?.data?.message || 'Error al cancelar')

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import ModalPortal from '../../components/shared/ModalPortal';
+import { API } from '../../api/endpoints';
 import { hasDisplayableScore } from './playerScore';
 import styles from './BgWatchProfile.module.css';
 
@@ -23,7 +24,7 @@ function GameSearch({ onPick }) {
     if (q.trim().length < 3) { setResults([]); return; }
     timerRef.current = setTimeout(() => {
       setLoading(true);
-      axios.get(`/api/bgg/search?q=${encodeURIComponent(q.trim())}`)
+      axios.get(API.bgg.SEARCH, { params: { q: q.trim() } })
         .then(({ data }) => setResults(data || []))
         .catch(() => setResults([]))
         .finally(() => setLoading(false));
@@ -326,9 +327,9 @@ export default function CreatePlayModal({ user, preselectedGame, editPlay, onClo
           })),
       };
       if (isEdit) {
-        await axios.put(`/api/bgg/partidas/${encodeURIComponent(editPlay.id)}`, body);
+        await axios.put(API.bgg.PARTIDA_DETAIL(editPlay.id), body);
       } else {
-        await axios.post('/api/bgg/partidas', body);
+        await axios.post(API.bgg.PARTIDAS_LIST, body);
       }
       if (onCreated) onCreated();
       onClose();

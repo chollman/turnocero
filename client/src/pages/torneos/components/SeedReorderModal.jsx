@@ -3,6 +3,7 @@ import axios from 'axios'
 import UserRef from '../../../components/shared/UserRef'
 import { getUserDisplay } from '../../../utils/userDisplay'
 import ModalPortal from '../../../components/shared/ModalPortal'
+import { API } from '../../../api/endpoints'
 import styles from '../TorneoDetail.module.css'
 
 export default function SeedReorderModal({ torneo, onClose, onSaved }) {
@@ -24,7 +25,7 @@ export default function SeedReorderModal({ torneo, onClose, onSaved }) {
     setSub(true); setError('')
     try {
       const ids = order.map((u) => u._id || u)
-      const { data } = await axios.patch(`/api/torneos/${torneo._id}/seeds`, { participantIds: ids })
+      const { data } = await axios.patch(API.torneos.SEEDS(torneo._id), { participantIds: ids })
       onSaved(data)
     } catch (err) {
       setError(err.response?.data?.message || 'Error al guardar')

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { API } from '../../api/endpoints';
 import ConfirmActionModal from '../../components/shared/ConfirmActionModal';
 import PartidasPanel from './PartidasPanel';
 import ColeccionPanel from './ColeccionPanel';
@@ -54,7 +55,7 @@ export default function BgWatchProfile() {
     if (!deletingPlay) return;
     setDeleting(true);
     try {
-      await axios.delete(`/api/bgg/partidas/${encodeURIComponent(deletingPlay.id)}`);
+      await axios.delete(API.bgg.PARTIDA_DETAIL(deletingPlay.id));
       setDeletingPlay(null);
       setRefreshKey((k) => k + 1);
     } catch (err) {

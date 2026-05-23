@@ -5,6 +5,7 @@ import { io } from "socket.io-client";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { API } from "../../api/endpoints";
 import { dateParts } from "../../utils/eventoDate";
 import useTickingNow from "../../utils/useTickingNow";
 import TriageColumn from "./TriageColumn";
@@ -37,7 +38,7 @@ export default function EventoInscripciones() {
       setLoading(true);
       try {
         const { data: res } = await axios.get(
-          `/api/eventos/${id}/inscripciones`,
+          API.eventos.INSCRIPCIONES(id),
         );
         if (!cancelled) setData(res);
       } catch (err) {
@@ -153,7 +154,7 @@ export default function EventoInscripciones() {
     async (reg, adminNotes) => {
       try {
         await axios.patch(
-          `/api/eventos/${id}/inscripciones/${reg.user._id}/confirmar`,
+          API.eventos.INSCRIPCION_CONFIRMAR(id, reg.user._id),
           { adminNotes },
         );
         setData((prev) => ({
@@ -185,7 +186,7 @@ export default function EventoInscripciones() {
     async (reg, adminNotes, permanent = false) => {
       try {
         await axios.patch(
-          `/api/eventos/${id}/inscripciones/${reg.user._id}/rechazar`,
+          API.eventos.INSCRIPCION_RECHAZAR(id, reg.user._id),
           {
             adminNotes,
             permanent,
@@ -222,7 +223,7 @@ export default function EventoInscripciones() {
     async (reg) => {
       try {
         const { data: result } = await axios.patch(
-          `/api/eventos/${id}/inscripciones/${reg.user._id}/revertir`,
+          API.eventos.INSCRIPCION_REVERTIR(id, reg.user._id),
         );
         setData((prev) => ({
           ...prev,

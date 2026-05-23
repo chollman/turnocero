@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
+import { API } from '../../api/endpoints'
 import styles from './BgWatchHomeWidget.module.css'
 
 const DISMISS_KEY = 'turnocero_bgwatch_promo_dismissed'
@@ -46,7 +47,7 @@ function ConnectedView({ bggUsername }) {
     const now = new Date()
     const year = now.getFullYear()
     const month = String(now.getMonth() + 1).padStart(2, '0')
-    const url = `/api/bgg/partidas/${encodeURIComponent(bggUsername)}`
+    const url = API.bgg.PARTIDAS(bggUsername)
 
     Promise.all([
       axios.get(url, { params: { page: 1, mindate: `${year}-01-01` } }),

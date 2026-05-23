@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import axios from "axios";
 import { getErrorMessage } from "../../utils/getErrorMessage";
+import { API } from "../../api/endpoints";
 import styles from "./TableDetail.module.css";
 
 // Sección "Fotos de la mesa". El padre owna `images` porque también lo
@@ -32,7 +33,7 @@ export default function TableGallery({
     formData.append("image", file);
     try {
       const { data } = await axios.post(
-        `/api/tables/${tableId}/images`,
+        API.tables.IMAGES(tableId),
         formData,
         { headers: { "Content-Type": "multipart/form-data" } },
       );
@@ -48,7 +49,7 @@ export default function TableGallery({
     if (!window.confirm("¿Eliminar esta imagen?")) return;
     setError("");
     try {
-      await axios.delete(`/api/tables/${tableId}/images/${imageId}`);
+      await axios.delete(API.tables.IMAGE_DETAIL(tableId, imageId));
       onImagesChange?.(images.filter((img) => img._id !== imageId));
     } catch (err) {
       setError(getErrorMessage(err, "Error al eliminar la imagen"));

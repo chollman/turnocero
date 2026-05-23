@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { API } from '../../api/endpoints';
 import PlaceAutocomplete from '../../components/shared/PlaceAutocomplete';
 import AddressMap from '../../components/shared/AddressMap';
 import styles from './CreateTable.module.css';
@@ -21,7 +22,7 @@ export default function EditTable() {
   useEffect(() => {
     const fetchTable = async () => {
       try {
-        const { data } = await axios.get(`/api/tables/${id}`);
+        const { data } = await axios.get(API.tables.DETAIL(id));
         const isHost =
           data.host._id === user._id ||
           data.host._id?.toString() === user._id?.toString();
@@ -71,7 +72,7 @@ export default function EditTable() {
     }
     setGeocoding(true);
     try {
-      const { data } = await axios.get('/api/geocode', { params: { q } });
+      const { data } = await axios.get(API.geocode, { params: { q } });
       setForm((f) => ({ ...f, location: { texto: data.formatted || f.location.texto, lat: data.lat, lng: data.lng } }));
     } catch (err) {
       const msg = err.response?.status === 404
@@ -89,7 +90,7 @@ export default function EditTable() {
     setError('');
     setLoading(true);
     try {
-      await axios.put(`/api/tables/${id}`, {
+      await axios.put(API.tables.DETAIL(id), {
         ...form,
         maxPlayers: Number(form.maxPlayers),
       });
@@ -105,7 +106,7 @@ export default function EditTable() {
     if (!window.confirm('¿Cancelar la mesa? Esta acción no se puede deshacer.')) return;
     setLoading(true);
     try {
-      await axios.delete(`/api/tables/${id}`);
+      await axios.delete(API.tables.DETAIL(id));
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Error al cancelar la mesa');

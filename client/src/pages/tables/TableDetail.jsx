@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { API } from "../../api/endpoints";
 import GameTile from "../../components/shared/GameTile";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Avatar from "../../components/shared/Avatar";
@@ -147,7 +148,7 @@ export default function TableDetail() {
   useEffect(() => {
     const fetchTable = async () => {
       try {
-        const { data } = await axios.get(`/api/tables/${id}`);
+        const { data } = await axios.get(API.tables.DETAIL(id));
         if (
           data.privacy === "private" &&
           !isParticipant(data) &&
@@ -183,7 +184,9 @@ export default function TableDetail() {
     setRequestError("");
     try {
       const { data } = await axios.post(
-        `/api/tables/${id}/requests/${userId}/${action}`,
+        action === "accept"
+          ? API.tables.REQUEST_ACCEPT(id, userId)
+          : API.tables.REQUEST_REJECT(id, userId),
       );
       setTable(data);
       setPendingRequests(data.pendingRequests || []);
@@ -215,7 +218,7 @@ export default function TableDetail() {
       : [...currentFollowers, user._id];
     setTable((prev) => ({ ...prev, followers: newFollowers }));
     try {
-      const { data } = await axios.post(`/api/tables/${id}/follow`);
+      const { data } = await axios.post(API.tables.FOLLOW(id));
       setTable((prev) => ({ ...prev, followers: data.followers }));
     } catch {
       // Rollback explícito al snapshot pre-optimistic + toast — sin el
@@ -238,7 +241,7 @@ export default function TableDetail() {
     setJoinLoading(true);
     setJoinError("");
     try {
-      const { data } = await axios.post(`/api/tables/${id}/join`);
+      const { data } = await axios.post(API.tables.JOIN(id));
       setTable(data.table);
       setPendingRequests(data.table.pendingRequests || []);
     } catch (err) {
@@ -253,7 +256,7 @@ export default function TableDetail() {
     setLeaveLoading(true);
     setLeaveError("");
     try {
-      await axios.post(`/api/tables/${id}/leave`);
+      await axios.post(API.tables.LEAVE(id));
       navigate("/");
     } catch (err) {
       setLeaveError(
@@ -270,7 +273,7 @@ export default function TableDetail() {
       return;
     setCancelTableLoading(true);
     try {
-      await axios.delete(`/api/tables/${id}`);
+      await axios.delete(API.tables.DETAIL(id));
       navigate("/");
     } catch (err) {
       setCancelTableError(
@@ -284,7 +287,7 @@ export default function TableDetail() {
     setJoinLoading(true);
     setJoinError("");
     try {
-      const { data } = await axios.delete(`/api/tables/${id}/request`);
+      const { data } = await axios.delete(API.tables.REQUEST(id));
       setTable(data.table);
       setPendingRequests(data.table.pendingRequests || []);
     } catch (err) {
@@ -321,7 +324,7 @@ export default function TableDetail() {
     }
     setTable((prev) => ({ ...prev, reactions: newReactions }));
     try {
-      const { data } = await axios.post(`/api/tables/${id}/react`, { emoji });
+      const { data } = await axios.post(API.tables.REACT(id), { emoji });
       setTable((prev) => ({ ...prev, reactions: data.reactions }));
     } catch {
       setTable((prev) => ({ ...prev, reactions: currentReactions }));

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
+import { API } from '../../api/endpoints'
 import Avatar from '../../components/shared/Avatar'
 import styles from './CreateCompartidaForm.module.css'
 
@@ -25,11 +26,11 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
   const fileInputRef = useRef(null)
 
   useEffect(() => {
-    axios.get('/api/tables/mine').then(({ data }) => {
+    axios.get(API.tables.MINE).then(({ data }) => {
       const active = (data.tables || []).filter((t) => t.status !== 'cancelled')
       setMyTables(active)
     }).catch(() => {})
-    axios.get('/api/eventos/mine').then(({ data }) => {
+    axios.get(API.eventos.MINE).then(({ data }) => {
       setMyEventos(data.eventos || [])
     }).catch(() => {})
   }, [])
@@ -66,7 +67,7 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
     submittingRef.current = true
     let createdId = null
     try {
-      const { data: created } = await axios.post('/api/compartidas', {
+      const { data: created } = await axios.post(API.compartidas.LIST, {
         title: title.trim(),
         body: body.trim(),
         privacy,
@@ -80,7 +81,7 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
         const fd = new FormData()
         fd.append('image', img.file)
         const { data: updatedImages } = await axios.post(
-          `/api/compartidas/${created._id}/images`,
+          API.compartidas.IMAGES(created._id),
           fd,
           { headers: { 'Content-Type': 'multipart/form-data' } }
         )
@@ -91,7 +92,7 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
       onCreated?.(finalPost)
     } catch (err) {
       if (createdId) {
-        try { await axios.delete(`/api/compartidas/${createdId}`) } catch { /* ignore */ }
+        try { await axios.delete(API.compartidas.DETAIL(createdId)) } catch { /* ignore */ }
       }
       setError(err.response?.data?.message || 'Error al publicar la compartida')
     } finally {

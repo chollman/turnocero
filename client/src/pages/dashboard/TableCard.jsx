@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { API } from '../../api/endpoints';
 import GameTile from '../../components/shared/GameTile';
 import LoginPromptModal from '../../components/shared/LoginPromptModal';
 import Avatar from '../../components/shared/Avatar';
@@ -152,7 +153,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     setLoading(true);
     setError('');
     try {
-      const { data } = await axios.post(`/api/tables/${table._id}/join`);
+      const { data } = await axios.post(API.tables.JOIN(table._id));
       onUpdate(data.table);
       setFlashing(true);
       setTimeout(() => setFlashing(false), 500);
@@ -167,7 +168,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     setLoading(true);
     setError('');
     try {
-      const { data } = await axios.post(`/api/tables/${table._id}/leave`);
+      const { data } = await axios.post(API.tables.LEAVE(table._id));
       onUpdate(data);
     } catch (err) {
       setError(err.response?.data?.message || 'Error al salir');
@@ -180,7 +181,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     setLoading(true);
     setError('');
     try {
-      const { data } = await axios.delete(`/api/tables/${table._id}/request`);
+      const { data } = await axios.delete(API.tables.REQUEST(table._id));
       onUpdate(data.table);
     } catch (err) {
       setError(err.response?.data?.message || 'Error al cancelar solicitud');
@@ -194,7 +195,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     setLoading(true);
     setError('');
     try {
-      await axios.delete(`/api/tables/${table._id}`);
+      await axios.delete(API.tables.DETAIL(table._id));
       onCancel(table._id);
     } catch (err) {
       setError(err.response?.data?.message || 'Error al cancelar');

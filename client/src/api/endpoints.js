@@ -58,6 +58,7 @@ export const API = {
     SHOWCASE: "/api/tables/showcase",
     MINE: "/api/tables/mine",
     MY_FEED: "/api/tables/me/feed",
+    TOP_GAMES: "/api/tables/top-games",
     DETAIL: (id) => `/api/tables/${enc(id)}`,
     JOIN: (id) => `/api/tables/${enc(id)}/join`,
     REQUEST: (id) => `/api/tables/${enc(id)}/request`,
@@ -122,6 +123,7 @@ export const API = {
       `/api/torneos/${enc(id)}/games/${enc(gameId)}/result`,
     NEXT_PHASE: (id) => `/api/torneos/${enc(id)}/next-phase`,
     NEXT_PHASE_PREVIEW: (id) => `/api/torneos/${enc(id)}/next-phase/preview`,
+    RESET: (id) => `/api/torneos/${enc(id)}/reset`,
   },
 
   // ── Eventos ──────────────────────────────────────────────────────────
@@ -135,6 +137,12 @@ export const API = {
       `/api/eventos/${enc(id)}/inscripciones/${enc(userId)}/confirmar`,
     INSCRIPCION_RECHAZAR: (id, userId) =>
       `/api/eventos/${enc(id)}/inscripciones/${enc(userId)}/rechazar`,
+    INSCRIPCION_REVERTIR: (id, userId) =>
+      `/api/eventos/${enc(id)}/inscripciones/${enc(userId)}/revertir`,
+    MESAS: (id) => `/api/eventos/${enc(id)}/mesas`,
+    LUDOTECA: (id) => `/api/eventos/${enc(id)}/ludoteca`,
+    LUDOTECA_ITEM: (id, itemId) =>
+      `/api/eventos/${enc(id)}/ludoteca/${enc(itemId)}`,
   },
 
   // ── Friends ──────────────────────────────────────────────────────────
@@ -174,12 +182,16 @@ export const API = {
   users: {
     LIST: "/api/users",
     DETAIL: (id) => `/api/users/${enc(id)}`,
+    BY_BGG_USERNAMES: "/api/users/by-bgg-usernames",
   },
 
-  // ── Admin DB explorer ────────────────────────────────────────────────
+  // ── Admin DB explorer + user moderation ─────────────────────────────
   admin: {
     COLLECTIONS: "/api/admin/collections",
     COLLECTION_DETAIL: (name) => `/api/admin/collections/${enc(name)}`,
+    USER_BAN: (userId) => `/api/admin/users/${enc(userId)}/ban`,
+    USER_DELETE: (userId) => `/api/admin/users/${enc(userId)}`,
+    USER_TOGGLE_ADMIN: (userId) => `/api/admin/users/${enc(userId)}/admin`,
   },
 
   // ── Geocoding ────────────────────────────────────────────────────────

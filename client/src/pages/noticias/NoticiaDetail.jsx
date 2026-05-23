@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
 import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../../context/AuthContext'
+import { API } from '../../api/endpoints'
 import styles from './NoticiaDetail.module.css'
 
 function timeAgo(date) {
@@ -31,7 +32,7 @@ export default function NoticiaDetail() {
 
   useEffect(() => {
     setLoading(true)
-    axios.get(`/api/noticias/${id}`)
+    axios.get(API.noticias.DETAIL(id))
       .then(({ data }) => setNoticia(data))
       .catch((err) => { if (err.response?.status === 404) setNotFound(true) })
       .finally(() => setLoading(false))
@@ -46,7 +47,7 @@ export default function NoticiaDetail() {
   const handleDelete = async () => {
     if (!window.confirm('¿Eliminar esta noticia?')) return
     try {
-      await axios.delete(`/api/noticias/${id}`)
+      await axios.delete(API.noticias.DETAIL(id))
       navigate('/noticias')
     } catch { /* silently ignore */ }
   }

@@ -3,6 +3,7 @@ import axios from "axios";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { getErrorMessage } from "../../utils/getErrorMessage";
+import { API } from "../../api/endpoints";
 import styles from "./CompartidaCard.module.css";
 
 function timeAgo(date) {
@@ -48,7 +49,7 @@ export default function CompartidaComments({
     let cancelled = false;
     setLoading(true);
     axios
-      .get(`/api/compartidas/${compartidaId}/comments`)
+      .get(API.compartidas.COMMENTS(compartidaId))
       .then(({ data }) => {
         if (cancelled) return;
         setComments(data);
@@ -72,7 +73,7 @@ export default function CompartidaComments({
     setError("");
     try {
       const { data } = await axios.post(
-        `/api/compartidas/${compartidaId}/comments`,
+        API.compartidas.COMMENTS(compartidaId),
         { content: commentInput.trim() },
       );
       setComments((c) => {
@@ -92,7 +93,7 @@ export default function CompartidaComments({
     if (!editContent.trim()) return;
     try {
       const { data } = await axios.put(
-        `/api/compartidas/${compartidaId}/comments/${cid}`,
+        API.compartidas.COMMENT_DETAIL(compartidaId, cid),
         { content: editContent.trim() },
       );
       setComments((cs) => cs.map((c) => (c._id === cid ? data : c)));
@@ -104,7 +105,7 @@ export default function CompartidaComments({
 
   const handleDelete = async (cid) => {
     try {
-      await axios.delete(`/api/compartidas/${compartidaId}/comments/${cid}`);
+      await axios.delete(API.compartidas.COMMENT_DETAIL(compartidaId, cid));
       setComments((cs) => {
         const next = cs.filter((c) => c._id !== cid);
         onCountChange?.(next.length);

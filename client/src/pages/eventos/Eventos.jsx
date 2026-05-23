@@ -11,6 +11,7 @@ import { io } from "socket.io-client";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import useLocalStorageState from "../../utils/useLocalStorageState";
 import useTickingNow from "../../utils/useTickingNow";
@@ -95,7 +96,7 @@ export default function Eventos() {
         if (debouncedSearch.trim()) {
           params.search = debouncedSearch.trim();
         }
-        const { data } = await axios.get("/api/eventos", { params });
+        const { data } = await axios.get(API.eventos.LIST, { params });
         setEventos((prev) =>
           replace ? data.eventos : [...prev, ...data.eventos],
         );
@@ -283,7 +284,7 @@ export default function Eventos() {
   async function handleCreate(fd) {
     setSubmitting(true);
     try {
-      const { data } = await axios.post("/api/eventos", fd, {
+      const { data } = await axios.post(API.eventos.LIST, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       // Si el evento recién creado coincide con el filtro activo, lo

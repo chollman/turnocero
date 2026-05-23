@@ -26,15 +26,12 @@ Namespace por dominio: `auth`, `bgg`, `tables`, `compartidas`, `noticias`, `torn
 
 ## Estado de la migración
 
-Migrado en commit inicial:
-- AuthContext, NotificationContext, notificationReducers, SiteConfigContext, ChatContext
-- useShowcaseTables, Dashboard, MeFeed
-- Compartidas, Noticias, AdminChat
+**Cerrado al 2026-05-22.** Toda la production code del cliente usa `API.x.Y`. Si encontrás un `/api/...` literal en algún `.jsx`/`.js`/`.tsx` (no test, no comment), es un bug.
 
-Pendiente (lo iremos haciendo oportunísticamente cuando toquemos cada archivo):
-- pages/users/UserProfile.jsx (BGG sync + geocode + avatar)
-- pages/tables/CreateTable.jsx (`/api/tables`, `/api/geocode`)
-- pages/tables/TableDetail + sub-componentes (varios)
+Quedó intencionalmente fuera del módulo:
+- **Tests** (`*.test.jsx`, `test/server.js`): MSW handlers necesitan strings concretos para matchear paths. Migrarlos agrega indirección sin valor.
+- **AuthContext interceptor** (`err.config?.url?.includes('/api/auth/')`): es path-prefix check sobre URLs reales en runtime, no un call.
+- **Comments** en `useApi.js`, `useDebouncedValue.js`, etc.: ejemplos de docs.
 - pages/eventos/EventoDetail, EventoForm, EventoInscripciones
 - pages/torneos/TorneoDetail, CreateTorneo, AddParticipantModal
 - pages/compartidas/CompartidaPost, CompartidaCard sub-componentes

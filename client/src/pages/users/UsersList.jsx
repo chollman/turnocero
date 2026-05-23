@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import Avatar from "../../components/shared/Avatar";
@@ -220,7 +221,7 @@ export default function UsersList() {
       if (activeOnly) params.activeOnly = "true";
       if (friendsOnly) params.friendsOnly = "true";
       if (bgWatchOnly) params.bgWatchOnly = "true";
-      const { data } = await axios.get("/api/users", { params });
+      const { data } = await axios.get(API.users.LIST, { params });
       setUsers(data);
     } catch {
       setUsers([]);
@@ -239,7 +240,7 @@ export default function UsersList() {
     setActionError("");
     try {
       const { data } = await axios.patch(
-        `/api/admin/users/${banTarget._id}/ban`,
+        API.admin.USER_BAN(banTarget._id),
         {
           banned: !banTarget.isBanned,
           reason: banTarget.isBanned ? "" : reason || "",
@@ -270,7 +271,7 @@ export default function UsersList() {
     setActionLoading(true);
     setActionError("");
     try {
-      await axios.delete(`/api/admin/users/${deleteTarget._id}`);
+      await axios.delete(API.admin.USER_DELETE(deleteTarget._id));
       setUsers((prev) => prev.filter((u) => u._id !== deleteTarget._id));
       setDeleteTarget(null);
     } catch (err) {

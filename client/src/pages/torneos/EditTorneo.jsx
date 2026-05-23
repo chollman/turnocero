@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { Helmet } from 'react-helmet-async'
+import { API } from '../../api/endpoints'
 import ImageDropzone from './components/ImageDropzone'
 import styles from './Torneos.module.css'
 
@@ -27,7 +28,7 @@ export default function EditTorneo() {
   const [error, setError]       = useState('')
 
   useEffect(() => {
-    axios.get(`/api/torneos/${id}`)
+    axios.get(API.torneos.DETAIL(id))
       .then(({ data }) => {
         setTitle(data.title || '')
         setDesc(data.description || '')
@@ -67,7 +68,7 @@ export default function EditTorneo() {
         fd.append('qualifiersPerGroup', String(qualifiersPerGroup))
       }
       if (file) fd.append('image', file)
-      await axios.put(`/api/torneos/${id}`, fd, {
+      await axios.put(API.torneos.DETAIL(id), fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       navigate(`/torneos/${id}`)

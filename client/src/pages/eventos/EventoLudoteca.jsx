@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
 import EventoLudotecaPicker from "./EventoLudotecaPicker";
 import styles from "./EventoLudoteca.module.css";
@@ -52,7 +53,7 @@ export default function EventoLudoteca({
     if (itemsProp !== undefined) return; // managed by parent
     let cancelled = false;
     axios
-      .get(`/api/eventos/${eventoId}/ludoteca`)
+      .get(API.eventos.LUDOTECA(eventoId))
       .then(({ data }) => {
         if (cancelled) return;
         setLocalItems(data.items || []);
@@ -83,7 +84,7 @@ export default function EventoLudoteca({
     if (!ok) return;
     setDeletingId(item._id);
     try {
-      await axios.delete(`/api/eventos/${eventoId}/ludoteca/${item._id}`);
+      await axios.delete(API.eventos.LUDOTECA_ITEM(eventoId, item._id));
       setItems((prev) => (prev || []).filter((it) => it._id !== item._id));
     } catch (err) {
       addToast({

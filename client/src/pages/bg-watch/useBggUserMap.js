@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API } from '../../api/endpoints';
 
 // Collect unique lowercased BGG usernames from the players of a list of plays.
 export function extractBggUsernames(plays) {
@@ -30,7 +31,7 @@ export default function useBggUserMap(plays) {
       return;
     }
     let cancelled = false;
-    axios.post('/api/users/by-bgg-usernames', { usernames })
+    axios.post(API.users.BY_BGG_USERNAMES, { usernames })
       .then(({ data }) => {
         if (cancelled || !Array.isArray(data)) return;
         const map = {};

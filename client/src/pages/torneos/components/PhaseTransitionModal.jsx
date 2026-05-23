@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import ModalPortal from '../../../components/shared/ModalPortal'
+import { API } from '../../../api/endpoints'
 import styles from '../TorneoDetail.module.css'
 
 export default function PhaseTransitionModal({ torneoId, onClose, onGenerated }) {
@@ -11,7 +12,7 @@ export default function PhaseTransitionModal({ torneoId, onClose, onGenerated })
   const [overrideTableSize, setOverride] = useState(null)
 
   useEffect(() => {
-    axios.get(`/api/torneos/${torneoId}/next-phase/preview`)
+    axios.get(API.torneos.NEXT_PHASE_PREVIEW(torneoId))
       .then(({ data }) => setPreview(data))
       .catch((err) => setError(err.response?.data?.message || 'Error al calcular la vista previa'))
       .finally(() => setLoading(false))
@@ -20,7 +21,7 @@ export default function PhaseTransitionModal({ torneoId, onClose, onGenerated })
   const submit = async (tableSize) => {
     setSub(true); setError('')
     try {
-      await axios.post(`/api/torneos/${torneoId}/next-phase`, tableSize ? { tableSize } : {})
+      await axios.post(API.torneos.NEXT_PHASE(torneoId), tableSize ? { tableSize } : {})
       onGenerated()
     } catch (err) {
       setError(err.response?.data?.message || 'Error al generar la siguiente fase')

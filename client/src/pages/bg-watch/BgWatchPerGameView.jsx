@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { API } from '../../api/endpoints';
 import ConfirmActionModal from '../../components/shared/ConfirmActionModal';
 import PlayCard from './PlayCard';
 import PlayDetailModal from './PlayDetailModal';
@@ -51,7 +52,7 @@ export default function BgWatchPerGameView() {
     if (!deletingPlay) return;
     setDeleting(true);
     try {
-      await axios.delete(`/api/bgg/partidas/${encodeURIComponent(deletingPlay.id)}`);
+      await axios.delete(API.bgg.PARTIDA_DETAIL(deletingPlay.id));
       setDeletingPlay(null);
       setRefreshKey((k) => k + 1);
     } catch (err) {
@@ -70,7 +71,7 @@ export default function BgWatchPerGameView() {
   useEffect(() => {
     let cancelled = false;
     setGameError(null);
-    axios.get(`/api/bgg/game/${encodeURIComponent(gameId)}`)
+    axios.get(API.bgg.GAME(gameId))
       .then(({ data }) => { if (!cancelled) setGame(data); })
       .catch((err) => {
         if (!cancelled) setGameError(err.response?.data?.message || 'No se pudo cargar el juego');
@@ -83,8 +84,7 @@ export default function BgWatchPerGameView() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    const params = new URLSearchParams({ page: String(page), id: gameId });
-    axios.get(`/api/bgg/partidas/${encodeURIComponent(bggUsername)}?${params.toString()}`)
+    axios.get(API.bgg.PARTIDAS(bggUsername), { params: { page, id: gameId } })
       .then(({ data }) => { if (!cancelled) setPlays(data); })
       .catch((err) => {
         if (!cancelled) setError(err.response?.data?.message || 'No se pudo cargar las partidas');

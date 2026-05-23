@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { API } from '../../api/endpoints';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import DatabaseSkeleton from './DatabaseSkeleton';
 import styles from './DatabaseViewer.module.css';
@@ -42,7 +43,7 @@ function DatabaseViewerInner() {
   const debouncedSearch = useDebouncedValue(search, 300);
 
   useEffect(() => {
-    axios.get('/api/admin/collections')
+    axios.get(API.admin.COLLECTIONS)
       .then(({ data }) => {
         setCollections(data);
         if (data.length > 0) setActiveCol(data[0]);
@@ -61,7 +62,7 @@ function DatabaseViewerInner() {
       try {
         const params = { page, limit: 50 };
         if (debouncedSearch) params.search = debouncedSearch;
-        const { data } = await axios.get(`/api/admin/collections/${activeCol}`, { params });
+        const { data } = await axios.get(API.admin.COLLECTION_DETAIL(activeCol), { params });
         if (cancelled) return;
         setDocs(data.docs);
         setPagination({ page: data.page, pages: data.pages, total: data.total });
@@ -88,7 +89,7 @@ function DatabaseViewerInner() {
   const handleToggleAdmin = async (doc) => {
     setToggling(doc._id);
     try {
-      const { data } = await axios.patch(`/api/admin/users/${doc._id}/admin`);
+      const { data } = await axios.patch(API.admin.USER_TOGGLE_ADMIN(doc._id));
       setDocs((prev) =>
         prev.map((d) => (d._id?.toString() === doc._id?.toString() ? { ...d, isAdmin: data.isAdmin } : d))
       );

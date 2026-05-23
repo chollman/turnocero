@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { API } from "../../api/endpoints";
 import Pagination from "./Pagination";
 import GameCardSkeleton from "./GameCardSkeleton";
 import styles from "./BgWatchProfile.module.css";
@@ -80,12 +81,10 @@ export default function ColeccionPanel({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    const url = forceRefreshRef.current
-      ? `/api/bgg/coleccion/${encodeURIComponent(bggUsername)}?refresh=1`
-      : `/api/bgg/coleccion/${encodeURIComponent(bggUsername)}`;
+    const params = forceRefreshRef.current ? { refresh: 1 } : undefined;
     forceRefreshRef.current = false;
     axios
-      .get(url)
+      .get(API.bgg.COLECCION(bggUsername), { params })
       .then(({ data, headers }) => {
         if (cancelled) return;
         setCollection(data);

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { API } from "../../api/endpoints";
 
 // Hook que encapsula el toggle de "me gusta" de una compartida.
 //
@@ -45,7 +46,7 @@ export function useCompartidaLike({ post, user }) {
       popTimer.current = setTimeout(() => setPopping(false), 350);
     }
     try {
-      await axios.post(`/api/compartidas/${post._id}/like`);
+      await axios.post(API.compartidas.LIKE(post._id));
       return { requiresLogin: false };
     } catch {
       setLiked(prevLiked);

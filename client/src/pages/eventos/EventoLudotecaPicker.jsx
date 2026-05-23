@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { API } from "../../api/endpoints";
 import Modal from "../../components/shared/Modal";
 import BggGameSearch from "../../components/shared/BggGameSearch";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
@@ -60,7 +61,7 @@ export default function EventoLudotecaPicker({
     if (!selectedGame || submitting) return;
     setSubmitting(true);
     try {
-      const { data } = await axios.post(`/api/eventos/${eventoId}/ludoteca`, {
+      const { data } = await axios.post(API.eventos.LUDOTECA(eventoId), {
         bggGameId: selectedGame.id,
         notes: notes.trim(),
       });
@@ -214,7 +215,7 @@ function CollectionTab({ bggUsername, onPick, myAddedIds }) {
     setGames(null);
     setError(null);
     axios
-      .get(`/api/bgg/coleccion/${encodeURIComponent(bggUsername)}`)
+      .get(API.bgg.COLECCION(bggUsername))
       .then(({ data }) => {
         if (cancelled) return;
         setGames(Array.isArray(data) ? data : []);

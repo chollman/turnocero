@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { API } from '../../api/endpoints';
 import GameTile from '../../components/shared/GameTile';
 import Avatar from '../../components/shared/Avatar';
 import ProfileSkeleton from './ProfileSkeleton';
@@ -83,7 +84,7 @@ export default function UserProfilePublic() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    axios.get(`/api/users/${id}`)
+    axios.get(API.users.DETAIL(id))
       .then(({ data }) => {
         setProfile(data);
         setRelationship(data.relationship ?? 'none');
@@ -96,21 +97,21 @@ export default function UserProfilePublic() {
     setFriendLoading(true);
     try {
       if (action === 'request') {
-        await axios.post(`/api/friends/${id}/request`);
+        await axios.post(API.friends.REQUEST(id));
         setRelationship('request_sent');
       } else if (action === 'cancel_request') {
-        await axios.delete(`/api/friends/${id}/request`);
+        await axios.delete(API.friends.REQUEST(id));
         setRelationship('none');
       } else if (action === 'accept') {
-        await axios.post(`/api/friends/${id}/accept`);
+        await axios.post(API.friends.ACCEPT(id));
         setRelationship('friends');
         notifyFriendAdded();
         refreshUser().catch(() => {});
       } else if (action === 'reject') {
-        await axios.post(`/api/friends/${id}/reject`);
+        await axios.post(API.friends.REJECT(id));
         setRelationship('none');
       } else if (action === 'unfriend') {
-        await axios.delete(`/api/friends/${id}`);
+        await axios.delete(API.friends.UNFRIEND(id));
         setRelationship('none');
         refreshUser().catch(() => {});
       }

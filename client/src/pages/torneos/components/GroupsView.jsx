@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import UserRef from '../../../components/shared/UserRef'
 import { getUserDisplay } from '../../../utils/userDisplay'
+import { API } from '../../../api/endpoints'
 import GroupStandings from './GroupStandings'
 import GameScoreModal from './GameScoreModal'
 import PhaseTransitionModal from './PhaseTransitionModal'
@@ -19,7 +20,7 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
   const load = useCallback(async (phaseToLoad) => {
     setLoading(true)
     try {
-      const { data } = await axios.get(`/api/torneos/${torneo._id}/groups`, { params: { phase: phaseToLoad } })
+      const { data } = await axios.get(API.torneos.GROUPS(torneo._id), { params: { phase: phaseToLoad } })
       setPhaseData(data)
     } catch { /* show empty state on failure */ } finally {
       setLoading(false)
@@ -51,7 +52,7 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
 
   const handleRecord = async ({ results }) => {
     if (!recordingGame) return
-    await axios.post(`/api/torneos/${torneo._id}/games/${recordingGame._id}/result`, { results })
+    await axios.post(API.torneos.GAME_RESULT(torneo._id, recordingGame._id), { results })
     setRecordingGame(null)
     setRecordingGroup(null)
     await refresh()
@@ -59,7 +60,7 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
 
   const handleUndoResult = async (game) => {
     try {
-      await axios.delete(`/api/torneos/${torneo._id}/games/${game._id}/result`)
+      await axios.delete(API.torneos.GAME_RESULT(torneo._id, game._id))
       await refresh()
     } catch (err) {
       alert(err.response?.data?.message || 'Error al deshacer')
@@ -75,7 +76,7 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
 
   const saveAdvanced = async (group, advancedIds) => {
     try {
-      await axios.patch(`/api/torneos/${torneo._id}/groups/${group._id}/advanced`, {
+      await axios.patch(API.torneos.GROUP_ADVANCED(torneo._id, group._id), {
         advancedPlayers: advancedIds,
       })
       setEditingAdvanced(null)

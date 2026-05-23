@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { API } from "../../api/endpoints";
 import GameTile from "../../components/shared/GameTile";
 import BgWatchHomeWidget from "./BgWatchHomeWidget";
 import styles from "./CompartidasSidebar.module.css";
@@ -34,7 +35,7 @@ export default function CompartidasSidebar() {
       return;
     }
     axios
-      .get("/api/tables/mine", { params: { limit: 4 } })
+      .get(API.tables.MINE, { params: { limit: 4 } })
       .then(({ data }) => {
         const upcoming = (data.tables || [])
           .filter(
@@ -47,7 +48,7 @@ export default function CompartidasSidebar() {
       .catch(() => {});
 
     axios
-      .get("/api/tables/top-games")
+      .get(API.tables.TOP_GAMES)
       .then(({ data }) => setTopGames(data))
       .catch(() => {});
   }, [user, mesasEnabled]);

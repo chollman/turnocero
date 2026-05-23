@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { API } from "../../api/endpoints";
 import GameTile from "../../components/shared/GameTile";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Avatar from "../../components/shared/Avatar";
@@ -230,7 +231,7 @@ export default function CompartidaCard({
   const handleDelete = async () => {
     if (!window.confirm("¿Eliminar esta compartida?")) return;
     try {
-      await axios.delete(`/api/compartidas/${post._id}`);
+      await axios.delete(API.compartidas.DETAIL(post._id));
       onDeleted?.(post._id);
     } catch {
       /* silently ignore */
@@ -239,7 +240,7 @@ export default function CompartidaCard({
 
   const handleSaveEdit = async () => {
     try {
-      const { data } = await axios.put(`/api/compartidas/${post._id}`, {
+      const { data } = await axios.put(API.compartidas.DETAIL(post._id), {
         title: editTitle,
         body: editBody,
         privacy: editPrivacy,

@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
+import { API } from '../../api/endpoints';
 import Avatar from '../shared/Avatar';
 import styles from './ChatLauncher.module.css';
 
@@ -28,7 +29,7 @@ export default function ChatLauncher() {
       setFriends([]);
       return;
     }
-    axios.get('/api/users', { params: { friendsOnly: 'true' } })
+    axios.get(API.users.LIST, { params: { friendsOnly: 'true' } })
       .then(({ data }) => setFriends(Array.isArray(data) ? data : []))
       .catch(() => {});
   }, [user]);

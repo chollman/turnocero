@@ -3,6 +3,7 @@ import axios from "axios";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
 import { getErrorMessage } from "../../utils/getErrorMessage";
+import { API } from "../../api/endpoints";
 import styles from "./TableDetail.module.css";
 
 const formatDate = (dateStr) =>
@@ -45,7 +46,7 @@ export default function TableComments({
   useEffect(() => {
     let cancelled = false;
     axios
-      .get(`/api/tables/${tableId}/comments`)
+      .get(API.tables.COMMENTS(tableId))
       .then(({ data }) => {
         if (!cancelled) setComments(data);
       })
@@ -64,7 +65,7 @@ export default function TableComments({
     setSubmitting(true);
     setError("");
     try {
-      const { data } = await axios.post(`/api/tables/${tableId}/comments`, {
+      const { data } = await axios.post(API.tables.COMMENTS(tableId), {
         content,
       });
       setComments((prev) => [...prev, data]);
@@ -82,7 +83,7 @@ export default function TableComments({
     setError("");
     try {
       const { data } = await axios.put(
-        `/api/tables/${tableId}/comments/${commentId}`,
+        API.tables.COMMENT_DETAIL(tableId, commentId),
         { content },
       );
       setComments((prev) => prev.map((c) => (c._id === commentId ? data : c)));
@@ -97,7 +98,7 @@ export default function TableComments({
     if (!window.confirm("¿Eliminar este comentario?")) return;
     setError("");
     try {
-      await axios.delete(`/api/tables/${tableId}/comments/${commentId}`);
+      await axios.delete(API.tables.COMMENT_DETAIL(tableId, commentId));
       setComments((prev) => prev.filter((c) => c._id !== commentId));
     } catch (err) {
       setError(getErrorMessage(err, "Error al eliminar"));

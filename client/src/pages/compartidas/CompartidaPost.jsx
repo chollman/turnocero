@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import axios from 'axios'
 import { useNotifications } from '../../context/NotificationContext'
+import { API } from '../../api/endpoints'
 import CompartidaCard from './CompartidaCard'
 import CompartidasSidebar from './CompartidasSidebar'
 import CompartidaSkeleton from './CompartidaSkeleton'
@@ -21,7 +22,7 @@ export default function CompartidaPost() {
   }, [id, setActiveCompartida])
 
   useEffect(() => {
-    axios.get(`/api/compartidas/${id}`)
+    axios.get(API.compartidas.DETAIL(id))
       .then(({ data }) => setPost(data))
       .catch((err) => {
         if (err.response?.status === 404) setError('Esta compartida no existe o fue eliminada.')

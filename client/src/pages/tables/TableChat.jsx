@@ -5,6 +5,7 @@ import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
 import { STORAGE_KEYS } from "../../utils/storageKeys";
 import { getErrorMessage } from "../../utils/getErrorMessage";
+import { API } from "../../api/endpoints";
 import styles from "./TableDetail.module.css";
 
 const formatTime = (dateStr) =>
@@ -59,7 +60,7 @@ export default function TableChat({
   useEffect(() => {
     let cancelled = false;
     axios
-      .get(`/api/tables/${tableId}/messages`)
+      .get(API.tables.MESSAGES(tableId))
       .then(({ data }) => {
         if (!cancelled) setMessages(data);
       })
@@ -115,7 +116,7 @@ export default function TableChat({
     setError("");
     setInput("");
     try {
-      const { data } = await axios.post(`/api/tables/${tableId}/messages`, {
+      const { data } = await axios.post(API.tables.MESSAGES(tableId), {
         content,
       });
       setMessages((prev) =>

@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
+import { API } from '../../api/endpoints';
 import Avatar from '../../components/shared/Avatar';
 import styles from './DirectChat.module.css';
 
@@ -26,7 +27,7 @@ export default function DirectChat() {
 
   // Load contact info and open chat in context
   useEffect(() => {
-    axios.get(`/api/users/${userId}`)
+    axios.get(API.users.DETAIL(userId))
       .then(({ data }) => {
         setContact(data.user || data);
         openChat(data.user || data);

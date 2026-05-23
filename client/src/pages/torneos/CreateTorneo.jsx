@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
 import { Helmet } from 'react-helmet-async'
+import { API } from '../../api/endpoints'
 import ImageDropzone from './components/ImageDropzone'
 import styles from './Torneos.module.css'
 
@@ -48,7 +49,7 @@ export default function CreateTorneo() {
         fd.append('qualifiersPerGroup', String(qualifiersPerGroup))
       }
       if (file) fd.append('image', file)
-      const { data } = await axios.post('/api/torneos', fd, {
+      const { data } = await axios.post(API.torneos.LIST, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       navigate(`/torneos/${data._id}`)

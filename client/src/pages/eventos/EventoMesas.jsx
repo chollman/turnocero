@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../../context/NotificationContext";
+import { API } from "../../api/endpoints";
 import TableCard from "../../pages/dashboard/TableCard";
 import styles from "./EventoMesas.module.css";
 
@@ -50,7 +51,7 @@ export default function EventoMesas({
     let cancelled = false;
     setLocalTables(null);
     axios
-      .get(`/api/eventos/${eventoId}/mesas`)
+      .get(API.eventos.MESAS(eventoId))
       .then(({ data }) => {
         if (cancelled) return;
         setLocalTables(data.tables || []);

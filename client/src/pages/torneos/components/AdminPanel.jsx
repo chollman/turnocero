@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import axios from 'axios'
 import { Link } from 'react-router-dom'
+import { API } from '../../../api/endpoints'
 import styles from '../TorneoDetail.module.css'
 
 const NEXT_LABEL = {
@@ -28,7 +29,7 @@ export default function AdminPanel({ torneo, onChange, onReorderSeeds, onAddPart
   const changeStatus = async (status) => {
     setBusy(true); setError('')
     try {
-      const { data } = await axios.patch(`/api/torneos/${torneo._id}/status`, { status })
+      const { data } = await axios.patch(API.torneos.STATUS(torneo._id), { status })
       onChange(data)
     } catch (err) {
       setError(err.response?.data?.message || 'Error al cambiar el estado')
@@ -42,7 +43,7 @@ export default function AdminPanel({ torneo, onChange, onReorderSeeds, onAddPart
   const handleDelete = async () => {
     setBusy(true); setError('')
     try {
-      await axios.delete(`/api/torneos/${torneo._id}`)
+      await axios.delete(API.torneos.DETAIL(torneo._id))
       onDelete()
     } catch (err) {
       setError(err.response?.data?.message || 'Error al eliminar')
@@ -54,7 +55,7 @@ export default function AdminPanel({ torneo, onChange, onReorderSeeds, onAddPart
   const handleReset = async () => {
     setBusy(true); setError('')
     try {
-      const { data } = await axios.post(`/api/torneos/${torneo._id}/reset`)
+      const { data } = await axios.post(API.torneos.RESET(torneo._id))
       onChange(data)
     } catch (err) {
       setError(err.response?.data?.message || 'Error al reiniciar el torneo')

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import UserRef from '../../../components/shared/UserRef'
 import { getUserDisplay } from '../../../utils/userDisplay'
+import { API } from '../../../api/endpoints'
 import styles from '../TorneoDetail.module.css'
 
 export default function ParticipantsList({ torneo, isAdmin, onChange }) {
@@ -36,7 +37,7 @@ function ParticipantItem({ user, seed, torneoId, canRemove, onChange }) {
   const remove = async () => {
     setBusy(true)
     try {
-      const { data } = await axios.delete(`/api/torneos/${torneoId}/participants/${user._id}`)
+      const { data } = await axios.delete(API.torneos.PARTICIPANT(torneoId, user._id))
       onChange(data)
     } catch { /* silently keep the row; user can retry */ } finally {
       setBusy(false)

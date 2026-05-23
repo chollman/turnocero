@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
+import { API } from "../../api/endpoints";
 import styles from "./BggGameSearch.module.css";
 
 /**
@@ -39,7 +40,7 @@ export default function BggGameSearch({
     const myReq = ++reqId.current;
     setLoading(true);
     axios
-      .get(`/api/bgg/search?q=${encodeURIComponent(term)}`)
+      .get(API.bgg.SEARCH, { params: { q: term } })
       .then(({ data }) => {
         // Descartar respuestas viejas si llegaron fuera de orden.
         if (myReq !== reqId.current) return;

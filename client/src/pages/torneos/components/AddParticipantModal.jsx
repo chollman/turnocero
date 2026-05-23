@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import useDebouncedValue from '../../../hooks/useDebouncedValue'
+import { API } from '../../../api/endpoints'
 import UserRef from '../../../components/shared/UserRef'
 import { getUserDisplay } from '../../../utils/userDisplay'
 import ModalPortal from '../../../components/shared/ModalPortal'
@@ -24,7 +25,7 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
       setLoading(true)
       setError('')
       try {
-        const { data } = await axios.get('/api/users', { params: debouncedSearch ? { search: debouncedSearch } : {} })
+        const { data } = await axios.get(API.users.LIST, { params: debouncedSearch ? { search: debouncedSearch } : {} })
         if (!cancelled) setResults(data || [])
       } catch (err) {
         if (!cancelled) setError(err.response?.data?.message || 'Error al buscar usuarios')
@@ -39,7 +40,7 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
   const addUser = async (userId) => {
     setAdding(userId); setError('')
     try {
-      const { data } = await axios.post(`/api/torneos/${torneo._id}/participants/${userId}`)
+      const { data } = await axios.post(API.torneos.PARTICIPANT(torneo._id, userId))
       onChange(data)
     } catch (err) {
       setError(err.response?.data?.message || 'Error al agregar')

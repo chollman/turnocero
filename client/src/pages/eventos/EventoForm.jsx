@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API } from "../../api/endpoints";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
 import InfoTooltip from "../../components/shared/InfoTooltip";
 import DateTimePicker from "../../components/shared/DateTimePicker";
@@ -120,7 +121,7 @@ export default function EventoForm({
     }
     setGeocoding(true);
     try {
-      const { data } = await axios.get("/api/geocode", { params: { q } });
+      const { data } = await axios.get(API.geocode, { params: { q } });
       setForm((prev) => ({
         ...prev,
         location: {
