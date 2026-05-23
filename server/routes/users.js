@@ -8,6 +8,7 @@ const { requireSection } = require('../middleware/sectionGate');
 const validateObjectId = require('../middleware/validateObjectId');
 const asyncHandler = require('../utils/asyncHandler');
 const httpError = require('../utils/httpError');
+const { isSameId } = require('../utils/idCompare');
 
 router.use(requireSection('comunidad'));
 
@@ -194,11 +195,9 @@ router.get(
 
     let relationship = null;
     if (req.user && currentUser) {
-      const userIdStr = userId.toString();
-      const myIdStr = req.user._id.toString();
-      const isFriend = (currentUser?.friends || []).some((f) => f.toString() === userIdStr);
-      const requestSent = (user.friendRequests || []).some((r) => r.from.toString() === myIdStr);
-      const requestReceived = (currentUser?.friendRequests || []).some((r) => r.from.toString() === userIdStr);
+      const isFriend = (currentUser?.friends || []).some((f) => isSameId(f, userId));
+      const requestSent = (user.friendRequests || []).some((r) => isSameId(r.from, req.user._id));
+      const requestReceived = (currentUser?.friendRequests || []).some((r) => isSameId(r.from, userId));
       relationship = isFriend ? 'friends'
         : requestSent ? 'request_sent'
         : requestReceived ? 'request_received'

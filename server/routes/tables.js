@@ -20,6 +20,7 @@ const {
 } = require("../utils/locationHelpers");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
+const { isSameId } = require("../utils/idCompare");
 
 // NOTA: requireSection('mesas') aplica SOLO al router (las rutas de este
 // archivo). El helper `listTables` se exporta abajo y se reusa desde
@@ -436,7 +437,7 @@ router.put(
       throw httpError(400, "No se puede editar una mesa cancelada");
     }
 
-    if (table.host.toString() !== req.user._id.toString()) {
+    if (!isSameId(table.host, req.user._id)) {
       throw httpError(403, "Solo el host puede editar esta mesa");
     }
 
@@ -488,11 +489,11 @@ router.post(
       throw httpError(400, "This table has been cancelled");
     }
 
-    if (table.host.toString() === req.user._id.toString()) {
+    if (isSameId(table.host, req.user._id)) {
       throw httpError(400, "You are the host of this table");
     }
 
-    if (table.players.some((p) => p.toString() === req.user._id.toString())) {
+    if (table.players.some((p) => isSameId(p, req.user._id))) {
       throw httpError(400, "You already joined this table");
     }
 
@@ -502,9 +503,7 @@ router.post(
 
     if (table.privacy === "private") {
       if (
-        table.pendingRequests.some(
-          (r) => r.toString() === req.user._id.toString(),
-        )
+        table.pendingRequests.some((r) => isSameId(r, req.user._id))
       ) {
         throw httpError(
           400,
@@ -533,8 +532,8 @@ router.post(
 
     table.players.push(req.user._id);
     // Remove from followers if they were following
-    const followerIdx = table.followers.findIndex(
-      (f) => f.toString() === req.user._id.toString(),
+    const followerIdx = table.followers.findIndex((f) =>
+      isSameId(f, req.user._id),
     );
     if (followerIdx !== -1) table.followers.splice(followerIdx, 1);
     await table.save();
@@ -554,8 +553,8 @@ router.delete(
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
 
-    const idx = table.pendingRequests.findIndex(
-      (r) => r.toString() === req.user._id.toString(),
+    const idx = table.pendingRequests.findIndex((r) =>
+      isSameId(r, req.user._id),
     );
     if (idx === -1) {
       throw httpError(400, "No tenés una solicitud pendiente en esta mesa");
@@ -582,7 +581,7 @@ router.post(
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
 
-    if (table.host.toString() !== req.user._id.toString()) {
+    if (!isSameId(table.host, req.user._id)) {
       throw httpError(403, "Solo el host puede aceptar solicitudes");
     }
 
@@ -597,8 +596,8 @@ router.post(
       throw httpError(400, "La mesa está llena");
     }
 
-    const idx = table.pendingRequests.findIndex(
-      (r) => r.toString() === req.params.userId,
+    const idx = table.pendingRequests.findIndex((r) =>
+      isSameId(r, req.params.userId),
     );
     if (idx === -1) throw httpError(404, "Solicitud no encontrada");
 
@@ -633,12 +632,12 @@ router.post(
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
 
-    if (table.host.toString() !== req.user._id.toString()) {
+    if (!isSameId(table.host, req.user._id)) {
       throw httpError(403, "Solo el host puede rechazar solicitudes");
     }
 
-    const idx = table.pendingRequests.findIndex(
-      (r) => r.toString() === req.params.userId,
+    const idx = table.pendingRequests.findIndex((r) =>
+      isSameId(r, req.params.userId),
     );
     if (idx === -1) throw httpError(404, "Solicitud no encontrada");
 
@@ -669,8 +668,8 @@ router.post(
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
 
-    const playerIndex = table.players.findIndex(
-      (p) => p.toString() === req.user._id.toString(),
+    const playerIndex = table.players.findIndex((p) =>
+      isSameId(p, req.user._id),
     );
 
     if (playerIndex === -1) {
@@ -717,15 +716,14 @@ router.post(
       throw httpError(400, "Table is cancelled");
     }
 
-    const uid = req.user._id.toString();
     if (
-      table.host.toString() === uid ||
-      table.players.some((p) => p.toString() === uid)
+      isSameId(table.host, req.user._id) ||
+      table.players.some((p) => isSameId(p, req.user._id))
     ) {
       throw httpError(400, "Ya sos miembro de esta mesa");
     }
 
-    const idx = table.followers.findIndex((f) => f.toString() === uid);
+    const idx = table.followers.findIndex((f) => isSameId(f, req.user._id));
     if (idx !== -1) {
       table.followers.splice(idx, 1);
     } else {
@@ -757,9 +755,8 @@ router.post(
     }
 
     const { emoji } = req.body;
-    const uid = req.user._id.toString();
-    const existingIdx = table.reactions.findIndex(
-      (r) => r.user.toString() === uid,
+    const existingIdx = table.reactions.findIndex((r) =>
+      isSameId(r.user, req.user._id),
     );
 
     if (existingIdx !== -1) {
@@ -788,7 +785,7 @@ router.delete(
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
 
-    if (table.host.toString() !== req.user._id.toString()) {
+    if (!isSameId(table.host, req.user._id)) {
       throw httpError(403, "Only the host can cancel this table");
     }
 

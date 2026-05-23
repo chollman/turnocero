@@ -11,6 +11,7 @@ const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
+const { isSameId } = require("../utils/idCompare");
 
 router.use(requireSection("dms"));
 
@@ -80,8 +81,8 @@ router.get(
     const otherId = new mongoose.Types.ObjectId(req.params.userId);
     const userId = req.user._id;
 
-    const isFriend = req.user.friends.some(
-      (f) => f.toString() === req.params.userId,
+    const isFriend = req.user.friends.some((f) =>
+      isSameId(f, req.params.userId),
     );
     if (!isFriend) {
       throw httpError(403, "Solo podés chatear con tus amigos");
@@ -124,9 +125,7 @@ router.post(
 
     const recipientId = req.params.userId;
 
-    const isFriend = req.user.friends.some(
-      (f) => f.toString() === recipientId,
-    );
+    const isFriend = req.user.friends.some((f) => isSameId(f, recipientId));
     if (!isFriend) {
       throw httpError(403, "Solo podés chatear con tus amigos");
     }

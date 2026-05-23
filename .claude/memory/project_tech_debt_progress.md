@@ -30,8 +30,9 @@ Progreso del **tech-debt audit** (`plans/tech-debt-audit.md`, ejecutado en sesio
 - **P1.5** torneos.js + eventos.js: commits `2e03a86` + `aeb2466` — business logic a `server/services/torneoService.js` + `server/services/eventoService.js`.
 - **P1.6** asyncHandler + errorHandler central: commit `a85eeb5` (infra) + `41887ca` (compartidas + dm) + ronda completa (todos los routers). **19/19 routers migrados** ([[asyncHandler-errorHandler-pattern]]). Patterns especiales documentados para OG endpoints, anti-leak responses, cooldowns con headers, ValidationError.
 
-### Fase 2 — Hooks y utils (commit `0971bb7`)
+### Fase 2 — Hooks y utils (commit `0971bb7` + cierre de P2.7)
 - **P2.1** `useApi`, **P2.2** `useShowcaseTables`, **P2.3** `passwordValidation`, **P2.4** `storageKeys`, **P2.5** `getErrorMessage`, **P2.6** `socketHelpers`, **P2.7** `idCompare.isSameId`, **P2.8** `paginate.parsePagination`. Ver [[shared-helpers-catalog]].
+- **P2.7 (cierre, 2026-05-23)**: migración full de `a.toString() === b.toString()` → `isSameId(a, b)` en server. 12 archivos cubiertos: `services/eventoService.js`, `routes/{dm,messages,ratings,comments,images,friends,users,eventos,compartidas,tables}.js`. 75+ call sites migrados. Quedan solo (a propósito): `idCompare.js` (el helper) y `tests/integration/dm.test.js` (test code, prueba semántica de comparación). Tests 818→819, ESLint en 0.
 
 ### Fase 3 — Polish (commits `2b36c05` + `4d7588d`)
 - **P3.2** rollback con toast en `TableDetail.handleFollow` + `handleReact`.
@@ -51,14 +52,11 @@ Progreso del **tech-debt audit** (`plans/tech-debt-audit.md`, ejecutado en sesio
 
 ## Pendiente (incremental, al toque oportunístico)
 
-- **P2.7** `isSameId` aplicado donde se toca: el helper existe + tiene tests, pero los ~180 call sites con `a.toString() !== b.toString()` no se migraron en bloque. Migrar oportunísticamente cuando se toca un router/service.
-- **P3.1** auditar `eslint-disable-next-line react-hooks/exhaustive-deps` sin comentario en TableDetail:234, BottomNav:245 (NotificationContext ya migrado a listeners).
-- **P3.3** migrar `let cancelled = false` a `AbortController` en fetchs (TableDetail tenía uno; CreateTable es la referencia correcta).
-- **P4.2** tests faltantes en `App.jsx`, `Modal.jsx`, `GameTile.jsx`.
+Nada del plan original. Todos los ítems originales del plan están cerrados al 2026-05-23.
 
-## Métricas finales (post-audit, 2026-05-22)
+## Métricas finales (post-audit, 2026-05-23)
 
-Tests verde al cierre: **818 server + 1550 client = 2368 total** (vs 518 + 1377 = 1895 antes del audit — +473 tests en la fase).
-ESLint en 0 (lo seguía estando desde `6faf3dc`).
+Tests verde al cierre: **819 server + 1560 client = 2379 total** (vs 518 + 1377 = 1895 antes del audit — +484 tests).
+ESLint en 0 server + client.
 
-**Estado: el plan está sustancialmente cerrado.** Lo que queda son ítems de polish incremental (`P1.6` resto, `P2.7` migración, `P3.1` / `P3.3` / `P4.2`) — todos al toque oportunístico cuando se modifique cada archivo.
+**Estado: plan 100% cerrado.** Todo lo del audit original quedó hecho. Lo que aparezca como tech debt nuevo va a `plans/` como audit separado.

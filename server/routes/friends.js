@@ -8,6 +8,7 @@ const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
+const { isSameId } = require("../utils/idCompare");
 
 router.use(requireSection("amigos"));
 
@@ -21,7 +22,7 @@ router.post(
     const targetId = req.params.id;
     const myId = req.user._id.toString();
 
-    if (targetId === myId) {
+    if (isSameId(targetId, myId)) {
       throw httpError(400, "No podés enviarte una solicitud a vos mismo");
     }
 
@@ -32,10 +33,10 @@ router.post(
 
     if (!target) throw httpError(404, "Usuario no encontrado");
 
-    if (me.friends.some((f) => f.toString() === targetId)) {
+    if (me.friends.some((f) => isSameId(f, targetId))) {
       throw httpError(400, "Ya son amigos");
     }
-    if (target.friendRequests.some((r) => r.from.toString() === myId)) {
+    if (target.friendRequests.some((r) => isSameId(r.from, myId))) {
       throw httpError(400, "Ya enviaste una solicitud");
     }
 
@@ -69,8 +70,8 @@ router.post(
 
     if (!fromUser) throw httpError(404, "Usuario no encontrado");
 
-    const reqIndex = me.friendRequests.findIndex(
-      (r) => r.from.toString() === fromId,
+    const reqIndex = me.friendRequests.findIndex((r) =>
+      isSameId(r.from, fromId),
     );
     if (reqIndex === -1) {
       throw httpError(400, "No hay solicitud de este usuario");
@@ -102,8 +103,8 @@ router.post(
     const fromId = req.params.id;
     const me = await User.findById(req.user._id).select("friendRequests");
 
-    const reqIndex = me.friendRequests.findIndex(
-      (r) => r.from.toString() === fromId,
+    const reqIndex = me.friendRequests.findIndex((r) =>
+      isSameId(r.from, fromId),
     );
     if (reqIndex === -1) {
       throw httpError(400, "No hay solicitud de este usuario");
@@ -127,8 +128,8 @@ router.delete(
     const target = await User.findById(targetId).select("friendRequests");
     if (!target) throw httpError(404, "Usuario no encontrado");
 
-    const reqIndex = target.friendRequests.findIndex(
-      (r) => r.from.toString() === myId,
+    const reqIndex = target.friendRequests.findIndex((r) =>
+      isSameId(r.from, myId),
     );
     if (reqIndex === -1) {
       throw httpError(400, "No hay solicitud pendiente");
@@ -162,8 +163,8 @@ router.delete(
 
     if (!other) throw httpError(404, "Usuario no encontrado");
 
-    me.friends = me.friends.filter((f) => f.toString() !== otherId);
-    other.friends = other.friends.filter((f) => f.toString() !== myId);
+    me.friends = me.friends.filter((f) => !isSameId(f, otherId));
+    other.friends = other.friends.filter((f) => !isSameId(f, myId));
 
     await Promise.all([me.save(), other.save()]);
 

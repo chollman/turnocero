@@ -9,6 +9,7 @@ const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
+const { isSameId } = require("../utils/idCompare");
 
 router.use(requireSection("mesas"));
 
@@ -119,7 +120,7 @@ router.put(
     const comment = await Comment.findById(req.params.commentId);
     if (!comment) throw httpError(404, "Comment not found");
 
-    if (comment.author.toString() !== req.user._id.toString()) {
+    if (!isSameId(comment.author, req.user._id)) {
       throw httpError(403, "Solo el autor puede editar este comentario");
     }
 
@@ -144,8 +145,8 @@ router.delete(
     if (!comment) throw httpError(404, "Comment not found");
 
     const table = await Table.findById(req.params.id);
-    const isAuthor = comment.author.toString() === req.user._id.toString();
-    const isHost = table && table.host.toString() === req.user._id.toString();
+    const isAuthor = isSameId(comment.author, req.user._id);
+    const isHost = table && isSameId(table.host, req.user._id);
 
     if (!isAuthor && !isHost && !req.user.isAdmin) {
       throw httpError(403, "No tenés permiso para eliminar este comentario");

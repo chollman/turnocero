@@ -14,6 +14,7 @@ const {
   emitToEventoRoom,
   emitToEventosList,
 } = require("../utils/socketHelpers");
+const { isSameId } = require("../utils/idCompare");
 const logger = require("../utils/logger");
 
 // Snapshot público de inscripciones de un evento. Pura sobre el array
@@ -37,7 +38,7 @@ function countsFor(evento) {
 // el evento. En prod no afecta correctness; en tests sí.
 function notifyOne(req, recipientId, type, fields, actorId) {
   if (recipientId == null) return Promise.resolve();
-  if (actorId != null && recipientId.toString() === actorId.toString()) {
+  if (actorId != null && isSameId(recipientId, actorId)) {
     return Promise.resolve();
   }
   // `type` también va en el payload del socket (el client lo usa como

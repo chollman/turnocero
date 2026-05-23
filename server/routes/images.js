@@ -10,6 +10,7 @@ const validateObjectId = require("../middleware/validateObjectId");
 const { emitNotificationReq } = require("../utils/emitNotification");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
+const { isSameId } = require("../utils/idCompare");
 
 router.use(requireSection("mesas"));
 
@@ -18,10 +19,9 @@ router.use(validateObjectId("id"));
 router.param("imageId", validateObjectId("imageId"));
 
 const isMember = (table, userId) => {
-  const uid = userId.toString();
   return (
-    table.host.toString() === uid ||
-    table.players.some((p) => p.toString() === uid)
+    isSameId(table.host, userId) ||
+    table.players.some((p) => isSameId(p, userId))
   );
 };
 
@@ -109,9 +109,8 @@ router.delete(
     const image = table.images.id(req.params.imageId);
     if (!image) throw httpError(404, "Imagen no encontrada");
 
-    const uid = req.user._id.toString();
-    const isUploader = image.uploader.toString() === uid;
-    const isHost = table.host.toString() === uid;
+    const isUploader = isSameId(image.uploader, req.user._id);
+    const isHost = isSameId(table.host, req.user._id);
 
     if (!isUploader && !isHost && !req.user.isAdmin) {
       throw httpError(403, "No tenés permiso para eliminar esta imagen");

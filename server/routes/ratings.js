@@ -8,6 +8,7 @@ const { requireSection } = require('../middleware/sectionGate');
 const validateObjectId = require('../middleware/validateObjectId');
 const asyncHandler = require('../utils/asyncHandler');
 const httpError = require('../utils/httpError');
+const { isSameId } = require('../utils/idCompare');
 
 router.use(requireSection('mesas'));
 
@@ -15,10 +16,9 @@ router.use(requireSection('mesas'));
 router.use(validateObjectId('id'));
 
 const isParticipant = (table, userId) => {
-  const uid = userId.toString();
   return (
-    table.host.toString() === uid ||
-    table.players.some((p) => p.toString() === uid)
+    isSameId(table.host, userId) ||
+    table.players.some((p) => isSameId(p, userId))
   );
 };
 

@@ -39,6 +39,7 @@ const { escapeRegex } = require("../utils/regex");
 const logger = require("../utils/logger");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
+const { isSameId } = require("../utils/idCompare");
 
 // Mongoose ValidationError → 400 con el primer mensaje. Re-tira otros errores
 // para que caigan al errorHandler central como 500 genérico.
@@ -146,7 +147,7 @@ router.get(
       };
       let userRegistration = null;
       if (userIdStr) {
-        const reg = regs.find((r) => r.user?.toString() === userIdStr);
+        const reg = regs.find((r) => r.user && isSameId(r.user, userIdStr));
         if (reg) {
           userRegistration = {
             _id: reg._id,
@@ -395,7 +396,7 @@ router.get(
     let userRegistration = null;
     if (req.user) {
       const reg = evento.registrations.find(
-        (r) => r.user?._id?.toString() === req.user._id.toString(),
+        (r) => r.user?._id && isSameId(r.user._id, req.user._id),
       );
       if (reg) {
         userRegistration = {
@@ -675,8 +676,8 @@ router.post(
       throw httpError(400, "Las inscripciones están cerradas");
     }
 
-    const existing = evento.registrations.find(
-      (r) => r.user.toString() === req.user._id.toString(),
+    const existing = evento.registrations.find((r) =>
+      isSameId(r.user, req.user._id),
     );
     // Bloqueo permanente: 403, no permite reintentar.
     if (existing?.permanentlyRejected) {
@@ -833,8 +834,8 @@ router.delete(
     const evento = await Evento.findById(req.params.id);
     if (!evento) throw httpError(404, "Evento no encontrado");
 
-    const idx = evento.registrations.findIndex(
-      (r) => r.user.toString() === req.user._id.toString(),
+    const idx = evento.registrations.findIndex((r) =>
+      isSameId(r.user, req.user._id),
     );
     if (idx === -1) throw httpError(404, "No estás inscripto en este evento");
     if (evento.registrations[idx].status !== "pending") {
@@ -931,8 +932,8 @@ router.patch(
     const evento = await Evento.findById(req.params.id);
     if (!evento) throw httpError(404, "Evento no encontrado");
 
-    const reg = evento.registrations.find(
-      (r) => r.user.toString() === req.params.userId,
+    const reg = evento.registrations.find((r) =>
+      isSameId(r.user, req.params.userId),
     );
     if (!reg) throw httpError(404, "Inscripción no encontrada");
 
@@ -1017,8 +1018,8 @@ router.patch(
     const evento = await Evento.findById(req.params.id);
     if (!evento) throw httpError(404, "Evento no encontrado");
 
-    const reg = evento.registrations.find(
-      (r) => r.user.toString() === req.params.userId,
+    const reg = evento.registrations.find((r) =>
+      isSameId(r.user, req.params.userId),
     );
     if (!reg) throw httpError(404, "Inscripción no encontrada");
 
@@ -1120,8 +1121,8 @@ router.patch(
     const evento = await Evento.findById(req.params.id);
     if (!evento) throw httpError(404, "Evento no encontrado");
 
-    const reg = evento.registrations.find(
-      (r) => r.user.toString() === req.params.userId,
+    const reg = evento.registrations.find((r) =>
+      isSameId(r.user, req.params.userId),
     );
     if (!reg) throw httpError(404, "Inscripción no encontrada");
 
@@ -1233,10 +1234,10 @@ router.post(
     }
 
     // Dedupe lógico por (addedBy, bggGameId) — un user no agrega el mismo juego dos veces.
-    const myId = req.user._id.toString();
     const alreadyMine = (evento.ludoteca || []).some(
       (item) =>
-        item.bggGameId === numericId && item.addedBy.toString() === myId,
+        item.bggGameId === numericId &&
+        isSameId(item.addedBy, req.user._id),
     );
     if (alreadyMine) {
       throw httpError(409, "Ya agregaste este juego");
@@ -1320,10 +1321,9 @@ router.patch(
     if (!evento) throw httpError(404, "Evento no encontrado");
     const item = evento.ludoteca.id(req.params.itemId);
     if (!item) throw httpError(404, "Juego no encontrado");
-    const isOwner = item.addedBy.toString() === req.user._id.toString();
+    const isOwner = isSameId(item.addedBy, req.user._id);
     const isAdmin =
-      !!req.user.isAdmin ||
-      evento.author.toString() === req.user._id.toString();
+      !!req.user.isAdmin || isSameId(evento.author, req.user._id);
     if (!isOwner && !isAdmin) {
       throw httpError(403, "No podés editar este juego");
     }
@@ -1355,10 +1355,9 @@ router.delete(
     if (!evento) throw httpError(404, "Evento no encontrado");
     const item = evento.ludoteca.id(req.params.itemId);
     if (!item) throw httpError(404, "Juego no encontrado");
-    const isOwner = item.addedBy.toString() === req.user._id.toString();
+    const isOwner = isSameId(item.addedBy, req.user._id);
     const isAdmin =
-      !!req.user.isAdmin ||
-      evento.author.toString() === req.user._id.toString();
+      !!req.user.isAdmin || isSameId(evento.author, req.user._id);
     if (!isOwner && !isAdmin) {
       throw httpError(403, "No podés quitar este juego");
     }

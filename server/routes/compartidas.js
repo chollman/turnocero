@@ -13,6 +13,7 @@ const { parsePagination } = require("../utils/paginate");
 const { emitNotificationReq } = require("../utils/emitNotification");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
+const { isSameId } = require("../utils/idCompare");
 
 router.use(requireSection("compartidas"));
 
@@ -95,10 +96,10 @@ router.get(
     const allForCounts = [...compartidas, ...(featured ? [featured] : [])];
     const withCounts = await withCommentCounts(allForCounts);
     const featuredWithCount = featured
-      ? withCounts.find((j) => j._id.toString() === featured._id.toString())
+      ? withCounts.find((j) => isSameId(j._id, featured._id))
       : null;
     const compartidasWithCounts = withCounts.filter(
-      (j) => !featured || j._id.toString() !== featured._id.toString(),
+      (j) => !featured || !isSameId(j._id, featured._id),
     );
 
     res.json({
@@ -153,10 +154,9 @@ router.get(
         throw httpError(403, "No tenés acceso a esta compartida");
       }
     } else {
-      const uid = req.user._id.toString();
-      const isAuthor = compartida.author._id.toString() === uid;
-      const isFriend = req.user.friends.some(
-        (f) => f.toString() === compartida.author._id.toString(),
+      const isAuthor = isSameId(compartida.author._id, req.user._id);
+      const isFriend = req.user.friends.some((f) =>
+        isSameId(f, compartida.author._id),
       );
       if (
         (compartida.privacy === "private" && !isAuthor) ||
@@ -191,10 +191,9 @@ router.post(
     if (linkedTable) {
       const table = await Table.findById(linkedTable);
       if (!table) throw httpError(404, "Mesa no encontrada");
-      const uid = req.user._id.toString();
       const isMember =
-        table.host.toString() === uid ||
-        table.players.some((p) => p.toString() === uid);
+        isSameId(table.host, req.user._id) ||
+        table.players.some((p) => isSameId(p, req.user._id));
       if (!isMember) {
         throw httpError(
           403,
@@ -208,11 +207,11 @@ router.post(
     if (linkedEvento) {
       const evento = await Evento.findById(linkedEvento);
       if (!evento) throw httpError(404, "Evento no encontrado");
-      const uid = req.user._id.toString();
-      const isAuthor = evento.author.toString() === uid;
+      const isAuthor = isSameId(evento.author, req.user._id);
       const isActive = (evento.registrations || []).some(
         (r) =>
-          r.user?.toString() === uid &&
+          r.user &&
+          isSameId(r.user, req.user._id) &&
           (r.status === "confirmed" || r.status === "pending"),
       );
       if (!isAuthor && !isActive) {
@@ -246,7 +245,7 @@ router.put(
   asyncHandler(async (req, res) => {
     const compartida = await Compartida.findById(req.params.id);
     if (!compartida) throw httpError(404, "Compartida no encontrada");
-    if (compartida.author.toString() !== req.user._id.toString()) {
+    if (!isSameId(compartida.author, req.user._id)) {
       throw httpError(403, "Solo el autor puede editar esta compartida");
     }
 
@@ -260,11 +259,11 @@ router.put(
       if (linkedEvento) {
         const evento = await Evento.findById(linkedEvento);
         if (!evento) throw httpError(404, "Evento no encontrado");
-        const uid = req.user._id.toString();
-        const isAuthor = evento.author.toString() === uid;
+        const isAuthor = isSameId(evento.author, req.user._id);
         const isActive = (evento.registrations || []).some(
           (r) =>
-            r.user?.toString() === uid &&
+            r.user &&
+            isSameId(r.user, req.user._id) &&
             (r.status === "confirmed" || r.status === "pending"),
         );
         if (!isAuthor && !isActive) {
@@ -292,10 +291,7 @@ router.delete(
   asyncHandler(async (req, res) => {
     const compartida = await Compartida.findById(req.params.id);
     if (!compartida) throw httpError(404, "Compartida no encontrada");
-    if (
-      compartida.author.toString() !== req.user._id.toString() &&
-      !req.user.isAdmin
-    ) {
+    if (!isSameId(compartida.author, req.user._id) && !req.user.isAdmin) {
       throw httpError(403, "Solo el autor puede eliminar esta compartida");
     }
 
@@ -323,18 +319,14 @@ router.post(
     const uid = req.user._id;
     const isVisible =
       compartida.privacy === "public" ||
-      compartida.author.toString() === uid.toString() ||
+      isSameId(compartida.author, uid) ||
       (compartida.privacy === "friends" &&
-        req.user.friends.some(
-          (f) => f.toString() === compartida.author.toString(),
-        ));
+        req.user.friends.some((f) => isSameId(f, compartida.author)));
     if (!isVisible) {
       throw httpError(403, "No tenés acceso a esta compartida");
     }
 
-    const idx = compartida.likes.findIndex(
-      (l) => l.toString() === uid.toString(),
-    );
+    const idx = compartida.likes.findIndex((l) => isSameId(l, uid));
     const adding = idx === -1;
     if (adding) {
       compartida.likes.push(uid);
@@ -343,7 +335,7 @@ router.post(
     }
     await compartida.save();
 
-    if (adding && compartida.author.toString() !== uid.toString()) {
+    if (adding && !isSameId(compartida.author, uid)) {
       await emitNotificationReq(
         req,
         compartida.author,
@@ -372,7 +364,7 @@ router.post(
 
     const compartida = await Compartida.findById(req.params.id);
     if (!compartida) throw httpError(404, "Compartida no encontrada");
-    if (compartida.author.toString() !== req.user._id.toString()) {
+    if (!isSameId(compartida.author, req.user._id)) {
       throw httpError(403, "Solo el autor puede subir imágenes");
     }
     if (compartida.images.length >= 3) {
@@ -405,7 +397,7 @@ router.delete(
     const image = compartida.images.id(req.params.imgId);
     if (!image) throw httpError(404, "Imagen no encontrada");
 
-    const isAuthor = compartida.author.toString() === req.user._id.toString();
+    const isAuthor = isSameId(compartida.author, req.user._id);
     if (!isAuthor && !req.user.isAdmin) {
       throw httpError(403, "No tenés permiso para eliminar esta imagen");
     }
@@ -452,7 +444,7 @@ router.post(
     });
     await comment.populate("author", "username avatar displayName");
 
-    if (compartida.author.toString() !== req.user._id.toString()) {
+    if (!isSameId(compartida.author, req.user._id)) {
       const preview = content.trim().slice(0, 60);
       await emitNotificationReq(
         req,
@@ -480,7 +472,7 @@ router.put(
   asyncHandler(async (req, res) => {
     const comment = await CompartidaComment.findById(req.params.cid);
     if (!comment) throw httpError(404, "Comentario no encontrado");
-    if (comment.author.toString() !== req.user._id.toString()) {
+    if (!isSameId(comment.author, req.user._id)) {
       throw httpError(403, "Solo el autor puede editar este comentario");
     }
 
@@ -509,9 +501,9 @@ router.delete(
     const compartida = await Compartida.findById(req.params.id).select(
       "author",
     );
-    const uid = req.user._id.toString();
-    const isCommentAuthor = comment.author.toString() === uid;
-    const isPostAuthor = compartida?.author.toString() === uid;
+    const isCommentAuthor = isSameId(comment.author, req.user._id);
+    const isPostAuthor =
+      compartida && isSameId(compartida.author, req.user._id);
 
     if (!isCommentAuthor && !isPostAuthor && !req.user.isAdmin) {
       throw httpError(403, "No tenés permiso para eliminar este comentario");
