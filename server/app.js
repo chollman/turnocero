@@ -36,4 +36,9 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Turnocero API is running' });
 });
 
+// Error handler central — debe ir AL FINAL, después de todas las rutas.
+// Captura cualquier error que llegue vía next(err), incluidos los
+// promise rejections envueltos por utils/asyncHandler.js.
+app.use(require('./middleware/errorHandler'));
+
 module.exports = app;

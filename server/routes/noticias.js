@@ -7,14 +7,18 @@ const { protect, requireAdmin, optionalAuth } = require('../middleware/auth');
 const { requireSection } = require('../middleware/sectionGate');
 const validateObjectId = require('../middleware/validateObjectId');
 const { parsePagination } = require('../utils/paginate');
+const asyncHandler = require('../utils/asyncHandler');
+const httpError = require('../utils/httpError');
 
 router.use(requireSection('noticias'));
 
 router.param('id', validateObjectId('id'));
 
 // GET /api/noticias — public, newest first, paginated
-router.get('/', optionalAuth, async (req, res) => {
-  try {
+router.get(
+  '/',
+  optionalAuth,
+  asyncHandler(async (req, res) => {
     const { page, limit, skip } = parsePagination(req.query, {
       defaultLimit: 10,
       maxLimit: 20,
@@ -30,14 +34,16 @@ router.get('/', optionalAuth, async (req, res) => {
     ]);
 
     res.json({ noticias, total, page, pages: Math.ceil(total / limit) });
-  } catch (err) {
-    res.status(500).json({ message: 'Error al obtener noticias' });
-  }
-});
+  }),
+);
 
 // POST /api/noticias — admin only, multipart/form-data with optional image
-router.post('/', protect, requireAdmin, multer.single('image'), async (req, res) => {
-  try {
+router.post(
+  '/',
+  protect,
+  requireAdmin,
+  multer.single('image'),
+  asyncHandler(async (req, res) => {
     let image;
     if (req.file) {
       const result = await uploadToCloudinary(req.file.buffer, {
@@ -48,15 +54,18 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
     }
 
     const noticia = await Noticia.create({
-      title:  req.body.title?.trim() || undefined,
-      body:   req.body.body?.trim()  || undefined,
-      link:      req.body.link?.trim()      || undefined,
+      title: req.body.title?.trim() || undefined,
+      body: req.body.body?.trim() || undefined,
+      link: req.body.link?.trim() || undefined,
       linkLabel: req.body.linkLabel?.trim() || undefined,
       image,
       author: req.user._id,
     });
 
-    const populated = await noticia.populate('author', 'username displayName avatar');
+    const populated = await noticia.populate(
+      'author',
+      'username displayName avatar',
+    );
 
     const io = req.app.get('io');
     if (io) {
@@ -68,31 +77,36 @@ router.post('/', protect, requireAdmin, multer.single('image'), async (req, res)
     }
 
     res.status(201).json(populated);
-  } catch (err) {
-    res.status(500).json({ message: 'Error al crear la noticia' });
-  }
-});
+  }),
+);
 
 // GET /api/noticias/:id — public
-router.get('/:id', optionalAuth, async (req, res) => {
-  try {
-    const noticia = await Noticia.findById(req.params.id).populate('author', 'username displayName avatar');
-    if (!noticia) return res.status(404).json({ message: 'Noticia no encontrada' });
+router.get(
+  '/:id',
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const noticia = await Noticia.findById(req.params.id).populate(
+      'author',
+      'username displayName avatar',
+    );
+    if (!noticia) throw httpError(404, 'Noticia no encontrada');
     res.json(noticia);
-  } catch {
-    res.status(500).json({ message: 'Error al obtener la noticia' });
-  }
-});
+  }),
+);
 
 // PUT /api/noticias/:id — admin only, image replacement is optional
-router.put('/:id', protect, requireAdmin, multer.single('image'), async (req, res) => {
-  try {
+router.put(
+  '/:id',
+  protect,
+  requireAdmin,
+  multer.single('image'),
+  asyncHandler(async (req, res) => {
     const noticia = await Noticia.findById(req.params.id);
-    if (!noticia) return res.status(404).json({ message: 'Noticia no encontrada' });
+    if (!noticia) throw httpError(404, 'Noticia no encontrada');
 
     noticia.title = req.body.title?.trim() || undefined;
-    noticia.body  = req.body.body?.trim()  || undefined;
-    noticia.link      = req.body.link?.trim()      || undefined;
+    noticia.body = req.body.body?.trim() || undefined;
+    noticia.link = req.body.link?.trim() || undefined;
     noticia.linkLabel = req.body.linkLabel?.trim() || undefined;
 
     if (req.file) {
@@ -105,26 +119,29 @@ router.put('/:id', protect, requireAdmin, multer.single('image'), async (req, re
     }
 
     await noticia.save();
-    const populated = await noticia.populate('author', 'username displayName avatar');
+    const populated = await noticia.populate(
+      'author',
+      'username displayName avatar',
+    );
     res.json(populated);
-  } catch (err) {
-    res.status(500).json({ message: 'Error al editar la noticia' });
-  }
-});
+  }),
+);
 
 // DELETE /api/noticias/:id — admin only
-router.delete('/:id', protect, requireAdmin, async (req, res) => {
-  try {
+router.delete(
+  '/:id',
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
     const noticia = await Noticia.findById(req.params.id);
-    if (!noticia) return res.status(404).json({ message: 'Noticia no encontrada' });
+    if (!noticia) throw httpError(404, 'Noticia no encontrada');
 
-    if (noticia.image?.publicId) await cloudinary.uploader.destroy(noticia.image.publicId);
+    if (noticia.image?.publicId)
+      await cloudinary.uploader.destroy(noticia.image.publicId);
     await noticia.deleteOne();
 
     res.json({ message: 'Noticia eliminada' });
-  } catch (err) {
-    res.status(500).json({ message: 'Error al eliminar la noticia' });
-  }
-});
+  }),
+);
 
 module.exports = router;
