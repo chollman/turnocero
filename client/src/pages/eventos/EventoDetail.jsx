@@ -256,6 +256,14 @@ export default function EventoDetail() {
         .then(({ data }) => setMesasItems(data.tables || []))
         .catch(() => {});
     },
+    onDeleted: () => {
+      // Admin eliminó el evento mientras estábamos viéndolo — caemos al
+      // estado not-found para que el render coincida con el GET 404 que
+      // ahora vería un refresh. Las notificaciones persistentes
+      // (`evento_cancelled` con `eventoDeleted: true`) ya avisan al user;
+      // este handler solo cierra el UI obsoleto.
+      setNotFound(true);
+    },
   });
 
   // Contrato de error en estos handlers (post B6+B7):

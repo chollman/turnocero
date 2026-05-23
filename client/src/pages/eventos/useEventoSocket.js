@@ -15,6 +15,7 @@ import { io } from "socket.io-client";
  *   - `evento:updated` → payload: { eventoId, evento }
  *   - `evento:ludoteca-changed` → payload: { eventoId, action: 'added'|'updated'|'removed', item?, itemId? }
  *   - `evento:mesa-created` → payload: { eventoId, tableId }
+ *   - `evento:deleted` → payload: { eventoId }
  *
  * Si el cliente no tiene token guardado (logout / sesión expirada) el hook
  * no abre socket y los callbacks nunca se llaman.
@@ -26,6 +27,7 @@ import { io } from "socket.io-client";
  * @param {(payload: object) => void} [callbacks.onUpdated]
  * @param {(payload: object) => void} [callbacks.onLudotecaChanged]
  * @param {(payload: object) => void} [callbacks.onMesaCreated]
+ * @param {(payload: object) => void} [callbacks.onDeleted]
  */
 export default function useEventoSocket(
   id,
@@ -35,6 +37,7 @@ export default function useEventoSocket(
     onUpdated,
     onLudotecaChanged,
     onMesaCreated,
+    onDeleted,
   } = {},
 ) {
   const cbRef = useRef({
@@ -43,6 +46,7 @@ export default function useEventoSocket(
     onUpdated,
     onLudotecaChanged,
     onMesaCreated,
+    onDeleted,
   });
   // Actualizar refs después del commit — los listeners usan la versión más
   // reciente del callback, pero NO disparan reconexión del socket.
@@ -55,6 +59,7 @@ export default function useEventoSocket(
       onUpdated,
       onLudotecaChanged,
       onMesaCreated,
+      onDeleted,
     };
   });
 
@@ -92,6 +97,10 @@ export default function useEventoSocket(
     socket.on("evento:mesa-created", (payload) => {
       if (payload?.eventoId !== id) return;
       cbRef.current.onMesaCreated?.(payload);
+    });
+    socket.on("evento:deleted", (payload) => {
+      if (payload?.eventoId !== id) return;
+      cbRef.current.onDeleted?.(payload);
     });
 
     return () => {
