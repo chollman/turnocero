@@ -170,8 +170,12 @@ export default function TableDetail() {
       }
     };
     fetchTable();
-    // Refetch only when id changes; user-dependent gating is re-evaluated on next render
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Intencionalmente solo `[id]`: `user`/`isParticipant` se usan dentro pero
+    // NO queremos refetchear cuando cambia el user — la mesa es la misma, el
+    // gating de privacy se re-evalúa con el render normal. `navigate` y los
+    // setters son estables.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   // Comments, ratings, gallery e images se manejan en sus sub-componentes
   // ahora — cada uno fetchea lo suyo y owna su state. El chat (messages

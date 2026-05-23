@@ -230,7 +230,12 @@ export default function BottomNav() {
     else if (delta < -50) goLeft()
   }
 
-  // Keep the active item visible when navigating via router
+  // Keep the active item visible when navigating via router.
+  // Intencionalmente solo `[active]`: `startIndex` se LEE y MUTA dentro del
+  // effect — incluirlo loopearía (cada setStartIndex re-corre el effect que
+  // re-llama setStartIndex). `items` es estable per-render del padre y
+  // `scrollable` es derivado del mismo items. Acepto la stale-startIndex
+  // closure: si el user cambia tabs muy rápido, la siguiente nav corrige.
   useEffect(() => {
     if (!scrollable) return
     const activeIdx = items.findIndex(item => item.id === active)
@@ -242,7 +247,8 @@ export default function BottomNav() {
       setSlideDir('left')
       setStartIndex(activeIdx - VISIBLE + 1)
     }
-  }, [active]) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active])
 
   const animClass = slideDir === 'left' ? styles.slideLeft
                   : slideDir === 'right' ? styles.slideRight
