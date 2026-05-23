@@ -23,7 +23,7 @@ describe('<GuestNavbar>', () => {
 
   it('renders Login and Registrate CTAs with correct hrefs', () => {
     renderNav();
-    expect(screen.getByRole('link', { name: 'Login' })).toHaveAttribute('href', '/login');
+    expect(screen.getByRole('link', { name: 'Iniciá sesión' })).toHaveAttribute('href', '/login');
     expect(screen.getByRole('link', { name: 'Registrate' })).toHaveAttribute('href', '/register');
   });
 });

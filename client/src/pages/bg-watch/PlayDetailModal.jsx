@@ -196,7 +196,7 @@ export default function PlayDetailModal({ play, userMap, onClose }) {
                 {play.duration > 0 && (<><dt>Duración</dt><dd>{play.duration} min</dd></>)}
                 {play.quantity > 1 && (<><dt>Cantidad</dt><dd>{play.quantity} partidas</dd></>)}
                 {play.incomplete && (<><dt>Estado</dt><dd className={styles.detailWarn}>Incompleta</dd></>)}
-                {play.nowinstats && (<><dt>Stats</dt><dd>No cuenta para ranking</dd></>)}
+                {play.nowinstats && (<><dt>Estadísticas</dt><dd>No cuenta para ranking</dd></>)}
               </dl>
             </section>
           )}

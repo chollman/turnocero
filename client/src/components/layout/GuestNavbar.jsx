@@ -15,7 +15,7 @@ export default function GuestNavbar() {
         </Link>
 
         <div className={styles.right}>
-          <Link to="/login" className={styles.btnLogin}>Login</Link>
+          <Link to="/login" className={styles.btnLogin}>Iniciá sesión</Link>
           <Link to="/register" className={styles.btnRegister}>Registrate</Link>
         </div>
       </div>

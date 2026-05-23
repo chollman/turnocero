@@ -219,7 +219,7 @@ export default function BgWatchPerGameView() {
               <span className={styles.statValue}>{plays.total}</span>
             </div>
             <div className={styles.statCard}>
-              <span className={styles.statLabel}>Win rate</span>
+              <span className={styles.statLabel}>% de victorias</span>
               <span className={styles.statValue}>
                 {stats.winRate !== null ? `${stats.winRate}%` : '—'}
               </span>

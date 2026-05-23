@@ -33,7 +33,7 @@ export default function ComprobanteDropzone({ file, onFile }) {
         <div className={styles.pdfLabel}>
           <DocIcon size={22} />
           <span className={styles.fileName}>{file.name}</span>
-          <span className={styles.changeText}>Click para cambiar</span>
+          <span className={styles.changeText}>Hacé click para cambiar</span>
         </div>
       ) : (
         <div className={styles.empty}>
