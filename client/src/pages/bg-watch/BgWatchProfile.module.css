@@ -874,8 +874,9 @@
 }
 
 .pageBtn {
-  min-width: 34px;
-  height: 34px;
+  min-width: 36px;
+  min-height: 36px;
+  height: 36px;
   padding: 0 8px;
   border-radius: 8px;
   border: 1px solid var(--border);

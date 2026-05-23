@@ -167,13 +167,14 @@
 }
 
 .logoutConfirmYes {
-  min-width: 26px;
-  height: 26px;
+  min-width: 36px;
+  min-height: 36px;
+  height: 36px;
   background: var(--red);
   color: var(--on-amber);
   border: none;
   border-radius: 6px;
-  padding: 0 9px;
+  padding: 0 12px;
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
@@ -186,13 +187,14 @@
 }
 
 .logoutConfirmNo {
-  min-width: 26px;
-  height: 26px;
+  min-width: 36px;
+  min-height: 36px;
+  height: 36px;
   background: transparent;
   color: var(--text-secondary);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 0 9px;
+  padding: 0 12px;
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
