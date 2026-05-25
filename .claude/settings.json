@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash scripts/prettier-modified.sh"
+            "command": "bash /Users/claudiohollman/Projects/turnocero/scripts/prettier-modified.sh"
           }
         ]
       }

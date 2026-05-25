@@ -1,7 +1,7 @@
 ---
 name: feedback-user-rate-limit
 description: "Authed expensive endpoints use `server/middleware/userRateLimit.js` factory (keyed by `req.user._id`, not IP — NAT breaks per-IP); skipped under NODE_ENV=test"
-metadata: 
+metadata:
   node_type: memory
   type: feedback
   originSessionId: 92c9193d-d562-4786-a099-944475d22163
@@ -14,6 +14,7 @@ metadata:
 ## Por qué per-user (no per-IP)
 
 Express-rate-limit default usa IP. Para endpoints públicos eso está bien. Pero los endpoints caros que protegemos son TODOS authed:
+
 - `POST /api/bgg/sync` — full re-fetch de plays contra BGG
 - `POST/PUT/DELETE /api/bgg/partidas` — writes a `geekplay.php` (endpoint no público de BGG, baneo silencioso si abusamos)
 - `POST /api/eventos/:id/inscribirse` — upload a Cloudinary
@@ -41,11 +42,11 @@ router.post("/expensive", protect, myLimiter, async (req, res) => { ... });
 
 ## Límites actuales (commit final del audit)
 
-| Endpoint | Window | Max | Justificación |
-|---|---|---|---|
-| `POST /bgg/sync` | 5 min | 3 | Full re-fetch BGG, muy caro |
-| `POST/PUT/DELETE /bgg/partidas` | 5 min | 30 | Mutations a geekplay.php |
-| `POST /eventos/:id/inscribirse` | 15 min | 5 | Cloudinary upload |
-| `POST /eventos/:id/ludoteca` | 5 min | 30 | Batch BGG resolves |
+| Endpoint                        | Window | Max | Justificación               |
+| ------------------------------- | ------ | --- | --------------------------- |
+| `POST /bgg/sync`                | 5 min  | 3   | Full re-fetch BGG, muy caro |
+| `POST/PUT/DELETE /bgg/partidas` | 5 min  | 30  | Mutations a geekplay.php    |
+| `POST /eventos/:id/inscribirse` | 15 min | 5   | Cloudinary upload           |
+| `POST /eventos/:id/ludoteca`    | 5 min  | 30  | Batch BGG resolves          |
 
 Si agregás un endpoint nuevo que sea caro (Cloudinary upload, batch a BGG, full-scan Mongo aggregation, etc.), poné el limiter en el momento — el factory es 2 líneas de boilerplate.

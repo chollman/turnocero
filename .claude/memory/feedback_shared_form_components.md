@@ -1,7 +1,7 @@
 ---
 name: feedback-shared-form-components
-description: "Catalog of shared form components extracted from EventoForm — `<InfoTooltip>`, `<DateTimePicker>`, status chips (radiogroup); conventions for height/radius/placeholder; \"validate only in handleSubmit, never HTML required\" rule"
-metadata: 
+description: 'Catalog of shared form components extracted from EventoForm — `<InfoTooltip>`, `<DateTimePicker>`, status chips (radiogroup); conventions for height/radius/placeholder; "validate only in handleSubmit, never HTML required" rule'
+metadata:
   node_type: memory
   type: feedback
   originSessionId: 92c9193d-d562-4786-a099-944475d22163
@@ -16,6 +16,7 @@ A medida que el EventoForm fue iterando, se extrajeron componentes shared reutil
 Ícono `ⓘ` SVG (Feather-style, `currentColor=--amber`) inline que muestra un tooltip flotante con el contenido al hacer hover / click / focus. Cerrá con click-outside o Escape.
 
 **Uso**:
+
 ```jsx
 <label>
   Mi campo
@@ -26,6 +27,7 @@ A medida que el EventoForm fue iterando, se extrajeron componentes shared reutil
 ```
 
 **Gotchas**:
+
 - El `label` (aria-label del trigger button) NO debe contener literalmente el texto del label del campo — `getByLabelText(/lugar/i)` matcheaba tanto el input como el InfoTooltip button. Usar regex stricto `/^lugar$/i` o un aria-label genérico tipo "Más información".
 - Trigger es `<button type="button">` — labellable y accesible.
 - Default ícono color = `var(--amber)` (legacy naming: el `--amber` de Turnocero en realidad es **azul** brand #1888ef, NO amber).
@@ -35,6 +37,7 @@ A medida que el EventoForm fue iterando, se extrajeron componentes shared reutil
 Picker custom con popover propio — **NO usa el `<input type="datetime-local">` nativo del browser** (el picker del SO se ve viejo y rompe la estética).
 
 **UI**:
+
 - Trigger: `<button>` que muestra "Vie 13 Jun · 20:00 ▾" o "Elegí fecha y hora".
 - Popover con: month nav (← / →) + grid 6×7 (semana arranca lunes AR) + time row (selects HH:MM).
 - Días pasados: disabled + opacidad reducida.
@@ -44,17 +47,24 @@ Picker custom con popover propio — **NO usa el `<input type="datetime-local">`
 **Auto-posicionamiento up/down**: al abrir, mide `triggerRef.getBoundingClientRect()` y `window.innerHeight`. Si no entra abajo (`spaceBelow < POPOVER_HEIGHT_PX`) Y hay más espacio arriba, aplica clase `.popoverUp` (anclado al `bottom: calc(100% + 6px)`).
 
 **Compatibilidad con forms**:
+
 - Trigger lleva el `id` principal (es labellable como `<button>`).
 - Hidden `<input type="hidden" name>` para que el FormData del form padre incluya el value.
 - `required` se forwardea como `aria-required` (NUNCA como HTML `required` — el browser nativo bloquearía el submit y nunca llegaría a la validación JS amigable del handleSubmit).
 
 **Test mocking**: en tests del form padre, mockear DateTimePicker como input regular para evitar tener que clickear el popover:
+
 ```js
 vi.mock("../../components/shared/DateTimePicker", () => ({
   default: ({ value, onChange, id, name, required }) => (
-    <input id={id} name={name} type="datetime-local"
-      value={value || ""} onChange={(e) => onChange?.(e.target.value)}
-      aria-required={required || undefined} />
+    <input
+      id={id}
+      name={name}
+      type="datetime-local"
+      value={value || ""}
+      onChange={(e) => onChange?.(e.target.value)}
+      aria-required={required || undefined}
+    />
   ),
 }));
 ```
@@ -62,6 +72,7 @@ vi.mock("../../components/shared/DateTimePicker", () => ({
 ## Status chips (radiogroup pattern)
 
 Reemplazo de `<select>` por chips clickeables para enums cortos (≤6 opciones). Patrón aplicado en EventoForm para `status`:
+
 - Wrapper `<div role="radiogroup" aria-label="Estado del evento">`.
 - Cada chip: `<button type="button" role="radio" aria-checked={isActive}>`.
 - Color por valor (gris draft / verde open / naranja closed / rojo cancelled): siempre visible en el dot; el chip activo se tinta con el color de la categoría.
@@ -87,6 +98,7 @@ Reemplazo de `<select>` por chips clickeables para enums cortos (≤6 opciones).
 ## Distancia y formato
 
 `client/src/utils/distance.js#formatDistanceKm(km)`:
+
 - Devuelve `null` para `km == null` o cualquier valor que redondea a 0 metros (incluido 0 exacto y distancias minúsculas < 10m). Los componentes lo usan directo sin checks extra: `const label = formatDistanceKm(item.distanceKm)` y `{label && <span>· {label}</span>}`.
 - Formato AR: `"850 m"` / `"12,3 km"` / `"250 km"`.
 

@@ -1,7 +1,7 @@
 ---
 name: feedback-async-handler-pattern
 description: "Server routes use `asyncHandler(fn)` + `throw httpError(status, msg)` + central errorHandler; no manual try/catch in router handlers"
-metadata: 
+metadata:
   node_type: memory
   type: feedback
   originSessionId: 92c9193d-d562-4786-a099-944475d22163
@@ -20,25 +20,27 @@ metadata:
 ## Patrón de migración
 
 ANTES:
+
 ```js
-router.get('/:id', async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const doc = await Model.findById(req.params.id);
-    if (!doc) return res.status(404).json({ message: 'No encontrado' });
+    if (!doc) return res.status(404).json({ message: "No encontrado" });
     res.json(doc);
   } catch (err) {
-    res.status(500).json({ message: 'Error al obtener' });
+    res.status(500).json({ message: "Error al obtener" });
   }
 });
 ```
 
 DESPUÉS:
+
 ```js
 router.get(
-  '/:id',
+  "/:id",
   asyncHandler(async (req, res) => {
     const doc = await Model.findById(req.params.id);
-    if (!doc) throw httpError(404, 'No encontrado');
+    if (!doc) throw httpError(404, "No encontrado");
     res.json(doc);
   }),
 );
@@ -80,8 +82,11 @@ En la práctica todos nuestros handlers son async (lo cual convierte sync throws
 ```js
 function asyncHandler(fn) {
   return (req, res, next) => {
-    try { return Promise.resolve(fn(req, res, next)).catch(next); }
-    catch (e) { return next(e); }
+    try {
+      return Promise.resolve(fn(req, res, next)).catch(next);
+    } catch (e) {
+      return next(e);
+    }
   };
 }
 ```

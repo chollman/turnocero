@@ -1,7 +1,7 @@
 ---
 name: feedback-debounce-inputs
 description: "Controlled inputs whose value drives an `/api/*` fetch must use `client/src/hooks/useDebouncedValue` (300ms default, 500ms for expensive fetches); never re-implement setTimeout+useRef"
-metadata: 
+metadata:
   node_type: memory
   type: feedback
   originSessionId: 92c9193d-d562-4786-a099-944475d22163
@@ -14,9 +14,9 @@ metadata:
 ## Patrón estándar
 
 ```jsx
-import useDebouncedValue from '../../hooks/useDebouncedValue';
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 
-const [query, setQuery] = useState('');
+const [query, setQuery] = useState("");
 const debouncedQuery = useDebouncedValue(query, 300);
 
 useEffect(() => {

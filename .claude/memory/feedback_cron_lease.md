@@ -1,7 +1,7 @@
 ---
 name: feedback-cron-lease
 description: "Every cron job that mutates data is wrapped in `withLease(name, fn)` from `server/utils/cronLease.js` so multi-instance deploys don't double-fire"
-metadata: 
+metadata:
   node_type: memory
   type: feedback
   originSessionId: 92c9193d-d562-4786-a099-944475d22163
@@ -14,6 +14,7 @@ metadata:
 ## El problema
 
 `node-cron` corre por proceso. En deploys rolling, restarts con overlap, o blue/green, hay momentos donde hay >1 instancia del server up. Sin coordinación, ambas disparan el mismo cron al mismo tiempo:
+
 - 2× emisión de notificaciones de evento_reminder → un user recibe la misma notif duplicada
 - 2× cierre de eventos → conflictos al guardar
 - 2× re-fetch a BGG → rate limit del provider
@@ -35,6 +36,7 @@ cron.schedule("0 * * * *", async () => {
 ```
 
 Tres garantías:
+
 1. **Atomic acquire** vía `findOneAndUpdate` con `$or: [expiresAt <= now, !exists]`.
 2. **TTL safety net** — si el proceso muere mid-job, el doc se borra solo a los ~60s post-expiresAt (granularidad TTL de Mongo).
 3. **Cleanup explícito** — al terminar (success o throw) `withLease` borra el doc para liberar el próximo tick rápido. El TTL solo cubre el caso del proceso que cae.
@@ -47,6 +49,7 @@ Tres garantías:
 ## Estado actual
 
 Aplicado en `server/jobs/scheduler.js`:
+
 - `eventoReminders` (hourly)
 - `closePastEventos` (daily)
 
