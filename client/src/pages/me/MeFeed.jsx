@@ -114,12 +114,16 @@ export default function MeFeed() {
         params: includeFriends ? { includeFriends: "true" } : undefined,
         signal: ac.signal,
       })
-      .then((res) => { if (!ac.signal.aborted) setTables(res.data.tables); })
+      .then((res) => {
+        if (!ac.signal.aborted) setTables(res.data.tables);
+      })
       .catch((err) => {
         if (axios.isCancel(err)) return;
         setError("No se pudo cargar el historial.");
       })
-      .finally(() => { if (!ac.signal.aborted) setLoading(false); });
+      .finally(() => {
+        if (!ac.signal.aborted) setLoading(false);
+      });
     return () => ac.abort();
   }, [includeFriends, uid]);
 

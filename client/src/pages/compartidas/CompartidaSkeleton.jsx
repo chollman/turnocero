@@ -1,4 +1,4 @@
-import styles from './CompartidaSkeleton.module.css'
+import styles from "./CompartidaSkeleton.module.css";
 
 export default function CompartidaSkeleton() {
   return (
@@ -25,5 +25,5 @@ export default function CompartidaSkeleton() {
         <div className={`${styles.bone} ${styles.footerShare}`} />
       </div>
     </div>
-  )
+  );
 }

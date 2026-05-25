@@ -1,6 +1,6 @@
-import { MemoryRouter } from 'react-router-dom';
-import { HelmetProvider } from 'react-helmet-async';
-import { ThemeProvider } from '../../context/ThemeContext';
+import { MemoryRouter } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
+import { ThemeProvider } from "../../context/ThemeContext";
 
 /**
  * Lightweight wrapper for component tests that mounts theme + router + helmet only.
@@ -11,13 +11,11 @@ import { ThemeProvider } from '../../context/ThemeContext';
  *   render(<MyComponent />, { wrapper: AllProviders });
  *   render(<MyComponent />, { wrapper: (props) => <AllProviders initialEntries={['/perfil']} {...props} /> });
  */
-export function AllProviders({ children, initialEntries = ['/'] }) {
+export function AllProviders({ children, initialEntries = ["/"] }) {
   return (
     <HelmetProvider>
       <ThemeProvider>
-        <MemoryRouter initialEntries={initialEntries}>
-          {children}
-        </MemoryRouter>
+        <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
       </ThemeProvider>
     </HelmetProvider>
   );
@@ -26,6 +24,8 @@ export function AllProviders({ children, initialEntries = ['/'] }) {
 /**
  * Minimal wrapper for pure presentational components that only need react-router (e.g. `<Link>`).
  */
-export function RouterOnly({ children, initialEntries = ['/'] }) {
-  return <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>;
+export function RouterOnly({ children, initialEntries = ["/"] }) {
+  return (
+    <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+  );
 }

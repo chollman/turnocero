@@ -4,9 +4,9 @@ const { useState, useMemo } = React;
 
 // ─── FEED SCREEN ─────────────────────────────────────────────
 function FeedScreen({ onOpenPost, onLightbox }) {
-  const [filter, setFilter] = useState('all');
-  const featured = MOCK_POSTS.find(p => p.featured);
-  const rest = MOCK_POSTS.filter(p => !p.featured);
+  const [filter, setFilter] = useState("all");
+  const featured = MOCK_POSTS.find((p) => p.featured);
+  const rest = MOCK_POSTS.filter((p) => !p.featured);
 
   return (
     <div className="page">
@@ -20,8 +20,9 @@ function FeedScreen({ onOpenPost, onLightbox }) {
                 Lo que <em>jugamos</em> esta semana.
               </h1>
               <p className="heroSub">
-                Compartí tus partidas, fotos y momentos. Esto es la bitácora abierta de la comunidad
-                — un pedacito de cada mesa, para que no se pierda nada.
+                Compartí tus partidas, fotos y momentos. Esto es la bitácora
+                abierta de la comunidad — un pedacito de cada mesa, para que no
+                se pierda nada.
               </p>
             </div>
             <div className="heroStats">
@@ -43,7 +44,11 @@ function FeedScreen({ onOpenPost, onLightbox }) {
 
           {/* Featured broadside */}
           {featured && (
-            <FeaturedBroadside post={featured} onOpen={() => onOpenPost(featured._id)} onLightbox={onLightbox} />
+            <FeaturedBroadside
+              post={featured}
+              onOpen={() => onOpenPost(featured._id)}
+              onLightbox={onLightbox}
+            />
           )}
 
           {/* Regular posts */}
@@ -70,16 +75,22 @@ function FeedScreen({ onOpenPost, onLightbox }) {
 
 // ─── PERMALINK SCREEN ─────────────────────────────────────────
 function PermalinkScreen({ postId, onBack, onLightbox }) {
-  const post = useMemo(() => MOCK_POSTS.find(p => p._id === postId) || MOCK_POSTS[0], [postId]);
+  const post = useMemo(
+    () => MOCK_POSTS.find((p) => p._id === postId) || MOCK_POSTS[0],
+    [postId],
+  );
   const [iLiked, setILiked] = useState(post.iLiked);
   const [likeCount, setLikeCount] = useState(post.likes);
   const [popping, setPopping] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const handleLike = () => {
-    if (!iLiked) { setPopping(true); setTimeout(() => setPopping(false), 400); }
+    if (!iLiked) {
+      setPopping(true);
+      setTimeout(() => setPopping(false), 400);
+    }
     setILiked(!iLiked);
-    setLikeCount(c => c + (iLiked ? -1 : 1));
+    setLikeCount((c) => c + (iLiked ? -1 : 1));
   };
 
   return (
@@ -92,7 +103,10 @@ function PermalinkScreen({ postId, onBack, onLightbox }) {
         {/* Hero with photos */}
         {post.images?.length > 0 && (
           <div className="permaHero">
-            <PhotoGrid images={post.images} onPhotoClick={(i) => onLightbox(post.images[i])} />
+            <PhotoGrid
+              images={post.images}
+              onPhotoClick={(i) => onLightbox(post.images[i])}
+            />
           </div>
         )}
 
@@ -101,12 +115,22 @@ function PermalinkScreen({ postId, onBack, onLightbox }) {
           <div className="permaAuthor">
             <Avatar user={post.author} size="lg" />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
                   {post.author.name}
                 </span>
                 {post.author.bgwatch && (
-                  <span className="postAuthorRowBg" title="BG Watch"><Icon.Dice size={11} /></span>
+                  <span className="postAuthorRowBg" title="BG Watch">
+                    <Icon.Dice size={11} />
+                  </span>
                 )}
               </div>
               <div className="postMetaLine" style={{ marginTop: 2 }}>
@@ -116,7 +140,9 @@ function PermalinkScreen({ postId, onBack, onLightbox }) {
                 <PrivacyChip privacy={post.privacy} />
               </div>
             </div>
-            <button className="postMenu"><Icon.Dots /></button>
+            <button className="postMenu">
+              <Icon.Dots />
+            </button>
           </div>
 
           {/* Title + body */}
@@ -125,33 +151,50 @@ function PermalinkScreen({ postId, onBack, onLightbox }) {
 
           {/* Linked mesa */}
           {post.linkedTable && (
-            <div style={{ margin: '0 -32px 24px' }}>
+            <div style={{ margin: "0 -32px 24px" }}>
               <MesaTicket table={post.linkedTable} />
             </div>
           )}
 
           {/* Footer */}
-          <div className="postFooter" style={{ margin: '0', padding: '14px 0' }}>
+          <div
+            className="postFooter"
+            style={{ margin: "0", padding: "14px 0" }}
+          >
             <div className="reactionGroup">
-              <button className={`reactionBtn ${iLiked ? 'active' : ''}`} onClick={handleLike}>
-                <span className={`heart ${popping ? 'popping' : ''}`}>
-                  <Icon.Heart filled={iLiked} size={18}/>
+              <button
+                className={`reactionBtn ${iLiked ? "active" : ""}`}
+                onClick={handleLike}
+              >
+                <span className={`heart ${popping ? "popping" : ""}`}>
+                  <Icon.Heart filled={iLiked} size={18} />
                 </span>
-                <span>{likeCount} {likeCount === 1 ? 'me gusta' : 'me gusta'}</span>
+                <span>
+                  {likeCount} {likeCount === 1 ? "me gusta" : "me gusta"}
+                </span>
               </button>
               <button className="reactionBtn">
-                <Icon.Comment size={18}/>
+                <Icon.Comment size={18} />
                 <span>{post.comments.length} comentarios</span>
               </button>
             </div>
 
             <div className="shareGroup">
-              <button className="shareIconBtn"><Icon.Wa /></button>
-              <button className="shareIconBtn"><Icon.Tg /></button>
-              <button className="shareIconBtn"><Icon.X /></button>
+              <button className="shareIconBtn">
+                <Icon.Wa />
+              </button>
+              <button className="shareIconBtn">
+                <Icon.Tg />
+              </button>
+              <button className="shareIconBtn">
+                <Icon.X />
+              </button>
               <button
-                className={`shareIconBtn ${copied ? 'copied' : ''}`}
-                onClick={() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+                className={`shareIconBtn ${copied ? "copied" : ""}`}
+                onClick={() => {
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }}
               >
                 {copied ? <Icon.Check /> : <Icon.Link />}
               </button>
@@ -159,8 +202,17 @@ function PermalinkScreen({ postId, onBack, onLightbox }) {
           </div>
 
           {/* Full comments thread */}
-          <div className="comments" style={{ borderTop: '1px solid var(--border)', paddingTop: 18, margin: '0 -4px' }}>
-            <div className="commentsHead">◆ {post.comments.length} comentarios</div>
+          <div
+            className="comments"
+            style={{
+              borderTop: "1px solid var(--border)",
+              paddingTop: 18,
+              margin: "0 -4px",
+            }}
+          >
+            <div className="commentsHead">
+              ◆ {post.comments.length} comentarios
+            </div>
 
             {post.comments.map((c, idx) => (
               <div className="comment" key={idx}>
@@ -168,7 +220,9 @@ function PermalinkScreen({ postId, onBack, onLightbox }) {
                 <div className="commentBody">
                   <div className="commentMeta">
                     <span className="commentAuthor">{c.author.name}</span>
-                    <span className="commentTime">hace {timeAgo(c.createdAt)}</span>
+                    <span className="commentTime">
+                      hace {timeAgo(c.createdAt)}
+                    </span>
                   </div>
                   <p className="commentText">{c.content}</p>
                 </div>
@@ -176,15 +230,33 @@ function PermalinkScreen({ postId, onBack, onLightbox }) {
             ))}
 
             {post.comments.length === 0 && (
-              <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)', letterSpacing: '0.04em', textAlign: 'center', padding: '20px 0' }}>
+              <p
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 12,
+                  color: "var(--text-muted)",
+                  letterSpacing: "0.04em",
+                  textAlign: "center",
+                  padding: "20px 0",
+                }}
+              >
                 Sin comentarios aún. ¡Sé el primero!
               </p>
             )}
 
-            <form className="commentForm" onSubmit={e => e.preventDefault()} style={{ marginTop: 18 }}>
+            <form
+              className="commentForm"
+              onSubmit={(e) => e.preventDefault()}
+              style={{ marginTop: 18 }}
+            >
               <Avatar user={USERS.vos} size="sm" />
-              <input className="commentInput" placeholder="Escribí un comentario…" />
-              <button type="submit" className="commentSubmit"><Icon.Send /></button>
+              <input
+                className="commentInput"
+                placeholder="Escribí un comentario…"
+              />
+              <button type="submit" className="commentSubmit">
+                <Icon.Send />
+              </button>
             </form>
           </div>
         </div>

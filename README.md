@@ -123,48 +123,54 @@ turnocero/
 ## API Endpoints
 
 ### Auth
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| POST | `/api/auth/register` | Registrar usuario (rate-limited) |
-| POST | `/api/auth/login` | Iniciar sesión (rate-limited) |
-| GET | `/api/auth/me` | Obtener usuario actual |
-| PATCH | `/api/auth/profile` | Actualizar perfil propio |
+
+| Método | Ruta                 | Descripción                      |
+| ------ | -------------------- | -------------------------------- |
+| POST   | `/api/auth/register` | Registrar usuario (rate-limited) |
+| POST   | `/api/auth/login`    | Iniciar sesión (rate-limited)    |
+| GET    | `/api/auth/me`       | Obtener usuario actual           |
+| PATCH  | `/api/auth/profile`  | Actualizar perfil propio         |
 
 ### Mesas (requieren token JWT)
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/tables` | Listar todas las mesas activas |
-| GET | `/api/tables/mine` | Listar mis mesas (host o jugador) |
-| GET | `/api/tables/:id` | Detalle de una mesa |
-| POST | `/api/tables` | Crear una mesa |
-| PUT | `/api/tables/:id` | Editar una mesa (solo host) |
-| POST | `/api/tables/:id/join` | Unirse a una mesa |
-| POST | `/api/tables/:id/leave` | Abandonar una mesa |
-| DELETE | `/api/tables/:id` | Cancelar una mesa (solo host) |
+
+| Método | Ruta                    | Descripción                       |
+| ------ | ----------------------- | --------------------------------- |
+| GET    | `/api/tables`           | Listar todas las mesas activas    |
+| GET    | `/api/tables/mine`      | Listar mis mesas (host o jugador) |
+| GET    | `/api/tables/:id`       | Detalle de una mesa               |
+| POST   | `/api/tables`           | Crear una mesa                    |
+| PUT    | `/api/tables/:id`       | Editar una mesa (solo host)       |
+| POST   | `/api/tables/:id/join`  | Unirse a una mesa                 |
+| POST   | `/api/tables/:id/leave` | Abandonar una mesa                |
+| DELETE | `/api/tables/:id`       | Cancelar una mesa (solo host)     |
 
 ### Chat (solo participantes)
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/tables/:id/messages` | Historial de mensajes |
-| POST | `/api/tables/:id/messages` | Enviar mensaje (emite por WebSocket) |
+
+| Método | Ruta                       | Descripción                          |
+| ------ | -------------------------- | ------------------------------------ |
+| GET    | `/api/tables/:id/messages` | Historial de mensajes                |
+| POST   | `/api/tables/:id/messages` | Enviar mensaje (emite por WebSocket) |
 
 ### Usuarios (requieren token JWT)
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/users` | Listado de usuarios con búsqueda y filtros |
-| GET | `/api/users/:id` | Perfil público + estadísticas de un usuario |
+
+| Método | Ruta             | Descripción                                 |
+| ------ | ---------------- | ------------------------------------------- |
+| GET    | `/api/users`     | Listado de usuarios con búsqueda y filtros  |
+| GET    | `/api/users/:id` | Perfil público + estadísticas de un usuario |
 
 ### Admin (requieren token JWT + isAdmin)
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/admin/collections` | Listar colecciones de MongoDB |
-| GET | `/api/admin/collections/:name` | Ver documentos de una colección (paginado) |
-| PATCH | `/api/admin/users/:id/admin` | Toggle de admin de un usuario |
+
+| Método | Ruta                           | Descripción                                |
+| ------ | ------------------------------ | ------------------------------------------ |
+| GET    | `/api/admin/collections`       | Listar colecciones de MongoDB              |
+| GET    | `/api/admin/collections/:name` | Ver documentos de una colección (paginado) |
+| PATCH  | `/api/admin/users/:id/admin`   | Toggle de admin de un usuario              |
 
 ### Salud
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/health` | Estado del servidor |
+
+| Método | Ruta          | Descripción         |
+| ------ | ------------- | ------------------- |
+| GET    | `/api/health` | Estado del servidor |
 
 ---
 

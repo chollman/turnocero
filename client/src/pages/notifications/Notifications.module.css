@@ -1,5 +1,6 @@
 .page {
-  padding: var(--navbar-h) var(--page-padding) var(--page-padding) var(--page-padding-left);
+  padding: var(--navbar-h) var(--page-padding) var(--page-padding)
+    var(--page-padding-left);
 }
 
 @media (min-width: 960px) {
@@ -123,7 +124,9 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  transition: color var(--transition), border-color var(--transition);
+  transition:
+    color var(--transition),
+    border-color var(--transition);
 }
 
 .tab:hover {
@@ -245,7 +248,10 @@
   border: 1px solid var(--amber);
   border-radius: 10px;
   text-decoration: none;
-  transition: border-color var(--transition), background var(--transition), opacity var(--transition);
+  transition:
+    border-color var(--transition),
+    background var(--transition),
+    opacity var(--transition);
 }
 
 .card:hover {

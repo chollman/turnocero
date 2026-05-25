@@ -1,5 +1,5 @@
-const SiteConfig = require('../models/SiteConfig');
-const logger = require('./logger');
+const SiteConfig = require("../models/SiteConfig");
+const logger = require("./logger");
 
 let cache = null;
 
@@ -8,7 +8,7 @@ function buildDefault() {
   for (const key of SiteConfig.SECTION_KEYS) {
     sections[key] = { enabled: SiteConfig.defaultFor(key) };
   }
-  return { _id: 'singleton', sections, updatedBy: null, updatedAt: null };
+  return { _id: "singleton", sections, updatedBy: null, updatedAt: null };
 }
 
 function toPlain(doc) {
@@ -23,7 +23,7 @@ function toPlain(doc) {
     };
   }
   return {
-    _id: 'singleton',
+    _id: "singleton",
     sections,
     updatedBy: obj.updatedBy || null,
     updatedAt: obj.updatedAt || null,
@@ -32,15 +32,15 @@ function toPlain(doc) {
 
 async function loadSiteConfig() {
   try {
-    let doc = await SiteConfig.findById('singleton');
+    let doc = await SiteConfig.findById("singleton");
     if (!doc) {
-      doc = await SiteConfig.create({ _id: 'singleton' });
-      logger.info('SiteConfig singleton created with defaults');
+      doc = await SiteConfig.create({ _id: "singleton" });
+      logger.info("SiteConfig singleton created with defaults");
     }
     cache = toPlain(doc);
     return cache;
   } catch (err) {
-    logger.error('Failed to load SiteConfig', { error: err.message });
+    logger.error("Failed to load SiteConfig", { error: err.message });
     cache = buildDefault();
     return cache;
   }
@@ -61,16 +61,16 @@ async function updateSiteConfig(patchSections, userId, io) {
   for (const key of Object.keys(patchSections || {})) {
     if (!SiteConfig.SECTION_KEYS.includes(key)) continue;
     const enabled = patchSections[key]?.enabled;
-    if (typeof enabled !== 'boolean') continue;
+    if (typeof enabled !== "boolean") continue;
     update[`sections.${key}.enabled`] = enabled;
   }
   const doc = await SiteConfig.findByIdAndUpdate(
-    'singleton',
+    "singleton",
     { $set: update },
-    { new: true, upsert: true }
+    { new: true, upsert: true },
   );
   cache = toPlain(doc);
-  if (io) io.emit('site-config:updated', cache);
+  if (io) io.emit("site-config:updated", cache);
   return cache;
 }
 

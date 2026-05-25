@@ -375,11 +375,7 @@ export function applyJoinRejectedNotif({
   );
 }
 
-export function applySpotOpenedNotif({
-  setNotifications,
-  setToasts,
-  payload,
-}) {
+export function applySpotOpenedNotif({ setNotifications, setToasts, payload }) {
   setNotifications((prev) =>
     replaceResource({
       prev,
@@ -481,17 +477,14 @@ export function applyFriendAcceptedNotif({
 
 // ── DM ───────────────────────────────────────────────────────────────
 
-export function applyDmMessageNotif({
-  setNotifications,
-  payload,
-  onMessage,
-}) {
+export function applyDmMessageNotif({ setNotifications, payload, onMessage }) {
   const fromId = (payload.from?._id || payload.from || "").toString();
   const fromUsername = payload.from?.username || "?";
   const preview = (payload.content || "").slice(0, 60);
   // count + notifId vienen en el payload (post-emitNotification).
   // Fallback a +1 / nuevo doc para resistir payloads viejos durante deploy.
-  const incomingCount = typeof payload.count === "number" ? payload.count : null;
+  const incomingCount =
+    typeof payload.count === "number" ? payload.count : null;
   const incomingNotifId = payload.notifId || null;
 
   setNotifications((prev) => {
@@ -542,7 +535,8 @@ export function applyAdminMessageNotif({
 }) {
   const senderUsername = payload.from?.username || "?";
   const preview = (payload.content || "").slice(0, 60);
-  const incomingCount = typeof payload.count === "number" ? payload.count : null;
+  const incomingCount =
+    typeof payload.count === "number" ? payload.count : null;
   const incomingNotifId = payload.notifId || null;
 
   if (isActive?.()) {

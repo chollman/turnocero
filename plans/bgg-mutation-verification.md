@@ -20,6 +20,7 @@
 Después de cada mutación, **verificar contra BGG** que la operación realmente persistió, usando el endpoint XML público `/xmlapi2/plays?username=X&id=PLAYID` (ya usado en el GET del panel — [bgg.js:1189](server/routes/bgg.js:1189)). Solo entonces tocar Mongo. Si BGG no confirma, devolver 502 y dejar Mongo intacto.
 
 Reutilizar:
+
 - `fetchBgg(url)` para el GET de verificación
 - `parsePlay(play)` ([bgg.js:323](server/routes/bgg.js:323)) y `parsePlaysXml(xml)` ([bgg.js:368](server/routes/bgg.js:368)) para mapear la respuesta de BGG al schema `BggPlay`
 - `resolveGame(id)` para el thumbnail
@@ -42,6 +43,7 @@ Pegado a `submitToGeekplay` (cerca de [bgg.js:1286](server/routes/bgg.js:1286)).
 Patrón compartido: **BGG primero → verificar → recién después tocar Mongo**.
 
 **`POST /api/bgg/partidas`** ([bgg.js:1473](server/routes/bgg.js:1473)):
+
 1. `submitToGeekplay` (igual que hoy)
 2. Extraer `newPlayId = payload.playid || payload.numplays`
 3. Si **no hay `newPlayId`** → 502 `"BGG no devolvió un ID de partida. La partida no se guardó."`
@@ -50,12 +52,14 @@ Patrón compartido: **BGG primero → verificar → recién después tocar Mongo
 6. `clearPartidasCache` + responder `{ success: true, playid, play }`
 
 **`PUT /api/bgg/partidas/:playId`** ([bgg.js:1563](server/routes/bgg.js:1563)):
+
 1. `submitToGeekplay` (igual)
 2. `verifyPlayOnBgg(bggUsername, playId)` — si devuelve `null` → 502 `"BGG no confirmó la edición."`
 3. Si confirma: upsertear `BggPlay` con el doc canónico
 4. `clearPartidasCache` + responder `{ success: true, playid, play }`
 
 **`DELETE /api/bgg/partidas/:playId`** ([bgg.js:1519](server/routes/bgg.js:1519)):
+
 1. `submitToGeekplay` (igual)
 2. `verifyPlayOnBgg(bggUsername, playId)` — esta vez esperamos `null` (el play se borró). Si **devuelve algo** → 502 `"BGG no confirmó el borrado."`
 3. Si confirmado borrado: `BggPlay.deleteOne` (igual que hoy)
@@ -68,6 +72,7 @@ Ya no se usa. La nueva versión canónica del doc viene siempre de la respuesta 
 ### 4. UI: cliente ya muestra el error
 
 Reviso pero no espero cambios:
+
 - `CreatePlayModal.handleSubmit` ([client/src/pages/bg-watch/CreatePlayModal.jsx:300](client/src/pages/bg-watch/CreatePlayModal.jsx:300)) ya captura errores del `axios.post/put` y los muestra. Solo confirmar que el mensaje del 502 se renderiza.
 - Borrado: revisar el flow en `PlayDetailModal` (o donde esté el botón delete) y asegurar que el error 502 se muestra como toast/inline.
 

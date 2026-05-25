@@ -1,10 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import styles from './FingerSelector.module.css';
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import styles from "./FingerSelector.module.css";
 
 const FINGER_COLORS = [
-  '#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#a855f7',
-  '#f97316', '#ec4899', '#06b6d4', '#84cc16', '#f0f0f0',
+  "#ef4444",
+  "#3b82f6",
+  "#22c55e",
+  "#f59e0b",
+  "#a855f7",
+  "#f97316",
+  "#ec4899",
+  "#06b6d4",
+  "#84cc16",
+  "#f0f0f0",
 ];
 const COUNTDOWN_START = 3;
 const MIN_FINGERS = 2;
@@ -15,7 +23,7 @@ export default function FingerSelector() {
   const containerRef = useRef(null);
 
   const touchMapRef = useRef(new Map());
-  const phaseRef = useRef('idle');
+  const phaseRef = useRef("idle");
   const countingRef = useRef(false);
   const colorIdxRef = useRef(0);
   const usedColorsRef = useRef(new Set());
@@ -23,13 +31,13 @@ export default function FingerSelector() {
   const timeoutRef = useRef(null);
 
   const [dots, setDots] = useState([]);
-  const [phase, setPhase] = useState('idle');
+  const [phase, setPhase] = useState("idle");
   const [counting, setCounting] = useState(false);
   const [countdown, setCountdown] = useState(COUNTDOWN_START);
   const [winnerId, setWinnerId] = useState(null);
   const [countKey, setCountKey] = useState(0);
   const [isLandscape, setIsLandscape] = useState(
-    () => window.matchMedia('(orientation: landscape)').matches
+    () => window.matchMedia("(orientation: landscape)").matches,
   );
 
   function nextColor() {
@@ -55,23 +63,23 @@ export default function FingerSelector() {
     touchMapRef.current.clear();
     usedColorsRef.current.clear();
     colorIdxRef.current = 0;
-    phaseRef.current = 'idle';
+    phaseRef.current = "idle";
     countingRef.current = false;
     setDots([]);
-    setPhase('idle');
+    setPhase("idle");
     setCounting(false);
     setCountdown(COUNTDOWN_START);
     setWinnerId(null);
   }
 
   useEffect(() => {
-    const mq = window.matchMedia('(orientation: landscape)');
+    const mq = window.matchMedia("(orientation: landscape)");
     const handler = (e) => {
       setIsLandscape(e.matches);
       if (e.matches) reset();
     };
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
   }, []);
 
   useEffect(() => {
@@ -86,12 +94,12 @@ export default function FingerSelector() {
       const active = [...touchMapRef.current.values()];
       if (active.length === 0) return;
       const winner = active[Math.floor(Math.random() * active.length)];
-      phaseRef.current = 'selecting';
-      setPhase('selecting');
+      phaseRef.current = "selecting";
+      setPhase("selecting");
       setWinnerId(winner.id);
       timeoutRef.current = setTimeout(() => {
-        phaseRef.current = 'result';
-        setPhase('result');
+        phaseRef.current = "result";
+        setPhase("result");
       }, 700);
     }
 
@@ -100,7 +108,7 @@ export default function FingerSelector() {
       countingRef.current = true;
       setCounting(true);
       setCountdown(COUNTDOWN_START);
-      setCountKey(k => k + 1);
+      setCountKey((k) => k + 1);
       let count = COUNTDOWN_START;
       intervalRef.current = setInterval(() => {
         count--;
@@ -122,10 +130,10 @@ export default function FingerSelector() {
     }
 
     function onTouchStart(e) {
-      if (e.target.closest('button')) return;
+      if (e.target.closest("button")) return;
       e.preventDefault();
       const p = phaseRef.current;
-      if (p === 'selecting' || p === 'result') return;
+      if (p === "selecting" || p === "result") return;
 
       for (const touch of e.changedTouches) {
         if (!touchMapRef.current.has(touch.identifier)) {
@@ -141,8 +149,8 @@ export default function FingerSelector() {
       }
       syncDots();
 
-      phaseRef.current = 'waiting';
-      setPhase('waiting');
+      phaseRef.current = "waiting";
+      setPhase("waiting");
 
       if (touchMapRef.current.size >= MIN_FINGERS) {
         startCountdown();
@@ -150,10 +158,10 @@ export default function FingerSelector() {
     }
 
     function onTouchMove(e) {
-      if (e.target.closest('button')) return;
+      if (e.target.closest("button")) return;
       e.preventDefault();
       const p = phaseRef.current;
-      if (p === 'selecting' || p === 'result') return;
+      if (p === "selecting" || p === "result") return;
 
       for (const touch of e.changedTouches) {
         const existing = touchMapRef.current.get(touch.identifier);
@@ -169,10 +177,10 @@ export default function FingerSelector() {
     }
 
     function onTouchEnd(e) {
-      if (e.target.closest('button')) return;
+      if (e.target.closest("button")) return;
       e.preventDefault();
       const p = phaseRef.current;
-      if (p === 'selecting' || p === 'result') return;
+      if (p === "selecting" || p === "result") return;
 
       for (const touch of e.changedTouches) {
         const dot = touchMapRef.current.get(touch.identifier);
@@ -186,44 +194,60 @@ export default function FingerSelector() {
       const count = touchMapRef.current.size;
       if (count < MIN_FINGERS) {
         stopCountdown();
-        phaseRef.current = count === 0 ? 'idle' : 'waiting';
-        setPhase(count === 0 ? 'idle' : 'waiting');
+        phaseRef.current = count === 0 ? "idle" : "waiting";
+        setPhase(count === 0 ? "idle" : "waiting");
       }
     }
 
-    el.addEventListener('touchstart', onTouchStart, { passive: false });
-    el.addEventListener('touchmove', onTouchMove, { passive: false });
-    el.addEventListener('touchend', onTouchEnd, { passive: false });
-    el.addEventListener('touchcancel', onTouchEnd, { passive: false });
+    el.addEventListener("touchstart", onTouchStart, { passive: false });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: false });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: false });
 
     return () => {
       clearInterval(intervalRef.current);
       clearTimeout(timeoutRef.current);
-      el.removeEventListener('touchstart', onTouchStart);
-      el.removeEventListener('touchmove', onTouchMove);
-      el.removeEventListener('touchend', onTouchEnd);
-      el.removeEventListener('touchcancel', onTouchEnd);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
     };
   }, []);
 
-  const winnerColor = winnerId !== null ? dots.find(d => d.id === winnerId)?.color : null;
+  const winnerColor =
+    winnerId !== null ? dots.find((d) => d.id === winnerId)?.color : null;
 
   return (
     <div ref={containerRef} className={styles.screen}>
       {isLandscape && (
         <div className={styles.landscapeOverlay}>
           <div className={styles.landscapeIcon}>🔄</div>
-          <p className={styles.landscapeText}>Rotá el celular a modo vertical para usar esta app</p>
+          <p className={styles.landscapeText}>
+            Rotá el celular a modo vertical para usar esta app
+          </p>
         </div>
       )}
 
-      <button className={styles.backBtn} onClick={() => navigate('/utilidades')} type="button">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m15 18-6-6 6-6"/>
+      <button
+        className={styles.backBtn}
+        onClick={() => navigate("/utilidades")}
+        type="button"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m15 18-6-6 6-6" />
         </svg>
       </button>
 
-      {phase === 'idle' && (
+      {phase === "idle" && (
         <div className={styles.idle}>
           <div className={styles.idleIcon}>👆</div>
           <p className={styles.idleText}>Pongan los dedos en la pantalla</p>
@@ -231,17 +255,33 @@ export default function FingerSelector() {
         </div>
       )}
 
-      {phase === 'waiting' && !counting && (
+      {phase === "waiting" && !counting && (
         <div className={styles.waitingHint}>Necesitás al menos 2 dedos</div>
       )}
 
-      {counting && phase === 'waiting' && (
+      {counting && phase === "waiting" && (
         <div className={styles.countdown}>
-          <svg viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
-            <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="6" />
+          <svg
+            viewBox="0 0 100 100"
+            style={{
+              transform: "rotate(-90deg)",
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            <circle
+              cx="50"
+              cy="50"
+              r="40"
+              fill="none"
+              stroke="rgba(255,255,255,0.1)"
+              strokeWidth="6"
+            />
             <circle
               key={countKey}
-              cx="50" cy="50" r="40"
+              cx="50"
+              cy="50"
+              r="40"
               fill="none"
               stroke="var(--amber)"
               strokeWidth="6"
@@ -254,17 +294,22 @@ export default function FingerSelector() {
         </div>
       )}
 
-      {winnerColor && (phase === 'selecting' || phase === 'result') && (
-        <div className={styles.winnerOverlay} style={{ background: winnerColor }} />
+      {winnerColor && (phase === "selecting" || phase === "result") && (
+        <div
+          className={styles.winnerOverlay}
+          style={{ background: winnerColor }}
+        />
       )}
 
-      {dots.map(dot => {
-        const isLoser = (phase === 'selecting' || phase === 'result') && dot.id !== winnerId;
-        const isWinner = (phase === 'selecting' || phase === 'result') && dot.id === winnerId;
+      {dots.map((dot) => {
+        const isLoser =
+          (phase === "selecting" || phase === "result") && dot.id !== winnerId;
+        const isWinner =
+          (phase === "selecting" || phase === "result") && dot.id === winnerId;
         return (
           <div
             key={dot.id}
-            className={`${styles.dot} ${isLoser ? styles.dotLoser : ''} ${isWinner ? styles.dotWinner : ''}`}
+            className={`${styles.dot} ${isLoser ? styles.dotLoser : ""} ${isWinner ? styles.dotWinner : ""}`}
             style={{
               left: dot.x,
               top: dot.y,
@@ -278,11 +323,20 @@ export default function FingerSelector() {
         );
       })}
 
-      {phase === 'result' && (
+      {phase === "result" && (
         <button className={styles.replayBtn} onClick={reset} type="button">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/>
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
           </svg>
         </button>
       )}

@@ -1,30 +1,30 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import GameTile from '../../components/shared/GameTile';
-import Logo from '../../components/shared/Logo';
-import styles from './Auth.module.css';
-import { ShowcaseCard } from './Login';
-import { getErrorMessage } from '../../utils/getErrorMessage';
-import { useShowcaseTables } from '../../hooks/useShowcaseTables';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import GameTile from "../../components/shared/GameTile";
+import Logo from "../../components/shared/Logo";
+import styles from "./Auth.module.css";
+import { ShowcaseCard } from "./Login";
+import { getErrorMessage } from "../../utils/getErrorMessage";
+import { useShowcaseTables } from "../../hooks/useShowcaseTables";
 
 export default function ForgotPassword() {
   const { requestPasswordReset } = useAuth();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { showcase, seed } = useShowcaseTables();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
     try {
       await requestPasswordReset(email);
       setSubmitted(true);
     } catch (err) {
-      setError(getErrorMessage(err, 'No pudimos procesar el pedido.'));
+      setError(getErrorMessage(err, "No pudimos procesar el pedido."));
     } finally {
       setLoading(false);
     }
@@ -56,7 +56,8 @@ export default function ForgotPassword() {
 
         {submitted ? (
           <div className={styles.infoBox}>
-            Si existe una cuenta con ese email, te enviamos un link para recuperar la contraseña.
+            Si existe una cuenta con ese email, te enviamos un link para
+            recuperar la contraseña.
             <br />
             Revisá tu bandeja de entrada (y la carpeta de spam por las dudas).
           </div>
@@ -78,8 +79,18 @@ export default function ForgotPassword() {
               />
             </div>
 
-            <button type="submit" className={styles.submitBtn} disabled={loading || !email}>
-              {loading ? 'Enviando…' : <><span>📧</span> Enviar link</>}
+            <button
+              type="submit"
+              className={styles.submitBtn}
+              disabled={loading || !email}
+            >
+              {loading ? (
+                "Enviando…"
+              ) : (
+                <>
+                  <span>📧</span> Enviar link
+                </>
+              )}
             </button>
           </form>
         )}
@@ -91,7 +102,11 @@ export default function ForgotPassword() {
 
       <div className={styles.showcase}>
         <div className={styles.showcaseTile}>
-          <GameTile game={showcase?.table?.boardGame || 'TurnoCero'} seed={seed} size="100%" />
+          <GameTile
+            game={showcase?.table?.boardGame || "TurnoCero"}
+            seed={seed}
+            size="100%"
+          />
         </div>
         <div className={styles.showcaseGradient} />
         <div className={styles.showcaseContent}>
@@ -101,13 +116,17 @@ export default function ForgotPassword() {
               <h2 className={styles.showcaseTitle}>
                 {showcase.total} mesas
                 <br />
-                <span className={styles.showcaseTitleAccent}>esperando jugadores.</span>
+                <span className={styles.showcaseTitleAccent}>
+                  esperando jugadores.
+                </span>
               </h2>
             ) : (
               <h2 className={styles.showcaseTitle}>
                 Tu próxima
                 <br />
-                <span className={styles.showcaseTitleAccent}>partida te espera.</span>
+                <span className={styles.showcaseTitleAccent}>
+                  partida te espera.
+                </span>
               </h2>
             )}
           </div>

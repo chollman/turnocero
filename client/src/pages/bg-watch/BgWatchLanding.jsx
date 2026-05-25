@@ -1,10 +1,19 @@
-import { useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
-import styles from './BgWatchLanding.module.css'
+import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import styles from "./BgWatchLanding.module.css";
 
 const DieIcon = () => (
-  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="64"
+    height="64"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <rect x="3" y="3" width="18" height="18" rx="2.5" />
     <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
     <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
@@ -12,64 +21,91 @@ const DieIcon = () => (
     <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
     <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
   </svg>
-)
+);
 
 const PlayIcon = () => (
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="28"
+    height="28"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M12 20h9" />
     <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
   </svg>
-)
+);
 
 const CollectionIcon = () => (
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="28"
+    height="28"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
   </svg>
-)
+);
 
 const StatsIcon = () => (
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="28"
+    height="28"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <line x1="12" y1="20" x2="12" y2="10" />
     <line x1="18" y1="20" x2="18" y2="4" />
     <line x1="6" y1="20" x2="6" y2="16" />
   </svg>
-)
+);
 
 const FEATURES = [
   {
     Icon: PlayIcon,
-    title: 'Registrá tus partidas',
-    body: 'Cargá, editá y eliminá partidas directamente desde Turnocero. Se sincronizan con tu cuenta de BoardGameGeek.',
+    title: "Registrá tus partidas",
+    body: "Cargá, editá y eliminá partidas directamente desde Turnocero. Se sincronizan con tu cuenta de BoardGameGeek.",
   },
   {
     Icon: CollectionIcon,
-    title: 'Tu colección, siempre a mano',
-    body: 'Mirá los juegos que tenés, con ratings, cantidad de partidas jugadas y miniaturas.',
+    title: "Tu colección, siempre a mano",
+    body: "Mirá los juegos que tenés, con ratings, cantidad de partidas jugadas y miniaturas.",
   },
   {
     Icon: StatsIcon,
-    title: 'Una vista por juego',
-    body: 'Filtrá tu historial de partidas por título, con score, posición, jugadores y notas de cada sesión.',
+    title: "Una vista por juego",
+    body: "Filtrá tu historial de partidas por título, con score, posición, jugadores y notas de cada sesión.",
   },
-]
+];
 
 export default function BgWatchLanding() {
-  const { user, loading } = useAuth()
-  const navigate = useNavigate()
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
   // If a logged-in user has BG Watch active, jump them straight to their profile.
   useEffect(() => {
-    if (loading) return
+    if (loading) return;
     if (user?.bggUsername) {
-      navigate(`/bg-watch/${user.bggUsername}`, { replace: true })
+      navigate(`/bg-watch/${user.bggUsername}`, { replace: true });
     }
-  }, [user, loading, navigate])
+  }, [user, loading, navigate]);
 
-  if (loading) return null
-  if (user?.bggUsername) return null // about to redirect
+  if (loading) return null;
+  if (user?.bggUsername) return null; // about to redirect
 
-  const isLoggedIn = !!user
+  const isLoggedIn = !!user;
 
   return (
     <div className={styles.page}>
@@ -89,7 +125,9 @@ export default function BgWatchLanding() {
       <section className={styles.features}>
         {FEATURES.map(({ Icon, title, body }) => (
           <article key={title} className={styles.feature}>
-            <div className={styles.featureIcon}><Icon /></div>
+            <div className={styles.featureIcon}>
+              <Icon />
+            </div>
             <h3 className={styles.featureTitle}>{title}</h3>
             <p className={styles.featureBody}>{body}</p>
           </article>
@@ -108,7 +146,7 @@ export default function BgWatchLanding() {
               Ir a Mi perfil
             </Link>
             <p className={styles.ctaFinePrint}>
-              ¿Todavía no tenés cuenta en BoardGameGeek?{' '}
+              ¿Todavía no tenés cuenta en BoardGameGeek?{" "}
               <a
                 href="https://boardgamegeek.com/register"
                 target="_blank"
@@ -154,7 +192,9 @@ export default function BgWatchLanding() {
           <li>
             <span className={styles.stepNum}>2</span>
             <div>
-              <strong className={styles.stepTitle}>Sincronizamos tu data</strong>
+              <strong className={styles.stepTitle}>
+                Sincronizamos tu data
+              </strong>
               <p className={styles.stepBody}>
                 Traemos tu colección y tus partidas desde BGG. Vas a ver todo en
                 una interfaz pensada para usar desde el celu, mientras jugás.
@@ -164,7 +204,9 @@ export default function BgWatchLanding() {
           <li>
             <span className={styles.stepNum}>3</span>
             <div>
-              <strong className={styles.stepTitle}>Cargá partidas nuevas</strong>
+              <strong className={styles.stepTitle}>
+                Cargá partidas nuevas
+              </strong>
               <p className={styles.stepBody}>
                 Apenas termina la mesa, registrá la partida desde Turnocero. Se
                 guarda en BGG automáticamente.
@@ -179,5 +221,5 @@ export default function BgWatchLanding() {
         Turnocero con su API.
       </p>
     </div>
-  )
+  );
 }

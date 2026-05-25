@@ -73,7 +73,10 @@
   padding: 10px 14px;
   cursor: pointer;
   min-width: 50px;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
 }
 
 .typeBtn:hover {
@@ -151,9 +154,16 @@
 }
 
 @keyframes shake {
-  0%, 100% { transform: rotate(0deg) translate(0, 0); }
-  25%       { transform: rotate(-9deg) translate(-3px, 1px); }
-  75%       { transform: rotate(9deg) translate(3px, -1px); }
+  0%,
+  100% {
+    transform: rotate(0deg) translate(0, 0);
+  }
+  25% {
+    transform: rotate(-9deg) translate(-3px, 1px);
+  }
+  75% {
+    transform: rotate(9deg) translate(3px, -1px);
+  }
 }
 
 .resultsWrap {
@@ -165,8 +175,14 @@
 }
 
 @keyframes popIn {
-  from { transform: scale(0.6); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .diceRow {
@@ -262,8 +278,13 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 .placeholderText {
@@ -284,7 +305,9 @@
   font-weight: 700;
   padding: 16px 48px;
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.15s;
+  transition:
+    opacity 0.2s,
+    transform 0.15s;
   width: 100%;
   max-width: 240px;
 }

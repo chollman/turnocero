@@ -147,13 +147,7 @@ describe("notifyActiveRegistrations", () => {
         { user: other, status: "confirmed" },
       ],
     }).save();
-    await notifyActiveRegistrations(
-      req,
-      evento,
-      "evento_updated",
-      {},
-      actor,
-    );
+    await notifyActiveRegistrations(req, evento, "evento_updated", {}, actor);
     const persisted = await Notification.find({});
     expect(persisted).toHaveLength(1);
     expect(persisted[0].recipient.toString()).toBe(other.toString());
@@ -163,9 +157,7 @@ describe("notifyActiveRegistrations", () => {
 describe("cancelAssociatedTables", () => {
   it("es no-op si no hay mesas asociadas", async () => {
     const req = makeReq();
-    await expect(
-      cancelAssociatedTables(req, oid()),
-    ).resolves.toBeUndefined();
+    await expect(cancelAssociatedTables(req, oid())).resolves.toBeUndefined();
   });
 
   it("cancela mesas con eventoId que matchea y emite notifs a participantes", async () => {

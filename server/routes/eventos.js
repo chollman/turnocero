@@ -447,157 +447,152 @@ router.put(
     const evento = await Evento.findById(req.params.id);
     if (!evento) throw httpError(404, "Evento no encontrado");
 
-      // Snapshot pre-edit para detectar cambios significativos que deben
-      // notificarse a los inscriptos (fecha, lugar, cancelación).
-      const prevStatus = evento.status;
-      const prevEventDate = evento.eventDate
-        ? evento.eventDate.getTime()
-        : null;
-      const prevLocation = {
+    // Snapshot pre-edit para detectar cambios significativos que deben
+    // notificarse a los inscriptos (fecha, lugar, cancelación).
+    const prevStatus = evento.status;
+    const prevEventDate = evento.eventDate ? evento.eventDate.getTime() : null;
+    const prevLocation = {
+      texto: evento.location?.texto || "",
+      lat: evento.location?.lat ?? null,
+      lng: evento.location?.lng ?? null,
+    };
+
+    // Partial update: only modify fields that were actually sent in the body.
+    // The form sends every field (empty string clears the value); a partial call
+    // like cancellation can send just { status } without clobbering everything else.
+    if (req.body.title !== undefined && req.body.title.trim()) {
+      evento.title = req.body.title.trim();
+    }
+    if (req.body.description !== undefined)
+      evento.description = req.body.description.trim() || undefined;
+    if (req.body.conditions !== undefined)
+      evento.conditions = req.body.conditions.trim() || undefined;
+    if (req.body.fee !== undefined) evento.fee = parseFloat(req.body.fee) || 0;
+    if (req.body.transferDetails !== undefined)
+      evento.transferDetails = req.body.transferDetails.trim() || undefined;
+    if (req.body.eventDate !== undefined)
+      evento.eventDate = req.body.eventDate || undefined;
+    if (req.body.location !== undefined) {
+      // Location obligatoria también en update — no permitir limpiarla.
+      const normalizedLocation = normalizeLocationInput(req.body.location);
+      if (isEmptyLocation(normalizedLocation)) {
+        throw httpError(400, "El lugar del evento es obligatorio");
+      }
+      evento.location = normalizedLocation;
+    }
+    if (req.body.maxParticipants !== undefined) {
+      evento.maxParticipants = req.body.maxParticipants
+        ? parseInt(req.body.maxParticipants)
+        : undefined;
+    }
+    if (req.body.status) evento.status = req.body.status;
+
+    if (req.file) {
+      // Subir el nuevo asset primero. Recién después de que tenemos el nuevo
+      // publicId persistido, intentamos destruir el viejo — así, si el upload
+      // falla, el evento conserva su imagen anterior.
+      const oldPublicId = evento.image?.publicId;
+      const result = await uploadToCloudinary(req.file.buffer, {
+        folder: "turnocero/eventos",
+        transformation: [{ width: 1200, crop: "limit" }],
+      });
+      evento.image = { url: result.secure_url, publicId: result.public_id };
+      if (oldPublicId) {
+        cloudinary.uploader.destroy(oldPublicId).catch(() => {
+          /* best-effort cleanup */
+        });
+      }
+    }
+
+    try {
+      await evento.save();
+    } catch (err) {
+      rethrowValidation(err);
+    }
+    const populated = await evento.populate(
+      "author",
+      "username displayName avatar",
+    );
+
+    const registrationCount = {
+      total: evento.registrations.length,
+      pending: evento.registrations.filter((r) => r.status === "pending")
+        .length,
+      confirmed: evento.registrations.filter((r) => r.status === "confirmed")
+        .length,
+    };
+
+    const eventoObj = populated.toObject();
+    delete eventoObj.registrations;
+    const payload = {
+      ...eventoObj,
+      registrationCount,
+      userRegistration: null,
+    };
+
+    // Notificar a todos los que estén viendo el evento (room evento:<id>).
+    // Incluye cambios de status (cancel/reopen), edits del form, imagen nueva,
+    // etc. — los clientes mergean en su state local.
+    emitToEventoRoom(req, evento._id, "evento:updated", {
+      eventoId: evento._id.toString(),
+      evento: payload,
+    });
+
+    // Broadcast a la lista pública. Si el evento pasó a draft, mejor avisar
+    // como "deleted" para que los users normales lo saquen de su vista.
+    if (evento.status === "draft") {
+      emitToEventosList(req, "evento:deleted", {
+        eventoId: evento._id.toString(),
+      });
+    } else {
+      emitToEventosList(req, "evento:updated", {
+        eventoId: evento._id.toString(),
+        evento: payload,
+      });
+    }
+
+    // ── Notificaciones a inscriptos sobre cambios significativos ──
+    // Cancelación (status pasó a "cancelled" recién): notif a confirmados+pending.
+    if (evento.status === "cancelled" && prevStatus !== "cancelled") {
+      await notifyActiveRegistrations(
+        req,
+        evento,
+        "evento_cancelled",
+        {},
+        evento.author,
+      );
+      // Cascade: cancelar todas las mesas del evento + notif a participantes.
+      await cancelAssociatedTables(req, evento._id);
+    } else {
+      // Si NO se canceló, chequear si cambió fecha o ubicación. Otros campos
+      // (descripción, fee, etc.) no notifican — no son tan críticos.
+      const changedFields = [];
+      const newEventDate = evento.eventDate ? evento.eventDate.getTime() : null;
+      if (newEventDate !== prevEventDate) changedFields.push("eventDate");
+      const newLoc = {
         texto: evento.location?.texto || "",
         lat: evento.location?.lat ?? null,
         lng: evento.location?.lng ?? null,
       };
-
-      // Partial update: only modify fields that were actually sent in the body.
-      // The form sends every field (empty string clears the value); a partial call
-      // like cancellation can send just { status } without clobbering everything else.
-      if (req.body.title !== undefined && req.body.title.trim()) {
-        evento.title = req.body.title.trim();
+      if (
+        newLoc.texto !== prevLocation.texto ||
+        newLoc.lat !== prevLocation.lat ||
+        newLoc.lng !== prevLocation.lng
+      ) {
+        changedFields.push("location");
       }
-      if (req.body.description !== undefined)
-        evento.description = req.body.description.trim() || undefined;
-      if (req.body.conditions !== undefined)
-        evento.conditions = req.body.conditions.trim() || undefined;
-      if (req.body.fee !== undefined)
-        evento.fee = parseFloat(req.body.fee) || 0;
-      if (req.body.transferDetails !== undefined)
-        evento.transferDetails = req.body.transferDetails.trim() || undefined;
-      if (req.body.eventDate !== undefined)
-        evento.eventDate = req.body.eventDate || undefined;
-      if (req.body.location !== undefined) {
-        // Location obligatoria también en update — no permitir limpiarla.
-        const normalizedLocation = normalizeLocationInput(req.body.location);
-        if (isEmptyLocation(normalizedLocation)) {
-          throw httpError(400, "El lugar del evento es obligatorio");
-        }
-        evento.location = normalizedLocation;
-      }
-      if (req.body.maxParticipants !== undefined) {
-        evento.maxParticipants = req.body.maxParticipants
-          ? parseInt(req.body.maxParticipants)
-          : undefined;
-      }
-      if (req.body.status) evento.status = req.body.status;
-
-      if (req.file) {
-        // Subir el nuevo asset primero. Recién después de que tenemos el nuevo
-        // publicId persistido, intentamos destruir el viejo — así, si el upload
-        // falla, el evento conserva su imagen anterior.
-        const oldPublicId = evento.image?.publicId;
-        const result = await uploadToCloudinary(req.file.buffer, {
-          folder: "turnocero/eventos",
-          transformation: [{ width: 1200, crop: "limit" }],
-        });
-        evento.image = { url: result.secure_url, publicId: result.public_id };
-        if (oldPublicId) {
-          cloudinary.uploader.destroy(oldPublicId).catch(() => {
-            /* best-effort cleanup */
-          });
-        }
-      }
-
-      try {
-        await evento.save();
-      } catch (err) {
-        rethrowValidation(err);
-      }
-      const populated = await evento.populate(
-        "author",
-        "username displayName avatar",
-      );
-
-      const registrationCount = {
-        total: evento.registrations.length,
-        pending: evento.registrations.filter((r) => r.status === "pending")
-          .length,
-        confirmed: evento.registrations.filter((r) => r.status === "confirmed")
-          .length,
-      };
-
-      const eventoObj = populated.toObject();
-      delete eventoObj.registrations;
-      const payload = {
-        ...eventoObj,
-        registrationCount,
-        userRegistration: null,
-      };
-
-      // Notificar a todos los que estén viendo el evento (room evento:<id>).
-      // Incluye cambios de status (cancel/reopen), edits del form, imagen nueva,
-      // etc. — los clientes mergean en su state local.
-      emitToEventoRoom(req, evento._id, "evento:updated", {
-        eventoId: evento._id.toString(),
-        evento: payload,
-      });
-
-      // Broadcast a la lista pública. Si el evento pasó a draft, mejor avisar
-      // como "deleted" para que los users normales lo saquen de su vista.
-      if (evento.status === "draft") {
-        emitToEventosList(req, "evento:deleted", {
-          eventoId: evento._id.toString(),
-        });
-      } else {
-        emitToEventosList(req, "evento:updated", {
-          eventoId: evento._id.toString(),
-          evento: payload,
-        });
-      }
-
-      // ── Notificaciones a inscriptos sobre cambios significativos ──
-      // Cancelación (status pasó a "cancelled" recién): notif a confirmados+pending.
-      if (evento.status === "cancelled" && prevStatus !== "cancelled") {
+      if (changedFields.length > 0 && evento.status !== "draft") {
         await notifyActiveRegistrations(
           req,
           evento,
-          "evento_cancelled",
-          {},
+          "evento_updated",
+          { changedFields },
           evento.author,
         );
-        // Cascade: cancelar todas las mesas del evento + notif a participantes.
-        await cancelAssociatedTables(req, evento._id);
-      } else {
-        // Si NO se canceló, chequear si cambió fecha o ubicación. Otros campos
-        // (descripción, fee, etc.) no notifican — no son tan críticos.
-        const changedFields = [];
-        const newEventDate = evento.eventDate
-          ? evento.eventDate.getTime()
-          : null;
-        if (newEventDate !== prevEventDate) changedFields.push("eventDate");
-        const newLoc = {
-          texto: evento.location?.texto || "",
-          lat: evento.location?.lat ?? null,
-          lng: evento.location?.lng ?? null,
-        };
-        if (
-          newLoc.texto !== prevLocation.texto ||
-          newLoc.lat !== prevLocation.lat ||
-          newLoc.lng !== prevLocation.lng
-        ) {
-          changedFields.push("location");
-        }
-        if (changedFields.length > 0 && evento.status !== "draft") {
-          await notifyActiveRegistrations(
-            req,
-            evento,
-            "evento_updated",
-            { changedFields },
-            evento.author,
-          );
-        }
       }
+    }
 
-      res.json(payload);
+    res.json(payload);
   }),
 );
 
@@ -707,123 +702,122 @@ router.post(
       throw httpError(400, "Debés adjuntar el comprobante de transferencia");
     }
 
-      let comprobante;
-      if (req.file) {
-        const isPdf = req.file.mimetype === "application/pdf";
-        const resourceType = isPdf ? "raw" : "image";
-        const result = await uploadToCloudinary(req.file.buffer, {
-          folder: `turnocero/eventos/${req.params.id}/comprobantes`,
-          resource_type: resourceType,
-        });
-        comprobante = {
-          url: result.secure_url,
-          publicId: result.public_id,
-          resourceType,
-          uploadedAt: new Date(),
-        };
-      }
-
-      let reg;
-      let workingEvento = evento;
-      if (existing && existing.status === "rejected") {
-        // Reciclar el registro rechazado no-permanente: vuelve a pendiente con nuevo comprobante.
-        // Si el comprobante anterior estaba en Cloudinary, lo limpiamos.
-        if (existing.comprobante?.publicId) {
-          try {
-            await cloudinary.uploader.destroy(existing.comprobante.publicId, {
-              resource_type: existing.comprobante.resourceType || "image",
-            });
-          } catch {
-            // no-op, no bloqueamos el reintento por una falla de cleanup
-          }
-        }
-        existing.status = "pending";
-        existing.submittedAt = new Date();
-        existing.reviewedAt = undefined;
-        existing.reviewedBy = undefined;
-        existing.adminNotes = undefined;
-        existing.comprobante = comprobante;
-        reg = existing;
-        await evento.save();
-      } else {
-        // Inscripción nueva: usamos findOneAndUpdate atómico para evitar la
-        // race en la que dos requests paralelos pasan el check "ya inscripto"
-        // y terminan creando dos entries para el mismo user. El filter
-        // `'registrations.user': { $ne }` garantiza que solo el primero
-        // matchee; los siguientes reciben null y devolvemos 409.
-        const newReg = {
-          user: req.user._id,
-          status: "pending",
-          comprobante,
-          submittedAt: new Date(),
-        };
-        workingEvento = await Evento.findOneAndUpdate(
-          {
-            _id: req.params.id,
-            status: "open",
-            "registrations.user": { $ne: req.user._id },
-          },
-          { $push: { registrations: newReg } },
-          { new: true },
-        );
-        if (!workingEvento) {
-          // Race detectada (o el evento pasó a non-open mientras subíamos el
-          // comprobante). Limpiamos el asset recién subido para no dejar huérfanos.
-          if (comprobante?.publicId) {
-            cloudinary.uploader
-              .destroy(comprobante.publicId, {
-                resource_type: comprobante.resourceType || "image",
-              })
-              .catch(() => {});
-          }
-          throw httpError(409, "Ya estás inscripto en este evento");
-        }
-        // Tomamos la entry recién pusheada (la última del array).
-        reg =
-          workingEvento.registrations[workingEvento.registrations.length - 1];
-      }
-
-      // Notificar al host que tiene una nueva inscripción pendiente, y a todos
-      // los que estén viendo el evento que cambiaron los counts. Usamos
-      // workingEvento (que es `evento` en el path recycle, o el resultado de
-      // findOneAndUpdate en el path nueva inscripción).
-      const newCounts = countsFor(workingEvento);
-      const eventoIdStr = workingEvento._id.toString();
-      try {
-        const populated = await Evento.populate(workingEvento, {
-          path: "registrations.user",
-          select: "username displayName avatar",
-        });
-        const populatedReg = populated.registrations.id(reg._id);
-        emitToUser(req, workingEvento.author, "evento:registration-created", {
-          eventoId: eventoIdStr,
-          registration: populatedReg ? populatedReg.toObject() : reg.toObject(),
-          counts: newCounts,
-        });
-      } catch {
-        /* no-op */
-      }
-      const countsPayload = { eventoId: eventoIdStr, counts: newCounts };
-      emitToEventoRoom(
-        req,
-        workingEvento._id,
-        "evento:counts-changed",
-        countsPayload,
-      );
-      if (workingEvento.status !== "draft")
-        emitToEventosList(req, "evento:counts-changed", countsPayload);
-
-      res.status(201).json({
-        _id: reg._id,
-        status: reg.status,
-        submittedAt: reg.submittedAt,
-        comprobante: reg.comprobante
-          ? {
-              url: reg.comprobante.url,
-              resourceType: reg.comprobante.resourceType,
-            }
-          : null,
+    let comprobante;
+    if (req.file) {
+      const isPdf = req.file.mimetype === "application/pdf";
+      const resourceType = isPdf ? "raw" : "image";
+      const result = await uploadToCloudinary(req.file.buffer, {
+        folder: `turnocero/eventos/${req.params.id}/comprobantes`,
+        resource_type: resourceType,
       });
+      comprobante = {
+        url: result.secure_url,
+        publicId: result.public_id,
+        resourceType,
+        uploadedAt: new Date(),
+      };
+    }
+
+    let reg;
+    let workingEvento = evento;
+    if (existing && existing.status === "rejected") {
+      // Reciclar el registro rechazado no-permanente: vuelve a pendiente con nuevo comprobante.
+      // Si el comprobante anterior estaba en Cloudinary, lo limpiamos.
+      if (existing.comprobante?.publicId) {
+        try {
+          await cloudinary.uploader.destroy(existing.comprobante.publicId, {
+            resource_type: existing.comprobante.resourceType || "image",
+          });
+        } catch {
+          // no-op, no bloqueamos el reintento por una falla de cleanup
+        }
+      }
+      existing.status = "pending";
+      existing.submittedAt = new Date();
+      existing.reviewedAt = undefined;
+      existing.reviewedBy = undefined;
+      existing.adminNotes = undefined;
+      existing.comprobante = comprobante;
+      reg = existing;
+      await evento.save();
+    } else {
+      // Inscripción nueva: usamos findOneAndUpdate atómico para evitar la
+      // race en la que dos requests paralelos pasan el check "ya inscripto"
+      // y terminan creando dos entries para el mismo user. El filter
+      // `'registrations.user': { $ne }` garantiza que solo el primero
+      // matchee; los siguientes reciben null y devolvemos 409.
+      const newReg = {
+        user: req.user._id,
+        status: "pending",
+        comprobante,
+        submittedAt: new Date(),
+      };
+      workingEvento = await Evento.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          status: "open",
+          "registrations.user": { $ne: req.user._id },
+        },
+        { $push: { registrations: newReg } },
+        { new: true },
+      );
+      if (!workingEvento) {
+        // Race detectada (o el evento pasó a non-open mientras subíamos el
+        // comprobante). Limpiamos el asset recién subido para no dejar huérfanos.
+        if (comprobante?.publicId) {
+          cloudinary.uploader
+            .destroy(comprobante.publicId, {
+              resource_type: comprobante.resourceType || "image",
+            })
+            .catch(() => {});
+        }
+        throw httpError(409, "Ya estás inscripto en este evento");
+      }
+      // Tomamos la entry recién pusheada (la última del array).
+      reg = workingEvento.registrations[workingEvento.registrations.length - 1];
+    }
+
+    // Notificar al host que tiene una nueva inscripción pendiente, y a todos
+    // los que estén viendo el evento que cambiaron los counts. Usamos
+    // workingEvento (que es `evento` en el path recycle, o el resultado de
+    // findOneAndUpdate en el path nueva inscripción).
+    const newCounts = countsFor(workingEvento);
+    const eventoIdStr = workingEvento._id.toString();
+    try {
+      const populated = await Evento.populate(workingEvento, {
+        path: "registrations.user",
+        select: "username displayName avatar",
+      });
+      const populatedReg = populated.registrations.id(reg._id);
+      emitToUser(req, workingEvento.author, "evento:registration-created", {
+        eventoId: eventoIdStr,
+        registration: populatedReg ? populatedReg.toObject() : reg.toObject(),
+        counts: newCounts,
+      });
+    } catch {
+      /* no-op */
+    }
+    const countsPayload = { eventoId: eventoIdStr, counts: newCounts };
+    emitToEventoRoom(
+      req,
+      workingEvento._id,
+      "evento:counts-changed",
+      countsPayload,
+    );
+    if (workingEvento.status !== "draft")
+      emitToEventosList(req, "evento:counts-changed", countsPayload);
+
+    res.status(201).json({
+      _id: reg._id,
+      status: reg.status,
+      submittedAt: reg.submittedAt,
+      comprobante: reg.comprobante
+        ? {
+            url: reg.comprobante.url,
+            resourceType: reg.comprobante.resourceType,
+          }
+        : null,
+    });
   }),
 );
 
@@ -953,60 +947,60 @@ router.patch(
       }
     }
 
-      reg.status = "confirmed";
-      reg.reviewedAt = new Date();
-      reg.reviewedBy = req.user._id;
-      reg.permanentlyRejected = false; // limpiar el bloqueo si lo había
-      if (req.body.adminNotes?.trim())
-        reg.adminNotes = req.body.adminNotes.trim();
+    reg.status = "confirmed";
+    reg.reviewedAt = new Date();
+    reg.reviewedBy = req.user._id;
+    reg.permanentlyRejected = false; // limpiar el bloqueo si lo había
+    if (req.body.adminNotes?.trim())
+      reg.adminNotes = req.body.adminNotes.trim();
 
-      await evento.save();
+    await evento.save();
 
-      const newCounts = countsFor(evento);
-      const eventoIdStr = evento._id.toString();
-      const userIdStr = reg.user.toString();
-      const populatedReg = await reloadRegPopulated(evento, reg._id);
-      const reviewPayload = {
+    const newCounts = countsFor(evento);
+    const eventoIdStr = evento._id.toString();
+    const userIdStr = reg.user.toString();
+    const populatedReg = await reloadRegPopulated(evento, reg._id);
+    const reviewPayload = {
+      eventoId: eventoIdStr,
+      userId: userIdStr,
+      registrationId: reg._id.toString(),
+      status: "confirmed",
+      reviewedAt: reg.reviewedAt,
+      adminNotes: reg.adminNotes || null,
+      permanentlyRejected: false,
+      counts: newCounts,
+      registration: populatedReg,
+    };
+    emitToUser(req, userIdStr, "evento:registration-reviewed", reviewPayload);
+    emitToEventoRoom(
+      req,
+      evento._id,
+      "evento:registration-reviewed",
+      reviewPayload,
+    );
+    // La lista sólo necesita refrescar los counts.
+    if (evento.status !== "draft") {
+      emitToEventosList(req, "evento:counts-changed", {
         eventoId: eventoIdStr,
-        userId: userIdStr,
-        registrationId: reg._id.toString(),
-        status: "confirmed",
-        reviewedAt: reg.reviewedAt,
-        adminNotes: reg.adminNotes || null,
-        permanentlyRejected: false,
         counts: newCounts,
-        registration: populatedReg,
-      };
-      emitToUser(req, userIdStr, "evento:registration-reviewed", reviewPayload);
-      emitToEventoRoom(
-        req,
-        evento._id,
-        "evento:registration-reviewed",
-        reviewPayload,
-      );
-      // La lista sólo necesita refrescar los counts.
-      if (evento.status !== "draft") {
-        emitToEventosList(req, "evento:counts-changed", {
-          eventoId: eventoIdStr,
-          counts: newCounts,
-        });
-      }
+      });
+    }
 
-      // Persistente + toast: el user inscripto recibe la notificación de que
-      // lo aceptaron, incluso si no tiene la app abierta en ese momento.
-      await notifyOne(
-        req,
-        reg.user,
-        "evento_confirmed",
-        {
-          eventoId: eventoIdStr,
-          eventoTitle: evento.title,
-          eventoDate: evento.eventDate,
-        },
-        req.user._id,
-      );
+    // Persistente + toast: el user inscripto recibe la notificación de que
+    // lo aceptaron, incluso si no tiene la app abierta en ese momento.
+    await notifyOne(
+      req,
+      reg.user,
+      "evento_confirmed",
+      {
+        eventoId: eventoIdStr,
+        eventoTitle: evento.title,
+        eventoDate: evento.eventDate,
+      },
+      req.user._id,
+    );
 
-      res.json({ message: "Inscripción confirmada", status: reg.status });
+    res.json({ message: "Inscripción confirmada", status: reg.status });
   }),
 );
 
@@ -1024,89 +1018,92 @@ router.patch(
     );
     if (!reg) throw httpError(404, "Inscripción no encontrada");
 
-      reg.status = "rejected";
-      reg.reviewedAt = new Date();
-      reg.reviewedBy = req.user._id;
-      // Estricto: solo boolean `true`. El cliente manda JSON (no FormData
-      // string), así que la coerción de "true" → true que existía antes era
-      // defensa innecesaria contra clients que no respetan el contrato.
-      reg.permanentlyRejected = req.body.permanent === true;
-      if (req.body.adminNotes?.trim())
-        reg.adminNotes = req.body.adminNotes.trim();
+    reg.status = "rejected";
+    reg.reviewedAt = new Date();
+    reg.reviewedBy = req.user._id;
+    // Estricto: solo boolean `true`. El cliente manda JSON (no FormData
+    // string), así que la coerción de "true" → true que existía antes era
+    // defensa innecesaria contra clients que no respetan el contrato.
+    reg.permanentlyRejected = req.body.permanent === true;
+    if (req.body.adminNotes?.trim())
+      reg.adminNotes = req.body.adminNotes.trim();
 
-      // Rechazo permanente: limpiar el comprobante en Cloudinary. El user
-      // no podrá reintentar (403), así que el path de "reciclar" — que es
-      // el único otro lugar donde se destruía el comprobante viejo — nunca
-      // se ejecuta y el archivo queda como orphan permanente. Best-effort:
-      // si Cloudinary falla, el reject ya quedó persistido y solo loggeamos.
-      if (reg.permanentlyRejected && reg.comprobante?.publicId) {
-        const stalePublicId = reg.comprobante.publicId;
-        const staleResourceType = reg.comprobante.resourceType || "image";
-        try {
-          await cloudinary.uploader.destroy(stalePublicId, {
-            resource_type: staleResourceType,
-          });
-        } catch (cleanupErr) {
-          logger.error("Cloudinary destroy failed for permanently-rejected comprobante", {
+    // Rechazo permanente: limpiar el comprobante en Cloudinary. El user
+    // no podrá reintentar (403), así que el path de "reciclar" — que es
+    // el único otro lugar donde se destruía el comprobante viejo — nunca
+    // se ejecuta y el archivo queda como orphan permanente. Best-effort:
+    // si Cloudinary falla, el reject ya quedó persistido y solo loggeamos.
+    if (reg.permanentlyRejected && reg.comprobante?.publicId) {
+      const stalePublicId = reg.comprobante.publicId;
+      const staleResourceType = reg.comprobante.resourceType || "image";
+      try {
+        await cloudinary.uploader.destroy(stalePublicId, {
+          resource_type: staleResourceType,
+        });
+      } catch (cleanupErr) {
+        logger.error(
+          "Cloudinary destroy failed for permanently-rejected comprobante",
+          {
             publicId: stalePublicId,
             error: cleanupErr.message,
-          });
-        }
-        reg.comprobante = undefined;
+          },
+        );
       }
+      reg.comprobante = undefined;
+    }
 
-      await evento.save();
+    await evento.save();
 
-      const newCounts = countsFor(evento);
-      const eventoIdStr = evento._id.toString();
-      const userIdStr = reg.user.toString();
-      const populatedReg = await reloadRegPopulated(evento, reg._id);
-      const reviewPayload = {
+    const newCounts = countsFor(evento);
+    const eventoIdStr = evento._id.toString();
+    const userIdStr = reg.user.toString();
+    const populatedReg = await reloadRegPopulated(evento, reg._id);
+    const reviewPayload = {
+      eventoId: eventoIdStr,
+      userId: userIdStr,
+      registrationId: reg._id.toString(),
+      status: "rejected",
+      reviewedAt: reg.reviewedAt,
+      adminNotes: reg.adminNotes || null,
+      permanentlyRejected: reg.permanentlyRejected,
+      counts: newCounts,
+      registration: populatedReg,
+    };
+    emitToUser(req, userIdStr, "evento:registration-reviewed", reviewPayload);
+    emitToEventoRoom(
+      req,
+      evento._id,
+      "evento:registration-reviewed",
+      reviewPayload,
+    );
+    if (evento.status !== "draft") {
+      emitToEventosList(req, "evento:counts-changed", {
         eventoId: eventoIdStr,
-        userId: userIdStr,
-        registrationId: reg._id.toString(),
-        status: "rejected",
-        reviewedAt: reg.reviewedAt,
-        adminNotes: reg.adminNotes || null,
-        permanentlyRejected: reg.permanentlyRejected,
         counts: newCounts,
-        registration: populatedReg,
-      };
-      emitToUser(req, userIdStr, "evento:registration-reviewed", reviewPayload);
-      emitToEventoRoom(
-        req,
-        evento._id,
-        "evento:registration-reviewed",
-        reviewPayload,
-      );
-      if (evento.status !== "draft") {
-        emitToEventosList(req, "evento:counts-changed", {
-          eventoId: eventoIdStr,
-          counts: newCounts,
-        });
-      }
-
-      // Persistente + toast: el user inscripto recibe la notificación del
-      // rechazo. La flag `permanentlyRejected` distingue "esta vez" vs bloqueo
-      // permanente y la UI puede renderizar tonos distintos.
-      await notifyOne(
-        req,
-        reg.user,
-        "evento_rejected",
-        {
-          eventoId: eventoIdStr,
-          eventoTitle: evento.title,
-          eventoDate: evento.eventDate,
-          permanentlyRejected: reg.permanentlyRejected,
-        },
-        req.user._id,
-      );
-
-      res.json({
-        message: "Inscripción rechazada",
-        status: reg.status,
-        permanentlyRejected: reg.permanentlyRejected,
       });
+    }
+
+    // Persistente + toast: el user inscripto recibe la notificación del
+    // rechazo. La flag `permanentlyRejected` distingue "esta vez" vs bloqueo
+    // permanente y la UI puede renderizar tonos distintos.
+    await notifyOne(
+      req,
+      reg.user,
+      "evento_rejected",
+      {
+        eventoId: eventoIdStr,
+        eventoTitle: evento.title,
+        eventoDate: evento.eventDate,
+        permanentlyRejected: reg.permanentlyRejected,
+      },
+      req.user._id,
+    );
+
+    res.json({
+      message: "Inscripción rechazada",
+      status: reg.status,
+      permanentlyRejected: reg.permanentlyRejected,
+    });
   }),
 );
 
@@ -1127,50 +1124,50 @@ router.patch(
     );
     if (!reg) throw httpError(404, "Inscripción no encontrada");
 
-      reg.status = "pending";
-      reg.submittedAt = new Date();
-      reg.reviewedAt = undefined;
-      reg.reviewedBy = undefined;
-      reg.adminNotes = undefined;
-      reg.permanentlyRejected = false;
+    reg.status = "pending";
+    reg.submittedAt = new Date();
+    reg.reviewedAt = undefined;
+    reg.reviewedBy = undefined;
+    reg.adminNotes = undefined;
+    reg.permanentlyRejected = false;
 
-      await evento.save();
+    await evento.save();
 
-      const newCounts = countsFor(evento);
-      const eventoIdStr = evento._id.toString();
-      const userIdStr = reg.user.toString();
-      const populatedReg = await reloadRegPopulated(evento, reg._id);
-      const reviewPayload = {
+    const newCounts = countsFor(evento);
+    const eventoIdStr = evento._id.toString();
+    const userIdStr = reg.user.toString();
+    const populatedReg = await reloadRegPopulated(evento, reg._id);
+    const reviewPayload = {
+      eventoId: eventoIdStr,
+      userId: userIdStr,
+      registrationId: reg._id.toString(),
+      status: "pending",
+      reviewedAt: null,
+      adminNotes: null,
+      permanentlyRejected: false,
+      submittedAt: reg.submittedAt,
+      counts: newCounts,
+      registration: populatedReg,
+    };
+    emitToUser(req, userIdStr, "evento:registration-reviewed", reviewPayload);
+    emitToEventoRoom(
+      req,
+      evento._id,
+      "evento:registration-reviewed",
+      reviewPayload,
+    );
+    if (evento.status !== "draft") {
+      emitToEventosList(req, "evento:counts-changed", {
         eventoId: eventoIdStr,
-        userId: userIdStr,
-        registrationId: reg._id.toString(),
-        status: "pending",
-        reviewedAt: null,
-        adminNotes: null,
-        permanentlyRejected: false,
-        submittedAt: reg.submittedAt,
         counts: newCounts,
-        registration: populatedReg,
-      };
-      emitToUser(req, userIdStr, "evento:registration-reviewed", reviewPayload);
-      emitToEventoRoom(
-        req,
-        evento._id,
-        "evento:registration-reviewed",
-        reviewPayload,
-      );
-      if (evento.status !== "draft") {
-        emitToEventosList(req, "evento:counts-changed", {
-          eventoId: eventoIdStr,
-          counts: newCounts,
-        });
-      }
-
-      res.json({
-        message: "Inscripción revertida a pendiente",
-        status: reg.status,
-        submittedAt: reg.submittedAt,
       });
+    }
+
+    res.json({
+      message: "Inscripción revertida a pendiente",
+      status: reg.status,
+      submittedAt: reg.submittedAt,
+    });
   }),
 );
 
@@ -1228,17 +1225,13 @@ router.post(
       throw httpError(400, "El evento está cancelado");
     }
     if (!canActInEvento(evento, req.user)) {
-      throw httpError(
-        403,
-        "Solo inscriptos confirmados pueden agregar juegos",
-      );
+      throw httpError(403, "Solo inscriptos confirmados pueden agregar juegos");
     }
 
     // Dedupe lógico por (addedBy, bggGameId) — un user no agrega el mismo juego dos veces.
     const alreadyMine = (evento.ludoteca || []).some(
       (item) =>
-        item.bggGameId === numericId &&
-        isSameId(item.addedBy, req.user._id),
+        item.bggGameId === numericId && isSameId(item.addedBy, req.user._id),
     );
     if (alreadyMine) {
       throw httpError(409, "Ya agregaste este juego");
@@ -1323,8 +1316,7 @@ router.patch(
     const item = evento.ludoteca.id(req.params.itemId);
     if (!item) throw httpError(404, "Juego no encontrado");
     const isOwner = isSameId(item.addedBy, req.user._id);
-    const isAdmin =
-      !!req.user.isAdmin || isSameId(evento.author, req.user._id);
+    const isAdmin = !!req.user.isAdmin || isSameId(evento.author, req.user._id);
     if (!isOwner && !isAdmin) {
       throw httpError(403, "No podés editar este juego");
     }
@@ -1357,8 +1349,7 @@ router.delete(
     const item = evento.ludoteca.id(req.params.itemId);
     if (!item) throw httpError(404, "Juego no encontrado");
     const isOwner = isSameId(item.addedBy, req.user._id);
-    const isAdmin =
-      !!req.user.isAdmin || isSameId(evento.author, req.user._id);
+    const isAdmin = !!req.user.isAdmin || isSameId(evento.author, req.user._id);
     if (!isOwner && !isAdmin) {
       throw httpError(403, "No podés quitar este juego");
     }

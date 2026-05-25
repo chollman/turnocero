@@ -8,15 +8,15 @@ El usuario quiere que la app sea instalable en celulares como PWA. Actualmente e
 
 ## Estado actual
 
-| Requisito PWA | Estado |
-|---|---|
-| `manifest.json` | ✗ Falta |
-| Service Worker | ✗ Falta |
-| Iconos (192 / 512 px) | ✗ Falta |
-| `<meta name="theme-color">` | ✗ Falta |
-| `<link rel="apple-touch-icon">` | ✗ Falta |
-| Viewport meta | ✓ Presente |
-| HTTPS / localhost | ✓ Localhost en dev |
+| Requisito PWA                   | Estado             |
+| ------------------------------- | ------------------ |
+| `manifest.json`                 | ✗ Falta            |
+| Service Worker                  | ✗ Falta            |
+| Iconos (192 / 512 px)           | ✗ Falta            |
+| `<meta name="theme-color">`     | ✗ Falta            |
+| `<link rel="apple-touch-icon">` | ✗ Falta            |
+| Viewport meta                   | ✓ Presente         |
+| HTTPS / localhost               | ✓ Localhost en dev |
 
 ---
 
@@ -29,6 +29,7 @@ El usuario quiere que la app sea instalable en celulares como PWA. Actualmente e
 ## Pasos de implementación
 
 ### 1. Instalar dependencias (en `client/`)
+
 ```
 npm install -D vite-plugin-pwa @vite-pwa/assets-generator
 ```
@@ -36,16 +37,19 @@ npm install -D vite-plugin-pwa @vite-pwa/assets-generator
 ### 2. Generar íconos (`client/public/`)
 
 Crear `client/pwa-assets.config.js` apuntando a `dice.svg`:
+
 ```js
-import { defineConfig } from '@vite-pwa/assets-generator/config'
+import { defineConfig } from "@vite-pwa/assets-generator/config";
 export default defineConfig({
-  preset: 'minimal',
-  images: ['public/dice.svg'],
-})
+  preset: "minimal",
+  images: ["public/dice.svg"],
+});
 ```
+
 Luego ejecutar: `npx @vite-pwa/assets-generator`
 
 Esto genera en `client/public/`:
+
 - `pwa-192x192.png`
 - `pwa-512x512.png`
 - `apple-touch-icon.png` (180x180)
@@ -56,57 +60,69 @@ Esto genera en `client/public/`:
 ### 3. Configurar `vite-plugin-pwa` en `client/vite.config.js`
 
 ```js
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { VitePWA } from 'vite-plugin-pwa';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
-  base: '/',
+  base: "/",
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['dice.svg', 'favicon.ico', 'apple-touch-icon.png'],
+      registerType: "autoUpdate",
+      includeAssets: ["dice.svg", "favicon.ico", "apple-touch-icon.png"],
       manifest: {
-        name: 'Turnocero',
-        short_name: 'Turnocero',
-        description: 'Organizá mesas de juego con tu comunidad',
-        theme_color: '#1888ef',
-        background_color: '#0a0d15',
-        display: 'standalone',
-        start_url: '/',
+        name: "Turnocero",
+        short_name: "Turnocero",
+        description: "Organizá mesas de juego con tu comunidad",
+        theme_color: "#1888ef",
+        background_color: "#0a0d15",
+        display: "standalone",
+        start_url: "/",
         icons: [
-          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },
+          { src: "pwa-512x512.png", sizes: "512x512", type: "image/png" },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
+          },
         ],
       },
       workbox: {
         // No cachear las llamadas a la API ni WebSockets
-        navigateFallback: '/index.html',
+        navigateFallback: "/index.html",
         runtimeCaching: [
           {
             urlPattern: /^\/api\//,
-            handler: 'NetworkOnly',
+            handler: "NetworkOnly",
           },
         ],
       },
     }),
   ],
-  server: { /* igual que antes */ },
+  server: {
+    /* igual que antes */
+  },
 });
 ```
 
 ### 4. Agregar meta tags en `client/index.html`
 
 Agregar dentro de `<head>`:
+
 ```html
 <meta name="theme-color" content="#1888ef" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta
+  name="apple-mobile-web-app-status-bar-style"
+  content="black-translucent"
+/>
 <meta name="apple-mobile-web-app-title" content="Turnocero" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 ```
+
 El `<link rel="manifest">` lo inyecta automáticamente el plugin.
 
 ### 5. (Opcional) Prompt de instalación en UI
@@ -117,15 +133,15 @@ Agregar un hook `useInstallPrompt` que capture el evento `beforeinstallprompt` y
 
 ## Archivos a modificar / crear
 
-| Archivo | Acción |
-|---|---|
-| `client/vite.config.js` | Agregar `VitePWA(...)` |
-| `client/index.html` | Agregar 5 meta/link tags |
-| `client/pwa-assets.config.js` | Crear (configuración del generador) |
-| `client/public/pwa-192x192.png` | Generado |
-| `client/public/pwa-512x512.png` | Generado |
-| `client/public/apple-touch-icon.png` | Generado |
-| `client/package.json` | 2 nuevas devDependencies |
+| Archivo                              | Acción                              |
+| ------------------------------------ | ----------------------------------- |
+| `client/vite.config.js`              | Agregar `VitePWA(...)`              |
+| `client/index.html`                  | Agregar 5 meta/link tags            |
+| `client/pwa-assets.config.js`        | Crear (configuración del generador) |
+| `client/public/pwa-192x192.png`      | Generado                            |
+| `client/public/pwa-512x512.png`      | Generado                            |
+| `client/public/apple-touch-icon.png` | Generado                            |
+| `client/package.json`                | 2 nuevas devDependencies            |
 
 ---
 

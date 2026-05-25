@@ -181,10 +181,7 @@ router.post(
     const { title, body, linkedTable, linkedEvento, privacy } = req.body;
 
     if (!title?.trim() && !body?.trim()) {
-      throw httpError(
-        400,
-        "La compartida necesita al menos un título o texto",
-      );
+      throw httpError(400, "La compartida necesita al menos un título o texto");
     }
 
     // Validate linkedTable belongs to the user (host or player)

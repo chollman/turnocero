@@ -1,6 +1,7 @@
 .page {
   min-height: calc(100vh - 64px);
-  padding: var(--page-padding) var(--page-padding) var(--page-padding) var(--page-padding-left);
+  padding: var(--page-padding) var(--page-padding) var(--page-padding)
+    var(--page-padding-left);
   width: 100%;
 }
 
@@ -64,9 +65,16 @@
 }
 
 @media (max-width: 600px) {
-  .heroTitle { font-size: 30px; }
-  .heroSub { font-size: 14px; }
-  .heroIcon { width: 72px; height: 72px; }
+  .heroTitle {
+    font-size: 30px;
+  }
+  .heroSub {
+    font-size: 14px;
+  }
+  .heroIcon {
+    width: 72px;
+    height: 72px;
+  }
 }
 
 /* ─── Features ─── */

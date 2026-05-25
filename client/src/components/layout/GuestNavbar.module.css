@@ -106,7 +106,9 @@
   color: var(--text-secondary);
   text-decoration: none;
   border: 1px solid var(--border);
-  transition: color var(--transition), border-color var(--transition);
+  transition:
+    color var(--transition),
+    border-color var(--transition);
 }
 
 .btnLogin:hover {

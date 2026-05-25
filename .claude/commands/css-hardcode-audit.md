@@ -9,6 +9,7 @@ All colors in Turnocero must come from CSS variables defined in `client/src/inde
 Key variables include: `--bg-dark`, `--bg-card`, `--bg-hover`, `--amber`, `--amber-dim`, `--amber-glow`, `--green`, `--red`, `--text-primary`, `--text-muted`, `--text-dim`, `--border`, `--border-light`, `--shadow`, etc.
 
 **In scope — must use variables:**
+
 - `color:`, `background:`, `background-color:`
 - `border-color:`, `border:` (the color part)
 - `box-shadow:` (color parts)
@@ -16,6 +17,7 @@ Key variables include: `--bg-dark`, `--bg-card`, `--bg-hover`, `--amber`, `--amb
 - CSS custom property definitions that duplicate existing vars
 
 **Out of scope — hardcoded values are acceptable:**
+
 - `border-radius`, `padding`, `margin`, `width`, `height`, `font-size`, `z-index`, `opacity` (unless it's a theme value)
 - `transparent`, `inherit`, `currentColor`
 - `0 0 0` in box-shadow offsets (not a color)
@@ -36,6 +38,7 @@ Read `client/src/index.css` in full. Extract all CSS custom property names and t
 ### 3. For each CSS file, find hardcoded color values
 
 Look for patterns like:
+
 - `#[0-9a-fA-F]{3,8}` (hex colors)
 - `rgb(`, `rgba(`, `hsl(`, `hsla(`
 - Named colors: `red`, `green`, `blue`, `white`, `black`, `gray`, `orange`, `yellow`, `purple` (only when used as a color value, not in a class name)
@@ -45,6 +48,7 @@ For each match, check if it's in scope (color property) and not in the exception
 ### 4. Map each hardcoded value to the correct variable
 
 Compare the hardcoded value against the design system values extracted in step 1. Find the closest semantic match:
+
 - Dark backgrounds → `var(--bg-dark)` or `var(--bg-card)` or `var(--bg-hover)`
 - Gold/amber tones → `var(--amber)` or `var(--amber-dim)`
 - Success/join states → `var(--green)`

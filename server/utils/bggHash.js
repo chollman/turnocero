@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 // Deterministic content hash for a BggPlay. Used by the drift-detection
 // probe: when BGG returns the 30 most recent plays for a user, we hash each
@@ -14,13 +14,26 @@ const crypto = require('crypto');
 // BggPlay.hash would have to be recomputed.
 
 const PLAY_FIELDS = [
-  'playId', 'date', 'quantity', 'duration', 'location',
-  'comments', 'incomplete', 'nowinstats',
+  "playId",
+  "date",
+  "quantity",
+  "duration",
+  "location",
+  "comments",
+  "incomplete",
+  "nowinstats",
 ];
 
 const PLAYER_FIELDS = [
-  'name', 'username', 'userid', 'position', 'color',
-  'score', 'win', 'new', 'rating',
+  "name",
+  "username",
+  "userid",
+  "position",
+  "color",
+  "score",
+  "win",
+  "new",
+  "rating",
 ];
 
 function pickOrdered(obj, fields) {
@@ -43,7 +56,7 @@ function canonicalize(play) {
 function computePlayHash(play) {
   const canonical = canonicalize(play);
   const json = JSON.stringify(canonical);
-  return crypto.createHash('sha1').update(json).digest('hex');
+  return crypto.createHash("sha1").update(json).digest("hex");
 }
 
 module.exports = { computePlayHash };

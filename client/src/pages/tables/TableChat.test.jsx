@@ -32,12 +32,7 @@ function setupMessages(messages = []) {
 
 function renderChat(props = {}) {
   return render(
-    <TableChat
-      tableId="t1"
-      user={user}
-      isViewingAsAdmin={false}
-      {...props}
-    />,
+    <TableChat tableId="t1" user={user} isViewingAsAdmin={false} {...props} />,
   );
 }
 

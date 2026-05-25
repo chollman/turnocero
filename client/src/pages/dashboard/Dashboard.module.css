@@ -552,7 +552,10 @@
   line-height: 1;
   cursor: pointer;
   user-select: none;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .radiusStep:hover:not(:disabled) {

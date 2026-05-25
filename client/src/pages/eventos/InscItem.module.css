@@ -9,7 +9,9 @@
   transition: border-color var(--transition);
 }
 
-.item:hover { border-color: var(--border-strong); }
+.item:hover {
+  border-color: var(--border-strong);
+}
 
 .head {
   display: flex;
@@ -63,7 +65,10 @@
   transition: all var(--transition);
 }
 
-.comprobante:hover { border-color: var(--amber); background: var(--amber-10); }
+.comprobante:hover {
+  border-color: var(--amber);
+  background: var(--amber-10);
+}
 
 .thumb {
   width: 44px;
@@ -80,7 +85,13 @@
   font-weight: 700;
 }
 
-.comprobanteInfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.comprobanteInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .comprobanteName {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -135,7 +146,10 @@
   outline: none;
 }
 
-.notesInput:focus { border-color: var(--amber); box-shadow: 0 0 0 3px var(--amber-glow); }
+.notesInput:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px var(--amber-glow);
+}
 
 .notesToggle {
   background: transparent;
@@ -151,14 +165,19 @@
   transition: all var(--transition);
 }
 
-.notesToggle:hover { border-color: var(--amber); color: var(--amber-light); }
+.notesToggle:hover {
+  border-color: var(--amber);
+  color: var(--amber-light);
+}
 
 .actions {
   display: flex;
   gap: 6px;
 }
 
-.actions button { flex: 1; }
+.actions button {
+  flex: 1;
+}
 
 .btnAccept {
   background: var(--green);
@@ -182,8 +201,13 @@
 }
 
 /* Hover aclarado vía filter: theme-agnostic y sigue cualquier cambio futuro de --green. */
-.btnAccept:hover:not(:disabled) { filter: brightness(1.15); }
-.btnAccept:disabled { opacity: 0.6; cursor: not-allowed; }
+.btnAccept:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+.btnAccept:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .btnReject {
   background: transparent;
@@ -203,8 +227,14 @@
   transition: all var(--transition);
 }
 
-.btnReject:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
-.btnReject:disabled { opacity: 0.6; cursor: not-allowed; }
+.btnReject:hover:not(:disabled) {
+  border-color: var(--red);
+  color: var(--red);
+}
+.btnReject:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .btnUndo {
   background: transparent;
@@ -219,8 +249,14 @@
   transition: all var(--transition);
 }
 
-.btnUndo:hover:not(:disabled) { color: var(--text-primary); border-color: var(--border-strong); }
-.btnUndo:disabled { opacity: 0.6; cursor: not-allowed; }
+.btnUndo:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+.btnUndo:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .btnBan {
   background: transparent;
@@ -242,7 +278,10 @@
   border-color: var(--red-25);
 }
 
-.btnBan:disabled { opacity: 0.6; cursor: not-allowed; }
+.btnBan:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .notesPermanent {
   color: var(--red);
@@ -310,7 +349,10 @@
   transition: all var(--transition);
 }
 
-.detailsToggle:hover { border-color: var(--amber); color: var(--amber-light); }
+.detailsToggle:hover {
+  border-color: var(--amber);
+  color: var(--amber-light);
+}
 
 .detailsContainer {
   display: flex;
@@ -331,5 +373,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .detailsContainer { animation: none; }
+  .detailsContainer {
+    animation: none;
+  }
 }

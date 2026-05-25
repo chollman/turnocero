@@ -1,7 +1,7 @@
-import styles from './EventoSkeleton.module.css';
+import styles from "./EventoSkeleton.module.css";
 
-export default function EventoSkeleton({ variant = 'timeline' }) {
-  if (variant === 'poster') {
+export default function EventoSkeleton({ variant = "timeline" }) {
+  if (variant === "poster") {
     return (
       <div className={styles.poster}>
         <div className={styles.posterImg} />

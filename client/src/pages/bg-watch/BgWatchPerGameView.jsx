@@ -1,31 +1,35 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../../context/AuthContext';
-import { API } from '../../api/endpoints';
-import ConfirmActionModal from '../../components/shared/ConfirmActionModal';
-import PlayCard from './PlayCard';
-import PlayDetailModal from './PlayDetailModal';
-import CreatePlayModal from './CreatePlayModal';
-import Pagination from './Pagination';
-import useBggUserMap from './useBggUserMap';
-import { GuestBanner, GuestFooter } from './BgWatchGuestCTAs';
-import styles from './BgWatchProfile.module.css';
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
+import { API } from "../../api/endpoints";
+import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
+import PlayCard from "./PlayCard";
+import PlayDetailModal from "./PlayDetailModal";
+import CreatePlayModal from "./CreatePlayModal";
+import Pagination from "./Pagination";
+import useBggUserMap from "./useBggUserMap";
+import { GuestBanner, GuestFooter } from "./BgWatchGuestCTAs";
+import styles from "./BgWatchProfile.module.css";
 
 const PLAYS_PAGE_SIZE = 10;
 
 function formatDate(iso) {
   if (!iso) return null;
-  const [y, m, d] = iso.split('-');
-  return new Date(y, m - 1, d).toLocaleDateString('es-AR', {
-    day: 'numeric', month: 'short', year: 'numeric',
+  const [y, m, d] = iso.split("-");
+  return new Date(y, m - 1, d).toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 
 function findOwnerPlayer(play, bggUsername) {
   if (!play?.players || !bggUsername) return null;
   const lower = bggUsername.toLowerCase();
-  return play.players.find((p) => (p.username || '').toLowerCase() === lower) || null;
+  return (
+    play.players.find((p) => (p.username || "").toLowerCase() === lower) || null
+  );
 }
 
 export default function BgWatchPerGameView() {
@@ -56,14 +60,15 @@ export default function BgWatchPerGameView() {
       setDeletingPlay(null);
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      alert(err.response?.data?.message || 'No se pudo eliminar la partida.');
+      alert(err.response?.data?.message || "No se pudo eliminar la partida.");
     } finally {
       setDeleting(false);
     }
   };
 
-  const isOwnProfile = !!user?.bggUsername &&
-    user.bggUsername.toLowerCase() === (bggUsername || '').toLowerCase();
+  const isOwnProfile =
+    !!user?.bggUsername &&
+    user.bggUsername.toLowerCase() === (bggUsername || "").toLowerCase();
   const canCreate = isOwnProfile && user?.bggConnected && !user?.bggInvalid;
   const isGuest = !user;
 
@@ -71,12 +76,20 @@ export default function BgWatchPerGameView() {
   useEffect(() => {
     let cancelled = false;
     setGameError(null);
-    axios.get(API.bgg.GAME(gameId))
-      .then(({ data }) => { if (!cancelled) setGame(data); })
+    axios
+      .get(API.bgg.GAME(gameId))
+      .then(({ data }) => {
+        if (!cancelled) setGame(data);
+      })
       .catch((err) => {
-        if (!cancelled) setGameError(err.response?.data?.message || 'No se pudo cargar el juego');
+        if (!cancelled)
+          setGameError(
+            err.response?.data?.message || "No se pudo cargar el juego",
+          );
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [gameId]);
 
   // Fetch plays of this game
@@ -84,13 +97,23 @@ export default function BgWatchPerGameView() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    axios.get(API.bgg.PARTIDAS(bggUsername), { params: { page, id: gameId } })
-      .then(({ data }) => { if (!cancelled) setPlays(data); })
-      .catch((err) => {
-        if (!cancelled) setError(err.response?.data?.message || 'No se pudo cargar las partidas');
+    axios
+      .get(API.bgg.PARTIDAS(bggUsername), { params: { page, id: gameId } })
+      .then(({ data }) => {
+        if (!cancelled) setPlays(data);
       })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+      .catch((err) => {
+        if (!cancelled)
+          setError(
+            err.response?.data?.message || "No se pudo cargar las partidas",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [bggUsername, gameId, page, refreshKey]);
 
   // Map of bggUsernameLower → Turnocero user for players on the current page.
@@ -109,11 +132,17 @@ export default function BgWatchPerGameView() {
         ratedCount: g.rated,
         avgDuration: g.avgDuration ?? null,
         lastPlay: g.lastDate || null,
-        source: 'server',
+        source: "server",
       };
     }
     if (!plays || plays.plays.length === 0) {
-      return { winRate: null, ratedCount: 0, avgDuration: null, lastPlay: null, source: 'page' };
+      return {
+        winRate: null,
+        ratedCount: 0,
+        avgDuration: null,
+        lastPlay: null,
+        source: "page",
+      };
     }
     let wins = 0;
     let totalRated = 0;
@@ -131,12 +160,13 @@ export default function BgWatchPerGameView() {
     return {
       winRate: totalRated > 0 ? Math.round((wins / totalRated) * 100) : null,
       ratedCount: totalRated,
-      avgDuration: durations.length > 0
-        ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
-        : null,
+      avgDuration:
+        durations.length > 0
+          ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+          : null,
       lastPlay,
       durationsCount: durations.length,
-      source: 'page',
+      source: "page",
     };
   }, [plays, bggUsername]);
 
@@ -144,11 +174,12 @@ export default function BgWatchPerGameView() {
   // "Partial" hint only when stats came from the page-derived fallback AND
   // there are more plays than what we sampled. Server-aggregated stats are
   // never partial.
-  const partialStats = stats.source === 'page' && plays && plays.total > plays.plays.length;
+  const partialStats =
+    stats.source === "page" && plays && plays.total > plays.plays.length;
 
   const handlePage = (p) => {
     setPage(p);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -175,17 +206,21 @@ export default function BgWatchPerGameView() {
             <Link
               to={`/bg-watch/${encodeURIComponent(bggUsername)}`}
               className={styles.eyebrow}
-              style={{ textDecoration: 'none' }}
+              style={{ textDecoration: "none" }}
             >
               ◆ {bggUsername}
             </Link>
-            <h1 className={styles.heroTitle}>{game?.name || (gameError ? 'Juego no encontrado' : '…')}</h1>
+            <h1 className={styles.heroTitle}>
+              {game?.name || (gameError ? "Juego no encontrado" : "…")}
+            </h1>
             {game && (
               <div className={styles.gameHeroMeta}>
                 {game.year && <span>{game.year}</span>}
                 {(game.minPlayers || game.maxPlayers) && (
                   <span>
-                    {game.minPlayers && game.maxPlayers && game.minPlayers !== game.maxPlayers
+                    {game.minPlayers &&
+                    game.maxPlayers &&
+                    game.minPlayers !== game.maxPlayers
                       ? `${game.minPlayers}–${game.maxPlayers} jugadores`
                       : `${game.minPlayers || game.maxPlayers} jugadores`}
                   </span>
@@ -221,25 +256,29 @@ export default function BgWatchPerGameView() {
             <div className={styles.statCard}>
               <span className={styles.statLabel}>% de victorias</span>
               <span className={styles.statValue}>
-                {stats.winRate !== null ? `${stats.winRate}%` : '—'}
+                {stats.winRate !== null ? `${stats.winRate}%` : "—"}
               </span>
               {partialStats && stats.winRate !== null && (
-                <span className={styles.statHint}>de últimas {stats.ratedCount}</span>
+                <span className={styles.statHint}>
+                  de últimas {stats.ratedCount}
+                </span>
               )}
             </div>
             <div className={styles.statCard}>
               <span className={styles.statLabel}>Duración media</span>
               <span className={styles.statValue}>
-                {stats.avgDuration !== null ? `${stats.avgDuration}m` : '—'}
+                {stats.avgDuration !== null ? `${stats.avgDuration}m` : "—"}
               </span>
               {partialStats && stats.avgDuration !== null && (
-                <span className={styles.statHint}>de últimas {stats.durationsCount}</span>
+                <span className={styles.statHint}>
+                  de últimas {stats.durationsCount}
+                </span>
               )}
             </div>
             <div className={styles.statCard}>
               <span className={styles.statLabel}>Última partida</span>
               <span className={styles.statValueSm}>
-                {stats.lastPlay ? formatDate(stats.lastPlay) : '—'}
+                {stats.lastPlay ? formatDate(stats.lastPlay) : "—"}
               </span>
             </div>
           </div>
@@ -268,7 +307,7 @@ export default function BgWatchPerGameView() {
           <div className={styles.playsList}>
             <div className={styles.playsHeader}>
               <span className={styles.playsTotal}>
-                {plays.total} partida{plays.total === 1 ? '' : 's'}
+                {plays.total} partida{plays.total === 1 ? "" : "s"}
               </span>
               <span className={styles.paginationInfo}>
                 página {page} de {totalPages}
@@ -284,7 +323,11 @@ export default function BgWatchPerGameView() {
                 onDelete={canCreate ? () => setDeletingPlay(play) : undefined}
               />
             ))}
-            <Pagination page={page} totalPages={totalPages} onPage={handlePage} />
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPage={handlePage}
+            />
           </div>
         )}
 
@@ -292,18 +335,26 @@ export default function BgWatchPerGameView() {
       </div>
 
       {openPlay && (
-        <PlayDetailModal play={openPlay} userMap={userMap} onClose={() => setOpenPlay(null)} />
+        <PlayDetailModal
+          play={openPlay}
+          userMap={userMap}
+          onClose={() => setOpenPlay(null)}
+        />
       )}
 
       {createOpen && (
         <CreatePlayModal
           user={user}
-          preselectedGame={game ? {
-            id: game.id,
-            name: game.name,
-            thumbnail: game.thumbnail,
-            year: game.year,
-          } : null}
+          preselectedGame={
+            game
+              ? {
+                  id: game.id,
+                  name: game.name,
+                  thumbnail: game.thumbnail,
+                  year: game.year,
+                }
+              : null
+          }
           onClose={() => setCreateOpen(false)}
           onCreated={() => setRefreshKey((k) => k + 1)}
         />
@@ -321,9 +372,11 @@ export default function BgWatchPerGameView() {
       <ConfirmActionModal
         isOpen={!!deletingPlay}
         title="Eliminar partida"
-        message={deletingPlay
-          ? `¿Eliminar la partida del ${deletingPlay.date || '?'}? Esta acción no se puede deshacer y borra la partida en BGG.`
-          : ''}
+        message={
+          deletingPlay
+            ? `¿Eliminar la partida del ${deletingPlay.date || "?"}? Esta acción no se puede deshacer y borra la partida en BGG.`
+            : ""
+        }
         confirmLabel="Eliminar"
         cancelLabel="Cancelar"
         variant="danger"

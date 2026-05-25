@@ -3,19 +3,22 @@ Scan all React files in `client/src/` for Socket.IO subscriptions (`socket.on`) 
 ## Background
 
 A `socket.on` inside a `useEffect` without a corresponding cleanup leaks an event listener every time the component re-renders or re-mounts. On a socket that persists across the session (like the one in `NotificationContext`), this causes:
+
 - Duplicate handlers firing for the same event
 - Memory leaks that grow with each navigation
 - Stale closure bugs where old handlers capture outdated state
 
 **Required pattern:**
+
 ```js
 useEffect(() => {
-  socket.on('event:name', handler);
-  return () => socket.off('event:name', handler); // ← required
+  socket.on("event:name", handler);
+  return () => socket.off("event:name", handler); // ← required
 }, [deps]);
 ```
 
 **Or when using a named handler:**
+
 ```js
 useEffect(() => {
   const handleFoo = (data) => { ... };
@@ -51,17 +54,18 @@ Calling `.off` on an inline function doesn't work (different reference each rend
 ### 3. Fix each issue
 
 **Fix for missing cleanup:**
+
 ```js
 // Before
 useEffect(() => {
-  socket.on('table:update', (data) => setTable(data));
+  socket.on("table:update", (data) => setTable(data));
 }, [socket]);
 
 // After
 useEffect(() => {
   const handleUpdate = (data) => setTable(data);
-  socket.on('table:update', handleUpdate);
-  return () => socket.off('table:update', handleUpdate);
+  socket.on("table:update", handleUpdate);
+  return () => socket.off("table:update", handleUpdate);
 }, [socket]);
 ```
 

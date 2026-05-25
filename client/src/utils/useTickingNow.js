@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 // Re-renderiza el componente cada `intervalMs` actualizando el state `now`.
 // Útil para countdowns y "hace X minutos" sin tener que llamar Date.now() en

@@ -1,22 +1,26 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { useSiteConfig } from '../../context/SiteConfigContext';
-import PasswordInput from './PasswordInput';
-import GameTile from '../../components/shared/GameTile';
-import Logo from '../../components/shared/Logo';
-import styles from './Auth.module.css';
-import { getErrorMessage } from '../../utils/getErrorMessage';
-import { STORAGE_KEYS } from '../../utils/storageKeys';
-import { useShowcaseTables } from '../../hooks/useShowcaseTables';
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { useSiteConfig } from "../../context/SiteConfigContext";
+import PasswordInput from "./PasswordInput";
+import GameTile from "../../components/shared/GameTile";
+import Logo from "../../components/shared/Logo";
+import styles from "./Auth.module.css";
+import { getErrorMessage } from "../../utils/getErrorMessage";
+import { STORAGE_KEYS } from "../../utils/storageKeys";
+import { useShowcaseTables } from "../../hooks/useShowcaseTables";
 
 function formatShowcaseDate(dateStr) {
   const d = new Date(dateStr);
-  const weekday = d.toLocaleDateString('es-AR', { weekday: 'short' });
+  const weekday = d.toLocaleDateString("es-AR", { weekday: "short" });
   const day = d.getDate();
-  const month = d.toLocaleDateString('es-AR', { month: 'short' });
-  const time = d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
-  return `${weekday} ${day} ${month} · ${time}`.replace(/\./g, '');
+  const month = d.toLocaleDateString("es-AR", { month: "short" });
+  const time = d.toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return `${weekday} ${day} ${month} · ${time}`.replace(/\./g, "");
 }
 
 export function ShowcaseCard({ table }) {
@@ -28,25 +32,28 @@ export function ShowcaseCard({ table }) {
     <div className={styles.showcaseCard}>
       <div className={styles.showcaseCardGame}>{table.boardGame}</div>
       <div className={styles.showcaseCardMeta}>
-        {table.host.username}{table.location ? ` · ${table.location}` : ''}
+        {table.host.username}
+        {table.location ? ` · ${table.location}` : ""}
       </div>
       <div className={styles.showcaseCardBar}>
         <div className={styles.showcaseCardFill} style={{ width: `${pct}%` }} />
       </div>
       <div className={styles.showcaseCardFooter}>
         <span className={styles.showcaseCardSeats}>
-          ● {available} lugar{available !== 1 ? 'es' : ''}
+          ● {available} lugar{available !== 1 ? "es" : ""}
         </span>
-        <span className={styles.showcaseCardDate}>{formatShowcaseDate(table.date)}</span>
+        <span className={styles.showcaseCardDate}>
+          {formatShowcaseDate(table.date)}
+        </span>
       </div>
     </div>
   );
 }
 
 export default function Login() {
-  const [form, setForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
-  const [flash, setFlash] = useState('');
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [flash, setFlash] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const { loaded: siteConfigLoaded, isSectionEnabled } = useSiteConfig();
@@ -55,7 +62,7 @@ export default function Login() {
   // 'mesas' está deshabilitada (site-wide setting de admin). Pasamos
   // `enabled` al hook para no disparar el request hasta que el guard
   // esté satisfecho.
-  const showcaseEnabled = siteConfigLoaded && isSectionEnabled('mesas');
+  const showcaseEnabled = siteConfigLoaded && isSectionEnabled("mesas");
   const { showcase, seed } = useShowcaseTables({ enabled: showcaseEnabled });
 
   useEffect(() => {
@@ -76,19 +83,21 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setFlash('');
+    setError("");
+    setFlash("");
     setLoading(true);
     try {
       await login(form.email, form.password);
-      navigate('/');
+      navigate("/");
     } catch (err) {
       const data = err.response?.data;
-      if (data?.code === 'email_not_verified') {
-        navigate('/verificar-email', { state: { email: data.email || form.email } });
+      if (data?.code === "email_not_verified") {
+        navigate("/verificar-email", {
+          state: { email: data.email || form.email },
+        });
         return;
       }
-      setError(getErrorMessage(err, 'Error al iniciar sesión'));
+      setError(getErrorMessage(err, "Error al iniciar sesión"));
     } finally {
       setLoading(false);
     }
@@ -116,7 +125,9 @@ export default function Login() {
         {/* Heading */}
         <div className={styles.eyebrow}>◆ BIENVENIDO DE VUELTA</div>
         <h1 className={styles.heading}>Tirá los dados.</h1>
-        <p className={styles.sub}>Sumate a tu próxima partida o convocá la tuya.</p>
+        <p className={styles.sub}>
+          Sumate a tu próxima partida o convocá la tuya.
+        </p>
 
         {/* Form */}
         {error && <div className={styles.errorBox}>{error}</div>}
@@ -161,20 +172,29 @@ export default function Login() {
           </div>
 
           <button type="submit" className={styles.submitBtn} disabled={loading}>
-            {loading ? 'Entrando…' : <><span>🎲</span> Entrar</>}
+            {loading ? (
+              "Entrando…"
+            ) : (
+              <>
+                <span>🎲</span> Entrar
+              </>
+            )}
           </button>
         </form>
 
         <p className={styles.switchLink}>
-          ¿No tenés cuenta?{' '}
-          <Link to="/register">Crear cuenta →</Link>
+          ¿No tenés cuenta? <Link to="/register">Crear cuenta →</Link>
         </p>
       </div>
 
       {/* ── Right: showcase (desktop only) ── */}
       <div className={styles.showcase}>
         <div className={styles.showcaseTile}>
-          <GameTile game={showcase?.table?.boardGame || 'TurnoCero'} seed={seed} size="100%" />
+          <GameTile
+            game={showcase?.table?.boardGame || "TurnoCero"}
+            seed={seed}
+            size="100%"
+          />
         </div>
         <div className={styles.showcaseGradient} />
         <div className={styles.showcaseContent}>
@@ -182,13 +202,19 @@ export default function Login() {
             <div className={styles.showcaseEyebrow}>◆ MESAS ACTIVAS</div>
             {showcase?.total > 0 ? (
               <h2 className={styles.showcaseTitle}>
-                {showcase.total} mesas<br />
-                <span className={styles.showcaseTitleAccent}>esperando jugadores.</span>
+                {showcase.total} mesas
+                <br />
+                <span className={styles.showcaseTitleAccent}>
+                  esperando jugadores.
+                </span>
               </h2>
             ) : (
               <h2 className={styles.showcaseTitle}>
-                ¿Y vos qué<br />
-                <span className={styles.showcaseTitleAccent}>esperás para sumarte?</span>
+                ¿Y vos qué
+                <br />
+                <span className={styles.showcaseTitleAccent}>
+                  esperás para sumarte?
+                </span>
               </h2>
             )}
           </div>

@@ -65,10 +65,19 @@ describe("computeGameStats", () => {
   });
 
   it("avgDuration ignora duration=0 y devuelve null cuando no hay durations", async () => {
-    await makePlay({ duration: 60, players: [{ username: "alice", win: true }] });
-    await makePlay({ duration: 90, players: [{ username: "alice", win: true }] });
+    await makePlay({
+      duration: 60,
+      players: [{ username: "alice", win: true }],
+    });
+    await makePlay({
+      duration: 90,
+      players: [{ username: "alice", win: true }],
+    });
     // Play con duration=0 no debe afectar el promedio.
-    await makePlay({ duration: 0, players: [{ username: "alice", win: true }] });
+    await makePlay({
+      duration: 0,
+      players: [{ username: "alice", win: true }],
+    });
     const stats = await computeGameStats("alice", "100");
     expect(stats.avgDuration).toBe(75);
   });

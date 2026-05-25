@@ -25,12 +25,14 @@ El servidor ya tiene un proxy BGG funcional en `/api/bgg/` que resuelve el probl
 Agregar dos endpoints al archivo existente (reutilizando el patrón de caché ya implementado):
 
 **`GET /api/bgg/search?q=<query>`**
+
 - Llama a `https://boardgamegeek.com/xmlapi2/search?query=<q>&type=boardgame&exact=0`
 - Parsea XML con `fast-xml-parser` (ya importado)
 - Retorna los primeros 15 resultados: `[{ id, name, year }]`
 - Caché de 5 minutos por query string
 
 **`GET /api/bgg/game/:id`**
+
 - Llama a `https://boardgamegeek.com/xmlapi2/thing?id=<id>&type=boardgame`
 - Parsea XML y retorna: `{ id, name, thumbnail, year, minPlayers, maxPlayers }`
 - Caché de 30 minutos por ID
@@ -51,9 +53,30 @@ bggYear:      { type: Number, default: null },
 En el handler de creación (línea ~155), desestructurar y persistir los nuevos campos:
 
 ```js
-const { boardGame, date, maxPlayers, location, description, privacy, bggId, bggThumbnail, bggYear } = req.body;
+const {
+  boardGame,
+  date,
+  maxPlayers,
+  location,
+  description,
+  privacy,
+  bggId,
+  bggThumbnail,
+  bggYear,
+} = req.body;
 // ...
-await Table.create({ boardGame, date, maxPlayers, location, description, privacy, host, bggId, bggThumbnail, bggYear });
+await Table.create({
+  boardGame,
+  date,
+  maxPlayers,
+  location,
+  description,
+  privacy,
+  host,
+  bggId,
+  bggThumbnail,
+  bggYear,
+});
 ```
 
 Hacer lo mismo en el handler PUT para edición.
@@ -61,8 +84,9 @@ Hacer lo mismo en el handler PUT para edición.
 ### 4. Client — CreateTable.jsx
 
 **Estado nuevo:**
+
 ```js
-const [boardGameInput, setBoardGameInput] = useState('');
+const [boardGameInput, setBoardGameInput] = useState("");
 const [boardGameSelected, setBoardGameSelected] = useState(null); // { name, id, thumbnail, year }
 const [suggestions, setSuggestions] = useState([]);
 const [searching, setSearching] = useState(false);
@@ -70,16 +94,19 @@ const [showDropdown, setShowDropdown] = useState(false);
 ```
 
 **Lógica de búsqueda:**
+
 - `useEffect` sobre `boardGameInput`: si `length >= 3`, debounce 400ms y llama `GET /api/bgg/search?q=<input>`
 - Si el usuario escribe algo distinto a lo seleccionado, limpiar `boardGameSelected`
 
 **Flujo de selección:**
+
 1. Usuario escribe ≥ 3 chars → dropdown con resultados (nombre + año)
 2. Selecciona un juego → llama `GET /api/bgg/game/:id` para obtener thumbnail → guarda en `boardGameSelected`
 3. El input muestra el nombre seleccionado; el dropdown se cierra
 4. Si borra texto, `boardGameSelected` se limpia y el dropdown vuelve a abrirse al seguir escribiendo
 
 **Validación en submit:**
+
 ```js
 if (!boardGameSelected) {
   setErrors({ boardGame: 'Seleccioná un juego del catálogo de BGG' });
@@ -97,6 +124,7 @@ bggYear: boardGameSelected.year,
 ### 5. Client — CreateTable.module.css
 
 Agregar estilos para:
+
 - `.gameSearchWrapper` — `position: relative` para contener el dropdown absoluto
 - `.suggestions` — dropdown con `position: absolute`, fondo oscuro, `z-index`, max-height + scroll
 - `.suggestionItem` — hover highlight, cursor pointer, muestra nombre + año

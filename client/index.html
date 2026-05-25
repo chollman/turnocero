@@ -8,36 +8,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1888ef" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta name="apple-mobile-web-app-title" content="Turnocero" />
     <title>Turnocero 🎲</title>
-    <meta name="description" content="Organizá y encontrá partidas de juegos de mesa en tu comunidad." />
+    <meta
+      name="description"
+      content="Organizá y encontrá partidas de juegos de mesa en tu comunidad."
+    />
 
     <script>
       (function () {
         try {
-          var t = localStorage.getItem('turnocero_theme');
-          if (t !== 'dark' && t !== 'light') t = 'dark';
-          document.documentElement.setAttribute('data-theme', t);
+          var t = localStorage.getItem("turnocero_theme");
+          if (t !== "dark" && t !== "light") t = "dark";
+          document.documentElement.setAttribute("data-theme", t);
         } catch (e) {
-          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.setAttribute("data-theme", "dark");
         }
       })();
     </script>
 
     <!-- Open Graph -->
-    <meta property="og:type"        content="website" />
-    <meta property="og:site_name"   content="Turnocero" />
-    <meta property="og:title"       content="Turnocero 🎲 – Compartidas de juegos de mesa" />
-    <meta property="og:description" content="Organizá y encontrá partidas de juegos de mesa en tu comunidad." />
-    <meta property="og:image"       content="/og-default.png" />
-    <meta property="og:locale"      content="es_AR" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Turnocero" />
+    <meta
+      property="og:title"
+      content="Turnocero 🎲 – Compartidas de juegos de mesa"
+    />
+    <meta
+      property="og:description"
+      content="Organizá y encontrá partidas de juegos de mesa en tu comunidad."
+    />
+    <meta property="og:image" content="/og-default.png" />
+    <meta property="og:locale" content="es_AR" />
 
     <!-- Twitter / X -->
-    <meta name="twitter:card"        content="summary_large_image" />
-    <meta name="twitter:title"       content="Turnocero 🎲 – Compartidas de juegos de mesa" />
-    <meta name="twitter:description" content="Organizá y encontrá partidas de juegos de mesa en tu comunidad." />
-    <meta name="twitter:image"       content="/og-default.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Turnocero 🎲 – Compartidas de juegos de mesa"
+    />
+    <meta
+      name="twitter:description"
+      content="Organizá y encontrá partidas de juegos de mesa en tu comunidad."
+    />
+    <meta name="twitter:image" content="/og-default.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

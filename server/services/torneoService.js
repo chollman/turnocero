@@ -131,7 +131,10 @@ async function buildAndInsertGroupsForPhase(
 //
 // Recursivo: si el child también había completado y dependía del slot
 // que estamos limpiando, también se invalida.
-async function cascadeClearWinner(matchId, slotKey /* 'playerA' | 'playerB' */) {
+async function cascadeClearWinner(
+  matchId,
+  slotKey /* 'playerA' | 'playerB' */,
+) {
   const match = await TorneoMatch.findById(matchId);
   if (!match) return;
   // Capturamos el winner antes de tocar el slot — sino perdemos quién

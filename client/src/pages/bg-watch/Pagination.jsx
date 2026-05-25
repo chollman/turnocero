@@ -1,4 +1,4 @@
-import styles from './BgWatchProfile.module.css';
+import styles from "./BgWatchProfile.module.css";
 
 export default function Pagination({ page, totalPages, onPage }) {
   if (totalPages <= 1) return null;
@@ -8,9 +8,15 @@ export default function Pagination({ page, totalPages, onPage }) {
   const left = Math.max(1, page - delta);
   const right = Math.min(totalPages, page + delta);
 
-  if (left > 1) { range.push(1); if (left > 2) range.push('…'); }
+  if (left > 1) {
+    range.push(1);
+    if (left > 2) range.push("…");
+  }
   for (let i = left; i <= right; i++) range.push(i);
-  if (right < totalPages) { if (right < totalPages - 1) range.push('…'); range.push(totalPages); }
+  if (right < totalPages) {
+    if (right < totalPages - 1) range.push("…");
+    range.push(totalPages);
+  }
 
   return (
     <div className={styles.pagination}>
@@ -22,20 +28,22 @@ export default function Pagination({ page, totalPages, onPage }) {
       >
         ‹
       </button>
-      {range.map((item, i) => (
-        item === '…'
-          ? <span key={`ellipsis-${i}`} className={styles.pageEllipsis}>…</span>
-          : (
-            <button
-              key={item}
-              type="button"
-              className={`${styles.pageBtn} ${item === page ? styles.pageBtnActive : ''}`}
-              onClick={() => onPage(item)}
-            >
-              {item}
-            </button>
-          )
-      ))}
+      {range.map((item, i) =>
+        item === "…" ? (
+          <span key={`ellipsis-${i}`} className={styles.pageEllipsis}>
+            …
+          </span>
+        ) : (
+          <button
+            key={item}
+            type="button"
+            className={`${styles.pageBtn} ${item === page ? styles.pageBtnActive : ""}`}
+            onClick={() => onPage(item)}
+          >
+            {item}
+          </button>
+        ),
+      )}
       <button
         className={styles.pageBtn}
         onClick={() => onPage(page + 1)}

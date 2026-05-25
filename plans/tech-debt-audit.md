@@ -91,6 +91,7 @@ Cosas que requieren plan, branches separadas y tests adicionales. Cada item es u
 **Problema:** un único archivo maneja toda la lógica de notificaciones (chat, friends, torneos, compartidas, eventos, DMs), toasts, y conexión Socket.IO. Cualquier cambio en un dominio toca este monolito.
 
 **Estrategia:**
+
 1. Mantener un `NotificationContext` slim que sólo posea `state` + dispatch.
 2. Extraer los listeners por dominio a hooks colocados con su feature:
    - `client/src/pages/torneos/useTorneoNotifications.js`
@@ -107,6 +108,7 @@ Cosas que requieren plan, branches separadas y tests adicionales. Cada item es u
 ### 🔴 P1.2 — Split de `TableDetail.jsx` (1471 líneas, 27 `useState`)
 
 **Archivos derivados a crear:**
+
 - `client/src/pages/tables/TableChat.jsx` — chat de la mesa (socket, mensajes, lista).
 - `client/src/pages/tables/TableComments.jsx` — comentarios.
 - `client/src/pages/tables/TableGallery.jsx` — imágenes + upload.
@@ -121,6 +123,7 @@ Cosas que requieren plan, branches separadas y tests adicionales. Cada item es u
 ### 🔴 P1.3 — Split de `CompartidaCard.jsx` (1155 líneas)
 
 Similar a P1.2:
+
 - `CompartidaHeader`, `CompartidaGallery`, `CompartidaLightbox`, `CompartidaComments`, `CompartidaActions`.
 - Hooks: `useCompartidaLike`, `useCompartidaComments`.
 
@@ -131,6 +134,7 @@ Similar a P1.2:
 **Problema:** lógica de sync con BGG, caché en memoria, mutación via `geekplay.php`, y HTTP handling, todo en un solo archivo.
 
 **Estrategia:**
+
 1. Mover servicios a `server/services/bgg/`:
    - `bggGameService.js` (search, getDetails)
    - `bggCollectionService.js` (resolveCollection, refresh)
@@ -156,11 +160,13 @@ Similar a P1.2:
 **Problema:** 80+ `try/catch` repetidos en routers. Cambiar el contrato de error (ej. agregar logging global) requiere editar todos.
 
 **Fix:**
+
 ```js
 // server/utils/asyncHandler.js
 module.exports = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 ```
+
 Más un middleware central de error handler en `server/middleware/errorHandler.js` que normalice respuestas a `{ message }`.
 
 **Esfuerzo:** 1 día + migrar incrementalmente.
@@ -174,10 +180,17 @@ Extracciones puntuales que matan duplicación. Cada una es un PR pequeño.
 ### 🟡 P2.1 — Hook `useApi` / `useFetchWithLoading`
 
 **Patrón duplicado en 20+ componentes:**
+
 ```js
 const [loading, setLoading] = useState(false);
 setLoading(true);
-try { /* axios */ } catch (e) { /* toast */ } finally { setLoading(false); }
+try {
+  /* axios */
+} catch (e) {
+  /* toast */
+} finally {
+  setLoading(false);
+}
 ```
 
 **Crear:** `client/src/hooks/useApi.js` con `{ loading, error, execute, data }`. Migrar incrementalmente (no big-bang).
@@ -198,6 +211,7 @@ const [seed] = useState(() => Math.floor(Math.random() * 100));
 ### 🟡 P2.3 — `client/src/utils/passwordValidation.js`
 
 **Duplicado en:**
+
 - [Register.jsx:43-47](client/src/pages/auth/Register.jsx)
 - [ResetPassword.jsx:40-45](client/src/pages/auth/ResetPassword.jsx)
 
@@ -205,7 +219,8 @@ const [seed] = useState(() => Math.floor(Math.random() * 100));
 export function isValidPassword(pwd) {
   return pwd.length >= 8 && /[A-Z]/.test(pwd) && /\d/.test(pwd);
 }
-export const PASSWORD_REQUIREMENTS = 'La contraseña debe tener al menos 8 caracteres, una mayúscula y un número';
+export const PASSWORD_REQUIREMENTS =
+  "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número";
 ```
 
 ### 🟡 P2.4 — `client/src/utils/storageKeys.js` y `client/src/utils/messages.js`
@@ -241,6 +256,7 @@ Cosas para atacar en el día a día, no requieren branch dedicada.
 ### 🔴 P3.1 — Auditar `useEffect` con `eslint-disable react-hooks/exhaustive-deps` sin comentario
 
 **Archivos:**
+
 - [TableDetail.jsx:234](client/src/pages/tables/TableDetail.jsx) — sin comentario.
 - [NotificationContext.jsx:919](client/src/context/NotificationContext.jsx) — sin comentario.
 - [BottomNav.jsx:245](client/src/components/layout/BottomNav.jsx) — sin comentario.
@@ -272,6 +288,7 @@ Cosas para atacar en el día a día, no requieren branch dedicada.
 ### 🟡 P3.5 — Voseo argentino inconsistente
 
 **Archivos auth:**
+
 - [Login.jsx:119](client/src/pages/auth/Login.jsx) — "Sumate a tu próxima partida" ✓
 - [ForgotPassword.jsx](client/src/pages/auth/ForgotPassword.jsx) — "¿Olvidaste tu contraseña?" → considerar "¿Olvidaste tu clave?"
 - Hay alguna mezcla "tu" formal vs "vos". Revisar UX copy en pages de auth.
@@ -316,6 +333,7 @@ Cosas para atacar en el día a día, no requieren branch dedicada.
 **Archivos:** `client/vitest.config.js`, `server/vitest.config.js` — sin thresholds.
 
 **Fix:** agregar mínimos prudentes para no degradar:
+
 ```js
 coverage: { lines: 70, functions: 70, branches: 65, statements: 70 }
 ```

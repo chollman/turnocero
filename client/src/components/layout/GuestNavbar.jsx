@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
-import Logo from '../shared/Logo';
-import styles from './GuestNavbar.module.css';
+import { Link } from "react-router-dom";
+import Logo from "../shared/Logo";
+import styles from "./GuestNavbar.module.css";
 
 export default function GuestNavbar() {
   return (
@@ -15,8 +15,12 @@ export default function GuestNavbar() {
         </Link>
 
         <div className={styles.right}>
-          <Link to="/login" className={styles.btnLogin}>Iniciá sesión</Link>
-          <Link to="/register" className={styles.btnRegister}>Registrate</Link>
+          <Link to="/login" className={styles.btnLogin}>
+            Iniciá sesión
+          </Link>
+          <Link to="/register" className={styles.btnRegister}>
+            Registrate
+          </Link>
         </div>
       </div>
     </nav>

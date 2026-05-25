@@ -24,6 +24,7 @@ The server's `protect` middleware already accepted both cookies and `Authorizati
 **Server** (`server/routes/auth.js`): login and register responses now include `token` in the JSON body alongside `user`. The cookie is still set for backwards compatibility with other browsers.
 
 **Client** (`client/src/context/AuthContext.jsx`):
+
 - On mount: reads token from `localStorage`, sets `Authorization` header, then validates via `GET /api/auth/me`.
 - After login/register: stores `data.token` in `localStorage` and sets the header.
 - On logout: removes the token from `localStorage` and clears the header.
@@ -34,10 +35,10 @@ This is additive — cookies still work for Chrome/Firefox, and the Bearer token
 
 The correct solution is to eliminate the cross-site boundary by hosting both the frontend and API under the same apex domain. For example:
 
-| Service  | Domain                   |
-|----------|--------------------------|
-| Frontend | `turnocero.com`          |
-| API      | `api.turnocero.com`      |
+| Service  | Domain              |
+| -------- | ------------------- |
+| Frontend | `turnocero.com`     |
+| API      | `api.turnocero.com` |
 
 With a shared apex domain, configure the cookie as:
 
@@ -53,6 +54,7 @@ With a shared apex domain, configure the cookie as:
 `SameSite=lax` cookies are first-party from Safari's perspective, so ITP does not apply. The `localStorage`/Bearer workaround can then be removed.
 
 This requires:
+
 1. Registering a custom domain
 2. Pointing it to GitHub Pages (frontend) and Render (API), or migrating to a host that serves both under the same domain
 3. Updating `CORS_ORIGIN` env var and the Vite proxy config

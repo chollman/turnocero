@@ -1,31 +1,26 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    environment: 'node',
+    environment: "node",
     globals: true,
-    setupFiles: ['./tests/setup.js'],
-    include: ['tests/**/*.test.js'],
+    setupFiles: ["./tests/setup.js"],
+    include: ["tests/**/*.test.js"],
     testTimeout: 30000,
     hookTimeout: 120000,
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html'],
-      reportsDirectory: './coverage',
+      provider: "v8",
+      reporter: ["text", "html"],
+      reportsDirectory: "./coverage",
       include: [
-        'app.js',
-        'middleware/**/*.js',
-        'models/**/*.js',
-        'routes/**/*.js',
-        'utils/**/*.js',
-        'config/**/*.js',
+        "app.js",
+        "middleware/**/*.js",
+        "models/**/*.js",
+        "routes/**/*.js",
+        "utils/**/*.js",
+        "config/**/*.js",
       ],
-      exclude: [
-        'server.js',
-        'scripts/**',
-        'tests/**',
-        'node_modules/**',
-      ],
+      exclude: ["server.js", "scripts/**", "tests/**", "node_modules/**"],
       // Thresholds tomados ~5-6% por debajo del baseline real
       // (2026-05-22: stmts 61, branches 52, fns 61, lines 61). El
       // server tiene routers grandes (bgg, torneos, eventos) que
@@ -39,7 +34,7 @@ export default defineConfig({
         lines: 55,
       },
     },
-    pool: 'forks',
+    pool: "forks",
     forks: {
       singleFork: true,
     },

@@ -1,14 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../../context/AuthContext';
-import { useChat } from '../../context/ChatContext';
-import { API } from '../../api/endpoints';
-import Avatar from '../../components/shared/Avatar';
-import styles from './DirectChat.module.css';
+import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
+import { useChat } from "../../context/ChatContext";
+import { API } from "../../api/endpoints";
+import Avatar from "../../components/shared/Avatar";
+import styles from "./DirectChat.module.css";
 
 function formatTime(date) {
-  return new Date(date).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  return new Date(date).toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function DirectChat() {
@@ -17,7 +20,7 @@ export default function DirectChat() {
   const { conversations, openChat, sendMessage } = useChat();
   const navigate = useNavigate();
   const [contact, setContact] = useState(null);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loadedCount, setLoadedCount] = useState(null);
   const messageListRef = useRef(null);
@@ -27,12 +30,13 @@ export default function DirectChat() {
 
   // Load contact info and open chat in context
   useEffect(() => {
-    axios.get(API.users.DETAIL(userId))
+    axios
+      .get(API.users.DETAIL(userId))
       .then(({ data }) => {
         setContact(data.user || data);
         openChat(data.user || data);
       })
-      .catch(() => navigate('/mensajes', { replace: true }));
+      .catch(() => navigate("/mensajes", { replace: true }));
   }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset the snapshot when switching conversations
@@ -59,7 +63,7 @@ export default function DirectChat() {
     const content = input.trim();
     if (!content || sending) return;
     setSending(true);
-    setInput('');
+    setInput("");
     try {
       await sendMessage(userId, content);
     } catch {
@@ -72,19 +76,47 @@ export default function DirectChat() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <button className={styles.backBtn} onClick={() => navigate('/mensajes')}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6"/>
+        <button
+          className={styles.backBtn}
+          onClick={() => navigate("/mensajes")}
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m15 18-6-6 6-6" />
           </svg>
         </button>
         <div className={styles.headerInfo}>
           <Avatar user={contact} size="sm" />
-          <span className={styles.headerName}>{contact?.username || '...'}</span>
+          <span className={styles.headerName}>
+            {contact?.username || "..."}
+          </span>
         </div>
         {contact && (
-          <Link to={`/usuarios/${userId}`} className={styles.profileBtn} title="Ver perfil">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+          <Link
+            to={`/usuarios/${userId}`}
+            className={styles.profileBtn}
+            title="Ver perfil"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
             </svg>
           </Link>
         )}
@@ -95,13 +127,16 @@ export default function DirectChat() {
           <div className={styles.loading}>Cargando mensajes...</div>
         )}
         {messages.map((msg, i) => {
-          const isOwn = msg.from && (msg.from._id || msg.from).toString() === user._id.toString();
+          const isOwn =
+            msg.from &&
+            (msg.from._id || msg.from).toString() === user._id.toString();
           const isNew = loadedCount !== null && i >= loadedCount;
           return (
-            <div key={msg._id} className={`${styles.message} ${isOwn ? styles.own : styles.other} ${isNew ? styles.messageNew : ''}`}>
-              {!isOwn && (
-                <Avatar user={msg.from} size="xs" />
-              )}
+            <div
+              key={msg._id}
+              className={`${styles.message} ${isOwn ? styles.own : styles.other} ${isNew ? styles.messageNew : ""}`}
+            >
+              {!isOwn && <Avatar user={msg.from} size="xs" />}
               <div className={styles.msgContent}>
                 <div className={styles.bubble}>{msg.content}</div>
                 <span className={styles.time}>{formatTime(msg.createdAt)}</span>
@@ -127,9 +162,13 @@ export default function DirectChat() {
           maxLength={1000}
           autoComplete="off"
         />
-        <button className={styles.sendBtn} type="submit" disabled={sending || !input.trim()}>
+        <button
+          className={styles.sendBtn}
+          type="submit"
+          disabled={sending || !input.trim()}
+        >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/>
+            <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
           </svg>
         </button>
       </form>

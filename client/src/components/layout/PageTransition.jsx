@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Routes, useLocation } from 'react-router-dom';
-import styles from './PageTransition.module.css';
+import { useEffect, useState } from "react";
+import { Routes, useLocation } from "react-router-dom";
+import styles from "./PageTransition.module.css";
 
-const getSection = (pathname) => pathname.split('/')[1] || '';
+const getSection = (pathname) => pathname.split("/")[1] || "";
 
 /**
  * Wraps <Routes> and animates section changes as a two-phase slide:
@@ -16,38 +16,36 @@ const getSection = (pathname) => pathname.split('/')[1] || '';
 export default function PageTransition({ children }) {
   const location = useLocation();
   const [displayLocation, setDisplayLocation] = useState(location);
-  const [phase, setPhase] = useState('idle');
+  const [phase, setPhase] = useState("idle");
 
   useEffect(() => {
     if (location.pathname === displayLocation.pathname) return;
-    const sameSection = getSection(location.pathname) === getSection(displayLocation.pathname);
+    const sameSection =
+      getSection(location.pathname) === getSection(displayLocation.pathname);
     if (sameSection) {
       setDisplayLocation(location);
     } else {
-      setPhase('out');
+      setPhase("out");
     }
   }, [location, displayLocation]);
 
   const handleAnimationEnd = (e) => {
     // Ignore animations bubbling up from child elements
     if (e.target !== e.currentTarget) return;
-    if (phase === 'out') {
+    if (phase === "out") {
       setDisplayLocation(location);
-      setPhase('in');
-    } else if (phase === 'in') {
-      setPhase('idle');
+      setPhase("in");
+    } else if (phase === "in") {
+      setPhase("idle");
     }
   };
 
   const className =
-    phase === 'out' ? styles.slideOut :
-    phase === 'in' ? styles.slideIn : '';
+    phase === "out" ? styles.slideOut : phase === "in" ? styles.slideIn : "";
 
   return (
     <div className={className} onAnimationEnd={handleAnimationEnd}>
-      <Routes location={displayLocation}>
-        {children}
-      </Routes>
+      <Routes location={displayLocation}>{children}</Routes>
     </div>
   );
 }

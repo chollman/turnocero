@@ -1,976 +1,1696 @@
 <!doctype html>
 <html lang="es">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mobile · Reimaginado — Turnocero</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mobile · Reimaginado — Turnocero</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
 
-<style>
-  :root {
-    --bg-dark: #0a0d15;
-    --bg-card: #151c28;
-    --bg-paper: #18202f;
-    --bg-elevated: #1d2532;
-    --bg-deep: #050810;
-    --accent: #1888ef;
-    --accent-light: #00aeff;
-    --accent-dark: #0076d1;
-    --accent-glow: rgba(24, 136, 239, 0.18);
-    --text: #ffffff;
-    --text-secondary: #a8b4cc;
-    --text-muted: #5a6178;
-    --text-faint: #353d52;
-    --border: #1e2a3d;
-    --border-strong: #2a3a55;
-    --border-accent: rgba(24, 136, 239, 0.4);
-    --red: #f31d77;
-    --green: #00d984;
-    --orange: #f5a623;
-    --purple: #b48cff;
-    --green-10: rgba(0, 217, 132, 0.1);
-    --green-25: rgba(0, 217, 132, 0.25);
-    --orange-10: rgba(245, 166, 35, 0.1);
-    --orange-25: rgba(245, 166, 35, 0.3);
-    --purple-10: rgba(180, 140, 255, 0.1);
-    --purple-25: rgba(180, 140, 255, 0.3);
-    --t: 0.2s ease;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    background:
-      radial-gradient(900px circle at 85% -10%, rgba(24,136,239,0.05), transparent 50%),
-      radial-gradient(700px circle at 0% 100%, rgba(0,174,255,0.04), transparent 55%),
-      #060810;
-    color: var(--text);
-    font-family: 'Archivo', sans-serif;
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-  }
-  button { font-family: inherit; cursor: pointer; }
-  a { color: inherit; text-decoration: none; }
+    <style>
+      :root {
+        --bg-dark: #0a0d15;
+        --bg-card: #151c28;
+        --bg-paper: #18202f;
+        --bg-elevated: #1d2532;
+        --bg-deep: #050810;
+        --accent: #1888ef;
+        --accent-light: #00aeff;
+        --accent-dark: #0076d1;
+        --accent-glow: rgba(24, 136, 239, 0.18);
+        --text: #ffffff;
+        --text-secondary: #a8b4cc;
+        --text-muted: #5a6178;
+        --text-faint: #353d52;
+        --border: #1e2a3d;
+        --border-strong: #2a3a55;
+        --border-accent: rgba(24, 136, 239, 0.4);
+        --red: #f31d77;
+        --green: #00d984;
+        --orange: #f5a623;
+        --purple: #b48cff;
+        --green-10: rgba(0, 217, 132, 0.1);
+        --green-25: rgba(0, 217, 132, 0.25);
+        --orange-10: rgba(245, 166, 35, 0.1);
+        --orange-25: rgba(245, 166, 35, 0.3);
+        --purple-10: rgba(180, 140, 255, 0.1);
+        --purple-25: rgba(180, 140, 255, 0.3);
+        --t: 0.2s ease;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        background:
+          radial-gradient(
+            900px circle at 85% -10%,
+            rgba(24, 136, 239, 0.05),
+            transparent 50%
+          ),
+          radial-gradient(
+            700px circle at 0% 100%,
+            rgba(0, 174, 255, 0.04),
+            transparent 55%
+          ),
+          #060810;
+        color: var(--text);
+        font-family: "Archivo", sans-serif;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
 
-  /* ───────── Layout: phones side-by-side ───────── */
-  .stage {
-    min-height: 100vh;
-    padding: 56px 24px 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 36px;
-  }
+      /* ───────── Layout: phones side-by-side ───────── */
+      .stage {
+        min-height: 100vh;
+        padding: 56px 24px 80px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 36px;
+      }
 
-  .header {
-    max-width: 1180px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: center;
-    text-align: center;
-  }
-  .eyebrow {
-    display: inline-flex; align-items: center; gap: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; letter-spacing: 0.18em;
-    color: var(--accent-light); text-transform: uppercase;
-  }
-  .eyebrow::before, .eyebrow::after {
-    content: ''; width: 26px; height: 1px; background: var(--accent-light);
-  }
-  h1 {
-    font-family: 'Poppins', sans-serif;
-    font-size: clamp(2rem, 4vw, 3rem);
-    font-weight: 800; letter-spacing: -0.045em; line-height: 0.95;
-    margin: 6px 0 4px;
-  }
-  h1 em {
-    font-family: 'Caveat', cursive; font-style: normal; font-weight: 600;
-    color: var(--accent-light); font-size: 1.15em; letter-spacing: -0.02em;
-  }
-  .sub {
-    color: var(--text-secondary);
-    font-size: 14px; line-height: 1.5; max-width: 540px;
-  }
+      .header {
+        max-width: 1180px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+        text-align: center;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        color: var(--accent-light);
+        text-transform: uppercase;
+      }
+      .eyebrow::before,
+      .eyebrow::after {
+        content: "";
+        width: 26px;
+        height: 1px;
+        background: var(--accent-light);
+      }
+      h1 {
+        font-family: "Poppins", sans-serif;
+        font-size: clamp(2rem, 4vw, 3rem);
+        font-weight: 800;
+        letter-spacing: -0.045em;
+        line-height: 0.95;
+        margin: 6px 0 4px;
+      }
+      h1 em {
+        font-family: "Caveat", cursive;
+        font-style: normal;
+        font-weight: 600;
+        color: var(--accent-light);
+        font-size: 1.15em;
+        letter-spacing: -0.02em;
+      }
+      .sub {
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.5;
+        max-width: 540px;
+      }
 
-  /* ───────── Phone frame ───────── */
-  .phones {
-    display: flex; gap: 40px; flex-wrap: wrap; justify-content: center;
-    align-items: flex-start;
-  }
-  .phoneWrap {
-    display: flex; flex-direction: column; align-items: center; gap: 14px;
-  }
-  .phoneLabel {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; letter-spacing: 0.12em;
-    color: var(--text-muted); text-transform: uppercase;
-  }
-  .phoneLabel strong { color: var(--accent-light); font-weight: 600; }
+      /* ───────── Phone frame ───────── */
+      .phones {
+        display: flex;
+        gap: 40px;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-start;
+      }
+      .phoneWrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+      }
+      .phoneLabel {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+      .phoneLabel strong {
+        color: var(--accent-light);
+        font-weight: 600;
+      }
 
-  .phone {
-    width: 390px;
-    height: 800px;
-    background: #000;
-    border-radius: 56px;
-    padding: 12px;
-    box-shadow:
-      0 30px 80px rgba(0,0,0,0.5),
-      inset 0 0 0 1.5px #1a1a1a,
-      inset 0 0 0 3px #000;
-    position: relative;
-  }
-  .screen {
-    width: 100%;
-    height: 100%;
-    background: var(--bg-dark);
-    border-radius: 44px;
-    overflow: hidden;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-  }
+      .phone {
+        width: 390px;
+        height: 800px;
+        background: #000;
+        border-radius: 56px;
+        padding: 12px;
+        box-shadow:
+          0 30px 80px rgba(0, 0, 0, 0.5),
+          inset 0 0 0 1.5px #1a1a1a,
+          inset 0 0 0 3px #000;
+        position: relative;
+      }
+      .screen {
+        width: 100%;
+        height: 100%;
+        background: var(--bg-dark);
+        border-radius: 44px;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
 
-  /* Status bar */
-  .statusBar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 28px 0;
-    font-family: 'Poppins', sans-serif;
-    font-size: 14px; font-weight: 600;
-    color: #fff;
-    flex-shrink: 0;
-  }
-  .statusBar .right {
-    display: flex; align-items: center; gap: 6px;
-  }
-  .statusBar svg { display: block; }
+      /* Status bar */
+      .statusBar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 28px 0;
+        font-family: "Poppins", sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .statusBar .right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .statusBar svg {
+        display: block;
+      }
 
-  /* Dynamic island */
-  .island {
-    position: absolute;
-    top: 22px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 110px; height: 33px;
-    background: #000;
-    border-radius: 24px;
-    z-index: 10;
-  }
+      /* Dynamic island */
+      .island {
+        position: absolute;
+        top: 22px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 110px;
+        height: 33px;
+        background: #000;
+        border-radius: 24px;
+        z-index: 10;
+      }
 
-  /* ─── Navbar (top) ─── */
-  .navbar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 18px 18px 12px;
-    flex-shrink: 0;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-card);
-    position: relative;
-    z-index: 2;
-  }
+      /* ─── Navbar (top) ─── */
+      .navbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 18px 18px 12px;
+        flex-shrink: 0;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-card);
+        position: relative;
+        z-index: 2;
+      }
 
-  .brand { display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0; }
-  .brandMark {
-    width: 38px; height: 38px;
-    background: var(--bg-dark);
-    border: 1.5px solid var(--accent-light);
-    border-radius: 11px;
-    display: flex; align-items: center; justify-content: center;
-    gap: 2.5px;
-    flex-shrink: 0;
-    box-shadow: 0 3px 12px var(--accent-glow);
-  }
-  .brandMark .t { position: relative; width: 13px; height: 17px; }
-  .brandMark .t .arm { position: absolute; top: 0; left: 0; width: 13px; height: 2.5px; background: #fff; border-radius: 1px; }
-  .brandMark .t .stem { position: absolute; top: 0; left: 5.5px; width: 3px; height: 17px; background: #fff; border-radius: 1px; }
-  .brandMark .ring {
-    width: 14px; height: 14px;
-    border: 2.5px solid var(--accent-light);
-    border-radius: 50%;
-    position: relative; box-sizing: border-box;
-  }
-  .brandMark .ring::after {
-    content: '';
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 3px; height: 3px;
-    background: #fff;
-    border-radius: 50%;
-  }
-  .brandText { display: flex; flex-direction: column; gap: 0; min-width: 0; }
-  .brandName {
-    font-family: 'Poppins', sans-serif;
-    font-size: 16px; font-weight: 800;
-    letter-spacing: -0.035em;
-    color: var(--text);
-    line-height: 1.05;
-  }
-  .brandSub {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 8.5px; letter-spacing: 0.16em;
-    color: var(--text-muted); text-transform: uppercase;
-    margin-top: 1px;
-  }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        flex: 1;
+        min-width: 0;
+      }
+      .brandMark {
+        width: 38px;
+        height: 38px;
+        background: var(--bg-dark);
+        border: 1.5px solid var(--accent-light);
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 2.5px;
+        flex-shrink: 0;
+        box-shadow: 0 3px 12px var(--accent-glow);
+      }
+      .brandMark .t {
+        position: relative;
+        width: 13px;
+        height: 17px;
+      }
+      .brandMark .t .arm {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 13px;
+        height: 2.5px;
+        background: #fff;
+        border-radius: 1px;
+      }
+      .brandMark .t .stem {
+        position: absolute;
+        top: 0;
+        left: 5.5px;
+        width: 3px;
+        height: 17px;
+        background: #fff;
+        border-radius: 1px;
+      }
+      .brandMark .ring {
+        width: 14px;
+        height: 14px;
+        border: 2.5px solid var(--accent-light);
+        border-radius: 50%;
+        position: relative;
+        box-sizing: border-box;
+      }
+      .brandMark .ring::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 3px;
+        height: 3px;
+        background: #fff;
+        border-radius: 50%;
+      }
+      .brandText {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        min-width: 0;
+      }
+      .brandName {
+        font-family: "Poppins", sans-serif;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        color: var(--text);
+        line-height: 1.05;
+      }
+      .brandSub {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 8.5px;
+        letter-spacing: 0.16em;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin-top: 1px;
+      }
 
-  .navActions { display: flex; gap: 6px; flex-shrink: 0; }
-  .iconBtn {
-    width: 36px; height: 36px;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    display: grid; place-items: center;
-    color: var(--text-secondary);
-    position: relative;
-    transition: all var(--t);
-  }
-  .iconBtn:active { transform: scale(0.95); }
-  .iconBtn:hover {
-    color: var(--accent-light);
-    border-color: var(--border-accent);
-    background: var(--accent-glow);
-  }
-  .iconBtn svg { width: 16px; height: 16px; }
-  .iconBtn .badge {
-    position: absolute;
-    top: -3px; right: -3px;
-    min-width: 16px; height: 16px; padding: 0 4px;
-    background: var(--red);
-    color: #fff;
-    border: 1.5px solid var(--bg-card);
-    border-radius: 999px;
-    font-family: 'Poppins', sans-serif;
-    font-size: 9.5px; font-weight: 800;
-    line-height: 1;
-    display: grid; place-items: center;
-    letter-spacing: -0.02em;
-  }
-  .iconBtn .badge.live { background: var(--green); }
+      .navActions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .iconBtn {
+        width: 36px;
+        height: 36px;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        color: var(--text-secondary);
+        position: relative;
+        transition: all var(--t);
+      }
+      .iconBtn:active {
+        transform: scale(0.95);
+      }
+      .iconBtn:hover {
+        color: var(--accent-light);
+        border-color: var(--border-accent);
+        background: var(--accent-glow);
+      }
+      .iconBtn svg {
+        width: 16px;
+        height: 16px;
+      }
+      .iconBtn .badge {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        background: var(--red);
+        color: #fff;
+        border: 1.5px solid var(--bg-card);
+        border-radius: 999px;
+        font-family: "Poppins", sans-serif;
+        font-size: 9.5px;
+        font-weight: 800;
+        line-height: 1;
+        display: grid;
+        place-items: center;
+        letter-spacing: -0.02em;
+      }
+      .iconBtn .badge.live {
+        background: var(--green);
+      }
 
-  /* ─── Content (scrolling feed area) ─── */
-  .content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 18px 16px 100px;  /* bottom padding for bottomnav */
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-  .content::-webkit-scrollbar { display: none; }
+      /* ─── Content (scrolling feed area) ─── */
+      .content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 18px 16px 100px; /* bottom padding for bottomnav */
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .content::-webkit-scrollbar {
+        display: none;
+      }
 
-  .pageHead {
-    display: flex; flex-direction: column; gap: 4px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 6px;
-  }
-  .pageEyebrow {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px; letter-spacing: 0.16em;
-    color: var(--accent-light); text-transform: uppercase;
-  }
-  .pageEyebrow::before {
-    content: ''; width: 22px; height: 1px; background: var(--accent-light);
-  }
-  .pageTitle {
-    font-family: 'Poppins', sans-serif;
-    font-size: 28px; font-weight: 800;
-    letter-spacing: -0.04em; line-height: 1;
-    margin: 4px 0 4px;
-  }
-  .pageTitle em {
-    font-family: 'Caveat', cursive; font-style: normal; font-weight: 600;
-    color: var(--accent-light); font-size: 1.15em; letter-spacing: -0.02em;
-  }
-  .pageSub {
-    color: var(--text-secondary); font-size: 13px;
-    line-height: 1.5;
-  }
+      .pageHead {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 6px;
+      }
+      .pageEyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        color: var(--accent-light);
+        text-transform: uppercase;
+      }
+      .pageEyebrow::before {
+        content: "";
+        width: 22px;
+        height: 1px;
+        background: var(--accent-light);
+      }
+      .pageTitle {
+        font-family: "Poppins", sans-serif;
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 1;
+        margin: 4px 0 4px;
+      }
+      .pageTitle em {
+        font-family: "Caveat", cursive;
+        font-style: normal;
+        font-weight: 600;
+        color: var(--accent-light);
+        font-size: 1.15em;
+        letter-spacing: -0.02em;
+      }
+      .pageSub {
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.5;
+      }
 
-  /* Feed cards */
-  .feedCard {
-    background: var(--bg-paper);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px;
-    display: flex; flex-direction: column; gap: 10px;
-  }
-  .feedHead {
-    display: flex; align-items: center; gap: 10px;
-  }
-  .feedAvatar {
-    width: 36px; height: 36px;
-    border-radius: 11px;
-    background: var(--accent);
-    color: #fff;
-    display: grid; place-items: center;
-    font-family: 'Poppins', sans-serif;
-    font-weight: 800; font-size: 13px;
-    letter-spacing: -0.04em;
-    flex-shrink: 0;
-  }
-  .feedAvatar.orange { background: var(--orange); }
-  .feedAvatar.purple { background: var(--purple); }
-  .feedAuthor { flex: 1; min-width: 0; }
-  .feedAuthorName {
-    font-family: 'Poppins', sans-serif;
-    font-size: 13px; font-weight: 700;
-    color: var(--text); letter-spacing: -0.01em;
-    line-height: 1.15;
-  }
-  .feedAuthorMeta {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px; color: var(--text-muted);
-    letter-spacing: 0.04em;
-    margin-top: 1px;
-    display: flex; gap: 6px;
-  }
-  .feedMenu { color: var(--text-muted); padding: 4px; }
-  .feedTitle {
-    font-family: 'Poppins', sans-serif;
-    font-size: 16px; font-weight: 700;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
-    color: var(--text);
-  }
-  .feedBody {
-    font-size: 13.5px; color: var(--text-secondary);
-    line-height: 1.5;
-  }
-  .feedFoot {
-    display: flex; gap: 18px; padding-top: 8px;
-    border-top: 1px dashed var(--border);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; color: var(--text-muted);
-    letter-spacing: 0.02em;
-  }
-  .feedFoot span { display: inline-flex; align-items: center; gap: 5px; }
-  .feedFoot span.liked { color: var(--red); }
+      /* Feed cards */
+      .feedCard {
+        background: var(--bg-paper);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .feedHead {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .feedAvatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 11px;
+        background: var(--accent);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-family: "Poppins", sans-serif;
+        font-weight: 800;
+        font-size: 13px;
+        letter-spacing: -0.04em;
+        flex-shrink: 0;
+      }
+      .feedAvatar.orange {
+        background: var(--orange);
+      }
+      .feedAvatar.purple {
+        background: var(--purple);
+      }
+      .feedAuthor {
+        flex: 1;
+        min-width: 0;
+      }
+      .feedAuthorName {
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text);
+        letter-spacing: -0.01em;
+        line-height: 1.15;
+      }
+      .feedAuthorMeta {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+        margin-top: 1px;
+        display: flex;
+        gap: 6px;
+      }
+      .feedMenu {
+        color: var(--text-muted);
+        padding: 4px;
+      }
+      .feedTitle {
+        font-family: "Poppins", sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+        color: var(--text);
+      }
+      .feedBody {
+        font-size: 13.5px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+      .feedFoot {
+        display: flex;
+        gap: 18px;
+        padding-top: 8px;
+        border-top: 1px dashed var(--border);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--text-muted);
+        letter-spacing: 0.02em;
+      }
+      .feedFoot span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .feedFoot span.liked {
+        color: var(--red);
+      }
 
-  /* Polaroid in feed */
-  .polaroid {
-    background: #f4eeda;
-    padding: 8px 8px 28px;
-    box-shadow: 0 10px 24px rgba(0,0,0,0.4);
-    border-radius: 3px;
-    transform: rotate(-1.5deg);
-    align-self: center;
-    max-width: 260px;
-    width: 100%;
-    margin: 4px 0;
-    position: relative;
-  }
-  .polaroidPhoto {
-    width: 100%;
-    aspect-ratio: 4/3;
-    background:
-      repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0, rgba(255,255,255,0.04) 8px, transparent 8px, transparent 16px),
-      linear-gradient(135deg, #1d2535, #0e1320);
-    display: grid; place-items: center;
-    color: var(--text-muted);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px; letter-spacing: 0.18em;
-    text-transform: uppercase;
-  }
-  .polaroidCaption {
-    position: absolute;
-    bottom: 4px; left: 0; right: 0;
-    text-align: center;
-    font-family: 'Caveat', cursive;
-    font-size: 16px;
-    color: #2c2620;
-    line-height: 1;
-  }
-  .polaroidTape {
-    position: absolute;
-    top: -6px; left: 50%;
-    transform: translateX(-50%) rotate(-1deg);
-    width: 60px; height: 16px;
-    background: rgba(232,220,180,0.62);
-    border: 1px solid rgba(255,235,180,0.15);
-    border-radius: 1px;
-  }
+      /* Polaroid in feed */
+      .polaroid {
+        background: #f4eeda;
+        padding: 8px 8px 28px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+        border-radius: 3px;
+        transform: rotate(-1.5deg);
+        align-self: center;
+        max-width: 260px;
+        width: 100%;
+        margin: 4px 0;
+        position: relative;
+      }
+      .polaroidPhoto {
+        width: 100%;
+        aspect-ratio: 4/3;
+        background:
+          repeating-linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.04) 0,
+            rgba(255, 255, 255, 0.04) 8px,
+            transparent 8px,
+            transparent 16px
+          ),
+          linear-gradient(135deg, #1d2535, #0e1320);
+        display: grid;
+        place-items: center;
+        color: var(--text-muted);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .polaroidCaption {
+        position: absolute;
+        bottom: 4px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-family: "Caveat", cursive;
+        font-size: 16px;
+        color: #2c2620;
+        line-height: 1;
+      }
+      .polaroidTape {
+        position: absolute;
+        top: -6px;
+        left: 50%;
+        transform: translateX(-50%) rotate(-1deg);
+        width: 60px;
+        height: 16px;
+        background: rgba(232, 220, 180, 0.62);
+        border: 1px solid rgba(255, 235, 180, 0.15);
+        border-radius: 1px;
+      }
 
-  /* Mini ticket for mesa attached */
-  .miniTicket {
-    display: grid;
-    grid-template-columns: 36px 1fr auto;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    background:
-      radial-gradient(200px circle at 0% 50%, var(--accent-glow), transparent 60%),
-      var(--bg-elevated);
-    border: 1px solid var(--border-strong);
-    border-radius: 10px;
-    position: relative;
-    overflow: hidden;
-  }
-  .miniTicket::before, .miniTicket::after {
-    content: '';
-    position: absolute;
-    width: 10px; height: 10px;
-    background: var(--bg-paper);
-    border-radius: 50%;
-    top: 50%;
-    transform: translateY(-50%);
-    border: 1px solid var(--border-strong);
-  }
-  .miniTicket::before { left: 32px; }
-  .miniTicket::after { right: 78px; }
-  .miniTicketTile {
-    width: 36px; height: 36px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-    display: grid; place-items: center;
-    color: #fff;
-    font-family: 'Poppins', sans-serif;
-    font-weight: 800; font-size: 14px;
-    letter-spacing: -0.04em;
-    position: relative; z-index: 1;
-  }
-  .miniTicketInfo {
-    display: flex; flex-direction: column;
-    gap: 2px; min-width: 0;
-  }
-  .miniTicketLabel {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px; letter-spacing: 0.12em;
-    color: var(--accent-light); text-transform: uppercase;
-  }
-  .miniTicketGame {
-    font-family: 'Poppins', sans-serif;
-    font-size: 13px; font-weight: 700;
-    color: var(--text); letter-spacing: -0.02em;
-    line-height: 1.15;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .miniTicketMeta {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px; color: var(--text-muted);
-  }
-  .miniTicketCta {
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    padding: 6px 11px;
-    border-radius: 7px;
-    font-family: 'Poppins', sans-serif;
-    font-size: 11px; font-weight: 700;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-    position: relative; z-index: 1;
-  }
+      /* Mini ticket for mesa attached */
+      .miniTicket {
+        display: grid;
+        grid-template-columns: 36px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        background:
+          radial-gradient(
+            200px circle at 0% 50%,
+            var(--accent-glow),
+            transparent 60%
+          ),
+          var(--bg-elevated);
+        border: 1px solid var(--border-strong);
+        border-radius: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+      .miniTicket::before,
+      .miniTicket::after {
+        content: "";
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: var(--bg-paper);
+        border-radius: 50%;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 1px solid var(--border-strong);
+      }
+      .miniTicket::before {
+        left: 32px;
+      }
+      .miniTicket::after {
+        right: 78px;
+      }
+      .miniTicketTile {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-family: "Poppins", sans-serif;
+        font-weight: 800;
+        font-size: 14px;
+        letter-spacing: -0.04em;
+        position: relative;
+        z-index: 1;
+      }
+      .miniTicketInfo {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      .miniTicketLabel {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        color: var(--accent-light);
+        text-transform: uppercase;
+      }
+      .miniTicketGame {
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text);
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .miniTicketMeta {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+      .miniTicketCta {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        padding: 6px 11px;
+        border-radius: 7px;
+        font-family: "Poppins", sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        position: relative;
+        z-index: 1;
+      }
 
-  /* ─── BottomNav ─── */
-  .bottomnav {
-    position: absolute;
-    left: 12px; right: 12px; bottom: 12px;
-    background: rgba(21, 28, 40, 0.94);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border-strong);
-    border-radius: 22px;
-    padding: 8px 6px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    box-shadow:
-      0 8px 32px rgba(0,0,0,0.4),
-      0 0 0 1px rgba(0,0,0,0.5);
-    z-index: 20;
-  }
+      /* ─── BottomNav ─── */
+      .bottomnav {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        background: rgba(21, 28, 40, 0.94);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-strong);
+        border-radius: 22px;
+        padding: 8px 6px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.4),
+          0 0 0 1px rgba(0, 0, 0, 0.5);
+        z-index: 20;
+      }
 
-  .bnArrow {
-    width: 26px; height: 44px;
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    display: grid; place-items: center;
-    flex-shrink: 0;
-    transition: color var(--t);
-  }
-  .bnArrow:hover { color: var(--accent-light); }
-  .bnArrow svg { width: 16px; height: 16px; }
+      .bnArrow {
+        width: 26px;
+        height: 44px;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        transition: color var(--t);
+      }
+      .bnArrow:hover {
+        color: var(--accent-light);
+      }
+      .bnArrow svg {
+        width: 16px;
+        height: 16px;
+      }
 
-  .bnItems {
-    flex: 1;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2px;
-    overflow: hidden;
-  }
+      .bnItems {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2px;
+        overflow: hidden;
+      }
 
-  .bnItem {
-    display: flex; flex-direction: column;
-    align-items: center; gap: 3px;
-    padding: 6px 4px 5px;
-    border-radius: 14px;
-    color: var(--text-muted);
-    position: relative;
-    transition: all var(--t);
-    text-align: center;
-  }
-  .bnItem:active { transform: scale(0.94); }
-  .bnIcon {
-    width: 30px; height: 30px;
-    display: grid; place-items: center;
-    color: inherit;
-    position: relative;
-  }
-  .bnIcon svg { width: 22px; height: 22px; }
-  .bnLabel {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9.5px;
-    letter-spacing: 0.04em;
-    font-weight: 600;
-    line-height: 1;
-    text-transform: uppercase;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-  }
-  .bnItem.active {
-    background: var(--accent-glow);
-    color: var(--accent-light);
-  }
-  .bnItem.active::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 18px; height: 2px;
-    background: var(--accent-light);
-    border-radius: 1px;
-  }
+      .bnItem {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        padding: 6px 4px 5px;
+        border-radius: 14px;
+        color: var(--text-muted);
+        position: relative;
+        transition: all var(--t);
+        text-align: center;
+      }
+      .bnItem:active {
+        transform: scale(0.94);
+      }
+      .bnIcon {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        color: inherit;
+        position: relative;
+      }
+      .bnIcon svg {
+        width: 22px;
+        height: 22px;
+      }
+      .bnLabel {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9.5px;
+        letter-spacing: 0.04em;
+        font-weight: 600;
+        line-height: 1;
+        text-transform: uppercase;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+      .bnItem.active {
+        background: var(--accent-glow);
+        color: var(--accent-light);
+      }
+      .bnItem.active::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 18px;
+        height: 2px;
+        background: var(--accent-light);
+        border-radius: 1px;
+      }
 
-  /* Tiny badge on icon */
-  .bnBadge {
-    position: absolute;
-    top: -2px; right: -4px;
-    min-width: 16px; height: 16px;
-    padding: 0 4px;
-    background: var(--red);
-    color: #fff;
-    border: 1.5px solid var(--bg-card);
-    border-radius: 999px;
-    font-family: 'Poppins', sans-serif;
-    font-size: 9px; font-weight: 800;
-    line-height: 1;
-    display: grid; place-items: center;
-    letter-spacing: -0.02em;
-  }
-  .bnBadge.live { background: var(--green); }
+      /* Tiny badge on icon */
+      .bnBadge {
+        position: absolute;
+        top: -2px;
+        right: -4px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        background: var(--red);
+        color: #fff;
+        border: 1.5px solid var(--bg-card);
+        border-radius: 999px;
+        font-family: "Poppins", sans-serif;
+        font-size: 9px;
+        font-weight: 800;
+        line-height: 1;
+        display: grid;
+        place-items: center;
+        letter-spacing: -0.02em;
+      }
+      .bnBadge.live {
+        background: var(--green);
+      }
 
-  /* BG Watch promo state */
-  .bnItem.promo {
-    background: var(--purple-10);
-    border: 1px dashed var(--purple-25);
-    color: var(--purple);
-  }
-  .bnItem.promo .bnLabel { color: var(--purple); }
-  .bnItem.promo::after { display: none; }
-  .bnItem.promo .promoTag {
-    position: absolute;
-    top: -6px; right: -2px;
-    background: var(--purple);
-    color: #fff;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 7.5px; font-weight: 700;
-    letter-spacing: 0.06em;
-    padding: 2px 5px;
-    border-radius: 4px;
-    text-transform: uppercase;
-  }
+      /* BG Watch promo state */
+      .bnItem.promo {
+        background: var(--purple-10);
+        border: 1px dashed var(--purple-25);
+        color: var(--purple);
+      }
+      .bnItem.promo .bnLabel {
+        color: var(--purple);
+      }
+      .bnItem.promo::after {
+        display: none;
+      }
+      .bnItem.promo .promoTag {
+        position: absolute;
+        top: -6px;
+        right: -2px;
+        background: var(--purple);
+        color: #fff;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 7.5px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        padding: 2px 5px;
+        border-radius: 4px;
+        text-transform: uppercase;
+      }
 
-  /* Visual indicator of swipe gesture / pagination dots */
-  .bnPager {
-    position: absolute;
-    bottom: -16px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex; gap: 4px;
-  }
-  .bnPager .dot {
-    width: 5px; height: 5px;
-    background: var(--text-faint);
-    border-radius: 50%;
-    transition: all var(--t);
-  }
-  .bnPager .dot.active {
-    background: var(--accent-light);
-    width: 14px; border-radius: 3px;
-  }
+      /* Visual indicator of swipe gesture / pagination dots */
+      .bnPager {
+        position: absolute;
+        bottom: -16px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 4px;
+      }
+      .bnPager .dot {
+        width: 5px;
+        height: 5px;
+        background: var(--text-faint);
+        border-radius: 50%;
+        transition: all var(--t);
+      }
+      .bnPager .dot.active {
+        background: var(--accent-light);
+        width: 14px;
+        border-radius: 3px;
+      }
 
-  /* Home indicator */
-  .homeIndicator {
-    position: absolute;
-    bottom: 6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 140px; height: 4px;
-    background: rgba(255,255,255,0.4);
-    border-radius: 2px;
-    z-index: 25;
-  }
+      /* Home indicator */
+      .homeIndicator {
+        position: absolute;
+        bottom: 6px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 140px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.4);
+        border-radius: 2px;
+        z-index: 25;
+      }
 
-  /* ─── PHONE 2 — Admin variant with horizontal scroll dots ─── */
-  .phone.alt .bnItems {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .phone.alt .pageTitle em {
-    color: var(--orange);
-  }
+      /* ─── PHONE 2 — Admin variant with horizontal scroll dots ─── */
+      .phone.alt .bnItems {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .phone.alt .pageTitle em {
+        color: var(--orange);
+      }
 
-  /* Footnote / system caption */
-  .footnote {
-    max-width: 720px;
-    padding: 18px 22px;
-    background: var(--bg-paper);
-    border: 1px dashed var(--border);
-    border-radius: 12px;
-    font-family: 'Archivo', sans-serif;
-    color: var(--text-secondary);
-    font-size: 13.5px;
-    line-height: 1.6;
-    text-align: center;
-  }
-  .footnote strong { color: var(--text); }
-  .footnote code {
-    background: var(--bg-elevated);
-    color: var(--accent-light);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    padding: 1px 5px;
-    border-radius: 3px;
-  }
+      /* Footnote / system caption */
+      .footnote {
+        max-width: 720px;
+        padding: 18px 22px;
+        background: var(--bg-paper);
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        font-family: "Archivo", sans-serif;
+        color: var(--text-secondary);
+        font-size: 13.5px;
+        line-height: 1.6;
+        text-align: center;
+      }
+      .footnote strong {
+        color: var(--text);
+      }
+      .footnote code {
+        background: var(--bg-elevated);
+        color: var(--accent-light);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
 
-  /* Responsive */
-  @media (max-width: 880px) {
-    .phones { gap: 24px; }
-    .phone { transform: scale(0.85); transform-origin: top center; margin-bottom: -120px; }
-  }
-</style>
-</head>
-<body>
+      /* Responsive */
+      @media (max-width: 880px) {
+        .phones {
+          gap: 24px;
+        }
+        .phone {
+          transform: scale(0.85);
+          transform-origin: top center;
+          margin-bottom: -120px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div class="header">
+        <span class="eyebrow">Mobile · reimaginado</span>
+        <h1>Navbar + <em>bottomnav</em> · mobile.</h1>
+        <p class="sub">
+          Versión mobile aplicando el mismo vocabulario del sidebar reimaginado:
+          T0 logo, ◆ + mono uppercase, ticket-stub perforado, badges con pulso,
+          active state cyan.
+        </p>
+      </div>
 
-<div class="stage">
+      <div class="phones">
+        <!-- Phone 1: Feed / Compartidas -->
+        <div class="phoneWrap">
+          <span class="phoneLabel"
+            >◆ Feed · <strong>Compartite activo</strong></span
+          >
+          <div class="phone">
+            <div class="screen">
+              <div class="island"></div>
 
-  <div class="header">
-    <span class="eyebrow">Mobile · reimaginado</span>
-    <h1>Navbar + <em>bottomnav</em> · mobile.</h1>
-    <p class="sub">
-      Versión mobile aplicando el mismo vocabulario del sidebar reimaginado: T0 logo,
-      ◆ + mono uppercase, ticket-stub perforado, badges con pulso, active state cyan.
-    </p>
-  </div>
-
-  <div class="phones">
-
-    <!-- Phone 1: Feed / Compartidas -->
-    <div class="phoneWrap">
-      <span class="phoneLabel">◆ Feed · <strong>Compartite activo</strong></span>
-      <div class="phone">
-        <div class="screen">
-          <div class="island"></div>
-
-          <!-- Status bar -->
-          <div class="statusBar">
-            <span>9:41</span>
-            <div class="right">
-              <svg width="17" height="11" viewBox="0 0 17 11"><path d="M1 3a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V3z" stroke="#fff" stroke-opacity="0.4" fill="none"/><rect x="3" y="3" width="11" height="5" rx="0.5" fill="#fff"/></svg>
-            </div>
-          </div>
-
-          <!-- Navbar (top) -->
-          <div class="navbar">
-            <a class="brand" href="#">
-              <div class="brandMark">
-                <div class="t"><div class="arm"></div><div class="stem"></div></div>
-                <div class="ring"></div>
-              </div>
-              <div class="brandText">
-                <span class="brandName">TurnoCero</span>
-                <span class="brandSub">◆ board game meetups</span>
-              </div>
-            </a>
-            <div class="navActions">
-              <button class="iconBtn" aria-label="Mensajes">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <span class="badge live">2</span>
-              </button>
-              <button class="iconBtn" aria-label="Notificaciones">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                <span class="badge">3</span>
-              </button>
-              <button class="iconBtn" aria-label="Cerrar sesión">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Content -->
-          <div class="content">
-            <div class="pageHead">
-              <span class="pageEyebrow">Compartite · feed</span>
-              <h1 class="pageTitle">Lo que <em>jugamos</em> hoy.</h1>
-              <p class="pageSub">Compartí tus partidas. 7 nuevas esta semana.</p>
-            </div>
-
-            <!-- Card 1 -->
-            <article class="feedCard">
-              <div class="feedHead">
-                <div class="feedAvatar orange">C</div>
-                <div class="feedAuthor">
-                  <div class="feedAuthorName">Cami Rossi</div>
-                  <div class="feedAuthorMeta">
-                    <span>@camir</span><span>·</span><span>hace 2h</span>
-                  </div>
+              <!-- Status bar -->
+              <div class="statusBar">
+                <span>9:41</span>
+                <div class="right">
+                  <svg width="17" height="11" viewBox="0 0 17 11">
+                    <path
+                      d="M1 3a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V3z"
+                      stroke="#fff"
+                      stroke-opacity="0.4"
+                      fill="none"
+                    />
+                    <rect
+                      x="3"
+                      y="3"
+                      width="11"
+                      height="5"
+                      rx="0.5"
+                      fill="#fff"
+                    />
+                  </svg>
                 </div>
-                <button class="feedMenu" aria-label="Opciones">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+              </div>
+
+              <!-- Navbar (top) -->
+              <div class="navbar">
+                <a class="brand" href="#">
+                  <div class="brandMark">
+                    <div class="t">
+                      <div class="arm"></div>
+                      <div class="stem"></div>
+                    </div>
+                    <div class="ring"></div>
+                  </div>
+                  <div class="brandText">
+                    <span class="brandName">TurnoCero</span>
+                    <span class="brandSub">◆ board game meetups</span>
+                  </div>
+                </a>
+                <div class="navActions">
+                  <button class="iconBtn" aria-label="Mensajes">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                      />
+                    </svg>
+                    <span class="badge live">2</span>
+                  </button>
+                  <button class="iconBtn" aria-label="Notificaciones">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
+                    <span class="badge">3</span>
+                  </button>
+                  <button class="iconBtn" aria-label="Cerrar sesión">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Content -->
+              <div class="content">
+                <div class="pageHead">
+                  <span class="pageEyebrow">Compartite · feed</span>
+                  <h1 class="pageTitle">Lo que <em>jugamos</em> hoy.</h1>
+                  <p class="pageSub">
+                    Compartí tus partidas. 7 nuevas esta semana.
+                  </p>
+                </div>
+
+                <!-- Card 1 -->
+                <article class="feedCard">
+                  <div class="feedHead">
+                    <div class="feedAvatar orange">C</div>
+                    <div class="feedAuthor">
+                      <div class="feedAuthorName">Cami Rossi</div>
+                      <div class="feedAuthorMeta">
+                        <span>@camir</span><span>·</span><span>hace 2h</span>
+                      </div>
+                    </div>
+                    <button class="feedMenu" aria-label="Opciones">
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <circle cx="5" cy="12" r="1.8" />
+                        <circle cx="12" cy="12" r="1.8" />
+                        <circle cx="19" cy="12" r="1.8" />
+                      </svg>
+                    </button>
+                  </div>
+                  <h3 class="feedTitle">18 dados, ni un triple</h3>
+                  <p class="feedBody">
+                    Cuatro horas de Catán, tres negociaciones rotas y un robo a
+                    la vista al borde de un seis-seis-seis.
+                  </p>
+                  <div class="polaroid">
+                    <div class="polaroidTape"></div>
+                    <div class="polaroidPhoto">foto de la partida</div>
+                    <span class="polaroidCaption">el momento exacto</span>
+                  </div>
+                  <div class="miniTicket">
+                    <div class="miniTicketTile">CT</div>
+                    <div class="miniTicketInfo">
+                      <span class="miniTicketLabel">◆ Mesa enlazada</span>
+                      <span class="miniTicketGame">Catán · sáb 18 may</span>
+                    </div>
+                    <button class="miniTicketCta">Unirse</button>
+                  </div>
+                  <div class="feedFoot">
+                    <span class="liked">♥ 24</span>
+                    <span>💬 3</span>
+                    <span style="margin-left: auto">↗ Compartir</span>
+                  </div>
+                </article>
+
+                <!-- Card 2 -->
+                <article class="feedCard">
+                  <div class="feedHead">
+                    <div class="feedAvatar purple">P</div>
+                    <div class="feedAuthor">
+                      <div class="feedAuthorName">Pancho Méndez</div>
+                      <div class="feedAuthorMeta">
+                        <span>@panchom</span><span>·</span><span>hace 5h</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="feedBody">
+                    Sesión de Brass: Birmingham. Tres horas, ganó Vale por dos
+                    puntos. Necesitamos más mesas como esta.
+                  </p>
+                  <div class="feedFoot">
+                    <span>♥ 11</span>
+                    <span>💬 1</span>
+                  </div>
+                </article>
+              </div>
+
+              <!-- BottomNav -->
+              <nav class="bottomnav">
+                <button class="bnArrow" aria-label="Anterior">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m15 18-6-6 6-6" />
+                  </svg>
                 </button>
-              </div>
-              <h3 class="feedTitle">18 dados, ni un triple</h3>
-              <p class="feedBody">Cuatro horas de Catán, tres negociaciones rotas y un robo a la vista al borde de un seis-seis-seis.</p>
-              <div class="polaroid">
-                <div class="polaroidTape"></div>
-                <div class="polaroidPhoto">foto de la partida</div>
-                <span class="polaroidCaption">el momento exacto</span>
-              </div>
-              <div class="miniTicket">
-                <div class="miniTicketTile">CT</div>
-                <div class="miniTicketInfo">
-                  <span class="miniTicketLabel">◆ Mesa enlazada</span>
-                  <span class="miniTicketGame">Catán · sáb 18 may</span>
+                <div class="bnItems">
+                  <a class="bnItem active" href="#">
+                    <span class="bnIcon">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <circle cx="18" cy="5" r="3" />
+                        <circle cx="6" cy="12" r="3" />
+                        <circle cx="18" cy="19" r="3" />
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                      </svg>
+                      <span class="bnBadge live">12</span>
+                    </span>
+                    <span class="bnLabel">Compartite</span>
+                  </a>
+                  <a class="bnItem" href="#">
+                    <span class="bnIcon">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"
+                        />
+                        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                        <path d="M2 15h8M2 19h8M2 11h4" />
+                      </svg>
+                    </span>
+                    <span class="bnLabel">Noticias</span>
+                  </a>
+                  <a class="bnItem" href="#">
+                    <span class="bnIcon">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                        <line x1="16" y1="2" x2="16" y2="6" />
+                        <line x1="8" y1="2" x2="8" y2="6" />
+                        <line x1="3" y1="10" x2="21" y2="10" />
+                      </svg>
+                      <span class="bnBadge">2</span>
+                    </span>
+                    <span class="bnLabel">Eventos</span>
+                  </a>
                 </div>
-                <button class="miniTicketCta">Unirse</button>
-              </div>
-              <div class="feedFoot">
-                <span class="liked">♥ 24</span>
-                <span>💬 3</span>
-                <span style="margin-left:auto">↗ Compartir</span>
-              </div>
-            </article>
+                <button class="bnArrow" aria-label="Siguiente">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </button>
+                <div class="bnPager">
+                  <div class="dot active"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                </div>
+              </nav>
 
-            <!-- Card 2 -->
-            <article class="feedCard">
-              <div class="feedHead">
-                <div class="feedAvatar purple">P</div>
-                <div class="feedAuthor">
-                  <div class="feedAuthorName">Pancho Méndez</div>
-                  <div class="feedAuthorMeta">
-                    <span>@panchom</span><span>·</span><span>hace 5h</span>
+              <div class="homeIndicator"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phone 2: Eventos / scrolled bottomnav -->
+        <div class="phoneWrap">
+          <span class="phoneLabel"
+            >◆ Eventos · <strong>scroll del bottomnav</strong></span
+          >
+          <div class="phone alt">
+            <div class="screen">
+              <div class="island"></div>
+
+              <div class="statusBar">
+                <span>9:41</span>
+                <div class="right">
+                  <svg width="17" height="11" viewBox="0 0 17 11">
+                    <path
+                      d="M1 3a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V3z"
+                      stroke="#fff"
+                      stroke-opacity="0.4"
+                      fill="none"
+                    />
+                    <rect
+                      x="3"
+                      y="3"
+                      width="11"
+                      height="5"
+                      rx="0.5"
+                      fill="#fff"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="navbar">
+                <a class="brand" href="#">
+                  <div class="brandMark">
+                    <div class="t">
+                      <div class="arm"></div>
+                      <div class="stem"></div>
+                    </div>
+                    <div class="ring"></div>
                   </div>
+                  <div class="brandText">
+                    <span class="brandName">TurnoCero</span>
+                    <span class="brandSub">◆ board game meetups</span>
+                  </div>
+                </a>
+                <div class="navActions">
+                  <button class="iconBtn">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                      />
+                    </svg>
+                  </button>
+                  <button class="iconBtn">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
+                  </button>
+                  <button class="iconBtn">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                  </button>
                 </div>
               </div>
-              <p class="feedBody">Sesión de Brass: Birmingham. Tres horas, ganó Vale por dos puntos. Necesitamos más mesas como esta.</p>
-              <div class="feedFoot">
-                <span>♥ 11</span>
-                <span>💬 1</span>
+
+              <div class="content">
+                <div class="pageHead">
+                  <span class="pageEyebrow" style="color: var(--orange)"
+                    >◆ Agenda · mayo 2026</span
+                  >
+                  <h1 class="pageTitle">Marcá la <em>fecha</em>.</h1>
+                  <p class="pageSub">5 eventos próximos. 2 esta semana.</p>
+                </div>
+
+                <!-- Timeline-style event row -->
+                <article
+                  class="feedCard"
+                  style="
+                    border-color: var(--accent);
+                    background: rgba(24, 136, 239, 0.025);
+                  "
+                >
+                  <div style="display: flex; align-items: center; gap: 14px">
+                    <div
+                      style="
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        background: var(--bg-dark);
+                        border: 1px solid var(--border);
+                        border-radius: 10px;
+                        padding: 6px 8px;
+                        flex-shrink: 0;
+                      "
+                    >
+                      <span
+                        style="
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                          font-size: 9px;
+                          color: var(--text-muted);
+                          letter-spacing: 0.1em;
+                        "
+                        >SAB</span
+                      >
+                      <span
+                        style="
+                          font-family: &quot;Poppins&quot;, sans-serif;
+                          font-size: 26px;
+                          font-weight: 800;
+                          letter-spacing: -0.04em;
+                          line-height: 0.9;
+                          color: var(--text);
+                          margin: 2px 0;
+                        "
+                        >13</span
+                      >
+                      <span
+                        style="
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                          font-size: 10px;
+                          color: var(--accent-light);
+                        "
+                        >17:00</span
+                      >
+                    </div>
+                    <div
+                      style="
+                        flex: 1;
+                        min-width: 0;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                      "
+                    >
+                      <span
+                        style="
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                          font-size: 10px;
+                          color: var(--accent-light);
+                          letter-spacing: 0.1em;
+                          text-transform: uppercase;
+                        "
+                        >● en 25 días</span
+                      >
+                      <h3
+                        style="
+                          font-family: &quot;Poppins&quot;, sans-serif;
+                          font-size: 15px;
+                          font-weight: 700;
+                          letter-spacing: -0.02em;
+                          line-height: 1.2;
+                          color: var(--text);
+                        "
+                      >
+                        Torneo Catán · Otoño 2026
+                      </h3>
+                      <span
+                        style="
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                          font-size: 10.5px;
+                          color: var(--text-muted);
+                        "
+                        >Bar La Torre · 17/24 inscriptos</span
+                      >
+                    </div>
+                  </div>
+                  <button
+                    class="miniTicketCta"
+                    style="
+                      align-self: stretch;
+                      text-align: center;
+                      padding: 9px;
+                    "
+                  >
+                    Inscribirme · $3.500
+                  </button>
+                </article>
+
+                <article class="feedCard">
+                  <div style="display: flex; align-items: center; gap: 14px">
+                    <div
+                      style="
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        background: var(--bg-dark);
+                        border: 1px solid var(--border);
+                        border-radius: 10px;
+                        padding: 6px 8px;
+                        flex-shrink: 0;
+                      "
+                    >
+                      <span
+                        style="
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                          font-size: 9px;
+                          color: var(--text-muted);
+                          letter-spacing: 0.1em;
+                        "
+                        >VIE</span
+                      >
+                      <span
+                        style="
+                          font-family: &quot;Poppins&quot;, sans-serif;
+                          font-size: 26px;
+                          font-weight: 800;
+                          letter-spacing: -0.04em;
+                          line-height: 0.9;
+                          color: var(--text);
+                          margin: 2px 0;
+                        "
+                        >30</span
+                      >
+                      <span
+                        style="
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                          font-size: 10px;
+                          color: var(--accent-light);
+                        "
+                        >15:00</span
+                      >
+                    </div>
+                    <div
+                      style="
+                        flex: 1;
+                        min-width: 0;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                      "
+                    >
+                      <span
+                        style="
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                          font-size: 10px;
+                          color: var(--green);
+                          letter-spacing: 0.1em;
+                          text-transform: uppercase;
+                        "
+                        >● inscripto</span
+                      >
+                      <h3
+                        style="
+                          font-family: &quot;Poppins&quot;, sans-serif;
+                          font-size: 15px;
+                          font-weight: 700;
+                          letter-spacing: -0.02em;
+                          line-height: 1.2;
+                          color: var(--text);
+                        "
+                      >
+                        Encuentro de Wargames
+                      </h3>
+                      <span
+                        style="
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                          font-size: 10.5px;
+                          color: var(--text-muted);
+                        "
+                        >Club Estrategia · gratis · 42 inscriptos</span
+                      >
+                    </div>
+                  </div>
+                </article>
+
+                <article class="feedCard">
+                  <div style="display: flex; align-items: center; gap: 14px">
+                    <div
+                      style="
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        background: var(--bg-dark);
+                        border: 1px solid var(--border);
+                        border-radius: 10px;
+                        padding: 6px 8px;
+                        flex-shrink: 0;
+                      "
+                    >
+                      <span
+                        style="
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                          font-size: 9px;
+                          color: var(--text-muted);
+                          letter-spacing: 0.1em;
+                        "
+                        >DOM</span
+                      >
+                      <span
+                        style="
+                          font-family: &quot;Poppins&quot;, sans-serif;
+                          font-size: 26px;
+                          font-weight: 800;
+                          letter-spacing: -0.04em;
+                          line-height: 0.9;
+                          color: var(--text);
+                          margin: 2px 0;
+                        "
+                        >07</span
+                      >
+                      <span
+                        style="
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                          font-size: 10px;
+                          color: var(--accent-light);
+                        "
+                        >14:00</span
+                      >
+                    </div>
+                    <div
+                      style="
+                        flex: 1;
+                        min-width: 0;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                      "
+                    >
+                      <span
+                        style="
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                          font-size: 10px;
+                          color: var(--text-muted);
+                          letter-spacing: 0.1em;
+                          text-transform: uppercase;
+                        "
+                        >● Sos host</span
+                      >
+                      <h3
+                        style="
+                          font-family: &quot;Poppins&quot;, sans-serif;
+                          font-size: 15px;
+                          font-weight: 700;
+                          letter-spacing: -0.02em;
+                          line-height: 1.2;
+                          color: var(--text);
+                        "
+                      >
+                        Liga Wingspan · Fecha 4
+                      </h3>
+                      <span
+                        style="
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                          font-size: 10.5px;
+                          color: var(--text-muted);
+                        "
+                        >Casa Cultural Boedo · 8/16</span
+                      >
+                    </div>
+                  </div>
+                </article>
               </div>
-            </article>
+
+              <!-- BottomNav with different items showing (page 2 of scroll) -->
+              <nav class="bottomnav">
+                <button class="bnArrow" aria-label="Anterior">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m15 18-6-6 6-6" />
+                  </svg>
+                </button>
+                <div class="bnItems">
+                  <a class="bnItem" href="#">
+                    <span class="bnIcon">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <circle cx="9" cy="7" r="3" />
+                        <circle cx="17" cy="9" r="2.5" />
+                        <path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6" />
+                        <path d="M17 14c2.2.5 4 2.3 4 5" />
+                      </svg>
+                    </span>
+                    <span class="bnLabel">Comunidad</span>
+                  </a>
+                  <a class="bnItem promo" href="#">
+                    <span class="bnIcon">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <rect
+                          x="3"
+                          y="3"
+                          width="18"
+                          height="18"
+                          rx="2.5"
+                          stroke-dasharray="3 2"
+                        />
+                        <line x1="12" y1="8" x2="12" y2="16" />
+                        <line x1="8" y1="12" x2="16" y2="12" />
+                      </svg>
+                    </span>
+                    <span class="bnLabel">Activá BGW</span>
+                    <span class="promoTag">NEW</span>
+                  </a>
+                  <a class="bnItem" href="#">
+                    <span class="bnIcon">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <circle cx="12" cy="8" r="4" />
+                        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                      </svg>
+                    </span>
+                    <span class="bnLabel">Perfil</span>
+                  </a>
+                </div>
+                <button class="bnArrow" aria-label="Siguiente">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </button>
+                <div class="bnPager">
+                  <div class="dot"></div>
+                  <div class="dot active"></div>
+                  <div class="dot"></div>
+                </div>
+              </nav>
+
+              <div class="homeIndicator"></div>
+            </div>
           </div>
-
-          <!-- BottomNav -->
-          <nav class="bottomnav">
-            <button class="bnArrow" aria-label="Anterior">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-            </button>
-            <div class="bnItems">
-              <a class="bnItem active" href="#">
-                <span class="bnIcon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                  <span class="bnBadge live">12</span>
-                </span>
-                <span class="bnLabel">Compartite</span>
-              </a>
-              <a class="bnItem" href="#">
-                <span class="bnIcon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M2 15h8M2 19h8M2 11h4"/></svg>
-                </span>
-                <span class="bnLabel">Noticias</span>
-              </a>
-              <a class="bnItem" href="#">
-                <span class="bnIcon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  <span class="bnBadge">2</span>
-                </span>
-                <span class="bnLabel">Eventos</span>
-              </a>
-            </div>
-            <button class="bnArrow" aria-label="Siguiente">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-            </button>
-            <div class="bnPager">
-              <div class="dot active"></div>
-              <div class="dot"></div>
-              <div class="dot"></div>
-            </div>
-          </nav>
-
-          <div class="homeIndicator"></div>
         </div>
+      </div>
+
+      <div class="footnote">
+        <strong>Vocabulario heredado del sidebar:</strong> logo T0 chico arriba
+        a la izquierda (38×38 en vez de 44), sub-eyebrow
+        <code>◆ board game meetups</code> en mono, <code>iconBtn</code> con
+        badge cyan/verde/rojo según tipo, <code>active</code> con bg
+        <code>--accent-glow</code> + barrita cyan debajo del label. BottomNav
+        vuelve un <strong>pill flotante</strong> con backdrop-blur, paginación
+        de 3 ítems por vez, chevrons laterales y dots de pager debajo. El estado
+        <strong>promo</strong> (BG Watch CTA) se vuelve un botón dashed violeta
+        con pill "NEW" rotado.
       </div>
     </div>
 
-    <!-- Phone 2: Eventos / scrolled bottomnav -->
-    <div class="phoneWrap">
-      <span class="phoneLabel">◆ Eventos · <strong>scroll del bottomnav</strong></span>
-      <div class="phone alt">
-        <div class="screen">
-          <div class="island"></div>
-
-          <div class="statusBar">
-            <span>9:41</span>
-            <div class="right">
-              <svg width="17" height="11" viewBox="0 0 17 11"><path d="M1 3a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V3z" stroke="#fff" stroke-opacity="0.4" fill="none"/><rect x="3" y="3" width="11" height="5" rx="0.5" fill="#fff"/></svg>
-            </div>
-          </div>
-
-          <div class="navbar">
-            <a class="brand" href="#">
-              <div class="brandMark">
-                <div class="t"><div class="arm"></div><div class="stem"></div></div>
-                <div class="ring"></div>
-              </div>
-              <div class="brandText">
-                <span class="brandName">TurnoCero</span>
-                <span class="brandSub">◆ board game meetups</span>
-              </div>
-            </a>
-            <div class="navActions">
-              <button class="iconBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
-              <button class="iconBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
-              <button class="iconBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
-            </div>
-          </div>
-
-          <div class="content">
-            <div class="pageHead">
-              <span class="pageEyebrow" style="color: var(--orange);">◆ Agenda · mayo 2026</span>
-              <h1 class="pageTitle">Marcá la <em>fecha</em>.</h1>
-              <p class="pageSub">5 eventos próximos. 2 esta semana.</p>
-            </div>
-
-            <!-- Timeline-style event row -->
-            <article class="feedCard" style="border-color: var(--accent); background: rgba(24,136,239,0.025);">
-              <div style="display:flex;align-items:center;gap:14px;">
-                <div style="display:flex;flex-direction:column;align-items:center;background:var(--bg-dark);border:1px solid var(--border);border-radius:10px;padding:6px 8px;flex-shrink:0;">
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:0.1em;">SAB</span>
-                  <span style="font-family:'Poppins',sans-serif;font-size:26px;font-weight:800;letter-spacing:-0.04em;line-height:0.9;color:var(--text);margin:2px 0;">13</span>
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent-light);">17:00</span>
-                </div>
-                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent-light);letter-spacing:0.1em;text-transform:uppercase;">● en 25 días</span>
-                  <h3 style="font-family:'Poppins',sans-serif;font-size:15px;font-weight:700;letter-spacing:-0.02em;line-height:1.2;color:var(--text);">Torneo Catán · Otoño 2026</h3>
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-muted);">Bar La Torre · 17/24 inscriptos</span>
-                </div>
-              </div>
-              <button class="miniTicketCta" style="align-self:stretch;text-align:center;padding:9px;">Inscribirme · $3.500</button>
-            </article>
-
-            <article class="feedCard">
-              <div style="display:flex;align-items:center;gap:14px;">
-                <div style="display:flex;flex-direction:column;align-items:center;background:var(--bg-dark);border:1px solid var(--border);border-radius:10px;padding:6px 8px;flex-shrink:0;">
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:0.1em;">VIE</span>
-                  <span style="font-family:'Poppins',sans-serif;font-size:26px;font-weight:800;letter-spacing:-0.04em;line-height:0.9;color:var(--text);margin:2px 0;">30</span>
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent-light);">15:00</span>
-                </div>
-                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--green);letter-spacing:0.1em;text-transform:uppercase;">● inscripto</span>
-                  <h3 style="font-family:'Poppins',sans-serif;font-size:15px;font-weight:700;letter-spacing:-0.02em;line-height:1.2;color:var(--text);">Encuentro de Wargames</h3>
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-muted);">Club Estrategia · gratis · 42 inscriptos</span>
-                </div>
-              </div>
-            </article>
-
-            <article class="feedCard">
-              <div style="display:flex;align-items:center;gap:14px;">
-                <div style="display:flex;flex-direction:column;align-items:center;background:var(--bg-dark);border:1px solid var(--border);border-radius:10px;padding:6px 8px;flex-shrink:0;">
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:0.1em;">DOM</span>
-                  <span style="font-family:'Poppins',sans-serif;font-size:26px;font-weight:800;letter-spacing:-0.04em;line-height:0.9;color:var(--text);margin:2px 0;">07</span>
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent-light);">14:00</span>
-                </div>
-                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;">● Sos host</span>
-                  <h3 style="font-family:'Poppins',sans-serif;font-size:15px;font-weight:700;letter-spacing:-0.02em;line-height:1.2;color:var(--text);">Liga Wingspan · Fecha 4</h3>
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-muted);">Casa Cultural Boedo · 8/16</span>
-                </div>
-              </div>
-            </article>
-          </div>
-
-          <!-- BottomNav with different items showing (page 2 of scroll) -->
-          <nav class="bottomnav">
-            <button class="bnArrow" aria-label="Anterior">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-            </button>
-            <div class="bnItems">
-              <a class="bnItem" href="#">
-                <span class="bnIcon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/><path d="M17 14c2.2.5 4 2.3 4 5"/></svg>
-                </span>
-                <span class="bnLabel">Comunidad</span>
-              </a>
-              <a class="bnItem promo" href="#">
-                <span class="bnIcon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5" stroke-dasharray="3 2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                </span>
-                <span class="bnLabel">Activá BGW</span>
-                <span class="promoTag">NEW</span>
-              </a>
-              <a class="bnItem" href="#">
-                <span class="bnIcon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                </span>
-                <span class="bnLabel">Perfil</span>
-              </a>
-            </div>
-            <button class="bnArrow" aria-label="Siguiente">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-            </button>
-            <div class="bnPager">
-              <div class="dot"></div>
-              <div class="dot active"></div>
-              <div class="dot"></div>
-            </div>
-          </nav>
-
-          <div class="homeIndicator"></div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <div class="footnote">
-    <strong>Vocabulario heredado del sidebar:</strong> logo T0 chico arriba a la izquierda (38×38 en vez de 44),
-    sub-eyebrow <code>◆ board game meetups</code> en mono, <code>iconBtn</code> con badge cyan/verde/rojo
-    según tipo, <code>active</code> con bg <code>--accent-glow</code> + barrita cyan debajo del label.
-    BottomNav vuelve un <strong>pill flotante</strong> con backdrop-blur, paginación de 3 ítems por vez,
-    chevrons laterales y dots de pager debajo. El estado <strong>promo</strong> (BG Watch CTA) se vuelve un
-    botón dashed violeta con pill "NEW" rotado.
-  </div>
-
-</div>
-
-<script>
-  document.querySelectorAll('.bnItem').forEach(el => {
-    el.addEventListener('click', e => {
-      e.preventDefault();
-      const nav = el.closest('.bottomnav');
-      nav.querySelectorAll('.bnItem').forEach(i => i.classList.remove('active'));
-      if (!el.classList.contains('promo')) el.classList.add('active');
-    });
-  });
-</script>
-
-</body>
+    <script>
+      document.querySelectorAll(".bnItem").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          const nav = el.closest(".bottomnav");
+          nav
+            .querySelectorAll(".bnItem")
+            .forEach((i) => i.classList.remove("active"));
+          if (!el.classList.contains("promo")) el.classList.add("active");
+        });
+      });
+    </script>
+  </body>
 </html>

@@ -18,11 +18,7 @@
 const BggGame = require("../../models/BggGame");
 const BggCollection = require("../../models/BggCollection");
 const logger = require("../../utils/logger");
-const {
-  getCached,
-  setCached,
-  CACHE_TTL,
-} = require("./bggCache");
+const { getCached, setCached, CACHE_TTL } = require("./bggCache");
 const {
   parser,
   parseGameItem,

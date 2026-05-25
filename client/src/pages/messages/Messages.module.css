@@ -1,6 +1,7 @@
 .page {
   margin: 0;
-  padding: var(--navbar-h) var(--page-padding) var(--page-padding) var(--page-padding-left);
+  padding: var(--navbar-h) var(--page-padding) var(--page-padding)
+    var(--page-padding-left);
 }
 
 @media (min-width: 960px) {

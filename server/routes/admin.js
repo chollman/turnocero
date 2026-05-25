@@ -1,25 +1,25 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const mongoose = require('mongoose');
-const { protect, requireAdmin } = require('../middleware/auth');
-const validateObjectId = require('../middleware/validateObjectId');
-const User = require('../models/User');
-const Table = require('../models/Table');
-const asyncHandler = require('../utils/asyncHandler');
-const httpError = require('../utils/httpError');
+const mongoose = require("mongoose");
+const { protect, requireAdmin } = require("../middleware/auth");
+const validateObjectId = require("../middleware/validateObjectId");
+const User = require("../models/User");
+const Table = require("../models/Table");
+const asyncHandler = require("../utils/asyncHandler");
+const httpError = require("../utils/httpError");
 
-router.param('id', validateObjectId('id'));
+router.param("id", validateObjectId("id"));
 
 // GET /api/admin/collections
 router.get(
-  '/collections',
+  "/collections",
   protect,
   requireAdmin,
   asyncHandler(async (req, res) => {
     const cols = await mongoose.connection.db.listCollections().toArray();
     const names = cols
       .map((c) => c.name)
-      .filter((n) => !n.startsWith('system.'))
+      .filter((n) => !n.startsWith("system."))
       .sort();
     res.json(names);
   }),
@@ -27,7 +27,7 @@ router.get(
 
 // GET /api/admin/collections/:name
 router.get(
-  '/collections/:name',
+  "/collections/:name",
   protect,
   requireAdmin,
   asyncHandler(async (req, res) => {
@@ -35,7 +35,7 @@ router.get(
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
     const skip = (page - 1) * limit;
-    const searchTerm = (req.query.search || '').trim();
+    const searchTerm = (req.query.search || "").trim();
 
     const col = mongoose.connection.db.collection(name);
 
@@ -44,15 +44,21 @@ router.get(
       if (/^[0-9a-f]{24}$/i.test(searchTerm)) {
         try {
           query = { _id: new mongoose.Types.ObjectId(searchTerm) };
-        } catch { /* invalid ObjectId, keep empty query */ }
+        } catch {
+          /* invalid ObjectId, keep empty query */
+        }
       } else {
         const sample = await col.findOne({});
         if (sample) {
           const stringFields = Object.entries(sample)
-            .filter(([, v]) => typeof v === 'string')
+            .filter(([, v]) => typeof v === "string")
             .map(([k]) => k);
           if (stringFields.length > 0) {
-            query = { $or: stringFields.map((f) => ({ [f]: { $regex: searchTerm, $options: 'i' } })) };
+            query = {
+              $or: stringFields.map((f) => ({
+                [f]: { $regex: searchTerm, $options: "i" },
+              })),
+            };
           }
         }
       }
@@ -69,40 +75,44 @@ router.get(
 
 // PATCH /api/admin/users/:id/admin — toggle isAdmin
 router.patch(
-  '/users/:id/admin',
+  "/users/:id/admin",
   protect,
   requireAdmin,
   asyncHandler(async (req, res) => {
     const target = await User.findById(req.params.id);
-    if (!target) throw httpError(404, 'User not found');
+    if (!target) throw httpError(404, "User not found");
     target.isAdmin = !target.isAdmin;
     await target.save({ validateModifiedOnly: true });
-    res.json({ _id: target._id, username: target.username, isAdmin: target.isAdmin });
+    res.json({
+      _id: target._id,
+      username: target.username,
+      isAdmin: target.isAdmin,
+    });
   }),
 );
 
 // PATCH /api/admin/users/:id/ban — toggle ban
 router.patch(
-  '/users/:id/ban',
+  "/users/:id/ban",
   protect,
   requireAdmin,
   asyncHandler(async (req, res) => {
     const { banned, reason } = req.body;
-    if (typeof banned !== 'boolean') {
+    if (typeof banned !== "boolean") {
       throw httpError(400, 'El campo "banned" debe ser booleano');
     }
     if (req.params.id === req.user._id.toString()) {
-      throw httpError(400, 'No podés banearte a vos mismo');
+      throw httpError(400, "No podés banearte a vos mismo");
     }
     const target = await User.findById(req.params.id);
-    if (!target) throw httpError(404, 'Usuario no encontrado');
+    if (!target) throw httpError(404, "Usuario no encontrado");
     if (target.isAdmin) {
-      throw httpError(400, 'No podés banear a otro admin');
+      throw httpError(400, "No podés banear a otro admin");
     }
 
     target.isBanned = banned;
     target.bannedAt = banned ? new Date() : null;
-    target.bannedReason = banned ? (reason || '').toString().slice(0, 500) : '';
+    target.bannedReason = banned ? (reason || "").toString().slice(0, 500) : "";
     await target.save({ validateModifiedOnly: true });
 
     res.json({
@@ -117,17 +127,17 @@ router.patch(
 
 // DELETE /api/admin/users/:id — hard delete user
 router.delete(
-  '/users/:id',
+  "/users/:id",
   protect,
   requireAdmin,
   asyncHandler(async (req, res) => {
     if (req.params.id === req.user._id.toString()) {
-      throw httpError(400, 'No podés eliminarte a vos mismo');
+      throw httpError(400, "No podés eliminarte a vos mismo");
     }
     const target = await User.findById(req.params.id);
-    if (!target) throw httpError(404, 'Usuario no encontrado');
+    if (!target) throw httpError(404, "Usuario no encontrado");
     if (target.isAdmin) {
-      throw httpError(400, 'No podés eliminar a otro admin');
+      throw httpError(400, "No podés eliminar a otro admin");
     }
 
     const id = target._id;
@@ -145,7 +155,7 @@ router.delete(
             followers: id,
             reactions: { user: id },
           },
-        }
+        },
       ),
       User.updateMany(
         {},
@@ -154,7 +164,7 @@ router.delete(
             friends: id,
             friendRequests: { from: id },
           },
-        }
+        },
       ),
     ]);
 

@@ -11,6 +11,7 @@ Turnocero hoy tiene Mesas, Compartidas, Noticias y un sistema de amigos/DM, pero
 - Que usuarios logueados puedan **inscribirse** y el admin acepte/rechace.
 
 **Decisiones de producto confirmadas:**
+
 - Formatos: **Liga (round-robin)** y **Eliminación simple**. (Sin doble eliminación ni Suizo en v1.)
 - Participantes: solo usuarios registrados de Turnocero.
 - Juego: campo de texto libre por torneo (consistente con cómo Turnocero maneja juegos hoy).
@@ -27,6 +28,7 @@ Turnocero hoy tiene Mesas, Compartidas, Noticias y un sistema de amigos/DM, pero
 ### Modelos nuevos (`server/models/`)
 
 #### `Torneo.js`
+
 ```
 title           String, required, max 200
 description     String, max 2000
@@ -47,6 +49,7 @@ timestamps
 Índices: `{ status: 1, createdAt: -1 }`, `{ createdBy: 1 }`.
 
 #### `TorneoMatch.js`
+
 ```
 torneo          ObjectId ref Torneo, required, indexed
 round           Number, required        // 1-indexed
@@ -65,6 +68,7 @@ timestamps
 Índice compuesto: `{ torneo: 1, round: 1, matchIndex: 1 }`.
 
 ### Helpers de generación (`server/utils/tournamentGeneration.js`)
+
 - `generateLeagueFixture(participantIds)` — método del círculo. `n` participantes (con bye si `n` impar) → `n-1` rondas, `floor(n/2)` matches por ronda. Devuelve `[{ round, matchIndex, playerA, playerB }]`.
 - `generateSingleElimBracket(participantIds)` — siembra estándar (1 vs n, 2 vs n-1, etc.). Rellena con byes hasta la próxima potencia de 2; los seeds altos reciben bye en R1. Devuelve matches con `nextMatch` linkeado (crea primero los de la ronda final y va hacia atrás para resolver refs).
 - `computeStandings(matches, participantIds)` — para league, devuelve `[{ user, played, won, drawn, lost, points }]` ordenado por puntos (3/1/0). Ties: cantidad de victorias, luego ID estable.
@@ -104,12 +108,14 @@ DELETE /api/torneos/:id/matches/:matchId/result   protect + requireAdmin
 Registrar en `server/server.js` junto a las demás rutas: `app.use('/api/torneos', require('./routes/torneos'))`.
 
 ### Cloudinary
+
 - Banner de torneo: folder `turnocero/torneos/<torneoId>/`, transform `{ width: 1200, crop: 'limit' }`.
 - Usar el mismo middleware multer in-memory + helper de upload existente.
 
 ### Notifications
 
 Agregar 4 tipos nuevos a `server/utils/saveNotification.js` (todos no-agregantes, lógica de overwrite):
+
 - `tournament_accepted` — payload: `{ torneoId, torneoTitle }`
 - `tournament_rejected` — payload: `{ torneoId, torneoTitle }`
 - `tournament_advanced` — payload: `{ torneoId, torneoTitle, round }`
@@ -119,12 +125,12 @@ Agregar al `Notification` schema: `torneoId`, `torneoTitle`, `round`.
 
 ### Socket.IO events (server → client)
 
-| Evento | Room | Trigger |
-|---|---|---|
-| `torneo:registration-accepted` | `user:<id>` | admin acepta inscripción |
-| `torneo:registration-rejected` | `user:<id>` | admin rechaza inscripción |
-| `torneo:advanced` | `user:<id>` | en single_elim, el ganador del match recién cargado |
-| `torneo:eliminated` | `user:<id>` | en single_elim, el perdedor (si la ronda no es la final) |
+| Evento                         | Room        | Trigger                                                  |
+| ------------------------------ | ----------- | -------------------------------------------------------- |
+| `torneo:registration-accepted` | `user:<id>` | admin acepta inscripción                                 |
+| `torneo:registration-rejected` | `user:<id>` | admin rechaza inscripción                                |
+| `torneo:advanced`              | `user:<id>` | en single_elim, el ganador del match recién cargado      |
+| `torneo:eliminated`            | `user:<id>` | en single_elim, el perdedor (si la ronda no es la final) |
 
 Cada evento incluye `{ torneoId, torneoTitle }` para que `NotificationContext` arme el toast con link a `/torneos/<id>`.
 
@@ -133,6 +139,7 @@ Cada evento incluye `{ torneoId, torneoTitle }` para que `NotificationContext` a
 ## Frontend
 
 ### Rutas nuevas (`client/src/App.jsx`)
+
 ```
 /torneos                    — público (lista con filtros por estado)
 /torneos/:id                — público (detalle: brackets/tabla, inscripción, controles admin)
@@ -141,6 +148,7 @@ Cada evento incluye `{ torneoId, torneoTitle }` para que `NotificationContext` a
 ```
 
 ### Estructura (`client/src/pages/torneos/`)
+
 ```
 Torneos.jsx                    — lista con tabs de estado (Inscripción / En curso / Finalizados)
 TorneoDetail.jsx               — detalle (info + tabs: Participantes | Matches | Bracket/Posiciones)
@@ -165,12 +173,14 @@ Bracket.module.css
 ```
 
 ### Renderizado del bracket (custom CSS, sin librerías)
+
 - Por ronda, una columna flex con gap calculado: `gap: calc(<base-gap> * (2^(round - 1) - 1))` y `padding-top` similar para offset.
 - Conectores entre matches via `::after`/`::before` con `border-right` y `border-top/bottom` (técnica clásica de brackets HTML).
 - En desktop: scroll horizontal natural; en mobile: vista de "ronda actual" con selector arriba.
 - Hasta 32 participantes funciona prolijo; si en el futuro hace falta más, evaluar librería.
 
 ### Componentes existentes a reutilizar
+
 - `UserRef` / helper `getUserDisplay` para mostrar nombres (memoria: usuarios eliminados → "Usuario eliminado").
 - `ImageDropzone` de [client/src/pages/noticias/Noticias.jsx:17-77](client/src/pages/noticias/Noticias.jsx#L17-L77) para el banner.
 - Skeleton `.bone` pattern de [client/src/pages/compartidas/CompartidaSkeleton.module.css](client/src/pages/compartidas/CompartidaSkeleton.module.css).
@@ -178,6 +188,7 @@ Bracket.module.css
 - `useAuth()` → `{ user, isActuallyAdmin, viewAsUser }` para gateo de UI admin.
 
 ### Soporte dual de tema (dark + light) — REQUISITO
+
 Toda la feature debe funcionar en ambos temas sin trabajo adicional. La app tiene toggle en `/perfil` (Apariencia) que conmuta `:root[data-theme='dark']` ↔ `:root[data-theme='light']`. Reglas para todo CSS module y JSX nuevo:
 
 - **Cero colores hardcoded.** Usar siempre variables de [client/src/index.css](client/src/index.css):
@@ -196,21 +207,34 @@ Toda la feature debe funcionar en ambos temas sin trabajo adicional. La app tien
 - **Inline en JSX o SVG** (íconos del bracket, líneas decorativas): si depende del tema, leer la variable en runtime con `getComputedStyle(document.documentElement).getPropertyValue('--amber')` y re-aplicar via `useEffect([theme])` con `useTheme()` de [client/src/context/ThemeContext.jsx](client/src/context/ThemeContext.jsx). Ver patrón en `buildMarkerIcon` de [client/src/pages/users/UserProfile.jsx](client/src/pages/users/UserProfile.jsx).
 
 ### NotificationContext
+
 Agregar 4 listeners en [client/src/context/NotificationContext.jsx](client/src/context/NotificationContext.jsx) (paralelo a `chat:notification`):
+
 ```js
-socket.on('torneo:registration-accepted', (data) => addToast({ type: 'tournament_accepted', ...data }))
-socket.on('torneo:registration-rejected', (data) => addToast({ type: 'tournament_rejected', ...data }))
-socket.on('torneo:advanced',              (data) => addToast({ type: 'tournament_advanced', ...data }))
-socket.on('torneo:eliminated',            (data) => addToast({ type: 'tournament_eliminated', ...data }))
+socket.on("torneo:registration-accepted", (data) =>
+  addToast({ type: "tournament_accepted", ...data }),
+);
+socket.on("torneo:registration-rejected", (data) =>
+  addToast({ type: "tournament_rejected", ...data }),
+);
+socket.on("torneo:advanced", (data) =>
+  addToast({ type: "tournament_advanced", ...data }),
+);
+socket.on("torneo:eliminated", (data) =>
+  addToast({ type: "tournament_eliminated", ...data }),
+);
 ```
+
 Y en el render del toast, click → navega a `/torneos/${torneoId}`.
 
 ### Navegación
+
 - [client/src/components/layout/Sidebar.jsx](client/src/components/layout/Sidebar.jsx) — agregar "Torneos" en la sección pública (entre "Noticias" y "Eventos"). Ícono nuevo en el objeto ICONS (trofeo).
 - [client/src/components/layout/BottomNav.jsx](client/src/components/layout/BottomNav.jsx) — agregar en `REGULAR_NAV` en la misma posición. (Memoria: siempre sincronizar Sidebar y BottomNav.)
 - `getActiveId(pathname)` en ambos: matchear `/torneos*`.
 
 ### i18n
+
 Todo en castellano rioplatense, slugs incluidos (`/torneos`, `/torneos/crear`, `/torneos/:id/editar`). Textos: "Torneos", "Inscribirme", "Inscripción abierta", "En curso", "Finalizado", "Tabla de posiciones", "Bracket", "Cargar resultado", "Empate", etc.
 
 ---
@@ -258,6 +282,7 @@ Levantar ambos servers (`npm run dev:server` + `npm run dev:client`) y probar es
    - Cancelar inscripción cuando ya estás aceptado → no permitido en `in_progress`.
 
 Sin tests automatizados (proyecto no usa). Antes del commit final correr sobre los archivos nuevos:
+
 - `/react-review` — best practices y ESLint.
 - `/mobile-review` — viewport y touch.
 - `/css-hardcode-audit` — confirma cero colores hardcoded (requisito de tema dual).
@@ -267,6 +292,7 @@ Sin tests automatizados (proyecto no usa). Antes del commit final correr sobre l
 ## Archivos críticos a crear/modificar
 
 **Crear:**
+
 - `server/models/Torneo.js`
 - `server/models/TorneoMatch.js`
 - `server/routes/torneos.js`
@@ -274,6 +300,7 @@ Sin tests automatizados (proyecto no usa). Antes del commit final correr sobre l
 - `client/src/pages/torneos/` (todos los componentes listados arriba)
 
 **Modificar:**
+
 - `server/server.js` — registrar router y agregar logging del nuevo módulo.
 - `server/models/Notification.js` — campos `torneoId`, `torneoTitle`, `round`.
 - `server/utils/saveNotification.js` — manejar los 4 tipos nuevos.
@@ -284,6 +311,7 @@ Sin tests automatizados (proyecto no usa). Antes del commit final correr sobre l
 - `CLAUDE.md` — agregar sección Torneos al final del documento (modelos, rutas, eventos).
 
 ## Out of scope (v1)
+
 - Doble eliminación, Suizo.
 - Participantes no registrados (free-text).
 - Puntajes numéricos / tiebreaks por diferencia.

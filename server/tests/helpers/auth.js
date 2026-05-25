@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const User = require('../../models/User');
+const jwt = require("jsonwebtoken");
+const User = require("../../models/User");
 
 let counter = 0;
 
@@ -20,13 +20,13 @@ async function createUser(overrides = {}) {
   const user = await User.create({
     username: `user_${suffix}`,
     email: `user_${suffix}@test.local`,
-    password: 'Password123',
+    password: "Password123",
     emailVerified: true,
     isAdmin: false,
     isBanned: false,
-    bannedReason: '',
-    displayName: '',
-    bggUsername: '',
+    bannedReason: "",
+    displayName: "",
+    bggUsername: "",
     friends: [],
     ...overrides,
   });
@@ -34,7 +34,9 @@ async function createUser(overrides = {}) {
 }
 
 function tokenFor(user) {
-  return jwt.sign({ id: user._id.toString() }, process.env.JWT_SECRET, { expiresIn: '1d' });
+  return jwt.sign({ id: user._id.toString() }, process.env.JWT_SECRET, {
+    expiresIn: "1d",
+  });
 }
 
 async function createAuthedUser(overrides = {}) {

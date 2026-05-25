@@ -1,7 +1,7 @@
-const User = require('../models/User');
-const { decrypt } = require('./encryption');
+const User = require("../models/User");
+const { decrypt } = require("./encryption");
 
-const BGG_LOGIN_URL = 'https://boardgamegeek.com/login/api/v1';
+const BGG_LOGIN_URL = "https://boardgamegeek.com/login/api/v1";
 const SESSION_TTL = 15 * 60 * 1000; // 15 min
 const sessionCache = new Map(); // userId(string) -> { cookie, ts }
 
@@ -12,43 +12,54 @@ const sessionCache = new Map(); // userId(string) -> { cookie, ts }
  */
 async function loginToBgg(username, password) {
   if (!username || !password) {
-    throw Object.assign(new Error('Username y password de BGG requeridos'), { status: 400 });
+    throw Object.assign(new Error("Username y password de BGG requeridos"), {
+      status: 400,
+    });
   }
 
   let res;
   try {
     res = await fetch(BGG_LOGIN_URL, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Turnocero/1.0',
+        "Content-Type": "application/json",
+        "User-Agent": "Turnocero/1.0",
       },
       body: JSON.stringify({ credentials: { username, password } }),
     });
   } catch (e) {
-    throw Object.assign(new Error(`No se pudo contactar BGG: ${e.message}`), { status: 502 });
+    throw Object.assign(new Error(`No se pudo contactar BGG: ${e.message}`), {
+      status: 502,
+    });
   }
 
   if (res.status === 401 || res.status === 403) {
-    throw Object.assign(new Error('Credenciales BGG inválidas'), { status: 401 });
+    throw Object.assign(new Error("Credenciales BGG inválidas"), {
+      status: 401,
+    });
   }
   if (!res.ok) {
-    throw Object.assign(new Error(`BGG login respondió ${res.status}`), { status: 502 });
+    throw Object.assign(new Error(`BGG login respondió ${res.status}`), {
+      status: 502,
+    });
   }
 
-  const setCookies = typeof res.headers.getSetCookie === 'function'
-    ? res.headers.getSetCookie()
-    : [];
+  const setCookies =
+    typeof res.headers.getSetCookie === "function"
+      ? res.headers.getSetCookie()
+      : [];
 
   const pairs = [];
   for (const raw of setCookies) {
-    const first = raw.split(';')[0];
-    if (first && first.includes('=')) pairs.push(first.trim());
+    const first = raw.split(";")[0];
+    if (first && first.includes("=")) pairs.push(first.trim());
   }
   if (pairs.length === 0) {
-    throw Object.assign(new Error('BGG login no devolvió cookies'), { status: 502 });
+    throw Object.assign(new Error("BGG login no devolvió cookies"), {
+      status: 502,
+    });
   }
-  return pairs.join('; ');
+  return pairs.join("; ");
 }
 
 /**
@@ -65,19 +76,24 @@ async function getSessionCookie(userId) {
 
   const user = await User.findById(userId);
   if (!user) {
-    throw Object.assign(new Error('Usuario no encontrado'), { status: 404 });
+    throw Object.assign(new Error("Usuario no encontrado"), { status: 404 });
   }
   if (!user.bggUsername) {
-    throw Object.assign(new Error('Configurá tu username de BGG en el perfil'), { status: 400 });
+    throw Object.assign(
+      new Error("Configurá tu username de BGG en el perfil"),
+      { status: 400 },
+    );
   }
   const creds = user.bggCredentials;
   if (!creds || !creds.encryptedPassword) {
-    throw Object.assign(new Error('BGG no está conectado'), { status: 400 });
+    throw Object.assign(new Error("BGG no está conectado"), { status: 400 });
   }
   if (creds.invalid) {
     throw Object.assign(
-      new Error('Tu sesión BGG caducó. Volvé a ingresar tu password en el perfil.'),
-      { status: 401 }
+      new Error(
+        "Tu sesión BGG caducó. Volvé a ingresar tu password en el perfil.",
+      ),
+      { status: 401 },
     );
   }
 
@@ -86,8 +102,10 @@ async function getSessionCookie(userId) {
     password = decrypt(creds.encryptedPassword);
   } catch (e) {
     throw Object.assign(
-      new Error('No se pudieron descifrar las credenciales BGG (clave maestra inválida?)'),
-      { status: 500 }
+      new Error(
+        "No se pudieron descifrar las credenciales BGG (clave maestra inválida?)",
+      ),
+      { status: 500 },
     );
   }
 
@@ -101,7 +119,11 @@ async function getSessionCookie(userId) {
   } catch (e) {
     if (e.status === 401) {
       creds.invalid = true;
-      try { await user.save(); } catch { /* non-fatal; just flag the user */ }
+      try {
+        await user.save();
+      } catch {
+        /* non-fatal; just flag the user */
+      }
     }
     throw e;
   }

@@ -1,15 +1,15 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { STORAGE_KEYS } from '../utils/storageKeys';
+import { createContext, useContext, useState, useEffect } from "react";
+import { STORAGE_KEYS } from "../utils/storageKeys";
 
-const VALID_THEMES = ['dark', 'light'];
+const VALID_THEMES = ["dark", "light"];
 
 const getInitialTheme = () => {
-  if (typeof window === 'undefined') return 'dark';
+  if (typeof window === "undefined") return "dark";
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.THEME);
-    return VALID_THEMES.includes(stored) ? stored : 'dark';
+    return VALID_THEMES.includes(stored) ? stored : "dark";
   } catch {
-    return 'dark';
+    return "dark";
   }
 };
 
@@ -19,7 +19,7 @@ export const ThemeProvider = ({ children }) => {
   const [theme, setThemeState] = useState(getInitialTheme);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute("data-theme", theme);
     try {
       localStorage.setItem(STORAGE_KEYS.THEME, theme);
     } catch {
@@ -32,7 +32,7 @@ export const ThemeProvider = ({ children }) => {
   };
 
   const toggleTheme = () => {
-    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setThemeState((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
   return (
@@ -44,6 +44,6 @@ export const ThemeProvider = ({ children }) => {
 
 export const useTheme = () => {
   const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
+  if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
   return ctx;
 };

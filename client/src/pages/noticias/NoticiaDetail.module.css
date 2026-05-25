@@ -32,7 +32,9 @@
   transition: color var(--transition);
 }
 
-.backLink:hover { color: var(--text-primary); }
+.backLink:hover {
+  color: var(--text-primary);
+}
 
 /* ── Card ── */
 .card {
@@ -76,7 +78,9 @@
   transition: transform 0.25s ease;
 }
 
-.imageBtn:hover .image { transform: scale(1.01); }
+.imageBtn:hover .image {
+  transform: scale(1.01);
+}
 
 /* ── Body ── */
 .body {
@@ -115,10 +119,15 @@
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 4px;
-  transition: color var(--transition), background var(--transition);
+  transition:
+    color var(--transition),
+    background var(--transition);
 }
 
-.editBtn:hover { color: var(--amber-light); background: var(--amber-glow); }
+.editBtn:hover {
+  color: var(--amber-light);
+  background: var(--amber-glow);
+}
 
 .deleteBtn {
   background: none;
@@ -133,7 +142,9 @@
   transition: background var(--transition);
 }
 
-.deleteBtn:hover { background: var(--red-10); }
+.deleteBtn:hover {
+  background: var(--red-10);
+}
 
 /* ── Content ── */
 .title {
@@ -166,7 +177,9 @@
   font-weight: 700;
   color: var(--amber-light);
   text-decoration: none;
-  transition: background var(--transition), border-color var(--transition);
+  transition:
+    background var(--transition),
+    border-color var(--transition);
   align-self: flex-start;
 }
 
@@ -275,7 +288,12 @@
 .skeletonImg {
   width: 100%;
   height: 380px;
-  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-elevated) 75%
+  );
   background-size: 400% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
 }
@@ -290,14 +308,23 @@
 .skeletonLine {
   height: 16px;
   border-radius: 6px;
-  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-elevated) 75%
+  );
   background-size: 400% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
 }
 
 @keyframes shimmer {
-  0%   { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 /* ── Not found ── */
@@ -319,15 +346,30 @@
 
 /* ── Mobile ── */
 @media (max-width: 959px) {
-  .page  { padding-bottom: var(--page-padding-mobile); }
-  .inner { padding: 0 var(--page-padding-mobile); }
+  .page {
+    padding-bottom: var(--page-padding-mobile);
+  }
+  .inner {
+    padding: 0 var(--page-padding-mobile);
+  }
 }
 
 @media (max-width: 600px) {
-  .body   { padding: 16px 16px 20px; }
-  .title  { font-size: 20px; }
-  .image  { max-height: 420px; }
+  .body {
+    padding: 16px 16px 20px;
+  }
+  .title {
+    font-size: 20px;
+  }
+  .image {
+    max-height: 420px;
+  }
 
-  .shareButtons { gap: 6px; }
-  .shareBtn     { padding: 6px 10px; font-size: 11px; }
+  .shareButtons {
+    gap: 6px;
+  }
+  .shareBtn {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
 }

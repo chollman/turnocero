@@ -1,6 +1,7 @@
 # Plan: Página Utilidades + Selector de Dedos
 
 ## Context
+
 Se necesita una nueva sección "Utilidades" con mini-apps para usar desde el celular durante partidas de mesa. La primera mini-app es un selector aleatorio de jugadores basado en detección de dedos en pantalla (estilo Chwazi).
 
 ---
@@ -19,10 +20,10 @@ client/src/pages/utilidades/
 
 ## Archivos a modificar
 
-| Archivo | Cambio |
-|---|---|
-| `client/src/App.jsx` | 2 rutas nuevas + imports |
-| `client/src/components/layout/Sidebar.jsx` | item "Utilidades" + SVG ícono |
+| Archivo                                      | Cambio                        |
+| -------------------------------------------- | ----------------------------- |
+| `client/src/App.jsx`                         | 2 rutas nuevas + imports      |
+| `client/src/components/layout/Sidebar.jsx`   | item "Utilidades" + SVG ícono |
 | `client/src/components/layout/BottomNav.jsx` | item "Utilidades" + SVG ícono |
 
 ---
@@ -43,18 +44,24 @@ Imports al tope junto con los demás lazy-imports o imports directos.
 ## 2. Navegación
 
 ### Sidebar.jsx
+
 Agregar al array `NAV` (antes de `db`):
+
 ```js
 { id: 'utilidades', label: 'Utilidades', to: '/utilidades' }
 ```
+
 Agregar SVG `UtilidadesIcon` (ícono de llave inglesa o apps-grid) al bloque de íconos custom inline.
 Actualizar `getActiveId()` para que `/utilidades` devuelva `'utilidades'`.
 
 ### BottomNav.jsx
+
 Agregar al array `NAV` (antes de `db`):
+
 ```js
 { id: 'utilidades', label: 'Utilidades', Icon: UtilidadesIcon, to: '/utilidades' }
 ```
+
 Agregar SVG `UtilidadesIcon` al bloque de íconos al tope del archivo.
 
 ---
@@ -62,6 +69,7 @@ Agregar SVG `UtilidadesIcon` al bloque de íconos al tope del archivo.
 ## 3. `Utilidades.jsx` — Grilla de mini-apps
 
 Estructura:
+
 ```jsx
 <div className={styles.page}>
   <div className={styles.inner}>
@@ -75,9 +83,11 @@ Estructura:
         to="/utilidades/selector-de-dedos"
       />
       {/* 8 cards "Próximamente" griseadas */}
-      {Array(8).fill(null).map((_, i) => (
-        <UtilCard key={i} comingSoon />
-      ))}
+      {Array(8)
+        .fill(null)
+        .map((_, i) => (
+          <UtilCard key={i} comingSoon />
+        ))}
     </div>
   </div>
 </div>
@@ -100,33 +110,45 @@ Props: `icon`, `title`, `description`, `to`, `comingSoon`.
 ## 5. `FingerSelector.jsx` — La mini-app
 
 ### Layout
+
 `position: fixed; inset: 0; z-index: 9999` — cubre todo el viewport incluyendo navbars. Fondo negro. Botón "←" arriba a la izquierda para volver a `/utilidades`.
 
 ### Fases (state machine)
+
 ```
 idle → waiting → selecting → result
 ```
 
-| Fase | UI |
-|---|---|
-| `idle` | Mensaje "Pongan los dedos en la pantalla" centrado |
-| `waiting` | Dots de colores en posición de cada dedo + countdown circular (3→0) en centro |
-| `selecting` | Dots no ganadores se encogen/desvanecen (300ms) |
-| `result` | Ganador pulsa con glow + texto "¡Empezás vos!" + botón "Jugar de nuevo" |
+| Fase        | UI                                                                            |
+| ----------- | ----------------------------------------------------------------------------- |
+| `idle`      | Mensaje "Pongan los dedos en la pantalla" centrado                            |
+| `waiting`   | Dots de colores en posición de cada dedo + countdown circular (3→0) en centro |
+| `selecting` | Dots no ganadores se encogen/desvanecen (300ms)                               |
+| `result`    | Ganador pulsa con glow + texto "¡Empezás vos!" + botón "Jugar de nuevo"       |
 
 ### Colores por dedo (hasta 10)
+
 ```js
 const FINGER_COLORS = [
-  '#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#a855f7',
-  '#f97316', '#ec4899', '#06b6d4', '#84cc16', '#ffffff'
+  "#ef4444",
+  "#3b82f6",
+  "#22c55e",
+  "#f59e0b",
+  "#a855f7",
+  "#f97316",
+  "#ec4899",
+  "#06b6d4",
+  "#84cc16",
+  "#ffffff",
 ];
 ```
 
 ### Touch tracking
+
 ```js
 const touchMapRef = useRef(new Map()); // identifier → { x, y, color, colorIndex }
-const [dots, setDots] = useState([]);   // array para render
-const [phase, setPhase] = useState('idle');
+const [dots, setDots] = useState([]); // array para render
+const [phase, setPhase] = useState("idle");
 const [countdown, setCountdown] = useState(3);
 const [winnerId, setWinnerId] = useState(null);
 const timerRef = useRef(null);
@@ -142,25 +164,40 @@ touchend / touchcancel → eliminar del Map, sync dots; si fingers < 2 resetear 
 ```
 
 ### Countdown logic
+
 - Al pasar a >= 2 dedos: iniciar interval de 1 seg que decrementa countdown 3→2→1
 - Al llegar a 0: elegir ganador aleatorio de las entradas activas del Map → `selecting` → (300ms) → `result`
 - Si fingers bajan a < 2 antes de llegar a 0: limpiar interval, resetear countdown=3, fase=`waiting` (o `idle` si 0 dedos)
 
 ### Animaciones CSS
+
 ```css
 .dot {
   position: absolute;
-  width: 80px; height: 80px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   transform: translate(-50%, -50%) scale(1);
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
 }
-.dot.loser  { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-.dot.winner { animation: winnerPulse 0.6s ease infinite alternate; }
+.dot.loser {
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+}
+.dot.winner {
+  animation: winnerPulse 0.6s ease infinite alternate;
+}
 
 @keyframes winnerPulse {
-  from { transform: translate(-50%, -50%) scale(1.2); }
-  to   { transform: translate(-50%, -50%) scale(1.6); filter: brightness(1.3); }
+  from {
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1.6);
+    filter: brightness(1.3);
+  }
 }
 ```
 

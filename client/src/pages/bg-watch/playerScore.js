@@ -10,8 +10,8 @@
 export function hasDisplayableScore(score) {
   if (score == null) return false;
   const str = String(score).trim();
-  if (str === '') return false;
-  if (str.toLowerCase() === 'null') return false;
-  if (str.toLowerCase() === 'undefined') return false;
+  if (str === "") return false;
+  if (str.toLowerCase() === "null") return false;
+  if (str.toLowerCase() === "undefined") return false;
   return true;
 }

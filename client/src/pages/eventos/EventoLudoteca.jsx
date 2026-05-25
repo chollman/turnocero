@@ -148,105 +148,105 @@ export default function EventoLudoteca({
               ? `https://boardgamegeek.com/boardgame/${item.bggGameId}`
               : null;
             return (
-            <li key={item._id} className={styles.card}>
-              {bggUrl ? (
-                <a
-                  href={bggUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.thumbLink}
-                  aria-label={`Ver ${item.gameName} en BoardGameGeek`}
-                >
-                  {item.image || item.thumbnail ? (
-                    <img
-                      src={item.image || item.thumbnail}
-                      alt={item.gameName}
-                      className={styles.thumb}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className={styles.thumbFallback} aria-hidden="true">
-                      🎲
-                    </div>
-                  )}
-                </a>
-              ) : item.image || item.thumbnail ? (
-                <img
-                  src={item.image || item.thumbnail}
-                  alt={item.gameName}
-                  className={styles.thumb}
-                  loading="lazy"
-                />
-              ) : (
-                <div className={styles.thumbFallback} aria-hidden="true">
-                  🎲
-                </div>
-              )}
-              <div className={styles.body}>
-                <div className={styles.name}>
-                  {bggUrl ? (
-                    <a
-                      href={bggUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.nameLink}
-                    >
-                      {item.gameName}
-                      <span className={styles.bggArrow} aria-hidden="true">
-                        ↗
-                      </span>
-                    </a>
-                  ) : (
-                    item.gameName
-                  )}
-                </div>
-                {item.year && (
-                  <div className={styles.year}>
-                    {item.year}
-                    {item.minPlayers && item.maxPlayers && (
-                      <>
-                        {" · "}
-                        {item.minPlayers === item.maxPlayers
-                          ? `${item.minPlayers} jug.`
-                          : `${item.minPlayers}-${item.maxPlayers} jug.`}
-                      </>
+              <li key={item._id} className={styles.card}>
+                {bggUrl ? (
+                  <a
+                    href={bggUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.thumbLink}
+                    aria-label={`Ver ${item.gameName} en BoardGameGeek`}
+                  >
+                    {item.image || item.thumbnail ? (
+                      <img
+                        src={item.image || item.thumbnail}
+                        alt={item.gameName}
+                        className={styles.thumb}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className={styles.thumbFallback} aria-hidden="true">
+                        🎲
+                      </div>
+                    )}
+                  </a>
+                ) : item.image || item.thumbnail ? (
+                  <img
+                    src={item.image || item.thumbnail}
+                    alt={item.gameName}
+                    className={styles.thumb}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className={styles.thumbFallback} aria-hidden="true">
+                    🎲
+                  </div>
+                )}
+                <div className={styles.body}>
+                  <div className={styles.name}>
+                    {bggUrl ? (
+                      <a
+                        href={bggUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.nameLink}
+                      >
+                        {item.gameName}
+                        <span className={styles.bggArrow} aria-hidden="true">
+                          ↗
+                        </span>
+                      </a>
+                    ) : (
+                      item.gameName
                     )}
                   </div>
-                )}
-                {item.notes && (
-                  <div className={styles.notes}>“{item.notes}”</div>
-                )}
-                {item.addedBy?._id ? (
-                  <Link
-                    to={`/usuarios/${item.addedBy._id}`}
-                    className={styles.addedBy}
+                  {item.year && (
+                    <div className={styles.year}>
+                      {item.year}
+                      {item.minPlayers && item.maxPlayers && (
+                        <>
+                          {" · "}
+                          {item.minPlayers === item.maxPlayers
+                            ? `${item.minPlayers} jug.`
+                            : `${item.minPlayers}-${item.maxPlayers} jug.`}
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {item.notes && (
+                    <div className={styles.notes}>“{item.notes}”</div>
+                  )}
+                  {item.addedBy?._id ? (
+                    <Link
+                      to={`/usuarios/${item.addedBy._id}`}
+                      className={styles.addedBy}
+                    >
+                      <Avatar user={item.addedBy} size="xs" />
+                      <span className={styles.addedByName}>
+                        {item.addedBy.displayName ||
+                          item.addedBy.username ||
+                          "?"}
+                      </span>
+                    </Link>
+                  ) : (
+                    <div className={styles.addedBy}>
+                      <Avatar user={item.addedBy} size="xs" />
+                      <span className={styles.addedByName}>?</span>
+                    </div>
+                  )}
+                </div>
+                {canDelete(item) && (
+                  <button
+                    type="button"
+                    className={styles.removeBtn}
+                    onClick={() => handleDelete(item)}
+                    disabled={deletingId === item._id}
+                    aria-label={`Quitar ${item.gameName}`}
                   >
-                    <Avatar user={item.addedBy} size="xs" />
-                    <span className={styles.addedByName}>
-                      {item.addedBy.displayName ||
-                        item.addedBy.username ||
-                        "?"}
-                    </span>
-                  </Link>
-                ) : (
-                  <div className={styles.addedBy}>
-                    <Avatar user={item.addedBy} size="xs" />
-                    <span className={styles.addedByName}>?</span>
-                  </div>
+                    ×
+                  </button>
                 )}
-              </div>
-              {canDelete(item) && (
-                <button
-                  type="button"
-                  className={styles.removeBtn}
-                  onClick={() => handleDelete(item)}
-                  disabled={deletingId === item._id}
-                  aria-label={`Quitar ${item.gameName}`}
-                >
-                  ×
-                </button>
-              )}
-            </li>
+              </li>
             );
           })}
         </ul>

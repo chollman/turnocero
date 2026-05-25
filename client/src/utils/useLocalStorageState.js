@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 function read(key, defaultValue) {
-  if (typeof window === 'undefined' || !window.localStorage) return defaultValue;
+  if (typeof window === "undefined" || !window.localStorage)
+    return defaultValue;
   try {
     const raw = window.localStorage.getItem(key);
     if (raw === null) return defaultValue;
@@ -12,7 +13,7 @@ function read(key, defaultValue) {
 }
 
 function write(key, value) {
-  if (typeof window === 'undefined' || !window.localStorage) return;
+  if (typeof window === "undefined" || !window.localStorage) return;
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
   } catch {
@@ -28,7 +29,7 @@ export default function useLocalStorageState(key, defaultValue) {
   }, [key, value]);
 
   const set = useCallback((next) => {
-    setValue(prev => (typeof next === 'function' ? next(prev) : next));
+    setValue((prev) => (typeof next === "function" ? next(prev) : next));
   }, []);
 
   return [value, set];

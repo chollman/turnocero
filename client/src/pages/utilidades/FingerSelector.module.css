@@ -50,8 +50,13 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .idleText {
@@ -112,8 +117,12 @@
 }
 
 @keyframes ringEmpty {
-  from { stroke-dashoffset: 0; }
-  to   { stroke-dashoffset: 251.33; }
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: 251.33;
+  }
 }
 
 /* Winner color overlay */
@@ -127,8 +136,12 @@
 }
 
 @keyframes overlayFill {
-  from { opacity: 0; }
-  to   { opacity: 0.38; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.38;
+  }
 }
 
 /* Finger dots */
@@ -138,7 +151,9 @@
   height: 100px;
   border-radius: 50%;
   transform: translate(-50%, -50%) scale(1);
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+  transition:
+    transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -148,8 +163,12 @@
 }
 
 @keyframes dotAppear {
-  from { transform: translate(-50%, -50%) scale(0); }
-  to   { transform: translate(-50%, -50%) scale(1); }
+  from {
+    transform: translate(-50%, -50%) scale(0);
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .dotInner {
@@ -163,7 +182,9 @@
 .dotLoser {
   transform: translate(-50%, -50%) scale(0) !important;
   opacity: 0 !important;
-  transition: transform 0.3s ease, opacity 0.25s ease !important;
+  transition:
+    transform 0.3s ease,
+    opacity 0.25s ease !important;
 }
 
 .dotWinner {
@@ -199,7 +220,10 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.2s;
   animation: fadeUp 0.45s ease;
 }
 
@@ -210,8 +234,14 @@
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 /* Landscape block overlay */
@@ -234,9 +264,16 @@
 }
 
 @keyframes rotateHint {
-  0%, 100% { transform: rotate(0deg); }
-  40%       { transform: rotate(-90deg); }
-  60%       { transform: rotate(-90deg); }
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(-90deg);
+  }
+  60% {
+    transform: rotate(-90deg);
+  }
 }
 
 .landscapeText {

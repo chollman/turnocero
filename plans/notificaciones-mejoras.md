@@ -63,9 +63,9 @@ El objetivo es dejar el sistema **consistente, sin pérdidas, ordenado y ampliab
    - Archivo: [Notifications.jsx](client/src/pages/notifications/Notifications.jsx)
    - **Fix**: agregar barra de tabs `Todas | Sin leer` + dropdown/chips para filtrar por categoría:
      - **Mesas** (chat, comment, image, join_request, join_accepted, spot_opened)
-     - **Torneos** (tournament_*)
-     - **Amigos** (friend_*, dm)
-     - **Compartidas** (compartida_*)
+     - **Torneos** (tournament\_\*)
+     - **Amigos** (friend\_\*, dm)
+     - **Compartidas** (compartida\_\*)
      - **Anuncios** (noticia)
    - Estado local con `useState('all' | 'unread')` para tab y `useState('all' | <category>)` para tipo. Filtrar antes de mapear. Mostrar contador `(N)` en cada tab.
 
@@ -152,7 +152,7 @@ El objetivo es dejar el sistema **consistente, sin pérdidas, ordenado y ampliab
     - **Fix**: scoping a `turnocero_notifications:${user._id}` o **directamente eliminar el cache de localStorage** y depender solo del server (más limpio; pierde optimismo offline pero es marginal). **Recomendado**: eliminar.
 
 26. **Race: socket reconnect duplica notificaciones**
-    - Si el socket envía una nueva notif y casi simultáneamente el reload de `GET /api/notifications` arranca, el GET trae la misma + socket appendea de nuevo. `findExisting` por `(type, tableId)` evita duplicados en aggregating, pero los no-aggregating (friend_accepted, spot_opened, torneo_*) podrían quedar dos veces si el filtro por `tableId/fromUserId/torneoId` no matchea exactamente.
+    - Si el socket envía una nueva notif y casi simultáneamente el reload de `GET /api/notifications` arranca, el GET trae la misma + socket appendea de nuevo. `findExisting` por `(type, tableId)` evita duplicados en aggregating, pero los no-aggregating (friend*accepted, spot_opened, torneo*\*) podrían quedar dos veces si el filtro por `tableId/fromUserId/torneoId` no matchea exactamente.
     - **Fix**: re-key/reduplicar por `(type, tableId || fromUserId || torneoId)` al setear desde el server response. Y al recibir socket, hacer upsert por esa misma key en todos los tipos (no solo aggregating). Función helper `upsertNotif(prev, key, builder)`.
 
 27. **`setNotifications((prev) => [...prev, newOne])` es O(n) y rompe orden**
@@ -177,13 +177,17 @@ El objetivo es dejar el sistema **consistente, sin pérdidas, ordenado y ampliab
 Implementación en fases, cada una mergeable independientemente.
 
 ### Fase 1 — Fixes críticos (P0)
+
 **Archivos a modificar:**
+
 - [client/src/pages/notifications/Notifications.jsx](client/src/pages/notifications/Notifications.jsx) — fix orden cronológico + `markRead` para torneos + separar Limpiar/Marcar todas
 - [client/src/context/NotificationContext.jsx](client/src/context/NotificationContext.jsx) — agregar `markReadTorneo`, `markAllRead`
 - [server/routes/notifications.js](server/routes/notifications.js) — aceptar `torneoId` en `PATCH /read`
 
 ### Fase 2 — Persistencia DM + admin chat (P0.4)
+
 **Archivos:**
+
 - [server/models/Notification.js](server/models/Notification.js) — agregar tipos al enum (ver Fase 5)
 - [server/utils/saveNotification.js](server/utils/saveNotification.js) — agregar `'dm'` y `'admin_chat'` al set AGGREGATING
 - [server/routes/dm.js](server/routes/dm.js) — `saveNotification` en POST, delete en PATCH read
@@ -192,7 +196,9 @@ Implementación en fases, cada una mergeable independientemente.
 - [client/src/context/ChatContext.jsx](client/src/context/ChatContext.jsx) — reconciliación de unread inicial desde notifs persistidas
 
 ### Fase 3 — Triggers faltantes (P2)
+
 **Por feature, en orden de impacto:**
+
 1. Compartidas comments (P2.14)
 2. Compartidas likes (P2.15)
 3. Mesa cancelada (P2.18)
@@ -203,7 +209,9 @@ Implementación en fases, cada una mergeable independientemente.
 **Archivos:** `server/routes/{compartidas,tables,torneos,noticias}.js`, `server/models/Notification.js` (campos `compartidaId`, `compartidaTitle`, `phase`).
 
 ### Fase 4 — Pantalla nueva con tabs/filtros/timestamps (P1)
+
 **Archivos:**
+
 - [client/src/pages/notifications/Notifications.jsx](client/src/pages/notifications/Notifications.jsx) — refactor con tabs `Todas | Sin leer` + chips de categoría + filter state
 - [client/src/pages/notifications/Notifications.module.css](client/src/pages/notifications/Notifications.module.css) — estilos para tabs/chips (usar variables CSS, theme dark+light)
 - [client/src/utils/time.js](client/src/utils/time.js) — nuevo helper `formatTimeAgo(date)` con `Intl.RelativeTimeFormat`
@@ -211,6 +219,7 @@ Implementación en fases, cada una mergeable independientemente.
 - Renderizadores para tipos nuevos: `dm`, `admin_chat`, `compartida_*`, `table_cancelled`, `join_rejected`, `tournament_started`, `tournament_finished`
 
 ### Fase 5 — Hardening (P3)
+
 - Enum de tipos centralizado (`server/constants/notifications.js`)
 - Eliminar `localStorage` cache o scoping por user
 - Helper `upsertNotif` en `NotificationContext`
@@ -238,15 +247,18 @@ Implementación en fases, cada una mergeable independientemente.
 Por cada fase, levantar ambos servers (`npm run dev:server` + `npm run dev:client`) y probar **con dos cuentas en dos browsers** (una incógnita):
 
 **Fase 1:**
+
 - Crear varias notifs de tipos mezclados (chat, friend, torneo). Verificar orden por timestamp descendente. Recargar página y confirmar mismo orden.
 - Tocar una notif de torneo → debería marcarse como leída (chip desaparece, opacity baja).
 - Click en "Marcar todas como leídas" → ninguna queda con chip. Click en "Limpiar" → confirma + borra.
 
 **Fase 2:**
+
 - Cuenta A manda DM a cuenta B (B offline / no en /mensajes). B vuelve, refresca `/notificaciones` → ve la notif DM. Abre el chat → marca como leída.
 - Admin A manda admin-chat. Admin B offline → al volver ve `adminChatUnread > 0` correcto (hidratado desde DB).
 
 **Fase 3:**
+
 - Compartida de A; B comenta → A ve notif card + toast.
 - B likea → A ve notif. Si B likea 2 veces (toggle off/on) → count incrementa una sola vez.
 - Host cancela mesa → todos los players + followers reciben notif.
@@ -254,6 +266,7 @@ Por cada fase, levantar ambos servers (`npm run dev:server` + `npm run dev:clien
 - Torneo arranca/finaliza → todos los participantes reciben notif.
 
 **Fase 4:**
+
 - Tab "Sin leer" muestra solo unreads, contador correcto.
 - Filtro por categoría "Torneos" muestra solo `tournament_*`.
 - Timestamps muestran "hace X min" y se actualizan tras 1 min sin recargar.
@@ -261,6 +274,7 @@ Por cada fase, levantar ambos servers (`npm run dev:server` + `npm run dev:clien
 - Toggle theme dark↔light: todo se ve correcto (revisar variables CSS, no hardcodear colores — ver `[feedback_theme_support]`).
 
 **Fase 5:**
+
 - Login con cuenta A, logout, login con cuenta B → no aparecen notifs de A.
 - Forzar reconexión de socket (devtools → Network → offline → online) → no se duplica ninguna notif.
 - Llegan 10 mensajes en 1 mesa → aparece 1 solo toast con count 10 (en lugar de 4 toasts rotando).

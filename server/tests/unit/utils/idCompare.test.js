@@ -3,11 +3,15 @@ const { isSameId } = require("../../../utils/idCompare");
 
 describe("isSameId", () => {
   it("compara dos strings iguales como true", () => {
-    expect(isSameId("507f1f77bcf86cd799439011", "507f1f77bcf86cd799439011")).toBe(true);
+    expect(
+      isSameId("507f1f77bcf86cd799439011", "507f1f77bcf86cd799439011"),
+    ).toBe(true);
   });
 
   it("compara dos strings distintos como false", () => {
-    expect(isSameId("507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012")).toBe(false);
+    expect(
+      isSameId("507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"),
+    ).toBe(false);
   });
 
   it("compara ObjectId vs string del mismo valor como true", () => {

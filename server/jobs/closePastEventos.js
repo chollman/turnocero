@@ -1,5 +1,5 @@
-const Evento = require('../models/Evento');
-const logger = require('../utils/logger');
+const Evento = require("../models/Evento");
+const logger = require("../utils/logger");
 
 /**
  * Job: cierra automáticamente eventos cuyo `eventDate` ya pasó y siguen en
@@ -18,12 +18,14 @@ const logger = require('../utils/logger');
 async function runOnce() {
   try {
     const result = await Evento.updateMany(
-      { status: 'open', eventDate: { $ne: null, $lt: new Date() } },
-      { $set: { status: 'closed' } },
+      { status: "open", eventDate: { $ne: null, $lt: new Date() } },
+      { $set: { status: "closed" } },
     );
     return { closed: result.modifiedCount || 0 };
   } catch (err) {
-    logger.error('[closePastEventos] updateMany failed', { error: err.message });
+    logger.error("[closePastEventos] updateMany failed", {
+      error: err.message,
+    });
     return { closed: 0 };
   }
 }

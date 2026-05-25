@@ -44,9 +44,7 @@ describe("<TableComments>", () => {
   it("muestra empty state cuando no hay comentarios", async () => {
     renderTableComments();
     await waitFor(() => {
-      expect(
-        screen.getByText(/Nadie comentó todavía/i),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Nadie comentó todavía/i)).toBeInTheDocument();
     });
   });
 
@@ -189,10 +187,7 @@ describe("<TableComments>", () => {
   it("muestra error en el POST y mantiene el input para reintentar", async () => {
     server.use(
       http.post("/api/tables/:id/comments", () =>
-        HttpResponse.json(
-          { message: "Comentario muy largo" },
-          { status: 400 },
-        ),
+        HttpResponse.json({ message: "Comentario muy largo" }, { status: 400 }),
       ),
     );
     renderTableComments();

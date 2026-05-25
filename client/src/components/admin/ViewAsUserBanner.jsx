@@ -1,5 +1,5 @@
-import { useAuth } from '../../context/AuthContext';
-import styles from './ViewAsUserBanner.module.css';
+import { useAuth } from "../../context/AuthContext";
+import styles from "./ViewAsUserBanner.module.css";
 
 export default function ViewAsUserBanner() {
   const { isActuallyAdmin, viewAsUser, setViewAsUser } = useAuth();

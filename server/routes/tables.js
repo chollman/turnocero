@@ -538,9 +538,7 @@ router.post(
     }
 
     if (table.privacy === "private") {
-      if (
-        table.pendingRequests.some((r) => isSameId(r, req.user._id))
-      ) {
+      if (table.pendingRequests.some((r) => isSameId(r, req.user._id))) {
         throw httpError(
           400,
           "Ya enviaste una solicitud para unirte a esta mesa",
@@ -717,10 +715,7 @@ router.post(
     const populated = await populateTable(Table.findById(table._id));
 
     // Notify followers that a spot opened
-    if (
-      table.players.length < table.maxPlayers &&
-      table.followers.length > 0
-    ) {
+    if (table.players.length < table.maxPlayers && table.followers.length > 0) {
       await Promise.all(
         table.followers.map((followerId) =>
           emitNotificationReq(

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import Cropper from 'react-easy-crop';
-import styles from './AvatarCropModal.module.css';
+import { useCallback, useEffect, useRef, useState } from "react";
+import Cropper from "react-easy-crop";
+import styles from "./AvatarCropModal.module.css";
 
 async function getCroppedBlob(imageSrc, pixelCrop) {
   const img = new Image();
@@ -9,10 +9,10 @@ async function getCroppedBlob(imageSrc, pixelCrop) {
     img.onload = resolve;
     img.onerror = reject;
   });
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   canvas.width = 600;
   canvas.height = 600;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
   ctx.drawImage(
     img,
     pixelCrop.x,
@@ -24,7 +24,9 @@ async function getCroppedBlob(imageSrc, pixelCrop) {
     600,
     600,
   );
-  return new Promise((resolve) => { canvas.toBlob(resolve, 'image/jpeg', 0.9); });
+  return new Promise((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", 0.9);
+  });
 }
 
 export default function AvatarCropModal({ open, file, onCancel, onConfirm }) {
@@ -82,7 +84,12 @@ export default function AvatarCropModal({ open, file, onCancel, onConfirm }) {
   if (!open || !imageSrc) return null;
 
   return (
-    <div className={styles.overlay} role="dialog" aria-modal="true" aria-label="Recortar avatar">
+    <div
+      className={styles.overlay}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Recortar avatar"
+    >
       <div className={styles.modal}>
         <div className={styles.header}>
           <h3 className={styles.title}>Recortar avatar</h3>
@@ -134,7 +141,7 @@ export default function AvatarCropModal({ open, file, onCancel, onConfirm }) {
             onClick={handleSave}
             disabled={saving || !croppedAreaPixels}
           >
-            {saving ? 'Guardando…' : 'Guardar'}
+            {saving ? "Guardando…" : "Guardar"}
           </button>
         </div>
       </div>

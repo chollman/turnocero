@@ -11,7 +11,7 @@
   background: linear-gradient(
     90deg,
     var(--bg-elevated) 25%,
-    var(--bg-hover)    50%,
+    var(--bg-hover) 50%,
     var(--bg-elevated) 75%
   );
   background-size: 400% 100%;
@@ -20,8 +20,12 @@
 }
 
 @keyframes shimmer {
-  0%   { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 /* ── Header ── */
@@ -71,9 +75,18 @@
   padding: 12px 16px 0;
 }
 
-.lineFull { height: 13px; width: 100%; }
-.lineWide { height: 13px; width: 83%; }
-.lineMid  { height: 13px; width: 58%; }
+.lineFull {
+  height: 13px;
+  width: 100%;
+}
+.lineWide {
+  height: 13px;
+  width: 83%;
+}
+.lineMid {
+  height: 13px;
+  width: 58%;
+}
 
 /* ── Footer ── */
 .footer {
@@ -99,8 +112,16 @@
 }
 
 @media (max-width: 600px) {
-  .header    { padding: 12px 12px 0; }
-  .title     { margin: 12px 12px 0; }
-  .bodyLines { padding: 10px 12px 0; }
-  .footer    { padding: 12px 12px; }
+  .header {
+    padding: 12px 12px 0;
+  }
+  .title {
+    margin: 12px 12px 0;
+  }
+  .bodyLines {
+    padding: 10px 12px 0;
+  }
+  .footer {
+    padding: 12px 12px;
+  }
 }

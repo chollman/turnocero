@@ -1,64 +1,82 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import Modal from './Modal';
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import Modal from "./Modal";
 
-describe('<Modal>', () => {
-  it('no renderiza nada cuando isOpen=false', () => {
+describe("<Modal>", () => {
+  it("no renderiza nada cuando isOpen=false", () => {
     const { container } = render(
-      <Modal isOpen={false} onClose={vi.fn()} ariaLabel="x">contenido</Modal>,
+      <Modal isOpen={false} onClose={vi.fn()} ariaLabel="x">
+        contenido
+      </Modal>,
     );
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renderiza con role=dialog y aria-modal cuando isOpen', () => {
+  it("renderiza con role=dialog y aria-modal cuando isOpen", () => {
     render(
-      <Modal isOpen onClose={vi.fn()} ariaLabel="Confirmar">contenido</Modal>,
+      <Modal isOpen onClose={vi.fn()} ariaLabel="Confirmar">
+        contenido
+      </Modal>,
     );
-    const dialog = screen.getByRole('dialog');
-    expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toHaveAttribute('aria-label', 'Confirmar');
-    expect(screen.getByText('contenido')).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toHaveAttribute("aria-label", "Confirmar");
+    expect(screen.getByText("contenido")).toBeInTheDocument();
   });
 
-  it('Escape llama onClose', () => {
+  it("Escape llama onClose", () => {
     const onClose = vi.fn();
-    render(<Modal isOpen onClose={onClose} ariaLabel="x">x</Modal>);
-    fireEvent.keyDown(window, { key: 'Escape' });
+    render(
+      <Modal isOpen onClose={onClose} ariaLabel="x">
+        x
+      </Modal>,
+    );
+    fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('click en backdrop llama onClose por defecto', () => {
+  it("click en backdrop llama onClose por defecto", () => {
     const onClose = vi.fn();
     render(
-      <Modal isOpen onClose={onClose} ariaLabel="x" backdropClassName="bd">x</Modal>,
+      <Modal isOpen onClose={onClose} ariaLabel="x" backdropClassName="bd">
+        x
+      </Modal>,
     );
     // Modal usa createPortal → el backdrop vive en document.body, no en container.
-    const bd = document.body.querySelector('.bd');
+    const bd = document.body.querySelector(".bd");
     fireEvent.click(bd);
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('click adentro del contenedor NO llama onClose (event no propaga)', () => {
+  it("click adentro del contenedor NO llama onClose (event no propaga)", () => {
     const onClose = vi.fn();
     render(
       <Modal isOpen onClose={onClose} ariaLabel="x">
         <button>boton</button>
       </Modal>,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'boton' }));
+    fireEvent.click(screen.getByRole("button", { name: "boton" }));
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('dismissOnBackdrop=false no cierra con click en backdrop', () => {
+  it("dismissOnBackdrop=false no cierra con click en backdrop", () => {
     const onClose = vi.fn();
     render(
-      <Modal isOpen onClose={onClose} ariaLabel="x" backdropClassName="bd" dismissOnBackdrop={false}>x</Modal>,
+      <Modal
+        isOpen
+        onClose={onClose}
+        ariaLabel="x"
+        backdropClassName="bd"
+        dismissOnBackdrop={false}
+      >
+        x
+      </Modal>,
     );
-    fireEvent.click(document.body.querySelector('.bd'));
+    fireEvent.click(document.body.querySelector(".bd"));
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('focus se mueve al contenedor al abrir y se restaura al cerrar', () => {
+  it("focus se mueve al contenedor al abrir y se restaura al cerrar", () => {
     function Wrapper({ open }) {
       return (
         <>
@@ -70,26 +88,31 @@ describe('<Modal>', () => {
       );
     }
     const { rerender } = render(<Wrapper open={false} />);
-    const trigger = screen.getByTestId('trigger');
+    const trigger = screen.getByTestId("trigger");
     trigger.focus();
     expect(document.activeElement).toBe(trigger);
 
     rerender(<Wrapper open />);
-    const dialog = screen.getByRole('dialog');
+    const dialog = screen.getByRole("dialog");
     expect(document.activeElement).toBe(dialog);
 
     rerender(<Wrapper open={false} />);
     expect(document.activeElement).toBe(trigger);
   });
 
-  it('aria-labelledby tiene prioridad sobre aria-label', () => {
+  it("aria-labelledby tiene prioridad sobre aria-label", () => {
     render(
-      <Modal isOpen onClose={vi.fn()} ariaLabel="ignored" ariaLabelledBy="titleId">
+      <Modal
+        isOpen
+        onClose={vi.fn()}
+        ariaLabel="ignored"
+        ariaLabelledBy="titleId"
+      >
         <h2 id="titleId">Título</h2>
       </Modal>,
     );
-    const dialog = screen.getByRole('dialog');
-    expect(dialog).toHaveAttribute('aria-labelledby', 'titleId');
-    expect(dialog).not.toHaveAttribute('aria-label');
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-labelledby", "titleId");
+    expect(dialog).not.toHaveAttribute("aria-label");
   });
 });

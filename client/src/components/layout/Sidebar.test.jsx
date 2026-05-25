@@ -1,30 +1,32 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 
 const navigateMock = vi.fn();
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom");
   return { ...actual, useNavigate: () => navigateMock };
 });
-vi.mock('../../context/AuthContext', () => ({ useAuth: vi.fn() }));
-vi.mock('../../context/NotificationContext', () => ({ useNotifications: vi.fn() }));
-vi.mock('../../context/SiteConfigContext', () => ({ useSiteConfig: vi.fn() }));
+vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
+vi.mock("../../context/NotificationContext", () => ({
+  useNotifications: vi.fn(),
+}));
+vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
 
-import Sidebar from './Sidebar';
+import Sidebar from "./Sidebar";
 
-import { useAuth } from '../../context/AuthContext';
-import { useNotifications } from '../../context/NotificationContext';
-import { useSiteConfig } from '../../context/SiteConfigContext';
+import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
+import { useSiteConfig } from "../../context/SiteConfigContext";
 
 function setup({
-  user = { _id: 'u1', username: 'cha', bggUsername: '' },
+  user = { _id: "u1", username: "cha", bggUsername: "" },
   isActuallyAdmin = false,
   logout = vi.fn(),
   unreadCount = 0,
   adminChatUnread = 0,
   sections = {},
-  pathname = '/',
+  pathname = "/",
 } = {}) {
   useAuth.mockReturnValue({ user, isActuallyAdmin, logout });
   useNotifications.mockReturnValue({ unreadCount, adminChatUnread });
@@ -38,92 +40,108 @@ function setup({
   );
 }
 
-describe('<Sidebar>', () => {
-  it('renders the TurnoCero brand + user chip', () => {
+describe("<Sidebar>", () => {
+  it("renders the TurnoCero brand + user chip", () => {
     setup();
-    expect(screen.getByText('TurnoCero')).toBeInTheDocument();
-    expect(screen.getByText('cha')).toBeInTheDocument();
+    expect(screen.getByText("TurnoCero")).toBeInTheDocument();
+    expect(screen.getByText("cha")).toBeInTheDocument();
   });
 
-  it('shows the notifications bell with unread badge when count > 0', () => {
+  it("shows the notifications bell with unread badge when count > 0", () => {
     setup({ unreadCount: 5 });
-    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText("5")).toBeInTheDocument();
   });
 
   it('caps the bell badge at "9+" when above 9', () => {
     setup({ unreadCount: 42 });
-    expect(screen.getByText('9+')).toBeInTheDocument();
+    expect(screen.getByText("9+")).toBeInTheDocument();
   });
 
-  it('hides admin-only items from non-admins', () => {
+  it("hides admin-only items from non-admins", () => {
     setup({ isActuallyAdmin: false });
-    expect(screen.queryByRole('link', { name: /panel admin/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /base de datos/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /panel admin/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /base de datos/i }),
+    ).not.toBeInTheDocument();
   });
 
-  it('shows admin-only items to actual admins', () => {
+  it("shows admin-only items to actual admins", () => {
     setup({ isActuallyAdmin: true });
-    expect(screen.getByRole('link', { name: /panel admin/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /base de datos/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /panel admin/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /base de datos/i }),
+    ).toBeInTheDocument();
   });
 
-  it('hides sections whose SiteConfig flag is false', () => {
+  it("hides sections whose SiteConfig flag is false", () => {
     setup({ sections: { eventos: false } });
-    expect(screen.queryByRole('link', { name: /^eventos$/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /^eventos$/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows "Activá BG Watch" CTA for users without bggUsername (when bgwatch enabled)', () => {
-    setup({ user: { _id: 'u1', username: 'cha' }, sections: { bgwatch: true } });
-    expect(screen.getByRole('link', { name: /activ[aá] bg watch/i })).toBeInTheDocument();
-  });
-
-  it('shows BG Watch link when user has bggUsername', () => {
     setup({
-      user: { _id: 'u1', username: 'cha', bggUsername: 'CarcaFan' },
+      user: { _id: "u1", username: "cha" },
       sections: { bgwatch: true },
     });
-    expect(screen.getByRole('link', { name: /bg watch/i })).toHaveAttribute(
-      'href', '/bg-watch/CarcaFan',
+    expect(
+      screen.getByRole("link", { name: /activ[aá] bg watch/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows BG Watch link when user has bggUsername", () => {
+    setup({
+      user: { _id: "u1", username: "cha", bggUsername: "CarcaFan" },
+      sections: { bgwatch: true },
+    });
+    expect(screen.getByRole("link", { name: /bg watch/i })).toHaveAttribute(
+      "href",
+      "/bg-watch/CarcaFan",
     );
   });
 
-  it('marks the active nav item based on pathname', () => {
-    setup({ pathname: '/eventos' });
-    const eventos = screen.getByRole('link', { name: /^eventos$/i });
+  it("marks the active nav item based on pathname", () => {
+    setup({ pathname: "/eventos" });
+    const eventos = screen.getByRole("link", { name: /^eventos$/i });
     expect(eventos.className).toMatch(/active/i);
   });
 
-  it('shows the adminChat badge when admin has unread admin chat messages', () => {
+  it("shows the adminChat badge when admin has unread admin chat messages", () => {
     setup({ isActuallyAdmin: true, adminChatUnread: 3 });
     // The badge text "3" should be in DOM (next to the chat-admin nav item).
-    expect(screen.getAllByText('3').length).toBeGreaterThan(0);
+    expect(screen.getAllByText("3").length).toBeGreaterThan(0);
   });
 
-  it('clicking the notifications bell navigates to /notificaciones', () => {
+  it("clicking the notifications bell navigates to /notificaciones", () => {
     navigateMock.mockReset();
     setup();
-    fireEvent.click(screen.getByLabelText('Notificaciones'));
-    expect(navigateMock).toHaveBeenCalledWith('/notificaciones');
+    fireEvent.click(screen.getByLabelText("Notificaciones"));
+    expect(navigateMock).toHaveBeenCalledWith("/notificaciones");
   });
 
   it('logout flow: shows confirmation, "Sí" calls logout + navigates to /login', () => {
     const logout = vi.fn();
     navigateMock.mockReset();
     setup({ logout });
-    fireEvent.click(screen.getByTitle('Cerrar sesión'));
-    expect(screen.getByText('¿Cerrar sesión?')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+    fireEvent.click(screen.getByTitle("Cerrar sesión"));
+    expect(screen.getByText("¿Cerrar sesión?")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Sí" }));
     expect(logout).toHaveBeenCalled();
-    expect(navigateMock).toHaveBeenCalledWith('/login');
+    expect(navigateMock).toHaveBeenCalledWith("/login");
   });
 
   it('logout flow: clicking "No" cancels the confirmation', () => {
     const logout = vi.fn();
     setup({ logout });
-    fireEvent.click(screen.getByTitle('Cerrar sesión'));
-    expect(screen.getByText('¿Cerrar sesión?')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'No' }));
-    expect(screen.queryByText('¿Cerrar sesión?')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTitle("Cerrar sesión"));
+    expect(screen.getByText("¿Cerrar sesión?")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "No" }));
+    expect(screen.queryByText("¿Cerrar sesión?")).not.toBeInTheDocument();
     expect(logout).not.toHaveBeenCalled();
   });
 });

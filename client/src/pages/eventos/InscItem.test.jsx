@@ -145,9 +145,7 @@ describe("<InscItem>", () => {
       />,
     );
     expect(screen.getByText(/bloqueado/i)).toBeInTheDocument();
-    expect(
-      screen.queryByText(/bloqueado del evento/i),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/bloqueado del evento/i)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /ver detalles/i }));
     expect(screen.getByText(/bloqueado del evento/i)).toBeInTheDocument();
   });

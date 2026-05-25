@@ -17,8 +17,7 @@ export function useDmNotificationListeners({
         applyDmMessageNotif({
           setNotifications,
           payload,
-          onMessage: (msg) =>
-            dmListenersRef.current.forEach((fn) => fn(msg)),
+          onMessage: (msg) => dmListenersRef.current.forEach((fn) => fn(msg)),
         }),
       ),
     }),

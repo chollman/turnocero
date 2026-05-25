@@ -72,17 +72,17 @@ Crear un panel admin que permita prender/apagar secciones del app (Mesas, Compar
 
 ### Mapa sección → recursos afectados
 
-| Sección | Rutas server | Notif types | Sockets | Widgets cliente |
-|---------|---|---|---|---|
-| `mesas` | `/api/tables/*` | chat, comment, image, join_*, spot_opened, table_cancelled | `chat:message`, `chat:notification`, `join:request`, `join:accepted`, `table:comment`, `table:image`, `table:spot-opened` | `CompartidaCard linkedTable`, Dashboard, MeFeed, TableDetail, CreateTable, EditTable |
-| `compartidas` | `/api/compartidas/*` | compartida_comment, compartida_like | — | `CompartidasSidebar`, `CompartidaCard linkedTable's reverse`, stats en `UserProfilePublic` |
-| `noticias` | `/api/noticias/*` | — | — | Noticias page |
-| `torneos` | `/api/torneos/*` | tournament_* | `torneo:*` | Torneos pages |
-| `amigos` | `/api/friends/*` | friend_request, friend_accepted | `friend:request`, `friend:accepted` | botones "Agregar amigo" en `UserProfilePublic`, lista en `/perfil` |
-| `dms` | `/api/dm/*` | dm | `dm:message` | ChatContext floating windows, `/mensajes`, `DirectChat`, link a chat desde perfiles |
-| `adminChat` | `/api/admin-chat/*` | admin_chat | `admin:message` | (solo admins igual, pero por consistencia) |
-| `bgwatch` | `/api/bgg/*` (read+write) | — | — | `BgWatchHomeWidget`, página `/bg-watch/:user`, badge BGG en perfil, banner BG Watch en perfil, link en `CompartidaCard` (autor con bggUsername), sección "Conexión con BGG" en `/perfil` |
-| `utilidades` | (sin endpoints) | — | — | `/utilidades/dado`, `/utilidades/temporizador`, `/utilidades/selector-de-dedos`, links en Sidebar/BottomNav |
+| Sección       | Rutas server              | Notif types                                                  | Sockets                                                                                                                   | Widgets cliente                                                                                                                                                                          |
+| ------------- | ------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mesas`       | `/api/tables/*`           | chat, comment, image, join\_\*, spot_opened, table_cancelled | `chat:message`, `chat:notification`, `join:request`, `join:accepted`, `table:comment`, `table:image`, `table:spot-opened` | `CompartidaCard linkedTable`, Dashboard, MeFeed, TableDetail, CreateTable, EditTable                                                                                                     |
+| `compartidas` | `/api/compartidas/*`      | compartida_comment, compartida_like                          | —                                                                                                                         | `CompartidasSidebar`, `CompartidaCard linkedTable's reverse`, stats en `UserProfilePublic`                                                                                               |
+| `noticias`    | `/api/noticias/*`         | —                                                            | —                                                                                                                         | Noticias page                                                                                                                                                                            |
+| `torneos`     | `/api/torneos/*`          | tournament\_\*                                               | `torneo:*`                                                                                                                | Torneos pages                                                                                                                                                                            |
+| `amigos`      | `/api/friends/*`          | friend_request, friend_accepted                              | `friend:request`, `friend:accepted`                                                                                       | botones "Agregar amigo" en `UserProfilePublic`, lista en `/perfil`                                                                                                                       |
+| `dms`         | `/api/dm/*`               | dm                                                           | `dm:message`                                                                                                              | ChatContext floating windows, `/mensajes`, `DirectChat`, link a chat desde perfiles                                                                                                      |
+| `adminChat`   | `/api/admin-chat/*`       | admin_chat                                                   | `admin:message`                                                                                                           | (solo admins igual, pero por consistencia)                                                                                                                                               |
+| `bgwatch`     | `/api/bgg/*` (read+write) | —                                                            | —                                                                                                                         | `BgWatchHomeWidget`, página `/bg-watch/:user`, badge BGG en perfil, banner BG Watch en perfil, link en `CompartidaCard` (autor con bggUsername), sección "Conexión con BGG" en `/perfil` |
+| `utilidades`  | (sin endpoints)           | —                                                            | —                                                                                                                         | `/utilidades/dado`, `/utilidades/temporizador`, `/utilidades/selector-de-dedos`, links en Sidebar/BottomNav                                                                              |
 
 ## Plan de implementación
 
@@ -188,6 +188,7 @@ Para cada sección, verificar manualmente con un user no-admin:
 - [ ] Al togglear desde el panel, todos los clientes conectados reaccionan en vivo.
 
 Cross-section específicos:
+
 - [ ] Mesas OFF + Compartidas ON → `linkedTable` en CompartidaCard no aparece.
 - [ ] BG Watch OFF + Compartidas ON → link al perfil BG Watch del autor no aparece.
 - [ ] Amigos OFF + DMs ON → al intentar enviar DM sin amistad falla (el server ya lo bloquea por `friends only`); ¿tiene sentido permitir DMs sin amigos? Probablemente sí: si Amigos está OFF, no se pueden formar nuevas amistades pero las existentes siguen funcionando para DM. (Discutir si esto es lo deseado o si DM depende de Amigos.)
@@ -195,6 +196,7 @@ Cross-section específicos:
 ## Archivos críticos a tocar
 
 ### Nuevos
+
 - `server/models/SiteConfig.js`
 - `server/utils/siteConfig.js`
 - `server/middleware/sectionGate.js`
@@ -205,6 +207,7 @@ Cross-section específicos:
 - `client/src/pages/admin/PanelAdmin.module.css`
 
 ### Modificados
+
 - `server/index.js` — registrar nueva ruta, cargar config al boot, emitir socket al actualizar.
 - `server/utils/saveNotification.js` — gating por sección.
 - `server/routes/tables.js`, `compartidas.js`, `noticias.js`, `torneos.js`, `friends.js`, `dm.js`, `adminChat.js`, `bgg.js` — aplicar `requireSection`.

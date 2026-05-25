@@ -395,8 +395,8 @@ export default function EventoForm({
                     type="button"
                     role="radio"
                     aria-checked={isActive}
-                    className={`${styles.statusChip} ${isActive ? styles[`statusChip_${opt.value}`] : ''}`}
-                    onClick={() => update('status', opt.value)}
+                    className={`${styles.statusChip} ${isActive ? styles[`statusChip_${opt.value}`] : ""}`}
+                    onClick={() => update("status", opt.value)}
                     title={opt.description}
                   >
                     <span

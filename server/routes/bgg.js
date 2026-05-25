@@ -106,55 +106,55 @@ router.get(
       const root = parsed?.items;
       if (!root) return res.json([]);
 
-    const rawItems = root.item || [];
-    const items = Array.isArray(rawItems) ? rawItems : [rawItems];
+      const rawItems = root.item || [];
+      const items = Array.isArray(rawItems) ? rawItems : [rawItems];
 
-    const results = items
-      .map((item) => {
-        const nameRaw = item.name;
-        const nameArr = Array.isArray(nameRaw) ? nameRaw : [nameRaw];
-        const primary =
-          nameArr.find((n) => n["@_type"] === "primary") || nameArr[0];
-        const name = primary?.["@_value"] || "";
-        const year = item.yearpublished?.["@_value"]
-          ? Number(item.yearpublished["@_value"])
-          : null;
-        return {
-          id: Number(item["@_id"]),
-          name,
-          year,
-          thumbnail: null,
-          image: null,
-        };
-      })
-      .filter((g) => g.name)
-      // Ranking por relevancia (bucket de match → nombre corto → año desc).
-      // xmlapi2/search no devuelve los items en ningún orden útil; este sort
-      // los pone más cerca del orden que BGG usa en su autocomplete (que está
-      // gateado por Cloudflare desde Node, ver historia de PR).
-      .sort((a, b) => {
-        const sa = scoreSearchMatch(a.name, q);
-        const sb = scoreSearchMatch(b.name, q);
-        if (sa !== sb) return sa - sb;
-        if (a.name.length !== b.name.length)
-          return a.name.length - b.name.length;
-        return (b.year || 0) - (a.year || 0);
-      })
-      .slice(0, 30);
+      const results = items
+        .map((item) => {
+          const nameRaw = item.name;
+          const nameArr = Array.isArray(nameRaw) ? nameRaw : [nameRaw];
+          const primary =
+            nameArr.find((n) => n["@_type"] === "primary") || nameArr[0];
+          const name = primary?.["@_value"] || "";
+          const year = item.yearpublished?.["@_value"]
+            ? Number(item.yearpublished["@_value"])
+            : null;
+          return {
+            id: Number(item["@_id"]),
+            name,
+            year,
+            thumbnail: null,
+            image: null,
+          };
+        })
+        .filter((g) => g.name)
+        // Ranking por relevancia (bucket de match → nombre corto → año desc).
+        // xmlapi2/search no devuelve los items en ningún orden útil; este sort
+        // los pone más cerca del orden que BGG usa en su autocomplete (que está
+        // gateado por Cloudflare desde Node, ver historia de PR).
+        .sort((a, b) => {
+          const sa = scoreSearchMatch(a.name, q);
+          const sb = scoreSearchMatch(b.name, q);
+          if (sa !== sb) return sa - sb;
+          if (a.name.length !== b.name.length)
+            return a.name.length - b.name.length;
+          return (b.year || 0) - (a.year || 0);
+        })
+        .slice(0, 30);
 
-    // Batch-resolve thumbnails + images (memoria → Mongo → BGG, compartido entre usuarios)
-    if (results.length > 0) {
-      try {
-        const gamesMap = await resolveGamesBatch(results.map((g) => g.id));
-        results.forEach((g) => {
-          const game = gamesMap.get(g.id);
-          g.thumbnail = game?.thumbnail || null;
-          g.image = game?.image || null;
-        });
-      } catch {
-        // thumbnails son opcionales, no bloqueamos el resultado
+      // Batch-resolve thumbnails + images (memoria → Mongo → BGG, compartido entre usuarios)
+      if (results.length > 0) {
+        try {
+          const gamesMap = await resolveGamesBatch(results.map((g) => g.id));
+          results.forEach((g) => {
+            const game = gamesMap.get(g.id);
+            g.thumbnail = game?.thumbnail || null;
+            g.image = game?.image || null;
+          });
+        } catch {
+          // thumbnails son opcionales, no bloqueamos el resultado
+        }
       }
-    }
 
       setCached(cacheKey, results);
       res.json(results);
@@ -270,170 +270,170 @@ router.get(
     const lower = bggUsername.toLowerCase();
     const clientPage = Math.max(1, parseInt(req.query.page) || 1);
 
-  const dateRe = /^\d{4}-\d{2}-\d{2}$/;
-  const mindate = dateRe.test(req.query.mindate || "")
-    ? req.query.mindate
-    : null;
-  const maxdate = dateRe.test(req.query.maxdate || "")
-    ? req.query.maxdate
-    : null;
-  const gameId = /^\d+$/.test(req.query.id || "") ? req.query.id : null;
-  const forceRefresh = req.query.refresh === "1";
+    const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+    const mindate = dateRe.test(req.query.mindate || "")
+      ? req.query.mindate
+      : null;
+    const maxdate = dateRe.test(req.query.maxdate || "")
+      ? req.query.maxdate
+      : null;
+    const gameId = /^\d+$/.test(req.query.id || "") ? req.query.id : null;
+    const forceRefresh = req.query.refresh === "1";
 
-  // Server-side cooldown for the manual "Actualizar" button (60s per panel).
-  // Applies regardless of auth — client only shows the button to owner/admin.
-  if (forceRefresh) {
-    const remaining = await getManualRefreshRemainingMs(
+    // Server-side cooldown for the manual "Actualizar" button (60s per panel).
+    // Applies regardless of auth — client only shows the button to owner/admin.
+    if (forceRefresh) {
+      const remaining = await getManualRefreshRemainingMs(
+        bggUsername,
+        "partidas",
+      );
+      if (remaining > 0) {
+        res.setHeader("X-Refresh-Cooldown-Ms", String(remaining));
+        return res.status(429).json({
+          message: `Esperá ${Math.ceil(remaining / 1000)}s antes de actualizar.`,
+          retryAfterMs: remaining,
+        });
+      }
+      await stampManualRefresh(bggUsername, "partidas");
+    }
+
+    // Set the current cooldown header on the response once, here. All
+    // res.json(...) paths below inherit it automatically. If we just stamped
+    // (forceRefresh path), this returns ~MANUAL_REFRESH_COOLDOWN_MS; otherwise
+    // it reflects whatever cooldown was previously active (or 0).
+    const cooldownRemaining = await getManualRefreshRemainingMs(
       bggUsername,
       "partidas",
     );
-    if (remaining > 0) {
-      res.setHeader("X-Refresh-Cooldown-Ms", String(remaining));
-      return res.status(429).json({
-        message: `Esperá ${Math.ceil(remaining / 1000)}s antes de actualizar.`,
-        retryAfterMs: remaining,
-      });
-    }
-    await stampManualRefresh(bggUsername, "partidas");
-  }
+    res.setHeader("X-Refresh-Cooldown-Ms", String(cooldownRemaining));
 
-  // Set the current cooldown header on the response once, here. All
-  // res.json(...) paths below inherit it automatically. If we just stamped
-  // (forceRefresh path), this returns ~MANUAL_REFRESH_COOLDOWN_MS; otherwise
-  // it reflects whatever cooldown was previously active (or 0).
-  const cooldownRemaining = await getManualRefreshRemainingMs(
-    bggUsername,
-    "partidas",
-  );
-  res.setHeader("X-Refresh-Cooldown-Ms", String(cooldownRemaining));
+    // L2: serve from Mongo if this user has been synced.
+    const hasMongoData = await BggPlay.exists({ bggUsername: lower });
 
-  // L2: serve from Mongo if this user has been synced.
-  const hasMongoData = await BggPlay.exists({ bggUsername: lower });
-
-  if (hasMongoData) {
-    if (forceRefresh) {
-      // User explicitly asked for fresh data — run the probe synchronously
-      // so the response reflects any changes from BGG.
-      try {
-        const result = await withUserLock(bggUsername, () =>
-          probe(bggUsername),
-        );
-        await stampProbeOutcome(lower, result.outcome);
-      } catch (e) {
-        logger.warn("[bgg/partidas] sync probe failed", {
-          bggUsername: lower,
-          error: e.message || String(e),
-        });
-        await stampProbeOutcome(lower, "failed");
-      }
-    } else {
-      // Background sync with 5-min probe throttle. Doesn't block the
-      // response. Skipped if no Turnocero User owns this BGG username —
-      // the probe is an owner-driven maintenance task; we don't sync
-      // plays for strangers an anonymous visitor happens to be looking
-      // at.
-      //
-      // When a probe is due, we pick the path based on lastFullSyncAt:
-      //   - If a full reconcile is overdue (> 30 days, or never ran),
-      //     trigger a full reconcile instead of the lightweight probe.
-      //     This covers the blind spot of edits to plays older than the
-      //     30 most recent (which the page-1 probe can't detect).
-      //   - Otherwise, trigger the cheap probe.
-      // The two are mutually exclusive so they never race on the per-
-      // user lock.
-      const u = await User.findOne({ bggUsername: lower })
-        .select("bggSync.lastProbedAt bggSync.lastFullSyncAt")
-        .lean();
-      if (u) {
-        const lastProbed = u.bggSync?.lastProbedAt;
-        const lastFullSync = u.bggSync?.lastFullSyncAt;
-        const probeDue =
-          !lastProbed ||
-          Date.now() - new Date(lastProbed).getTime() > PROBE_THROTTLE_MS;
-        if (probeDue) {
-          const reconcileOverdue =
-            !lastFullSync ||
-            Date.now() - new Date(lastFullSync).getTime() >
-              FULL_RECONCILE_INTERVAL_MS;
-          if (reconcileOverdue) {
-            triggerBackgroundReconcile(bggUsername);
-          } else {
-            triggerBackgroundProbe(bggUsername);
+    if (hasMongoData) {
+      if (forceRefresh) {
+        // User explicitly asked for fresh data — run the probe synchronously
+        // so the response reflects any changes from BGG.
+        try {
+          const result = await withUserLock(bggUsername, () =>
+            probe(bggUsername),
+          );
+          await stampProbeOutcome(lower, result.outcome);
+        } catch (e) {
+          logger.warn("[bgg/partidas] sync probe failed", {
+            bggUsername: lower,
+            error: e.message || String(e),
+          });
+          await stampProbeOutcome(lower, "failed");
+        }
+      } else {
+        // Background sync with 5-min probe throttle. Doesn't block the
+        // response. Skipped if no Turnocero User owns this BGG username —
+        // the probe is an owner-driven maintenance task; we don't sync
+        // plays for strangers an anonymous visitor happens to be looking
+        // at.
+        //
+        // When a probe is due, we pick the path based on lastFullSyncAt:
+        //   - If a full reconcile is overdue (> 30 days, or never ran),
+        //     trigger a full reconcile instead of the lightweight probe.
+        //     This covers the blind spot of edits to plays older than the
+        //     30 most recent (which the page-1 probe can't detect).
+        //   - Otherwise, trigger the cheap probe.
+        // The two are mutually exclusive so they never race on the per-
+        // user lock.
+        const u = await User.findOne({ bggUsername: lower })
+          .select("bggSync.lastProbedAt bggSync.lastFullSyncAt")
+          .lean();
+        if (u) {
+          const lastProbed = u.bggSync?.lastProbedAt;
+          const lastFullSync = u.bggSync?.lastFullSyncAt;
+          const probeDue =
+            !lastProbed ||
+            Date.now() - new Date(lastProbed).getTime() > PROBE_THROTTLE_MS;
+          if (probeDue) {
+            const reconcileOverdue =
+              !lastFullSync ||
+              Date.now() - new Date(lastFullSync).getTime() >
+                FULL_RECONCILE_INTERVAL_MS;
+            if (reconcileOverdue) {
+              triggerBackgroundReconcile(bggUsername);
+            } else {
+              triggerBackgroundProbe(bggUsername);
+            }
           }
         }
       }
-    }
 
-    const filter = { bggUsername: lower };
-    if (mindate || maxdate) {
-      filter.date = {};
-      if (mindate) filter.date.$gte = mindate;
-      if (maxdate) filter.date.$lte = maxdate;
-    }
-    if (gameId) filter.gameId = String(gameId);
+      const filter = { bggUsername: lower };
+      if (mindate || maxdate) {
+        filter.date = {};
+        if (mindate) filter.date.$gte = mindate;
+        if (maxdate) filter.date.$lte = maxdate;
+      }
+      if (gameId) filter.gameId = String(gameId);
 
-    const isUnfilteredFirstPage =
-      clientPage === 1 && !mindate && !maxdate && !gameId;
+      const isUnfilteredFirstPage =
+        clientPage === 1 && !mindate && !maxdate && !gameId;
 
-    const [total, docs, topGame, gameStats] = await Promise.all([
-      BggPlay.countDocuments(filter),
-      BggPlay.find(filter)
-        .sort({ date: -1, playId: -1 })
-        .skip((clientPage - 1) * PAGE_SIZE)
-        .limit(PAGE_SIZE)
-        .lean(),
-      isUnfilteredFirstPage
-        ? computeTopPlayedGame(lower)
-        : Promise.resolve(undefined),
-      // Per-game stats over the full history — only when filtered by gameId
-      // (the /bg-watch/:user/juego/:gameId view).
-      gameId ? computeGameStats(lower, gameId) : Promise.resolve(undefined),
-    ]);
+      const [total, docs, topGame, gameStats] = await Promise.all([
+        BggPlay.countDocuments(filter),
+        BggPlay.find(filter)
+          .sort({ date: -1, playId: -1 })
+          .skip((clientPage - 1) * PAGE_SIZE)
+          .limit(PAGE_SIZE)
+          .lean(),
+        isUnfilteredFirstPage
+          ? computeTopPlayedGame(lower)
+          : Promise.resolve(undefined),
+        // Per-game stats over the full history — only when filtered by gameId
+        // (the /bg-watch/:user/juego/:gameId view).
+        gameId ? computeGameStats(lower, gameId) : Promise.resolve(undefined),
+      ]);
 
-    const response = {
-      total,
-      page: clientPage,
-      pageSize: PAGE_SIZE,
-      plays: docs.map(playToApi),
-    };
-    if (isUnfilteredFirstPage) response.topGame = topGame;
-    if (gameId) response.gameStats = gameStats;
-    return res.json(response);
-  }
-
-  // L1 / L3 fallback: no Mongo data yet — serve from BGG (with in-memory cache).
-  //
-  // If a Turnocero User owns this bggUsername (case-insensitive match), kick
-  // off a background reconcile so they stop falling through this path on
-  // future visits. This is the self-healing branch that catches users who
-  // connected BGG before the autosync-on-connect was deployed (Phase 5), or
-  // whose autosync failed and was never retried manually. The reconcile is
-  // fire-and-forget — the current request still serves the L1/L3 cache as
-  // before so the user sees data immediately.
-  const ownerForBackfill = await User.findOne({ bggUsername: lower })
-    .collation({ locale: "en", strength: 2 })
-    .select("_id")
-    .lean();
-  if (ownerForBackfill) triggerBackgroundReconcile(bggUsername);
-
-  const bggPage = Math.ceil(clientPage / PAGES_PER_BGG);
-  const offsetWithinBgg = ((clientPage - 1) % PAGES_PER_BGG) * PAGE_SIZE;
-  const cacheKey = `partidas:${lower}:bgg:${bggPage}:${mindate || "-"}:${maxdate || "-"}:${gameId || "-"}`;
-
-  if (!forceRefresh) {
-    const cachedFull = getCached(cacheKey);
-    if (cachedFull) {
-      return res.json({
-        total: cachedFull.total,
+      const response = {
+        total,
         page: clientPage,
         pageSize: PAGE_SIZE,
-        plays: cachedFull.plays.slice(
-          offsetWithinBgg,
-          offsetWithinBgg + PAGE_SIZE,
-        ),
-      });
+        plays: docs.map(playToApi),
+      };
+      if (isUnfilteredFirstPage) response.topGame = topGame;
+      if (gameId) response.gameStats = gameStats;
+      return res.json(response);
     }
-  }
+
+    // L1 / L3 fallback: no Mongo data yet — serve from BGG (with in-memory cache).
+    //
+    // If a Turnocero User owns this bggUsername (case-insensitive match), kick
+    // off a background reconcile so they stop falling through this path on
+    // future visits. This is the self-healing branch that catches users who
+    // connected BGG before the autosync-on-connect was deployed (Phase 5), or
+    // whose autosync failed and was never retried manually. The reconcile is
+    // fire-and-forget — the current request still serves the L1/L3 cache as
+    // before so the user sees data immediately.
+    const ownerForBackfill = await User.findOne({ bggUsername: lower })
+      .collation({ locale: "en", strength: 2 })
+      .select("_id")
+      .lean();
+    if (ownerForBackfill) triggerBackgroundReconcile(bggUsername);
+
+    const bggPage = Math.ceil(clientPage / PAGES_PER_BGG);
+    const offsetWithinBgg = ((clientPage - 1) % PAGES_PER_BGG) * PAGE_SIZE;
+    const cacheKey = `partidas:${lower}:bgg:${bggPage}:${mindate || "-"}:${maxdate || "-"}:${gameId || "-"}`;
+
+    if (!forceRefresh) {
+      const cachedFull = getCached(cacheKey);
+      if (cachedFull) {
+        return res.json({
+          total: cachedFull.total,
+          page: clientPage,
+          pageSize: PAGE_SIZE,
+          plays: cachedFull.plays.slice(
+            offsetWithinBgg,
+            offsetWithinBgg + PAGE_SIZE,
+          ),
+        });
+      }
+    }
 
     try {
       const params = new URLSearchParams({
@@ -493,62 +493,64 @@ router.get(
     // crawlers, igual que compartidas/og y noticias/og). asyncHandler
     // captura cualquier rejection que escape.
     try {
-    // Look up the Turnocero user by bggUsername (case-insensitive) for displayName.
-    const userDoc = await User.findOne({
-      bggUsername: new RegExp(`^${escapeRegex(bggUsername)}$`, "i"),
-    })
-      .select("username displayName")
-      .lean();
-    const displayName =
-      userDoc?.displayName || userDoc?.username || bggUsername;
+      // Look up the Turnocero user by bggUsername (case-insensitive) for displayName.
+      const userDoc = await User.findOne({
+        bggUsername: new RegExp(`^${escapeRegex(bggUsername)}$`, "i"),
+      })
+        .select("username displayName")
+        .lean();
+      const displayName =
+        userDoc?.displayName || userDoc?.username || bggUsername;
 
-    // Fetch BGG collection (top-played game + total games owned).
-    let juegos = null;
-    let topGame = null;
-    try {
-      const collXml = await fetchBgg(
-        `${BGG_API}/collection?username=${encodeURIComponent(bggUsername)}&own=1&stats=1`,
-      );
-      const parsedColl = parser.parse(collXml);
-      const root = parsedColl?.items;
-      if (root) {
-        const rawItems = root.item || [];
-        const items = Array.isArray(rawItems) ? rawItems : [rawItems];
-        juegos = items.length;
-        let maxPlays = 0;
-        for (const item of items) {
-          const plays = item.numplays ? Number(item.numplays) : 0;
-          if (plays > maxPlays) {
-            maxPlays = plays;
-            topGame = {
-              name:
-                typeof item.name === "object" ? item.name["#text"] : item.name,
-              thumbnail: item.thumbnail || null,
-              numPlays: plays,
-            };
+      // Fetch BGG collection (top-played game + total games owned).
+      let juegos = null;
+      let topGame = null;
+      try {
+        const collXml = await fetchBgg(
+          `${BGG_API}/collection?username=${encodeURIComponent(bggUsername)}&own=1&stats=1`,
+        );
+        const parsedColl = parser.parse(collXml);
+        const root = parsedColl?.items;
+        if (root) {
+          const rawItems = root.item || [];
+          const items = Array.isArray(rawItems) ? rawItems : [rawItems];
+          juegos = items.length;
+          let maxPlays = 0;
+          for (const item of items) {
+            const plays = item.numplays ? Number(item.numplays) : 0;
+            if (plays > maxPlays) {
+              maxPlays = plays;
+              topGame = {
+                name:
+                  typeof item.name === "object"
+                    ? item.name["#text"]
+                    : item.name,
+                thumbnail: item.thumbnail || null,
+                numPlays: plays,
+              };
+            }
           }
         }
+      } catch {
+        // Swallow — partial data is better than 500 for crawlers.
       }
-    } catch {
-      // Swallow — partial data is better than 500 for crawlers.
-    }
 
-    // Fetch total play count (BGG plays API returns it as @_total).
-    let partidas = null;
-    try {
-      const playsXml = await fetchBgg(
-        `${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=1`,
-      );
-      const parsedPlays = parser.parse(playsXml);
-      const total = parsedPlays?.plays?.["@_total"];
-      partidas = total ? Number(total) : null;
-    } catch {
-      // Swallow.
-    }
+      // Fetch total play count (BGG plays API returns it as @_total).
+      let partidas = null;
+      try {
+        const playsXml = await fetchBgg(
+          `${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=1`,
+        );
+        const parsedPlays = parser.parse(playsXml);
+        const total = parsedPlays?.plays?.["@_total"];
+        partidas = total ? Number(total) : null;
+      } catch {
+        // Swallow.
+      }
 
-    if (juegos === null && partidas === null) {
-      return res.status(404).json({});
-    }
+      if (juegos === null && partidas === null) {
+        return res.status(404).json({});
+      }
 
       const data = { displayName, bggUsername, partidas, juegos, topGame };
       setCached(cacheKey, data);

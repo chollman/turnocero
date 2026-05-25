@@ -44,11 +44,7 @@ const {
 } = require("../../utils/bggSync");
 const { clearL1Cache } = require("./bggCache");
 const { parsePlaysXml } = require("./bggParse");
-const {
-  BGG_API,
-  fetchBgg,
-  resolveGamesBatch,
-} = require("./bggResolve");
+const { BGG_API, fetchBgg, resolveGamesBatch } = require("./bggResolve");
 
 // Tunables — quedan acá para que tests puedan re-importarlos y assert
 // contra los mismos valores que produce el módulo.

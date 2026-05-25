@@ -65,7 +65,8 @@ describe("withLease", () => {
       },
       { leaseMs: 10 * 60 * 1000 },
     );
-    const expiresIn = captured.expiresAt.getTime() - captured.acquiredAt.getTime();
+    const expiresIn =
+      captured.expiresAt.getTime() - captured.acquiredAt.getTime();
     expect(expiresIn).toBeGreaterThanOrEqual(9 * 60 * 1000);
     expect(expiresIn).toBeLessThanOrEqual(11 * 60 * 1000);
   });

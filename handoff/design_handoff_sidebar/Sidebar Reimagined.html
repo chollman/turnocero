@@ -1,818 +1,1271 @@
 <!doctype html>
 <html lang="es">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sidebar · Reimaginado — Turnocero</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sidebar · Reimaginado — Turnocero</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
 
-<style>
-  :root {
-    --bg-dark: #0a0d15;
-    --bg-card: #151c28;
-    --bg-paper: #18202f;
-    --bg-elevated: #1d2532;
-    --bg-deep: #050810;
-    --accent: #1888ef;
-    --accent-light: #00aeff;
-    --accent-dark: #0076d1;
-    --accent-glow: rgba(24, 136, 239, 0.18);
-    --text: #ffffff;
-    --text-secondary: #a8b4cc;
-    --text-muted: #5a6178;
-    --text-faint: #353d52;
-    --border: #1e2a3d;
-    --border-strong: #2a3a55;
-    --border-accent: rgba(24, 136, 239, 0.4);
-    --red: #f31d77;
-    --green: #00d984;
-    --orange: #f5a623;
-    --purple: #b48cff;
-    --green-10: rgba(0, 217, 132, 0.1);
-    --green-25: rgba(0, 217, 132, 0.25);
-    --orange-10: rgba(245, 166, 35, 0.1);
-    --orange-25: rgba(245, 166, 35, 0.3);
-    --purple-10: rgba(180, 140, 255, 0.1);
-    --purple-25: rgba(180, 140, 255, 0.3);
-    --t: 0.2s ease;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    background:
-      radial-gradient(900px circle at 85% -10%, rgba(24,136,239,0.06), transparent 50%),
-      radial-gradient(700px circle at 0% 100%, rgba(0,174,255,0.04), transparent 55%),
-      var(--bg-dark);
-    color: var(--text);
-    font-family: 'Archivo', sans-serif;
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-  }
-  button { font-family: inherit; cursor: pointer; }
-  a { color: inherit; text-decoration: none; }
+    <style>
+      :root {
+        --bg-dark: #0a0d15;
+        --bg-card: #151c28;
+        --bg-paper: #18202f;
+        --bg-elevated: #1d2532;
+        --bg-deep: #050810;
+        --accent: #1888ef;
+        --accent-light: #00aeff;
+        --accent-dark: #0076d1;
+        --accent-glow: rgba(24, 136, 239, 0.18);
+        --text: #ffffff;
+        --text-secondary: #a8b4cc;
+        --text-muted: #5a6178;
+        --text-faint: #353d52;
+        --border: #1e2a3d;
+        --border-strong: #2a3a55;
+        --border-accent: rgba(24, 136, 239, 0.4);
+        --red: #f31d77;
+        --green: #00d984;
+        --orange: #f5a623;
+        --purple: #b48cff;
+        --green-10: rgba(0, 217, 132, 0.1);
+        --green-25: rgba(0, 217, 132, 0.25);
+        --orange-10: rgba(245, 166, 35, 0.1);
+        --orange-25: rgba(245, 166, 35, 0.3);
+        --purple-10: rgba(180, 140, 255, 0.1);
+        --purple-25: rgba(180, 140, 255, 0.3);
+        --t: 0.2s ease;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        background:
+          radial-gradient(
+            900px circle at 85% -10%,
+            rgba(24, 136, 239, 0.06),
+            transparent 50%
+          ),
+          radial-gradient(
+            700px circle at 0% 100%,
+            rgba(0, 174, 255, 0.04),
+            transparent 55%
+          ),
+          var(--bg-dark);
+        color: var(--text);
+        font-family: "Archivo", sans-serif;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
 
-  /* ── Layout shell (sidebar + fake content) ── */
-  .app {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    min-height: 100vh;
-  }
+      /* ── Layout shell (sidebar + fake content) ── */
+      .app {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        min-height: 100vh;
+      }
 
-  /* ── SIDEBAR ───────────────────────────────────────── */
-  .sb {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    background: var(--bg-card);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    padding: 18px 0 14px;
-    overflow: hidden;
-  }
+      /* ── SIDEBAR ───────────────────────────────────────── */
+      .sb {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        background: var(--bg-card);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        padding: 18px 0 14px;
+        overflow: hidden;
+      }
 
-  /* Texture overlay */
-  .sb::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.02) 1px, transparent 0);
-    background-size: 18px 18px;
-    pointer-events: none;
-  }
+      /* Texture overlay */
+      .sb::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(
+          circle at 1px 1px,
+          rgba(255, 255, 255, 0.02) 1px,
+          transparent 0
+        );
+        background-size: 18px 18px;
+        pointer-events: none;
+      }
 
-  /* ── Logo row ── */
-  .logoRow {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 0 18px 18px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 18px;
-    position: relative;
-    z-index: 1;
-  }
+      /* ── Logo row ── */
+      .logoRow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 18px 18px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 18px;
+        position: relative;
+        z-index: 1;
+      }
 
-  .logoMark {
-    width: 44px;
-    height: 44px;
-    background: var(--bg-dark);
-    border: 1.5px solid var(--accent-light);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    flex-shrink: 0;
-    box-shadow: 0 4px 14px var(--accent-glow);
-    position: relative;
-  }
-  .logoMark::after {
-    content: '';
-    position: absolute;
-    inset: -1.5px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, rgba(0,174,255,0.4), transparent 60%);
-    z-index: -1;
-    opacity: 0.4;
-  }
-  .logoMark .t {
-    position: relative;
-    width: 16px;
-    height: 20px;
-  }
-  .logoMark .t .arm { position: absolute; top: 0; left: 0; width: 16px; height: 3px; background: #fff; border-radius: 1px; }
-  .logoMark .t .stem { position: absolute; top: 0; left: 6.5px; width: 3.5px; height: 20px; background: #fff; border-radius: 1px; }
-  .logoMark .ring {
-    width: 18px; height: 18px;
-    border: 3px solid var(--accent-light);
-    border-radius: 50%;
-    position: relative;
-    box-sizing: border-box;
-  }
-  .logoMark .ring::after {
-    content: '';
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 4px; height: 4px;
-    background: #fff;
-    border-radius: 50%;
-  }
+      .logoMark {
+        width: 44px;
+        height: 44px;
+        background: var(--bg-dark);
+        border: 1.5px solid var(--accent-light);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        flex-shrink: 0;
+        box-shadow: 0 4px 14px var(--accent-glow);
+        position: relative;
+      }
+      .logoMark::after {
+        content: "";
+        position: absolute;
+        inset: -1.5px;
+        border-radius: 12px;
+        background: linear-gradient(
+          135deg,
+          rgba(0, 174, 255, 0.4),
+          transparent 60%
+        );
+        z-index: -1;
+        opacity: 0.4;
+      }
+      .logoMark .t {
+        position: relative;
+        width: 16px;
+        height: 20px;
+      }
+      .logoMark .t .arm {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 16px;
+        height: 3px;
+        background: #fff;
+        border-radius: 1px;
+      }
+      .logoMark .t .stem {
+        position: absolute;
+        top: 0;
+        left: 6.5px;
+        width: 3.5px;
+        height: 20px;
+        background: #fff;
+        border-radius: 1px;
+      }
+      .logoMark .ring {
+        width: 18px;
+        height: 18px;
+        border: 3px solid var(--accent-light);
+        border-radius: 50%;
+        position: relative;
+        box-sizing: border-box;
+      }
+      .logoMark .ring::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 4px;
+        height: 4px;
+        background: #fff;
+        border-radius: 50%;
+      }
 
-  .logoText { flex: 1; min-width: 0; }
-  .logoName {
-    font-family: 'Poppins', sans-serif;
-    font-size: 17px;
-    font-weight: 800;
-    letter-spacing: -0.035em;
-    color: var(--text);
-    line-height: 1.05;
-    display: block;
-  }
-  .logoSub {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.18em;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    margin-top: 2px;
-    display: block;
-  }
+      .logoText {
+        flex: 1;
+        min-width: 0;
+      }
+      .logoName {
+        font-family: "Poppins", sans-serif;
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        color: var(--text);
+        line-height: 1.05;
+        display: block;
+      }
+      .logoSub {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        letter-spacing: 0.18em;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin-top: 2px;
+        display: block;
+      }
 
-  .bell {
-    width: 36px; height: 36px;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    display: grid;
-    place-items: center;
-    color: var(--text-secondary);
-    position: relative;
-    transition: all var(--t);
-    flex-shrink: 0;
-  }
-  .bell:hover { color: var(--accent-light); border-color: var(--border-accent); background: var(--accent-glow); }
-  .bell .badge {
-    position: absolute;
-    top: -4px; right: -4px;
-    min-width: 16px; height: 16px; padding: 0 4px;
-    background: var(--red);
-    color: #fff;
-    border: 1.5px solid var(--bg-card);
-    border-radius: 999px;
-    font-family: 'Poppins', sans-serif;
-    font-size: 10px;
-    font-weight: 800;
-    line-height: 1;
-    display: grid;
-    place-items: center;
-    letter-spacing: -0.02em;
-  }
+      .bell {
+        width: 36px;
+        height: 36px;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        color: var(--text-secondary);
+        position: relative;
+        transition: all var(--t);
+        flex-shrink: 0;
+      }
+      .bell:hover {
+        color: var(--accent-light);
+        border-color: var(--border-accent);
+        background: var(--accent-glow);
+      }
+      .bell .badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        background: var(--red);
+        color: #fff;
+        border: 1.5px solid var(--bg-card);
+        border-radius: 999px;
+        font-family: "Poppins", sans-serif;
+        font-size: 10px;
+        font-weight: 800;
+        line-height: 1;
+        display: grid;
+        place-items: center;
+        letter-spacing: -0.02em;
+      }
 
-  /* ── Nav ── */
-  .nav {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-    position: relative;
-    z-index: 1;
-  }
+      /* ── Nav ── */
+      .nav {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        position: relative;
+        z-index: 1;
+      }
 
-  .nav::-webkit-scrollbar { width: 6px; }
-  .nav::-webkit-scrollbar-track { background: transparent; }
-  .nav::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+      .nav::-webkit-scrollbar {
+        width: 6px;
+      }
+      .nav::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .nav::-webkit-scrollbar-thumb {
+        background: var(--border-strong);
+        border-radius: 3px;
+      }
 
-  .navSection { display: flex; flex-direction: column; gap: 2px; }
+      .navSection {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
 
-  .navLabel {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 6px 8px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.18em;
-    color: var(--text-muted);
-    text-transform: uppercase;
-  }
-  .navLabel::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
+      .navLabel {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 6px 8px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+      .navLabel::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
 
-  .navItem {
-    display: grid;
-    grid-template-columns: 24px 1fr auto;
-    align-items: center;
-    gap: 12px;
-    padding: 9px 12px;
-    border-radius: 9px;
-    color: var(--text-secondary);
-    font-family: 'Archivo', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: -0.005em;
-    transition: all var(--t);
-    position: relative;
-    animation: navIn 0.35s ease both;
-    animation-delay: calc(var(--i, 0) * 35ms);
-  }
+      .navItem {
+        display: grid;
+        grid-template-columns: 24px 1fr auto;
+        align-items: center;
+        gap: 12px;
+        padding: 9px 12px;
+        border-radius: 9px;
+        color: var(--text-secondary);
+        font-family: "Archivo", sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: -0.005em;
+        transition: all var(--t);
+        position: relative;
+        animation: navIn 0.35s ease both;
+        animation-delay: calc(var(--i, 0) * 35ms);
+      }
 
-  @keyframes navIn {
-    from { opacity: 0; transform: translateX(-8px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
+      @keyframes navIn {
+        from {
+          opacity: 0;
+          transform: translateX(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
 
-  .navItem:hover {
-    background: var(--bg-elevated);
-    color: var(--text);
-  }
-  .navItem.active {
-    background: var(--accent-glow);
-    color: var(--accent-light);
-  }
-  .navItem.active::before {
-    content: '';
-    position: absolute;
-    left: -12px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3px;
-    height: 22px;
-    background: var(--accent-light);
-    border-radius: 0 2px 2px 0;
-  }
+      .navItem:hover {
+        background: var(--bg-elevated);
+        color: var(--text);
+      }
+      .navItem.active {
+        background: var(--accent-glow);
+        color: var(--accent-light);
+      }
+      .navItem.active::before {
+        content: "";
+        position: absolute;
+        left: -12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 22px;
+        background: var(--accent-light);
+        border-radius: 0 2px 2px 0;
+      }
 
-  .navIcon {
-    width: 24px; height: 24px;
-    display: grid;
-    place-items: center;
-    color: inherit;
-  }
-  .navIcon svg { width: 18px; height: 18px; }
+      .navIcon {
+        width: 24px;
+        height: 24px;
+        display: grid;
+        place-items: center;
+        color: inherit;
+      }
+      .navIcon svg {
+        width: 18px;
+        height: 18px;
+      }
 
-  .navItem.active .navIcon {
-    color: var(--accent-light);
-  }
+      .navItem.active .navIcon {
+        color: var(--accent-light);
+      }
 
-  .navLab {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+      .navLab {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
-  .navBadge {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--text-muted);
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 2px 7px;
-    min-width: 22px;
-    text-align: center;
-  }
-  .navBadge.live {
-    color: var(--green);
-    background: var(--green-10);
-    border-color: var(--green-25);
-  }
-  .navBadge.urgent {
-    color: var(--red);
-    background: rgba(243,29,119,0.1);
-    border-color: rgba(243,29,119,0.25);
-    animation: pulseBadge 1.5s ease infinite;
-  }
-  @keyframes pulseBadge {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-  }
+      .navBadge {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--text-muted);
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 2px 7px;
+        min-width: 22px;
+        text-align: center;
+      }
+      .navBadge.live {
+        color: var(--green);
+        background: var(--green-10);
+        border-color: var(--green-25);
+      }
+      .navBadge.urgent {
+        color: var(--red);
+        background: rgba(243, 29, 119, 0.1);
+        border-color: rgba(243, 29, 119, 0.25);
+        animation: pulseBadge 1.5s ease infinite;
+      }
+      @keyframes pulseBadge {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.6;
+        }
+      }
 
-  .navItem.active .navBadge {
-    background: var(--accent-glow);
-    border-color: var(--border-accent);
-    color: var(--accent-light);
-  }
+      .navItem.active .navBadge {
+        background: var(--accent-glow);
+        border-color: var(--border-accent);
+        color: var(--accent-light);
+      }
 
-  /* BG Watch promo item */
-  .navItem.promo {
-    background: var(--purple-10);
-    border: 1px dashed var(--purple-25);
-    color: var(--purple);
-  }
-  .navItem.promo:hover { background: rgba(180,140,255,0.16); }
-  .navItem.promo .navIcon { color: var(--purple); }
-  .navItem.promo .navBadge {
-    color: var(--purple);
-    background: var(--purple-10);
-    border-color: var(--purple-25);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-weight: 700;
-  }
+      /* BG Watch promo item */
+      .navItem.promo {
+        background: var(--purple-10);
+        border: 1px dashed var(--purple-25);
+        color: var(--purple);
+      }
+      .navItem.promo:hover {
+        background: rgba(180, 140, 255, 0.16);
+      }
+      .navItem.promo .navIcon {
+        color: var(--purple);
+      }
+      .navItem.promo .navBadge {
+        color: var(--purple);
+        background: var(--purple-10);
+        border-color: var(--purple-25);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 700;
+      }
 
-  /* Admin section — orange tint */
-  .navSection.admin .navLabel { color: var(--orange); }
-  .navSection.admin .navItem:hover { background: var(--orange-10); color: var(--orange); }
-  .navSection.admin .navItem:hover .navIcon { color: var(--orange); }
+      /* Admin section — orange tint */
+      .navSection.admin .navLabel {
+        color: var(--orange);
+      }
+      .navSection.admin .navItem:hover {
+        background: var(--orange-10);
+        color: var(--orange);
+      }
+      .navSection.admin .navItem:hover .navIcon {
+        color: var(--orange);
+      }
 
-  /* ── Footer ── */
-  .sbFooter {
-    margin-top: 14px;
-    padding: 0 12px;
-    position: relative;
-    z-index: 1;
-  }
+      /* ── Footer ── */
+      .sbFooter {
+        margin-top: 14px;
+        padding: 0 12px;
+        position: relative;
+        z-index: 1;
+      }
 
-  /* User mini-ticket */
-  .userTicket {
-    background: var(--bg-paper);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px 12px;
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    position: relative;
-    overflow: hidden;
-    transition: all var(--t);
-  }
-  .userTicket:hover { border-color: var(--border-accent); }
+      /* User mini-ticket */
+      .userTicket {
+        background: var(--bg-paper);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        position: relative;
+        overflow: hidden;
+        transition: all var(--t);
+      }
+      .userTicket:hover {
+        border-color: var(--border-accent);
+      }
 
-  /* Perforated edge */
-  .userTicket::before,
-  .userTicket::after {
-    content: '';
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    background: var(--bg-card);
-    border-radius: 50%;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-  .userTicket::before { left: -5px; }
-  .userTicket::after  { right: -5px; }
+      /* Perforated edge */
+      .userTicket::before,
+      .userTicket::after {
+        content: "";
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: var(--bg-card);
+        border-radius: 50%;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .userTicket::before {
+        left: -5px;
+      }
+      .userTicket::after {
+        right: -5px;
+      }
 
-  .userAvatar {
-    width: 32px; height: 32px;
-    border-radius: 10px;
-    background: var(--accent);
-    display: grid;
-    place-items: center;
-    font-family: 'Poppins', sans-serif;
-    font-size: 13px;
-    font-weight: 800;
-    color: #fff;
-    letter-spacing: -0.04em;
-    flex-shrink: 0;
-  }
-  .userInfo { flex: 1; min-width: 0; }
-  .userName {
-    font-family: 'Poppins', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: -0.015em;
-    color: var(--text);
-    line-height: 1.15;
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .userMeta {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.04em;
-    color: var(--accent-light);
-    margin-top: 1px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .statusDot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--green);
-    box-shadow: 0 0 6px var(--green);
-  }
-  .logoutBtn {
-    width: 32px; height: 32px;
-    background: transparent;
-    border: none;
-    border-radius: 8px;
-    color: var(--text-muted);
-    display: grid;
-    place-items: center;
-    transition: all var(--t);
-    flex-shrink: 0;
-  }
-  .logoutBtn:hover { color: var(--red); background: rgba(243,29,119,0.1); }
-  .logoutBtn svg { width: 15px; height: 15px; }
+      .userAvatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: var(--accent);
+        display: grid;
+        place-items: center;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -0.04em;
+        flex-shrink: 0;
+      }
+      .userInfo {
+        flex: 1;
+        min-width: 0;
+      }
+      .userName {
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        color: var(--text);
+        line-height: 1.15;
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .userMeta {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        color: var(--accent-light);
+        margin-top: 1px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .statusDot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 6px var(--green);
+      }
+      .logoutBtn {
+        width: 32px;
+        height: 32px;
+        background: transparent;
+        border: none;
+        border-radius: 8px;
+        color: var(--text-muted);
+        display: grid;
+        place-items: center;
+        transition: all var(--t);
+        flex-shrink: 0;
+      }
+      .logoutBtn:hover {
+        color: var(--red);
+        background: rgba(243, 29, 119, 0.1);
+      }
+      .logoutBtn svg {
+        width: 15px;
+        height: 15px;
+      }
 
-  /* ── Tweaks toggle (top-right of viewport) ── */
-  .tweaksTrigger {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    z-index: 50;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    padding: 7px 13px;
-    border-radius: 999px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    transition: all var(--t);
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-  }
-  .tweaksTrigger:hover { border-color: var(--border-accent); color: var(--accent-light); }
-  .tweaksTrigger.open { background: var(--accent); color: #fff; border-color: var(--accent); }
+      /* ── Tweaks toggle (top-right of viewport) ── */
+      .tweaksTrigger {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 50;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        padding: 7px 13px;
+        border-radius: 999px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        transition: all var(--t);
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .tweaksTrigger:hover {
+        border-color: var(--border-accent);
+        color: var(--accent-light);
+      }
+      .tweaksTrigger.open {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
 
-  .tweaks {
-    position: fixed;
-    top: 60px;
-    right: 16px;
-    width: 260px;
-    background: var(--bg-paper);
-    border: 1px solid var(--border-strong);
-    border-radius: 14px;
-    padding: 16px;
-    z-index: 50;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
-    display: none;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .tweaks.open { display: flex; }
+      .tweaks {
+        position: fixed;
+        top: 60px;
+        right: 16px;
+        width: 260px;
+        background: var(--bg-paper);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        padding: 16px;
+        z-index: 50;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        display: none;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .tweaks.open {
+        display: flex;
+      }
 
-  .tweakSection { display: flex; flex-direction: column; gap: 8px; }
-  .tweakLabel {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    color: var(--text-muted);
-    text-transform: uppercase;
-  }
-  .tweakRow { display: flex; gap: 4px; }
-  .tweakBtn {
-    flex: 1;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    padding: 7px 8px;
-    border-radius: 7px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    transition: all var(--t);
-  }
-  .tweakBtn:hover { color: var(--text); border-color: var(--border-strong); }
-  .tweakBtn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+      .tweakSection {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .tweakLabel {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+      .tweakRow {
+        display: flex;
+        gap: 4px;
+      }
+      .tweakBtn {
+        flex: 1;
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        padding: 7px 8px;
+        border-radius: 7px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        transition: all var(--t);
+      }
+      .tweakBtn:hover {
+        color: var(--text);
+        border-color: var(--border-strong);
+      }
+      .tweakBtn.active {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
 
-  /* Collapsed sidebar variant */
-  .sb.collapsed { width: 76px; }
-  .sb.collapsed .logoText,
-  .sb.collapsed .navLabel,
-  .sb.collapsed .navLab,
-  .sb.collapsed .navBadge,
-  .sb.collapsed .userInfo,
-  .sb.collapsed .logoutBtn { display: none; }
-  .sb.collapsed .navLabel::after { display: none; }
-  .sb.collapsed .navItem { grid-template-columns: 1fr; place-items: center; padding: 11px; }
-  .sb.collapsed .navIcon { margin: 0 auto; }
-  .sb.collapsed .logoRow { padding: 0 14px 18px; justify-content: center; }
-  .sb.collapsed .bell { display: none; }
-  .sb.collapsed .userTicket { padding: 6px; justify-content: center; }
-  .sb.collapsed .userTicket::before, .sb.collapsed .userTicket::after { display: none; }
-  .app.collapsed { grid-template-columns: 76px 1fr; }
+      /* Collapsed sidebar variant */
+      .sb.collapsed {
+        width: 76px;
+      }
+      .sb.collapsed .logoText,
+      .sb.collapsed .navLabel,
+      .sb.collapsed .navLab,
+      .sb.collapsed .navBadge,
+      .sb.collapsed .userInfo,
+      .sb.collapsed .logoutBtn {
+        display: none;
+      }
+      .sb.collapsed .navLabel::after {
+        display: none;
+      }
+      .sb.collapsed .navItem {
+        grid-template-columns: 1fr;
+        place-items: center;
+        padding: 11px;
+      }
+      .sb.collapsed .navIcon {
+        margin: 0 auto;
+      }
+      .sb.collapsed .logoRow {
+        padding: 0 14px 18px;
+        justify-content: center;
+      }
+      .sb.collapsed .bell {
+        display: none;
+      }
+      .sb.collapsed .userTicket {
+        padding: 6px;
+        justify-content: center;
+      }
+      .sb.collapsed .userTicket::before,
+      .sb.collapsed .userTicket::after {
+        display: none;
+      }
+      .app.collapsed {
+        grid-template-columns: 76px 1fr;
+      }
 
-  /* ── Fake content area (right pane) ── */
-  .content {
-    padding: 32px 36px;
-    overflow: hidden;
-  }
-  .contentHero {
-    padding: 22px 26px;
-    background: var(--bg-paper);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    margin-bottom: 22px;
-  }
-  .contentEyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    color: var(--accent-light);
-    text-transform: uppercase;
-  }
-  .contentEyebrow::before {
-    content: '';
-    width: 26px;
-    height: 1px;
-    background: var(--accent-light);
-  }
-  .contentTitle {
-    font-family: 'Poppins', sans-serif;
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: -0.035em;
-    margin: 10px 0 8px;
-  }
-  .contentSub {
-    color: var(--text-secondary);
-    font-size: 14px;
-    line-height: 1.55;
-    max-width: 540px;
-  }
-  .contentGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 14px;
-  }
-  .contentCard {
-    aspect-ratio: 16/10;
-    background:
-      repeating-linear-gradient(135deg, rgba(24,136,239,0.05) 0, rgba(24,136,239,0.05) 12px, transparent 12px, transparent 24px),
-      linear-gradient(135deg, #16203a, #0a0d15);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    color: var(--text-muted);
-  }
-  .contentCard .lab {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-  .contentCard .ti {
-    font-family: 'Poppins', sans-serif;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-secondary);
-    letter-spacing: -0.02em;
-    line-height: 1.2;
-  }
+      /* ── Fake content area (right pane) ── */
+      .content {
+        padding: 32px 36px;
+        overflow: hidden;
+      }
+      .contentHero {
+        padding: 22px 26px;
+        background: var(--bg-paper);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        margin-bottom: 22px;
+      }
+      .contentEyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        color: var(--accent-light);
+        text-transform: uppercase;
+      }
+      .contentEyebrow::before {
+        content: "";
+        width: 26px;
+        height: 1px;
+        background: var(--accent-light);
+      }
+      .contentTitle {
+        font-family: "Poppins", sans-serif;
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        margin: 10px 0 8px;
+      }
+      .contentSub {
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.55;
+        max-width: 540px;
+      }
+      .contentGrid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 14px;
+      }
+      .contentCard {
+        aspect-ratio: 16/10;
+        background:
+          repeating-linear-gradient(
+            135deg,
+            rgba(24, 136, 239, 0.05) 0,
+            rgba(24, 136, 239, 0.05) 12px,
+            transparent 12px,
+            transparent 24px
+          ),
+          linear-gradient(135deg, #16203a, #0a0d15);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        color: var(--text-muted);
+      }
+      .contentCard .lab {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .contentCard .ti {
+        font-family: "Poppins", sans-serif;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+      }
 
-  /* ── Mobile ── */
-  @media (max-width: 880px) {
-    .app { grid-template-columns: 1fr; }
-    .sb { display: none; }
-    .content { padding: 22px 16px; }
-  }
-</style>
-</head>
-<body>
-
-<!-- Tweaks panel (top-right floating) -->
-<button class="tweaksTrigger" id="tweaksToggle">◆ Tweaks</button>
-<div class="tweaks" id="tweaks">
-  <div class="tweakSection">
-    <span class="tweakLabel">◆ Modo</span>
-    <div class="tweakRow">
-      <button class="tweakBtn active" data-mode="expanded">Expanded</button>
-      <button class="tweakBtn" data-mode="collapsed">Collapsed</button>
-    </div>
-  </div>
-  <div class="tweakSection">
-    <span class="tweakLabel">◆ Sección activa</span>
-    <div class="tweakRow" style="flex-wrap: wrap;">
-      <button class="tweakBtn active" data-active="compartidas">Compartite</button>
-      <button class="tweakBtn" data-active="eventos">Eventos</button>
-      <button class="tweakBtn" data-active="bgwatch">BGW</button>
-    </div>
-  </div>
-  <div class="tweakSection">
-    <span class="tweakLabel">◆ Perfil</span>
-    <div class="tweakRow">
-      <button class="tweakBtn active" data-role="user">Usuario</button>
-      <button class="tweakBtn" data-role="admin">Admin</button>
-    </div>
-  </div>
-</div>
-
-<div class="app" id="app">
-  <!-- ─── Sidebar ──────────────────────────────────────── -->
-  <aside class="sb" id="sb">
-    <div class="logoRow">
-      <div class="logoMark">
-        <div class="t"><div class="arm"></div><div class="stem"></div></div>
-        <div class="ring"></div>
-      </div>
-      <div class="logoText">
-        <span class="logoName">TurnoCero</span>
-        <span class="logoSub">◆ board game meetups</span>
-      </div>
-      <button class="bell" title="Notificaciones">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <span class="badge">3</span>
-      </button>
-    </div>
-
-    <nav class="nav" id="nav">
-
-      <!-- Comunidad -->
-      <div class="navSection">
-        <span class="navLabel">◆ Comunidad</span>
-        <a class="navItem" data-id="compartidas" style="--i:0" href="#">
-          <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span>
-          <span class="navLab">Compartite</span>
-          <span class="navBadge live">12</span>
-        </a>
-        <a class="navItem" data-id="noticias" style="--i:1" href="#">
-          <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/><line x1="2" y1="13" x2="12" y2="13"/><line x1="2" y1="17" x2="12" y2="17"/><line x1="2" y1="9" x2="5" y2="9"/></svg></span>
-          <span class="navLab">Noticias</span>
-        </a>
-        <a class="navItem" data-id="users" style="--i:2" href="#">
-          <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-          <span class="navLab">Comunidad</span>
-        </a>
-      </div>
-
-      <!-- Encuentros -->
-      <div class="navSection">
-        <span class="navLabel">◆ Encuentros</span>
-        <a class="navItem" data-id="dash" style="--i:3" href="#">
-          <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
-          <span class="navLab">Mesas</span>
-          <span class="navBadge">8</span>
-        </a>
-        <a class="navItem" data-id="eventos" style="--i:4" href="#">
-          <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
-          <span class="navLab">Eventos</span>
-          <span class="navBadge urgent">2</span>
-        </a>
-        <a class="navItem" data-id="torneos" style="--i:5" href="#">
-          <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M6 2v7a6 6 0 0 0 12 0V2z"/><line x1="6" y1="22" x2="18" y2="22"/><line x1="12" y1="15" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></svg></span>
-          <span class="navLab">Torneos</span>
-        </a>
-      </div>
-
-      <!-- Tuyo -->
-      <div class="navSection">
-        <span class="navLabel">◆ Tuyo</span>
-        <a class="navItem" data-id="feed" style="--i:6" href="#">
-          <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
-          <span class="navLab">Mi feed</span>
-        </a>
-        <a class="navItem" data-id="bgwatch" style="--i:7" href="#">
-          <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none"/><circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none"/></svg></span>
-          <span class="navLab">BG Watch</span>
-          <span class="navBadge">100</span>
-        </a>
-        <a class="navItem promo" data-id="bgwatchCta" style="--i:8;display:none;" href="#">
-          <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5" stroke-dasharray="3 2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span>
-          <span class="navLab">Activá BG Watch</span>
-          <span class="navBadge">Nuevo</span>
-        </a>
-      </div>
-
-      <!-- Admin (hidden by default — toggled by Tweaks "Perfil: Admin") -->
-      <div class="navSection admin" id="adminSection" style="display:none;">
-        <span class="navLabel">◆ Admin</span>
-        <a class="navItem" data-id="panel" style="--i:9" href="#">
-          <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span>
-          <span class="navLab">Panel admin</span>
-        </a>
-        <a class="navItem" data-id="db" style="--i:10" href="#">
-          <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span>
-          <span class="navLab">Base de datos</span>
-        </a>
-        <a class="navItem" data-id="adminChat" style="--i:11" href="#">
-          <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-          <span class="navLab">Chat admin</span>
-          <span class="navBadge urgent">5</span>
-        </a>
-      </div>
-    </nav>
-
-    <div class="sbFooter">
-      <div class="userTicket">
-        <div class="userAvatar">V</div>
-        <div class="userInfo">
-          <span class="userName">Vos</span>
-          <span class="userMeta"><span class="statusDot"></span>@voslohaces · activo</span>
+      /* ── Mobile ── */
+      @media (max-width: 880px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .sb {
+          display: none;
+        }
+        .content {
+          padding: 22px 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Tweaks panel (top-right floating) -->
+    <button class="tweaksTrigger" id="tweaksToggle">◆ Tweaks</button>
+    <div class="tweaks" id="tweaks">
+      <div class="tweakSection">
+        <span class="tweakLabel">◆ Modo</span>
+        <div class="tweakRow">
+          <button class="tweakBtn active" data-mode="expanded">Expanded</button>
+          <button class="tweakBtn" data-mode="collapsed">Collapsed</button>
         </div>
-        <button class="logoutBtn" title="Cerrar sesión">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </button>
+      </div>
+      <div class="tweakSection">
+        <span class="tweakLabel">◆ Sección activa</span>
+        <div class="tweakRow" style="flex-wrap: wrap">
+          <button class="tweakBtn active" data-active="compartidas">
+            Compartite
+          </button>
+          <button class="tweakBtn" data-active="eventos">Eventos</button>
+          <button class="tweakBtn" data-active="bgwatch">BGW</button>
+        </div>
+      </div>
+      <div class="tweakSection">
+        <span class="tweakLabel">◆ Perfil</span>
+        <div class="tweakRow">
+          <button class="tweakBtn active" data-role="user">Usuario</button>
+          <button class="tweakBtn" data-role="admin">Admin</button>
+        </div>
       </div>
     </div>
-  </aside>
 
-  <!-- ─── Fake content area ────────────────────────────── -->
-  <main class="content">
-    <div class="contentHero">
-      <span class="contentEyebrow">◆ Compartite · feed</span>
-      <h1 class="contentTitle">Lo que <em style="font-family:Caveat,cursive;font-style:normal;color:var(--accent-light);">jugamos</em> hoy.</h1>
-      <p class="contentSub">Pantalla simulada al lado del sidebar para mostrarlo en contexto. La sección activa en el sidebar se ilumina con borde azul y barra lateral.</p>
+    <div class="app" id="app">
+      <!-- ─── Sidebar ──────────────────────────────────────── -->
+      <aside class="sb" id="sb">
+        <div class="logoRow">
+          <div class="logoMark">
+            <div class="t">
+              <div class="arm"></div>
+              <div class="stem"></div>
+            </div>
+            <div class="ring"></div>
+          </div>
+          <div class="logoText">
+            <span class="logoName">TurnoCero</span>
+            <span class="logoSub">◆ board game meetups</span>
+          </div>
+          <button class="bell" title="Notificaciones">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <span class="badge">3</span>
+          </button>
+        </div>
+
+        <nav class="nav" id="nav">
+          <!-- Comunidad -->
+          <div class="navSection">
+            <span class="navLabel">◆ Comunidad</span>
+            <a class="navItem" data-id="compartidas" style="--i: 0" href="#">
+              <span class="navIcon"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg
+              ></span>
+              <span class="navLab">Compartite</span>
+              <span class="navBadge live">12</span>
+            </a>
+            <a class="navItem" data-id="noticias" style="--i: 1" href="#">
+              <span class="navIcon"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"
+                  />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="2" y1="13" x2="12" y2="13" />
+                  <line x1="2" y1="17" x2="12" y2="17" />
+                  <line x1="2" y1="9" x2="5" y2="9" /></svg
+              ></span>
+              <span class="navLab">Noticias</span>
+            </a>
+            <a class="navItem" data-id="users" style="--i: 2" href="#">
+              <span class="navIcon"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg
+              ></span>
+              <span class="navLab">Comunidad</span>
+            </a>
+          </div>
+
+          <!-- Encuentros -->
+          <div class="navSection">
+            <span class="navLabel">◆ Encuentros</span>
+            <a class="navItem" data-id="dash" style="--i: 3" href="#">
+              <span class="navIcon"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" /></svg
+              ></span>
+              <span class="navLab">Mesas</span>
+              <span class="navBadge">8</span>
+            </a>
+            <a class="navItem" data-id="eventos" style="--i: 4" href="#">
+              <span class="navIcon"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" /></svg
+              ></span>
+              <span class="navLab">Eventos</span>
+              <span class="navBadge urgent">2</span>
+            </a>
+            <a class="navItem" data-id="torneos" style="--i: 5" href="#">
+              <span class="navIcon"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                  <path d="M6 2v7a6 6 0 0 0 12 0V2z" />
+                  <line x1="6" y1="22" x2="18" y2="22" />
+                  <line x1="12" y1="15" x2="12" y2="22" />
+                  <line x1="9" y1="22" x2="15" y2="22" /></svg
+              ></span>
+              <span class="navLab">Torneos</span>
+            </a>
+          </div>
+
+          <!-- Tuyo -->
+          <div class="navSection">
+            <span class="navLabel">◆ Tuyo</span>
+            <a class="navItem" data-id="feed" style="--i: 6" href="#">
+              <span class="navIcon"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  <polyline points="9 22 9 12 15 12 15 22" /></svg
+              ></span>
+              <span class="navLab">Mi feed</span>
+            </a>
+            <a class="navItem" data-id="bgwatch" style="--i: 7" href="#">
+              <span class="navIcon"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2.5" />
+                  <circle
+                    cx="8"
+                    cy="8"
+                    r="1.3"
+                    fill="currentColor"
+                    stroke="none"
+                  />
+                  <circle
+                    cx="16"
+                    cy="8"
+                    r="1.3"
+                    fill="currentColor"
+                    stroke="none"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="1.3"
+                    fill="currentColor"
+                    stroke="none"
+                  />
+                  <circle
+                    cx="8"
+                    cy="16"
+                    r="1.3"
+                    fill="currentColor"
+                    stroke="none"
+                  />
+                  <circle
+                    cx="16"
+                    cy="16"
+                    r="1.3"
+                    fill="currentColor"
+                    stroke="none"
+                  /></svg
+              ></span>
+              <span class="navLab">BG Watch</span>
+              <span class="navBadge">100</span>
+            </a>
+            <a
+              class="navItem promo"
+              data-id="bgwatchCta"
+              style="--i: 8; display: none"
+              href="#"
+            >
+              <span class="navIcon"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect
+                    x="3"
+                    y="3"
+                    width="18"
+                    height="18"
+                    rx="2.5"
+                    stroke-dasharray="3 2"
+                  />
+                  <line x1="12" y1="8" x2="12" y2="16" />
+                  <line x1="8" y1="12" x2="16" y2="12" /></svg
+              ></span>
+              <span class="navLab">Activá BG Watch</span>
+              <span class="navBadge">Nuevo</span>
+            </a>
+          </div>
+
+          <!-- Admin (hidden by default — toggled by Tweaks "Perfil: Admin") -->
+          <div class="navSection admin" id="adminSection" style="display: none">
+            <span class="navLabel">◆ Admin</span>
+            <a class="navItem" data-id="panel" style="--i: 9" href="#">
+              <span class="navIcon"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="4" y1="21" x2="4" y2="14" />
+                  <line x1="4" y1="10" x2="4" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12" y2="3" />
+                  <line x1="20" y1="21" x2="20" y2="16" />
+                  <line x1="20" y1="12" x2="20" y2="3" />
+                  <line x1="1" y1="14" x2="7" y2="14" />
+                  <line x1="9" y1="8" x2="15" y2="8" />
+                  <line x1="17" y1="16" x2="23" y2="16" /></svg
+              ></span>
+              <span class="navLab">Panel admin</span>
+            </a>
+            <a class="navItem" data-id="db" style="--i: 10" href="#">
+              <span class="navIcon"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <ellipse cx="12" cy="5" rx="9" ry="3" />
+                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /></svg
+              ></span>
+              <span class="navLab">Base de datos</span>
+            </a>
+            <a class="navItem" data-id="adminChat" style="--i: 11" href="#">
+              <span class="navIcon"
+                ><svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg
+              ></span>
+              <span class="navLab">Chat admin</span>
+              <span class="navBadge urgent">5</span>
+            </a>
+          </div>
+        </nav>
+
+        <div class="sbFooter">
+          <div class="userTicket">
+            <div class="userAvatar">V</div>
+            <div class="userInfo">
+              <span class="userName">Vos</span>
+              <span class="userMeta"
+                ><span class="statusDot"></span>@voslohaces · activo</span
+              >
+            </div>
+            <button class="logoutBtn" title="Cerrar sesión">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ─── Fake content area ────────────────────────────── -->
+      <main class="content">
+        <div class="contentHero">
+          <span class="contentEyebrow">◆ Compartite · feed</span>
+          <h1 class="contentTitle">
+            Lo que
+            <em
+              style="
+                font-family: Caveat, cursive;
+                font-style: normal;
+                color: var(--accent-light);
+              "
+              >jugamos</em
+            >
+            hoy.
+          </h1>
+          <p class="contentSub">
+            Pantalla simulada al lado del sidebar para mostrarlo en contexto. La
+            sección activa en el sidebar se ilumina con borde azul y barra
+            lateral.
+          </p>
+        </div>
+
+        <div class="contentGrid">
+          <div class="contentCard">
+            <span class="lab">◆ Compartida</span
+            ><span class="ti">Catán · final ajustada</span>
+          </div>
+          <div class="contentCard">
+            <span class="lab">◆ Compartida</span
+            ><span class="ti">Brass · partida épica</span>
+          </div>
+          <div class="contentCard">
+            <span class="lab">◆ Compartida</span
+            ><span class="ti">Sky Team aterriza</span>
+          </div>
+          <div class="contentCard">
+            <span class="lab">◆ Compartida</span
+            ><span class="ti">Carcassonne en familia</span>
+          </div>
+          <div class="contentCard">
+            <span class="lab">◆ Compartida</span
+            ><span class="ti">100 partidas BGG 🎉</span>
+          </div>
+          <div class="contentCard">
+            <span class="lab">◆ Compartida</span
+            ><span class="ti">Wingspan combo</span>
+          </div>
+        </div>
+      </main>
     </div>
 
-    <div class="contentGrid">
-      <div class="contentCard"><span class="lab">◆ Compartida</span><span class="ti">Catán · final ajustada</span></div>
-      <div class="contentCard"><span class="lab">◆ Compartida</span><span class="ti">Brass · partida épica</span></div>
-      <div class="contentCard"><span class="lab">◆ Compartida</span><span class="ti">Sky Team aterriza</span></div>
-      <div class="contentCard"><span class="lab">◆ Compartida</span><span class="ti">Carcassonne en familia</span></div>
-      <div class="contentCard"><span class="lab">◆ Compartida</span><span class="ti">100 partidas BGG 🎉</span></div>
-      <div class="contentCard"><span class="lab">◆ Compartida</span><span class="ti">Wingspan combo</span></div>
-    </div>
-  </main>
-</div>
+    <script>
+      const toggle = document.getElementById("tweaksToggle");
+      const panel = document.getElementById("tweaks");
+      toggle.addEventListener("click", () => {
+        panel.classList.toggle("open");
+        toggle.classList.toggle("open");
+      });
 
-<script>
-  const toggle = document.getElementById('tweaksToggle');
-  const panel = document.getElementById('tweaks');
-  toggle.addEventListener('click', () => {
-    panel.classList.toggle('open');
-    toggle.classList.toggle('open');
-  });
+      // Active item
+      const navItems = document.querySelectorAll(".navItem");
+      function setActive(id) {
+        navItems.forEach((n) =>
+          n.classList.toggle("active", n.dataset.id === id),
+        );
+      }
+      setActive("compartidas");
 
-  // Active item
-  const navItems = document.querySelectorAll('.navItem');
-  function setActive(id) {
-    navItems.forEach(n => n.classList.toggle('active', n.dataset.id === id));
-  }
-  setActive('compartidas');
+      // Tweaks listeners
+      document.querySelectorAll("[data-mode]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll("[data-mode]")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          const mode = btn.dataset.mode;
+          document
+            .getElementById("app")
+            .classList.toggle("collapsed", mode === "collapsed");
+          document
+            .getElementById("sb")
+            .classList.toggle("collapsed", mode === "collapsed");
+        });
+      });
 
-  // Tweaks listeners
-  document.querySelectorAll('[data-mode]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const mode = btn.dataset.mode;
-      document.getElementById('app').classList.toggle('collapsed', mode === 'collapsed');
-      document.getElementById('sb').classList.toggle('collapsed', mode === 'collapsed');
-    });
-  });
+      document.querySelectorAll("[data-active]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll("[data-active]")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          setActive(btn.dataset.active);
+        });
+      });
 
-  document.querySelectorAll('[data-active]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-active]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      setActive(btn.dataset.active);
-    });
-  });
+      document.querySelectorAll("[data-role]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll("[data-role]")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          const isAdmin = btn.dataset.role === "admin";
+          document.getElementById("adminSection").style.display = isAdmin
+            ? "flex"
+            : "none";
+        });
+      });
 
-  document.querySelectorAll('[data-role]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-role]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const isAdmin = btn.dataset.role === 'admin';
-      document.getElementById('adminSection').style.display = isAdmin ? 'flex' : 'none';
-    });
-  });
-
-  navItems.forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      setActive(item.dataset.id);
-    });
-  });
-</script>
-
-</body>
+      navItems.forEach((item) => {
+        item.addEventListener("click", (e) => {
+          e.preventDefault();
+          setActive(item.dataset.id);
+        });
+      });
+    </script>
+  </body>
 </html>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 // Publishes the current visualViewport offset/size/scale as CSS variables on :root,
 // so position:fixed elements can stay glued to the visible area during pinch-zoom.
@@ -11,7 +11,7 @@ import { useEffect } from 'react';
 //              on a fixed element to keep its physical size constant while content zooms.
 export default function useVisualViewportVars() {
   useEffect(() => {
-    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
     if (!vv) return undefined;
 
     const root = document.documentElement;
@@ -24,21 +24,21 @@ export default function useVisualViewportVars() {
       const height = vv.height || 0;
       const scale = vv.scale || 1;
       const bottom = Math.max(0, layoutHeight - top - height);
-      root.style.setProperty('--vv-top', `${top}px`);
-      root.style.setProperty('--vv-left', `${left}px`);
-      root.style.setProperty('--vv-width', `${width}px`);
-      root.style.setProperty('--vv-bottom', `${bottom}px`);
-      root.style.setProperty('--vv-scale', `${scale}`);
+      root.style.setProperty("--vv-top", `${top}px`);
+      root.style.setProperty("--vv-left", `${left}px`);
+      root.style.setProperty("--vv-width", `${width}px`);
+      root.style.setProperty("--vv-bottom", `${bottom}px`);
+      root.style.setProperty("--vv-scale", `${scale}`);
     };
 
     update();
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
-    window.addEventListener('resize', update);
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
     return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
     };
   }, []);
 }

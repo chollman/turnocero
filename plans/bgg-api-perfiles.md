@@ -3,6 +3,7 @@
 ## Contexto
 
 Se habilitó acceso a la API de BoardGameGeek (BGG XML API 2). El objetivo es:
+
 1. Permitir que cada usuario guarde su username de BGG en su perfil de Turnocero.
 2. Mostrar ese username en el perfil público con un link a una nueva página.
 3. Esa página carga la colección y las partidas del usuario directamente desde la API de BGG.
@@ -13,18 +14,18 @@ Se habilitó acceso a la API de BoardGameGeek (BGG XML API 2). El objetivo es:
 
 ## Archivos críticos
 
-| Archivo | Cambio |
-|---|---|
-| `server/models/User.js` | Agregar campo `bggUsername` |
-| `server/routes/auth.js` | Aceptar `bggUsername` en `PUT /api/auth/profile` |
-| `server/routes/users.js` | Incluir `bggUsername` en `GET /api/users/:id` |
-| `server/routes/bgg.js` | **Nuevo** — proxy + parser BGG |
-| `server/server.js` | Registrar nueva ruta `/api/bgg` |
-| `server/.env.example` | Documentar `BGG_API_KEY` |
-| `client/src/pages/users/UserProfile.jsx` | Campo BGG en formulario de edición |
-| `client/src/pages/users/UserProfilePublic.jsx` | Mostrar BGG username como link |
-| `client/src/pages/bgg/BggProfile.jsx` | **Nuevo** — página de colección BGG |
-| `client/src/App.jsx` | Registrar ruta `/perfil-bgg/:bggUsername` |
+| Archivo                                        | Cambio                                           |
+| ---------------------------------------------- | ------------------------------------------------ |
+| `server/models/User.js`                        | Agregar campo `bggUsername`                      |
+| `server/routes/auth.js`                        | Aceptar `bggUsername` en `PUT /api/auth/profile` |
+| `server/routes/users.js`                       | Incluir `bggUsername` en `GET /api/users/:id`    |
+| `server/routes/bgg.js`                         | **Nuevo** — proxy + parser BGG                   |
+| `server/server.js`                             | Registrar nueva ruta `/api/bgg`                  |
+| `server/.env.example`                          | Documentar `BGG_API_KEY`                         |
+| `client/src/pages/users/UserProfile.jsx`       | Campo BGG en formulario de edición               |
+| `client/src/pages/users/UserProfilePublic.jsx` | Mostrar BGG username como link                   |
+| `client/src/pages/bgg/BggProfile.jsx`          | **Nuevo** — página de colección BGG              |
+| `client/src/App.jsx`                           | Registrar ruta `/perfil-bgg/:bggUsername`        |
 
 ---
 
@@ -60,7 +61,15 @@ bggUsername: {
 En `PUT /api/auth/profile` (línea 101), agregar `bggUsername` a la desestructuración y al bloque de asignación:
 
 ```js
-const { displayName, nombre, apellido, direccion, telegram, celular, bggUsername } = req.body;
+const {
+  displayName,
+  nombre,
+  apellido,
+  direccion,
+  telegram,
+  celular,
+  bggUsername,
+} = req.body;
 // ...
 if (bggUsername !== undefined) user.bggUsername = bggUsername;
 ```
@@ -87,6 +96,7 @@ BGG_API_KEY=
 ### 6 — Proxy BGG (`server/routes/bgg.js`) — nuevo archivo
 
 Responsabilidades:
+
 - Llama a `https://boardgamegeek.com/xmlapi2/collection?username=X&own=1&stats=1` para colecciones
 - Llama a `https://boardgamegeek.com/xmlapi2/plays?username=X` para partidas
 - Agrega header `Authorization: Bearer <BGG_API_KEY>` en cada request
@@ -104,7 +114,7 @@ Responsabilidades:
 Agregar después de la línea 98 (noticias):
 
 ```js
-app.use('/api/bgg', require('./routes/bgg'));
+app.use("/api/bgg", require("./routes/bgg"));
 ```
 
 ---
@@ -119,8 +129,13 @@ app.use('/api/bgg', require('./routes/bgg'));
     <label className={styles.label}>Usuario en BGG</label>
     <div className={styles.inputPrefix}>
       <span className={styles.prefix}>BGG</span>
-      <input name="bggUsername" value={form.bggUsername} onChange={handleChange}
-             placeholder="tu_usuario_bgg" maxLength={50} />
+      <input
+        name="bggUsername"
+        value={form.bggUsername}
+        onChange={handleChange}
+        placeholder="tu_usuario_bgg"
+        maxLength={50}
+      />
     </div>
   </div>
   ```
@@ -132,17 +147,22 @@ app.use('/api/bgg', require('./routes/bgg'));
 
 - En la sección CONTACTO (línea 222–256), agregar después de `celular`:
   ```jsx
-  {profile.bggUsername && (
-    <div className={styles.infoRow}>
-      <span className={styles.infoIcon}>🎲</span>
-      <div className={styles.infoText}>
-        <span className={styles.infoLabel}>BGG</span>
-        <Link to={`/perfil-bgg/${profile.bggUsername}`} className={styles.infoLink}>
-          {profile.bggUsername}
-        </Link>
+  {
+    profile.bggUsername && (
+      <div className={styles.infoRow}>
+        <span className={styles.infoIcon}>🎲</span>
+        <div className={styles.infoText}>
+          <span className={styles.infoLabel}>BGG</span>
+          <Link
+            to={`/perfil-bgg/${profile.bggUsername}`}
+            className={styles.infoLink}
+          >
+            {profile.bggUsername}
+          </Link>
+        </div>
       </div>
-    </div>
-  )}
+    );
+  }
   ```
 - Importar `Link` de `react-router-dom`
 - Agregar `profile.bggUsername ? 'BGG' : null` a `contactParts` para el subtítulo del hero
@@ -170,9 +190,9 @@ Página accesible en `/perfil-bgg/:bggUsername`. Funcionalidad:
 ### 11 — Registrar ruta en `client/src/App.jsx`
 
 ```jsx
-import BggProfile from './pages/bgg/BggProfile';
+import BggProfile from "./pages/bgg/BggProfile";
 // ...
-<Route path="/perfil-bgg/:bggUsername" element={<BggProfile />} />
+<Route path="/perfil-bgg/:bggUsername" element={<BggProfile />} />;
 ```
 
 ---

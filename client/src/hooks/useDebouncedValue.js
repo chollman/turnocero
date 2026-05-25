@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 /**
  * Devuelve la versión "estabilizada" de `value`: solo se actualiza después

@@ -13,7 +13,10 @@ describe("useApi", () => {
   it("flippea loading=true mientras la promesa vuela y false al resolver", async () => {
     let resolveFn;
     const fn = vi.fn(
-      () => new Promise((resolve) => { resolveFn = resolve; }),
+      () =>
+        new Promise((resolve) => {
+          resolveFn = resolve;
+        }),
     );
     const { result } = renderHook(() => useApi(fn));
 
@@ -58,7 +61,11 @@ describe("useApi", () => {
     );
 
     await act(async () => {
-      try { await result.current.execute(); } catch { /* expected */ }
+      try {
+        await result.current.execute();
+      } catch {
+        /* expected */
+      }
     });
     expect(result.current.error).toBe("fallback");
   });
@@ -100,7 +107,11 @@ describe("useApi", () => {
     const { result } = renderHook(() => useApi(fn));
 
     await act(async () => {
-      try { await result.current.execute(); } catch { /* expected */ }
+      try {
+        await result.current.execute();
+      } catch {
+        /* expected */
+      }
     });
     expect(result.current.error).toBe("fail1");
 
@@ -115,7 +126,10 @@ describe("useApi", () => {
   it("ignora setStates si el componente desmonta antes de resolver", async () => {
     let resolveFn;
     const fn = vi.fn(
-      () => new Promise((resolve) => { resolveFn = resolve; }),
+      () =>
+        new Promise((resolve) => {
+          resolveFn = resolve;
+        }),
     );
     const { result, unmount } = renderHook(() => useApi(fn));
 

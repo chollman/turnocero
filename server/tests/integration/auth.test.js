@@ -316,7 +316,7 @@ describe("PUT /api/auth/profile", () => {
     expect(res.body.message).toMatch(/inválido/i);
   });
 
-  it("F6 — coerciona strings del <select> (\"2\" → 2)", async () => {
+  it('F6 — coerciona strings del <select> ("2" → 2)', async () => {
     const user = await createUser();
     const res = await request(app)
       .put("/api/auth/profile")

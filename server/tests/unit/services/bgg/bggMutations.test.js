@@ -44,7 +44,9 @@ describe("buildPlayForm", () => {
   });
 
   it("quantity se clampa a 1-99", () => {
-    expect(buildPlayForm({ ...baseBody, quantity: 0 }).get("quantity")).toBe("1");
+    expect(buildPlayForm({ ...baseBody, quantity: 0 }).get("quantity")).toBe(
+      "1",
+    );
     expect(buildPlayForm({ ...baseBody, quantity: -5 }).get("quantity")).toBe(
       "1",
     );
@@ -61,7 +63,9 @@ describe("buildPlayForm", () => {
   it("length: omite si null/empty, parsea si numérico, clamp a >=0", () => {
     expect(buildPlayForm(baseBody).get("length")).toBeNull();
     expect(buildPlayForm({ ...baseBody, length: "" }).get("length")).toBeNull();
-    expect(buildPlayForm({ ...baseBody, length: null }).get("length")).toBeNull();
+    expect(
+      buildPlayForm({ ...baseBody, length: null }).get("length"),
+    ).toBeNull();
     expect(buildPlayForm({ ...baseBody, length: 60 }).get("length")).toBe("60");
     expect(buildPlayForm({ ...baseBody, length: -10 }).get("length")).toBe("0");
   });
@@ -103,10 +107,7 @@ describe("buildPlayForm", () => {
   it("players: serializa con índices, position default = i+1", () => {
     const form = buildPlayForm({
       ...baseBody,
-      players: [
-        { name: "Ana", win: true },
-        { name: "Beto" },
-      ],
+      players: [{ name: "Ana", win: true }, { name: "Beto" }],
     });
     expect(form.get("players[0][name]")).toBe("Ana");
     expect(form.get("players[0][win]")).toBe("1");

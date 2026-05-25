@@ -6,23 +6,23 @@
 
 Cubre la migración de `Table.location` Y `Evento.location` a subdocumento con coords, el cálculo de distancias con Haversine, el filtro por radio en `/mesas` (pendiente en `/eventos`), y las iteraciones de UX en los forms (creación simplificada sin mapa, edición de Tables con mapa).
 
-| Fase | Estado | Resultado |
-|---|---|---|
-| 0. Hook compartido `useDebouncedValue` | ✅ | Reusable para todo input → API (7/7 tests) |
-| 1. Schema `Table.location` migrado | ✅ | `String` → `{ texto, lat, lng }` + lazy init hook (10/10 tests) |
-| 2. Utility `haversineKm` | ✅ | `server/utils/geo.js` (13/13 tests) |
-| 3. API tables actualizada | ✅ | `distanceKm` por item + filtro `?maxDistanceKm=` (27/27 tests, 8 nuevos) |
-| 4. CreateTable + EditTable | ✅ | Reusan `PlaceAutocomplete` + `AddressMap` (11/11 tests) |
-| 5. TableCard badge | ✅ | Badge verde de distancia + helper `formatDistanceKm` (24/24 tests, 4 nuevos) |
-| 6. Dashboard radius slider | ✅ | Slider 0-100km con debounce 300ms + CTA "agregá dirección" (8/8 tests, 4 nuevos) |
-| 7. TableDetail | ✅ | `location.texto` + distancia inline (42/42 tests) |
-| 8. Botones −/+ en slider | ✅ | Fine-tune de a 1km, deshabilitados en extremos (13/13 tests, 5 nuevos) |
-| 9. Simplificación CreateTable | ✅ | Removido mapa, location opcional, fallback a `user.direccion` server-side (10/10 client + 31/31 server tests, 8 nuevos) |
-| 10. Refactor helpers a utils compartidos | ✅ | `utils/locationHelpers.js` + `utils/geo.js` extendido. Reuso entre tables + eventos (19/19 tests unitarios) |
-| 11. Eventos: schema migration + lazy init hook | ✅ | `Evento.location` String → subdoc (4/4 tests) |
-| 12. Eventos: API con distancia + JSON FormData | ✅ | POST/PUT acepta JSON string en FormData; GET con `distanceKm` + `?maxDistanceKm` (51/51 tests, 10 nuevos) |
-| 13. EventoForm con PlaceAutocomplete | ✅ | Sin mapa (como CreateTable simplificado), hint condicional, location serializa como JSON en FormData (14/14 tests, 4 nuevos) |
-| 14. Display: PosterCard, TimelineRow, EventoDetail | ✅ | Defensive `locationTexto` + distance badge inline (44/44 tests existentes + 3 nuevos en PosterCard) |
+| Fase                                               | Estado | Resultado                                                                                                                    |
+| -------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| 0. Hook compartido `useDebouncedValue`             | ✅     | Reusable para todo input → API (7/7 tests)                                                                                   |
+| 1. Schema `Table.location` migrado                 | ✅     | `String` → `{ texto, lat, lng }` + lazy init hook (10/10 tests)                                                              |
+| 2. Utility `haversineKm`                           | ✅     | `server/utils/geo.js` (13/13 tests)                                                                                          |
+| 3. API tables actualizada                          | ✅     | `distanceKm` por item + filtro `?maxDistanceKm=` (27/27 tests, 8 nuevos)                                                     |
+| 4. CreateTable + EditTable                         | ✅     | Reusan `PlaceAutocomplete` + `AddressMap` (11/11 tests)                                                                      |
+| 5. TableCard badge                                 | ✅     | Badge verde de distancia + helper `formatDistanceKm` (24/24 tests, 4 nuevos)                                                 |
+| 6. Dashboard radius slider                         | ✅     | Slider 0-100km con debounce 300ms + CTA "agregá dirección" (8/8 tests, 4 nuevos)                                             |
+| 7. TableDetail                                     | ✅     | `location.texto` + distancia inline (42/42 tests)                                                                            |
+| 8. Botones −/+ en slider                           | ✅     | Fine-tune de a 1km, deshabilitados en extremos (13/13 tests, 5 nuevos)                                                       |
+| 9. Simplificación CreateTable                      | ✅     | Removido mapa, location opcional, fallback a `user.direccion` server-side (10/10 client + 31/31 server tests, 8 nuevos)      |
+| 10. Refactor helpers a utils compartidos           | ✅     | `utils/locationHelpers.js` + `utils/geo.js` extendido. Reuso entre tables + eventos (19/19 tests unitarios)                  |
+| 11. Eventos: schema migration + lazy init hook     | ✅     | `Evento.location` String → subdoc (4/4 tests)                                                                                |
+| 12. Eventos: API con distancia + JSON FormData     | ✅     | POST/PUT acepta JSON string en FormData; GET con `distanceKm` + `?maxDistanceKm` (51/51 tests, 10 nuevos)                    |
+| 13. EventoForm con PlaceAutocomplete               | ✅     | Sin mapa (como CreateTable simplificado), hint condicional, location serializa como JSON en FormData (14/14 tests, 4 nuevos) |
+| 14. Display: PosterCard, TimelineRow, EventoDetail | ✅     | Defensive `locationTexto` + distance badge inline (44/44 tests existentes + 3 nuevos en PosterCard)                          |
 
 **Suite total final**: 1632 tests pasando (1206 client + 426 server). Cobertura mantenida >80% client.
 
@@ -38,12 +38,14 @@ Cubre la migración de `Table.location` Y `Evento.location` a subdocumento con c
 ## Pieces clave
 
 ### Backend
+
 - `server/utils/geo.js` — `haversineKm()` + `isValidCoord()` + `attachDistance()` + `buildBboxFilter()`.
 - `server/utils/locationHelpers.js` — `normalizeLocationInput()` (acepta string, JSON string, u objeto) + `isEmptyLocation()` + `locationForCreate()` (fallback a user.direccion en POST). Compartido por Table y Evento.
 - `server/models/{Table,Evento}.js` — `location: { texto, lat, lng }` + `pre('init')` hook que normaliza string legacy en cada uno.
 - `server/routes/{tables,eventos}.js` — imports de los helpers; POST usa `locationForCreate` (fallback al perfil), PUT usa `normalizeLocationInput` puro (sin fallback). `GET` agrega `distanceKm` por item y soporta `?maxDistanceKm=N` (bbox + Haversine refine en memoria).
 
 ### Frontend
+
 - `client/src/hooks/useDebouncedValue.js` — hook genérico, 300ms default. **Convención**: todo input → API debe usarlo.
 - `client/src/utils/distance.js` — `formatDistanceKm()` con formato AR (`"Aquí mismo"` / `"850 m"` / `"12,3 km"` / `"250 km"`).
 - `client/src/pages/dashboard/Dashboard.jsx` — search debounced + radius slider con botones −/+ + CTA al perfil.

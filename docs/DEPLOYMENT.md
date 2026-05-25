@@ -2,11 +2,11 @@
 
 Esta guía te lleva paso a paso para poner Turnocero online usando tres servicios gratuitos:
 
-| Pieza | Servicio | Para qué |
-|-------|----------|---------|
-| Base de datos | MongoDB Atlas | Guarda usuarios y mesas en la nube |
-| Backend (API) | Render | Corre el servidor Express en la nube |
-| Frontend | GitHub Pages | Sirve la app React estática |
+| Pieza         | Servicio      | Para qué                             |
+| ------------- | ------------- | ------------------------------------ |
+| Base de datos | MongoDB Atlas | Guarda usuarios y mesas en la nube   |
+| Backend (API) | Render        | Corre el servidor Express en la nube |
+| Frontend      | GitHub Pages  | Sirve la app React estática          |
 
 Al terminar la app estará disponible en `https://chollman.github.io/turnocero/` y cada vez que hagas push a `master` se actualizará automáticamente.
 
@@ -23,6 +23,7 @@ El nombre del repo determina la URL de GitHub Pages. Necesitás que sea `turnoce
 5. GitHub te redirige al nuevo URL: `github.com/chollman/turnocero`.
 
 > Después de renombrar, actualizá la URL remota en tu máquina local:
+>
 > ```bash
 > git remote set-url origin https://github.com/chollman/turnocero.git
 > ```
@@ -49,11 +50,13 @@ El nombre del repo determina la URL de GitHub Pages. Necesitás que sea `turnoce
 En la pantalla **"Security Quickstart"** que aparece:
 
 **Crear usuario de base de datos:**
+
 1. En el campo **Username** escribí algo como `turnocero-user`.
 2. En **Password** click en **Autogenerate Secure Password** y copiá la contraseña (guardala, la necesitás más adelante).
 3. Click en **Create User**.
 
 **Permitir conexiones desde cualquier IP:**
+
 1. Más abajo, en la sección **"Where would you like to connect from?"**, click en **"My Local Environment"**.
 2. En el campo **IP Address** escribí `0.0.0.0/0`.
 3. En **Description** escribí `Allow all` (esto es necesario porque Render usa IPs dinámicas).
@@ -86,27 +89,27 @@ En la pantalla **"Security Quickstart"** que aparece:
 2. En **"Connect a repository"**, buscá `turnocero` y click en **Connect**.
 3. Completá el formulario:
 
-   | Campo | Valor |
-   |-------|-------|
-   | **Name** | `turnocero-api` |
-   | **Region** | Cualquiera (elegí la más cercana) |
-   | **Branch** | `master` |
-   | **Root Directory** | `server` |
-   | **Runtime** | `Node` |
-   | **Build Command** | `npm install` |
-   | **Start Command** | `node server.js` |
-   | **Instance Type** | `Free` |
+   | Campo              | Valor                             |
+   | ------------------ | --------------------------------- |
+   | **Name**           | `turnocero-api`                   |
+   | **Region**         | Cualquiera (elegí la más cercana) |
+   | **Branch**         | `master`                          |
+   | **Root Directory** | `server`                          |
+   | **Runtime**        | `Node`                            |
+   | **Build Command**  | `npm install`                     |
+   | **Start Command**  | `node server.js`                  |
+   | **Instance Type**  | `Free`                            |
 
 ### 3.3 Agregar variables de entorno
 
 1. Antes de crear el servicio, click en **"Advanced"** (está abajo del formulario).
 2. En la sección **Environment Variables**, click en **Add Environment Variable** tres veces y completá:
 
-   | Key | Value |
-   |-----|-------|
-   | `MONGODB_URI` | el connection string de Atlas de la Fase 2 |
-   | `JWT_SECRET` | una cadena larga y aleatoria, por ejemplo: `turnocero_jwt_secret_2024_xyz` |
-   | `PORT` | `4000` |
+   | Key           | Value                                                                      |
+   | ------------- | -------------------------------------------------------------------------- |
+   | `MONGODB_URI` | el connection string de Atlas de la Fase 2                                 |
+   | `JWT_SECRET`  | una cadena larga y aleatoria, por ejemplo: `turnocero_jwt_secret_2024_xyz` |
+   | `PORT`        | `4000`                                                                     |
 
 3. Click en **Create Web Service**.
 
@@ -196,9 +199,9 @@ GitHub Actions va a detectar el push, buildear la app y deployarla automáticame
 
 ## Resumen de URLs finales
 
-| Qué | URL |
-|-----|-----|
-| App (frontend) | https://chollman.github.io/turnocero/ |
-| API (backend) | https://turnocero-api.onrender.com |
-| Health check | https://turnocero-api.onrender.com/api/health |
-| Repo GitHub | https://github.com/chollman/turnocero |
+| Qué            | URL                                           |
+| -------------- | --------------------------------------------- |
+| App (frontend) | https://chollman.github.io/turnocero/         |
+| API (backend)  | https://turnocero-api.onrender.com            |
+| Health check   | https://turnocero-api.onrender.com/api/health |
+| Repo GitHub    | https://github.com/chollman/turnocero         |

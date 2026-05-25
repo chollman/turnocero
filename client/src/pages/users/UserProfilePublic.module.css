@@ -46,7 +46,7 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text-secondary);
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 12px;
   font-weight: 700;
   padding: 6px 14px;
@@ -76,7 +76,7 @@
   background: var(--amber-glow);
   border: 3px solid var(--bg-dark);
   color: var(--amber);
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 38px;
   font-weight: 700;
   display: flex;
@@ -94,7 +94,7 @@
 }
 
 .eyebrow {
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 11px;
   font-weight: 800;
   color: var(--amber-light);
@@ -102,7 +102,7 @@
 }
 
 .heroTitle {
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 36px;
   font-weight: 700;
   letter-spacing: -0.04em;
@@ -136,7 +136,7 @@
   border: none;
   padding: 7px 16px;
   border-radius: 8px;
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -154,7 +154,7 @@
   color: var(--text-secondary);
   padding: 7px 14px;
   border-radius: 8px;
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -174,7 +174,7 @@
   color: var(--green);
   padding: 7px 14px;
   border-radius: 8px;
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -191,7 +191,7 @@
   color: var(--text-muted);
   padding: 5px 12px;
   border-radius: 8px;
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -213,7 +213,7 @@
   border: 1px solid var(--green);
   border-radius: 8px;
   padding: 6px 12px;
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
 }
 
 [disabled] {
@@ -246,7 +246,7 @@
 }
 
 .statValue {
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -259,7 +259,7 @@
 }
 
 .statLabel {
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 10px;
   font-weight: 800;
   color: var(--text-muted);
@@ -295,7 +295,7 @@
 }
 
 .sectionLabel {
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -334,7 +334,7 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
 }
 
 .infoValue {
@@ -377,7 +377,7 @@
 }
 
 .gameRank {
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 10px;
   font-weight: 800;
   color: var(--text-muted);
@@ -410,7 +410,7 @@
 }
 
 .gameCount {
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 11px;
   font-weight: 700;
   color: var(--amber);
@@ -464,7 +464,7 @@
 }
 
 .breakdownValue {
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
@@ -495,7 +495,7 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
 }
 
 .ratioBar {
@@ -515,7 +515,7 @@
 .ratioValues {
   display: flex;
   justify-content: space-between;
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
@@ -533,7 +533,7 @@
 }
 
 .miembroDate {
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);

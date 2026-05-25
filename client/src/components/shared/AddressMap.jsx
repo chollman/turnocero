@@ -1,7 +1,12 @@
-import { useEffect, useRef } from 'react';
-import { APIProvider, Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps';
-import { useTheme } from '../../context/ThemeContext';
-import styles from './AddressMap.module.css';
+import { useEffect, useRef } from "react";
+import {
+  APIProvider,
+  Map,
+  AdvancedMarker,
+  useMap,
+} from "@vis.gl/react-google-maps";
+import { useTheme } from "../../context/ThemeContext";
+import styles from "./AddressMap.module.css";
 
 // Default center: Obelisco, CABA.
 const DEFAULT_CENTER = { lat: -34.6037, lng: -58.3816 };
@@ -43,10 +48,10 @@ export default function AddressMap({ lat, lng, onChange, height = 280 }) {
   const { theme } = useTheme();
   // Leer envs en cada render — permite override en tests vía vi.stubEnv y se
   // mantiene barato porque import.meta.env es un objeto sincrónico.
-  const apiKey      = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-  const mapIdDark   = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID_DARK;
-  const mapIdLight  = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID_LIGHT;
-  const mapId = theme === 'light' ? mapIdLight : mapIdDark;
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const mapIdDark = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID_DARK;
+  const mapIdLight = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID_LIGHT;
+  const mapId = theme === "light" ? mapIdLight : mapIdDark;
 
   if (!apiKey) {
     return (
@@ -73,7 +78,7 @@ export default function AddressMap({ lat, lng, onChange, height = 280 }) {
           // colorScheme es obligatorio cuando el Map Style usa el nuevo sistema
           // "tipado" (Style type = Light/Dark). Sin esto, los styles tipo Dark
           // no se aplican aunque el Map ID esté correctamente asociado.
-          colorScheme={theme === 'light' ? 'LIGHT' : 'DARK'}
+          colorScheme={theme === "light" ? "LIGHT" : "DARK"}
           defaultCenter={center}
           defaultZoom={hasMarker ? 15 : 13}
           gestureHandling="greedy"
@@ -94,7 +99,10 @@ export default function AddressMap({ lat, lng, onChange, height = 280 }) {
                 if (ll) onChange?.(ll.lat(), ll.lng());
               }}
             >
-              <span className={styles.pin} aria-label="Ubicación seleccionada" />
+              <span
+                className={styles.pin}
+                aria-label="Ubicación seleccionada"
+              />
             </AdvancedMarker>
           )}
         </Map>

@@ -1,4 +1,4 @@
-import styles from './UsersListSkeleton.module.css'
+import styles from "./UsersListSkeleton.module.css";
 
 export default function UsersListSkeleton() {
   return (
@@ -15,5 +15,5 @@ export default function UsersListSkeleton() {
         <div className={styles.statBlock} />
       </div>
     </div>
-  )
+  );
 }

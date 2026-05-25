@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import styles from './ConfirmActionModal.module.css';
+import { useState, useEffect } from "react";
+import styles from "./ConfirmActionModal.module.css";
 
 export default function ConfirmActionModal({
   isOpen,
   title,
   message,
-  confirmLabel = 'Confirmar',
-  cancelLabel = 'Cancelar',
-  variant = 'warning',
+  confirmLabel = "Confirmar",
+  cancelLabel = "Cancelar",
+  variant = "warning",
   inputLabel,
   inputPlaceholder,
   inputMaxLength = 500,
@@ -15,10 +15,10 @@ export default function ConfirmActionModal({
   onConfirm,
   onCancel,
 }) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
 
   useEffect(() => {
-    if (isOpen) setValue('');
+    if (isOpen) setValue("");
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -30,7 +30,7 @@ export default function ConfirmActionModal({
   return (
     <div className={styles.overlay} onClick={loading ? undefined : onCancel}>
       <div
-        className={`${styles.modal} ${variant === 'danger' ? styles.danger : ''}`}
+        className={`${styles.modal} ${variant === "danger" ? styles.danger : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className={styles.title}>{title}</h2>
@@ -60,11 +60,11 @@ export default function ConfirmActionModal({
             {cancelLabel}
           </button>
           <button
-            className={`${styles.btnConfirm} ${variant === 'danger' ? styles.btnDanger : ''}`}
+            className={`${styles.btnConfirm} ${variant === "danger" ? styles.btnDanger : ""}`}
             onClick={handleConfirm}
             disabled={loading}
           >
-            {loading ? '...' : confirmLabel}
+            {loading ? "..." : confirmLabel}
           </button>
         </div>
       </div>

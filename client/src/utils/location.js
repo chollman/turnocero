@@ -31,27 +31,30 @@
  * @param {"fullAddress"|"city"|"regular"} mode    formato a aplicar si no hay displayName
  * @returns {string}
  */
-export function getLocationDisplay(location, mode = 'fullAddress') {
-  if (!location) return '';
-  if (typeof location === 'string') return formatLocation(location, mode);
+export function getLocationDisplay(location, mode = "fullAddress") {
+  if (!location) return "";
+  if (typeof location === "string") return formatLocation(location, mode);
   if (location.displayName && location.displayName.trim()) {
     return location.displayName.trim();
   }
-  return formatLocation(location.texto || '', mode);
+  return formatLocation(location.texto || "", mode);
 }
 
-export function formatLocation(texto, mode = 'fullAddress') {
-  if (!texto) return '';
+export function formatLocation(texto, mode = "fullAddress") {
+  if (!texto) return "";
 
   // Si el modo no es válido, fallback a fullAddress.
-  if (mode !== 'city' && mode !== 'regular') return texto;
+  if (mode !== "city" && mode !== "regular") return texto;
 
-  const parts = texto.split(',').map((p) => p.trim()).filter(Boolean);
+  const parts = texto
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
   // Texto libre (sin formato Google): devolver tal cual.
   if (parts.length < 2) return texto;
 
   const cityPart = extractCity(parts);
-  if (mode === 'city') return cityPart || texto;
+  if (mode === "city") return cityPart || texto;
 
   // mode === "regular": "calle, ciudad". Si parts[0] tiene número (street-like)
   // y NO es la ciudad misma, lo prependeamos. Sino devolvemos solo la ciudad.
@@ -79,17 +82,28 @@ function extractCity(parts) {
   // Lista de países que aparecen al final en formatted_address típicos.
   // Para uso AR-focused esto cubre el 99%; si en el futuro hay otros países,
   // ampliar el array.
-  const COUNTRY_TOKENS = new Set(['Argentina', 'Uruguay', 'Chile', 'Brasil', 'Brazil']);
+  const COUNTRY_TOKENS = new Set([
+    "Argentina",
+    "Uruguay",
+    "Chile",
+    "Brasil",
+    "Brazil",
+  ]);
 
   let candidates = [...parts];
   // Strip país si está al final.
-  if (candidates.length > 1 && COUNTRY_TOKENS.has(candidates[candidates.length - 1])) {
+  if (
+    candidates.length > 1 &&
+    COUNTRY_TOKENS.has(candidates[candidates.length - 1])
+  ) {
     candidates.pop();
   }
   // Strip provincias ("Provincia de <X>", "Provincia <X>", "<X> Province").
-  candidates = candidates.filter((p) => !/^Provincia(\s+de)?\s+/i.test(p) && !/\sProvince$/i.test(p));
+  candidates = candidates.filter(
+    (p) => !/^Provincia(\s+de)?\s+/i.test(p) && !/\sProvince$/i.test(p),
+  );
 
-  if (candidates.length === 0) return '';
+  if (candidates.length === 0) return "";
   // La ciudad es el último elemento que queda — funciona tanto si arranca con
   // calle como si arranca directo con la ciudad.
   return stripPostalCode(candidates[candidates.length - 1]);
@@ -100,5 +114,5 @@ function extractCity(parts) {
  * Formatos típicos: "B1650 San Martín", "C1006 CABA", "1414 Palermo".
  */
 function stripPostalCode(s) {
-  return s.replace(/^[A-Z]?\d{4}\s+/, '').trim();
+  return s.replace(/^[A-Z]?\d{4}\s+/, "").trim();
 }

@@ -10,7 +10,10 @@
   text-align: center;
   text-decoration: none;
   color: var(--text-primary);
-  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition),
+    border-color var(--transition);
   cursor: pointer;
   aspect-ratio: 1;
   justify-content: center;

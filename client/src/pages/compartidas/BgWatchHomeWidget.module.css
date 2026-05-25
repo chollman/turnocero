@@ -50,7 +50,11 @@
 .widgetConnected {
   position: relative;
   background:
-    radial-gradient(600px circle at 80% -20%, rgba(180, 140, 255, 0.18), transparent 55%),
+    radial-gradient(
+      600px circle at 80% -20%,
+      rgba(180, 140, 255, 0.18),
+      transparent 55%
+    ),
     linear-gradient(135deg, #1a1d2e, #0e1320);
   border: 1px solid rgba(180, 140, 255, 0.25);
   border-radius: 14px;
@@ -84,7 +88,9 @@
   transition: color var(--transition);
 }
 
-.widgetLink:hover { color: #c2a7ff; }
+.widgetLink:hover {
+  color: #c2a7ff;
+}
 
 .headline {
   font-family: var(--font-display);
@@ -161,7 +167,9 @@
   font-weight: 700;
   text-decoration: none;
   margin-top: 14px;
-  transition: background var(--transition), border-color var(--transition);
+  transition:
+    background var(--transition),
+    border-color var(--transition);
 }
 
 .cta:hover {

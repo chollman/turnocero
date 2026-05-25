@@ -55,8 +55,12 @@
   transition: border-color var(--transition);
 }
 
-.titleInput:focus { border-color: var(--amber); }
-.titleInput::placeholder { color: var(--text-muted); }
+.titleInput:focus {
+  border-color: var(--amber);
+}
+.titleInput::placeholder {
+  color: var(--text-muted);
+}
 
 .bodyInput {
   background: var(--bg-dark);
@@ -72,8 +76,12 @@
   transition: border-color var(--transition);
 }
 
-.bodyInput:focus { border-color: var(--amber); }
-.bodyInput::placeholder { color: var(--text-muted); }
+.bodyInput:focus {
+  border-color: var(--amber);
+}
+.bodyInput::placeholder {
+  color: var(--text-muted);
+}
 
 /* ── Image previews ── */
 .previews {
@@ -141,10 +149,18 @@
   white-space: nowrap;
 }
 
-.photoBtn:hover:not(:disabled) { border-color: var(--amber); color: var(--amber); }
-.photoBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.photoBtn:hover:not(:disabled) {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.photoBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
-.fileInput { display: none; }
+.fileInput {
+  display: none;
+}
 
 .tableSelect {
   flex: 1;
@@ -161,7 +177,10 @@
   transition: border-color var(--transition);
 }
 
-.tableSelect:focus { border-color: var(--amber); color: var(--text-primary); }
+.tableSelect:focus {
+  border-color: var(--amber);
+  color: var(--text-primary);
+}
 
 /* ── Privacy ── */
 .privacyRow {
@@ -194,7 +213,10 @@
   transition: all var(--transition);
 }
 
-.privacyBtn:hover:not(:disabled) { border-color: var(--amber); color: var(--text-primary); }
+.privacyBtn:hover:not(:disabled) {
+  border-color: var(--amber);
+  color: var(--text-primary);
+}
 
 .privacyBtnActive {
   border-color: var(--amber) !important;
@@ -223,7 +245,10 @@
   transition: all var(--transition);
 }
 
-.cancelBtn:hover { border-color: var(--text-muted); color: var(--text-primary); }
+.cancelBtn:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
 
 .submitBtn {
   background: var(--amber);
@@ -239,5 +264,10 @@
   box-shadow: 0 4px 14px var(--amber-glow);
 }
 
-.submitBtn:hover:not(:disabled) { background: var(--amber-light); }
-.submitBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.submitBtn:hover:not(:disabled) {
+  background: var(--amber-light);
+}
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

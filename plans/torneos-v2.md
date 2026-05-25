@@ -11,6 +11,7 @@ La primera versión de Torneos (mergeada hace unas horas) cubrió Liga (1vs1 rou
 3. **Hace falta un formato más realista para juegos de mesa**: grupos multi-fase con mesas de N jugadores y P partidas por grupo, donde se acumula puntaje, los mejores C pasan a la siguiente fase, hasta llegar a la mesa final.
 
 **Decisiones de producto confirmadas:**
+
 - Mantener los 3 formatos: Liga, Eliminación simple, **Grupos** (nuevo).
 - Puntaje en formato Grupos: el admin carga la **puntuación real del juego (PV)** por jugador al cierre de cada partida. La ranking del grupo es por suma de PV descendente, sin sistema separado de "puntos por posición". (Posición de cada jugador dentro de una partida se deriva del PV.)
 - Cut desparejo: validación + admin decide manualmente por fase (puede cambiar el `tableSize` o aceptar mesa con menos jugadores).
@@ -25,7 +26,11 @@ La primera versión de Torneos (mergeada hace unas horas) cubrió Liga (1vs1 rou
 Sumar toast de éxito con `useNotifications().addToast()` (ya existe el helper, lo usa NotificationContext para los tipos de torneo). Después de `axios.post('/api/torneos/:id/register')`:
 
 ```js
-addToast({ type: 'tournament_pending', torneoId: torneo._id, torneoTitle: torneo.title })
+addToast({
+  type: "tournament_pending",
+  torneoId: torneo._id,
+  torneoTitle: torneo.title,
+});
 ```
 
 Agregar el tipo `tournament_pending` en [client/src/components/layout/ToastContainer.jsx](client/src/components/layout/ToastContainer.jsx) con icono ⏳ y body "Tu inscripción está pendiente de aprobación".
@@ -39,6 +44,7 @@ Además, mejorar el feedback inline: cuando `isPending`, en lugar del pill está
 ### Modelo
 
 [server/models/Torneo.js](server/models/Torneo.js) — agregar:
+
 ```js
 inscriptionMode: { type: String, enum: ['open', 'admin_only'], default: 'open' }
 ```
@@ -46,6 +52,7 @@ inscriptionMode: { type: String, enum: ['open', 'admin_only'], default: 'open' }
 ### Transiciones de estado
 
 Actualizar `VALID_TRANSITIONS` en [server/routes/torneos.js](server/routes/torneos.js):
+
 ```js
 draft → (registration | in_progress)   // in_progress solo si admin_only
 registration → (in_progress | draft)
@@ -65,12 +72,14 @@ Validar: que el usuario no esté ya en `participants` ni en `pendingRegistration
 ### Form de creación
 
 [client/src/pages/torneos/CreateTorneo.jsx](client/src/pages/torneos/CreateTorneo.jsx) — agregar selector "Modo de inscripción":
+
 - "Inscripción abierta" — usuarios se anotan, admin acepta
 - "Yo agrego participantes" — admin maneja la lista directo
 
 ### UI nueva: `AddParticipantModal.jsx`
 
 `client/src/pages/torneos/components/AddParticipantModal.jsx` — modal con:
+
 - Input de búsqueda (debounce 250ms) que pega contra `GET /api/users?search=...` (verificar el endpoint actual)
 - Lista de resultados con botón "Agregar" en cada uno
 - Marcar visualmente a los que ya son participantes
@@ -89,11 +98,13 @@ Validar: que el usuario no esté ya en `participants` ni en `pendingRegistration
 ### Lógica del formato
 
 **Configuración por torneo:**
+
 - `tableSize` (X): jugadores por mesa, default 4
 - `gamesPerGroup` (P): partidas por grupo en cada fase, default 3
 - `qualifiersPerGroup` (C): cuántos pasan a la siguiente fase, default 2
 
 **Ciclo:**
+
 1. Al pasar a `in_progress`: se generan los grupos de la **fase 1** (ceil(N/X) grupos, distribución con seeding tipo serpentina para balancear).
 2. En cada grupo se juegan P partidas. Para cada partida, el admin carga el PV (puntaje real del juego) de cada jugador.
 3. Standings del grupo: suma de PV descendente. La posición del jugador dentro de cada partida se deriva del PV.
@@ -104,6 +115,7 @@ Validar: que el usuario no esté ya en `participants` ni en `pendingRegistration
 ### Modelos nuevos
 
 `server/models/TorneoGroup.js`:
+
 ```js
 {
   torneo:        ObjectId ref Torneo, indexed,
@@ -116,9 +128,11 @@ Validar: que el usuario no esté ya en `participants` ni en `pendingRegistration
   timestamps
 }
 ```
+
 Índice: `{ torneo: 1, phase: 1, tableNumber: 1 }`.
 
 `server/models/TorneoGame.js`:
+
 ```js
 {
   torneo:     ObjectId ref Torneo, indexed,
@@ -130,6 +144,7 @@ Validar: que el usuario no esté ya en `participants` ni en `pendingRegistration
   timestamps
 }
 ```
+
 Índice: `{ group: 1, gameNumber: 1 }`.
 
 ### Extensiones al modelo Torneo
@@ -188,6 +203,7 @@ Para "finalizar" un torneo de grupos: el endpoint `PATCH /status` en `in_progres
 ### UI nueva
 
 `client/src/pages/torneos/components/GroupsView.jsx` (tab principal cuando `format=groups`):
+
 - Selector de fase (1, 2, 3…) en la parte superior si hay más de una fase.
 - Por cada grupo de la fase activa:
   - Card con título "Mesa #N — Fase X"
@@ -198,6 +214,7 @@ Para "finalizar" un torneo de grupos: el endpoint `PATCH /status` en `in_progres
 - Si todos los grupos de la fase actual están completed y promovidos → mostrar botón "Generar siguiente fase" (admin) que abre `PhaseTransitionModal`.
 
 `client/src/pages/torneos/components/GameScoreModal.jsx` (modal para cargar resultado de una partida):
+
 - Lista de jugadores del grupo
 - Input numérico de score (PV) por jugador
 - Muestra posición autocalculada en vivo (1°, 2°, etc. según el score)
@@ -205,11 +222,13 @@ Para "finalizar" un torneo de grupos: el endpoint `PATCH /status` en `in_progres
 - Validación: todos los scores cargados, números válidos.
 
 `client/src/pages/torneos/components/PhaseTransitionModal.jsx`:
+
 - Muestra cantidad de promovidos, `tableSize` actual, y la división
 - Si no divide exactamente: mostrar las opciones (cambiar tableSize, dejar 1 mesa con menos, etc.) — se selecciona y se manda al endpoint
 - Si quedan ≤ tableSize → indicar "Esta será la mesa final"
 
 `client/src/pages/torneos/components/GroupStandings.jsx`:
+
 - Tabla similar a `LeagueStandings` pero con columna "Total PV" y subcolumnas por cada partida del grupo.
 
 ### Cambios en componentes existentes
@@ -220,6 +239,7 @@ Para "finalizar" un torneo de grupos: el endpoint `PATCH /status` en `in_progres
 - [TorneoCard.jsx](client/src/pages/torneos/components/TorneoCard.jsx): agregar a `FORMAT_META` el icono 🧩 + label "Grupos".
 
 ### Notificaciones (opcionales para v2.1, NO en este alcance)
+
 No se agregan notifs nuevas para resultados de grupo. Se mantienen las 4 actuales (`tournament_accepted/rejected/advanced/eliminated`). El `tournament_advanced` se reutiliza cuando un jugador pasa a la siguiente fase del formato grupos.
 
 ---
@@ -227,6 +247,7 @@ No se agregan notifs nuevas para resultados de grupo. Se mantienen las 4 actuale
 ## Archivos críticos
 
 **Crear:**
+
 - `server/models/TorneoGroup.js`
 - `server/models/TorneoGame.js`
 - `client/src/pages/torneos/components/GroupsView.jsx`
@@ -236,6 +257,7 @@ No se agregan notifs nuevas para resultados de grupo. Se mantienen las 4 actuale
 - `client/src/pages/torneos/components/AddParticipantModal.jsx`
 
 **Modificar:**
+
 - `server/models/Torneo.js` — campos `inscriptionMode`, `tableSize`, `gamesPerGroup`, `qualifiersPerGroup`, `currentPhase`; extender enum `format`
 - `server/routes/torneos.js` — endpoints nuevos + transiciones de estado actualizadas + integración con generación de grupos
 - `server/utils/tournamentGeneration.js` — `generateGroupsPhase`, `computeGroupStandings`, `validateNextPhase`
@@ -250,6 +272,7 @@ No se agregan notifs nuevas para resultados de grupo. Se mantienen las 4 actuale
 - `CLAUDE.md` — sección Torneos: agregar formato Grupos, modo de inscripción, modelos nuevos
 
 **Sin cambios:**
+
 - `server/models/TorneoMatch.js` (sigue siendo solo para liga y single_elim)
 - `Bracket.jsx`, `LeagueStandings.jsx`, `LeagueRoundsList.jsx`, `RecordResultModal.jsx`, `SeedReorderModal.jsx` (los formatos viejos siguen tal cual)
 
@@ -271,11 +294,13 @@ No se agregan notifs nuevas para resultados de grupo. Se mantienen las 4 actuale
 Levantar ambos servers (`npm run dev:server` + `npm run dev:client`) y probar este flujo completo:
 
 ### Ajuste 1
+
 1. Crear torneo con `inscriptionMode: 'open'` y abrir inscripciones.
 2. Desde otra cuenta, click "Inscribirme" → debe aparecer toast ⏳ "Inscripción enviada — esperando aprobación".
 3. La fila inline debe mostrar mensaje de éxito ~3s antes de pasar al pill estático.
 
 ### Ajuste 2
+
 1. Crear torneo con `inscriptionMode: 'admin_only'`.
 2. Desde cuenta de usuario, abrir el torneo → NO debe verse el botón "Inscribirme".
 3. Como admin, abrir el modal "Agregar participantes", buscar y agregar 4 usuarios.
@@ -283,6 +308,7 @@ Levantar ambos servers (`npm run dev:server` + `npm run dev:client`) y probar es
 5. Confirmar que se generaron los grupos (si formato Grupos) o los matches (si liga/single_elim).
 
 ### Ajuste 3
+
 1. Crear torneo formato **Grupos** con tableSize=4, gamesPerGroup=3, qualifiersPerGroup=2.
 2. Agregar 12 participantes (`admin_only`) y pasar a in_progress.
 3. Verificar que se generen **3 grupos de 4** en la fase 1.
@@ -295,6 +321,7 @@ Levantar ambos servers (`npm run dev:server` + `npm run dev:client`) y probar es
 10. Finalizar el torneo → campeón = top 1 del standings de esa mesa, runner-up = top 2.
 
 ### Cobertura cross-feature
+
 - **Tema light**: toggle desde `/perfil` → verificar contraste en GroupsView, GroupStandings, GameScoreModal, PhaseTransitionModal, AddParticipantModal.
 - **Mobile**: bracket en mobile sigue funcionando; los modales y la lista de grupos se ven en pantalla chica.
 - **View-as-user (admin)**: con toggle activo, todos los botones de admin (cargar resultado, promover, agregar participantes, siguiente fase) deben ocultarse.

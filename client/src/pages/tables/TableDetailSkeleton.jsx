@@ -1,9 +1,9 @@
-import styles from './TableDetailSkeleton.module.css'
+import styles from "./TableDetailSkeleton.module.css";
 
 export default function TableDetailSkeleton() {
   return (
     <div aria-hidden="true" className={styles.page}>
-      <div className='container'>
+      <div className="container">
         <div className={styles.hero} />
         <div className={styles.body}>
           <div className={styles.topRow}>
@@ -27,5 +27,5 @@ export default function TableDetailSkeleton() {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -24,9 +24,10 @@ export default function TimelineRow({
   const hasMax = !!(evento.maxParticipants && evento.maxParticipants > 0);
   const confirmed = evento.registrationCount?.confirmed ?? 0;
   const pending = evento.registrationCount?.pending ?? 0;
-  const locationTexto = typeof evento.location === "string"
-    ? evento.location
-    : evento.location?.texto || "";
+  const locationTexto =
+    typeof evento.location === "string"
+      ? evento.location
+      : evento.location?.texto || "";
   // En la lista mostramos solo la localidad — el texto completo se ve en el
   // detalle. getLocationDisplay respeta displayName si está seteado.
   const locationDisplay = getLocationDisplay(evento.location, "city");
@@ -124,7 +125,13 @@ export default function TimelineRow({
             <span className={styles.metaItem} title={locationTexto}>
               <PinIcon size={12} /> {locationDisplay}
               {distanceLabel && (
-                <span style={{ marginLeft: 4, color: "var(--green)", fontWeight: 600 }}>
+                <span
+                  style={{
+                    marginLeft: 4,
+                    color: "var(--green)",
+                    fontWeight: 600,
+                  }}
+                >
                   · {distanceLabel}
                 </span>
               )}

@@ -90,9 +90,7 @@ describe("<TableGallery>", () => {
     );
     vi.spyOn(window, "confirm").mockReturnValue(true);
     renderGallery({ images: [makeImg("i1")] });
-    fireEvent.click(
-      screen.getByRole("button", { name: /eliminar imagen/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /eliminar imagen/i }));
     await waitFor(() => {
       expect(screen.getByText("No autorizado")).toBeInTheDocument();
     });

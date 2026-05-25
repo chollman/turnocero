@@ -1,13 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import GameTile from '../../components/shared/GameTile';
-import Logo from '../../components/shared/Logo';
-import styles from './Auth.module.css';
-import { ShowcaseCard } from './Login';
-import { getErrorMessage } from '../../utils/getErrorMessage';
-import { STORAGE_KEYS } from '../../utils/storageKeys';
-import { useShowcaseTables } from '../../hooks/useShowcaseTables';
+import { useState, useEffect, useRef } from "react";
+import {
+  Link,
+  useNavigate,
+  useLocation,
+  useSearchParams,
+} from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import GameTile from "../../components/shared/GameTile";
+import Logo from "../../components/shared/Logo";
+import styles from "./Auth.module.css";
+import { ShowcaseCard } from "./Login";
+import { getErrorMessage } from "../../utils/getErrorMessage";
+import { STORAGE_KEYS } from "../../utils/storageKeys";
+import { useShowcaseTables } from "../../hooks/useShowcaseTables";
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
@@ -18,14 +23,17 @@ export default function VerifyEmail() {
   const { verifyEmail, requestEmailVerification } = useAuth();
 
   const stateEmail = location.state?.email;
-  const queryEmail = searchParams.get('email');
-  const storedEmail = typeof window !== 'undefined' ? sessionStorage.getItem(STORAGE_KEYS.PENDING_VERIFY_EMAIL) : '';
-  const initialEmail = stateEmail || queryEmail || storedEmail || '';
+  const queryEmail = searchParams.get("email");
+  const storedEmail =
+    typeof window !== "undefined"
+      ? sessionStorage.getItem(STORAGE_KEYS.PENDING_VERIFY_EMAIL)
+      : "";
+  const initialEmail = stateEmail || queryEmail || storedEmail || "";
 
   const [email, setEmail] = useState(initialEmail);
-  const [code, setCode] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -46,55 +54,62 @@ export default function VerifyEmail() {
   }, [cooldown]);
 
   const handleCodeChange = (e) => {
-    const cleaned = e.target.value.replace(/\D/g, '').slice(0, 6);
+    const cleaned = e.target.value.replace(/\D/g, "").slice(0, 6);
     setCode(cleaned);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     if (!email) {
-      setError('Necesitamos tu email. Volvé a crear la cuenta o iniciá sesión.');
+      setError(
+        "Necesitamos tu email. Volvé a crear la cuenta o iniciá sesión.",
+      );
       return;
     }
     if (code.length !== 6) {
-      setError('El código tiene 6 dígitos.');
+      setError("El código tiene 6 dígitos.");
       return;
     }
     setLoading(true);
     try {
       await verifyEmail(email, code);
       sessionStorage.removeItem(STORAGE_KEYS.PENDING_VERIFY_EMAIL);
-      navigate('/');
+      navigate("/");
     } catch (err) {
-      setError(getErrorMessage(err, 'No pudimos verificar tu email.'));
+      setError(getErrorMessage(err, "No pudimos verificar tu email."));
     } finally {
       setLoading(false);
     }
   };
 
   const handleResend = async () => {
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
     if (!email) {
-      setError('Necesitamos tu email para reenviar el código.');
+      setError("Necesitamos tu email para reenviar el código.");
       return;
     }
     setResending(true);
     try {
       await requestEmailVerification(email);
-      setSuccess('Si la cuenta existe y no está verificada, te enviamos un código nuevo.');
+      setSuccess(
+        "Si la cuenta existe y no está verificada, te enviamos un código nuevo.",
+      );
       setCooldown(RESEND_COOLDOWN_SECONDS);
     } catch (err) {
-      setError(getErrorMessage(err, 'No pudimos reenviar el código.'));
+      setError(getErrorMessage(err, "No pudimos reenviar el código."));
     } finally {
       setResending(false);
     }
   };
 
   const maskedEmail = email
-    ? email.replace(/^(.)(.*)(@.*)$/, (_, a, b, c) => a + '•'.repeat(Math.max(b.length, 1)) + c)
-    : '';
+    ? email.replace(
+        /^(.)(.*)(@.*)$/,
+        (_, a, b, c) => a + "•".repeat(Math.max(b.length, 1)) + c,
+      )
+    : "";
 
   return (
     <div className={styles.page}>
@@ -116,7 +131,15 @@ export default function VerifyEmail() {
         <h1 className={styles.heading}>Un último paso.</h1>
         <p className={styles.sub}>
           Te enviamos un código de 6 dígitos
-          {maskedEmail ? <> a <strong>{maskedEmail}</strong></> : ''}.
+          {maskedEmail ? (
+            <>
+              {" "}
+              a <strong>{maskedEmail}</strong>
+            </>
+          ) : (
+            ""
+          )}
+          .
         </p>
 
         {error && <div className={styles.errorBox}>{error}</div>}
@@ -159,32 +182,52 @@ export default function VerifyEmail() {
             />
           </div>
 
-          <button type="submit" className={styles.submitBtn} disabled={loading || code.length !== 6}>
-            {loading ? 'Verificando…' : <><span>✓</span> Verificar</>}
+          <button
+            type="submit"
+            className={styles.submitBtn}
+            disabled={loading || code.length !== 6}
+          >
+            {loading ? (
+              "Verificando…"
+            ) : (
+              <>
+                <span>✓</span> Verificar
+              </>
+            )}
           </button>
         </form>
 
         <div className={styles.helpRow}>
           <span>
-            ¿No te llegó?{' '}
+            ¿No te llegó?{" "}
             <button
               type="button"
               onClick={handleResend}
               className={styles.linkBtn}
               disabled={resending || cooldown > 0}
             >
-              {cooldown > 0 ? `Reenviar en ${cooldown}s` : resending ? 'Enviando…' : 'Reenviar código'}
+              {cooldown > 0
+                ? `Reenviar en ${cooldown}s`
+                : resending
+                  ? "Enviando…"
+                  : "Reenviar código"}
             </button>
           </span>
           <span>
-            <Link to="/login" style={{ color: 'var(--text-secondary)' }}>← Volver al login</Link>
+            <Link to="/login" style={{ color: "var(--text-secondary)" }}>
+              ← Volver al login
+            </Link>
           </span>
         </div>
       </div>
 
       <div className={styles.showcase}>
         <div className={styles.showcaseTile}>
-          <GameTile game={showcase?.table?.boardGame || 'TurnoCero'} seed={seed} size="100%" />
+          <GameTile
+            game={showcase?.table?.boardGame || "TurnoCero"}
+            seed={seed}
+            size="100%"
+          />
         </div>
         <div className={styles.showcaseGradient} />
         <div className={styles.showcaseContent}>
@@ -194,13 +237,17 @@ export default function VerifyEmail() {
               <h2 className={styles.showcaseTitle}>
                 {showcase.total} mesas
                 <br />
-                <span className={styles.showcaseTitleAccent}>esperando jugadores.</span>
+                <span className={styles.showcaseTitleAccent}>
+                  esperando jugadores.
+                </span>
               </h2>
             ) : (
               <h2 className={styles.showcaseTitle}>
                 Tu próxima
                 <br />
-                <span className={styles.showcaseTitleAccent}>partida te espera.</span>
+                <span className={styles.showcaseTitleAccent}>
+                  partida te espera.
+                </span>
               </h2>
             )}
           </div>

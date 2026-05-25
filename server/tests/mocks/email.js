@@ -15,7 +15,7 @@ const verificationEmail = vi.fn((code) => ({
 }));
 
 const passwordResetEmail = vi.fn((url) => ({
-  subject: 'Recuperar contraseña',
+  subject: "Recuperar contraseña",
   html: `<a href="${url}">${url}</a>`,
 }));
 

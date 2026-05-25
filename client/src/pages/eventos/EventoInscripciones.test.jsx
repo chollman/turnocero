@@ -39,7 +39,10 @@ function setupResponse(payload) {
   );
 }
 
-function renderInsc({ user = { _id: "admin", isAdmin: true }, addToast = vi.fn() } = {}) {
+function renderInsc({
+  user = { _id: "admin", isAdmin: true },
+  addToast = vi.fn(),
+} = {}) {
   // El componente usa isActuallyAdmin (no user.isAdmin) — esta página es
   // admin estructural y se mantiene reachable aún con "view as user" activo.
   useAuth.mockReturnValue({
@@ -162,9 +165,8 @@ describe("<EventoInscripciones>", () => {
 
   it("B6/B7 — un fallo del PATCH dispara toast global (no estado local inline)", async () => {
     server.use(
-      http.patch(
-        "/api/eventos/:id/inscripciones/:userId/confirmar",
-        () => HttpResponse.json({ message: "boom" }, { status: 500 }),
+      http.patch("/api/eventos/:id/inscripciones/:userId/confirmar", () =>
+        HttpResponse.json({ message: "boom" }, { status: 500 }),
       ),
     );
     const addToast = vi.fn();

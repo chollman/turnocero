@@ -1,71 +1,84 @@
-import { useState, useEffect, useRef } from 'react'
-import axios from 'axios'
-import { useAuth } from '../../context/AuthContext'
-import { API } from '../../api/endpoints'
-import Avatar from '../../components/shared/Avatar'
-import styles from './CreateCompartidaForm.module.css'
+import { useState, useEffect, useRef } from "react";
+import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
+import { API } from "../../api/endpoints";
+import Avatar from "../../components/shared/Avatar";
+import styles from "./CreateCompartidaForm.module.css";
 
 const PRIVACY_OPTIONS = [
-  { value: 'public',  label: 'Público',  desc: 'Todos' },
-  { value: 'friends', label: 'Amigos',   desc: 'Solo amigos' },
-  { value: 'private', label: 'Solo yo',  desc: 'Privado' },
-]
+  { value: "public", label: "Público", desc: "Todos" },
+  { value: "friends", label: "Amigos", desc: "Solo amigos" },
+  { value: "private", label: "Solo yo", desc: "Privado" },
+];
 
-export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTableId, prefilledEventoId }) {
-  const { user } = useAuth()
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
-  const [privacy, setPrivacy] = useState('public')
-  const [linkedTableId, setLinkedTableId] = useState(prefilledTableId || '')
-  const [linkedEventoId, setLinkedEventoId] = useState(prefilledEventoId || '')
-  const [myTables, setMyTables] = useState([])
-  const [myEventos, setMyEventos] = useState([])
-  const [images, setImages] = useState([]) // [{ file, preview }]
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const fileInputRef = useRef(null)
+export default function CreateCompartidaForm({
+  onCreated,
+  onCancel,
+  prefilledTableId,
+  prefilledEventoId,
+}) {
+  const { user } = useAuth();
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [privacy, setPrivacy] = useState("public");
+  const [linkedTableId, setLinkedTableId] = useState(prefilledTableId || "");
+  const [linkedEventoId, setLinkedEventoId] = useState(prefilledEventoId || "");
+  const [myTables, setMyTables] = useState([]);
+  const [myEventos, setMyEventos] = useState([]);
+  const [images, setImages] = useState([]); // [{ file, preview }]
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
-    axios.get(API.tables.MINE).then(({ data }) => {
-      const active = (data.tables || []).filter((t) => t.status !== 'cancelled')
-      setMyTables(active)
-    }).catch(() => {})
-    axios.get(API.eventos.MINE).then(({ data }) => {
-      setMyEventos(data.eventos || [])
-    }).catch(() => {})
-  }, [])
+    axios
+      .get(API.tables.MINE)
+      .then(({ data }) => {
+        const active = (data.tables || []).filter(
+          (t) => t.status !== "cancelled",
+        );
+        setMyTables(active);
+      })
+      .catch(() => {});
+    axios
+      .get(API.eventos.MINE)
+      .then(({ data }) => {
+        setMyEventos(data.eventos || []);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleImageSelect = (e) => {
-    const files = Array.from(e.target.files || [])
-    const remaining = 3 - images.length
+    const files = Array.from(e.target.files || []);
+    const remaining = 3 - images.length;
     const toAdd = files.slice(0, remaining).map((file) => ({
       file,
       preview: URL.createObjectURL(file),
-    }))
-    setImages((prev) => [...prev, ...toAdd])
-    e.target.value = ''
-  }
+    }));
+    setImages((prev) => [...prev, ...toAdd]);
+    e.target.value = "";
+  };
 
   const removeImage = (idx) => {
     setImages((prev) => {
-      URL.revokeObjectURL(prev[idx].preview)
-      return prev.filter((_, i) => i !== idx)
-    })
-  }
+      URL.revokeObjectURL(prev[idx].preview);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
 
-  const submittingRef = useRef(false)
+  const submittingRef = useRef(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (submittingRef.current) return
+    e.preventDefault();
+    if (submittingRef.current) return;
     if (!title.trim() && !body.trim() && images.length === 0) {
-      setError('Agregá al menos un título, texto o foto.')
-      return
+      setError("Agregá al menos un título, texto o foto.");
+      return;
     }
-    setError('')
-    setLoading(true)
-    submittingRef.current = true
-    let createdId = null
+    setError("");
+    setLoading(true);
+    submittingRef.current = true;
+    let createdId = null;
     try {
       const { data: created } = await axios.post(API.compartidas.LIST, {
         title: title.trim(),
@@ -73,35 +86,42 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
         privacy,
         linkedTable: linkedTableId || undefined,
         linkedEvento: linkedEventoId || undefined,
-      })
-      createdId = created._id
+      });
+      createdId = created._id;
 
-      let finalPost = created
+      let finalPost = created;
       for (const img of images) {
-        const fd = new FormData()
-        fd.append('image', img.file)
+        const fd = new FormData();
+        fd.append("image", img.file);
         const { data: updatedImages } = await axios.post(
           API.compartidas.IMAGES(created._id),
           fd,
-          { headers: { 'Content-Type': 'multipart/form-data' } }
-        )
-        finalPost = { ...finalPost, images: updatedImages }
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+        finalPost = { ...finalPost, images: updatedImages };
       }
 
-      images.forEach((img) => URL.revokeObjectURL(img.preview))
-      onCreated?.(finalPost)
+      images.forEach((img) => URL.revokeObjectURL(img.preview));
+      onCreated?.(finalPost);
     } catch (err) {
       if (createdId) {
-        try { await axios.delete(API.compartidas.DETAIL(createdId)) } catch { /* ignore */ }
+        try {
+          await axios.delete(API.compartidas.DETAIL(createdId));
+        } catch {
+          /* ignore */
+        }
       }
-      setError(err.response?.data?.message || 'Error al publicar la compartida')
+      setError(
+        err.response?.data?.message || "Error al publicar la compartida",
+      );
     } finally {
-      setLoading(false)
-      submittingRef.current = false
+      setLoading(false);
+      submittingRef.current = false;
     }
-  }
+  };
 
-  const canSubmit = (title.trim() || body.trim() || images.length > 0) && !loading
+  const canSubmit =
+    (title.trim() || body.trim() || images.length > 0) && !loading;
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
@@ -141,7 +161,9 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
                 type="button"
                 className={styles.removeImg}
                 onClick={() => removeImage(i)}
-              >✕</button>
+              >
+                ✕
+              </button>
             </div>
           ))}
         </div>
@@ -154,14 +176,23 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
           className={styles.photoBtn}
           onClick={() => fileInputRef.current?.click()}
           disabled={images.length >= 3 || loading}
-          title={images.length >= 3 ? 'Máximo 3 fotos' : 'Agregar foto'}
+          title={images.length >= 3 ? "Máximo 3 fotos" : "Agregar foto"}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <circle cx="8.5" cy="8.5" r="1.5"/>
-            <polyline points="21 15 16 10 5 21"/>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
           </svg>
-          <span>Foto {images.length > 0 ? `(${images.length}/3)` : ''}</span>
+          <span>Foto {images.length > 0 ? `(${images.length}/3)` : ""}</span>
         </button>
         <input
           ref={fileInputRef}
@@ -181,7 +212,9 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
         >
           <option value="">Vincular mesa (opcional)</option>
           {myTables.map((t) => (
-            <option key={t._id} value={t._id}>{t.boardGame}</option>
+            <option key={t._id} value={t._id}>
+              {t.boardGame}
+            </option>
           ))}
         </select>
 
@@ -197,7 +230,9 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
           >
             <option value="">Vincular evento (opcional)</option>
             {myEventos.map((e) => (
-              <option key={e._id} value={e._id}>{e.title}</option>
+              <option key={e._id} value={e._id}>
+                {e.title}
+              </option>
             ))}
           </select>
         )}
@@ -210,7 +245,7 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
           <button
             key={opt.value}
             type="button"
-            className={`${styles.privacyBtn} ${privacy === opt.value ? styles.privacyBtnActive : ''}`}
+            className={`${styles.privacyBtn} ${privacy === opt.value ? styles.privacyBtnActive : ""}`}
             onClick={() => setPrivacy(opt.value)}
             disabled={loading}
           >
@@ -222,14 +257,23 @@ export default function CreateCompartidaForm({ onCreated, onCancel, prefilledTab
       {/* Actions */}
       <div className={styles.actions}>
         {onCancel && (
-          <button type="button" className={styles.cancelBtn} onClick={onCancel} disabled={loading}>
+          <button
+            type="button"
+            className={styles.cancelBtn}
+            onClick={onCancel}
+            disabled={loading}
+          >
             Cancelar
           </button>
         )}
-        <button type="submit" className={styles.submitBtn} disabled={!canSubmit}>
-          {loading ? 'Publicando…' : 'Publicar compartida'}
+        <button
+          type="submit"
+          className={styles.submitBtn}
+          disabled={!canSubmit}
+        >
+          {loading ? "Publicando…" : "Publicar compartida"}
         </button>
       </div>
     </form>
-  )
+  );
 }

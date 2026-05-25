@@ -8,7 +8,7 @@ Decisiones tomadas con el usuario:
 
 - **Servicio de email:** [Resend](https://resend.com) (API simple, free tier de 3.000/mes).
 - **Gating de verificación:** **antes** del login. El usuario crea la cuenta → ingresa código de 6 dígitos → recién ahí recibe el JWT. Hasta ese momento no puede usar la app.
-- **Usuarios existentes:** *grandfather* — la migración pone `emailVerified=true` en todos los actuales. Solo nuevos registros pasan por el flujo.
+- **Usuarios existentes:** _grandfather_ — la migración pone `emailVerified=true` en todos los actuales. Solo nuevos registros pasan por el flujo.
 
 Convenciones del proyecto a respetar:
 
@@ -26,12 +26,15 @@ Lo que necesitan ambos flujos antes de tocar rutas.
 ### 1.1 Dependencias y env vars
 
 **Instalar en `server/`:**
+
 ```bash
 npm install resend
 ```
+
 (crypto y mongoose ya están; no hace falta nada más)
 
 **Agregar a `server/.env.example`:**
+
 ```
 # Resend — para verificación de email y recuperar contraseña
 RESEND_API_KEY=
@@ -60,8 +63,8 @@ Crear [`server/utils/authTokens.js`](../server/utils/authTokens.js):
 Crear [`server/utils/email.js`](../server/utils/email.js):
 
 ```js
-const { Resend } = require('resend');
-const logger = require('./logger');
+const { Resend } = require("resend");
+const logger = require("./logger");
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -69,16 +72,19 @@ const resend = process.env.RESEND_API_KEY
 
 async function sendEmail({ to, subject, html, text }) {
   if (!resend) {
-    logger.warn('Resend not configured; skipping email', { to, subject });
+    logger.warn("Resend not configured; skipping email", { to, subject });
     return;
   }
   try {
     await resend.emails.send({
       from: process.env.EMAIL_FROM,
-      to, subject, html, text,
+      to,
+      subject,
+      html,
+      text,
     });
   } catch (err) {
-    logger.error('Email send failed', { to, subject, msg: err.message });
+    logger.error("Email send failed", { to, subject, msg: err.message });
     throw err; // que el caller decida cómo manejar
   }
 }
@@ -114,15 +120,15 @@ Script una sola vez en `server/scripts/migrate-email-verified.js`:
 ```js
 // Marca todos los usuarios existentes como emailVerified=true.
 // Solo afecta cuentas creadas antes de implementar la verificación.
-const mongoose = require('mongoose');
-require('dotenv').config();
-const User = require('../models/User');
+const mongoose = require("mongoose");
+require("dotenv").config();
+const User = require("../models/User");
 
 (async () => {
   await mongoose.connect(process.env.MONGODB_URI);
   const res = await User.updateMany(
     { emailVerified: { $ne: true } },
-    { $set: { emailVerified: true } }
+    { $set: { emailVerified: true } },
   );
   console.log(`Updated ${res.modifiedCount} users`);
   await mongoose.disconnect();
@@ -151,6 +157,7 @@ Correr una vez con `node server/scripts/migrate-email-verified.js` en local y pr
 Body: `{ email, code }`. Rate-limited con `authLimiter`.
 
 Lógica:
+
 1. Busca user por email. Si no existe o ya `emailVerified=true` → 400 con mensaje genérico ("Código inválido o expirado") para no filtrar enumeración.
 2. Si `emailVerificationExpiresAt < now` → 400 "Código inválido o expirado".
 3. Incrementa `emailVerificationAttempts`. Si > 5 → 429 "Demasiados intentos, pedí un código nuevo".
@@ -173,9 +180,9 @@ En `POST /api/auth/login`, **antes** de retornar el JWT (después de validar pas
 ```js
 if (!user.emailVerified) {
   return res.status(403).json({
-    code: 'email_not_verified',
+    code: "email_not_verified",
     email: user.email,
-    message: 'Tenés que verificar tu email antes de loguearte.',
+    message: "Tenés que verificar tu email antes de loguearte.",
   });
 }
 ```
@@ -191,11 +198,13 @@ Cuentas no verificadas con `createdAt > 7 días` y `!emailVerified` podrían bor
 Nueva página: [`client/src/pages/auth/VerifyEmail.jsx`](../client/src/pages/auth/VerifyEmail.jsx), ruta `/verificar-email`.
 
 Estado: recibe `email` por:
+
 - `location.state` (cuando viene de Register).
 - Query param `?email=foo@bar.com` (fallback si el usuario refresca o llega desde otro lado).
 - `sessionStorage` (backup intermedio).
 
 UI:
+
 - Reusa el layout `Auth.module.css` (mismo `page`/`panel`/`showcase`).
 - Heading "Verificá tu email", subtítulo "Te mandamos un código a `<email>`".
 - 6 inputs separados para el código (o un único input numérico de 6 dígitos — más simple, va con eso).
@@ -204,13 +213,16 @@ UI:
 - Manejo de errores: mostrar mensaje del server en `errorBox`.
 
 **Cambios en `Register.jsx`:**
+
 - `handleSubmit` ya no llama a `auth.register()` (que loguea automáticamente). En su lugar hace `axios.post('/api/auth/register', ...)` directamente.
 - En éxito: `navigate('/verificar-email', { state: { email: form.email } })`.
 
 **Cambios en `Login.jsx`:**
+
 - Catch del error: si `err.response?.data?.code === 'email_not_verified'`, redirigir a `/verificar-email` con el email en state. Si no, mostrar el mensaje normal.
 
 **Cambios en `AuthContext.jsx`:**
+
 - `register()` deja de existir como wrapper que loguea. Reemplazarlo por:
   - `requestEmailVerification(email)` (POST resend).
   - `verifyEmail(email, code)` → guarda token y user, igual que login.
@@ -231,6 +243,7 @@ En [`App.jsx`](../client/src/App.jsx): agregar `<Route path="/verificar-email" e
 Body: `{ email }`. Rate-limited con limiter estricto (3 req / 15 min por IP).
 
 Lógica:
+
 1. Busca user por email.
 2. **Siempre responde 200 con mensaje genérico** ("Si existe una cuenta con ese email, te enviamos un link") — no filtra existencia.
 3. Si existe el user:
@@ -247,6 +260,7 @@ Lógica:
 Body: `{ email, token, password }`. Rate-limited con `authLimiter`.
 
 Lógica:
+
 1. Busca user por email.
 2. Si no existe, o `passwordResetExpiresAt < now`, o el hash no matchea → 400 "El link es inválido o expiró. Pedí uno nuevo".
 3. Valida nueva password con las mismas reglas del modelo (8+ chars, 1 mayúscula, 1 número). Si falla la validación del schema, el mongoose error handler ya devuelve 400 con el mensaje correcto.
@@ -273,12 +287,14 @@ Lógica:
 - Error → mostrar mensaje en `errorBox`. Si es "expirado", agregar link a `/recuperar-contrasenia`.
 
 **Cambio en `Login.jsx`:**
+
 - Agregar link "¿Olvidaste tu contraseña?" debajo del form, lleva a `/recuperar-contrasenia`.
 - Después de leer `sessionStorage.flashMessage`, mostrarlo como `successBox` (necesito un estilo nuevo verde en `Auth.module.css`, o reusar el patrón `errorBox` con clase verde — preferentemente lo segundo, usando `--green` token).
 
 ### 3.4 Routing
 
 En [`App.jsx`](../client/src/App.jsx):
+
 - `<Route path="/recuperar-contrasenia" element={<PublicRoute><ForgotPassword /></PublicRoute>} />`
 - `<Route path="/restablecer-contrasenia" element={<PublicRoute><ResetPassword /></PublicRoute>} />`
 
@@ -289,6 +305,7 @@ En [`App.jsx`](../client/src/App.jsx):
 ### 4.1 Templates de email
 
 Hacer 2 templates HTML simples con:
+
 - Background `#0e1a2b` (dark navy), text amber/white.
 - Logo "TurnoCero" en texto + emoji 🎲.
 - Footer con "Si no esperabas este mail, ignoralo".
@@ -300,17 +317,18 @@ Probar en mobile (Gmail iOS/Android) y desktop (Gmail web, Outlook web).
 
 Glossary para usar en client y server, en español:
 
-| Caso | Mensaje |
-|---|---|
-| Código inválido / expirado | "Código inválido o expirado" |
-| Demasiados intentos | "Demasiados intentos. Pedí un código nuevo" |
-| Email no verificado en login | "Tenés que verificar tu email antes de loguearte." |
-| Link de reset inválido | "El link es inválido o expiró. Pedí uno nuevo" |
-| Email enviado (genérico) | "Si existe una cuenta con ese email, te enviamos un link" |
+| Caso                         | Mensaje                                                   |
+| ---------------------------- | --------------------------------------------------------- |
+| Código inválido / expirado   | "Código inválido o expirado"                              |
+| Demasiados intentos          | "Demasiados intentos. Pedí un código nuevo"               |
+| Email no verificado en login | "Tenés que verificar tu email antes de loguearte."        |
+| Link de reset inválido       | "El link es inválido o expiró. Pedí uno nuevo"            |
+| Email enviado (genérico)     | "Si existe una cuenta con ese email, te enviamos un link" |
 
 ### 4.3 Tests manuales (no hay test runner en el repo)
 
 Flow checklist:
+
 - [ ] Registro → recibo mail con código → ingreso código → loguea OK.
 - [ ] Registro → ingreso código mal 5 veces → bloqueo, pido resend, funciona.
 - [ ] Registro → espero 16 min → código expirado, pido resend, funciona.
@@ -325,7 +343,7 @@ Flow checklist:
 
 ### 4.4 Edge cases a considerar
 
-- **Usuario cambia el email en `/perfil`:** *No se toca en esta iteración*. Sigue como hoy (el campo email no es editable desde el form de profile actual — verificar). Si en el futuro se permite cambiar email, se haría re-verificación (similar a una de las opciones que se descartó en la decisión inicial).
+- **Usuario cambia el email en `/perfil`:** _No se toca en esta iteración_. Sigue como hoy (el campo email no es editable desde el form de profile actual — verificar). Si en el futuro se permite cambiar email, se haría re-verificación (similar a una de las opciones que se descartó en la decisión inicial).
 - **Race condition: dos pedidos de reset seguidos.** El segundo pisa el token del primero. Aceptable.
 - **Mail provider down (Resend caído):** registro responde 201 pero sin mail. El usuario puede reintentar el resend en la pantalla de verificación. Loguear el incidente.
 - **Bots haciendo signup masivo:** ya tenemos `authLimiter` (10/15min). Si en producción aparece spam real, agregar captcha (fuera de scope acá).
@@ -335,6 +353,7 @@ Flow checklist:
 ## Resumen de cambios por archivo
 
 ### Server
+
 - ➕ `server/utils/email.js` — wrapper de Resend + templates.
 - ➕ `server/utils/authTokens.js` — generar/hashear códigos y tokens.
 - ➕ `server/scripts/migrate-email-verified.js` — one-shot migration.
@@ -344,6 +363,7 @@ Flow checklist:
 - ✏️ `server/package.json` — dependencia `resend`.
 
 ### Client
+
 - ➕ `client/src/pages/auth/VerifyEmail.jsx`
 - ➕ `client/src/pages/auth/ForgotPassword.jsx`
 - ➕ `client/src/pages/auth/ResetPassword.jsx`
@@ -365,6 +385,7 @@ Sugerido (cada fase puede ser un commit / PR):
 4. **Fase 4** (polish, QA, edge cases).
 
 Tiempo estimado:
+
 - Fase 1: 1–2 h.
 - Fase 2: 3–4 h (backend + UI + integración).
 - Fase 3: 2–3 h (más simple, mismo patrón).

@@ -1,4 +1,4 @@
-import { createPortal } from 'react-dom'
+import { createPortal } from "react-dom";
 
 /**
  * Renders children into document.body via React Portal so the modal escapes
@@ -9,6 +9,6 @@ import { createPortal } from 'react-dom'
  * fixed app frame and the floating FAB widgets.
  */
 export default function ModalPortal({ children }) {
-  if (typeof document === 'undefined') return null
-  return createPortal(children, document.body)
+  if (typeof document === "undefined") return null;
+  return createPortal(children, document.body);
 }

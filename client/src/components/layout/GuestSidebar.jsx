@@ -1,46 +1,77 @@
-import { Link, useLocation } from 'react-router-dom';
-import { useSiteConfig } from '../../context/SiteConfigContext';
-import { getActiveNavId } from '../../utils/routing';
-import Logo from '../shared/Logo';
-import styles from './GuestSidebar.module.css';
+import { Link, useLocation } from "react-router-dom";
+import { useSiteConfig } from "../../context/SiteConfigContext";
+import { getActiveNavId } from "../../utils/routing";
+import Logo from "../shared/Logo";
+import styles from "./GuestSidebar.module.css";
 
 const ICONS = {
   noticias: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/>
-      <polyline points="14 2 14 8 20 8"/>
-      <line x1="2" y1="13" x2="12" y2="13"/>
-      <line x1="2" y1="17" x2="12" y2="17"/>
-      <line x1="2" y1="9" x2="5" y2="9"/>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="2" y1="13" x2="12" y2="13" />
+      <line x1="2" y1="17" x2="12" y2="17" />
+      <line x1="2" y1="9" x2="5" y2="9" />
     </svg>
   ),
   compartidas: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="18" cy="5" r="3"/>
-      <circle cx="6" cy="12" r="3"/>
-      <circle cx="18" cy="19" r="3"/>
-      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
     </svg>
   ),
   utilidades: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
     </svg>
   ),
 };
 
 const NAV = [
-  { id: 'compartidas', label: 'Compartidas', to: '/compartidas', section: 'compartidas' },
-  { id: 'noticias',    label: 'Noticias',    to: '/noticias',    section: 'noticias' },
-  { id: 'utilidades',  label: 'Utilidades',  to: '/utilidades',  section: 'utilidades' },
+  {
+    id: "compartidas",
+    label: "Compartidas",
+    to: "/compartidas",
+    section: "compartidas",
+  },
+  { id: "noticias", label: "Noticias", to: "/noticias", section: "noticias" },
+  {
+    id: "utilidades",
+    label: "Utilidades",
+    to: "/utilidades",
+    section: "utilidades",
+  },
 ];
 
 export default function GuestSidebar() {
   const { pathname } = useLocation();
   const { isSectionEnabled } = useSiteConfig();
   const active = getActiveNavId(pathname);
-  const visibleNav = NAV.filter(item => isSectionEnabled(item.section));
+  const visibleNav = NAV.filter((item) => isSectionEnabled(item.section));
 
   return (
     <aside className={styles.sidebar}>
@@ -66,9 +97,9 @@ export default function GuestSidebar() {
                 <Link
                   key={item.id}
                   to={item.to}
-                  style={{ '--i': i }}
-                  className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
-                  aria-current={isActive ? 'page' : undefined}
+                  style={{ "--i": i }}
+                  className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
+                  aria-current={isActive ? "page" : undefined}
                 >
                   <span className={styles.navIcon}>{ICONS[item.id]}</span>
                   <span className={styles.navLab}>{item.label}</span>
@@ -80,8 +111,12 @@ export default function GuestSidebar() {
       </nav>
 
       <div className={styles.sidebarFooter}>
-        <Link to="/login" className={styles.btnLogin}>Iniciá sesión</Link>
-        <Link to="/register" className={styles.btnRegister}>Registrate</Link>
+        <Link to="/login" className={styles.btnLogin}>
+          Iniciá sesión
+        </Link>
+        <Link to="/register" className={styles.btnRegister}>
+          Registrate
+        </Link>
       </div>
     </aside>
   );
