@@ -74,6 +74,10 @@ export default function CreateTable() {
   // Hora elegida por el user para el día del evento (HH:MM). Default = la hora
   // misma del evento, fallback 18:00.
   const [timeOfDay, setTimeOfDay] = useState("18:00");
+  // Ludoteca del evento (sólo cuando hay `eventoId`). Cada user puede haber
+  // sumado el mismo bggGameId; deduplicamos para el picker.
+  const [ludotecaGames, setLudotecaGames] = useState([]);
+  const [ludotecaLoading, setLudotecaLoading] = useState(false);
 
   // Si el form se carga con ?evento= pero sin state (refresh / link directo),
   // fetcheamos el evento para conocer su fecha.
@@ -89,6 +93,41 @@ export default function CreateTable() {
       .catch(() => {});
     return () => ac.abort();
   }, [eventoId, eventDate]);
+
+  // Fetch de la ludoteca para mostrar el picker de juegos ya cargados al
+  // evento. Si la ludoteca tiene juegos, el host puede elegir de ahí en vez
+  // de buscar en BGG. Deduplicamos por bggGameId (varios users pueden haber
+  // aportado el mismo juego).
+  useEffect(() => {
+    if (!eventoId) return undefined;
+    const ac = new AbortController();
+    setLudotecaLoading(true);
+    axios
+      .get(API.eventos.LUDOTECA(eventoId), { signal: ac.signal })
+      .then(({ data }) => {
+        if (ac.signal.aborted) return;
+        const items = data?.items || [];
+        const dedup = new Map();
+        for (const it of items) {
+          if (!it.bggGameId || dedup.has(it.bggGameId)) continue;
+          dedup.set(it.bggGameId, {
+            id: it.bggGameId,
+            name: it.gameName,
+            thumbnail: it.thumbnail || null,
+            image: it.image || null,
+            year: it.year || null,
+          });
+        }
+        setLudotecaGames(Array.from(dedup.values()));
+      })
+      .catch((err) => {
+        if (!axios.isCancel(err)) setLudotecaGames([]);
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setLudotecaLoading(false);
+      });
+    return () => ac.abort();
+  }, [eventoId]);
 
   // Cuando llega `eventDate`, seedeamos el time picker con la hora del evento.
   useEffect(() => {
@@ -229,6 +268,20 @@ export default function CreateTable() {
     }
   };
 
+  // Pick directo desde la ludoteca: el server ya hidrató name/thumbnail/image/year
+  // al persistir el item, así que no hace falta golpear BGG de nuevo.
+  const handlePickLudotecaGame = (game) => {
+    setBoardGameSelected({
+      id: game.id,
+      name: game.name,
+      thumbnail: game.thumbnail,
+      image: game.image,
+      year: game.year,
+    });
+    setBoardGameInput(game.name);
+    setShowDropdown(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -297,6 +350,59 @@ export default function CreateTable() {
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.field}>
               <label className={styles.label}>Juego de mesa *</label>
+              {eventoId && ludotecaGames.length > 0 && (
+                <div className={styles.ludotecaPicker}>
+                  <div className={styles.ludotecaPickerHeader}>
+                    <span className={styles.ludotecaPickerTitle}>
+                      Ludoteca del evento
+                    </span>
+                    <span className={styles.ludotecaPickerHint}>
+                      Tocá un juego para elegirlo, o buscá otro en BGG abajo.
+                    </span>
+                  </div>
+                  <ul className={styles.ludotecaGrid}>
+                    {ludotecaGames.map((g) => {
+                      const isSelected =
+                        boardGameSelected &&
+                        Number(boardGameSelected.id) === Number(g.id);
+                      return (
+                        <li key={g.id}>
+                          <button
+                            type="button"
+                            className={`${styles.ludotecaItem} ${isSelected ? styles.ludotecaItemSelected : ""}`}
+                            onClick={() => handlePickLudotecaGame(g)}
+                            aria-pressed={isSelected || false}
+                          >
+                            {g.thumbnail || g.image ? (
+                              <img
+                                src={g.thumbnail || g.image}
+                                alt=""
+                                className={styles.ludotecaThumb}
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className={styles.ludotecaThumbFallback}>
+                                🎲
+                              </div>
+                            )}
+                            <span className={styles.ludotecaName}>
+                              {g.name}
+                            </span>
+                            {g.year && (
+                              <span className={styles.ludotecaYear}>
+                                {g.year}
+                              </span>
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+              {eventoId && ludotecaLoading && ludotecaGames.length === 0 && (
+                <div className={styles.searchHint}>Cargando ludoteca…</div>
+              )}
               <div className={styles.gameSearchWrapper} ref={searchRef}>
                 <input
                   type="text"
@@ -308,7 +414,11 @@ export default function CreateTable() {
                     setShowDropdown(true)
                   }
                   className={`${styles.input} ${boardGameSelected ? styles.inputSelected : ""}`}
-                  placeholder="Buscá un juego en BGG…"
+                  placeholder={
+                    eventoId && ludotecaGames.length > 0
+                      ? "…o buscá otro juego en BGG"
+                      : "Buscá un juego en BGG…"
+                  }
                   autoComplete="off"
                 />
                 {searching && (
