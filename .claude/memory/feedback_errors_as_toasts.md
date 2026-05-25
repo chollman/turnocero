@@ -1,5 +1,5 @@
 ---
-name: errors-as-toasts
+name: feedback-errors-as-toasts
 description: "Convención para errores transitorios del cliente — usar addToast({ type: 'error' }) en vez de state local actionError + inline <p>"
 metadata: 
   node_type: memory

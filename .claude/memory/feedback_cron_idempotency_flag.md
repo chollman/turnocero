@@ -1,5 +1,5 @@
 ---
-name: cron-idempotency-flag
+name: feedback-cron-idempotency-flag
 description: "Crons que emiten \"una vez por evento\" deben usar un flag en el doc (xxxSentAt) en vez de ventanas estrechas — sobreviven atrasos del cron"
 metadata: 
   node_type: memory

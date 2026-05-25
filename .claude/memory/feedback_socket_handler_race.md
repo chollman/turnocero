@@ -1,9 +1,10 @@
 ---
 name: feedback-socket-handler-race
 description: "Todos los `socket.on(...)` en `io.on('connection')` deben registrarse ANTES de cualquier `await`. Si la auth/lookup es async y los handlers vienen después, los emits del cliente durante `connect` (`socket.emit('join:room')`) llegan antes que el handler exista y se descartan silenciosamente — el socket queda fuera del room."
-metadata:
+metadata: 
   node_type: memory
   type: feedback
+  originSessionId: 92c9193d-d562-4786-a099-944475d22163
 ---
 
 [server/server.js](server/server.js): la estructura correcta del connection handler es:
@@ -39,4 +40,4 @@ io.on('connection', async (socket) => {
 
 **La regla general**: el cuerpo de `io.on('connection', ...)` debe ser síncrono en su sección de registración de handlers. Cualquier `await` queda al final, sólo para side-effects que no bloquean el room subscription.
 
-Relacionado: [[feedback-socket-cleanup]] cubre cleanup de listeners en useEffect del cliente. Esta regla es complementaria del lado server.
+Relacionado: el skill `socket-cleanup-audit` cubre el lado cliente (cleanup de listeners en useEffect). Esta regla es complementaria del lado server.

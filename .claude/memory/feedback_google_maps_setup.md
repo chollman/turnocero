@@ -1,3 +1,12 @@
+---
+name: feedback-google-maps-setup
+description: "Google Maps + Places + server-side Geocoding (replaced Leaflet+Nominatim in 2026-05); shared `AddressMap`/`PlaceAutocomplete`, 2 Map IDs (dark/light), `getLocationDisplay(loc, mode)` for display"
+metadata: 
+  node_type: memory
+  type: feedback
+  originSessionId: 92c9193d-d562-4786-a099-944475d22163
+---
+
 # Google Maps setup (Turnocero)
 
 Reemplazó a Leaflet + Nominatim en 2026-05 (commit pendiente). Patrón establecido:

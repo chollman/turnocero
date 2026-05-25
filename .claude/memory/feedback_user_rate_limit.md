@@ -1,3 +1,12 @@
+---
+name: feedback-user-rate-limit
+description: "Authed expensive endpoints use `server/middleware/userRateLimit.js` factory (keyed by `req.user._id`, not IP — NAT breaks per-IP); skipped under NODE_ENV=test"
+metadata: 
+  node_type: memory
+  type: feedback
+  originSessionId: 92c9193d-d562-4786-a099-944475d22163
+---
+
 # Rate limiting per-user (tech-debt P4.5)
 
 **Desde:** 2026-05-22 — `server/middleware/userRateLimit.js` es la factory canónica para limitar endpoints authed por user, no por IP.

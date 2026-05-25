@@ -1,3 +1,12 @@
+---
+name: feedback-cron-lease
+description: "Every cron job that mutates data is wrapped in `withLease(name, fn)` from `server/utils/cronLease.js` so multi-instance deploys don't double-fire"
+metadata: 
+  node_type: memory
+  type: feedback
+  originSessionId: 92c9193d-d562-4786-a099-944475d22163
+---
+
 # Cron lease distribuido (tech-debt P4.6)
 
 **Desde:** 2026-05-22 — todo cron job que muta data va envuelto en `withLease(name, fn)` desde `server/utils/cronLease.js`.
@@ -9,7 +18,7 @@
 - 2× cierre de eventos → conflictos al guardar
 - 2× re-fetch a BGG → rate limit del provider
 
-La memoria previa [[cron-idempotency-flag]] decía: usá un flag en el doc (`reminderSentAt`) + ventana amplia. Eso ayuda PERO no es suficiente: dos workers que arrancan en el mismo tick leen el doc con `reminderSentAt: null`, ambos disparan, ambos hacen `ev.save()`. El doc termina con un solo `reminderSentAt`, pero ya se enviaron 2 notificaciones.
+La memoria previa [[feedback-cron-idempotency-flag]] decía: usá un flag en el doc (`reminderSentAt`) + ventana amplia. Eso ayuda PERO no es suficiente: dos workers que arrancan en el mismo tick leen el doc con `reminderSentAt: null`, ambos disparan, ambos hacen `ev.save()`. El doc termina con un solo `reminderSentAt`, pero ya se enviaron 2 notificaciones.
 
 ## La solución
 

@@ -1,3 +1,12 @@
+---
+name: feedback-api-endpoints-pattern
+description: "All client HTTP paths must go through `client/src/api/endpoints.js` (`API.x.Y`); no literal `/api/...` strings in new code"
+metadata: 
+  node_type: memory
+  type: feedback
+  originSessionId: 92c9193d-d562-4786-a099-944475d22163
+---
+
 # API endpoints centralization (tech-debt P4.4)
 
 **Desde:** 2026-05-22 — el módulo `client/src/api/endpoints.js` es la fuente única de verdad de paths HTTP del cliente. Cualquier llamada a la API nueva debe usar `API.x.Y` en vez de strings literales.

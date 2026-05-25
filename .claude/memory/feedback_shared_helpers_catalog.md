@@ -1,5 +1,5 @@
 ---
-name: shared-helpers-catalog
+name: feedback-shared-helpers-catalog
 description: Catálogo de hooks/utils compartidos client + server — usar siempre estos en lugar de reimplementar el patrón
 metadata:
   type: feedback
@@ -14,7 +14,7 @@ metadata:
 
 - **`useApi(fn, opts)`** — wrap async + `{ loading, error, data, execute }`. Auto-cleanup en unmount (evita setStates sobre componentes desmontados). Error usa `getErrorMessage`.
 - **`useShowcaseTables({ enabled? })`** — fetch de `/api/tables/showcase` con seed estable. Reemplazó el patrón duplicado en las 5 auth pages (Login/Register/Forgot/Reset/Verify). `enabled` permite saltarse el request cuando `SiteConfig.sections.mesas` está OFF.
-- **`useDebouncedValue(value, ms)`** — debounce de inputs → fetch ([[debounce-inputs]]).
+- **`useDebouncedValue(value, ms)`** — debounce de inputs → fetch ([[feedback-debounce-inputs]]).
 
 ## Client — `client/src/utils/`
 
@@ -22,7 +22,7 @@ metadata:
 - **`passwordValidation`** — `isValidPassword(pwd)` + `PASSWORD_REQUIREMENTS` (string en español). 8+ chars, una mayúscula, un número.
 - **`storageKeys`** — `STORAGE_KEYS` frozen object: `TOKEN`, `VIEW_AS_USER`, `THEME`, `BANNED_MESSAGE`, `FLASH_MESSAGE`, `PENDING_VERIFY_EMAIL`. **No usar strings hardcoded** — un typo silencioso podía romper login persistence.
 - **`distance.js#formatDistanceKm`** — formateo "Aquí mismo" / "850 m" / "12,3 km" / "250 km".
-- **`userDisplay.js#getUserDisplay`** — normalizar shape de user populated (ver [[deleted-user-ui]]).
+- **`userDisplay.js#getUserDisplay`** — normalizar shape de user populated (ver [[feedback-deleted-user]]).
 
 ## Server — `server/utils/`
 
@@ -31,7 +31,7 @@ metadata:
 - **`socketHelpers`** — `emitToUser`, `emitToTableRoom`, `emitToEventoRoom`, `emitToEventosList`, `emitToAdminRoom`. Best-effort (nunca propaga errores). eventos.js ya migrado; tables/torneos/dm migran al toque.
 - **`regex.escapeRegex(str)`** — antes vivía duplicado en 5 routers como `.replace(/[.*+?^${}()|[\]\]/g, "\$&")`.
 - **`clamp(n, lo, hi)`** — tolerante a NaN/Infinity → devuelve `lo`.
-- **`asyncHandler(fn)` + `httpError(status, msg)`** — ver [[asyncHandler-errorHandler-pattern]].
+- **`asyncHandler(fn)` + `httpError(status, msg)`** — ver [[feedback-async-handler-pattern]].
 - **`logger`** — usar `logger.info/warn/error("Label", { meta })`, NO `console.*`. Output JSON estructurado con timestamp y stack. Migrado en eventos + BGG modules + jobs + saveNotification; el resto migra al toque.
 - **`emitNotificationReq(req, recipientId, type, fields, socketEvent, extra?)`** — el helper canónico de notificaciones que inyecta `notifId`+`count`+`timestamp`. **Awaitearlo siempre** antes de `res.json(...)`.
 

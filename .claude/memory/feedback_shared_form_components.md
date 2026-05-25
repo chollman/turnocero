@@ -1,3 +1,12 @@
+---
+name: feedback-shared-form-components
+description: "Catalog of shared form components extracted from EventoForm — `<InfoTooltip>`, `<DateTimePicker>`, status chips (radiogroup); conventions for height/radius/placeholder; \"validate only in handleSubmit, never HTML required\" rule"
+metadata: 
+  node_type: memory
+  type: feedback
+  originSessionId: 92c9193d-d562-4786-a099-944475d22163
+---
+
 # Componentes shared de formularios (2026-05)
 
 A medida que el EventoForm fue iterando, se extrajeron componentes shared reutilizables. Catálogo + reglas de uso:

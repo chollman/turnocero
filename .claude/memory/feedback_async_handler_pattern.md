@@ -1,3 +1,12 @@
+---
+name: feedback-async-handler-pattern
+description: "Server routes use `asyncHandler(fn)` + `throw httpError(status, msg)` + central errorHandler; no manual try/catch in router handlers"
+metadata: 
+  node_type: memory
+  type: feedback
+  originSessionId: 92c9193d-d562-4786-a099-944475d22163
+---
+
 # asyncHandler + errorHandler pattern (tech-debt-audit P1.6)
 
 **Desde:** 2026-05-22 — commit `a85eeb5` introdujo la infra y migró 2 routers de muestra (`noticias.js`, `friends.js`). El resto de los routers (auth, bgg, tables, torneos, eventos, compartidas, dm, etc.) sigue con el patrón viejo de `try/catch` repetido — migración incremental.
