@@ -156,7 +156,8 @@
 .ludotecaPicker {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  /* Sin `gap` acá — el espacio entre header y grid lo provee el padding-top
+   * dentro del collapse, que se anima con la altura. */
   padding: 12px;
   margin-bottom: 4px;
   background: var(--bg-elevated);
@@ -165,9 +166,30 @@
 }
 
 .ludotecaPickerHeader {
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.ludotecaPickerHeader:hover .ludotecaPickerTitle {
+  color: var(--amber);
+}
+
+.ludotecaPickerHeader:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.ludotecaPickerTitleRow {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
 }
 
 .ludotecaPickerTitle {
@@ -177,12 +199,64 @@
   letter-spacing: 0.1em;
   color: var(--amber-light);
   text-transform: uppercase;
+  transition: color 0.15s;
 }
 
-.ludotecaPickerHint {
-  font-size: 12px;
+.ludotecaPickerCount {
+  font-family: "Manrope", var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
   color: var(--text-muted);
-  line-height: 1.3;
+  background: var(--bg-card);
+  padding: 2px 7px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.ludotecaPickerCaret {
+  margin-left: auto;
+  font-size: 14px;
+  color: var(--text-muted);
+  transform: rotate(-90deg);
+  transition: transform 0.18s ease;
+  line-height: 1;
+}
+
+.ludotecaPickerCaretOpen {
+  transform: rotate(0deg);
+}
+
+/* Wrapper que anima la apertura/cierre del acordeón. Técnica grid-template-rows:
+ * 0fr → 1fr, soportada en todos los navegadores modernos y la única CSS-pura
+ * que anima desde `auto` sin medir altura. El inner necesita `overflow: hidden`
+ * + `min-height: 0` para que el grid pueda colapsarse a 0 sin "filtrarse". */
+.ludotecaCollapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition:
+    grid-template-rows 0.28s ease,
+    visibility 0s linear 0.28s;
+  visibility: hidden;
+}
+
+.ludotecaCollapseOpen {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition:
+    grid-template-rows 0.28s ease,
+    visibility 0s linear 0s;
+}
+
+.ludotecaCollapseInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ludotecaCollapse,
+  .ludotecaCollapseOpen {
+    transition: none;
+  }
 }
 
 .ludotecaGrid {
@@ -192,6 +266,15 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 8px;
+  /* Padding-top sirve también como gap visual entre header y grid (cuando el
+   * acordeón está cerrado el grid colapsa y el padding desaparece con él). */
+  padding-top: 4px;
+  /* Cada <li> se estira a la altura de la fila (default), y el <button>
+   * adentro toma 100% — así todas las cards quedan iguales por fila. */
+}
+
+.ludotecaGrid > li {
+  display: flex;
 }
 
 .ludotecaItem {
@@ -200,6 +283,7 @@
   align-items: stretch;
   gap: 6px;
   padding: 8px;
+  width: 100%;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -222,12 +306,28 @@
   box-shadow: 0 0 0 2px var(--green-10);
 }
 
+/* Items aportados por el propio user — accent amber + sutil glow para que
+ * destaquen del resto. El sort los pone arriba, esto sólo refuerza visualmente. */
+.ludotecaItemMine {
+  border-color: var(--amber-30);
+  background: var(--amber-10);
+}
+
+.ludotecaItemMine:hover {
+  background: var(--amber-15);
+}
+
+.ludotecaThumbWrap {
+  position: relative;
+}
+
 .ludotecaThumb {
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: cover;
   border-radius: 6px;
   background: var(--bg-elevated);
+  display: block;
 }
 
 .ludotecaThumbFallback {
@@ -241,6 +341,22 @@
   font-size: 28px;
 }
 
+.ludotecaMineBadge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: var(--amber);
+  color: var(--on-amber);
+  font-family: "Manrope", var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px var(--amber-glow);
+}
+
 .ludotecaName {
   font-size: 12px;
   font-weight: 600;
@@ -250,11 +366,17 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* Reservar siempre 2 líneas para que cards con name de 1 línea no queden
+   * más bajas que las de 2 — combinado con `auto` en .ludotecaYear, todas
+   * terminan en la misma altura total. */
+  min-height: calc(1.25em * 2);
+  flex: 1;
 }
 
 .ludotecaYear {
   font-size: 11px;
   color: var(--text-muted);
+  min-height: 1.25em; /* reserva espacio aunque el juego no tenga year */
 }
 
 /* ─── BGG game search autocomplete ─── */

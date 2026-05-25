@@ -126,6 +126,56 @@ describe("<CreateTable>", () => {
     expect(screen.getByText(/seleccion[aá] un juego/i)).toBeInTheDocument();
   });
 
+  it("posts maxPlayers as total - 1 (UI cuenta al host, server cuenta spots libres)", async () => {
+    let postedBody = null;
+    server.use(
+      http.get("/api/bgg/search", () =>
+        HttpResponse.json([
+          { id: 1, name: "Catan", year: 1995, thumbnail: null },
+        ]),
+      ),
+      http.get("/api/bgg/game/:id", () =>
+        HttpResponse.json({
+          id: 1,
+          name: "Catan",
+          year: 1995,
+          image: null,
+          thumbnail: null,
+        }),
+      ),
+      http.post("/api/tables", async ({ request }) => {
+        postedBody = await request.json();
+        return HttpResponse.json({ _id: "newtable" }, { status: 201 });
+      }),
+    );
+    renderPage();
+    fireEvent.change(screen.getByPlaceholderText(/buscá un juego/i), {
+      target: { value: "cat" },
+    });
+    const suggestion = await screen.findByText("Catan");
+    fireEvent.mouseDown(suggestion);
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/buscá un juego/i).value).toBe(
+        "Catan",
+      );
+    });
+
+    // Default UI = 4 jugadores total → wire = 3
+    const form = screen.getByPlaceholderText(/buscá un juego/i).closest("form");
+    fireEvent.submit(form);
+    await waitFor(() => {
+      expect(postedBody).toBeTruthy();
+    });
+    expect(postedBody.maxPlayers).toBe(3);
+  });
+
+  it("muestra el label 'Jugadores' con hint '(incluyéndote)' y NO 'sin contar al host'", () => {
+    renderPage();
+    expect(screen.getByText(/^Jugadores$/)).toBeInTheDocument();
+    expect(screen.getByText(/incluy[ée]ndote/i)).toBeInTheDocument();
+    expect(screen.queryByText(/sin contar al host/i)).not.toBeInTheDocument();
+  });
+
   it("successful submit creates the table and navigates to /mesas/:id", async () => {
     server.use(
       http.get("/api/bgg/search", () =>
@@ -270,7 +320,17 @@ describe("<CreateTable> — Ludoteca picker (?evento=)", () => {
     );
   }
 
-  it('renderiza el grid con los juegos de la ludoteca y el label "Ludoteca del evento"', async () => {
+  // El acordeón arranca colapsado — los items no son visibles hasta que se
+  // expanda. Este helper hace click en el header para abrirlo.
+  async function expandPicker() {
+    const header = await screen.findByRole("button", {
+      name: /ludoteca del evento/i,
+    });
+    fireEvent.click(header);
+    return header;
+  }
+
+  it('renderiza el header "Ludoteca del evento" con el conteo + caret', async () => {
     server.use(
       http.get("/api/eventos/:id/ludoteca", () =>
         HttpResponse.json({
@@ -298,9 +358,40 @@ describe("<CreateTable> — Ludoteca picker (?evento=)", () => {
       ),
     );
     renderWithEvento();
-    expect(await screen.findByText(/ludoteca del evento/i)).toBeInTheDocument();
+    const header = await screen.findByRole("button", {
+      name: /ludoteca del evento/i,
+    });
+    // El header arranca con aria-expanded="false" (colapsado por default).
+    expect(header).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText(/2 juegos/i)).toBeInTheDocument();
+    // Los items NO deben estar visibles hasta que se expanda.
+    expect(
+      screen.queryByRole("button", { name: /^catan$/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("click en el header expande el acordeón y muestra los juegos", async () => {
+    server.use(
+      http.get("/api/eventos/:id/ludoteca", () =>
+        HttpResponse.json({
+          items: [
+            {
+              _id: "l1",
+              bggGameId: 13,
+              gameName: "Catan",
+              thumbnail: null,
+              image: null,
+              year: 1995,
+              addedBy: { _id: "u1", username: "u1" },
+            },
+          ],
+        }),
+      ),
+    );
+    renderWithEvento();
+    const header = await expandPicker();
+    expect(header).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("Catan")).toBeInTheDocument();
-    expect(screen.getByText("Carcassonne")).toBeInTheDocument();
   });
 
   it("si la ludoteca está vacía, no renderiza el picker", async () => {
@@ -316,6 +407,79 @@ describe("<CreateTable> — Ludoteca picker (?evento=)", () => {
         screen.queryByText(/ludoteca del evento/i),
       ).not.toBeInTheDocument();
     });
+  });
+
+  it("ordena los juegos aportados por el propio user primero y los marca con badge 'Tuyo'", async () => {
+    useAuth.mockReturnValue({ user: { _id: "me", username: "me" } });
+    server.use(
+      http.get("/api/eventos/:id/ludoteca", () =>
+        HttpResponse.json({
+          items: [
+            // Llega primero un juego de otro user...
+            {
+              _id: "l1",
+              bggGameId: 822,
+              gameName: "Carcassonne",
+              thumbnail: null,
+              image: null,
+              year: 2000,
+              addedBy: { _id: "other", username: "other" },
+            },
+            // ...y después uno mío. El orden mostrado debe invertirse.
+            {
+              _id: "l2",
+              bggGameId: 13,
+              gameName: "Catan",
+              thumbnail: null,
+              image: null,
+              year: 1995,
+              addedBy: { _id: "me", username: "me" },
+            },
+          ],
+        }),
+      ),
+    );
+    renderWithEvento();
+    await expandPicker();
+    const buttons = await screen.findAllByRole("button", {
+      name: /catan|carcassonne/i,
+    });
+    expect(buttons[0]).toHaveAccessibleName(/catan.*aportado por vos/i);
+    expect(buttons[1]).toHaveAccessibleName(/^carcassonne$/i);
+  });
+
+  it("si el mismo bggGameId fue aportado por el user y por otros, se considera 'mío'", async () => {
+    useAuth.mockReturnValue({ user: { _id: "me", username: "me" } });
+    server.use(
+      http.get("/api/eventos/:id/ludoteca", () =>
+        HttpResponse.json({
+          items: [
+            {
+              _id: "l1",
+              bggGameId: 13,
+              gameName: "Catan",
+              thumbnail: null,
+              image: null,
+              year: 1995,
+              addedBy: { _id: "other", username: "other" },
+            },
+            {
+              _id: "l2",
+              bggGameId: 13,
+              gameName: "Catan",
+              thumbnail: null,
+              image: null,
+              year: 1995,
+              addedBy: { _id: "me", username: "me" },
+            },
+          ],
+        }),
+      ),
+    );
+    renderWithEvento();
+    await expandPicker();
+    const button = await screen.findByRole("button", { name: /catan/i });
+    expect(button).toHaveAccessibleName(/catan.*aportado por vos/i);
   });
 
   it("deduplica items por bggGameId (varios users aportaron el mismo juego)", async () => {
@@ -346,7 +510,7 @@ describe("<CreateTable> — Ludoteca picker (?evento=)", () => {
       ),
     );
     renderWithEvento();
-    await screen.findByText(/ludoteca del evento/i);
+    await expandPicker();
     expect(screen.getAllByText("Catan")).toHaveLength(1);
   });
 
@@ -374,6 +538,7 @@ describe("<CreateTable> — Ludoteca picker (?evento=)", () => {
       }),
     );
     renderWithEvento();
+    await expandPicker();
     const item = await screen.findByRole("button", { name: /catan/i });
     fireEvent.click(item);
 
@@ -411,6 +576,7 @@ describe("<CreateTable> — Ludoteca picker (?evento=)", () => {
       }),
     );
     renderWithEvento();
+    await expandPicker();
     fireEvent.click(await screen.findByRole("button", { name: /catan/i }));
 
     const form = screen
@@ -429,6 +595,42 @@ describe("<CreateTable> — Ludoteca picker (?evento=)", () => {
       bggYear: 1995,
       eventoId: "ev123",
     });
+  });
+
+  it("muestra el hint de la ludoteca como tooltip de un icono de info, sin toggle-ar el acordeón al clickearlo", async () => {
+    server.use(
+      http.get("/api/eventos/:id/ludoteca", () =>
+        HttpResponse.json({
+          items: [
+            {
+              _id: "l1",
+              bggGameId: 13,
+              gameName: "Catan",
+              thumbnail: null,
+              image: null,
+              year: 1995,
+              addedBy: { _id: "u1", username: "u1" },
+            },
+          ],
+        }),
+      ),
+    );
+    renderWithEvento();
+    const trigger = await screen.findByRole("button", {
+      name: /cómo usar la ludoteca/i,
+    });
+    // Por default el tooltip NO está visible.
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+
+    fireEvent.click(trigger);
+    const tip = screen.getByRole("tooltip");
+    expect(tip).toHaveTextContent(
+      /Tocá un juego de la ludoteca para elegirlo, o buscá otro en BGG abajo\./i,
+    );
+
+    // El click en el icono no debe expandir el picker (stopPropagation).
+    const header = screen.getByRole("button", { name: /ludoteca del evento/i });
+    expect(header).toHaveAttribute("aria-expanded", "false");
   });
 });
 

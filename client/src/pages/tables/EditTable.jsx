@@ -1,20 +1,20 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../../context/AuthContext';
-import { API } from '../../api/endpoints';
-import PlaceAutocomplete from '../../components/shared/PlaceAutocomplete';
-import AddressMap from '../../components/shared/AddressMap';
-import styles from './CreateTable.module.css';
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
+import { API } from "../../api/endpoints";
+import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
+import AddressMap from "../../components/shared/AddressMap";
+import styles from "./CreateTable.module.css";
 
 export default function EditTable() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [boardGame, setBoardGame] = useState('');
+  const [boardGame, setBoardGame] = useState("");
   const [form, setForm] = useState(null);
   const [minPlayers, setMinPlayers] = useState(1);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [geocoding, setGeocoding] = useState(false);
@@ -30,27 +30,36 @@ export default function EditTable() {
         const isHost =
           data.host._id === user._id ||
           data.host._id?.toString() === user._id?.toString();
-        if (!isHost || data.status === 'cancelled') {
-          navigate('/');
+        if (!isHost || data.status === "cancelled") {
+          navigate("/");
           return;
         }
-        setMinPlayers(data.players.length);
+        // `maxPlayers` se almacena en el server como "spots aparte del host";
+        // en la UI lo mostramos como total (incluyendo al host) para evitar la
+        // confusión que generaba el modelo anterior. Sumamos +1 al cargar y
+        // restamos -1 al guardar. El mínimo también es total → players + host.
+        setMinPlayers(data.players.length + 1);
         setBoardGame(data.boardGame);
         // El server normaliza location al subdocumento, pero defendamos contra
         // respuestas legacy (string) por si llega cacheada en algún cliente.
-        const loc = typeof data.location === 'string'
-          ? { texto: data.location, lat: null, lng: null }
-          : { texto: data.location?.texto || '', lat: data.location?.lat ?? null, lng: data.location?.lng ?? null };
+        const loc =
+          typeof data.location === "string"
+            ? { texto: data.location, lat: null, lng: null }
+            : {
+                texto: data.location?.texto || "",
+                lat: data.location?.lat ?? null,
+                lng: data.location?.lng ?? null,
+              };
         setForm({
           date: new Date(data.date).toISOString().slice(0, 16),
-          maxPlayers: data.maxPlayers,
+          maxPlayers: data.maxPlayers + 1,
           location: loc,
-          description: data.description || '',
-          privacy: data.privacy || 'public',
+          description: data.description || "",
+          privacy: data.privacy || "public",
         });
       } catch (err) {
         if (axios.isCancel(err)) return;
-        navigate('/');
+        navigate("/");
       } finally {
         if (!ac.signal.aborted) setFetching(false);
       }
@@ -66,26 +75,37 @@ export default function EditTable() {
   const updateLocationTexto = (texto) =>
     setForm((f) => ({ ...f, location: { ...f.location, texto } }));
   const handlePlaceSelect = ({ lat, lng, formattedAddress }) =>
-    setForm((f) => ({ ...f, location: { texto: formattedAddress || f.location.texto, lat, lng } }));
+    setForm((f) => ({
+      ...f,
+      location: { texto: formattedAddress || f.location.texto, lat, lng },
+    }));
   const handleMapChange = (lat, lng) =>
     setForm((f) => ({ ...f, location: { ...f.location, lat, lng } }));
   const handleManualGeocode = async () => {
     const q = form.location.texto.trim();
     if (q.length < 3) {
-      setError('Escribí una dirección de al menos 3 caracteres.');
-      setTimeout(() => setError(''), 3000);
+      setError("Escribí una dirección de al menos 3 caracteres.");
+      setTimeout(() => setError(""), 3000);
       return;
     }
     setGeocoding(true);
     try {
       const { data } = await axios.get(API.geocode, { params: { q } });
-      setForm((f) => ({ ...f, location: { texto: data.formatted || f.location.texto, lat: data.lat, lng: data.lng } }));
+      setForm((f) => ({
+        ...f,
+        location: {
+          texto: data.formatted || f.location.texto,
+          lat: data.lat,
+          lng: data.lng,
+        },
+      }));
     } catch (err) {
-      const msg = err.response?.status === 404
-        ? 'No se encontró la dirección. Intentá ser más específico o picá una sugerencia.'
-        : err.response?.data?.message || 'Error al buscar la dirección.';
+      const msg =
+        err.response?.status === 404
+          ? "No se encontró la dirección. Intentá ser más específico o picá una sugerencia."
+          : err.response?.data?.message || "Error al buscar la dirección.";
       setError(msg);
-      setTimeout(() => setError(''), 3000);
+      setTimeout(() => setError(""), 3000);
     } finally {
       setGeocoding(false);
     }
@@ -93,29 +113,30 @@ export default function EditTable() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
     try {
       await axios.put(API.tables.DETAIL(id), {
         ...form,
-        maxPlayers: Number(form.maxPlayers),
+        maxPlayers: Number(form.maxPlayers) - 1,
       });
-      navigate('/');
+      navigate("/");
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al guardar los cambios');
+      setError(err.response?.data?.message || "Error al guardar los cambios");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('¿Cancelar la mesa? Esta acción no se puede deshacer.')) return;
+    if (!window.confirm("¿Cancelar la mesa? Esta acción no se puede deshacer."))
+      return;
     setLoading(true);
     try {
       await axios.delete(API.tables.DETAIL(id));
-      navigate('/');
+      navigate("/");
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al cancelar la mesa');
+      setError(err.response?.data?.message || "Error al cancelar la mesa");
       setLoading(false);
     }
   };
@@ -128,7 +149,9 @@ export default function EditTable() {
         <div className={styles.hero}>
           <div className={styles.eyebrow}>◆ EDITAR MESA</div>
           <h1 className={styles.heroTitle}>Editar tu mesa</h1>
-          <p className={styles.heroSub}>Los cambios se notifican a los jugadores ya unidos.</p>
+          <p className={styles.heroSub}>
+            Los cambios se notifican a los jugadores ya unidos.
+          </p>
         </div>
 
         <div className={styles.formCard}>
@@ -155,22 +178,35 @@ export default function EditTable() {
 
               <div className={styles.field}>
                 <label className={styles.label}>
-                  Lugares *
-                  <span className={styles.labelHint}>(sin contar al host)</span>
+                  Jugadores
+                  <span className={styles.labelHint}>(incluyéndote)</span>
                 </label>
                 <div className={styles.counter}>
                   <button
                     type="button"
                     className={styles.counterMinus}
-                    onClick={() => setForm((f) => ({ ...f, maxPlayers: Math.max(minPlayers, f.maxPlayers - 1) }))}
-                  >−</button>
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        maxPlayers: Math.max(minPlayers, f.maxPlayers - 1),
+                      }))
+                    }
+                  >
+                    −
+                  </button>
                   <span className={styles.counterVal}>{form.maxPlayers}</span>
                   <button
                     type="button"
                     className={styles.counterPlus}
-                    onClick={() => setForm((f) => ({ ...f, maxPlayers: Math.min(20, f.maxPlayers + 1) }))}
-                  >+</button>
-                  <span className={styles.counterTotal}>Total: {Number(form.maxPlayers) + 1}</span>
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        maxPlayers: Math.min(21, f.maxPlayers + 1),
+                      }))
+                    }
+                  >
+                    +
+                  </button>
                 </div>
               </div>
             </div>
@@ -178,7 +214,8 @@ export default function EditTable() {
             <div className={styles.field}>
               <label className={styles.label}>Ubicación</label>
               <p className={styles.locationHint}>
-                Empezá a escribir y elegí una sugerencia, o cliqueá en el mapa para marcar el lugar exacto. Opcional.
+                Empezá a escribir y elegí una sugerencia, o cliqueá en el mapa
+                para marcar el lugar exacto. Opcional.
               </p>
               <div className={styles.geocodeRow}>
                 <PlaceAutocomplete
@@ -194,12 +231,13 @@ export default function EditTable() {
                   disabled={geocoding}
                   title="Buscar la dirección que tipeaste (sin picar sugerencia)"
                 >
-                  {geocoding ? '…' : 'Buscar'}
+                  {geocoding ? "…" : "Buscar"}
                 </button>
               </div>
               {form.location.lat != null && form.location.lng != null && (
                 <p className={styles.coordsHint}>
-                  📍 {form.location.lat.toFixed(5)}, {form.location.lng.toFixed(5)}
+                  📍 {form.location.lat.toFixed(5)},{" "}
+                  {form.location.lng.toFixed(5)}
                 </p>
               )}
               <div style={{ marginTop: 8 }}>
@@ -230,21 +268,25 @@ export default function EditTable() {
               <div className={styles.privacyGrid}>
                 <button
                   type="button"
-                  className={`${styles.privacyCard} ${form.privacy === 'public' ? styles.privacyCardSelected : ''}`}
-                  onClick={() => setForm((f) => ({ ...f, privacy: 'public' }))}
+                  className={`${styles.privacyCard} ${form.privacy === "public" ? styles.privacyCardSelected : ""}`}
+                  onClick={() => setForm((f) => ({ ...f, privacy: "public" }))}
                 >
                   <span className={styles.privacyIcon}>🌐</span>
                   <span className={styles.privacyLabel}>Pública</span>
-                  <span className={styles.privacyDesc}>Cualquiera puede unirse al instante</span>
+                  <span className={styles.privacyDesc}>
+                    Cualquiera puede unirse al instante
+                  </span>
                 </button>
                 <button
                   type="button"
-                  className={`${styles.privacyCard} ${form.privacy === 'private' ? styles.privacyCardSelected : ''}`}
-                  onClick={() => setForm((f) => ({ ...f, privacy: 'private' }))}
+                  className={`${styles.privacyCard} ${form.privacy === "private" ? styles.privacyCardSelected : ""}`}
+                  onClick={() => setForm((f) => ({ ...f, privacy: "private" }))}
                 >
                   <span className={styles.privacyIcon}>🔒</span>
                   <span className={styles.privacyLabel}>Privada</span>
-                  <span className={styles.privacyDesc}>Aprobás cada solicitud</span>
+                  <span className={styles.privacyDesc}>
+                    Aprobás cada solicitud
+                  </span>
                 </button>
               </div>
             </div>
@@ -258,11 +300,19 @@ export default function EditTable() {
               >
                 Eliminar mesa
               </button>
-              <button type="button" className={styles.btnGhost} onClick={() => navigate('/')}>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={() => navigate("/")}
+              >
                 Cancelar
               </button>
-              <button type="submit" className={styles.btnPrimary} disabled={loading}>
-                {loading ? 'Guardando…' : 'Guardar cambios'}
+              <button
+                type="submit"
+                className={styles.btnPrimary}
+                disabled={loading}
+              >
+                {loading ? "Guardando…" : "Guardar cambios"}
               </button>
             </div>
           </form>
