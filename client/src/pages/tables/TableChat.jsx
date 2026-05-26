@@ -16,14 +16,15 @@ const formatTime = (dateStr) =>
 
 const SendIcon = () => (
   <svg
-    width="15"
-    height="15"
+    width="13"
+    height="13"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
     strokeWidth="2.5"
     strokeLinecap="round"
     strokeLinejoin="round"
+    aria-hidden="true"
   >
     <line x1="22" y1="2" x2="11" y2="13" />
     <polygon
@@ -35,13 +36,14 @@ const SendIcon = () => (
 );
 
 // Chat panel del detalle de mesa. Owna su propio state (mensajes, input,
-// loading) y el ciclo de vida del socket. Antes vivía como ~150 líneas
-// adentro de TableDetail.jsx con 4 useStates dispersos entre 27 del padre
-// y un useEffect que mezclaba fetch inicial con socket subscribe.
+// loading) y el ciclo de vida del socket. Solo se monta cuando el viewer
+// es participante (el chat es privado).
 //
-// Solo se monta cuando el viewer es participante de la mesa (el chat es
-// privado). El componente padre decide cuándo renderizarlo; acá asumimos
-// que `user` está definido y que el server autoriza la lectura.
+// Layout sigue el handoff (mesas-styles.css → .chatPreview / .chatRow /
+// .chatBubble): la card del chat NO tiene altura fija ni scroll interno
+// dedicado — crece con el contenido. La sección padre (TableDetail)
+// renderiza el header "◆ Chat de la mesa", así que acá no repetimos el
+// eyebrow.
 export default function TableChat({
   tableId,
   user,
@@ -55,8 +57,6 @@ export default function TableChat({
   const messageListRef = useRef(null);
   const socketRef = useRef(null);
 
-  // Carga inicial de mensajes. Si la API falla devolvemos lista vacía —
-  // el chat sigue siendo usable (mensajes nuevos se reciben vía socket).
   useEffect(() => {
     let cancelled = false;
     axios
@@ -72,10 +72,6 @@ export default function TableChat({
     };
   }, [tableId]);
 
-  // Socket lifecycle. Hay que registrar el listener ANTES de emitir
-  // `join:table` para no perder los primeros eventos (memory:
-  // `feedback_socket_handler_race`). El cleanup desconecta el socket
-  // entero, lo cual también remueve los listeners.
   useEffect(() => {
     if (!user) return undefined;
     let token = null;
@@ -102,7 +98,9 @@ export default function TableChat({
     };
   }, [tableId, user]);
 
-  // Auto-scroll al fondo cuando llegan mensajes nuevos.
+  // Auto-scroll al fondo cuando llegan mensajes nuevos. El contenedor sólo
+  // hace scroll cuando supera max-height (definido en el CSS), así que en
+  // chats cortos no notás scroll alguno — replica el handoff.
   useEffect(() => {
     const list = messageListRef.current;
     if (list) list.scrollTop = list.scrollHeight;
@@ -131,20 +129,11 @@ export default function TableChat({
   };
 
   return (
-    <div className={`${styles.chatPanel} ${className}`}>
-      <div className={styles.chatHeader}>
-        <span className={styles.eyebrow}>CHAT DE LA MESA</span>
-        <span className={styles.chatSubtitle}>
-          {isViewingAsAdmin
-            ? "Vista de administrador"
-            : "Solo visible para los participantes"}
-        </span>
-      </div>
-
-      <div className={styles.messageList} ref={messageListRef}>
+    <div className={`${styles.chatPreview} ${className}`}>
+      <div className={styles.chatRows} ref={messageListRef}>
         {messages.length === 0 && (
-          <p className={styles.emptyChat}>
-            Nadie habló todavía. ¡Rompé el hielo! 🎲
+          <p className={styles.chatEmpty}>
+            Sin mensajes todavía · empezá la conversación
           </p>
         )}
         {messages.map((msg) => {
@@ -155,19 +144,19 @@ export default function TableChat({
           return (
             <div
               key={msg._id}
-              className={`${styles.message} ${isOwn ? styles.ownMessage : styles.otherMessage}`}
+              className={`${styles.chatRow} ${isOwn ? styles.chatRowOwn : ""}`}
             >
-              {!isOwn && <Avatar user={msg.sender} size="xs" />}
-              <div className={styles.msgContent}>
-                {!isOwn && (
-                  <span className={styles.senderName}>
-                    {senderInfo.isDeleted
-                      ? DELETED_USER_LABEL
+              <Avatar user={msg.sender} size="xs" className={styles.chatAv} />
+              <div className={styles.chatBubble}>
+                <span className={styles.chatAuthor}>
+                  {senderInfo.isDeleted
+                    ? DELETED_USER_LABEL
+                    : isOwn
+                      ? "Vos"
                       : msg.sender.username}
-                  </span>
-                )}
-                <div className={styles.bubble}>{msg.content}</div>
-                <span className={styles.messageTime}>
+                </span>
+                <span className={styles.chatText}>{msg.content}</span>
+                <span className={styles.chatTime}>
                   {formatTime(msg.createdAt)}
                 </span>
               </div>
@@ -179,7 +168,7 @@ export default function TableChat({
       {error && <p className={styles.chatError}>{error}</p>}
 
       {!isViewingAsAdmin && (
-        <form className={styles.inputRow} onSubmit={sendMessage}>
+        <form className={styles.chatForm} onSubmit={sendMessage}>
           <input
             className={styles.chatInput}
             type="text"
@@ -187,11 +176,13 @@ export default function TableChat({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             maxLength={1000}
+            aria-label="Mensaje"
           />
           <button
-            className={styles.sendCircle}
+            className={styles.chatSubmit}
             type="submit"
             disabled={!input.trim() || sending}
+            aria-label="Enviar mensaje"
           >
             <SendIcon />
           </button>

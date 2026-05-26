@@ -1,0 +1,370 @@
+/* ============================================================
+   MesaStub — sticky "ticket-stub" sidebar para el detalle de mesa.
+   Estructura inspirada en el TicketStub de Eventos: top con fecha,
+   perforación (tear), bottom con rows + CTA por userState.
+   ============================================================ */
+
+.stub {
+  background: linear-gradient(180deg, var(--bg-card), var(--bg-elevated));
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+}
+
+.top {
+  position: relative;
+  padding: 22px 24px 18px;
+  background:
+    radial-gradient(
+      800px circle at 50% -40%,
+      var(--amber-glow),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #1a2438, var(--bg-card));
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.dateBlock {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.day {
+  font-family: var(--font-display);
+  font-size: 4.2rem;
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 0.85;
+  color: var(--text-primary);
+}
+
+.dateRight {
+  padding-bottom: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.month {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.weekday {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.time {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--amber-light);
+  letter-spacing: 0.05em;
+  margin-top: 10px;
+}
+
+.countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 5px 12px;
+  background: var(--amber-glow);
+  border: 1px solid var(--border-amber);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+}
+.countdown_urgent {
+  background: var(--red-10);
+  border-color: var(--red-25);
+  color: var(--red);
+}
+.countdown_soon {
+  background: var(--orange-10);
+  border-color: var(--orange-25);
+  color: var(--orange);
+}
+.countdown_past {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+/* -- Tear (perforation) -------------------------------------- */
+.tear {
+  position: relative;
+  height: 14px;
+  background: var(--bg-card);
+}
+.tear::before,
+.tear::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  background: var(--bg-dark);
+  border-radius: 50%;
+}
+.tear::before {
+  left: -7px;
+}
+.tear::after {
+  right: -7px;
+}
+.dashes {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  right: 14px;
+  height: 1px;
+  transform: translateY(-50%);
+  background-image: linear-gradient(
+    90deg,
+    var(--text-muted) 50%,
+    transparent 50%
+  );
+  background-size: 8px 1px;
+  opacity: 0.4;
+}
+
+/* -- Bottom (info rows + CTA) -------------------------------- */
+.bottom {
+  padding: 18px 22px 22px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.row:last-of-type {
+  border-bottom: none;
+}
+.rowLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.rowValue {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.rowValue_full {
+  color: var(--red);
+}
+
+.seatTrackWrap {
+  margin-top: 10px;
+}
+
+/* -- CTA block ----------------------------------------------- */
+.ctaBlock {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cta {
+  width: 100%;
+  background: var(--amber);
+  color: var(--on-amber);
+  border: none;
+  padding: 14px;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all 0.2s ease;
+}
+.cta:hover:not(:disabled) {
+  background: var(--amber-light);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ghostBtn {
+  width: 100%;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+  padding: 10px;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ghostBtn:hover:not(:disabled) {
+  border-color: var(--border-amber);
+  color: var(--amber-light);
+}
+.ghostBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* -- State block (joined / hosting / pending / rejected) ----- */
+.state {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 12px;
+  border-radius: 10px;
+  text-align: center;
+}
+.state_hosting {
+  background: var(--orange-10);
+  color: var(--orange);
+  border: 1px solid var(--orange-25);
+}
+.state_joined {
+  background: var(--green-10);
+  color: var(--green);
+  border: 1px solid var(--green-25);
+}
+.state_pending {
+  background: var(--purple-10);
+  color: var(--purple);
+  border: 1px solid var(--purple-30);
+}
+.stateTitle {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-top: 2px;
+}
+.stateSub {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.85;
+  color: var(--text-secondary);
+}
+.state_hosting .stateSub,
+.state_joined .stateSub,
+.state_pending .stateSub {
+  color: inherit;
+}
+
+/* -- Admin (host) block -------------------------------------- */
+.adminBlock {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px dashed var(--orange-25);
+  border-radius: 12px;
+  background: var(--orange-10);
+}
+.adminTitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--orange);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.adminActions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.adminBtn {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 1px solid var(--orange-25);
+  color: var(--orange);
+  padding: 8px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+.adminBtn:hover:not(:disabled) {
+  background: var(--orange);
+  color: #1a1208;
+}
+.adminBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.adminBtnConfirm {
+  border-color: var(--red-25);
+  color: var(--red);
+}
+.adminBtnConfirm:hover:not(:disabled) {
+  background: var(--red);
+  color: #fff;
+}
+
+.confirmRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.confirmText {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  min-width: 100%;
+}
+
+/* -- Mobile — el aside padre desactiva sticky en mobile, el stub no
+   tiene que hacer nada extra. */

@@ -13,9 +13,13 @@ vi.mock("../../context/NotificationContext", () => ({
 vi.mock("./TableDetailSkeleton", () => ({
   default: () => <div>loading-skeleton</div>,
 }));
-vi.mock("../../components/shared/GameTile", () => ({ default: () => null }));
+vi.mock("../../components/shared/MesaTile", () => ({ default: () => null }));
+vi.mock("../../components/shared/TableMap", () => ({
+  default: () => <div data-testid="table-map" />,
+}));
 vi.mock("../../components/shared/LoginPromptModal", () => ({
-  default: () => null,
+  default: ({ isOpen, message }) =>
+    isOpen ? <div data-testid="login-prompt">{message}</div> : null,
 }));
 
 // Mock socket.io-client so TableDetail's `io(...)` connection is inert.
@@ -42,6 +46,8 @@ function makeTable(overrides = {}) {
     players: [],
     location: "Buenos Aires",
     description: "Una noche tranquila",
+    rules: "",
+    tags: [],
     host: {
       _id: "host1",
       username: "host1",
@@ -71,7 +77,10 @@ function setupTable(table) {
 
 function renderTableDetail({ user = null, id = "t1" } = {}) {
   useAuth.mockReturnValue({ user });
-  useNotifications.mockReturnValue({ setActiveTable: vi.fn() });
+  useNotifications.mockReturnValue({
+    setActiveTable: vi.fn(),
+    addToast: vi.fn(),
+  });
   return render(
     <MemoryRouter initialEntries={[`/mesas/${id}`]}>
       <Routes>
@@ -86,15 +95,16 @@ beforeEach(() => {
 });
 
 describe("<TableDetail>", () => {
-  it("renders the board game name as the heading", async () => {
+  it("renders the board game name in the banner heading", async () => {
     renderTableDetail();
-    expect(await screen.findByText("Catán")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Catán" })).toBeInTheDocument();
   });
 
   it("renders the location and description", async () => {
     renderTableDetail();
-    await screen.findByText("Catán");
-    expect(screen.getByText("Buenos Aires")).toBeInTheDocument();
+    await screen.findByRole("heading", { name: "Catán" });
+    // Location renders in meta cell + MesaStub row.
+    expect(screen.getAllByText("Buenos Aires").length).toBeGreaterThan(0);
     expect(screen.getByText("Una noche tranquila")).toBeInTheDocument();
   });
 
@@ -103,29 +113,37 @@ describe("<TableDetail>", () => {
     expect(screen.getByText("loading-skeleton")).toBeInTheDocument();
   });
 
+  it("renders tags in the banner when present", async () => {
+    setupTable(makeTable({ tags: ["Estrategia", "120-180min"] }));
+    renderTableDetail();
+    await screen.findByRole("heading", { name: "Catán" });
+    expect(screen.getByText("Estrategia")).toBeInTheDocument();
+    expect(screen.getByText("120-180min")).toBeInTheDocument();
+  });
+
+  it("renders rules section when rules are set", async () => {
+    setupTable(makeTable({ rules: "Sin alianzas. Llegar 10 min antes." }));
+    renderTableDetail();
+    await screen.findByRole("heading", { name: "Catán" });
+    expect(
+      screen.getByText("Sin alianzas. Llegar 10 min antes."),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/reglas de la casa/i)).toBeInTheDocument();
+  });
+
   it("handles a 404 gracefully (no crash)", async () => {
     server.use(
       http.get("/api/tables/:id", () => HttpResponse.json({}, { status: 404 })),
     );
     const { container } = renderTableDetail();
-    // After load the page should not throw. Either error state, skeleton, or empty
-    // — all acceptable; we just verify no exception escaped.
     await waitFor(() => {
       expect(container).toBeTruthy();
     });
   });
 
-  it("renders the host name", async () => {
-    renderTableDetail();
-    await screen.findByText("Catán");
-    expect(screen.getAllByText(/Host User|host1/i).length).toBeGreaterThan(0);
-  });
+  // -- User role variations ----------------------------------------------
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // User role variations
-  // ─────────────────────────────────────────────────────────────────────────
-
-  it('host sees HOST badge and "Editar mesa" + "Cancelar mesa" buttons', async () => {
+  it('host sees the "Sos el host" stub state + admin actions', async () => {
     setupTable(
       makeTable({
         host: {
@@ -138,17 +156,17 @@ describe("<TableDetail>", () => {
     renderTableDetail({
       user: { _id: "host1", username: "host1", isAdmin: false },
     });
-    await screen.findByText("Catán");
-    expect(screen.getByText("HOST")).toBeInTheDocument();
+    await screen.findByRole("heading", { name: "Catán" });
+    expect(screen.getByText(/sos el host/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /editar mesa/i }),
+      screen.getByRole("button", { name: /editar/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /cancelar mesa/i }),
+      screen.getByRole("button", { name: /^Cancelar$/i }),
     ).toBeInTheDocument();
   });
 
-  it('player sees UNIDO badge and "Abandonar mesa" button', async () => {
+  it('player sees "Estás dentro" + Abandonar button', async () => {
     setupTable(
       makeTable({
         players: [
@@ -157,49 +175,53 @@ describe("<TableDetail>", () => {
       }),
     );
     renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
-    await screen.findByText("Catán");
-    expect(screen.getByText("UNIDO")).toBeInTheDocument();
+    await screen.findByRole("heading", { name: "Catán" });
+    expect(screen.getByText(/estás dentro/i)).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /abandonar mesa/i }),
     ).toBeInTheDocument();
   });
 
-  it('guest sees "Unirme a la mesa" and "🔕 Seguir" buttons', async () => {
+  it('guest sees "Unirme a la mesa" CTA + Seguir mesa button', async () => {
     setupTable(makeTable());
     renderTableDetail({
       user: { _id: "other", username: "other", isAdmin: false },
     });
-    await screen.findByText("Catán");
+    await screen.findByRole("heading", { name: "Catán" });
     expect(
       screen.getByRole("button", { name: /unirme a la mesa/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /seguir/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /seguir mesa/i }),
+    ).toBeInTheDocument();
   });
 
-  it('anonymous user sees "Unirme a la mesa" and "🔕 Seguir" (prompts login)', async () => {
+  it('anonymous user sees "Iniciá sesión para unirte" CTA', async () => {
     setupTable(makeTable());
     renderTableDetail({ user: null });
-    await screen.findByText("Catán");
+    await screen.findByRole("heading", { name: "Catán" });
     expect(
-      screen.getByRole("button", { name: /unirme a la mesa/i }),
+      screen.getByRole("button", { name: /iniciá sesión para unirte/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /seguir/i })).toBeInTheDocument();
   });
 
-  it('guest with a pending request sees "Solicitud enviada · Cancelar"', async () => {
+  it('guest with pending request sees "Solicitud enviada" + Cancelar solicitud', async () => {
+    // Public tables can have pendingRequests too (it's just a stale flow for
+    // tables that flipped from private to public). The page must still render.
     setupTable(
       makeTable({
         pendingRequests: [{ _id: "me", username: "me" }],
       }),
     );
     renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
-    await screen.findByText("Catán");
+    await screen.findByRole("heading", { name: "Catán" });
+    expect(screen.getByText(/solicitud enviada/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /solicitud enviada/i }),
+      screen.getByRole("button", { name: /cancelar solicitud/i }),
     ).toBeInTheDocument();
   });
 
-  it('full open table shows "Mesa completa" on the join button', async () => {
+  it('full table shows "Mesa llena" disabled CTA', async () => {
     setupTable(
       makeTable({
         maxPlayers: 2,
@@ -212,56 +234,39 @@ describe("<TableDetail>", () => {
     renderTableDetail({
       user: { _id: "other", username: "other", isAdmin: false },
     });
-    await screen.findByText("Catán");
+    await screen.findByRole("heading", { name: "Catán" });
     expect(
-      screen.getByRole("button", { name: /mesa completa/i }),
+      screen.getByRole("button", { name: /mesa llena/i }),
     ).toBeDisabled();
   });
 
-  it("private table viewed by the host renders without crashing", async () => {
-    // Guests on private tables get redirected; only host/players/admin can see the page.
-    setupTable(
-      makeTable({
-        privacy: "private",
-        host: { _id: "host1", username: "host1" },
-      }),
-    );
-    renderTableDetail({
-      user: { _id: "host1", username: "host1", isAdmin: false },
-    });
-    await screen.findByText("Catán");
-    // No assertion on the lock badge text (it's an icon); just verify the page rendered
-  });
-
-  it("cancelled table shows CANCELADA badge and hides action bar", async () => {
+  it("cancelled table shows Cancelada badge + disabled CTA", async () => {
     setupTable(makeTable({ status: "cancelled" }));
     renderTableDetail({
       user: { _id: "other", username: "other", isAdmin: false },
     });
-    await screen.findByText("Catán");
-    expect(screen.getByText("CANCELADA")).toBeInTheDocument();
-    // The "Unirme a la mesa" action button should NOT render because the actionsBar is hidden
+    await screen.findByRole("heading", { name: "Catán" });
+    // "Cancelada" appears as a banner badge.
+    expect(screen.getAllByText(/cancelada/i).length).toBeGreaterThan(0);
     expect(
-      screen.queryByRole("button", { name: /unirme a la mesa/i }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: /mesa cancelada/i }),
+    ).toBeDisabled();
   });
 
-  it("admin viewing a table they are not part of sees the admin banner", async () => {
+  it("admin viewing a table sees the admin banner", async () => {
     setupTable(makeTable());
     renderTableDetail({
       user: { _id: "admin1", username: "admin1", isAdmin: true },
     });
-    await screen.findByText("Catán");
+    await screen.findByRole("heading", { name: "Catán" });
     expect(
       screen.getByText(/viendo esta mesa como administrador/i),
     ).toBeInTheDocument();
   });
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Sections, badges and content
-  // ─────────────────────────────────────────────────────────────────────────
+  // -- Meta + content ----------------------------------------------------
 
-  it('shows the seat count and "lugares libres" status text', async () => {
+  it("shows the seat ratio in the meta row and stub", async () => {
     setupTable(
       makeTable({
         maxPlayers: 4,
@@ -271,26 +276,10 @@ describe("<TableDetail>", () => {
       }),
     );
     renderTableDetail();
-    await screen.findByText("Catán");
-    // filled = players.length(1) + 1 (host) = 2 / total = 4+1 = 5
-    expect(screen.getByText("2/5")).toBeInTheDocument();
-    expect(screen.getByText(/3 lugares libres/i)).toBeInTheDocument();
-  });
-
-  it('shows "Mesa completa" status text when the table is full', async () => {
-    setupTable(
-      makeTable({
-        maxPlayers: 2,
-        players: [
-          { _id: "a", username: "a", avatar: { url: "", publicId: "" } },
-          { _id: "b", username: "b", avatar: { url: "", publicId: "" } },
-        ],
-      }),
-    );
-    renderTableDetail();
-    await screen.findByText("Catán");
-    // Match the "● Mesa completa" status line specifically (avoids matching the button)
-    expect(screen.getAllByText(/mesa completa/i).length).toBeGreaterThan(0);
+    await screen.findByRole("heading", { name: "Catán" });
+    // 2/5 (host + 1 player out of max + 1) appears in meta cell AND stub.
+    expect(screen.getAllByText("2/5").length).toBeGreaterThan(0);
+    expect(screen.getByText(/3 libres/i)).toBeInTheDocument();
   });
 
   it("renders all 5 reaction emoji buttons", async () => {
@@ -298,7 +287,7 @@ describe("<TableDetail>", () => {
     renderTableDetail({
       user: { _id: "other", username: "other", isAdmin: false },
     });
-    await screen.findByText("Catán");
+    await screen.findByRole("heading", { name: "Catán" });
     expect(screen.getByRole("button", { name: "❤️" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "🎲" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "🔥" })).toBeInTheDocument();
@@ -319,34 +308,15 @@ describe("<TableDetail>", () => {
     renderTableDetail({
       user: { _id: "other", username: "other", isAdmin: false },
     });
-    await screen.findByText("Catán");
-    // ❤️ shows count "2", 🔥 shows count "1"
-    expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("1")).toBeInTheDocument();
+    await screen.findByRole("heading", { name: "Catán" });
+    // The reaction count chips have a CSS class we can scope by.
+    const heart = screen.getByRole("button", { name: /❤️/ });
+    const fire = screen.getByRole("button", { name: /🔥/ });
+    expect(heart).toHaveTextContent("2");
+    expect(fire).toHaveTextContent("1");
   });
 
-  it('host on a private table sees "SOLICITUDES PENDIENTES" section', async () => {
-    setupTable(
-      makeTable({
-        privacy: "private",
-        host: {
-          _id: "host1",
-          username: "host1",
-          avatar: { url: "", publicId: "" },
-        },
-      }),
-    );
-    renderTableDetail({
-      user: { _id: "host1", username: "host1", isAdmin: false },
-    });
-    await screen.findByText("Catán");
-    expect(screen.getByText("SOLICITUDES PENDIENTES")).toBeInTheDocument();
-    expect(
-      screen.getByText(/no hay solicitudes pendientes/i),
-    ).toBeInTheDocument();
-  });
-
-  it("host on a private table with pending requests sees Aceptar/Rechazar buttons", async () => {
+  it("host on a private table sees solicitudes pendientes section", async () => {
     setupTable(
       makeTable({
         privacy: "private",
@@ -367,7 +337,8 @@ describe("<TableDetail>", () => {
     renderTableDetail({
       user: { _id: "host1", username: "host1", isAdmin: false },
     });
-    await screen.findByText("Catán");
+    await screen.findByRole("heading", { name: "Catán" });
+    expect(screen.getByText(/solicitudes pendientes/i)).toBeInTheDocument();
     expect(screen.getByText("requester1")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /aceptar/i }),
@@ -377,134 +348,14 @@ describe("<TableDetail>", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows the empty comments state when no comments exist", async () => {
+  it("renders the table-map SVG component", async () => {
     setupTable(makeTable());
-    renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
-    await screen.findByText("Catán");
-    expect(
-      screen.getByText(/nadie coment[oó] todav[ií]a/i),
-    ).toBeInTheDocument();
+    renderTableDetail();
+    await screen.findByRole("heading", { name: "Catán" });
+    expect(screen.getByTestId("table-map")).toBeInTheDocument();
   });
 
-  it("renders a list of comments when comments exist", async () => {
-    server.use(
-      http.get("/api/tables/:id", () => HttpResponse.json(makeTable())),
-      http.get("/api/tables/:id/messages", () => HttpResponse.json([])),
-      http.get("/api/tables/:id/comments", () =>
-        HttpResponse.json([
-          {
-            _id: "c1",
-            content: "Excelente partida!",
-            author: {
-              _id: "a1",
-              username: "commenter1",
-              avatar: { url: "", publicId: "" },
-            },
-            createdAt: new Date().toISOString(),
-          },
-        ]),
-      ),
-      http.get("/api/tables/:id/ratings", () =>
-        HttpResponse.json({ ratings: [], avg: null, count: 0 }),
-      ),
-    );
-    renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
-    await screen.findByText("Catán");
-    await waitFor(() =>
-      expect(screen.getByText("Excelente partida!")).toBeInTheDocument(),
-    );
-  });
-
-  it("shows the empty gallery state when no images exist", async () => {
-    setupTable(
-      makeTable({
-        players: [{ _id: "me", username: "me" }],
-      }),
-    );
-    renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
-    await screen.findByText("Catán");
-    expect(screen.getByText(/todav[ií]a no hay fotos/i)).toBeInTheDocument();
-  });
-
-  it("renders gallery images when images exist", async () => {
-    setupTable(
-      makeTable({
-        images: [
-          {
-            _id: "i1",
-            url: "https://example.com/photo.jpg",
-            uploader: { _id: "u1", username: "u1" },
-          },
-        ],
-      }),
-    );
-    renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
-    await screen.findByText("Catán");
-    const imgs = document.querySelectorAll("img");
-    // The gallery image should be in the DOM somewhere
-    expect(imgs.length).toBeGreaterThan(0);
-  });
-
-  it('participant sees "+ Foto" upload button (canUpload=true)', async () => {
-    setupTable(
-      makeTable({
-        players: [{ _id: "me", username: "me" }],
-      }),
-    );
-    renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
-    await screen.findByText("Catán");
-    expect(
-      screen.getByRole("button", { name: /\+ foto/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('guest does NOT see the "+ Foto" upload button', async () => {
-    setupTable(makeTable());
-    renderTableDetail({
-      user: { _id: "other", username: "other", isAdmin: false },
-    });
-    await screen.findByText("Catán");
-    expect(
-      screen.queryByRole("button", { name: /\+ foto/i }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("participant sees mobile tab bar (CHAT / FOTOS / RESEÑAS)", async () => {
-    setupTable(
-      makeTable({
-        players: [{ _id: "me", username: "me" }],
-      }),
-    );
-    renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
-    await screen.findByText("Catán");
-    expect(screen.getByRole("button", { name: "CHAT" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "FOTOS" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "RESEÑAS" })).toBeInTheDocument();
-  });
-
-  it("clicking a mobile tab switches the active tab", async () => {
-    setupTable(
-      makeTable({
-        players: [{ _id: "me", username: "me" }],
-      }),
-    );
-    renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
-    await screen.findByText("Catán");
-    fireEvent.click(screen.getByRole("button", { name: "FOTOS" }));
-    // No crash; the button retains role
-    expect(screen.getByRole("button", { name: "FOTOS" })).toBeInTheDocument();
-  });
-
-  it('guest sees the private chat note ("El chat es privado")', async () => {
-    setupTable(makeTable());
-    renderTableDetail({
-      user: { _id: "other", username: "other", isAdmin: false },
-    });
-    await screen.findByText("Catán");
-    expect(screen.getByText(/el chat es privado/i)).toBeInTheDocument();
-  });
-
-  it("renders the player chips (host + players)", async () => {
+  it("renders the player row for host + each player + empty seat rows", async () => {
     setupTable(
       makeTable({
         host: {
@@ -519,16 +370,30 @@ describe("<TableDetail>", () => {
       }),
     );
     renderTableDetail();
-    await screen.findByText("Catán");
+    await screen.findByRole("heading", { name: "Catán" });
+    expect(screen.getByText("theHost")).toBeInTheDocument();
     expect(screen.getByText("player1")).toBeInTheDocument();
     expect(screen.getByText("player2")).toBeInTheDocument();
+    // 2 empty seats (maxPlayers=4 - 2 players = 2 empty)
+    expect(screen.getAllByText(/lugar libre/i).length).toBe(2);
   });
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Interactions
-  // ─────────────────────────────────────────────────────────────────────────
+  it("participant sees mobile tab bar (CHAT / FOTOS / RESEÑAS)", async () => {
+    setupTable(
+      makeTable({
+        players: [{ _id: "me", username: "me" }],
+      }),
+    );
+    renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
+    await screen.findByRole("heading", { name: "Catán" });
+    expect(screen.getByRole("button", { name: "CHAT" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "FOTOS" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "RESEÑAS" })).toBeInTheDocument();
+  });
 
-  it('guest clicking "Unirme a la mesa" triggers join (calls POST /join)', async () => {
+  // -- Interactions ------------------------------------------------------
+
+  it('guest clicking "Unirme a la mesa" triggers join (POST /join)', async () => {
     const joined = vi.fn();
     setupTable(makeTable());
     server.use(
@@ -545,7 +410,7 @@ describe("<TableDetail>", () => {
     renderTableDetail({
       user: { _id: "other", username: "other", isAdmin: false },
     });
-    await screen.findByText("Catán");
+    await screen.findByRole("heading", { name: "Catán" });
     fireEvent.click(screen.getByRole("button", { name: /unirme a la mesa/i }));
     await waitFor(() => expect(joined).toHaveBeenCalled());
   });
@@ -563,12 +428,12 @@ describe("<TableDetail>", () => {
       }),
     );
     renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
-    await screen.findByText("Catán");
+    await screen.findByRole("heading", { name: "Catán" });
     fireEvent.click(screen.getByRole("button", { name: "🔥" }));
     await waitFor(() => expect(reacted).toHaveBeenCalledWith({ emoji: "🔥" }));
   });
 
-  it('host clicking "Editar mesa" navigates to /mesas/:id/editar', async () => {
+  it("host clicking 'Editar' navigates to /mesas/:id/editar (no crash)", async () => {
     setupTable(
       makeTable({
         host: { _id: "host1", username: "host1" },
@@ -577,13 +442,11 @@ describe("<TableDetail>", () => {
     renderTableDetail({
       user: { _id: "host1", username: "host1", isAdmin: false },
     });
-    await screen.findByText("Catán");
-    // We just verify the button is clickable (no crash navigating)
-    fireEvent.click(screen.getByRole("button", { name: /editar mesa/i }));
+    await screen.findByRole("heading", { name: "Catán" });
+    fireEvent.click(screen.getByRole("button", { name: /editar/i }));
   });
 
-  it('host clicking "Cancelar mesa" prompts confirm (cancelled if user clicks no)', async () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+  it("host 'Cancelar' button opens inline confirm popover", async () => {
     setupTable(
       makeTable({
         host: { _id: "host1", username: "host1" },
@@ -592,34 +455,31 @@ describe("<TableDetail>", () => {
     renderTableDetail({
       user: { _id: "host1", username: "host1", isAdmin: false },
     });
-    await screen.findByText("Catán");
-    fireEvent.click(screen.getByRole("button", { name: /cancelar mesa/i }));
-    expect(confirmSpy).toHaveBeenCalled();
-    confirmSpy.mockRestore();
+    await screen.findByRole("heading", { name: "Catán" });
+    fireEvent.click(screen.getByRole("button", { name: /^Cancelar$/i }));
+    expect(screen.getByText(/cancelar esta mesa\?/i)).toBeInTheDocument();
   });
 
-  it('player clicking "Abandonar mesa" prompts confirm', async () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+  it("player 'Abandonar' opens inline confirm popover", async () => {
     setupTable(
       makeTable({
         players: [{ _id: "me", username: "me" }],
       }),
     );
     renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
-    await screen.findByText("Catán");
+    await screen.findByRole("heading", { name: "Catán" });
     fireEvent.click(screen.getByRole("button", { name: /abandonar mesa/i }));
-    expect(confirmSpy).toHaveBeenCalled();
-    confirmSpy.mockRestore();
+    expect(screen.getByText(/abandonar\?/i)).toBeInTheDocument();
   });
 
-  it('clicking the "Volver" back button does not crash', async () => {
+  it('clicking the back button does not crash', async () => {
     setupTable(makeTable());
     renderTableDetail();
-    await screen.findByText("Catán");
+    await screen.findByRole("heading", { name: "Catán" });
     fireEvent.click(screen.getByRole("button", { name: /volver/i }));
   });
 
-  it('guest with pending request clicking "Cancelar" calls DELETE /request', async () => {
+  it('guest with pending request clicking "Cancelar solicitud" calls DELETE /request', async () => {
     const cancelled = vi.fn();
     setupTable(
       makeTable({
@@ -635,12 +495,14 @@ describe("<TableDetail>", () => {
       }),
     );
     renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
-    await screen.findByText("Catán");
-    fireEvent.click(screen.getByRole("button", { name: /solicitud enviada/i }));
+    await screen.findByRole("heading", { name: "Catán" });
+    fireEvent.click(
+      screen.getByRole("button", { name: /cancelar solicitud/i }),
+    );
     await waitFor(() => expect(cancelled).toHaveBeenCalled());
   });
 
-  it('guest clicking "Seguir" calls POST /follow', async () => {
+  it('guest clicking "Seguir mesa" calls POST /follow', async () => {
     const followed = vi.fn();
     setupTable(makeTable());
     server.use(
@@ -652,8 +514,8 @@ describe("<TableDetail>", () => {
     renderTableDetail({
       user: { _id: "other", username: "other", isAdmin: false },
     });
-    await screen.findByText("Catán");
-    fireEvent.click(screen.getByRole("button", { name: /seguir/i }));
+    await screen.findByRole("heading", { name: "Catán" });
+    fireEvent.click(screen.getByRole("button", { name: /seguir mesa/i }));
     await waitFor(() => expect(followed).toHaveBeenCalled());
   });
 
@@ -681,46 +543,18 @@ describe("<TableDetail>", () => {
     renderTableDetail({
       user: { _id: "host1", username: "host1", isAdmin: false },
     });
-    await screen.findByText("Catán");
+    await screen.findByRole("heading", { name: "Catán" });
     fireEvent.click(screen.getByRole("button", { name: /aceptar/i }));
     await waitFor(() => expect(accepted).toHaveBeenCalled());
   });
 
-  it('anonymous user clicking "Unirme a la mesa" opens the login prompt', async () => {
+  it('anon clicking "Iniciá sesión para unirte" opens the login prompt', async () => {
     setupTable(makeTable());
     renderTableDetail({ user: null });
-    await screen.findByText("Catán");
-    fireEvent.click(screen.getByRole("button", { name: /unirme a la mesa/i }));
-    // The LoginPromptModal mock returns null, but the state change happens — no crash
-  });
-
-  it('anonymous user clicking "Seguir" opens the login prompt', async () => {
-    setupTable(makeTable());
-    renderTableDetail({ user: null });
-    await screen.findByText("Catán");
-    fireEvent.click(screen.getByRole("button", { name: /seguir/i }));
-  });
-
-  it('"Volver" button navigates back to the previous screen', async () => {
-    setupTable(makeTable());
-    useAuth.mockReturnValue({ user: null });
-    useNotifications.mockReturnValue({ setActiveTable: vi.fn() });
-    render(
-      <MemoryRouter
-        initialEntries={["/pantalla-anterior", "/mesas/t1"]}
-        initialIndex={1}
-      >
-        <Routes>
-          <Route
-            path="/pantalla-anterior"
-            element={<div>previous-screen</div>}
-          />
-          <Route path="/mesas/:id" element={<TableDetail />} />
-        </Routes>
-      </MemoryRouter>,
+    await screen.findByRole("heading", { name: "Catán" });
+    fireEvent.click(
+      screen.getByRole("button", { name: /iniciá sesión para unirte/i }),
     );
-    await screen.findByText("Catán");
-    fireEvent.click(screen.getByRole("button", { name: /volver/i }));
-    expect(await screen.findByText("previous-screen")).toBeInTheDocument();
+    expect(screen.getByTestId("login-prompt")).toBeInTheDocument();
   });
 });

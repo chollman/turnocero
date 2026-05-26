@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
@@ -132,6 +133,32 @@ const STATE_CARD_CLASS = {
   full: styles.card_full,
 };
 
+// Tooltip flotante para mesas privadas a las que no podés entrar.
+// `position: fixed` + portal a `document.body` para no quedar clippeado
+// por containers con `overflow: hidden`. `pointer-events: none` evita
+// que el tooltip robe el cursor (sino flickerea el hover).
+function PrivateTooltip({ pos, isFull }) {
+  if (!pos) return null;
+  return createPortal(
+    <div
+      className={styles.privateTooltip}
+      style={{
+        left: pos.x + 14,
+        top: pos.y + 14,
+      }}
+      role="tooltip"
+    >
+      <span className={styles.privateTooltipTitle}>🔒 Mesa privada</span>
+      <span className={styles.privateTooltipSub}>
+        {isFull
+          ? "No quedan lugares disponibles"
+          : "Solo se puede pedir lugar al host"}
+      </span>
+    </div>,
+    document.body,
+  );
+}
+
 // -- main component ------------------------------------------------------
 
 export default function TableCard({ table, onUpdate, onCancel, listMode }) {
@@ -195,6 +222,20 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
 
   const seed = hashStringToInt(table._id || "");
   const useImage = Boolean(table.bggImage);
+
+  // Mesa privada + el viewer NO es miembro (ni anon que vea el detalle).
+  // En ese caso bloqueamos la navegación a /mesas/:id (el server le tira
+  // 403 igual) y mostramos un tooltip flotante en hover. El CTA seguir
+  // funcionando porque el user PUEDE pedir lugar (si admin permite).
+  const restrictedPrivate =
+    isPrivate && !isHost && !isPlayer && !isPendingRequest;
+  // Posición del tooltip flotante (clientX/Y, position: fixed).
+  const [tooltipPos, setTooltipPos] = useState(null);
+  const handleMouseMove = (e) => {
+    if (!restrictedPrivate) return;
+    setTooltipPos({ x: e.clientX, y: e.clientY });
+  };
+  const handleMouseLeave = () => setTooltipPos(null);
 
   // -- handlers ---------------------------------------------------------
 
@@ -374,14 +415,24 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
           message={loginPrompt}
         />
         <div
-          className={`${styles.row} ${STATE_CARD_CLASS[userState] || ""} ${isPrivate ? styles.card_private : ""}`}
-          onClick={goToDetail}
-          role="link"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") goToDetail();
-          }}
-          aria-label={`Ver mesa de ${table.boardGame}`}
+          className={`${styles.row} ${STATE_CARD_CLASS[userState] || ""} ${isPrivate ? styles.card_private : ""} ${restrictedPrivate ? styles.card_restricted : ""}`}
+          onClick={restrictedPrivate ? undefined : goToDetail}
+          onMouseMove={restrictedPrivate ? handleMouseMove : undefined}
+          onMouseLeave={restrictedPrivate ? handleMouseLeave : undefined}
+          role={restrictedPrivate ? undefined : "link"}
+          tabIndex={restrictedPrivate ? undefined : 0}
+          onKeyDown={
+            restrictedPrivate
+              ? undefined
+              : (e) => {
+                  if (e.key === "Enter") goToDetail();
+                }
+          }
+          aria-label={
+            restrictedPrivate
+              ? `Mesa privada de ${table.boardGame}`
+              : `Ver mesa de ${table.boardGame}`
+          }
         >
           <div className={styles.rowDate}>
             {dParts && (
@@ -446,6 +497,15 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
             className={styles.rowCta}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
+            // En mesas privadas restringidas el tooltip se oculta cuando
+            // el cursor entra al CTA — el "Solicitar →" es la acción
+            // permitida y no necesita la explicación encima.
+            onMouseEnter={
+              restrictedPrivate ? () => setTooltipPos(null) : undefined
+            }
+            onMouseMove={
+              restrictedPrivate ? (e) => e.stopPropagation() : undefined
+            }
             role="presentation"
           >
             {cta}
@@ -464,6 +524,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
             )}
           </div>
         </div>
+        <PrivateTooltip pos={tooltipPos} isFull={isFull} />
       </>
     );
   }
@@ -478,14 +539,24 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
         message={loginPrompt}
       />
       <div
-        className={`${styles.card} ${STATE_CARD_CLASS[userState] || ""} ${isPrivate ? styles.card_private : ""} ${flashing ? styles.card_flash : ""}`}
-        onClick={goToDetail}
-        role="link"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") goToDetail();
-        }}
-        aria-label={`Ver mesa de ${table.boardGame}`}
+        className={`${styles.card} ${STATE_CARD_CLASS[userState] || ""} ${isPrivate ? styles.card_private : ""} ${flashing ? styles.card_flash : ""} ${restrictedPrivate ? styles.card_restricted : ""}`}
+        onClick={restrictedPrivate ? undefined : goToDetail}
+        onMouseMove={restrictedPrivate ? handleMouseMove : undefined}
+        onMouseLeave={restrictedPrivate ? handleMouseLeave : undefined}
+        role={restrictedPrivate ? undefined : "link"}
+        tabIndex={restrictedPrivate ? undefined : 0}
+        onKeyDown={
+          restrictedPrivate
+            ? undefined
+            : (e) => {
+                if (e.key === "Enter") goToDetail();
+              }
+        }
+        aria-label={
+          restrictedPrivate
+            ? `Mesa privada de ${table.boardGame}`
+            : `Ver mesa de ${table.boardGame}`
+        }
       >
         <div className={styles.banner}>
           <MesaTile
@@ -566,6 +637,15 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
               className={styles.ctaWrap}
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
+              // En privadas restringidas, hover sobre el CTA oculta el
+              // tooltip flotante — el botón "Solicitar →" es la acción
+              // permitida y no necesita la explicación arriba.
+              onMouseEnter={
+                restrictedPrivate ? () => setTooltipPos(null) : undefined
+              }
+              onMouseMove={
+                restrictedPrivate ? (e) => e.stopPropagation() : undefined
+              }
               role="presentation"
             >
               {isHost && (
@@ -663,6 +743,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
           </button>
         )}
       </div>
+      <PrivateTooltip pos={tooltipPos} isFull={isFull} />
     </>
   );
 }

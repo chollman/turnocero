@@ -147,6 +147,50 @@ describe("<TableCard> grid mode", () => {
     ).toBeInTheDocument();
   });
 
+  it("private mesa for non-member: card is NOT a link, mouseover shows tooltip", () => {
+    const { container } = renderCard(makeTable({ privacy: "private" }), {
+      user: { _id: "outsider", username: "outsider" },
+    });
+    // The card wrapper should NOT advertise itself as a link anymore.
+    const linkWrappers = container.querySelectorAll('[role="link"]');
+    expect(linkWrappers.length).toBe(0);
+    // Hovering / moving over the card should mount the tooltip.
+    const card = container.querySelector('[class*="card_restricted"]');
+    expect(card).not.toBeNull();
+    fireEvent.mouseMove(card, { clientX: 100, clientY: 100 });
+    expect(document.body.textContent).toMatch(/mesa privada/i);
+    expect(document.body.textContent).toMatch(/pedir lugar/i);
+    fireEvent.mouseLeave(card);
+    expect(document.body.textContent).not.toMatch(/mesa privada/i);
+  });
+
+  it("private mesa shows the 'no quedan lugares' tooltip when full", () => {
+    const { container } = renderCard(
+      makeTable({
+        privacy: "private",
+        maxPlayers: 1,
+        players: [{ _id: "p1" }],
+      }),
+      { user: { _id: "outsider", username: "outsider" } },
+    );
+    const card = container.querySelector('[class*="card_restricted"]');
+    fireEvent.mouseMove(card, { clientX: 100, clientY: 100 });
+    expect(document.body.textContent).toMatch(/no quedan lugares/i);
+  });
+
+  it("private mesa where user IS a player keeps the card clickable", () => {
+    const { container } = renderCard(
+      makeTable({
+        privacy: "private",
+        players: [{ _id: "me", username: "me" }],
+      }),
+      { user: { _id: "me", username: "me" } },
+    );
+    // Member of the mesa → keeps role=link, no card_restricted class.
+    expect(container.querySelector('[role="link"]')).not.toBeNull();
+    expect(container.querySelector('[class*="card_restricted"]')).toBeNull();
+  });
+
   it("shows admin tab when user is admin and not host/player", () => {
     renderCard(makeTable(), {
       user: { _id: "me", isAdmin: true, username: "admin" },

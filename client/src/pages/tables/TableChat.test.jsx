@@ -48,18 +48,10 @@ afterEach(() => {
 });
 
 describe("<TableChat>", () => {
-  it("muestra el header del chat", async () => {
-    renderChat();
-    expect(screen.getByText("CHAT DE LA MESA")).toBeInTheDocument();
-    expect(
-      screen.getByText("Solo visible para los participantes"),
-    ).toBeInTheDocument();
-  });
-
   it("muestra mensaje de empty state cuando no hay mensajes", async () => {
     renderChat();
     await waitFor(() => {
-      expect(screen.getByText(/Nadie habló todavía/)).toBeInTheDocument();
+      expect(screen.getByText(/Sin mensajes todavía/)).toBeInTheDocument();
     });
   });
 
@@ -77,11 +69,6 @@ describe("<TableChat>", () => {
       expect(screen.getByText("Hola che")).toBeInTheDocument();
       expect(screen.getByText("amigo")).toBeInTheDocument();
     });
-  });
-
-  it("muestra 'Vista de administrador' cuando isViewingAsAdmin es true", () => {
-    renderChat({ isViewingAsAdmin: true });
-    expect(screen.getByText("Vista de administrador")).toBeInTheDocument();
   });
 
   it("oculta el form de envío cuando isViewingAsAdmin es true", () => {
