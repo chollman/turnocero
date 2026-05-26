@@ -37,7 +37,11 @@ emailWrapper.sendEmail = emailMock.sendEmail;
 // our pass-through factory.
 const rlPath = require.resolve("express-rate-limit");
 const noopFactory = () => (_req, _res, next) => next();
+// Soportar tanto `require('express-rate-limit')` (default export) como el
+// destructuring `{ rateLimit, ipKeyGenerator }` que usa userRateLimit.js.
 noopFactory.default = noopFactory;
+noopFactory.rateLimit = noopFactory;
+noopFactory.ipKeyGenerator = (req) => req.ip || "test-ip";
 require.cache[rlPath] = {
   id: rlPath,
   filename: rlPath,

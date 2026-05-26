@@ -80,6 +80,32 @@ describe("PATCH /api/notifications/read", () => {
     expect(unreadCount).toBe(0);
   });
 
+  it("resets count: 0 when marking read (otherwise next $inc inflates the badge)", async () => {
+    // Regresión: el bug que vio el user — count quedaba en 3 después de
+    // markRead, llegaba un comment nuevo, saveNotification hacía
+    // $inc count=4 + read=false, y el badge mostraba "4" con UNA notif nueva.
+    const { user, token } = await createAuthedUser();
+    await Notification.create({
+      recipient: user._id,
+      type: "compartida_comment",
+      compartidaId: "c1",
+      count: 3,
+      read: false,
+    });
+
+    await request(app)
+      .patch("/api/notifications/read")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ compartidaId: "c1" });
+
+    const notif = await Notification.findOne({
+      recipient: user._id,
+      compartidaId: "c1",
+    });
+    expect(notif.read).toBe(true);
+    expect(notif.count).toBe(0);
+  });
+
   it("marks only matching tableId as read", async () => {
     const { user, token } = await createAuthedUser();
     await Notification.create({

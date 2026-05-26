@@ -37,7 +37,10 @@ router.patch(
     if (torneoId) filter.torneoId = torneoId;
     if (compartidaId) filter.compartidaId = compartidaId;
     if (type) filter.type = type;
-    await Notification.updateMany(filter, { $set: { read: true } });
+    // Reset count: 0 además de read: true — sin esto, el próximo evento
+    // hace $inc desde el count viejo (ej: count=3 antes de markRead → nuevo
+    // evento → count=4 emitido al cliente, badge desincronizado).
+    await Notification.updateMany(filter, { $set: { read: true, count: 0 } });
     res.json({ ok: true });
   }),
 );
