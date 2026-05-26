@@ -25,6 +25,7 @@ function makeTable(overrides = {}) {
     status: "open",
     privacy: "public",
     pendingRequests: [],
+    tags: [],
     ...overrides,
   };
 }
@@ -38,7 +39,7 @@ function renderCard(table, { user = { _id: "me", username: "me" } } = {}) {
   );
 }
 
-describe("<TableCard>", () => {
+describe("<TableCard> grid mode", () => {
   it("renders the game name, location, and host", () => {
     renderCard(makeTable());
     expect(screen.getByText("Catán")).toBeInTheDocument();
@@ -46,17 +47,17 @@ describe("<TableCard>", () => {
     expect(screen.getByText("thehost")).toBeInTheDocument();
   });
 
-  it("shows HOST badge when the current user is the host", () => {
+  it("shows Host badge when the current user is the host", () => {
     renderCard(
       makeTable({
         host: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
       }),
       { user: { _id: "me", username: "me" } },
     );
-    expect(screen.getByText(/^HOST$/)).toBeInTheDocument();
+    expect(screen.getAllByText(/^Host$/).length).toBeGreaterThan(0);
   });
 
-  it("shows UNIDO badge when the current user is in players", () => {
+  it("shows Unido badge when the current user is in players", () => {
     renderCard(
       makeTable({
         players: [
@@ -65,10 +66,10 @@ describe("<TableCard>", () => {
       }),
       { user: { _id: "me", username: "me" } },
     );
-    expect(screen.getByText(/^UNIDO$/)).toBeInTheDocument();
+    expect(screen.getAllByText(/^Unido$/i).length).toBeGreaterThan(0);
   });
 
-  it('shows seat count "1/5" with no players (just the host) on a 4-max table', () => {
+  it("renders seat count 1/5 with no players (just the host) on a 4-max table", () => {
     renderCard(makeTable({ maxPlayers: 4, players: [] }));
     expect(screen.getByText("1/5")).toBeInTheDocument();
   });
@@ -78,7 +79,18 @@ describe("<TableCard>", () => {
     expect(screen.getByText("Usuario eliminado")).toBeInTheDocument();
   });
 
-  it("non-host non-player: clicking the join button hits the API and bumps players list via onUpdate", async () => {
+  it("renders tags when present", () => {
+    renderCard(makeTable({ tags: ["Estrategia", "120-180min"] }));
+    expect(screen.getByText("Estrategia")).toBeInTheDocument();
+    expect(screen.getByText("120-180min")).toBeInTheDocument();
+  });
+
+  it("does not render tag row when tags array is empty", () => {
+    const { container } = renderCard(makeTable({ tags: [] }));
+    expect(container.querySelector('[class*="tagsRow"]')).toBeNull();
+  });
+
+  it("non-host non-player: clicking the join CTA hits the API and calls onUpdate", async () => {
     const onUpdate = vi.fn();
     const table = makeTable();
     useAuth.mockReturnValue({ user: { _id: "me", username: "me" } });
@@ -94,109 +106,44 @@ describe("<TableCard>", () => {
         <TableCard table={table} onUpdate={onUpdate} onCancel={vi.fn()} />
       </MemoryRouter>,
     );
-    const join = screen.getByRole("button", { name: /unirme|sumarme|unirse/i });
-    fireEvent.click(join);
+    fireEvent.click(screen.getByRole("button", { name: /^Unirme$/i }));
     await waitFor(() => expect(onUpdate).toHaveBeenCalled());
   });
 
-  // ─── List mode ───
-  describe("list mode", () => {
-    function renderList(table, opts = {}) {
-      useAuth.mockReturnValue({
-        user: opts.user || { _id: "me", username: "me" },
-      });
-      return render(
-        <MemoryRouter>
-          <TableCard
-            table={table}
-            onUpdate={vi.fn()}
-            onCancel={vi.fn()}
-            listMode
-          />
-        </MemoryRouter>,
-      );
-    }
-
-    it("renders in list mode with player count formatted", () => {
-      renderList(makeTable({ maxPlayers: 4, players: [{ _id: "p1" }] }));
-      // Player count "X / Y" — 2 / 5 (host + 1 player out of max + 1)
-      expect(screen.getByText(/2 \/ 5/)).toBeInTheDocument();
-    });
-
-    it("shows HOST badge and host-only icons in list mode when user is host", () => {
-      renderList(
-        makeTable({
-          host: {
-            _id: "me",
-            username: "me",
-            avatar: { url: "", publicId: "" },
-          },
-        }),
-      );
-      expect(screen.getByText(/^HOST$/)).toBeInTheDocument();
-      expect(screen.getByTitle("Editar")).toBeInTheDocument();
-      expect(screen.getByTitle("Cancelar")).toBeInTheDocument();
-    });
-
-    it('shows "Solicitud enviada · Cancelar" when user has pending request', () => {
-      renderList(makeTable({ pendingRequests: [{ _id: "me" }] }));
-      expect(
-        screen.getByRole("button", { name: /solicitud enviada/i }),
-      ).toBeInTheDocument();
-    });
-
-    it('shows "Solicitar" CTA for private tables', () => {
-      renderList(makeTable({ privacy: "private" }));
-      expect(
-        screen.getByRole("button", { name: /solicitar/i }),
-      ).toBeInTheDocument();
-      // "Privada" badge present
-      expect(screen.getByText("Privada")).toBeInTheDocument();
-    });
-
-    it('shows "Llena" CTA when table is full', () => {
-      renderList(makeTable({ maxPlayers: 1, players: [{ _id: "p1" }] }));
-      expect(
-        screen.getByRole("button", { name: /^Llena$/i }),
-      ).toBeInTheDocument();
-    });
-  });
-
-  it('grid mode: shows "Llena" disabled button when table is full', () => {
+  it('shows "Mesa llena" disabled CTA when table is full', () => {
     renderCard(
       makeTable({ maxPlayers: 2, players: [{ _id: "p1" }, { _id: "p2" }] }),
     );
-    expect(screen.getByRole("button", { name: /^Llena$/ })).toBeDisabled();
+    const cta = screen.getByRole("button", { name: /mesa llena/i });
+    expect(cta).toBeDisabled();
   });
 
-  it("grid mode: host actions show Editar/Cancelar/Administrar buttons", () => {
+  it("host actions show Editar / Cancelar icon buttons + Administrar CTA", () => {
     renderCard(
       makeTable({
         host: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
       }),
       { user: { _id: "me", username: "me" } },
     );
-    expect(screen.getByTitle("Editar mesa")).toBeInTheDocument();
+    expect(screen.getByTitle("Editar")).toBeInTheDocument();
     expect(screen.getByTitle("Cancelar mesa")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /administrar/i }),
     ).toBeInTheDocument();
   });
 
-  it('grid mode: player actions show "Abrir mesa" button', () => {
+  it("player state shows Abandonar icon + Unido CTA", () => {
     renderCard(makeTable({ players: [{ _id: "me", username: "me" }] }), {
       user: { _id: "me", username: "me" },
     });
-    expect(
-      screen.getByRole("button", { name: /abrir mesa/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByTitle("Abandonar mesa")).toBeInTheDocument();
+    expect(screen.getByTitle("Abandonar")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /unido/i })).toBeInTheDocument();
   });
 
-  it('grid mode: pending request → "Cancelar solicitud" button', () => {
+  it('pending-request state shows "Solicitud enviada" CTA', () => {
     renderCard(makeTable({ pendingRequests: [{ _id: "me" }] }));
     expect(
-      screen.getByRole("button", { name: /cancelar solicitud/i }),
+      screen.getByRole("button", { name: /solicitud enviada/i }),
     ).toBeInTheDocument();
   });
 
@@ -204,22 +151,21 @@ describe("<TableCard>", () => {
     renderCard(makeTable(), {
       user: { _id: "me", isAdmin: true, username: "admin" },
     });
-    expect(screen.getByRole("button", { name: /admin/i })).toBeInTheDocument();
+    expect(screen.getByTitle(/admin/i)).toBeInTheDocument();
   });
 
-  it("non-logged-in user clicking Unirme opens LoginPromptModal", () => {
+  it("anonymous user clicking Unirme opens LoginPromptModal", () => {
     useAuth.mockReturnValue({ user: null });
     render(
       <MemoryRouter>
         <TableCard table={makeTable()} onUpdate={vi.fn()} onCancel={vi.fn()} />
       </MemoryRouter>,
     );
-    fireEvent.click(screen.getByRole("button", { name: /unirme/i }));
-    // The modal copy contains "Iniciá sesión para unirte..." — match the unique part
+    fireEvent.click(screen.getByRole("button", { name: /^Unirme$/i }));
     expect(screen.getByText(/para unirte/i)).toBeInTheDocument();
   });
 
-  it("handleLeave hits the API and calls onUpdate", async () => {
+  it("handleLeave (player) hits the API and calls onUpdate", async () => {
     const onUpdate = vi.fn();
     const table = makeTable({ players: [{ _id: "me", username: "me" }] });
     useAuth.mockReturnValue({ user: { _id: "me", username: "me" } });
@@ -233,7 +179,7 @@ describe("<TableCard>", () => {
         <TableCard table={table} onUpdate={onUpdate} onCancel={vi.fn()} />
       </MemoryRouter>,
     );
-    fireEvent.click(screen.getByTitle("Abandonar mesa"));
+    fireEvent.click(screen.getByTitle("Abandonar"));
     await waitFor(() => expect(onUpdate).toHaveBeenCalled());
   });
 
@@ -252,7 +198,7 @@ describe("<TableCard>", () => {
       </MemoryRouter>,
     );
     fireEvent.click(
-      screen.getByRole("button", { name: /cancelar solicitud/i }),
+      screen.getByRole("button", { name: /solicitud enviada/i }),
     );
     await waitFor(() => expect(onUpdate).toHaveBeenCalled());
   });
@@ -286,17 +232,15 @@ describe("<TableCard>", () => {
     expect(screen.queryByText(/km/)).not.toBeInTheDocument();
   });
 
-  it("does NOT show distance badge for distanceKm === 0 (la dirección ya lo dice todo)", () => {
+  it("does NOT show distance badge for distanceKm === 0", () => {
     renderCard(
       makeTable({
         location: { texto: "Casa", lat: -34.6, lng: -58.4 },
         distanceKm: 0,
       }),
     );
-    // Sin badge "Aquí mismo" ni "0 m" — la celda de ubicación es suficiente.
     expect(screen.queryByText(/aquí mismo/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/0 m/)).not.toBeInTheDocument();
-    // La ubicación sí se muestra.
     expect(screen.getByText("Casa")).toBeInTheDocument();
   });
 
@@ -318,5 +262,58 @@ describe("<TableCard>", () => {
     fireEvent.click(screen.getByTitle("Cancelar mesa"));
     await waitFor(() => expect(onCancel).toHaveBeenCalledWith(table._id));
     confirmSpy.mockRestore();
+  });
+});
+
+describe("<TableCard> list mode", () => {
+  function renderList(table, opts = {}) {
+    useAuth.mockReturnValue({
+      user: opts.user || { _id: "me", username: "me" },
+    });
+    return render(
+      <MemoryRouter>
+        <TableCard
+          table={table}
+          onUpdate={vi.fn()}
+          onCancel={vi.fn()}
+          listMode
+        />
+      </MemoryRouter>,
+    );
+  }
+
+  it("renders the game name + seat count in list mode", () => {
+    renderList(makeTable({ maxPlayers: 4, players: [{ _id: "p1" }] }));
+    expect(screen.getByText("Catán")).toBeInTheDocument();
+    expect(screen.getByText("2/5")).toBeInTheDocument();
+  });
+
+  it("shows Host badge when user is host", () => {
+    renderList(
+      makeTable({
+        host: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
+      }),
+    );
+    expect(screen.getAllByText(/^Host$/).length).toBeGreaterThan(0);
+  });
+
+  it('shows "Solicitud enviada" CTA when user has pending request', () => {
+    renderList(makeTable({ pendingRequests: [{ _id: "me" }] }));
+    expect(
+      screen.getByRole("button", { name: /solicitud enviada/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows "Solicitar →" CTA for private tables', () => {
+    renderList(makeTable({ privacy: "private" }));
+    expect(
+      screen.getByRole("button", { name: /solicitar/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows "Mesa llena" disabled CTA when table is full', () => {
+    renderList(makeTable({ maxPlayers: 1, players: [{ _id: "p1" }] }));
+    const cta = screen.getByRole("button", { name: /mesa llena/i });
+    expect(cta).toBeDisabled();
   });
 });

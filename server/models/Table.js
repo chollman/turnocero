@@ -53,6 +53,26 @@ const tableSchema = new mongoose.Schema(
       maxlength: [500, "Description cannot exceed 500 characters"],
       default: "",
     },
+    rules: {
+      type: String,
+      trim: true,
+      maxlength: [500, "Rules cannot exceed 500 characters"],
+      default: "",
+    },
+    tags: {
+      type: [
+        {
+          type: String,
+          trim: true,
+          maxlength: [30, "Tag cannot exceed 30 characters"],
+        },
+      ],
+      default: [],
+      validate: {
+        validator: (arr) => arr.length <= 5,
+        message: "Cannot have more than 5 tags",
+      },
+    },
     status: {
       type: String,
       enum: ["open", "full", "cancelled"],

@@ -3,54 +3,18 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
-import GameTile from "../../components/shared/GameTile";
+import MesaTile from "../../components/shared/MesaTile";
+import SeatTrack from "../../components/shared/SeatTrack";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Avatar from "../../components/shared/Avatar";
 import { GhostIcon } from "../../components/shared/UserRef";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { formatDistanceKm } from "../../utils/distance";
+import { dateParts } from "../../utils/eventoDate";
+import { hashStringToInt } from "../../utils/hash";
 import styles from "./TableCard.module.css";
 
-// --- helpers ---
-
-function hashStr(str) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-function getDateParts(dateStr) {
-  const date = new Date(dateStr);
-  const weekday = date
-    .toLocaleDateString("es-AR", { weekday: "short" })
-    .toUpperCase()
-    .replace(/\./g, "");
-  const day = date.getDate();
-  const month = date
-    .toLocaleDateString("es-AR", { month: "short" })
-    .toUpperCase()
-    .replace(/\./g, "");
-  const time = date.toLocaleTimeString("es-AR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  return { weekday, day, month, time };
-}
-
-const formatDate = (dateStr) => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("es-AR", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-// --- icons ---
+// -- icons ---------------------------------------------------------------
 
 const PinIcon = ({ size = 13 }) => (
   <svg
@@ -62,6 +26,7 @@ const PinIcon = ({ size = 13 }) => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
+    aria-hidden="true"
   >
     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
     <circle cx="12" cy="10" r="3" />
@@ -78,9 +43,43 @@ const LockIcon = ({ size = 11 }) => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
+    aria-hidden="true"
   >
     <rect x="3" y="11" width="18" height="11" rx="2" />
     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
+const CheckIcon = ({ size = 12 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const ClockIcon = ({ size = 12 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="9" />
+    <polyline points="12 7 12 12 15 14" />
   </svg>
 );
 
@@ -94,93 +93,46 @@ const EyeIcon = ({ size = 13 }) => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
+    aria-hidden="true"
   >
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
     <circle cx="12" cy="12" r="3" />
   </svg>
 );
 
-const EditIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-  </svg>
-);
+// -- helpers -------------------------------------------------------------
 
-const XIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="10" />
-    <line x1="15" y1="9" x2="9" y2="15" />
-    <line x1="9" y1="9" x2="15" y2="15" />
-  </svg>
-);
-
-const LeaveIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-    <polyline points="16 17 21 12 16 7" />
-    <line x1="21" y1="12" x2="9" y2="12" />
-  </svg>
-);
-
-// --- sub-components ---
-
-function SeatTrack({ filled, total }) {
-  const pct = Math.min(100, (filled / total) * 100);
-  return (
-    <div className={styles.seatTrack}>
-      <div className={styles.seatFill} style={{ width: `${pct}%` }} />
-      {Array.from({ length: total - 1 }).map((_, i) => (
-        <span
-          key={i}
-          className={styles.seatDivider}
-          style={{ left: `${((i + 1) / total) * 100}%` }}
-        />
-      ))}
-    </div>
-  );
+// Devuelve uno de los cinco estados visuales en los que puede estar el user
+// respecto de una mesa. La UI ya conoce todas estas combinaciones, pero
+// resumirlas en una sola variable hace que el render no esté lleno de
+// ternarios anidados.
+//
+// Orden de evaluación es importante: hosting > joined > pending > full > idle.
+function classifyUserState({
+  isAnon,
+  isHost,
+  isPlayer,
+  isPendingRequest,
+  isFull,
+}) {
+  if (isAnon) return isFull ? "full" : "idle";
+  if (isHost) return "hosting";
+  if (isPlayer) return "joined";
+  if (isPendingRequest) return "pending";
+  if (isFull) return "full";
+  return "idle";
 }
 
-function StatusChip({ seats }) {
-  const full = seats <= 0;
-  return (
-    <span
-      className={`${styles.statusChip} ${full ? styles.statusFull : styles.statusOpen}`}
-    >
-      <span className={styles.statusDot} />
-      {full ? "Mesa completa" : `${seats} lugar${seats !== 1 ? "es" : ""}`}
-    </span>
-  );
-}
+// Mapea estado del usuario → clase modificadora del card y del CTA.
+const STATE_CARD_CLASS = {
+  idle: "",
+  hosting: styles.card_hosting,
+  joined: styles.card_joined,
+  pending: styles.card_pending,
+  full: styles.card_full,
+};
 
-// --- main component ---
+// -- main component ------------------------------------------------------
 
 export default function TableCard({ table, onUpdate, onCancel, listMode }) {
   const { user } = useAuth();
@@ -191,32 +143,60 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
   const [flashing, setFlashing] = useState(false);
 
   const hostInfo = getUserDisplay(table.host);
-  // `table.location` puede llegar como string (legacy) o subdoc { texto, lat, lng }.
-  // Normalizamos al subdoc para que el resto del render sea uniforme.
   const locationTexto =
     typeof table.location === "string"
       ? table.location
       : table.location?.texto || "";
   const distanceLabel = formatDistanceKm(table.distanceKm);
+
+  const isAnon = !user;
   const isHost =
-    user &&
+    !isAnon &&
     table.host &&
     (table.host._id === user._id ||
       table.host._id?.toString() === user._id?.toString());
   const isPlayer =
-    user &&
+    !isAnon &&
     table.players.some(
       (p) => (p._id || p).toString() === (user._id || user).toString(),
     );
-  const showAdminTab = user?.isAdmin && !isHost && !isPlayer;
   const isPendingRequest =
-    user &&
+    !isAnon &&
     (table.pendingRequests || []).some(
       (r) => (r._id || r).toString() === user._id.toString(),
     );
   const isPrivate = table.privacy === "private";
+  const filled = table.players.length + 1; // host counts
+  const total = table.maxPlayers + 1;
   const availableSeats = table.maxPlayers - table.players.length;
   const isFull = availableSeats <= 0;
+  const showAdminTab = user?.isAdmin && !isHost && !isPlayer;
+
+  const userState = classifyUserState({
+    isAnon,
+    isHost,
+    isPlayer,
+    isPendingRequest,
+    isFull,
+  });
+
+  const dParts = dateParts(table.date);
+  const dateChipText = dParts
+    ? `${dParts.weekday} · ${dParts.day} ${dParts.month} · ${dParts.time}`
+    : "";
+  // Cyan default → naranja "soon" si en <6h → rojo "urgent" si <1h → muted si pasó.
+  const dateChipTone = (() => {
+    if (!dParts) return "default";
+    const diffMs = dParts.isoDate.getTime() - Date.now();
+    if (diffMs < 0) return "past";
+    if (diffMs < 60 * 60 * 1000) return "urgent";
+    return "default";
+  })();
+
+  const seed = hashStringToInt(table._id || "");
+  const useImage = Boolean(table.bggImage);
+
+  // -- handlers ---------------------------------------------------------
 
   const requireAuth = (msg) => {
     if (!user) {
@@ -226,7 +206,8 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     return true;
   };
 
-  const handleJoin = async () => {
+  const handleJoin = async (e) => {
+    e?.stopPropagation();
     if (!requireAuth("Iniciá sesión para unirte a esta mesa.")) return;
     setLoading(true);
     setError("");
@@ -242,7 +223,8 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     }
   };
 
-  const handleLeave = async () => {
+  const handleLeave = async (e) => {
+    e?.stopPropagation();
     setLoading(true);
     setError("");
     try {
@@ -255,7 +237,8 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     }
   };
 
-  const handleCancelRequest = async () => {
+  const handleCancelRequest = async (e) => {
+    e?.stopPropagation();
     setLoading(true);
     setError("");
     try {
@@ -268,7 +251,8 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     }
   };
 
-  const handleCancel = async () => {
+  const handleCancel = async (e) => {
+    e?.stopPropagation();
     if (!window.confirm("¿Cancelar esta mesa?")) return;
     setLoading(true);
     setError("");
@@ -282,14 +266,106 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     }
   };
 
-  // ─── LIST MODE ────────────────────────────────────────────────
+  const goToDetail = () => navigate(`/mesas/${table._id}`);
+  const goToEdit = (e) => {
+    e?.stopPropagation();
+    navigate(`/mesas/${table._id}/editar`);
+  };
+
+  // -- shared sub-renders ----------------------------------------------
+
+  const cta = (() => {
+    if (loading) {
+      return (
+        <button className={styles.cta} disabled>
+          …
+        </button>
+      );
+    }
+    switch (userState) {
+      case "hosting":
+        return (
+          <button
+            type="button"
+            className={`${styles.cta} ${styles.cta_hosting}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              goToDetail();
+            }}
+          >
+            Administrar →
+          </button>
+        );
+      case "joined":
+        return (
+          <button
+            type="button"
+            className={`${styles.cta} ${styles.cta_joined}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              goToDetail();
+            }}
+          >
+            <CheckIcon /> Unido
+          </button>
+        );
+      case "pending":
+        return (
+          <button
+            type="button"
+            className={`${styles.cta} ${styles.cta_pending}`}
+            onClick={handleCancelRequest}
+          >
+            <ClockIcon /> Solicitud enviada
+          </button>
+        );
+      case "full":
+        return (
+          <button
+            type="button"
+            className={`${styles.cta} ${styles.cta_disabled}`}
+            disabled
+          >
+            Mesa llena
+          </button>
+        );
+      default:
+        return (
+          <button
+            type="button"
+            className={styles.cta}
+            onClick={handleJoin}
+          >
+            {isPrivate ? "Solicitar →" : "Unirme"}
+          </button>
+        );
+    }
+  })();
+
+  const badges = (
+    <>
+      {isHost && (
+        <span className={`${styles.badge} ${styles.badge_host}`}>Host</span>
+      )}
+      {isPlayer && (
+        <span className={`${styles.badge} ${styles.badge_joined}`}>Unido</span>
+      )}
+      {isPendingRequest && (
+        <span className={`${styles.badge} ${styles.badge_pending}`}>
+          Pendiente
+        </span>
+      )}
+      {isPrivate && (
+        <span className={`${styles.badge} ${styles.badge_lock}`}>
+          <LockIcon size={10} />
+        </span>
+      )}
+    </>
+  );
+
+  // -- LIST MODE -------------------------------------------------------
 
   if (listMode) {
-    const statusColor = isFull ? "var(--red)" : "var(--green)";
-    const statusLabel = isFull
-      ? "Completa"
-      : `${availableSeats} lugar${availableSeats !== 1 ? "es" : ""} libre${availableSeats !== 1 ? "s" : ""}`;
-
     return (
       <>
         <LoginPromptModal
@@ -298,149 +374,92 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
           message={loginPrompt}
         />
         <div
-          className={`${styles.cardList} ${isHost ? styles.hosted : ""} ${isPlayer ? styles.joined : ""}`}
+          className={`${styles.row} ${STATE_CARD_CLASS[userState] || ""} ${isPrivate ? styles.card_private : ""}`}
+          onClick={goToDetail}
+          role="link"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") goToDetail();
+          }}
+          aria-label={`Ver mesa de ${table.boardGame}`}
         >
-          <div className={styles.listLeft}>
-            <div className={styles.listTitleWrap}>
-              <h3 className={styles.listGameName}>{table.boardGame}</h3>
-              {isHost && <span className={styles.hostBadge}>HOST</span>}
-              {isPlayer && <span className={styles.playerBadge}>UNIDO</span>}
-            </div>
-            <div className={styles.listBadges}>
-              {isPrivate && (
-                <span className={styles.lockBadge}>
-                  <LockIcon size={10} /> Privada
-                </span>
-              )}
-              <span
-                className={styles.listStatus}
-                style={{ color: statusColor, borderColor: statusColor }}
-              >
-                {statusLabel}
-              </span>
-            </div>
+          <div className={styles.rowDate}>
+            {dParts && (
+              <>
+                <span className={styles.rowDateDay}>{dParts.day}</span>
+                <span className={styles.rowDateMonth}>{dParts.month}</span>
+                <span className={styles.rowDateTime}>{dParts.time}</span>
+              </>
+            )}
           </div>
 
-          <div className={styles.listMeta}>
-            <span className={styles.listMetaItem}>
-              📅 {formatDate(table.date)}
-            </span>
-            <span className={styles.listMetaItem}>
-              👑{" "}
-              {hostInfo.isDeleted ? (
-                <span className={styles.deletedInline}>
-                  <GhostIcon size={12} /> Usuario eliminado
+          <div className={styles.rowBody}>
+            <div className={styles.rowTitleLine}>
+              <h3 className={styles.rowGame}>{table.boardGame}</h3>
+              <div className={styles.rowBadges}>{badges}</div>
+            </div>
+            <div className={styles.rowMeta}>
+              {locationTexto && (
+                <span className={styles.rowMetaItem}>
+                  <PinIcon size={12} />
+                  {locationTexto}
+                  {distanceLabel && (
+                    <span className={styles.distanceInline}>
+                      · {distanceLabel}
+                    </span>
+                  )}
                 </span>
-              ) : (
-                <strong>{table.host.username}</strong>
               )}
-            </span>
-            <span className={styles.listMetaItem}>
-              👥 {table.players.length + 1} / {table.maxPlayers + 1}
-            </span>
-            {locationTexto && (
-              <span className={styles.listMetaItem}>
-                📍 {locationTexto}
-                {distanceLabel && (
-                  <span className={styles.distanceInline}>
-                    {" "}
-                    · {distanceLabel}
+              <span className={styles.rowMetaItem}>
+                Host:{" "}
+                {hostInfo.isDeleted ? (
+                  <span className={styles.deletedInline}>
+                    <GhostIcon size={12} /> eliminado
                   </span>
+                ) : (
+                  <strong>{table.host.username}</strong>
                 )}
               </span>
+            </div>
+            {Array.isArray(table.tags) && table.tags.length > 0 && (
+              <div className={styles.tagsRow}>
+                {table.tags.map((t) => (
+                  <span key={t} className={styles.tag}>
+                    {t}
+                  </span>
+                ))}
+              </div>
             )}
+            {error && <span className={styles.errorInline}>{error}</span>}
           </div>
 
-          <div className={styles.listActions}>
-            {error && <span className={styles.errorInline}>{error}</span>}
-            {isHost ? (
-              <>
-                <button
-                  className={`${styles.btnIcon} ${styles.btnIconDetail}`}
-                  onClick={() => navigate(`/mesas/${table._id}`)}
-                  title="Ver detalles"
-                  disabled={loading}
-                >
-                  <EyeIcon />
-                </button>
-                <button
-                  className={`${styles.btnIcon} ${styles.btnIconEdit}`}
-                  onClick={() => navigate(`/mesas/${table._id}/editar`)}
-                  title="Editar"
-                  disabled={loading}
-                >
-                  <EditIcon />
-                </button>
-                <button
-                  className={`${styles.btnIcon} ${styles.btnIconDanger}`}
-                  onClick={handleCancel}
-                  title="Cancelar"
-                  disabled={loading}
-                >
-                  <XIcon />
-                </button>
-              </>
-            ) : isPlayer ? (
-              <>
-                <button
-                  className={`${styles.btnIcon} ${styles.btnIconDetail}`}
-                  onClick={() => navigate(`/mesas/${table._id}`)}
-                  title="Ver detalles"
-                  disabled={loading}
-                >
-                  <EyeIcon />
-                </button>
-                <button
-                  className={`${styles.btnIcon} ${styles.btnIconLeave}`}
-                  onClick={handleLeave}
-                  title="Abandonar"
-                  disabled={loading}
-                >
-                  {loading ? "…" : <LeaveIcon />}
-                </button>
-              </>
-            ) : isPendingRequest ? (
-              <button
-                className={styles.btnPending}
-                onClick={handleCancelRequest}
-                disabled={loading}
-              >
-                {loading ? "…" : "Solicitud enviada · Cancelar"}
-              </button>
-            ) : (
-              <>
-                {!isPrivate && (
-                  <button
-                    className={`${styles.btnIcon} ${styles.btnIconDetail}`}
-                    onClick={() => navigate(`/mesas/${table._id}`)}
-                    title="Ver detalle"
-                    disabled={loading}
-                  >
-                    <EyeIcon />
-                  </button>
-                )}
-                <button
-                  className={styles.btnJoin}
-                  onClick={handleJoin}
-                  disabled={loading || isFull}
-                >
-                  {loading
-                    ? "…"
-                    : isFull
-                      ? "Llena"
-                      : isPrivate
-                        ? "Solicitar"
-                        : "Unirse"}
-                </button>
-              </>
-            )}
+          <div className={styles.rowSeats}>
+            <span
+              className={`${styles.rowSeatsCount} ${isFull ? styles.rowSeatsCount_full : ""}`}
+            >
+              {filled}/{total}
+            </span>
+            <SeatTrack filled={filled} total={total} full={isFull} />
+          </div>
+
+          <div
+            className={styles.rowCta}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="presentation"
+          >
+            {cta}
             {showAdminTab && (
               <button
+                type="button"
                 className={styles.adminTabInline}
-                onClick={() => navigate(`/mesas/${table._id}`)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToDetail();
+                }}
                 title="Ver como admin"
               >
-                <EyeIcon /> Admin
+                <EyeIcon size={12} /> Admin
               </button>
             )}
           </div>
@@ -449,10 +468,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     );
   }
 
-  // ─── GRID MODE (Token & Track) ────────────────────────────────
-
-  const { weekday, day, month, time } = getDateParts(table.date);
-  const seed = hashStr(table._id || "") % 10;
+  // -- GRID MODE -------------------------------------------------------
 
   return (
     <>
@@ -462,176 +478,188 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
         message={loginPrompt}
       />
       <div
-        className={`${styles.card} ${isHost ? styles.hosted : ""} ${isPlayer ? styles.joined : ""} ${table.bggImage ? styles.hasImage : ""} ${flashing ? styles.joinFlash : ""}`}
-        style={{ position: "relative" }}
+        className={`${styles.card} ${STATE_CARD_CLASS[userState] || ""} ${isPrivate ? styles.card_private : ""} ${flashing ? styles.card_flash : ""}`}
+        onClick={goToDetail}
+        role="link"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") goToDetail();
+        }}
+        aria-label={`Ver mesa de ${table.boardGame}`}
       >
-        {table.bggImage && (
-          <div className={styles.cardBg}>
-            <GameTile
-              game={table.boardGame}
-              seed={seed}
-              size="100%"
-              imageUrl={table.bggImage}
-            />
-          </div>
-        )}
-
-        {/* Banner with game tile */}
         <div className={styles.banner}>
-          {!table.bggImage && (
-            <GameTile game={table.boardGame} seed={seed} size="100%" />
-          )}
-          <div className={styles.bannerGradient} />
+          <MesaTile
+            game={table.boardGame || ""}
+            seed={seed}
+            imageUrl={useImage ? table.bggImage : null}
+          />
+          <div className={styles.bannerGradient} aria-hidden="true" />
           <div className={styles.bannerTop}>
-            <span className={styles.dateChip}>
-              <span className={styles.dateChipDot}>●</span>
-              {weekday} · {day} {month} · {time}
-            </span>
-            <div className={styles.bannerBadges}>
-              {isHost && <span className={styles.hostBadge}>HOST</span>}
-              {isPlayer && <span className={styles.playerBadge}>UNIDO</span>}
-              {isPrivate && (
-                <span className={styles.lockBadge}>
-                  <LockIcon size={11} />
-                </span>
-              )}
-            </div>
+            {dateChipText && (
+              <span
+                className={`${styles.dateChip} ${dateChipTone === "urgent" ? styles.dateChip_urgent : ""} ${dateChipTone === "past" ? styles.dateChip_past : ""}`}
+              >
+                {dateChipText}
+              </span>
+            )}
+            <div className={styles.bannerBadges}>{badges}</div>
           </div>
         </div>
 
-        {/* Card body */}
         <div className={styles.body}>
-          <h3 className={styles.gameName}>{table.boardGame}</h3>
+          <h3 className={styles.game}>{table.boardGame}</h3>
 
           {locationTexto && (
             <div className={styles.location}>
               <PinIcon size={13} />
-              <span>{locationTexto}</span>
+              <span className={styles.locationText}>{locationTexto}</span>
               {distanceLabel && (
                 <span className={styles.distanceBadge}>{distanceLabel}</span>
               )}
             </div>
           )}
 
-          {/* Seat track */}
+          {Array.isArray(table.tags) && table.tags.length > 0 && (
+            <div className={styles.tagsRow}>
+              {table.tags.map((t) => (
+                <span key={t} className={styles.tag}>
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className={styles.seatSection}>
-            <div className={styles.seatHeader}>
-              <span className={styles.seatLabel}>LUGARES</span>
-              <span className={styles.seatCount}>
-                {table.players.length + 1}/{table.maxPlayers + 1}
+            <div className={styles.seatHead}>
+              <span className={styles.seatLabel}>Lugares</span>
+              <span
+                className={`${styles.seatCount} ${isFull ? styles.seatCount_full : ""}`}
+              >
+                {filled}/{total}
               </span>
             </div>
-            <SeatTrack
-              filled={table.players.length + 1}
-              total={table.maxPlayers + 1}
-            />
+            <SeatTrack filled={filled} total={total} full={isFull} />
           </div>
 
           {error && <p className={styles.error}>{error}</p>}
 
-          {/* Footer: host info + CTA */}
-          <div className={styles.footer}>
-            <div className={styles.hostInfo}>
+          <div className={styles.foot}>
+            <div className={styles.hostBlock}>
               <Avatar user={table.host} size="md" />
-              <div className={styles.hostDetails}>
+              <div className={styles.hostInfo}>
+                <span className={styles.hostLabel}>Host</span>
                 <span className={styles.hostName}>
                   {hostInfo.isDeleted
                     ? "Usuario eliminado"
                     : table.host.username}
                 </span>
-                <StatusChip seats={availableSeats} />
+                <span
+                  className={`${styles.statusChip} ${isFull ? styles.statusChip_full : ""}`}
+                >
+                  {isFull
+                    ? "Llena"
+                    : `${availableSeats} libre${availableSeats !== 1 ? "s" : ""}`}
+                </span>
               </div>
             </div>
-
-            <div className={styles.footerActions}>
-              {isHost ? (
+            <div
+              className={styles.ctaWrap}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              role="presentation"
+            >
+              {isHost && (
                 <>
                   <button
-                    className={`${styles.btnIcon} ${styles.btnIconEdit}`}
-                    onClick={() => navigate(`/mesas/${table._id}/editar`)}
-                    title="Editar mesa"
+                    type="button"
+                    className={styles.iconBtn}
+                    onClick={goToEdit}
+                    title="Editar"
                     disabled={loading}
+                    aria-label="Editar"
                   >
-                    <EditIcon />
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
                   </button>
                   <button
-                    className={`${styles.btnIcon} ${styles.btnIconDanger}`}
+                    type="button"
+                    className={`${styles.iconBtn} ${styles.iconBtn_danger}`}
                     onClick={handleCancel}
                     title="Cancelar mesa"
                     disabled={loading}
+                    aria-label="Cancelar mesa"
                   >
-                    <XIcon />
-                  </button>
-                  <button
-                    className={styles.btnManage}
-                    onClick={() => navigate(`/mesas/${table._id}`)}
-                    disabled={loading}
-                  >
-                    Administrar
-                  </button>
-                </>
-              ) : isPlayer ? (
-                <>
-                  <button
-                    className={`${styles.btnIcon} ${styles.btnIconLeave}`}
-                    onClick={handleLeave}
-                    title="Abandonar mesa"
-                    disabled={loading}
-                  >
-                    {loading ? "…" : <LeaveIcon />}
-                  </button>
-                  <button
-                    className={styles.btnOpen}
-                    onClick={() => navigate(`/mesas/${table._id}`)}
-                    disabled={loading}
-                  >
-                    Abrir mesa
-                  </button>
-                </>
-              ) : isPendingRequest ? (
-                <button
-                  className={styles.btnPending}
-                  onClick={handleCancelRequest}
-                  disabled={loading}
-                >
-                  {loading ? "…" : "Cancelar solicitud"}
-                </button>
-              ) : isFull ? (
-                <button className={styles.btnFull} disabled>
-                  Llena
-                </button>
-              ) : (
-                <>
-                  {!isPrivate && (
-                    <button
-                      className={`${styles.btnIcon} ${styles.btnIconDetail}`}
-                      onClick={() => navigate(`/mesas/${table._id}`)}
-                      title="Ver detalles"
-                      disabled={loading}
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
                     >
-                      <EyeIcon />
-                    </button>
-                  )}
-                  <button
-                    className={styles.btnJoin}
-                    onClick={handleJoin}
-                    disabled={loading}
-                  >
-                    {loading ? "…" : isPrivate ? "Solicitar" : "Unirme"}
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
                   </button>
                 </>
               )}
+              {isPlayer && (
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  onClick={handleLeave}
+                  title="Abandonar"
+                  disabled={loading}
+                  aria-label="Abandonar mesa"
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                </button>
+              )}
+              {cta}
             </div>
           </div>
         </div>
 
         {showAdminTab && (
           <button
+            type="button"
             className={styles.adminTab}
-            onClick={() => navigate(`/mesas/${table._id}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              goToDetail();
+            }}
             title="Ver como administrador"
           >
-            <EyeIcon /> Admin
+            <EyeIcon size={12} /> Admin
           </button>
         )}
       </div>

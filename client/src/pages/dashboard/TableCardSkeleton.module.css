@@ -35,7 +35,7 @@
 }
 
 .banner {
-  height: 150px;
+  aspect-ratio: 16 / 7;
   border-radius: 0;
   flex-shrink: 0;
 }

@@ -49,6 +49,67 @@ describe("POST /api/tables", () => {
     const res = await request(app).post("/api/tables").send({});
     expect(res.status).toBe(401);
   });
+
+  it("persists tags and rules when provided", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+        privacy: "public",
+        tags: ["Estrategia", "120-180min"],
+        rules: "Sin alianzas. Llegar 10 min antes.",
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.tags).toEqual(["Estrategia", "120-180min"]);
+    expect(res.body.rules).toBe("Sin alianzas. Llegar 10 min antes.");
+  });
+
+  it("defaults tags=[] and rules='' when omitted", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.tags).toEqual([]);
+    expect(res.body.rules).toBe("");
+  });
+
+  it("400s when more than 5 tags are sent", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+        tags: ["a", "b", "c", "d", "e", "f"],
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it("400s when rules exceed 500 chars", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+        rules: "x".repeat(501),
+      });
+    expect(res.status).toBe(400);
+  });
 });
 
 describe("GET /api/tables", () => {
@@ -497,6 +558,44 @@ describe("PUT /api/tables/:id (host only)", () => {
       .set("Authorization", `Bearer ${token}`)
       .send({ date: new Date().toISOString(), maxPlayers: 4 });
     expect(res.status).toBe(403);
+  });
+
+  it("partial update of tags and rules", async () => {
+    const host = await createUser();
+    const table = await createTable(host, {
+      tags: ["Estrategia"],
+      rules: "Old rules",
+    });
+    const res = await request(app)
+      .put(`/api/tables/${table._id}`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`)
+      .send({
+        date: new Date(Date.now() + 14 * 86400000).toISOString(),
+        maxPlayers: 4,
+        tags: ["Cooperativo", "Largo"],
+        rules: "New rules",
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.tags).toEqual(["Cooperativo", "Largo"]);
+    expect(res.body.rules).toBe("New rules");
+  });
+
+  it("preserves tags/rules when not sent in PUT body", async () => {
+    const host = await createUser();
+    const table = await createTable(host, {
+      tags: ["Estrategia"],
+      rules: "Preserved",
+    });
+    const res = await request(app)
+      .put(`/api/tables/${table._id}`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`)
+      .send({
+        date: new Date(Date.now() + 14 * 86400000).toISOString(),
+        maxPlayers: 4,
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.tags).toEqual(["Estrategia"]);
+    expect(res.body.rules).toBe("Preserved");
   });
 
   it("400s when reducing maxPlayers below current player count", async () => {

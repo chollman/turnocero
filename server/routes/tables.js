@@ -259,6 +259,21 @@ router.post(
       .trim()
       .isLength({ max: 500 })
       .withMessage("Description is too long"),
+    body("rules")
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage("Rules are too long"),
+    body("tags")
+      .optional()
+      .isArray({ max: 5 })
+      .withMessage("Cannot have more than 5 tags"),
+    body("tags.*")
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 30 })
+      .withMessage("Each tag must be 1-30 characters"),
     body("privacy")
       .optional()
       .isIn(["public", "private"])
@@ -273,6 +288,8 @@ router.post(
       maxPlayers,
       location,
       description,
+      rules,
+      tags,
       privacy,
       bggId,
       bggThumbnail,
@@ -354,6 +371,8 @@ router.post(
           ? eventoLocation
           : locationForCreate(location, req.user.direccion),
         description,
+        rules: rules || "",
+        tags: Array.isArray(tags) ? tags : [],
         privacy: privacy || "public",
         host: req.user._id,
         players: [],
@@ -458,6 +477,21 @@ router.put(
       .trim()
       .isLength({ max: 500 })
       .withMessage("Description is too long"),
+    body("rules")
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage("Rules are too long"),
+    body("tags")
+      .optional()
+      .isArray({ max: 5 })
+      .withMessage("Cannot have more than 5 tags"),
+    body("tags.*")
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 30 })
+      .withMessage("Each tag must be 1-30 characters"),
     body("privacy")
       .optional()
       .isIn(["public", "private"])
@@ -496,6 +530,12 @@ router.put(
     }
     if (Object.prototype.hasOwnProperty.call(req.body, "description")) {
       table.description = req.body.description || "";
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "rules")) {
+      table.rules = req.body.rules || "";
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "tags")) {
+      table.tags = Array.isArray(req.body.tags) ? req.body.tags : [];
     }
     if (req.body.privacy) table.privacy = req.body.privacy;
 
