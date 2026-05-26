@@ -63,6 +63,15 @@ Convención de display por superficie:
 - **Detalle**: `getLocationDisplay(loc, 'regular')` — calle + ciudad.
 - **Tooltip `title`**: siempre `loc.texto` crudo para que el user pueda ver la dirección completa.
 
+**⚠️ Gotcha**: NUNCA interpolar `${table.location}` o `${evento.location}` directo
+en JSX/template strings. Es un subdoc — se renderea como `"[object Object]"`. Bug
+encontrado en mayo 2026 en [`CompartidaCard.jsx`](../../client/src/pages/compartidas/CompartidaCard.jsx) (mesa enlazada) y [`Login.jsx`](../../client/src/pages/auth/Login.jsx) (showcase). Reglas:
+1. Siempre `getLocationDisplay(loc, mode)` — nunca acceso directo a `.location`.
+2. Si se necesita `.texto` crudo (tooltip), acceder como `loc?.texto`, nunca
+   `${loc}`.
+
+Buscar el antipattern con: `grep -rn '\${[a-zA-Z_]*\.location[^.?]'` en `client/src`.
+
 ## Backend geocoding cache (mismo patrón que BGG)
 
 - `server/models/GeocodeCache.js` — `{ query, lat, lng, formatted, lastFetchedAt }` con índice TTL de 30 días.
