@@ -5,25 +5,28 @@ Audit all React files in `client/src/` for stale state on logout — state loade
 The bug: a component fetches user-specific data into local state (`useState`) but never resets that state when `user` becomes `null` (logout). When a new user logs in in the same tab, they briefly see the previous user's data until the next fetch completes.
 
 **Known-good pattern (required in always-mounted components and contexts):**
+
 ```js
 useEffect(() => {
   if (!user) {
     setMyState(initialValue); // ← reset on logout
     return;
   }
-  axios.get('/api/...').then(({ data }) => setMyState(data));
+  axios.get("/api/...").then(({ data }) => setMyState(data));
 }, [user]);
 ```
 
 **Bug pattern (missing reset):**
+
 ```js
 useEffect(() => {
   if (!user) return; // ← bails but does NOT clear stale state
-  axios.get('/api/...').then(({ data }) => setMyState(data));
+  axios.get("/api/...").then(({ data }) => setMyState(data));
 }, [user]);
 ```
 
 **localStorage bug pattern:**
+
 ```js
 const [items, setItems] = useState(loadFromStorage); // ← initializes from previous session
 // ...no clear on logout → new user sees old user's cached data
@@ -44,11 +47,13 @@ Grep `client/src/` for files matching ALL of these criteria simultaneously:
 
 **a)** Has `useState` holding data that could be user-specific (arrays of items, objects with user data — not pure UI state like `isOpen`, `loading`, `error`)  
 **b)** Has a `useEffect` that either:
-  - Depends on `[user]` or `[currentUser]` AND contains `if (!user) return` (without also calling a setter to clear state)  
-  - Has `[]` as deps AND calls a protected API endpoint (like `/api/tables/mine`, `/api/dm`, `/api/notifications`)  
-**c)** OR uses `useState(loadFromStorage)` / `useState(() => JSON.parse(localStorage...))` in a component that is always mounted
+
+- Depends on `[user]` or `[currentUser]` AND contains `if (!user) return` (without also calling a setter to clear state)
+- Has `[]` as deps AND calls a protected API endpoint (like `/api/tables/mine`, `/api/dm`, `/api/notifications`)  
+  **c)** OR uses `useState(loadFromStorage)` / `useState(() => JSON.parse(localStorage...))` in a component that is always mounted
 
 Focus areas to check in this order:
+
 1. `client/src/context/` — all context providers
 2. `client/src/components/layout/` — all layout/shell components
 3. `client/src/components/chat/` — chat components
@@ -57,11 +62,13 @@ Focus areas to check in this order:
 ### 3. For each flagged file, verify the fix status
 
 Read the file and check:
+
 - Does EVERY `useEffect([..., user, ...])` clear relevant state when `user` is null?
 - Does EVERY `useEffect(fn, [])` that calls a user-authenticated endpoint depend on `user` instead?
 - Does any `useState(loadFromStorage)` reset the localStorage key when user logs out?
 
 **Already-fixed examples** (do NOT flag these):
+
 - `ChatContext.jsx`: clears `conversations`, `openOrder`, `loadedRef` on `!user`
 - `ChatLauncher.jsx`: `fetchFriends` calls `setFriends([])` when `!user`
 - `NotificationContext.jsx`: clears `notifications`, `toasts`, `adminChatUnread` on `!user`
@@ -72,6 +79,7 @@ Read the file and check:
 Apply the fix directly — do not just report it:
 
 **Fix type A — missing null branch in `useEffect([user])`:**
+
 ```js
 // Before
 useEffect(() => {
@@ -90,6 +98,7 @@ useEffect(() => {
 ```
 
 **Fix type B — `useEffect([])` fetching user data:**
+
 ```js
 // Before
 useEffect(() => {
@@ -110,12 +119,14 @@ Ensure the reset effect writes empty state to localStorage on logout so the next
 ### 5. Verify
 
 After all fixes:
+
 - Re-read each changed file to confirm the pattern is correct
 - Ensure no new `useEffect` dependency warnings would be introduced (added state variables to deps if needed)
 
 ### 6. Report
 
 List every file checked with one of:
+
 - ✅ `filename.jsx` — already correct
 - 🔧 `filename.jsx` — fixed: [one-line description of what was wrong]
 - ⏭️ `filename.jsx` — skipped (route-level page, no localStorage, low risk)

@@ -4,14 +4,14 @@
 
 ✅ **Done** — todas las fases ejecutadas, suite verde, deployable.
 
-| Fase | Estado | Resultado |
-|---|---|---|
-| 0. Setup Cloud Console | ✅ | Browser key + server key + 2 Map IDs + 2 Styles (Dark/Light) |
-| 1. Install deps | ✅ | `@vis.gl/react-google-maps` (client) + `@googlemaps/google-maps-services-js` (server); `leaflet` removido |
-| 2. Backend geocode endpoint | ✅ | `GeocodeCache` model + `GET /api/geocode` con caché Mongo TTL 30d (7/7 tests) |
-| 3. AddressMap component | ✅ | Map con marker draggable + dark/light auto (10/10 tests) |
-| 4. PlaceAutocomplete component | ✅ | Places API (New) + session tokens + sesgo a AR (9/9 tests) |
-| 5. UserProfile integration | ✅ | Replace Leaflet+Nominatim; tests actualizados (23/23) |
+| Fase                           | Estado | Resultado                                                                                                 |
+| ------------------------------ | ------ | --------------------------------------------------------------------------------------------------------- |
+| 0. Setup Cloud Console         | ✅     | Browser key + server key + 2 Map IDs + 2 Styles (Dark/Light)                                              |
+| 1. Install deps                | ✅     | `@vis.gl/react-google-maps` (client) + `@googlemaps/google-maps-services-js` (server); `leaflet` removido |
+| 2. Backend geocode endpoint    | ✅     | `GeocodeCache` model + `GET /api/geocode` con caché Mongo TTL 30d (7/7 tests)                             |
+| 3. AddressMap component        | ✅     | Map con marker draggable + dark/light auto (10/10 tests)                                                  |
+| 4. PlaceAutocomplete component | ✅     | Places API (New) + session tokens + sesgo a AR (9/9 tests)                                                |
+| 5. UserProfile integration     | ✅     | Replace Leaflet+Nominatim; tests actualizados (23/23)                                                     |
 
 ## Decisiones tomadas
 

@@ -1,7 +1,7 @@
-import { useAuth } from '../../context/AuthContext';
-import { useChat } from '../../context/ChatContext';
-import { useSiteConfig } from '../../context/SiteConfigContext';
-import ChatWindow from './ChatWindow';
+import { useAuth } from "../../context/AuthContext";
+import { useChat } from "../../context/ChatContext";
+import { useSiteConfig } from "../../context/SiteConfigContext";
+import ChatWindow from "./ChatWindow";
 
 // Only renders on desktop (≥960px); mobile uses dedicated routes
 export default function ChatWindowManager() {
@@ -9,8 +9,9 @@ export default function ChatWindowManager() {
   const { openOrder } = useChat();
   const { isSectionEnabled } = useSiteConfig();
 
-  if (!user || typeof window === 'undefined' || window.innerWidth < 960) return null;
-  if (!isSectionEnabled('dms')) return null;
+  if (!user || typeof window === "undefined" || window.innerWidth < 960)
+    return null;
+  if (!isSectionEnabled("dms")) return null;
 
   return (
     <>

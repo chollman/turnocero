@@ -73,15 +73,15 @@
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition:
-    background var(--transition),
-    box-shadow var(--transition);
-  box-shadow: 0 4px 14px var(--amber-glow);
+  transition: all var(--transition);
+  box-shadow: 0 4px 16px var(--amber-glow);
   text-decoration: none;
 }
 
 .newBtn:hover {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 /* ── Tabs ── */
@@ -375,7 +375,8 @@
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
-  box-shadow: 0 4px 14px var(--amber-glow);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
 }
 
 .loadMoreBtn {
@@ -648,6 +649,7 @@
 .btnPrimary {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   padding: 8px 18px;
   border-radius: 8px;
@@ -655,12 +657,14 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: background var(--transition);
+  transition: all var(--transition);
   text-decoration: none;
 }
 
 .btnPrimary:hover:not(:disabled) {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 .btnPrimary:disabled {
   opacity: 0.5;

@@ -6,7 +6,9 @@ function BgWatchWidget() {
     <div className="widget bgwatchWidget">
       <div className="widgetHead">
         <span className="widgetEyebrow">◆ Tu BG Watch</span>
-        <a href="#" className="widgetLink" onClick={e => e.preventDefault()}>Ver historial →</a>
+        <a href="#" className="widgetLink" onClick={(e) => e.preventDefault()}>
+          Ver historial →
+        </a>
       </div>
       <p className="bgwatchHeadline">100 partidas registradas este año 🎉</p>
 
@@ -17,11 +19,18 @@ function BgWatchWidget() {
         </div>
         <div className="bgwatchStat">
           <span className="bgwatchStatLabel">Más jugado</span>
-          <span className="bgwatchStatValue" style={{ fontSize: '0.95rem', lineHeight: 1.3 }}>{BGWATCH_USER.topGame}</span>
+          <span
+            className="bgwatchStatValue"
+            style={{ fontSize: "0.95rem", lineHeight: 1.3 }}
+          >
+            {BGWATCH_USER.topGame}
+          </span>
         </div>
       </div>
 
-      <a href="#" className="bgwatchCta" onClick={e => e.preventDefault()}>+ Registrar partida</a>
+      <a href="#" className="bgwatchCta" onClick={(e) => e.preventDefault()}>
+        + Registrar partida
+      </a>
     </div>
   );
 }
@@ -32,20 +41,29 @@ function UpcomingTablesWidget() {
     <div className="widget">
       <div className="widgetHead">
         <span className="widgetEyebrow">◆ Tus próximas</span>
-        <a href="#" className="widgetLink" onClick={e => e.preventDefault()}>Ver todas →</a>
+        <a href="#" className="widgetLink" onClick={(e) => e.preventDefault()}>
+          Ver todas →
+        </a>
       </div>
       <h3 className="widgetTitle">Próximas partidas</h3>
 
       <div className="mesaRowList">
-        {UPCOMING_TABLES.map(t => (
-          <a key={t._id} href="#" className="mesaRow" onClick={e => e.preventDefault()}>
+        {UPCOMING_TABLES.map((t) => (
+          <a
+            key={t._id}
+            href="#"
+            className="mesaRow"
+            onClick={(e) => e.preventDefault()}
+          >
             <div className="mesaRowTile">{t.gameInitial}</div>
             <div className="mesaRowInfo">
               <div className="mesaRowGame">{t.game}</div>
               <div className="mesaRowMeta">{formatTableDate(t.date)}</div>
             </div>
-            <span className={`mesaRowSeats ${t.status === 'full' ? 'full' : ''}`}>
-              {t.status === 'full' ? 'Llena' : `${t.seats}L`}
+            <span
+              className={`mesaRowSeats ${t.status === "full" ? "full" : ""}`}
+            >
+              {t.status === "full" ? "Llena" : `${t.seats}L`}
             </span>
           </a>
         ))}
@@ -67,14 +85,17 @@ function TopGamesWidget() {
       <div className="gameList">
         {TOP_GAMES.map((g, i) => (
           <div key={g.game} className="gameRow">
-            <span className={`gameRank ${i === 0 ? 'top' : ''}`}>{i + 1}</span>
+            <span className={`gameRank ${i === 0 ? "top" : ""}`}>{i + 1}</span>
             <div className="gameBarWrap">
               <div className="gameNameRow">
                 <span className="gameName">{g.game}</span>
                 <span className="gameCount">{g.count}p</span>
               </div>
               <div className="gameBar">
-                <div className="gameBarFill" style={{ width: `${Math.round((g.count / max) * 100)}%` }} />
+                <div
+                  className="gameBarFill"
+                  style={{ width: `${Math.round((g.count / max) * 100)}%` }}
+                />
               </div>
             </div>
           </div>
@@ -95,7 +116,9 @@ function QuoteWidget() {
       <p className="quoteText">{PULL_QUOTE.text}</p>
       <div className="quoteAttribution">
         <Avatar user={PULL_QUOTE.author} size="xs" />
-        <span>— <strong>{PULL_QUOTE.author.name}</strong> · {PULL_QUOTE.context}</span>
+        <span>
+          — <strong>{PULL_QUOTE.author.name}</strong> · {PULL_QUOTE.context}
+        </span>
       </div>
     </div>
   );

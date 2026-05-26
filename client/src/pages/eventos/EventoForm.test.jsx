@@ -65,8 +65,12 @@ describe("<EventoForm>", () => {
     // Regex estricto — InfoTooltip suma un botón con aria-label "Ayuda sobre el campo Lugar".
     expect(screen.getByLabelText(/^lugar$/i)).toBeInTheDocument();
     // Estado ahora es un radiogroup de chips, no un select.
-    expect(screen.getByRole("radiogroup", { name: /estado del evento/i })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: /borrador/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("radiogroup", { name: /estado del evento/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("radio", { name: /borrador/i }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /abierto/i })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /crear evento/i }),
@@ -235,7 +239,14 @@ describe("<EventoForm>", () => {
     });
     const fd = onSubmit.mock.calls[0][0];
     const locJson = fd.get("location");
-    expect(locJson).toBe(JSON.stringify({ texto: "Bar X", lat: -34.6, lng: -58.4, displayName: "" }));
+    expect(locJson).toBe(
+      JSON.stringify({
+        texto: "Bar X",
+        lat: -34.6,
+        lng: -58.4,
+        displayName: "",
+      }),
+    );
   });
 
   it("normalizes a legacy string location into the subdoc when seeded", () => {
@@ -245,7 +256,7 @@ describe("<EventoForm>", () => {
         initialEvento={{
           title: "X",
           eventDate: "2026-06-13T17:00:00",
-          location: "Bar viejo",  // legacy string
+          location: "Bar viejo", // legacy string
         }}
         onSubmit={() => {}}
         onCancel={() => {}}
@@ -260,15 +271,15 @@ describe("<EventoForm>", () => {
       <EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />,
     );
     // Lleno título y fecha pero NO lugar.
-    fireEvent.change(screen.getByLabelText(/título/i), { target: { value: "Sin lugar" } });
+    fireEvent.change(screen.getByLabelText(/título/i), {
+      target: { value: "Sin lugar" },
+    });
     fireEvent.change(screen.getByLabelText(/fecha y hora/i), {
       target: { value: "2027-01-01T20:00" },
     });
     fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(
-      await screen.findByText(/lugar.*obligatorio/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/lugar.*obligatorio/i)).toBeInTheDocument();
   });
 
   it("label de Lugar muestra asterisco (obligatorio), no '(opcional)'", () => {
@@ -278,8 +289,12 @@ describe("<EventoForm>", () => {
     // El label "Lugar *" debe estar.
     expect(screen.getByText(/lugar \*/i)).toBeInTheDocument();
     // No debe decir "(opcional)" en el contexto del lugar.
-    expect(screen.queryByText(/usamos la dirección de tu perfil/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/se publica sin ubicación/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/usamos la dirección de tu perfil/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/se publica sin ubicación/i),
+    ).not.toBeInTheDocument();
   });
 
   it("permite setear un displayName y lo serializa en el FormData", async () => {
@@ -287,9 +302,15 @@ describe("<EventoForm>", () => {
     renderForm(
       <EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />,
     );
-    fireEvent.change(screen.getByLabelText(/título/i), { target: { value: "Mi evento" } });
-    fireEvent.change(screen.getByLabelText(/fecha y hora/i), { target: { value: "2027-01-01T20:00" } });
-    fireEvent.change(screen.getByLabelText(/^lugar$/i), { target: { value: "Av. Corrientes 1234" } });
+    fireEvent.change(screen.getByLabelText(/título/i), {
+      target: { value: "Mi evento" },
+    });
+    fireEvent.change(screen.getByLabelText(/fecha y hora/i), {
+      target: { value: "2027-01-01T20:00" },
+    });
+    fireEvent.change(screen.getByLabelText(/^lugar$/i), {
+      target: { value: "Av. Corrientes 1234" },
+    });
     // Usamos getByPlaceholderText porque el label "Nombre de ubicación personalizado"
     // tiene un <span> interno que confunde a getByLabelText con regex.
     fireEvent.change(screen.getByPlaceholderText("Ej. Bar de Pepe"), {
@@ -311,15 +332,27 @@ describe("<EventoForm>", () => {
     );
     // El texto del help NO está visible al cargar el form.
     expect(screen.queryByText(/elegí una sugerencia/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/aparece en lugar de la dirección/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/aparece en lugar de la dirección/i),
+    ).not.toBeInTheDocument();
 
     // Pero hay botones de InfoTooltip junto a los labels.
-    expect(screen.getByRole("button", { name: /ayuda sobre el campo lugar/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /ayuda sobre el nombre de ubicación personalizado/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /ayuda sobre el campo lugar/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: /ayuda sobre el nombre de ubicación personalizado/i,
+      }),
+    ).toBeInTheDocument();
 
     // Al clickear uno, su contenido aparece.
-    fireEvent.click(screen.getByRole("button", { name: /ayuda sobre el campo lugar/i }));
-    expect(screen.getByRole("tooltip")).toHaveTextContent(/elegí una sugerencia/i);
+    fireEvent.click(
+      screen.getByRole("button", { name: /ayuda sobre el campo lugar/i }),
+    );
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      /elegí una sugerencia/i,
+    );
   });
 
   it("Estado: clickear un chip cambia el status (aria-checked) y el resto queda inactivo", () => {
@@ -343,11 +376,15 @@ describe("<EventoForm>", () => {
     renderForm(
       <EventoForm mode="create" onSubmit={onSubmit} onCancel={() => {}} />,
     );
-    fireEvent.change(screen.getByLabelText(/título/i), { target: { value: "X" } });
+    fireEvent.change(screen.getByLabelText(/título/i), {
+      target: { value: "X" },
+    });
     fireEvent.change(screen.getByLabelText(/fecha y hora/i), {
       target: { value: "2027-01-01T20:00" },
     });
-    fireEvent.change(screen.getByLabelText(/^lugar$/i), { target: { value: "Bar" } });
+    fireEvent.change(screen.getByLabelText(/^lugar$/i), {
+      target: { value: "Bar" },
+    });
     fireEvent.click(screen.getByRole("radio", { name: /cancelado/i }));
     fireEvent.click(screen.getByRole("button", { name: /crear evento/i }));
     await new Promise((r) => {
@@ -364,13 +401,20 @@ describe("<EventoForm>", () => {
         initialEvento={{
           title: "Evento",
           eventDate: "2026-06-13T17:00:00",
-          location: { texto: "Av. X", lat: -34.6, lng: -58.4, displayName: "Bar Plaza" },
+          location: {
+            texto: "Av. X",
+            lat: -34.6,
+            lng: -58.4,
+            displayName: "Bar Plaza",
+          },
         }}
         onSubmit={() => {}}
         onCancel={() => {}}
       />,
     );
-    expect(screen.getByPlaceholderText("Ej. Bar de Pepe")).toHaveValue("Bar Plaza");
+    expect(screen.getByPlaceholderText("Ej. Bar de Pepe")).toHaveValue(
+      "Bar Plaza",
+    );
   });
 
   it("revoca la object URL cuando el form se desmonta (regresión: memory leak)", () => {

@@ -7,9 +7,15 @@
   min-height: 400px;
 }
 
-.pending { border-color: var(--orange-25); }
-.confirmed { border-color: var(--green-25); }
-.rejected { border-color: var(--border); }
+.pending {
+  border-color: var(--orange-25);
+}
+.confirmed {
+  border-color: var(--green-25);
+}
+.rejected {
+  border-color: var(--border);
+}
 
 .head {
   display: flex;
@@ -31,8 +37,12 @@
   text-transform: uppercase;
 }
 
-.labelOrange { color: var(--orange); }
-.labelGreen  { color: var(--green); }
+.labelOrange {
+  color: var(--orange);
+}
+.labelGreen {
+  color: var(--green);
+}
 
 .count {
   font-family: var(--font-display);

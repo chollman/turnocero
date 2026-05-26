@@ -1,3 +1,12 @@
+---
+name: feedback-google-maps-setup
+description: "Google Maps + Places + server-side Geocoding (replaced Leaflet+Nominatim in 2026-05); shared `AddressMap`/`PlaceAutocomplete`, 2 Map IDs (dark/light), `getLocationDisplay(loc, mode)` for display"
+metadata:
+  node_type: memory
+  type: feedback
+  originSessionId: 92c9193d-d562-4786-a099-944475d22163
+---
+
 # Google Maps setup (Turnocero)
 
 Reemplazó a Leaflet + Nominatim en 2026-05 (commit pendiente). Patrón establecido:
@@ -5,11 +14,13 @@ Reemplazó a Leaflet + Nominatim en 2026-05 (commit pendiente). Patrón establec
 ## Env vars
 
 **Client** (`client/.env.local`, gitignored):
+
 - `VITE_GOOGLE_MAPS_API_KEY` — browser key, restringida por referrer en Cloud Console. Habilitada para Maps JavaScript API + Places API (New).
 - `VITE_GOOGLE_MAPS_MAP_ID_DARK` — Map ID con estilo dark.
 - `VITE_GOOGLE_MAPS_MAP_ID_LIGHT` — Map ID con estilo light.
 
 **Server** (`server/.env`, gitignored):
+
 - `GOOGLE_MAPS_API_KEY` — server key, restringida por IP en Cloud Console. Solo Geocoding API.
 
 Los Map IDs se manejan en Cloud Console (Map Styles); para cambiar la paleta visual del mapa NO se toca código, se edita el estilo en Cloud Console y se actualiza solo.
@@ -34,6 +45,7 @@ En el editor nuevo de Cloud Console, cada Map Style tiene un "Style type" (Light
 Mismo patrón aplicado a `Table.location` Y `Evento.location`: migrado de `String` a `{ texto, lat, lng, displayName? }` con `pre('init')` hook para lazy upgrade. Forms reusan `<PlaceAutocomplete>` + `<AddressMap>` (Tables) / solo `<PlaceAutocomplete>` (Eventos). Distancia user↔item se calcula con **Haversine puro** (sin APIs de Google) en `server/utils/geo.js`, expuesta como `distanceKm` en cada item de `GET /api/tables` y `GET /api/eventos`, con filtro server-side `?maxDistanceKm=N` (bbox + refine en memoria, sin requerir 2dsphere). UI: badge verde via helper `client/src/utils/distance.js#formatDistanceKm` ("850 m" / "12,3 km" / "250 km" — `null` para 0 y distancias < 10m que redondean a 0). Slider de radio en dashboard con `useDebouncedValue(300ms)`.
 
 **Diferencias entre Tables y Eventos**:
+
 - Tables: location opcional, fallback al `user.direccion` en POST (no en PUT). Edit con `<AddressMap>` visual.
 - Eventos: location **obligatoria** (sin fallback), validación tanto en frontend (handleSubmit) como server (POST/PUT). Form sin mapa.
 - Eventos suma `location.displayName` (opcional, max 100): alias del lugar que reemplaza al `texto` formateado en cards/listas (ej. "Bar de Pepe" en vez de "Av. X 1234, CABA"). La dirección real sigue usándose para distancia y mapa.
@@ -41,13 +53,24 @@ Mismo patrón aplicado a `Table.location` Y `Evento.location`: migrado de `Strin
 ## Helpers de display de location
 
 `client/src/utils/location.js`:
+
 - `formatLocation(texto, mode)` — modos: `fullAddress` (default), `city` (solo localidad, strippea código postal AR), `regular` (calle + ciudad sin provincia/país). Heurística: descarta país (Argentina/Uruguay/Chile/Brasil) + provincia (`"Provincia de X"`, `"X Province"`), agarra último elemento → ciudad. Funciona con string libre (sin comas → devuelve tal cual).
 - `getLocationDisplay(location, mode)` — wrapper que respeta `location.displayName` si está seteado, sino cae a `formatLocation(location.texto, mode)`. **Usar este helper en componentes de display** en vez de `formatLocation` directo — centraliza la lógica del override.
 
 Convención de display por superficie:
+
 - **Listas/cards**: `getLocationDisplay(loc, 'city')` — máxima brevedad.
 - **Detalle**: `getLocationDisplay(loc, 'regular')` — calle + ciudad.
 - **Tooltip `title`**: siempre `loc.texto` crudo para que el user pueda ver la dirección completa.
+
+**⚠️ Gotcha**: NUNCA interpolar `${table.location}` o `${evento.location}` directo
+en JSX/template strings. Es un subdoc — se renderea como `"[object Object]"`. Bug
+encontrado en mayo 2026 en [`CompartidaCard.jsx`](../../client/src/pages/compartidas/CompartidaCard.jsx) (mesa enlazada) y [`Login.jsx`](../../client/src/pages/auth/Login.jsx) (showcase). Reglas:
+1. Siempre `getLocationDisplay(loc, mode)` — nunca acceso directo a `.location`.
+2. Si se necesita `.texto` crudo (tooltip), acceder como `loc?.texto`, nunca
+   `${loc}`.
+
+Buscar el antipattern con: `grep -rn '\${[a-zA-Z_]*\.location[^.?]'` en `client/src`.
 
 ## Backend geocoding cache (mismo patrón que BGG)
 

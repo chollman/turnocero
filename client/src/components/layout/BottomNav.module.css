@@ -8,7 +8,10 @@
   left: calc(var(--vv-left, 0px) + 12px / var(--vv-scale, 1));
   right: auto;
   width: calc(100% - 24px);
-  bottom: calc(var(--vv-bottom, 0px) + max(12px, env(safe-area-inset-bottom)) / var(--vv-scale, 1));
+  bottom: calc(
+    var(--vv-bottom, 0px) + max(12px, env(safe-area-inset-bottom)) /
+      var(--vv-scale, 1)
+  );
   transform-origin: bottom left;
   transform: scale(calc(1 / var(--vv-scale, 1)));
   background: rgba(21, 28, 40, 0.94);
@@ -27,7 +30,7 @@
 }
 
 /* Light-theme variant: lighter translucent fill */
-:global(:root[data-theme='light']) .nav {
+:global(:root[data-theme="light"]) .nav {
   background: rgba(255, 255, 255, 0.86);
   box-shadow:
     0 8px 32px rgba(15, 23, 42, 0.15),
@@ -109,7 +112,7 @@
 }
 
 .label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 9.5px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -128,7 +131,7 @@
 }
 
 .itemActive::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -1px;
   left: 50%;
@@ -165,8 +168,13 @@
 }
 
 @keyframes bnPulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* ─── Promo (BG Watch CTA) ─── */
@@ -186,7 +194,7 @@
   right: -2px;
   background: var(--purple);
   color: var(--on-amber);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 7.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -223,13 +231,25 @@
 
 /* ─── Slide animations on pagination ─── */
 @keyframes kSlideLeft {
-  from { transform: translateX(28px); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
+  from {
+    transform: translateX(28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 @keyframes kSlideRight {
-  from { transform: translateX(-28px); opacity: 0; }
-  to   { transform: translateX(0);     opacity: 1; }
+  from {
+    transform: translateX(-28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .slideLeft {

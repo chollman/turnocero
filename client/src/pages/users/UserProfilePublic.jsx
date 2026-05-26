@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../../context/AuthContext';
-import { useSiteConfig } from '../../context/SiteConfigContext';
-import { useNotifications } from '../../context/NotificationContext';
-import { API } from '../../api/endpoints';
-import GameTile from '../../components/shared/GameTile';
-import Avatar from '../../components/shared/Avatar';
-import ProfileSkeleton from './ProfileSkeleton';
-import BgWatchUserCard from './BgWatchUserCard';
-import styles from './UserProfilePublic.module.css';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
+import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useNotifications } from "../../context/NotificationContext";
+import { API } from "../../api/endpoints";
+import GameTile from "../../components/shared/GameTile";
+import Avatar from "../../components/shared/Avatar";
+import ProfileSkeleton from "./ProfileSkeleton";
+import BgWatchUserCard from "./BgWatchUserCard";
+import styles from "./UserProfilePublic.module.css";
 
-function seedFromId(id = '') {
+function seedFromId(id = "") {
   let s = 0;
   for (let i = 0; i < id.length; i++) s = (s * 31 + id.charCodeAt(i)) >>> 0;
   return s;
@@ -19,24 +19,32 @@ function seedFromId(id = '') {
 
 function formatDate(iso) {
   if (!iso) return null;
-  return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+  return new Date(iso).toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function timeAgo(iso) {
   if (!iso) return null;
   const diff = Date.now() - new Date(iso).getTime();
   const days = Math.floor(diff / 86400000);
-  if (days === 0) return 'hoy';
-  if (days === 1) return 'ayer';
+  if (days === 0) return "hoy";
+  if (days === 1) return "ayer";
   if (days < 7) return `hace ${days} días`;
-  if (days < 30) return `hace ${Math.floor(days / 7)} semana${Math.floor(days / 7) > 1 ? 's' : ''}`;
-  if (days < 365) return `hace ${Math.floor(days / 30)} mes${Math.floor(days / 30) > 1 ? 'es' : ''}`;
-  return `hace ${Math.floor(days / 365)} año${Math.floor(days / 365) > 1 ? 's' : ''}`;
+  if (days < 30)
+    return `hace ${Math.floor(days / 7)} semana${Math.floor(days / 7) > 1 ? "s" : ""}`;
+  if (days < 365)
+    return `hace ${Math.floor(days / 30)} mes${Math.floor(days / 30) > 1 ? "es" : ""}`;
+  return `hace ${Math.floor(days / 365)} año${Math.floor(days / 365) > 1 ? "s" : ""}`;
 }
 
 function StatCard({ value, label, accent }) {
   return (
-    <div className={`${styles.statCard} ${accent ? styles.statCardAccent : ''}`}>
+    <div
+      className={`${styles.statCard} ${accent ? styles.statCardAccent : ""}`}
+    >
       <span className={styles.statValue}>{value}</span>
       <span className={styles.statLabel}>{label}</span>
     </div>
@@ -55,7 +63,10 @@ function FavoriteGames({ games }) {
             <span className={styles.gameRank}>#{i + 1}</span>
             <span className={styles.gameName}>{g.game}</span>
             <div className={styles.gameBarWrap}>
-              <div className={styles.gameBar} style={{ width: `${Math.round((g.count / max) * 100)}%` }} />
+              <div
+                className={styles.gameBar}
+                style={{ width: `${Math.round((g.count / max) * 100)}%` }}
+              />
             </div>
             <span className={styles.gameCount}>{g.count}×</span>
           </div>
@@ -75,59 +86,62 @@ export default function UserProfilePublic() {
   // link compartido) y caemos al fallback /usuarios. `location.key !== 'default'`
   // no servía: sobrevive al reload y daba falsos positivos.
   const canGoBack = (window.history.state?.idx ?? 0) > 0;
-  const goBack = () => (canGoBack ? navigate(-1) : navigate('/usuarios'));
-  const backLabel = canGoBack ? '← Volver' : '← Jugadores';
+  const goBack = () => (canGoBack ? navigate(-1) : navigate("/usuarios"));
+  const backLabel = canGoBack ? "← Volver" : "← Jugadores";
   const { user: currentUser, refreshUser } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
   const { notifyFriendAdded } = useNotifications();
-  const amigosEnabled = isSectionEnabled('amigos');
-  const mesasEnabled = isSectionEnabled('mesas');
-  const compartidasEnabled = isSectionEnabled('compartidas');
-  const bgwatchEnabled = isSectionEnabled('bgwatch');
+  const amigosEnabled = isSectionEnabled("amigos");
+  const mesasEnabled = isSectionEnabled("mesas");
+  const compartidasEnabled = isSectionEnabled("compartidas");
+  const bgwatchEnabled = isSectionEnabled("bgwatch");
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [relationship, setRelationship] = useState('none');
+  const [relationship, setRelationship] = useState("none");
   const [friendLoading, setFriendLoading] = useState(false);
 
   useEffect(() => {
     const ac = new AbortController();
     setLoading(true);
     setError(null);
-    axios.get(API.users.DETAIL(id), { signal: ac.signal })
+    axios
+      .get(API.users.DETAIL(id), { signal: ac.signal })
       .then(({ data }) => {
         if (ac.signal.aborted) return;
         setProfile(data);
-        setRelationship(data.relationship ?? 'none');
+        setRelationship(data.relationship ?? "none");
       })
       .catch((err) => {
         if (axios.isCancel(err)) return;
-        setError('No se pudo cargar el perfil');
+        setError("No se pudo cargar el perfil");
       })
-      .finally(() => { if (!ac.signal.aborted) setLoading(false); });
+      .finally(() => {
+        if (!ac.signal.aborted) setLoading(false);
+      });
     return () => ac.abort();
   }, [id]);
 
   const handleFriendAction = async (action) => {
     setFriendLoading(true);
     try {
-      if (action === 'request') {
+      if (action === "request") {
         await axios.post(API.friends.REQUEST(id));
-        setRelationship('request_sent');
-      } else if (action === 'cancel_request') {
+        setRelationship("request_sent");
+      } else if (action === "cancel_request") {
         await axios.delete(API.friends.REQUEST(id));
-        setRelationship('none');
-      } else if (action === 'accept') {
+        setRelationship("none");
+      } else if (action === "accept") {
         await axios.post(API.friends.ACCEPT(id));
-        setRelationship('friends');
+        setRelationship("friends");
         notifyFriendAdded();
         refreshUser().catch(() => {});
-      } else if (action === 'reject') {
+      } else if (action === "reject") {
         await axios.post(API.friends.REJECT(id));
-        setRelationship('none');
-      } else if (action === 'unfriend') {
+        setRelationship("none");
+      } else if (action === "unfriend") {
         await axios.delete(API.friends.UNFRIEND(id));
-        setRelationship('none');
+        setRelationship("none");
         refreshUser().catch(() => {});
       }
     } catch {
@@ -145,9 +159,9 @@ export default function UserProfilePublic() {
     return (
       <div className={styles.page}>
         <div className={styles.stateCenter}>
-          <p>{error || 'Usuario no encontrado'}</p>
+          <p>{error || "Usuario no encontrado"}</p>
           <button className={styles.backBtn} onClick={goBack}>
-            {canGoBack ? '← Volver' : '← Volver a jugadores'}
+            {canGoBack ? "← Volver" : "← Volver a jugadores"}
           </button>
         </div>
       </div>
@@ -155,16 +169,19 @@ export default function UserProfilePublic() {
   }
 
   const { stats } = profile;
-  const displayName = profile.displayName ||
-    [profile.nombre, profile.apellido].filter(Boolean).join(' ') ||
+  const displayName =
+    profile.displayName ||
+    [profile.nombre, profile.apellido].filter(Boolean).join(" ") ||
     profile.username;
   const seed = seedFromId(profile._id || id);
-  const joinYear = profile.createdAt ? new Date(profile.createdAt).getFullYear() : null;
+  const joinYear = profile.createdAt
+    ? new Date(profile.createdAt).getFullYear()
+    : null;
 
   const contactParts = [
     profile.direccion?.texto,
-    profile.telegram ? '✈️ Telegram' : null,
-    profile.celular ? '📱 Celular' : null,
+    profile.telegram ? "✈️ Telegram" : null,
+    profile.celular ? "📱 Celular" : null,
   ].filter(Boolean);
 
   return (
@@ -186,40 +203,60 @@ export default function UserProfilePublic() {
           <Avatar user={profile} size="xl" />
           <div className={styles.heroInfo}>
             <div className={styles.eyebrow}>
-              ◆ PERFIL{joinYear ? ` · DESDE ${joinYear}` : ''}
+              ◆ PERFIL{joinYear ? ` · DESDE ${joinYear}` : ""}
             </div>
             <h1 className={styles.heroTitle}>{displayName}</h1>
             <div className={styles.heroSub}>
               @{profile.username}
-              {contactParts.length > 0 && ` · ${contactParts.join(' · ')}`}
+              {contactParts.length > 0 && ` · ${contactParts.join(" · ")}`}
             </div>
 
             {currentUser && currentUser._id !== id && amigosEnabled && (
               <div className={styles.friendActions}>
-                {relationship === 'none' && (
-                  <button className={styles.friendBtnPrimary} onClick={() => handleFriendAction('request')} disabled={friendLoading}>
+                {relationship === "none" && (
+                  <button
+                    className={styles.friendBtnPrimary}
+                    onClick={() => handleFriendAction("request")}
+                    disabled={friendLoading}
+                  >
                     Agregar amigo
                   </button>
                 )}
-                {relationship === 'request_sent' && (
-                  <button className={styles.friendBtnMuted} onClick={() => handleFriendAction('cancel_request')} disabled={friendLoading}>
+                {relationship === "request_sent" && (
+                  <button
+                    className={styles.friendBtnMuted}
+                    onClick={() => handleFriendAction("cancel_request")}
+                    disabled={friendLoading}
+                  >
                     Solicitud enviada · Cancelar
                   </button>
                 )}
-                {relationship === 'request_received' && (
+                {relationship === "request_received" && (
                   <div className={styles.friendBtnGroup}>
-                    <button className={styles.friendBtnAccept} onClick={() => handleFriendAction('accept')} disabled={friendLoading}>
+                    <button
+                      className={styles.friendBtnAccept}
+                      onClick={() => handleFriendAction("accept")}
+                      disabled={friendLoading}
+                    >
                       ✓ Aceptar
                     </button>
-                    <button className={styles.friendBtnMuted} onClick={() => handleFriendAction('reject')} disabled={friendLoading}>
+                    <button
+                      className={styles.friendBtnMuted}
+                      onClick={() => handleFriendAction("reject")}
+                      disabled={friendLoading}
+                    >
                       Rechazar
                     </button>
                   </div>
                 )}
-                {relationship === 'friends' && (
+                {relationship === "friends" && (
                   <div className={styles.friendBtnGroup}>
                     <span className={styles.friendsBadge}>✓ Amigos</span>
-                    <button className={styles.friendBtnUnfriend} onClick={() => handleFriendAction('unfriend')} disabled={friendLoading}>
+                    <button
+                      className={styles.friendBtnUnfriend}
+                      onClick={() => handleFriendAction("unfriend")}
+                      disabled={friendLoading}
+                    >
                       Desamigar
                     </button>
                   </div>
@@ -231,13 +268,31 @@ export default function UserProfilePublic() {
 
         {/* Stats grid */}
         <div className={styles.statsGrid}>
-          {mesasEnabled && <StatCard value={stats.totalGamesPlayed} label="Partidas jugadas" accent />}
-          {mesasEnabled && <StatCard value={stats.tablesHosted.total} label="Mesas creadas" />}
-          {mesasEnabled && <StatCard value={stats.tablesAsPlayer.total} label="Como jugador" />}
-          {mesasEnabled && <StatCard value={stats.tablesHosted.active} label="Mesas activas" />}
-          {amigosEnabled && <StatCard value={profile.friendsCount} label="Amigos" />}
-          {compartidasEnabled && <StatCard value={stats.compartidas} label="Publicaciones" />}
-          {compartidasEnabled && <StatCard value={stats.likesReceived} label="Likes recibidos" />}
+          {mesasEnabled && (
+            <StatCard
+              value={stats.totalGamesPlayed}
+              label="Partidas jugadas"
+              accent
+            />
+          )}
+          {mesasEnabled && (
+            <StatCard value={stats.tablesHosted.total} label="Mesas creadas" />
+          )}
+          {mesasEnabled && (
+            <StatCard value={stats.tablesAsPlayer.total} label="Como jugador" />
+          )}
+          {mesasEnabled && (
+            <StatCard value={stats.tablesHosted.active} label="Mesas activas" />
+          )}
+          {amigosEnabled && (
+            <StatCard value={profile.friendsCount} label="Amigos" />
+          )}
+          {compartidasEnabled && (
+            <StatCard value={stats.compartidas} label="Publicaciones" />
+          )}
+          {compartidasEnabled && (
+            <StatCard value={stats.likesReceived} label="Likes recibidos" />
+          )}
         </div>
 
         {/* BG Watch card — prominent surface for visiting someone's BG Watch */}
@@ -249,7 +304,9 @@ export default function UserProfilePublic() {
         <div className={styles.layout}>
           {/* Left: contact + favorites */}
           <div className={styles.leftCol}>
-            {(profile.direccion?.texto || profile.telegram || profile.celular) && (
+            {(profile.direccion?.texto ||
+              profile.telegram ||
+              profile.celular) && (
               <div className={styles.infoCard}>
                 <div className={styles.sectionLabel}>CONTACTO</div>
                 <div className={styles.infoList}>
@@ -258,7 +315,9 @@ export default function UserProfilePublic() {
                       <span className={styles.infoIcon}>📍</span>
                       <div className={styles.infoText}>
                         <span className={styles.infoLabel}>Zona</span>
-                        <span className={styles.infoValue}>{profile.direccion.texto}</span>
+                        <span className={styles.infoValue}>
+                          {profile.direccion.texto}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -267,7 +326,9 @@ export default function UserProfilePublic() {
                       <span className={styles.infoIcon}>✈️</span>
                       <div className={styles.infoText}>
                         <span className={styles.infoLabel}>Telegram</span>
-                        <span className={styles.infoValue}>@{profile.telegram}</span>
+                        <span className={styles.infoValue}>
+                          @{profile.telegram}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -276,7 +337,9 @@ export default function UserProfilePublic() {
                       <span className={styles.infoIcon}>📱</span>
                       <div className={styles.infoText}>
                         <span className={styles.infoLabel}>Celular</span>
-                        <span className={styles.infoValue}>{profile.celular}</span>
+                        <span className={styles.infoValue}>
+                          {profile.celular}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -296,65 +359,111 @@ export default function UserProfilePublic() {
           {/* Right: breakdown */}
           <div className={styles.rightCol}>
             {mesasEnabled && (
-            <>
-            <div className={styles.infoCard}>
-              <div className={styles.sectionLabel}>MESAS COMO ANFITRIÓN</div>
-              <div className={styles.breakdown}>
-                <div className={styles.breakdownItem}>
-                  <span className={`${styles.breakdownDot} ${styles.dotOpen}`} />
-                  <span className={styles.breakdownLabel}>Abiertas</span>
-                  <span className={styles.breakdownValue}>{stats.tablesHosted.open}</span>
+              <>
+                <div className={styles.infoCard}>
+                  <div className={styles.sectionLabel}>
+                    MESAS COMO ANFITRIÓN
+                  </div>
+                  <div className={styles.breakdown}>
+                    <div className={styles.breakdownItem}>
+                      <span
+                        className={`${styles.breakdownDot} ${styles.dotOpen}`}
+                      />
+                      <span className={styles.breakdownLabel}>Abiertas</span>
+                      <span className={styles.breakdownValue}>
+                        {stats.tablesHosted.open}
+                      </span>
+                    </div>
+                    <div className={styles.breakdownItem}>
+                      <span
+                        className={`${styles.breakdownDot} ${styles.dotFull}`}
+                      />
+                      <span className={styles.breakdownLabel}>Llenas</span>
+                      <span className={styles.breakdownValue}>
+                        {stats.tablesHosted.full}
+                      </span>
+                    </div>
+                    <div className={styles.breakdownItem}>
+                      <span
+                        className={`${styles.breakdownDot} ${styles.dotCancelled}`}
+                      />
+                      <span className={styles.breakdownLabel}>Canceladas</span>
+                      <span className={styles.breakdownValue}>
+                        {stats.tablesHosted.cancelled}
+                      </span>
+                    </div>
+                    {stats.tablesHosted.total > 0 && (
+                      <div
+                        className={`${styles.breakdownItem} ${styles.breakdownSuccess}`}
+                      >
+                        <span
+                          className={`${styles.breakdownDot} ${styles.dotSuccess}`}
+                        />
+                        <span className={styles.breakdownLabel}>
+                          Tasa de éxito
+                        </span>
+                        <span
+                          className={`${styles.breakdownValue} ${styles.breakdownValueSuccess}`}
+                        >
+                          {Math.round(
+                            ((stats.tablesHosted.total -
+                              stats.tablesHosted.cancelled) /
+                              stats.tablesHosted.total) *
+                              100,
+                          )}
+                          %
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className={styles.breakdownItem}>
-                  <span className={`${styles.breakdownDot} ${styles.dotFull}`} />
-                  <span className={styles.breakdownLabel}>Llenas</span>
-                  <span className={styles.breakdownValue}>{stats.tablesHosted.full}</span>
-                </div>
-                <div className={styles.breakdownItem}>
-                  <span className={`${styles.breakdownDot} ${styles.dotCancelled}`} />
-                  <span className={styles.breakdownLabel}>Canceladas</span>
-                  <span className={styles.breakdownValue}>{stats.tablesHosted.cancelled}</span>
-                </div>
-                {stats.tablesHosted.total > 0 && (
-                  <div className={`${styles.breakdownItem} ${styles.breakdownSuccess}`}>
-                    <span className={`${styles.breakdownDot} ${styles.dotSuccess}`} />
-                    <span className={styles.breakdownLabel}>Tasa de éxito</span>
-                    <span className={`${styles.breakdownValue} ${styles.breakdownValueSuccess}`}>
-                      {Math.round(((stats.tablesHosted.total - stats.tablesHosted.cancelled) / stats.tablesHosted.total) * 100)}%
-                    </span>
+
+                {stats.totalGamesPlayed > 0 && (
+                  <div className={styles.infoCard}>
+                    <div className={styles.sectionLabel}>ROL EN PARTIDAS</div>
+                    <div className={styles.ratioWrap}>
+                      <div className={styles.ratioLabels}>
+                        <span>Anfitrión</span>
+                        <span>Jugador</span>
+                      </div>
+                      <div className={styles.ratioBar}>
+                        <div
+                          className={styles.ratioFill}
+                          style={{
+                            width: `${Math.round((stats.tablesHosted.active / stats.totalGamesPlayed) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <div className={styles.ratioValues}>
+                        <span>
+                          {Math.round(
+                            (stats.tablesHosted.active /
+                              stats.totalGamesPlayed) *
+                              100,
+                          )}
+                          %
+                        </span>
+                        <span>
+                          {Math.round(
+                            (stats.tablesAsPlayer.active /
+                              stats.totalGamesPlayed) *
+                              100,
+                          )}
+                          %
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
-            </div>
-
-            {stats.totalGamesPlayed > 0 && (
-              <div className={styles.infoCard}>
-                <div className={styles.sectionLabel}>ROL EN PARTIDAS</div>
-                <div className={styles.ratioWrap}>
-                  <div className={styles.ratioLabels}>
-                    <span>Anfitrión</span>
-                    <span>Jugador</span>
-                  </div>
-                  <div className={styles.ratioBar}>
-                    <div
-                      className={styles.ratioFill}
-                      style={{ width: `${Math.round((stats.tablesHosted.active / stats.totalGamesPlayed) * 100)}%` }}
-                    />
-                  </div>
-                  <div className={styles.ratioValues}>
-                    <span>{Math.round((stats.tablesHosted.active / stats.totalGamesPlayed) * 100)}%</span>
-                    <span>{Math.round((stats.tablesAsPlayer.active / stats.totalGamesPlayed) * 100)}%</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            </>
+              </>
             )}
 
             {profile.createdAt && (
               <div className={styles.miembroCard}>
                 <div className={styles.sectionLabel}>MIEMBRO DESDE</div>
-                <div className={styles.miembroDate}>{formatDate(profile.createdAt)}</div>
+                <div className={styles.miembroDate}>
+                  {formatDate(profile.createdAt)}
+                </div>
               </div>
             )}
           </div>

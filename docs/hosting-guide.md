@@ -40,11 +40,11 @@ GitHub → repositorio → Settings → "Change repository visibility" → **Pri
 
 ## Paso 2: Comprar el dominio
 
-| Opción | Precio aprox. | Notas |
-|--------|--------------|-------|
+| Opción                   | Precio aprox.      | Notas                                                   |
+| ------------------------ | ------------------ | ------------------------------------------------------- |
 | **Cloudflare Registrar** | ~$10–15/año (.com) | Precio at-cost, sin markups. Requiere cuenta Cloudflare |
-| **Namecheap** | ~$1–3 (1er año) | Promociones frecuentes |
-| GoDaddy | — | Evitar — renovaciones caras |
+| **Namecheap**            | ~$1–3 (1er año)    | Promociones frecuentes                                  |
+| GoDaddy                  | —                  | Evitar — renovaciones caras                             |
 
 Sugerencias: `turnocero.com`, `turnocero.com.ar`, `turnocero.app`
 
@@ -63,6 +63,7 @@ Aunque compres el dominio en Namecheap, apunta los nameservers a Cloudflare:
 ## Paso 3: Migrar el frontend a Vercel
 
 ### Por qué Vercel
+
 - Soporta repos privados en plan gratuito
 - Dominio personalizado con SSL automático
 - Deploy automático en cada push a `master`
@@ -134,11 +135,11 @@ CLOUDINARY_API_SECRET=...
 
 ## Paso 5: Configurar DNS en Cloudflare
 
-| Tipo | Nombre | Destino | Proxy |
-|------|--------|---------|-------|
-| CNAME | `@` (raíz) | `cname.vercel-dns.com` | ON (naranja) |
-| CNAME | `www` | `cname.vercel-dns.com` | ON (naranja) |
-| CNAME | `api` | `<tu-app>.onrender.com` | **OFF** (gris) |
+| Tipo  | Nombre     | Destino                 | Proxy          |
+| ----- | ---------- | ----------------------- | -------------- |
+| CNAME | `@` (raíz) | `cname.vercel-dns.com`  | ON (naranja)   |
+| CNAME | `www`      | `cname.vercel-dns.com`  | ON (naranja)   |
+| CNAME | `api`      | `<tu-app>.onrender.com` | **OFF** (gris) |
 
 > El proxy de Cloudflare debe estar **apagado** para el subdominio `api` porque Render maneja su propio SSL. Para el frontend en Vercel, déjalo encendido para aprovechar el CDN.
 
@@ -151,16 +152,19 @@ El registro `@` (raíz) requiere CNAME Flattening, que Cloudflare aplica automá
 El servidor ya usa **Helmet.js** para headers de seguridad. Verificar adicionalmente:
 
 ### En Cloudflare (gratis)
+
 - SSL/TLS → modo **Full (strict)**
 - Security → WAF → activar reglas managed gratuitas
 - Speed → Minification activado
 - Redirect: forzar `www` → sin `www` (o viceversa, elegir uno con una Page Rule)
 
 ### En el servidor Express
+
 - **Rate limiting** en rutas de auth — si no está implementado, agregar `express-rate-limit` en `/api/auth/login` y `/api/auth/register`
 - CORS ya está configurado desde variable de entorno (`CORS_ORIGIN`) — correcto
 
 ### Secretos
+
 - Variables de entorno solo en los dashboards de Render/Railway/Vercel — nunca en el repo
 - Para el workflow de GitHub Actions: usar **GitHub Secrets** (Settings → Secrets and variables → Actions)
 
@@ -169,17 +173,20 @@ El servidor ya usa **Helmet.js** para headers de seguridad. Verificar adicionalm
 ## Checklist de implementación
 
 ### Seguridad (hacer antes de hacer el repo privado)
+
 - [ ] Rotar password del usuario en MongoDB Atlas
 - [ ] Generar nuevo `JWT_SECRET`
 - [ ] Verificar que `server/.env` no está trackeado por git
 - [ ] Limpiar historial de git si las credenciales fueron commiteadas
 
 ### Repo e infraestructura
+
 - [ ] Hacer el repo privado en GitHub
 - [ ] Comprar dominio
 - [ ] Crear cuenta Cloudflare y configurar nameservers
 
 ### Frontend
+
 - [ ] Crear cuenta Vercel e importar el proyecto
 - [ ] Cambiar `base: '/turnocero/'` → `base: '/'` en `client/vite.config.js`
 - [ ] Configurar variable de entorno `VITE_API_URL` en Vercel
@@ -187,11 +194,13 @@ El servidor ya usa **Helmet.js** para headers de seguridad. Verificar adicionalm
 - [ ] Desactivar/eliminar el GitHub Actions workflow de Pages
 
 ### Backend
+
 - [ ] Actualizar variables de entorno en Render (especialmente `CORS_ORIGIN`)
 - [ ] Agregar dominio custom `api.tudominio.com` en Render
 - [ ] Configurar UptimeRobot para evitar cold starts (si se queda en free)
 
 ### DNS y seguridad final
+
 - [ ] Configurar registros DNS en Cloudflare (tabla del Paso 5)
 - [ ] Activar SSL Full (strict) en Cloudflare
 - [ ] Verificar HTTPS en ambos dominios (`tudominio.com` y `api.tudominio.com`)
@@ -200,14 +209,14 @@ El servidor ya usa **Helmet.js** para headers de seguridad. Verificar adicionalm
 
 ## Costo estimado total
 
-| Servicio | Costo |
-|---------|-------|
-| Dominio .com | ~$10–15/año |
-| Cloudflare DNS/CDN/WAF | Gratis |
-| Vercel (frontend) | Gratis |
-| Render.com (backend) | Gratis (con cold starts) |
-| MongoDB Atlas | Gratis (tier M0) |
-| Cloudinary | Gratis (tier gratuito) |
-| **Total mínimo** | **~$10–15/año** |
+| Servicio               | Costo                    |
+| ---------------------- | ------------------------ |
+| Dominio .com           | ~$10–15/año              |
+| Cloudflare DNS/CDN/WAF | Gratis                   |
+| Vercel (frontend)      | Gratis                   |
+| Render.com (backend)   | Gratis (con cold starts) |
+| MongoDB Atlas          | Gratis (tier M0)         |
+| Cloudinary             | Gratis (tier gratuito)   |
+| **Total mínimo**       | **~$10–15/año**          |
 
 Para eliminar cold starts: Railway ~$5/mes (~$60/año adicionales).

@@ -132,6 +132,8 @@
 .bgWatchBannerCta {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;

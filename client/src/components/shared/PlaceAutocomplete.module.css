@@ -13,7 +13,9 @@
   font-family: var(--font-body, inherit);
   font-size: 14px;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
   /* Mismo height fijo que los demás inputs de forms para alineación en flex rows. */
   box-sizing: border-box;
   height: 42px;

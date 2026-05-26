@@ -217,6 +217,7 @@
 
 .newBtn:hover {
   background: var(--amber-light);
+  color: var(--on-amber);
   box-shadow: 0 4px 22px var(--amber-glow);
 }
 

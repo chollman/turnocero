@@ -10,7 +10,9 @@
 }
 
 @media (max-width: 940px) {
-  .sidebar { display: none; }
+  .sidebar {
+    display: none;
+  }
 }
 
 /* ── Widget shell ─────────────────────────────────────────────────────── */
@@ -47,7 +49,9 @@
   transition: color var(--transition);
 }
 
-.widgetLink:hover { color: var(--amber-light); }
+.widgetLink:hover {
+  color: var(--amber-light);
+}
 
 .widgetTitle {
   font-family: var(--font-display);
@@ -84,7 +88,9 @@
   transition: color var(--transition);
 }
 
-.emptyAction:hover { color: var(--amber); }
+.emptyAction:hover {
+  color: var(--amber);
+}
 
 /* ── Próximas mesas ───────────────────────────────────────────────── */
 .tableList {
@@ -105,7 +111,9 @@
   color: inherit;
 }
 
-.tableRow:hover { background: var(--bg-elevated); }
+.tableRow:hover {
+  background: var(--bg-elevated);
+}
 
 .tableTile {
   width: 38px;
@@ -183,7 +191,9 @@
   text-align: center;
 }
 
-.gameRankTop { color: var(--amber-light); }
+.gameRankTop {
+  color: var(--amber-light);
+}
 
 .gameBarWrap {
   min-width: 0;

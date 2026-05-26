@@ -1,22 +1,22 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import axios from 'axios'
-import { API } from '../../api/endpoints'
-import styles from './BgWatchHomeWidget.module.css'
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import axios from "axios";
+import { API } from "../../api/endpoints";
+import styles from "./BgWatchHomeWidget.module.css";
 
-const DISMISS_KEY = 'turnocero_bgwatch_promo_dismissed'
+const DISMISS_KEY = "turnocero_bgwatch_promo_dismissed";
 
 function readDismissed() {
   try {
-    return localStorage.getItem(DISMISS_KEY) === '1'
+    return localStorage.getItem(DISMISS_KEY) === "1";
   } catch {
-    return false
+    return false;
   }
 }
 
 function writeDismissed() {
   try {
-    localStorage.setItem(DISMISS_KEY, '1')
+    localStorage.setItem(DISMISS_KEY, "1");
   } catch {
     /* ignore */
   }
@@ -36,57 +36,72 @@ function writeDismissed() {
  * year (fetching every page just to rank games isn't worth the cost).
  */
 function ConnectedView({ bggUsername }) {
-  const [stats, setStats] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    setError(false)
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const url = API.bgg.PARTIDAS(bggUsername)
+    let cancelled = false;
+    setLoading(true);
+    setError(false);
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const url = API.bgg.PARTIDAS(bggUsername);
 
     Promise.all([
       axios.get(url, { params: { page: 1, mindate: `${year}-01-01` } }),
       axios.get(url, { params: { page: 1, mindate: `${year}-${month}-01` } }),
     ])
       .then(([yearRes, monthRes]) => {
-        if (cancelled) return
-        const yearPlays = yearRes.data?.plays || []
-        const totalYear = typeof yearRes.data?.total === 'number' ? yearRes.data.total : yearPlays.length
-        const totalMonth = typeof monthRes.data?.total === 'number'
-          ? monthRes.data.total
-          : (monthRes.data?.plays || []).reduce((sum, p) => sum + (p.quantity || 1), 0)
-        const tally = {}
+        if (cancelled) return;
+        const yearPlays = yearRes.data?.plays || [];
+        const totalYear =
+          typeof yearRes.data?.total === "number"
+            ? yearRes.data.total
+            : yearPlays.length;
+        const totalMonth =
+          typeof monthRes.data?.total === "number"
+            ? monthRes.data.total
+            : (monthRes.data?.plays || []).reduce(
+                (sum, p) => sum + (p.quantity || 1),
+                0,
+              );
+        const tally = {};
         for (const p of yearPlays) {
-          if (!p.gameId) continue
-          const qty = p.quantity || 1
-          if (!tally[p.gameId]) tally[p.gameId] = { name: p.gameName || 'Juego desconocido', count: 0 }
-          tally[p.gameId].count += qty
+          if (!p.gameId) continue;
+          const qty = p.quantity || 1;
+          if (!tally[p.gameId])
+            tally[p.gameId] = {
+              name: p.gameName || "Juego desconocido",
+              count: 0,
+            };
+          tally[p.gameId].count += qty;
         }
-        const mostPlayed = Object.values(tally).sort((a, b) => b.count - a.count)[0]
-        setStats({ totalYear, thisMonth: totalMonth, mostPlayed })
-        setLoading(false)
+        const mostPlayed = Object.values(tally).sort(
+          (a, b) => b.count - a.count,
+        )[0];
+        setStats({ totalYear, thisMonth: totalMonth, mostPlayed });
+        setLoading(false);
       })
       .catch(() => {
-        if (cancelled) return
-        setError(true)
-        setLoading(false)
-      })
-    return () => { cancelled = true }
-  }, [bggUsername])
+        if (cancelled) return;
+        setError(true);
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bggUsername]);
 
-  const totalYear = stats?.totalYear ?? 0
+  const totalYear = stats?.totalYear ?? 0;
   const headlineText = error
-    ? 'No se pudieron cargar tus partidas.'
+    ? "No se pudieron cargar tus partidas."
     : loading
-      ? 'Cargando tus partidas…'
+      ? "Cargando tus partidas…"
       : totalYear === 0
-        ? '¡Sumá tu primera partida del año! 🎲'
-        : `${totalYear} ${totalYear === 1 ? 'partida' : 'partidas'} registrada${totalYear === 1 ? '' : 's'} este año 🎉`
+        ? "¡Sumá tu primera partida del año! 🎲"
+        : `${totalYear} ${totalYear === 1 ? "partida" : "partidas"} registrada${totalYear === 1 ? "" : "s"} este año 🎉`;
 
   return (
     <div className={styles.widgetConnected}>
@@ -105,22 +120,30 @@ function ConnectedView({ bggUsername }) {
       <div className={styles.stats}>
         <div className={styles.stat}>
           <span className={styles.statLabel}>Este mes</span>
-          <span className={styles.statValue}>{loading || error ? '—' : stats.thisMonth}</span>
+          <span className={styles.statValue}>
+            {loading || error ? "—" : stats.thisMonth}
+          </span>
         </div>
         <div className={styles.stat}>
           <span className={styles.statLabel}>Más jugado</span>
           <span
             className={`${styles.statValue} ${styles.statValueText}`}
-            title={!loading && !error && stats.mostPlayed?.name ? stats.mostPlayed.name : undefined}
+            title={
+              !loading && !error && stats.mostPlayed?.name
+                ? stats.mostPlayed.name
+                : undefined
+            }
           >
-            {loading || error ? '—' : (stats.mostPlayed?.name || '—')}
+            {loading || error ? "—" : stats.mostPlayed?.name || "—"}
           </span>
         </div>
       </div>
 
-      <Link to="/bg-watch" className={styles.cta}>+ Registrar partida</Link>
+      <Link to="/bg-watch" className={styles.cta}>
+        + Registrar partida
+      </Link>
     </div>
-  )
+  );
 }
 
 function PromoView({ onDismiss }) {
@@ -131,9 +154,9 @@ function PromoView({ onDismiss }) {
           type="button"
           className={styles.dismissBtn}
           onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            onDismiss()
+            e.preventDefault();
+            e.stopPropagation();
+            onDismiss();
           }}
           aria-label="No volver a mostrar"
           title="No volver a mostrar"
@@ -152,7 +175,7 @@ function PromoView({ onDismiss }) {
         <span className={styles.promoCta}>Activá BG Watch →</span>
       </Link>
     </div>
-  )
+  );
 }
 
 /**
@@ -166,21 +189,23 @@ function PromoView({ onDismiss }) {
  * dismissible — once you have BG Watch, the activity feed is the point.
  */
 export default function BgWatchHomeWidget({ user, dismissible = false }) {
-  const [dismissed, setDismissed] = useState(() => dismissible && readDismissed())
+  const [dismissed, setDismissed] = useState(
+    () => dismissible && readDismissed(),
+  );
 
-  if (!user) return null
-  const hasBgWatch = user.bggUsername && user.bggConnected && !user.bggInvalid
+  if (!user) return null;
+  const hasBgWatch = user.bggUsername && user.bggConnected && !user.bggInvalid;
   if (hasBgWatch) {
-    return <ConnectedView bggUsername={user.bggUsername} />
+    return <ConnectedView bggUsername={user.bggUsername} />;
   }
-  if (dismissible && dismissed) return null
+  if (dismissible && dismissed) return null;
 
   const onDismiss = dismissible
     ? () => {
-        writeDismissed()
-        setDismissed(true)
+        writeDismissed();
+        setDismissed(true);
       }
-    : undefined
+    : undefined;
 
-  return <PromoView onDismiss={onDismiss} />
+  return <PromoView onDismiss={onDismiss} />;
 }

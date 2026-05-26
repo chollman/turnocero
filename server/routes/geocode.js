@@ -1,11 +1,11 @@
-const express = require('express');
-const rateLimit = require('express-rate-limit');
-const { Client } = require('@googlemaps/google-maps-services-js');
-const GeocodeCache = require('../models/GeocodeCache');
-const { protect } = require('../middleware/auth');
-const logger = require('../utils/logger');
-const asyncHandler = require('../utils/asyncHandler');
-const httpError = require('../utils/httpError');
+const express = require("express");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
+const { Client } = require("@googlemaps/google-maps-services-js");
+const GeocodeCache = require("../models/GeocodeCache");
+const { protect } = require("../middleware/auth");
+const logger = require("../utils/logger");
+const asyncHandler = require("../utils/asyncHandler");
+const httpError = require("../utils/httpError");
 
 const router = express.Router();
 
@@ -19,14 +19,14 @@ const geocodeLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.user?._id?.toString() || req.ip,
-  message: { message: 'Demasiadas búsquedas de dirección, esperá un minuto.' },
+  keyGenerator: (req, res) =>
+    req.user?._id?.toString() || ipKeyGenerator(req, res),
+  message: { message: "Demasiadas búsquedas de dirección, esperá un minuto." },
 });
 
 // Normaliza la query para usarla como clave de caché:
 // lowercase + trim + colapsar espacios múltiples.
-const normalizeQuery = (q) =>
-  q.toLowerCase().trim().replace(/\s+/g, ' ');
+const normalizeQuery = (q) => q.toLowerCase().trim().replace(/\s+/g, " ");
 
 /**
  * GET /api/geocode?q=<texto>
@@ -43,13 +43,13 @@ const normalizeQuery = (q) =>
  *   500 si geocoding no está configurado
  */
 router.get(
-  '/',
+  "/",
   protect,
   geocodeLimiter,
   asyncHandler(async (req, res) => {
-    const raw = (req.query.q || '').toString();
+    const raw = (req.query.q || "").toString();
     if (raw.trim().length < 3) {
-      throw httpError(400, 'La dirección debe tener al menos 3 caracteres.');
+      throw httpError(400, "La dirección debe tener al menos 3 caracteres.");
     }
 
     const query = normalizeQuery(raw);
@@ -68,7 +68,7 @@ router.get(
     // Cache miss — llamar a Google.
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      throw httpError(500, 'Geocoding no está configurado en el servidor.');
+      throw httpError(500, "Geocoding no está configurado en el servidor.");
     }
 
     // Capturamos los errores del client de Google acá adentro para preservar
@@ -82,30 +82,30 @@ router.get(
           address: raw.trim(),
           key: apiKey,
           // Sesgar a Argentina (más probable que la dirección sea local).
-          region: 'ar',
-          language: 'es',
+          region: "ar",
+          language: "es",
         },
         timeout: 5000,
       });
     } catch (err) {
       if (err.response?.data?.status) {
-        const detail = err.response.data.error_message || '';
-        logger.warn('[geocode] Google API error', {
+        const detail = err.response.data.error_message || "";
+        logger.warn("[geocode] Google API error", {
           status: err.response.data.status,
           detail,
         });
         throw httpError(
           502,
-          `Error de Google Geocoding: ${err.response.data.status}${detail ? ` — ${detail}` : ''}`,
+          `Error de Google Geocoding: ${err.response.data.status}${detail ? ` — ${detail}` : ""}`,
         );
       }
-      logger.warn('[geocode] Unexpected error', { error: err.message });
-      throw httpError(500, 'Error al consultar geocoding.');
+      logger.warn("[geocode] Unexpected error", { error: err.message });
+      throw httpError(500, "Error al consultar geocoding.");
     }
 
     const result = response.data.results?.[0];
     if (!result) {
-      throw httpError(404, 'No se encontró esa dirección.');
+      throw httpError(404, "No se encontró esa dirección.");
     }
 
     const { lat, lng } = result.geometry.location;
@@ -115,20 +115,24 @@ router.get(
     await GeocodeCache.findOneAndUpdate(
       { query },
       { query, lat, lng, formatted, lastFetchedAt: new Date() },
-      { upsert: true, setDefaultsOnInsert: true }
+      { upsert: true, setDefaultsOnInsert: true },
     );
 
     // Algunos status (REQUEST_DENIED, OVER_QUERY_LIMIT) vienen con HTTP 200
     // + status en el body. Capturarlos también acá.
-    if (response.data.status && response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
-      const detail = response.data.error_message || '';
-      logger.warn('[geocode] Google returned non-OK status', {
+    if (
+      response.data.status &&
+      response.data.status !== "OK" &&
+      response.data.status !== "ZERO_RESULTS"
+    ) {
+      const detail = response.data.error_message || "";
+      logger.warn("[geocode] Google returned non-OK status", {
         status: response.data.status,
         detail,
       });
       throw httpError(
         502,
-        `Error de Google Geocoding: ${response.data.status}${detail ? ` — ${detail}` : ''}`,
+        `Error de Google Geocoding: ${response.data.status}${detail ? ` — ${detail}` : ""}`,
       );
     }
 

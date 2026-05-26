@@ -1,12 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
-import { server } from '../test/server';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor, act } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
+import { server } from "../test/server";
 
 const useAuthMock = vi.fn();
-vi.mock('./AuthContext', () => ({ useAuth: () => useAuthMock() }));
+vi.mock("./AuthContext", () => ({ useAuth: () => useAuthMock() }));
 
-import { SiteConfigProvider, useSiteConfig } from './SiteConfigContext';
+import { SiteConfigProvider, useSiteConfig } from "./SiteConfigContext";
 
 function Probe() {
   const { sections, loaded, isSectionEnabled, updateConfig } = useSiteConfig();
@@ -14,9 +14,15 @@ function Probe() {
     <div>
       <span data-testid="loaded">{String(loaded)}</span>
       <span data-testid="mesas">{String(sections?.mesas?.enabled)}</span>
-      <span data-testid="compartidas-enabled">{String(isSectionEnabled('compartidas'))}</span>
-      <span data-testid="mesas-enabled">{String(isSectionEnabled('mesas'))}</span>
-      <button onClick={() => updateConfig({ mesas: { enabled: true } })}>enable-mesas</button>
+      <span data-testid="compartidas-enabled">
+        {String(isSectionEnabled("compartidas"))}
+      </span>
+      <span data-testid="mesas-enabled">
+        {String(isSectionEnabled("mesas"))}
+      </span>
+      <button onClick={() => updateConfig({ mesas: { enabled: true } })}>
+        enable-mesas
+      </button>
     </div>
   );
 }
@@ -32,7 +38,7 @@ function renderProvider() {
 beforeEach(() => {
   useAuthMock.mockReturnValue({ user: null });
   server.use(
-    http.get('/api/site-config', () =>
+    http.get("/api/site-config", () =>
       HttpResponse.json({
         sections: {
           mesas: { enabled: true },
@@ -47,83 +53,87 @@ beforeEach(() => {
           bgwatch: { enabled: true },
           utilidades: { enabled: true },
         },
-        updatedAt: '2026-05-01T10:00:00Z',
-        updatedBy: { _id: 'admin', username: 'admin' },
+        updatedAt: "2026-05-01T10:00:00Z",
+        updatedBy: { _id: "admin", username: "admin" },
       }),
     ),
   );
 });
 
-describe('SiteConfigContext', () => {
-  it('starts with loaded=false until the API resolves', () => {
+describe("SiteConfigContext", () => {
+  it("starts with loaded=false until the API resolves", () => {
     renderProvider();
-    expect(screen.getByTestId('loaded').textContent).toBe('false');
+    expect(screen.getByTestId("loaded").textContent).toBe("false");
   });
 
-  it('loads sections from /api/site-config and sets loaded=true', async () => {
-    renderProvider();
-    await waitFor(() => {
-      expect(screen.getByTestId('loaded').textContent).toBe('true');
-    });
-    expect(screen.getByTestId('mesas').textContent).toBe('true');
-  });
-
-  it('isSectionEnabled returns false when section is disabled and user is NOT admin', async () => {
+  it("loads sections from /api/site-config and sets loaded=true", async () => {
     renderProvider();
     await waitFor(() => {
-      expect(screen.getByTestId('loaded').textContent).toBe('true');
+      expect(screen.getByTestId("loaded").textContent).toBe("true");
     });
-    expect(screen.getByTestId('compartidas-enabled').textContent).toBe('false');
+    expect(screen.getByTestId("mesas").textContent).toBe("true");
   });
 
-  it('isSectionEnabled returns true for admins even when section is disabled', async () => {
+  it("isSectionEnabled returns false when section is disabled and user is NOT admin", async () => {
+    renderProvider();
+    await waitFor(() => {
+      expect(screen.getByTestId("loaded").textContent).toBe("true");
+    });
+    expect(screen.getByTestId("compartidas-enabled").textContent).toBe("false");
+  });
+
+  it("isSectionEnabled returns true for admins even when section is disabled", async () => {
     useAuthMock.mockReturnValue({ user: { isAdmin: true } });
     renderProvider();
     await waitFor(() => {
-      expect(screen.getByTestId('loaded').textContent).toBe('true');
+      expect(screen.getByTestId("loaded").textContent).toBe("true");
     });
     // Compartidas is disabled in our handler, but admin should still see true
-    expect(screen.getByTestId('compartidas-enabled').textContent).toBe('true');
+    expect(screen.getByTestId("compartidas-enabled").textContent).toBe("true");
   });
 
-  it('falls back to defaults when the API fails', async () => {
+  it("falls back to defaults when the API fails", async () => {
     server.use(
-      http.get('/api/site-config', () => HttpResponse.json({}, { status: 500 })),
+      http.get("/api/site-config", () =>
+        HttpResponse.json({}, { status: 500 }),
+      ),
     );
     renderProvider();
     await waitFor(() => {
-      expect(screen.getByTestId('loaded').textContent).toBe('true');
+      expect(screen.getByTestId("loaded").textContent).toBe("true");
     });
     // Default for mesas is `false`
-    expect(screen.getByTestId('mesas').textContent).toBe('false');
+    expect(screen.getByTestId("mesas").textContent).toBe("false");
   });
 
-  it('updateConfig PATCHes /api/site-config and applies the response', async () => {
+  it("updateConfig PATCHes /api/site-config and applies the response", async () => {
     let patched = false;
     server.use(
-      http.patch('/api/site-config', async ({ request }) => {
+      http.patch("/api/site-config", async ({ request }) => {
         patched = true;
         const body = await request.json();
         return HttpResponse.json({
           sections: { ...body.sections, mesas: { enabled: true } },
-          updatedAt: '2026-05-02T10:00:00Z',
-          updatedBy: { _id: 'admin' },
+          updatedAt: "2026-05-02T10:00:00Z",
+          updatedBy: { _id: "admin" },
         });
       }),
     );
     renderProvider();
     await waitFor(() => {
-      expect(screen.getByTestId('loaded').textContent).toBe('true');
+      expect(screen.getByTestId("loaded").textContent).toBe("true");
     });
     await act(async () => {
-      screen.getByText('enable-mesas').click();
+      screen.getByText("enable-mesas").click();
     });
     expect(patched).toBe(true);
   });
 
-  it('useSiteConfig throws when used outside SiteConfigProvider', () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => render(<Probe />)).toThrow(/useSiteConfig must be used within SiteConfigProvider/);
+  it("useSiteConfig throws when used outside SiteConfigProvider", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => render(<Probe />)).toThrow(
+      /useSiteConfig must be used within SiteConfigProvider/,
+    );
     errorSpy.mockRestore();
   });
 });

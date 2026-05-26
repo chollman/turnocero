@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom';
-import styles from './UtilCard.module.css';
+import { Link } from "react-router-dom";
+import styles from "./UtilCard.module.css";
 
 export default function UtilCard({ icon, title, description, to, comingSoon }) {
   if (comingSoon) {

@@ -32,11 +32,9 @@ export default function TableGallery({
     const formData = new FormData();
     formData.append("image", file);
     try {
-      const { data } = await axios.post(
-        API.tables.IMAGES(tableId),
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } },
-      );
+      const { data } = await axios.post(API.tables.IMAGES(tableId), formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       onImagesChange?.(data);
     } catch (err) {
       setError(getErrorMessage(err, "Error al subir la imagen"));

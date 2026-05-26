@@ -1,6 +1,6 @@
-const multer = require('multer');
+const multer = require("multer");
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_SIZE_MB = 5;
 
 const upload = multer({
@@ -10,7 +10,7 @@ const upload = multer({
     if (ALLOWED_TYPES.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Solo se permiten imágenes (jpg, png, webp, gif)'));
+      cb(new Error("Solo se permiten imágenes (jpg, png, webp, gif)"));
     }
   },
 });

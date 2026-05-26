@@ -28,9 +28,10 @@ export default function PosterCard({
 
   const statusInfo = getEventoStatusBadge(evento.status);
   // location puede llegar como string legacy o subdoc { texto, lat, lng, displayName }.
-  const locationTexto = typeof evento.location === "string"
-    ? evento.location
-    : evento.location?.texto || "";
+  const locationTexto =
+    typeof evento.location === "string"
+      ? evento.location
+      : evento.location?.texto || "";
   // En la card compacta mostramos solo la localidad — o el displayName si está seteado.
   const locationDisplay = getLocationDisplay(evento.location, "city");
   // formatDistanceKm devuelve null para distancias que redondean a 0m (incluye
@@ -97,7 +98,13 @@ export default function PosterCard({
             <span title={locationTexto}>
               <PinIcon size={11} /> {locationDisplay}
               {distanceLabel && (
-                <span style={{ marginLeft: 4, color: "var(--green)", fontWeight: 600 }}>
+                <span
+                  style={{
+                    marginLeft: 4,
+                    color: "var(--green)",
+                    fontWeight: 600,
+                  }}
+                >
                   · {distanceLabel}
                 </span>
               )}

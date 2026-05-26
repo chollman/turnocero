@@ -379,6 +379,7 @@
 .btnSave {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   padding: 7px 16px;
   border-radius: 8px;
@@ -386,11 +387,13 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: background var(--transition);
+  transition: all var(--transition);
 }
 
 .btnSave:hover {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 /* ── Content ────────────────────────────────────────────────────── */
@@ -765,6 +768,7 @@
 .mesaCta {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   text-decoration: none;
   padding: 7px 12px;
   border-radius: 7px;
@@ -775,11 +779,13 @@
   white-space: nowrap;
   position: relative;
   z-index: 1;
-  transition: background var(--transition);
+  transition: all var(--transition);
 }
 
 .mesaCta:hover {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 .mesaCtaOpen {
@@ -1430,8 +1436,8 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px var(--amber-glow);
-  transition: background var(--transition);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
 }
 
 .commentSubmit svg {
@@ -1445,6 +1451,8 @@
 }
 .commentSubmit:hover:not(:disabled) {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 /* "Ver N comentarios →" inline toggle */

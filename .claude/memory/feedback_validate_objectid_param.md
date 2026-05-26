@@ -1,5 +1,5 @@
 ---
-name: validate-objectid-param
+name: feedback-validate-objectid-param
 description: "En cualquier router con :id, registrar router.param('id', validateObjectId) para devolver 400 temprano en lugar de un CastError 500 silencioso"
 metadata: 
   node_type: memory

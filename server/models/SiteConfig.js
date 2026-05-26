@@ -1,17 +1,17 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const SECTION_KEYS = [
-  'mesas',
-  'compartidas',
-  'noticias',
-  'torneos',
-  'eventos',
-  'comunidad',
-  'miFeed',
-  'amigos',
-  'dms',
-  'bgwatch',
-  'utilidades',
+  "mesas",
+  "compartidas",
+  "noticias",
+  "torneos",
+  "eventos",
+  "comunidad",
+  "miFeed",
+  "amigos",
+  "dms",
+  "bgwatch",
+  "utilidades",
 ];
 
 // Defaults que preservan el comportamiento actual hardcodeado:
@@ -29,7 +29,7 @@ function defaultFor(key) {
 
 const sectionSchema = new mongoose.Schema(
   { enabled: { type: Boolean, default: true } },
-  { _id: false }
+  { _id: false },
 );
 
 const sectionsShape = SECTION_KEYS.reduce((acc, key) => {
@@ -42,14 +42,18 @@ const sectionsShape = SECTION_KEYS.reduce((acc, key) => {
 
 const siteConfigSchema = new mongoose.Schema(
   {
-    _id: { type: String, default: 'singleton' },
+    _id: { type: String, default: "singleton" },
     sections: sectionsShape,
-    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-const SiteConfig = mongoose.model('SiteConfig', siteConfigSchema);
+const SiteConfig = mongoose.model("SiteConfig", siteConfigSchema);
 
 SiteConfig.SECTION_KEYS = SECTION_KEYS;
 SiteConfig.DEFAULT_ENABLED = DEFAULT_ENABLED;

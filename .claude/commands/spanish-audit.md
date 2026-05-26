@@ -5,6 +5,7 @@ Scan all JSX and JS files in `client/src/` for English text in user-facing UI an
 All user-facing text in Turnocero must be in Argentine Spanish (voseo: "vos tenés", "iniciá", "agregá"). Any English string that ends up in the rendered UI is a bug — whether in button labels, placeholders, empty states, error messages, or headings.
 
 **In scope (must be Spanish):**
+
 - Visible text inside JSX: `<p>No tables found</p>`, `<button>Submit</button>`
 - `placeholder="Search..."` attributes
 - `aria-label="Close"` and `title="..."` attributes that users read
@@ -12,6 +13,7 @@ All user-facing text in Turnocero must be in Argentine Spanish (voseo: "vos ten�
 - Toast/notification messages
 
 **Out of scope (English is correct):**
+
 - `className`, `type`, `id`, `name`, `key`, `href`, `src`, `alt` when it's a technical identifier
 - CSS module class names
 - Console logs and comments
@@ -32,6 +34,7 @@ If the user invokes this without recent changes, scan ALL `client/src/**/*.{jsx,
 In each file, look for:
 
 **a) Hardcoded English strings in JSX text nodes:**
+
 - Any JSX content matching common English words: `No`, `Yes`, `Cancel`, `Submit`, `Save`, `Delete`, `Edit`, `Create`, `Loading`, `Error`, `Success`, `Search`, `Close`, `Open`, `Back`, `Next`, `View`, `Add`, `Remove`, `Send`, `Accept`, `Reject`, `Confirm`, `New`, `All`, `None`, `Empty`, `More`, `Less`
 - Full sentences or phrases that are clearly English
 
@@ -47,30 +50,30 @@ In each file, look for:
 
 Use voseo (vos/tenés/podés) and common Argentine expressions. Examples:
 
-| English | Argentine Spanish |
-|---|---|
-| No results | Sin resultados |
-| No items yet | Todavía no hay elementos |
-| Search... | Buscar... |
-| Cancel | Cancelar |
-| Save changes | Guardar cambios |
-| Delete | Eliminar |
-| Edit | Editar |
-| Create | Crear |
-| Loading... | Cargando... |
-| Something went wrong | Ocurrió un error |
-| Close | Cerrar |
-| Back | Volver |
-| Submit | Enviar |
-| Accept | Aceptar |
-| Reject | Rechazar |
-| Send | Enviar |
-| Add | Agregar |
-| Remove | Quitar |
-| View all | Ver todos |
-| No friends yet | No tenés amigos aún |
-| You don't have permission | No tenés permiso |
-| Page not found | Página no encontrada |
+| English                   | Argentine Spanish        |
+| ------------------------- | ------------------------ |
+| No results                | Sin resultados           |
+| No items yet              | Todavía no hay elementos |
+| Search...                 | Buscar...                |
+| Cancel                    | Cancelar                 |
+| Save changes              | Guardar cambios          |
+| Delete                    | Eliminar                 |
+| Edit                      | Editar                   |
+| Create                    | Crear                    |
+| Loading...                | Cargando...              |
+| Something went wrong      | Ocurrió un error         |
+| Close                     | Cerrar                   |
+| Back                      | Volver                   |
+| Submit                    | Enviar                   |
+| Accept                    | Aceptar                  |
+| Reject                    | Rechazar                 |
+| Send                      | Enviar                   |
+| Add                       | Agregar                  |
+| Remove                    | Quitar                   |
+| View all                  | Ver todos                |
+| No friends yet            | No tenés amigos aún      |
+| You don't have permission | No tenés permiso         |
+| Page not found            | Página no encontrada     |
 
 Match the tone and style of existing Spanish strings in the same file.
 

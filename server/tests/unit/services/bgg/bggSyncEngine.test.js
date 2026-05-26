@@ -301,7 +301,9 @@ describe("reconcileFull", () => {
         text: async () => "",
       })),
     );
-    await expect(reconcileFull("claudio", { full: true })).rejects.toMatchObject({
+    await expect(
+      reconcileFull("claudio", { full: true }),
+    ).rejects.toMatchObject({
       status: 502,
     });
   });

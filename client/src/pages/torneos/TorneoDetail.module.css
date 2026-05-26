@@ -4,7 +4,9 @@
 }
 
 @media (min-width: 960px) {
-  .page { padding-top: var(--page-padding); }
+  .page {
+    padding-top: var(--page-padding);
+  }
 }
 
 .inner {
@@ -15,7 +17,9 @@
 }
 
 @media (max-width: 959px) {
-  .inner { padding: 0 var(--page-padding-mobile); }
+  .inner {
+    padding: 0 var(--page-padding-mobile);
+  }
 }
 
 .loadingMsg {
@@ -34,7 +38,9 @@
   transition: color var(--transition);
 }
 
-.backLink:hover { color: var(--amber-light); }
+.backLink:hover {
+  color: var(--amber-light);
+}
 
 /* ── Banner ── */
 .banner {
@@ -48,7 +54,9 @@
 }
 
 @media (max-width: 600px) {
-  .banner { height: 180px; }
+  .banner {
+    height: 180px;
+  }
 }
 
 .bannerBg {
@@ -96,7 +104,9 @@
 }
 
 @media (max-width: 600px) {
-  .titleHeading { font-size: 26px; }
+  .titleHeading {
+    font-size: 26px;
+  }
 }
 
 .titleGame {
@@ -205,8 +215,17 @@
   font-weight: 700;
 }
 
-.inlineRow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.inlineCol { display: flex; flex-direction: column; gap: 6px; }
+.inlineRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.inlineCol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
 /* ── Podium ── */
 .podium {
@@ -236,8 +255,14 @@
   margin: 0;
 }
 
-.podiumGold { color: var(--orange); font-weight: 700; }
-.podiumSilver { color: var(--text-secondary); font-weight: 700; }
+.podiumGold {
+  color: var(--orange);
+  font-weight: 700;
+}
+.podiumSilver {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
 
 /* ── Admin panel ── */
 .adminPanel {
@@ -284,10 +309,15 @@
   padding: 2px 6px;
   text-decoration: none;
   border-radius: 4px;
-  transition: color var(--transition), background var(--transition);
+  transition:
+    color var(--transition),
+    background var(--transition);
 }
 
-.adminLink:hover { color: var(--amber-light); background: var(--amber-glow); }
+.adminLink:hover {
+  color: var(--amber-light);
+  background: var(--amber-glow);
+}
 
 .adminLinkDanger {
   background: none;
@@ -302,7 +332,9 @@
   transition: background var(--transition);
 }
 
-.adminLinkDanger:hover { background: var(--red-10); }
+.adminLinkDanger:hover {
+  background: var(--red-10);
+}
 
 .adminActions {
   display: flex;
@@ -334,8 +366,14 @@
   cursor: pointer;
 }
 
-.confirmYes { background: var(--red); color: var(--on-amber); }
-.confirmNo  { background: var(--bg-elevated); color: var(--text-secondary); }
+.confirmYes {
+  background: var(--red);
+  color: var(--on-amber);
+}
+.confirmNo {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+}
 
 /* ── Buttons ── */
 .btnGhost {
@@ -351,12 +389,19 @@
   transition: all var(--transition);
 }
 
-.btnGhost:hover { border-color: var(--text-muted); color: var(--text-primary); }
-.btnGhost:disabled { opacity: 0.4; cursor: not-allowed; }
+.btnGhost:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+.btnGhost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 .btnPrimary {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   padding: 8px 18px;
   border-radius: 8px;
@@ -364,11 +409,18 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: background var(--transition);
+  transition: all var(--transition);
 }
 
-.btnPrimary:hover:not(:disabled) { background: var(--amber-light); }
-.btnPrimary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnPrimary:hover:not(:disabled) {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.btnPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .errorMsg {
   color: var(--red);
@@ -417,7 +469,9 @@
   padding-bottom: 2px;
 }
 
-.tabs::-webkit-scrollbar { display: none; }
+.tabs::-webkit-scrollbar {
+  display: none;
+}
 
 .tab {
   background: transparent;
@@ -433,14 +487,18 @@
   transition: all var(--transition);
 }
 
-.tab:hover { color: var(--text-primary); }
+.tab:hover {
+  color: var(--text-primary);
+}
 
 .tabActive {
   color: var(--amber-light);
   border-bottom-color: var(--amber);
 }
 
-.tabBody { min-height: 200px; }
+.tabBody {
+  min-height: 200px;
+}
 
 /* ── Standings table ── */
 .standingsWrap {
@@ -490,7 +548,9 @@
   border-bottom: 1px solid var(--border);
 }
 
-.standingsTable tbody tr:last-child td { border-bottom: none; }
+.standingsTable tbody tr:last-child td {
+  border-bottom: none;
+}
 
 .colPos {
   width: 40px;
@@ -561,8 +621,12 @@
   border: 1px solid var(--border);
 }
 
-.matchRowDone { border-color: var(--amber-30); }
-.matchRowBye  { opacity: 0.7; }
+.matchRowDone {
+  border-color: var(--amber-30);
+}
+.matchRowBye {
+  opacity: 0.7;
+}
 
 .matchSide {
   display: flex;
@@ -572,11 +636,19 @@
   color: var(--text-primary);
 }
 
-.matchSideRight { justify-content: flex-end; }
+.matchSideRight {
+  justify-content: flex-end;
+}
 
-.matchSideWinner { color: var(--amber-light); font-weight: 700; }
+.matchSideWinner {
+  color: var(--amber-light);
+  font-weight: 700;
+}
 
-.matchPlaceholder { color: var(--text-muted); font-style: italic; }
+.matchPlaceholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
 
 .matchVs {
   font-family: var(--font-display);
@@ -608,6 +680,8 @@
 .matchBtnPrimary {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
   border: none;
   padding: 5px 12px;
   border-radius: 6px;
@@ -617,7 +691,11 @@
   cursor: pointer;
 }
 
-.matchBtnPrimary:hover { background: var(--amber-light); }
+.matchBtnPrimary:hover {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
 
 .matchBtnGhost {
   background: transparent;
@@ -631,7 +709,10 @@
   cursor: pointer;
 }
 
-.matchBtnGhost:hover { color: var(--text-primary); border-color: var(--text-muted); }
+.matchBtnGhost:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
 
 .byeChip {
   font-family: var(--font-display);
@@ -648,9 +729,16 @@
     grid-template-columns: 1fr;
     gap: 4px;
   }
-  .matchVs { display: none; }
-  .matchSideRight { justify-content: flex-start; }
-  .matchActions { justify-content: flex-end; padding-top: 4px; }
+  .matchVs {
+    display: none;
+  }
+  .matchSideRight {
+    justify-content: flex-start;
+  }
+  .matchActions {
+    justify-content: flex-end;
+    padding-top: 4px;
+  }
 }
 
 /* ── Participants list ── */
@@ -681,7 +769,10 @@
   font-size: 13px;
 }
 
-.partUser { color: var(--text-primary); font-size: 14px; }
+.partUser {
+  color: var(--text-primary);
+  font-size: 14px;
+}
 
 .partRemove {
   background: none;
@@ -695,7 +786,9 @@
   border-radius: 4px;
 }
 
-.partRemove:hover { background: var(--red-10); }
+.partRemove:hover {
+  background: var(--red-10);
+}
 
 .partActions {
   display: flex;
@@ -724,9 +817,15 @@
   border-radius: 8px;
 }
 
-.regUser { color: var(--text-primary); font-size: 14px; }
+.regUser {
+  color: var(--text-primary);
+  font-size: 14px;
+}
 
-.regDate { color: var(--text-muted); font-size: 12px; }
+.regDate {
+  color: var(--text-muted);
+  font-size: 12px;
+}
 
 .regActions {
   display: flex;
@@ -746,7 +845,9 @@
   cursor: pointer;
 }
 
-.regAccept:hover { filter: brightness(1.1); }
+.regAccept:hover {
+  filter: brightness(1.1);
+}
 
 .regReject {
   background: transparent;
@@ -760,11 +861,17 @@
   cursor: pointer;
 }
 
-.regReject:hover { background: var(--red-10); }
+.regReject:hover {
+  background: var(--red-10);
+}
 
 @media (max-width: 600px) {
-  .regItem { grid-template-columns: 1fr auto; }
-  .regDate { display: none; }
+  .regItem {
+    grid-template-columns: 1fr auto;
+  }
+  .regDate {
+    display: none;
+  }
 }
 
 /* ── Modal ── */
@@ -826,7 +933,10 @@
   transition: all var(--transition);
 }
 
-.modalClose:hover { color: var(--text-primary); background: var(--bg-elevated); }
+.modalClose:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
 
 .modalActions {
   display: flex;
@@ -854,7 +964,9 @@
   transition: all var(--transition);
 }
 
-.choiceBtn:hover { border-color: var(--amber); }
+.choiceBtn:hover {
+  border-color: var(--amber);
+}
 
 .choiceBtnActive {
   border-color: var(--amber);
@@ -908,7 +1020,10 @@
   font-size: 13px;
 }
 
-.seedName { color: var(--text-primary); font-size: 14px; }
+.seedName {
+  color: var(--text-primary);
+  font-size: 14px;
+}
 
 .seedActions {
   display: flex;
@@ -927,8 +1042,15 @@
   transition: all var(--transition);
 }
 
-.seedBtn:hover:not(:disabled) { background: var(--amber); color: var(--on-amber); border-color: var(--amber); }
-.seedBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+.seedBtn:hover:not(:disabled) {
+  background: var(--amber);
+  color: var(--on-amber);
+  border-color: var(--amber);
+}
+.seedBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
 
 /* ── Register success animation ── */
 .registerSuccess {
@@ -941,7 +1063,9 @@
   border-radius: 10px;
   opacity: 0;
   transform: translateY(-4px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 
 .registerSuccessVisible {
@@ -951,12 +1075,20 @@
 }
 
 @keyframes registerSuccessPulse {
-  0% { transform: scale(0.96); }
-  50% { transform: scale(1.02); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(0.96);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
-.registerSuccessIcon { font-size: 24px; }
+.registerSuccessIcon {
+  font-size: 24px;
+}
 
 .registerSuccessText {
   display: flex;
@@ -976,7 +1108,9 @@
 }
 
 /* ── Modal: wide variant for user picker ── */
-.modalCardWide { max-width: 580px; }
+.modalCardWide {
+  max-width: 580px;
+}
 
 /* ── User pick list (AddParticipantModal) ── */
 .userPickList {
@@ -1017,6 +1151,8 @@
 .userPickAddBtn {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
   border: none;
   padding: 5px 12px;
   border-radius: 6px;
@@ -1027,8 +1163,15 @@
   white-space: nowrap;
 }
 
-.userPickAddBtn:hover:not(:disabled) { background: var(--amber-light); }
-.userPickAddBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.userPickAddBtn:hover:not(:disabled) {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.userPickAddBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 .userPickAdded {
   font-family: var(--font-display);
@@ -1054,7 +1197,9 @@
   scrollbar-width: none;
 }
 
-.phaseTabs::-webkit-scrollbar { display: none; }
+.phaseTabs::-webkit-scrollbar {
+  display: none;
+}
 
 .phaseTab {
   background: transparent;
@@ -1070,7 +1215,10 @@
   transition: all var(--transition);
 }
 
-.phaseTab:hover { border-color: var(--amber); color: var(--text-primary); }
+.phaseTab:hover {
+  border-color: var(--amber);
+  color: var(--text-primary);
+}
 
 .phaseTabActive {
   background: var(--amber-15);
@@ -1085,7 +1233,9 @@
 }
 
 @media (max-width: 600px) {
-  .groupGrid { grid-template-columns: 1fr; }
+  .groupGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .groupCard {
@@ -1114,7 +1264,10 @@
   border-radius: 10px;
 }
 
-.championIcon { font-size: 28px; line-height: 1; }
+.championIcon {
+  font-size: 28px;
+  line-height: 1;
+}
 
 .championText {
   display: flex;
@@ -1243,7 +1396,9 @@
   color: var(--text-muted);
 }
 
-.groupGameStatusDone { color: var(--green); }
+.groupGameStatusDone {
+  color: var(--green);
+}
 
 .groupGameResults {
   list-style: none;
@@ -1326,7 +1481,9 @@
   padding: 4px 0;
 }
 
-.advancedPickItem input[type='checkbox'] { accent-color: var(--amber); }
+.advancedPickItem input[type="checkbox"] {
+  accent-color: var(--amber);
+}
 
 .phaseNextRow {
   display: flex;
@@ -1397,7 +1554,9 @@
   font-size: 13px;
 }
 
-.phasePreviewLabel { color: var(--text-secondary); }
+.phasePreviewLabel {
+  color: var(--text-secondary);
+}
 
 .phasePreviewValue {
   font-family: var(--font-display);
@@ -1439,7 +1598,9 @@
   transition: all var(--transition);
 }
 
-.phaseSuggestion:hover:not(:disabled) { border-color: var(--amber); }
+.phaseSuggestion:hover:not(:disabled) {
+  border-color: var(--amber);
+}
 
 .phaseSuggestionActive {
   border-color: var(--amber);

@@ -10,8 +10,6 @@ export const PASSWORD_REQUIREMENTS =
 export function isValidPassword(pwd) {
   if (typeof pwd !== "string") return false;
   return (
-    pwd.length >= PASSWORD_MIN_LENGTH &&
-    /[A-Z]/.test(pwd) &&
-    /\d/.test(pwd)
+    pwd.length >= PASSWORD_MIN_LENGTH && /[A-Z]/.test(pwd) && /\d/.test(pwd)
   );
 }

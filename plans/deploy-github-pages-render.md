@@ -3,6 +3,7 @@
 ## Context
 
 The app has three separate pieces that each need their own home:
+
 - **Database** → MongoDB Atlas (free cloud DB)
 - **Backend API** → Render (free cloud server)
 - **Frontend** → GitHub Pages (free static hosting)
@@ -12,6 +13,7 @@ GitHub Pages only serves static HTML/CSS/JS files — it cannot run Node.js/Expr
 GitHub Actions will automatically build and deploy the frontend to GitHub Pages every time you push to `master`.
 
 **Final URLs:**
+
 - Frontend: `https://chollman.github.io/table-creator/`
 - Backend: `https://[your-app-name].onrender.com` (assigned by Render)
 
@@ -66,13 +68,13 @@ Add `base: '/table-creator/'` so Vite generates correct asset paths for the subd
 ```js
 // client/vite.config.js
 export default defineConfig({
-  base: '/table-creator/',   // ← add this line
+  base: "/table-creator/", // ← add this line
   plugins: [react()],
   server: {
     port: 3000,
     proxy: {
-      '/api': {
-        target: 'http://localhost:4000',
+      "/api": {
+        target: "http://localhost:4000",
         changeOrigin: true,
       },
     },
@@ -85,6 +87,7 @@ export default defineConfig({
 GitHub Pages serves static files and can't redirect `404` requests to `index.html`. Switching to `HashRouter` means URLs use a `#` fragment (`/#/login`, `/#/create`) which GitHub Pages never touches — React Router handles it entirely in the browser.
 
 Change one import and one component name in [client/src/App.jsx](client/src/App.jsx:1):
+
 - Line 1: `BrowserRouter` → `HashRouter`
 - Line 56: `<BrowserRouter>` → `<HashRouter>`
 - Line 61: `</BrowserRouter>` → `</HashRouter>`
@@ -94,11 +97,12 @@ Change one import and one component name in [client/src/App.jsx](client/src/App.
 Add two lines at the top of [client/src/main.jsx](client/src/main.jsx):
 
 ```jsx
-import axios from 'axios';
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || '';
+import axios from "axios";
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || "";
 ```
 
 This means:
+
 - In **local dev** (`VITE_API_URL` not set): axios uses relative paths like `/api/...`, which the Vite dev proxy forwards to `localhost:4000`. Nothing changes.
 - In **production** on GitHub Pages: axios prepends the Render URL to every request.
 
@@ -137,8 +141,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
           cache-dependency-path: client/package-lock.json
 
       - name: Install dependencies
@@ -195,12 +199,12 @@ jobs:
 
 ## Critical files to modify
 
-| File | Change |
-|------|--------|
-| [client/vite.config.js](client/vite.config.js) | Add `base: '/table-creator/'` |
-| [client/src/App.jsx](client/src/App.jsx) | `BrowserRouter` → `HashRouter` (3 spots) |
-| [client/src/main.jsx](client/src/main.jsx) | Add axios baseURL from env var |
-| `.github/workflows/deploy.yml` | Create new file |
+| File                                           | Change                                   |
+| ---------------------------------------------- | ---------------------------------------- |
+| [client/vite.config.js](client/vite.config.js) | Add `base: '/table-creator/'`            |
+| [client/src/App.jsx](client/src/App.jsx)       | `BrowserRouter` → `HashRouter` (3 spots) |
+| [client/src/main.jsx](client/src/main.jsx)     | Add axios baseURL from env var           |
+| `.github/workflows/deploy.yml`                 | Create new file                          |
 
 ---
 

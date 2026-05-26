@@ -1,5 +1,5 @@
 ---
-name: shared-modal-focus-mgmt
+name: feedback-shared-modal
 description: "Usar <Modal> de components/shared para cualquier overlay full-screen (lightbox, confirmaciones, dialogs). Maneja focus mgmt, Escape, aria-modal."
 metadata: 
   node_type: memory

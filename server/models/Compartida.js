@@ -1,55 +1,55 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const compartidaSchema = new mongoose.Schema(
   {
     author: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
       index: true,
     },
     title: {
       type: String,
       trim: true,
-      maxlength: [100, 'El título no puede superar 100 caracteres'],
-      default: '',
+      maxlength: [100, "El título no puede superar 100 caracteres"],
+      default: "",
     },
     body: {
       type: String,
       trim: true,
-      maxlength: [2000, 'El texto no puede superar 2000 caracteres'],
-      default: '',
+      maxlength: [2000, "El texto no puede superar 2000 caracteres"],
+      default: "",
     },
     images: [
       {
-        url:       { type: String, required: true },
-        publicId:  { type: String, required: true },
+        url: { type: String, required: true },
+        publicId: { type: String, required: true },
         createdAt: { type: Date, default: Date.now },
       },
     ],
     linkedTable: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Table',
+      ref: "Table",
       default: null,
     },
     linkedEvento: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Evento',
+      ref: "Evento",
       default: null,
     },
     privacy: {
       type: String,
-      enum: ['public', 'friends', 'private'],
-      default: 'public',
+      enum: ["public", "friends", "private"],
+      default: "public",
     },
     likes: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: "User",
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-module.exports = mongoose.model('Compartida', compartidaSchema);
+module.exports = mongoose.model("Compartida", compartidaSchema);

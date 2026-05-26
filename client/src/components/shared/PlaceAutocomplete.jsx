@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { APIProvider, useMapsLibrary } from '@vis.gl/react-google-maps';
-import styles from './PlaceAutocomplete.module.css';
+import { useEffect, useRef, useState } from "react";
+import { APIProvider, useMapsLibrary } from "@vis.gl/react-google-maps";
+import styles from "./PlaceAutocomplete.module.css";
 
 const DEBOUNCE_MS = 300;
 const MIN_CHARS = 3;
@@ -10,8 +10,14 @@ const MIN_CHARS = 3;
  * Usa Places API (New) con session token (autocompletes gratis hasta que
  * se confirma con un GetPlace).
  */
-function AutocompleteCore({ value, onChange, onSelect, placeholder, disabled }) {
-  const places = useMapsLibrary('places');
+function AutocompleteCore({
+  value,
+  onChange,
+  onSelect,
+  placeholder,
+  disabled,
+}) {
+  const places = useMapsLibrary("places");
   const sessionTokenRef = useRef(null);
   const debounceRef = useRef(null);
   const containerRef = useRef(null);
@@ -37,8 +43,8 @@ function AutocompleteCore({ value, onChange, onSelect, placeholder, disabled }) 
         setOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
   const fetchSuggestions = async (input) => {
@@ -48,8 +54,8 @@ function AutocompleteCore({ value, onChange, onSelect, placeholder, disabled }) 
         await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
           input,
           sessionToken: sessionTokenRef.current,
-          includedRegionCodes: ['ar'],
-          language: 'es',
+          includedRegionCodes: ["ar"],
+          language: "es",
         });
       setSuggestions(results || []);
       setOpen(true);
@@ -78,10 +84,12 @@ function AutocompleteCore({ value, onChange, onSelect, placeholder, disabled }) 
     if (!places || !suggestion?.placePrediction) return;
     try {
       const place = suggestion.placePrediction.toPlace();
-      await place.fetchFields({ fields: ['location', 'formattedAddress', 'id'] });
+      await place.fetchFields({
+        fields: ["location", "formattedAddress", "id"],
+      });
       const loc = place.location;
       if (loc) {
-        const formatted = place.formattedAddress || '';
+        const formatted = place.formattedAddress || "";
         onSelect?.({
           lat: loc.lat(),
           lng: loc.lng(),
@@ -100,17 +108,17 @@ function AutocompleteCore({ value, onChange, onSelect, placeholder, disabled }) 
 
   const handleKeyDown = (e) => {
     if (!open || suggestions.length === 0) return;
-    if (e.key === 'ArrowDown') {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
       setHighlighted((h) => Math.min(h + 1, suggestions.length - 1));
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setHighlighted((h) => Math.max(h - 1, 0));
-    } else if (e.key === 'Enter') {
+    } else if (e.key === "Enter") {
       e.preventDefault();
       const pick = highlighted >= 0 ? suggestions[highlighted] : suggestions[0];
       if (pick) handlePick(pick);
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       setOpen(false);
     }
   };
@@ -120,7 +128,7 @@ function AutocompleteCore({ value, onChange, onSelect, placeholder, disabled }) 
       <input
         type="text"
         className={styles.input}
-        value={value || ''}
+        value={value || ""}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
@@ -133,14 +141,14 @@ function AutocompleteCore({ value, onChange, onSelect, placeholder, disabled }) 
         <ul className={styles.dropdown} role="listbox">
           {suggestions.map((s, i) => {
             const pred = s.placePrediction;
-            const main = pred?.mainText?.text || pred?.text?.text || '';
-            const secondary = pred?.secondaryText?.text || '';
+            const main = pred?.mainText?.text || pred?.text?.text || "";
+            const secondary = pred?.secondaryText?.text || "";
             return (
               <li
                 key={pred?.placeId || i}
                 role="option"
                 aria-selected={i === highlighted}
-                className={`${styles.option} ${i === highlighted ? styles.optionActive : ''}`}
+                className={`${styles.option} ${i === highlighted ? styles.optionActive : ""}`}
                 onMouseDown={(e) => {
                   e.preventDefault(); // evita perder foco antes del click
                   handlePick(s);
@@ -148,7 +156,9 @@ function AutocompleteCore({ value, onChange, onSelect, placeholder, disabled }) 
                 onMouseEnter={() => setHighlighted(i)}
               >
                 <span className={styles.optionMain}>{main}</span>
-                {secondary && <span className={styles.optionSecondary}>{secondary}</span>}
+                {secondary && (
+                  <span className={styles.optionSecondary}>{secondary}</span>
+                )}
               </li>
             );
           })}
@@ -178,7 +188,7 @@ export default function PlaceAutocomplete(props) {
       <input
         type="text"
         className={styles.input}
-        value={props.value || ''}
+        value={props.value || ""}
         onChange={(e) => props.onChange?.(e.target.value)}
         placeholder={props.placeholder}
         disabled={props.disabled}
@@ -187,7 +197,7 @@ export default function PlaceAutocomplete(props) {
   }
 
   return (
-    <APIProvider apiKey={apiKey} libraries={['places']}>
+    <APIProvider apiKey={apiKey} libraries={["places"]}>
       <AutocompleteCore {...props} />
     </APIProvider>
   );

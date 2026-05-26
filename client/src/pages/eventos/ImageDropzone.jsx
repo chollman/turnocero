@@ -1,8 +1,12 @@
-import FileDropzone from '../../components/shared/FileDropzone';
-import { ImageIcon } from './EventoIcons';
-import styles from './ImageDropzone.module.css';
+import FileDropzone from "../../components/shared/FileDropzone";
+import { ImageIcon } from "./EventoIcons";
+import styles from "./ImageDropzone.module.css";
 
-export default function ImageDropzone({ preview, onFile, accept = 'image/jpeg,image/png,image/webp,image/gif' }) {
+export default function ImageDropzone({
+  preview,
+  onFile,
+  accept = "image/jpeg,image/png,image/webp,image/gif",
+}) {
   return (
     <FileDropzone
       accept={accept}

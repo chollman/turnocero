@@ -213,9 +213,7 @@ describe("cascadeClearWinner", () => {
   });
 
   it("es no-op si el match no existe", async () => {
-    await expect(
-      cascadeClearWinner(oid(), "playerA"),
-    ).resolves.toBeUndefined();
+    await expect(cascadeClearWinner(oid(), "playerA")).resolves.toBeUndefined();
   });
 });
 

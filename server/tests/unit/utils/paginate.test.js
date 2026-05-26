@@ -40,6 +40,8 @@ describe("parsePagination", () => {
 
   it("limit basura cae al default, no al max", () => {
     expect(parsePagination({ limit: "lol" }).limit).toBe(20);
-    expect(parsePagination({ limit: "lol" }, { defaultLimit: 5 }).limit).toBe(5);
+    expect(parsePagination({ limit: "lol" }, { defaultLimit: 5 }).limit).toBe(
+      5,
+    );
   });
 });

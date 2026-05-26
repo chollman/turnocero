@@ -131,21 +131,31 @@ Padding `9px 12px`, border-radius 9px.
 Color default `var(--text-secondary)`, Archivo 500 14px, letter-spacing `-0.005em`.
 
 **Animación de entrada:**
+
 ```css
 animation: navIn 0.35s ease both;
 animation-delay: calc(var(--i, 0) * 35ms);
 @keyframes navIn {
-  from { opacity: 0; transform: translateX(-8px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 ```
+
 Asignar `--i` a cada item según posición global.
 
 **Hover:**
+
 - Background `var(--bg-elevated)` (`#1d2532`)
 - Color → `var(--text)` (`#ffffff`)
 
 **Active:**
+
 - Background `var(--accent-glow)` (`rgba(24,136,239,0.18)`)
 - Color → `var(--accent-light)` (`#00aeff`)
 - Ícono también recibe el color cyan
@@ -164,6 +174,7 @@ Asignar `--i` a cada item según posición global.
 JetBrains Mono 600, 10px, letter-spacing `0.02em`, padding `2px 7px`, min-width 22px, border-radius 999px, border `1px solid var(--border)`, background `var(--bg-elevated)`, color `var(--text-muted)`, text-align center.
 
 Variantes:
+
 - **`.live`** (verde): color `var(--green)`, background `var(--green-10)`, border `var(--green-25)`
 - **`.urgent`** (rojo, anima): color `var(--red)`, background `rgba(243,29,119,0.1)`, border `rgba(243,29,119,0.25)`, animation `pulseBadge 1.5s ease infinite` (`@keyframes pulseBadge { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }`)
 
@@ -181,37 +192,86 @@ Visible solo si `isActuallyAdmin && !viewAsUser`. Aplica modifier `.admin` al `.
 ```js
 const SECTIONS = [
   {
-    label: 'Comunidad',
+    label: "Comunidad",
     items: [
-      { id: 'compartidas', label: 'Compartite', to: '/compartidas', section: 'compartidas', badge: { variant: 'live', getValue: ctx => ctx.newComparticasCount } },
-      { id: 'noticias',    label: 'Noticias',   to: '/noticias',    section: 'noticias' },
-      { id: 'users',       label: 'Comunidad',  to: '/usuarios',    section: 'comunidad' },
+      {
+        id: "compartidas",
+        label: "Compartite",
+        to: "/compartidas",
+        section: "compartidas",
+        badge: { variant: "live", getValue: (ctx) => ctx.newComparticasCount },
+      },
+      {
+        id: "noticias",
+        label: "Noticias",
+        to: "/noticias",
+        section: "noticias",
+      },
+      {
+        id: "users",
+        label: "Comunidad",
+        to: "/usuarios",
+        section: "comunidad",
+      },
     ],
   },
   {
-    label: 'Encuentros',
+    label: "Encuentros",
     items: [
-      { id: 'dash',     label: 'Mesas',    to: '/mesas',    section: 'mesas',    badge: { variant: 'default', getValue: ctx => ctx.activeTablesCount } },
-      { id: 'eventos',  label: 'Eventos',  to: '/eventos',  section: 'eventos',  badge: { variant: 'urgent',  getValue: ctx => ctx.upcomingEventsCount } },
-      { id: 'torneos',  label: 'Torneos',  to: '/torneos',  section: 'torneos' },
+      {
+        id: "dash",
+        label: "Mesas",
+        to: "/mesas",
+        section: "mesas",
+        badge: { variant: "default", getValue: (ctx) => ctx.activeTablesCount },
+      },
+      {
+        id: "eventos",
+        label: "Eventos",
+        to: "/eventos",
+        section: "eventos",
+        badge: {
+          variant: "urgent",
+          getValue: (ctx) => ctx.upcomingEventsCount,
+        },
+      },
+      { id: "torneos", label: "Torneos", to: "/torneos", section: "torneos" },
     ],
   },
   {
-    label: 'Tuyo',
+    label: "Tuyo",
     items: [
-      { id: 'feed',    label: 'Mi feed',  to: '/mi' },
-      { id: 'bgwatch', label: 'BG Watch', to: ctx => `/bg-watch/${ctx.user.bggUsername}`, gatedBy: ctx => Boolean(ctx.user?.bggUsername), badge: { getValue: ctx => ctx.bgwPlaysCount } },
+      { id: "feed", label: "Mi feed", to: "/mi" },
+      {
+        id: "bgwatch",
+        label: "BG Watch",
+        to: (ctx) => `/bg-watch/${ctx.user.bggUsername}`,
+        gatedBy: (ctx) => Boolean(ctx.user?.bggUsername),
+        badge: { getValue: (ctx) => ctx.bgwPlaysCount },
+      },
       // CTA when user has no bggUsername yet:
-      { id: 'bgwatchCta', label: 'Activá BG Watch', to: '/bg-watch', variant: 'promo', gatedBy: ctx => !ctx.user?.bggUsername, badge: { value: 'Nuevo' } },
+      {
+        id: "bgwatchCta",
+        label: "Activá BG Watch",
+        to: "/bg-watch",
+        variant: "promo",
+        gatedBy: (ctx) => !ctx.user?.bggUsername,
+        badge: { value: "Nuevo" },
+      },
     ],
   },
   {
-    label: 'Admin',
+    label: "Admin",
     adminOnly: true,
     items: [
-      { id: 'panel',     label: 'Panel admin',   to: '/panel-admin' },
-      { id: 'db',        label: 'Base de datos', to: '/base-de-datos' },
-      { id: 'adminChat', label: 'Chat admin',    to: '/mensajes-admin', badge: { variant: 'urgent', getValue: ctx => ctx.adminChatUnread } },
+      { id: "panel", label: "Panel admin", to: "/panel-admin" },
+      { id: "db", label: "Base de datos", to: "/base-de-datos" },
+      {
+        id: "adminChat",
+        label: "Chat admin",
+        to: "/mensajes-admin",
+        badge: { variant: "urgent", getValue: (ctx) => ctx.adminChatUnread },
+      },
     ],
   },
 ];
@@ -242,6 +302,7 @@ Margin-top 14px, padding `0 12px`.
 ```
 
 Layout:
+
 - Background `var(--bg-paper)` (`#18202f`)
 - Border `1px solid var(--border)`, border-radius 12px
 - Padding `10px 12px`
@@ -249,34 +310,43 @@ Layout:
 - Position relative, overflow hidden
 
 **Perforación lateral (ticket-stub):**
+
 ```css
 .userTicket::before,
 .userTicket::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 10px;
   height: 10px;
-  background: var(--bg-card);  /* matches sidebar bg to "cut" the corners */
+  background: var(--bg-card); /* matches sidebar bg to "cut" the corners */
   border-radius: 50%;
   top: 50%;
   transform: translateY(-50%);
 }
-.userTicket::before { left: -5px; }
-.userTicket::after  { right: -5px; }
+.userTicket::before {
+  left: -5px;
+}
+.userTicket::after {
+  right: -5px;
+}
 ```
 
 **Avatar (`.userAvatar`):**
+
 - 32×32, border-radius 10px, background `var(--accent)`, color `#fff`
 - Poppins 800 13px, letter-spacing `-0.04em`
 
 **Info (`.userInfo`):**
+
 - `.userName`: Poppins 700 13px, letter-spacing `-0.015em`, color `var(--text)`, line-height 1.15, ellipsis si overflow
 - `.userMeta`: JetBrains Mono 10px, letter-spacing `0.04em`, color `var(--accent-light)`, margin-top 1px, flex con gap 4px
 
 **Status dot (`.statusDot`):**
+
 - 6×6, border-radius 50%, background `var(--green)`, box-shadow `0 0 6px var(--green)`
 
 **Logout button (`.logoutBtn`):**
+
 - 32×32, background transparente, border none, border-radius 8px
 - Color `var(--text-muted)`
 - Hover: color `var(--red)`, background `rgba(243,29,119,0.1)`
@@ -320,7 +390,9 @@ Si querés alimentar los badges nuevos (`activeTablesCount`, `upcomingEventsCoun
 ### Local state
 
 ```js
-const [collapsed, setCollapsed] = useState(() => loadFromStorage('sidebarCollapsed', false));
+const [collapsed, setCollapsed] = useState(() =>
+  loadFromStorage("sidebarCollapsed", false),
+);
 const [confirmingLogout, setConfirmingLogout] = useState(false);
 ```
 
@@ -332,34 +404,42 @@ Persistir `collapsed` en localStorage para que sobreviva refreshes.
 
 ```css
 /* Backgrounds */
---bg-dark:     #0a0d15;
---bg-card:     #151c28;
+--bg-dark: #0a0d15;
+--bg-card: #151c28;
 --bg-elevated: #1d2532;
---bg-paper:    #18202f;
---bg-deep:     #050810;
+--bg-paper: #18202f;
+--bg-deep: #050810;
 
 /* Accent (cyan) */
---accent:        #1888ef;
---accent-light:  #00aeff;
---accent-dark:   #0076d1;
---accent-glow:   rgba(24,136,239,0.18);
---border-accent: rgba(24,136,239,0.4);
+--accent: #1888ef;
+--accent-light: #00aeff;
+--accent-dark: #0076d1;
+--accent-glow: rgba(24, 136, 239, 0.18);
+--border-accent: rgba(24, 136, 239, 0.4);
 
 /* Text */
---text:           #ffffff;
+--text: #ffffff;
 --text-secondary: #a8b4cc;
---text-muted:     #5a6178;
---text-faint:     #353d52;
+--text-muted: #5a6178;
+--text-faint: #353d52;
 
 /* Borders */
---border:        #1e2a3d;
+--border: #1e2a3d;
 --border-strong: #2a3a55;
 
 /* Status */
---red:    #f31d77;   --red-10: rgba(243,29,119,0.1);   --red-25: rgba(243,29,119,0.25);
---green:  #00d984;   --green-10: rgba(0,217,132,0.1);  --green-25: rgba(0,217,132,0.25);
---orange: #f5a623;   --orange-10: rgba(245,166,35,0.1); --orange-25: rgba(245,166,35,0.3);
---purple: #b48cff;   --purple-10: rgba(180,140,255,0.1); --purple-25: rgba(180,140,255,0.3);
+--red: #f31d77;
+--red-10: rgba(243, 29, 119, 0.1);
+--red-25: rgba(243, 29, 119, 0.25);
+--green: #00d984;
+--green-10: rgba(0, 217, 132, 0.1);
+--green-25: rgba(0, 217, 132, 0.25);
+--orange: #f5a623;
+--orange-10: rgba(245, 166, 35, 0.1);
+--orange-25: rgba(245, 166, 35, 0.3);
+--purple: #b48cff;
+--purple-10: rgba(180, 140, 255, 0.1);
+--purple-25: rgba(180, 140, 255, 0.3);
 
 /* Transition */
 --t: 0.2s ease;
@@ -375,16 +455,16 @@ Todas se cargan vía Google Fonts en el `<head>` del index.html del cliente (ya 
 
 ### Spacing
 
-| Token         | Valor |
-|---------------|-------|
-| Section gap   | 22px  |
-| Item padding  | 9px 12px |
-| Item gap (icon→label→badge) | 12px |
-| Sidebar padding (top/bottom) | 18px / 14px |
-| Sidebar padding (left/right) | 12px (nav), 18px (logoRow) |
-| Border radius (item) | 9px |
-| Border radius (logoMark, userTicket) | 12px |
-| Border radius (logoMark inner T+ring) | as drawn |
+| Token                                 | Valor                      |
+| ------------------------------------- | -------------------------- |
+| Section gap                           | 22px                       |
+| Item padding                          | 9px 12px                   |
+| Item gap (icon→label→badge)           | 12px                       |
+| Sidebar padding (top/bottom)          | 18px / 14px                |
+| Sidebar padding (left/right)          | 12px (nav), 18px (logoRow) |
+| Border radius (item)                  | 9px                        |
+| Border radius (logoMark, userTicket)  | 12px                       |
+| Border radius (logoMark inner T+ring) | as drawn                   |
 
 ### Animations
 

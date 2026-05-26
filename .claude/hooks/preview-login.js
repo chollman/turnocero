@@ -15,14 +15,24 @@
  * `preview_eval` is never blocked.
  */
 
-const fs = require('fs');
-const path = require('path');
-const http = require('http');
+const fs = require("fs");
+const path = require("path");
+const http = require("http");
 
 const PROJECT_ROOT = process.cwd();
-const CRED_PATH = path.join(PROJECT_ROOT, '.claude', 'memory', 'reference_test_credentials.md');
-const CACHE_PATH = path.join(PROJECT_ROOT, '.claude', 'cache', 'turnocero-token.json');
-const BACKEND_HOST = '127.0.0.1';
+const CRED_PATH = path.join(
+  PROJECT_ROOT,
+  ".claude",
+  "memory",
+  "reference_test_credentials.md",
+);
+const CACHE_PATH = path.join(
+  PROJECT_ROOT,
+  ".claude",
+  "cache",
+  "turnocero-token.json",
+);
+const BACKEND_HOST = "127.0.0.1";
 const BACKEND_PORT = 4000;
 
 async function main() {
@@ -50,10 +60,12 @@ async function main() {
 
 function readStdin() {
   return new Promise((resolve) => {
-    let buf = '';
-    process.stdin.on('data', (c) => { buf += c; });
-    process.stdin.on('end', () => resolve(buf));
-    process.stdin.on('error', () => resolve(''));
+    let buf = "";
+    process.stdin.on("data", (c) => {
+      buf += c;
+    });
+    process.stdin.on("end", () => resolve(buf));
+    process.stdin.on("error", () => resolve(""));
     // If nothing is piped, resolve quickly so we don't hang.
     setTimeout(() => resolve(buf), 50);
   });
@@ -61,9 +73,9 @@ function readStdin() {
 
 function readCachedToken(now) {
   try {
-    const raw = fs.readFileSync(CACHE_PATH, 'utf8');
+    const raw = fs.readFileSync(CACHE_PATH, "utf8");
     const { token, exp } = JSON.parse(raw);
-    if (token && typeof exp === 'number' && exp > now + 60) return token;
+    if (token && typeof exp === "number" && exp > now + 60) return token;
   } catch {
     /* no cache or corrupted — ignore */
   }
@@ -72,7 +84,7 @@ function readCachedToken(now) {
 
 function parseCredentials(filePath) {
   try {
-    const md = fs.readFileSync(filePath, 'utf8');
+    const md = fs.readFileSync(filePath, "utf8");
     const email = md.match(/Email:\s*`([^`]+)`/)?.[1];
     const password = md.match(/Password:\s*`([^`]+)`/)?.[1];
     if (!email || !password) return null;
@@ -87,20 +99,22 @@ function login(email, password) {
     const body = JSON.stringify({ email, password });
     const req = http.request(
       {
-        method: 'POST',
+        method: "POST",
         host: BACKEND_HOST,
         port: BACKEND_PORT,
-        path: '/api/auth/login',
+        path: "/api/auth/login",
         headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(body),
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(body),
         },
         timeout: 3000,
       },
       (res) => {
-        let data = '';
-        res.on('data', (c) => { data += c; });
-        res.on('end', () => {
+        let data = "";
+        res.on("data", (c) => {
+          data += c;
+        });
+        res.on("end", () => {
           try {
             const parsed = JSON.parse(data);
             resolve(parsed.token || null);
@@ -110,8 +124,11 @@ function login(email, password) {
         });
       },
     );
-    req.on('error', () => resolve(null));
-    req.on('timeout', () => { req.destroy(); resolve(null); });
+    req.on("error", () => resolve(null));
+    req.on("timeout", () => {
+      req.destroy();
+      resolve(null);
+    });
     req.write(body);
     req.end();
   });
@@ -120,17 +137,24 @@ function login(email, password) {
 function persistToken(token, now) {
   let exp = now + 60 * 60 * 23; // fallback: 23h
   try {
-    const payloadB64 = token.split('.')[1];
-    const padded = payloadB64 + '='.repeat((4 - payloadB64.length % 4) % 4);
-    const decoded = Buffer.from(padded.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+    const payloadB64 = token.split(".")[1];
+    const padded = payloadB64 + "=".repeat((4 - (payloadB64.length % 4)) % 4);
+    const decoded = Buffer.from(
+      padded.replace(/-/g, "+").replace(/_/g, "/"),
+      "base64",
+    ).toString("utf8");
     const payload = JSON.parse(decoded);
-    if (typeof payload.exp === 'number') exp = payload.exp;
+    if (typeof payload.exp === "number") exp = payload.exp;
   } catch {
     /* keep fallback exp */
   }
   try {
     fs.mkdirSync(path.dirname(CACHE_PATH), { recursive: true });
-    fs.writeFileSync(CACHE_PATH, JSON.stringify({ token, exp, savedAt: now }), 'utf8');
+    fs.writeFileSync(
+      CACHE_PATH,
+      JSON.stringify({ token, exp, savedAt: now }),
+      "utf8",
+    );
   } catch {
     /* cache write failure shouldn't block the hook */
   }
@@ -140,31 +164,33 @@ function emitContext(token) {
   const snippet = [
     "localStorage.setItem('turnocero_token', token);",
     "if (window.axios) window.axios.defaults.headers.common.Authorization = 'Bearer ' + token;",
-  ].join('\n');
+  ].join("\n");
   const additionalContext = [
-    'Test JWT cached for the Turnocero preview client (read from .claude/cache/turnocero-token.json).',
-    '',
+    "Test JWT cached for the Turnocero preview client (read from .claude/cache/turnocero-token.json).",
+    "",
     `Token: \`${token}\``,
-    '',
-    'To authenticate inside preview_eval (port 3000), prepend this to your expression:',
-    '',
-    '```js',
+    "",
+    "To authenticate inside preview_eval (port 3000), prepend this to your expression:",
+    "",
+    "```js",
     `const token = '${token}';`,
     snippet,
-    '```',
-    '',
-    'For fetches that bypass axios, pass `Authorization: \\`Bearer ${token}\\`` as a header. ' +
-      'The token refreshes automatically on the next preview_eval after it expires.',
-  ].join('\n');
+    "```",
+    "",
+    "For fetches that bypass axios, pass `Authorization: \\`Bearer ${token}\\`` as a header. " +
+      "The token refreshes automatically on the next preview_eval after it expires.",
+  ].join("\n");
 
   const out = {
     suppressOutput: true,
     hookSpecificOutput: {
-      hookEventName: 'PreToolUse',
+      hookEventName: "PreToolUse",
       additionalContext,
     },
   };
   process.stdout.write(JSON.stringify(out));
 }
 
-main().catch(() => { /* swallow */ });
+main().catch(() => {
+  /* swallow */
+});

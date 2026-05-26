@@ -21,13 +21,13 @@
 // para diagnóstico. Para 4xx (esperados, throw intencional del business
 // logic) no spameamos los logs.
 
-const logger = require('../utils/logger');
+const logger = require("../utils/logger");
 
 function statusFor(err) {
-  if (typeof err.status === 'number') return err.status;
-  if (typeof err.statusCode === 'number') return err.statusCode;
-  if (err.name === 'CastError') return 400;
-  if (err.name === 'ValidationError') return 400;
+  if (typeof err.status === "number") return err.status;
+  if (typeof err.statusCode === "number") return err.statusCode;
+  if (err.name === "CastError") return 400;
+  if (err.name === "ValidationError") return 400;
   return 500;
 }
 
@@ -40,7 +40,7 @@ function messageFor(err, status) {
   if (err.isExplicit && err.message) return err.message;
   // 5xx no esperados (bug, DB down, libs externas) → mensaje genérico para
   // no leakear detalles internos (paths fs, secrets en stack traces, etc.).
-  return 'Error interno del servidor';
+  return "Error interno del servidor";
 }
 
 // eslint-disable-next-line no-unused-vars

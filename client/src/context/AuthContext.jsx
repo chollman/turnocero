@@ -1,8 +1,8 @@
-import { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { STORAGE_KEYS } from '../utils/storageKeys';
-import { API } from '../api/endpoints';
+import { createContext, useContext, useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { STORAGE_KEYS } from "../utils/storageKeys";
+import { API } from "../api/endpoints";
 
 // Note (long-term): consider migrating to a custom domain (e.g. turnocero.com +
 // api.turnocero.com) so auth cookies become first-party (SameSite=lax). Safari's ITP
@@ -15,18 +15,34 @@ axios.defaults.withCredentials = true;
 // y SSR no expone `window`. Wrappear evita romper el provider entero.
 const safeStorage = (getStorage) => ({
   get: (key) => {
-    try { return getStorage()?.getItem(key) ?? null; } catch { return null; }
+    try {
+      return getStorage()?.getItem(key) ?? null;
+    } catch {
+      return null;
+    }
   },
   set: (key, value) => {
-    try { getStorage()?.setItem(key, value); } catch { /* swallow */ }
+    try {
+      getStorage()?.setItem(key, value);
+    } catch {
+      /* swallow */
+    }
   },
   remove: (key) => {
-    try { getStorage()?.removeItem(key); } catch { /* swallow */ }
+    try {
+      getStorage()?.removeItem(key);
+    } catch {
+      /* swallow */
+    }
   },
 });
 
-const local = safeStorage(() => (typeof window !== 'undefined' ? window.localStorage : null));
-const session = safeStorage(() => (typeof window !== 'undefined' ? window.sessionStorage : null));
+const local = safeStorage(() =>
+  typeof window !== "undefined" ? window.localStorage : null,
+);
+const session = safeStorage(() =>
+  typeof window !== "undefined" ? window.sessionStorage : null,
+);
 
 const setAuthHeader = (token) => {
   if (token) {
@@ -42,14 +58,14 @@ export const AuthProvider = ({ children }) => {
   const [realUser, setRealUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [viewAsUser, setViewAsUserState] = useState(
-    () => local.get(STORAGE_KEYS.VIEW_AS_USER) === 'true'
+    () => local.get(STORAGE_KEYS.VIEW_AS_USER) === "true",
   );
   const navigate = useNavigate();
 
   const setViewAsUser = (value) => {
     const v = !!value;
     setViewAsUserState(v);
-    if (v) local.set(STORAGE_KEYS.VIEW_AS_USER, 'true');
+    if (v) local.set(STORAGE_KEYS.VIEW_AS_USER, "true");
     else local.remove(STORAGE_KEYS.VIEW_AS_USER);
   };
 
@@ -58,8 +74,11 @@ export const AuthProvider = ({ children }) => {
       (res) => res,
       (err) => {
         const status = err.response?.status;
-        const isAuthRoute = err.config?.url?.includes('/api/auth/');
-        const isBan = status === 403 && err.response?.data?.code === 'banned' && !isAuthRoute;
+        const isAuthRoute = err.config?.url?.includes("/api/auth/");
+        const isBan =
+          status === 403 &&
+          err.response?.data?.code === "banned" &&
+          !isAuthRoute;
         const isUnauth = status === 401 && !isAuthRoute;
         if (isUnauth || isBan) {
           local.remove(STORAGE_KEYS.TOKEN);
@@ -68,12 +87,15 @@ export const AuthProvider = ({ children }) => {
           setRealUser(null);
           setViewAsUserState(false);
           if (isBan) {
-            session.set(STORAGE_KEYS.BANNED_MESSAGE, err.response?.data?.message || 'Tu cuenta ha sido suspendida.');
+            session.set(
+              STORAGE_KEYS.BANNED_MESSAGE,
+              err.response?.data?.message || "Tu cuenta ha sido suspendida.",
+            );
           }
-          navigate('/login', { replace: true });
+          navigate("/login", { replace: true });
         }
         return Promise.reject(err);
-      }
+      },
     );
     return () => axios.interceptors.response.eject(id);
   }, [navigate]);
@@ -86,7 +108,8 @@ export const AuthProvider = ({ children }) => {
       return;
     }
     setAuthHeader(token);
-    axios.get(API.auth.ME)
+    axios
+      .get(API.auth.ME)
       .then(({ data }) => setRealUser(data))
       .catch(() => {
         setRealUser(null);
@@ -107,7 +130,11 @@ export const AuthProvider = ({ children }) => {
   // Creates an unverified account. No session is established here — the user
   // must complete /verify-email with the code we sent to confirm ownership.
   const register = async (username, email, password) => {
-    const { data } = await axios.post(API.auth.REGISTER, { username, email, password });
+    const { data } = await axios.post(API.auth.REGISTER, {
+      username,
+      email,
+      password,
+    });
     return data; // { email, message }
   };
 
@@ -130,7 +157,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const resetPassword = async (email, token, password) => {
-    const { data } = await axios.post(API.auth.RESET_PASSWORD, { email, token, password });
+    const { data } = await axios.post(API.auth.RESET_PASSWORD, {
+      email,
+      token,
+      password,
+    });
     return data;
   };
 
@@ -165,22 +196,24 @@ export const AuthProvider = ({ children }) => {
   }, [realUser, isActuallyAdmin, viewAsUser]);
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      loading,
-      login,
-      register,
-      verifyEmail,
-      requestEmailVerification,
-      requestPasswordReset,
-      resetPassword,
-      logout,
-      updateProfile,
-      refreshUser,
-      viewAsUser,
-      setViewAsUser,
-      isActuallyAdmin,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        verifyEmail,
+        requestEmailVerification,
+        requestPasswordReset,
+        resetPassword,
+        logout,
+        updateProfile,
+        refreshUser,
+        viewAsUser,
+        setViewAsUser,
+        isActuallyAdmin,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -188,6 +221,6 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 };

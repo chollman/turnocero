@@ -10,6 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
+import InfoTooltip from "../../components/shared/InfoTooltip";
 import styles from "./CreateTable.module.css";
 
 const defaultDate = () => {
@@ -38,9 +39,12 @@ export default function CreateTable() {
     (user?.direccion?.lat != null && user?.direccion?.lng != null),
   );
 
+  // `maxPlayers` en el form representa el TOTAL de jugadores incluyendo al
+  // host (más intuitivo para el usuario). Antes de mandarlo al server le
+  // restamos 1, porque el server lo modela como "spots libres aparte del host".
   const [form, setForm] = useState({
     date: defaultDate(),
-    maxPlayers: 3,
+    maxPlayers: 4,
     location: { texto: "", lat: null, lng: null },
     description: "",
     privacy: "public",
@@ -74,6 +78,14 @@ export default function CreateTable() {
   // Hora elegida por el user para el día del evento (HH:MM). Default = la hora
   // misma del evento, fallback 18:00.
   const [timeOfDay, setTimeOfDay] = useState("18:00");
+  // Ludoteca del evento (sólo cuando hay `eventoId`). Cada user puede haber
+  // sumado el mismo bggGameId; deduplicamos para el picker.
+  const [ludotecaGames, setLudotecaGames] = useState([]);
+  const [ludotecaLoading, setLudotecaLoading] = useState(false);
+  // Acordeón colapsado por default — el grid de juegos puede ocupar bastante
+  // pantalla, especialmente en eventos con ludotecas grandes; el usuario lo
+  // abre cuando quiere elegir.
+  const [ludotecaExpanded, setLudotecaExpanded] = useState(false);
 
   // Si el form se carga con ?evento= pero sin state (refresh / link directo),
   // fetcheamos el evento para conocer su fecha.
@@ -89,6 +101,57 @@ export default function CreateTable() {
       .catch(() => {});
     return () => ac.abort();
   }, [eventoId, eventDate]);
+
+  // Fetch de la ludoteca para mostrar el picker de juegos ya cargados al
+  // evento. Si la ludoteca tiene juegos, el host puede elegir de ahí en vez
+  // de buscar en BGG. Deduplicamos por bggGameId (varios users pueden haber
+  // aportado el mismo juego); marcamos `addedByMe=true` si el user actual
+  // está entre los aportantes para ordenar y diferenciar visualmente.
+  const myUserId = user?._id ? String(user._id) : null;
+  useEffect(() => {
+    if (!eventoId) return undefined;
+    const ac = new AbortController();
+    setLudotecaLoading(true);
+    axios
+      .get(API.eventos.LUDOTECA(eventoId), { signal: ac.signal })
+      .then(({ data }) => {
+        if (ac.signal.aborted) return;
+        const items = data?.items || [];
+        const dedup = new Map();
+        for (const it of items) {
+          if (!it.bggGameId) continue;
+          const addedById = String(it.addedBy?._id || it.addedBy || "");
+          const isMine = myUserId && addedById === myUserId;
+          const existing = dedup.get(it.bggGameId);
+          if (existing) {
+            // Si ya estaba pero ahora aparece otra aportación mía, lo marcamos.
+            if (isMine) existing.addedByMe = true;
+            continue;
+          }
+          dedup.set(it.bggGameId, {
+            id: it.bggGameId,
+            name: it.gameName,
+            thumbnail: it.thumbnail || null,
+            image: it.image || null,
+            year: it.year || null,
+            addedByMe: !!isMine,
+          });
+        }
+        // Sort: primero los míos, después los demás. Dentro de cada grupo
+        // mantenemos el orden de aparición (Map preserva insertion order).
+        const all = Array.from(dedup.values());
+        const mine = all.filter((g) => g.addedByMe);
+        const others = all.filter((g) => !g.addedByMe);
+        setLudotecaGames([...mine, ...others]);
+      })
+      .catch((err) => {
+        if (!axios.isCancel(err)) setLudotecaGames([]);
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setLudotecaLoading(false);
+      });
+    return () => ac.abort();
+  }, [eventoId, myUserId]);
 
   // Cuando llega `eventDate`, seedeamos el time picker con la hora del evento.
   useEffect(() => {
@@ -229,6 +292,20 @@ export default function CreateTable() {
     }
   };
 
+  // Pick directo desde la ludoteca: el server ya hidrató name/thumbnail/image/year
+  // al persistir el item, así que no hace falta golpear BGG de nuevo.
+  const handlePickLudotecaGame = (game) => {
+    setBoardGameSelected({
+      id: game.id,
+      name: game.name,
+      thumbnail: game.thumbnail,
+      image: game.image,
+      year: game.year,
+    });
+    setBoardGameInput(game.name);
+    setShowDropdown(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -262,7 +339,8 @@ export default function CreateTable() {
         bggThumbnail: boardGameSelected.thumbnail,
         bggImage: boardGameSelected.image,
         bggYear: boardGameSelected.year,
-        maxPlayers: Number(form.maxPlayers),
+        // UI cuenta al host; el server espera "spots libres" → restamos 1.
+        maxPlayers: Number(form.maxPlayers) - 1,
         // Sólo se incluye si veníamos desde /eventos/:id/mesas con ?evento=
         ...(eventoId ? { eventoId } : {}),
       });
@@ -297,6 +375,123 @@ export default function CreateTable() {
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.field}>
               <label className={styles.label}>Juego de mesa *</label>
+              {eventoId && ludotecaGames.length > 0 && (
+                <div className={styles.ludotecaPicker}>
+                  {/* Header acts as a button (role+keyboard) en vez de
+                      <button> nativo para poder anidar el InfoTooltip
+                      (que también es <button>) sin invalidar el HTML. */}
+                  <div
+                    className={styles.ludotecaPickerHeader}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setLudotecaExpanded((v) => !v)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setLudotecaExpanded((v) => !v);
+                      }
+                    }}
+                    aria-expanded={ludotecaExpanded}
+                    aria-controls="ludoteca-picker-grid"
+                  >
+                    <span className={styles.ludotecaPickerTitleRow}>
+                      <span className={styles.ludotecaPickerTitle}>
+                        Ludoteca del evento
+                      </span>
+                      <span className={styles.ludotecaPickerCount}>
+                        {ludotecaGames.length}{" "}
+                        {ludotecaGames.length === 1 ? "juego" : "juegos"}
+                      </span>
+                      {/* stopPropagation evita que el click/keydown del
+                          tooltip toggle-é el acordeón. */}
+                      <span
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      >
+                        <InfoTooltip label="Cómo usar la ludoteca">
+                          Tocá un juego de la ludoteca para elegirlo, o buscá
+                          otro en BGG abajo.
+                        </InfoTooltip>
+                      </span>
+                      <span
+                        className={`${styles.ludotecaPickerCaret} ${ludotecaExpanded ? styles.ludotecaPickerCaretOpen : ""}`}
+                        aria-hidden="true"
+                      >
+                        ▾
+                      </span>
+                    </span>
+                  </div>
+                  <div
+                    className={`${styles.ludotecaCollapse} ${ludotecaExpanded ? styles.ludotecaCollapseOpen : ""}`}
+                    aria-hidden={!ludotecaExpanded}
+                  >
+                    <div className={styles.ludotecaCollapseInner}>
+                      <ul
+                        id="ludoteca-picker-grid"
+                        className={styles.ludotecaGrid}
+                      >
+                        {ludotecaGames.map((g) => {
+                          const isSelected =
+                            boardGameSelected &&
+                            Number(boardGameSelected.id) === Number(g.id);
+                          return (
+                            <li key={g.id}>
+                              <button
+                                type="button"
+                                className={`${styles.ludotecaItem} ${isSelected ? styles.ludotecaItemSelected : ""} ${g.addedByMe ? styles.ludotecaItemMine : ""}`}
+                                onClick={() => handlePickLudotecaGame(g)}
+                                aria-pressed={isSelected || false}
+                                aria-label={
+                                  g.addedByMe
+                                    ? `${g.name} (aportado por vos)`
+                                    : g.name
+                                }
+                                tabIndex={ludotecaExpanded ? 0 : -1}
+                              >
+                                <div className={styles.ludotecaThumbWrap}>
+                                  {g.image || g.thumbnail ? (
+                                    <img
+                                      src={g.image || g.thumbnail}
+                                      alt=""
+                                      className={styles.ludotecaThumb}
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <div
+                                      className={styles.ludotecaThumbFallback}
+                                    >
+                                      🎲
+                                    </div>
+                                  )}
+                                  {g.addedByMe && (
+                                    <span
+                                      className={styles.ludotecaMineBadge}
+                                      aria-hidden="true"
+                                    >
+                                      Tuyo
+                                    </span>
+                                  )}
+                                </div>
+                                <span className={styles.ludotecaName}>
+                                  {g.name}
+                                </span>
+                                {g.year && (
+                                  <span className={styles.ludotecaYear}>
+                                    {g.year}
+                                  </span>
+                                )}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {eventoId && ludotecaLoading && ludotecaGames.length === 0 && (
+                <div className={styles.searchHint}>Cargando ludoteca…</div>
+              )}
               <div className={styles.gameSearchWrapper} ref={searchRef}>
                 <input
                   type="text"
@@ -308,7 +503,11 @@ export default function CreateTable() {
                     setShowDropdown(true)
                   }
                   className={`${styles.input} ${boardGameSelected ? styles.inputSelected : ""}`}
-                  placeholder="Buscá un juego en BGG…"
+                  placeholder={
+                    eventoId && ludotecaGames.length > 0
+                      ? "…o buscá otro juego en BGG"
+                      : "Buscá un juego en BGG…"
+                  }
                   autoComplete="off"
                 />
                 {searching && (
@@ -382,8 +581,8 @@ export default function CreateTable() {
 
               <div className={styles.field}>
                 <label className={styles.label}>
-                  Lugares *
-                  <span className={styles.labelHint}>(sin contar al host)</span>
+                  Jugadores
+                  <span className={styles.labelHint}>(incluyéndote)</span>
                 </label>
                 <div className={styles.counter}>
                   <button
@@ -392,7 +591,7 @@ export default function CreateTable() {
                     onClick={() =>
                       setForm((f) => ({
                         ...f,
-                        maxPlayers: Math.max(1, f.maxPlayers - 1),
+                        maxPlayers: Math.max(2, f.maxPlayers - 1),
                       }))
                     }
                   >
@@ -405,15 +604,12 @@ export default function CreateTable() {
                     onClick={() =>
                       setForm((f) => ({
                         ...f,
-                        maxPlayers: Math.min(20, f.maxPlayers + 1),
+                        maxPlayers: Math.min(21, f.maxPlayers + 1),
                       }))
                     }
                   >
                     +
                   </button>
-                  <span className={styles.counterTotal}>
-                    Total: {Number(form.maxPlayers) + 1}
-                  </span>
                 </div>
               </div>
             </div>

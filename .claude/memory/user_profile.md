@@ -1,5 +1,5 @@
 ---
-name: claudio-hollman-developer-profile
+name: user-profile
 description: Who Claudio is and how he works on Turnocero
 metadata:
   type: user

@@ -1,24 +1,24 @@
-import { useCallback, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../../context/AuthContext';
-import { API } from '../../api/endpoints';
-import ConfirmActionModal from '../../components/shared/ConfirmActionModal';
-import PartidasPanel from './PartidasPanel';
-import ColeccionPanel from './ColeccionPanel';
-import PlayDetailModal from './PlayDetailModal';
-import CreatePlayModal from './CreatePlayModal';
-import StatsBar from './StatsBar';
-import useBggUserMap from './useBggUserMap';
-import { GuestBanner, GuestInlineCTA, GuestFooter } from './BgWatchGuestCTAs';
-import styles from './BgWatchProfile.module.css';
+import { useCallback, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
+import { API } from "../../api/endpoints";
+import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
+import PartidasPanel from "./PartidasPanel";
+import ColeccionPanel from "./ColeccionPanel";
+import PlayDetailModal from "./PlayDetailModal";
+import CreatePlayModal from "./CreatePlayModal";
+import StatsBar from "./StatsBar";
+import useBggUserMap from "./useBggUserMap";
+import { GuestBanner, GuestInlineCTA, GuestFooter } from "./BgWatchGuestCTAs";
+import styles from "./BgWatchProfile.module.css";
 
 export default function BgWatchProfile() {
   const { bggUsername } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('partidas');
+  const [activeTab, setActiveTab] = useState("partidas");
   const [collection, setCollection] = useState(null);
   const [playsMeta, setPlaysMeta] = useState(null);
   const [openPlay, setOpenPlay] = useState(null);
@@ -28,8 +28,9 @@ export default function BgWatchProfile() {
   const [deleting, setDeleting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const isOwnProfile = !!user?.bggUsername &&
-    user.bggUsername.toLowerCase() === (bggUsername || '').toLowerCase();
+  const isOwnProfile =
+    !!user?.bggUsername &&
+    user.bggUsername.toLowerCase() === (bggUsername || "").toLowerCase();
   const canCreate = isOwnProfile && user?.bggConnected && !user?.bggInvalid;
   // Manual "Actualizar" button visibility — owner or admin only. Uses the
   // EFFECTIVE user.isAdmin (modified by AdminViewToggle), not isActuallyAdmin,
@@ -59,7 +60,7 @@ export default function BgWatchProfile() {
       setDeletingPlay(null);
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      alert(err.response?.data?.message || 'No se pudo eliminar la partida.');
+      alert(err.response?.data?.message || "No se pudo eliminar la partida.");
     } finally {
       setDeleting(false);
     }
@@ -101,23 +102,27 @@ export default function BgWatchProfile() {
 
         <div className={styles.tabs}>
           <button
-            className={`${styles.tab} ${activeTab === 'partidas' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('partidas')}
+            className={`${styles.tab} ${activeTab === "partidas" ? styles.tabActive : ""}`}
+            onClick={() => setActiveTab("partidas")}
           >
             Partidas
-            {playsMeta && <span className={styles.tabBadge}>{playsMeta.total}</span>}
+            {playsMeta && (
+              <span className={styles.tabBadge}>{playsMeta.total}</span>
+            )}
           </button>
           <button
-            className={`${styles.tab} ${activeTab === 'coleccion' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('coleccion')}
+            className={`${styles.tab} ${activeTab === "coleccion" ? styles.tabActive : ""}`}
+            onClick={() => setActiveTab("coleccion")}
           >
             Colección
-            {collection && <span className={styles.tabBadge}>{collection.length}</span>}
+            {collection && (
+              <span className={styles.tabBadge}>{collection.length}</span>
+            )}
           </button>
         </div>
 
         {/* Both panels mounted (preserve state when switching tabs) */}
-        <div style={{ display: activeTab === 'partidas' ? 'block' : 'none' }}>
+        <div style={{ display: activeTab === "partidas" ? "block" : "none" }}>
           <PartidasPanel
             key={`partidas-${refreshKey}`}
             bggUsername={bggUsername}
@@ -129,7 +134,7 @@ export default function BgWatchProfile() {
             canRefresh={canRefresh}
           />
         </div>
-        <div style={{ display: activeTab === 'coleccion' ? 'block' : 'none' }}>
+        <div style={{ display: activeTab === "coleccion" ? "block" : "none" }}>
           <ColeccionPanel
             bggUsername={bggUsername}
             onLoaded={handleCollectionLoaded}
@@ -141,7 +146,11 @@ export default function BgWatchProfile() {
       </div>
 
       {openPlay && (
-        <PlayDetailModal play={openPlay} userMap={modalUserMap} onClose={() => setOpenPlay(null)} />
+        <PlayDetailModal
+          play={openPlay}
+          userMap={modalUserMap}
+          onClose={() => setOpenPlay(null)}
+        />
       )}
 
       {createOpen && (
@@ -164,9 +173,11 @@ export default function BgWatchProfile() {
       <ConfirmActionModal
         isOpen={!!deletingPlay}
         title="Eliminar partida"
-        message={deletingPlay
-          ? `¿Eliminar la partida de "${deletingPlay.gameName}" del ${deletingPlay.date || '?'}? Esta acción no se puede deshacer y borra la partida en BGG.`
-          : ''}
+        message={
+          deletingPlay
+            ? `¿Eliminar la partida de "${deletingPlay.gameName}" del ${deletingPlay.date || "?"}? Esta acción no se puede deshacer y borra la partida en BGG.`
+            : ""
+        }
         confirmLabel="Eliminar"
         cancelLabel="Cancelar"
         variant="danger"

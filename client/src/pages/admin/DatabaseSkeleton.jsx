@@ -1,7 +1,7 @@
-import styles from './DatabaseSkeleton.module.css'
+import styles from "./DatabaseSkeleton.module.css";
 
-const COLS = [200, 120, 160, 100, 140, 90]
-const ROWS = 8
+const COLS = [200, 120, 160, 100, 140, 90];
+const ROWS = 8;
 
 export default function DatabaseSkeleton() {
   return (
@@ -21,5 +21,5 @@ export default function DatabaseSkeleton() {
         ))}
       </div>
     </div>
-  )
+  );
 }

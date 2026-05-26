@@ -18,17 +18,13 @@ export function useTorneoNotificationListeners({
   setNotifications,
   setToasts,
 }) {
-  useSocketListeners(
-    socket,
-    () => {
-      const dispatchTorneo = (type) => (payload) =>
-        applyTorneoNotif({ setNotifications, setToasts, payload, type });
-      const handlers = {};
-      for (const [event, type] of Object.entries(EVENT_TO_TYPE)) {
-        handlers[event] = gated(event, dispatchTorneo(type));
-      }
-      return handlers;
-    },
-    [gated, setNotifications, setToasts],
-  );
+  useSocketListeners(socket, () => {
+    const dispatchTorneo = (type) => (payload) =>
+      applyTorneoNotif({ setNotifications, setToasts, payload, type });
+    const handlers = {};
+    for (const [event, type] of Object.entries(EVENT_TO_TYPE)) {
+      handlers[event] = gated(event, dispatchTorneo(type));
+    }
+    return handlers;
+  }, [gated, setNotifications, setToasts]);
 }

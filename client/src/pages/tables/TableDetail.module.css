@@ -49,7 +49,9 @@
   border-radius: 20px;
   padding: 0.35rem 0.85rem;
   cursor: pointer;
-  transition: color var(--transition), border-color var(--transition);
+  transition:
+    color var(--transition),
+    border-color var(--transition);
   font-family: var(--font-body);
 }
 
@@ -200,17 +202,25 @@
   padding: 0 1.4rem;
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 8px;
   font-family: var(--font-display);
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background var(--transition), opacity var(--transition);
+  transition: all var(--transition);
 }
 
-.btnActJoin:hover:not(:disabled) { background: var(--amber-dark); }
-.btnActJoin:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnActJoin:hover:not(:disabled) {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.btnActJoin:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btnActLeave {
   height: 40px;
@@ -234,7 +244,10 @@
   color: var(--red);
   background: var(--red-10);
 }
-.btnActLeave:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnActLeave:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btnActEdit {
   height: 40px;
@@ -257,7 +270,10 @@
   background: var(--amber-15);
   border-color: var(--amber);
 }
-.btnActEdit:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnActEdit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btnActCancel {
   height: 40px;
@@ -280,7 +296,10 @@
   background: var(--red-10);
   border-color: var(--red);
 }
-.btnActCancel:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnActCancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btnActPending {
   height: 40px;
@@ -303,7 +322,10 @@
   background: var(--purple-15);
   border-color: var(--purple-70);
 }
-.btnActPending:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnActPending:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btnFollow {
   height: 40px;
@@ -356,7 +378,10 @@
   background: var(--amber-glow);
 }
 
-.btnFollow:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnFollow:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* ─── Content layout ─── */
 .content {
@@ -512,10 +537,18 @@
 }
 
 @keyframes emojiBounce {
-  0%   { transform: scale(1); }
-  30%  { transform: scale(1.25); }
-  60%  { transform: scale(0.93); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.25);
+  }
+  60% {
+    transform: scale(0.93);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .reactionCount {
@@ -704,8 +737,13 @@
   transition: all var(--transition);
 }
 
-.btnAccept:hover:not(:disabled) { background: var(--green-25); }
-.btnAccept:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnAccept:hover:not(:disabled) {
+  background: var(--green-25);
+}
+.btnAccept:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btnReject {
   background: transparent;
@@ -719,8 +757,13 @@
   transition: all var(--transition);
 }
 
-.btnReject:hover:not(:disabled) { background: var(--red-10); }
-.btnReject:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnReject:hover:not(:disabled) {
+  background: var(--red-10);
+}
+.btnReject:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* ─── Gallery ─── */
 .galleryHeader {
@@ -743,6 +786,7 @@
 .btnUpload {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 7px;
   padding: 0.35rem 0.85rem;
@@ -750,12 +794,19 @@
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--transition), opacity var(--transition);
+  transition: all var(--transition);
   white-space: nowrap;
 }
 
-.btnUpload:hover:not(:disabled) { background: var(--amber-dark); }
-.btnUpload:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnUpload:hover:not(:disabled) {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.btnUpload:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .galleryError {
   font-size: 0.8rem;
@@ -824,11 +875,17 @@
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity var(--transition), background var(--transition);
+  transition:
+    opacity var(--transition),
+    background var(--transition);
 }
 
-.imageThumb:hover .btnDeleteImg { opacity: 1; }
-.btnDeleteImg:hover { background: var(--red); }
+.imageThumb:hover .btnDeleteImg {
+  opacity: 1;
+}
+.btnDeleteImg:hover {
+  background: var(--red);
+}
 
 /* ─── Comments ─── */
 .commentsBadge {
@@ -935,7 +992,9 @@
   font-family: var(--font-body);
 }
 
-.btnCommentEdit:hover { color: var(--amber); }
+.btnCommentEdit:hover {
+  color: var(--amber);
+}
 
 .btnCommentDelete {
   background: transparent;
@@ -949,7 +1008,9 @@
   font-family: var(--font-body);
 }
 
-.btnCommentDelete:hover { color: var(--red); }
+.btnCommentDelete:hover {
+  color: var(--red);
+}
 
 .editForm {
   display: flex;
@@ -978,6 +1039,7 @@
 .btnSaveEdit {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 6px;
   padding: 0.3rem 0.8rem;
@@ -985,10 +1047,14 @@
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font-body);
-  transition: background var(--transition);
+  transition: all var(--transition);
 }
 
-.btnSaveEdit:hover { background: var(--amber-dark); }
+.btnSaveEdit:hover {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
 
 .btnCancelEdit {
   background: transparent;
@@ -1029,13 +1095,20 @@
   transition: border-color var(--transition);
 }
 
-.commentTextarea:focus { border-color: var(--border-amber); }
-.commentTextarea::placeholder { color: var(--text-muted); }
-.commentTextarea:disabled { opacity: 0.5; }
+.commentTextarea:focus {
+  border-color: var(--border-amber);
+}
+.commentTextarea::placeholder {
+  color: var(--text-muted);
+}
+.commentTextarea:disabled {
+  opacity: 0.5;
+}
 
 .btnComment {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 8px;
   padding: 0.6rem 1.1rem;
@@ -1044,11 +1117,18 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background var(--transition), opacity var(--transition);
+  transition: all var(--transition);
 }
 
-.btnComment:hover:not(:disabled) { background: var(--amber-dark); }
-.btnComment:disabled { opacity: 0.4; cursor: not-allowed; }
+.btnComment:hover:not(:disabled) {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.btnComment:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* ─── Ratings ─── */
 .ratingsCard {
@@ -1109,14 +1189,20 @@
   color: var(--text-muted);
   cursor: pointer;
   padding: 0;
-  transition: color var(--transition), transform var(--transition);
+  transition:
+    color var(--transition),
+    transform var(--transition);
   opacity: 0.5;
 }
 
-.starBtn:hover { transform: scale(1.15); }
+.starBtn:hover {
+  transform: scale(1.15);
+}
 
 .starBtn:hover,
-.starActive { color: var(--orange); }
+.starActive {
+  color: var(--orange);
+}
 
 .ratingTextarea {
   background: var(--bg-card);
@@ -1131,9 +1217,15 @@
   transition: border-color var(--transition);
 }
 
-.ratingTextarea:focus { border-color: var(--border-amber); }
-.ratingTextarea::placeholder { color: var(--text-muted); }
-.ratingTextarea:disabled { opacity: 0.5; }
+.ratingTextarea:focus {
+  border-color: var(--border-amber);
+}
+.ratingTextarea::placeholder {
+  color: var(--text-muted);
+}
+.ratingTextarea:disabled {
+  opacity: 0.5;
+}
 
 .ratingError {
   font-size: 0.8rem;
@@ -1143,6 +1235,7 @@
 .btnSubmitRating {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 8px;
   padding: 0.6rem 1.1rem;
@@ -1150,12 +1243,19 @@
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--transition), opacity var(--transition);
+  transition: all var(--transition);
   align-self: flex-start;
 }
 
-.btnSubmitRating:hover:not(:disabled) { background: var(--amber-dark); }
-.btnSubmitRating:disabled { opacity: 0.4; cursor: not-allowed; }
+.btnSubmitRating:hover:not(:disabled) {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.btnSubmitRating:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 .ratingsList {
   display: flex;
@@ -1255,8 +1355,12 @@
   scroll-behavior: smooth;
 }
 
-.messageList::-webkit-scrollbar { width: 4px; }
-.messageList::-webkit-scrollbar-track { background: transparent; }
+.messageList::-webkit-scrollbar {
+  width: 4px;
+}
+.messageList::-webkit-scrollbar-track {
+  background: transparent;
+}
 .messageList::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
@@ -1308,8 +1412,12 @@
   gap: 0.15rem;
 }
 
-.ownMessage .msgContent { align-items: flex-end; }
-.otherMessage .msgContent { align-items: flex-start; }
+.ownMessage .msgContent {
+  align-items: flex-end;
+}
+.otherMessage .msgContent {
+  align-items: flex-start;
+}
 
 .senderName {
   font-size: 0.68rem;
@@ -1372,8 +1480,12 @@
   transition: border-color var(--transition);
 }
 
-.chatInput:focus { border-color: var(--border-amber); }
-.chatInput::placeholder { color: var(--text-muted); }
+.chatInput:focus {
+  border-color: var(--border-amber);
+}
+.chatInput::placeholder {
+  color: var(--text-muted);
+}
 
 .sendCircle {
   width: 36px;
@@ -1387,11 +1499,20 @@
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background var(--transition), opacity var(--transition);
+  transition:
+    background var(--transition),
+    opacity var(--transition);
 }
 
-.sendCircle:hover:not(:disabled) { background: var(--amber-dark); }
-.sendCircle:disabled { opacity: 0.4; cursor: not-allowed; }
+.sendCircle:hover:not(:disabled) {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.sendCircle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* ─── Lightbox ─── */
 .lightboxOverlay {
@@ -1421,7 +1542,6 @@
   justify-content: center;
   height: 60vh;
 }
-
 
 /* ─── Responsive ─── */
 @media (max-width: 960px) {
@@ -1504,7 +1624,9 @@
     letter-spacing: 0.05em;
     text-transform: uppercase;
     cursor: pointer;
-    transition: color var(--transition), border-color var(--transition);
+    transition:
+      color var(--transition),
+      border-color var(--transition);
   }
 
   .mobileTabBtn:hover {

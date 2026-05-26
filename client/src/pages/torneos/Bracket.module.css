@@ -20,7 +20,9 @@
   padding-bottom: 2px;
 }
 
-.roundSelector::-webkit-scrollbar { display: none; }
+.roundSelector::-webkit-scrollbar {
+  display: none;
+}
 
 .roundTab {
   background: transparent;
@@ -43,7 +45,9 @@
 }
 
 @media (max-width: 959px) {
-  .roundSelector { display: flex; }
+  .roundSelector {
+    display: flex;
+  }
 }
 
 /* ── Bracket grid (desktop) ── */
@@ -90,17 +94,29 @@
 }
 
 /* Use the data-round attr to push matches further apart in later rounds (visual tree). */
-.roundMatches[data-round='2'] { gap: 60px; padding: 24px 0; }
-.roundMatches[data-round='3'] { gap: 140px; padding: 64px 0; }
-.roundMatches[data-round='4'] { gap: 300px; padding: 140px 0; }
-.roundMatches[data-round='5'] { gap: 620px; padding: 280px 0; }
+.roundMatches[data-round="2"] {
+  gap: 60px;
+  padding: 24px 0;
+}
+.roundMatches[data-round="3"] {
+  gap: 140px;
+  padding: 64px 0;
+}
+.roundMatches[data-round="4"] {
+  gap: 300px;
+  padding: 140px 0;
+}
+.roundMatches[data-round="5"] {
+  gap: 620px;
+  padding: 280px 0;
+}
 
 @media (max-width: 959px) {
   .roundMatches,
-  .roundMatches[data-round='2'],
-  .roundMatches[data-round='3'],
-  .roundMatches[data-round='4'],
-  .roundMatches[data-round='5'] {
+  .roundMatches[data-round="2"],
+  .roundMatches[data-round="3"],
+  .roundMatches[data-round="4"],
+  .roundMatches[data-round="5"] {
     gap: 10px;
     padding: 0;
   }
@@ -120,7 +136,9 @@
   transition: border-color var(--transition);
 }
 
-.match:hover { border-color: var(--amber-30); }
+.match:hover {
+  border-color: var(--amber-30);
+}
 
 .matchBye {
   border-style: dashed;
@@ -169,9 +187,14 @@
   flex: 1;
 }
 
-.slotPlaceholder { color: var(--text-muted); }
+.slotPlaceholder {
+  color: var(--text-muted);
+}
 
-.slotCheck { color: var(--green); font-weight: 700; }
+.slotCheck {
+  color: var(--green);
+  font-weight: 700;
+}
 
 .matchDivider {
   height: 1px;
@@ -198,6 +221,8 @@
   margin-top: 4px;
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
   border: none;
   padding: 4px 10px;
   border-radius: 6px;
@@ -208,7 +233,11 @@
   align-self: flex-end;
 }
 
-.recordBtn:hover { background: var(--amber-light); }
+.recordBtn:hover {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
 
 .undoBtn {
   margin-top: 4px;
@@ -224,12 +253,15 @@
   align-self: flex-end;
 }
 
-.undoBtn:hover { color: var(--text-primary); border-color: var(--text-muted); }
+.undoBtn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
 
 /* ── Connectors (desktop only) ── */
 @media (min-width: 960px) {
   .round + .round .match::before {
-    content: '';
+    content: "";
     position: absolute;
     left: -29px;
     top: 50%;

@@ -91,12 +91,12 @@ Igual al desktop pero condensado a una línea. Tap → expande al modal del curr
 ```html
 <div class="composer">
   <div class="composerAvatar">V</div>
-  <button class="composerTrigger" onClick={openComposer}>
+  <button class="composerTrigger" onClick="{openComposer}">
     ¿Qué jugaste hoy, {user.username}?
   </button>
   <div class="composerActions">
-    <button onClick={() => openComposerWithPhotos()}>{photoIcon}</button>
-    <button onClick={() => openComposerWithMesa()}>{diceIcon}</button>
+    <button onClick="{()" ="">openComposerWithPhotos()}>{photoIcon}</button>
+    <button onClick="{()" ="">openComposerWithMesa()}>{diceIcon}</button>
   </div>
 </div>
 ```
@@ -149,10 +149,15 @@ Ya está en desktop, pero en mobile **apila vertical** en vez de grid 2-col. La 
 ```
 
 Layout:
+
 - Background:
   ```css
   background:
-    radial-gradient(500px circle at 20% 30%, rgba(24,136,239,0.18), transparent 55%),
+    radial-gradient(
+      500px circle at 20% 30%,
+      rgba(24, 136, 239, 0.18),
+      transparent 55%
+    ),
     linear-gradient(135deg, #18223a, #0c1018);
   ```
 - Border `1px solid var(--border-strong)`, radius 16px, padding 18px
@@ -172,13 +177,17 @@ Componente principal del feed, vista mobile.
 ### Estructura
 
 ```html
-<article class="post" data-id={post._id}>
+<article class="post" data-id="{post._id}">
   <PostHeader />
   <PostBody />
-  <PostPhotos />     <!-- if images -->
-  <MesaTicket />     <!-- if linkedTable -->
-  <PostFooter />     <!-- likes, comments, share -->
-  <CommentsPreview /> <!-- last 1-2 + "Ver N más" -->
+  <PostPhotos />
+  <!-- if images -->
+  <MesaTicket />
+  <!-- if linkedTable -->
+  <PostFooter />
+  <!-- likes, comments, share -->
+  <CommentsPreview />
+  <!-- last 1-2 + "Ver N más" -->
   <CommentForm />
 </article>
 ```
@@ -203,6 +212,7 @@ Componente principal del feed, vista mobile.
 ```
 
 Specs:
+
 - `.postHeader`: padding `14px 14px 8px`, display flex, gap 10px, align center
 - `.postAvatar`: 38×38, radius 11, Poppins 800 13px, color #fff, color de fondo dinámico (del usuario)
 - `.postAuthorName`: Poppins 700 13.5px, letter-spacing `-0.015em`, line-height 1.15, ellipsis
@@ -215,13 +225,16 @@ Specs:
 
 ```html
 <div class="postBody">
-  {post.title && <h3 class="postTitle">{title}</h3>}
+  {post.title &&
+  <h3 class="postTitle">{title}</h3>
+  }
   <p class="postText">{displayBody}</p>
   {isLong && <button class="postExpand">+ Ver más</button>}
 </div>
 ```
 
 Specs:
+
 - Padding `0 14px 10px`
 - `.postTitle`: Poppins 700 16px, letter-spacing `-0.025em`, line-height 1.18, margin `0 0 6px`
 - `.postText`: 14px, color `var(--text-secondary)`, line-height 1.5, white-space pre-wrap
@@ -262,7 +275,7 @@ Adaptado al mobile width (~360-390px viewport):
 ```html
 <div class="polaroid">
   {tape && <span class="polaroidTape left|center|right" />}
-  <div class="polaroidPhoto landscape?" style={photoUrl ? bgImage : null}>
+  <div class="polaroidPhoto landscape?" style="{photoUrl" ? bgImage : null}>
     {!photoUrl && 'foto'}
   </div>
   {caption && <span class="polaroidCaption">{caption}</span>}
@@ -276,21 +289,30 @@ Adaptado al mobile width (~360-390px viewport):
 - Position relative
 
 **`.polaroidPhoto`:**
+
 - Width 100%, aspect-ratio 1 (square) o 4/3 (landscape para grid1)
 - Si no hay foto real, fallback con pattern striped:
   ```css
   background:
-    repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0, rgba(255,255,255,0.04) 8px, transparent 8px, transparent 16px),
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 8px,
+      transparent 8px,
+      transparent 16px
+    ),
     linear-gradient(135deg, #1d2535, #0e1320);
   ```
 - Color `var(--text-muted)`, JetBrains Mono 9.5px letter-spacing `0.18em` uppercase, contenido `"foto"` o similar
 
 **`.polaroidCaption`:**
+
 - Absolute bottom 4px, left/right 0
 - Caveat 600, 15px, color `#2c2620`, text-align center, line-height 1
 - Texto = `image.caption` (proveniente del modelo de la imagen)
 
 **`.polaroidTape`:**
+
 - Absolute top -6px
 - Width 50px, height 14px
 - Background `rgba(232,220,180,0.62)`, border `1px solid rgba(255,235,180,0.15)`, radius 1, shadow sutil
@@ -317,25 +339,37 @@ Para `linkedTable`:
 - Background:
   ```css
   background:
-    radial-gradient(200px circle at 0% 50%, var(--accent-glow), transparent 60%),
+    radial-gradient(
+      200px circle at 0% 50%,
+      var(--accent-glow),
+      transparent 60%
+    ),
     var(--bg-elevated);
   ```
 - Border `1px solid var(--border-strong)`, radius 10
 - Position relative, overflow hidden
 
 **Perforación (semicírculos cortando los lados):**
+
 ```css
-.mesaTicket::before, .mesaTicket::after {
-  content: '';
+.mesaTicket::before,
+.mesaTicket::after {
+  content: "";
   position: absolute;
-  width: 10px; height: 10px;
-  background: var(--bg-paper);  /* matches post bg */
+  width: 10px;
+  height: 10px;
+  background: var(--bg-paper); /* matches post bg */
   border-radius: 50%;
-  top: 50%; transform: translateY(-50%);
+  top: 50%;
+  transform: translateY(-50%);
   border: 1px solid var(--border-strong);
 }
-.mesaTicket::before { left: 34px; }   /* después del tile */
-.mesaTicket::after  { right: 70px; }  /* antes del CTA */
+.mesaTicket::before {
+  left: 34px;
+} /* después del tile */
+.mesaTicket::after {
+  right: 70px;
+} /* antes del CTA */
 ```
 
 **`.mesaTile`** (38×38): radius 9, gradient `linear-gradient(135deg, var(--accent), var(--accent-dark))`, color #fff, Poppins 800 14px
@@ -371,12 +405,21 @@ Para `linkedTable`:
 - `.shareBtn`: 30×30, radius 8, color `var(--text-muted)`. Hover bg `var(--bg-elevated)`, color `var(--accent-light)`
 
 **Heart pop animation** al dar like (igual a desktop):
+
 ```css
-.heart.popping { animation: heartPop 0.35s ease; }
+.heart.popping {
+  animation: heartPop 0.35s ease;
+}
 @keyframes heartPop {
-  0% { transform: scale(1); }
-  35% { transform: scale(1.4); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.4);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 ```
 
@@ -399,11 +442,13 @@ Para `linkedTable`:
 ```
 
 **`.commentRow`:**
+
 - Display flex, gap 8px, padding `8px 14px 0` (siguiente comentario: padding-top 4px)
 
 **`.commentRowAvatar`:** 22×22 redondo, Poppins 800 10px, color por usuario
 
 **`.commentRowBody`:**
+
 - Flex 1, bg `var(--bg-elevated)`, border `1px solid var(--border)`, radius 12, padding `6px 10px`
 
 **`.commentRowAuthor`:** Poppins 700 12px, color `var(--text)`, letter-spacing `-0.01em`
@@ -413,13 +458,16 @@ Para `linkedTable`:
 **`.commentMore`:** JetBrains Mono 10.5px, color `var(--text-muted)`, padding `8px 14px 0`. Hover color `var(--accent-light)`
 
 **`.commentForm`:**
+
 - Display flex, gap 8px, padding `10px 14px 14px`, align center
 
 **`.commentInput`:**
+
 - Flex 1, bg `var(--bg-elevated)`, border `1px solid var(--border)`, radius 999, padding `7px 12px`, font-size 12.5px
 - Focus: border `var(--accent)`, shadow `0 0 0 3px var(--accent-glow)`
 
 **`.commentSubmit`:**
+
 - 30×30, bg `var(--accent)`, color #fff, radius 999, shadow `0 4px 14px var(--accent-glow)`
 - Disabled: opacity 0.4
 
@@ -432,13 +480,15 @@ Para `linkedTable`:
 Convertir el actual `CompartidasSidebar.jsx` en `CompartidasInlineWidgets.jsx` que renderiza items individuales, y el `Compartidas.jsx` los inserta entre posts:
 
 ```jsx
-{posts.map((post, i) => (
-  <Fragment key={post._id}>
-    <CompartidaCard post={post} />
-    {/* Insertar widgets cada 3 posts */}
-    {(i + 1) % 3 === 0 && <NextWidgetInRotation />}
-  </Fragment>
-))}
+{
+  posts.map((post, i) => (
+    <Fragment key={post._id}>
+      <CompartidaCard post={post} />
+      {/* Insertar widgets cada 3 posts */}
+      {(i + 1) % 3 === 0 && <NextWidgetInRotation />}
+    </Fragment>
+  ));
+}
 ```
 
 Orden sugerido de rotación: BG Watch → Próximas partidas → Top juegos → Quote → repeat.
@@ -469,7 +519,11 @@ Orden sugerido de rotación: BG Watch → Próximas partidas → Top juegos → 
 - Background: gradient violeta sutil
   ```css
   background:
-    radial-gradient(400px circle at 100% 0%, rgba(180,140,255,0.16), transparent 55%),
+    radial-gradient(
+      400px circle at 100% 0%,
+      rgba(180, 140, 255, 0.16),
+      transparent 55%
+    ),
     linear-gradient(135deg, #1a1d2e, #0e1320);
   ```
 - Border `1px solid rgba(180,140,255,0.25)`, radius 14, padding `14px 16px`
@@ -492,8 +546,13 @@ Variant `.gold`:
 
 ```html
 <div class="inlineWidget gold">
-  <div class="widgetEyebrow"><span class="left">◆ Frase de la semana</span></div>
-  <p class="quoteText">Lo mejor del juego de mesa no es ganar — es discutir 30 minutos por qué la madera vale más que la oveja.</p>
+  <div class="widgetEyebrow">
+    <span class="left">◆ Frase de la semana</span>
+  </div>
+  <p class="quoteText">
+    Lo mejor del juego de mesa no es ganar — es discutir 30 minutos por qué la
+    madera vale más que la oveja.
+  </p>
   <div class="quoteAttribution">
     <Avatar size="xs" />
     <span>— <strong>Pancho M.</strong> · Catán</span>
@@ -504,7 +563,11 @@ Variant `.gold`:
 - `.inlineWidget.gold` background:
   ```css
   background:
-    radial-gradient(400px circle at 100% 0%, rgba(255,215,0,0.10), transparent 55%),
+    radial-gradient(
+      400px circle at 100% 0%,
+      rgba(255, 215, 0, 0.1),
+      transparent 55%
+    ),
     linear-gradient(135deg, #211c14, #15191f);
   ```
 - Border `1px solid rgba(245,166,35,0.25)`
@@ -558,7 +621,7 @@ const [page, setPage] = useState(1);
 const [totalPages, setTotalPages] = useState(1);
 const [loading, setLoading] = useState(true);
 const [showCreate, setShowCreate] = useState(false);
-const [filter, setFilter] = useState('all');  // NUEVO si se agregan chips
+const [filter, setFilter] = useState("all"); // NUEVO si se agregan chips
 ```
 
 Handlers idénticos a los actuales (`handleCreated`, `handleDeleted`, `handleUpdated`).
@@ -570,31 +633,31 @@ Handlers idénticos a los actuales (`handleCreated`, `handleDeleted`, `handleUpd
 Idénticos al sistema general (ver `design_handoff_sidebar/` o `design_handoff_mobile/` para la lista completa):
 
 ```css
---bg-dark:    #0a0d15;
---bg-card:    #151c28;
---bg-paper:   #18202f;
---bg-elevated:#1d2532;
---accent:     #1888ef;
---accent-light:#00aeff;
---accent-glow:rgba(24,136,239,0.18);
---text:       #ffffff;
---text-secondary:#a8b4cc;
+--bg-dark: #0a0d15;
+--bg-card: #151c28;
+--bg-paper: #18202f;
+--bg-elevated: #1d2532;
+--accent: #1888ef;
+--accent-light: #00aeff;
+--accent-glow: rgba(24, 136, 239, 0.18);
+--text: #ffffff;
+--text-secondary: #a8b4cc;
 --text-muted: #5a6178;
 --text-faint: #353d52;
---border:     #1e2a3d;
---border-strong:#2a3a55;
---border-accent:rgba(24,136,239,0.4);
---red:        #f31d77;
---green:      #00d984;
---orange:     #f5a623;
---purple:     #b48cff;
---gold:       #ffd700;
---green-10:   rgba(0,217,132,0.1);
---green-25:   rgba(0,217,132,0.25);
---purple-10:  rgba(180,140,255,0.1);
---purple-25:  rgba(180,140,255,0.3);
---orange-10:  rgba(245,166,35,0.1);
---orange-25:  rgba(245,166,35,0.3);
+--border: #1e2a3d;
+--border-strong: #2a3a55;
+--border-accent: rgba(24, 136, 239, 0.4);
+--red: #f31d77;
+--green: #00d984;
+--orange: #f5a623;
+--purple: #b48cff;
+--gold: #ffd700;
+--green-10: rgba(0, 217, 132, 0.1);
+--green-25: rgba(0, 217, 132, 0.25);
+--purple-10: rgba(180, 140, 255, 0.1);
+--purple-25: rgba(180, 140, 255, 0.3);
+--orange-10: rgba(245, 166, 35, 0.1);
+--orange-25: rgba(245, 166, 35, 0.3);
 ```
 
 ### Typography
@@ -627,6 +690,7 @@ Idénticos al sistema general (ver `design_handoff_sidebar/` o `design_handoff_m
 ## Checklist de implementación
 
 ### Page-level
+
 - [ ] Crear page header mobile-only (con `.pageTitle` Caveat-em y stats row)
 - [ ] Implementar composer one-liner (tap para abrir modal full-screen)
 - [ ] Implementar filter chips horizontal (opcional)
@@ -635,11 +699,13 @@ Idénticos al sistema general (ver `design_handoff_sidebar/` o `design_handoff_m
 - [ ] Cambiar "Ver más" button por infinite scroll vía IntersectionObserver
 
 ### Featured broadside
+
 - [ ] Apilar vertical en mobile (vs grid 2-col en desktop)
 - [ ] Polaroid al centro (no a la derecha)
 - [ ] Mantener label rotado y gradient bg
 
 ### Post card
+
 - [ ] Header con avatar 38×38, name + BGW chip + privacy
 - [ ] Body con title (opcional) + text + expand button
 - [ ] Photo grids (1/2/3/4) con polaroids responsive
@@ -650,6 +716,7 @@ Idénticos al sistema general (ver `design_handoff_sidebar/` o `design_handoff_m
 - [ ] Comment form siempre visible
 
 ### Polaroid
+
 - [ ] Background `#f4eeda` paper-like
 - [ ] Caveat caption en bottom 4px
 - [ ] Tape variants (left/center/right) rotadas
@@ -657,12 +724,14 @@ Idénticos al sistema general (ver `design_handoff_sidebar/` o `design_handoff_m
 - [ ] Hover (en mobile no aplica, pero respetar el `cursor: pointer` para tap open lightbox)
 
 ### Inline widgets
+
 - [ ] BG Watch (purple-tinted gradient + stats grid)
 - [ ] Próximas partidas (variant del widget actual)
 - [ ] Top juegos
 - [ ] Quote of the week (gold-tinted, italic Poppins)
 
 ### Sistema
+
 - [ ] Verificar safe-area iOS (`padding-bottom: max(100px, env(safe-area-inset-bottom) + 90px)`)
 - [ ] Lightbox cuando se tappea una polaroid (mantener actual `lightbox` state)
 - [ ] Pull-to-refresh si PWA/Capacitor

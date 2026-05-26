@@ -106,7 +106,9 @@
   color: var(--text-secondary);
   text-decoration: none;
   border: 1px solid var(--border);
-  transition: color var(--transition), border-color var(--transition);
+  transition:
+    color var(--transition),
+    border-color var(--transition);
 }
 
 .btnLogin:hover {
@@ -121,9 +123,10 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   text-decoration: none;
   background: var(--amber);
-  transition: opacity var(--transition);
+  transition: all var(--transition);
 }
 
 .btnRegister:hover {

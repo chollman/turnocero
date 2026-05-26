@@ -68,8 +68,7 @@ export default function TableRatings({
       });
       setRatings((prev) => {
         const withoutMine = prev.filter(
-          (r) =>
-            (r.rater?._id || r.rater)?.toString() !== user._id.toString(),
+          (r) => (r.rater?._id || r.rater)?.toString() !== user._id.toString(),
         );
         return [data.rating, ...withoutMine];
       });

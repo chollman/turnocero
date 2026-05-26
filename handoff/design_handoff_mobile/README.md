@@ -82,6 +82,7 @@ manteniendo intactas todas las integraciones con `useAuth`, `useNotifications`, 
 ```
 
 **`.brandMark` — chip 38×38:**
+
 - Background: `var(--bg-dark)` (`#0a0d15`)
 - Border: `1.5px solid var(--accent-light)` (`#00aeff`)
 - Border-radius: 11px
@@ -89,19 +90,23 @@ manteniendo intactas todas las integraciones con `useAuth`, `useNotifications`, 
 - Flex centrado, gap 2.5px
 
 **T glyph (dentro del chip — 13×17):**
+
 - Position relative, gap 2.5px del ring
 - Arm: `absolute; top: 0; left: 0; width: 13px; height: 2.5px; background: #fff; border-radius: 1px`
 - Stem: `absolute; top: 0; left: 5.5px; width: 3px; height: 17px; background: #fff; border-radius: 1px`
 
 **Ring 0 (14×14):**
+
 - Border: `2.5px solid var(--accent-light)`
 - Border-radius: 50%, `box-sizing: border-box`
 - Pip via `::after`: `4px (wait, 3px)` blanco centrado absolute con `transform: translate(-50%, -50%)`
 
 **`.brandName`:**
+
 - Poppins 800, 16px, letter-spacing `-0.035em`, color `var(--text)` (`#fff`), line-height 1.05
 
 **`.brandSub`:**
+
 - JetBrains Mono 500, 8.5px, letter-spacing `0.16em`, color `var(--text-muted)` (`#5a6178`), uppercase
 - Margin-top 1px
 - Texto: **"◆ board game meetups"**
@@ -109,11 +114,13 @@ manteniendo intactas todas las integraciones con `useAuth`, `useNotifications`, 
 ### Nav actions (flex, gap 6px, flex-shrink 0)
 
 3 `.iconBtn` consecutivos:
+
 1. Chat (sólo si `dmsEnabled`)
 2. Bell de notificaciones
 3. Logout (con confirmación inline)
 
 **`.iconBtn`:**
+
 - 36×36
 - Background transparente
 - Border: `1px solid var(--border)`
@@ -126,6 +133,7 @@ manteniendo intactas todas las integraciones con `useAuth`, `useNotifications`, 
 - SVG icon: 16×16 (sin cambios respecto al actual)
 
 **`.iconBtn .badge`:**
+
 - Position absolute, top `-3px`, right `-3px`
 - Min-width 16px, height 16px, padding `0 4px`
 - Background `var(--red)` (`#f31d77`) — variante default
@@ -150,6 +158,7 @@ Mantener el patrón inline existente. Cuando `confirming === true`:
 ```
 
 Layout:
+
 - Background `var(--bg-elevated)` (`#1d2532`)
 - Border `1px solid var(--border)`
 - Border-radius: 9px
@@ -157,6 +166,7 @@ Layout:
 - Display flex, gap 6px, align center
 
 Botones `Sí`/`No`:
+
 - 26×26 mínimo (touch target — aumentar de los 22-24 actuales)
 - Poppins 600, 11px
 - `.confirmYes`: bg `var(--red)`, color `#fff`, border-radius 6px
@@ -222,16 +232,19 @@ Botones `Sí`/`No`:
 - Active al presionar: `transform: scale(0.94)`
 
 **`.bnIcon`:**
+
 - 30×30, grid centered
 - SVG 22×22 (los del componente actual, sin cambios)
 - Position relative para badge
 
 **`.bnLabel`:**
+
 - JetBrains Mono 600, 9.5px, letter-spacing `0.04em`, uppercase
 - Line-height 1
 - White-space nowrap + ellipsis si excede
 
 **Active state (`.bnItem.active`):**
+
 - Background `var(--accent-glow)` (`rgba(24,136,239,0.18)`)
 - Color `var(--accent-light)` (`#00aeff`)
 - `::after` indicator debajo del label:
@@ -258,6 +271,7 @@ Botones `Sí`/`No`:
 - Display grid, place-items center
 
 Counters que poblamos hoy:
+
 - `Compartite`: badge `live` con count de nuevas compartidas no leídas (puede venir de `useNotifications`)
 - `Eventos`: badge default con count de eventos próximos urgentes (`< 7 días`)
 - `Chat Admin`: badge `urgent` con `adminChatUnread`
@@ -288,11 +302,13 @@ Counters que poblamos hoy:
 - Display flex, gap 4px
 
 **`.dot`:**
+
 - 5×5, background `var(--text-faint)` (`#353d52`)
 - Border-radius 50%
 - Transición `all 0.2s ease`
 
 **`.dot.active`:**
+
 - Background `var(--accent-light)`
 - Width 14px, border-radius 3px (pill alargado)
 
@@ -343,27 +359,27 @@ La lógica de scroll / paginación / `useEffect` que mantiene el active visible 
 Idénticos al handoff del sidebar (ver `design_handoff_sidebar/README.md` para la lista completa). Reuso de:
 
 ```css
---bg-dark:    #0a0d15;
---bg-card:    #151c28;
---bg-paper:   #18202f;
---bg-elevated:#1d2532;
---accent:     #1888ef;
---accent-light:#00aeff;
---accent-glow:rgba(24,136,239,0.18);
---text:       #ffffff;
---text-secondary:#a8b4cc;
+--bg-dark: #0a0d15;
+--bg-card: #151c28;
+--bg-paper: #18202f;
+--bg-elevated: #1d2532;
+--accent: #1888ef;
+--accent-light: #00aeff;
+--accent-glow: rgba(24, 136, 239, 0.18);
+--text: #ffffff;
+--text-secondary: #a8b4cc;
 --text-muted: #5a6178;
 --text-faint: #353d52;
---border:     #1e2a3d;
---border-strong:#2a3a55;
---border-accent:rgba(24,136,239,0.4);
---red:        #f31d77;
---green:      #00d984;
---orange:     #f5a623;
---purple:     #b48cff;
---purple-10:  rgba(180,140,255,0.1);
---purple-25:  rgba(180,140,255,0.3);
---t:          0.2s ease;
+--border: #1e2a3d;
+--border-strong: #2a3a55;
+--border-accent: rgba(24, 136, 239, 0.4);
+--red: #f31d77;
+--green: #00d984;
+--orange: #f5a623;
+--purple: #b48cff;
+--purple-10: rgba(180, 140, 255, 0.1);
+--purple-25: rgba(180, 140, 255, 0.3);
+--t: 0.2s ease;
 ```
 
 ### Typography
@@ -376,18 +392,18 @@ Idénticos al handoff del sidebar (ver `design_handoff_sidebar/README.md` para l
 
 ## Spacing reference
 
-| Token | Valor |
-|---|---|
-| Navbar padding | `18px 18px 12px` |
-| Navbar action gap | 6px |
-| BottomNav padding | `8px 6px` |
-| BottomNav inset (left/right/bottom) | 12px |
-| BottomNav border-radius | 22px |
-| Item padding | `6px 4px 5px` |
-| Item gap (icon→label) | 3px |
-| Item border-radius | 14px |
-| Icon size | 22×22 SVG, 30×30 container |
-| Badge size | 16×16 min |
+| Token                               | Valor                      |
+| ----------------------------------- | -------------------------- |
+| Navbar padding                      | `18px 18px 12px`           |
+| Navbar action gap                   | 6px                        |
+| BottomNav padding                   | `8px 6px`                  |
+| BottomNav inset (left/right/bottom) | 12px                       |
+| BottomNav border-radius             | 22px                       |
+| Item padding                        | `6px 4px 5px`              |
+| Item gap (icon→label)               | 3px                        |
+| Item border-radius                  | 14px                       |
+| Icon size                           | 22×22 SVG, 30×30 container |
+| Badge size                          | 16×16 min                  |
 
 ---
 
@@ -409,6 +425,7 @@ El código de los prototipos es **vanilla HTML/CSS/JS** — re-implementar en Re
 ## Checklist de implementación
 
 ### Navbar
+
 - [ ] Reemplazar el `T` cuadrado por el chip T0 (38×38) con T+anillo CSS-primitives
 - [ ] Cambiar `.logoSub` del actual a `◆ board game meetups` mono uppercase 8.5px
 - [ ] Convertir `.bellBtn` actual al patrón unificado `.iconBtn` (36×36, border 1px, radius 9)
@@ -417,6 +434,7 @@ El código de los prototipos es **vanilla HTML/CSS/JS** — re-implementar en Re
 - [ ] Aumentar tamaño de touch targets a ≥ 44px efectivos (con padding/margin)
 
 ### BottomNav
+
 - [ ] Convertir la barra full-width en pill flotante con inset 12px
 - [ ] Agregar `backdrop-filter: blur(20px)`
 - [ ] Background `rgba(21,28,40,0.94)` + border-radius 22
@@ -430,6 +448,7 @@ El código de los prototipos es **vanilla HTML/CSS/JS** — re-implementar en Re
 - [ ] Mantener intacta la lógica de swipe + paginación + auto-scroll al active
 
 ### Global
+
 - [ ] Asegurar que los tokens (`--accent-glow`, etc.) estén en `index.css` (ya están si el sidebar fue implementado)
 - [ ] Probar accesibilidad: focus visible en iconBtn/bnItem, aria-current="page" en active
 - [ ] Probar contraste WCAG AA: mono labels 9.5px sobre `--accent-glow` (active state)

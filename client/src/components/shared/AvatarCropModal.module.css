@@ -75,13 +75,17 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, opacity 0.15s ease;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
   border: 1px solid transparent;
 }
 
 .btnPrimary {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
 }
 
 .btnPrimary:hover:not(:disabled) {

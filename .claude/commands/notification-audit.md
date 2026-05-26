@@ -5,10 +5,10 @@ Audit all notification types in the app and fix any that are missing proper disp
 1. **Collect server-side types** — grep `server/routes/` for all `saveNotification(` calls and `io.*emit(` calls. Extract the type string (second arg of `saveNotification`, or the event name mapped to its client type). Build a list like:
 
    | server event / saveNotification type | client type string |
-   |---|---|
-   | `saveNotification(..., 'chat', ...)` | `chat` |
-   | `emit('join:request', ...)` | `join_request` |
-   | etc. |
+   | ------------------------------------ | ------------------ |
+   | `saveNotification(..., 'chat', ...)` | `chat`             |
+   | `emit('join:request', ...)`          | `join_request`     |
+   | etc.                                 |
 
 2. **Collect client-side handling** — read these two files:
    - `client/src/pages/notifications/Notifications.jsx` → find all `case '...'` branches in `getNotifMeta` (or all conditions if not a switch)

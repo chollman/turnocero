@@ -1,4 +1,4 @@
-import styles from '../pages/Auth.module.css';
+import styles from "../pages/Auth.module.css";
 
 export default function AuthLogo() {
   return (

@@ -25,12 +25,7 @@ function setupRatings(payload = { ratings: [], avg: null, count: 0 }) {
 
 function renderRatings(props = {}) {
   return render(
-    <TableRatings
-      tableId="t1"
-      user={user}
-      canRate={false}
-      {...props}
-    />,
+    <TableRatings tableId="t1" user={user} canRate={false} {...props} />,
   );
 }
 
@@ -66,9 +61,7 @@ describe("<TableRatings>", () => {
   it("oculta el form si canRate=false", async () => {
     renderRatings({ canRate: false });
     await waitFor(() => {
-      expect(
-        screen.queryByText(/Tu puntuación/i),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/Tu puntuación/i)).not.toBeInTheDocument();
     });
   });
 
@@ -100,13 +93,10 @@ describe("<TableRatings>", () => {
     renderRatings({ canRate: true });
     await screen.findByText(/Tu puntuación/i);
     fireEvent.click(screen.getByLabelText("5 estrellas"));
-    fireEvent.change(
-      screen.getByPlaceholderText(/Comentario opcional/i),
-      { target: { value: "Genial" } },
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: /enviar valoración/i }),
-    );
+    fireEvent.change(screen.getByPlaceholderText(/Comentario opcional/i), {
+      target: { value: "Genial" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /enviar valoración/i }));
     await waitFor(() => {
       expect(screen.getByText("Genial")).toBeInTheDocument();
     });
@@ -115,18 +105,13 @@ describe("<TableRatings>", () => {
   it("muestra error si el POST falla", async () => {
     server.use(
       http.post("/api/tables/:id/ratings", () =>
-        HttpResponse.json(
-          { message: "Solo participantes" },
-          { status: 403 },
-        ),
+        HttpResponse.json({ message: "Solo participantes" }, { status: 403 }),
       ),
     );
     renderRatings({ canRate: true });
     await screen.findByText(/Tu puntuación/i);
     fireEvent.click(screen.getByLabelText("3 estrellas"));
-    fireEvent.click(
-      screen.getByRole("button", { name: /enviar valoración/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /enviar valoración/i }));
     await waitFor(() => {
       expect(screen.getByText("Solo participantes")).toBeInTheDocument();
     });
@@ -134,9 +119,7 @@ describe("<TableRatings>", () => {
 
   it("precarga score/comentario si el user ya tiene una valoración", async () => {
     setupRatings({
-      ratings: [
-        { _id: "r1", rater: user, score: 4, comment: "Bueno" },
-      ],
+      ratings: [{ _id: "r1", rater: user, score: 4, comment: "Bueno" }],
       avg: 4,
       count: 1,
     });

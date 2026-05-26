@@ -1,26 +1,28 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { http, HttpResponse, delay } from 'msw';
-import { server } from '../../test/server';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { http, HttpResponse, delay } from "msw";
+import { server } from "../../test/server";
 
-vi.mock('./Pagination', () => ({
+vi.mock("./Pagination", () => ({
   default: ({ page, totalPages, onPage }) => (
     <div data-testid="pagination">
       <button onClick={() => onPage(2)}>page-2</button>
-      <span>{page}/{totalPages}</span>
+      <span>
+        {page}/{totalPages}
+      </span>
     </div>
   ),
 }));
-vi.mock('./GameCardSkeleton', () => ({
+vi.mock("./GameCardSkeleton", () => ({
   default: () => <div data-testid="game-card-skeleton" />,
 }));
 
-import ColeccionPanel from './ColeccionPanel';
+import ColeccionPanel from "./ColeccionPanel";
 
 function renderPanel(props = {}) {
   return render(
     <ColeccionPanel
-      bggUsername={props.bggUsername ?? 'CarcaFan'}
+      bggUsername={props.bggUsername ?? "CarcaFan"}
       onLoaded={props.onLoaded}
       // Default true so existing button-interaction tests can find it.
       // New tests opt out with canRefresh={false}.
@@ -32,8 +34,8 @@ function renderPanel(props = {}) {
 function makeGame(overrides = {}) {
   return {
     id: 13,
-    name: 'Catán',
-    thumbnail: 'https://cdn/catan.jpg',
+    name: "Catán",
+    thumbnail: "https://cdn/catan.jpg",
     yearPublished: 1995,
     userRating: 8.5,
     bggRating: 7.2,
@@ -45,59 +47,66 @@ function makeGame(overrides = {}) {
 beforeEach(() => {
   // default: empty collection
   server.use(
-    http.get('/api/bgg/coleccion/:bggUsername', () => HttpResponse.json([])),
+    http.get("/api/bgg/coleccion/:bggUsername", () => HttpResponse.json([])),
   );
 });
 
-describe('<ColeccionPanel>', () => {
-  it('shows loading skeletons initially', () => {
+describe("<ColeccionPanel>", () => {
+  it("shows loading skeletons initially", () => {
     // Delay garantiza que vemos el estado de loading antes de que MSW resuelva.
     server.use(
-      http.get('/api/bgg/coleccion/:bggUsername', async () => {
+      http.get("/api/bgg/coleccion/:bggUsername", async () => {
         await delay(50);
         return HttpResponse.json([]);
       }),
     );
     renderPanel();
     // El componente muestra 8 GameCardSkeleton mientras carga.
-    expect(screen.getAllByTestId('game-card-skeleton').length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId("game-card-skeleton").length).toBeGreaterThan(
+      0,
+    );
   });
 
-  it('shows empty state when user has no owned games', async () => {
+  it("shows empty state when user has no owned games", async () => {
     renderPanel();
     await waitFor(() => {
-      expect(screen.getByText(/no tiene juegos marcados como propios/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/no tiene juegos marcados como propios/i),
+      ).toBeInTheDocument();
     });
   });
 
-  it('renders game cards when the collection loads', async () => {
+  it("renders game cards when the collection loads", async () => {
     server.use(
-      http.get('/api/bgg/coleccion/:bggUsername', () =>
-        HttpResponse.json([makeGame(), makeGame({ id: 14, name: 'Carcassonne' })]),
+      http.get("/api/bgg/coleccion/:bggUsername", () =>
+        HttpResponse.json([
+          makeGame(),
+          makeGame({ id: 14, name: "Carcassonne" }),
+        ]),
       ),
     );
     renderPanel();
     await waitFor(() => {
-      expect(screen.getByText('Catán')).toBeInTheDocument();
-      expect(screen.getByText('Carcassonne')).toBeInTheDocument();
+      expect(screen.getByText("Catán")).toBeInTheDocument();
+      expect(screen.getByText("Carcassonne")).toBeInTheDocument();
     });
   });
 
-  it('shows error message when API fails', async () => {
+  it("shows error message when API fails", async () => {
     server.use(
-      http.get('/api/bgg/coleccion/:bggUsername', () =>
-        HttpResponse.json({ message: 'BGG offline' }, { status: 503 }),
+      http.get("/api/bgg/coleccion/:bggUsername", () =>
+        HttpResponse.json({ message: "BGG offline" }, { status: 503 }),
       ),
     );
     renderPanel();
     await waitFor(() => {
-      expect(screen.getByText('BGG offline')).toBeInTheDocument();
+      expect(screen.getByText("BGG offline")).toBeInTheDocument();
     });
   });
 
-  it('calls onLoaded callback with the collection data', async () => {
+  it("calls onLoaded callback with the collection data", async () => {
     server.use(
-      http.get('/api/bgg/coleccion/:bggUsername', () =>
+      http.get("/api/bgg/coleccion/:bggUsername", () =>
         HttpResponse.json([makeGame()]),
       ),
     );
@@ -110,10 +119,14 @@ describe('<ColeccionPanel>', () => {
     });
   });
 
-  it('renders the pagination info with total count', async () => {
-    const games = Array.from({ length: 50 }, (_, i) => makeGame({ id: i, name: `Game ${i}` }));
+  it("renders the pagination info with total count", async () => {
+    const games = Array.from({ length: 50 }, (_, i) =>
+      makeGame({ id: i, name: `Game ${i}` }),
+    );
     server.use(
-      http.get('/api/bgg/coleccion/:bggUsername', () => HttpResponse.json(games)),
+      http.get("/api/bgg/coleccion/:bggUsername", () =>
+        HttpResponse.json(games),
+      ),
     );
     renderPanel();
     await waitFor(() => {
@@ -121,26 +134,30 @@ describe('<ColeccionPanel>', () => {
     });
   });
 
-  it('paginates to next page when pagination triggers onPage', async () => {
-    const games = Array.from({ length: 50 }, (_, i) => makeGame({ id: i, name: `Game ${i}` }));
+  it("paginates to next page when pagination triggers onPage", async () => {
+    const games = Array.from({ length: 50 }, (_, i) =>
+      makeGame({ id: i, name: `Game ${i}` }),
+    );
     server.use(
-      http.get('/api/bgg/coleccion/:bggUsername', () => HttpResponse.json(games)),
+      http.get("/api/bgg/coleccion/:bggUsername", () =>
+        HttpResponse.json(games),
+      ),
     );
     renderPanel();
     await waitFor(() => {
-      expect(screen.getByText('Game 0')).toBeInTheDocument();
+      expect(screen.getByText("Game 0")).toBeInTheDocument();
     });
     // Page 1: Game 0..23. Click "page-2" exposed by Pagination stub
-    fireEvent.click(screen.getByText('page-2'));
+    fireEvent.click(screen.getByText("page-2"));
     await waitFor(() => {
-      expect(screen.getByText('Game 24')).toBeInTheDocument();
+      expect(screen.getByText("Game 24")).toBeInTheDocument();
     });
   });
 
   it('clicking "Actualizar" re-fetches the collection with ?refresh=1', async () => {
     const requestedUrls = [];
     server.use(
-      http.get('/api/bgg/coleccion/:bggUsername', ({ request }) => {
+      http.get("/api/bgg/coleccion/:bggUsername", ({ request }) => {
         requestedUrls.push(request.url);
         return HttpResponse.json([]);
       }),
@@ -150,45 +167,50 @@ describe('<ColeccionPanel>', () => {
     await waitFor(() => {
       expect(requestedUrls.length).toBe(1);
     });
-    expect(requestedUrls[0]).not.toContain('refresh=1');
+    expect(requestedUrls[0]).not.toContain("refresh=1");
 
-    fireEvent.click(screen.getByRole('button', { name: /actualizar colección/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /actualizar colección/i }),
+    );
     await waitFor(() => {
       expect(requestedUrls.length).toBe(2);
     });
-    expect(requestedUrls[1]).toContain('refresh=1');
+    expect(requestedUrls[1]).toContain("refresh=1");
   });
 
-  it('disables the refresh button while loading', async () => {
+  it("disables the refresh button while loading", async () => {
     renderPanel();
-    const btn = screen.getByRole('button', { name: /actualizar colección/i });
+    const btn = screen.getByRole("button", { name: /actualizar colección/i });
     expect(btn).toBeDisabled();
     await waitFor(() => {
       expect(btn).not.toBeDisabled();
     });
   });
 
-  it('does NOT render the refresh button when canRefresh=false (non-owner / guest)', async () => {
+  it("does NOT render the refresh button when canRefresh=false (non-owner / guest)", async () => {
     renderPanel({ canRefresh: false });
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /actualizar colección/i })).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: /actualizar colección/i }),
+      ).toBeNull();
     });
   });
 
-  it('reads the X-Refresh-Cooldown-Ms response header to drive the countdown', async () => {
+  it("reads the X-Refresh-Cooldown-Ms response header to drive the countdown", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       server.use(
-        http.get('/api/bgg/coleccion/:bggUsername', () =>
-          HttpResponse.json(
-            [],
-            { headers: { 'X-Refresh-Cooldown-Ms': '60000' } },
-          ),
+        http.get("/api/bgg/coleccion/:bggUsername", () =>
+          HttpResponse.json([], {
+            headers: { "X-Refresh-Cooldown-Ms": "60000" },
+          }),
         ),
       );
 
       renderPanel();
-      const btn = await screen.findByRole('button', { name: /actualizar colección/i });
+      const btn = await screen.findByRole("button", {
+        name: /actualizar colección/i,
+      });
 
       // On mount, the server reported a 60s active cooldown — UI reflects it
       // without any click. This is the persistence guarantee across reloads.
@@ -206,27 +228,30 @@ describe('<ColeccionPanel>', () => {
     }
   });
 
-  it('syncs cooldown from a 429 response header', async () => {
+  it("syncs cooldown from a 429 response header", async () => {
     let nthRequest = 0;
     server.use(
-      http.get('/api/bgg/coleccion/:bggUsername', () => {
+      http.get("/api/bgg/coleccion/:bggUsername", () => {
         nthRequest += 1;
         if (nthRequest === 1) {
-          return HttpResponse.json(
-            [],
-            { headers: { 'X-Refresh-Cooldown-Ms': '0' } },
-          );
+          return HttpResponse.json([], {
+            headers: { "X-Refresh-Cooldown-Ms": "0" },
+          });
         }
         return HttpResponse.json(
-          { message: 'Esperá 45s antes de actualizar.', retryAfterMs: 45000 },
-          { status: 429, headers: { 'X-Refresh-Cooldown-Ms': '45000' } },
+          { message: "Esperá 45s antes de actualizar.", retryAfterMs: 45000 },
+          { status: 429, headers: { "X-Refresh-Cooldown-Ms": "45000" } },
         );
       }),
     );
 
     renderPanel();
-    const btn = await screen.findByRole('button', { name: /actualizar colección/i });
-    await waitFor(() => { expect(btn).not.toBeDisabled(); });
+    const btn = await screen.findByRole("button", {
+      name: /actualizar colección/i,
+    });
+    await waitFor(() => {
+      expect(btn).not.toBeDisabled();
+    });
 
     fireEvent.click(btn);
 
@@ -238,16 +263,16 @@ describe('<ColeccionPanel>', () => {
 
   it('shows "—" when userRating is null', async () => {
     server.use(
-      http.get('/api/bgg/coleccion/:bggUsername', () =>
+      http.get("/api/bgg/coleccion/:bggUsername", () =>
         HttpResponse.json([makeGame({ userRating: null, bggRating: 7.2 })]),
       ),
     );
     renderPanel();
     await waitFor(() => {
-      expect(screen.getByText('Catán')).toBeInTheDocument();
+      expect(screen.getByText("Catán")).toBeInTheDocument();
     });
     // Tu nota → "—" (since userRating null)
-    const dashes = screen.getAllByText('—');
+    const dashes = screen.getAllByText("—");
     expect(dashes.length).toBeGreaterThan(0);
   });
 });

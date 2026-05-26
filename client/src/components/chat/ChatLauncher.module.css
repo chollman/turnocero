@@ -12,14 +12,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 0 var(--amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   z-index: 1001;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.15s;
+  transition: all var(--transition);
 }
 
 .fab:hover {
   transform: scale(1.08);
-  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45), 0 0 0 6px var(--amber-glow);
+  box-shadow:
+    0 6px 28px rgba(0, 0, 0, 0.45),
+    0 0 0 6px var(--amber-glow);
 }
 
 .fabOpen {
@@ -66,8 +68,14 @@
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(12px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .panelHeader {
@@ -97,7 +105,9 @@
   transition: background 0.15s;
 }
 
-.panelAllLink:hover { background: var(--amber-glow); }
+.panelAllLink:hover {
+  background: var(--amber-glow);
+}
 
 .searchRow {
   display: flex;
@@ -124,8 +134,12 @@
   transition: border-color 0.15s;
 }
 
-.searchInput:focus { border-color: var(--border-amber); }
-.searchInput::placeholder { color: var(--text-muted); }
+.searchInput:focus {
+  border-color: var(--border-amber);
+}
+.searchInput::placeholder {
+  color: var(--text-muted);
+}
 
 .list {
   overflow-y: auto;
@@ -135,8 +149,13 @@
   scrollbar-color: var(--border) transparent;
 }
 
-.list::-webkit-scrollbar { width: 4px; }
-.list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.list::-webkit-scrollbar {
+  width: 4px;
+}
+.list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
 
 .empty {
   text-align: center;
@@ -160,7 +179,9 @@
   transition: background 0.13s;
 }
 
-.friendRow:hover { background: var(--bg-elevated); }
+.friendRow:hover {
+  background: var(--bg-elevated);
+}
 
 .avatarWrap {
   position: relative;

@@ -1,5 +1,5 @@
 ---
-name: notifications-architecture
+name: feedback-notifications-architecture
 description: NotificationContext está splitteado en reducers puros + 9 hooks de listeners por dominio — saber qué tocar dónde
 metadata:
   type: feedback
@@ -28,7 +28,7 @@ metadata:
 Cada reducer recibe `{ setNotifications, setToasts, payload, ...callbacks }` — **sin acceso a state externo**, todo via setters. Helpers internos `upsertAggregating` (chat/comment/image — server pushea `count`, update en lugar) y `replaceResource` (count=1, reemplaza por resource) unifican patrones.
 
 **Contratos críticos testeados** (no romper):
-- `count` se **SETEA con el valor del payload**, NUNCA se incrementa ([[notifications-contract]] + [[optimistic-vs-socket]]).
+- `count` se **SETEA con el valor del payload**, NUNCA se incrementa ([[feedback-notifications-architecture]] + [[feedback-optimistic-vs-socket]]).
 - Dedup por `notifId` / resource key.
 - `markRead*` resetea `count: 0`.
 - Mapeo del payload corto del server (`type: "confirmed"`) al enum largo (`evento_confirmed`).
@@ -47,12 +47,12 @@ Cada reducer recibe `{ setNotifications, setToasts, payload, ...callbacks }` —
 - `useEventoNotificationListeners` — `evento:notification` con discriminator.
 - `useSiteConfigSocketListener` — `site-config:updated`.
 
-**Listeners registrados ANTES de `await` o emits** (ver [[socket-handler-race]]).
+**Listeners registrados ANTES de `await` o emits** (ver [[feedback-socket-handler-race]]).
 
 ## Reglas para nuevos tipos de notif
 
 1. Agregar el tipo a `server/models/Notification.js#NOTIFICATION_TYPES`.
-2. Emit en el route handler vía `emitNotificationReq(...)` ([[notifications-contract]]).
+2. Emit en el route handler vía `emitNotificationReq(...)` ([[feedback-notifications-architecture]]).
 3. Crear `applyMiNuevoTipo` en `notificationReducers.js` siguiendo el patrón de `upsertAggregating` o `replaceResource`.
 4. Si es un evento nuevo, agregar `useMiNuevoListener.js` en `notificationListeners/`; si es del mismo dominio que un hook existente, extender ese.
 5. Montar el hook en `NotificationContext.jsx`.

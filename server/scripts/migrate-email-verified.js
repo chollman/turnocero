@@ -9,29 +9,33 @@
  *   node server/scripts/migrate-email-verified.js
  */
 
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
-const mongoose = require('mongoose');
-const User = require('../models/User');
+require("dotenv").config({
+  path: require("path").join(__dirname, "..", ".env"),
+});
+const mongoose = require("mongoose");
+const User = require("../models/User");
 
 (async () => {
   if (!process.env.MONGODB_URI) {
-    console.error('MONGODB_URI is not set. Aborting.');
+    console.error("MONGODB_URI is not set. Aborting.");
     process.exit(1);
   }
   try {
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('Connected to MongoDB');
+    console.log("Connected to MongoDB");
 
     const result = await User.updateMany(
       { emailVerified: { $ne: true } },
-      { $set: { emailVerified: true } }
+      { $set: { emailVerified: true } },
     );
-    console.log(`Matched ${result.matchedCount}, modified ${result.modifiedCount} users.`);
+    console.log(
+      `Matched ${result.matchedCount}, modified ${result.modifiedCount} users.`,
+    );
   } catch (err) {
-    console.error('Migration failed:', err);
+    console.error("Migration failed:", err);
     process.exitCode = 1;
   } finally {
     await mongoose.disconnect();
-    console.log('Disconnected. Done.');
+    console.log("Disconnected. Done.");
   }
 })();

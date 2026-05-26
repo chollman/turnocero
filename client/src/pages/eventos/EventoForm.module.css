@@ -121,7 +121,9 @@
      arrow) y rompen la alineación visual en `.row`. */
   box-sizing: border-box;
   height: 42px;
-  transition: border-color var(--transition), box-shadow var(--transition);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
 .input::placeholder,
@@ -192,12 +194,15 @@
   background: var(--amber);
   color: var(--on-amber);
   border-color: var(--amber);
-  box-shadow: 0 6px 18px var(--amber-glow);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
 }
 
 .btnPrimary:hover {
   background: var(--amber-light);
-  border-color: var(--amber-light);
+  color: var(--on-amber);
+    box-shadow: 0 4px 22px var(--amber-glow);
+border-color: var(--amber-light);
 }
 
 .btnPrimary:disabled,
@@ -227,7 +232,10 @@
   font-weight: 500;
   letter-spacing: 0.04em;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .statusChip:hover {
@@ -243,15 +251,25 @@
   border-radius: 50%;
   background: var(--text-muted);
   flex-shrink: 0;
-  transition: background 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 /* Color del dot por status (always visible, even when chip is inactive — sirve
    como pista visual del significado de cada estado). */
-.statusChipDot_draft     { background: var(--text-muted); }
-.statusChipDot_open      { background: var(--green); }
-.statusChipDot_closed    { background: var(--orange); }
-.statusChipDot_cancelled { background: var(--red); }
+.statusChipDot_draft {
+  background: var(--text-muted);
+}
+.statusChipDot_open {
+  background: var(--green);
+}
+.statusChipDot_closed {
+  background: var(--orange);
+}
+.statusChipDot_cancelled {
+  background: var(--red);
+}
 
 /* Active state por status — el chip "se enciende" con su color. */
 .statusChip_draft {
@@ -279,10 +297,18 @@
 }
 
 /* Cuando el chip está activo, el dot se agranda levemente y agrega un glow. */
-.statusChip_open .statusChipDot_open       { box-shadow: 0 0 0 3px var(--green-25); }
-.statusChip_closed .statusChipDot_closed   { box-shadow: 0 0 0 3px var(--orange-25); }
-.statusChip_cancelled .statusChipDot_cancelled { box-shadow: 0 0 0 3px var(--red-25); }
-.statusChip_draft .statusChipDot_draft     { box-shadow: 0 0 0 3px var(--overlay-soft); }
+.statusChip_open .statusChipDot_open {
+  box-shadow: 0 0 0 3px var(--green-25);
+}
+.statusChip_closed .statusChipDot_closed {
+  box-shadow: 0 0 0 3px var(--orange-25);
+}
+.statusChip_cancelled .statusChipDot_cancelled {
+  box-shadow: 0 0 0 3px var(--red-25);
+}
+.statusChip_draft .statusChipDot_draft {
+  box-shadow: 0 0 0 3px var(--overlay-soft);
+}
 
 /* ─── Ubicación (PlaceAutocomplete + manual fallback) ─── */
 .fieldHint {
@@ -328,7 +354,9 @@
   padding: 0 16px;
   font-size: 14px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
   white-space: nowrap;
   box-sizing: border-box;
   height: 42px;

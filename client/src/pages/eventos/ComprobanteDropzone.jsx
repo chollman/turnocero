@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
-import FileDropzone from '../../components/shared/FileDropzone';
-import { DocIcon, ImageIcon } from './EventoIcons';
-import styles from './ComprobanteDropzone.module.css';
+import { useEffect, useState } from "react";
+import FileDropzone from "../../components/shared/FileDropzone";
+import { DocIcon, ImageIcon } from "./EventoIcons";
+import styles from "./ComprobanteDropzone.module.css";
 
 export default function ComprobanteDropzone({ file, onFile }) {
   const [objectUrl, setObjectUrl] = useState(null);
-  const isPdf = file?.type === 'application/pdf';
+  const isPdf = file?.type === "application/pdf";
 
   useEffect(() => {
     if (!file || isPdf) {

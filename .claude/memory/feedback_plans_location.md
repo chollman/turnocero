@@ -1,5 +1,5 @@
 ---
-name: plans-folder-location
+name: feedback-plans-location
 description: Where to save implementation plan files for the Turnocero project
 metadata:
   type: feedback

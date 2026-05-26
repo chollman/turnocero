@@ -1,4 +1,4 @@
-import styles from './ProfileSkeleton.module.css'
+import styles from "./ProfileSkeleton.module.css";
 
 export default function ProfileSkeleton() {
   return (
@@ -29,5 +29,5 @@ export default function ProfileSkeleton() {
         </div>
       </div>
     </div>
-  )
+  );
 }

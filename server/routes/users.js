@@ -1,22 +1,22 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const User = require('../models/User');
-const Table = require('../models/Table');
-const Compartida = require('../models/Compartida');
-const { optionalAuth } = require('../middleware/auth');
-const { requireSection } = require('../middleware/sectionGate');
-const validateObjectId = require('../middleware/validateObjectId');
-const asyncHandler = require('../utils/asyncHandler');
-const httpError = require('../utils/httpError');
-const { isSameId } = require('../utils/idCompare');
+const User = require("../models/User");
+const Table = require("../models/Table");
+const Compartida = require("../models/Compartida");
+const { optionalAuth } = require("../middleware/auth");
+const { requireSection } = require("../middleware/sectionGate");
+const validateObjectId = require("../middleware/validateObjectId");
+const asyncHandler = require("../utils/asyncHandler");
+const httpError = require("../utils/httpError");
+const { isSameId } = require("../utils/idCompare");
 
-router.use(requireSection('comunidad'));
+router.use(requireSection("comunidad"));
 
-router.param('id', validateObjectId('id'));
+router.param("id", validateObjectId("id"));
 
 // GET /api/users — public list with optional search, sortBy, activeOnly
 router.get(
-  '/',
+  "/",
   optionalAuth,
   asyncHandler(async (req, res) => {
     const { search, sortBy, activeOnly, friendsOnly, bgWatchOnly } = req.query;
@@ -26,14 +26,14 @@ router.get(
     if (!isAdmin) {
       query.isBanned = { $ne: true };
     }
-    if (friendsOnly === 'true' && req.user) {
+    if (friendsOnly === "true" && req.user) {
       query._id = { $in: req.user.friends };
     }
-    if (bgWatchOnly === 'true') {
-      query.bggUsername = { $exists: true, $nin: [null, ''] };
+    if (bgWatchOnly === "true") {
+      query.bggUsername = { $exists: true, $nin: [null, ""] };
     }
     if (search) {
-      const regex = new RegExp(search, 'i');
+      const regex = new RegExp(search, "i");
       query.$or = [
         { username: regex },
         { displayName: regex },
@@ -43,42 +43,46 @@ router.get(
     }
 
     const selectFields = isAdmin
-      ? 'username displayName nombre apellido avatar telegram celular bggUsername direccion createdAt isAdmin isBanned bannedAt bannedReason'
-      : 'username displayName nombre apellido avatar telegram celular bggUsername direccion createdAt';
+      ? "username displayName nombre apellido avatar telegram celular bggUsername direccion createdAt isAdmin isBanned bannedAt bannedReason"
+      : "username displayName nombre apellido avatar telegram celular bggUsername direccion createdAt";
 
-    let users = await User.find(query)
-      .select(selectFields)
-      .lean();
+    let users = await User.find(query).select(selectFields).lean();
 
     const userIds = users.map((u) => u._id);
 
     const [hostedCounts, playerCounts, compartidaCounts] = await Promise.all([
       Table.aggregate([
-        { $match: { host: { $in: userIds }, status: { $ne: 'cancelled' } } },
-        { $group: { _id: '$host', count: { $sum: 1 } } },
+        { $match: { host: { $in: userIds }, status: { $ne: "cancelled" } } },
+        { $group: { _id: "$host", count: { $sum: 1 } } },
       ]),
       Table.aggregate([
-        { $match: { players: { $in: userIds }, status: { $ne: 'cancelled' } } },
-        { $unwind: '$players' },
+        { $match: { players: { $in: userIds }, status: { $ne: "cancelled" } } },
+        { $unwind: "$players" },
         { $match: { players: { $in: userIds } } },
-        { $group: { _id: '$players', count: { $sum: 1 } } },
+        { $group: { _id: "$players", count: { $sum: 1 } } },
       ]),
       Compartida.aggregate([
-        { $match: { author: { $in: userIds }, privacy: 'public' } },
-        { $group: { _id: '$author', count: { $sum: 1 } } },
+        { $match: { author: { $in: userIds }, privacy: "public" } },
+        { $group: { _id: "$author", count: { $sum: 1 } } },
       ]),
     ]);
 
     const hostedMap = {};
-    hostedCounts.forEach((h) => { hostedMap[h._id.toString()] = h.count; });
+    hostedCounts.forEach((h) => {
+      hostedMap[h._id.toString()] = h.count;
+    });
 
     const playerMap = {};
-    playerCounts.forEach((p) => { playerMap[p._id.toString()] = p.count; });
+    playerCounts.forEach((p) => {
+      playerMap[p._id.toString()] = p.count;
+    });
 
     const compartidaMap = {};
-    compartidaCounts.forEach((c) => { compartidaMap[c._id.toString()] = c.count; });
+    compartidaCounts.forEach((c) => {
+      compartidaMap[c._id.toString()] = c.count;
+    });
 
-    if (activeOnly === 'true') {
+    if (activeOnly === "true") {
       const activeIds = new Set([
         ...hostedCounts.map((h) => h._id.toString()),
         ...playerCounts.map((p) => p._id.toString()),
@@ -93,14 +97,23 @@ router.get(
       compartidas: compartidaMap[u._id.toString()] || 0,
     }));
 
-    if (sortBy === 'activity') {
-      users.sort((a, b) => (b.tablesHosted + b.tablesAsPlayer) - (a.tablesHosted + a.tablesAsPlayer));
-    } else if (sortBy === 'date_asc') {
+    if (sortBy === "activity") {
+      users.sort(
+        (a, b) =>
+          b.tablesHosted +
+          b.tablesAsPlayer -
+          (a.tablesHosted + a.tablesAsPlayer),
+      );
+    } else if (sortBy === "date_asc") {
       users.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    } else if (sortBy === 'date_desc') {
+    } else if (sortBy === "date_desc") {
       users.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else {
-      users.sort((a, b) => (a.username || '').localeCompare(b.username || '', 'es', { sensitivity: 'base' }));
+      users.sort((a, b) =>
+        (a.username || "").localeCompare(b.username || "", "es", {
+          sensitivity: "base",
+        }),
+      );
     }
 
     res.json(users);
@@ -111,19 +124,26 @@ router.get(
 // Public (no auth). Used by BG Watch surfaces to link play participants to their
 // Turnocero profile when they're members. Capped at 50 usernames per request.
 router.post(
-  '/by-bgg-usernames',
+  "/by-bgg-usernames",
   asyncHandler(async (req, res) => {
     const raw = Array.isArray(req.body?.usernames) ? req.body.usernames : [];
-    const lowered = [...new Set(
-      raw
-        .filter((u) => typeof u === 'string' && u.trim().length > 0)
-        .map((u) => u.trim().toLowerCase())
-    )].slice(0, 50);
+    const lowered = [
+      ...new Set(
+        raw
+          .filter((u) => typeof u === "string" && u.trim().length > 0)
+          .map((u) => u.trim().toLowerCase()),
+      ),
+    ].slice(0, 50);
 
     if (lowered.length === 0) return res.json([]);
 
     const users = await User.aggregate([
-      { $match: { bggUsername: { $exists: true, $nin: [null, ''] }, isBanned: { $ne: true } } },
+      {
+        $match: {
+          bggUsername: { $exists: true, $nin: [null, ""] },
+          isBanned: { $ne: true },
+        },
+      },
       {
         $project: {
           _id: 1,
@@ -131,7 +151,7 @@ router.post(
           displayName: 1,
           avatar: 1,
           bggUsername: 1,
-          _lower: { $toLower: '$bggUsername' },
+          _lower: { $toLower: "$bggUsername" },
         },
       },
       { $match: { _lower: { $in: lowered } } },
@@ -144,40 +164,55 @@ router.post(
 
 // GET /api/users/:id — public profile + stats; relationship fields are null for anon
 router.get(
-  '/:id',
+  "/:id",
   optionalAuth,
   asyncHandler(async (req, res) => {
     const isAdmin = !!req.user?.isAdmin;
     const user = await User.findById(req.params.id)
-      .select('username displayName nombre apellido avatar telegram celular bggUsername direccion createdAt friendRequests friends isBanned')
+      .select(
+        "username displayName nombre apellido avatar telegram celular bggUsername direccion createdAt friendRequests friends isBanned",
+      )
       .lean();
 
-    if (!user) throw httpError(404, 'Usuario no encontrado');
-    if (user.isBanned && !isAdmin) throw httpError(404, 'Usuario no encontrado');
+    if (!user) throw httpError(404, "Usuario no encontrado");
+    if (user.isBanned && !isAdmin)
+      throw httpError(404, "Usuario no encontrado");
 
     const userId = user._id;
 
     const queries = [
-      Table.find({ host: userId }).select('boardGame status date createdAt').lean(),
-      Table.find({ players: userId }).select('boardGame status date createdAt').lean(),
+      Table.find({ host: userId })
+        .select("boardGame status date createdAt")
+        .lean(),
+      Table.find({ players: userId })
+        .select("boardGame status date createdAt")
+        .lean(),
     ];
     if (req.user) {
-      queries.push(User.findById(req.user._id).select('friends friendRequests').lean());
+      queries.push(
+        User.findById(req.user._id).select("friends friendRequests").lean(),
+      );
     }
 
     const [tableResults, compartidaResult] = await Promise.all([
       Promise.all(queries),
       Compartida.aggregate([
-        { $match: { author: userId, privacy: 'public' } },
-        { $group: { _id: null, count: { $sum: 1 }, likes: { $sum: { $size: '$likes' } } } },
+        { $match: { author: userId, privacy: "public" } },
+        {
+          $group: {
+            _id: null,
+            count: { $sum: 1 },
+            likes: { $sum: { $size: "$likes" } },
+          },
+        },
       ]),
     ]);
 
     const [hostedTables, playerTables, currentUser] = tableResults;
     const compartidaData = compartidaResult[0] || { count: 0, likes: 0 };
 
-    const hostedActive = hostedTables.filter((t) => t.status !== 'cancelled');
-    const playerActive = playerTables.filter((t) => t.status !== 'cancelled');
+    const hostedActive = hostedTables.filter((t) => t.status !== "cancelled");
+    const playerActive = playerTables.filter((t) => t.status !== "cancelled");
 
     const gameCounts = {};
     [...hostedActive, ...playerActive].forEach((t) => {
@@ -195,16 +230,30 @@ router.get(
 
     let relationship = null;
     if (req.user && currentUser) {
-      const isFriend = (currentUser?.friends || []).some((f) => isSameId(f, userId));
-      const requestSent = (user.friendRequests || []).some((r) => isSameId(r.from, req.user._id));
-      const requestReceived = (currentUser?.friendRequests || []).some((r) => isSameId(r.from, userId));
-      relationship = isFriend ? 'friends'
-        : requestSent ? 'request_sent'
-        : requestReceived ? 'request_received'
-        : 'none';
+      const isFriend = (currentUser?.friends || []).some((f) =>
+        isSameId(f, userId),
+      );
+      const requestSent = (user.friendRequests || []).some((r) =>
+        isSameId(r.from, req.user._id),
+      );
+      const requestReceived = (currentUser?.friendRequests || []).some((r) =>
+        isSameId(r.from, userId),
+      );
+      relationship = isFriend
+        ? "friends"
+        : requestSent
+          ? "request_sent"
+          : requestReceived
+            ? "request_received"
+            : "none";
     }
 
-    const { friendRequests: _fr, friends: _friends, isBanned: _isBanned, ...userPublic } = user;
+    const {
+      friendRequests: _fr,
+      friends: _friends,
+      isBanned: _isBanned,
+      ...userPublic
+    } = user;
     if (isAdmin) userPublic.isBanned = _isBanned;
 
     res.json({
@@ -214,9 +263,10 @@ router.get(
       stats: {
         tablesHosted: {
           total: hostedTables.length,
-          open: hostedTables.filter((t) => t.status === 'open').length,
-          full: hostedTables.filter((t) => t.status === 'full').length,
-          cancelled: hostedTables.filter((t) => t.status === 'cancelled').length,
+          open: hostedTables.filter((t) => t.status === "open").length,
+          full: hostedTables.filter((t) => t.status === "full").length,
+          cancelled: hostedTables.filter((t) => t.status === "cancelled")
+            .length,
           active: hostedActive.length,
         },
         tablesAsPlayer: {

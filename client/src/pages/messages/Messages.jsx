@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../../context/AuthContext';
-import { useChat } from '../../context/ChatContext';
-import { API } from '../../api/endpoints';
-import Avatar from '../../components/shared/Avatar';
-import styles from './Messages.module.css';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
+import { useChat } from "../../context/ChatContext";
+import { API } from "../../api/endpoints";
+import Avatar from "../../components/shared/Avatar";
+import styles from "./Messages.module.css";
 
 const DESKTOP_BREAKPOINT = 960;
 
 function formatRelativeTime(date) {
   const diff = (Date.now() - new Date(date).getTime()) / 1000;
-  if (diff < 60) return 'ahora';
+  if (diff < 60) return "ahora";
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
   return `${Math.floor(diff / 86400)}d`;
@@ -23,15 +23,20 @@ export default function Messages() {
   const navigate = useNavigate();
   const [friends, setFriends] = useState([]);
   const [showNewChat, setShowNewChat] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
   // Load friends list for "new conversation" picker
   useEffect(() => {
     if (!user) return;
-    axios.get(API.users.LIST).then(({ data }) => {
-      const friendIds = new Set(user.friends?.map((f) => f.toString()) || []);
-      setFriends((data.users || data).filter((u) => friendIds.has(u._id.toString())));
-    }).catch(() => {});
+    axios
+      .get(API.users.LIST)
+      .then(({ data }) => {
+        const friendIds = new Set(user.friends?.map((f) => f.toString()) || []);
+        setFriends(
+          (data.users || data).filter((u) => friendIds.has(u._id.toString())),
+        );
+      })
+      .catch(() => {});
   }, [user]);
 
   const isDesktop = () => window.innerWidth >= DESKTOP_BREAKPOINT;
@@ -54,7 +59,7 @@ export default function Messages() {
     });
 
   const filteredFriends = friends.filter((f) =>
-    f.username.toLowerCase().includes(search.toLowerCase())
+    f.username.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -65,9 +70,21 @@ export default function Messages() {
           <h1 className={styles.heroTitle}>Mensajes</h1>
           <p className={styles.heroSub}>Chateá con tus amigos.</p>
         </div>
-        <button className={styles.newBtn} onClick={() => setShowNewChat((v) => !v)}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 5v14M5 12h14"/>
+        <button
+          className={styles.newBtn}
+          onClick={() => setShowNewChat((v) => !v)}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 5v14M5 12h14" />
           </svg>
           Nuevo chat
         </button>
@@ -83,21 +100,41 @@ export default function Messages() {
               onChange={(e) => setSearch(e.target.value)}
               autoFocus
             />
-            <button className={styles.closeSearch} onClick={() => setShowNewChat(false)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            <button
+              className={styles.closeSearch}
+              onClick={() => setShowNewChat(false)}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
             </button>
           </div>
           <div className={styles.friendsList}>
             {filteredFriends.length === 0 && (
               <p className={styles.empty}>
-                {friends.length === 0 ? 'No tenés amigos aún' : 'Sin resultados'}
+                {friends.length === 0
+                  ? "No tenés amigos aún"
+                  : "Sin resultados"}
               </p>
             )}
             {filteredFriends.map((f) => (
               <button
                 key={f._id}
                 className={styles.friendItem}
-                onClick={() => { handleOpen(f); setShowNewChat(false); setSearch(''); }}
+                onClick={() => {
+                  handleOpen(f);
+                  setShowNewChat(false);
+                  setSearch("");
+                }}
               >
                 <Avatar user={f} size="md" />
                 <span className={styles.friendName}>{f.username}</span>
@@ -111,7 +148,9 @@ export default function Messages() {
         {convList.length === 0 && (
           <div className={styles.emptyState}>
             <p>No hay conversaciones todavía.</p>
-            <p className={styles.emptyHint}>Iniciá un chat con uno de tus amigos.</p>
+            <p className={styles.emptyHint}>
+              Iniciá un chat con uno de tus amigos.
+            </p>
           </div>
         )}
         {convList.map((conv) => {
@@ -119,25 +158,30 @@ export default function Messages() {
           return (
             <button
               key={conv.user._id}
-              className={`${styles.convItem} ${conv.unread > 0 ? styles.convUnread : ''}`}
+              className={`${styles.convItem} ${conv.unread > 0 ? styles.convUnread : ""}`}
               onClick={() => handleOpen(conv.user)}
             >
               <div className={styles.convAvatar}>
                 <Avatar user={conv.user} size="md" />
                 {conv.unread > 0 && (
-                  <span className={styles.convBadge}>{conv.unread > 9 ? '9+' : conv.unread}</span>
+                  <span className={styles.convBadge}>
+                    {conv.unread > 9 ? "9+" : conv.unread}
+                  </span>
                 )}
               </div>
               <div className={styles.convInfo}>
                 <div className={styles.convTop}>
                   <span className={styles.convName}>{conv.user.username}</span>
                   {lastMsg && (
-                    <span className={styles.convTime}>{formatRelativeTime(lastMsg.createdAt)}</span>
+                    <span className={styles.convTime}>
+                      {formatRelativeTime(lastMsg.createdAt)}
+                    </span>
                   )}
                 </div>
                 {lastMsg && (
                   <p className={styles.convPreview}>
-                    {lastMsg.content.slice(0, 60)}{lastMsg.content.length > 60 ? '…' : ''}
+                    {lastMsg.content.slice(0, 60)}
+                    {lastMsg.content.length > 60 ? "…" : ""}
                   </p>
                 )}
               </div>

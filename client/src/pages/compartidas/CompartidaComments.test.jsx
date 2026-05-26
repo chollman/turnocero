@@ -64,8 +64,18 @@ describe("<CompartidaComments>", () => {
   it("dispara onCountChange después del fetch inicial", async () => {
     const onCountChange = vi.fn();
     setupComments([
-      { _id: "c1", content: "x", author: other, createdAt: new Date().toISOString() },
-      { _id: "c2", content: "y", author: other, createdAt: new Date().toISOString() },
+      {
+        _id: "c1",
+        content: "x",
+        author: other,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        _id: "c2",
+        content: "y",
+        author: other,
+        createdAt: new Date().toISOString(),
+      },
     ]);
     renderComponent({ onCountChange });
     await waitFor(() => expect(onCountChange).toHaveBeenCalledWith(2));

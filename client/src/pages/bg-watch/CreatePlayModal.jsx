@@ -1,34 +1,44 @@
-import { useEffect, useRef, useState } from 'react';
-import axios from 'axios';
-import ModalPortal from '../../components/shared/ModalPortal';
-import { API } from '../../api/endpoints';
-import { hasDisplayableScore } from './playerScore';
-import styles from './BgWatchProfile.module.css';
+import { useEffect, useRef, useState } from "react";
+import axios from "axios";
+import ModalPortal from "../../components/shared/ModalPortal";
+import { API } from "../../api/endpoints";
+import { hasDisplayableScore } from "./playerScore";
+import styles from "./BgWatchProfile.module.css";
 
 function todayIso() {
   const d = new Date();
   const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
 function GameSearch({ onPick }) {
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef(null);
 
   useEffect(() => {
     clearTimeout(timerRef.current);
-    if (q.trim().length < 3) { setResults([]); return undefined; }
+    if (q.trim().length < 3) {
+      setResults([]);
+      return undefined;
+    }
     const ac = new AbortController();
     timerRef.current = setTimeout(() => {
       setLoading(true);
-      axios.get(API.bgg.SEARCH, { params: { q: q.trim() }, signal: ac.signal })
-        .then(({ data }) => { if (!ac.signal.aborted) setResults(data || []); })
-        .catch((err) => { if (!axios.isCancel(err)) setResults([]); })
-        .finally(() => { if (!ac.signal.aborted) setLoading(false); });
+      axios
+        .get(API.bgg.SEARCH, { params: { q: q.trim() }, signal: ac.signal })
+        .then(({ data }) => {
+          if (!ac.signal.aborted) setResults(data || []);
+        })
+        .catch((err) => {
+          if (!axios.isCancel(err)) setResults([]);
+        })
+        .finally(() => {
+          if (!ac.signal.aborted) setLoading(false);
+        });
     }, 350);
     return () => {
       clearTimeout(timerRef.current);
@@ -56,15 +66,29 @@ function GameSearch({ onPick }) {
             <button
               type="button"
               className={styles.gameSearchItem}
-              onClick={() => onPick({ id: g.id, name: g.name, thumbnail: g.thumbnail, year: g.year })}
-            >
-              {g.thumbnail
-                ? <img src={g.thumbnail} alt={g.name} className={styles.gameSearchThumb} />
-                : <div className={styles.gameSearchThumbFallback}>🎲</div>
+              onClick={() =>
+                onPick({
+                  id: g.id,
+                  name: g.name,
+                  thumbnail: g.thumbnail,
+                  year: g.year,
+                })
               }
+            >
+              {g.thumbnail ? (
+                <img
+                  src={g.thumbnail}
+                  alt={g.name}
+                  className={styles.gameSearchThumb}
+                />
+              ) : (
+                <div className={styles.gameSearchThumbFallback}>🎲</div>
+              )}
               <div className={styles.gameSearchInfo}>
                 <span className={styles.gameSearchName}>{g.name}</span>
-                {g.year && <span className={styles.gameSearchYear}>{g.year}</span>}
+                {g.year && (
+                  <span className={styles.gameSearchYear}>{g.year}</span>
+                )}
               </div>
             </button>
           </li>
@@ -85,7 +109,7 @@ function StepDetails({ details, setDetails }) {
             type="date"
             className={styles.modalInput}
             value={details.playdate}
-            onChange={(e) => update('playdate', e.target.value)}
+            onChange={(e) => update("playdate", e.target.value)}
           />
         </div>
         <div className={styles.field}>
@@ -95,7 +119,7 @@ function StepDetails({ details, setDetails }) {
             min={0}
             className={styles.modalInput}
             value={details.length}
-            onChange={(e) => update('length', e.target.value)}
+            onChange={(e) => update("length", e.target.value)}
             placeholder="60"
           />
         </div>
@@ -105,7 +129,7 @@ function StepDetails({ details, setDetails }) {
             type="text"
             className={styles.modalInput}
             value={details.location}
-            onChange={(e) => update('location', e.target.value)}
+            onChange={(e) => update("location", e.target.value)}
             placeholder="Casa, club, etc."
             maxLength={100}
           />
@@ -118,7 +142,7 @@ function StepDetails({ details, setDetails }) {
             max={99}
             className={styles.modalInput}
             value={details.quantity}
-            onChange={(e) => update('quantity', e.target.value)}
+            onChange={(e) => update("quantity", e.target.value)}
           />
         </div>
       </div>
@@ -127,7 +151,7 @@ function StepDetails({ details, setDetails }) {
         <textarea
           className={styles.modalTextarea}
           value={details.comments}
-          onChange={(e) => update('comments', e.target.value)}
+          onChange={(e) => update("comments", e.target.value)}
           maxLength={1000}
           rows={3}
           placeholder="Cómo estuvo la partida, momentos memorables, etc."
@@ -138,7 +162,7 @@ function StepDetails({ details, setDetails }) {
           <input
             type="checkbox"
             checked={details.incomplete}
-            onChange={(e) => update('incomplete', e.target.checked)}
+            onChange={(e) => update("incomplete", e.target.checked)}
           />
           Incompleta (no se terminó)
         </label>
@@ -146,7 +170,7 @@ function StepDetails({ details, setDetails }) {
           <input
             type="checkbox"
             checked={details.nowinstats}
-            onChange={(e) => update('nowinstats', e.target.checked)}
+            onChange={(e) => update("nowinstats", e.target.checked)}
           />
           No contar para estadísticas
         </label>
@@ -157,10 +181,17 @@ function StepDetails({ details, setDetails }) {
 
 function StepPlayers({ players, setPlayers }) {
   const updatePlayer = (idx, key, val) => {
-    setPlayers((arr) => arr.map((p, i) => i === idx ? { ...p, [key]: val } : p));
+    setPlayers((arr) =>
+      arr.map((p, i) => (i === idx ? { ...p, [key]: val } : p)),
+    );
   };
-  const removePlayer = (idx) => setPlayers((arr) => arr.filter((_, i) => i !== idx));
-  const addPlayer = () => setPlayers((arr) => [...arr, { name: '', username: '', color: '', score: '', win: false, new: false }]);
+  const removePlayer = (idx) =>
+    setPlayers((arr) => arr.filter((_, i) => i !== idx));
+  const addPlayer = () =>
+    setPlayers((arr) => [
+      ...arr,
+      { name: "", username: "", color: "", score: "", win: false, new: false },
+    ]);
 
   return (
     <div className={styles.modalSection}>
@@ -177,7 +208,7 @@ function StepPlayers({ players, setPlayers }) {
                 className={styles.modalInput}
                 placeholder="Nombre"
                 value={p.name}
-                onChange={(e) => updatePlayer(i, 'name', e.target.value)}
+                onChange={(e) => updatePlayer(i, "name", e.target.value)}
                 maxLength={100}
               />
               <input
@@ -185,7 +216,7 @@ function StepPlayers({ players, setPlayers }) {
                 className={styles.modalInputSmall}
                 placeholder="Color"
                 value={p.color}
-                onChange={(e) => updatePlayer(i, 'color', e.target.value)}
+                onChange={(e) => updatePlayer(i, "color", e.target.value)}
                 maxLength={30}
               />
               <input
@@ -193,7 +224,7 @@ function StepPlayers({ players, setPlayers }) {
                 className={styles.modalInputSmall}
                 placeholder="Score"
                 value={p.score}
-                onChange={(e) => updatePlayer(i, 'score', e.target.value)}
+                onChange={(e) => updatePlayer(i, "score", e.target.value)}
                 maxLength={30}
               />
               <input
@@ -201,14 +232,16 @@ function StepPlayers({ players, setPlayers }) {
                 className={styles.modalInputSmall}
                 placeholder="@BGG (opcional)"
                 value={p.username}
-                onChange={(e) => updatePlayer(i, 'username', e.target.value.replace(/^@/, ''))}
+                onChange={(e) =>
+                  updatePlayer(i, "username", e.target.value.replace(/^@/, ""))
+                }
                 maxLength={50}
               />
               <label className={styles.checkboxInline}>
                 <input
                   type="checkbox"
                   checked={p.win}
-                  onChange={(e) => updatePlayer(i, 'win', e.target.checked)}
+                  onChange={(e) => updatePlayer(i, "win", e.target.checked)}
                 />
                 Ganó
               </label>
@@ -216,7 +249,7 @@ function StepPlayers({ players, setPlayers }) {
                 <input
                   type="checkbox"
                   checked={p.new}
-                  onChange={(e) => updatePlayer(i, 'new', e.target.checked)}
+                  onChange={(e) => updatePlayer(i, "new", e.target.checked)}
                 />
                 Nuevo
               </label>
@@ -241,78 +274,97 @@ function StepPlayers({ players, setPlayers }) {
   );
 }
 
-export default function CreatePlayModal({ user, preselectedGame, editPlay, onClose, onCreated }) {
+export default function CreatePlayModal({
+  user,
+  preselectedGame,
+  editPlay,
+  onClose,
+  onCreated,
+}) {
   const isEdit = !!editPlay;
   // In edit mode, game is locked (cannot be changed) and step 1 is skipped
   const initialGame = editPlay
-    ? { id: editPlay.gameId, name: editPlay.gameName, thumbnail: editPlay.gameThumbnail }
-    : (preselectedGame || null);
+    ? {
+        id: editPlay.gameId,
+        name: editPlay.gameName,
+        thumbnail: editPlay.gameThumbnail,
+      }
+    : preselectedGame || null;
   const lockedGame = isEdit || !!preselectedGame;
 
   const [step, setStep] = useState(initialGame ? 2 : 1);
   const [game, setGame] = useState(initialGame);
 
-  const [details, setDetails] = useState(() => editPlay
-    ? {
-        playdate: editPlay.date || todayIso(),
-        length: editPlay.duration != null ? String(editPlay.duration) : '',
-        location: editPlay.location || '',
-        quantity: editPlay.quantity || 1,
-        comments: editPlay.comments || '',
-        incomplete: !!editPlay.incomplete,
-        nowinstats: !!editPlay.nowinstats,
-      }
-    : {
-        playdate: todayIso(),
-        length: '',
-        location: '',
-        quantity: 1,
-        comments: '',
-        incomplete: false,
-        nowinstats: false,
-      }
+  const [details, setDetails] = useState(() =>
+    editPlay
+      ? {
+          playdate: editPlay.date || todayIso(),
+          length: editPlay.duration != null ? String(editPlay.duration) : "",
+          location: editPlay.location || "",
+          quantity: editPlay.quantity || 1,
+          comments: editPlay.comments || "",
+          incomplete: !!editPlay.incomplete,
+          nowinstats: !!editPlay.nowinstats,
+        }
+      : {
+          playdate: todayIso(),
+          length: "",
+          location: "",
+          quantity: 1,
+          comments: "",
+          incomplete: false,
+          nowinstats: false,
+        },
   );
 
   const [players, setPlayers] = useState(() => {
-    if (editPlay && Array.isArray(editPlay.players) && editPlay.players.length > 0) {
+    if (
+      editPlay &&
+      Array.isArray(editPlay.players) &&
+      editPlay.players.length > 0
+    ) {
       return editPlay.players.map((p) => ({
-        name: p.name || '',
-        username: p.username || '',
-        color: p.color || '',
+        name: p.name || "",
+        username: p.username || "",
+        color: p.color || "",
         // Old plays may carry the literal string "null" in score — treat
         // those as empty when prefilling the edit form.
-        score: hasDisplayableScore(p.score) ? String(p.score) : '',
+        score: hasDisplayableScore(p.score) ? String(p.score) : "",
         win: !!p.win,
         new: !!p.new,
       }));
     }
-    return [{
-      name: user?.displayName || user?.nombre || user?.username || '',
-      username: user?.bggUsername || '',
-      color: '',
-      score: '',
-      win: false,
-      new: false,
-    }];
+    return [
+      {
+        name: user?.displayName || user?.nombre || user?.username || "",
+        username: user?.bggUsername || "",
+        color: "",
+        score: "",
+        win: false,
+        new: false,
+      },
+    ];
   });
 
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape' && !submitting) onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const onKey = (e) => {
+      if (e.key === "Escape" && !submitting) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [onClose, submitting]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
-    setError('');
+    setError("");
     try {
       const body = {
         objectid: game.id,
         playdate: details.playdate,
-        length: details.length === '' ? null : Number(details.length),
+        length: details.length === "" ? null : Number(details.length),
         location: details.location,
         quantity: Number(details.quantity) || 1,
         comments: details.comments,
@@ -338,20 +390,27 @@ export default function CreatePlayModal({ user, preselectedGame, editPlay, onClo
       if (onCreated) onCreated();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || (isEdit
-        ? 'No se pudo editar la partida.'
-        : 'No se pudo cargar la partida.'));
+      setError(
+        err.response?.data?.message ||
+          (isEdit
+            ? "No se pudo editar la partida."
+            : "No se pudo cargar la partida."),
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const canNext = (step === 1 && game) || (step === 2);
-  const canSubmit = step === 3 && players.some((p) => p.name.trim() || p.username.trim());
+  const canNext = (step === 1 && game) || step === 2;
+  const canSubmit =
+    step === 3 && players.some((p) => p.name.trim() || p.username.trim());
 
   return (
     <ModalPortal>
-      <div className={styles.modalBackdrop} onClick={!submitting ? onClose : undefined}>
+      <div
+        className={styles.modalBackdrop}
+        onClick={!submitting ? onClose : undefined}
+      >
         <div
           className={`${styles.modalCard} ${styles.modalCardWide}`}
           onClick={(e) => e.stopPropagation()}
@@ -360,32 +419,50 @@ export default function CreatePlayModal({ user, preselectedGame, editPlay, onClo
         >
           <div className={styles.modalHeaderRow}>
             <h2 className={styles.modalTitle}>
-              {isEdit ? 'Editar partida' : 'Cargar partida en BGG'}
+              {isEdit ? "Editar partida" : "Cargar partida en BGG"}
             </h2>
-            <button className={styles.modalClose} onClick={onClose} aria-label="Cerrar" disabled={submitting}>✕</button>
+            <button
+              className={styles.modalClose}
+              onClick={onClose}
+              aria-label="Cerrar"
+              disabled={submitting}
+            >
+              ✕
+            </button>
           </div>
 
           <div className={styles.stepIndicator}>
             {!lockedGame && (
-              <span className={`${styles.step} ${step >= 1 ? styles.stepActive : ''}`}>1. Juego</span>
+              <span
+                className={`${styles.step} ${step >= 1 ? styles.stepActive : ""}`}
+              >
+                1. Juego
+              </span>
             )}
-            <span className={`${styles.step} ${step >= 2 ? styles.stepActive : ''}`}>
-              {lockedGame ? '1' : '2'}. Datos
+            <span
+              className={`${styles.step} ${step >= 2 ? styles.stepActive : ""}`}
+            >
+              {lockedGame ? "1" : "2"}. Datos
             </span>
-            <span className={`${styles.step} ${step >= 3 ? styles.stepActive : ''}`}>
-              {lockedGame ? '2' : '3'}. Jugadores
+            <span
+              className={`${styles.step} ${step >= 3 ? styles.stepActive : ""}`}
+            >
+              {lockedGame ? "2" : "3"}. Jugadores
             </span>
           </div>
 
           {game && (
             <div className={styles.gamePicked}>
-              {game.thumbnail
-                ? <img src={game.thumbnail} alt={game.name} />
-                : <span className={styles.playThumbFallback}>🎲</span>
-              }
+              {game.thumbnail ? (
+                <img src={game.thumbnail} alt={game.name} />
+              ) : (
+                <span className={styles.playThumbFallback}>🎲</span>
+              )}
               <div>
                 <div className={styles.gamePickedName}>{game.name}</div>
-                {game.year && <div className={styles.gamePickedYear}>{game.year}</div>}
+                {game.year && (
+                  <div className={styles.gamePickedYear}>{game.year}</div>
+                )}
               </div>
               {step !== 1 && !lockedGame && (
                 <button
@@ -400,10 +477,19 @@ export default function CreatePlayModal({ user, preselectedGame, editPlay, onClo
           )}
 
           {step === 1 && (
-            <GameSearch onPick={(g) => { setGame(g); setStep(2); }} />
+            <GameSearch
+              onPick={(g) => {
+                setGame(g);
+                setStep(2);
+              }}
+            />
           )}
-          {step === 2 && <StepDetails details={details} setDetails={setDetails} />}
-          {step === 3 && <StepPlayers players={players} setPlayers={setPlayers} />}
+          {step === 2 && (
+            <StepDetails details={details} setDetails={setDetails} />
+          )}
+          {step === 3 && (
+            <StepPlayers players={players} setPlayers={setPlayers} />
+          )}
 
           {error && <div className={styles.errorText}>{error}</div>}
 
@@ -435,7 +521,11 @@ export default function CreatePlayModal({ user, preselectedGame, editPlay, onClo
                 onClick={handleSubmit}
                 disabled={!canSubmit || submitting}
               >
-                {submitting ? 'Guardando…' : (isEdit ? 'Guardar cambios' : 'Guardar en BGG')}
+                {submitting
+                  ? "Guardando…"
+                  : isEdit
+                    ? "Guardar cambios"
+                    : "Guardar en BGG"}
               </button>
             )}
           </div>

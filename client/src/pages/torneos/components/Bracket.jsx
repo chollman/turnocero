@@ -1,41 +1,47 @@
-import { useState, useEffect } from 'react'
-import UserRef, { GhostIcon } from '../../../components/shared/UserRef'
-import { getUserDisplay } from '../../../utils/userDisplay'
-import styles from '../Bracket.module.css'
+import { useState, useEffect } from "react";
+import UserRef, { GhostIcon } from "../../../components/shared/UserRef";
+import { getUserDisplay } from "../../../utils/userDisplay";
+import styles from "../Bracket.module.css";
 
-const DESKTOP = 960
+const DESKTOP = 960;
 
 /**
  * Renders a single-elimination bracket grouped by round.
  * On desktop: horizontal columns. On mobile: one round at a time with a selector.
  */
 export default function Bracket({ matches, isAdmin, onRecord, onUndo }) {
-  const rounds = groupByRound(matches)
-  const totalRounds = rounds.length
+  const rounds = groupByRound(matches);
+  const totalRounds = rounds.length;
 
-  const [activeRound, setActiveRound] = useState(0)
-  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < DESKTOP)
+  const [activeRound, setActiveRound] = useState(0);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth < DESKTOP,
+  );
 
   useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < DESKTOP)
-    window.addEventListener('resize', handler)
-    return () => window.removeEventListener('resize', handler)
-  }, [])
+    const handler = () => setIsMobile(window.innerWidth < DESKTOP);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
 
   // On mobile, jump to the first round with unresolved matches.
   useEffect(() => {
-    if (!isMobile) return
-    const firstPending = rounds.findIndex((round) => round.some((m) => m.status === 'pending' && m.playerA && m.playerB))
-    if (firstPending >= 0) setActiveRound(firstPending)
-  }, [isMobile, matches.length]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (!isMobile) return;
+    const firstPending = rounds.findIndex((round) =>
+      round.some((m) => m.status === "pending" && m.playerA && m.playerB),
+    );
+    if (firstPending >= 0) setActiveRound(firstPending);
+  }, [isMobile, matches.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (rounds.length === 0) {
-    return <p className={styles.empty}>Todavía no se generó el bracket.</p>
+    return <p className={styles.empty}>Todavía no se generó el bracket.</p>;
   }
 
   // Round 1 is a play-in round when it has fewer matches than round 2.
-  const hasPlayIn = rounds.length > 1 && rounds[0].length < rounds[1].length
-  const roundLabels = rounds.map((_, i) => roundLabel(i + 1, totalRounds, hasPlayIn))
+  const hasPlayIn = rounds.length > 1 && rounds[0].length < rounds[1].length;
+  const roundLabels = rounds.map((_, i) =>
+    roundLabel(i + 1, totalRounds, hasPlayIn),
+  );
 
   return (
     <div className={styles.bracketWrap}>
@@ -44,7 +50,7 @@ export default function Bracket({ matches, isAdmin, onRecord, onUndo }) {
           {roundLabels.map((label, i) => (
             <button
               key={i}
-              className={`${styles.roundTab} ${activeRound === i ? styles.roundTabActive : ''}`}
+              className={`${styles.roundTab} ${activeRound === i ? styles.roundTabActive : ""}`}
               onClick={() => setActiveRound(i)}
             >
               {label}
@@ -55,7 +61,7 @@ export default function Bracket({ matches, isAdmin, onRecord, onUndo }) {
 
       <div className={styles.bracket}>
         {rounds.map((round, rIdx) => {
-          if (isMobile && rIdx !== activeRound) return null
+          if (isMobile && rIdx !== activeRound) return null;
           return (
             <div key={rIdx} className={styles.round}>
               {!isMobile && (
@@ -74,25 +80,40 @@ export default function Bracket({ matches, isAdmin, onRecord, onUndo }) {
                 ))}
               </div>
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
 
 function BracketMatch({ match, isAdmin, onRecord, onUndo, isFinal }) {
-  const aWinner = match.winner && String(match.winner._id || match.winner) === String(match.playerA?._id)
-  const bWinner = match.winner && String(match.winner._id || match.winner) === String(match.playerB?._id)
-  const isBye = match.status === 'bye'
-  const isCompleted = match.status === 'completed'
-  const canRecord = isAdmin && match.status === 'pending' && match.playerA && match.playerB
+  const aWinner =
+    match.winner &&
+    String(match.winner._id || match.winner) === String(match.playerA?._id);
+  const bWinner =
+    match.winner &&
+    String(match.winner._id || match.winner) === String(match.playerB?._id);
+  const isBye = match.status === "bye";
+  const isCompleted = match.status === "completed";
+  const canRecord =
+    isAdmin && match.status === "pending" && match.playerA && match.playerB;
 
   return (
-    <div className={`${styles.match} ${isBye ? styles.matchBye : ''} ${isFinal ? styles.matchFinal : ''}`}>
-      <Slot user={match.playerA} isWinner={aWinner} isBye={isBye && !match.playerB} />
+    <div
+      className={`${styles.match} ${isBye ? styles.matchBye : ""} ${isFinal ? styles.matchFinal : ""}`}
+    >
+      <Slot
+        user={match.playerA}
+        isWinner={aWinner}
+        isBye={isBye && !match.playerB}
+      />
       <div className={styles.matchDivider} />
-      <Slot user={match.playerB} isWinner={bWinner} isBye={isBye && !match.playerA} />
+      <Slot
+        user={match.playerB}
+        isWinner={bWinner}
+        isBye={isBye && !match.playerA}
+      />
 
       {isBye && <span className={styles.byeBadge}>BYE</span>}
 
@@ -107,54 +128,56 @@ function BracketMatch({ match, isAdmin, onRecord, onUndo, isFinal }) {
         </button>
       )}
     </div>
-  )
+  );
 }
 
 function Slot({ user, isWinner, isBye }) {
   if (!user) {
     return (
       <div className={`${styles.slot} ${styles.slotEmpty}`}>
-        <span className={styles.slotPlaceholder}>{isBye ? '—' : 'A definir'}</span>
+        <span className={styles.slotPlaceholder}>
+          {isBye ? "—" : "A definir"}
+        </span>
       </div>
-    )
+    );
   }
-  const info = getUserDisplay(user)
+  const info = getUserDisplay(user);
   if (info.isDeleted) {
     return (
       <div className={`${styles.slot} ${styles.slotDeleted}`}>
         <GhostIcon size={12} /> <span>Usuario eliminado</span>
       </div>
-    )
+    );
   }
   return (
-    <div className={`${styles.slot} ${isWinner ? styles.slotWinner : ''}`}>
+    <div className={`${styles.slot} ${isWinner ? styles.slotWinner : ""}`}>
       <span className={styles.slotName}>
         <UserRef user={user} noLink />
       </span>
       {isWinner && <span className={styles.slotCheck}>✓</span>}
     </div>
-  )
+  );
 }
 
 function groupByRound(matches) {
-  const map = new Map()
+  const map = new Map();
   for (const m of matches) {
-    if (!map.has(m.round)) map.set(m.round, [])
-    map.get(m.round).push(m)
+    if (!map.has(m.round)) map.set(m.round, []);
+    map.get(m.round).push(m);
   }
-  return [...map.keys()].sort((a, b) => a - b).map((r) =>
-    map.get(r).sort((x, y) => x.matchIndex - y.matchIndex)
-  )
+  return [...map.keys()]
+    .sort((a, b) => a - b)
+    .map((r) => map.get(r).sort((x, y) => x.matchIndex - y.matchIndex));
 }
 
 function roundLabel(round, total, hasPlayIn) {
-  if (hasPlayIn && round === 1) return 'Preliminar'
+  if (hasPlayIn && round === 1) return "Preliminar";
   // For main-bracket labels, ignore the play-in round when counting backwards from the final.
-  const mainTotal  = total - (hasPlayIn ? 1 : 0)
-  const mainRound  = round - (hasPlayIn ? 1 : 0)
-  if (mainRound === mainTotal) return 'Final'
-  if (mainRound === mainTotal - 1) return 'Semifinal'
-  if (mainRound === mainTotal - 2) return 'Cuartos'
-  if (mainRound === mainTotal - 3) return 'Octavos'
-  return `Ronda ${mainRound}`
+  const mainTotal = total - (hasPlayIn ? 1 : 0);
+  const mainRound = round - (hasPlayIn ? 1 : 0);
+  if (mainRound === mainTotal) return "Final";
+  if (mainRound === mainTotal - 1) return "Semifinal";
+  if (mainRound === mainTotal - 2) return "Cuartos";
+  if (mainRound === mainTotal - 3) return "Octavos";
+  return `Ronda ${mainRound}`;
 }

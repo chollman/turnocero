@@ -1,4 +1,4 @@
-import styles from './TableCardSkeleton.module.css'
+import styles from "./TableCardSkeleton.module.css";
 
 export default function TableCardSkeleton() {
   return (
@@ -21,5 +21,5 @@ export default function TableCardSkeleton() {
         <div className={styles.joinBtn} />
       </div>
     </div>
-  )
+  );
 }

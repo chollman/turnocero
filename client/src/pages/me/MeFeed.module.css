@@ -1,6 +1,10 @@
 @keyframes shimmer {
-  0%   { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 .page {
@@ -57,7 +61,12 @@
   width: 52%;
   height: 13px;
   border-radius: 5px;
-  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-elevated) 75%
+  );
   background-size: 400% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
 }
@@ -103,7 +112,7 @@
 }
 
 .nextGameTitle {
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -157,20 +166,21 @@
   border: none;
   padding: 8px 16px;
   border-radius: 8px;
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.02em;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  box-shadow: 0 4px 14px var(--amber-glow);
-  transition: background 0.15s;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
 }
 
 .btnPrimary:hover {
   background: var(--amber-light);
-  color: var(--on-amber);
+    box-shadow: 0 4px 22px var(--amber-glow);
+color: var(--on-amber);
 }
 
 /* ─── Filter bar ─── */
@@ -190,7 +200,7 @@
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -230,7 +240,7 @@
 
 /* ─── Section label ─── */
 .sectionLabel {
-  font-family: 'Manrope', var(--font-display);
+  font-family: "Manrope", var(--font-display);
   font-size: 11px;
   font-weight: 800;
   color: var(--text-muted);

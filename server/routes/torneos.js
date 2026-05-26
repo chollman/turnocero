@@ -141,43 +141,40 @@ router.post(
     if (!["league", "single_elim", "groups"].includes(format)) {
       throw httpError(400, "Formato inválido");
     }
-    if (
-      inscriptionMode &&
-      !["open", "admin_only"].includes(inscriptionMode)
-    ) {
+    if (inscriptionMode && !["open", "admin_only"].includes(inscriptionMode)) {
       throw httpError(400, "Modo de inscripción inválido");
     }
 
-      let image;
-      if (req.file) {
-        const result = await uploadToCloudinary(req.file.buffer, {
-          folder: "turnocero/torneos",
-          transformation: [{ width: 1200, crop: "limit" }],
-        });
-        image = { url: result.secure_url, publicId: result.public_id };
-      }
+    let image;
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer, {
+        folder: "turnocero/torneos",
+        transformation: [{ width: 1200, crop: "limit" }],
+      });
+      image = { url: result.secure_url, publicId: result.public_id };
+    }
 
-      const data = {
-        title: title.trim(),
-        description: description?.trim() || "",
-        game: game.trim(),
-        format,
-        inscriptionMode: inscriptionMode || "open",
-        maxParticipants: maxParticipants
-          ? Math.max(2, parseInt(maxParticipants))
-          : null,
-        image,
-        createdBy: req.user._id,
-      };
-      if (format === "groups") {
-        data.tableSize = tableSize ? clamp(parseInt(tableSize), 2, 12) : 4;
-        data.gamesPerGroup = gamesPerGroup
-          ? clamp(parseInt(gamesPerGroup), 1, 12)
-          : 3;
-        data.qualifiersPerGroup = qualifiersPerGroup
-          ? Math.max(1, parseInt(qualifiersPerGroup))
-          : 2;
-      }
+    const data = {
+      title: title.trim(),
+      description: description?.trim() || "",
+      game: game.trim(),
+      format,
+      inscriptionMode: inscriptionMode || "open",
+      maxParticipants: maxParticipants
+        ? Math.max(2, parseInt(maxParticipants))
+        : null,
+      image,
+      createdBy: req.user._id,
+    };
+    if (format === "groups") {
+      data.tableSize = tableSize ? clamp(parseInt(tableSize), 2, 12) : 4;
+      data.gamesPerGroup = gamesPerGroup
+        ? clamp(parseInt(gamesPerGroup), 1, 12)
+        : 3;
+      data.qualifiersPerGroup = qualifiersPerGroup
+        ? Math.max(1, parseInt(qualifiersPerGroup))
+        : 2;
+    }
 
     const torneo = await Torneo.create(data);
     const populated = await Torneo.findById(torneo._id).populate(
@@ -227,54 +224,54 @@ router.put(
     const torneo = await Torneo.findById(req.params.id);
     if (!torneo) throw httpError(404, "Torneo no encontrado");
 
-      const {
-        title,
-        description,
-        game,
-        maxParticipants,
-        inscriptionMode,
-        tableSize,
-        gamesPerGroup,
-        qualifiersPerGroup,
-      } = req.body;
-      if (title?.trim()) torneo.title = title.trim();
-      if (typeof description === "string")
-        torneo.description = description.trim();
-      if (game?.trim()) torneo.game = game.trim();
-      if (maxParticipants !== undefined) {
-        const n = parseInt(maxParticipants);
-        torneo.maxParticipants = Number.isFinite(n) ? Math.max(2, n) : null;
+    const {
+      title,
+      description,
+      game,
+      maxParticipants,
+      inscriptionMode,
+      tableSize,
+      gamesPerGroup,
+      qualifiersPerGroup,
+    } = req.body;
+    if (title?.trim()) torneo.title = title.trim();
+    if (typeof description === "string")
+      torneo.description = description.trim();
+    if (game?.trim()) torneo.game = game.trim();
+    if (maxParticipants !== undefined) {
+      const n = parseInt(maxParticipants);
+      torneo.maxParticipants = Number.isFinite(n) ? Math.max(2, n) : null;
+    }
+    if (inscriptionMode && ["open", "admin_only"].includes(inscriptionMode)) {
+      // Allow toggling inscription mode only while still in draft/registration.
+      if (["draft", "registration"].includes(torneo.status)) {
+        torneo.inscriptionMode = inscriptionMode;
       }
-      if (inscriptionMode && ["open", "admin_only"].includes(inscriptionMode)) {
-        // Allow toggling inscription mode only while still in draft/registration.
-        if (["draft", "registration"].includes(torneo.status)) {
-          torneo.inscriptionMode = inscriptionMode;
-        }
-      }
-      // Groups-format config editable only in draft (after that, groups are generated).
-      if (torneo.format === "groups" && torneo.status === "draft") {
-        if (tableSize !== undefined)
-          torneo.tableSize = clamp(parseInt(tableSize), 2, 12);
-        if (gamesPerGroup !== undefined)
-          torneo.gamesPerGroup = clamp(parseInt(gamesPerGroup), 1, 12);
-        if (qualifiersPerGroup !== undefined)
-          torneo.qualifiersPerGroup = Math.max(1, parseInt(qualifiersPerGroup));
-      }
+    }
+    // Groups-format config editable only in draft (after that, groups are generated).
+    if (torneo.format === "groups" && torneo.status === "draft") {
+      if (tableSize !== undefined)
+        torneo.tableSize = clamp(parseInt(tableSize), 2, 12);
+      if (gamesPerGroup !== undefined)
+        torneo.gamesPerGroup = clamp(parseInt(gamesPerGroup), 1, 12);
+      if (qualifiersPerGroup !== undefined)
+        torneo.qualifiersPerGroup = Math.max(1, parseInt(qualifiersPerGroup));
+    }
 
-      if (req.file) {
-        if (torneo.image?.publicId) {
-          try {
-            await cloudinary.uploader.destroy(torneo.image.publicId);
-          } catch {
-            /* best-effort cleanup */
-          }
+    if (req.file) {
+      if (torneo.image?.publicId) {
+        try {
+          await cloudinary.uploader.destroy(torneo.image.publicId);
+        } catch {
+          /* best-effort cleanup */
         }
-        const result = await uploadToCloudinary(req.file.buffer, {
-          folder: "turnocero/torneos",
-          transformation: [{ width: 1200, crop: "limit" }],
-        });
-        torneo.image = { url: result.secure_url, publicId: result.public_id };
       }
+      const result = await uploadToCloudinary(req.file.buffer, {
+        folder: "turnocero/torneos",
+        transformation: [{ width: 1200, crop: "limit" }],
+      });
+      torneo.image = { url: result.secure_url, publicId: result.public_id };
+    }
 
     await torneo.save();
     const populated = await Torneo.findById(torneo._id)
@@ -417,15 +414,15 @@ router.post(
       throw httpError(400, "El torneo alcanzó el cupo máximo");
     }
 
-      // If there's a pending registration for this user, remove it (admin promoted directly).
-      torneo.pendingRegistrations = torneo.pendingRegistrations.filter(
-        (r) => String(r.user) !== String(userId),
-      );
-      torneo.rejectedRegistrations = torneo.rejectedRegistrations.filter(
-        (id) => String(id) !== String(userId),
-      );
-      torneo.participants.push(userId);
-      await torneo.save();
+    // If there's a pending registration for this user, remove it (admin promoted directly).
+    torneo.pendingRegistrations = torneo.pendingRegistrations.filter(
+      (r) => String(r.user) !== String(userId),
+    );
+    torneo.rejectedRegistrations = torneo.rejectedRegistrations.filter(
+      (id) => String(id) !== String(userId),
+    );
+    torneo.participants.push(userId);
+    await torneo.save();
 
     const populated = await Torneo.findById(torneo._id)
       .populate("participants", USER_FIELDS)
@@ -460,19 +457,19 @@ router.post(
       throw httpError(400, "El torneo ya alcanzó el cupo máximo");
     }
 
-      torneo.pendingRegistrations.splice(idx, 1);
-      if (!torneo.participants.some((p) => String(p) === String(userId))) {
-        torneo.participants.push(userId);
-      }
-      await torneo.save();
+    torneo.pendingRegistrations.splice(idx, 1);
+    if (!torneo.participants.some((p) => String(p) === String(userId))) {
+      torneo.participants.push(userId);
+    }
+    await torneo.save();
 
-      await emitNotificationReq(
-        req,
-        userId,
-        "tournament_accepted",
-        { torneoId: String(torneo._id), torneoTitle: torneo.title },
-        "torneo:registration-accepted",
-      );
+    await emitNotificationReq(
+      req,
+      userId,
+      "tournament_accepted",
+      { torneoId: String(torneo._id), torneoTitle: torneo.title },
+      "torneo:registration-accepted",
+    );
 
     const populated = await Torneo.findById(torneo._id)
       .populate("participants", USER_FIELDS)
@@ -497,23 +494,21 @@ router.post(
       throw httpError(404, "No hay inscripción pendiente para ese usuario");
     }
 
-      torneo.pendingRegistrations.splice(idx, 1);
-      if (
-        !torneo.rejectedRegistrations.some(
-          (id) => String(id) === String(userId),
-        )
-      ) {
-        torneo.rejectedRegistrations.push(userId);
-      }
-      await torneo.save();
+    torneo.pendingRegistrations.splice(idx, 1);
+    if (
+      !torneo.rejectedRegistrations.some((id) => String(id) === String(userId))
+    ) {
+      torneo.rejectedRegistrations.push(userId);
+    }
+    await torneo.save();
 
-      await emitNotificationReq(
-        req,
-        userId,
-        "tournament_rejected",
-        { torneoId: String(torneo._id), torneoTitle: torneo.title },
-        "torneo:registration-rejected",
-      );
+    await emitNotificationReq(
+      req,
+      userId,
+      "tournament_rejected",
+      { torneoId: String(torneo._id), torneoTitle: torneo.title },
+      "torneo:registration-rejected",
+    );
 
     const populated = await Torneo.findById(torneo._id).populate(
       "pendingRegistrations.user",
@@ -840,59 +835,59 @@ router.post(
       match.isDraw = false;
     }
 
-      match.status = "completed";
-      match.playedAt = new Date();
-      await match.save();
+    match.status = "completed";
+    match.playedAt = new Date();
+    await match.save();
 
-      // Single-elim: advance winner into nextMatch.
-      let advancedTo = null;
-      if (torneo.format === "single_elim" && match.nextMatch && match.winner) {
-        const next = await TorneoMatch.findById(match.nextMatch);
-        if (next) {
-          if (match.isUpperSlot) next.playerA = match.winner;
-          else next.playerB = match.winner;
-          await next.save();
-          advancedTo = next;
-        }
-
-        const winnerId = String(match.winner);
-        const loserId =
-          String(match.playerA) === winnerId
-            ? String(match.playerB)
-            : String(match.playerA);
-
-        const finalRound = await getFinalRound(torneo._id);
-        const isFinal = match.round === finalRound;
-
-        // Notify winner (advanced) — only if there's another round to play.
-        if (!isFinal) {
-          await emitNotificationReq(
-            req,
-            winnerId,
-            "tournament_advanced",
-            {
-              torneoId: String(torneo._id),
-              torneoTitle: torneo.title,
-              round: match.round,
-            },
-            "torneo:advanced",
-          );
-        }
-        // Notify loser (eliminated).
-        if (loserId && loserId !== "null") {
-          await emitNotificationReq(
-            req,
-            loserId,
-            "tournament_eliminated",
-            {
-              torneoId: String(torneo._id),
-              torneoTitle: torneo.title,
-              round: match.round,
-            },
-            "torneo:eliminated",
-          );
-        }
+    // Single-elim: advance winner into nextMatch.
+    let advancedTo = null;
+    if (torneo.format === "single_elim" && match.nextMatch && match.winner) {
+      const next = await TorneoMatch.findById(match.nextMatch);
+      if (next) {
+        if (match.isUpperSlot) next.playerA = match.winner;
+        else next.playerB = match.winner;
+        await next.save();
+        advancedTo = next;
       }
+
+      const winnerId = String(match.winner);
+      const loserId =
+        String(match.playerA) === winnerId
+          ? String(match.playerB)
+          : String(match.playerA);
+
+      const finalRound = await getFinalRound(torneo._id);
+      const isFinal = match.round === finalRound;
+
+      // Notify winner (advanced) — only if there's another round to play.
+      if (!isFinal) {
+        await emitNotificationReq(
+          req,
+          winnerId,
+          "tournament_advanced",
+          {
+            torneoId: String(torneo._id),
+            torneoTitle: torneo.title,
+            round: match.round,
+          },
+          "torneo:advanced",
+        );
+      }
+      // Notify loser (eliminated).
+      if (loserId && loserId !== "null") {
+        await emitNotificationReq(
+          req,
+          loserId,
+          "tournament_eliminated",
+          {
+            torneoId: String(torneo._id),
+            torneoTitle: torneo.title,
+            round: match.round,
+          },
+          "torneo:eliminated",
+        );
+      }
+    }
 
     const populated = await TorneoMatch.findById(match._id)
       .populate("playerA", USER_FIELDS)
@@ -923,27 +918,23 @@ router.delete(
       throw httpError(400, "Este partido no tiene resultado cargado");
     }
 
-      const previousWinner = match.winner ? String(match.winner) : null;
-      match.winner = null;
-      match.isDraw = false;
-      match.status = "pending";
-      match.playedAt = null;
-      await match.save();
+    const previousWinner = match.winner ? String(match.winner) : null;
+    match.winner = null;
+    match.isDraw = false;
+    match.status = "pending";
+    match.playedAt = null;
+    await match.save();
 
-      // For single_elim, cascade clear the previous winner from the downstream slot.
-      if (
-        torneo.format === "single_elim" &&
-        match.nextMatch &&
-        previousWinner
-      ) {
-        const child = await TorneoMatch.findById(match.nextMatch);
-        if (child) {
-          const childSlot = match.isUpperSlot ? "playerA" : "playerB";
-          if (child[childSlot] && String(child[childSlot]) === previousWinner) {
-            await cascadeClearWinner(child._id, childSlot);
-          }
+    // For single_elim, cascade clear the previous winner from the downstream slot.
+    if (torneo.format === "single_elim" && match.nextMatch && previousWinner) {
+      const child = await TorneoMatch.findById(match.nextMatch);
+      if (child) {
+        const childSlot = match.isUpperSlot ? "playerA" : "playerB";
+        if (child[childSlot] && String(child[childSlot]) === previousWinner) {
+          await cascadeClearWinner(child._id, childSlot);
         }
       }
+    }
 
     const populated = await TorneoMatch.findById(match._id)
       .populate("playerA", USER_FIELDS)
@@ -1048,91 +1039,85 @@ router.post(
     });
     if (!game) throw httpError(404, "Partida no encontrada");
 
-      const { results } = req.body;
-      if (!Array.isArray(results) || results.length === 0) {
-        return res
-          .status(400)
-          .json({ message: "Falta el array de resultados" });
-      }
+    const { results } = req.body;
+    if (!Array.isArray(results) || results.length === 0) {
+      return res.status(400).json({ message: "Falta el array de resultados" });
+    }
 
-      const group = await TorneoGroup.findById(game.group);
-      if (!group)
-        return res.status(404).json({ message: "Grupo no encontrado" });
+    const group = await TorneoGroup.findById(game.group);
+    if (!group) return res.status(404).json({ message: "Grupo no encontrado" });
 
-      const validPlayerIds = new Set(group.players.map((id) => String(id)));
-      const playerIdsSeen = new Set();
-      const parsed = [];
-      for (const r of results) {
-        const playerId = String(r.playerId || r.player);
-        if (!validPlayerIds.has(playerId)) {
-          throw httpError(
-            400,
-            "Un resultado contiene un jugador que no es del grupo",
-          );
-        }
-        if (playerIdsSeen.has(playerId)) {
-          throw httpError(
-            400,
-            "Hay jugadores duplicados en los resultados",
-          );
-        }
-        playerIdsSeen.add(playerId);
-        const score = Number(r.score);
-        if (!Number.isFinite(score)) {
-          throw httpError(400, "Todos los scores deben ser números válidos");
-        }
-        parsed.push({ player: playerId, score });
-      }
-      if (parsed.length !== group.players.length) {
+    const validPlayerIds = new Set(group.players.map((id) => String(id)));
+    const playerIdsSeen = new Set();
+    const parsed = [];
+    for (const r of results) {
+      const playerId = String(r.playerId || r.player);
+      if (!validPlayerIds.has(playerId)) {
         throw httpError(
           400,
-          "Hay que cargar el score de todos los jugadores del grupo",
+          "Un resultado contiene un jugador que no es del grupo",
         );
       }
-
-      // Derive positions: highest score = 1, ties get same position (1, 1, 3, 4 style).
-      const sortedByScore = [...parsed].sort((a, b) => b.score - a.score);
-      let pos = 0;
-      let lastScore = null;
-      sortedByScore.forEach((r, idx) => {
-        if (r.score !== lastScore) {
-          pos = idx + 1;
-          lastScore = r.score;
-        }
-        r.position = pos;
-      });
-
-      game.results = parsed;
-      game.status = "completed";
-      game.playedAt = new Date();
-      await game.save();
-
-      // If all P games of this group are completed → mark group completed.
-      // If this group is the ONLY one in its phase, it's the final mesa: skip
-      // auto-assigning advancedPlayers (the admin should click "Finalizar torneo"
-      // and the top-1 of the standings becomes the champion).
-      const allGames = await TorneoGame.find({ group: group._id });
-      if (allGames.every((g) => g.status === "completed")) {
-        group.status = "completed";
-        group.completedAt = new Date();
-        const groupsInPhase = await TorneoGroup.countDocuments({
-          torneo: torneo._id,
-          phase: group.phase,
-        });
-        const isFinalTable = groupsInPhase === 1;
-        if (!isFinalTable) {
-          const standings = computeGroupStandings(allGames, group.players);
-          group.advancedPlayers = standings
-            .slice(0, torneo.qualifiersPerGroup)
-            .map((s) => s.user);
-        } else {
-          group.advancedPlayers = [];
-        }
-        await group.save();
-      } else if (group.status === "pending") {
-        group.status = "in_progress";
-        await group.save();
+      if (playerIdsSeen.has(playerId)) {
+        throw httpError(400, "Hay jugadores duplicados en los resultados");
       }
+      playerIdsSeen.add(playerId);
+      const score = Number(r.score);
+      if (!Number.isFinite(score)) {
+        throw httpError(400, "Todos los scores deben ser números válidos");
+      }
+      parsed.push({ player: playerId, score });
+    }
+    if (parsed.length !== group.players.length) {
+      throw httpError(
+        400,
+        "Hay que cargar el score de todos los jugadores del grupo",
+      );
+    }
+
+    // Derive positions: highest score = 1, ties get same position (1, 1, 3, 4 style).
+    const sortedByScore = [...parsed].sort((a, b) => b.score - a.score);
+    let pos = 0;
+    let lastScore = null;
+    sortedByScore.forEach((r, idx) => {
+      if (r.score !== lastScore) {
+        pos = idx + 1;
+        lastScore = r.score;
+      }
+      r.position = pos;
+    });
+
+    game.results = parsed;
+    game.status = "completed";
+    game.playedAt = new Date();
+    await game.save();
+
+    // If all P games of this group are completed → mark group completed.
+    // If this group is the ONLY one in its phase, it's the final mesa: skip
+    // auto-assigning advancedPlayers (the admin should click "Finalizar torneo"
+    // and the top-1 of the standings becomes the champion).
+    const allGames = await TorneoGame.find({ group: group._id });
+    if (allGames.every((g) => g.status === "completed")) {
+      group.status = "completed";
+      group.completedAt = new Date();
+      const groupsInPhase = await TorneoGroup.countDocuments({
+        torneo: torneo._id,
+        phase: group.phase,
+      });
+      const isFinalTable = groupsInPhase === 1;
+      if (!isFinalTable) {
+        const standings = computeGroupStandings(allGames, group.players);
+        group.advancedPlayers = standings
+          .slice(0, torneo.qualifiersPerGroup)
+          .map((s) => s.user);
+      } else {
+        group.advancedPlayers = [];
+      }
+      await group.save();
+    } else if (group.status === "pending") {
+      group.status = "in_progress";
+      await group.save();
+    }
 
     const populated = await TorneoGame.findById(game._id)
       .populate("results.player", USER_FIELDS)
@@ -1177,18 +1162,18 @@ router.delete(
       );
     }
 
-      game.results = [];
-      game.status = "pending";
-      game.playedAt = null;
-      await game.save();
+    game.results = [];
+    game.status = "pending";
+    game.playedAt = null;
+    await game.save();
 
-      // Group goes back to in_progress; clear advancedPlayers.
-      if (group.status === "completed") {
-        group.status = "in_progress";
-        group.completedAt = null;
-        group.advancedPlayers = [];
-        await group.save();
-      }
+    // Group goes back to in_progress; clear advancedPlayers.
+    if (group.status === "completed") {
+      group.status = "in_progress";
+      group.completedAt = null;
+      group.advancedPlayers = [];
+      await group.save();
+    }
 
     res.json({
       message: "Resultado deshecho",

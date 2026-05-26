@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState } from "react";
 
 // Componente genérico para drag/drop + file picker + keyboard a11y. Los
 // wrappers (ComprobanteDropzone, ImageDropzone) inyectan el visual a través
@@ -13,8 +13,8 @@ export default function FileDropzone({
   onFile,
   ariaLabel,
   className,
-  activeClassName = '',
-  dragOverClassName = '',
+  activeClassName = "",
+  dragOverClassName = "",
   hasFile = false,
   children,
 }) {
@@ -35,25 +35,29 @@ export default function FileDropzone({
 
   const classes = [
     className,
-    hasFile ? activeClassName : '',
-    dragOver ? dragOverClassName : '',
-  ].filter(Boolean).join(' ');
+    hasFile ? activeClassName : "",
+    dragOver ? dragOverClassName : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-  const rendered = typeof children === 'function'
-    ? children({ dragOver, hasFile })
-    : children;
+  const rendered =
+    typeof children === "function" ? children({ dragOver, hasFile }) : children;
 
   return (
     <div
       className={classes}
       onDrop={handleDrop}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
       onDragLeave={() => setDragOver(false)}
       onClick={() => inputRef.current?.click()}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           inputRef.current?.click();
         }
@@ -65,7 +69,7 @@ export default function FileDropzone({
         ref={inputRef}
         type="file"
         accept={accept}
-        style={{ display: 'none' }}
+        style={{ display: "none" }}
         onChange={handleChange}
       />
     </div>

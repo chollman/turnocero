@@ -1,21 +1,21 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import TorneoCard from './TorneoCard';
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import TorneoCard from "./TorneoCard";
 
 function makeTorneo(overrides = {}) {
   return {
-    _id: 't1',
-    title: 'Liga Catán 2026',
-    game: 'Catán',
-    description: 'Una competencia divertida.',
-    status: 'registration',
-    inscriptionMode: 'open',
-    format: 'league',
+    _id: "t1",
+    title: "Liga Catán 2026",
+    game: "Catán",
+    description: "Una competencia divertida.",
+    status: "registration",
+    inscriptionMode: "open",
+    format: "league",
     image: null,
     participantCount: 4,
     maxParticipants: 8,
-    createdBy: { _id: 'a1', username: 'admin' },
+    createdBy: { _id: "a1", username: "admin" },
     createdAt: new Date().toISOString(),
     ...overrides,
   };
@@ -29,41 +29,43 @@ function renderCard(torneo) {
   );
 }
 
-describe('<TorneoCard>', () => {
-  it('links to /torneos/:id', () => {
+describe("<TorneoCard>", () => {
+  it("links to /torneos/:id", () => {
     renderCard(makeTorneo());
-    expect(screen.getByRole('link')).toHaveAttribute('href', '/torneos/t1');
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/torneos/t1");
   });
 
-  it('renders title + game + description', () => {
+  it("renders title + game + description", () => {
     renderCard(makeTorneo());
-    expect(screen.getByText('Liga Catán 2026')).toBeInTheDocument();
-    expect(screen.getByText('Catán')).toBeInTheDocument();
-    expect(screen.getByText('Una competencia divertida.')).toBeInTheDocument();
+    expect(screen.getByText("Liga Catán 2026")).toBeInTheDocument();
+    expect(screen.getByText("Catán")).toBeInTheDocument();
+    expect(screen.getByText("Una competencia divertida.")).toBeInTheDocument();
   });
 
   it('shows the "Inscripción abierta" chip when status=registration + open mode', () => {
-    renderCard(makeTorneo({ status: 'registration', inscriptionMode: 'open' }));
+    renderCard(makeTorneo({ status: "registration", inscriptionMode: "open" }));
     expect(screen.getByText(/inscripci[oó]n abierta/i)).toBeInTheDocument();
   });
 
   it('flips to "Inscripción cerrada" when status=registration + admin_only mode', () => {
-    renderCard(makeTorneo({ status: 'registration', inscriptionMode: 'admin_only' }));
+    renderCard(
+      makeTorneo({ status: "registration", inscriptionMode: "admin_only" }),
+    );
     expect(screen.getByText(/inscripci[oó]n cerrada/i)).toBeInTheDocument();
   });
 
   it('shows "En curso" chip for in_progress', () => {
-    renderCard(makeTorneo({ status: 'in_progress' }));
+    renderCard(makeTorneo({ status: "in_progress" }));
     expect(screen.getByText(/en curso/i)).toBeInTheDocument();
   });
 
   it('shows "Finalizado" chip for finished', () => {
-    renderCard(makeTorneo({ status: 'finished' }));
-    expect(screen.getByText('Finalizado')).toBeInTheDocument();
+    renderCard(makeTorneo({ status: "finished" }));
+    expect(screen.getByText("Finalizado")).toBeInTheDocument();
   });
 
-  it('renders the format label (Liga / Eliminación / Grupos)', () => {
-    renderCard(makeTorneo({ format: 'single_elim' }));
+  it("renders the format label (Liga / Eliminación / Grupos)", () => {
+    renderCard(makeTorneo({ format: "single_elim" }));
     expect(screen.getByText(/eliminaci[oó]n/i)).toBeInTheDocument();
   });
 
@@ -72,45 +74,63 @@ describe('<TorneoCard>', () => {
     expect(screen.getByText(/4 \/ 8/)).toBeInTheDocument();
   });
 
-  it('renders the image when provided', () => {
-    renderCard(makeTorneo({ image: { url: 'https://x/y.webp', publicId: 'p' } }));
-    const imgs = document.querySelectorAll('img');
+  it("renders the image when provided", () => {
+    renderCard(
+      makeTorneo({ image: { url: "https://x/y.webp", publicId: "p" } }),
+    );
+    const imgs = document.querySelectorAll("img");
     expect(imgs.length).toBeGreaterThan(0);
   });
 
-  it('shows the format icon placeholder when no image is provided', () => {
-    renderCard(makeTorneo({ image: null, format: 'groups' }));
-    expect(screen.getAllByText('🧩').length).toBeGreaterThan(0);
+  it("shows the format icon placeholder when no image is provided", () => {
+    renderCard(makeTorneo({ image: null, format: "groups" }));
+    expect(screen.getAllByText("🧩").length).toBeGreaterThan(0);
   });
 
   it('timeAgo: shows "Xm" for < 1 hour ago', () => {
-    renderCard(makeTorneo({ createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString() }));
+    renderCard(
+      makeTorneo({
+        createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+      }),
+    );
     expect(screen.getByText(/^\d+m$/)).toBeInTheDocument();
   });
 
   it('timeAgo: shows "Xh" for < 1 day ago', () => {
-    renderCard(makeTorneo({ createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString() }));
+    renderCard(
+      makeTorneo({
+        createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
+      }),
+    );
     expect(screen.getByText(/^\d+h$/)).toBeInTheDocument();
   });
 
   it('timeAgo: shows "Xd" for < 1 week ago', () => {
-    renderCard(makeTorneo({ createdAt: new Date(Date.now() - 3 * 86400 * 1000).toISOString() }));
+    renderCard(
+      makeTorneo({
+        createdAt: new Date(Date.now() - 3 * 86400 * 1000).toISOString(),
+      }),
+    );
     expect(screen.getByText(/^\d+d$/)).toBeInTheDocument();
   });
 
-  it('timeAgo: shows a formatted date for > 1 week ago', () => {
-    renderCard(makeTorneo({ createdAt: new Date(Date.now() - 14 * 86400 * 1000).toISOString() }));
+  it("timeAgo: shows a formatted date for > 1 week ago", () => {
+    renderCard(
+      makeTorneo({
+        createdAt: new Date(Date.now() - 14 * 86400 * 1000).toISOString(),
+      }),
+    );
     // Long-ago dates show something locale-formatted; just verify the link renders
-    expect(screen.getByRole('link')).toBeInTheDocument();
+    expect(screen.getByRole("link")).toBeInTheDocument();
   });
 
-  it('no description renders nothing for the description element', () => {
-    renderCard(makeTorneo({ description: '' }));
+  it("no description renders nothing for the description element", () => {
+    renderCard(makeTorneo({ description: "" }));
     // No description paragraph, just ensure no crash
-    expect(screen.getByText('Liga Catán 2026')).toBeInTheDocument();
+    expect(screen.getByText("Liga Catán 2026")).toBeInTheDocument();
   });
 
-  it('shows participant count without max when maxParticipants is absent', () => {
+  it("shows participant count without max when maxParticipants is absent", () => {
     renderCard(makeTorneo({ participantCount: 5, maxParticipants: undefined }));
     expect(screen.getByText(/👥 5$/)).toBeInTheDocument();
   });

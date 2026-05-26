@@ -29,11 +29,11 @@ Una request a `/plays?username=X&page=1` resuelve dos preguntas en un round-trip
 
 **Resultado del sondeo**:
 
-| `total` matches | hashes top-30 match | Acción |
-|---|---|---|
-| ✅ | ✅ | No hay drift detectable. Termina con **1 request**. |
-| ✅ | ❌ | Solo edits recientes. Upserts las que cambiaron. **1 request.** |
-| ❌ | — | Adds o deletes. Pasa al reconcile dirigido (ver §2). |
+| `total` matches | hashes top-30 match | Acción                                                          |
+| --------------- | ------------------- | --------------------------------------------------------------- |
+| ✅              | ✅                  | No hay drift detectable. Termina con **1 request**.             |
+| ✅              | ❌                  | Solo edits recientes. Upserts las que cambiaron. **1 request.** |
+| ❌              | —                   | Adds o deletes. Pasa al reconcile dirigido (ver §2).            |
 
 ### 2. Reconcile dirigido (cuando el sondeo detecta drift de count)
 
@@ -115,11 +115,11 @@ Migración: `lastFullSyncAt` queda como `lastFullSyncAt` por compat (no rename f
 
 ### Endpoints nuevos / modificados
 
-| Endpoint | Cambio |
-|---|---|
-| `POST /api/bgg/sync` | **Refactor**: pasa de wipe-and-refetch a `reconcileFull()` (no destructivo). Devuelve `{ inserted, updated, deleted, total }`. UI muestra los tres counts. |
-| `GET /api/bgg/partidas/:user` | Si pasaron > 5 min desde `lastProbedAt`, dispara `probe()` async tras responder. `?refresh=1` corre `probe()` síncrono y refleja resultado. |
-| `POST /api/auth/bgg-connect` | Tras guardar credentials, dispara `reconcileFull()` async para ese usuario. |
+| Endpoint                      | Cambio                                                                                                                                                     |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/bgg/sync`          | **Refactor**: pasa de wipe-and-refetch a `reconcileFull()` (no destructivo). Devuelve `{ inserted, updated, deleted, total }`. UI muestra los tres counts. |
+| `GET /api/bgg/partidas/:user` | Si pasaron > 5 min desde `lastProbedAt`, dispara `probe()` async tras responder. `?refresh=1` corre `probe()` síncrono y refleja resultado.                |
+| `POST /api/auth/bgg-connect`  | Tras guardar credentials, dispara `reconcileFull()` async para ese usuario.                                                                                |
 
 ### Helpers nuevos (`server/routes/bgg.js` o `server/utils/bggSync.js`)
 
@@ -192,29 +192,29 @@ Client (vitest + RTL + MSW):
 
 ## Fases del rollout
 
-| Slice | Scope | Commit |
-|---|---|---|
-| **Slice 1** | `computePlayHash` + campo `hash` en `BggPlay` + tests. Update de `upsertPlayFromMutation` para escribir hash. | `feat(bgg): add play hash for drift detection` |
-| **Slice 2** | `withUserLock` + `tryAcquireReconcileSlot` + `tryAcquireProbeSlot` + `sleep` helper (lock + throttles + sleep) + tests. | `feat(bgg): add per-user lock and global concurrency caps` |
-| **Slice 3** | `reconcileFull` idempotente + `User.bggSync` fields nuevos. `POST /api/bgg/sync` pasa a usarlo. Borrar `syncPlaysFull`. Tests. | `feat(bgg): replace destructive sync with idempotent reconcile` |
-| **Slice 4** | `probe` + integración en `GET /api/bgg/partidas/:user` (async > 5 min + síncrono en `?refresh=1`). Borrar `syncPlaysDelta`. Tests. | `feat(bgg): add cheap drift probe with auto-trigger` |
-| **Slice 5** | Trigger en `POST /api/auth/bgg-connect`. Tests. | `feat(bgg): auto-reconcile plays on BGG connect` |
-| **Slice 6** | Trigger background de reconcile completo cuando `lastFullReconcileAt > 30 días` (dentro de `probe`). Tests. | `feat(bgg): periodic full reconcile every 30 days` |
-| **Slice 7** | UI en `/perfil` — wording, timestamps, outcome del probe. Tests. | `feat(bgg): update profile UI for new sync model` |
+| Slice       | Scope                                                                                                                              | Commit                                                          |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Slice 1** | `computePlayHash` + campo `hash` en `BggPlay` + tests. Update de `upsertPlayFromMutation` para escribir hash.                      | `feat(bgg): add play hash for drift detection`                  |
+| **Slice 2** | `withUserLock` + `tryAcquireReconcileSlot` + `tryAcquireProbeSlot` + `sleep` helper (lock + throttles + sleep) + tests.            | `feat(bgg): add per-user lock and global concurrency caps`      |
+| **Slice 3** | `reconcileFull` idempotente + `User.bggSync` fields nuevos. `POST /api/bgg/sync` pasa a usarlo. Borrar `syncPlaysFull`. Tests.     | `feat(bgg): replace destructive sync with idempotent reconcile` |
+| **Slice 4** | `probe` + integración en `GET /api/bgg/partidas/:user` (async > 5 min + síncrono en `?refresh=1`). Borrar `syncPlaysDelta`. Tests. | `feat(bgg): add cheap drift probe with auto-trigger`            |
+| **Slice 5** | Trigger en `POST /api/auth/bgg-connect`. Tests.                                                                                    | `feat(bgg): auto-reconcile plays on BGG connect`                |
+| **Slice 6** | Trigger background de reconcile completo cuando `lastFullReconcileAt > 30 días` (dentro de `probe`). Tests.                        | `feat(bgg): periodic full reconcile every 30 days`              |
+| **Slice 7** | UI en `/perfil` — wording, timestamps, outcome del probe. Tests.                                                                   | `feat(bgg): update profile UI for new sync model`               |
 
 Cada slice es mergeable independientemente (sin breaking changes intermedios) excepto Slice 3 que requiere Slice 1 y Slice 2.
 
 ## Riesgos y mitigaciones
 
-| Riesgo | Mitigación |
-|---|---|
-| Hash inestable entre versiones del código (cambio de algoritmo invalida todo) | Si en el futuro cambia el algoritmo, agregar `hashVersion` en el doc y recomputar lazy. Por ahora versión única implícita. |
-| BGG cambia formato XML y rompe el parser | Errores en `parsePlaysXml` no actualizan `lastProbedAt` → reintento al próximo trigger. Logs visibles en `lastProbeOutcome = 'failed'`. |
-| Edits a partidas viejas (> 30 atrás) que el usuario nunca dispara reconcile completo manual | Trigger automático cada 30 días lo cubre. |
-| Usuario con miles de partidas dispara reconcile completo automático al mismo tiempo que muchos otros | Cap global de 3 simultáneos. Si el cap está lleno, se postpone al siguiente trigger del mismo usuario (típicamente próxima visita a `/bg-watch`). |
-| Burst sincrónico de visitas a `/bg-watch` (p.ej. tras un anuncio en redes) genera 200+ probes simultáneos | Cap global de 10 probes concurrentes; los que excedan se descartan silenciosamente (el próximo trigger del mismo usuario lo reintenta). |
-| Power user con miles de partidas históricas, su reconcile background acapara conexiones outbound del server | Throttle inter-page de 500 ms en reconciles background. Suaviza el spike sin afectar UX (nadie espera). El path síncrono del botón no aplica el sleep. |
-| `withUserLock` con TTL pegado a Map en memoria se pierde en reboot del server | Aceptable: en el peor caso un reconcile huérfano se reintenta en la próxima request del usuario. No causa corrupción porque el reconcile es idempotente. |
+| Riesgo                                                                                                      | Mitigación                                                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hash inestable entre versiones del código (cambio de algoritmo invalida todo)                               | Si en el futuro cambia el algoritmo, agregar `hashVersion` en el doc y recomputar lazy. Por ahora versión única implícita.                               |
+| BGG cambia formato XML y rompe el parser                                                                    | Errores en `parsePlaysXml` no actualizan `lastProbedAt` → reintento al próximo trigger. Logs visibles en `lastProbeOutcome = 'failed'`.                  |
+| Edits a partidas viejas (> 30 atrás) que el usuario nunca dispara reconcile completo manual                 | Trigger automático cada 30 días lo cubre.                                                                                                                |
+| Usuario con miles de partidas dispara reconcile completo automático al mismo tiempo que muchos otros        | Cap global de 3 simultáneos. Si el cap está lleno, se postpone al siguiente trigger del mismo usuario (típicamente próxima visita a `/bg-watch`).        |
+| Burst sincrónico de visitas a `/bg-watch` (p.ej. tras un anuncio en redes) genera 200+ probes simultáneos   | Cap global de 10 probes concurrentes; los que excedan se descartan silenciosamente (el próximo trigger del mismo usuario lo reintenta).                  |
+| Power user con miles de partidas históricas, su reconcile background acapara conexiones outbound del server | Throttle inter-page de 500 ms en reconciles background. Suaviza el spike sin afectar UX (nadie espera). El path síncrono del botón no aplica el sleep.   |
+| `withUserLock` con TTL pegado a Map en memoria se pierde en reboot del server                               | Aceptable: en el peor caso un reconcile huérfano se reintenta en la próxima request del usuario. No causa corrupción porque el reconcile es idempotente. |
 
 ## Métricas a observar post-rollout
 

@@ -213,24 +213,27 @@ export default function UsersList() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
 
-  const fetchUsers = useCallback(async (signal) => {
-    setLoading(true);
-    try {
-      const params = { sortBy };
-      if (debouncedSearch) params.search = debouncedSearch;
-      if (activeOnly) params.activeOnly = "true";
-      if (friendsOnly) params.friendsOnly = "true";
-      if (bgWatchOnly) params.bgWatchOnly = "true";
-      const { data } = await axios.get(API.users.LIST, { params, signal });
-      if (signal?.aborted) return;
-      setUsers(data);
-    } catch (err) {
-      if (axios.isCancel(err)) return;
-      setUsers([]);
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  }, [debouncedSearch, sortBy, activeOnly, friendsOnly, bgWatchOnly]);
+  const fetchUsers = useCallback(
+    async (signal) => {
+      setLoading(true);
+      try {
+        const params = { sortBy };
+        if (debouncedSearch) params.search = debouncedSearch;
+        if (activeOnly) params.activeOnly = "true";
+        if (friendsOnly) params.friendsOnly = "true";
+        if (bgWatchOnly) params.bgWatchOnly = "true";
+        const { data } = await axios.get(API.users.LIST, { params, signal });
+        if (signal?.aborted) return;
+        setUsers(data);
+      } catch (err) {
+        if (axios.isCancel(err)) return;
+        setUsers([]);
+      } finally {
+        if (!signal?.aborted) setLoading(false);
+      }
+    },
+    [debouncedSearch, sortBy, activeOnly, friendsOnly, bgWatchOnly],
+  );
 
   useEffect(() => {
     const ac = new AbortController();
@@ -243,13 +246,10 @@ export default function UsersList() {
     setActionLoading(true);
     setActionError("");
     try {
-      const { data } = await axios.patch(
-        API.admin.USER_BAN(banTarget._id),
-        {
-          banned: !banTarget.isBanned,
-          reason: banTarget.isBanned ? "" : reason || "",
-        },
-      );
+      const { data } = await axios.patch(API.admin.USER_BAN(banTarget._id), {
+        banned: !banTarget.isBanned,
+        reason: banTarget.isBanned ? "" : reason || "",
+      });
       setUsers((prev) =>
         prev.map((u) =>
           u._id === banTarget._id
@@ -376,10 +376,7 @@ export default function UsersList() {
             onChange={(e) => setSearch(e.target.value)}
           />
           {search && (
-            <button
-              className={styles.clearBtn}
-              onClick={() => setSearch("")}
-            >
+            <button className={styles.clearBtn} onClick={() => setSearch("")}>
               ✕
             </button>
           )}

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import styles from './InfoTooltip.module.css';
+import { useEffect, useRef, useState } from "react";
+import styles from "./InfoTooltip.module.css";
 
 // Ícono "i" outlined, estilo Feather — matchea PinIcon/LockIcon/EyeIcon del codebase.
 const InfoIcon = ({ size = 17 }) => (
@@ -42,7 +42,11 @@ const InfoIcon = ({ size = 17 }) => (
  * @param {string}          label      aria-label del trigger (default "Más información")
  * @param {"top"|"bottom"}  placement  default "top"
  */
-export default function InfoTooltip({ children, label = 'Más información', placement = 'top' }) {
+export default function InfoTooltip({
+  children,
+  label = "Más información",
+  placement = "top",
+}) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef(null);
 
@@ -54,11 +58,11 @@ export default function InfoTooltip({ children, label = 'Más información', pla
         setOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    document.addEventListener('touchstart', handler);
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("touchstart", handler);
     return () => {
-      document.removeEventListener('mousedown', handler);
-      document.removeEventListener('touchstart', handler);
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("touchstart", handler);
     };
   }, [open]);
 
@@ -66,10 +70,10 @@ export default function InfoTooltip({ children, label = 'Más información', pla
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === "Escape") setOpen(false);
     };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
   }, [open]);
 
   return (
@@ -96,7 +100,7 @@ export default function InfoTooltip({ children, label = 'Más información', pla
       </button>
       {open && (
         <span
-          className={`${styles.tooltip} ${placement === 'bottom' ? styles.tooltipBottom : styles.tooltipTop}`}
+          className={`${styles.tooltip} ${placement === "bottom" ? styles.tooltipBottom : styles.tooltipTop}`}
           role="tooltip"
         >
           {children}

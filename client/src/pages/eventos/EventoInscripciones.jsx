@@ -37,9 +37,7 @@ export default function EventoInscripciones() {
     async function load() {
       setLoading(true);
       try {
-        const { data: res } = await axios.get(
-          API.eventos.INSCRIPCIONES(id),
-        );
+        const { data: res } = await axios.get(API.eventos.INSCRIPCIONES(id));
         if (!cancelled) setData(res);
       } catch (err) {
         if (!cancelled && err.response?.status === 404) setNotFound(true);
@@ -153,10 +151,9 @@ export default function EventoInscripciones() {
   const accept = useCallback(
     async (reg, adminNotes) => {
       try {
-        await axios.patch(
-          API.eventos.INSCRIPCION_CONFIRMAR(id, reg.user._id),
-          { adminNotes },
-        );
+        await axios.patch(API.eventos.INSCRIPCION_CONFIRMAR(id, reg.user._id), {
+          adminNotes,
+        });
         setData((prev) => ({
           ...prev,
           registrations: prev.registrations.map((r) =>
@@ -185,13 +182,10 @@ export default function EventoInscripciones() {
   const reject = useCallback(
     async (reg, adminNotes, permanent = false) => {
       try {
-        await axios.patch(
-          API.eventos.INSCRIPCION_RECHAZAR(id, reg.user._id),
-          {
-            adminNotes,
-            permanent,
-          },
-        );
+        await axios.patch(API.eventos.INSCRIPCION_RECHAZAR(id, reg.user._id), {
+          adminNotes,
+          permanent,
+        });
         setData((prev) => ({
           ...prev,
           registrations: prev.registrations.map((r) =>

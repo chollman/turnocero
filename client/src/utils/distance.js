@@ -23,7 +23,7 @@ export function formatDistanceKm(km) {
     return `${meters} m`;
   }
   if (km < 100) {
-    return `${km.toFixed(1).replace('.', ',')} km`;
+    return `${km.toFixed(1).replace(".", ",")} km`;
   }
   return `${Math.round(km)} km`;
 }

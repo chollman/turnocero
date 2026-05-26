@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 // Modal accesible:
 //   - role="dialog" + aria-modal="true"
@@ -30,15 +30,15 @@ export default function Modal({
     contentRef.current?.focus();
 
     function handleKey(e) {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.stopPropagation();
         onClose?.();
       }
     }
-    window.addEventListener('keydown', handleKey);
+    window.addEventListener("keydown", handleKey);
 
     return () => {
-      window.removeEventListener('keydown', handleKey);
+      window.removeEventListener("keydown", handleKey);
       // Restaurar foco al elemento previo solo si sigue en el DOM.
       const prev = previouslyFocusedRef.current;
       if (prev && document.contains(prev)) {

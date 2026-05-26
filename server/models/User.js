@@ -1,58 +1,62 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
     username: {
       type: String,
-      required: [true, 'Username is required'],
+      required: [true, "Username is required"],
       unique: true,
       trim: true,
-      minlength: [3, 'Username must be at least 3 characters'],
-      maxlength: [30, 'Username cannot exceed 30 characters'],
+      minlength: [3, "Username must be at least 3 characters"],
+      maxlength: [30, "Username cannot exceed 30 characters"],
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
+      required: [true, "Email is required"],
       unique: true,
       lowercase: true,
       trim: true,
-      maxlength: [254, 'Email cannot exceed 254 characters'],
-      match: [/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Please enter a valid email'],
+      maxlength: [254, "Email cannot exceed 254 characters"],
+      match: [
+        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+        "Please enter a valid email",
+      ],
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
-      minlength: [8, 'Password must be at least 8 characters'],
+      required: [true, "Password is required"],
+      minlength: [8, "Password must be at least 8 characters"],
       validate: {
         validator: (v) => /^(?=.*[A-Z])(?=.*\d).+$/.test(v),
-        message: 'Password must contain at least one uppercase letter and one number',
+        message:
+          "Password must contain at least one uppercase letter and one number",
       },
     },
     avatar: {
-      url: { type: String, default: '' },
-      publicId: { type: String, default: '' },
+      url: { type: String, default: "" },
+      publicId: { type: String, default: "" },
     },
     displayName: {
       type: String,
-      default: '',
-      maxlength: [60, 'Display name cannot exceed 60 characters'],
+      default: "",
+      maxlength: [60, "Display name cannot exceed 60 characters"],
       trim: true,
     },
     nombre: {
       type: String,
-      default: '',
-      maxlength: [50, 'Nombre cannot exceed 50 characters'],
+      default: "",
+      maxlength: [50, "Nombre cannot exceed 50 characters"],
       trim: true,
     },
     apellido: {
       type: String,
-      default: '',
-      maxlength: [50, 'Apellido cannot exceed 50 characters'],
+      default: "",
+      maxlength: [50, "Apellido cannot exceed 50 characters"],
       trim: true,
     },
     direccion: {
-      texto: { type: String, default: '' },
+      texto: { type: String, default: "" },
       lat: { type: Number, default: null },
       lng: { type: Number, default: null },
     },
@@ -67,24 +71,24 @@ const userSchema = new mongoose.Schema(
     },
     telegram: {
       type: String,
-      default: '',
-      maxlength: [50, 'Telegram username cannot exceed 50 characters'],
+      default: "",
+      maxlength: [50, "Telegram username cannot exceed 50 characters"],
       trim: true,
     },
     celular: {
       type: String,
-      default: '',
-      maxlength: [30, 'Phone number cannot exceed 30 characters'],
+      default: "",
+      maxlength: [30, "Phone number cannot exceed 30 characters"],
       trim: true,
     },
     bggUsername: {
       type: String,
-      default: '',
-      maxlength: [50, 'BGG username cannot exceed 50 characters'],
+      default: "",
+      maxlength: [50, "BGG username cannot exceed 50 characters"],
       trim: true,
     },
     bggCredentials: {
-      encryptedPassword: { type: String, default: '' },
+      encryptedPassword: { type: String, default: "" },
       connectedAt: { type: Date, default: null },
       lastValidatedAt: { type: Date, default: null },
       invalid: { type: Boolean, default: false },
@@ -95,7 +99,7 @@ const userSchema = new mongoose.Schema(
       lastProbedAt: { type: Date, default: null },
       lastProbeOutcome: {
         type: String,
-        enum: ['no_drift', 'edits_only', 'reconciled', 'failed', null],
+        enum: ["no_drift", "edits_only", "reconciled", "failed", null],
         default: null,
       },
       // Server-enforced cooldown timestamps for the manual "Actualizar"
@@ -119,15 +123,17 @@ const userSchema = new mongoose.Schema(
     },
     bannedReason: {
       type: String,
-      default: '',
-      maxlength: [500, 'Ban reason cannot exceed 500 characters'],
+      default: "",
+      maxlength: [500, "Ban reason cannot exceed 500 characters"],
       trim: true,
     },
-    friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    friendRequests: [{
-      from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-      sentAt: { type: Date, default: Date.now },
-    }],
+    friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    friendRequests: [
+      {
+        from: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        sentAt: { type: Date, default: Date.now },
+      },
+    ],
     emailVerified: { type: Boolean, default: false },
     emailVerificationCodeHash: { type: String, default: null, select: false },
     emailVerificationExpiresAt: { type: Date, default: null, select: false },
@@ -135,19 +141,19 @@ const userSchema = new mongoose.Schema(
     passwordResetTokenHash: { type: String, default: null, select: false },
     passwordResetExpiresAt: { type: Date, default: null, select: false },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Normalize legacy avatar (string) → { url, publicId } on hydrate from DB
-userSchema.pre('init', (doc) => {
-  if (typeof doc.avatar === 'string') {
-    doc.avatar = { url: doc.avatar, publicId: '' };
+userSchema.pre("init", (doc) => {
+  if (typeof doc.avatar === "string") {
+    doc.avatar = { url: doc.avatar, publicId: "" };
   }
 });
 
 // Hash password before saving
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
@@ -175,4 +181,4 @@ userSchema.methods.toJSON = function () {
   return obj;
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model("User", userSchema);

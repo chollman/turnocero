@@ -51,7 +51,9 @@ export default function CompartidasSidebar() {
 
     axios
       .get(API.tables.TOP_GAMES, { signal: ac.signal })
-      .then(({ data }) => { if (!ac.signal.aborted) setTopGames(data); })
+      .then(({ data }) => {
+        if (!ac.signal.aborted) setTopGames(data);
+      })
       .catch(() => {});
 
     return () => ac.abort();

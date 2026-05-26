@@ -1,5 +1,5 @@
 ---
-name: bgg-write-quirks
+name: feedback-bgg-write-quirks
 description: "Gotchas no-obvios al escribir partidas en BGG via geekplay.php - el id en /xmlapi2/plays es game-id, y delete requiere finalize=1+B1=Yes"
 metadata: 
   node_type: memory
@@ -33,7 +33,7 @@ form.set("B1", "Yes");
 
 **Why:** `geekplay.php` no esta documentado y emula el flow del web UI. POST/PUT son one-shot, pero DELETE es two-step en el UI y `finalize=1` salta el primer paso. Sin esto, no hay error visible - solo silencio.
 
-**How to apply:** toda mutacion en BGG necesita verificacion post-write contra el XML publico; no confies en el 2xx de geekplay. Relacionado: [[bgg-cache-pattern]], [[bgg-sync-engine]], [[bgg-username-case]].
+**How to apply:** toda mutacion en BGG necesita verificacion post-write contra el XML publico; no confies en el 2xx de geekplay. Relacionado: [[feedback-bgg-cache-pattern]], [[feedback-bgg-sync-engine]], [[feedback-bgg-username-case]].
 
 **3. Los endpoints web de BGG (`/search/boardgame`, `/geeksearch.php`) están detrás de Cloudflare desde Node.**
 

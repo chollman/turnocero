@@ -1,4 +1,4 @@
-const { isValidCoord } = require('./geo');
+const { isValidCoord } = require("./geo");
 
 /**
  * Helpers para normalizar el subdocumento `location` ({ texto, lat, lng })
@@ -21,28 +21,41 @@ const MAX_DISPLAY_NAME_LEN = 100;
 
 function normalizeLocationInput(loc) {
   if (loc == null) return undefined;
-  if (typeof loc === 'string') {
+  if (typeof loc === "string") {
     // FormData siempre llega como string; si parece JSON, parsearlo.
     const trimmed = loc.trim();
-    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
       try {
         return normalizeLocationInput(JSON.parse(trimmed));
       } catch {
         // Caída a tratarlo como texto plano abajo.
       }
     }
-    return { texto: loc.slice(0, MAX_TEXTO_LEN), lat: null, lng: null, displayName: '' };
+    return {
+      texto: loc.slice(0, MAX_TEXTO_LEN),
+      lat: null,
+      lng: null,
+      displayName: "",
+    };
   }
-  if (typeof loc === 'object') {
-    const texto = typeof loc.texto === 'string' ? loc.texto.slice(0, MAX_TEXTO_LEN) : '';
+  if (typeof loc === "object") {
+    const texto =
+      typeof loc.texto === "string" ? loc.texto.slice(0, MAX_TEXTO_LEN) : "";
     const latRaw = loc.lat;
     const lngRaw = loc.lng;
-    const lat = typeof latRaw === 'number' && isValidCoord(latRaw, lngRaw ?? 0) ? latRaw : null;
-    const lng = typeof lngRaw === 'number' && isValidCoord(latRaw ?? 0, lngRaw) ? lngRaw : null;
+    const lat =
+      typeof latRaw === "number" && isValidCoord(latRaw, lngRaw ?? 0)
+        ? latRaw
+        : null;
+    const lng =
+      typeof lngRaw === "number" && isValidCoord(latRaw ?? 0, lngRaw)
+        ? lngRaw
+        : null;
     const bothValid = lat !== null && lng !== null;
-    const displayName = typeof loc.displayName === 'string'
-      ? loc.displayName.trim().slice(0, MAX_DISPLAY_NAME_LEN)
-      : '';
+    const displayName =
+      typeof loc.displayName === "string"
+        ? loc.displayName.trim().slice(0, MAX_DISPLAY_NAME_LEN)
+        : "";
     return {
       texto,
       lat: bothValid ? lat : null,
@@ -70,16 +83,17 @@ function locationForCreate(input, userDireccion) {
   const normalized = normalizeLocationInput(input);
   if (!isEmptyLocation(normalized)) return normalized;
 
-  const hasUserCoords = userDireccion?.lat != null && userDireccion?.lng != null;
+  const hasUserCoords =
+    userDireccion?.lat != null && userDireccion?.lng != null;
   const hasUserTexto = Boolean(userDireccion?.texto);
   if (!hasUserCoords && !hasUserTexto) return normalized;
 
   return {
-    texto: userDireccion.texto || '',
+    texto: userDireccion.texto || "",
     lat: hasUserCoords ? userDireccion.lat : null,
     lng: hasUserCoords ? userDireccion.lng : null,
     // user.direccion no tiene displayName — siempre arranca vacío.
-    displayName: '',
+    displayName: "",
   };
 }
 

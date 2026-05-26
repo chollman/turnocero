@@ -1,8 +1,8 @@
-import { getUserDisplay } from '../../utils/userDisplay';
-import { hashToBrandColor, AVATAR_PALETTE } from '../../utils/hash';
-import { getInitials } from '../../utils/initials';
-import { GhostIcon } from './UserRef';
-import styles from './Avatar.module.css';
+import { getUserDisplay } from "../../utils/userDisplay";
+import { hashToBrandColor, AVATAR_PALETTE } from "../../utils/hash";
+import { getInitials } from "../../utils/initials";
+import { GhostIcon } from "./UserRef";
+import styles from "./Avatar.module.css";
 
 const GHOST_SIZE = {
   xs: 14,
@@ -13,15 +13,22 @@ const GHOST_SIZE = {
 };
 
 // Re-export legacy local names so existing imports continue to work.
-export { hashToBrandColor as hashToColor, getInitials, AVATAR_PALETTE as PALETTE };
+export {
+  hashToBrandColor as hashToColor,
+  getInitials,
+  AVATAR_PALETTE as PALETTE,
+};
 
-export default function Avatar({ user, size = 'md', className = '' }) {
+export default function Avatar({ user, size = "md", className = "" }) {
   const display = getUserDisplay(user);
   const sizeClass = styles[`size_${size}`] || styles.size_md;
 
   if (display.isDeleted) {
     return (
-      <span className={`${styles.avatar} ${sizeClass} ${styles.deleted} ${className}`} aria-label="Usuario eliminado">
+      <span
+        className={`${styles.avatar} ${sizeClass} ${styles.deleted} ${className}`}
+        aria-label="Usuario eliminado"
+      >
         <GhostIcon size={GHOST_SIZE[size] || GHOST_SIZE.md} />
       </span>
     );
@@ -35,7 +42,9 @@ export default function Avatar({ user, size = 'md', className = '' }) {
     );
   }
 
-  const colorVar = hashToBrandColor(String(display._id || display.username || ''));
+  const colorVar = hashToBrandColor(
+    String(display._id || display.username || ""),
+  );
   return (
     <span
       className={`${styles.avatar} ${sizeClass} ${styles.initials} ${className}`}

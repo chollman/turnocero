@@ -125,7 +125,9 @@ export default function CompartidaComments({
           <span className={styles.commentsLoaderDot} />
         </div>
       ) : comments.length === 0 ? (
-        <p className={styles.noComments}>Sin comentarios aún. ¡Sé el primero!</p>
+        <p className={styles.noComments}>
+          Sin comentarios aún. ¡Sé el primero!
+        </p>
       ) : (
         <div className={styles.commentsHead}>
           ◆ Dejá tu comentario

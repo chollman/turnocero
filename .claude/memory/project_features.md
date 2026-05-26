@@ -1,5 +1,5 @@
 ---
-name: Turnocero current feature set
+name: project-features
 description: All major features currently in the app, including those not yet documented in CLAUDE.md
 type: project
 originSessionId: 41f12a4a-0d0f-4cdd-9366-b0de11a11bf2
@@ -73,13 +73,13 @@ The app has grown significantly beyond what CLAUDE.md documents. Current feature
 - Pages: `Torneos.jsx`, `TorneoDetail.jsx` (banner + admin panel + tabs by format), `CreateTorneo.jsx`, `EditTorneo.jsx`. Components in `pages/torneos/components/`: Bracket, LeagueStandings, LeagueRoundsList, RecordResultModal, SeedReorderModal, AdminPanel, RegistrationsList, ParticipantsList, RegisterButton, TorneoCard, ImageDropzone, AddParticipantModal, GroupsView, GroupStandings, GameScoreModal, PhaseTransitionModal.
 - Cloudinary banner: `turnocero/torneos/` (max 1200 px wide).
 - Drafts hidden from non-admins.
-- All admin UI respects `isActuallyAdmin && !viewAsUser` — see [[feedback_admin_view_as_user]].
+- All admin UI respects `isActuallyAdmin && !viewAsUser` — see [[feedback-admin-view-as-user]].
 
 ### Admin user moderation (added 2026-05-16)
 - In `/usuarios` (Comunidad), admins see Ban/Unban + Delete buttons on each non-admin, non-self user card
 - Banned users have a red "Baneado" badge; tooltip shows `bannedReason` if set
 - Ban: `PATCH /api/admin/users/:id/ban` body `{ banned: bool, reason? }`, blocks login with 403 `{ code: 'banned', message }` and expels active sessions via the same check in `protect` middleware
-- Delete: `DELETE /api/admin/users/:id` — hard delete + `$pull` cleanup of array refs (`players`, `pendingRequests`, `followers`, `reactions`, `friends`, `friendRequests`). Frees username/email for re-registration. Scalar refs (`host`, `author`, `sender`, `rater`, `uploader`, comment `author`, etc.) are left orphaned and surface as "Usuario eliminado" — see [[feedback_deleted_user]].
+- Delete: `DELETE /api/admin/users/:id` — hard delete + `$pull` cleanup of array refs (`players`, `pendingRequests`, `followers`, `reactions`, `friends`, `friendRequests`). Frees username/email for re-registration. Scalar refs (`host`, `author`, `sender`, `rater`, `uploader`, comment `author`, etc.) are left orphaned and surface as "Usuario eliminado" — see [[feedback-deleted-user]].
 - Both endpoints reject self-target and admin-target with 400
 - Frontend uses reusable `ConfirmActionModal` (`client/src/components/shared/`) for confirmation, with optional textarea for ban reason
 - Banned-session expulsion uses 403 + `code: 'banned'` in the global axios interceptor in `AuthContext.jsx`; ban message is stashed in `sessionStorage.bannedMessage` and surfaced on the Login page

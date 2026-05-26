@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 /**
  * Cache de resultados de geocoding (texto → coordenadas).
@@ -12,16 +12,19 @@ const mongoose = require('mongoose');
  */
 const geocodeCacheSchema = new mongoose.Schema(
   {
-    query:         { type: String, required: true, unique: true, index: true },
-    lat:           { type: Number, required: true },
-    lng:           { type: Number, required: true },
-    formatted:     { type: String, default: '' },
+    query: { type: String, required: true, unique: true, index: true },
+    lat: { type: Number, required: true },
+    lng: { type: Number, required: true },
+    formatted: { type: String, default: "" },
     lastFetchedAt: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // TTL: expira docs 30 días después del último fetch.
-geocodeCacheSchema.index({ lastFetchedAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 30 });
+geocodeCacheSchema.index(
+  { lastFetchedAt: 1 },
+  { expireAfterSeconds: 60 * 60 * 24 * 30 },
+);
 
-module.exports = mongoose.model('GeocodeCache', geocodeCacheSchema);
+module.exports = mongoose.model("GeocodeCache", geocodeCacheSchema);

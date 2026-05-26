@@ -14,7 +14,8 @@ function parsePagination(query = {}, opts = {}) {
   const rawPage = parseInt(query.page, 10);
   const rawLimit = parseInt(query.limit, 10);
   const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
-  const baseLimit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : defaultLimit;
+  const baseLimit =
+    Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : defaultLimit;
   const limit = Math.min(maxLimit, Math.max(1, baseLimit));
   const skip = (page - 1) * limit;
   return { page, limit, skip };

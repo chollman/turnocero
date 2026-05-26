@@ -1,29 +1,29 @@
-import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import PasswordInput from './PasswordInput';
-import GameTile from '../../components/shared/GameTile';
-import Logo from '../../components/shared/Logo';
-import styles from './Auth.module.css';
-import { ShowcaseCard } from './Login';
+import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import PasswordInput from "./PasswordInput";
+import GameTile from "../../components/shared/GameTile";
+import Logo from "../../components/shared/Logo";
+import styles from "./Auth.module.css";
+import { ShowcaseCard } from "./Login";
 import {
   isValidPassword,
   PASSWORD_REQUIREMENTS,
-} from '../../utils/passwordValidation';
-import { getErrorMessage } from '../../utils/getErrorMessage';
-import { STORAGE_KEYS } from '../../utils/storageKeys';
-import { useShowcaseTables } from '../../hooks/useShowcaseTables';
+} from "../../utils/passwordValidation";
+import { getErrorMessage } from "../../utils/getErrorMessage";
+import { STORAGE_KEYS } from "../../utils/storageKeys";
+import { useShowcaseTables } from "../../hooks/useShowcaseTables";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { resetPassword } = useAuth();
 
-  const token = searchParams.get('token') || '';
-  const email = searchParams.get('email') || '';
+  const token = searchParams.get("token") || "";
+  const email = searchParams.get("email") || "";
 
-  const [form, setForm] = useState({ password: '', confirm: '' });
-  const [error, setError] = useState('');
+  const [form, setForm] = useState({ password: "", confirm: "" });
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { showcase, seed } = useShowcaseTables();
 
@@ -32,10 +32,10 @@ export default function ResetPassword() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (form.password !== form.confirm) {
-      setError('Las contraseñas no coinciden');
+      setError("Las contraseñas no coinciden");
       return;
     }
     if (!isValidPassword(form.password)) {
@@ -46,10 +46,13 @@ export default function ResetPassword() {
     setLoading(true);
     try {
       await resetPassword(email, token, form.password);
-      sessionStorage.setItem(STORAGE_KEYS.FLASH_MESSAGE, 'Contraseña actualizada. Iniciá sesión con la nueva.');
-      navigate('/login', { replace: true });
+      sessionStorage.setItem(
+        STORAGE_KEYS.FLASH_MESSAGE,
+        "Contraseña actualizada. Iniciá sesión con la nueva.",
+      );
+      navigate("/login", { replace: true });
     } catch (err) {
-      setError(getErrorMessage(err, 'No pudimos restablecer la contraseña.'));
+      setError(getErrorMessage(err, "No pudimos restablecer la contraseña."));
     } finally {
       setLoading(false);
     }
@@ -125,8 +128,18 @@ export default function ResetPassword() {
                 />
               </div>
 
-              <button type="submit" className={styles.submitBtn} disabled={loading}>
-                {loading ? 'Guardando…' : <><span>🔒</span> Guardar contraseña</>}
+              <button
+                type="submit"
+                className={styles.submitBtn}
+                disabled={loading}
+              >
+                {loading ? (
+                  "Guardando…"
+                ) : (
+                  <>
+                    <span>🔒</span> Guardar contraseña
+                  </>
+                )}
               </button>
             </form>
 
@@ -139,7 +152,11 @@ export default function ResetPassword() {
 
       <div className={styles.showcase}>
         <div className={styles.showcaseTile}>
-          <GameTile game={showcase?.table?.boardGame || 'TurnoCero'} seed={seed} size="100%" />
+          <GameTile
+            game={showcase?.table?.boardGame || "TurnoCero"}
+            seed={seed}
+            size="100%"
+          />
         </div>
         <div className={styles.showcaseGradient} />
         <div className={styles.showcaseContent}>
@@ -149,13 +166,17 @@ export default function ResetPassword() {
               <h2 className={styles.showcaseTitle}>
                 {showcase.total} mesas
                 <br />
-                <span className={styles.showcaseTitleAccent}>esperando jugadores.</span>
+                <span className={styles.showcaseTitleAccent}>
+                  esperando jugadores.
+                </span>
               </h2>
             ) : (
               <h2 className={styles.showcaseTitle}>
                 Tu próxima
                 <br />
-                <span className={styles.showcaseTitleAccent}>partida te espera.</span>
+                <span className={styles.showcaseTitleAccent}>
+                  partida te espera.
+                </span>
               </h2>
             )}
           </div>

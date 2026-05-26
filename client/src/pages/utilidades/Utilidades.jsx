@@ -1,5 +1,5 @@
-import UtilCard from './UtilCard';
-import styles from './Utilidades.module.css';
+import UtilCard from "./UtilCard";
+import styles from "./Utilidades.module.css";
 
 const COMING_SOON_COUNT = 6;
 
@@ -28,9 +28,11 @@ export default function Utilidades() {
             description="Tirá dados configurables"
             to="/utilidades/dado"
           />
-          {Array(COMING_SOON_COUNT).fill(null).map((_, i) => (
-            <UtilCard key={i} comingSoon />
-          ))}
+          {Array(COMING_SOON_COUNT)
+            .fill(null)
+            .map((_, i) => (
+              <UtilCard key={i} comingSoon />
+            ))}
         </div>
       </div>
     </div>

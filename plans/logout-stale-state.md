@@ -13,6 +13,7 @@ Se analizaron todos los contextos, componentes de shell y páginas. ChatContext 
 ### 1. `NotificationContext.jsx` — CRÍTICO
 
 **Problema:**
+
 - `useState(loadFromStorage)` inicializa el estado con notificaciones de la sesión anterior (desde `localStorage`)
 - El `useEffect([user])` no limpia el estado cuando `user` pasa a `null`
 - Flujo del bug: Usuario A login → notificaciones cargadas y guardadas en localStorage → logout → Usuario B login en la misma pestaña → `useState(loadFromStorage)` carga las notificaciones de A → flash visible hasta que llega la respuesta del servidor
@@ -22,6 +23,7 @@ Se analizaron todos los contextos, componentes de shell y páginas. ChatContext 
 ### 2. `CompartidasSidebar.jsx` — MEDIO
 
 **Problema:**
+
 - `useEffect([], [])` (sin dependencias) solo corre al montar
 - Llama a `/api/tables/mine` (datos privados del usuario) sin saber qué usuario está activo
 - Si la ruta padre sobrevive a un cambio de usuario sin desmontar, muestra las mesas del usuario anterior
@@ -33,12 +35,12 @@ Se analizaron todos los contextos, componentes de shell y páginas. ChatContext 
 
 ### Componentes descartados (sin bug)
 
-| Componente | Motivo |
-|---|---|
-| `MeFeed.jsx` | Ruta privada, desmonta en logout. `useEffect([uid])` ya guarda con `if (!uid) return` |
-| `Messages.jsx` | Ruta privada, desmonta en logout. `friends` se recarga en cada mount |
-| `Sidebar`, `Navbar`, `BottomNav` | Sin estado user-dependiente |
-| Layout shell | Sin estado user-dependiente |
+| Componente                       | Motivo                                                                                |
+| -------------------------------- | ------------------------------------------------------------------------------------- |
+| `MeFeed.jsx`                     | Ruta privada, desmonta en logout. `useEffect([uid])` ya guarda con `if (!uid) return` |
+| `Messages.jsx`                   | Ruta privada, desmonta en logout. `friends` se recarga en cada mount                  |
+| `Sidebar`, `Navbar`, `BottomNav` | Sin estado user-dependiente                                                           |
+| Layout shell                     | Sin estado user-dependiente                                                           |
 
 ---
 
@@ -56,7 +58,8 @@ useEffect(() => {
     setAdminChatUnread(0);
     return;
   }
-  axios.get('/api/notifications')
+  axios
+    .get("/api/notifications")
     .then(({ data }) => setNotifications(data))
     .catch(() => {});
 }, [user]);

@@ -14,7 +14,7 @@
 // require.cache override en tests/setup.js, pero acá lo hacemos
 // explícito por defensiva.
 
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 
 function userRateLimit({
   windowMs,
@@ -30,8 +30,8 @@ function userRateLimit({
     max,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) =>
-      req.user?._id?.toString() || `ip:${req.ip || "unknown"}`,
+    keyGenerator: (req, res) =>
+      req.user?._id?.toString() || `ip:${ipKeyGenerator(req, res)}`,
     skip: () => process.env.NODE_ENV === "test",
     message: { message },
   });

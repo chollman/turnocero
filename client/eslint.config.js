@@ -1,34 +1,34 @@
-import js from '@eslint/js';
-import reactHooks from 'eslint-plugin-react-hooks';
-import globals from 'globals';
-import { createRequire } from 'module';
+import js from "@eslint/js";
+import reactHooks from "eslint-plugin-react-hooks";
+import globals from "globals";
+import { createRequire } from "module";
 
-const sharedRules = createRequire(import.meta.url)('../eslint.shared.cjs');
+const sharedRules = createRequire(import.meta.url)("../eslint.shared.cjs");
 
 export default [
-  { ignores: ['dist/**', 'dev-dist/**', 'coverage/**', 'node_modules/**'] },
+  { ignores: ["dist/**", "dev-dist/**", "coverage/**", "node_modules/**"] },
   js.configs.recommended,
   {
-    files: ['src/**/*.{js,jsx}'],
+    files: ["src/**/*.{js,jsx}"],
     languageOptions: {
       globals: { ...globals.browser },
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
-    plugins: { 'react-hooks': reactHooks },
+    plugins: { "react-hooks": reactHooks },
     rules: {
       ...reactHooks.configs.recommended.rules,
       // setState inside an effect is valid for syncing derived local state
-      'react-hooks/set-state-in-effect': 'off',
+      "react-hooks/set-state-in-effect": "off",
       ...sharedRules,
-      'no-console': 'warn',
+      "no-console": "warn",
     },
   },
   // Vercel Edge middleware — runs on the Edge runtime with Web APIs + process.env.
   {
-    files: ['middleware.js'],
+    files: ["middleware.js"],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
-      sourceType: 'module',
+      sourceType: "module",
     },
     rules: sharedRules,
   },

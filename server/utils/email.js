@@ -1,37 +1,47 @@
-const { Resend } = require('resend');
-const logger = require('./logger');
+const { Resend } = require("resend");
+const logger = require("./logger");
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-const FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+const FROM = process.env.EMAIL_FROM || "onboarding@resend.dev";
 
 async function sendEmail({ to, subject, html, text }) {
   if (!resend) {
-    logger.warn('Resend not configured; skipping email', { to, subject });
+    logger.warn("Resend not configured; skipping email", { to, subject });
     return { skipped: true };
   }
   try {
-    const result = await resend.emails.send({ from: FROM, to, subject, html, text });
+    const result = await resend.emails.send({
+      from: FROM,
+      to,
+      subject,
+      html,
+      text,
+    });
     if (result?.error) {
-      logger.error('Resend returned error', { to, subject, error: result.error });
-      throw new Error(result.error.message || 'Resend error');
+      logger.error("Resend returned error", {
+        to,
+        subject,
+        error: result.error,
+      });
+      throw new Error(result.error.message || "Resend error");
     }
     return result;
   } catch (err) {
-    logger.error('Email send failed', { to, subject, msg: err.message });
+    logger.error("Email send failed", { to, subject, msg: err.message });
     throw err;
   }
 }
 
-function escapeHtml(str = '') {
+function escapeHtml(str = "") {
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // Shared wrapper: dark TurnoCero look (Blizzard-style navy + amber accent).
@@ -60,7 +70,7 @@ function wrap({ heading, body, footer }) {
           ${body}
         </td></tr>
         <tr><td style="padding:20px 28px;border-top:1px solid #243a55;font-size:12px;color:#8aa1bd;line-height:1.5;">
-          ${footer || 'Si no esperabas este mail, ignoralo. Nadie podrá acceder a tu cuenta sin él.'}
+          ${footer || "Si no esperabas este mail, ignoralo. Nadie podrá acceder a tu cuenta sin él."}
         </td></tr>
       </table>
       <div style="margin-top:16px;font-size:11px;color:#5d7895;">TurnoCero · La comunidad argentina de juegos de mesa</div>
@@ -71,10 +81,10 @@ function wrap({ heading, body, footer }) {
 }
 
 function verificationEmail({ username, code }) {
-  const safeUser = escapeHtml(username || 'jugador');
+  const safeUser = escapeHtml(username || "jugador");
   const safeCode = escapeHtml(code);
   const html = wrap({
-    heading: `¡Hola, ${  safeUser  }! 🎲`,
+    heading: `¡Hola, ${safeUser}! 🎲`,
     body: `
       <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#d5dfeb;">
         Gracias por sumarte a TurnoCero. Para activar tu cuenta, ingresá este código en la app:
@@ -84,21 +94,21 @@ function verificationEmail({ username, code }) {
       </div>
       <p style="margin:0;font-size:13px;color:#8aa1bd;">El código expira en 15 minutos.</p>
     `,
-    footer: 'Si no creaste esta cuenta, ignorá este mail.',
+    footer: "Si no creaste esta cuenta, ignorá este mail.",
   });
-  const text = `¡Hola, ${username || 'jugador'}!\n\nTu código de verificación de TurnoCero es: ${code}\n\nEl código expira en 15 minutos.\n\nSi no creaste esta cuenta, ignorá este mail.`;
+  const text = `¡Hola, ${username || "jugador"}!\n\nTu código de verificación de TurnoCero es: ${code}\n\nEl código expira en 15 minutos.\n\nSi no creaste esta cuenta, ignorá este mail.`;
   return {
-    subject: 'Tu código para activar TurnoCero',
+    subject: "Tu código para activar TurnoCero",
     html,
     text,
   };
 }
 
 function passwordResetEmail({ username, resetUrl }) {
-  const safeUser = escapeHtml(username || 'jugador');
+  const safeUser = escapeHtml(username || "jugador");
   const safeUrl = escapeHtml(resetUrl);
   const html = wrap({
-    heading: 'Recuperá tu contraseña',
+    heading: "Recuperá tu contraseña",
     body: `
       <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#d5dfeb;">
         Hola ${safeUser}, recibimos un pedido para restablecer tu contraseña en TurnoCero. Hacé click en el botón para elegir una nueva:
@@ -110,11 +120,12 @@ function passwordResetEmail({ username, resetUrl }) {
       <p style="margin:0 0 16px 0;font-size:12px;color:#8aa1bd;word-break:break-all;"><a href="${safeUrl}" style="color:#f5b400;">${safeUrl}</a></p>
       <p style="margin:0;font-size:13px;color:#8aa1bd;">El link expira en 1 hora.</p>
     `,
-    footer: 'Si no pediste restablecer tu contraseña, ignorá este mail. Tu cuenta sigue segura.',
+    footer:
+      "Si no pediste restablecer tu contraseña, ignorá este mail. Tu cuenta sigue segura.",
   });
-  const text = `Hola ${username || 'jugador'},\n\nRecibimos un pedido para restablecer tu contraseña en TurnoCero. Abrí este link para elegir una nueva:\n\n${resetUrl}\n\nEl link expira en 1 hora.\n\nSi no pediste esto, ignorá este mail.`;
+  const text = `Hola ${username || "jugador"},\n\nRecibimos un pedido para restablecer tu contraseña en TurnoCero. Abrí este link para elegir una nueva:\n\n${resetUrl}\n\nEl link expira en 1 hora.\n\nSi no pediste esto, ignorá este mail.`;
   return {
-    subject: 'Recuperá tu contraseña en TurnoCero',
+    subject: "Recuperá tu contraseña en TurnoCero",
     html,
     text,
   };

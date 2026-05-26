@@ -25,4 +25,4 @@ Deleted users are hard-deleted (no soft-delete flag, no tombstone). References t
 
 3. **Don't** assume populated refs are non-null. Even pre-existing code that "always had a host" can encounter `null` after a delete. When editing such code for any reason, defensively guard with `?.` and route through the helpers.
 
-Related: [[project_features]] (admin moderation section). The 403 `code: 'banned'` ban expulsion is a separate concern — banning doesn't null out refs.
+Related: [[project-features]] (admin moderation section). The 403 `code: 'banned'` ban expulsion is a separate concern — banning doesn't null out refs.

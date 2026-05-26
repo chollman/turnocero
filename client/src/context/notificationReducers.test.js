@@ -49,9 +49,9 @@ describe("notifKey", () => {
     expect(notifKey({ _id: "abc", type: "chat", tableId: "t1" })).toBe(
       "id:abc",
     );
-    expect(
-      notifKey({ notifId: "xyz", type: "chat", tableId: "t1" }),
-    ).toBe("id:xyz");
+    expect(notifKey({ notifId: "xyz", type: "chat", tableId: "t1" })).toBe(
+      "id:xyz",
+    );
   });
 
   it("usa resource key como fallback sin _id", () => {
@@ -63,9 +63,9 @@ describe("notifKey", () => {
     expect(notifKey({ type: "evento_confirmed", eventoId: "e1" })).toBe(
       "evento_confirmed:e:e1",
     );
-    expect(
-      notifKey({ type: "compartida_like", compartidaId: "c1" }),
-    ).toBe("compartida_like:c:c1");
+    expect(notifKey({ type: "compartida_like", compartidaId: "c1" })).toBe(
+      "compartida_like:c:c1",
+    );
   });
 
   it("default type es 'chat' si no viene", () => {
@@ -75,9 +75,9 @@ describe("notifKey", () => {
 
 describe("resourceKey", () => {
   it("nunca usa _id, solo resource", () => {
-    expect(
-      resourceKey({ _id: "abc", type: "chat", tableId: "t1" }),
-    ).toBe("chat:t:t1");
+    expect(resourceKey({ _id: "abc", type: "chat", tableId: "t1" })).toBe(
+      "chat:t:t1",
+    );
   });
 });
 
@@ -397,9 +397,7 @@ describe("applyDmMessageNotif", () => {
   });
 
   it("fallback a count+1 si el payload no trae count (compat)", () => {
-    const prev = [
-      { type: "dm", fromUserId: "u1", count: 2, read: false },
-    ];
+    const prev = [{ type: "dm", fromUserId: "u1", count: 2, read: false }];
     const setN = makeSetterSpy(prev);
     applyDmMessageNotif({
       setNotifications: setN,

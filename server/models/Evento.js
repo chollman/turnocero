@@ -119,7 +119,23 @@ eventoSchema.index({ eventDate: 1, reminderSentAt: 1 });
 // Mongoose espera el subdoc.
 eventoSchema.pre("init", (doc) => {
   if (typeof doc.location === "string") {
-    doc.location = { texto: doc.location, lat: null, lng: null };
+    doc.location = {
+      texto: doc.location,
+      lat: null,
+      lng: null,
+      displayName: "",
+    };
+  }
+});
+
+// Defensa contra docs legacy donde `location` puede estar como string en el
+// DB pero como subdoc en memoria (via pre('init') normalization). Sin esto,
+// Mongoose emite $set sobre paths anidados (ej. location.displayName) que
+// MongoDB rechaza con "Cannot create field X in element {location: '<str>'}".
+// Marcar el subdoc completo fuerza un overwrite atómico al primer save.
+eventoSchema.pre("save", function () {
+  if (this.location && typeof this.location === "object") {
+    this.markModified("location");
   }
 });
 

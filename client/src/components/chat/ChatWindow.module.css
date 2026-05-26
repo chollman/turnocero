@@ -18,7 +18,7 @@
 
 .window::before,
 .window::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -28,14 +28,13 @@
 
 /* Scanlines + neon edge — fades after the boot-in */
 .window::before {
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      rgba(5, 217, 232, 0.08) 0,
-      rgba(5, 217, 232, 0.08) 1px,
-      transparent 1px,
-      transparent 3px
-    );
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(5, 217, 232, 0.08) 0,
+    rgba(5, 217, 232, 0.08) 1px,
+    transparent 1px,
+    transparent 3px
+  );
   box-shadow:
     inset 0 0 0 1px #05d9e8,
     inset 0 0 18px rgba(255, 42, 109, 0.5),
@@ -50,11 +49,11 @@
     to bottom,
     transparent 0%,
     transparent 45%,
-    rgba(255, 42, 109, 0.0) 47%,
+    rgba(255, 42, 109, 0) 47%,
     rgba(255, 42, 109, 0.9) 49%,
     #ffffff 50%,
     rgba(5, 217, 232, 0.9) 51%,
-    rgba(5, 217, 232, 0.0) 53%,
+    rgba(5, 217, 232, 0) 53%,
     transparent 55%,
     transparent 100%
   );
@@ -78,33 +77,25 @@
   8% {
     transform: translate(-10px, 0) skewX(-6deg);
     clip-path: inset(40% 0 35% 0);
-    filter:
-      drop-shadow(4px 0 0 #ff2a6d)
-      drop-shadow(-4px 0 0 #05d9e8)
+    filter: drop-shadow(4px 0 0 #ff2a6d) drop-shadow(-4px 0 0 #05d9e8)
       brightness(1.4);
   }
   14% {
     transform: translate(8px, -2px) skewX(4deg);
     clip-path: inset(8% 0 65% 0);
-    filter:
-      drop-shadow(-5px 0 0 #ff2a6d)
-      drop-shadow(5px 0 0 #05d9e8)
+    filter: drop-shadow(-5px 0 0 #ff2a6d) drop-shadow(5px 0 0 #05d9e8)
       hue-rotate(20deg);
   }
   20% {
     transform: translate(-6px, 1px) skewX(-2deg);
     clip-path: inset(60% 0 5% 0);
-    filter:
-      drop-shadow(3px 0 0 var(--amber))
-      drop-shadow(-3px 0 0 #05d9e8)
+    filter: drop-shadow(3px 0 0 var(--amber)) drop-shadow(-3px 0 0 #05d9e8)
       saturate(1.6);
   }
   26% {
     transform: translate(12px, 0) skewX(8deg);
     clip-path: inset(20% 0 45% 0);
-    filter:
-      drop-shadow(-6px 0 0 #ff2a6d)
-      drop-shadow(6px 0 0 #05d9e8);
+    filter: drop-shadow(-6px 0 0 #ff2a6d) drop-shadow(6px 0 0 #05d9e8);
   }
   32% {
     transform: translate(-3px, 2px) skewX(0deg);
@@ -114,29 +105,21 @@
   36% {
     transform: translate(4px, -1px) skewX(-3deg);
     clip-path: inset(30% 0 30% 0);
-    filter:
-      drop-shadow(3px 0 0 #ff2a6d)
-      drop-shadow(-3px 0 0 #05d9e8);
+    filter: drop-shadow(3px 0 0 #ff2a6d) drop-shadow(-3px 0 0 #05d9e8);
   }
   44% {
     transform: translate(-2px, 0) skewX(0deg);
     clip-path: inset(0 0 0 0);
-    filter:
-      drop-shadow(2px 0 0 #ff2a6d)
-      drop-shadow(-2px 0 0 #05d9e8);
+    filter: drop-shadow(2px 0 0 #ff2a6d) drop-shadow(-2px 0 0 #05d9e8);
   }
   55% {
     transform: translate(1px, 0);
     clip-path: inset(0 0 0 0);
-    filter:
-      drop-shadow(1px 0 0 #ff2a6d)
-      drop-shadow(-1px 0 0 #05d9e8);
+    filter: drop-shadow(1px 0 0 #ff2a6d) drop-shadow(-1px 0 0 #05d9e8);
   }
   70% {
     transform: translate(-1px, 0);
-    filter:
-      drop-shadow(1px 0 0 #ff2a6d)
-      drop-shadow(-1px 0 0 #05d9e8);
+    filter: drop-shadow(1px 0 0 #ff2a6d) drop-shadow(-1px 0 0 #05d9e8);
   }
   85% {
     transform: translate(0, 0);
@@ -152,15 +135,30 @@
 }
 
 @keyframes chatCyberScanlines {
-  0%   { opacity: 1; }
-  60%  { opacity: 1; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes chatCyberScanBeam {
-  0%   { transform: translateY(-100%); opacity: 1; }
-  90%  { transform: translateY(100%);  opacity: 1; }
-  100% { transform: translateY(100%);  opacity: 0; }
+  0% {
+    transform: translateY(-100%);
+    opacity: 1;
+  }
+  90% {
+    transform: translateY(100%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -256,7 +254,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
   text-decoration: none;
 }
 
@@ -276,8 +276,13 @@
   scrollbar-color: var(--border) transparent;
 }
 
-.messages::-webkit-scrollbar { width: 4px; }
-.messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.messages::-webkit-scrollbar {
+  width: 4px;
+}
+.messages::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
 
 .loading {
   text-align: center;
@@ -372,9 +377,10 @@
   justify-content: center;
   cursor: pointer;
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   flex-shrink: 0;
   align-self: center;
-  transition: opacity 0.15s;
+  transition: all var(--transition);
 }
 
 .sendBtn:disabled {

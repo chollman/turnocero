@@ -77,9 +77,7 @@ describe("BGG manual refresh cooldown (server-side)", () => {
       const ok1 = await request(app).get("/api/bgg/coleccion/alice?refresh=1");
       expect(ok1.status).toBe(200);
       // The header should now indicate the cooldown is active (close to 60_000 ms).
-      const cooldownAfterFirst = Number(
-        ok1.headers["x-refresh-cooldown-ms"],
-      );
+      const cooldownAfterFirst = Number(ok1.headers["x-refresh-cooldown-ms"]);
       expect(cooldownAfterFirst).toBeGreaterThan(50_000);
       expect(cooldownAfterFirst).toBeLessThanOrEqual(60_000);
 
@@ -121,7 +119,9 @@ describe("BGG manual refresh cooldown (server-side)", () => {
 
     it("stamps lastManualRefreshColeccionAt in Mongo after a successful refresh", async () => {
       await createUser({ bggUsername: "charlie" });
-      fetchSpy.mockResolvedValueOnce(ok(collectionXml([{ id: "1", name: "G", thumbnail: "t" }])));
+      fetchSpy.mockResolvedValueOnce(
+        ok(collectionXml([{ id: "1", name: "G", thumbnail: "t" }])),
+      );
       const before = Date.now();
       const res = await request(app).get(
         "/api/bgg/coleccion/charlie?refresh=1",
@@ -146,16 +146,18 @@ describe("BGG manual refresh cooldown (server-side)", () => {
           },
         },
       );
-      fetchSpy.mockResolvedValueOnce(ok(collectionXml([{ id: "1", name: "G", thumbnail: "t" }])));
-      const res = await request(app).get(
-        "/api/bgg/coleccion/diana?refresh=1",
+      fetchSpy.mockResolvedValueOnce(
+        ok(collectionXml([{ id: "1", name: "G", thumbnail: "t" }])),
       );
+      const res = await request(app).get("/api/bgg/coleccion/diana?refresh=1");
       expect(res.status).toBe(200);
     });
 
     it("anon (no Turnocero User owns the bggUsername) → refresh is allowed without persistence", async () => {
       // No user created with bggUsername "anon".
-      fetchSpy.mockResolvedValueOnce(ok(collectionXml([{ id: "1", name: "G", thumbnail: "t" }])));
+      fetchSpy.mockResolvedValueOnce(
+        ok(collectionXml([{ id: "1", name: "G", thumbnail: "t" }])),
+      );
       const res = await request(app).get("/api/bgg/coleccion/anon?refresh=1");
       expect(res.status).toBe(200);
       // Header reads as 0 because there's no User to track against.
@@ -164,7 +166,9 @@ describe("BGG manual refresh cooldown (server-side)", () => {
 
     it("is case-insensitive against User.bggUsername (case-preserved)", async () => {
       await createUser({ bggUsername: "Alice" }); // case-preserved
-      fetchSpy.mockResolvedValueOnce(ok(collectionXml([{ id: "1", name: "G", thumbnail: "t" }])));
+      fetchSpy.mockResolvedValueOnce(
+        ok(collectionXml([{ id: "1", name: "G", thumbnail: "t" }])),
+      );
       // Request the lowercase variant — should still stamp the same User.
       const res = await request(app).get("/api/bgg/coleccion/alice?refresh=1");
       expect(res.status).toBe(200);
@@ -215,9 +219,7 @@ describe("BGG manual refresh cooldown (server-side)", () => {
       });
       fetchSpy.mockResolvedValue(ok(playsXml([], 0)));
 
-      const res = await request(app).get(
-        "/api/bgg/partidas/fiona?refresh=1",
-      );
+      const res = await request(app).get("/api/bgg/partidas/fiona?refresh=1");
       expect(res.status).toBe(200);
 
       const u = await User.findOne({ bggUsername: "fiona" }).lean();
@@ -242,7 +244,9 @@ describe("BGG manual refresh cooldown (server-side)", () => {
       expect(r1.status).toBe(200);
 
       // Now immediately refresh coleccion — should pass.
-      fetchSpy.mockResolvedValueOnce(ok(collectionXml([{ id: "1", name: "G", thumbnail: "t" }])));
+      fetchSpy.mockResolvedValueOnce(
+        ok(collectionXml([{ id: "1", name: "G", thumbnail: "t" }])),
+      );
       const r2 = await request(app).get("/api/bgg/coleccion/gabe?refresh=1");
       expect(r2.status).toBe(200);
     });

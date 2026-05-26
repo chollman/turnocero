@@ -1,5 +1,5 @@
 ---
-name: tests-required-for-every-new-component-and-method
+name: feedback-tests-required
 description: From 2026-05-18 onwards, every new component, route, hook, util, or method ships with its tests in the same change — both client and server. Non-negotiable.
 metadata:
   type: feedback

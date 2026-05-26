@@ -23,16 +23,12 @@ describe("getManualRefreshRemainingMs", () => {
   });
 
   it("devuelve 0 si no hay user con ese bggUsername", async () => {
-    expect(
-      await getManualRefreshRemainingMs("nadie", "partidas"),
-    ).toBe(0);
+    expect(await getManualRefreshRemainingMs("nadie", "partidas")).toBe(0);
   });
 
   it("devuelve 0 si el user nunca refrescó (sin stamp)", async () => {
     await makeUser();
-    expect(
-      await getManualRefreshRemainingMs("alice", "partidas"),
-    ).toBe(0);
+    expect(await getManualRefreshRemainingMs("alice", "partidas")).toBe(0);
   });
 
   it("devuelve ms restantes si el stamp es reciente", async () => {
@@ -52,9 +48,7 @@ describe("getManualRefreshRemainingMs", () => {
         lastManualRefreshPartidasAt: new Date(Date.now() - 90 * 1000), // 90s atrás
       },
     });
-    expect(
-      await getManualRefreshRemainingMs("alice", "partidas"),
-    ).toBe(0);
+    expect(await getManualRefreshRemainingMs("alice", "partidas")).toBe(0);
   });
 
   it("es case-insensitive (collation strength 2)", async () => {
@@ -65,7 +59,10 @@ describe("getManualRefreshRemainingMs", () => {
       },
     });
     // input lowercase debe matchear MixedCase.
-    const remaining = await getManualRefreshRemainingMs("mixedcase", "partidas");
+    const remaining = await getManualRefreshRemainingMs(
+      "mixedcase",
+      "partidas",
+    );
     expect(remaining).toBeGreaterThan(0);
   });
 
@@ -79,9 +76,7 @@ describe("getManualRefreshRemainingMs", () => {
     expect(
       await getManualRefreshRemainingMs("alice", "partidas"),
     ).toBeGreaterThan(0);
-    expect(
-      await getManualRefreshRemainingMs("alice", "coleccion"),
-    ).toBe(0);
+    expect(await getManualRefreshRemainingMs("alice", "coleccion")).toBe(0);
   });
 });
 

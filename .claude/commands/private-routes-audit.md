@@ -3,6 +3,7 @@ Audit all routes and pages in the app to verify that authentication and admin gu
 ## Background
 
 Turnocero has three categories of access:
+
 - **Public** — accessible without login (Dashboard, Compartidas feed, Noticias, UserProfilePublic, CompartidaPost OG)
 - **Private** — requires authenticated user (most pages)
 - **Admin** — requires `user.isAdmin === true` (DatabaseViewer, admin API routes)
@@ -16,35 +17,40 @@ A missing guard means a logged-out user can access personal data, or a regular u
 ### 1. Read the routing configuration
 
 Read `client/src/App.jsx` in full. Extract every route (`<Route path="..." element={...} />`):
+
 - Which wrapper it uses: `<PrivateRoute>`, `<PublicRoute>`, or none (bare `<Route>`)
 - The component it renders
 
 Build a table:
 
-| Path | Component | Guard |
-|---|---|---|
-| `/` | Dashboard | none (public) |
-| `/mesas/crear` | CreateTable | PrivateRoute |
-| `/base-de-datos` | DatabaseViewer | PrivateRoute |
-| etc. | | |
+| Path             | Component      | Guard         |
+| ---------------- | -------------- | ------------- |
+| `/`              | Dashboard      | none (public) |
+| `/mesas/crear`   | CreateTable    | PrivateRoute  |
+| `/base-de-datos` | DatabaseViewer | PrivateRoute  |
+| etc.             |                |               |
 
 ### 2. Classify each route's expected access level
 
 Using the page name and CLAUDE.md as reference, determine what the correct guard should be:
 
 **Should be public (no guard):**
+
 - `/`, `/compartidas`, `/compartidas/:id`, `/noticias`, `/noticias/:id`, `/usuarios/:id`, `/login`, `/register`
 
 **Should be private (PrivateRoute):**
+
 - `/mesas/crear`, `/mesas/:id/editar`, `/mesas/:id`, `/mi`, `/perfil`, `/mensajes`, `/mensajes/:userId`, `/mensajes-admin`, `/notificaciones`, `/usuarios`
 
 **Should be admin-only:**
+
 - `/base-de-datos`
 - Check if `DatabaseViewer` or `AdminChat` does an additional `isAdmin` check inside the component
 
 ### 3. Check for mismatches
 
 For each route, compare actual guard vs. expected:
+
 - **Missing PrivateRoute** on a private page → unauthenticated users can access it
 - **PrivateRoute on a public page** → SEO/sharing broken, guest users blocked
 - **Admin page with only PrivateRoute** → any logged-in user can access it; needs an in-component `isAdmin` check or a dedicated AdminRoute
@@ -70,9 +76,10 @@ In `App.jsx`, wrap the route element with `<PrivateRoute>`.
 
 **Frontend — admin page needs extra check:**
 Add a `useEffect` at the top of the component:
+
 ```js
 useEffect(() => {
-  if (user && !user.isAdmin) navigate('/');
+  if (user && !user.isAdmin) navigate("/");
 }, [user, navigate]);
 ```
 
@@ -85,9 +92,11 @@ Add `requireAdmin` after `protect` in the middleware chain.
 ### 7. Report
 
 **Frontend routes:**
+
 - ✅ `/path` — correct guard
 - 🔧 `/path` — fixed: [what was wrong]
 
 **Backend routes:**
+
 - ✅ `METHOD /api/path` — correct middleware
 - 🔧 `METHOD /api/path` — fixed: [what was added]

@@ -1,5 +1,5 @@
 ---
-name: code-style-and-workflow-preferences
+name: feedback-style
 description: Observed conventions and preferences from working sessions on Turnocero
 metadata:
   type: feedback

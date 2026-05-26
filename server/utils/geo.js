@@ -33,7 +33,9 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   const dLng = toRadians(lng2 - lng1);
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLng / 2) ** 2;
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLng / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return EARTH_RADIUS_KM * c;
@@ -44,12 +46,14 @@ function haversineKm(lat1, lng1, lat2, lng2) {
  */
 function isValidCoord(lat, lng) {
   return (
-    typeof lat === 'number' &&
-    typeof lng === 'number' &&
+    typeof lat === "number" &&
+    typeof lng === "number" &&
     Number.isFinite(lat) &&
     Number.isFinite(lng) &&
-    lat >= -90 && lat <= 90 &&
-    lng >= -180 && lng <= 180
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180
   );
 }
 
@@ -68,15 +72,18 @@ function isValidCoord(lat, lng) {
 function attachDistance(items, userLat, userLng) {
   if (!isValidCoord(userLat, userLng)) {
     return items.map((t) => {
-      const obj = typeof t.toObject === 'function' ? t.toObject() : t;
+      const obj = typeof t.toObject === "function" ? t.toObject() : t;
       return { ...obj, distanceKm: null };
     });
   }
   return items.map((t) => {
-    const obj = typeof t.toObject === 'function' ? t.toObject() : t;
+    const obj = typeof t.toObject === "function" ? t.toObject() : t;
     const tLat = obj.location?.lat;
     const tLng = obj.location?.lng;
-    const km = (tLat != null && tLng != null) ? haversineKm(userLat, userLng, tLat, tLng) : null;
+    const km =
+      tLat != null && tLng != null
+        ? haversineKm(userLat, userLng, tLat, tLng)
+        : null;
     return { ...obj, distanceKm: km };
   });
 }
@@ -93,10 +100,10 @@ function attachDistance(items, userLat, userLng) {
  */
 function buildBboxFilter(userLat, userLng, maxKm) {
   const latDelta = maxKm / 111;
-  const lngDelta = maxKm / (111 * Math.cos(userLat * Math.PI / 180) || 1);
+  const lngDelta = maxKm / (111 * Math.cos((userLat * Math.PI) / 180) || 1);
   return {
-    'location.lat': { $gte: userLat - latDelta, $lte: userLat + latDelta },
-    'location.lng': { $gte: userLng - lngDelta, $lte: userLng + lngDelta },
+    "location.lat": { $gte: userLat - latDelta, $lte: userLat + latDelta },
+    "location.lng": { $gte: userLng - lngDelta, $lte: userLng + lngDelta },
   };
 }
 

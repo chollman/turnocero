@@ -46,13 +46,16 @@ function generateLeagueFixture(participantIds) {
         matchIndex: i,
         playerA: pa,
         playerB: pb,
-        status: isBye ? 'bye' : 'pending',
-        winner: isBye ? (pa || pb) : null,
+        status: isBye ? "bye" : "pending",
+        winner: isBye ? pa || pb : null,
         playedAt: isBye ? new Date() : null,
       });
     }
     // Rotate: take last, move to front of rotating list.
-    rotating = [rotating[rotating.length - 1], ...rotating.slice(0, rotating.length - 1)];
+    rotating = [
+      rotating[rotating.length - 1],
+      ...rotating.slice(0, rotating.length - 1),
+    ];
   }
 
   return matches;
@@ -80,11 +83,11 @@ function generateSingleElimBracket(participantIds) {
   const n = participantIds.length;
   if (n < 2) return [];
 
-  const mainSize    = highestPowerOfTwoLE(n);
-  const playInCount = n - mainSize;            // # of play-in matches
-  const mainRounds  = Math.log2(mainSize);
-  const hasPlayIn   = playInCount > 0;
-  const roundOffset = hasPlayIn ? 1 : 0;       // shift main rounds by 1 when there's play-in
+  const mainSize = highestPowerOfTwoLE(n);
+  const playInCount = n - mainSize; // # of play-in matches
+  const mainRounds = Math.log2(mainSize);
+  const hasPlayIn = playInCount > 0;
+  const roundOffset = hasPlayIn ? 1 : 0; // shift main rounds by 1 when there's play-in
 
   // # seeds that bypass play-in and enter main bracket directly:
   // directSeeds + 2 * playInCount = n  →  directSeeds = 2 * mainSize - n
@@ -95,16 +98,16 @@ function generateSingleElimBracket(participantIds) {
   // ── Play-in round (round 1, only if needed) ────────────────────────
   // Pool: seeds (directSeeds + 1) … n. Pair top of pool with bottom.
   for (let i = 0; i < playInCount; i++) {
-    const topSeed    = directSeeds + 1 + i;
+    const topSeed = directSeeds + 1 + i;
     const bottomSeed = n - i;
     matches.push({
-      round:      1,
+      round: 1,
       matchIndex: i,
-      playerA:    participantIds[topSeed - 1],
-      playerB:    participantIds[bottomSeed - 1],
-      status:     'pending',
-      winner:     null,
-      playedAt:   null,
+      playerA: participantIds[topSeed - 1],
+      playerB: participantIds[bottomSeed - 1],
+      status: "pending",
+      winner: null,
+      playedAt: null,
     });
   }
 
@@ -115,20 +118,20 @@ function generateSingleElimBracket(participantIds) {
   // First main round: fill slots that are direct entries; play-in slots stay null
   // until the play-in winner propagates.
   const mainR1SlotPlayers = seeded.map((seed) =>
-    seed <= directSeeds ? participantIds[seed - 1] : null
+    seed <= directSeeds ? participantIds[seed - 1] : null,
   );
 
   for (let r = 1; r <= mainRounds; r++) {
     const matchesInRound = mainSize / Math.pow(2, r);
     for (let i = 0; i < matchesInRound; i++) {
       matches.push({
-        round:      r + roundOffset,
+        round: r + roundOffset,
         matchIndex: i,
-        playerA:    r === 1 ? mainR1SlotPlayers[i * 2]     : null,
-        playerB:    r === 1 ? mainR1SlotPlayers[i * 2 + 1] : null,
-        status:     'pending',
-        winner:     null,
-        playedAt:   null,
+        playerA: r === 1 ? mainR1SlotPlayers[i * 2] : null,
+        playerB: r === 1 ? mainR1SlotPlayers[i * 2 + 1] : null,
+        status: "pending",
+        winner: null,
+        playedAt: null,
       });
     }
   }
@@ -138,21 +141,21 @@ function generateSingleElimBracket(participantIds) {
     if (hasPlayIn && m.round === 1) {
       // Play-in winner takes the play-in seed's slot in main R1.
       const targetSeed = directSeeds + 1 + m.matchIndex;
-      const slotIdx    = seeded.indexOf(targetSeed);
+      const slotIdx = seeded.indexOf(targetSeed);
       const r2MatchIdx = Math.floor(slotIdx / 2);
-      m.nextMatchKey   = `${1 + roundOffset}-${r2MatchIdx}`;
-      m.isUpperSlot    = slotIdx % 2 === 0;
+      m.nextMatchKey = `${1 + roundOffset}-${r2MatchIdx}`;
+      m.isUpperSlot = slotIdx % 2 === 0;
       return;
     }
-    const mainRoundIdx = m.round - roundOffset;   // 1-indexed within main bracket
+    const mainRoundIdx = m.round - roundOffset; // 1-indexed within main bracket
     if (mainRoundIdx === mainRounds) {
       // Final
       m.nextMatchKey = null;
-      m.isUpperSlot  = true;
+      m.isUpperSlot = true;
     } else {
       const parentIdx = Math.floor(m.matchIndex / 2);
-      m.nextMatchKey  = `${m.round + 1}-${parentIdx}`;
-      m.isUpperSlot   = m.matchIndex % 2 === 0;
+      m.nextMatchKey = `${m.round + 1}-${parentIdx}`;
+      m.isUpperSlot = m.matchIndex % 2 === 0;
     }
   });
 
@@ -173,12 +176,19 @@ function highestPowerOfTwoLE(n) {
 function computeStandings(matches, participantIds) {
   const stats = new Map();
   for (const id of participantIds) {
-    stats.set(String(id), { user: String(id), played: 0, won: 0, drawn: 0, lost: 0, points: 0 });
+    stats.set(String(id), {
+      user: String(id),
+      played: 0,
+      won: 0,
+      drawn: 0,
+      lost: 0,
+      points: 0,
+    });
   }
 
   for (const m of matches) {
-    if (m.status !== 'completed' && m.status !== 'bye') continue;
-    if (m.status === 'bye') {
+    if (m.status !== "completed" && m.status !== "bye") continue;
+    if (m.status === "bye") {
       // Byes don't count as played in league standings (there's nothing to record).
       continue;
     }
@@ -194,21 +204,27 @@ function computeStandings(matches, participantIds) {
     sb.played += 1;
 
     if (m.isDraw) {
-      sa.drawn += 1; sb.drawn += 1;
-      sa.points += 1; sb.points += 1;
+      sa.drawn += 1;
+      sb.drawn += 1;
+      sa.points += 1;
+      sb.points += 1;
     } else if (m.winner) {
       const winId = String(m.winner._id || m.winner);
       if (winId === a) {
-        sa.won += 1; sb.lost += 1; sa.points += 3;
+        sa.won += 1;
+        sb.lost += 1;
+        sa.points += 3;
       } else if (winId === b) {
-        sb.won += 1; sa.lost += 1; sb.points += 3;
+        sb.won += 1;
+        sa.lost += 1;
+        sb.points += 3;
       }
     }
   }
 
   return [...stats.values()].sort((x, y) => {
     if (y.points !== x.points) return y.points - x.points;
-    if (y.won    !== x.won)    return y.won    - x.won;
+    if (y.won !== x.won) return y.won - x.won;
     return x.user.localeCompare(y.user);
   });
 }
@@ -262,7 +278,7 @@ function generateGroupsPhase(playerIds, tableSize) {
   for (let i = 0; i < n; i++) {
     const round = Math.floor(i / numTables);
     const within = i % numTables;
-    const tableIdx = round % 2 === 0 ? within : (numTables - 1 - within);
+    const tableIdx = round % 2 === 0 ? within : numTables - 1 - within;
     tables[tableIdx].push(playerIds[i]);
   }
 
@@ -290,9 +306,11 @@ function computeGroupStandings(games, playerIds) {
   });
 
   // Sort games by gameNumber so byGame entries are in order.
-  const sorted = [...games].sort((a, b) => (a.gameNumber || 0) - (b.gameNumber || 0));
+  const sorted = [...games].sort(
+    (a, b) => (a.gameNumber || 0) - (b.gameNumber || 0),
+  );
   for (const game of sorted) {
-    if (game.status !== 'completed') {
+    if (game.status !== "completed") {
       // record placeholders so byGame array length matches
       for (const key of stats.keys()) stats.get(key).byGame.push(null);
       continue;
@@ -325,7 +343,11 @@ function computeGroupStandings(games, playerIds) {
  */
 function validateNextPhase(advancedCount, tableSize) {
   if (advancedCount <= 0) {
-    return { valid: false, suggestions: [], warnings: ['No hay jugadores promovidos'] };
+    return {
+      valid: false,
+      suggestions: [],
+      warnings: ["No hay jugadores promovidos"],
+    };
   }
   if (advancedCount <= tableSize) {
     return {
@@ -377,7 +399,9 @@ function validateNextPhase(advancedCount, tableSize) {
   return {
     valid: false,
     suggestions,
-    warnings: [`${advancedCount} promovidos no dividen exactamente en mesas de ${tableSize}.`],
+    warnings: [
+      `${advancedCount} promovidos no dividen exactamente en mesas de ${tableSize}.`,
+    ],
   };
 }
 
