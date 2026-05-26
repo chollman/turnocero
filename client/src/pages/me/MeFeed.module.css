@@ -173,13 +173,14 @@
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  box-shadow: 0 4px 14px var(--amber-glow);
-  transition: background 0.15s;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
 }
 
 .btnPrimary:hover {
   background: var(--amber-light);
-  color: var(--on-amber);
+    box-shadow: 0 4px 22px var(--amber-glow);
+color: var(--on-amber);
 }
 
 /* ─── Filter bar ─── */

@@ -9,6 +9,7 @@ import styles from "./Auth.module.css";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { STORAGE_KEYS } from "../../utils/storageKeys";
 import { useShowcaseTables } from "../../hooks/useShowcaseTables";
+import { getLocationDisplay } from "../../utils/location";
 
 function formatShowcaseDate(dateStr) {
   const d = new Date(dateStr);
@@ -33,7 +34,10 @@ export function ShowcaseCard({ table }) {
       <div className={styles.showcaseCardGame}>{table.boardGame}</div>
       <div className={styles.showcaseCardMeta}>
         {table.host.username}
-        {table.location ? ` · ${table.location}` : ""}
+        {(() => {
+          const loc = getLocationDisplay(table.location, "city");
+          return loc ? ` · ${loc}` : "";
+        })()}
       </div>
       <div className={styles.showcaseCardBar}>
         <div className={styles.showcaseCardFill} style={{ width: `${pct}%` }} />

@@ -289,11 +289,13 @@
   text-decoration: none;
   background: var(--amber);
   border: 1px solid var(--amber);
-  box-shadow: 0 4px 14px var(--amber-glow);
+  box-shadow: 0 4px 16px var(--amber-glow);
   transition: all var(--transition);
 }
 
 .btnRegister:hover {
   background: var(--amber-light);
-  border-color: var(--amber-light);
+  color: var(--on-amber);
+    box-shadow: 0 4px 22px var(--amber-glow);
+border-color: var(--amber-light);
 }

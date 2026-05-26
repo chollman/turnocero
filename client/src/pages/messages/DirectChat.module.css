@@ -281,9 +281,10 @@
   justify-content: center;
   cursor: pointer;
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   flex-shrink: 0;
   align-self: center;
-  transition: opacity 0.15s;
+  transition: all var(--transition);
 }
 
 .sendBtn:disabled {

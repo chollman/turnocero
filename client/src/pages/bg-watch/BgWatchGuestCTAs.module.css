@@ -145,6 +145,7 @@
   gap: 8px;
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   padding: 12px 22px;
   border-radius: 10px;
   font-family: var(--font-display);
@@ -153,9 +154,7 @@
   letter-spacing: 0.02em;
   text-decoration: none;
   white-space: nowrap;
-  transition:
-    transform var(--transition),
-    box-shadow var(--transition);
+  transition: all var(--transition);
   flex-shrink: 0;
 }
 

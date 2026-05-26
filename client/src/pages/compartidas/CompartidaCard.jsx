@@ -8,6 +8,7 @@ import GameTile from "../../components/shared/GameTile";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
+import { getLocationDisplay } from "../../utils/location";
 import CompartidaComments from "./CompartidaComments";
 import { useCompartidaLike } from "./useCompartidaLike";
 import styles from "./CompartidaCard.module.css";
@@ -593,7 +594,10 @@ export default function CompartidaCard({
             <span className={styles.mesaGame}>{table.boardGame}</span>
             <span className={styles.mesaMeta}>
               {formatTableDate(table.date)}
-              {table.location ? ` · ${table.location}` : ""}
+              {(() => {
+                const loc = getLocationDisplay(table.location, "city");
+                return loc ? ` · ${loc}` : "";
+              })()}
               {tableOpen &&
                 ` · ${tableSeats} lugar${tableSeats !== 1 ? "es" : ""}`}
             </span>

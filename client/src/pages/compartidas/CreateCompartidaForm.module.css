@@ -260,12 +260,14 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: background var(--transition);
-  box-shadow: 0 4px 14px var(--amber-glow);
+  transition: all var(--transition);
+  box-shadow: 0 4px 16px var(--amber-glow);
 }
 
 .submitBtn:hover:not(:disabled) {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 .submitBtn:disabled {
   opacity: 0.5;

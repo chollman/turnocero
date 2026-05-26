@@ -151,6 +151,7 @@
 .bgWatchBannerCta {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
@@ -160,9 +161,7 @@
   flex-shrink: 0;
   white-space: nowrap;
   text-decoration: none;
-  transition:
-    transform var(--transition),
-    box-shadow var(--transition);
+  transition: all var(--transition);
 }
 
 .bgWatchBannerCta:hover {
@@ -630,15 +629,14 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition:
-    background 0.15s,
-    box-shadow 0.15s;
-  box-shadow: 0 4px 14px var(--amber-glow);
+  transition: all var(--transition);
+  box-shadow: 0 4px 16px var(--amber-glow);
 }
 
 .btnPrimary:hover:not(:disabled) {
   background: var(--amber-light);
-  box-shadow: 0 4px 20px var(--amber-glow);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 .btnPrimary:disabled {

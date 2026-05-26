@@ -202,19 +202,20 @@
   padding: 0 1.4rem;
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 8px;
   font-family: var(--font-display);
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  transition:
-    background var(--transition),
-    opacity var(--transition);
+  transition: all var(--transition);
 }
 
 .btnActJoin:hover:not(:disabled) {
-  background: var(--amber-dark);
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 .btnActJoin:disabled {
   opacity: 0.5;
@@ -785,6 +786,7 @@
 .btnUpload {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 7px;
   padding: 0.35rem 0.85rem;
@@ -792,14 +794,14 @@
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    background var(--transition),
-    opacity var(--transition);
+  transition: all var(--transition);
   white-space: nowrap;
 }
 
 .btnUpload:hover:not(:disabled) {
-  background: var(--amber-dark);
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 .btnUpload:disabled {
   opacity: 0.5;
@@ -1037,6 +1039,7 @@
 .btnSaveEdit {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 6px;
   padding: 0.3rem 0.8rem;
@@ -1044,11 +1047,13 @@
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font-body);
-  transition: background var(--transition);
+  transition: all var(--transition);
 }
 
 .btnSaveEdit:hover {
-  background: var(--amber-dark);
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 .btnCancelEdit {
@@ -1103,6 +1108,7 @@
 .btnComment {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 8px;
   padding: 0.6rem 1.1rem;
@@ -1111,13 +1117,13 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition:
-    background var(--transition),
-    opacity var(--transition);
+  transition: all var(--transition);
 }
 
 .btnComment:hover:not(:disabled) {
-  background: var(--amber-dark);
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 .btnComment:disabled {
   opacity: 0.4;
@@ -1229,6 +1235,7 @@
 .btnSubmitRating {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 8px;
   padding: 0.6rem 1.1rem;
@@ -1236,14 +1243,14 @@
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    background var(--transition),
-    opacity var(--transition);
+  transition: all var(--transition);
   align-self: flex-start;
 }
 
 .btnSubmitRating:hover:not(:disabled) {
-  background: var(--amber-dark);
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 .btnSubmitRating:disabled {
   opacity: 0.4;
@@ -1498,7 +1505,9 @@
 }
 
 .sendCircle:hover:not(:disabled) {
-  background: var(--amber-dark);
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 .sendCircle:disabled {
   opacity: 0.4;

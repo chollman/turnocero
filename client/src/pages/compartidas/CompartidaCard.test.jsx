@@ -145,6 +145,31 @@ describe("<CompartidaCard>", () => {
     expect(screen.getAllByText(/Catán/).length).toBeGreaterThan(0);
   });
 
+  it("renders linked table location via getLocationDisplay (not [object Object])", () => {
+    // Regresión: `table.location` es un subdoc `{texto, lat, lng}` desde 2026-05.
+    // El render previo hacía `${table.location}` directo y mostraba "[object Object]".
+    renderCard(
+      makePost({
+        linkedTable: {
+          _id: "t1",
+          boardGame: "Wingspan",
+          date: new Date(Date.now() + 86400000).toISOString(),
+          players: [],
+          maxPlayers: 4,
+          status: "open",
+          location: {
+            texto:
+              "Av. de Mayo 1123, Villa José León Suárez, Provincia de Buenos Aires, Argentina",
+            lat: -34.5,
+            lng: -58.5,
+          },
+        },
+      }),
+    );
+    expect(screen.queryByText(/object Object/i)).toBeNull();
+    expect(screen.getByText(/Villa José León Suárez/)).toBeInTheDocument();
+  });
+
   it("hides linked table chip when mesas is disabled", () => {
     useSiteConfig.mockReturnValue({ isSectionEnabled: (k) => k !== "mesas" });
     useAuth.mockReturnValue({ user: null });

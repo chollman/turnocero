@@ -133,6 +133,8 @@
 .btnConfirm {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
   border-color: var(--amber);
 }
 

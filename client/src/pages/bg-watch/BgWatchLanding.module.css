@@ -180,11 +180,8 @@
   letter-spacing: 0.02em;
   text-decoration: none;
   cursor: pointer;
-  transition:
-    transform var(--transition),
-    box-shadow var(--transition),
-    opacity var(--transition);
-  box-shadow: 0 4px 14px var(--amber-glow);
+  transition: all var(--transition);
+  box-shadow: 0 4px 16px var(--amber-glow);
   margin-top: 6px;
 }
 

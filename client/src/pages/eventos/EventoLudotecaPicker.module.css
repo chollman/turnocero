@@ -302,6 +302,7 @@
   padding: 0 18px;
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 8px;
   font-family: var(--font-display);
@@ -313,6 +314,8 @@
 
 .btnPrimary:hover:not(:disabled) {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 .btnPrimary:disabled {

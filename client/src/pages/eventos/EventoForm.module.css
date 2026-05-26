@@ -194,12 +194,15 @@
   background: var(--amber);
   color: var(--on-amber);
   border-color: var(--amber);
-  box-shadow: 0 6px 18px var(--amber-glow);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
 }
 
 .btnPrimary:hover {
   background: var(--amber-light);
-  border-color: var(--amber-light);
+  color: var(--on-amber);
+    box-shadow: 0 4px 22px var(--amber-glow);
+border-color: var(--amber-light);
 }
 
 .btnPrimary:disabled,

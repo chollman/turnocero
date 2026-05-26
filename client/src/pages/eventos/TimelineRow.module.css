@@ -42,7 +42,8 @@
 .row:hover .cta,
 .row:focus-visible .cta {
   background: var(--amber-light);
-  box-shadow: 0 6px 22px var(--amber-glow);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 .row:focus-visible {
@@ -385,7 +386,7 @@
   font-weight: 700;
   letter-spacing: 0.02em;
   transition: all var(--transition);
-  box-shadow: 0 4px 14px var(--amber-glow);
+  box-shadow: 0 4px 16px var(--amber-glow);
   white-space: nowrap;
   width: 100%;
   text-decoration: none;

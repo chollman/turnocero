@@ -84,6 +84,12 @@ beforeAll(async () => {
   // every test file's `require('../../app')` reuses the same instance.
   const app = require("../app");
   app.set("io", ioStub);
+  // Wait for every model's indexes (incluyendo los `unique: true`) to finish
+  // building. Mongoose programa el index build async cuando se conecta — si un
+  // test corre antes de que termine, las constraints unique no se enforcean y
+  // un duplicate insert se cuela silenciosamente. Pasó con el test de
+  // duplicate-email en register cuando se corría aislado con `-t`.
+  await Promise.all(Object.values(mongoose.models).map((m) => m.init()));
 });
 
 afterEach(async () => {

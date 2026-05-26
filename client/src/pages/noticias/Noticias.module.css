@@ -67,14 +67,14 @@
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition:
-    background var(--transition),
-    box-shadow var(--transition);
-  box-shadow: 0 4px 14px var(--amber-glow);
+  transition: all var(--transition);
+  box-shadow: 0 4px 16px var(--amber-glow);
 }
 
 .newBtn:hover {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 .newBtnActive {
@@ -231,6 +231,7 @@
 .btnPublish {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   padding: 7px 20px;
   border-radius: 8px;
@@ -238,11 +239,13 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: background var(--transition);
+  transition: all var(--transition);
 }
 
 .btnPublish:hover:not(:disabled) {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 .btnPublish:disabled {
   opacity: 0.4;
@@ -612,7 +615,8 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 14px var(--amber-glow);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
 }
 
 /* ── Load more ── */

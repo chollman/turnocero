@@ -150,6 +150,7 @@
 .createCtaBtn {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 8px;
   padding: 0.4rem 1rem;
@@ -164,7 +165,7 @@
 .createCtaBtn:hover {
   background: var(--amber-light);
   color: var(--on-amber);
-  box-shadow: var(--shadow-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 .viewToggle {
@@ -311,6 +312,7 @@
   margin-top: 0.5rem;
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 8px;
   padding: 0.65rem 1.5rem;
@@ -324,7 +326,7 @@
 .createBtn:hover {
   background: var(--amber-light);
   color: var(--on-amber);
-  box-shadow: var(--shadow-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 .pagination {
@@ -393,19 +395,15 @@
     font-weight: 700;
     letter-spacing: 0.02em;
     text-decoration: none;
-    box-shadow:
-      0 6px 20px var(--amber-glow),
-      0 0 0 4px var(--amber-10);
+    box-shadow: 0 4px 16px var(--amber-glow);
     z-index: 50;
-    transition:
-      background var(--transition),
-      box-shadow var(--transition);
+    transition: all var(--transition);
   }
 
   .fab:hover {
-    background: var(--amber-dark);
+    background: var(--amber-light);
     color: var(--on-amber);
-    box-shadow: var(--shadow-amber);
+    box-shadow: 0 4px 22px var(--amber-glow);
   }
 }
 

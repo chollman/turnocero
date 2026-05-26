@@ -76,12 +76,13 @@
   border-radius: 8px;
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: opacity var(--transition);
+  transition: all var(--transition);
 }
 
 .btnPrimary:hover {

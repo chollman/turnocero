@@ -401,6 +401,7 @@
 .btnPrimary {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   padding: 8px 18px;
   border-radius: 8px;
@@ -408,11 +409,13 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: background var(--transition);
+  transition: all var(--transition);
 }
 
 .btnPrimary:hover:not(:disabled) {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 .btnPrimary:disabled {
   opacity: 0.5;
@@ -677,6 +680,8 @@
 .matchBtnPrimary {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
   border: none;
   padding: 5px 12px;
   border-radius: 6px;
@@ -688,6 +693,8 @@
 
 .matchBtnPrimary:hover {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 .matchBtnGhost {
@@ -1144,6 +1151,8 @@
 .userPickAddBtn {
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
   border: none;
   padding: 5px 12px;
   border-radius: 6px;
@@ -1156,6 +1165,8 @@
 
 .userPickAddBtn:hover:not(:disabled) {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 .userPickAddBtn:disabled {
   opacity: 0.4;

@@ -464,12 +464,13 @@
   letter-spacing: 0.02em;
   cursor: pointer;
   transition: all var(--transition);
-  box-shadow: 0 4px 14px var(--amber-glow);
+  box-shadow: 0 4px 16px var(--amber-glow);
   white-space: nowrap;
 }
 .btnJoin:hover:not(:disabled) {
   background: var(--amber-light);
-  box-shadow: 0 4px 18px var(--amber-40);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 .btnJoin:disabled {
   opacity: 0.5;

@@ -236,7 +236,8 @@
 
 .daySelected:hover {
   background: var(--amber-light);
-  color: var(--on-amber);
+    box-shadow: 0 4px 22px var(--amber-glow);
+color: var(--on-amber);
   border-color: var(--amber-light);
 }
 
@@ -292,6 +293,7 @@
   padding: 6px 14px;
   background: var(--amber);
   color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
   border: none;
   border-radius: 6px;
   font-family: var(--font-mono);
@@ -300,11 +302,13 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all var(--transition);
 }
 
 .doneBtn:hover {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 /* ─── Mobile ─── */
