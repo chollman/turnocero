@@ -7,6 +7,8 @@
   }
 }
 
+/* Base shimmer line — todas las "líneas" del skeleton extienden este look.
+   Sirve tanto para texto como para chips/badges/avatares. */
 .line {
   border-radius: 6px;
   background: linear-gradient(
@@ -19,7 +21,12 @@
   animation: shimmer 1.6s ease-in-out infinite;
 }
 
-/* Timeline variant */
+/* =====================================================================
+   Timeline variant — calca TimelineRow.jsx + TimelineRow.module.css
+   Grid 1fr / 200px, padding 20px 0 22px, border-bottom 1px.
+   Date column absoluta a -96px (la línea vertical del timeline vive en
+   el padre vía .timeline::before, no la repetimos acá).
+   ===================================================================== */
 .row {
   position: relative;
   display: grid;
@@ -41,14 +48,13 @@
   background: var(--bg-dark);
   padding: 4px 0 8px;
 }
-
 .dateWeekday {
   width: 40px;
   height: 10px;
 }
 .dateDay {
-  width: 56px;
-  height: 36px;
+  width: 60px;
+  height: 44px;
   border-radius: 4px;
 }
 .dateTime {
@@ -56,10 +62,24 @@
   height: 10px;
 }
 
+/* Dot del timeline alineado con el rail vertical (.timeline::before). */
+.dot {
+  position: absolute;
+  left: -8px;
+  top: 32px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 2px solid var(--border);
+  animation: shimmer 1.6s ease-in-out infinite;
+  background-size: 400% 100%;
+}
+
 .content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 .badges {
@@ -75,24 +95,75 @@
   height: 22px;
   width: 60%;
 }
-.meta {
-  height: 13px;
-  width: 45%;
+.metaRow {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.metaItem {
+  height: 12px;
+  width: 130px;
 }
 .desc {
   height: 13px;
   width: 92%;
 }
 
+.hostLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.hostAvatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+.hostName {
+  width: 120px;
+  height: 12px;
+}
+
+/* Columna derecha — fee block arriba, cupos al medio, CTA abajo,
+   alineados a la derecha como en TimelineRow.module.css .right. */
 .right {
   display: flex;
   flex-direction: column;
-  gap: 12px;
   align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
 }
 .fee {
-  height: 24px;
-  width: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  width: 100%;
+}
+.feeLabel {
+  width: 56px;
+  height: 9px;
+}
+.feeValue {
+  width: 80px;
+  height: 20px;
+}
+.cupos {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  align-items: flex-end;
+}
+.cuposBar {
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+}
+.cuposText {
+  width: 70px;
+  height: 9px;
 }
 .cta {
   height: 36px;
@@ -110,19 +181,27 @@
     width: 62px;
   }
   .dateDay {
-    height: 30px;
+    height: 36px;
     width: 50px;
   }
   .right {
     flex-direction: row;
     align-items: center;
+    flex-wrap: wrap;
+  }
+  .cupos {
+    width: 140px;
   }
   .cta {
     width: 140px;
   }
 }
 
-/* Poster variant */
+/* =====================================================================
+   Poster variant — calca PosterCard.jsx + PosterCard.module.css
+   Aspect ratio 3:4, imagen full bleed con overlay, date top-left,
+   status top-right, body abajo con title + meta + fee + CTA.
+   ===================================================================== */
 .poster {
   position: relative;
   display: flex;
@@ -135,6 +214,8 @@
 }
 
 .posterImg {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   background: linear-gradient(
@@ -147,21 +228,86 @@
   animation: shimmer 1.6s ease-in-out infinite;
 }
 
+/* Misma gradiente que .overlay del PosterCard real para mantener la
+   sensación de afiche aunque la imagen sea shimmer. */
+.posterOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 30%,
+    rgba(10, 13, 21, 0.85) 75%,
+    rgba(10, 13, 21, 0.95) 100%
+  );
+}
+
+.posterDate {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.posterDateDay {
+  width: 64px;
+  height: 50px;
+  border-radius: 4px;
+}
+.posterDateMonth {
+  width: 80px;
+  height: 11px;
+}
+
+.posterStatusWrap {
+  position: absolute;
+  top: 18px;
+  right: 16px;
+  z-index: 2;
+}
+.posterStatus {
+  width: 70px;
+  height: 18px;
+  border-radius: 4px;
+}
+
 .posterBody {
   position: absolute;
   bottom: 16px;
   left: 16px;
   right: 16px;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
 .posterTitle {
   height: 22px;
   width: 75%;
 }
-.posterMeta {
-  height: 13px;
-  width: 55%;
+.posterMetaRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.posterMetaItem {
+  width: 90px;
+  height: 11px;
+}
+.posterBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+.posterFee {
+  width: 70px;
+  height: 18px;
+}
+.posterCta {
+  width: 90px;
+  height: 28px;
+  border-radius: 6px;
 }

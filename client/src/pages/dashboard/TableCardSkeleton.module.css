@@ -7,6 +7,9 @@
   }
 }
 
+/* Card shell — match `TableCard.module.css .card` (mismo border-radius,
+   border, bg y altura plena para que llene el slot del grid igual que
+   las cards reales). */
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -14,15 +17,21 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
-.banner,
-.title,
-.badge,
-.subtitle,
-.chip,
+/* Todos los placeholders comparten el mismo shimmer linear-gradient. */
+.dateChip,
+.bannerBadge,
+.game,
+.location,
+.seatLabel,
+.seatCount,
+.seatTrack,
 .avatar,
-.joinBtn {
+.hostLabel,
+.hostName,
+.cta {
   background: linear-gradient(
     90deg,
     var(--bg-elevated) 25%,
@@ -34,72 +43,129 @@
   border-radius: 6px;
 }
 
+/* Banner 16:7, dateChip top-left + badge top-right (calca .bannerTop). */
 .banner {
+  position: relative;
   aspect-ratio: 16 / 7;
-  border-radius: 0;
+  background: var(--bg-dark);
   flex-shrink: 0;
 }
 
+.dateChip {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 130px;
+  height: 22px;
+  border-radius: 999px;
+}
+
+.bannerBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 18px;
+  border-radius: 4px;
+}
+
+/* Body — mismo padding que TableCard. */
 .body {
-  padding: 12px 14px 8px;
+  flex: 1;
+  padding: 12px 14px 14px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  flex: 1;
+  gap: 10px;
 }
 
-.topRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* h3 title — ~1.25rem en la card real. */
+.game {
+  width: 75%;
+  height: 18px;
 }
 
-.title {
-  width: 65%;
-  height: 15px;
-  flex-shrink: 1;
-}
-
-.badge {
-  width: 40px;
+/* Location row — pin + texto. */
+.location {
+  width: 60%;
   height: 13px;
-  border-radius: 4px;
-  flex-shrink: 0;
 }
 
-.subtitle {
-  width: 45%;
-  height: 12px;
+/* Seat section — head con label + count, debajo el track tipo barra. */
+.seatSection {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 2px;
 }
 
-.chip {
-  width: 60px;
+.seatHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.seatLabel {
+  width: 50px;
   height: 11px;
 }
 
-.footer {
-  padding: 8px 14px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.seatCount {
+  width: 32px;
+  height: 13px;
 }
 
-.avatars {
+.seatTrack {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+}
+
+/* Foot — host block (avatar 32px md + 2 líneas) + CTA derecha. */
+.foot {
   display: flex;
-  gap: -4px;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.hostBlock {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
 }
 
 .avatar {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  margin-right: -4px;
-  border: 2px solid var(--bg-card);
   flex-shrink: 0;
 }
 
-.joinBtn {
-  width: 80px;
-  height: 28px;
-  border-radius: 7px;
+.hostInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.hostLabel {
+  width: 35px;
+  height: 9px;
+}
+
+.hostName {
+  width: 70%;
+  height: 12px;
+}
+
+.cta {
+  width: 76px;
+  height: 30px;
+  border-radius: 8px;
+  flex-shrink: 0;
 }

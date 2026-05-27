@@ -222,7 +222,7 @@ export default function TableComments({
             value={commentInput}
             onChange={(e) => setCommentInput(e.target.value)}
             maxLength={500}
-            rows={2}
+            rows={1}
             disabled={submitting}
           />
           <button
