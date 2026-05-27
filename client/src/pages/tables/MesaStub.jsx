@@ -109,6 +109,10 @@ export default function MesaStub({
   onCancelMesa,
   onLoginRequest,
   now,
+  // Slot opcional para el chat privado de la mesa. Cuando el viewer es
+  // participante, el parent (TableDetail) le pasa el header "◆ Chat" + el
+  // <TableChat>; en otros estados queda null y la sección no se renderiza.
+  chatSlot = null,
 }) {
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [confirmCancelMesa, setConfirmCancelMesa] = useState(false);
@@ -205,7 +209,7 @@ export default function MesaStub({
             // comentarios/ratings se manejan en sus propias secciones; acá
             // sólo damos el estado del CTA.
             <div className={`${styles.state} ${styles.state_past}`}>
-              <ClockIcon size={20} />
+              <ClockIcon size={16} />
               <span className={styles.stateTitle}>Mesa finalizada</span>
               <span className={styles.stateSub}>
                 Compartí cómo estuvo: dejá comentarios, fotos o puntaje.
@@ -222,7 +226,7 @@ export default function MesaStub({
           ) : userState === "hosting" ? (
             <>
               <div className={`${styles.state} ${styles.state_hosting}`}>
-                <CrownIcon size={20} />
+                <CrownIcon size={16} />
                 <span className={styles.stateTitle}>Sos el host</span>
                 <span className={styles.stateSub}>
                   {pendingCount > 0
@@ -286,7 +290,7 @@ export default function MesaStub({
           ) : userState === "joined" ? (
             <>
               <div className={`${styles.state} ${styles.state_joined}`}>
-                <CheckIcon size={20} />
+                <CheckIcon size={16} />
                 <span className={styles.stateTitle}>Estás dentro</span>
                 <span className={styles.stateSub}>Te esperamos en la mesa</span>
               </div>
@@ -326,7 +330,7 @@ export default function MesaStub({
           ) : userState === "pending" ? (
             <>
               <div className={`${styles.state} ${styles.state_pending}`}>
-                <ClockIcon size={20} />
+                <ClockIcon size={16} />
                 <span className={styles.stateTitle}>Solicitud enviada</span>
                 <span className={styles.stateSub}>
                   El host revisará tu solicitud
@@ -357,6 +361,12 @@ export default function MesaStub({
           )}
         </div>
       </div>
+
+      {/* Chat privado al pie del stub — solo visible cuando el viewer es
+          participante (el padre se encarga de pasarlo o no). El header
+          con sectionHead + InfoTooltip vive en el slot para mantener la
+          tipografía consistente con las otras secciones del detalle. */}
+      {chatSlot && <div className={styles.chatSection}>{chatSlot}</div>}
     </aside>
   );
 }

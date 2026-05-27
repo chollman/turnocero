@@ -386,7 +386,10 @@ describe("<TableDetail>", () => {
     expect(screen.getAllByText(/lugar libre/i).length).toBe(2);
   });
 
-  it("participant sees mobile tab bar (CHAT / FOTOS / RESEÑAS)", async () => {
+  // El chat se movió al stub del aside (con InfoTooltip de privacidad), así
+  // que la mobile tab bar ya no incluye "CHAT" — sólo alterna entre FOTOS y
+  // RESEÑAS en el main column. El chat aparece debajo del stub en mobile.
+  it("participant sees mobile tab bar (FOTOS / RESEÑAS)", async () => {
     setupTable(
       makeTable({
         players: [{ _id: "me", username: "me" }],
@@ -394,7 +397,7 @@ describe("<TableDetail>", () => {
     );
     renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
     await screen.findByRole("heading", { name: "Catán" });
-    expect(screen.getByRole("button", { name: "CHAT" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "CHAT" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "FOTOS" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "RESEÑAS" })).toBeInTheDocument();
   });

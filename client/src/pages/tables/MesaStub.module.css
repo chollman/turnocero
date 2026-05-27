@@ -157,7 +157,19 @@
 
 /* -- Bottom (info rows + CTA) -------------------------------- */
 .bottom {
-  padding: 18px 22px 22px;
+  padding: 0.75rem 22px 0.75rem;
+}
+
+/* Chat privado al pie del stub. Separador "dashed" arriba para reforzar
+   visualmente que es un módulo nuevo dentro del ticket, no continuación
+   del CTA. Mismo padding lateral que .bottom para alinear bien. */
+.chatSection {
+  border-top: 1px dashed var(--border);
+  padding: 0 22px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
 }
 
 .row {
@@ -204,7 +216,7 @@
   margin-top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
 }
 
 .cta {
@@ -254,15 +266,20 @@
 }
 
 /* -- State block (joined / hosting / pending / rejected) ----- */
+/* Layout en una línea: icono + título a la izquierda, subtítulo opcional
+   empujado a la derecha. Reduce la altura del stub vs el card original
+   centrado vertical (~80px → ~36px) sin perder la info del subtítulo
+   (por ej. "2 pendientes" para hosting). */
 .state {
   width: 100%;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
-  padding: 14px 12px;
+  gap: 8px;
+  padding: 8px 12px;
   border-radius: 10px;
-  text-align: center;
+  text-align: left;
+  min-width: 0;
 }
 .state_hosting {
   background: var(--orange-10);
@@ -289,13 +306,29 @@
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  margin-top: 2px;
+  /* line-height: 1 colapsa el line-box al tamaño del glifo así
+     align-items: center del padre alinea visualmente con el icono y
+     el sub sin offset por la mitad-vacía típica de line-height: 1.5. */
+  line-height: 1;
+  margin: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
+/* Sub a la derecha, single-line con ellipsis si no entra. */
 .stateSub {
-  font-size: 12px;
-  font-weight: 400;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1;
   opacity: 0.85;
   color: var(--text-secondary);
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
 }
 .state_hosting .stateSub,
 .state_joined .stateSub,

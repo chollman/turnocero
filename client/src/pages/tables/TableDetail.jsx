@@ -141,7 +141,9 @@ export default function TableDetail() {
   const [cancelTableLoading, setCancelTableLoading] = useState(false);
   const [loginPrompt, setLoginPrompt] = useState("");
   const [accessError, setAccessError] = useState("");
-  const [mobileTab, setMobileTab] = useState("chat");
+  // Default "fotos" desde que el chat se movió al stub del aside; los tabs
+  // restantes en mobile sólo alternan fotos / reseñas en main.
+  const [mobileTab, setMobileTab] = useState("fotos");
   // Avg + count bubblean desde TableRatings para poder pintarlos en el
   // sectionHead de "◆ Valoraciones".
   const [ratingsSummary, setRatingsSummary] = useState({
@@ -807,11 +809,13 @@ export default function TableDetail() {
                 </section>
               )}
 
-              {/* Mobile tab bar — only for participants */}
+              {/* Mobile tab bar — only for participants. El chat ya no vive
+                  en main (lo movimos al stub del aside con InfoTooltip que
+                  aclara la privacidad), así que sólo quedan fotos y reseñas
+                  como tabs alternables en mobile. */}
               {!isGuest && (
                 <div className={styles.mobileTabBar}>
                   {[
-                    { id: "chat", label: "CHAT" },
                     { id: "fotos", label: "FOTOS" },
                     { id: "resenas", label: "RESEÑAS" },
                   ].map(({ id, label }) => (
@@ -825,25 +829,6 @@ export default function TableDetail() {
                     </button>
                   ))}
                 </div>
-              )}
-
-              {/* Chat */}
-              {showChat && (
-                <section
-                  className={`${styles.section} ${!isGuest && mobileTab !== "chat" ? styles.mobileHidden : ""}`}
-                >
-                  <header className={styles.sectionHead}>
-                    <span className={styles.sectionLabel}>
-                      ◆ Chat de la mesa
-                    </span>
-                    <span className={styles.sectionRule} />
-                  </header>
-                  <TableChat
-                    tableId={id}
-                    user={user}
-                    isViewingAsAdmin={isViewingAsAdmin}
-                  />
-                </section>
               )}
 
               {isGuest && !user && (
@@ -960,6 +945,29 @@ export default function TableDetail() {
                 onCancelMesa={handleCancelTable}
                 onLoginRequest={() =>
                   setLoginPrompt("Iniciá sesión para unirte a esta mesa.")
+                }
+                chatSlot={
+                  showChat ? (
+                    <>
+                      <header className={styles.sectionHead}>
+                        <span className={styles.sectionLabel}>
+                          ◆ Chat de la mesa
+                          <InfoTooltip label="Privacidad del chat">
+                            El chat es privado. Sólo el host y los jugadores
+                            unidos a esta mesa pueden ver y enviar mensajes —
+                            ningún visitante externo puede leerlo, ni siquiera
+                            si tiene el link de la mesa.
+                          </InfoTooltip>
+                        </span>
+                        <span className={styles.sectionRule} />
+                      </header>
+                      <TableChat
+                        tableId={id}
+                        user={user}
+                        isViewingAsAdmin={isViewingAsAdmin}
+                      />
+                    </>
+                  ) : null
                 }
               />
               {/* Secondary actions: Follow + Share compartida */}
