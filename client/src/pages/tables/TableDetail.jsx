@@ -8,10 +8,8 @@ import MesaTile from "../../components/shared/MesaTile";
 import TableMap from "../../components/shared/TableMap";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Avatar from "../../components/shared/Avatar";
-import {
-  getUserDisplay,
-  DELETED_USER_LABEL,
-} from "../../utils/userDisplay";
+import InfoTooltip from "../../components/shared/InfoTooltip";
+import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
 import { formatDistanceKm } from "../../utils/distance";
 import { dateParts } from "../../utils/eventoDate";
 import { hashStringToInt } from "../../utils/hash";
@@ -92,6 +90,22 @@ const ChairIcon = ({ size = 14 }) => (
   </svg>
 );
 
+const CommentIcon = ({ size = 12 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
 const BellIcon = ({ size = 13, filled = false }) => (
   <svg
     width={size}
@@ -128,6 +142,15 @@ export default function TableDetail() {
   const [loginPrompt, setLoginPrompt] = useState("");
   const [accessError, setAccessError] = useState("");
   const [mobileTab, setMobileTab] = useState("chat");
+  // Avg + count bubblean desde TableRatings para poder pintarlos en el
+  // sectionHead de "◆ Valoraciones".
+  const [ratingsSummary, setRatingsSummary] = useState({
+    avg: null,
+    count: 0,
+  });
+  // Cantidad de comentarios bubbleada desde TableComments para el
+  // sectionHead de "◆ Comentarios".
+  const [commentsCount, setCommentsCount] = useState(0);
 
   const isParticipant = useCallback(
     (t) => {
@@ -260,8 +283,7 @@ export default function TableDetail() {
     } catch (err) {
       addToast({
         type: "error",
-        message:
-          err.response?.data?.message || "Error al abandonar la mesa",
+        message: err.response?.data?.message || "Error al abandonar la mesa",
       });
       setLeaveLoading(false);
     }
@@ -275,8 +297,7 @@ export default function TableDetail() {
     } catch (err) {
       addToast({
         type: "error",
-        message:
-          err.response?.data?.message || "Error al cancelar la mesa",
+        message: err.response?.data?.message || "Error al cancelar la mesa",
       });
       setCancelTableLoading(false);
     }
@@ -291,8 +312,7 @@ export default function TableDetail() {
     } catch (err) {
       addToast({
         type: "error",
-        message:
-          err.response?.data?.message || "Error al cancelar solicitud",
+        message: err.response?.data?.message || "Error al cancelar solicitud",
       });
     } finally {
       setJoinLoading(false);
@@ -310,9 +330,21 @@ export default function TableDetail() {
   // o una mesa del evento). Antes había branching para mandar mesas de
   // eventos al detalle del evento — eso confundía al user que llegó a
   // la mesa desde /mesas.
+  //
+  // El click dispara un slide-out (espejo del slideInFromTop de PageTransition):
+  // /mesas/:id → /mesas es same-section y PageTransition no la anima, así que
+  // disparamos la animación manualmente y navegamos cuando termina.
+  const [exiting, setExiting] = useState(false);
   const goBack = useCallback(() => {
-    navigate("/mesas");
-  }, [navigate]);
+    if (exiting) return;
+    setExiting(true);
+  }, [exiting]);
+  const handlePageAnimationEnd = (e) => {
+    if (e.target !== e.currentTarget) return; // ignorar nested animations
+    if (e.animationName.includes("tableDetailExit") && exiting) {
+      navigate("/mesas");
+    }
+  };
 
   const userState = useMemo(() => {
     if (!table) return "idle";
@@ -323,9 +355,7 @@ export default function TableDetail() {
     if (table.players.some((p) => (p._id || p).toString() === uid))
       return "joined";
     if (
-      (table.pendingRequests || []).some(
-        (p) => (p._id || p).toString() === uid,
-      )
+      (table.pendingRequests || []).some((p) => (p._id || p).toString() === uid)
     )
       return "pending";
     if (table.players.length >= table.maxPlayers) return "full";
@@ -336,11 +366,18 @@ export default function TableDetail() {
 
   if (accessError) {
     return (
-      <div className={styles.page}>
+      <div
+        className={`${styles.page} ${exiting ? styles.pageExit : ""}`}
+        onAnimationEnd={handlePageAnimationEnd}
+      >
         <div className={styles.inner}>
           <p style={{ fontSize: "2rem" }}>🔒</p>
           <p style={{ color: "var(--text-secondary)" }}>{accessError}</p>
-          <button className={styles.backBtn} onClick={() => navigate("/mesas")}>
+          <button
+            className={styles.backBtn}
+            onClick={goBack}
+            disabled={exiting}
+          >
             ← Volver al listado
           </button>
         </div>
@@ -356,7 +393,6 @@ export default function TableDetail() {
   const isGuest = !isParticipant(table) && !user?.isAdmin;
   const isHost = userState === "hosting";
   const isPlayer = userState === "joined";
-  const isPending = userState === "pending";
   const isCancelled = table.status === "cancelled";
   const isPrivate = table.privacy === "private";
   const isFull = table.players.length >= table.maxPlayers;
@@ -371,7 +407,11 @@ export default function TableDetail() {
   // — cuando el admin está en modo "Ver como usuario" queremos que pierda
   // el override y experimente el freeze como cualquier user normal. Esa es
   // toda la idea del preview. Ver feedback_admin_view_as_user.md.
-  const isPastMesa = new Date(table.date).getTime() < Date.now();
+  //
+  // `new Date(...)` en lugar de `Date.now()` para evitar el lint de purity
+  // (regla react-hooks/purity); semánticamente equivalente para esta
+  // comparación.
+  const isPastMesa = new Date(table.date) < new Date();
   const isFrozen = isPastMesa && !user?.isAdmin;
 
   const locationTexto =
@@ -408,12 +448,16 @@ export default function TableDetail() {
         onClose={() => setLoginPrompt("")}
         message={loginPrompt}
       />
-      <div className={styles.page}>
-        <div className={`container ${styles.inner}`}>
+      <div
+        className={`${styles.page} ${exiting ? styles.pageExit : ""}`}
+        onAnimationEnd={handlePageAnimationEnd}
+      >
+        <div className={styles.inner}>
           <button
             type="button"
             className={styles.backBtn}
             onClick={goBack}
+            disabled={exiting}
           >
             ← Volver al listado
           </button>
@@ -433,7 +477,8 @@ export default function TableDetail() {
                 comentarios y la calificación siguen abiertos.
                 {user?.isAdmin && (
                   <span className={styles.pastBannerAdminNote}>
-                    {" "}Como admin podés seguir editando si hace falta.
+                    {" "}
+                    Como admin podés seguir editando si hace falta.
                   </span>
                 )}
               </span>
@@ -453,7 +498,10 @@ export default function TableDetail() {
                 <div className={styles.bannerContent}>
                   <div className={styles.bannerLeft}>
                     <div className={styles.bannerEyebrow}>
-                      Mesa de {hostInfo.isDeleted ? DELETED_USER_LABEL : table.host?.username}
+                      Mesa de{" "}
+                      {hostInfo.isDeleted
+                        ? DELETED_USER_LABEL
+                        : table.host?.username}
                     </div>
                     <h1 className={styles.bannerTitle}>{table.boardGame}</h1>
                     {Array.isArray(table.tags) && table.tags.length > 0 && (
@@ -541,7 +589,7 @@ export default function TableDetail() {
                   <span className={styles.metaValueAccent}>
                     {isFull
                       ? "mesa llena"
-                      : `${availableSeats} libre${availableSeats !== 1 ? "s" : ""}`}
+                      : `${availableSeats} lugar${availableSeats !== 1 ? "es" : ""} libre${availableSeats !== 1 ? "s" : ""}`}
                   </span>
                 </div>
                 <div className={styles.metaCell}>
@@ -550,7 +598,7 @@ export default function TableDetail() {
                     {isPrivate ? "Privada" : "Pública"}
                   </span>
                   <span className={styles.metaValueAccent}>
-                    {isPrivate ? "requiere aprobación" : "abierta a todos"}
+                    {isPrivate ? "Requiere aprobación" : "Abierta a todos"}
                   </span>
                 </div>
               </div>
@@ -785,7 +833,9 @@ export default function TableDetail() {
                   className={`${styles.section} ${!isGuest && mobileTab !== "chat" ? styles.mobileHidden : ""}`}
                 >
                   <header className={styles.sectionHead}>
-                    <span className={styles.sectionLabel}>◆ Chat de la mesa</span>
+                    <span className={styles.sectionLabel}>
+                      ◆ Chat de la mesa
+                    </span>
                     <span className={styles.sectionRule} />
                   </header>
                   <TableChat
@@ -806,6 +856,17 @@ export default function TableDetail() {
               <section
                 className={`${styles.section} ${!isGuest && mobileTab !== "fotos" ? styles.mobileHidden : ""}`}
               >
+                <header className={styles.sectionHead}>
+                  <span className={styles.sectionLabel}>
+                    ◆ Fotos de la mesa
+                  </span>
+                  <span className={styles.sectionRule} />
+                  {(table.images || []).length > 0 && (
+                    <span className={styles.sectionCount}>
+                      {(table.images || []).length}/10
+                    </span>
+                  )}
+                </header>
                 <TableGallery
                   tableId={id}
                   images={table.images || []}
@@ -829,12 +890,22 @@ export default function TableDetail() {
               <section
                 className={`${styles.section} ${!isGuest && mobileTab !== "resenas" ? styles.mobileHidden : ""}`}
               >
+                <header className={styles.sectionHead}>
+                  <span className={styles.sectionLabel}>◆ Comentarios</span>
+                  <span className={styles.sectionRule} />
+                  {commentsCount > 0 && (
+                    <span className={styles.sectionCount}>
+                      <CommentIcon size={12} /> {commentsCount}
+                    </span>
+                  )}
+                </header>
                 <TableComments
                   tableId={id}
                   user={user}
                   isHost={isHost}
                   isAnon={!user}
                   onRequireLogin={setLoginPrompt}
+                  onCountChange={setCommentsCount}
                 />
               </section>
 
@@ -842,12 +913,30 @@ export default function TableDetail() {
               <section
                 className={`${styles.section} ${!isGuest && mobileTab !== "resenas" ? styles.mobileHidden : ""}`}
               >
+                <header className={styles.sectionHead}>
+                  <span className={styles.sectionLabel}>
+                    ◆ Valoraciones
+                    <InfoTooltip label="Acerca de las valoraciones">
+                      Una vez finalizada la mesa, los participantes pueden dejar
+                      una valoración de 1 a 5 estrellas y un comentario opcional
+                      para reflejar cómo estuvo la sesión. Ayuda a otros
+                      jugadores a saber qué esperar del host y del grupo.
+                    </InfoTooltip>
+                  </span>
+                  <span className={styles.sectionRule} />
+                  {ratingsSummary.count > 0 && ratingsSummary.avg !== null && (
+                    <span className={styles.sectionCount}>
+                      ★ {ratingsSummary.avg.toFixed(1)} ({ratingsSummary.count})
+                    </span>
+                  )}
+                </header>
                 <TableRatings
                   tableId={id}
                   user={user}
                   canRate={
                     new Date(table.date) < new Date() && isParticipant(table)
                   }
+                  onSummaryChange={setRatingsSummary}
                 />
               </section>
             </main>

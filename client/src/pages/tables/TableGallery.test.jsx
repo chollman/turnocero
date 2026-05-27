@@ -46,9 +46,11 @@ describe("<TableGallery>", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renderiza las imágenes con el badge contador", () => {
+  // El badge "X/10" vivía en el galleryHeader interno, pero ahora el header
+  // de la sección lo provee el padre (TableDetail → sectionHead). El
+  // componente solo se encarga de renderizar las miniaturas.
+  it("renderiza las imágenes", () => {
     renderGallery({ images: [makeImg("i1"), makeImg("i2")] });
-    expect(screen.getByText("2/10")).toBeInTheDocument();
     expect(screen.getAllByAltText(/Foto de la mesa/i)).toHaveLength(2);
   });
 

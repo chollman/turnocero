@@ -27,7 +27,13 @@ const ALL_FILTERS = [
 const MAX_RADIUS_KM = 100;
 
 const GridIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor" aria-hidden="true">
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 15 15"
+    fill="currentColor"
+    aria-hidden="true"
+  >
     <rect x="1" y="1" width="5.5" height="5.5" rx="1" />
     <rect x="8.5" y="1" width="5.5" height="5.5" rx="1" />
     <rect x="1" y="8.5" width="5.5" height="5.5" rx="1" />
@@ -36,7 +42,13 @@ const GridIcon = () => (
 );
 
 const ListIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor" aria-hidden="true">
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 15 15"
+    fill="currentColor"
+    aria-hidden="true"
+  >
     <rect x="1" y="2" width="13" height="2" rx="1" />
     <rect x="1" y="6.5" width="13" height="2" rx="1" />
     <rect x="1" y="11" width="13" height="2" rx="1" />
@@ -91,7 +103,15 @@ export default function Dashboard() {
   const { user } = useAuth();
   const hasDireccion = Boolean(user?.direccion?.lat && user?.direccion?.lng);
   const [tables, setTables] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pages: 1,
+    total: 0,
+    // El server cuenta aparte las mesas futuras (date >= now) — usamos esto
+    // en el eyebrow ("X mesas activas") porque las pasadas son histórico,
+    // no capacidad activa.
+    upcomingTotal: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   // Persistimos el filter en localStorage — alineado con Eventos. Si el chip
@@ -139,7 +159,7 @@ export default function Dashboard() {
     if (useMineEndpoint && !user) {
       // No tiene sentido pegarle a /mine sin auth.
       setTables([]);
-      setPagination({ page: 1, pages: 1, total: 0 });
+      setPagination({ page: 1, pages: 1, total: 0, upcomingTotal: 0 });
       setLoading(false);
       return undefined;
     }
@@ -163,6 +183,9 @@ export default function Dashboard() {
           page: data.page,
           pages: data.pages,
           total: data.total,
+          // /api/tables/mine no devuelve upcomingTotal (es otro endpoint que
+          // no filtra por fecha) — fallback al `total` que sí trae.
+          upcomingTotal: data.upcomingTotal ?? data.total,
         });
       } catch (err) {
         if (axios.isCancel(err)) return;
@@ -207,9 +230,13 @@ export default function Dashboard() {
     [filteredTables],
   );
 
+  // Mesas "activas" = sólo las futuras. El server expone `upcomingTotal`
+  // contado aparte; el `total` general incluye históricas (que viven en
+  // el grupo "Pasadas" pero no son capacidad para sumarse).
+  const activeCount = pagination.upcomingTotal;
   const totalLabel =
-    pagination.total > 0
-      ? `${pagination.total} mesa${pagination.total !== 1 ? "s" : ""} activa${pagination.total !== 1 ? "s" : ""}`
+    activeCount > 0
+      ? `${activeCount} mesa${activeCount !== 1 ? "s" : ""} activa${activeCount !== 1 ? "s" : ""}`
       : "Mesas de juego";
 
   const todayLabel = new Date().toLocaleDateString("es-AR", {
@@ -219,192 +246,182 @@ export default function Dashboard() {
 
   return (
     <div className={styles.page}>
-      <div className="container">
-        {/* Hero editorial */}
-        <header className={styles.hero}>
-          <div className={styles.heroLeft}>
-            <p className={styles.heroEyebrow}>
-              ◆ {totalLabel} · {todayLabel}
-            </p>
-            <h1 className={styles.heroTitle}>
-              Tirá los <em>dados.</em>
-            </h1>
-            <p className={styles.heroSub}>
-              Sumate a una mesa o convocá la tuya. Encontrá jugadores cerca
-              y empezá la próxima partida.
-            </p>
-          </div>
-        </header>
+      {/* Hero editorial */}
+      <header className={styles.hero}>
+        <div className={styles.heroLeft}>
+          <p className={styles.heroEyebrow}>
+            ◆ {totalLabel} · {todayLabel}
+          </p>
+          <h1 className={styles.heroTitle}>
+            Tirá los <em>dados</em>.
+          </h1>
+          <p className={styles.heroSub}>
+            Sumate a una mesa o convocá la tuya. Encontrá jugadores cerca y
+            empezá la próxima partida.
+          </p>
+        </div>
+      </header>
 
-        {/* Controls */}
-        <div className={styles.controls}>
-          <div className={styles.searchWrap}>
-            <span className={styles.searchIcon}>
-              <SearchIcon />
-            </span>
-            <input
-              type="text"
-              className={styles.search}
-              placeholder="Buscar juego o host…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label="Buscar"
-            />
-          </div>
-
-          <div className={styles.controlsRight}>
-            <ListFilters
-              chips={ALL_FILTERS}
-              activeChip={filter}
-              onChipChange={setFilter}
-              defaultChip="all"
-              isAdmin={!!user?.isAdmin}
-              isAuthenticated={!!user}
-              showDistance={!!user}
-              radiusKm={radiusKm}
-              onRadiusChange={setRadiusKm}
-              hasDireccion={hasDireccion}
-              maxRadiusKm={MAX_RADIUS_KM}
-            />
-
-            <div
-              className={styles.viewToggle}
-              role="group"
-              aria-label="Vista"
-            >
-              <button
-                type="button"
-                className={`${styles.viewBtn} ${viewMode === "grid" ? styles.viewBtnActive : ""}`}
-                onClick={() => setViewMode("grid")}
-                title="Vista en cuadrícula"
-                aria-pressed={viewMode === "grid"}
-              >
-                <GridIcon />
-              </button>
-              <button
-                type="button"
-                className={`${styles.viewBtn} ${viewMode === "list" ? styles.viewBtnActive : ""}`}
-                onClick={() => setViewMode("list")}
-                title="Vista en lista"
-                aria-pressed={viewMode === "list"}
-              >
-                <ListIcon />
-              </button>
-            </div>
-            {user && (
-              <Link to="/mesas/crear" className={styles.newBtn}>
-                <span aria-hidden="true">+</span> Crear mesa
-              </Link>
-            )}
-          </div>
+      {/* Controls */}
+      <div className={styles.controls}>
+        <div className={styles.searchWrap}>
+          <span className={styles.searchIcon}>
+            <SearchIcon />
+          </span>
+          <input
+            type="text"
+            className={styles.search}
+            placeholder="Buscar juego o host…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Buscar"
+          />
         </div>
 
-        {/* Content */}
-        {loading ? (
-          <div className={styles.grid}>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
-              <TableCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : error ? (
-          <div className={styles.center}>
-            <p className={styles.errorText}>{error}</p>
+        <div className={styles.controlsRight}>
+          <ListFilters
+            chips={ALL_FILTERS}
+            activeChip={filter}
+            onChipChange={setFilter}
+            defaultChip="all"
+            isAdmin={!!user?.isAdmin}
+            isAuthenticated={!!user}
+            showDistance={!!user}
+            radiusKm={radiusKm}
+            onRadiusChange={setRadiusKm}
+            hasDireccion={hasDireccion}
+            maxRadiusKm={MAX_RADIUS_KM}
+          />
+
+          <div className={styles.viewToggle} role="group" aria-label="Vista">
             <button
               type="button"
-              className={styles.retryBtn}
-              onClick={() => setRefetchKey((k) => k + 1)}
+              className={`${styles.viewBtn} ${viewMode === "grid" ? styles.viewBtnActive : ""}`}
+              onClick={() => setViewMode("grid")}
+              title="Vista en cuadrícula"
+              aria-pressed={viewMode === "grid"}
             >
-              Reintentar
+              <GridIcon />
+            </button>
+            <button
+              type="button"
+              className={`${styles.viewBtn} ${viewMode === "list" ? styles.viewBtnActive : ""}`}
+              onClick={() => setViewMode("list")}
+              title="Vista en lista"
+              aria-pressed={viewMode === "list"}
+            >
+              <ListIcon />
             </button>
           </div>
-        ) : filteredTables.length === 0 ? (
-          <div className={styles.empty}>
-            <span className={styles.emptyIcon}>🃏</span>
-            <p className={styles.emptyTitle}>
-              {debouncedSearch
-                ? "Sin resultados para esa búsqueda"
-                : filter !== "all"
-                  ? "Sin mesas para este filtro"
-                  : "No hay mesas disponibles"}
-            </p>
-            <p className={styles.emptySub}>
-              {!debouncedSearch &&
-                (user
-                  ? "¡Sé el primero en crear una mesa!"
-                  : "¡Registrate para crear la primera!")}
-            </p>
-            {!debouncedSearch && user && (
-              <Link to="/mesas/crear" className={styles.createBtn}>
-                + Crear mesa
-              </Link>
-            )}
-          </div>
-        ) : (
-          <>
-            {horizonGroups.map((g) => (
-              <section key={g.key} className={styles.horizon}>
-                <header className={styles.horizonHead}>
-                  <span className={styles.horizonLabel}>Convocatorias</span>
-                  <span
-                    className={`${styles.horizonName} ${g.key === "today" ? styles.horizonNameToday : ""}`}
-                  >
-                    {g.name}
-                  </span>
-                  <span className={styles.horizonSub}>{g.sub}</span>
-                  <span className={styles.horizonRule} aria-hidden="true" />
-                  <span className={styles.horizonCount}>
-                    {g.items.length} mesa{g.items.length !== 1 ? "s" : ""}
-                  </span>
-                </header>
-                <div
-                  className={
-                    viewMode === "list" ? styles.list : styles.grid
-                  }
-                >
-                  {g.items.map((table, i) => (
-                    <div
-                      key={table._id}
-                      className={styles.cardSlot}
-                      style={{ "--i": i }}
-                    >
-                      <TableCard
-                        table={table}
-                        onUpdate={handleUpdate}
-                        onCancel={handleCancel}
-                        listMode={viewMode === "list"}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </section>
-            ))}
-
-            {pagination.pages > 1 && (
-              <div className={styles.pagination}>
-                <button
-                  type="button"
-                  className={styles.pageBtn}
-                  onClick={() => setPage((p) => p - 1)}
-                  disabled={page === 1}
-                >
-                  ← Anterior
-                </button>
-                <span className={styles.pageInfo}>
-                  {page} / {pagination.pages}
-                </span>
-                <button
-                  type="button"
-                  className={styles.pageBtn}
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={page === pagination.pages}
-                >
-                  Siguiente →
-                </button>
-              </div>
-            )}
-          </>
-        )}
+          {user && (
+            <Link to="/mesas/crear" className={styles.newBtn}>
+              <span aria-hidden="true">+</span> Crear mesa
+            </Link>
+          )}
+        </div>
       </div>
+
+      {/* Content */}
+      {loading ? (
+        <div className={styles.grid}>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
+            <TableCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : error ? (
+        <div className={styles.center}>
+          <p className={styles.errorText}>{error}</p>
+          <button
+            type="button"
+            className={styles.retryBtn}
+            onClick={() => setRefetchKey((k) => k + 1)}
+          >
+            Reintentar
+          </button>
+        </div>
+      ) : filteredTables.length === 0 ? (
+        <div className={styles.empty}>
+          <span className={styles.emptyIcon}>🃏</span>
+          <p className={styles.emptyTitle}>
+            {debouncedSearch
+              ? "Sin resultados para esa búsqueda"
+              : filter !== "all"
+                ? "Sin mesas para este filtro"
+                : "No hay mesas disponibles"}
+          </p>
+          <p className={styles.emptySub}>
+            {!debouncedSearch &&
+              (user
+                ? "¡Sé el primero en crear una mesa!"
+                : "¡Registrate para crear la primera!")}
+          </p>
+          {!debouncedSearch && user && (
+            <Link to="/mesas/crear" className={styles.createBtn}>
+              + Crear mesa
+            </Link>
+          )}
+        </div>
+      ) : (
+        <>
+          {horizonGroups.map((g) => (
+            <section key={g.key} className={styles.horizon}>
+              <header className={styles.horizonHead}>
+                <span className={styles.horizonLabel}>Convocatorias</span>
+                <span
+                  className={`${styles.horizonName} ${g.key === "today" ? styles.horizonNameToday : ""}`}
+                >
+                  {g.name}
+                </span>
+                <span className={styles.horizonSub}>{g.sub}</span>
+                <span className={styles.horizonRule} aria-hidden="true" />
+                <span className={styles.horizonCount}>
+                  {g.items.length} mesa{g.items.length !== 1 ? "s" : ""}
+                </span>
+              </header>
+              <div className={viewMode === "list" ? styles.list : styles.grid}>
+                {g.items.map((table, i) => (
+                  <div
+                    key={table._id}
+                    className={styles.cardSlot}
+                    style={{ "--i": i }}
+                  >
+                    <TableCard
+                      table={table}
+                      onUpdate={handleUpdate}
+                      onCancel={handleCancel}
+                      listMode={viewMode === "list"}
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
+
+          {pagination.pages > 1 && (
+            <div className={styles.pagination}>
+              <button
+                type="button"
+                className={styles.pageBtn}
+                onClick={() => setPage((p) => p - 1)}
+                disabled={page === 1}
+              >
+                ← Anterior
+              </button>
+              <span className={styles.pageInfo}>
+                {page} / {pagination.pages}
+              </span>
+              <button
+                type="button"
+                className={styles.pageBtn}
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page === pagination.pages}
+              >
+                Siguiente →
+              </button>
+            </div>
+          )}
+        </>
+      )}
 
       {/* FAB — mobile only, logged-in users only */}
       {user && (

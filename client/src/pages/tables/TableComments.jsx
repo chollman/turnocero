@@ -26,6 +26,9 @@ const formatDate = (dateStr) =>
 //   - tableId, user, isHost: para los chequeos de ownership y delete.
 //   - isAnon: si es true, el form se reemplaza por un CTA que abre el
 //     LoginPromptModal (callback `onRequireLogin`).
+//   - onCountChange(n): callback opcional que bubblea la cantidad de
+//     comentarios al padre (TableDetail lo usa para pintar el contador
+//     en el sectionHead).
 //   - className: para la regla responsive (oculto en mobile salvo en
 //     el tab activo).
 export default function TableComments({
@@ -34,6 +37,7 @@ export default function TableComments({
   isHost,
   isAnon,
   onRequireLogin,
+  onCountChange,
   className = "",
 }) {
   const [comments, setComments] = useState([]);
@@ -42,6 +46,11 @@ export default function TableComments({
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editingContent, setEditingContent] = useState("");
+
+  // Bubble la cantidad al padre cuando cambia.
+  useEffect(() => {
+    onCountChange?.(comments.length);
+  }, [comments.length, onCountChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,14 +116,6 @@ export default function TableComments({
 
   return (
     <div className={`${styles.card} ${className}`}>
-      <div className={styles.sectionRow}>
-        <span className={styles.eyebrow}>
-          COMENTARIOS
-          {comments.length > 0 && (
-            <span className={styles.commentsBadge}>{comments.length}</span>
-          )}
-        </span>
-      </div>
       {error && <p className={styles.commentError}>{error}</p>}
       {comments.length === 0 ? (
         <p className={styles.commentsEmpty}>

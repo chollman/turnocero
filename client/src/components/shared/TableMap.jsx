@@ -55,7 +55,7 @@ function handleOf(user) {
   if (!user) return "lugar libre";
   const d = getUserDisplay(user);
   if (d.isDeleted) return "eliminado";
-  return "@" + (d.username || d.displayName || "anon");
+  return `@${d.username || d.displayName || "anon"}`;
 }
 
 export default function TableMap({

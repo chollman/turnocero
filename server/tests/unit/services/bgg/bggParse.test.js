@@ -19,7 +19,7 @@ describe("parser (XMLParser config)", () => {
     const xml =
       '<items><item id="1"><name type="primary" value="It&#039;s a Wonderful World"/></item></items>';
     const parsed = parser.parse(xml);
-    expect(parsed.items.item["name"]["@_value"]).toBe(
+    expect(parsed.items.item.name["@_value"]).toBe(
       "It's a Wonderful World",
     );
   });
@@ -28,14 +28,14 @@ describe("parser (XMLParser config)", () => {
     const xml =
       '<items><item id="1"><name type="primary" value="Spirit&#x27;s Island"/></item></items>';
     const parsed = parser.parse(xml);
-    expect(parsed.items.item["name"]["@_value"]).toBe("Spirit's Island");
+    expect(parsed.items.item.name["@_value"]).toBe("Spirit's Island");
   });
 
   it("sigue decodificando entidades named básicas (&amp;, &apos;)", () => {
     const xml =
       '<items><item id="1"><name type="primary" value="Hearts &amp; Minds"/></item></items>';
     const parsed = parser.parse(xml);
-    expect(parsed.items.item["name"]["@_value"]).toBe("Hearts & Minds");
+    expect(parsed.items.item.name["@_value"]).toBe("Hearts & Minds");
   });
 });
 

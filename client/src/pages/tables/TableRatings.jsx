@@ -6,17 +6,22 @@ import { getErrorMessage } from "../../utils/getErrorMessage";
 import { API } from "../../api/endpoints";
 import styles from "./TableDetail.module.css";
 
-// Sección "¿Cómo estuvo la sesión?" — listado de ratings + form para
-// que un participante deje su valoración (1-5 estrellas + comentario
-// opcional). Solo se puede valorar después de la fecha de la mesa.
+// Sección "Valoraciones" — listado de ratings + form para que un
+// participante deje su valoración (1-5 estrellas + comentario opcional).
+// Solo se puede valorar después de la fecha de la mesa.
 //
 // State autocontenido: lista, avg/count, mi rating en edición, hover
 // para el preview de estrellas, submitting/error. El fetch inicial
 // también vive acá (antes estaba mezclado en un Promise.all del padre).
+//
+// `onSummaryChange({ avg, count })` lo provee el padre (TableDetail) para
+// renderizar el promedio + cantidad en el sectionHead. Antes el badge
+// vivía dentro del card; ahora lo lleva el header de la sección.
 export default function TableRatings({
   tableId,
   user,
   canRate,
+  onSummaryChange,
   className = "",
 }) {
   const [ratings, setRatings] = useState([]);
@@ -27,6 +32,12 @@ export default function TableRatings({
   const [hoverScore, setHoverScore] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // Bubble avg/count al padre cada vez que cambian. setState refs son
+  // stables, así que no hace falta useCallback en el caller.
+  useEffect(() => {
+    onSummaryChange?.({ avg, count });
+  }, [avg, count, onSummaryChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,15 +94,6 @@ export default function TableRatings({
 
   return (
     <div className={`${styles.ratingsCard} ${className}`}>
-      <div className={styles.sectionRow}>
-        <span className={styles.eyebrow}>¿CÓMO ESTUVO LA SESIÓN?</span>
-        {count > 0 && avg !== null && (
-          <span className={styles.ratingsAvgBadge}>
-            {"★".repeat(Math.round(avg))}
-            {"☆".repeat(5 - Math.round(avg))} {avg.toFixed(1)} ({count})
-          </span>
-        )}
-      </div>
       {canRate && (
         <form className={styles.ratingForm} onSubmit={handleSubmit}>
           <span className={styles.ratingLabel}>Tu puntuación</span>

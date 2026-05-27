@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
@@ -43,7 +43,10 @@ describe("<TableRatings>", () => {
     });
   });
 
-  it("muestra el promedio y el contador cuando hay ratings", async () => {
+  // El badge "★ 4.5 (2)" se mudó al sectionHead del padre (TableDetail);
+  // el componente lo expone vía `onSummaryChange({ avg, count })`. Acá
+  // verificamos que el callback se dispara con los valores correctos.
+  it("bubblea el promedio y el contador vía onSummaryChange", async () => {
     setupRatings({
       ratings: [
         { _id: "r1", rater: other, score: 4, comment: "Bien" },
@@ -52,10 +55,12 @@ describe("<TableRatings>", () => {
       avg: 4.5,
       count: 2,
     });
-    renderRatings();
+    const onSummaryChange = vi.fn();
+    renderRatings({ onSummaryChange });
     await screen.findByText("Bien");
-    expect(screen.getByText(/4\.5/)).toBeInTheDocument();
-    expect(screen.getByText(/\(2\)/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(onSummaryChange).toHaveBeenCalledWith({ avg: 4.5, count: 2 });
+    });
   });
 
   it("oculta el form si canRate=false", async () => {

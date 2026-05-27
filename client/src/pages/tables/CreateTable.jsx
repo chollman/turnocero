@@ -7,11 +7,13 @@ import {
 } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
 import InfoTooltip from "../../components/shared/InfoTooltip";
 import DateTimePicker from "../../components/shared/DateTimePicker";
+import MesaForm from "./MesaForm";
 import styles from "./CreateTable.module.css";
 
 const defaultDate = () => {
@@ -32,7 +34,74 @@ function toLocalTimeInput(d) {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// Dispatcher: el flow standalone (sin eventoId) usa el wizard `<MesaForm>`
+// nuevo (handoff-driven, 4 pasos + live preview). El flow "mesa dentro de
+// un evento" mantiene su layout compacto — tiene constraints distintas
+// (fecha forzada por el evento, ludoteca picker, sin location porque se
+// hereda) que no encajan en el wizard.
 export default function CreateTable() {
+  const [searchParams] = useSearchParams();
+  const eventoId = searchParams.get("evento") || null;
+  if (eventoId) return <CreateMesaForEvento eventoId={eventoId} />;
+  return <CreateMesaStandalone />;
+}
+
+// ── Standalone (wizard) ──────────────────────────────────────────────
+function CreateMesaStandalone() {
+  const navigate = useNavigate();
+  const { addToast } = useNotifications();
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState("");
+
+  const goBack = () => {
+    const canGoBack = (window.history.state?.idx ?? 0) > 0;
+    if (canGoBack) navigate(-1);
+    else navigate("/mesas");
+  };
+
+  const handleSubmit = async (payload) => {
+    setServerError("");
+    setSubmitting(true);
+    try {
+      const { data } = await axios.post(API.tables.LIST, {
+        boardGame: payload.boardGame,
+        bggId: payload.bggId,
+        bggThumbnail: payload.bggThumbnail,
+        bggImage: payload.bggImage,
+        bggYear: payload.bggYear,
+        date: payload.date,
+        // UI cuenta al host; el server espera "spots libres" → restamos 1.
+        maxPlayers: Math.max(1, Number(payload.maxPlayers) - 1),
+        location: payload.location,
+        description: payload.description,
+        rules: payload.rules,
+        tags: payload.tags,
+        privacy: payload.privacy,
+      });
+      navigate(`/mesas/${data._id}`);
+    } catch (err) {
+      const msg =
+        err.response?.data?.message || "Error al crear la mesa";
+      setServerError(msg);
+      addToast({ type: "error", message: msg });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <MesaForm
+      editMode={false}
+      submitting={submitting}
+      serverError={serverError}
+      onSubmit={handleSubmit}
+      onCancel={goBack}
+    />
+  );
+}
+
+// ── Mesa dentro de un evento (compact form) ──────────────────────────
+function CreateMesaForEvento({ eventoId: _eventoId }) {
   const { user } = useAuth();
   const profileDireccionTexto = user?.direccion?.texto || "";
   const hasProfileDireccion = Boolean(
@@ -65,11 +134,10 @@ export default function CreateTable() {
   const searchCache = useRef(new Map());
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
-  // Si la mesa se está creando desde el detalle de un evento, el query param
-  // `?evento=<id>` se propaga al POST. El server valida permisos contra el
-  // evento (canActInEvento). Sin el param, la mesa es global.
-  const eventoId = searchParams.get("evento") || null;
+  // `eventoId` ahora viene como prop desde el dispatcher (CreateTable arriba).
+  // Antes lo leíamos del searchParam acá adentro, pero al haber un dispatcher
+  // que ya decidió este branch del flow, es más claro recibirlo como input.
+  const eventoId = _eventoId;
   // EventoMesas pasa `eventDate` por navigation state al hacer "Crear mesa"
   // para no tener que refetchear el evento acá. Si el user refresca el form
   // (state se pierde), caemos a un fetch defensivo abajo.

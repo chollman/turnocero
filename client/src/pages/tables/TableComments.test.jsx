@@ -48,7 +48,10 @@ describe("<TableComments>", () => {
     });
   });
 
-  it("renderiza los comentarios del fetch inicial con badge contador", async () => {
+  // El badge contador vivía dentro del componente, pero ahora el header de
+  // la sección lo provee el padre (TableDetail → sectionHead). El componente
+  // expone la cantidad vía `onCountChange(n)`.
+  it("renderiza los comentarios del fetch inicial y bubblea el count", async () => {
     setupComments([
       {
         _id: "c1",
@@ -57,11 +60,12 @@ describe("<TableComments>", () => {
         createdAt: new Date().toISOString(),
       },
     ]);
-    renderTableComments();
+    const onCountChange = vi.fn();
+    renderTableComments({ onCountChange });
     await waitFor(() => {
       expect(screen.getByText("Buen aporte")).toBeInTheDocument();
       expect(screen.getByText("amigo")).toBeInTheDocument();
-      expect(screen.getByText("1")).toBeInTheDocument(); // badge
+      expect(onCountChange).toHaveBeenCalledWith(1);
     });
   });
 

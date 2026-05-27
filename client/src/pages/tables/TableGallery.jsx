@@ -57,32 +57,24 @@ export default function TableGallery({
   return (
     <>
       <div className={`${styles.card} ${className}`}>
-        <div className={styles.galleryHeader}>
-          <span className={styles.eyebrow}>
-            FOTOS DE LA MESA
-            {images.length > 0 && (
-              <span className={styles.galleryBadge}>{images.length}/10</span>
-            )}
-          </span>
-          {canUpload && (
-            <>
-              <button
-                className={styles.btnUpload}
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                {uploading ? "Subiendo…" : "+ Foto"}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                style={{ display: "none" }}
-                onChange={handleUpload}
-              />
-            </>
-          )}
-        </div>
+        {canUpload && (
+          <div className={styles.galleryActions}>
+            <button
+              className={styles.btnUpload}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? "Subiendo…" : "+ Foto"}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              style={{ display: "none" }}
+              onChange={handleUpload}
+            />
+          </div>
+        )}
         {error && <p className={styles.galleryError}>{error}</p>}
         {images.length === 0 ? (
           <p className={styles.galleryEmpty}>

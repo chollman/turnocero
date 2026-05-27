@@ -5,6 +5,9 @@ import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
+vi.mock("../../context/NotificationContext", () => ({
+  useNotifications: () => ({ addToast: vi.fn() }),
+}));
 
 // Mocks de los componentes de mapa — sus tests propios cubren el comportamiento.
 vi.mock("../../components/shared/AddressMap", () => ({
@@ -65,17 +68,17 @@ beforeEach(() => {
 });
 
 describe("<EditTable>", () => {
-  it("non-host gets redirected to /", async () => {
+  it("non-host gets redirected to /mesas", async () => {
     server.use(
       http.get("/api/tables/:id", () => HttpResponse.json(makeTable())),
     );
     renderEdit({ user: { _id: "me" } });
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith("/");
+      expect(navigateMock).toHaveBeenCalledWith("/mesas");
     });
   });
 
-  it("cancelled table redirects to /", async () => {
+  it("cancelled table redirects to /mesas", async () => {
     server.use(
       http.get("/api/tables/:id", () =>
         HttpResponse.json(makeTable({ status: "cancelled" })),
@@ -83,42 +86,50 @@ describe("<EditTable>", () => {
     );
     renderEdit();
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith("/");
+      expect(navigateMock).toHaveBeenCalledWith("/mesas");
     });
   });
 
-  it("host sees the prefilled form fields", async () => {
+  it("host sees the prefilled wizard with game read-only", async () => {
     server.use(
       http.get("/api/tables/:id", () => HttpResponse.json(makeTable())),
     );
     renderEdit();
     await waitFor(() => {
-      expect(screen.getByText(/editar tu mesa/i)).toBeInTheDocument();
+      expect(screen.getByText(/ajustá tu/i)).toBeInTheDocument();
     });
+    // Game name is rendered as read-only (NO input), location + description
+    // come prefilled.
+    expect(screen.queryByPlaceholderText(/buscá un juego/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText("Catán").length).toBeGreaterThan(0);
     expect(screen.getByDisplayValue("Buenos Aires")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Notas")).toBeInTheDocument();
   });
 
-  it("PUT /api/tables/:id on submit, then navigate home", async () => {
+  it("PUT /api/tables/:id on submit, then navigate to detail", async () => {
+    let putCalled = false;
     server.use(
       http.get("/api/tables/:id", () => HttpResponse.json(makeTable())),
-      http.put("/api/tables/:id", () => HttpResponse.json({ ok: true })),
+      http.put("/api/tables/:id", () => {
+        putCalled = true;
+        return HttpResponse.json({ ok: true });
+      }),
     );
     renderEdit();
-    await screen.findByText(/editar tu mesa/i);
+    await screen.findByText(/ajustá tu/i);
 
     fireEvent.change(screen.getByDisplayValue("Buenos Aires"), {
       target: { value: "Córdoba" },
     });
-    const form = screen.getByDisplayValue("Córdoba").closest("form");
-    fireEvent.submit(form);
+    fireEvent.click(
+      screen.getByRole("button", { name: /guardar cambios/i }),
+    );
 
-    await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith("/");
-    });
+    await waitFor(() => expect(putCalled).toBe(true));
+    expect(navigateMock).toHaveBeenCalledWith("/mesas/t1");
   });
 
-  it("Cancel button calls DELETE after confirm", async () => {
+  it("'Cancelar mesa' (danger zone) calls DELETE after confirm + navigates to /mesas", async () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     let deleteCalled = false;
     server.use(
@@ -129,13 +140,12 @@ describe("<EditTable>", () => {
       }),
     );
     renderEdit();
-    await screen.findByText(/editar tu mesa/i);
+    await screen.findByText(/ajustá tu/i);
 
-    const deleteBtn = screen.getByRole("button", { name: /eliminar mesa/i });
-    fireEvent.click(deleteBtn);
+    fireEvent.click(screen.getByRole("button", { name: /cancelar mesa/i }));
 
     await waitFor(() => expect(deleteCalled).toBe(true));
-    expect(navigateMock).toHaveBeenCalledWith("/");
+    expect(navigateMock).toHaveBeenCalledWith("/mesas");
     confirmSpy.mockRestore();
   });
 });

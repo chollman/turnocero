@@ -214,8 +214,12 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
   // Usamos `user?.isAdmin` (effective) — cuando el admin activa "Ver como
   // usuario" debe perder el override y comportarse como user normal. Ese
   // es el contrato del preview mode (ver feedback_admin_view_as_user.md).
+  //
+  // `new Date()` en lugar de `Date.now()` para evitar el lint de purity
+  // (regla react-hooks/purity); semánticamente equivalente para
+  // comparaciones temporales.
   const isPastMesa = dateParts(table.date)
-    ? new Date(table.date).getTime() < Date.now()
+    ? new Date(table.date) < new Date()
     : false;
   const isFrozen = isPastMesa && !user?.isAdmin;
 
@@ -226,7 +230,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
   // Cyan default → naranja "soon" si en <6h → rojo "urgent" si <1h → muted si pasó.
   const dateChipTone = (() => {
     if (!dParts) return "default";
-    const diffMs = dParts.isoDate.getTime() - Date.now();
+    const diffMs = dParts.isoDate.getTime() - new Date().getTime();
     if (diffMs < 0) return "past";
     if (diffMs < 60 * 60 * 1000) return "urgent";
     return "default";

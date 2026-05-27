@@ -2,24 +2,26 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { API } from "../../api/endpoints";
-import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
-import AddressMap from "../../components/shared/AddressMap";
-import DateTimePicker from "../../components/shared/DateTimePicker";
 import { toLocalInputValue } from "../../utils/eventoDate";
-import styles from "./CreateTable.module.css";
+import MesaForm from "./MesaForm";
 
+// Thin wrapper: fetchea la mesa, valida que el viewer pueda editarla
+// (host o admin), normaliza el shape al que consume MesaForm y delega
+// el render del wizard. El mismo MesaForm sirve para crear y editar —
+// diferencias: editMode=true bloquea el campo "Nombre del juego" y
+// muestra la "Zona delicada" abajo de los CTAs.
 export default function EditTable() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { addToast } = useNotifications();
   const navigate = useNavigate();
-  const [boardGame, setBoardGame] = useState("");
-  const [form, setForm] = useState(null);
-  const [minPlayers, setMinPlayers] = useState(1);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
-  const [geocoding, setGeocoding] = useState(false);
+
+  const [initialValues, setInitialValues] = useState(null);
+  const [playersCount, setPlayersCount] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState("");
 
   useEffect(() => {
     const ac = new AbortController();
@@ -29,21 +31,19 @@ export default function EditTable() {
           signal: ac.signal,
         });
         if (ac.signal.aborted) return;
+        const uid = user._id?.toString();
         const isHost =
-          data.host._id === user._id ||
-          data.host._id?.toString() === user._id?.toString();
-        if (!isHost || data.status === "cancelled") {
-          navigate("/");
+          data.host?._id === user._id ||
+          data.host?._id?.toString() === uid;
+        // Host puede siempre. Admin puede SOLO cuando la mesa ya pasó
+        // (override del freeze — ver feedback del freeze post-fecha).
+        const isPast = data.date && new Date(data.date).getTime() < Date.now();
+        const canEdit = isHost || (user.isAdmin && isPast);
+        if (!canEdit || data.status === "cancelled") {
+          navigate("/mesas");
           return;
         }
-        // `maxPlayers` se almacena en el server como "spots aparte del host";
-        // en la UI lo mostramos como total (incluyendo al host) para evitar la
-        // confusión que generaba el modelo anterior. Sumamos +1 al cargar y
-        // restamos -1 al guardar. El mínimo también es total → players + host.
-        setMinPlayers(data.players.length + 1);
-        setBoardGame(data.boardGame);
-        // El server normaliza location al subdocumento, pero defendamos contra
-        // respuestas legacy (string) por si llega cacheada en algún cliente.
+        // location puede llegar como string legacy o subdoc.
         const loc =
           typeof data.location === "string"
             ? { texto: data.location, lat: null, lng: null }
@@ -52,279 +52,91 @@ export default function EditTable() {
                 lat: data.location?.lat ?? null,
                 lng: data.location?.lng ?? null,
               };
-        setForm({
-          // toLocalInputValue convierte el ISO UTC del server a "YYYY-MM-DDTHH:mm"
-          // en hora local del navegador — formato que <DateTimePicker> consume.
-          // Antes acá iba `.toISOString().slice(0, 16)`, que mostraba UTC en vez
-          // de local y desfasaba la hora N horas según timezone.
+        setInitialValues({
+          boardGame: data.boardGame,
+          bggData: {
+            id: data.bggId,
+            name: data.boardGame,
+            thumbnail: data.bggThumbnail,
+            image: data.bggImage,
+            year: data.bggYear,
+          },
+          // server guarda spots libres (sin host); UI cuenta total → +1.
+          // toLocalInputValue convierte UTC del server a hora local que
+          // consume <DateTimePicker>.
           date: toLocalInputValue(data.date),
           maxPlayers: data.maxPlayers + 1,
           location: loc,
           description: data.description || "",
+          rules: data.rules || "",
+          tags: data.tags || [],
           privacy: data.privacy || "public",
         });
+        setPlayersCount(data.players?.length || 0);
       } catch (err) {
         if (axios.isCancel(err)) return;
-        navigate("/");
-      } finally {
-        if (!ac.signal.aborted) setFetching(false);
+        navigate("/mesas");
       }
     };
     fetchTable();
     return () => ac.abort();
-  }, [id, user._id, navigate]);
+  }, [id, user._id, user.isAdmin, navigate]);
 
-  const handleChange = (e) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  const goBack = () => navigate(`/mesas/${id}`);
 
-  // ── Ubicación ──
-  const updateLocationTexto = (texto) =>
-    setForm((f) => ({ ...f, location: { ...f.location, texto } }));
-  const handlePlaceSelect = ({ lat, lng, formattedAddress }) =>
-    setForm((f) => ({
-      ...f,
-      location: { texto: formattedAddress || f.location.texto, lat, lng },
-    }));
-  const handleMapChange = (lat, lng) =>
-    setForm((f) => ({ ...f, location: { ...f.location, lat, lng } }));
-  const handleManualGeocode = async () => {
-    const q = form.location.texto.trim();
-    if (q.length < 3) {
-      setError("Escribí una dirección de al menos 3 caracteres.");
-      setTimeout(() => setError(""), 3000);
-      return;
-    }
-    setGeocoding(true);
-    try {
-      const { data } = await axios.get(API.geocode, { params: { q } });
-      setForm((f) => ({
-        ...f,
-        location: {
-          texto: data.formatted || f.location.texto,
-          lat: data.lat,
-          lng: data.lng,
-        },
-      }));
-    } catch (err) {
-      const msg =
-        err.response?.status === 404
-          ? "No se encontró la dirección. Intentá ser más específico o picá una sugerencia."
-          : err.response?.data?.message || "Error al buscar la dirección.";
-      setError(msg);
-      setTimeout(() => setError(""), 3000);
-    } finally {
-      setGeocoding(false);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  const handleSubmit = async (payload) => {
+    setServerError("");
+    setSubmitting(true);
     try {
       await axios.put(API.tables.DETAIL(id), {
-        ...form,
-        maxPlayers: Number(form.maxPlayers) - 1,
+        date: payload.date,
+        // UI cuenta al host; server espera spots libres → -1.
+        maxPlayers: Math.max(1, Number(payload.maxPlayers) - 1),
+        location: payload.location,
+        description: payload.description,
+        rules: payload.rules,
+        tags: payload.tags,
+        privacy: payload.privacy,
       });
-      navigate("/");
+      navigate(`/mesas/${id}`);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al guardar los cambios");
+      const msg =
+        err.response?.data?.message || "Error al guardar los cambios";
+      setServerError(msg);
+      addToast({ type: "error", message: msg });
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
     if (!window.confirm("¿Cancelar la mesa? Esta acción no se puede deshacer."))
       return;
-    setLoading(true);
+    setSubmitting(true);
     try {
       await axios.delete(API.tables.DETAIL(id));
-      navigate("/");
+      navigate("/mesas");
     } catch (err) {
-      setError(err.response?.data?.message || "Error al cancelar la mesa");
-      setLoading(false);
+      const msg =
+        err.response?.data?.message || "Error al cancelar la mesa";
+      setServerError(msg);
+      addToast({ type: "error", message: msg });
+      setSubmitting(false);
     }
   };
 
-  if (fetching || !form) return null;
+  if (!initialValues) return null;
 
   return (
-    <div className={styles.page}>
-      <div className={styles.inner}>
-        <div className={styles.hero}>
-          <div className={styles.eyebrow}>◆ EDITAR MESA</div>
-          <h1 className={styles.heroTitle}>Editar tu mesa</h1>
-          <p className={styles.heroSub}>
-            Los cambios se notifican a los jugadores ya unidos.
-          </p>
-        </div>
-
-        <div className={styles.formCard}>
-          {error && <div className={styles.errorBox}>{error}</div>}
-
-          <form onSubmit={handleSubmit} className={styles.form}>
-            <div className={styles.field}>
-              <label className={styles.label}>Juego de mesa</label>
-              <div className={styles.gameReadOnly}>{boardGame}</div>
-            </div>
-
-            <div className={styles.twoCol}>
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="mesa-edit-date">
-                  Fecha y hora *
-                </label>
-                <DateTimePicker
-                  id="mesa-edit-date"
-                  name="date"
-                  value={form.date}
-                  onChange={(v) => setForm((f) => ({ ...f, date: v }))}
-                  required
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label className={styles.label}>
-                  Jugadores
-                  <span className={styles.labelHint}>(incluyéndote)</span>
-                </label>
-                <div className={styles.counter}>
-                  <button
-                    type="button"
-                    className={styles.counterMinus}
-                    onClick={() =>
-                      setForm((f) => ({
-                        ...f,
-                        maxPlayers: Math.max(minPlayers, f.maxPlayers - 1),
-                      }))
-                    }
-                  >
-                    −
-                  </button>
-                  <span className={styles.counterVal}>{form.maxPlayers}</span>
-                  <button
-                    type="button"
-                    className={styles.counterPlus}
-                    onClick={() =>
-                      setForm((f) => ({
-                        ...f,
-                        maxPlayers: Math.min(21, f.maxPlayers + 1),
-                      }))
-                    }
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.field}>
-              <label className={styles.label}>Ubicación</label>
-              <p className={styles.locationHint}>
-                Empezá a escribir y elegí una sugerencia, o cliqueá en el mapa
-                para marcar el lugar exacto. Opcional.
-              </p>
-              <div className={styles.geocodeRow}>
-                <PlaceAutocomplete
-                  value={form.location.texto}
-                  onChange={updateLocationTexto}
-                  onSelect={handlePlaceSelect}
-                  placeholder="Casa, bar, club…"
-                />
-                <button
-                  type="button"
-                  className={styles.btnSearch}
-                  onClick={handleManualGeocode}
-                  disabled={geocoding}
-                  title="Buscar la dirección que tipeaste (sin picar sugerencia)"
-                >
-                  {geocoding ? "…" : "Buscar"}
-                </button>
-              </div>
-              {form.location.lat != null && form.location.lng != null && (
-                <p className={styles.coordsHint}>
-                  📍 {form.location.lat.toFixed(5)},{" "}
-                  {form.location.lng.toFixed(5)}
-                </p>
-              )}
-              <div style={{ marginTop: 8 }}>
-                <AddressMap
-                  lat={form.location.lat}
-                  lng={form.location.lng}
-                  onChange={handleMapChange}
-                  height={220}
-                />
-              </div>
-            </div>
-
-            <div className={styles.field}>
-              <label className={styles.label}>Descripción</label>
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                className={`${styles.input} ${styles.textarea}`}
-                placeholder="Reglas especiales, nivel requerido, qué llevar… (opcional)"
-                maxLength={500}
-                rows={3}
-              />
-            </div>
-
-            <div className={styles.field}>
-              <label className={styles.label}>Privacidad</label>
-              <div className={styles.privacyGrid}>
-                <button
-                  type="button"
-                  className={`${styles.privacyCard} ${form.privacy === "public" ? styles.privacyCardSelected : ""}`}
-                  onClick={() => setForm((f) => ({ ...f, privacy: "public" }))}
-                >
-                  <span className={styles.privacyIcon}>🌐</span>
-                  <span className={styles.privacyLabel}>Pública</span>
-                  <span className={styles.privacyDesc}>
-                    Cualquiera puede unirse al instante
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.privacyCard} ${form.privacy === "private" ? styles.privacyCardSelected : ""}`}
-                  onClick={() => setForm((f) => ({ ...f, privacy: "private" }))}
-                >
-                  <span className={styles.privacyIcon}>🔒</span>
-                  <span className={styles.privacyLabel}>Privada</span>
-                  <span className={styles.privacyDesc}>
-                    Aprobás cada solicitud
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <div className={styles.actions}>
-              <button
-                type="button"
-                className={`${styles.btnDanger} ${styles.actionsLeft}`}
-                onClick={handleDelete}
-                disabled={loading}
-              >
-                Eliminar mesa
-              </button>
-              <button
-                type="button"
-                className={styles.btnGhost}
-                onClick={() => navigate("/")}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className={styles.btnPrimary}
-                disabled={loading}
-              >
-                {loading ? "Guardando…" : "Guardar cambios"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+    <MesaForm
+      editMode
+      initialValues={initialValues}
+      playersCount={playersCount}
+      submitting={submitting}
+      serverError={serverError}
+      onSubmit={handleSubmit}
+      onCancel={goBack}
+      onDelete={handleDelete}
+    />
   );
 }

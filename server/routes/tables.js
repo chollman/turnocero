@@ -48,10 +48,10 @@ function rethrowValidation(err) {
 }
 
 // Mesa "finalizada" = la fecha programada ya pasó. Una vez finalizada, queda
-// congelada para todo el mundo MENOS admins: nadie edita / cancela / se une
-// / se va / acepta-rechaza solicitudes. Chat, comentarios, fotos y ratings
-// siguen abiertos (es el "post-game" social). Admins ignoran el gate para
-// poder mantenimiento (reabrir errores, limpiar spam, etc.).
+// congelada para cualquier user que no sea admin: nadie edita / cancela /
+// se une / se va / acepta-rechaza solicitudes. Chat, comentarios, fotos y
+// ratings siguen abiertos (es el "post-game" social). Admins ignoran el
+// gate para poder mantenimiento (reabrir errores, limpiar spam, etc.).
 function isPastTable(table) {
   if (!table?.date) return false;
   return new Date(table.date).getTime() < Date.now();
@@ -118,6 +118,10 @@ async function listTables({ user, query, eventoId = null }) {
     ...scopeFilter,
     ...searchClause,
   };
+  // Las "activas" del eyebrow del Dashboard son sólo las futuras — mesas
+  // pasadas siguen visibles en la lista (grupo "Pasadas") pero no cuentan
+  // como capacidad disponible para sumarse.
+  const upcomingFilter = { ...baseFilter, date: { $gte: new Date() } };
 
   const userLat = user?.direccion?.lat ?? null;
   const userLng = user?.direccion?.lng ?? null;
@@ -134,26 +138,33 @@ async function listTables({ user, query, eventoId = null }) {
       (t) => t.distanceKm !== null && t.distanceKm <= maxKm,
     );
     const total = withDistance.length;
+    const now = Date.now();
+    const upcomingTotal = withDistance.filter(
+      (t) => t.date && new Date(t.date).getTime() >= now,
+    ).length;
     const slice = withDistance.slice(skip, skip + limit);
     return {
       tables: slice,
       total,
+      upcomingTotal,
       page,
       pages: Math.ceil(total / limit),
     };
   }
 
-  const [tables, total] = await Promise.all([
+  const [tables, total, upcomingTotal] = await Promise.all([
     populateTable(Table.find(baseFilter))
       .sort({ date: -1 })
       .skip(skip)
       .limit(limit),
     Table.countDocuments(baseFilter),
+    Table.countDocuments(upcomingFilter),
   ]);
   const enriched = attachDistance(tables, userLat, userLng);
   return {
     tables: enriched,
     total,
+    upcomingTotal,
     page,
     pages: Math.ceil(total / limit),
   };
@@ -533,10 +544,7 @@ router.put(
     // editar mesas ajenas futuras — eso sería otra feature).
     if (isPastTable(table)) {
       if (!req.user.isAdmin) {
-        throw httpError(
-          403,
-          "Mesa finalizada: ya no se puede editar",
-        );
+        throw httpError(403, "Mesa finalizada: ya no se puede editar");
       }
     } else if (!isSameId(table.host, req.user._id)) {
       throw httpError(403, "Solo el host puede editar esta mesa");

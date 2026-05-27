@@ -4,38 +4,69 @@
    pero usando los tokens existentes del proyecto.
    ============================================================ */
 
+/* Layout-level paddings calcados de EventoDetail.module.css — max-width
+   1200px centrado + padding-inline con los tokens del proyecto, padding-
+   block reservando navbar-h arriba y 5rem para que el footer respire. */
 .page {
-  padding: var(--navbar-h) 0 var(--page-padding);
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
   min-height: calc(100vh - var(--navbar-h, 64px));
+  padding-inline: var(--page-padding-left) var(--page-padding);
+  padding-block: var(--navbar-h, 0) 5rem;
 }
 
 @media (min-width: 960px) {
   .page {
-    padding-top: var(--page-padding);
+    padding-top: 1.5rem;
   }
 }
 
-.inner {
-  padding: 0 var(--page-padding-left, 0.75rem);
+/* Exit animation: espejo del slideInFromTop de PageTransition. Lo disparamos
+   manualmente cuando el user clickea "Volver al listado" porque la nav
+   /mesas/:id → /mesas es same-section y PageTransition no la anima. */
+.pageExit {
+  animation: tableDetailExit 0.2s ease-in both;
+  pointer-events: none;
+}
+@keyframes tableDetailExit {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(48px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pageExit {
+    animation: none;
+  }
 }
 
-/* -- Back button --------------------------------------------- */
+/* `.inner` ya no necesita re-paddear — el padding-inline vive en .page. */
+.inner {
+  padding: 0;
+}
+
+/* -- Back button — calcado de EventoDetail.module.css `.back` --- */
 .backBtn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  text-decoration: none;
   cursor: pointer;
-  padding: 8px 10px;
-  margin: 4px 0 16px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
+  padding: 0;
+  margin: 0 0 20px;
+  transition: color var(--transition);
 }
 .backBtn:hover {
   color: var(--amber-light);
@@ -45,7 +76,7 @@
 .layout {
   display: grid;
   grid-template-columns: 1fr 360px;
-  gap: 36px;
+  gap: 0.75rem;
   align-items: start;
 }
 
@@ -106,31 +137,36 @@
   gap: 6px;
   min-width: 0;
 }
+/* Eyebrow + title del banner alineados con .heroEyebrow / .heroTitle de
+   EventoDetail / Eventos: mismo eyebrow mono 11px 500 0.18em y mismo
+   clamp del title. Mantenemos `font-weight: 800` + text-shadow porque
+   el banner es texto SOBRE imagen y necesita más peso para legibilidad. */
 .bannerEyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.15em;
+  font-weight: 500;
+  letter-spacing: 0.18em;
   color: var(--amber-light);
   text-transform: uppercase;
 }
 .bannerEyebrow::before {
   content: "";
-  width: 20px;
+  width: 26px;
   height: 1px;
   background: var(--amber-light);
 }
 .bannerTitle {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
   font-weight: 800;
   letter-spacing: -0.045em;
   line-height: 0.95;
   color: #fff;
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
-  margin: 0;
+  margin: 8px 0;
   text-wrap: balance;
   word-break: break-word;
 }
@@ -270,16 +306,16 @@
 
 /* -- Section heads ------------------------------------------- */
 .section {
-  margin-bottom: 36px;
+  margin-bottom: 0.75rem;
 }
 .section:last-child {
   margin-bottom: 0;
 }
 .sectionHead {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 0.5rem;
 }
 .sectionLabel {
   font-family: var(--font-mono);
@@ -288,6 +324,11 @@
   color: var(--text-muted);
   text-transform: uppercase;
   white-space: nowrap;
+  /* inline-flex para alinear el InfoTooltip opcional con el texto sin
+     tunear márgenes por sección. */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .sectionRule {
   flex: 1;
@@ -301,6 +342,11 @@
   color: var(--text-muted);
   text-transform: uppercase;
   white-space: nowrap;
+  /* inline-flex para alinear el icono opcional (ej. comment icon) con el
+     texto sin tener que ajustar márgenes en cada sectionHead. */
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .text {
@@ -892,6 +938,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+}
+/* Acción de subir foto: el título lo provee el sectionHead del padre,
+   acá solo queda el botón "+ Foto" empujado a la derecha. */
+.galleryActions {
+  display: flex;
+  justify-content: flex-end;
 }
 .galleryBadge {
   background: var(--bg-elevated);

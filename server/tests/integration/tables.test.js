@@ -113,6 +113,24 @@ describe("POST /api/tables", () => {
 });
 
 describe("GET /api/tables", () => {
+  it("upcomingTotal counts only future mesas; total counts both past and future", async () => {
+    const host = await createUser();
+    await createTable(host, {
+      boardGame: "Past mesa",
+      date: new Date(Date.now() - 86400000),
+    });
+    await createTable(host, {
+      boardGame: "Future mesa",
+      date: new Date(Date.now() + 7 * 86400000),
+    });
+    const res = await request(app).get("/api/tables");
+    expect(res.status).toBe(200);
+    // Both mesas listed (past + future are non-cancelled).
+    expect(res.body.total).toBe(2);
+    // But only the future one is "active" capacity-wise.
+    expect(res.body.upcomingTotal).toBe(1);
+  });
+
   it("returns public tables for anon visitors (no private)", async () => {
     const host = await createUser();
     await createTable(host, { boardGame: "Public 1", privacy: "public" });

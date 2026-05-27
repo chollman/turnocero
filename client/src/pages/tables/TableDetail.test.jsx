@@ -321,7 +321,7 @@ describe("<TableDetail>", () => {
     await screen.findByRole("heading", { name: "Catán" });
     // 2/5 (host + 1 player out of max + 1) appears in meta cell AND stub.
     expect(screen.getAllByText("2/5").length).toBeGreaterThan(0);
-    expect(screen.getByText(/3 libres/i)).toBeInTheDocument();
+    expect(screen.getByText(/3 lugares libres/i)).toBeInTheDocument();
   });
 
   it("host on a private table sees solicitudes pendientes section", async () => {

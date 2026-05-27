@@ -1,0 +1,825 @@
+/* ============================================================
+   MesaForm · wizard de crear / editar mesa
+   Layout calcado de handoff/design_handoff_mesas/mesas-styles.css
+   (createLayout / createSteps / createSection / tagEditor / pillBtn /
+   privacyCard / dangerZone / previewWrap) usando los tokens del
+   proyecto (--amber*, --bg-*, etc.).
+   ============================================================ */
+
+/* Layout-level paddings calcados de EventoForm/EventoDetail. max-width
+   1200px centrado + padding-inline con tokens del proyecto, padding-block
+   reservando navbar-h arriba y 5rem abajo. */
+.page {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: calc(100vh - var(--navbar-h, 64px));
+  padding-inline: var(--page-padding-left) var(--page-padding);
+  padding-block: var(--navbar-h, 0) 5rem;
+  /* Animación de entrada calcada del <PageTransition> (slideInFromTop).
+     PageTransition no anima `/mesas` → `/mesas/crear` porque considera
+     ambas la misma "sección"; este animation-on-mount cubre el gap y le
+     da al wizard el mismo "drop in" que tienen los cambios de sección. */
+  animation: mesaFormEnter 0.26s cubic-bezier(0.22, 0.7, 0.3, 1) both;
+}
+
+@keyframes mesaFormEnter {
+  0% {
+    transform: translateY(-48px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Salida = espejo de la entrada (slideOutDown). Se aplica cuando el user
+   clickea "Volver" / "Cancelar"; cuando termina el `animationend`, el
+   handler dispara la navegación real. Mismo timing que el `.slideOut`
+   del <PageTransition> global (0.2s ease-in). */
+.pageExit {
+  animation: mesaFormExit 0.2s ease-in both;
+  pointer-events: none;
+}
+
+@keyframes mesaFormExit {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(48px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page,
+  .pageExit {
+    animation: none;
+  }
+}
+
+@media (min-width: 960px) {
+  .page {
+    padding-top: 1.5rem;
+  }
+}
+
+/* -- Back button — calcado de EventoDetail.module.css `.back` --- */
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0 0 20px;
+  transition: color var(--transition);
+}
+.backBtn:hover:not(:disabled) {
+  color: var(--amber-light);
+}
+
+/* -- Editorial hero — calcado de Eventos --------------------- */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: end;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.75rem;
+  min-width: 0;
+}
+.heroLeft {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.heroEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+  margin: 0;
+}
+.heroEyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1px;
+  background: var(--amber-light);
+}
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  margin: 8px 0;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+.heroTitle em {
+  font-family: var(--font-script);
+  font-style: normal;
+  font-weight: 600;
+  color: var(--amber-light);
+  font-size: 1.15em;
+  letter-spacing: -0.02em;
+  padding: 0 4px;
+}
+.heroSub {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  max-width: 540px;
+  margin: 0;
+  line-height: 1.5;
+}
+/* heroRight = "stat box" calcado de Eventos `.heroStat` (mono label + display
+   number a la derecha). Acá lo usamos para "Paso X de N" + "N/4 completos". */
+.heroRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+}
+.heroProgressLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.heroProgressValue {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--amber-light);
+}
+
+/* -- Layout: form + preview --------------------------------- */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 0.75rem;
+  align-items: start;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* -- Stepper ------------------------------------------------- */
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 0.75rem;
+  position: relative;
+  padding: 0 4px;
+}
+.steps::before {
+  content: "";
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  top: 14px;
+  height: 1px;
+  background: var(--border);
+  z-index: 0;
+}
+/* Cada step es un `<button>` clickeable que scrollea suave a la sección
+   correspondiente. Reseteamos el look default de button y respetamos el
+   resto del diseño. */
+.step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: center;
+  transition: transform var(--transition);
+}
+.step:hover .stepDot {
+  transform: scale(1.08);
+}
+.step:focus-visible {
+  outline: none;
+}
+.step:focus-visible .stepDot {
+  box-shadow: 0 0 0 4px var(--amber-glow);
+}
+.stepDot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border);
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  transition: all var(--transition);
+}
+.stepActive .stepDot {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--on-amber);
+  box-shadow: 0 0 0 4px var(--amber-glow);
+}
+.stepDone .stepDot {
+  background: var(--green);
+  border-color: var(--green);
+  color: #001712;
+}
+.stepLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  text-align: center;
+}
+.stepActive .stepLabel {
+  color: var(--amber-light);
+}
+.stepDone .stepLabel {
+  color: var(--green);
+}
+
+/* -- Section card ------------------------------------------- */
+.section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 24px;
+  margin-bottom: 0.75rem;
+  /* Margen virtual arriba del section a la hora de hacer scrollIntoView
+     desde el stepper — sin esto, el header de la sección queda pegado
+     al borde superior del viewport y se siente apretado. */
+  scroll-margin-top: 1.5rem;
+}
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--border);
+}
+.sectionLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+}
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+
+/* -- Field ---------------------------------------------------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 20px;
+  position: relative;
+}
+.field:last-child {
+  margin-bottom: 0;
+}
+.fieldLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.required {
+  color: var(--red);
+  margin-left: 2px;
+}
+.fieldHelp {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.input,
+.textarea {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 11px 13px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: all var(--transition);
+}
+.input:focus,
+.textarea:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px var(--amber-glow);
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-muted);
+}
+.inputSelected {
+  border-color: var(--green-25);
+}
+.textarea {
+  resize: vertical;
+  min-height: 88px;
+  line-height: 1.5;
+}
+
+.readOnly {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 11px 13px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* -- BGG autocomplete dropdown ------------------------------ */
+.suggestions {
+  position: absolute;
+  top: calc(100% - 14px);
+  left: 0;
+  right: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 6px;
+  z-index: 10;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  max-height: 320px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+}
+.suggestionItem {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.suggestionItem:hover {
+  background: var(--bg-card);
+}
+.suggestionThumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.suggestionThumbFallback {
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  background: var(--bg-card);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+.suggestionName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.suggestionYear {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* -- Tag editor --------------------------------------------- */
+.tagEditor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 9px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  min-height: 42px;
+  align-items: center;
+  transition: border-color var(--transition);
+}
+.tagEditor:focus-within {
+  border-color: var(--amber);
+}
+.tagChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--amber-glow);
+  border: 1px solid var(--border-amber);
+  color: var(--amber-light);
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.tagChip button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 0 0 0 2px;
+  line-height: 1;
+  opacity: 0.7;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.tagChip button:hover {
+  opacity: 1;
+}
+.tagEditor input {
+  flex: 1;
+  min-width: 100px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 4px 0;
+}
+.tagEditor input::placeholder {
+  color: var(--text-muted);
+}
+
+/* -- Location row ------------------------------------------- */
+.locationRow {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.locationRow > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.btnSearch {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 0 14px;
+  border-radius: 9px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.btnSearch:hover:not(:disabled) {
+  border-color: var(--border-amber);
+  color: var(--amber-light);
+}
+.btnSearch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.coordsHint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* -- Pill selector ------------------------------------------ */
+.pillGroup {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pillBtn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all var(--transition);
+  min-width: 48px;
+}
+.pillBtn:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+.pillActive {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--on-amber);
+}
+.pillActive:hover:not(:disabled) {
+  color: var(--on-amber);
+  border-color: var(--amber);
+}
+.pillBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* -- Privacy radio cards ------------------------------------ */
+.privacyOptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.privacyCard {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+.privacyCard:hover {
+  border-color: var(--border-strong);
+}
+.privacyCardActive {
+  border-color: var(--amber);
+  background: var(--amber-glow);
+}
+.privacyCard svg {
+  color: var(--amber-light);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.privacyCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.privacyCardTitle {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.privacyCardSub {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* -- Footer (Cancelar / Publicar) --------------------------- */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-top: 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+.btnGhost {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btnGhost:hover:not(:disabled) {
+  border-color: var(--border-amber);
+  color: var(--amber-light);
+}
+.btnGhost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btnPrimary {
+  background: var(--amber);
+  color: var(--on-amber);
+  border: none;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
+}
+.btnPrimary:hover:not(:disabled) {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.btnPrimary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* -- Error box ---------------------------------------------- */
+.errorBox {
+  background: var(--red-10);
+  border: 1px solid var(--red-25);
+  color: var(--red);
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+/* -- Danger zone (edit mode) --------------------------------- */
+.dangerZone {
+  margin-top: 24px;
+  padding: 20px 22px;
+  background: var(--red-10);
+  border: 1px dashed var(--red-25);
+  border-radius: 14px;
+}
+.dangerLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--red);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.dangerTitle {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+.dangerSub {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+.dangerBtn {
+  background: transparent;
+  color: var(--red);
+  border: 1px solid var(--red-25);
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--transition);
+}
+.dangerBtn:hover:not(:disabled) {
+  background: var(--red);
+  color: #fff;
+}
+.dangerBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* -- Live preview sidebar ----------------------------------- */
+.preview {
+  position: sticky;
+  /* Coincide con el scroll-margin-top de las secciones (1.5rem). Cuando
+     hacés scrollIntoView a un step, la sección queda 1.5rem debajo del
+     navbar; el aside acompaña arrancando en la misma línea visual. */
+  top: calc(var(--navbar-h, 64px) + 1.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-self: start;
+}
+.previewLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+}
+.previewLabel::before {
+  content: "";
+  width: 20px;
+  height: 1px;
+  background: var(--amber-light);
+}
+/* La card de preview no responde al hover/click — es decorativa.
+   Mantiene su estilo pero queda inerte para no confundir al user. */
+.previewCard {
+  pointer-events: none;
+  filter: saturate(0.95);
+}
+.previewNote {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-align: center;
+  padding: 6px 10px;
+  margin: 0;
+}
+
+/* -- Mobile -------------------------------------------------- */
+@media (max-width: 980px) {
+  /* `.page` ya provee padding-inline en todas las anchuras — los inner
+     wrappers (.hero, .layout) no necesitan re-paddearse en mobile. */
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .heroRight {
+    align-items: flex-start;
+    text-align: left;
+  }
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .preview {
+    position: static;
+  }
+  .privacyOptions {
+    grid-template-columns: 1fr;
+  }
+}

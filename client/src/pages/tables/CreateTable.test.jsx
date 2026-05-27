@@ -17,6 +17,9 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
+vi.mock("../../context/NotificationContext", () => ({
+  useNotifications: () => ({ addToast: vi.fn() }),
+}));
 
 // Mock de PlaceAutocomplete — su test propio cubre el comportamiento.
 // AddressMap fue removido del form de creación (2026-05).
@@ -27,6 +30,18 @@ vi.mock("../../components/shared/PlaceAutocomplete", () => ({
       value={value || ""}
       onChange={(e) => onChange?.(e.target.value)}
       placeholder={placeholder}
+    />
+  ),
+}));
+// Mock de DateTimePicker — su test propio cubre el calendario popover.
+// Acá lo aplanamos a un input simple para poder setear la fecha con
+// fireEvent.change directo.
+vi.mock("../../components/shared/DateTimePicker", () => ({
+  default: ({ value, onChange }) => (
+    <input
+      data-testid="datetime-picker"
+      value={value || ""}
+      onChange={(e) => onChange?.(e.target.value)}
     />
   ),
 }));
@@ -48,15 +63,68 @@ function renderPage() {
   );
 }
 
-describe("<CreateTable>", () => {
-  it("renders heading + form fields", () => {
-    renderPage();
-    expect(screen.getByText(/convoc[aá] una partida/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/buscá un juego/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", {
-        name: /crear|convocar|publicar|crear mesa/i,
+// Helpers para el nuevo wizard MesaForm (standalone path).
+// Estos tests sólo aplican cuando NO hay ?evento= en la URL.
+async function pickGame(name = "Catan", gameId = 1) {
+  server.use(
+    http.get("/api/bgg/search", () =>
+      HttpResponse.json([
+        { id: gameId, name, year: 1995, thumbnail: null },
+      ]),
+    ),
+    http.get("/api/bgg/game/:id", () =>
+      HttpResponse.json({
+        id: gameId,
+        name,
+        year: 1995,
+        image: null,
+        thumbnail: null,
       }),
+    ),
+  );
+  fireEvent.change(screen.getByPlaceholderText(/buscá un juego/i), {
+    target: { value: name.slice(0, 3) },
+  });
+  const suggestion = await screen.findByText(name);
+  fireEvent.mouseDown(suggestion);
+  await waitFor(() => {
+    expect(screen.getByPlaceholderText(/buscá un juego/i).value).toBe(name);
+  });
+}
+
+function fillLocation(texto = "Café Rivas, Palermo") {
+  const place = screen.getByTestId("place-autocomplete");
+  fireEvent.change(place, { target: { value: texto } });
+}
+
+// El paso "Cuándo" arranca vacío en create mode — el user tiene que elegir
+// fecha explícitamente. Los tests de submit usan este helper para llenarlo.
+function fillDate(value = "2027-12-31T20:00") {
+  const picker = screen.getByTestId("datetime-picker");
+  fireEvent.change(picker, { target: { value } });
+}
+
+// Privacidad también arranca sin selección (el user tiene que pickear
+// "Pública" o "Privada" explícitamente). Por default los tests de submit
+// pickean "Pública".
+function pickPrivacy(option = "Pública") {
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(option, "i") }));
+}
+
+describe("<CreateTable> (standalone — wizard)", () => {
+  it("renders the wizard hero + 4 step sections + publish button", () => {
+    renderPage();
+    expect(screen.getByText(/armá la/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/buscá un juego/i)).toBeInTheDocument();
+    // Each step name appears at least once (stepper label + section title
+    // is fine — we just want all four labels rendered somewhere).
+    expect(screen.getAllByText(/^Juego$/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^Cuándo$/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^Dónde$/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^Detalles$/).length).toBeGreaterThan(0);
+    // Publish button rendered (still disabled until form is valid).
+    expect(
+      screen.getByRole("button", { name: /publicar mesa/i }),
     ).toBeInTheDocument();
   });
 
@@ -90,108 +158,76 @@ describe("<CreateTable>", () => {
     });
   });
 
-  it("selecting a suggestion fills the input and locks the game", async () => {
-    server.use(
-      http.get("/api/bgg/search", () =>
-        HttpResponse.json([
-          { id: 1, name: "Catan", year: 1995, thumbnail: null },
-        ]),
-      ),
-      http.get("/api/bgg/game/:id", () =>
-        HttpResponse.json({
-          id: 1,
-          name: "Catan (full)",
-          year: 1995,
-          image: null,
-          thumbnail: null,
-        }),
-      ),
-    );
+  it("selecting a suggestion fills the input", async () => {
     renderPage();
-    fireEvent.change(screen.getByPlaceholderText(/buscá un juego/i), {
-      target: { value: "cat" },
-    });
-    const suggestion = await screen.findByText("Catan");
-    fireEvent.mouseDown(suggestion);
-    await waitFor(() => {
-      const input = screen.getByPlaceholderText(/buscá un juego/i);
-      expect(input.value).toBe("Catan (full)");
-    });
+    await pickGame("Catan (full)");
   });
 
-  it("submit without a game selected shows the validation error", () => {
+  it("'Publicar mesa' is disabled until game + location are set", async () => {
     renderPage();
-    const form = screen.getByPlaceholderText(/buscá un juego/i).closest("form");
-    fireEvent.submit(form);
-    expect(screen.getByText(/seleccion[aá] un juego/i)).toBeInTheDocument();
+    const cta = screen.getByRole("button", { name: /publicar mesa/i });
+    expect(cta).toBeDisabled();
+    await pickGame();
+    // Still missing location.
+    expect(cta).toBeDisabled();
+    fillLocation();
+    fillDate();
+    // Still missing privacy (no default selection).
+    expect(cta).toBeDisabled();
+    pickPrivacy();
+    expect(cta).not.toBeDisabled();
   });
 
   it("posts maxPlayers as total - 1 (UI cuenta al host, server cuenta spots libres)", async () => {
     let postedBody = null;
     server.use(
-      http.get("/api/bgg/search", () =>
-        HttpResponse.json([
-          { id: 1, name: "Catan", year: 1995, thumbnail: null },
-        ]),
-      ),
-      http.get("/api/bgg/game/:id", () =>
-        HttpResponse.json({
-          id: 1,
-          name: "Catan",
-          year: 1995,
-          image: null,
-          thumbnail: null,
-        }),
-      ),
       http.post("/api/tables", async ({ request }) => {
         postedBody = await request.json();
         return HttpResponse.json({ _id: "newtable" }, { status: 201 });
       }),
     );
     renderPage();
-    fireEvent.change(screen.getByPlaceholderText(/buscá un juego/i), {
-      target: { value: "cat" },
-    });
-    const suggestion = await screen.findByText("Catan");
-    fireEvent.mouseDown(suggestion);
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/buscá un juego/i).value).toBe(
-        "Catan",
-      );
-    });
-
+    await pickGame();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
     // Default UI = 4 jugadores total → wire = 3
-    const form = screen.getByPlaceholderText(/buscá un juego/i).closest("form");
-    fireEvent.submit(form);
+    fireEvent.click(screen.getByRole("button", { name: /publicar mesa/i }));
     await waitFor(() => {
       expect(postedBody).toBeTruthy();
     });
     expect(postedBody.maxPlayers).toBe(3);
   });
 
-  it("muestra el label 'Jugadores' con hint '(incluyéndote)' y NO 'sin contar al host'", () => {
+  it("clicking a pill changes maxPlayers (post total - 1)", async () => {
+    let postedBody = null;
+    server.use(
+      http.post("/api/tables", async ({ request }) => {
+        postedBody = await request.json();
+        return HttpResponse.json({ _id: "newtable" }, { status: 201 });
+      }),
+    );
     renderPage();
-    expect(screen.getByText(/^Jugadores$/)).toBeInTheDocument();
+    await pickGame();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+    fireEvent.click(screen.getByRole("button", { name: /^6$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /publicar mesa/i }));
+    await waitFor(() => {
+      expect(postedBody).toBeTruthy();
+    });
+    expect(postedBody.maxPlayers).toBe(5);
+  });
+
+  it("muestra el label de jugadores con hint 'incluyéndote' y NO 'sin contar al host'", () => {
+    renderPage();
     expect(screen.getByText(/incluy[ée]ndote/i)).toBeInTheDocument();
     expect(screen.queryByText(/sin contar al host/i)).not.toBeInTheDocument();
   });
 
   it("successful submit creates the table and navigates to /mesas/:id", async () => {
     server.use(
-      http.get("/api/bgg/search", () =>
-        HttpResponse.json([
-          { id: 1, name: "Catan", year: 1995, thumbnail: null },
-        ]),
-      ),
-      http.get("/api/bgg/game/:id", () =>
-        HttpResponse.json({
-          id: 1,
-          name: "Catan",
-          year: 1995,
-          image: null,
-          thumbnail: null,
-        }),
-      ),
       http.post("/api/tables", () =>
         HttpResponse.json(
           { _id: "newtable-id", boardGame: "Catan" },
@@ -200,64 +236,34 @@ describe("<CreateTable>", () => {
       ),
     );
     renderPage();
-    fireEvent.change(screen.getByPlaceholderText(/buscá un juego/i), {
-      target: { value: "cat" },
-    });
-    const suggestion = await screen.findByText("Catan");
-    fireEvent.mouseDown(suggestion);
-    await waitFor(() => {
-      const input = screen.getByPlaceholderText(/buscá un juego/i);
-      expect(input.value).toBe("Catan");
-    });
-
-    const form = screen.getByPlaceholderText(/buscá un juego/i).closest("form");
-    fireEvent.submit(form);
-
+    await pickGame();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+    fireEvent.click(screen.getByRole("button", { name: /publicar mesa/i }));
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith("/mesas/newtable-id");
     });
   });
+
+  it("does NOT render a tag editor in the form", () => {
+    renderPage();
+    // El editor de tags se removió del wizard. Si la mesa ya tenía tags
+    // (edit mode), se preservan internamente pero no hay UI para tocarlos.
+    expect(
+      screen.queryByPlaceholderText(/estrategia/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("privacy radio cards switch between 'Pública' and 'Privada'", () => {
+    renderPage();
+    const privBtn = screen.getByRole("button", { name: /privada/i });
+    fireEvent.click(privBtn);
+    expect(privBtn.className).toMatch(/privacyCardActive/);
+  });
 });
 
-describe("<CreateTable> — Ubicación (opcional, sin mapa)", () => {
-  it("no renderiza un mapa en el form de creación", () => {
-    renderPage();
-    // AddressMap fue removido del flujo de creación.
-    expect(screen.queryByTestId("address-map")).not.toBeInTheDocument();
-  });
-
-  it('muestra label "Ubicación" con el hint "(opcional)"', () => {
-    renderPage();
-    expect(screen.getByText("Ubicación")).toBeInTheDocument();
-    expect(screen.getByText(/\(opcional\)/)).toBeInTheDocument();
-  });
-
-  it("cuando el user tiene direccion en el perfil, muestra hint de fallback con el texto", () => {
-    useAuth.mockReturnValue({
-      user: {
-        _id: "me",
-        username: "me",
-        direccion: { texto: "Av. Corrientes 1234", lat: -34.6, lng: -58.4 },
-      },
-    });
-    renderPage();
-    expect(
-      screen.getByText(/usamos la dirección de tu perfil/i),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Av. Corrientes 1234")).toBeInTheDocument();
-  });
-
-  it("cuando el user NO tiene direccion, muestra link al perfil", () => {
-    useAuth.mockReturnValue({ user: { _id: "me", username: "me" } });
-    renderPage();
-    expect(
-      screen.getByText(/la mesa se publica sin ubicación/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /agregá una dirección a tu perfil/i }),
-    ).toHaveAttribute("href", "/perfil");
-  });
-
+describe("<CreateTable> — Ubicación (?evento=<id> sigue el path compacto)", () => {
   it("cuando hay ?evento=<id>, no renderiza la sección de Ubicación", () => {
     server.use(
       http.get("/api/eventos/:id", () =>
