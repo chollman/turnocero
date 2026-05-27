@@ -179,7 +179,9 @@
 .bannerTag {
   background: rgba(10, 13, 21, 0.7);
   border: 1px solid var(--border-strong);
-  color: var(--text-primary);
+  /* Blanco fijo — el tag vive sobre el banner dark (mosaico/imagen);
+     var(--text-primary) se invierte a negro en light mode. */
+  color: #fff;
   padding: 3px 8px;
   border-radius: 4px;
   font-family: var(--font-mono);
@@ -240,7 +242,9 @@
 .bannerBadge_lock {
   background: rgba(10, 13, 21, 0.78);
   border: 1px solid var(--border-strong);
-  color: var(--text-secondary);
+  /* Sobre el banner dark — var(--text-secondary) se vuelve gris claro
+     ilegible en light mode. */
+  color: rgba(255, 255, 255, 0.78);
   padding: 3px 6px;
 }
 .bannerBadge_cancelled {

@@ -21,7 +21,11 @@
       var(--amber-glow),
       transparent 60%
     ),
-    linear-gradient(180deg, #1a2438, var(--bg-card));
+    /* Gradient de "raise" sutil arriba del stub. `bg-elevated` es ligeramente
+       más claro que `bg-card` en dark (#232a39 vs #151c28) y más gris en light
+       (#eef1f7 vs #fff), así que en ambos themes da el mismo efecto de relieve
+       sin pintar una franja navy en light. */
+    linear-gradient(180deg, var(--bg-elevated), var(--bg-card));
 }
 
 .label {

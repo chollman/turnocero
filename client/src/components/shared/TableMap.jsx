@@ -110,9 +110,12 @@ export default function TableMap({
     >
       <defs>
         <radialGradient id="feltGradTable" cx="0.5" cy="0.5" r="0.6">
-          <stop offset="0%" stopColor="#1d3a2a" />
-          <stop offset="60%" stopColor="#162a1f" />
-          <stop offset="100%" stopColor="#0e1a14" />
+          {/* `stopColor` con var() — soportado en SVG moderno (Chrome 88+,
+              Firefox 87+, Safari 14+). Se resuelve contra `.svg` que define
+              los tokens por theme. */}
+          <stop offset="0%" stopColor="var(--tm-felt-1)" />
+          <stop offset="60%" stopColor="var(--tm-felt-2)" />
+          <stop offset="100%" stopColor="var(--tm-felt-3)" />
         </radialGradient>
         <pattern
           id="feltDotsTable"
@@ -120,7 +123,7 @@ export default function TableMap({
           width="2.5"
           height="2.5"
         >
-          <circle cx="1.25" cy="1.25" r="0.3" fill="rgba(255,255,255,0.05)" />
+          <circle cx="1.25" cy="1.25" r="0.3" fill="var(--tm-felt-dots)" />
         </pattern>
         <filter id="seatShadow">
           <feDropShadow
@@ -139,8 +142,8 @@ export default function TableMap({
         cy={CY}
         rx={RX + 4}
         ry={RY + 3}
-        fill="#2a1f15"
-        stroke="#1a1108"
+        fill="var(--tm-wood)"
+        stroke="var(--tm-wood-stroke)"
         strokeWidth="0.4"
       />
       {/* Felt surface */}
@@ -150,7 +153,7 @@ export default function TableMap({
         rx={RX}
         ry={RY}
         fill="url(#feltGradTable)"
-        stroke="rgba(24,136,239,0.2)"
+        stroke="var(--tm-felt-rim)"
         strokeWidth="0.3"
       />
       <ellipse cx={CX} cy={CY} rx={RX} ry={RY} fill="url(#feltDotsTable)" />
@@ -161,7 +164,7 @@ export default function TableMap({
         rx={RX - 6}
         ry={RY - 5}
         fill="none"
-        stroke="rgba(255,255,255,0.06)"
+        stroke="var(--tm-deco-ring)"
         strokeWidth="0.2"
         strokeDasharray="1.5 1.5"
       />
@@ -195,7 +198,7 @@ export default function TableMap({
               width={36}
               height={24}
               rx={3}
-              fill="rgba(10,13,21,0.55)"
+              fill="var(--tm-tile-overlay)"
             />
           </>
         )}
@@ -205,8 +208,8 @@ export default function TableMap({
           width={36}
           height={24}
           rx={3}
-          fill={imageUrl ? "transparent" : "rgba(10,13,21,0.5)"}
-          stroke="rgba(24,136,239,0.3)"
+          fill={imageUrl ? "transparent" : "var(--tm-tile-bg)"}
+          stroke="var(--tm-tile-stroke)"
           strokeWidth="0.4"
         />
       </g>
@@ -218,12 +221,16 @@ export default function TableMap({
         const isEmpty = p.kind === "empty";
         const color = isEmpty ? "transparent" : colorFor(p.user);
         const initial = isEmpty ? "?" : initialOf(p.user);
+        // Strokes / lines de los asientos — tokens theme-aware definidos
+        // en TableMap.module.css. Los `colorFor(user)` siguen siendo brand
+        // hex porque son colores derivados del avatar (estables across
+        // themes).
         const stroke = isEmpty
-          ? "rgba(255,255,255,0.25)"
-          : "rgba(10,13,21,0.9)";
+          ? "var(--tm-empty-stroke)"
+          : "var(--tm-seat-stroke)";
         const strokeDasharray = isEmpty ? "0.8 0.8" : "0";
         const lineColor = isEmpty
-          ? "rgba(255,255,255,0.1)"
+          ? "var(--tm-empty-line)"
           : colorFor(p.user);
 
         return (
@@ -270,12 +277,17 @@ export default function TableMap({
               strokeDasharray={strokeDasharray}
               filter={!isEmpty ? "url(#seatShadow)" : undefined}
             />
-            {/* Initial */}
+            {/* Initial — para seats filled siempre blanco (sobre brand color),
+                para empty usamos var(--text-primary) que en light vira a
+                oscuro y queda legible sobre el felt mint claro. */}
             <text
               x={p.x}
               y={p.y}
               className={styles.seatInitial}
-              style={{ opacity: isEmpty ? 0.4 : 1 }}
+              style={{
+                opacity: isEmpty ? 0.4 : 1,
+                fill: isEmpty ? "var(--text-primary)" : "#fff",
+              }}
             >
               {initial}
             </text>

@@ -2,6 +2,44 @@
   width: 100%;
   height: 100%;
   display: block;
+  /* Dark theme (default) — mesa con marco de madera oscura y paño verde
+     profundo. SVG attribute `fill="var(--x)"` y `stop-color: var(--x)` se
+     resuelven en navegadores modernos (Chrome 88+, Firefox 87+, Safari 14+). */
+  --tm-wood: #2a1f15;
+  --tm-wood-stroke: #1a1108;
+  --tm-felt-1: #1d3a2a;
+  --tm-felt-2: #162a1f;
+  --tm-felt-3: #0e1a14;
+  --tm-felt-rim: rgba(24, 136, 239, 0.2);
+  --tm-felt-dots: rgba(255, 255, 255, 0.05);
+  --tm-deco-ring: rgba(255, 255, 255, 0.06);
+  --tm-seat-stroke: rgba(10, 13, 21, 0.9);
+  --tm-tile-bg: rgba(10, 13, 21, 0.5);
+  --tm-tile-stroke: rgba(24, 136, 239, 0.3);
+  --tm-tile-overlay: rgba(10, 13, 21, 0.55);
+  --tm-empty-stroke: rgba(255, 255, 255, 0.25);
+  --tm-empty-line: rgba(255, 255, 255, 0.1);
+}
+
+/* Light theme — marco de madera clara (haya) + paño verde menta claro.
+   Mantiene la metáfora de tabletop sin pintar un bloque dark sobre la
+   página blanca. Usamos :global() porque [data-theme="light"] vive en
+   <html>, fuera del scope del CSS module. */
+:global([data-theme="light"]) .svg {
+  --tm-wood: #d4b894;
+  --tm-wood-stroke: #a98c63;
+  --tm-felt-1: #a8d4b9;
+  --tm-felt-2: #7fb89b;
+  --tm-felt-3: #5d977a;
+  --tm-felt-rim: rgba(24, 136, 239, 0.35);
+  --tm-felt-dots: rgba(15, 23, 42, 0.08);
+  --tm-deco-ring: rgba(15, 23, 42, 0.18);
+  --tm-seat-stroke: rgba(15, 23, 42, 0.55);
+  --tm-tile-bg: rgba(255, 255, 255, 0.65);
+  --tm-tile-stroke: rgba(24, 136, 239, 0.4);
+  --tm-tile-overlay: rgba(15, 23, 42, 0.35);
+  --tm-empty-stroke: rgba(15, 23, 42, 0.3);
+  --tm-empty-line: rgba(15, 23, 42, 0.15);
 }
 
 .seatGroup {
