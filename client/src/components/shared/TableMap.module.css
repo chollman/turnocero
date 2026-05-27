@@ -16,7 +16,12 @@
   --tm-seat-stroke: rgba(10, 13, 21, 0.9);
   --tm-tile-bg: rgba(10, 13, 21, 0.5);
   --tm-tile-stroke: rgba(24, 136, 239, 0.3);
-  --tm-tile-overlay: rgba(10, 13, 21, 0.55);
+  /* Overlay original era 0.55 — pensado para legibilidad del texto que
+     vivía sobre la imagen. Ese texto se removió, así que bajamos la
+     opacidad al mínimo necesario para "asentar" la imagen sobre el felt
+     dark; con 0.1 la imagen del juego brilla y resalta como protagonista
+     central de la mesa. */
+  --tm-tile-overlay: rgba(10, 13, 21, 0.1);
   --tm-empty-stroke: rgba(255, 255, 255, 0.25);
   --tm-empty-line: rgba(255, 255, 255, 0.1);
 }
@@ -37,7 +42,8 @@
   --tm-seat-stroke: rgba(15, 23, 42, 0.55);
   --tm-tile-bg: rgba(255, 255, 255, 0.65);
   --tm-tile-stroke: rgba(24, 136, 239, 0.4);
-  --tm-tile-overlay: rgba(15, 23, 42, 0.35);
+  /* En light también casi invisible — la imagen es la protagonista. */
+  --tm-tile-overlay: rgba(15, 23, 42, 0.05);
   --tm-empty-stroke: rgba(15, 23, 42, 0.3);
   --tm-empty-line: rgba(15, 23, 42, 0.15);
 }

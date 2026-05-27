@@ -183,6 +183,9 @@ export default function TableMap({
                 <rect x={-18} y={-12} width={36} height={24} rx={3} />
               </clipPath>
             </defs>
+            {/* Bump sutil de brillo + saturación para que la imagen
+                resalte contra el felt dark y se sienta como el "centro"
+                vivo de la mesa. */}
             <image
               href={imageUrl}
               x={-18}
@@ -191,6 +194,7 @@ export default function TableMap({
               height={24}
               preserveAspectRatio="xMidYMid slice"
               clipPath="url(#centerTileClip)"
+              style={{ filter: "brightness(1.1) saturate(1.15)" }}
             />
             <rect
               x={-18}
