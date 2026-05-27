@@ -5,6 +5,8 @@ import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
 import AddressMap from "../../components/shared/AddressMap";
+import DateTimePicker from "../../components/shared/DateTimePicker";
+import { toLocalInputValue } from "../../utils/eventoDate";
 import styles from "./CreateTable.module.css";
 
 export default function EditTable() {
@@ -51,7 +53,11 @@ export default function EditTable() {
                 lng: data.location?.lng ?? null,
               };
         setForm({
-          date: new Date(data.date).toISOString().slice(0, 16),
+          // toLocalInputValue convierte el ISO UTC del server a "YYYY-MM-DDTHH:mm"
+          // en hora local del navegador — formato que <DateTimePicker> consume.
+          // Antes acá iba `.toISOString().slice(0, 16)`, que mostraba UTC en vez
+          // de local y desfasaba la hora N horas según timezone.
+          date: toLocalInputValue(data.date),
           maxPlayers: data.maxPlayers + 1,
           location: loc,
           description: data.description || "",
@@ -165,13 +171,14 @@ export default function EditTable() {
 
             <div className={styles.twoCol}>
               <div className={styles.field}>
-                <label className={styles.label}>Fecha y hora *</label>
-                <input
-                  type="datetime-local"
+                <label className={styles.label} htmlFor="mesa-edit-date">
+                  Fecha y hora *
+                </label>
+                <DateTimePicker
+                  id="mesa-edit-date"
                   name="date"
                   value={form.date}
-                  onChange={handleChange}
-                  className={styles.input}
+                  onChange={(v) => setForm((f) => ({ ...f, date: v }))}
                   required
                 />
               </div>

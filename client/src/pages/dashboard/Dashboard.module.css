@@ -91,38 +91,6 @@
   margin-bottom: 18px;
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.chip {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  padding: 7px 13px;
-  border-radius: 999px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.chip:hover {
-  border-color: var(--border-strong);
-  color: var(--text-primary);
-}
-.chipActive {
-  background: var(--amber);
-  border-color: var(--amber);
-  color: var(--on-amber);
-}
-.chipCount {
-  opacity: 0.6;
-}
-
 .controlsRight {
   display: flex;
   align-items: center;
@@ -130,8 +98,14 @@
   flex-wrap: wrap;
 }
 
+/* Todos los controles del row comparten height: 36px + box-sizing: border-box
+   para que se alineen verticalmente con el trigger de <ListFilters> (que
+   también es 36px). Pattern calcado de Eventos.module.css. */
 .searchWrap {
   position: relative;
+  flex: 1;
+  min-width: 180px;
+  max-width: 360px;
 }
 .searchIcon {
   position: absolute;
@@ -143,47 +117,50 @@
   display: inline-flex;
 }
 .search {
-  width: 240px;
+  width: 100%;
+  height: 36px;
+  box-sizing: border-box;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 9px 13px 9px 34px;
+  padding: 0 12px 0 34px;
   color: var(--text-primary);
-  font-family: inherit;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 12px;
   outline: none;
-  transition: all 0.2s ease;
+  transition: border-color var(--transition);
 }
 .search::placeholder {
   color: var(--text-muted);
 }
 .search:focus {
-  border-color: var(--border-amber);
-  box-shadow: 0 0 0 3px var(--amber-glow);
+  border-color: var(--amber);
 }
 
 .viewToggle {
+  height: 36px;
+  box-sizing: border-box;
   display: inline-flex;
+  gap: 2px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 3px;
-  gap: 0;
 }
 .viewBtn {
+  width: 32px;
+  height: 100%;
+  display: grid;
+  place-items: center;
   background: transparent;
   border: none;
   color: var(--text-muted);
-  padding: 6px 8px;
   border-radius: 6px;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
+  transition: all var(--transition);
 }
 .viewBtn:hover {
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 .viewBtnActive {
   background: var(--bg-elevated);
@@ -191,10 +168,12 @@
 }
 
 .newBtn {
+  height: 36px;
+  box-sizing: border-box;
   background: var(--amber);
   color: var(--on-amber);
   border: none;
-  padding: 9px 16px;
+  padding: 0 14px;
   border-radius: 8px;
   font-family: var(--font-display);
   font-size: 13px;
@@ -205,84 +184,12 @@
   align-items: center;
   gap: 6px;
   box-shadow: 0 4px 16px var(--amber-glow);
-  transition: all 0.2s ease;
+  transition: all var(--transition);
 }
 .newBtn:hover {
   background: var(--amber-light);
+  color: var(--on-amber);
   box-shadow: 0 4px 22px var(--amber-glow);
-}
-
-/* ============================================================
-   Radius slider
-   ============================================================ */
-
-.radiusRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 12px var(--page-padding-left, 0.75rem);
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  margin: 0 var(--page-padding-left, 0.75rem) 22px;
-  flex-wrap: wrap;
-}
-.radiusLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-.radiusIcon {
-  font-size: 14px;
-}
-.radiusInlineLink {
-  color: var(--amber-light);
-  text-decoration: none;
-  font-weight: 600;
-}
-.radiusInlineLink:hover {
-  text-decoration: underline;
-}
-.radiusControls {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.radiusStep {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  border-radius: 6px;
-  cursor: pointer;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 14px;
-  line-height: 1;
-}
-.radiusStep:hover:not(:disabled) {
-  color: var(--amber-light);
-  border-color: var(--border-amber);
-}
-.radiusStep:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-.radiusSlider {
-  width: 200px;
-  accent-color: var(--amber);
-}
-.radiusValue {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--text-primary);
-  letter-spacing: 0.04em;
-  min-width: 60px;
-  text-align: right;
 }
 
 /* ============================================================
@@ -400,9 +307,12 @@
   font-size: 13px;
   cursor: pointer;
   box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
 }
 .retryBtn:hover {
   background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
 }
 
 .empty {
@@ -445,10 +355,11 @@
   align-items: center;
   gap: 5px;
   box-shadow: 0 4px 16px var(--amber-glow);
-  transition: all 0.2s ease;
+  transition: all var(--transition);
 }
 .createBtn:hover {
   background: var(--amber-light);
+  color: var(--on-amber);
   box-shadow: 0 4px 22px var(--amber-glow);
 }
 
@@ -523,12 +434,6 @@
   .newBtn {
     display: none; /* Replaced by FAB on mobile */
   }
-  .radiusRow {
-    margin: 0 var(--page-padding-mobile, 0.5rem) 18px;
-  }
-  .radiusSlider {
-    width: 120px;
-  }
   .horizon {
     padding: 0 var(--page-padding-mobile, 0.5rem);
   }
@@ -556,6 +461,12 @@
     font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.02em;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 16px var(--amber-glow);
+    box-shadow: 0 4px 16px var(--amber-glow);
+    transition: all var(--transition);
+  }
+  .fab:hover {
+    background: var(--amber-light);
+    color: var(--on-amber);
+    box-shadow: 0 4px 22px var(--amber-glow);
   }
 }

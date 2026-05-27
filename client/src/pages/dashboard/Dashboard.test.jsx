@@ -6,8 +6,6 @@ import { server } from "../../test/server";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
-// TableCard is exercised in TableCard.test.jsx (or stubbed here to avoid pulling in
-// dozens of child components — keep this test focused on Dashboard logic).
 vi.mock("./TableCard", () => ({
   default: ({ table }) => (
     <div data-testid="table-card">
@@ -39,6 +37,9 @@ function makeTable(overrides = {}) {
 }
 
 beforeEach(() => {
+  // Cada test parte de un localStorage limpio para que el chip persistido
+  // o el viewMode de un test anterior no se filtre.
+  localStorage.clear();
   useAuth.mockReturnValue({ user: { _id: "me", username: "me" } });
   server.use(
     http.get("/api/tables", () =>
@@ -71,6 +72,13 @@ function renderDashboard() {
   );
 }
 
+// Abre el popover de ListFilters. Los chips y el slider de distancia viven
+// dentro de ese popover (no en línea), así que cualquier test que interactúe
+// con ellos debe abrirlo primero.
+function openFilters() {
+  fireEvent.click(screen.getByRole("button", { name: /^filtros/i }));
+}
+
 describe("<Dashboard>", () => {
   it("renders the loading skeleton initially and then the table list", async () => {
     renderDashboard();
@@ -83,7 +91,6 @@ describe("<Dashboard>", () => {
 
   it("shows the total count from the API in the eyebrow", async () => {
     renderDashboard();
-    // The eyebrow is duplicated in mobile header + desktop hero. Both should contain the count.
     await waitFor(() => {
       const eyebrows = screen.getAllByText(
         (_content, el) =>
@@ -94,9 +101,10 @@ describe("<Dashboard>", () => {
     });
   });
 
-  it('clicking "Mis mesas" switches to the /mine endpoint', async () => {
+  it('clicking "Mis mesas" inside Filtros popover switches to the /mine endpoint', async () => {
     renderDashboard();
     await screen.findByText(/Wingspan/);
+    openFilters();
     fireEvent.click(screen.getByRole("button", { name: /mis mesas/i }));
     await waitFor(() =>
       expect(screen.getByText(/MyOwnGame/)).toBeInTheDocument(),
@@ -112,17 +120,58 @@ describe("<Dashboard>", () => {
       await screen.findByText(/Error al cargar las mesas/i),
     ).toBeInTheDocument();
   });
+
+  it("persists filter selection via localStorage", async () => {
+    renderDashboard();
+    await screen.findByText(/Wingspan/);
+    openFilters();
+    fireEvent.click(screen.getByRole("button", { name: /públicas/i }));
+    await waitFor(() => {
+      expect(JSON.parse(localStorage.getItem("turnocero_mesas_filter"))).toBe(
+        "public",
+      );
+    });
+  });
+
+  it("resets stored filter to 'all' when the chip is auth-only and user logs out", async () => {
+    localStorage.setItem("turnocero_mesas_filter", JSON.stringify("mine"));
+    useAuth.mockReturnValue({ user: null }); // anon
+    renderDashboard();
+    await waitFor(() => {
+      expect(JSON.parse(localStorage.getItem("turnocero_mesas_filter"))).toBe(
+        "all",
+      );
+    });
+  });
+
+  it("anon users don't see auth-only chips in the filter popover", async () => {
+    useAuth.mockReturnValue({ user: null });
+    renderDashboard();
+    await screen.findByText(/Wingspan/);
+    openFilters();
+    expect(
+      screen.queryByRole("button", { name: /^mis mesas$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^hosting$/i }),
+    ).not.toBeInTheDocument();
+    // Pero "Todas" y "Públicas" sí están.
+    expect(screen.getByRole("button", { name: /^todas$/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^públicas$/i }),
+    ).toBeInTheDocument();
+  });
 });
 
-describe("<Dashboard> — radius filter", () => {
+describe("<Dashboard> — radius filter (inside Filtros popover)", () => {
   it("shows a CTA to add address when the user has no direccion", async () => {
-    useAuth.mockReturnValue({ user: { _id: "me", username: "me" } }); // sin direccion
+    useAuth.mockReturnValue({ user: { _id: "me", username: "me" } });
     renderDashboard();
-    expect(await screen.findByText(/agregá tu dirección/i)).toBeInTheDocument();
-    // El link va a /perfil.
+    await screen.findByText(/Wingspan/);
+    openFilters();
+    expect(screen.getByText(/agregá tu dirección/i)).toBeInTheDocument();
     const link = screen.getByRole("link", { name: /tu perfil/i });
     expect(link).toHaveAttribute("href", "/perfil");
-    // Slider deshabilitado.
     expect(screen.getByLabelText(/radio máximo/i)).toBeDisabled();
   });
 
@@ -135,11 +184,13 @@ describe("<Dashboard> — radius filter", () => {
       },
     });
     renderDashboard();
-    expect(await screen.findByText(/filtrá por/i)).toBeInTheDocument();
+    await screen.findByText(/Wingspan/);
+    openFilters();
+    expect(screen.getByText(/filtrá por/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/radio máximo/i)).not.toBeDisabled();
   });
 
-  it("updates the displayed label and fires a re-fetch with ?maxDistanceKm when slider moves", async () => {
+  it("fires a re-fetch with ?maxDistanceKm when slider moves", async () => {
     useAuth.mockReturnValue({
       user: {
         _id: "me",
@@ -161,13 +212,12 @@ describe("<Dashboard> — radius filter", () => {
     );
     renderDashboard();
     await screen.findByText(/Wingspan/);
+    openFilters();
 
     const slider = screen.getByLabelText(/radio máximo/i);
     fireEvent.change(slider, { target: { value: "25" } });
 
-    // Label refleja el valor inmediato (radiusValue span tiene exactamente "25 km").
     expect(await screen.findByText("25 km")).toBeInTheDocument();
-    // El fetch con el nuevo radio se dispara después del debounce (300ms).
     await waitFor(
       () => {
         expect(lastUrl).toMatch(/maxDistanceKm=25/);
@@ -196,23 +246,6 @@ describe("<Dashboard> — radius filter", () => {
     expect(lastUrl).not.toMatch(/maxDistanceKm/);
   });
 
-  it("renders − and + step buttons next to the slider", async () => {
-    useAuth.mockReturnValue({
-      user: {
-        _id: "me",
-        username: "me",
-        direccion: { texto: "CABA", lat: -34.6, lng: -58.4 },
-      },
-    });
-    renderDashboard();
-    expect(
-      await screen.findByRole("button", { name: /disminuir radio/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /aumentar radio/i }),
-    ).toBeInTheDocument();
-  });
-
   it('"+" button increments radius by 1 km', async () => {
     useAuth.mockReturnValue({
       user: {
@@ -222,7 +255,9 @@ describe("<Dashboard> — radius filter", () => {
       },
     });
     renderDashboard();
-    const plus = await screen.findByRole("button", { name: /aumentar radio/i });
+    await screen.findByText(/Wingspan/);
+    openFilters();
+    const plus = screen.getByRole("button", { name: /aumentar radio/i });
     fireEvent.click(plus);
     expect(await screen.findByText("1 km")).toBeInTheDocument();
     fireEvent.click(plus);
@@ -239,7 +274,9 @@ describe("<Dashboard> — radius filter", () => {
       },
     });
     renderDashboard();
-    const slider = await screen.findByLabelText(/radio máximo/i);
+    await screen.findByText(/Wingspan/);
+    openFilters();
+    const slider = screen.getByLabelText(/radio máximo/i);
     fireEvent.change(slider, { target: { value: "3" } });
     expect(await screen.findByText("3 km")).toBeInTheDocument();
 
@@ -248,13 +285,24 @@ describe("<Dashboard> — radius filter", () => {
     fireEvent.click(minus);
     expect(await screen.findByText("1 km")).toBeInTheDocument();
     fireEvent.click(minus);
-    // Llegó a 0 → label cambia a "Sin límite".
     expect(await screen.findByText("Sin límite")).toBeInTheDocument();
-    // "−" queda deshabilitado en 0.
     expect(minus).toBeDisabled();
   });
 
-  it('"+" button is disabled when radius reaches MAX (100km)', async () => {
+  it("step buttons are disabled when user has no direccion", async () => {
+    useAuth.mockReturnValue({ user: { _id: "me", username: "me" } });
+    renderDashboard();
+    await screen.findByText(/Wingspan/);
+    openFilters();
+    expect(
+      screen.getByRole("button", { name: /disminuir radio/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /aumentar radio/i }),
+    ).toBeDisabled();
+  });
+
+  it("'Filtros' trigger shows an active-count badge when distance or chip differ from default", async () => {
     useAuth.mockReturnValue({
       user: {
         _id: "me",
@@ -263,22 +311,14 @@ describe("<Dashboard> — radius filter", () => {
       },
     });
     renderDashboard();
-    const slider = await screen.findByLabelText(/radio máximo/i);
-    fireEvent.change(slider, { target: { value: "100" } });
-    expect(await screen.findByText("100 km")).toBeInTheDocument();
+    await screen.findByText(/Wingspan/);
+    // Sin cambios: el trigger es solo "Filtros" sin badge.
     expect(
-      screen.getByRole("button", { name: /aumentar radio/i }),
-    ).toBeDisabled();
-  });
-
-  it("both step buttons are disabled when user has no direccion", async () => {
-    useAuth.mockReturnValue({ user: { _id: "me", username: "me" } });
-    renderDashboard();
-    expect(
-      await screen.findByRole("button", { name: /disminuir radio/i }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: /aumentar radio/i }),
-    ).toBeDisabled();
+      screen.queryByLabelText(/\d+ filtros activos/i),
+    ).not.toBeInTheDocument();
+    // Cambiamos un chip → 1 filtro activo.
+    openFilters();
+    fireEvent.click(screen.getByRole("button", { name: /públicas/i }));
+    expect(screen.getByLabelText(/1 filtros activos/i)).toBeInTheDocument();
   });
 });

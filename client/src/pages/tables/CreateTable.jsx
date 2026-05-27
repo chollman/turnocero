@@ -11,6 +11,7 @@ import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
 import InfoTooltip from "../../components/shared/InfoTooltip";
+import DateTimePicker from "../../components/shared/DateTimePicker";
 import styles from "./CreateTable.module.css";
 
 const defaultDate = () => {
@@ -554,8 +555,11 @@ export default function CreateTable() {
               <div className={styles.field}>
                 {eventoId ? (
                   <>
-                    <label className={styles.label}>Hora *</label>
+                    <label className={styles.label} htmlFor="mesa-time">
+                      Hora *
+                    </label>
                     <input
+                      id="mesa-time"
                       type="time"
                       name="time"
                       value={timeOfDay}
@@ -566,13 +570,14 @@ export default function CreateTable() {
                   </>
                 ) : (
                   <>
-                    <label className={styles.label}>Fecha y hora *</label>
-                    <input
-                      type="datetime-local"
+                    <label className={styles.label} htmlFor="mesa-date">
+                      Fecha y hora *
+                    </label>
+                    <DateTimePicker
+                      id="mesa-date"
                       name="date"
                       value={form.date}
-                      onChange={handleChange}
-                      className={styles.input}
+                      onChange={(v) => setForm((f) => ({ ...f, date: v }))}
                       required
                     />
                   </>

@@ -4,22 +4,24 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
+import useLocalStorageState from "../../utils/useLocalStorageState";
 import { groupByHorizon } from "../../utils/mesaHorizon";
+import ListFilters from "../../components/shared/ListFilters";
 import TableCard from "./TableCard";
 import TableCardSkeleton from "./TableCardSkeleton";
 import styles from "./Dashboard.module.css";
 
-// Filtros: cada uno define cómo filtrar la lista localmente. Para los
-// que sí cambian la query al server (mineOnly, search, radius) usamos
-// los handlers debajo. Los demás (`open`, `public`) filtran in-memory
-// para evitar round-trips al server por una decisión visual.
-const FILTERS = [
-  { id: "all", label: "Todas" },
-  { id: "mine", label: "Mis mesas", auth: true },
-  { id: "host", label: "Hosting", auth: true },
-  { id: "joined", label: "Jugando", auth: true },
-  { id: "open", label: "Con lugar" },
-  { id: "public", label: "Públicas" },
+// Filtros: mismo shape que `<ListFilters>` consume (value/label, opcional
+// `requiresAuth`). Para los que sí cambian la query al server (mine/host/
+// joined) usamos los handlers debajo; los demás (`open`, `public`) filtran
+// in-memory para evitar round-trips por una decisión visual.
+const ALL_FILTERS = [
+  { value: "all", label: "Todas" },
+  { value: "mine", label: "Mis mesas", requiresAuth: true },
+  { value: "host", label: "Hosting", requiresAuth: true },
+  { value: "joined", label: "Jugando", requiresAuth: true },
+  { value: "open", label: "Con lugar" },
+  { value: "public", label: "Públicas" },
 ];
 
 const MAX_RADIUS_KM = 100;
@@ -92,27 +94,31 @@ export default function Dashboard() {
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("all");
+  // Persistimos el filter en localStorage — alineado con Eventos. Si el chip
+  // guardado deja de ser visible (logout con filter="mine"), un effect abajo
+  // lo resetea a "all".
+  const [filter, setFilter] = useLocalStorageState(
+    "turnocero_mesas_filter",
+    "all",
+  );
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 400);
   const [radiusKm, setRadiusKm] = useState(0);
   const debouncedRadius = useDebouncedValue(radiusKm, 300);
   const [page, setPage] = useState(1);
   const [refetchKey, setRefetchKey] = useState(0);
-  const [viewMode, setViewMode] = useState(() => {
-    try {
-      return localStorage.getItem("turnocero_mesas_view") || "grid";
-    } catch {
-      return "grid";
-    }
-  });
+  const [viewMode, setViewMode] = useLocalStorageState(
+    "turnocero_mesas_view",
+    "grid",
+  );
 
-  // Persistir cambio de viewMode.
+  // Si el filter guardado en localStorage requiere auth y el user no está
+  // logueado (anon o session expiró), volver a "all". Evita estados raros
+  // tipo "Mis mesas" para anon.
   useEffect(() => {
-    try {
-      localStorage.setItem("turnocero_mesas_view", viewMode);
-    } catch { /* ignore */ }
-  }, [viewMode]);
+    const def = ALL_FILTERS.find((f) => f.value === filter);
+    if (def?.requiresAuth && !user) setFilter("all");
+  }, [filter, user, setFilter]);
 
   // Resetear página al cambiar search, radio o filtro.
   useEffect(() => {
@@ -232,42 +238,35 @@ export default function Dashboard() {
 
         {/* Controls */}
         <div className={styles.controls}>
-          <div className={styles.chips}>
-            {FILTERS.filter((f) => !f.auth || user).map((f) => {
-              // Contadores rápidos in-memory (sobre la página actual). No es
-              // exacto cuando hay paginación, pero da feedback suficiente.
-              const pred = buildPredicate(f.id, user);
-              const count = tables.filter(pred).length;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  className={`${styles.chip} ${filter === f.id ? styles.chipActive : ""}`}
-                  onClick={() => setFilter(f.id)}
-                >
-                  {f.label}
-                  {count > 0 && (
-                    <span className={styles.chipCount}> · {count}</span>
-                  )}
-                </button>
-              );
-            })}
+          <div className={styles.searchWrap}>
+            <span className={styles.searchIcon}>
+              <SearchIcon />
+            </span>
+            <input
+              type="text"
+              className={styles.search}
+              placeholder="Buscar juego o host…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Buscar"
+            />
           </div>
 
           <div className={styles.controlsRight}>
-            <div className={styles.searchWrap}>
-              <span className={styles.searchIcon}>
-                <SearchIcon />
-              </span>
-              <input
-                type="text"
-                className={styles.search}
-                placeholder="Buscar juego o host…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                aria-label="Buscar"
-              />
-            </div>
+            <ListFilters
+              chips={ALL_FILTERS}
+              activeChip={filter}
+              onChipChange={setFilter}
+              defaultChip="all"
+              isAdmin={!!user?.isAdmin}
+              isAuthenticated={!!user}
+              showDistance={!!user}
+              radiusKm={radiusKm}
+              onRadiusChange={setRadiusKm}
+              hasDireccion={hasDireccion}
+              maxRadiusKm={MAX_RADIUS_KM}
+            />
+
             <div
               className={styles.viewToggle}
               role="group"
@@ -299,77 +298,6 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-
-        {/* Filtro por radio (logged-in only) */}
-        {user && (
-          <div className={styles.radiusRow}>
-            <div className={styles.radiusLabel}>
-              <span className={styles.radiusIcon} aria-hidden="true">
-                📍
-              </span>
-              <span>
-                {hasDireccion ? (
-                  radiusKm > 0 ? (
-                    <>
-                      Mostrando mesas a <strong>menos de {radiusKm} km</strong>{" "}
-                      de tu ubicación
-                    </>
-                  ) : (
-                    <>
-                      Filtrá por <strong>distancia</strong> desde tu ubicación
-                    </>
-                  )
-                ) : (
-                  <>
-                    Agregá tu dirección en{" "}
-                    <Link to="/perfil" className={styles.radiusInlineLink}>
-                      tu perfil
-                    </Link>{" "}
-                    para filtrar mesas por distancia
-                  </>
-                )}
-              </span>
-            </div>
-            <div className={styles.radiusControls}>
-              <button
-                type="button"
-                className={styles.radiusStep}
-                onClick={() => setRadiusKm((r) => Math.max(0, r - 1))}
-                disabled={!hasDireccion || radiusKm <= 0}
-                aria-label="Disminuir radio 1 km"
-                title="−1 km"
-              >
-                −
-              </button>
-              <input
-                type="range"
-                min="0"
-                max={MAX_RADIUS_KM}
-                step="1"
-                value={radiusKm}
-                onChange={(e) => setRadiusKm(Number(e.target.value))}
-                className={styles.radiusSlider}
-                disabled={!hasDireccion}
-                aria-label="Radio máximo en kilómetros"
-              />
-              <button
-                type="button"
-                className={styles.radiusStep}
-                onClick={() =>
-                  setRadiusKm((r) => Math.min(MAX_RADIUS_KM, r + 1))
-                }
-                disabled={!hasDireccion || radiusKm >= MAX_RADIUS_KM}
-                aria-label="Aumentar radio 1 km"
-                title="+1 km"
-              >
-                +
-              </button>
-              <span className={styles.radiusValue}>
-                {radiusKm > 0 ? `${radiusKm} km` : "Sin límite"}
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Content */}
         {loading ? (
