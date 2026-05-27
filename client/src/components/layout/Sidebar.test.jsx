@@ -27,6 +27,8 @@ function setup({
   adminChatUnread = 0,
   sections = {},
   pathname = "/",
+  open,
+  onClose,
 } = {}) {
   useAuth.mockReturnValue({ user, isActuallyAdmin, logout });
   useNotifications.mockReturnValue({ unreadCount, adminChatUnread });
@@ -35,7 +37,7 @@ function setup({
   });
   return render(
     <MemoryRouter initialEntries={[pathname]}>
-      <Sidebar />
+      <Sidebar open={open} onClose={onClose} />
     </MemoryRouter>,
   );
 }
@@ -143,5 +145,28 @@ describe("<Sidebar>", () => {
     fireEvent.click(screen.getByRole("button", { name: "No" }));
     expect(screen.queryByText("¿Cerrar sesión?")).not.toBeInTheDocument();
     expect(logout).not.toHaveBeenCalled();
+  });
+
+  describe("drawer mode (mobile)", () => {
+    it("does not render an in-drawer close button — Navbar's morphing toggle handles closing", () => {
+      setup({ onClose: vi.fn(), open: true });
+      expect(
+        screen.queryByRole("button", { name: /cerrar menú/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("Escape key calls onClose when open", () => {
+      const onClose = vi.fn();
+      setup({ onClose, open: true });
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("Escape key is ignored when drawer is closed", () => {
+      const onClose = vi.fn();
+      setup({ onClose, open: false });
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(onClose).not.toHaveBeenCalled();
+    });
   });
 });

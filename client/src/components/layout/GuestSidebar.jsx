@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { getActiveNavId } from "../../utils/routing";
@@ -67,14 +68,46 @@ const NAV = [
   },
 ];
 
-export default function GuestSidebar() {
+export default function GuestSidebar({ open = false, onClose }) {
   const { pathname } = useLocation();
   const { isSectionEnabled } = useSiteConfig();
   const active = getActiveNavId(pathname);
   const visibleNav = NAV.filter((item) => isSectionEnabled(item.section));
 
+  const initialPathRef = useRef(pathname);
+  useEffect(() => {
+    if (pathname === initialPathRef.current) return;
+    if (open && onClose) onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === "Escape" && onClose) onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
+
   return (
-    <aside className={styles.sidebar}>
+    <>
+      {onClose && (
+        <div
+          className={`${styles.backdrop} ${open ? styles.backdropOpen : ""}`}
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}
+        aria-hidden={onClose && !open ? "true" : undefined}
+      >
       <div className={styles.logoRow}>
         <Link to="/" className={styles.logo} aria-label="TurnoCero">
           <span className={styles.logoMark} aria-hidden="true">
@@ -119,5 +152,6 @@ export default function GuestSidebar() {
         </Link>
       </div>
     </aside>
+    </>
   );
 }

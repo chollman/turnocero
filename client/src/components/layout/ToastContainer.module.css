@@ -110,7 +110,8 @@
 
 @media (max-width: 959px) {
   .container {
-    bottom: calc(60px + 0.75rem);
+    /* The 60px buffer was reserved for the removed BottomNav pill. */
+    bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
     right: 0.75rem;
     left: 0.75rem;
   }

@@ -27,7 +27,8 @@
     background: var(--bg-dark);
     border-bottom: none;
     box-shadow: none;
-    z-index: 101;
+    /* Above the GuestSidebar drawer (200) + its backdrop (199). */
+    z-index: 250;
     transform-origin: top left;
     transform: scale(calc(1 / var(--vv-scale, 1)));
   }
@@ -49,6 +50,66 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+/* Hamburger ↔ X (right edge — mobile-only; Sidebar handles nav on desktop) */
+.menuBtn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text-secondary);
+  transition:
+    color var(--transition),
+    background var(--transition),
+    border-color var(--transition);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.menuBtn:hover {
+  color: var(--amber-light);
+  border-color: var(--border-amber);
+  background: var(--amber-glow);
+}
+
+.menuLine {
+  position: absolute;
+  left: 8px;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  transform-origin: center;
+  transition:
+    top 0.2s ease,
+    transform 0.2s ease,
+    opacity 0.15s ease;
+}
+
+.menuLine:nth-child(1) {
+  top: 11px;
+}
+.menuLine:nth-child(2) {
+  top: 17px;
+}
+.menuLine:nth-child(3) {
+  top: 23px;
+}
+
+.menuBtnOpen .menuLine:nth-child(1) {
+  top: 17px;
+  transform: rotate(45deg);
+}
+.menuBtnOpen .menuLine:nth-child(2) {
+  opacity: 0;
+}
+.menuBtnOpen .menuLine:nth-child(3) {
+  top: 17px;
+  transform: rotate(-45deg);
 }
 
 /* Logo — matches Navbar */

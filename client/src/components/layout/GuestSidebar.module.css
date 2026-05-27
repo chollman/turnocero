@@ -27,12 +27,60 @@
   pointer-events: none;
 }
 
-/* Only visible on desktop */
+/* Mobile: slide-in drawer (from the right) triggered by GuestNavbar hamburger.
+   The GuestNavbar (z-index 250) sits above this drawer and acts as the visual
+   header, so the drawer's own .logoRow is hidden below and the content
+   starts under the navbar (52px). */
 @media (max-width: 959px) {
   .sidebar {
+    position: fixed;
+    inset: 0 0 0 auto;
+    height: 100dvh;
+    width: min(86vw, 320px);
+    z-index: 200;
+    /* Match the GuestNavbar background so the navbar + drawer read as one panel. */
+    background: var(--bg-dark);
+    border-right: none;
+    border-left: 1px solid var(--border);
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.45);
+    padding-top: calc(52px + env(safe-area-inset-top, 0px));
+  }
+
+  .sidebar.sidebarOpen {
+    transform: translateX(0);
+  }
+
+  /* The GuestNavbar IS the drawer header on mobile — hide the internal one.
+     `.sidebar .logoRow` keeps higher specificity than the base
+     `.logoRow { display: flex }` rule which appears later in the file. */
+  .sidebar .logoRow {
     display: none;
   }
 }
+
+.backdrop {
+  display: none;
+}
+
+@media (max-width: 959px) {
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 199;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .backdropOpen {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 
 /* ─── Logo row ─── */
 .logoRow {

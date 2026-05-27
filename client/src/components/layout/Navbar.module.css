@@ -29,11 +29,73 @@
     left: var(--vv-left, 0px);
     width: 100%;
     right: auto;
-    z-index: 101;
+    /* Above the Sidebar drawer (z-index 200) and its backdrop (199) so the
+       hamburger-as-X stays clickable while the drawer is open. */
+    z-index: 250;
     box-shadow: none;
     transform-origin: top left;
     transform: scale(calc(1 / var(--vv-scale, 1)));
   }
+}
+
+/* ─── Hamburger ↔ X (right edge of navbar) ─── */
+.menuBtn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text-secondary);
+  transition:
+    color var(--transition),
+    background var(--transition),
+    border-color var(--transition);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.menuBtn:hover {
+  color: var(--amber-light);
+  border-color: var(--border-amber);
+  background: var(--amber-glow);
+}
+
+.menuLine {
+  position: absolute;
+  left: 8px;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  transform-origin: center;
+  transition:
+    top 0.2s ease,
+    transform 0.2s ease,
+    opacity 0.15s ease;
+}
+
+.menuLine:nth-child(1) {
+  top: 11px;
+}
+.menuLine:nth-child(2) {
+  top: 17px;
+}
+.menuLine:nth-child(3) {
+  top: 23px;
+}
+
+.menuBtnOpen .menuLine:nth-child(1) {
+  top: 17px;
+  transform: rotate(45deg);
+}
+.menuBtnOpen .menuLine:nth-child(2) {
+  opacity: 0;
+}
+.menuBtnOpen .menuLine:nth-child(3) {
+  top: 17px;
+  transform: rotate(-45deg);
 }
 
 /* ─── Brand ─── */
@@ -145,63 +207,4 @@
 
 .iconBadgeLive {
   background: var(--green);
-}
-
-/* ─── Logout confirmation ─── */
-.logoutConfirm {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  padding: 4px 8px;
-}
-
-.logoutConfirmLabel {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.logoutConfirmYes {
-  min-width: 36px;
-  min-height: 36px;
-  height: 36px;
-  background: var(--red);
-  color: var(--on-amber);
-  border: none;
-  border-radius: 6px;
-  padding: 0 12px;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity var(--transition);
-}
-
-.logoutConfirmYes:hover {
-  opacity: 0.85;
-}
-
-.logoutConfirmNo {
-  min-width: 36px;
-  min-height: 36px;
-  height: 36px;
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0 12px;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: color var(--transition);
-}
-
-.logoutConfirmNo:hover {
-  color: var(--text-primary);
 }

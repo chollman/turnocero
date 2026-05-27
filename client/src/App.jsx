@@ -1,5 +1,5 @@
 import { BrowserRouter, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SiteConfigProvider } from "./context/SiteConfigContext";
 import { NotificationProvider } from "./context/NotificationContext";
@@ -51,9 +51,7 @@ import Dado from "./pages/utilidades/Dado";
 import Navbar from "./components/layout/Navbar";
 import GuestSidebar from "./components/layout/GuestSidebar";
 import GuestNavbar from "./components/layout/GuestNavbar";
-import GuestBottomNav from "./components/layout/GuestBottomNav";
 import Sidebar from "./components/layout/Sidebar";
-import BottomNav from "./components/layout/BottomNav";
 import BoardGameBackground from "./components/layout/BoardGameBackground";
 import SplashScreen from "./components/layout/SplashScreen";
 import PageTransition from "./components/layout/PageTransition";
@@ -110,20 +108,29 @@ const AdminRoute = ({ children }) => {
 function AppRoutes() {
   const { user } = useAuth();
   const { pathname } = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
   const isAuthPage =
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/verificar-email" ||
     pathname === "/recuperar-contrasenia" ||
     pathname === "/restablecer-contrasenia";
+  const toggleMenu = () => setMenuOpen((o) => !o);
+  const closeMenu = () => setMenuOpen(false);
   return (
     <>
-      {!user && !isAuthPage && <GuestNavbar />}
+      {!user && !isAuthPage && (
+        <GuestNavbar menuOpen={menuOpen} onToggleMenu={toggleMenu} />
+      )}
       <div className="appShell">
         <ScrollToTop />
-        {user ? <Sidebar /> : !isAuthPage && <GuestSidebar />}
+        {user ? (
+          <Sidebar open={menuOpen} onClose={closeMenu} />
+        ) : (
+          !isAuthPage && <GuestSidebar open={menuOpen} onClose={closeMenu} />
+        )}
         <div className={`appContent${!user ? " guestMode" : ""}`}>
-          {user && <Navbar />}
+          {user && <Navbar menuOpen={menuOpen} onToggleMenu={toggleMenu} />}
           <PageTransition>
             <Route
               path="/login"
@@ -456,7 +463,6 @@ function AppRoutes() {
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </PageTransition>
-          {user ? <BottomNav /> : !isAuthPage && <GuestBottomNav />}
         </div>
       </div>
     </>

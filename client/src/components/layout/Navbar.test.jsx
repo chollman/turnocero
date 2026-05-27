@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
-vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/NotificationContext", () => ({
   useNotifications: vi.fn(),
 }));
@@ -16,18 +15,17 @@ vi.mock("react-router-dom", async () => {
 });
 
 import Navbar from "./Navbar";
-import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useChat } from "../../context/ChatContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 
 function setup({
-  logout = vi.fn(),
   unreadCount = 0,
   dmUnreadTotal = 0,
   sections = {},
+  menuOpen = false,
+  onToggleMenu,
 } = {}) {
-  useAuth.mockReturnValue({ logout });
   useNotifications.mockReturnValue({ unreadCount });
   useChat.mockReturnValue({ dmUnreadTotal });
   useSiteConfig.mockReturnValue({
@@ -35,7 +33,7 @@ function setup({
   });
   return render(
     <MemoryRouter>
-      <Navbar />
+      <Navbar menuOpen={menuOpen} onToggleMenu={onToggleMenu} />
     </MemoryRouter>,
   );
 }
@@ -49,6 +47,34 @@ describe("<Navbar>", () => {
     setup();
     const logoLink = screen.getByRole("link", { name: /turnocero/i });
     expect(logoLink).toHaveAttribute("href", "/");
+  });
+
+  it("renders the hamburger button labeled 'Abrir menú' when closed", () => {
+    setup({ onToggleMenu: vi.fn(), menuOpen: false });
+    const btn = screen.getByRole("button", { name: /abrir menú/i });
+    expect(btn).toBeInTheDocument();
+    expect(btn).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("labels the toggle button 'Cerrar menú' + aria-expanded=true when open", () => {
+    setup({ onToggleMenu: vi.fn(), menuOpen: true });
+    const btn = screen.getByRole("button", { name: /cerrar menú/i });
+    expect(btn).toBeInTheDocument();
+    expect(btn).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("clicking the toggle calls onToggleMenu", () => {
+    const onToggleMenu = vi.fn();
+    setup({ onToggleMenu, menuOpen: false });
+    fireEvent.click(screen.getByRole("button", { name: /abrir menú/i }));
+    expect(onToggleMenu).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides the toggle button when no onToggleMenu prop is given", () => {
+    setup();
+    expect(
+      screen.queryByRole("button", { name: /abrir menú|cerrar menú/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows DMs button when dms section is enabled", () => {
@@ -92,27 +118,10 @@ describe("<Navbar>", () => {
     expect(navigateMock).toHaveBeenCalledWith("/notificaciones");
   });
 
-  it('logout: first click shows confirm; "Sí" calls logout and navigates to /login', () => {
-    const logout = vi.fn();
-    setup({ logout });
-    fireEvent.click(screen.getByRole("button", { name: /cerrar sesión/i }));
-    // Now the confirm is showing
-    expect(screen.getByText(/salir/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Sí" }));
-    expect(logout).toHaveBeenCalledTimes(1);
-    expect(navigateMock).toHaveBeenCalledWith("/login");
-  });
-
-  it('logout: "No" cancels the confirm without logging out', () => {
-    const logout = vi.fn();
-    setup({ logout });
-    fireEvent.click(screen.getByRole("button", { name: /cerrar sesión/i }));
-    fireEvent.click(screen.getByRole("button", { name: "No" }));
-    expect(logout).not.toHaveBeenCalled();
-    // Confirm is gone, logout button is back
-    expect(screen.queryByText(/salir/i)).not.toBeInTheDocument();
+  it("does not render a logout button (lives in the drawer menu now)", () => {
+    setup({ onToggleMenu: vi.fn() });
     expect(
-      screen.getByRole("button", { name: /cerrar sesión/i }),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: /cerrar sesión/i }),
+    ).not.toBeInTheDocument();
   });
 });

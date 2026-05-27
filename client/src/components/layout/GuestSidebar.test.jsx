@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import GuestSidebar from "./GuestSidebar";
 
@@ -8,13 +8,13 @@ vi.mock("../../context/SiteConfigContext", () => ({
 }));
 import { useSiteConfig } from "../../context/SiteConfigContext";
 
-function renderAt(pathname, sectionEnabledMap = {}) {
+function renderAt(pathname, sectionEnabledMap = {}, props = {}) {
   useSiteConfig.mockReturnValue({
     isSectionEnabled: (k) => sectionEnabledMap[k] ?? true,
   });
   return render(
     <MemoryRouter initialEntries={[pathname]}>
-      <GuestSidebar />
+      <GuestSidebar {...props} />
     </MemoryRouter>,
   );
 }
@@ -61,5 +61,21 @@ describe("<GuestSidebar>", () => {
     expect(noticiasLink.className).toMatch(/active/i);
     const compartidasLink = screen.getByRole("link", { name: /compartidas/i });
     expect(compartidasLink.className).not.toMatch(/active/i);
+  });
+
+  describe("drawer mode (mobile)", () => {
+    it("does not render an in-drawer close button — GuestNavbar's toggle handles closing", () => {
+      renderAt("/", {}, { onClose: vi.fn(), open: true });
+      expect(
+        screen.queryByRole("button", { name: /cerrar menú/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("Escape calls onClose when open", () => {
+      const onClose = vi.fn();
+      renderAt("/", {}, { onClose, open: true });
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
   });
 });

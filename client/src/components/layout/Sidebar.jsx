@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -247,7 +247,7 @@ const SECTIONS = [
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ open = false, onClose }) {
   const { user, isActuallyAdmin, logout } = useAuth();
   const { unreadCount, adminChatUnread } = useNotifications();
   const { isSectionEnabled } = useSiteConfig();
@@ -257,6 +257,29 @@ export default function Sidebar() {
   const [confirmingLogout, setConfirmingLogout] = useState(false);
 
   const display = getUserDisplay(user);
+
+  // Close the mobile drawer when route changes (skip initial mount).
+  const initialPathRef = useRef(location.pathname);
+  useEffect(() => {
+    if (location.pathname === initialPathRef.current) return;
+    if (open && onClose) onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  // Close on Escape; lock body scroll while open
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === "Escape" && onClose) onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
 
   const resolveItem = (item) => {
     if (item.id === "bgwatchSlot") {
@@ -348,7 +371,18 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className={styles.sidebar}>
+    <>
+      {onClose && (
+        <div
+          className={`${styles.backdrop} ${open ? styles.backdropOpen : ""}`}
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}
+        aria-hidden={onClose && !open ? "true" : undefined}
+      >
       <div className={styles.logoRow}>
         <Link to="/" className={styles.logo} aria-label="TurnoCero">
           <span className={styles.logoMark} aria-hidden="true">
@@ -461,5 +495,6 @@ export default function Sidebar() {
         )}
       </div>
     </aside>
+    </>
   );
 }

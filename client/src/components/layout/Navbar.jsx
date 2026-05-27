@@ -1,6 +1,4 @@
-import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useChat } from "../../context/ChatContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
@@ -38,36 +36,12 @@ const BellIcon = () => (
   </svg>
 );
 
-const LogoutIcon = () => (
-  <svg
-    width="15"
-    height="15"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-    <polyline points="16 17 21 12 16 7" />
-    <line x1="21" y1="12" x2="9" y2="12" />
-  </svg>
-);
-
-export default function Navbar() {
-  const { logout } = useAuth();
+export default function Navbar({ menuOpen = false, onToggleMenu }) {
   const { unreadCount } = useNotifications();
   const { dmUnreadTotal } = useChat();
   const { isSectionEnabled } = useSiteConfig();
   const navigate = useNavigate();
-  const [confirming, setConfirming] = useState(false);
   const dmsEnabled = isSectionEnabled("dms");
-
-  const handleLogoutConfirm = () => {
-    logout();
-    navigate("/login");
-  };
 
   return (
     <nav className={styles.nav}>
@@ -113,29 +87,17 @@ export default function Navbar() {
           )}
         </button>
 
-        {confirming ? (
-          <div className={styles.logoutConfirm}>
-            <span className={styles.logoutConfirmLabel}>¿Salir?</span>
-            <button
-              className={styles.logoutConfirmYes}
-              onClick={handleLogoutConfirm}
-            >
-              Sí
-            </button>
-            <button
-              className={styles.logoutConfirmNo}
-              onClick={() => setConfirming(false)}
-            >
-              No
-            </button>
-          </div>
-        ) : (
+        {onToggleMenu && (
           <button
-            className={styles.iconBtn}
-            onClick={() => setConfirming(true)}
-            aria-label="Cerrar sesión"
+            type="button"
+            className={`${styles.menuBtn} ${menuOpen ? styles.menuBtnOpen : ""}`}
+            onClick={onToggleMenu}
+            aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={menuOpen}
           >
-            <LogoutIcon />
+            <span className={styles.menuLine} />
+            <span className={styles.menuLine} />
+            <span className={styles.menuLine} />
           </button>
         )}
       </div>

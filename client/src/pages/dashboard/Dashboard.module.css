@@ -463,7 +463,9 @@
   }
   .fab {
     position: fixed;
-    bottom: calc(var(--bottom-nav-h, 56px) + 16px);
+    /* Old offset cleared the BottomNav pill (~56px + 16px). Now sits with a
+       16px gutter, plus the iOS home-indicator safe area. */
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     right: 16px;
     z-index: 50;
     display: inline-flex;

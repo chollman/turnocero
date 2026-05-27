@@ -1,7 +1,8 @@
 /**
  * Maps a URL pathname to a stable nav id.
- * Used by Sidebar, BottomNav, GuestSidebar and GuestBottomNav to highlight
- * the active nav item. Keep this function in sync with the route tree in App.jsx.
+ * Used by Sidebar and GuestSidebar (incl. their mobile drawer modes) to
+ * highlight the active nav item. Keep this function in sync with the route
+ * tree in App.jsx.
  */
 export function getActiveNavId(pathname) {
   if (pathname === "/mi") return "feed";

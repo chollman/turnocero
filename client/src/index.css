@@ -225,11 +225,7 @@ select {
 
 @media (max-width: 959px) {
   .appContent {
-    /* space for the floating BottomNav pill (pill + inset + safe-area) */
-    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
-  }
-  .appContent.guestMode {
-    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 
