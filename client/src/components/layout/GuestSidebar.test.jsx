@@ -23,7 +23,7 @@ describe("<GuestSidebar>", () => {
   it("renders the brand logo + login/register CTAs", () => {
     renderAt("/");
     expect(screen.getByText("TurnoCero")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /sesi[oó]n/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /^login$/i })).toHaveAttribute(
       "href",
       "/login",
     );
