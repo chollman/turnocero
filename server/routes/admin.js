@@ -153,7 +153,6 @@ router.delete(
             players: id,
             pendingRequests: id,
             followers: id,
-            reactions: { user: id },
           },
         },
       ),

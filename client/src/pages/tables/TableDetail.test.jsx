@@ -58,7 +58,6 @@ function makeTable(overrides = {}) {
     privacy: "public",
     pendingRequests: [],
     followers: [],
-    reactions: [],
     images: [],
     ...overrides,
   };
@@ -282,40 +281,6 @@ describe("<TableDetail>", () => {
     expect(screen.getByText(/3 libres/i)).toBeInTheDocument();
   });
 
-  it("renders all 5 reaction emoji buttons", async () => {
-    setupTable(makeTable());
-    renderTableDetail({
-      user: { _id: "other", username: "other", isAdmin: false },
-    });
-    await screen.findByRole("heading", { name: "Catán" });
-    expect(screen.getByRole("button", { name: "❤️" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "🎲" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "🔥" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "👍" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "😄" })).toBeInTheDocument();
-  });
-
-  it("reaction with existing reactions shows the count", async () => {
-    setupTable(
-      makeTable({
-        reactions: [
-          { user: "u1", emoji: "❤️" },
-          { user: "u2", emoji: "❤️" },
-          { user: "u3", emoji: "🔥" },
-        ],
-      }),
-    );
-    renderTableDetail({
-      user: { _id: "other", username: "other", isAdmin: false },
-    });
-    await screen.findByRole("heading", { name: "Catán" });
-    // The reaction count chips have a CSS class we can scope by.
-    const heart = screen.getByRole("button", { name: /❤️/ });
-    const fire = screen.getByRole("button", { name: /🔥/ });
-    expect(heart).toHaveTextContent("2");
-    expect(fire).toHaveTextContent("1");
-  });
-
   it("host on a private table sees solicitudes pendientes section", async () => {
     setupTable(
       makeTable({
@@ -413,24 +378,6 @@ describe("<TableDetail>", () => {
     await screen.findByRole("heading", { name: "Catán" });
     fireEvent.click(screen.getByRole("button", { name: /unirme a la mesa/i }));
     await waitFor(() => expect(joined).toHaveBeenCalled());
-  });
-
-  it("clicking a reaction emoji triggers POST /react", async () => {
-    const reacted = vi.fn();
-    setupTable(makeTable());
-    server.use(
-      http.post("/api/tables/:id/react", async ({ request }) => {
-        const body = await request.json();
-        reacted(body);
-        return HttpResponse.json({
-          reactions: [{ user: "me", emoji: body.emoji }],
-        });
-      }),
-    );
-    renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
-    await screen.findByRole("heading", { name: "Catán" });
-    fireEvent.click(screen.getByRole("button", { name: "🔥" }));
-    await waitFor(() => expect(reacted).toHaveBeenCalledWith({ emoji: "🔥" }));
   });
 
   it("host clicking 'Editar' navigates to /mesas/:id/editar (no crash)", async () => {

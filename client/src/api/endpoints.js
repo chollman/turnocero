@@ -64,7 +64,6 @@ export const API = {
     REQUEST: (id) => `/api/tables/${enc(id)}/request`,
     LEAVE: (id) => `/api/tables/${enc(id)}/leave`,
     FOLLOW: (id) => `/api/tables/${enc(id)}/follow`,
-    REACT: (id) => `/api/tables/${enc(id)}/react`,
     REQUEST_ACCEPT: (id, userId) =>
       `/api/tables/${enc(id)}/requests/${enc(userId)}/accept`,
     REQUEST_REJECT: (id, userId) =>

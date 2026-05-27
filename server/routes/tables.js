@@ -806,45 +806,6 @@ router.post(
   }),
 );
 
-// POST /api/tables/:id/react — protected; any logged-in user; toggles/replaces emoji reaction
-router.post(
-  "/:id/react",
-  protect,
-  [
-    param("id").isMongoId().withMessage("Invalid table ID"),
-    body("emoji")
-      .isIn(["❤️", "🎲", "🔥", "👍", "😄"])
-      .withMessage("Invalid emoji"),
-  ],
-  asyncHandler(async (req, res) => {
-    checkValidation(req);
-
-    const table = await Table.findById(req.params.id);
-    if (!table) throw httpError(404, "Table not found");
-    if (table.status === "cancelled") {
-      throw httpError(400, "Table is cancelled");
-    }
-
-    const { emoji } = req.body;
-    const existingIdx = table.reactions.findIndex((r) =>
-      isSameId(r.user, req.user._id),
-    );
-
-    if (existingIdx !== -1) {
-      if (table.reactions[existingIdx].emoji === emoji) {
-        table.reactions.splice(existingIdx, 1);
-      } else {
-        table.reactions[existingIdx].emoji = emoji;
-      }
-    } else {
-      table.reactions.push({ user: req.user._id, emoji });
-    }
-
-    await table.save();
-    res.json({ reactions: table.reactions });
-  }),
-);
-
 // DELETE /api/tables/:id — protected, host only
 router.delete(
   "/:id",

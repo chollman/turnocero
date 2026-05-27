@@ -23,8 +23,6 @@ import TableRatings from "./TableRatings";
 import MesaStub from "./MesaStub";
 import styles from "./TableDetail.module.css";
 
-const REACTION_EMOJIS = ["❤️", "🎲", "🔥", "👍", "😄"];
-
 // Small inline link next to a player's name when they have an active BG Watch.
 function PlayerBgWatchLink({ user }) {
   if (!user?.bggUsername) return null;
@@ -301,39 +299,6 @@ export default function TableDetail() {
     }
   };
 
-  const handleReact = async (emoji) => {
-    if (!user) {
-      setLoginPrompt("Iniciá sesión para reaccionar a esta mesa.");
-      return;
-    }
-    const currentReactions = table.reactions || [];
-    const existing = currentReactions.find(
-      (r) => r.user?.toString() === user._id.toString(),
-    );
-    let newReactions;
-    if (existing) {
-      if (existing.emoji === emoji) {
-        newReactions = currentReactions.filter(
-          (r) => r.user?.toString() !== user._id.toString(),
-        );
-      } else {
-        newReactions = currentReactions.map((r) =>
-          r.user?.toString() === user._id.toString() ? { ...r, emoji } : r,
-        );
-      }
-    } else {
-      newReactions = [...currentReactions, { user: user._id, emoji }];
-    }
-    setTable((prev) => ({ ...prev, reactions: newReactions }));
-    try {
-      const { data } = await axios.post(API.tables.REACT(id), { emoji });
-      setTable((prev) => ({ ...prev, reactions: data.reactions }));
-    } catch {
-      setTable((prev) => ({ ...prev, reactions: currentReactions }));
-      addToast({ type: "error", message: "No pudimos guardar tu reacción." });
-    }
-  };
-
   const handleImagesChange = useCallback((nextImages) => {
     setTable((prev) => ({ ...prev, images: nextImages }));
   }, []);
@@ -558,48 +523,6 @@ export default function TableDetail() {
                   </span>
                 </div>
               </div>
-
-              {/* Reactions */}
-              {(() => {
-                const reactions = table.reactions || [];
-                const myReaction = user
-                  ? reactions.find(
-                      (r) => r.user?.toString() === user._id.toString(),
-                    )?.emoji || null
-                  : null;
-                return (
-                  <section className={styles.section}>
-                    <header className={styles.sectionHead}>
-                      <span className={styles.sectionLabel}>
-                        ◆ ¿Qué te parece?
-                      </span>
-                      <span className={styles.sectionRule} />
-                    </header>
-                    <div className={styles.reactionBar}>
-                      {REACTION_EMOJIS.map((emoji) => {
-                        const count = reactions.filter(
-                          (r) => r.emoji === emoji,
-                        ).length;
-                        return (
-                          <button
-                            key={`${emoji}-${myReaction === emoji}`}
-                            type="button"
-                            className={`${styles.reactionBtn} ${myReaction === emoji ? styles.reactionActive : ""}`}
-                            onClick={() => handleReact(emoji)}
-                          >
-                            <span>{emoji}</span>
-                            {count > 0 && (
-                              <span className={styles.reactionCount}>
-                                {count}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </section>
-                );
-              })()}
 
               {/* Description */}
               {table.description && (

@@ -324,40 +324,6 @@
   letter-spacing: 0.05em;
 }
 
-/* -- Reactions ----------------------------------------------- */
-.reactionBar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.reactionBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  padding: 7px 12px;
-  border-radius: 999px;
-  font-family: var(--font-display);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.reactionBtn:hover {
-  border-color: var(--border-amber);
-}
-.reactionActive {
-  background: var(--amber-glow);
-  border-color: var(--border-amber);
-  color: var(--amber-light);
-}
-.reactionCount {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-}
-
 /* -- Table map (alrededor de la mesa) ----------------------- */
 .tableMapWrap {
   position: relative;
@@ -660,9 +626,6 @@
 }
 
 /* -- Mobile -------------------------------------------------- */
-.mobileHidden {
-  display: none;
-}
 
 @media (max-width: 980px) {
   .layout {
@@ -671,6 +634,14 @@
   }
   .aside {
     position: static;
+  }
+  /* `.mobileHidden` solo aplica en mobile — en desktop las secciones que
+     en mobile están detrás de la tab bar (chat / fotos / reseñas) deben
+     verse todas juntas en el flujo del main. Si esta regla viviera fuera
+     del media query, en desktop el viewer no-guest perdería comentarios,
+     fotos y reseñas. */
+  .mobileHidden {
+    display: none;
   }
   .banner {
     aspect-ratio: 16 / 9;

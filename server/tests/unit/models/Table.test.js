@@ -143,7 +143,6 @@ describe("Table model — location subdocument", () => {
       description: "",
       status: "open",
       privacy: "public",
-      reactions: [],
       followers: [],
       pendingRequests: [],
       images: [],

@@ -89,20 +89,6 @@ const tableSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
-    reactions: [
-      {
-        user: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-          required: true,
-        },
-        emoji: {
-          type: String,
-          enum: ["❤️", "🎲", "🔥", "👍", "😄"],
-          required: true,
-        },
-      },
-    ],
     followers: [
       {
         type: mongoose.Schema.Types.ObjectId,
