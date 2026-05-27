@@ -375,7 +375,22 @@ export default function Dashboard() {
                 <span className={styles.horizonSub}>{g.sub}</span>
                 <span className={styles.horizonRule} aria-hidden="true" />
                 <span className={styles.horizonCount}>
-                  {g.items.length} mesa{g.items.length !== 1 ? "s" : ""}
+                  {(() => {
+                    // Para "past" mostramos el total real de la consulta (no
+                    // sólo lo visible en esta página). El server pagina por
+                    // fecha DESC, así que las mesas pasadas suelen aparecer
+                    // distribuidas en varias páginas — un count per-page
+                    // engaña al user. `total - upcomingTotal` = pasadas
+                    // totales en el filtro actual.
+                    const count =
+                      g.key === "past"
+                        ? Math.max(
+                            0,
+                            pagination.total - pagination.upcomingTotal,
+                          )
+                        : g.items.length;
+                    return `${count} mesa${count !== 1 ? "s" : ""}`;
+                  })()}
                 </span>
               </header>
               <div className={viewMode === "list" ? styles.list : styles.grid}>

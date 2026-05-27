@@ -51,17 +51,24 @@ describe("groupByHorizon", () => {
     expect(groups.map((g) => g.key)).toEqual(["today", "thisWeek"]);
   });
 
-  it("sorts items within each group by date descending (most recent first)", () => {
+  it("sorts future groups ascending (la próxima primero) and past descending", () => {
     const tables = [
+      // thisWeek: 22 y 25 → ASC → mid, late
       { _id: "late", date: D(2026, 5, 25, 22) },
       { _id: "mid", date: D(2026, 5, 22, 18) },
+      // tomorrow: 21 → single
       { _id: "early", date: D(2026, 5, 21, 9) },
+      // past: 15 y 10 → DESC → recientPast (15), oldPast (10)
+      { _id: "recentPast", date: D(2026, 5, 15, 21) },
+      { _id: "oldPast", date: D(2026, 5, 10, 20) },
     ];
     const groups = groupByHorizon(tables, (t) => t.date, NOW);
     const tomorrow = groups.find((g) => g.key === "tomorrow");
     const thisWeek = groups.find((g) => g.key === "thisWeek");
+    const past = groups.find((g) => g.key === "past");
     expect(tomorrow.items.map((t) => t._id)).toEqual(["early"]);
-    expect(thisWeek.items.map((t) => t._id)).toEqual(["late", "mid"]);
+    expect(thisWeek.items.map((t) => t._id)).toEqual(["mid", "late"]);
+    expect(past.items.map((t) => t._id)).toEqual(["recentPast", "oldPast"]);
   });
 
   it("supports a custom date accessor", () => {

@@ -40,9 +40,12 @@ export const HORIZON_META = {
 // Orden estable para iterar los grupos al renderizar.
 export const HORIZON_ORDER = ["today", "tomorrow", "thisWeek", "later", "past"];
 
-// Agrupa una lista de items por horizonte y ordena cada grupo por fecha
-// DESCENDIENTE (más reciente primero). Devuelve solo los grupos con items
-// (para que el caller no tenga que filtrar).
+// Agrupa una lista de items por horizonte y ordena cada grupo por fecha.
+// Los grupos futuros (today / tomorrow / thisWeek / later) se ordenan
+// ASCENDENTE (la más próxima primero — la siguiente a punto de empezar
+// queda arriba). El grupo "past" se ordena DESCENDENTE (la más reciente
+// primero — el último evento jugado encabeza la lista, los más viejos
+// quedan abajo). Devuelve sólo los grupos con items.
 // `dateAccessor`: función que extrae la fecha del item (default: t => t.date).
 export function groupByHorizon(items, dateAccessor = (t) => t.date, now) {
   const groups = new Map();
@@ -51,8 +54,12 @@ export function groupByHorizon(items, dateAccessor = (t) => t.date, now) {
     if (!groups.has(h)) groups.set(h, []);
     groups.get(h).push(it);
   }
-  for (const arr of groups.values()) {
-    arr.sort((a, b) => new Date(dateAccessor(b)) - new Date(dateAccessor(a)));
+  for (const [key, arr] of groups.entries()) {
+    const dir = key === "past" ? -1 : 1;
+    arr.sort(
+      (a, b) =>
+        dir * (new Date(dateAccessor(a)) - new Date(dateAccessor(b))),
+    );
   }
   return HORIZON_ORDER.filter((k) => groups.has(k)).map((k) => ({
     key: k,
