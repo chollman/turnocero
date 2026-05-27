@@ -22,6 +22,15 @@
   }
 }
 
+/* En mobile el Sidebar (≥960px) desaparece — la asimetría
+   page-padding-left/page-padding ya no se justifica. Mismo patrón que
+   Dashboard + Eventos + el .container global. */
+@media (max-width: 959px) {
+  .page {
+    padding-inline: var(--page-padding-mobile);
+  }
+}
+
 /* Exit animation: espejo del slideInFromTop de PageTransition. Lo disparamos
    manualmente cuando el user clickea "Volver al listado" porque la nav
    /mesas/:id → /mesas es same-section y PageTransition no la anima. */
@@ -91,6 +100,11 @@
   position: sticky;
   top: calc(var(--navbar-h, 64px) + 1.5rem);
   align-self: start;
+  /* En el grid items defaultean a `min-width: auto`. Si el MesaStub o el
+     chat tienen contenido naturalmente ancho, el aside puede expandirse
+     más allá del fr asignado y empujar la página fuera del viewport en
+     mobile. `min-width: 0` lo previene. */
+  min-width: 0;
 }
 
 /* -- Hero banner --------------------------------------------- */
@@ -742,6 +756,45 @@
   .mobileTabBar {
     display: flex;
   }
+  /* Sub-cards (`.card`, `.ratingsCard`, `.chatPreview`) tenían padding
+     `1.25rem 1.5rem` que en un viewport de 360px (con `.page` padding
+     mobile de 0.5rem cada lado) dejaba ~272px para el contenido. Reducir
+     en mobile da más espacio horizontal sin afectar la jerarquía. */
+  .card,
+  .ratingsCard {
+    padding: 0.9rem 1rem;
+  }
+  .chatPreview {
+    padding: 10px;
+  }
+  /* Banner padding interno reducido para que el title no roce el borde. */
+  .bannerContent {
+    bottom: 14px;
+    left: 14px;
+    right: 14px;
+  }
+  /* tableMapWrap tenía padding 24px todos lados — sumaba 48px de margen
+     horizontal interno, dejando casi nada al lado del mapa cenital. */
+  .tableMapWrap {
+    padding: 16px 12px;
+  }
+  /* playerRow padding compacto + gap menor para que avatar + nombre +
+     handle entren cómodos a viewport angosto. */
+  .playerRow {
+    padding: 8px 10px;
+    gap: 10px;
+  }
+  /* Pending request idem — avatar + cuerpo + actions. */
+  .pendingReq {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  /* Section padding interno: el sectionHead arriba ya tiene la regla
+     mobile. La sección entera no necesita padding lateral porque .page
+     ya lo provee; sólo aseguro que no haya overflow horizontal. */
+  .section {
+    min-width: 0;
+  }
 }
 
 /* ============================================================
@@ -792,13 +845,20 @@
   gap: 10px;
 }
 
-/* Lista de bubbles. Sin scroll por default; si el chat se pone largo,
+/* Lista de bubbles. Como el chat vive dentro del MesaStub del aside, queda
+   apretado al verticalmente. Limitamos el alto a ~2 mensajes y agregamos
+   scroll para que el stub no domine el viewport en desktop; en mobile el
+   scroll también ayuda porque el chat queda al pie de la página y antes
+   forzaba un scroll largo del viewport entero.
    max-height + overflow-y mantienen la card razonable sin perder el look. */
 .chatRows {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 420px;
+  /* ~2 mensajes visibles. Cada bubble pesa ~55–75px (meta row + texto
+     line-height 1.45) más 10px de gap entre filas. 170px deja ver dos
+     mensajes cómodos y dispara el scroll vertical desde el tercero. */
+  max-height: 120px;
   overflow-y: auto;
   scroll-behavior: smooth;
   padding-right: 2px;
@@ -855,6 +915,18 @@
   border-color: var(--border-amber);
 }
 
+/* Header del bubble: author a la izquierda, time a la derecha. Ambos
+   alineados al top — el author es 11px display, el time es 9px mono, el
+   flex-start los acuesta sobre el borde superior del row así el time
+   queda más arriba que el author en lugar de alineado por baseline. */
+.chatMeta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
 .chatAuthor {
   font-family: var(--font-display);
   font-size: 11px;
@@ -862,6 +934,11 @@
   color: var(--text-primary);
   letter-spacing: -0.015em;
   line-height: 1.1;
+  /* Ellipsis si el nombre es muy largo, así el time nunca se sale. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .chatText {
@@ -876,7 +953,7 @@
   font-size: 9px;
   color: var(--text-muted);
   letter-spacing: 0.04em;
-  align-self: flex-end;
+  flex-shrink: 0;
 }
 
 .chatError {
@@ -896,6 +973,10 @@
 
 .chatInput {
   flex: 1;
+  /* Sin min-width: 0 el <input> respeta su intrinsic min-content (~170px
+     con padding + border + placeholder de 20 chars), lo que empuja al
+     submit fuera del bubble y rompe el layout en pantallas angostas. */
+  min-width: 0;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 999px;

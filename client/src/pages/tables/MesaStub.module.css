@@ -172,6 +172,23 @@
   min-width: 0;
 }
 
+/* Mobile — paddings horizontales reducidos para no apretar el contenido
+   cuando el aside colapsa a full-width debajo del main (≤980px). El stub
+   no tiene media query propia porque siempre vivió en una columna sticky
+   de 360px; en mobile esa restricción desaparece pero el padding antes
+   no se ajustaba, dejando rows + CTA con apenas espacio interior. */
+@media (max-width: 600px) {
+  .top {
+    padding: 18px 16px 14px;
+  }
+  .bottom {
+    padding: 0.75rem 16px 0.75rem;
+  }
+  .chatSection {
+    padding: 0 16px 18px;
+  }
+}
+
 .row {
   display: flex;
   justify-content: space-between;
@@ -221,10 +238,16 @@
 
 .cta {
   width: 100%;
+  /* 40px de altura matchea .state y .ghostBtn — flex centering para
+     que el label quede vertical-medio sin depender de line-height. */
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--amber);
   color: var(--on-amber);
   border: none;
-  padding: 14px;
+  padding: 0 14px;
   border-radius: 10px;
   font-family: var(--font-display);
   font-size: 13.5px;
@@ -245,10 +268,15 @@
 
 .ghostBtn {
   width: 100%;
+  /* Mismo height que .state y .cta para mantener la columna uniforme. */
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: var(--text-secondary);
   border: 1px solid var(--border-strong);
-  padding: 10px;
+  padding: 0 14px;
   border-radius: 10px;
   font-family: var(--font-display);
   font-size: 12px;
@@ -276,10 +304,16 @@
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  /* Altura explícita 40px alineada con .cta y .ghostBtn — los tres
+     comparten ese height para que la columna del ctaBlock tenga rhythm
+     vertical uniforme. Padding sólo horizontal; el centrado lo hace
+     `align-items: center`. */
+  height: 40px;
+  padding: 0 14px;
   border-radius: 10px;
   text-align: left;
   min-width: 0;
+  margin-bottom: 0.75rem;
 }
 .state_hosting {
   background: var(--orange-10);

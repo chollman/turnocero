@@ -24,6 +24,16 @@
   }
 }
 
+/* En mobile el Sidebar (≥960px) desaparece, así que `--page-padding-left`
+   asimétrico ya no se justifica. Pasamos a `--page-padding-mobile` simétrico
+   en ambos lados — mismo patrón que el global `.container` y que la página
+   de Eventos. */
+@media (max-width: 959px) {
+  .page {
+    padding-inline: var(--page-padding-mobile);
+  }
+}
+
 /* ============================================================
    Editorial hero — calcado de Eventos
    ============================================================ */

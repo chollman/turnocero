@@ -26,6 +26,14 @@
   }
 }
 
+/* Sin Sidebar en mobile, paddings simétricos vía --page-padding-mobile
+   (mismo patrón que la página real TableDetail). */
+@media (max-width: 959px) {
+  .page {
+    padding-inline: var(--page-padding-mobile);
+  }
+}
+
 .inner {
   padding: 0;
 }

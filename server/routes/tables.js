@@ -273,43 +273,43 @@ router.post(
     body("boardGame")
       .trim()
       .notEmpty()
-      .withMessage("Game name is required")
+      .withMessage("El nombre del juego es obligatorio")
       .isLength({ max: 100 })
-      .withMessage("Game name is too long"),
+      .withMessage("El nombre del juego es demasiado largo"),
     body("date")
       .notEmpty()
-      .withMessage("Date is required")
+      .withMessage("La fecha es obligatoria")
       .isISO8601()
-      .withMessage("Invalid date format"),
+      .withMessage("Formato de fecha inválido"),
     body("maxPlayers")
       .notEmpty()
-      .withMessage("Max players is required")
-      .isInt({ min: 2, max: 20 })
-      .withMessage("Max players must be between 2 and 20"),
+      .withMessage("La cantidad de jugadores es obligatoria")
+      .isInt({ min: 1, max: 20 })
+      .withMessage("Tiene que haber entre 1 y 20 lugares libres (sin contar al host)"),
     body("description")
       .optional()
       .trim()
       .isLength({ max: 500 })
-      .withMessage("Description is too long"),
+      .withMessage("La descripción es demasiado larga"),
     body("rules")
       .optional()
       .trim()
       .isLength({ max: 500 })
-      .withMessage("Rules are too long"),
+      .withMessage("Las reglas son demasiado largas"),
     body("tags")
       .optional()
       .isArray({ max: 5 })
-      .withMessage("Cannot have more than 5 tags"),
+      .withMessage("No se pueden agregar más de 5 tags"),
     body("tags.*")
       .optional()
       .isString()
       .trim()
       .isLength({ min: 1, max: 30 })
-      .withMessage("Each tag must be 1-30 characters"),
+      .withMessage("Cada tag debe tener entre 1 y 30 caracteres"),
     body("privacy")
       .optional()
       .isIn(["public", "private"])
-      .withMessage("Invalid privacy value"),
+      .withMessage("Valor de privacidad inválido"),
   ],
   asyncHandler(async (req, res) => {
     checkValidation(req);
@@ -474,7 +474,7 @@ router.post(
 router.get(
   "/:id",
   optionalAuth,
-  [param("id").isMongoId().withMessage("Invalid table ID")],
+  [param("id").isMongoId().withMessage("ID de mesa inválido")],
   asyncHandler(async (req, res) => {
     checkValidation(req);
     const table = await populateTable(Table.findById(req.params.id));
@@ -493,41 +493,41 @@ router.put(
   "/:id",
   protect,
   [
-    param("id").isMongoId().withMessage("Invalid table ID"),
+    param("id").isMongoId().withMessage("ID de mesa inválido"),
     body("date")
       .notEmpty()
-      .withMessage("Date is required")
+      .withMessage("La fecha es obligatoria")
       .isISO8601()
-      .withMessage("Invalid date format"),
+      .withMessage("Formato de fecha inválido"),
     body("maxPlayers")
       .notEmpty()
-      .withMessage("Max players is required")
-      .isInt({ min: 2, max: 20 })
-      .withMessage("Max players must be between 2 and 20"),
+      .withMessage("La cantidad de jugadores es obligatoria")
+      .isInt({ min: 1, max: 20 })
+      .withMessage("Tiene que haber entre 1 y 20 lugares libres (sin contar al host)"),
     body("description")
       .optional()
       .trim()
       .isLength({ max: 500 })
-      .withMessage("Description is too long"),
+      .withMessage("La descripción es demasiado larga"),
     body("rules")
       .optional()
       .trim()
       .isLength({ max: 500 })
-      .withMessage("Rules are too long"),
+      .withMessage("Las reglas son demasiado largas"),
     body("tags")
       .optional()
       .isArray({ max: 5 })
-      .withMessage("Cannot have more than 5 tags"),
+      .withMessage("No se pueden agregar más de 5 tags"),
     body("tags.*")
       .optional()
       .isString()
       .trim()
       .isLength({ min: 1, max: 30 })
-      .withMessage("Each tag must be 1-30 characters"),
+      .withMessage("Cada tag debe tener entre 1 y 30 caracteres"),
     body("privacy")
       .optional()
       .isIn(["public", "private"])
-      .withMessage("Invalid privacy value"),
+      .withMessage("Valor de privacidad inválido"),
   ],
   asyncHandler(async (req, res) => {
     checkValidation(req);
@@ -593,7 +593,7 @@ router.put(
 router.post(
   "/:id/join",
   protect,
-  [param("id").isMongoId().withMessage("Invalid table ID")],
+  [param("id").isMongoId().withMessage("ID de mesa inválido")],
   asyncHandler(async (req, res) => {
     checkValidation(req);
 
@@ -663,7 +663,7 @@ router.post(
 router.delete(
   "/:id/request",
   protect,
-  [param("id").isMongoId().withMessage("Invalid table ID")],
+  [param("id").isMongoId().withMessage("ID de mesa inválido")],
   asyncHandler(async (req, res) => {
     checkValidation(req);
 
@@ -692,8 +692,8 @@ router.post(
   "/:id/requests/:userId/accept",
   protect,
   [
-    param("id").isMongoId().withMessage("Invalid table ID"),
-    param("userId").isMongoId().withMessage("Invalid user ID"),
+    param("id").isMongoId().withMessage("ID de mesa inválido"),
+    param("userId").isMongoId().withMessage("ID de usuario inválido"),
   ],
   asyncHandler(async (req, res) => {
     checkValidation(req);
@@ -751,8 +751,8 @@ router.post(
   "/:id/requests/:userId/reject",
   protect,
   [
-    param("id").isMongoId().withMessage("Invalid table ID"),
-    param("userId").isMongoId().withMessage("Invalid user ID"),
+    param("id").isMongoId().withMessage("ID de mesa inválido"),
+    param("userId").isMongoId().withMessage("ID de usuario inválido"),
   ],
   asyncHandler(async (req, res) => {
     checkValidation(req);
@@ -797,7 +797,7 @@ router.post(
 router.post(
   "/:id/leave",
   protect,
-  [param("id").isMongoId().withMessage("Invalid table ID")],
+  [param("id").isMongoId().withMessage("ID de mesa inválido")],
   asyncHandler(async (req, res) => {
     checkValidation(req);
 
@@ -843,7 +843,7 @@ router.post(
 router.post(
   "/:id/follow",
   protect,
-  [param("id").isMongoId().withMessage("Invalid table ID")],
+  [param("id").isMongoId().withMessage("ID de mesa inválido")],
   asyncHandler(async (req, res) => {
     checkValidation(req);
 
@@ -876,7 +876,7 @@ router.post(
 router.delete(
   "/:id",
   protect,
-  [param("id").isMongoId().withMessage("Invalid table ID")],
+  [param("id").isMongoId().withMessage("ID de mesa inválido")],
   asyncHandler(async (req, res) => {
     checkValidation(req);
 

@@ -148,17 +148,19 @@ export default function TableChat({
             >
               <Avatar user={msg.sender} size="xs" className={styles.chatAv} />
               <div className={styles.chatBubble}>
-                <span className={styles.chatAuthor}>
-                  {senderInfo.isDeleted
-                    ? DELETED_USER_LABEL
-                    : isOwn
-                      ? "Vos"
-                      : msg.sender.username}
-                </span>
+                <div className={styles.chatMeta}>
+                  <span className={styles.chatAuthor}>
+                    {senderInfo.isDeleted
+                      ? DELETED_USER_LABEL
+                      : isOwn
+                        ? "Vos"
+                        : msg.sender.username}
+                  </span>
+                  <span className={styles.chatTime}>
+                    {formatTime(msg.createdAt)}
+                  </span>
+                </div>
                 <span className={styles.chatText}>{msg.content}</span>
-                <span className={styles.chatTime}>
-                  {formatTime(msg.createdAt)}
-                </span>
               </div>
             </div>
           );
