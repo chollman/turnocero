@@ -47,6 +47,27 @@ function rethrowValidation(err) {
   throw err;
 }
 
+// Mesa "finalizada" = la fecha programada ya pasó. Una vez finalizada, queda
+// congelada para todo el mundo MENOS admins: nadie edita / cancela / se une
+// / se va / acepta-rechaza solicitudes. Chat, comentarios, fotos y ratings
+// siguen abiertos (es el "post-game" social). Admins ignoran el gate para
+// poder mantenimiento (reabrir errores, limpiar spam, etc.).
+function isPastTable(table) {
+  if (!table?.date) return false;
+  return new Date(table.date).getTime() < Date.now();
+}
+
+// Throw 403 si la mesa ya finalizó y el actor no es admin de DB.
+// Mensaje único y centralizado para que la UI pueda diferenciarlo por copy.
+function assertNotPastUnlessAdmin(table, user) {
+  if (!isPastTable(table)) return;
+  if (user?.isAdmin) return;
+  throw httpError(
+    403,
+    "Mesa finalizada: ya no se permiten ediciones, cancelaciones, unirse o irse",
+  );
+}
+
 const buildSearchClause = async (search) => {
   if (!search) return null;
   const rx = new RegExp(escapeRegex(search.slice(0, 100)), "i");
@@ -507,7 +528,17 @@ router.put(
       throw httpError(400, "No se puede editar una mesa cancelada");
     }
 
-    if (!isSameId(table.host, req.user._id)) {
+    // Freeze post-fecha: solo admin puede editar mesas que ya pasaron.
+    // En mesas futuras la regla sigue siendo host-only (admin NO puede
+    // editar mesas ajenas futuras — eso sería otra feature).
+    if (isPastTable(table)) {
+      if (!req.user.isAdmin) {
+        throw httpError(
+          403,
+          "Mesa finalizada: ya no se puede editar",
+        );
+      }
+    } else if (!isSameId(table.host, req.user._id)) {
       throw httpError(403, "Solo el host puede editar esta mesa");
     }
 
@@ -564,6 +595,10 @@ router.post(
     if (table.status === "cancelled") {
       throw httpError(400, "This table has been cancelled");
     }
+
+    // Freeze post-fecha: nadie se puede unir a una mesa que ya pasó (admin sí
+    // — caso edge para corregir omisiones manuales).
+    assertNotPastUnlessAdmin(table, req.user);
 
     if (isSameId(table.host, req.user._id)) {
       throw httpError(400, "You are the host of this table");
@@ -627,6 +662,9 @@ router.delete(
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
 
+    // Freeze post-fecha: la solicitud queda como histórico, no se cancela.
+    assertNotPastUnlessAdmin(table, req.user);
+
     const idx = table.pendingRequests.findIndex((r) =>
       isSameId(r, req.user._id),
     );
@@ -655,7 +693,15 @@ router.post(
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
 
-    if (!isSameId(table.host, req.user._id)) {
+    // Freeze: host pierde aceptar/rechazar en mesas pasadas; admin sí puede.
+    if (isPastTable(table)) {
+      if (!req.user.isAdmin) {
+        throw httpError(
+          403,
+          "Mesa finalizada: ya no se pueden gestionar solicitudes",
+        );
+      }
+    } else if (!isSameId(table.host, req.user._id)) {
       throw httpError(403, "Solo el host puede aceptar solicitudes");
     }
 
@@ -706,7 +752,15 @@ router.post(
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
 
-    if (!isSameId(table.host, req.user._id)) {
+    // Freeze: host pierde aceptar/rechazar en mesas pasadas; admin sí puede.
+    if (isPastTable(table)) {
+      if (!req.user.isAdmin) {
+        throw httpError(
+          403,
+          "Mesa finalizada: ya no se pueden gestionar solicitudes",
+        );
+      }
+    } else if (!isSameId(table.host, req.user._id)) {
       throw httpError(403, "Solo el host puede rechazar solicitudes");
     }
 
@@ -741,6 +795,10 @@ router.post(
 
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
+
+    // Freeze: el participante queda registrado en la mesa pasada como
+    // histórico (para reseñas, ratings, fotos). Admin puede sacar si hace falta.
+    assertNotPastUnlessAdmin(table, req.user);
 
     const playerIndex = table.players.findIndex((p) =>
       isSameId(p, req.user._id),
@@ -817,7 +875,13 @@ router.delete(
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
 
-    if (!isSameId(table.host, req.user._id)) {
+    // Freeze: cancelar una mesa pasada no tiene sentido funcional (ya pasó),
+    // pero admin queda como escape hatch para casos de spam/moderación.
+    if (isPastTable(table)) {
+      if (!req.user.isAdmin) {
+        throw httpError(403, "Mesa finalizada: ya no se puede cancelar");
+      }
+    } else if (!isSameId(table.host, req.user._id)) {
       throw httpError(403, "Only the host can cancel this table");
     }
 

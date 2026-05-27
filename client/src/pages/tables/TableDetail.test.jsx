@@ -252,6 +252,49 @@ describe("<TableDetail>", () => {
     ).toBeDisabled();
   });
 
+  it("past mesa shows the 'Mesa finalizada' banner and freezes the stub CTA", async () => {
+    setupTable(
+      makeTable({
+        date: new Date(Date.now() - 86400000).toISOString(),
+        host: { _id: "host1", username: "host1" },
+      }),
+    );
+    renderTableDetail({
+      user: { _id: "host1", username: "host1", isAdmin: false },
+    });
+    await screen.findByRole("heading", { name: "Catán" });
+    // Banner explicativo arriba del layout.
+    expect(screen.getByText(/mesa finalizada\./i)).toBeInTheDocument();
+    // Aún el host pierde "Editar" / "Cancelar" del stub.
+    expect(
+      screen.queryByRole("button", { name: /^editar$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^cancelar$/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("admin viewing a past mesa SÍ ve los controles del host (override)", async () => {
+    setupTable(
+      makeTable({
+        date: new Date(Date.now() - 86400000).toISOString(),
+        host: { _id: "host1", username: "host1" },
+      }),
+    );
+    renderTableDetail({
+      user: { _id: "host1", username: "host1", isAdmin: true },
+    });
+    await screen.findByRole("heading", { name: "Catán" });
+    expect(screen.getByText(/mesa finalizada\./i)).toBeInTheDocument();
+    // Como admin, sigue viendo Editar + Cancelar del stub.
+    expect(
+      screen.getByRole("button", { name: /editar/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^Cancelar$/i }),
+    ).toBeInTheDocument();
+  });
+
   it("admin viewing a table sees the admin banner", async () => {
     setupTable(makeTable());
     renderTableDetail({

@@ -207,6 +207,18 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     isFull,
   });
 
+  // Mesa "finalizada" para no-admin: la fecha pasó. Ocultamos todas las
+  // acciones de mutación (join/leave/cancel/edit) y mostramos un CTA
+  // bloqueado. Admin conserva los controles para moderación.
+  //
+  // Usamos `user?.isAdmin` (effective) — cuando el admin activa "Ver como
+  // usuario" debe perder el override y comportarse como user normal. Ese
+  // es el contrato del preview mode (ver feedback_admin_view_as_user.md).
+  const isPastMesa = dateParts(table.date)
+    ? new Date(table.date).getTime() < Date.now()
+    : false;
+  const isFrozen = isPastMesa && !user?.isAdmin;
+
   const dParts = dateParts(table.date);
   const dateChipText = dParts
     ? `${dParts.weekday} · ${dParts.day} ${dParts.month} · ${dParts.time}`
@@ -320,6 +332,20 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
       return (
         <button className={styles.cta} disabled>
           …
+        </button>
+      );
+    }
+    // Mesa finalizada para no-admin: el único affordance es entrar a ver
+    // las reseñas / fotos / chat. Botón disabled-looking pero clickeable
+    // hacia el detalle (mediante el wrapper de la card, no el CTA mismo).
+    if (isFrozen) {
+      return (
+        <button
+          type="button"
+          className={`${styles.cta} ${styles.cta_disabled}`}
+          disabled
+        >
+          Finalizada
         </button>
       );
     }
@@ -648,7 +674,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
               }
               role="presentation"
             >
-              {isHost && (
+              {isHost && !isFrozen && (
                 <>
                   <button
                     type="button"
@@ -698,7 +724,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
                   </button>
                 </>
               )}
-              {isPlayer && (
+              {isPlayer && !isFrozen && (
                 <button
                   type="button"
                   className={styles.iconBtn}

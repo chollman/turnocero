@@ -275,6 +275,11 @@
   color: var(--purple);
   border: 1px solid var(--purple-30);
 }
+.state_past {
+  background: var(--bg-dark);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+}
 .stateTitle {
   font-family: var(--font-display);
   font-size: 13px;

@@ -632,3 +632,132 @@ describe("DELETE /api/tables/:id (cancel)", () => {
     ).toBeUndefined();
   });
 });
+
+// Mesa "finalizada" (date pasada) → freeze para todos menos admin. Chat,
+// comments, fotos y ratings siguen abiertos (otras suites los cubren).
+describe("Past mesa freeze (date < now)", () => {
+  const pastDate = () => new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  it("PUT /:id → 403 para el host cuando la mesa ya pasó", async () => {
+    const host = await createUser();
+    const table = await createTable(host, { date: pastDate() });
+    const res = await request(app)
+      .put(`/api/tables/${table._id}`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`)
+      .send({
+        date: new Date(Date.now() + 86400000).toISOString(),
+        maxPlayers: 4,
+      });
+    expect(res.status).toBe(403);
+    expect(res.body.message).toMatch(/finalizada/i);
+  });
+
+  it("PUT /:id → admin SÍ puede editar una mesa pasada", async () => {
+    const host = await createUser();
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const table = await createTable(host, { date: pastDate() });
+    const res = await request(app)
+      .put(`/api/tables/${table._id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        date: new Date(Date.now() + 86400000).toISOString(),
+        maxPlayers: 5,
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.maxPlayers).toBe(5);
+  });
+
+  it("DELETE /:id → 403 para el host cuando la mesa ya pasó", async () => {
+    const host = await createUser();
+    const table = await createTable(host, { date: pastDate() });
+    const res = await request(app)
+      .delete(`/api/tables/${table._id}`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("DELETE /:id → admin SÍ puede cancelar una mesa pasada", async () => {
+    const host = await createUser();
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const table = await createTable(host, { date: pastDate() });
+    const res = await request(app)
+      .delete(`/api/tables/${table._id}`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+  });
+
+  it("POST /:id/join → 403 sobre mesa pasada para no-admin", async () => {
+    const host = await createUser();
+    const table = await createTable(host, { date: pastDate() });
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post(`/api/tables/${table._id}/join`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(403);
+    expect(res.body.message).toMatch(/finalizada/i);
+  });
+
+  it("POST /:id/leave → 403 sobre mesa pasada para participante normal", async () => {
+    const host = await createUser();
+    const { user, token } = await createAuthedUser();
+    const table = await createTable(host, {
+      date: pastDate(),
+      players: [user._id],
+    });
+    const res = await request(app)
+      .post(`/api/tables/${table._id}/leave`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("DELETE /:id/request → 403 sobre mesa pasada para el solicitante", async () => {
+    const host = await createUser();
+    const { user, token } = await createAuthedUser();
+    const table = await createTable(host, {
+      date: pastDate(),
+      pendingRequests: [user._id],
+    });
+    const res = await request(app)
+      .delete(`/api/tables/${table._id}/request`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("POST /:id/requests/:userId/accept → 403 para el host en mesa pasada", async () => {
+    const host = await createUser();
+    const requester = await createUser();
+    const table = await createTable(host, {
+      date: pastDate(),
+      privacy: "private",
+      pendingRequests: [requester._id],
+    });
+    const res = await request(app)
+      .post(`/api/tables/${table._id}/requests/${requester._id}/accept`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("POST /:id/requests/:userId/reject → 403 para el host en mesa pasada", async () => {
+    const host = await createUser();
+    const requester = await createUser();
+    const table = await createTable(host, {
+      date: pastDate(),
+      privacy: "private",
+      pendingRequests: [requester._id],
+    });
+    const res = await request(app)
+      .post(`/api/tables/${table._id}/requests/${requester._id}/reject`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("chat sigue abierto en mesa pasada (POST /:id/messages 201)", async () => {
+    const host = await createUser();
+    const table = await createTable(host, { date: pastDate() });
+    const res = await request(app)
+      .post(`/api/tables/${table._id}/messages`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`)
+      .send({ content: "buen reseña post-game" });
+    expect(res.status).toBe(201);
+  });
+});

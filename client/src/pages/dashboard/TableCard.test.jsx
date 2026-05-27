@@ -191,6 +191,56 @@ describe("<TableCard> grid mode", () => {
     expect(container.querySelector('[class*="card_restricted"]')).toBeNull();
   });
 
+  it("past mesa shows 'Finalizada' disabled CTA and hides host icon buttons", () => {
+    const { container } = renderCard(
+      makeTable({
+        date: new Date(Date.now() - 86400000).toISOString(),
+        host: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
+      }),
+      { user: { _id: "me", username: "me" } },
+    );
+    const cta = screen.getByRole("button", { name: /^Finalizada$/i });
+    expect(cta).toBeDisabled();
+    // Iconos del host (Editar/Cancelar mesa) NO se muestran para mesas pasadas.
+    expect(container.querySelector('[title="Editar"]')).toBeNull();
+    expect(container.querySelector('[title="Cancelar mesa"]')).toBeNull();
+  });
+
+  it("past mesa where viewer IS admin still keeps the host icon buttons (override)", () => {
+    const { container } = renderCard(
+      makeTable({
+        date: new Date(Date.now() - 86400000).toISOString(),
+        host: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
+      }),
+      { user: { _id: "me", username: "me", isAdmin: true } },
+    );
+    // CTA "Administrar →" reaparece (estado hosting normal).
+    expect(
+      screen.getByRole("button", { name: /administrar/i }),
+    ).toBeInTheDocument();
+    expect(container.querySelector('[title="Editar"]')).not.toBeNull();
+    expect(container.querySelector('[title="Cancelar mesa"]')).not.toBeNull();
+  });
+
+  it("admin in 'view as user' mode (user.isAdmin=false) loses the past-mesa override", () => {
+    // AuthContext expone `user` con isAdmin "apagado" cuando el admin entra
+    // a modo preview. La card debe respetar eso: como si fuera usuario común,
+    // pierde Editar/Cancelar y ve el CTA "Finalizada" disabled.
+    const { container } = renderCard(
+      makeTable({
+        date: new Date(Date.now() - 86400000).toISOString(),
+        host: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
+      }),
+      // user.isAdmin = false (estamos en view-as-user)
+      { user: { _id: "me", username: "me", isAdmin: false } },
+    );
+    expect(
+      screen.getByRole("button", { name: /^Finalizada$/i }),
+    ).toBeDisabled();
+    expect(container.querySelector('[title="Editar"]')).toBeNull();
+    expect(container.querySelector('[title="Cancelar mesa"]')).toBeNull();
+  });
+
   it("shows admin tab when user is admin and not host/player", () => {
     renderCard(makeTable(), {
       user: { _id: "me", isAdmin: true, username: "admin" },

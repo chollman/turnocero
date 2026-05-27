@@ -324,6 +324,29 @@
   letter-spacing: 0.05em;
 }
 
+/* Mesa "finalizada": fecha pasada. Las acciones mutadoras están congeladas
+   (excepto para admin). Banner discreto que explica el estado al viewer. */
+.pastBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.pastBanner strong {
+  color: var(--text-primary);
+}
+.pastBannerAdminNote {
+  color: var(--orange);
+  font-style: italic;
+}
+
 /* -- Table map (alrededor de la mesa) ----------------------- */
 .tableMapWrap {
   position: relative;

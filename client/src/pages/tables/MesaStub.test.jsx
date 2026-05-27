@@ -136,6 +136,32 @@ describe("<MesaStub>", () => {
     ).toBeDisabled();
   });
 
+  it('past state shows "Mesa finalizada" without join/leave/cancel CTAs', () => {
+    render(
+      <MesaStub
+        table={makeTable({ date: new Date(Date.now() - 86400000) })}
+        userState="past"
+        onJoin={vi.fn()}
+        onLeave={vi.fn()}
+        onCancelMesa={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(/mesa finalizada/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /unirme/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /abandonar/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /editar/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^Cancelar$/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('anon state shows "Iniciá sesión para unirte"', () => {
     const onLogin = vi.fn();
     render(

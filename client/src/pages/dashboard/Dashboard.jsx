@@ -344,7 +344,7 @@ export default function Dashboard() {
             {horizonGroups.map((g) => (
               <section key={g.key} className={styles.horizon}>
                 <header className={styles.horizonHead}>
-                  <span className={styles.horizonLabel}>Horizonte</span>
+                  <span className={styles.horizonLabel}>Convocatorias</span>
                   <span
                     className={`${styles.horizonName} ${g.key === "today" ? styles.horizonNameToday : ""}`}
                   >

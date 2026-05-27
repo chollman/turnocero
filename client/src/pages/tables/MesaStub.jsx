@@ -199,6 +199,18 @@ export default function MesaStub({
             <button className={styles.ghostBtn} disabled type="button">
               Mesa cancelada
             </button>
+          ) : userState === "past" ? (
+            // Mesa finalizada (fecha pasada) — viewer no-admin queda en modo
+            // sólo-lectura para acciones que mutan la mesa. Chat/fotos/
+            // comentarios/ratings se manejan en sus propias secciones; acá
+            // sólo damos el estado del CTA.
+            <div className={`${styles.state} ${styles.state_past}`}>
+              <ClockIcon size={20} />
+              <span className={styles.stateTitle}>Mesa finalizada</span>
+              <span className={styles.stateSub}>
+                Compartí cómo estuvo: dejá comentarios, fotos o puntaje.
+              </span>
+            </div>
           ) : userState === "anon" ? (
             <button
               type="button"

@@ -8,6 +8,37 @@ const {
   playToApi,
 } = require("../../../../services/bgg/bggParse");
 
+// ── parser XML config ────────────────────────────────────────────────
+
+describe("parser (XMLParser config)", () => {
+  // Regression: BGG envía apóstrofes / comillas / símbolos como entidades
+  // numéricas (&#039;, &#x27;). El parser tenía processEntities=true pero
+  // htmlEntities=false, así que esas entidades pasaban literales al cliente
+  // y aparecían como "It&#039;s..." en el autocomplete de juegos.
+  it("decodifica entidades numéricas decimales (&#039;) a sus caracteres", () => {
+    const xml =
+      '<items><item id="1"><name type="primary" value="It&#039;s a Wonderful World"/></item></items>';
+    const parsed = parser.parse(xml);
+    expect(parsed.items.item["name"]["@_value"]).toBe(
+      "It's a Wonderful World",
+    );
+  });
+
+  it("decodifica entidades numéricas hex (&#x27;) también", () => {
+    const xml =
+      '<items><item id="1"><name type="primary" value="Spirit&#x27;s Island"/></item></items>';
+    const parsed = parser.parse(xml);
+    expect(parsed.items.item["name"]["@_value"]).toBe("Spirit's Island");
+  });
+
+  it("sigue decodificando entidades named básicas (&amp;, &apos;)", () => {
+    const xml =
+      '<items><item id="1"><name type="primary" value="Hearts &amp; Minds"/></item></items>';
+    const parsed = parser.parse(xml);
+    expect(parsed.items.item["name"]["@_value"]).toBe("Hearts & Minds");
+  });
+});
+
 // ── parseGameItem ────────────────────────────────────────────────────
 
 describe("parseGameItem", () => {

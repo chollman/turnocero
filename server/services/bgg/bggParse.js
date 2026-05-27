@@ -17,6 +17,12 @@ const { XMLParser } = require("fast-xml-parser");
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
+  // BGG codifica apóstrofes y otros caracteres especiales como entidades
+  // numéricas (`&#039;`, `&#x27;`). `processEntities` (default true) sólo
+  // resuelve las "named" como `&amp; &lt; &apos;`; las numéricas requieren
+  // `htmlEntities: true`. Sin esto, "Mage Knight: It's a Wonderful Day"
+  // llegaba al cliente como "It&#039;s ...". Ver bug del autocomplete BGG.
+  htmlEntities: true,
 });
 
 // /thing → game shape para el cliente (forma plana, no AST de XML).

@@ -305,15 +305,14 @@ export default function TableDetail() {
 
   // -- Derived ----------------------------------------------------------
 
+  // El "Volver al listado" siempre va a /mesas, sin importar de dónde
+  // venga el viewer (deep link, link desde una notif, navegación in-app,
+  // o una mesa del evento). Antes había branching para mandar mesas de
+  // eventos al detalle del evento — eso confundía al user que llegó a
+  // la mesa desde /mesas.
   const goBack = useCallback(() => {
-    if (table?.eventoId) {
-      navigate(`/eventos/${table.eventoId}?tab=mesas`);
-    } else if ((window.history.state?.idx ?? 0) > 0) {
-      navigate(-1);
-    } else {
-      navigate("/mesas");
-    }
-  }, [table?.eventoId, navigate]);
+    navigate("/mesas");
+  }, [navigate]);
 
   const userState = useMemo(() => {
     if (!table) return "idle";
@@ -364,6 +363,16 @@ export default function TableDetail() {
   const filled = table.players.length + 1;
   const total = table.maxPlayers + 1;
   const availableSeats = table.maxPlayers - table.players.length;
+  // Mesa "finalizada": la fecha programada ya pasó. Para todos menos admin
+  // congelamos las acciones (edit/cancel/join/leave/accept/reject). Chat,
+  // fotos, comentarios y ratings siguen activos como "post-game".
+  //
+  // Usamos `user?.isAdmin` (effective) y NO `isActuallyAdmin` (DB flag real)
+  // — cuando el admin está en modo "Ver como usuario" queremos que pierda
+  // el override y experimente el freeze como cualquier user normal. Esa es
+  // toda la idea del preview. Ver feedback_admin_view_as_user.md.
+  const isPastMesa = new Date(table.date).getTime() < Date.now();
+  const isFrozen = isPastMesa && !user?.isAdmin;
 
   const locationTexto =
     typeof table.location === "string"
@@ -377,11 +386,17 @@ export default function TableDetail() {
   const useImage = Boolean(table.bggImage);
   const dParts = dateParts(table.date);
 
+  // Cuando la mesa ya pasó y el viewer no es admin, el MesaStub renderiza
+  // el estado congelado en lugar del CTA habitual — sin importar si era
+  // host/joined/pending/idle/full. Admin ve el badge "Finalizada" pero
+  // conserva sus controles (state = userState normal).
   const stubUserState = isCancelled
     ? "cancelled"
-    : !user
-      ? "anon"
-      : userState;
+    : isFrozen
+      ? "past"
+      : !user
+        ? "anon"
+        : userState;
 
   const showChat = isHost || isPlayer;
   const showAdminBanner = isViewingAsAdmin;
@@ -400,12 +415,28 @@ export default function TableDetail() {
             className={styles.backBtn}
             onClick={goBack}
           >
-            ← {table.eventoId ? "Volver al evento" : "Volver al listado"}
+            ← Volver al listado
           </button>
 
           {showAdminBanner && (
             <div className={styles.adminBanner}>
               👁 Estás viendo esta mesa como administrador
+            </div>
+          )}
+
+          {isPastMesa && !isCancelled && (
+            <div className={styles.pastBanner} role="status">
+              <span aria-hidden="true">🎲</span>
+              <span>
+                <strong>Mesa finalizada.</strong> Ya no se permite editar,
+                cancelar, unirse ni salir — pero el chat, las fotos, los
+                comentarios y la calificación siguen abiertos.
+                {user?.isAdmin && (
+                  <span className={styles.pastBannerAdminNote}>
+                    {" "}Como admin podés seguir editando si hace falta.
+                  </span>
+                )}
+              </span>
             </div>
           )}
 
