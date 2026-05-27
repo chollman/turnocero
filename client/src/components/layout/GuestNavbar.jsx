@@ -16,7 +16,7 @@ export default function GuestNavbar({ menuOpen = false, onToggleMenu }) {
 
         <div className={styles.right}>
           <Link to="/login" className={styles.btnLogin}>
-            Iniciá sesión
+            Login
           </Link>
           <Link to="/register" className={styles.btnRegister}>
             Registrate

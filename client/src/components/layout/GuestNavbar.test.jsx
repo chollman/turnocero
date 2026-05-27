@@ -26,7 +26,7 @@ describe("<GuestNavbar>", () => {
 
   it("renders Login and Registrate CTAs with correct hrefs", () => {
     renderNav();
-    expect(screen.getByRole("link", { name: "Iniciá sesión" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Login" })).toHaveAttribute(
       "href",
       "/login",
     );

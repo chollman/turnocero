@@ -108,50 +108,50 @@ export default function GuestSidebar({ open = false, onClose }) {
         className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}
         aria-hidden={onClose && !open ? "true" : undefined}
       >
-      <div className={styles.logoRow}>
-        <Link to="/" className={styles.logo} aria-label="TurnoCero">
-          <span className={styles.logoMark} aria-hidden="true">
-            <Logo className={styles.logoMarkImg} />
-          </span>
-          <span className={styles.logoText}>
-            <span className={styles.logoName}>TurnoCero</span>
-            <span className={styles.logoSub}>◆ board game meetups</span>
-          </span>
-        </Link>
-      </div>
+        <div className={styles.logoRow}>
+          <Link to="/" className={styles.logo} aria-label="TurnoCero">
+            <span className={styles.logoMark} aria-hidden="true">
+              <Logo className={styles.logoMarkImg} />
+            </span>
+            <span className={styles.logoText}>
+              <span className={styles.logoName}>TurnoCero</span>
+              <span className={styles.logoSub}>◆ board game meetups</span>
+            </span>
+          </Link>
+        </div>
 
-      <nav className={styles.nav}>
-        {visibleNav.length > 0 && (
-          <div className={styles.navSection}>
-            <span className={styles.navSectionLabel}>◆ Comunidad</span>
-            {visibleNav.map((item, i) => {
-              const isActive = active === item.id;
-              return (
-                <Link
-                  key={item.id}
-                  to={item.to}
-                  style={{ "--i": i }}
-                  className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
-                  aria-current={isActive ? "page" : undefined}
-                >
-                  <span className={styles.navIcon}>{ICONS[item.id]}</span>
-                  <span className={styles.navLab}>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </nav>
+        <nav className={styles.nav}>
+          {visibleNav.length > 0 && (
+            <div className={styles.navSection}>
+              <span className={styles.navSectionLabel}>◆ Comunidad</span>
+              {visibleNav.map((item, i) => {
+                const isActive = active === item.id;
+                return (
+                  <Link
+                    key={item.id}
+                    to={item.to}
+                    style={{ "--i": i }}
+                    className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    <span className={styles.navIcon}>{ICONS[item.id]}</span>
+                    <span className={styles.navLab}>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </nav>
 
-      <div className={styles.sidebarFooter}>
-        <Link to="/login" className={styles.btnLogin}>
-          Iniciá sesión
-        </Link>
-        <Link to="/register" className={styles.btnRegister}>
-          Registrate
-        </Link>
-      </div>
-    </aside>
+        <div className={styles.sidebarFooter}>
+          <Link to="/login" className={styles.btnLogin}>
+            Login
+          </Link>
+          <Link to="/register" className={styles.btnRegister}>
+            Registrate
+          </Link>
+        </div>
+      </aside>
     </>
   );
 }
