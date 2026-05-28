@@ -876,6 +876,22 @@ router.post(
     await table.save();
     const populated = await populateTable(Table.findById(table._id));
 
+    // Notif al host: "X se fue de tu mesa". Dispara en cualquier privacy —
+    // el host invierte energía en organizar la mesa y quiere saber si pierde
+    // un asistente, sea pública/amigos/privada.
+    await emitNotificationReq(
+      req,
+      table.host,
+      "player_left",
+      {
+        tableId: table._id.toString(),
+        tableName: table.boardGame,
+        lastLeaverUsername: req.user.username,
+      },
+      "table:player-left",
+      { leaverUsername: req.user.username },
+    ).catch(() => {});
+
     // Notify followers that a spot opened.
     //
     // Solo emitir si la mesa es pública: en privadas / friends los followers

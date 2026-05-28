@@ -357,6 +357,36 @@ export function applyPlayerJoinedNotif({
   );
 }
 
+export function applyPlayerLeftNotif({
+  setNotifications,
+  setToasts,
+  payload,
+}) {
+  setNotifications((prev) =>
+    upsertAggregating({
+      prev,
+      type: "player_left",
+      resourceField: "tableId",
+      resourceId: payload.tableId,
+      notifId: payload.notifId,
+      count: payload.count,
+      timestamp: payload.timestamp,
+      extra: {
+        tableName: payload.tableName,
+        lastLeaverUsername: payload.leaverUsername,
+      },
+    }),
+  );
+  setToasts((prev) =>
+    pushToast(prev, {
+      type: "player_left",
+      tableId: payload.tableId,
+      tableName: payload.tableName,
+      leaverUsername: payload.leaverUsername,
+    }),
+  );
+}
+
 export function applyJoinAcceptedNotif({
   setNotifications,
   setToasts,

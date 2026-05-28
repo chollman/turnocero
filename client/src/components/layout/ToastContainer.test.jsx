@@ -141,6 +141,21 @@ describe("<ToastContainer>", () => {
     expect(screen.getByText("🙌")).toBeInTheDocument();
   });
 
+  it("renders player_left toast with leaver username + tableName", () => {
+    renderToasts([
+      {
+        id: "t1",
+        type: "player_left",
+        tableName: "Wingspan",
+        leaverUsername: "bob",
+        tableId: "m1",
+      },
+    ]);
+    expect(screen.getByText("Se fue alguien")).toBeInTheDocument();
+    expect(screen.getByText(/bob dejó wingspan/i)).toBeInTheDocument();
+    expect(screen.getByText("🚪")).toBeInTheDocument();
+  });
+
   it("Cerrar button dismisses the toast without navigating", () => {
     const dismissToast = vi.fn();
     useNotificationsMock.mockReturnValue({

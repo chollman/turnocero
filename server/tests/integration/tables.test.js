@@ -1030,7 +1030,10 @@ describe("Notificación 'player_joined'", () => {
     friend.friends = [host._id];
     await host.save();
     await friend.save();
-    const table = await createTable(host, { privacy: "friends", maxPlayers: 4 });
+    const table = await createTable(host, {
+      privacy: "friends",
+      maxPlayers: 4,
+    });
 
     const res = await request(app)
       .post(`/api/tables/${table._id}/join`)
@@ -1046,7 +1049,10 @@ describe("Notificación 'player_joined'", () => {
   it("mesa privada: NO se emite 'player_joined' (sigue siendo join_request)", async () => {
     const host = await createUser();
     const { token } = await createAuthedUser();
-    const table = await createTable(host, { privacy: "private", maxPlayers: 4 });
+    const table = await createTable(host, {
+      privacy: "private",
+      maxPlayers: 4,
+    });
 
     const res = await request(app)
       .post(`/api/tables/${table._id}/join`)
@@ -1076,6 +1082,88 @@ describe("Notificación 'player_joined'", () => {
     const notifs = await Notification.find({ type: "player_joined" });
     expect(notifs).toHaveLength(1);
     expect(notifs[0].count).toBe(2);
+  });
+});
+
+describe("Notificación 'player_left'", () => {
+  const Notification = require("../../models/Notification");
+
+  it("mesa pública: el host recibe 'player_left' cuando alguien se va", async () => {
+    const host = await createUser();
+    const { user: leaver, token } = await createAuthedUser();
+    const table = await createTable(host, {
+      privacy: "public",
+      players: [leaver._id],
+    });
+
+    const res = await request(app)
+      .post(`/api/tables/${table._id}/leave`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+
+    const notifs = await Notification.find({ type: "player_left" });
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].recipient.toString()).toBe(host._id.toString());
+    expect(notifs[0].tableName).toBe(table.boardGame);
+    expect(notifs[0].lastLeaverUsername).toBe(leaver.username);
+    expect(notifs[0].count).toBe(1);
+  });
+
+  it("mesa 'friends': el host también recibe 'player_left'", async () => {
+    const host = await createUser();
+    const { user: leaver, token } = await createAuthedUser();
+    const table = await createTable(host, {
+      privacy: "friends",
+      players: [leaver._id],
+    });
+
+    const res = await request(app)
+      .post(`/api/tables/${table._id}/leave`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+
+    const notifs = await Notification.find({ type: "player_left" });
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].lastLeaverUsername).toBe(leaver.username);
+  });
+
+  it("mesa privada: el host también recibe 'player_left' (le costó aceptarlo)", async () => {
+    const host = await createUser();
+    const { user: leaver, token } = await createAuthedUser();
+    const table = await createTable(host, {
+      privacy: "private",
+      players: [leaver._id],
+    });
+
+    const res = await request(app)
+      .post(`/api/tables/${table._id}/leave`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+
+    const notifs = await Notification.find({ type: "player_left" });
+    expect(notifs).toHaveLength(1);
+  });
+
+  it("agrega varias salidas en una sola notif con count incrementado", async () => {
+    const host = await createUser();
+    const { user: leaver1, token: t1 } = await createAuthedUser();
+    const { user: leaver2, token: t2 } = await createAuthedUser();
+    const table = await createTable(host, {
+      privacy: "public",
+      players: [leaver1._id, leaver2._id],
+    });
+
+    await request(app)
+      .post(`/api/tables/${table._id}/leave`)
+      .set("Authorization", `Bearer ${t1}`);
+    await request(app)
+      .post(`/api/tables/${table._id}/leave`)
+      .set("Authorization", `Bearer ${t2}`);
+
+    const notifs = await Notification.find({ type: "player_left" });
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].count).toBe(2);
+    expect(notifs[0].lastLeaverUsername).toBe(leaver2.username);
   });
 });
 

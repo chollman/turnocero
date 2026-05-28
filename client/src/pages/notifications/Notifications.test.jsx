@@ -312,6 +312,12 @@ describe("<Notifications>", () => {
           lastJoinerUsername: "ana",
           count: 3,
         }),
+        makeNotif({
+          type: "player_left",
+          tableName: "Mesa B3",
+          lastLeaverUsername: "carl",
+          count: 1,
+        }),
         makeNotif({ type: "join_rejected", tableName: "Mesa C" }),
         makeNotif({
           type: "friend_accepted",

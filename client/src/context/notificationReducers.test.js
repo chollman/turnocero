@@ -9,6 +9,7 @@ import {
   applyImageNotif,
   applyJoinRequestNotif,
   applyPlayerJoinedNotif,
+  applyPlayerLeftNotif,
   applyJoinAcceptedNotif,
   applyJoinRejectedNotif,
   applySpotOpenedNotif,
@@ -333,6 +334,62 @@ describe("applyPlayerJoinedNotif", () => {
     expect(setN.state()).toHaveLength(1);
     expect(setN.state()[0].count).toBe(2);
     expect(setN.state()[0].lastJoinerUsername).toBe("bob");
+  });
+});
+
+describe("applyPlayerLeftNotif", () => {
+  it("agrega notif aggregating con count del server + tableName y lastLeaverUsername", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyPlayerLeftNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: {
+        notifId: "pl1",
+        tableId: "t1",
+        tableName: "Catán",
+        count: 1,
+        leaverUsername: "ana",
+        timestamp: "x",
+      },
+    });
+    expect(setN.state()).toHaveLength(1);
+    expect(setN.state()[0].type).toBe("player_left");
+    expect(setN.state()[0].lastLeaverUsername).toBe("ana");
+    expect(setN.state()[0].count).toBe(1);
+    expect(setT.state()[0].leaverUsername).toBe("ana");
+  });
+
+  it("acumula salidas consecutivas en la misma notif (count del server)", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyPlayerLeftNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: {
+        notifId: "pl1",
+        tableId: "t1",
+        tableName: "Catán",
+        count: 1,
+        leaverUsername: "ana",
+        timestamp: "x",
+      },
+    });
+    applyPlayerLeftNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: {
+        notifId: "pl1",
+        tableId: "t1",
+        tableName: "Catán",
+        count: 2,
+        leaverUsername: "bob",
+        timestamp: "y",
+      },
+    });
+    expect(setN.state()).toHaveLength(1);
+    expect(setN.state()[0].count).toBe(2);
+    expect(setN.state()[0].lastLeaverUsername).toBe("bob");
   });
 });
 

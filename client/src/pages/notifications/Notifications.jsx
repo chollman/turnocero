@@ -14,6 +14,7 @@ const CATEGORIES = {
     "image",
     "join_request",
     "player_joined",
+    "player_left",
     "join_accepted",
     "spot_opened",
     "table_cancelled",
@@ -80,6 +81,13 @@ function getNotifMeta(n) {
         countLabel: `${n.count} ${n.count === 1 ? "nuevo jugador" : "nuevos jugadores"}`,
         preview: `${n.lastJoinerUsername} se unió a ${n.tableName}`,
         chipClass: "accepted",
+      };
+    case "player_left":
+      return {
+        icon: "🚪",
+        countLabel: `${n.count} ${n.count === 1 ? "se fue" : "se fueron"}`,
+        preview: `${n.lastLeaverUsername} dejó ${n.tableName}`,
+        chipClass: "request",
       };
     case "friend_request":
       return {
