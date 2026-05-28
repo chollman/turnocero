@@ -322,6 +322,15 @@
   letter-spacing: -0.025em;
   color: var(--text-primary);
 }
+/* Texto descriptivo dentro de una sección, justo después del header.
+   Usado en el paso "Tutoriales" para explicar la elección antes de las
+   3 cards. Discreto pero más legible que .fieldHelp (que es mono 10px). */
+.sectionHelp {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: -8px 0 18px 0;
+  line-height: 1.45;
+}
 
 /* -- Field ---------------------------------------------------- */
 .field {

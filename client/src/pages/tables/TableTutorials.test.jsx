@@ -178,3 +178,130 @@ describe("<TableTutorials>", () => {
     ).toBeUndefined();
   });
 });
+
+// ── tutorialMode ──────────────────────────────────────────────────────
+describe("<TableTutorials> · tutorialMode", () => {
+  beforeEach(() => {
+    setupYoutube([]);
+  });
+
+  it("mode='none' nunca renderiza nada (incluso con boardGame)", () => {
+    const { container } = render(
+      <TableTutorials boardGame="Catan" tutorialMode="none" />,
+    );
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("mode='none' tampoco renderiza si boardGame es vacío", () => {
+    const { container } = render(
+      <TableTutorials boardGame="" tutorialMode="none" />,
+    );
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("mode=undefined (mesa vieja) se comporta como 'auto'", async () => {
+    setupYoutube([
+      {
+        videoId: "v1",
+        title: "Auto fallback",
+        channel: "C",
+        thumbnail: "t",
+        duration: "5:00",
+      },
+    ]);
+    render(<TableTutorials boardGame="Catan" />);
+    await waitFor(() => {
+      expect(screen.getByText("Auto fallback")).toBeInTheDocument();
+    });
+  });
+
+  it("mode='manual' sin tutorialVideoId no renderiza nada", () => {
+    const { container } = render(
+      <TableTutorials boardGame="Catan" tutorialMode="manual" />,
+    );
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("mode='manual' fetchea el endpoint /video/:id y renderiza 1 sola card", async () => {
+    server.use(
+      http.get("/api/youtube/video/:videoId", ({ params }) =>
+        HttpResponse.json({
+          videoId: params.videoId,
+          title: "Tutorial elegido por el host",
+          channel: "Host Channel",
+          thumbnail: "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg",
+          duration: "9:99",
+        }),
+      ),
+    );
+
+    render(
+      <TableTutorials
+        boardGame="Catan"
+        tutorialMode="manual"
+        tutorialVideoId="dQw4w9WgXcQ"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Tutorial elegido por el host")).toBeInTheDocument();
+    });
+    // Tagline distinto al de auto.
+    expect(
+      screen.getByText(/El host recomienda este video/i),
+    ).toBeInTheDocument();
+    // 1 sola anchor (no 3).
+    const anchors = screen
+      .getAllByRole("link")
+      .filter((a) => a.href.includes("youtube.com/watch"));
+    expect(anchors).toHaveLength(1);
+    expect(anchors[0]).toHaveAttribute(
+      "href",
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    );
+  });
+
+  it("mode='manual' con response vacío del server no renderiza nada", async () => {
+    server.use(
+      http.get("/api/youtube/video/:videoId", () =>
+        HttpResponse.json({ videoId: "", title: "", channel: "" }),
+      ),
+    );
+    const { container } = render(
+      <TableTutorials
+        boardGame="Catan"
+        tutorialMode="manual"
+        tutorialVideoId="dQw4w9WgXcQ"
+      />,
+    );
+    await waitFor(() => {
+      expect(container.firstChild).toBeNull();
+    });
+  });
+
+  it("mode='manual' muestra 'Tutorial recomendado' como fallback si title vacío", async () => {
+    server.use(
+      http.get("/api/youtube/video/:videoId", ({ params }) =>
+        HttpResponse.json({
+          videoId: params.videoId,
+          title: "",
+          channel: "",
+          thumbnail: `https://i.ytimg.com/vi/${params.videoId}/mqdefault.jpg`,
+          duration: "",
+        }),
+      ),
+    );
+
+    render(
+      <TableTutorials
+        boardGame="Catan"
+        tutorialMode="manual"
+        tutorialVideoId="dQw4w9WgXcQ"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Tutorial recomendado")).toBeInTheDocument();
+    });
+  });
+});

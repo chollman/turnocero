@@ -1,6 +1,7 @@
 const request = require("supertest");
 const app = require("../../app");
 const YoutubeSearchCache = require("../../models/YoutubeSearchCache");
+const YoutubeVideoCache = require("../../models/YoutubeVideoCache");
 
 // ── Fixtures ─────────────────────────────────────────────────────────
 function searchResponse(videos) {
@@ -302,5 +303,149 @@ describe("GET /api/youtube/como-se-juega", () => {
 
     expect(res.status).toBe(200);
     expect(res.headers["cache-control"]).toContain("max-age=300");
+  });
+});
+
+// ── /api/youtube/video/:videoId ──────────────────────────────────────
+describe("GET /api/youtube/video/:videoId", () => {
+  let fetchSpy;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    global.fetch = fetchSpy;
+    process.env.YOUTUBE_API_KEY = "test-yt-key";
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete global.fetch;
+    delete process.env.YOUTUBE_API_KEY;
+  });
+
+  function videoApiResponse({ videoId, title, channel, thumbnail, duration }) {
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [
+          {
+            id: videoId,
+            snippet: {
+              title,
+              channelTitle: channel,
+              thumbnails: { medium: { url: thumbnail } },
+            },
+            contentDetails: { duration },
+          },
+        ],
+      }),
+    };
+  }
+
+  it("returns 400 when videoId has invalid format", async () => {
+    const res = await request(app).get("/api/youtube/video/short");
+    expect(res.status).toBe(400);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("calls YouTube on cache miss and persists metadata", async () => {
+    fetchSpy.mockResolvedValueOnce(
+      videoApiResponse({
+        videoId: "dQw4w9WgXcQ",
+        title: "Cómo se juega Catan",
+        channel: "BoardgameAR",
+        thumbnail: "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg",
+        duration: "PT12M34S",
+      }),
+    );
+
+    const res = await request(app).get("/api/youtube/video/dQw4w9WgXcQ");
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      videoId: "dQw4w9WgXcQ",
+      title: "Cómo se juega Catan",
+      channel: "BoardgameAR",
+      duration: "12:34",
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    const doc = await YoutubeVideoCache.findOne({
+      videoId: "dQw4w9WgXcQ",
+    }).lean();
+    expect(doc).toBeTruthy();
+    expect(doc.title).toBe("Cómo se juega Catan");
+  });
+
+  it("serves from cache on second identical query (no fetch)", async () => {
+    await YoutubeVideoCache.create({
+      videoId: "dQw4w9WgXcQ",
+      title: "Cached",
+      channel: "Cached chan",
+      thumbnail: "thumb",
+      duration: "5:00",
+      lastFetchedAt: new Date(),
+    });
+
+    const res = await request(app).get("/api/youtube/video/dQw4w9WgXcQ");
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe("Cached");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("returns fallback (thumbnail only) when YOUTUBE_API_KEY is missing", async () => {
+    delete process.env.YOUTUBE_API_KEY;
+
+    const res = await request(app).get("/api/youtube/video/dQw4w9WgXcQ");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      videoId: "dQw4w9WgXcQ",
+      title: "",
+      channel: "",
+      thumbnail: "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg",
+      duration: "",
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    const doc = await YoutubeVideoCache.findOne({
+      videoId: "dQw4w9WgXcQ",
+    }).lean();
+    expect(doc).toBeNull();
+  });
+
+  it("returns fallback on 403 quotaExceeded (no cache write)", async () => {
+    fetchSpy.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      json: async () => ({
+        error: { errors: [{ reason: "quotaExceeded" }] },
+      }),
+    });
+
+    const res = await request(app).get("/api/youtube/video/dQw4w9WgXcQ");
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe("");
+    expect(res.body.thumbnail).toBe(
+      "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg",
+    );
+
+    const doc = await YoutubeVideoCache.findOne({
+      videoId: "dQw4w9WgXcQ",
+    }).lean();
+    expect(doc).toBeNull();
+  });
+
+  it("sets Cache-Control header", async () => {
+    await YoutubeVideoCache.create({
+      videoId: "dQw4w9WgXcQ",
+      title: "T",
+      channel: "C",
+      thumbnail: "t",
+      duration: "5:00",
+      lastFetchedAt: new Date(),
+    });
+
+    const res = await request(app).get("/api/youtube/video/dQw4w9WgXcQ");
+    expect(res.status).toBe(200);
+    expect(res.headers["cache-control"]).toContain("max-age=600");
   });
 });

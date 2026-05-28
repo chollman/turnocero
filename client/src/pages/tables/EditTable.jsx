@@ -71,6 +71,8 @@ export default function EditTable() {
           rules: data.rules || "",
           tags: data.tags || [],
           privacy: data.privacy || "public",
+          tutorialMode: data.tutorialMode || "auto",
+          tutorialVideoId: data.tutorialVideoId || null,
         });
         setPlayersCount(data.players?.length || 0);
       } catch (err) {
@@ -97,6 +99,8 @@ export default function EditTable() {
         rules: payload.rules,
         tags: payload.tags,
         privacy: payload.privacy,
+        tutorialMode: payload.tutorialMode,
+        tutorialVideoId: payload.tutorialVideoId,
       });
       navigate(`/mesas/${id}`);
     } catch (err) {

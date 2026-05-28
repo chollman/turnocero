@@ -54,8 +54,18 @@
   gap: 12px;
 }
 
+/* Modo manual: 1 sola card. Limitamos el ancho para que no estire al
+   full-width del grid de 3 columnas (queda visualmente desbalanceada). */
+.gridSingle {
+  grid-template-columns: minmax(0, 380px);
+  justify-content: start;
+}
+
 @media (max-width: 720px) {
   .grid {
+    grid-template-columns: 1fr;
+  }
+  .gridSingle {
     grid-template-columns: 1fr;
   }
 }

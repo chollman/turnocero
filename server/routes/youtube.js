@@ -2,6 +2,7 @@ const express = require("express");
 const asyncHandler = require("../utils/asyncHandler");
 const userRateLimit = require("../middleware/userRateLimit");
 const { searchTutorials } = require("../services/youtube/youtubeSearch");
+const { resolveVideo } = require("../services/youtube/youtubeVideo");
 
 const router = express.Router();
 
@@ -32,6 +33,26 @@ router.get(
     const juego = (req.query.juego || "").toString();
     const result = await searchTutorials(juego);
     res.set("Cache-Control", "public, max-age=300"); // 5 min browser cache
+    res.json(result);
+  }),
+);
+
+/**
+ * GET /api/youtube/video/:videoId
+ *
+ * Devuelve metadata de un video específico (modo "manual" de la sección
+ * "Andá preparado"). Cacheado server-side 30 días + 10 min de browser cache.
+ *
+ * Tira 400 si el videoId tiene formato inválido. Cualquier otro fallo
+ * (sin key, network, quota, video privado) devuelve un fallback con
+ * thumbnail directo de i.ytimg.com y campos vacíos.
+ */
+router.get(
+  "/video/:videoId",
+  tutorialsLimiter,
+  asyncHandler(async (req, res) => {
+    const result = await resolveVideo(req.params.videoId);
+    res.set("Cache-Control", "public, max-age=600"); // 10 min browser cache
     res.json(result);
   }),
 );

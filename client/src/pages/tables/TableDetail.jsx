@@ -807,7 +807,11 @@ export default function TableDetail() {
                 </div>
               </section>
 
-              <TableTutorials boardGame={table.boardGame} />
+              <TableTutorials
+                boardGame={table.boardGame}
+                tutorialMode={table.tutorialMode}
+                tutorialVideoId={table.tutorialVideoId}
+              />
 
               {/* Pending requests — host only on private tables */}
               {isHost && isPrivate && (

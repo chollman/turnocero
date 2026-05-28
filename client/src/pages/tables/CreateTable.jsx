@@ -77,6 +77,8 @@ function CreateMesaStandalone() {
         rules: payload.rules,
         tags: payload.tags,
         privacy: payload.privacy,
+        tutorialMode: payload.tutorialMode,
+        tutorialVideoId: payload.tutorialVideoId,
       });
       navigate(`/mesas/${data._id}`);
     } catch (err) {

@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import { fromLocalInputValue } from "../../utils/eventoDate";
+import { parseYouTubeVideoId } from "../../utils/youtube";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import TableCard from "../dashboard/TableCard";
@@ -98,6 +99,56 @@ const UsersIcon = ({ size = 20 }) => (
   </svg>
 );
 
+const EyeOffIcon = ({ size = 20 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
+
+const PlayIcon = ({ size = 20 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polygon points="5 3 19 12 5 21 5 3" />
+  </svg>
+);
+
+const SearchIcon = ({ size = 20 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
 const TrashIcon = ({ size = 12 }) => (
   <svg
     width={size}
@@ -120,6 +171,7 @@ const STEPS = [
   { key: "cuando", label: "Cuándo" },
   { key: "donde", label: "Dónde" },
   { key: "detalles", label: "Detalles" },
+  { key: "tutoriales", label: "Tutoriales" },
 ];
 
 const PILL_PLAYERS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -199,6 +251,25 @@ export default function MesaForm({
   // hasta que se elige. En edit mode initialValues.privacy llega con la
   // privacidad existente del server.
   const [privacy, setPrivacy] = useState(initialValues.privacy || "");
+
+  // ── Tutoriales (Paso 5 — opcional) ────────────────────────────────
+  // Creaciones nuevas defaultean a "none" (lo pidió el user). En edit
+  // mode, si el server devolvió un valor lo usamos; si la mesa es vieja
+  // (sin campo) se hidrata como "auto" del schema, y el form refleja eso.
+  const [tutorialMode, setTutorialMode] = useState(
+    initialValues.tutorialMode || (editMode ? "auto" : "none"),
+  );
+  const [tutorialVideoInput, setTutorialVideoInput] = useState(
+    initialValues.tutorialVideoId
+      ? `https://www.youtube.com/watch?v=${initialValues.tutorialVideoId}`
+      : "",
+  );
+  // El videoId parseado a partir del URL (memoizado). null si el URL no
+  // parsea — eso bloquea el submit cuando el modo es "manual".
+  const tutorialVideoId = useMemo(
+    () => parseYouTubeVideoId(tutorialVideoInput),
+    [tutorialVideoInput],
+  );
 
   // ── BGG autocomplete ──────────────────────────────────────────────
   const debouncedSearch = useDebouncedValue(boardGameInput, 400);
@@ -361,13 +432,24 @@ export default function MesaForm({
       !!locationField.texto.trim() ||
       (locationField.lat != null && locationField.lng != null),
     detalles: !!maxPlayers && !!privacy,
+    // Tutoriales es "opcional" en el sentido del producto: "none" y "auto"
+    // están listos sin más input. El único caso que bloquea el submit es
+    // "manual" sin un URL parseable.
+    tutoriales:
+      tutorialMode === "none" ||
+      tutorialMode === "auto" ||
+      (tutorialMode === "manual" && !!tutorialVideoId),
   };
   const completedCount = Object.values(stepDone).filter(Boolean).length;
   const activeStepIdx = STEPS.findIndex((s) => !stepDone[s.key]);
   const activeStep = activeStepIdx === -1 ? STEPS.length - 1 : activeStepIdx;
 
   const canSubmit =
-    stepDone.juego && stepDone.cuando && stepDone.donde && stepDone.detalles;
+    stepDone.juego &&
+    stepDone.cuando &&
+    stepDone.donde &&
+    stepDone.detalles &&
+    stepDone.tutoriales;
 
   // ── Live preview mesa ─────────────────────────────────────────────
   // Construye el shape que `<TableCard>` espera. `maxPlayers` se pasa en
@@ -455,6 +537,8 @@ export default function MesaForm({
       rules,
       tags,
       privacy,
+      tutorialMode,
+      tutorialVideoId: tutorialMode === "manual" ? tutorialVideoId : null,
     });
   };
 
@@ -817,6 +901,110 @@ export default function MesaForm({
                 rows={3}
               />
             </div>
+          </section>
+
+          {/* Paso 5 · Tutoriales (opcional) */}
+          <section
+            ref={(el) => (sectionRefs.current[4] = el)}
+            id="mesa-form-section-tutoriales"
+            className={styles.section}
+          >
+            <header className={styles.sectionHead}>
+              <span className={styles.sectionLabel}>
+                ◆ Tutoriales (opcional)
+              </span>
+              <span className={styles.sectionRule} />
+            </header>
+            <p className={styles.sectionHelp}>
+              ¿Querés sumar un tutorial de YouTube en la página de la mesa para
+              los que no conocen el juego?
+            </p>
+
+            <div className={styles.field}>
+              <div className={styles.privacyOptions}>
+                <button
+                  type="button"
+                  className={`${styles.privacyCard} ${tutorialMode === "none" ? styles.privacyCardActive : ""}`}
+                  onClick={() => setTutorialMode("none")}
+                >
+                  <EyeOffIcon size={22} />
+                  <div className={styles.privacyCardBody}>
+                    <span className={styles.privacyCardTitle}>
+                      No incluir tutoriales
+                    </span>
+                    <span className={styles.privacyCardSub}>
+                      La sección no se muestra en la mesa.
+                    </span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.privacyCard} ${tutorialMode === "manual" ? styles.privacyCardActive : ""}`}
+                  onClick={() => setTutorialMode("manual")}
+                >
+                  <PlayIcon size={22} />
+                  <div className={styles.privacyCardBody}>
+                    <span className={styles.privacyCardTitle}>
+                      Proponer un video
+                    </span>
+                    <span className={styles.privacyCardSub}>
+                      Vos elegís el tutorial que mejor pega.
+                    </span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.privacyCard} ${tutorialMode === "auto" ? styles.privacyCardActive : ""}`}
+                  onClick={() => setTutorialMode("auto")}
+                >
+                  <SearchIcon size={22} />
+                  <div className={styles.privacyCardBody}>
+                    <span className={styles.privacyCardTitle}>
+                      Buscar automáticamente
+                    </span>
+                    <span className={styles.privacyCardSub}>
+                      Mostrar los 3 primeros resultados de YouTube para «Como
+                      se juega {boardGameInput || "el juego"}».
+                    </span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {tutorialMode === "manual" && (
+              <div className={styles.field}>
+                <label className={styles.fieldLabel} htmlFor="mesa-tutorial-url">
+                  URL del video de YouTube{" "}
+                  <span className={styles.required}>*</span>
+                </label>
+                <input
+                  id="mesa-tutorial-url"
+                  type="url"
+                  className={styles.input}
+                  value={tutorialVideoInput}
+                  onChange={(e) => setTutorialVideoInput(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  autoComplete="off"
+                />
+                {tutorialVideoInput.trim() && !tutorialVideoId && (
+                  <span
+                    className={styles.fieldHelp}
+                    style={{ color: "var(--red)" }}
+                  >
+                    URL de YouTube inválido. Aceptamos youtube.com/watch?v=…,
+                    youtu.be/…, /shorts/… o el ID directo.
+                  </span>
+                )}
+                {tutorialVideoId && (
+                  <span className={styles.fieldHelp}>
+                    Video detectado · ID:{" "}
+                    <code style={{ color: "var(--amber)" }}>
+                      {tutorialVideoId}
+                    </code>
+                  </span>
+                )}
+              </div>
+            )}
           </section>
 
           {(serverError || localError) && (

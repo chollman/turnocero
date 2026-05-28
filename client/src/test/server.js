@@ -31,6 +31,17 @@ export const defaultHandlers = [
   http.get("/api/youtube/como-se-juega", () =>
     HttpResponse.json({ items: [] }),
   ),
+  // Default para el modo "manual" (1 video específico). Mismo principio:
+  // los tests que no testean tutoriales no tienen que mockearlo a mano.
+  http.get("/api/youtube/video/:videoId", ({ params }) =>
+    HttpResponse.json({
+      videoId: params.videoId,
+      title: "",
+      channel: "",
+      thumbnail: "",
+      duration: "",
+    }),
+  ),
 ];
 
 export const server = setupServer(...defaultHandlers);

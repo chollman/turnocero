@@ -199,6 +199,7 @@ export const API = {
   // ── YouTube (tutoriales "Como se juega") ─────────────────────────────
   youtube: {
     COMO_SE_JUEGA: "/api/youtube/como-se-juega",
+    VIDEO: (id) => `/api/youtube/video/${enc(id)}`,
   },
 
   // ── Health ───────────────────────────────────────────────────────────

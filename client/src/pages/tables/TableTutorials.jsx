@@ -1,41 +1,107 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { API } from "../../api/endpoints";
+import { youtubeWatchUrl } from "../../utils/youtube";
 import styles from "./TableTutorials.module.css";
 
-// "Andá preparado" — los primeros 3 tutoriales de YouTube para el board
-// game de la mesa. Componente dumb: recibe `boardGame` y se renderiza
-// solo si hay resultados. Fallos del server (key faltante, quota, network)
-// devuelven items: [] → la sección no se muestra.
-export default function TableTutorials({ boardGame }) {
+// "Andá preparado" — sección de tutoriales de YouTube en TableDetail.
+// El host elige el modo en MesaForm Paso 5:
+//   - "none":   no se muestra nada.
+//   - "auto":   3 primeros resultados de "Como se juega <boardGame>".
+//               (Default para mesas creadas antes de la feature.)
+//   - "manual": 1 video específico recomendado por el host (tutorialVideoId).
+//
+// Fallback degradado: si el server devuelve items vacíos / falla, la
+// sección no renderiza — sin toasts ni mensajes (es nice-to-have).
+export default function TableTutorials({
+  boardGame,
+  tutorialMode,
+  tutorialVideoId,
+}) {
+  // Mesas viejas (sin campo en el doc) → tratamos como auto para
+  // preservar el comportamiento original.
+  const mode = tutorialMode || "auto";
+
   const [items, setItems] = useState(null); // null = loading, [] = vacío/error, [...] = ok
   const [errored, setErrored] = useState(false);
 
   useEffect(() => {
-    if (!boardGame || !boardGame.trim()) {
+    if (mode === "none") {
       setItems([]);
       return undefined;
     }
+    if (mode === "manual" && !tutorialVideoId) {
+      setItems([]);
+      return undefined;
+    }
+    if (mode === "auto" && (!boardGame || !boardGame.trim())) {
+      setItems([]);
+      return undefined;
+    }
+
     const controller = new AbortController();
     setItems(null);
     setErrored(false);
-    axios
-      .get(API.youtube.COMO_SE_JUEGA, {
-        params: { juego: boardGame },
-        signal: controller.signal,
+
+    const request =
+      mode === "manual"
+        ? axios.get(API.youtube.VIDEO(tutorialVideoId), {
+            signal: controller.signal,
+          })
+        : axios.get(API.youtube.COMO_SE_JUEGA, {
+            params: { juego: boardGame },
+            signal: controller.signal,
+          });
+
+    request
+      .then((res) => {
+        if (mode === "manual") {
+          // El endpoint /video devuelve un objeto suelto; envolvemos en array
+          // de 1 elemento para reutilizar el render del grid.
+          const v = res.data;
+          if (v && v.videoId) {
+            setItems([
+              {
+                videoId: v.videoId,
+                title: v.title || "",
+                channel: v.channel || "",
+                thumbnail:
+                  v.thumbnail ||
+                  `https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`,
+                duration: v.duration || "",
+              },
+            ]);
+          } else {
+            setItems([]);
+          }
+        } else {
+          setItems(res.data?.items || []);
+        }
       })
-      .then((res) => setItems(res.data?.items || []))
       .catch((err) => {
         if (axios.isCancel(err) || err.name === "CanceledError") return;
         setErrored(true);
         setItems([]);
       });
     return () => controller.abort();
-  }, [boardGame]);
+  }, [mode, boardGame, tutorialVideoId]);
 
-  if (!boardGame || !boardGame.trim()) return null;
+  if (mode === "none") return null;
+  if (mode === "manual" && !tutorialVideoId) return null;
+  if (mode === "auto" && (!boardGame || !boardGame.trim())) return null;
   if (errored) return null;
   if (items && items.length === 0) return null;
+
+  const skeletonCount = mode === "manual" ? 1 : 3;
+  const isSingle = mode === "manual";
+  const tagline =
+    mode === "manual" ? (
+      "El host recomienda este video para llegar preparado a la mesa."
+    ) : (
+      <>
+        Aprendé cómo se juega <strong>{boardGame}</strong> antes de la mesa.
+      </>
+    );
 
   return (
     <section className={styles.section}>
@@ -43,12 +109,12 @@ export default function TableTutorials({ boardGame }) {
         <span className={styles.sectionLabel}>◆ Andá preparado</span>
         <span className={styles.sectionRule} />
       </header>
-      <p className={styles.tagline}>
-        Aprendé cómo se juega <strong>{boardGame}</strong> antes de la mesa.
-      </p>
-      <div className={styles.grid}>
+      <p className={styles.tagline}>{tagline}</p>
+      <div
+        className={`${styles.grid} ${isSingle ? styles.gridSingle : ""}`.trim()}
+      >
         {items === null
-          ? Array.from({ length: 3 }).map((_, i) => (
+          ? Array.from({ length: skeletonCount }).map((_, i) => (
               <div
                 key={`skel-${i}`}
                 className={styles.cardSkeleton}
@@ -58,7 +124,7 @@ export default function TableTutorials({ boardGame }) {
           : items.map((v) => (
               <a
                 key={v.videoId}
-                href={`https://www.youtube.com/watch?v=${encodeURIComponent(v.videoId)}`}
+                href={youtubeWatchUrl(v.videoId)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.card}
@@ -83,8 +149,12 @@ export default function TableTutorials({ boardGame }) {
                   )}
                 </div>
                 <div className={styles.cardBody}>
-                  <h3 className={styles.title}>{v.title}</h3>
-                  <span className={styles.channel}>{v.channel}</span>
+                  <h3 className={styles.title}>
+                    {v.title || "Tutorial recomendado"}
+                  </h3>
+                  {v.channel && (
+                    <span className={styles.channel}>{v.channel}</span>
+                  )}
                 </div>
               </a>
             ))}

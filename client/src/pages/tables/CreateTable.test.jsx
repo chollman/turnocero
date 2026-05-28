@@ -112,16 +112,17 @@ function pickPrivacy(option = "Pública") {
 }
 
 describe("<CreateTable> (standalone — wizard)", () => {
-  it("renders the wizard hero + 4 step sections + publish button", () => {
+  it("renders the wizard hero + 5 step sections + publish button", () => {
     renderPage();
     expect(screen.getByText(/armá la/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/buscá un juego/i)).toBeInTheDocument();
     // Each step name appears at least once (stepper label + section title
-    // is fine — we just want all four labels rendered somewhere).
+    // is fine — we just want all five labels rendered somewhere).
     expect(screen.getAllByText(/^Juego$/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/^Cuándo$/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/^Dónde$/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/^Detalles$/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^Tutoriales$/).length).toBeGreaterThan(0);
     // Publish button rendered (still disabled until form is valid).
     expect(
       screen.getByRole("button", { name: /publicar mesa/i }),
@@ -708,5 +709,137 @@ describe("<CreateTable> — debounce BGG search", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+// ── Step 5 · Tutoriales ───────────────────────────────────────────────
+describe("<CreateTable> · Paso 5 Tutoriales", () => {
+  it("default es 'none' y no bloquea el submit", async () => {
+    let postedBody = null;
+    server.use(
+      http.post("/api/tables", async ({ request }) => {
+        postedBody = await request.json();
+        return HttpResponse.json({ _id: "newtable" }, { status: 201 });
+      }),
+    );
+    renderPage();
+    await pickGame();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+    const cta = screen.getByRole("button", { name: /publicar mesa/i });
+    expect(cta).not.toBeDisabled();
+    fireEvent.click(cta);
+    await waitFor(() => {
+      expect(postedBody).not.toBeNull();
+    });
+    expect(postedBody.tutorialMode).toBe("none");
+    expect(postedBody.tutorialVideoId).toBeNull();
+  });
+
+  it("seleccionar 'Proponer un video' sin URL bloquea el submit", async () => {
+    renderPage();
+    await pickGame();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+
+    const cta = screen.getByRole("button", { name: /publicar mesa/i });
+    expect(cta).not.toBeDisabled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Proponer un video/i }),
+    );
+    expect(cta).toBeDisabled();
+  });
+
+  it("pegar URL válido en modo manual habilita el submit + manda videoId parseado", async () => {
+    let postedBody = null;
+    server.use(
+      http.post("/api/tables", async ({ request }) => {
+        postedBody = await request.json();
+        return HttpResponse.json({ _id: "newtable" }, { status: 201 });
+      }),
+    );
+    renderPage();
+    await pickGame();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Proponer un video/i }),
+    );
+    const urlInput = screen.getByPlaceholderText(/youtube\.com\/watch/i);
+    fireEvent.change(urlInput, {
+      target: {
+        value: "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10s",
+      },
+    });
+
+    // Helper visible con el ID detectado.
+    await waitFor(() => {
+      expect(screen.getByText(/Video detectado/i)).toBeInTheDocument();
+    });
+
+    const cta = screen.getByRole("button", { name: /publicar mesa/i });
+    expect(cta).not.toBeDisabled();
+    fireEvent.click(cta);
+    await waitFor(() => {
+      expect(postedBody).not.toBeNull();
+    });
+    expect(postedBody.tutorialMode).toBe("manual");
+    expect(postedBody.tutorialVideoId).toBe("dQw4w9WgXcQ");
+  });
+
+  it("URL inválido muestra error inline y bloquea submit", async () => {
+    renderPage();
+    await pickGame();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Proponer un video/i }),
+    );
+    const urlInput = screen.getByPlaceholderText(/youtube\.com\/watch/i);
+    fireEvent.change(urlInput, {
+      target: { value: "https://vimeo.com/12345" },
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/URL de YouTube inválido/i),
+      ).toBeInTheDocument();
+    });
+    const cta = screen.getByRole("button", { name: /publicar mesa/i });
+    expect(cta).toBeDisabled();
+  });
+
+  it("seleccionar 'Buscar automáticamente' manda tutorialMode='auto'", async () => {
+    let postedBody = null;
+    server.use(
+      http.post("/api/tables", async ({ request }) => {
+        postedBody = await request.json();
+        return HttpResponse.json({ _id: "newtable" }, { status: 201 });
+      }),
+    );
+    renderPage();
+    await pickGame();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Buscar automáticamente/i }),
+    );
+
+    const cta = screen.getByRole("button", { name: /publicar mesa/i });
+    fireEvent.click(cta);
+    await waitFor(() => {
+      expect(postedBody).not.toBeNull();
+    });
+    expect(postedBody.tutorialMode).toBe("auto");
+    expect(postedBody.tutorialVideoId).toBeNull();
   });
 });

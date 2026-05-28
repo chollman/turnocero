@@ -331,6 +331,22 @@ router.post(
       .optional()
       .isIn(["public", "friends", "private"])
       .withMessage("Valor de privacidad inválido"),
+    body("tutorialMode")
+      .optional()
+      .isIn(["none", "auto", "manual"])
+      .withMessage("Modo de tutorial inválido"),
+    body("tutorialVideoId")
+      .optional({ nullable: true })
+      .custom((v) => v === null || /^[A-Za-z0-9_-]{11}$/.test(v))
+      .withMessage("Video ID de YouTube inválido"),
+    body("tutorialMode").custom((value, { req }) => {
+      if (value === "manual" && !req.body.tutorialVideoId) {
+        throw new Error(
+          "Necesitás pegar un URL de YouTube para proponer un video",
+        );
+      }
+      return true;
+    }),
   ],
   asyncHandler(async (req, res) => {
     checkValidation(req);
@@ -349,6 +365,8 @@ router.post(
       bggImage,
       bggYear,
       eventoId,
+      tutorialMode,
+      tutorialVideoId,
     } = req.body;
 
     if (!boardGame || !date || !maxPlayers) {
@@ -434,6 +452,13 @@ router.post(
         bggImage: bggImage || null,
         bggYear: bggYear || null,
         eventoId: validatedEventoId,
+        // Tutoriales: si el modo no se manda usa el default del schema ("auto"
+        // para retrocompat). Si manda "manual" sin videoId, la validación
+        // arriba ya lo cortó; igual nunca persistimos un videoId stale en
+        // modos non-manual.
+        ...(tutorialMode !== undefined && { tutorialMode }),
+        tutorialVideoId:
+          tutorialMode === "manual" ? tutorialVideoId || null : null,
       });
     } catch (err) {
       rethrowValidation(err);
@@ -557,6 +582,22 @@ router.put(
       .optional()
       .isIn(["public", "friends", "private"])
       .withMessage("Valor de privacidad inválido"),
+    body("tutorialMode")
+      .optional()
+      .isIn(["none", "auto", "manual"])
+      .withMessage("Modo de tutorial inválido"),
+    body("tutorialVideoId")
+      .optional({ nullable: true })
+      .custom((v) => v === null || /^[A-Za-z0-9_-]{11}$/.test(v))
+      .withMessage("Video ID de YouTube inválido"),
+    body("tutorialMode").custom((value, { req }) => {
+      if (value === "manual" && !req.body.tutorialVideoId) {
+        throw new Error(
+          "Necesitás pegar un URL de YouTube para proponer un video",
+        );
+      }
+      return true;
+    }),
   ],
   asyncHandler(async (req, res) => {
     checkValidation(req);
@@ -606,6 +647,21 @@ router.put(
       table.tags = Array.isArray(req.body.tags) ? req.body.tags : [];
     }
     if (req.body.privacy) table.privacy = req.body.privacy;
+    if (Object.prototype.hasOwnProperty.call(req.body, "tutorialMode")) {
+      table.tutorialMode = req.body.tutorialMode;
+      // En cualquier modo non-manual limpiamos el videoId stale.
+      if (req.body.tutorialMode !== "manual") {
+        table.tutorialVideoId = null;
+      }
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(req.body, "tutorialVideoId") &&
+      (req.body.tutorialMode === "manual" ||
+        (table.tutorialMode === "manual" &&
+          !Object.prototype.hasOwnProperty.call(req.body, "tutorialMode")))
+    ) {
+      table.tutorialVideoId = req.body.tutorialVideoId || null;
+    }
 
     try {
       await table.save();

@@ -83,6 +83,30 @@ const tableSchema = new mongoose.Schema(
       enum: ["public", "friends", "private"],
       default: "public",
     },
+    // Modo de la sección "Andá preparado" en TableDetail.
+    //   - "none":   no muestra la sección.
+    //   - "auto":   muestra los 3 primeros resultados de YouTube para
+    //               "Como se juega <boardGame>" (comportamiento original
+    //               de la feature). Es el default del schema para preservar
+    //               el comportamiento de mesas creadas antes de este campo.
+    //   - "manual": muestra un solo video propuesto por el host
+    //               (tutorialVideoId).
+    tutorialMode: {
+      type: String,
+      enum: ["none", "auto", "manual"],
+      default: "auto",
+    },
+    // ID de YouTube (11 chars, [A-Za-z0-9_-]). Sólo se usa cuando
+    // tutorialMode === "manual". El modelo lo guarda sin URL (lo
+    // reconstruye el cliente al renderizar).
+    tutorialVideoId: {
+      type: String,
+      default: null,
+      validate: {
+        validator: (v) => v === null || /^[A-Za-z0-9_-]{11}$/.test(v),
+        message: "tutorialVideoId inválido",
+      },
+    },
     pendingRequests: [
       {
         type: mongoose.Schema.Types.ObjectId,

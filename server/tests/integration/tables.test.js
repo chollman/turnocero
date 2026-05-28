@@ -110,6 +110,114 @@ describe("POST /api/tables", () => {
       });
     expect(res.status).toBe(400);
   });
+
+  // ── Tutorial mode (Paso 5 — sección "Andá preparado") ──────────────
+  it("default tutorialMode is 'auto' when not provided (retrocompat)", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.tutorialMode).toBe("auto");
+    expect(res.body.tutorialVideoId).toBeNull();
+  });
+
+  it("persists tutorialMode='none' when provided", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+        tutorialMode: "none",
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.tutorialMode).toBe("none");
+  });
+
+  it("persists tutorialMode='manual' + videoId when both provided", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+        tutorialMode: "manual",
+        tutorialVideoId: "dQw4w9WgXcQ",
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.tutorialMode).toBe("manual");
+    expect(res.body.tutorialVideoId).toBe("dQw4w9WgXcQ");
+  });
+
+  it("400s when tutorialMode='manual' without tutorialVideoId", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+        tutorialMode: "manual",
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it("400s when tutorialVideoId is malformed", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+        tutorialMode: "manual",
+        tutorialVideoId: "short",
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it("400s when tutorialMode is not in enum", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+        tutorialMode: "bogus",
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it("strips stale videoId when mode is non-manual", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+        tutorialMode: "auto",
+        tutorialVideoId: "dQw4w9WgXcQ", // se ignora
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.tutorialMode).toBe("auto");
+    expect(res.body.tutorialVideoId).toBeNull();
+  });
 });
 
 describe("GET /api/tables", () => {
@@ -614,6 +722,57 @@ describe("PUT /api/tables/:id (host only)", () => {
     expect(res.status).toBe(200);
     expect(res.body.tags).toEqual(["Estrategia"]);
     expect(res.body.rules).toBe("Preserved");
+  });
+
+  it("updates tutorialMode + clears videoId when switching from manual to auto", async () => {
+    const host = await createUser();
+    const table = await createTable(host, {
+      tutorialMode: "manual",
+      tutorialVideoId: "dQw4w9WgXcQ",
+    });
+    const res = await request(app)
+      .put(`/api/tables/${table._id}`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`)
+      .send({
+        date: new Date(Date.now() + 14 * 86400000).toISOString(),
+        maxPlayers: 4,
+        tutorialMode: "auto",
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.tutorialMode).toBe("auto");
+    expect(res.body.tutorialVideoId).toBeNull();
+  });
+
+  it("preserves tutorialMode + videoId when not sent in PUT body", async () => {
+    const host = await createUser();
+    const table = await createTable(host, {
+      tutorialMode: "manual",
+      tutorialVideoId: "dQw4w9WgXcQ",
+    });
+    const res = await request(app)
+      .put(`/api/tables/${table._id}`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`)
+      .send({
+        date: new Date(Date.now() + 14 * 86400000).toISOString(),
+        maxPlayers: 4,
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.tutorialMode).toBe("manual");
+    expect(res.body.tutorialVideoId).toBe("dQw4w9WgXcQ");
+  });
+
+  it("400s on PUT with manual mode but no videoId", async () => {
+    const host = await createUser();
+    const table = await createTable(host);
+    const res = await request(app)
+      .put(`/api/tables/${table._id}`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`)
+      .send({
+        date: new Date(Date.now() + 14 * 86400000).toISOString(),
+        maxPlayers: 4,
+        tutorialMode: "manual",
+      });
+    expect(res.status).toBe(400);
   });
 
   it("400s when reducing maxPlayers below current player count", async () => {
