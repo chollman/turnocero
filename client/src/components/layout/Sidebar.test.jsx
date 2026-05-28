@@ -168,5 +168,16 @@ describe("<Sidebar>", () => {
       fireEvent.keyDown(document, { key: "Escape" });
       expect(onClose).not.toHaveBeenCalled();
     });
+
+    it("clicking a nav item calls onClose even when the link points to the current pathname", () => {
+      // Regression: useEffect([pathname]) doesn't fire when the link's
+      // destination is the page you're already on, so onClose must run
+      // from the Link's onClick instead.
+      const onClose = vi.fn();
+      setup({ onClose, open: true, pathname: "/mesas" });
+      const mesasLink = screen.getByRole("link", { name: /^mesas$/i });
+      fireEvent.click(mesasLink);
+      expect(onClose).toHaveBeenCalled();
+    });
   });
 });

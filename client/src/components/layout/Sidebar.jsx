@@ -347,6 +347,7 @@ export default function Sidebar({ open = false, onClose }) {
         className={cls}
         style={{ "--i": i }}
         aria-current={isActive ? "page" : undefined}
+        onClick={onClose}
       >
         <span className={styles.navIcon}>{ICONS[item.id]}</span>
         <span className={styles.navLab}>{item.label}</span>
@@ -452,7 +453,11 @@ export default function Sidebar({ open = false, onClose }) {
             </div>
           </div>
         ) : (
-          <Link to="/perfil" className={styles.userTicket}>
+          <Link
+            to="/perfil"
+            className={styles.userTicket}
+            onClick={onClose}
+          >
             <span className={styles.userAvatar} aria-hidden="true">
               {(display.name || "?").charAt(0).toUpperCase()}
             </span>

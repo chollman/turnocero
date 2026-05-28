@@ -133,6 +133,7 @@ export default function GuestSidebar({ open = false, onClose }) {
                     style={{ "--i": i }}
                     className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
                     aria-current={isActive ? "page" : undefined}
+                    onClick={onClose}
                   >
                     <span className={styles.navIcon}>{ICONS[item.id]}</span>
                     <span className={styles.navLab}>{item.label}</span>
@@ -144,10 +145,14 @@ export default function GuestSidebar({ open = false, onClose }) {
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <Link to="/login" className={styles.btnLogin}>
+          <Link to="/login" className={styles.btnLogin} onClick={onClose}>
             Login
           </Link>
-          <Link to="/register" className={styles.btnRegister}>
+          <Link
+            to="/register"
+            className={styles.btnRegister}
+            onClick={onClose}
+          >
             Registrate
           </Link>
         </div>
