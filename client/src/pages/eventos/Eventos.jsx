@@ -21,7 +21,7 @@ import TimelineRow from "./TimelineRow";
 import PosterCard from "./PosterCard";
 import EventoSkeleton from "./EventoSkeleton";
 import EventoForm from "./EventoForm";
-import { GridIcon, ListIcon, PlusIcon } from "./EventoIcons";
+import { GridIcon, ListIcon, PlusIcon, SearchIcon } from "./EventoIcons";
 import styles from "./Eventos.module.css";
 
 const ALL_FILTERS = [
@@ -369,14 +369,19 @@ export default function Eventos() {
 
       {/* Controls */}
       <div className={styles.controls}>
-        <input
-          type="search"
-          className={styles.searchInput}
-          placeholder="Buscar por nombre…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          aria-label="Buscar eventos por nombre"
-        />
+        <div className={styles.searchWrap}>
+          <span className={styles.searchIcon}>
+            <SearchIcon />
+          </span>
+          <input
+            type="search"
+            className={styles.searchInput}
+            placeholder="Buscar por nombre…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Buscar eventos por nombre"
+          />
+        </div>
 
         <div className={styles.controlsRight}>
           <ListFilters

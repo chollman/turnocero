@@ -304,6 +304,21 @@ export function PaperclipIcon({ size = 14 }) {
   );
 }
 
+export function SearchIcon({ size = 14 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      {...stroke}
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <line x1="20" y1="20" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
 export function RefreshIcon({ size = 14 }) {
   return (
     <svg

@@ -134,17 +134,37 @@
   margin-bottom: 32px;
 }
 
+/* Search wrapper + icon — mirrors Dashboard's pattern so the eventos
+   search reads as the same control as the mesas one (icon inside the
+   input, 36px height, same focus state). */
+.searchWrap {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+  max-width: 360px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+  display: inline-flex;
+}
+
 .searchInput {
+  width: 100%;
   height: 36px;
   box-sizing: border-box;
   background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text-primary);
-  padding: 0 12px;
+  padding: 0 12px 0 34px;
   border-radius: 8px;
   font-family: var(--font-mono);
   font-size: 12px;
-  min-width: 180px;
   transition: border-color var(--transition);
 }
 
@@ -464,6 +484,11 @@
     gap: 14px;
     margin-top: 18px;
     margin-bottom: 18px;
+  }
+  .searchWrap {
+    max-width: none;
+    min-width: 0;
+    flex: 1;
   }
   .searchInput {
     width: 100%;
