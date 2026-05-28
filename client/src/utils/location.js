@@ -111,8 +111,11 @@ function extractCity(parts) {
 
 /**
  * Quita códigos postales argentinos al inicio de un fragmento.
- * Formatos típicos: "B1650 San Martín", "C1006 CABA", "1414 Palermo".
+ * Formatos cubiertos:
+ *   - CPA extendido: "B1611DUA Don Torcuato"  (1 letra + 4 dígitos + 3 letras)
+ *   - CPA corto:     "B1650 San Martín"       (1 letra + 4 dígitos)
+ *   - CP numérico:   "1414 Palermo"           (4 dígitos sueltos)
  */
 function stripPostalCode(s) {
-  return s.replace(/^[A-Z]?\d{4}\s+/, "").trim();
+  return s.replace(/^[A-Z]?\d{4}[A-Z]{0,3}\s+/, "").trim();
 }

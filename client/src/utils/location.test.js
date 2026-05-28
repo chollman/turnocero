@@ -89,6 +89,19 @@ describe("formatLocation", () => {
     );
   });
 
+  it("strips Argentine CPA extended codes (1 letra + 4 dígitos + 3 letras)", () => {
+    // Caso real visto en producción: "B1611DUA Don Torcuato".
+    expect(
+      formatLocation(
+        "Av. Belgrano 1300, B1611DUA Don Torcuato, Provincia de Buenos Aires, Argentina",
+        "regular",
+      ),
+    ).toBe("Av. Belgrano 1300, Don Torcuato");
+    expect(
+      formatLocation("Calle X 100, C1006ACE CABA, Argentina", "city"),
+    ).toBe("CABA");
+  });
+
   it("trims whitespace around comma-separated parts", () => {
     expect(
       formatLocation("Calle 1,   B1650 San Martín  , Argentina", "city"),

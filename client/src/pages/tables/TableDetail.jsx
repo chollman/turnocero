@@ -11,6 +11,7 @@ import Avatar from "../../components/shared/Avatar";
 import InfoTooltip from "../../components/shared/InfoTooltip";
 import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
 import { formatDistanceKm } from "../../utils/distance";
+import { getLocationDisplay } from "../../utils/location";
 import { dateParts } from "../../utils/eventoDate";
 import { hashStringToInt } from "../../utils/hash";
 import TableDetailSkeleton from "./TableDetailSkeleton";
@@ -416,10 +417,7 @@ export default function TableDetail() {
   const isPastMesa = new Date(table.date) < new Date();
   const isFrozen = isPastMesa && !user?.isAdmin;
 
-  const locationTexto =
-    typeof table.location === "string"
-      ? table.location
-      : table.location?.texto || "";
+  const locationTexto = getLocationDisplay(table.location, "regular");
   const distanceLabel = formatDistanceKm(table.distanceKm);
   const isFollowing =
     user &&

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import SeatTrack from "../../components/shared/SeatTrack";
 import { dateParts, countdown } from "../../utils/eventoDate";
+import { getLocationDisplay } from "../../utils/location";
 import styles from "./MesaStub.module.css";
 
 const CheckIcon = ({ size = 20 }) => (
@@ -126,9 +127,7 @@ export default function MesaStub({
   const available = totalSeats - filledSeats;
   const isFull = available <= 0;
   const locationTexto =
-    typeof table.location === "string"
-      ? table.location
-      : table.location?.texto || "Por confirmar";
+    getLocationDisplay(table.location, "regular") || "Por confirmar";
 
   const showCountdown =
     !isCancelled && cd.text && cd.tone !== "past" && userState !== "full";

@@ -11,6 +11,7 @@ import Avatar from "../../components/shared/Avatar";
 import { GhostIcon } from "../../components/shared/UserRef";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { formatDistanceKm } from "../../utils/distance";
+import { getLocationDisplay } from "../../utils/location";
 import { dateParts } from "../../utils/eventoDate";
 import { hashStringToInt } from "../../utils/hash";
 import styles from "./TableCard.module.css";
@@ -170,10 +171,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
   const [flashing, setFlashing] = useState(false);
 
   const hostInfo = getUserDisplay(table.host);
-  const locationTexto =
-    typeof table.location === "string"
-      ? table.location
-      : table.location?.texto || "";
+  const locationTexto = getLocationDisplay(table.location, "regular");
   const distanceLabel = formatDistanceKm(table.distanceKm);
 
   const isAnon = !user;
@@ -402,11 +400,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
         );
       default:
         return (
-          <button
-            type="button"
-            className={styles.cta}
-            onClick={handleJoin}
-          >
+          <button type="button" className={styles.cta} onClick={handleJoin}>
             {isPrivate ? "Solicitar →" : "Unirme"}
           </button>
         );
