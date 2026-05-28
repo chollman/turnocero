@@ -491,7 +491,7 @@
   }
 
   .heroStats {
-    justify-content: center;
+    justify-content: space-evenly;
     gap: 18px;
   }
 
