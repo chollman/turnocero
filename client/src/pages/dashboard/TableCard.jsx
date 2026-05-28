@@ -234,8 +234,16 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
     return "default";
   })();
 
-  const seed = hashStringToInt(table._id || "");
+  // `bannerSeedKey` permite al caller (p.ej. la live preview de MesaForm)
+  // pasar una clave estable que decuple el seed del mosaico del nombre
+  // del juego — así el banner aleatorio del preview no muta con cada
+  // keystroke. Sin override, seed sale del `_id` de la mesa, como siempre.
+  const seed = hashStringToInt(table.bannerSeedKey || table._id || "");
   const useImage = Boolean(table.bggImage);
+  // Cuando hay override, no queremos que el hash del nombre del juego
+  // contamine el patrón — se lo pasamos vacío a `<MesaTile>` y dejamos que
+  // el seed sea el único insumo del mosaico.
+  const tileGame = table.bannerSeedKey ? "" : table.boardGame || "";
 
   // Mesa privada + el viewer NO es miembro (ni anon que vea el detalle).
   // En ese caso bloqueamos la navegación a /mesas/:id (el server le tira
@@ -584,7 +592,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
       >
         <div className={styles.banner}>
           <MesaTile
-            game={table.boardGame || ""}
+            game={tileGame}
             seed={seed}
             imageUrl={useImage ? table.bggImage : null}
           />

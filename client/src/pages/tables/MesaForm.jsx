@@ -296,6 +296,15 @@ export default function MesaForm({
       lat,
       lng,
     }));
+  const handleUseMyLocation = () => {
+    const d = user?.direccion;
+    if (!d?.texto?.trim()) return;
+    setLocationField({
+      texto: d.texto,
+      lat: d.lat ?? null,
+      lng: d.lng ?? null,
+    });
+  };
   const handleManualGeocode = async () => {
     const q = locationField.texto.trim();
     if (q.length < 3) {
@@ -353,9 +362,17 @@ export default function MesaForm({
     }
   }, [date]);
 
+  // Seed estable para el mosaico del preview: se calcula una sola vez al
+  // montar y no depende del input del juego, así el banner aleatorio no
+  // muta mientras el user tipea en el buscador BGG. Una vez que el user
+  // pickea un juego con `bggData.image`, el banner pasa a ser la imagen
+  // del juego y el seed deja de importar.
+  const previewBannerSeed = useMemo(() => Math.random().toString(36), []);
+
   const previewMesa = useMemo(
     () => ({
       _id: "preview",
+      bannerSeedKey: previewBannerSeed,
       boardGame: boardGameInput || "Tu juego",
       bggImage: bggData?.image || null,
       bggThumbnail: bggData?.thumbnail || null,
@@ -387,6 +404,7 @@ export default function MesaForm({
       reactions: [],
     }),
     [
+      previewBannerSeed,
       boardGameInput,
       bggData,
       previewDateIso,
@@ -627,6 +645,16 @@ export default function MesaForm({
               <label className={styles.fieldLabel}>
                 Lugar <span className={styles.required}>*</span>
               </label>
+              {user?.direccion?.texto?.trim() && (
+                <button
+                  type="button"
+                  className={styles.btnMyLocation}
+                  onClick={handleUseMyLocation}
+                  title={`Usar mi dirección: ${user.direccion.texto}`}
+                >
+                  📍 Mi ubicación
+                </button>
+              )}
               <div className={styles.locationRow}>
                 <PlaceAutocomplete
                   value={locationField.texto}
@@ -643,12 +671,6 @@ export default function MesaForm({
                   {geocoding ? "…" : "Buscar"}
                 </button>
               </div>
-              {locationField.lat != null && locationField.lng != null && (
-                <span className={styles.coordsHint}>
-                  📍 {locationField.lat.toFixed(5)},{" "}
-                  {locationField.lng.toFixed(5)}
-                </span>
-              )}
               <span className={styles.fieldHelp}>
                 Empezá a escribir y elegí una sugerencia, o tipeala y tocá
                 "Buscar".

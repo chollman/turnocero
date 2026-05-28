@@ -80,8 +80,7 @@ function CreateMesaStandalone() {
       });
       navigate(`/mesas/${data._id}`);
     } catch (err) {
-      const msg =
-        err.response?.data?.message || "Error al crear la mesa";
+      const msg = err.response?.data?.message || "Error al crear la mesa";
       setServerError(msg);
       addToast({ type: "error", message: msg });
     } finally {
@@ -729,12 +728,6 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                     {geocoding ? "…" : "Buscar"}
                   </button>
                 </div>
-                {form.location.lat != null && form.location.lng != null && (
-                  <p className={styles.coordsHint}>
-                    📍 {form.location.lat.toFixed(5)},{" "}
-                    {form.location.lng.toFixed(5)}
-                  </p>
-                )}
               </div>
             )}
 

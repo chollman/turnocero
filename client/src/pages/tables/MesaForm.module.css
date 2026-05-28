@@ -549,6 +549,29 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+/* Shortcut para reusar la dirección guardada en /perfil. Vive en su propia
+   fila arriba del .locationRow — el usuario primero ve el atajo, después
+   el input por si la mesa es en otro lugar. Tinte amber-soft para leer
+   como shortcut, no como acción principal. */
+.btnMyLocation {
+  align-self: flex-start;
+  background: var(--amber-05);
+  border: 1px solid var(--amber-30);
+  color: var(--amber-light);
+  padding: 7px 12px;
+  border-radius: 9px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.btnMyLocation:hover {
+  background: var(--amber-10);
+  border-color: var(--amber);
+}
 .coordsHint {
   font-family: var(--font-mono);
   font-size: 11px;
