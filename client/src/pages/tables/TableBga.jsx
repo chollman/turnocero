@@ -22,7 +22,12 @@ export default function TableBga({ boardGame, bgaUrl }) {
         rel="noopener noreferrer"
         className={styles.card}
       >
-        <div className={styles.badge}>BGA</div>
+        <img
+          src="/bga-logo.png"
+          alt="Board Game Arena"
+          className={styles.logo}
+          loading="lazy"
+        />
         <div className={styles.body}>
           <h3 className={styles.title}>
             Jugá <strong>{boardGame || "este juego"}</strong> en Board Game

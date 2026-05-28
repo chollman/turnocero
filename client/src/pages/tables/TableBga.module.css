@@ -51,20 +51,17 @@
   transform: translateX(4px);
 }
 
-.badge {
+.logo {
   flex-shrink: 0;
   width: 56px;
   height: 56px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, var(--amber), var(--orange));
-  color: var(--on-amber);
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 16px;
-  letter-spacing: 0.06em;
-  box-shadow: 0 2px 8px var(--amber-glow);
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
+  /* Subtle ring + glow para que destaque sin pisar el branding del logo. */
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 2px 10px var(--amber-glow);
 }
 
 .body {
@@ -107,11 +104,9 @@
     padding: 12px 14px;
     gap: 12px;
   }
-  .badge {
+  .logo {
     width: 44px;
     height: 44px;
-    font-size: 13px;
-    border-radius: 10px;
   }
   .title {
     font-size: 14px;

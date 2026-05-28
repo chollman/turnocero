@@ -53,11 +53,13 @@ describe("<TableBga>", () => {
     expect(screen.getByText(/Board Game Arena/)).toBeInTheDocument();
   });
 
-  it("muestra el badge BGA y la flecha", () => {
+  it("muestra el logo de Board Game Arena y la flecha", () => {
     render(
       <TableBga boardGame="Catan" bgaUrl="https://boardgamearena.com/x" />,
     );
-    expect(screen.getByText("BGA")).toBeInTheDocument();
+    const logo = screen.getByAltText("Board Game Arena");
+    expect(logo).toBeInTheDocument();
+    expect(logo).toHaveAttribute("src", "/bga-logo.png");
     expect(screen.getByText("→")).toBeInTheDocument();
   });
 
