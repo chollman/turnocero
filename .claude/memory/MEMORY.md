@@ -1,12 +1,15 @@
 # Memory Index — Turnocero
 
 - [Claudio Hollman — developer profile](user_profile.md) — sole dev/owner, full-stack, Argentine Spanish UI, English commit messages
-- [Turnocero current feature set](project_features.md) — Noticias, Compartidas, Torneos, Friends, public browsing, Sidebar/BottomNav/GuestNavbar, admin moderation — features beyond CLAUDE.md
+- [Turnocero current feature set](project_features.md) — Noticias, Compartidas, Torneos, Friends, public browsing, Sidebar/Navbar/GuestNavbar (BottomNav removed May 2026), admin moderation — features beyond CLAUDE.md
 - [Code style and workflow preferences](feedback_style.md) — commit-msg/UI language, BGG warning, CSS Modules
 - [Tests are required for every new component and method](feedback_tests_required.md) — non-negotiable since 2026-05-18: every new component, route, hook, util, or method ships with its tests in the same change (client AND server)
 - [Page padding system](padding_system.md) — `--page-padding`, `--page-padding-left`, `--page-padding-mobile` variables; patterns per page type
 - [Skeleton shimmer pattern](skeleton_pattern.md) — standard for all loading states; which screens are done, which are pending (BggProfile skipped)
-- [Sidebar/BottomNav sync](feedback_sidebar_bottomnav_sync.md) — always ask about BottomNav when modifying Sidebar order or structure
+- [Mobile nav drawer (replaces BottomNav)](feedback_mobile_nav_drawer.md) — Sidebar/GuestSidebar is a slide-in right drawer on mobile, toggled by a hamburger in the Navbar that morphs to X via CSS. Navbar z-index 250 sits above drawer 200 + backdrop 199 and acts as the visual header. Two close paths required (useEffect[pathname] + onClick={onClose}) — same-route Link clicks don't fire the effect alone.
+- [PWA service worker config](feedback_pwa_sw_config.md) — workbox MUST have `skipWaiting + clientsClaim + cleanupOutdatedCaches` + `navigateFallbackDenylist: [/^\/api\//]`. Without these, deploys leave users on a stale cache → white screen after they clear browser cache.
+- [Mobile controls + search pattern](feedback_mobile_controls_pattern.md) — list pages (Mesas, Eventos) stack `.controls` vertically on mobile, search takes full width on top, chips/view/CTA below. Inline `newBtn` hides → FAB takes over. Search input ALWAYS wraps with `.searchWrap` + absolute `.searchIcon` + `padding-left: 34px`.
+- [FAB positioning post-BottomNav](feedback_fab_positioning.md) — every mobile FAB sits at `bottom: calc(16px + env(safe-area-inset-bottom, 0px))`. The 56-76px offset that existed to clear the BottomNav pill is dead — don't reintroduce it.
 - [Deleted user UI convention](feedback_deleted_user.md) — null populated user refs render as "Usuario eliminado" via UserRef/getUserDisplay; never access user.username directly
 - [VSCode ESLint setup](reference_vscode_eslint.md) — per-machine `.vscode/settings.json` pointing ESLint extension at `./client` (flat config lives there, not at repo root)
 - [Plans folder location](feedback_plans_location.md) — Plans go in the project's `plans/` folder, not `~/.claude/plans/`

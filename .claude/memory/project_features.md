@@ -38,9 +38,9 @@ The app has grown significantly beyond what CLAUDE.md documents. Current feature
 - LoginPromptModal for prompting guests to log in on gated actions
 
 ### Navigation & Layout
-- `Sidebar` — desktop left sidebar (authenticated users)
-- `BottomNav` — mobile bottom navigation bar (authenticated users)
-- `GuestNavbar` — top nav for unauthenticated users
+- `Sidebar` / `GuestSidebar` — desktop left sidebar AND mobile slide-in drawer (single component, two modes). On mobile a hamburger in the Navbar morphs to X to toggle it. See `feedback_mobile_nav_drawer.md`.
+- `Navbar` / `GuestNavbar` — top bar on mobile (acts as the drawer header); hidden on desktop. Holds the hamburger toggle.
+- (BottomNav was removed in May 2026 — do not reintroduce a bottom pill.)
 - `BoardGameBackground` — decorative canvas/CSS background behind all content
 - `SplashScreen` — shown during initial auth loading
 
