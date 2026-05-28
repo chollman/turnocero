@@ -37,7 +37,7 @@ const refreshUser = vi.fn(() => Promise.resolve());
 const applyServerConfig = vi.fn();
 
 describe("notification listener hooks — event registration", () => {
-  it("useTableNotificationListeners registra los 8 eventos de tables", () => {
+  it("useTableNotificationListeners registra los 9 eventos de tables", () => {
     const socket = makeSocket();
     renderHook(() => {
       const activeTableRef = useStableRef(null);
@@ -56,6 +56,7 @@ describe("notification listener hooks — event registration", () => {
         "table:comment",
         "table:image",
         "join:request",
+        "table:player-joined",
         "join:accepted",
         "join:rejected",
         "table:spot-opened",

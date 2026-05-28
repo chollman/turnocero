@@ -10,6 +10,7 @@ const DURATION = {
   chat: 4000,
   join_request: 4000,
   join_accepted: 5500,
+  player_joined: 5000,
   spot_opened: 6000,
   comment: 4000,
   image: 4000,
@@ -123,6 +124,8 @@ function ToastItem({ toast, onDismiss }) {
       ? "✅"
       : toast.type === "join_request"
         ? "🔔"
+        : toast.type === "player_joined"
+          ? "🙌"
         : toast.type === "spot_opened"
           ? "🎯"
           : toast.type === "comment"
@@ -195,7 +198,9 @@ function ToastItem({ toast, onDismiss }) {
   const title =
     toast.type === "join_accepted"
       ? "¡Fuiste aceptado!"
-      : toast.type === "spot_opened"
+      : toast.type === "player_joined"
+        ? "¡Nuevo jugador!"
+        : toast.type === "spot_opened"
         ? "¡Se liberó un lugar!"
         : toast.type === "friend_request"
           ? `${toast.fromUsername}`
@@ -266,7 +271,9 @@ function ToastItem({ toast, onDismiss }) {
       ? `${toast.senderUsername}: ${toast.messagePreview}${toast.messagePreview?.length >= 60 ? "…" : ""}`
       : toast.type === "join_request"
         ? `${toast.requesterUsername} quiere unirse`
-        : toast.type === "spot_opened"
+        : toast.type === "player_joined"
+          ? `${toast.joinerUsername} se unió a ${toast.tableName}`
+          : toast.type === "spot_opened"
           ? `Hay un lugar disponible en ${toast.tableName} 🎲 ¡Sumate ahora!`
           : toast.type === "comment"
             ? `${toast.commenterUsername}: ${toast.commentPreview}${toast.commentPreview?.length >= 60 ? "…" : ""}`

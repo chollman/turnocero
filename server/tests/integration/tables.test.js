@@ -1001,6 +1001,84 @@ describe("Privacy 'friends'", () => {
   });
 });
 
+describe("Notificación 'player_joined'", () => {
+  const Notification = require("../../models/Notification");
+
+  it("mesa pública: el host recibe 'player_joined' cuando alguien se une", async () => {
+    const host = await createUser();
+    const { user: joiner, token } = await createAuthedUser();
+    const table = await createTable(host, { privacy: "public", maxPlayers: 4 });
+
+    const res = await request(app)
+      .post(`/api/tables/${table._id}/join`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+
+    const notifs = await Notification.find({ type: "player_joined" });
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].recipient.toString()).toBe(host._id.toString());
+    expect(notifs[0].tableId).toBe(table._id.toString());
+    expect(notifs[0].tableName).toBe(table.boardGame);
+    expect(notifs[0].lastJoinerUsername).toBe(joiner.username);
+    expect(notifs[0].count).toBe(1);
+  });
+
+  it("mesa 'friends': el host recibe 'player_joined' cuando un amigo se une", async () => {
+    const host = await createUser();
+    const { user: friend, token } = await createAuthedUser();
+    host.friends = [friend._id];
+    friend.friends = [host._id];
+    await host.save();
+    await friend.save();
+    const table = await createTable(host, { privacy: "friends", maxPlayers: 4 });
+
+    const res = await request(app)
+      .post(`/api/tables/${table._id}/join`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+
+    const notifs = await Notification.find({ type: "player_joined" });
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].recipient.toString()).toBe(host._id.toString());
+    expect(notifs[0].lastJoinerUsername).toBe(friend.username);
+  });
+
+  it("mesa privada: NO se emite 'player_joined' (sigue siendo join_request)", async () => {
+    const host = await createUser();
+    const { token } = await createAuthedUser();
+    const table = await createTable(host, { privacy: "private", maxPlayers: 4 });
+
+    const res = await request(app)
+      .post(`/api/tables/${table._id}/join`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.requested).toBe(true);
+
+    const joinedNotifs = await Notification.find({ type: "player_joined" });
+    expect(joinedNotifs).toHaveLength(0);
+    const requestNotifs = await Notification.find({ type: "join_request" });
+    expect(requestNotifs).toHaveLength(1);
+  });
+
+  it("agrega múltiples joins en una única notif con count incrementado", async () => {
+    const host = await createUser();
+    const { token: token1 } = await createAuthedUser();
+    const { token: token2 } = await createAuthedUser();
+    const table = await createTable(host, { privacy: "public", maxPlayers: 4 });
+
+    await request(app)
+      .post(`/api/tables/${table._id}/join`)
+      .set("Authorization", `Bearer ${token1}`);
+    await request(app)
+      .post(`/api/tables/${table._id}/join`)
+      .set("Authorization", `Bearer ${token2}`);
+
+    const notifs = await Notification.find({ type: "player_joined" });
+    expect(notifs).toHaveLength(1);
+    expect(notifs[0].count).toBe(2);
+  });
+});
+
 describe("Notificaciones — gating por privacy", () => {
   const Notification = require("../../models/Notification");
 

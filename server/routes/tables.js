@@ -694,6 +694,23 @@ router.post(
     if (followerIdx !== -1) table.followers.splice(followerIdx, 1);
     await table.save();
     const populated = await populateTable(Table.findById(table._id));
+
+    // Notif al host: "X se unió a tu mesa". Solo en public / friends, donde
+    // el join es directo. En private el host ya recibe `join_request` y luego
+    // acepta manualmente — no hace falta segunda notif.
+    await emitNotificationReq(
+      req,
+      table.host,
+      "player_joined",
+      {
+        tableId: table._id.toString(),
+        tableName: table.boardGame,
+        lastJoinerUsername: req.user.username,
+      },
+      "table:player-joined",
+      { joinerUsername: req.user.username },
+    ).catch(() => {});
+
     res.json({ requested: false, table: populated });
   }),
 );

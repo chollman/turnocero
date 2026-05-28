@@ -8,6 +8,7 @@ const NOTIFICATION_TYPES = [
   "join_request",
   "join_accepted",
   "join_rejected",
+  "player_joined",
   "spot_opened",
   "table_cancelled",
   // Amigos / mensajes
@@ -58,6 +59,7 @@ const notificationSchema = new mongoose.Schema(
     lastSenderUsername: String,
     lastMessagePreview: String,
     lastRequesterUsername: String,
+    lastJoinerUsername: String,
     lastCommenterUsername: String,
     lastCommentPreview: String,
     lastUploaderUsername: String,

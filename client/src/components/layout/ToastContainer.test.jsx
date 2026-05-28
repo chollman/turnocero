@@ -126,6 +126,21 @@ describe("<ToastContainer>", () => {
     expect(navigateMock).toHaveBeenCalledWith("/mesas/m1");
   });
 
+  it("renders player_joined toast with joiner username + tableName", () => {
+    renderToasts([
+      {
+        id: "t1",
+        type: "player_joined",
+        tableName: "Wingspan",
+        joinerUsername: "ana",
+        tableId: "m1",
+      },
+    ]);
+    expect(screen.getByText("¡Nuevo jugador!")).toBeInTheDocument();
+    expect(screen.getByText(/ana se unió a wingspan/i)).toBeInTheDocument();
+    expect(screen.getByText("🙌")).toBeInTheDocument();
+  });
+
   it("Cerrar button dismisses the toast without navigating", () => {
     const dismissToast = vi.fn();
     useNotificationsMock.mockReturnValue({

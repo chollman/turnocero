@@ -13,6 +13,7 @@ const CATEGORIES = {
     "comment",
     "image",
     "join_request",
+    "player_joined",
     "join_accepted",
     "spot_opened",
     "table_cancelled",
@@ -72,6 +73,13 @@ function getNotifMeta(n) {
         countLabel: `${n.count} ${n.count === 1 ? "solicitud" : "solicitudes"}`,
         preview: `${n.lastRequesterUsername} quiere unirse`,
         chipClass: "request",
+      };
+    case "player_joined":
+      return {
+        icon: "🙌",
+        countLabel: `${n.count} ${n.count === 1 ? "nuevo jugador" : "nuevos jugadores"}`,
+        preview: `${n.lastJoinerUsername} se unió a ${n.tableName}`,
+        chipClass: "accepted",
       };
     case "friend_request":
       return {

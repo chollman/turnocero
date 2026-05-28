@@ -4,6 +4,7 @@ import {
   applyCommentNotif,
   applyImageNotif,
   applyJoinRequestNotif,
+  applyPlayerJoinedNotif,
   applyJoinAcceptedNotif,
   applyJoinRejectedNotif,
   applySpotOpenedNotif,
@@ -38,6 +39,10 @@ export function useTableNotificationListeners({
       "join:request": gated("join:request", (payload) => {
         if (activeTableRef.current === payload.tableId) return;
         applyJoinRequestNotif({ setNotifications, setToasts, payload });
+      }),
+      "table:player-joined": gated("table:player-joined", (payload) => {
+        if (activeTableRef.current === payload.tableId) return;
+        applyPlayerJoinedNotif({ setNotifications, setToasts, payload });
       }),
       "join:accepted": gated("join:accepted", (payload) => {
         if (activeTableRef.current === payload.tableId) return;

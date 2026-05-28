@@ -8,6 +8,7 @@ import {
   applyCommentNotif,
   applyImageNotif,
   applyJoinRequestNotif,
+  applyPlayerJoinedNotif,
   applyJoinAcceptedNotif,
   applyJoinRejectedNotif,
   applySpotOpenedNotif,
@@ -273,6 +274,65 @@ describe("applyJoinRequestNotif", () => {
       },
     });
     expect(setN.state()[0].count).toBe(4);
+  });
+});
+
+describe("applyPlayerJoinedNotif", () => {
+  it("agrega notif aggregating con count del server + tableName y lastJoinerUsername", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyPlayerJoinedNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: {
+        notifId: "pj1",
+        tableId: "t1",
+        tableName: "Catán",
+        count: 1,
+        joinerUsername: "ana",
+        timestamp: "x",
+      },
+    });
+    expect(setN.state()).toHaveLength(1);
+    expect(setN.state()[0].type).toBe("player_joined");
+    expect(setN.state()[0].tableName).toBe("Catán");
+    expect(setN.state()[0].lastJoinerUsername).toBe("ana");
+    expect(setN.state()[0].count).toBe(1);
+    expect(setT.state()[0].type).toBe("player_joined");
+    expect(setT.state()[0].joinerUsername).toBe("ana");
+  });
+
+  it("acumula joins consecutivos en la misma notif", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyPlayerJoinedNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: {
+        notifId: "pj1",
+        tableId: "t1",
+        tableName: "Catán",
+        count: 1,
+        joinerUsername: "ana",
+        timestamp: "x",
+      },
+    });
+    applyPlayerJoinedNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: {
+        notifId: "pj1",
+        tableId: "t1",
+        tableName: "Catán",
+        count: 2,
+        joinerUsername: "bob",
+        timestamp: "y",
+      },
+    });
+    // Una sola notif persistente; el count usa el valor del server (2).
+    expect(setN.state()).toHaveLength(1);
+    expect(setN.state()[0].count).toBe(2);
+    expect(setN.state()[0].lastJoinerUsername).toBe("bob");
   });
 });
 

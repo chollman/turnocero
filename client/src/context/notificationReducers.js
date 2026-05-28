@@ -327,6 +327,36 @@ export function applyJoinRequestNotif({
   );
 }
 
+export function applyPlayerJoinedNotif({
+  setNotifications,
+  setToasts,
+  payload,
+}) {
+  setNotifications((prev) =>
+    upsertAggregating({
+      prev,
+      type: "player_joined",
+      resourceField: "tableId",
+      resourceId: payload.tableId,
+      notifId: payload.notifId,
+      count: payload.count,
+      timestamp: payload.timestamp,
+      extra: {
+        tableName: payload.tableName,
+        lastJoinerUsername: payload.joinerUsername,
+      },
+    }),
+  );
+  setToasts((prev) =>
+    pushToast(prev, {
+      type: "player_joined",
+      tableId: payload.tableId,
+      tableName: payload.tableName,
+      joinerUsername: payload.joinerUsername,
+    }),
+  );
+}
+
 export function applyJoinAcceptedNotif({
   setNotifications,
   setToasts,
