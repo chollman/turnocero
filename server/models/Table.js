@@ -80,7 +80,7 @@ const tableSchema = new mongoose.Schema(
     },
     privacy: {
       type: String,
-      enum: ["public", "private"],
+      enum: ["public", "friends", "private"],
       default: "public",
     },
     pendingRequests: [

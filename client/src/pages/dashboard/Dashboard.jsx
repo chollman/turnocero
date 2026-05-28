@@ -92,7 +92,8 @@ function buildPredicate(filterId, user) {
     case "open":
       return (t) => (t.players || []).length < (t.maxPlayers || 0);
     case "public":
-      return (t) => t.privacy !== "private";
+      // Solo mesas abiertas a cualquiera (excluye privadas y de amigos).
+      return (t) => (t.privacy || "public") === "public";
     case "all":
     default:
       return () => true;

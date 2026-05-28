@@ -10,6 +10,7 @@ const { emitNotificationReq } = require("../utils/emitNotification");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { isSameId } = require("../utils/idCompare");
+const { assertCanComment } = require("../utils/tablePrivacy");
 
 router.use(requireSection("mesas"));
 
@@ -61,6 +62,11 @@ router.post(
         "No se pueden agregar comentarios a una mesa cancelada",
       );
     }
+    // Los comentarios son públicos en la página de la mesa. Solo tienen
+    // sentido en mesas públicas; en privadas/amigos se bloquea POST pero
+    // GET sigue funcionando (preserva historial si la mesa cambió de
+    // privacidad después de comentarios existentes).
+    assertCanComment(table);
 
     const comment = await Comment.create({
       table: req.params.id,

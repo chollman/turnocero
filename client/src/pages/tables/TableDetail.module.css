@@ -279,6 +279,12 @@
   color: rgba(255, 255, 255, 0.78);
   padding: 3px 6px;
 }
+.bannerBadge_friends {
+  background: var(--amber-25);
+  border: 1px solid var(--amber);
+  color: #fff;
+  padding: 3px 6px;
+}
 .bannerBadge_cancelled {
   background: var(--red);
   color: #fff;
@@ -1200,6 +1206,16 @@
 .commentsEmpty {
   color: var(--text-muted);
   font-size: 0.875rem;
+  font-style: italic;
+}
+.commentsLocked {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: var(--overlay-soft);
+  color: var(--text-muted);
+  font-size: 0.85rem;
   font-style: italic;
 }
 .commentError {

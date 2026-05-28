@@ -21,6 +21,12 @@ const {
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { isSameId } = require("../utils/idCompare");
+const { getFriendIds } = require("../utils/friendIds");
+const {
+  canViewTable,
+  buildPrivacyFilter,
+  assertCanFollow,
+} = require("../utils/tablePrivacy");
 
 // NOTA: requireSection('mesas') aplica SOLO al router (las rutas de este
 // archivo). El helper `listTables` se exporta abajo y se reusa desde
@@ -107,16 +113,19 @@ const populateTable = (query) =>
 async function listTables({ user, query, eventoId = null }) {
   const { page, limit, skip } = parsePagination(query);
   const searchClause = await buildSearchClause(query.search);
-  const privacyFilter = user ? {} : { privacy: { $ne: "private" } };
+  const friendIds = user ? await getFriendIds(user._id) : [];
+  const privacyFilter = buildPrivacyFilter(user, friendIds);
   const scopeFilter =
     eventoId == null
       ? { $or: [{ eventoId: null }, { eventoId: { $exists: false } }] }
       : { eventoId };
+  // privacyFilter usa `$or` cuando hay user; combinar con otros `$or`
+  // (scope, search) requiere `$and` para que todos sigan vigentes.
+  const andClauses = [privacyFilter, scopeFilter];
+  if (searchClause) andClauses.push(searchClause);
   const baseFilter = {
     status: { $ne: "cancelled" },
-    ...privacyFilter,
-    ...scopeFilter,
-    ...searchClause,
+    $and: andClauses,
   };
   // Las "activas" del eyebrow del Dashboard son sólo las futuras — mesas
   // pasadas siguen visibles en la lista (grupo "Pasadas") pero no cuentan
@@ -235,7 +244,13 @@ router.get(
   asyncHandler(async (req, res) => {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const games = await Table.aggregate([
-      { $match: { status: { $ne: "cancelled" }, createdAt: { $gte: since } } },
+      {
+        $match: {
+          status: { $ne: "cancelled" },
+          createdAt: { $gte: since },
+          privacy: "public",
+        },
+      },
       { $group: { _id: "$boardGame", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 8 },
@@ -249,7 +264,11 @@ router.get(
 router.get(
   "/showcase",
   asyncHandler(async (req, res) => {
-    const filter = { status: { $ne: "cancelled" }, date: { $gte: new Date() } };
+    const filter = {
+      status: { $ne: "cancelled" },
+      date: { $gte: new Date() },
+      privacy: "public",
+    };
     const total = await Table.countDocuments(filter);
     let table = null;
     if (total > 0) {
@@ -285,7 +304,9 @@ router.post(
       .notEmpty()
       .withMessage("La cantidad de jugadores es obligatoria")
       .isInt({ min: 1, max: 20 })
-      .withMessage("Tiene que haber entre 1 y 20 lugares libres (sin contar al host)"),
+      .withMessage(
+        "Tiene que haber entre 1 y 20 lugares libres (sin contar al host)",
+      ),
     body("description")
       .optional()
       .trim()
@@ -308,7 +329,7 @@ router.post(
       .withMessage("Cada tag debe tener entre 1 y 30 caracteres"),
     body("privacy")
       .optional()
-      .isIn(["public", "private"])
+      .isIn(["public", "friends", "private"])
       .withMessage("Valor de privacidad inválido"),
   ],
   asyncHandler(async (req, res) => {
@@ -470,7 +491,9 @@ router.post(
   }),
 );
 
-// GET /api/tables/:id — public; private tables require auth
+// GET /api/tables/:id — public para mesas públicas; auth requerido para
+// privadas; las `friends` solo son accesibles a host, players o amigos del
+// host (404 al resto, para no revelar existencia — ver tablePrivacy.js).
 router.get(
   "/:id",
   optionalAuth,
@@ -479,7 +502,11 @@ router.get(
     checkValidation(req);
     const table = await populateTable(Table.findById(req.params.id));
     if (!table) throw httpError(404, "Table not found");
-    if (table.privacy === "private" && !req.user) {
+    const friendIds = req.user ? await getFriendIds(req.user._id) : [];
+    if (!canViewTable(table, req.user, friendIds)) {
+      if (table.privacy === "friends") {
+        throw httpError(404, "Table not found");
+      }
       throw httpError(403, "Esta mesa es privada");
     }
     res.json(table);
@@ -503,7 +530,9 @@ router.put(
       .notEmpty()
       .withMessage("La cantidad de jugadores es obligatoria")
       .isInt({ min: 1, max: 20 })
-      .withMessage("Tiene que haber entre 1 y 20 lugares libres (sin contar al host)"),
+      .withMessage(
+        "Tiene que haber entre 1 y 20 lugares libres (sin contar al host)",
+      ),
     body("description")
       .optional()
       .trim()
@@ -526,7 +555,7 @@ router.put(
       .withMessage("Cada tag debe tener entre 1 y 30 caracteres"),
     body("privacy")
       .optional()
-      .isIn(["public", "private"])
+      .isIn(["public", "friends", "private"])
       .withMessage("Valor de privacidad inválido"),
   ],
   asyncHandler(async (req, res) => {
@@ -645,6 +674,16 @@ router.post(
       ).catch(() => {});
 
       return res.json({ requested: true, table: populated });
+    }
+
+    if (table.privacy === "friends") {
+      const friendIds = await getFriendIds(req.user._id);
+      const hostId = String(table.host?._id || table.host);
+      const isFriend = friendIds.some((id) => String(id) === hostId);
+      if (!isFriend) {
+        // Mismo 404 que GET para no revelar existencia.
+        throw httpError(404, "Table not found");
+      }
     }
 
     table.players.push(req.user._id);
@@ -820,8 +859,16 @@ router.post(
     await table.save();
     const populated = await populateTable(Table.findById(table._id));
 
-    // Notify followers that a spot opened
-    if (table.players.length < table.maxPlayers && table.followers.length > 0) {
+    // Notify followers that a spot opened.
+    //
+    // Solo emitir si la mesa es pública: en privadas / friends los followers
+    // legacy quedan "inertes" (no reciben más eventos de stream). Ver feedback
+    // de privacy "Amigos" 2026-05.
+    if (
+      table.privacy === "public" &&
+      table.players.length < table.maxPlayers &&
+      table.followers.length > 0
+    ) {
       await Promise.all(
         table.followers.map((followerId) =>
           emitNotificationReq(
@@ -852,6 +899,10 @@ router.post(
     if (table.status === "cancelled") {
       throw httpError(400, "Table is cancelled");
     }
+    // Seguir solo tiene sentido en mesas públicas (privadas/amigos no se
+    // listan abiertamente y no quieren generar señal de cupo libre a
+    // extraños).
+    assertCanFollow(table);
 
     if (
       isSameId(table.host, req.user._id) ||
@@ -897,9 +948,17 @@ router.delete(
     await table.save();
 
     const hostId = req.user._id.toString();
+    // Players siempre se notifican (estaban "inscriptos" a la mesa). Followers
+    // solo si la mesa es pública — los legacy de privadas/friends quedan
+    // inertes (no reciben más eventos de stream). Ver feedback de privacy
+    // "Amigos" 2026-05.
+    const followerIds =
+      table.privacy === "public"
+        ? table.followers.map((f) => f.toString())
+        : [];
     const recipients = new Set([
       ...table.players.map((p) => p.toString()),
-      ...table.followers.map((f) => f.toString()),
+      ...followerIds,
     ]);
     recipients.delete(hostId);
     await Promise.all(

@@ -52,6 +52,25 @@ const LockIcon = ({ size = 11 }) => (
   </svg>
 );
 
+const UsersIcon = ({ size = 11 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
 const CheckIcon = ({ size = 12 }) => (
   <svg
     width={size}
@@ -191,6 +210,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
       (r) => (r._id || r).toString() === user._id.toString(),
     );
   const isPrivate = table.privacy === "private";
+  const isFriendsOnly = table.privacy === "friends";
   const filled = table.players.length + 1; // host counts
   const total = table.maxPlayers + 1;
   const availableSeats = table.maxPlayers - table.players.length;
@@ -429,8 +449,21 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
         </span>
       )}
       {isPrivate && (
-        <span className={`${styles.badge} ${styles.badge_lock}`}>
+        <span
+          className={`${styles.badge} ${styles.badge_lock}`}
+          title="Mesa privada"
+          aria-label="Mesa privada"
+        >
           <LockIcon size={10} />
+        </span>
+      )}
+      {isFriendsOnly && (
+        <span
+          className={`${styles.badge} ${styles.badge_friends}`}
+          title="Mesa solo para amigos"
+          aria-label="Mesa solo para amigos"
+        >
+          <UsersIcon size={10} />
         </span>
       )}
     </>

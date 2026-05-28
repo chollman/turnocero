@@ -133,4 +133,19 @@ describe("<TableRatings>", () => {
       expect(screen.getByDisplayValue("Bueno")).toBeInTheDocument();
     });
   });
+
+  it("muestra mensaje de privacy lock cuando lockedByPrivacy=true y canRate=false", async () => {
+    setupRatings({
+      ratings: [{ _id: "r1", rater: other, score: 5, comment: "Joya" }],
+      avg: 5,
+      count: 1,
+    });
+    renderRatings({ canRate: false, lockedByPrivacy: true });
+    await screen.findByText("Joya");
+    expect(
+      screen.getByText(/solo se pueden agregar en mesas públicas/i),
+    ).toBeInTheDocument();
+    // El form sigue oculto.
+    expect(screen.queryByText(/Tu puntuación/i)).not.toBeInTheDocument();
+  });
 });

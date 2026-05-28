@@ -21,6 +21,7 @@ export default function TableRatings({
   tableId,
   user,
   canRate,
+  lockedByPrivacy = false,
   onSummaryChange,
   className = "",
 }) {
@@ -94,6 +95,11 @@ export default function TableRatings({
 
   return (
     <div className={`${styles.ratingsCard} ${className}`}>
+      {lockedByPrivacy && !canRate && (
+        <p className={styles.commentsLocked}>
+          Las valoraciones solo se pueden agregar en mesas públicas.
+        </p>
+      )}
       {canRate && (
         <form className={styles.ratingForm} onSubmit={handleSubmit}>
           <span className={styles.ratingLabel}>Tu puntuación</span>

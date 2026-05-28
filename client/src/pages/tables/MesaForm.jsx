@@ -79,6 +79,25 @@ const LockIcon = ({ size = 20 }) => (
   </svg>
 );
 
+const UsersIcon = ({ size = 20 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
 const TrashIcon = ({ size = 12 }) => (
   <svg
     width={size}
@@ -737,6 +756,19 @@ export default function MesaForm({
                     <span className={styles.privacyCardTitle}>Pública</span>
                     <span className={styles.privacyCardSub}>
                       Cualquiera puede unirse mientras haya lugar.
+                    </span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.privacyCard} ${privacy === "friends" ? styles.privacyCardActive : ""}`}
+                  onClick={() => setPrivacy("friends")}
+                >
+                  <UsersIcon size={22} />
+                  <div className={styles.privacyCardBody}>
+                    <span className={styles.privacyCardTitle}>Amigos</span>
+                    <span className={styles.privacyCardSub}>
+                      Solo tus amigos la ven y se unen directo, sin aprobación.
                     </span>
                   </div>
                 </button>

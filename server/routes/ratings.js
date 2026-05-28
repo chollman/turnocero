@@ -9,6 +9,7 @@ const validateObjectId = require("../middleware/validateObjectId");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { isSameId } = require("../utils/idCompare");
+const { assertCanRate } = require("../utils/tablePrivacy");
 
 router.use(requireSection("mesas"));
 
@@ -62,6 +63,10 @@ router.post(
 
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
+
+    // Las valoraciones son "ranking público de partidas". En mesas privadas /
+    // de amigos no se exponen, así que tampoco se permite agregar nuevas.
+    assertCanRate(table);
 
     if (new Date(table.date) > new Date()) {
       throw httpError(

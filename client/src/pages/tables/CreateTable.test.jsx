@@ -68,9 +68,7 @@ function renderPage() {
 async function pickGame(name = "Catan", gameId = 1) {
   server.use(
     http.get("/api/bgg/search", () =>
-      HttpResponse.json([
-        { id: gameId, name, year: 1995, thumbnail: null },
-      ]),
+      HttpResponse.json([{ id: gameId, name, year: 1995, thumbnail: null }]),
     ),
     http.get("/api/bgg/game/:id", () =>
       HttpResponse.json({
@@ -108,7 +106,9 @@ function fillDate(value = "2027-12-31T20:00") {
 // "Pública" o "Privada" explícitamente). Por default los tests de submit
 // pickean "Pública".
 function pickPrivacy(option = "Pública") {
-  fireEvent.click(screen.getByRole("button", { name: new RegExp(option, "i") }));
+  fireEvent.click(
+    screen.getByRole("button", { name: new RegExp(option, "i") }),
+  );
 }
 
 describe("<CreateTable> (standalone — wizard)", () => {
@@ -260,6 +260,38 @@ describe("<CreateTable> (standalone — wizard)", () => {
     const privBtn = screen.getByRole("button", { name: /privada/i });
     fireEvent.click(privBtn);
     expect(privBtn.className).toMatch(/privacyCardActive/);
+  });
+
+  it("offers a third 'Amigos' privacy card and submits privacy='friends'", async () => {
+    let postedBody = null;
+    server.use(
+      http.post("/api/tables", async ({ request }) => {
+        postedBody = await request.json();
+        return HttpResponse.json({ _id: "newtable" }, { status: 201 });
+      }),
+    );
+    renderPage();
+    // Las tres tarjetas existen.
+    const pub = screen.getByRole("button", { name: /^pública/i });
+    const friends = screen.getByRole("button", { name: /^amigos/i });
+    const priv = screen.getByRole("button", { name: /^privada/i });
+    expect(pub).toBeInTheDocument();
+    expect(friends).toBeInTheDocument();
+    expect(priv).toBeInTheDocument();
+
+    // Activación es exclusiva.
+    fireEvent.click(friends);
+    expect(friends.className).toMatch(/privacyCardActive/);
+    expect(pub.className).not.toMatch(/privacyCardActive/);
+    expect(priv.className).not.toMatch(/privacyCardActive/);
+
+    // El payload submit lleva privacy='friends'.
+    await pickGame();
+    fillLocation();
+    fillDate();
+    fireEvent.click(screen.getByRole("button", { name: /publicar mesa/i }));
+    await waitFor(() => expect(postedBody).toBeTruthy());
+    expect(postedBody.privacy).toBe("friends");
   });
 });
 

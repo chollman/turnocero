@@ -3,7 +3,7 @@ const app = require("../../app");
 const Compartida = require("../../models/Compartida");
 const User = require("../../models/User");
 const { createUser, createAuthedUser, tokenFor } = require("../helpers/auth");
-const { createCompartida } = require("../helpers/factories");
+const { createCompartida, createTable } = require("../helpers/factories");
 const { loadSiteConfig, updateSiteConfig } = require("../../utils/siteConfig");
 const SiteConfig = require("../../models/SiteConfig");
 
@@ -102,6 +102,67 @@ describe("POST /api/compartidas", () => {
   it("requires authentication", async () => {
     const res = await request(app).post("/api/compartidas").send({ body: "x" });
     expect(res.status).toBe(401);
+  });
+
+  describe("linkedTable privacy gate", () => {
+    it("201 cuando linkedTable es pública y el usuario participó", async () => {
+      const { user, token } = await createAuthedUser();
+      const table = await createTable(user, { privacy: "public" });
+      const res = await request(app)
+        .post("/api/compartidas")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          body: "Qué buena mesa",
+          privacy: "public",
+          linkedTable: table._id.toString(),
+        });
+      expect(res.status).toBe(201);
+      const linkedId =
+        typeof res.body.linkedTable === "string"
+          ? res.body.linkedTable
+          : res.body.linkedTable?._id;
+      expect(linkedId).toBe(table._id.toString());
+    });
+
+    it("403 cuando linkedTable es privada", async () => {
+      const { user, token } = await createAuthedUser();
+      const table = await createTable(user, { privacy: "private" });
+      const res = await request(app)
+        .post("/api/compartidas")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          body: "x",
+          privacy: "public",
+          linkedTable: table._id.toString(),
+        });
+      expect(res.status).toBe(403);
+      expect(res.body.message).toMatch(/pública/i);
+    });
+
+    it("403 cuando linkedTable es 'friends'", async () => {
+      const { user, token } = await createAuthedUser();
+      const table = await createTable(user, { privacy: "friends" });
+      const res = await request(app)
+        .post("/api/compartidas")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          body: "x",
+          privacy: "public",
+          linkedTable: table._id.toString(),
+        });
+      expect(res.status).toBe(403);
+    });
+
+    it("PUT /:id también gatea linkedTable a mesa privada", async () => {
+      const { user, token } = await createAuthedUser();
+      const compartida = await createCompartida(user, { privacy: "public" });
+      const table = await createTable(user, { privacy: "private" });
+      const res = await request(app)
+        .put(`/api/compartidas/${compartida._id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ linkedTable: table._id.toString() });
+      expect(res.status).toBe(403);
+    });
   });
 });
 

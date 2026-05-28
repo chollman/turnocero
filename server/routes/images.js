@@ -65,12 +65,20 @@ router.post(
     await table.save();
     await table.populate("images.uploader", "username displayName avatar");
 
-    // Notify members and followers (except the uploader)
+    // Notify members and followers (except the uploader).
+    //
+    // Players + host siempre. Followers solo en mesas públicas — los legacy de
+    // privadas/friends quedan "inertes" (no reciben más eventos de stream).
+    // Ver feedback de privacy "Amigos" 2026-05.
     const uid = req.user._id.toString();
+    const followerIds =
+      table.privacy === "public"
+        ? table.followers.map((f) => f.toString())
+        : [];
     const recipients = new Set([
       table.host.toString(),
       ...table.players.map((p) => p.toString()),
-      ...table.followers.map((f) => f.toString()),
+      ...followerIds,
     ]);
     recipients.delete(uid);
     await Promise.all(

@@ -41,6 +41,7 @@ export default function TableComments({
   user,
   isHost,
   isAnon,
+  canPost = true,
   onRequireLogin,
   onCountChange,
   className = "",
@@ -221,7 +222,11 @@ export default function TableComments({
           })}
         </div>
       )}
-      {isAnon ? (
+      {!canPost ? (
+        <p className={styles.commentsLocked}>
+          Los comentarios solo se pueden agregar en mesas públicas.
+        </p>
+      ) : isAnon ? (
         <button
           className={styles.btnComment}
           onClick={() =>

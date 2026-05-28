@@ -118,6 +118,30 @@ describe("<TableCard> grid mode", () => {
     expect(cta).toBeDisabled();
   });
 
+  it("muestra badge 'Amigos' (people icon) cuando privacy='friends'", () => {
+    const { container } = renderCard(makeTable({ privacy: "friends" }));
+    expect(
+      container.querySelector('[aria-label="Mesa solo para amigos"]'),
+    ).toBeInTheDocument();
+  });
+
+  it("muestra badge lock cuando privacy='private'", () => {
+    const { container } = renderCard(makeTable({ privacy: "private" }));
+    expect(
+      container.querySelector('[aria-label="Mesa privada"]'),
+    ).toBeInTheDocument();
+  });
+
+  it("NO muestra badge de privacidad cuando privacy='public'", () => {
+    const { container } = renderCard(makeTable({ privacy: "public" }));
+    expect(
+      container.querySelector('[aria-label="Mesa privada"]'),
+    ).not.toBeInTheDocument();
+    expect(
+      container.querySelector('[aria-label="Mesa solo para amigos"]'),
+    ).not.toBeInTheDocument();
+  });
+
   it("host actions show Editar / Cancelar icon buttons + Administrar CTA", () => {
     renderCard(
       makeTable({
@@ -291,9 +315,7 @@ describe("<TableCard> grid mode", () => {
         <TableCard table={table} onUpdate={onUpdate} onCancel={vi.fn()} />
       </MemoryRouter>,
     );
-    fireEvent.click(
-      screen.getByRole("button", { name: /solicitud enviada/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /solicitud enviada/i }));
     await waitFor(() => expect(onUpdate).toHaveBeenCalled());
   });
 

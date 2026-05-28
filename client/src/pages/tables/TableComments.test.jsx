@@ -188,6 +188,31 @@ describe("<TableComments>", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("oculta el form y muestra mensaje 'solo en mesas públicas' cuando canPost=false", async () => {
+    setupComments([
+      {
+        _id: "c1",
+        content: "Historial viejo",
+        author: otherUser,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    renderTableComments({ canPost: false });
+    // Historial sigue visible.
+    await screen.findByText("Historial viejo");
+    // Mensaje de bloqueo.
+    expect(
+      screen.getByText(/solo se pueden agregar en mesas públicas/i),
+    ).toBeInTheDocument();
+    // Sin form ni botón.
+    expect(
+      screen.queryByPlaceholderText(/Escribí un comentario/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /comentar/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("muestra error en el POST y mantiene el input para reintentar", async () => {
     server.use(
       http.post("/api/tables/:id/comments", () =>

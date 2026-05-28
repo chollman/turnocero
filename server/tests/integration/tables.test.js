@@ -779,3 +779,346 @@ describe("Past mesa freeze (date < now)", () => {
     expect(res.status).toBe(201);
   });
 });
+
+describe("Privacy 'friends'", () => {
+  async function setupFriendship() {
+    const host = await createUser();
+    const friend = await createUser();
+    host.friends = [friend._id];
+    friend.friends = [host._id];
+    await host.save();
+    await friend.save();
+    return { host, friend };
+  }
+
+  describe("GET /api/tables (listado)", () => {
+    it("oculta mesas 'friends' a no-amigos del host", async () => {
+      const { host } = await setupFriendship();
+      await createTable(host, {
+        boardGame: "Friends-only",
+        privacy: "friends",
+      });
+      await createTable(host, { boardGame: "Public", privacy: "public" });
+      const { token: strangerToken } = await createAuthedUser();
+      const res = await request(app)
+        .get("/api/tables")
+        .set("Authorization", `Bearer ${strangerToken}`);
+      const games = res.body.tables.map((t) => t.boardGame);
+      expect(games).toContain("Public");
+      expect(games).not.toContain("Friends-only");
+    });
+
+    it("muestra mesas 'friends' a amigos del host", async () => {
+      const { host, friend } = await setupFriendship();
+      await createTable(host, {
+        boardGame: "Friends-only",
+        privacy: "friends",
+      });
+      const res = await request(app)
+        .get("/api/tables")
+        .set("Authorization", `Bearer ${tokenFor(friend)}`);
+      const games = res.body.tables.map((t) => t.boardGame);
+      expect(games).toContain("Friends-only");
+    });
+
+    it("el host siempre ve su propia mesa 'friends'", async () => {
+      const host = await createUser();
+      await createTable(host, {
+        boardGame: "Mine",
+        privacy: "friends",
+      });
+      const res = await request(app)
+        .get("/api/tables")
+        .set("Authorization", `Bearer ${tokenFor(host)}`);
+      expect(res.body.tables.map((t) => t.boardGame)).toContain("Mine");
+    });
+
+    it("oculta 'friends' a anónimos", async () => {
+      const host = await createUser();
+      await createTable(host, { privacy: "friends" });
+      const res = await request(app).get("/api/tables");
+      expect(res.body.tables).toHaveLength(0);
+    });
+  });
+
+  describe("GET /api/tables/:id", () => {
+    it("404 a no-amigos", async () => {
+      const { host } = await setupFriendship();
+      const table = await createTable(host, { privacy: "friends" });
+      const { token } = await createAuthedUser();
+      const res = await request(app)
+        .get(`/api/tables/${table._id}`)
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(404);
+    });
+
+    it("404 a anónimos", async () => {
+      const host = await createUser();
+      const table = await createTable(host, { privacy: "friends" });
+      const res = await request(app).get(`/api/tables/${table._id}`);
+      expect(res.status).toBe(404);
+    });
+
+    it("200 a amigos del host", async () => {
+      const { host, friend } = await setupFriendship();
+      const table = await createTable(host, { privacy: "friends" });
+      const res = await request(app)
+        .get(`/api/tables/${table._id}`)
+        .set("Authorization", `Bearer ${tokenFor(friend)}`);
+      expect(res.status).toBe(200);
+    });
+
+    it("200 a players aunque no sean amigos", async () => {
+      const host = await createUser();
+      const { user, token } = await createAuthedUser();
+      const table = await createTable(host, {
+        privacy: "friends",
+        players: [user._id],
+      });
+      const res = await request(app)
+        .get(`/api/tables/${table._id}`)
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+    });
+  });
+
+  describe("POST /api/tables/:id/join", () => {
+    it("join directo (no pendingRequests) para un amigo", async () => {
+      const { host, friend } = await setupFriendship();
+      const table = await createTable(host, { privacy: "friends" });
+      const res = await request(app)
+        .post(`/api/tables/${table._id}/join`)
+        .set("Authorization", `Bearer ${tokenFor(friend)}`);
+      expect(res.status).toBe(200);
+      expect(res.body.requested).toBe(false);
+      const refreshed = await Table.findById(table._id);
+      expect(refreshed.players.map((p) => p.toString())).toContain(
+        friend._id.toString(),
+      );
+      expect(refreshed.pendingRequests).toHaveLength(0);
+    });
+
+    it("404 a un no-amigo que intenta joinear", async () => {
+      const { host } = await setupFriendship();
+      const table = await createTable(host, { privacy: "friends" });
+      const { token } = await createAuthedUser();
+      const res = await request(app)
+        .post(`/api/tables/${table._id}/join`)
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe("POST /api/tables/:id/follow", () => {
+    it("400 al intentar seguir una mesa 'friends'", async () => {
+      const { host, friend } = await setupFriendship();
+      const table = await createTable(host, { privacy: "friends" });
+      const res = await request(app)
+        .post(`/api/tables/${table._id}/follow`)
+        .set("Authorization", `Bearer ${tokenFor(friend)}`);
+      expect(res.status).toBe(400);
+    });
+
+    it("400 al intentar seguir una mesa privada", async () => {
+      const host = await createUser();
+      const table = await createTable(host, { privacy: "private" });
+      const { token } = await createAuthedUser();
+      const res = await request(app)
+        .post(`/api/tables/${table._id}/follow`)
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(400);
+    });
+
+    it("200 al seguir una mesa pública", async () => {
+      const host = await createUser();
+      const table = await createTable(host, { privacy: "public" });
+      const { token } = await createAuthedUser();
+      const res = await request(app)
+        .post(`/api/tables/${table._id}/follow`)
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(res.body.isFollowing).toBe(true);
+    });
+  });
+
+  describe("GET /api/tables/showcase + /top-games", () => {
+    it("showcase solo cuenta y muestra mesas públicas", async () => {
+      const host = await createUser();
+      await createTable(host, { boardGame: "Pub", privacy: "public" });
+      await createTable(host, { boardGame: "Priv", privacy: "private" });
+      await createTable(host, { boardGame: "Friends", privacy: "friends" });
+      const res = await request(app).get("/api/tables/showcase");
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(1);
+      if (res.body.table) {
+        expect(res.body.table.boardGame).toBe("Pub");
+      }
+    });
+
+    it("top-games excluye juegos solo presentes en mesas no públicas", async () => {
+      const host = await createUser();
+      await createTable(host, { boardGame: "PublicGame", privacy: "public" });
+      await createTable(host, { boardGame: "PrivateGame", privacy: "private" });
+      await createTable(host, { boardGame: "FriendsGame", privacy: "friends" });
+      const res = await request(app).get("/api/tables/top-games");
+      expect(res.status).toBe(200);
+      const games = res.body.map((g) => g.game);
+      expect(games).toContain("PublicGame");
+      expect(games).not.toContain("PrivateGame");
+      expect(games).not.toContain("FriendsGame");
+    });
+  });
+
+  describe("POST /api/tables (validator)", () => {
+    it("acepta privacy='friends'", async () => {
+      const { token } = await createAuthedUser();
+      const res = await request(app)
+        .post("/api/tables")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          boardGame: "Catán",
+          date: new Date(Date.now() + 7 * 86400000).toISOString(),
+          maxPlayers: 4,
+          privacy: "friends",
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.privacy).toBe("friends");
+    });
+
+    it("400 a privacy='invalid'", async () => {
+      const { token } = await createAuthedUser();
+      const res = await request(app)
+        .post("/api/tables")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          boardGame: "Catán",
+          date: new Date(Date.now() + 7 * 86400000).toISOString(),
+          maxPlayers: 4,
+          privacy: "invalid",
+        });
+      expect(res.status).toBe(400);
+    });
+  });
+});
+
+describe("Notificaciones — gating por privacy", () => {
+  const Notification = require("../../models/Notification");
+
+  describe("POST /:id/leave → spot_opened", () => {
+    it("mesa pública: notifica a cada follower", async () => {
+      const host = await createUser();
+      const follower1 = await createUser();
+      const follower2 = await createUser();
+      const { user: player, token } = await createAuthedUser();
+      const table = await createTable(host, {
+        privacy: "public",
+        maxPlayers: 4,
+        players: [player._id],
+        followers: [follower1._id, follower2._id],
+      });
+      const res = await request(app)
+        .post(`/api/tables/${table._id}/leave`)
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const notifs = await Notification.find({ type: "spot_opened" });
+      const recipientIds = notifs.map((n) => n.recipient.toString()).sort();
+      expect(recipientIds).toEqual(
+        [follower1._id.toString(), follower2._id.toString()].sort(),
+      );
+    });
+
+    it("mesa friends: NO notifica spot_opened a followers legacy", async () => {
+      const host = await createUser();
+      const follower = await createUser();
+      const { user: player, token } = await createAuthedUser();
+      const table = await createTable(host, {
+        privacy: "friends",
+        maxPlayers: 4,
+        players: [player._id],
+        followers: [follower._id],
+      });
+      const res = await request(app)
+        .post(`/api/tables/${table._id}/leave`)
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const notifs = await Notification.find({ type: "spot_opened" });
+      expect(notifs).toHaveLength(0);
+    });
+
+    it("mesa privada: NO notifica spot_opened a followers legacy", async () => {
+      const host = await createUser();
+      const follower = await createUser();
+      const { user: player, token } = await createAuthedUser();
+      const table = await createTable(host, {
+        privacy: "private",
+        maxPlayers: 4,
+        players: [player._id],
+        followers: [follower._id],
+      });
+      const res = await request(app)
+        .post(`/api/tables/${table._id}/leave`)
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const notifs = await Notification.find({ type: "spot_opened" });
+      expect(notifs).toHaveLength(0);
+    });
+  });
+
+  describe("DELETE /:id → table_cancelled", () => {
+    it("mesa pública: notifica a players + followers", async () => {
+      const player = await createUser();
+      const follower = await createUser();
+      const { user: host, token } = await createAuthedUser();
+      const table = await createTable(host, {
+        privacy: "public",
+        players: [player._id],
+        followers: [follower._id],
+      });
+      const res = await request(app)
+        .delete(`/api/tables/${table._id}`)
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const notifs = await Notification.find({ type: "table_cancelled" });
+      const recipientIds = notifs.map((n) => n.recipient.toString()).sort();
+      expect(recipientIds).toEqual(
+        [player._id.toString(), follower._id.toString()].sort(),
+      );
+    });
+
+    it("mesa friends: notifica solo a players (followers legacy quedan inertes)", async () => {
+      const player = await createUser();
+      const follower = await createUser();
+      const { user: host, token } = await createAuthedUser();
+      const table = await createTable(host, {
+        privacy: "friends",
+        players: [player._id],
+        followers: [follower._id],
+      });
+      const res = await request(app)
+        .delete(`/api/tables/${table._id}`)
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const notifs = await Notification.find({ type: "table_cancelled" });
+      const recipientIds = notifs.map((n) => n.recipient.toString());
+      expect(recipientIds).toEqual([player._id.toString()]);
+    });
+
+    it("mesa privada: notifica solo a players (followers legacy quedan inertes)", async () => {
+      const player = await createUser();
+      const follower = await createUser();
+      const { user: host, token } = await createAuthedUser();
+      const table = await createTable(host, {
+        privacy: "private",
+        players: [player._id],
+        followers: [follower._id],
+      });
+      const res = await request(app)
+        .delete(`/api/tables/${table._id}`)
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const notifs = await Notification.find({ type: "table_cancelled" });
+      const recipientIds = notifs.map((n) => n.recipient.toString());
+      expect(recipientIds).toEqual([player._id.toString()]);
+    });
+  });
+});

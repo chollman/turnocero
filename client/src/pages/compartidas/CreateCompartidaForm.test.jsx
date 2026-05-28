@@ -307,6 +307,55 @@ describe("<CreateCompartidaForm>", () => {
     expect(select.value).toBe("t1");
   });
 
+  it("dropdown de mesas filtra fuera privadas y 'friends' (solo públicas vinculables)", async () => {
+    useAuth.mockReturnValue({
+      user: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
+    });
+    server.use(
+      http.get("/api/tables/mine", () =>
+        HttpResponse.json({
+          tables: [
+            {
+              _id: "t-pub",
+              boardGame: "Pública",
+              status: "open",
+              privacy: "public",
+            },
+            {
+              _id: "t-priv",
+              boardGame: "Privada",
+              status: "open",
+              privacy: "private",
+            },
+            {
+              _id: "t-friends",
+              boardGame: "Solo Amigos",
+              status: "open",
+              privacy: "friends",
+            },
+          ],
+        }),
+      ),
+      http.get("/api/eventos/mine", () => HttpResponse.json({ eventos: [] })),
+    );
+    render(
+      <MemoryRouter>
+        <CreateCompartidaForm onCreated={vi.fn()} onCancel={vi.fn()} />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("option", { name: "Pública" }),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole("option", { name: "Privada" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: "Solo Amigos" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("prefilledTableId sets the initial linked table selection", async () => {
     useAuth.mockReturnValue({
       user: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },

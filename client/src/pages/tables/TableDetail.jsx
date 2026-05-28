@@ -72,6 +72,25 @@ const LockIcon = ({ size = 11 }) => (
   </svg>
 );
 
+const UsersIcon = ({ size = 11 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
 const ChairIcon = ({ size = 14 }) => (
   <svg
     width={size}
@@ -398,6 +417,8 @@ export default function TableDetail() {
   const isPlayer = userState === "joined";
   const isCancelled = table.status === "cancelled";
   const isPrivate = table.privacy === "private";
+  const isFriendsOnly = table.privacy === "friends";
+  const isPublic = (table.privacy || "public") === "public";
   const isFull = table.players.length >= table.maxPlayers;
   const filled = table.players.length + 1;
   const total = table.maxPlayers + 1;
@@ -542,6 +563,13 @@ export default function TableDetail() {
                         <LockIcon size={10} /> Privada
                       </span>
                     )}
+                    {isFriendsOnly && (
+                      <span
+                        className={`${styles.bannerBadge} ${styles.bannerBadge_friends}`}
+                      >
+                        <UsersIcon size={10} /> Amigos
+                      </span>
+                    )}
                   </div>
                   {dParts && (
                     <div className={styles.bannerDate}>
@@ -594,10 +622,18 @@ export default function TableDetail() {
                 <div className={styles.metaCell}>
                   <span className={styles.metaLabel}>Privacidad</span>
                   <span className={styles.metaValue}>
-                    {isPrivate ? "Privada" : "Pública"}
+                    {isPrivate
+                      ? "Privada"
+                      : isFriendsOnly
+                        ? "Amigos"
+                        : "Pública"}
                   </span>
                   <span className={styles.metaValueAccent}>
-                    {isPrivate ? "Requiere aprobación" : "Abierta a todos"}
+                    {isPrivate
+                      ? "Requiere aprobación"
+                      : isFriendsOnly
+                        ? "Solo amigos del host"
+                        : "Abierta a todos"}
                   </span>
                 </div>
               </div>
@@ -890,6 +926,7 @@ export default function TableDetail() {
                   user={user}
                   isHost={isHost}
                   isAnon={!user}
+                  canPost={isPublic}
                   onRequireLogin={setLoginPrompt}
                   onCountChange={setCommentsCount}
                 />
@@ -920,7 +957,14 @@ export default function TableDetail() {
                   tableId={id}
                   user={user}
                   canRate={
-                    new Date(table.date) < new Date() && isParticipant(table)
+                    isPublic &&
+                    new Date(table.date) < new Date() &&
+                    isParticipant(table)
+                  }
+                  lockedByPrivacy={
+                    !isPublic &&
+                    new Date(table.date) < new Date() &&
+                    isParticipant(table)
                   }
                   onSummaryChange={setRatingsSummary}
                 />
@@ -971,8 +1015,11 @@ export default function TableDetail() {
                   ) : null
                 }
               />
-              {/* Secondary actions: Follow + Share compartida */}
-              {!isCancelled && (
+              {/* Secondary actions: Follow + Share compartida.
+                  Solo en mesas públicas — privadas/amigos son "ocultas" y
+                  no tiene sentido exponerlas vía notificación de cupo o
+                  Compartidas públicas. Ver feedback de privacy 2026-05. */}
+              {!isCancelled && isPublic && (
                 <div className={styles.secondaryActions}>
                   <button
                     type="button"

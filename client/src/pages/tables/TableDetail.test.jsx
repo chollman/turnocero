@@ -550,4 +550,60 @@ describe("<TableDetail>", () => {
     );
     expect(screen.getByTestId("login-prompt")).toBeInTheDocument();
   });
+
+  describe("privacy gating de share/follow/comentarios/valoraciones", () => {
+    it("mesa pública: muestra 'Seguir mesa' y 'Compartir'", async () => {
+      setupTable(
+        makeTable({
+          privacy: "public",
+          players: [{ _id: "me", username: "me" }],
+        }),
+      );
+      renderTableDetail({ user: { _id: "me", username: "me" } });
+      await screen.findByRole("heading", { name: "Catán" });
+      expect(
+        screen.getByRole("button", { name: /seguir mesa/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /compartir/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("mesa 'Amigos': oculta 'Seguir mesa' y 'Compartir', muestra mensaje de comments locked", async () => {
+      setupTable(
+        makeTable({
+          privacy: "friends",
+          players: [{ _id: "me", username: "me" }],
+        }),
+      );
+      renderTableDetail({ user: { _id: "me", username: "me" } });
+      await screen.findByRole("heading", { name: "Catán" });
+      expect(
+        screen.queryByRole("button", { name: /seguir mesa/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /compartir/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByText(/solo se pueden agregar en mesas públicas/i),
+      ).toBeInTheDocument();
+    });
+
+    it("mesa privada: oculta 'Seguir mesa' y 'Compartir'", async () => {
+      setupTable(
+        makeTable({
+          privacy: "private",
+          players: [{ _id: "me", username: "me" }],
+        }),
+      );
+      renderTableDetail({ user: { _id: "me", username: "me" } });
+      await screen.findByRole("heading", { name: "Catán" });
+      expect(
+        screen.queryByRole("button", { name: /seguir mesa/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /compartir/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
 });

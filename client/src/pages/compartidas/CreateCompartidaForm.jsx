@@ -34,8 +34,11 @@ export default function CreateCompartidaForm({
     axios
       .get(API.tables.MINE)
       .then(({ data }) => {
+        // Solo mesas activas y públicas — el server rechaza vincular
+        // privadas/amigos (ver assertLinkable en utils/tablePrivacy.js).
         const active = (data.tables || []).filter(
-          (t) => t.status !== "cancelled",
+          (t) =>
+            t.status !== "cancelled" && (t.privacy || "public") === "public",
         );
         setMyTables(active);
       })

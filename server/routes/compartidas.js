@@ -14,6 +14,7 @@ const { emitNotificationReq } = require("../utils/emitNotification");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { isSameId } = require("../utils/idCompare");
+const { assertLinkable } = require("../utils/tablePrivacy");
 
 router.use(requireSection("compartidas"));
 
@@ -184,7 +185,9 @@ router.post(
       throw httpError(400, "La compartida necesita al menos un título o texto");
     }
 
-    // Validate linkedTable belongs to the user (host or player)
+    // Validate linkedTable belongs to the user (host or player) y que sea
+    // pública — privadas/amigos no se exponen vía Compartidas (la UI ya esconde
+    // el botón "Compartir", pero acá blindamos contra POST directo a la API).
     if (linkedTable) {
       const table = await Table.findById(linkedTable);
       if (!table) throw httpError(404, "Mesa no encontrada");
@@ -197,6 +200,7 @@ router.post(
           "Solo podés vincular mesas en las que participaste",
         );
       }
+      assertLinkable(table);
     }
 
     // Validate linkedEvento: el user fue parte (author o inscripción confirmed/pending).
@@ -250,7 +254,25 @@ router.put(
     if (title !== undefined) compartida.title = title.trim();
     if (body !== undefined) compartida.body = body.trim();
     if (privacy !== undefined) compartida.privacy = privacy;
-    if (linkedTable !== undefined) compartida.linkedTable = linkedTable || null;
+    if (linkedTable !== undefined) {
+      // Mismo check que POST: si se está seteando una mesa, debe ser pública
+      // y el autor debe haber participado.
+      if (linkedTable) {
+        const table = await Table.findById(linkedTable);
+        if (!table) throw httpError(404, "Mesa no encontrada");
+        const isMember =
+          isSameId(table.host, req.user._id) ||
+          table.players.some((p) => isSameId(p, req.user._id));
+        if (!isMember) {
+          throw httpError(
+            403,
+            "Solo podés vincular mesas en las que participaste",
+          );
+        }
+        assertLinkable(table);
+      }
+      compartida.linkedTable = linkedTable || null;
+    }
     if (linkedEvento !== undefined) {
       // Validar participación si se está seteando (no si se está limpiando).
       if (linkedEvento) {
