@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
 import Avatar from "../../components/shared/Avatar";
@@ -150,11 +151,18 @@ export default function TableChat({
               <div className={styles.chatBubble}>
                 <div className={styles.chatMeta}>
                   <span className={styles.chatAuthor}>
-                    {senderInfo.isDeleted
-                      ? DELETED_USER_LABEL
-                      : isOwn
-                        ? "Vos"
-                        : msg.sender.username}
+                    {senderInfo.isDeleted ? (
+                      DELETED_USER_LABEL
+                    ) : isOwn ? (
+                      "Vos"
+                    ) : (
+                      <Link
+                        to={`/usuarios/${msg.sender._id}`}
+                        className={styles.userLink}
+                      >
+                        {msg.sender.username}
+                      </Link>
+                    )}
                   </span>
                   <span className={styles.chatTime}>
                     {formatTime(msg.createdAt)}

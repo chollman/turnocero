@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
@@ -153,9 +154,16 @@ export default function TableRatings({
                 <div className={styles.ratingBody}>
                   <div className={styles.ratingMeta}>
                     <span className={styles.ratingUsername}>
-                      {raterInfo.isDeleted
-                        ? DELETED_USER_LABEL
-                        : r.rater.username}
+                      {raterInfo.isDeleted ? (
+                        DELETED_USER_LABEL
+                      ) : (
+                        <Link
+                          to={`/usuarios/${r.rater._id}`}
+                          className={styles.userLink}
+                        >
+                          {r.rater.username}
+                        </Link>
+                      )}
                     </span>
                     <span className={styles.ratingStars}>
                       {"★".repeat(r.score)}

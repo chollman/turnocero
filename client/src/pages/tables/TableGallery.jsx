@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { API } from "../../api/endpoints";
@@ -137,7 +138,16 @@ export default function TableGallery({
                 )}
                 {img.uploader?.username && (
                   <span className={styles.uploaderLabel}>
-                    {img.uploader.username}
+                    {img.uploader._id ? (
+                      <Link
+                        to={`/usuarios/${img.uploader._id}`}
+                        className={styles.userLink}
+                      >
+                        {img.uploader.username}
+                      </Link>
+                    ) : (
+                      img.uploader.username
+                    )}
                   </span>
                 )}
               </div>

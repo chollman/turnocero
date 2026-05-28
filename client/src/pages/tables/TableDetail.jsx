@@ -518,7 +518,16 @@ export default function TableDetail() {
               <div className={styles.bannerOverlay} />
               <div className={styles.bannerEyebrow}>
                 Mesa de{" "}
-                {hostInfo.isDeleted ? DELETED_USER_LABEL : table.host?.username}
+                {hostInfo.isDeleted ? (
+                  DELETED_USER_LABEL
+                ) : (
+                  <Link
+                    to={`/usuarios/${table.host._id}`}
+                    className={styles.userLink}
+                  >
+                    {table.host?.username}
+                  </Link>
+                )}
               </div>
               <div className={styles.bannerContent}>
                 <div className={styles.bannerLeft}>
@@ -717,9 +726,16 @@ export default function TableDetail() {
                       <Avatar user={table.host} size="md" />
                       <div className={styles.playerInfo}>
                         <span className={styles.playerName}>
-                          {hostInfo.isDeleted
-                            ? DELETED_USER_LABEL
-                            : table.host.username}
+                          {hostInfo.isDeleted ? (
+                            DELETED_USER_LABEL
+                          ) : (
+                            <Link
+                              to={`/usuarios/${table.host._id}`}
+                              className={styles.userLink}
+                            >
+                              {table.host.username}
+                            </Link>
+                          )}
                           {!hostInfo.isDeleted && (
                             <PlayerBgWatchLink user={table.host} />
                           )}
@@ -748,9 +764,16 @@ export default function TableDetail() {
                           <Avatar user={p} size="md" />
                           <div className={styles.playerInfo}>
                             <span className={styles.playerName}>
-                              {pInfo.isDeleted
-                                ? DELETED_USER_LABEL
-                                : p.username}
+                              {pInfo.isDeleted ? (
+                                DELETED_USER_LABEL
+                              ) : (
+                                <Link
+                                  to={`/usuarios/${p._id || p}`}
+                                  className={styles.userLink}
+                                >
+                                  {p.username}
+                                </Link>
+                              )}
                               {!pInfo.isDeleted && (
                                 <PlayerBgWatchLink user={p} />
                               )}
@@ -808,7 +831,12 @@ export default function TableDetail() {
                         <Avatar user={req} size="md" />
                         <div className={styles.pendingBody}>
                           <span className={styles.playerName}>
-                            {req.username}
+                            <Link
+                              to={`/usuarios/${req._id}`}
+                              className={styles.userLink}
+                            >
+                              {req.username}
+                            </Link>
                           </span>
                           <span className={styles.playerHandle}>
                             quiere unirse

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
@@ -155,9 +156,16 @@ export default function TableComments({
                 <div className={styles.commentBody}>
                   <div className={styles.commentMeta}>
                     <span className={styles.commentAuthor}>
-                      {authorInfo.isDeleted
-                        ? DELETED_USER_LABEL
-                        : comment.author.username}
+                      {authorInfo.isDeleted ? (
+                        DELETED_USER_LABEL
+                      ) : (
+                        <Link
+                          to={`/usuarios/${comment.author._id}`}
+                          className={styles.userLink}
+                        >
+                          {comment.author.username}
+                        </Link>
+                      )}
                     </span>
                     <span className={styles.commentTime}>
                       {formatDate(comment.createdAt)}
