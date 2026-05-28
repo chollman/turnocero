@@ -1,0 +1,312 @@
+/* ============================================================
+   COLABORA · Página completa
+   Mismo sistema de page-padding y editorial hero que Mesas
+   (Dashboard.module.css) y Eventos para mantener la familia
+   visual. Hero alineado a izquierda, contenido a 1200px máximo,
+   gutters asimétricos en desktop (page-padding-left / page-padding)
+   y simétricos en mobile (page-padding-mobile).
+   ============================================================ */
+
+.page {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: calc(100vh - var(--navbar-h, 64px));
+  padding-inline: var(--page-padding-left) var(--page-padding);
+  padding-block: var(--navbar-h, 0) 5rem;
+}
+
+@media (min-width: 960px) {
+  .page {
+    padding-top: 1.5rem;
+  }
+}
+
+@media (max-width: 959px) {
+  .page {
+    padding-inline: var(--page-padding-mobile);
+  }
+}
+
+/* ============================================================
+   Editorial hero — calcado de Dashboard / Eventos
+   ============================================================ */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+  min-width: 0;
+}
+
+.heroLeft {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.heroEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+  margin: 0;
+}
+.heroEyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1px;
+  background: var(--amber-light);
+}
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  color: var(--text-primary);
+  margin: 8px 0;
+  text-wrap: balance;
+}
+.heroTitle em {
+  font-family: var(--font-script);
+  font-style: normal;
+  font-weight: 600;
+  color: var(--amber-light);
+  font-size: 1.15em;
+  letter-spacing: -0.02em;
+  padding: 0 4px;
+}
+
+.heroSub {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  max-width: 620px;
+  margin: 0;
+  line-height: 1.55;
+}
+
+.heroSub strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ============================================================
+   Grid de tarjetas — ocupa todo el ancho disponible
+   ============================================================ */
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color var(--transition);
+  min-width: 0;
+}
+
+.card:hover {
+  border-color: var(--border-amber);
+}
+
+.cardIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--amber-15);
+  color: var(--amber);
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.cardDesc {
+  color: var(--text-secondary);
+  font-size: 14.5px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── Cafecito CTA ── */
+.cafecitoBtn {
+  margin-top: auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--amber);
+  color: var(--on-amber);
+  text-decoration: none;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
+}
+
+.cafecitoBtn:hover {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+
+.cardFootnote {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── Form ── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
+.textarea {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 120px;
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.textarea:focus {
+  border-color: var(--border-amber);
+}
+
+.input {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.input:focus {
+  border-color: var(--border-amber);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.counter {
+  font-size: 12px;
+  color: var(--text-muted);
+  align-self: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+
+.counterWarn {
+  color: var(--orange);
+}
+
+.submitBtn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--amber);
+  color: var(--on-amber);
+  border: none;
+  cursor: pointer;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: var(--amber-light);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+
+.submitBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ============================================================
+   Footer line — discreto, centrado
+   ============================================================ */
+
+.footer {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 36px 0 0;
+  letter-spacing: 0.01em;
+}

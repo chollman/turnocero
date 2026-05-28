@@ -37,8 +37,9 @@ const DURATION = {
   evento_cancelled: 6000,
   evento_updated: 5500,
   evento_reminder: 7000,
-  // Toasts disparados manualmente (errores transitorios del client).
+  // Toasts disparados manualmente desde el client (sin backend event).
   error: 5000,
+  success: 5000,
 };
 
 function ToastItem({ toast, onDismiss }) {
@@ -106,8 +107,8 @@ function ToastItem({ toast, onDismiss }) {
       navigate(`/noticias/${toast.noticiaId}`);
     } else if (toast.type === "bgwatch_connected") {
       navigate(`/bg-watch/${encodeURIComponent(toast.bggUsername)}`);
-    } else if (toast.type === "error") {
-      // Toasts de error: el click solo los descarta, no navega a ningún lado.
+    } else if (toast.type === "error" || toast.type === "success") {
+      // Toasts manuales del client: el click solo los descarta, no navega.
     } else {
       if (toast.tableId) markRead(toast.tableId);
       navigate(`/mesas/${toast.tableId}`);
@@ -196,7 +197,10 @@ function ToastItem({ toast, onDismiss }) {
                                                                   : toast.type ===
                                                                       "error"
                                                                     ? "⚠️"
-                                                                    : "🎲";
+                                                                    : toast.type ===
+                                                                        "success"
+                                                                      ? "✅"
+                                                                      : "🎲";
 
   const title =
     toast.type === "join_accepted"
@@ -272,7 +276,11 @@ function ToastItem({ toast, onDismiss }) {
                                                                 "error"
                                                               ? toast.title ||
                                                                 "Algo salió mal"
-                                                              : toast.tableName;
+                                                              : toast.type ===
+                                                                  "success"
+                                                                ? toast.title ||
+                                                                  "¡Listo!"
+                                                                : toast.tableName;
 
   const body =
     toast.type === "chat"
@@ -396,7 +404,11 @@ function ToastItem({ toast, onDismiss }) {
                                                                       "error"
                                                                     ? toast.message ||
                                                                       ""
-                                                                    : `Ya sos parte de la mesa de ${toast.tableName}`;
+                                                                    : toast.type ===
+                                                                        "success"
+                                                                      ? toast.message ||
+                                                                        ""
+                                                                      : `Ya sos parte de la mesa de ${toast.tableName}`;
 
   return (
     <div

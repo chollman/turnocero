@@ -1,12 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { http, HttpResponse } from "msw";
+import { server } from "../../test/server";
 
 const useAuthMock = vi.fn();
 const useSiteConfigMock = vi.fn();
+const useNotificationsMock = vi.fn();
 vi.mock("../../context/AuthContext", () => ({ useAuth: () => useAuthMock() }));
 vi.mock("../../context/SiteConfigContext", () => ({
   useSiteConfig: () => useSiteConfigMock(),
+}));
+vi.mock("../../context/NotificationContext", () => ({
+  useNotifications: () => useNotificationsMock(),
 }));
 
 import PanelAdmin from "./PanelAdmin";
@@ -38,11 +44,13 @@ beforeEach(() => {
       dms: { enabled: true },
       bgwatch: { enabled: true },
       utilidades: { enabled: true },
+      colabora: { enabled: true },
     },
     loaded: true,
     updatedAt: "2026-05-01T10:00:00Z",
     updateConfig: vi.fn().mockResolvedValue({}),
   });
+  useNotificationsMock.mockReturnValue({ addToast: vi.fn() });
 });
 
 describe("<PanelAdmin>", () => {
@@ -94,7 +102,7 @@ describe("<PanelAdmin>", () => {
     expect(screen.getByText("Integraciones")).toBeInTheDocument();
   });
 
-  it("renders all 11 section toggles with their labels", () => {
+  it("renders all 12 section toggles with their labels", () => {
     renderPanel();
     expect(screen.getByText("Mesas")).toBeInTheDocument();
     expect(screen.getByText("Compartidas")).toBeInTheDocument();
@@ -107,6 +115,7 @@ describe("<PanelAdmin>", () => {
     expect(screen.getByText("Mensajes Directos")).toBeInTheDocument();
     expect(screen.getByText("BG Watch")).toBeInTheDocument();
     expect(screen.getByText("Utilidades")).toBeInTheDocument();
+    expect(screen.getByText("Colabora")).toBeInTheDocument();
   });
 
   it("reflects the enabled state on each toggle via aria-checked", () => {
@@ -135,6 +144,52 @@ describe("<PanelAdmin>", () => {
     await waitFor(() => {
       expect(updateConfig).toHaveBeenCalledWith({ mesas: { enabled: false } });
     });
+  });
+
+  it("renders the Ideas recibidas tabs", async () => {
+    renderPanel();
+    expect(
+      await screen.findByRole("tab", { name: /nuevas/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /revisadas/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: /archivadas/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("lists ideas returned from /api/ideas and supports marking reviewed", async () => {
+    let patched = null;
+    server.use(
+      http.get("/api/ideas", () =>
+        HttpResponse.json({
+          ideas: [
+            {
+              _id: "i1",
+              content: "Estaría bueno un widget de dado en la sidebar.",
+              fromUser: { _id: "u1", username: "pepe" },
+              fromEmail: null,
+              status: "new",
+              createdAt: new Date().toISOString(),
+            },
+          ],
+          counts: { new: 1, reviewed: 0, archived: 0 },
+        }),
+      ),
+      http.patch("/api/ideas/:id", async ({ request, params }) => {
+        patched = { id: params.id, body: await request.json() };
+        return HttpResponse.json({ _id: params.id, status: "reviewed" });
+      }),
+    );
+
+    renderPanel();
+    expect(
+      await screen.findByText(/widget de dado en la sidebar/i),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: /marcar revisada/i }),
+    );
+    await waitFor(() => expect(patched).not.toBeNull());
+    expect(patched.body).toEqual({ status: "reviewed" });
   });
 
   it("shows error box when updateConfig rejects", async () => {

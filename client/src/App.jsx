@@ -48,6 +48,8 @@ import Utilidades from "./pages/utilidades/Utilidades";
 import FingerSelector from "./pages/utilidades/FingerSelector";
 import Temporizador from "./pages/utilidades/Temporizador";
 import Dado from "./pages/utilidades/Dado";
+import Colaborar from "./pages/colabora/Colaborar";
+import ColaborarFab from "./components/colabora/ColaborarFab";
 import Navbar from "./components/layout/Navbar";
 import GuestSidebar from "./components/layout/GuestSidebar";
 import GuestNavbar from "./components/layout/GuestNavbar";
@@ -461,6 +463,14 @@ function AppRoutes() {
                 </SectionGate>
               }
             />
+            <Route
+              path="/colabora"
+              element={
+                <SectionGate section="colabora">
+                  <Colaborar />
+                </SectionGate>
+              }
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </PageTransition>
         </div>
@@ -483,6 +493,7 @@ function AppShell() {
       <ToastContainer />
       <ChatWindowManager />
       <ChatLauncher />
+      <ColaborarFab />
       <AdminViewToggle />
       <ViewAsUserBanner />
     </>

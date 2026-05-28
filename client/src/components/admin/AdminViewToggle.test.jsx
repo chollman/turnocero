@@ -1,12 +1,21 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import AdminViewToggle from "./AdminViewToggle";
 
 vi.mock("../../context/AuthContext", () => ({
   useAuth: vi.fn(),
 }));
+vi.mock("../../context/SiteConfigContext", () => ({
+  useSiteConfig: vi.fn(),
+}));
 
 import { useAuth } from "../../context/AuthContext";
+import { useSiteConfig } from "../../context/SiteConfigContext";
+
+beforeEach(() => {
+  // Default: colabora section enabled (FAB visible → stacked layout).
+  useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+});
 
 describe("<AdminViewToggle>", () => {
   it("renders nothing for non-admins", () => {
@@ -65,5 +74,29 @@ describe("<AdminViewToggle>", () => {
     render(<AdminViewToggle />);
     fireEvent.click(screen.getByRole("button"));
     expect(setViewAsUser).toHaveBeenCalledWith(false);
+  });
+
+  it("adds the stacked class when colabora section is enabled (FAB present)", () => {
+    useAuth.mockReturnValue({
+      isActuallyAdmin: true,
+      viewAsUser: false,
+      setViewAsUser: vi.fn(),
+    });
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+    render(<AdminViewToggle />);
+    const btn = screen.getByRole("button");
+    expect(btn.className).toMatch(/fabStacked/);
+  });
+
+  it("does NOT add the stacked class when colabora section is disabled", () => {
+    useAuth.mockReturnValue({
+      isActuallyAdmin: true,
+      viewAsUser: false,
+      setViewAsUser: vi.fn(),
+    });
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => false });
+    render(<AdminViewToggle />);
+    const btn = screen.getByRole("button");
+    expect(btn.className).not.toMatch(/fabStacked/);
   });
 });

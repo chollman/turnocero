@@ -202,6 +202,12 @@ export const API = {
     VIDEO: (id) => `/api/youtube/video/${enc(id)}`,
   },
 
+  // ── Ideas (Colabora) ─────────────────────────────────────────────────
+  ideas: {
+    LIST: "/api/ideas",
+    DETAIL: (id) => `/api/ideas/${enc(id)}`,
+  },
+
   // ── Health ───────────────────────────────────────────────────────────
   health: "/api/health",
 };

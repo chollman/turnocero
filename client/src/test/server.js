@@ -18,10 +18,23 @@ export const defaultHandlers = [
         dms: { enabled: true },
         bgwatch: { enabled: true },
         utilidades: { enabled: true },
+        colabora: { enabled: true },
       },
     }),
   ),
   http.get("/api/notifications", () => HttpResponse.json([])),
+  // Default vacío para /api/ideas — usado por PanelAdmin > IdeasSection.
+  // Tests que mockean PanelAdmin completo no llegan acá, pero si el panel
+  // se renderiza con todos sus children, evitamos el unhandled-request warn.
+  http.get("/api/ideas", () =>
+    HttpResponse.json({
+      ideas: [],
+      total: 0,
+      page: 1,
+      pages: 0,
+      counts: { new: 0, reviewed: 0, archived: 0 },
+    }),
+  ),
   // Default vacío para /api/eventos/mine — usado por CreateCompartidaForm.
   // Tests específicos pueden overridear con server.use(...).
   http.get("/api/eventos/mine", () => HttpResponse.json({ eventos: [] })),

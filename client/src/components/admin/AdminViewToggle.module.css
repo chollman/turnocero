@@ -26,6 +26,13 @@
   background: var(--red);
 }
 
+/* Stacked: cuando el FAB "Bancanos" (Colabora) está visible, este toggle
+   sube para no superponerse. Pill Bancanos = ~47px + gap 12px ≈ 59px,
+   redondeo a 64px para dejar aire. */
+.fabStacked {
+  bottom: 84px;
+}
+
 @media (max-width: 959px) {
   .fab {
     /* Was 76px to clear the old BottomNav pill — now sits with the same
@@ -34,5 +41,9 @@
     left: 16px;
     width: 48px;
     height: 48px;
+  }
+
+  .fabStacked {
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
 }

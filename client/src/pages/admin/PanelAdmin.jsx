@@ -1,7 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Navigate } from "react-router-dom";
+import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useNotifications } from "../../context/NotificationContext";
+import { API } from "../../api/endpoints";
+import { getErrorMessage } from "../../utils/getErrorMessage";
+import Avatar from "../../components/shared/Avatar";
+import { getUserDisplay } from "../../utils/userDisplay";
 import styles from "./PanelAdmin.module.css";
 
 const SECTION_META = [
@@ -110,9 +116,227 @@ const SECTION_META = [
         desc: "Herramientas auxiliares (dado, temporizador, selector de dedos).",
         affects: ["Oculta /utilidades y subrutas"],
       },
+      {
+        key: "colabora",
+        label: "Colabora",
+        desc: "FAB 'Bancanos' + landing /colabora con form de ideas.",
+        affects: [
+          "Oculta el FAB 'Bancanos'",
+          "Oculta /colabora",
+          "Bloquea POST /api/ideas (no se reciben más ideas)",
+        ],
+      },
     ],
   },
 ];
+
+const STATUS_LABELS = {
+  new: "Nuevas",
+  reviewed: "Revisadas",
+  archived: "Archivadas",
+};
+
+function ideaSender(idea) {
+  if (idea.fromUser) {
+    const d = getUserDisplay(idea.fromUser);
+    return d.name;
+  }
+  if (idea.fromEmail) return idea.fromEmail;
+  return "Anónimo";
+}
+
+function IdeasSection() {
+  const { addToast } = useNotifications();
+  const [status, setStatus] = useState("new");
+  const [ideas, setIdeas] = useState([]);
+  const [counts, setCounts] = useState({ new: 0, reviewed: 0, archived: 0 });
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState(null);
+
+  const load = useCallback(
+    async (signal) => {
+      setLoading(true);
+      try {
+        const { data } = await axios.get(API.ideas.LIST, {
+          params: { status, limit: 50 },
+          signal,
+        });
+        setIdeas(data.ideas || []);
+        setCounts(data.counts || { new: 0, reviewed: 0, archived: 0 });
+      } catch (err) {
+        if (axios.isCancel(err)) return;
+        addToast({
+          type: "error",
+          title: "Error",
+          message: getErrorMessage(err, "No pudimos cargar las ideas."),
+        });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [status, addToast],
+  );
+
+  useEffect(() => {
+    const ac = new AbortController();
+    load(ac.signal);
+    return () => ac.abort();
+  }, [load]);
+
+  const patch = async (id, nextStatus) => {
+    setBusyId(id);
+    try {
+      await axios.patch(API.ideas.DETAIL(id), { status: nextStatus });
+      setIdeas((prev) => prev.filter((i) => i._id !== id));
+      setCounts((prev) => ({
+        ...prev,
+        [status]: Math.max(0, prev[status] - 1),
+        [nextStatus]: prev[nextStatus] + 1,
+      }));
+    } catch (err) {
+      addToast({
+        type: "error",
+        title: "Error",
+        message: getErrorMessage(err, "No pudimos actualizar."),
+      });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const remove = async (id) => {
+    if (!window.confirm("¿Eliminar esta idea? No se puede deshacer.")) return;
+    setBusyId(id);
+    try {
+      await axios.delete(API.ideas.DETAIL(id));
+      setIdeas((prev) => prev.filter((i) => i._id !== id));
+      setCounts((prev) => ({
+        ...prev,
+        [status]: Math.max(0, prev[status] - 1),
+      }));
+    } catch (err) {
+      addToast({
+        type: "error",
+        title: "Error",
+        message: getErrorMessage(err, "No pudimos eliminar."),
+      });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className={styles.group}>
+      <h2 className={styles.groupTitle}>
+        Ideas recibidas
+        {counts.new > 0 && (
+          <span className={styles.ideasBadge} aria-label={`${counts.new} nuevas`}>
+            {counts.new}
+          </span>
+        )}
+      </h2>
+
+      <div className={styles.ideasTabs} role="tablist">
+        {Object.entries(STATUS_LABELS).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={status === key}
+            className={`${styles.ideasTab} ${status === key ? styles.ideasTabActive : ""}`}
+            onClick={() => setStatus(key)}
+          >
+            {label}
+            <span className={styles.ideasTabCount}>{counts[key] || 0}</span>
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <p className={styles.ideasEmpty}>Cargando…</p>
+      ) : ideas.length === 0 ? (
+        <p className={styles.ideasEmpty}>
+          {status === "new"
+            ? "Todavía no hay ideas nuevas."
+            : status === "reviewed"
+              ? "No hay ideas revisadas."
+              : "No hay ideas archivadas."}
+        </p>
+      ) : (
+        <ul className={styles.ideasList}>
+          {ideas.map((idea) => (
+            <li key={idea._id} className={styles.ideaCard}>
+              <div className={styles.ideaMeta}>
+                <div className={styles.ideaSender}>
+                  {idea.fromUser ? (
+                    <Avatar user={idea.fromUser} size="sm" />
+                  ) : (
+                    <span className={styles.ideaAnonAvatar} aria-hidden>
+                      ?
+                    </span>
+                  )}
+                  <span className={styles.ideaSenderName}>
+                    {ideaSender(idea)}
+                  </span>
+                </div>
+                <time className={styles.ideaDate}>
+                  {new Date(idea.createdAt).toLocaleString("es-AR", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </time>
+              </div>
+              <p className={styles.ideaContent}>{idea.content}</p>
+              <div className={styles.ideaActions}>
+                {status !== "reviewed" && (
+                  <button
+                    type="button"
+                    className={styles.ideaBtn}
+                    disabled={busyId === idea._id}
+                    onClick={() => patch(idea._id, "reviewed")}
+                  >
+                    Marcar revisada
+                  </button>
+                )}
+                {status !== "archived" && (
+                  <button
+                    type="button"
+                    className={styles.ideaBtn}
+                    disabled={busyId === idea._id}
+                    onClick={() => patch(idea._id, "archived")}
+                  >
+                    Archivar
+                  </button>
+                )}
+                {status !== "new" && (
+                  <button
+                    type="button"
+                    className={styles.ideaBtn}
+                    disabled={busyId === idea._id}
+                    onClick={() => patch(idea._id, "new")}
+                  >
+                    Volver a nuevas
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={`${styles.ideaBtn} ${styles.ideaBtnDanger}`}
+                  disabled={busyId === idea._id}
+                  onClick={() => remove(idea._id)}
+                >
+                  Eliminar
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function SectionToggle({ section, enabled, busy, onToggle }) {
   return (
@@ -226,6 +450,8 @@ function PanelAdminInner() {
             </div>
           </div>
         ))}
+
+        <IdeasSection />
       </div>
     </div>
   );

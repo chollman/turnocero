@@ -12,6 +12,7 @@ const SECTION_KEYS = [
   "dms",
   "bgwatch",
   "utilidades",
+  "colabora",
 ];
 
 // Defaults que preservan el comportamiento actual hardcodeado:

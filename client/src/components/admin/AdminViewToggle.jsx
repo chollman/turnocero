@@ -1,16 +1,21 @@
 import { useAuth } from "../../context/AuthContext";
+import { useSiteConfig } from "../../context/SiteConfigContext";
 import styles from "./AdminViewToggle.module.css";
 
 export default function AdminViewToggle() {
   const { isActuallyAdmin, viewAsUser, setViewAsUser } = useAuth();
+  const { isSectionEnabled } = useSiteConfig();
 
   if (!isActuallyAdmin) return null;
 
   const label = viewAsUser ? "Volver a vista admin" : "Ver como usuario";
+  // El FAB "Bancanos" comparte spot bottom-left. Si está visible, subimos
+  // este toggle para que no se monten uno sobre otro.
+  const stacked = isSectionEnabled("colabora");
 
   return (
     <button
-      className={`${styles.fab} ${viewAsUser ? styles.fabActive : ""}`}
+      className={`${styles.fab} ${viewAsUser ? styles.fabActive : ""} ${stacked ? styles.fabStacked : ""}`}
       onClick={() => setViewAsUser(!viewAsUser)}
       aria-label={label}
       title={label}

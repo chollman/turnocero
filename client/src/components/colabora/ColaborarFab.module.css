@@ -1,0 +1,70 @@
+.fab {
+  position: fixed;
+  /* Por encima del sidebar (que va en su propio stacking context). Mismo
+     z-index que AdminViewToggle para que floten en la misma capa. */
+  z-index: 1001;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--amber);
+  color: var(--on-amber);
+  text-decoration: none;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
+  /* Slide-in desde fuera de la pantalla 1s después del montaje inicial.
+     `both` mantiene el FAB invisible/fuera durante el delay y deja el
+     estado final tras animar. Se monta una sola vez en AppShell → anima
+     una sola vez por sesión. */
+  animation: slideInLeft 0.55s cubic-bezier(0.22, 1, 0.36, 1) 1s both;
+
+  /* Ancla bottom-left del viewport, mismo spot que AdminViewToggle.
+     Si el user es admin, el AdminViewToggle se corre para arriba (ver
+     su CSS .fabStacked). */
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: 16px;
+}
+
+.fab:hover {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+
+.fab:focus-visible {
+  outline: 2px solid var(--amber-light);
+  outline-offset: 3px;
+}
+
+.fab svg {
+  flex-shrink: 0;
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-150%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (min-width: 960px) {
+  .fab {
+    bottom: 20px;
+    left: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab {
+    animation: none;
+  }
+}

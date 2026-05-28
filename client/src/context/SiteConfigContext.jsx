@@ -22,6 +22,7 @@ const SECTION_KEYS = [
   "dms",
   "bgwatch",
   "utilidades",
+  "colabora",
 ];
 
 const DEFAULT_ENABLED = {

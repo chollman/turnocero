@@ -285,4 +285,29 @@ describe("<ToastContainer>", () => {
     fireEvent.click(screen.getByRole("alert"));
     expect(navigateMock).toHaveBeenCalledWith("/eventos/ev1");
   });
+
+  // Regression: un toast `type: "success"` caía en el default del title/body
+  // y mostraba "Ya sos parte de la mesa undefined".
+  it("success toast renders provided title + message and does NOT navigate", () => {
+    renderToasts([
+      {
+        id: "t1",
+        type: "success",
+        title: "¡Gracias!",
+        message: "Te leemos.",
+      },
+    ]);
+    expect(screen.getByText("¡Gracias!")).toBeInTheDocument();
+    expect(screen.getByText("Te leemos.")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/ya sos parte de la mesa/i),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("alert"));
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("success toast falls back to default title when none provided", () => {
+    renderToasts([{ id: "t1", type: "success" }]);
+    expect(screen.getByText("¡Listo!")).toBeInTheDocument();
+  });
 });
