@@ -6,6 +6,11 @@ import { getErrorMessage } from "../../utils/getErrorMessage";
 import { API } from "../../api/endpoints";
 import styles from "./TableDetail.module.css";
 
+// Mobile breakpoint para el placeholder del textarea — el sectionHead
+// "◆ Comentarios" se oculta en mobile (tab bar identifica la sección)
+// y por eso el placeholder largo "Escribí un comentario…" queda redundante.
+const MOBILE_BREAKPOINT = 980;
+
 const formatDate = (dateStr) =>
   new Date(dateStr).toLocaleDateString("es-AR", {
     weekday: "long",
@@ -46,6 +51,18 @@ export default function TableComments({
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editingContent, setEditingContent] = useState("");
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   // Bubble la cantidad al padre cuando cambia.
   useEffect(() => {
@@ -218,7 +235,7 @@ export default function TableComments({
         <form className={styles.addCommentForm} onSubmit={handleAdd}>
           <textarea
             className={styles.commentTextarea}
-            placeholder="Escribí un comentario…"
+            placeholder={isMobile ? "Escribí uno..." : "Escribí un comentario…"}
             value={commentInput}
             onChange={(e) => setCommentInput(e.target.value)}
             maxLength={500}

@@ -81,15 +81,28 @@
   color: var(--amber-light);
 }
 
-/* -- Detail layout (main + sticky aside) -------------------- */
+/* -- Detail layout (banner + main + sticky aside) ----------- */
+/* Grid de áreas: el banner vive arriba del main (misma columna 1fr),
+   y el aside cubre las dos filas a la derecha. En mobile la media query
+   colapsa a una columna y reordena para que el aside aparezca justo
+   debajo del banner (CTAs accesibles sin scroll profundo). */
 .layout {
   display: grid;
   grid-template-columns: 1fr 360px;
-  gap: 0.75rem;
+  grid-template-areas:
+    "banner aside"
+    "main aside";
+  column-gap: 0.75rem;
+  row-gap: 24px;
   align-items: start;
 }
 
+.banner {
+  grid-area: banner;
+}
+
 .main {
+  grid-area: main;
   min-width: 0;
 }
 
@@ -97,6 +110,7 @@
    único. En mobile el grid colapsa a una columna y el sticky se desactiva
    por la media query de abajo. */
 .aside {
+  grid-area: aside;
   position: sticky;
   top: calc(var(--navbar-h, 64px) + 1.5rem);
   align-self: start;
@@ -113,7 +127,6 @@
   aspect-ratio: 21 / 8;
   border-radius: 18px;
   overflow: hidden;
-  margin-bottom: 24px;
   border: 1px solid var(--border);
   background: var(--bg-dark);
 }
@@ -686,6 +699,7 @@
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.12em;
+  text-transform: uppercase;
   padding: 10px 0;
   cursor: pointer;
   border-bottom: 2px solid transparent;
@@ -717,7 +731,14 @@
 @media (max-width: 980px) {
   .layout {
     grid-template-columns: 1fr;
-    gap: 24px;
+    /* Mobile: stub justo después del banner, main al final.
+       Los CTAs primarios (join/leave/edit/cancel) quedan accesibles
+       sin scroll profundo. */
+    grid-template-areas:
+      "banner"
+      "aside"
+      "main";
+    row-gap: 0.75rem;
   }
   .aside {
     position: static;
@@ -730,9 +751,19 @@
   .mobileHidden {
     display: none;
   }
+  /* El metaRow (Cuándo/Dónde/Jugadores/Privacidad) duplica info que el
+     MesaStub ya muestra encima. En mobile lo ocultamos para evitar
+     redundancia justo después de los controles. */
+  .metaRow {
+    display: none;
+  }
+  /* En mobile la tab bar ya identifica qué sección está visible
+     (Fotos / Comentarios), así que el sectionHead duplicaría el título. */
+  .sectionHead_tabbed {
+    display: none;
+  }
   .banner {
     aspect-ratio: 16 / 9;
-    margin-bottom: 18px;
   }
   .bannerContent {
     bottom: 16px;
@@ -1018,63 +1049,59 @@
 }
 
 /* ─── Gallery ─── */
-.galleryHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-/* Acción de subir foto: el título lo provee el sectionHead del padre,
-   acá solo queda el botón "+ Foto" empujado a la derecha. */
-.galleryActions {
-  display: flex;
-  justify-content: flex-end;
-}
-.galleryBadge {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  border-radius: 20px;
-  padding: 0.1rem 0.55rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-}
-.btnUpload {
-  background: var(--amber);
-  color: var(--on-amber);
-  box-shadow: 0 4px 16px var(--amber-glow);
-  border: none;
-  border-radius: 7px;
-  padding: 0.4rem 0.95rem;
-  font-family: var(--font-display);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-.btnUpload:hover:not(:disabled) {
-  background: var(--amber-light);
-  box-shadow: 0 4px 22px var(--amber-glow);
-}
-.btnUpload:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 .galleryError {
   font-size: 0.8rem;
   color: var(--red);
+  margin-bottom: 0.65rem;
 }
+/* Estado vacío SIN permiso de upload: ícono de cámara + texto centrado.
+   Para viewers con permiso, el `.galleryAddTile` ES el estado vacío visual
+   (vive dentro del grid), así que este bloque no se usa. */
 .galleryEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 2rem 1rem;
   color: var(--text-muted);
-  font-size: 0.875rem;
-  font-style: italic;
+  font-size: 0.9rem;
+  text-align: center;
 }
 .imageGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+/* Tile de upload — primera celda del grid cuando el viewer puede subir.
+   Mismo aspect-ratio que los thumbs para que se mezcle naturalmente, con
+   borde dashed amber que telegráfica el CTA sin pelearse con la card. */
+.galleryAddTile {
+  aspect-ratio: 1;
+  border: 2px dashed var(--amber-30);
+  border-radius: 8px;
+  background: var(--amber-05);
+  color: var(--amber-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.galleryAddTile:hover:not(:disabled) {
+  border-color: var(--amber);
+  background: var(--amber-10);
+  transform: scale(1.02);
+}
+.galleryAddTile:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .imageThumb {
   position: relative;

@@ -486,75 +486,76 @@ export default function TableDetail() {
           )}
 
           <div className={styles.layout}>
-            <main className={styles.main}>
-              {/* Banner */}
-              <div className={styles.banner}>
-                <MesaTile
-                  game={table.boardGame || ""}
-                  seed={seed}
-                  imageUrl={useImage ? table.bggImage : null}
-                />
-                <div className={styles.bannerOverlay} />
-                <div className={styles.bannerContent}>
-                  <div className={styles.bannerLeft}>
-                    <div className={styles.bannerEyebrow}>
-                      Mesa de{" "}
-                      {hostInfo.isDeleted
-                        ? DELETED_USER_LABEL
-                        : table.host?.username}
+            {/* Banner — hermano de .main para poder reordenar el grid
+                (banner / aside / main) con grid-template-areas. */}
+            <div className={styles.banner}>
+              <MesaTile
+                game={table.boardGame || ""}
+                seed={seed}
+                imageUrl={useImage ? table.bggImage : null}
+              />
+              <div className={styles.bannerOverlay} />
+              <div className={styles.bannerContent}>
+                <div className={styles.bannerLeft}>
+                  <div className={styles.bannerEyebrow}>
+                    Mesa de{" "}
+                    {hostInfo.isDeleted
+                      ? DELETED_USER_LABEL
+                      : table.host?.username}
+                  </div>
+                  <h1 className={styles.bannerTitle}>{table.boardGame}</h1>
+                  {Array.isArray(table.tags) && table.tags.length > 0 && (
+                    <div className={styles.bannerTags}>
+                      {table.tags.map((t) => (
+                        <span key={t} className={styles.bannerTag}>
+                          {t}
+                        </span>
+                      ))}
                     </div>
-                    <h1 className={styles.bannerTitle}>{table.boardGame}</h1>
-                    {Array.isArray(table.tags) && table.tags.length > 0 && (
-                      <div className={styles.bannerTags}>
-                        {table.tags.map((t) => (
-                          <span key={t} className={styles.bannerTag}>
-                            {t}
-                          </span>
-                        ))}
-                      </div>
+                  )}
+                </div>
+                <div className={styles.bannerRight}>
+                  <div className={styles.bannerBadges}>
+                    {isHost && (
+                      <span
+                        className={`${styles.bannerBadge} ${styles.bannerBadge_host}`}
+                      >
+                        Host
+                      </span>
+                    )}
+                    {isPlayer && (
+                      <span
+                        className={`${styles.bannerBadge} ${styles.bannerBadge_joined}`}
+                      >
+                        Unido
+                      </span>
+                    )}
+                    {isCancelled && (
+                      <span
+                        className={`${styles.bannerBadge} ${styles.bannerBadge_cancelled}`}
+                      >
+                        Cancelada
+                      </span>
+                    )}
+                    {isPrivate && (
+                      <span
+                        className={`${styles.bannerBadge} ${styles.bannerBadge_lock}`}
+                      >
+                        <LockIcon size={10} /> Privada
+                      </span>
                     )}
                   </div>
-                  <div className={styles.bannerRight}>
-                    <div className={styles.bannerBadges}>
-                      {isHost && (
-                        <span
-                          className={`${styles.bannerBadge} ${styles.bannerBadge_host}`}
-                        >
-                          Host
-                        </span>
-                      )}
-                      {isPlayer && (
-                        <span
-                          className={`${styles.bannerBadge} ${styles.bannerBadge_joined}`}
-                        >
-                          Unido
-                        </span>
-                      )}
-                      {isCancelled && (
-                        <span
-                          className={`${styles.bannerBadge} ${styles.bannerBadge_cancelled}`}
-                        >
-                          Cancelada
-                        </span>
-                      )}
-                      {isPrivate && (
-                        <span
-                          className={`${styles.bannerBadge} ${styles.bannerBadge_lock}`}
-                        >
-                          <LockIcon size={10} /> Privada
-                        </span>
-                      )}
+                  {dParts && (
+                    <div className={styles.bannerDate}>
+                      {dParts.weekday} · {dParts.day} {dParts.month} ·{" "}
+                      {dParts.time}
                     </div>
-                    {dParts && (
-                      <div className={styles.bannerDate}>
-                        {dParts.weekday} · {dParts.day} {dParts.month} ·{" "}
-                        {dParts.time}
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
+            </div>
 
+            <main className={styles.main}>
               {/* Meta row */}
               <div className={styles.metaRow}>
                 <div className={styles.metaCell}>
@@ -814,8 +815,8 @@ export default function TableDetail() {
               {!isGuest && (
                 <div className={styles.mobileTabBar}>
                   {[
-                    { id: "fotos", label: "FOTOS" },
-                    { id: "resenas", label: "RESEÑAS" },
+                    { id: "fotos", label: "Fotos" },
+                    { id: "resenas", label: "Comentarios" },
                   ].map(({ id, label }) => (
                     <button
                       key={id}
@@ -839,7 +840,9 @@ export default function TableDetail() {
               <section
                 className={`${styles.section} ${!isGuest && mobileTab !== "fotos" ? styles.mobileHidden : ""}`}
               >
-                <header className={styles.sectionHead}>
+                <header
+                  className={`${styles.sectionHead} ${styles.sectionHead_tabbed}`}
+                >
                   <span className={styles.sectionLabel}>
                     ◆ Fotos de la mesa
                   </span>
@@ -873,7 +876,9 @@ export default function TableDetail() {
               <section
                 className={`${styles.section} ${!isGuest && mobileTab !== "resenas" ? styles.mobileHidden : ""}`}
               >
-                <header className={styles.sectionHead}>
+                <header
+                  className={`${styles.sectionHead} ${styles.sectionHead_tabbed}`}
+                >
                   <span className={styles.sectionLabel}>◆ Comentarios</span>
                   <span className={styles.sectionRule} />
                   {commentsCount > 0 && (

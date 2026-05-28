@@ -96,7 +96,9 @@ beforeEach(() => {
 describe("<TableDetail>", () => {
   it("renders the board game name in the banner heading", async () => {
     renderTableDetail();
-    expect(await screen.findByRole("heading", { name: "Catán" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Catán" }),
+    ).toBeInTheDocument();
   });
 
   it("renders the location and description", async () => {
@@ -157,9 +159,7 @@ describe("<TableDetail>", () => {
     });
     await screen.findByRole("heading", { name: "Catán" });
     expect(screen.getByText(/sos el host/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /editar/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /editar/i })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /^Cancelar$/i }),
     ).toBeInTheDocument();
@@ -234,9 +234,7 @@ describe("<TableDetail>", () => {
       user: { _id: "other", username: "other", isAdmin: false },
     });
     await screen.findByRole("heading", { name: "Catán" });
-    expect(
-      screen.getByRole("button", { name: /mesa llena/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: /mesa llena/i })).toBeDisabled();
   });
 
   it("cancelled table shows Cancelada badge + disabled CTA", async () => {
@@ -287,9 +285,7 @@ describe("<TableDetail>", () => {
     await screen.findByRole("heading", { name: "Catán" });
     expect(screen.getByText(/mesa finalizada\./i)).toBeInTheDocument();
     // Como admin, sigue viendo Editar + Cancelar del stub.
-    expect(
-      screen.getByRole("button", { name: /editar/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /editar/i })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /^Cancelar$/i }),
     ).toBeInTheDocument();
@@ -387,9 +383,9 @@ describe("<TableDetail>", () => {
   });
 
   // El chat se movió al stub del aside (con InfoTooltip de privacidad), así
-  // que la mobile tab bar ya no incluye "CHAT" — sólo alterna entre FOTOS y
-  // RESEÑAS en el main column. El chat aparece debajo del stub en mobile.
-  it("participant sees mobile tab bar (FOTOS / RESEÑAS)", async () => {
+  // que la mobile tab bar ya no incluye "CHAT" — sólo alterna entre Fotos y
+  // Comentarios en el main column. El chat aparece debajo del stub en mobile.
+  it("participant sees mobile tab bar (Fotos / Comentarios)", async () => {
     setupTable(
       makeTable({
         players: [{ _id: "me", username: "me" }],
@@ -397,9 +393,13 @@ describe("<TableDetail>", () => {
     );
     renderTableDetail({ user: { _id: "me", username: "me", isAdmin: false } });
     await screen.findByRole("heading", { name: "Catán" });
-    expect(screen.queryByRole("button", { name: "CHAT" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "FOTOS" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "RESEÑAS" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "CHAT" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Fotos" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Comentarios" }),
+    ).toBeInTheDocument();
   });
 
   // -- Interactions ------------------------------------------------------
@@ -465,7 +465,7 @@ describe("<TableDetail>", () => {
     expect(screen.getByText(/abandonar\?/i)).toBeInTheDocument();
   });
 
-  it('clicking the back button does not crash', async () => {
+  it("clicking the back button does not crash", async () => {
     setupTable(makeTable());
     renderTableDetail();
     await screen.findByRole("heading", { name: "Catán" });

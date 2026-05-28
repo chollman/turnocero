@@ -4,6 +4,40 @@ import { getErrorMessage } from "../../utils/getErrorMessage";
 import { API } from "../../api/endpoints";
 import styles from "./TableDetail.module.css";
 
+const PlusIcon = ({ size = 28 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+const CameraIcon = ({ size = 36 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+    <circle cx="12" cy="13" r="4" />
+  </svg>
+);
+
 // Sección "Fotos de la mesa". El padre owna `images` porque también lo
 // necesita para hidratar `table.images` después del upload — paso el
 // callback `onImagesChange` para que el padre quede en sync sin que
@@ -54,36 +88,35 @@ export default function TableGallery({
     }
   };
 
+  const showGrid = canUpload || images.length > 0;
+
   return (
     <>
       <div className={`${styles.card} ${className}`}>
-        {canUpload && (
-          <div className={styles.galleryActions}>
-            <button
-              className={styles.btnUpload}
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
-              {uploading ? "Subiendo…" : "+ Foto"}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              style={{ display: "none" }}
-              onChange={handleUpload}
-            />
-          </div>
-        )}
         {error && <p className={styles.galleryError}>{error}</p>}
-        {images.length === 0 ? (
-          <p className={styles.galleryEmpty}>
-            {canUpload
-              ? "Todavía no hay fotos. ¡Subí la primera!"
-              : "Todavía no hay fotos."}
-          </p>
-        ) : (
+        {showGrid ? (
           <div className={styles.imageGrid}>
+            {canUpload && (
+              <>
+                <button
+                  type="button"
+                  className={styles.galleryAddTile}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  aria-label="+ Foto"
+                >
+                  <PlusIcon size={28} />
+                  <span>{uploading ? "Subiendo…" : "Subir foto"}</span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  style={{ display: "none" }}
+                  onChange={handleUpload}
+                />
+              </>
+            )}
             {images.map((img) => (
               <div key={img._id} className={styles.imageThumb}>
                 <img
@@ -109,6 +142,11 @@ export default function TableGallery({
                 )}
               </div>
             ))}
+          </div>
+        ) : (
+          <div className={styles.galleryEmpty}>
+            <CameraIcon size={36} />
+            <span>Todavía no hay fotos.</span>
           </div>
         )}
       </div>

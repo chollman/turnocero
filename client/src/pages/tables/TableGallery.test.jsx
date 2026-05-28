@@ -31,14 +31,16 @@ beforeEach(() => {
 });
 
 describe("<TableGallery>", () => {
-  it("renderiza empty state cuando no hay imágenes y puede subir", () => {
+  it("muestra el tile de upload (sin texto de empty) cuando no hay imágenes y puede subir", () => {
     renderGallery();
     expect(
-      screen.getByText(/Todavía no hay fotos. ¡Subí la primera!/i),
+      screen.getByRole("button", { name: /\+ Foto/i }),
     ).toBeInTheDocument();
+    // El texto "Todavía no hay fotos" ya no se renderiza cuando hay tile.
+    expect(screen.queryByText(/Todavía no hay fotos/i)).not.toBeInTheDocument();
   });
 
-  it("renderiza empty state distinto cuando NO puede subir", () => {
+  it("renderiza empty state con texto cuando NO puede subir", () => {
     renderGallery({ canUpload: false });
     expect(screen.getByText(/^Todavía no hay fotos\.$/i)).toBeInTheDocument();
     expect(
