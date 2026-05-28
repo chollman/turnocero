@@ -495,14 +495,12 @@ export default function TableDetail() {
                 imageUrl={useImage ? table.bggImage : null}
               />
               <div className={styles.bannerOverlay} />
+              <div className={styles.bannerEyebrow}>
+                Mesa de{" "}
+                {hostInfo.isDeleted ? DELETED_USER_LABEL : table.host?.username}
+              </div>
               <div className={styles.bannerContent}>
                 <div className={styles.bannerLeft}>
-                  <div className={styles.bannerEyebrow}>
-                    Mesa de{" "}
-                    {hostInfo.isDeleted
-                      ? DELETED_USER_LABEL
-                      : table.host?.username}
-                  </div>
                   <h1 className={styles.bannerTitle}>{table.boardGame}</h1>
                   {Array.isArray(table.tags) && table.tags.length > 0 && (
                     <div className={styles.bannerTags}>

@@ -156,7 +156,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
+  gap: 0.75rem;
 }
 .bannerLeft {
   display: flex;
@@ -164,11 +164,15 @@
   gap: 6px;
   min-width: 0;
 }
-/* Eyebrow + title del banner alineados con .heroEyebrow / .heroTitle de
-   EventoDetail / Eventos: mismo eyebrow mono 11px 500 0.18em y mismo
-   clamp del title. Mantenemos `font-weight: 800` + text-shadow porque
-   el banner es texto SOBRE imagen y necesita más peso para legibilidad. */
+/* Eyebrow anclado al top-left del banner — fuera del .bannerContent
+   para que no compita con el title/date que viven abajo. Estilo igual al
+   .heroEyebrow de Eventos (mono 11px 500 0.18em + barra amber a la
+   izquierda). */
 .bannerEyebrow {
+  position: absolute;
+  top: 20px;
+  left: 28px;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -178,6 +182,7 @@
   letter-spacing: 0.18em;
   color: var(--amber-light);
   text-transform: uppercase;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
 }
 .bannerEyebrow::before {
   content: "";
@@ -193,7 +198,7 @@
   line-height: 0.95;
   color: #fff;
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
-  margin: 8px 0;
+  margin: 0;
   text-wrap: balance;
   word-break: break-word;
 }
@@ -764,6 +769,10 @@
   }
   .banner {
     aspect-ratio: 16 / 9;
+  }
+  .bannerEyebrow {
+    top: 14px;
+    left: 18px;
   }
   .bannerContent {
     bottom: 16px;
