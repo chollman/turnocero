@@ -357,11 +357,7 @@ export function applyPlayerJoinedNotif({
   );
 }
 
-export function applyPlayerLeftNotif({
-  setNotifications,
-  setToasts,
-  payload,
-}) {
+export function applyPlayerLeftNotif({ setNotifications, setToasts, payload }) {
   setNotifications((prev) =>
     upsertAggregating({
       prev,
