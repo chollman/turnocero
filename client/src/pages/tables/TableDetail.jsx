@@ -20,6 +20,7 @@ import TableComments from "./TableComments";
 import TableGallery from "./TableGallery";
 import TableRatings from "./TableRatings";
 import TableTutorials from "./TableTutorials";
+import TableBga from "./TableBga";
 import MesaStub from "./MesaStub";
 import styles from "./TableDetail.module.css";
 
@@ -811,6 +812,10 @@ export default function TableDetail() {
                 boardGame={table.boardGame}
                 tutorialMode={table.tutorialMode}
                 tutorialVideoId={table.tutorialVideoId}
+              />
+              <TableBga
+                boardGame={table.boardGame}
+                bgaUrl={table.bgaUrl}
               />
 
               {/* Pending requests — host only on private tables */}

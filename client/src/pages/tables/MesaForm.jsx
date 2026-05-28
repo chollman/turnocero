@@ -5,6 +5,7 @@ import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import { fromLocalInputValue } from "../../utils/eventoDate";
 import { parseYouTubeVideoId } from "../../utils/youtube";
+import { parseBgaUrl } from "../../utils/bga";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import TableCard from "../dashboard/TableCard";
@@ -171,7 +172,7 @@ const STEPS = [
   { key: "cuando", label: "Cuándo" },
   { key: "donde", label: "Dónde" },
   { key: "detalles", label: "Detalles" },
-  { key: "tutoriales", label: "Tutoriales" },
+  { key: "extras", label: "Extras" },
 ];
 
 const PILL_PLAYERS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -270,6 +271,11 @@ export default function MesaForm({
     () => parseYouTubeVideoId(tutorialVideoInput),
     [tutorialVideoInput],
   );
+
+  // Sub-bloque BGA del Paso 5. Edit mode arranca con el URL ya guardado
+  // (si la mesa tenía uno); creaciones nuevas arrancan vacío.
+  const [bgaUrlInput, setBgaUrlInput] = useState(initialValues.bgaUrl || "");
+  const bgaUrl = useMemo(() => parseBgaUrl(bgaUrlInput), [bgaUrlInput]);
 
   // ── BGG autocomplete ──────────────────────────────────────────────
   const debouncedSearch = useDebouncedValue(boardGameInput, 400);
@@ -432,13 +438,15 @@ export default function MesaForm({
       !!locationField.texto.trim() ||
       (locationField.lat != null && locationField.lng != null),
     detalles: !!maxPlayers && !!privacy,
-    // Tutoriales es "opcional" en el sentido del producto: "none" y "auto"
-    // están listos sin más input. El único caso que bloquea el submit es
-    // "manual" sin un URL parseable.
-    tutoriales:
-      tutorialMode === "none" ||
-      tutorialMode === "auto" ||
-      (tutorialMode === "manual" && !!tutorialVideoId),
+    // Paso "Extras" (opcional): combina las dos sub-validaciones —
+    // Tutoriales y Board Game Arena. Cada una es opcional por separado;
+    // lo único que bloquea es modo "manual" sin URL parseable de YouTube
+    // o un input con texto en BGA que no sea de boardgamearena.com.
+    extras:
+      (tutorialMode === "none" ||
+        tutorialMode === "auto" ||
+        (tutorialMode === "manual" && !!tutorialVideoId)) &&
+      (!bgaUrlInput.trim() || !!bgaUrl),
   };
   const completedCount = Object.values(stepDone).filter(Boolean).length;
   const activeStepIdx = STEPS.findIndex((s) => !stepDone[s.key]);
@@ -449,7 +457,7 @@ export default function MesaForm({
     stepDone.cuando &&
     stepDone.donde &&
     stepDone.detalles &&
-    stepDone.tutoriales;
+    stepDone.extras;
 
   // ── Live preview mesa ─────────────────────────────────────────────
   // Construye el shape que `<TableCard>` espera. `maxPlayers` se pasa en
@@ -539,6 +547,7 @@ export default function MesaForm({
       privacy,
       tutorialMode,
       tutorialVideoId: tutorialMode === "manual" ? tutorialVideoId : null,
+      bgaUrl: bgaUrl || null,
     });
   };
 
@@ -903,108 +912,155 @@ export default function MesaForm({
             </div>
           </section>
 
-          {/* Paso 5 · Tutoriales (opcional) */}
+          {/* Paso 5 · Extras (opcional) — tutoriales + Board Game Arena */}
           <section
             ref={(el) => (sectionRefs.current[4] = el)}
-            id="mesa-form-section-tutoriales"
+            id="mesa-form-section-extras"
             className={styles.section}
           >
             <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}>
-                ◆ Tutoriales (opcional)
-              </span>
+              <span className={styles.sectionLabel}>◆ Extras (opcional)</span>
               <span className={styles.sectionRule} />
             </header>
             <p className={styles.sectionHelp}>
-              ¿Querés sumar un tutorial de YouTube en la página de la mesa para
-              los que no conocen el juego?
+              Recursos opcionales para los jugadores que se suman a la mesa.
             </p>
 
-            <div className={styles.field}>
-              <div className={styles.privacyOptions}>
-                <button
-                  type="button"
-                  className={`${styles.privacyCard} ${tutorialMode === "none" ? styles.privacyCardActive : ""}`}
-                  onClick={() => setTutorialMode("none")}
-                >
-                  <EyeOffIcon size={22} />
-                  <div className={styles.privacyCardBody}>
-                    <span className={styles.privacyCardTitle}>
-                      No incluir tutoriales
-                    </span>
-                    <span className={styles.privacyCardSub}>
-                      La sección no se muestra en la mesa.
-                    </span>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.privacyCard} ${tutorialMode === "manual" ? styles.privacyCardActive : ""}`}
-                  onClick={() => setTutorialMode("manual")}
-                >
-                  <PlayIcon size={22} />
-                  <div className={styles.privacyCardBody}>
-                    <span className={styles.privacyCardTitle}>
-                      Proponer un video
-                    </span>
-                    <span className={styles.privacyCardSub}>
-                      Vos elegís el tutorial que mejor pega.
-                    </span>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.privacyCard} ${tutorialMode === "auto" ? styles.privacyCardActive : ""}`}
-                  onClick={() => setTutorialMode("auto")}
-                >
-                  <SearchIcon size={22} />
-                  <div className={styles.privacyCardBody}>
-                    <span className={styles.privacyCardTitle}>
-                      Buscar automáticamente
-                    </span>
-                    <span className={styles.privacyCardSub}>
-                      Mostrar los 3 primeros resultados de YouTube para «Como
-                      se juega {boardGameInput || "el juego"}».
-                    </span>
-                  </div>
-                </button>
+            {/* Sub-bloque 1 · Tutoriales de YouTube */}
+            <div className={styles.subBlock}>
+              <h4 className={styles.subBlockLabel}>Tutoriales de YouTube</h4>
+              <p className={styles.subBlockHelp}>
+                Sumá un tutorial para los que no conocen el juego.
+              </p>
+
+              <div className={styles.field}>
+                <div className={styles.privacyOptions}>
+                  <button
+                    type="button"
+                    className={`${styles.privacyCard} ${tutorialMode === "none" ? styles.privacyCardActive : ""}`}
+                    onClick={() => setTutorialMode("none")}
+                  >
+                    <EyeOffIcon size={22} />
+                    <div className={styles.privacyCardBody}>
+                      <span className={styles.privacyCardTitle}>
+                        No incluir tutoriales
+                      </span>
+                      <span className={styles.privacyCardSub}>
+                        La sección no se muestra en la mesa.
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.privacyCard} ${tutorialMode === "manual" ? styles.privacyCardActive : ""}`}
+                    onClick={() => setTutorialMode("manual")}
+                  >
+                    <PlayIcon size={22} />
+                    <div className={styles.privacyCardBody}>
+                      <span className={styles.privacyCardTitle}>
+                        Proponer un video
+                      </span>
+                      <span className={styles.privacyCardSub}>
+                        Vos elegís el tutorial que mejor pega.
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.privacyCard} ${tutorialMode === "auto" ? styles.privacyCardActive : ""}`}
+                    onClick={() => setTutorialMode("auto")}
+                  >
+                    <SearchIcon size={22} />
+                    <div className={styles.privacyCardBody}>
+                      <span className={styles.privacyCardTitle}>
+                        Buscar automáticamente
+                      </span>
+                      <span className={styles.privacyCardSub}>
+                        Mostrar los 3 primeros resultados de YouTube para
+                        «Como se juega {boardGameInput || "el juego"}».
+                      </span>
+                    </div>
+                  </button>
+                </div>
               </div>
+
+              {tutorialMode === "manual" && (
+                <div className={styles.field}>
+                  <label
+                    className={styles.fieldLabel}
+                    htmlFor="mesa-tutorial-url"
+                  >
+                    URL del video de YouTube{" "}
+                    <span className={styles.required}>*</span>
+                  </label>
+                  <input
+                    id="mesa-tutorial-url"
+                    type="url"
+                    className={styles.input}
+                    value={tutorialVideoInput}
+                    onChange={(e) => setTutorialVideoInput(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    autoComplete="off"
+                  />
+                  {tutorialVideoInput.trim() && !tutorialVideoId && (
+                    <span
+                      className={styles.fieldHelp}
+                      style={{ color: "var(--red)" }}
+                    >
+                      URL de YouTube inválido. Aceptamos
+                      youtube.com/watch?v=…, youtu.be/…, /shorts/… o el ID
+                      directo.
+                    </span>
+                  )}
+                  {tutorialVideoId && (
+                    <span className={styles.fieldHelp}>
+                      Video detectado · ID:{" "}
+                      <code style={{ color: "var(--amber)" }}>
+                        {tutorialVideoId}
+                      </code>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
-            {tutorialMode === "manual" && (
+            <div className={styles.subBlockDivider} aria-hidden="true" />
+
+            {/* Sub-bloque 2 · Board Game Arena */}
+            <div className={styles.subBlock}>
+              <h4 className={styles.subBlockLabel}>Board Game Arena</h4>
+              <p className={styles.subBlockHelp}>
+                ¿Está disponible en{" "}
+                <strong>boardgamearena.com</strong>? Pegá el link para que los
+                jugadores puedan probarlo online antes de la mesa.
+              </p>
+
               <div className={styles.field}>
-                <label className={styles.fieldLabel} htmlFor="mesa-tutorial-url">
-                  URL del video de YouTube{" "}
-                  <span className={styles.required}>*</span>
+                <label className={styles.fieldLabel} htmlFor="mesa-bga-url">
+                  URL del juego en Board Game Arena
                 </label>
                 <input
-                  id="mesa-tutorial-url"
+                  id="mesa-bga-url"
                   type="url"
                   className={styles.input}
-                  value={tutorialVideoInput}
-                  onChange={(e) => setTutorialVideoInput(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
+                  value={bgaUrlInput}
+                  onChange={(e) => setBgaUrlInput(e.target.value)}
+                  placeholder="https://boardgamearena.com/gamepanel?game=..."
                   autoComplete="off"
                 />
-                {tutorialVideoInput.trim() && !tutorialVideoId && (
+                {bgaUrlInput.trim() && !bgaUrl && (
                   <span
                     className={styles.fieldHelp}
                     style={{ color: "var(--red)" }}
                   >
-                    URL de YouTube inválido. Aceptamos youtube.com/watch?v=…,
-                    youtu.be/…, /shorts/… o el ID directo.
+                    El link debe ser de boardgamearena.com.
                   </span>
                 )}
-                {tutorialVideoId && (
-                  <span className={styles.fieldHelp}>
-                    Video detectado · ID:{" "}
-                    <code style={{ color: "var(--amber)" }}>
-                      {tutorialVideoId}
-                    </code>
-                  </span>
+                {bgaUrl && (
+                  <span className={styles.fieldHelp}>Link válido ✓</span>
                 )}
               </div>
-            )}
+            </div>
           </section>
 
           {(serverError || localError) && (

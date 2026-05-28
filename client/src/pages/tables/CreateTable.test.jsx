@@ -122,7 +122,7 @@ describe("<CreateTable> (standalone — wizard)", () => {
     expect(screen.getAllByText(/^Cuándo$/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/^Dónde$/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/^Detalles$/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/^Tutoriales$/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^Extras$/).length).toBeGreaterThan(0);
     // Publish button rendered (still disabled until form is valid).
     expect(
       screen.getByRole("button", { name: /publicar mesa/i }),
@@ -712,8 +712,8 @@ describe("<CreateTable> — debounce BGG search", () => {
   });
 });
 
-// ── Step 5 · Tutoriales ───────────────────────────────────────────────
-describe("<CreateTable> · Paso 5 Tutoriales", () => {
+// ── Step 5 · Extras (Tutoriales + BGA) ────────────────────────────────
+describe("<CreateTable> · Paso 5 Extras", () => {
   it("default es 'none' y no bloquea el submit", async () => {
     let postedBody = null;
     server.use(
@@ -841,5 +841,125 @@ describe("<CreateTable> · Paso 5 Tutoriales", () => {
     });
     expect(postedBody.tutorialMode).toBe("auto");
     expect(postedBody.tutorialVideoId).toBeNull();
+  });
+
+  // ── Sub-bloque BGA ──────────────────────────────────────────────
+  it("default bgaUrl es null en el payload", async () => {
+    let postedBody = null;
+    server.use(
+      http.post("/api/tables", async ({ request }) => {
+        postedBody = await request.json();
+        return HttpResponse.json({ _id: "newtable" }, { status: 201 });
+      }),
+    );
+    renderPage();
+    await pickGame();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+    fireEvent.click(screen.getByRole("button", { name: /publicar mesa/i }));
+    await waitFor(() => {
+      expect(postedBody).not.toBeNull();
+    });
+    expect(postedBody.bgaUrl).toBeNull();
+  });
+
+  it("pegar URL BGA válido lo manda en el payload (normalizado con https://)", async () => {
+    let postedBody = null;
+    server.use(
+      http.post("/api/tables", async ({ request }) => {
+        postedBody = await request.json();
+        return HttpResponse.json({ _id: "newtable" }, { status: 201 });
+      }),
+    );
+    renderPage();
+    await pickGame();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+
+    const bgaInput = screen.getByLabelText(
+      /URL del juego en Board Game Arena/i,
+    );
+    fireEvent.change(bgaInput, {
+      target: {
+        value: "https://boardgamearena.com/gamepanel?game=catan",
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Link válido/i)).toBeInTheDocument();
+    });
+
+    const cta = screen.getByRole("button", { name: /publicar mesa/i });
+    expect(cta).not.toBeDisabled();
+    fireEvent.click(cta);
+    await waitFor(() => {
+      expect(postedBody).not.toBeNull();
+    });
+    expect(postedBody.bgaUrl).toBe(
+      "https://boardgamearena.com/gamepanel?game=catan",
+    );
+  });
+
+  it("acepta URL BGA sin schema y normaliza con https:// (parser)", async () => {
+    // Validación pura del parser sin submit — evita la validación nativa
+    // de type="url" del browser que aborta submits con URLs sin schema.
+    renderPage();
+    await pickGame();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+
+    const bgaInput = screen.getByLabelText(
+      /URL del juego en Board Game Arena/i,
+    );
+    fireEvent.change(bgaInput, {
+      target: { value: "boardgamearena.com/gamepanel?game=catan" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Link válido/i)).toBeInTheDocument();
+    });
+  });
+
+  it("URL BGA inválido muestra error y bloquea submit", async () => {
+    renderPage();
+    await pickGame();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+
+    const bgaInput = screen.getByLabelText(
+      /URL del juego en Board Game Arena/i,
+    );
+    fireEvent.change(bgaInput, {
+      target: { value: "https://otrositio.com/x" },
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByText(/El link debe ser de boardgamearena\.com/i),
+      ).toBeInTheDocument();
+    });
+    const cta = screen.getByRole("button", { name: /publicar mesa/i });
+    expect(cta).toBeDisabled();
+  });
+
+  it("limpiar el input BGA después de pegar inválido desbloquea el submit", async () => {
+    renderPage();
+    await pickGame();
+    fillLocation();
+    fillDate();
+    pickPrivacy();
+
+    const bgaInput = screen.getByLabelText(
+      /URL del juego en Board Game Arena/i,
+    );
+    fireEvent.change(bgaInput, { target: { value: "https://x.com" } });
+    const cta = screen.getByRole("button", { name: /publicar mesa/i });
+    expect(cta).toBeDisabled();
+
+    fireEvent.change(bgaInput, { target: { value: "" } });
+    expect(cta).not.toBeDisabled();
   });
 });

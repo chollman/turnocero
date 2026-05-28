@@ -323,13 +323,43 @@
   color: var(--text-primary);
 }
 /* Texto descriptivo dentro de una sección, justo después del header.
-   Usado en el paso "Tutoriales" para explicar la elección antes de las
+   Usado en el paso "Extras" para explicar la elección antes de las
    3 cards. Discreto pero más legible que .fieldHelp (que es mono 10px). */
 .sectionHelp {
   color: var(--text-secondary);
   font-size: 13px;
   margin: -8px 0 18px 0;
   line-height: 1.45;
+}
+
+/* Sub-bloques dentro del paso "Extras": Tutoriales y Board Game Arena.
+   Cada uno tiene su propio título + texto descriptivo + campos. */
+.subBlock {
+  margin-bottom: 4px;
+}
+.subBlockLabel {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.015em;
+}
+.subBlockHelp {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 0 0 14px 0;
+  line-height: 1.45;
+}
+.subBlockHelp strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.subBlockDivider {
+  height: 1px;
+  background: var(--border);
+  margin: 22px 0;
+  opacity: 0.55;
 }
 
 /* -- Field ---------------------------------------------------- */

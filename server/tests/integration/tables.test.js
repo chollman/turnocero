@@ -218,6 +218,81 @@ describe("POST /api/tables", () => {
     expect(res.body.tutorialMode).toBe("auto");
     expect(res.body.tutorialVideoId).toBeNull();
   });
+
+  // ── bgaUrl (Paso 5 — sub-bloque Board Game Arena) ────────────────
+  it("defaults bgaUrl to null when not provided", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.bgaUrl).toBeNull();
+  });
+
+  it("persists a valid bgaUrl from boardgamearena.com", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+        bgaUrl: "https://boardgamearena.com/gamepanel?game=catan",
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.bgaUrl).toBe(
+      "https://boardgamearena.com/gamepanel?game=catan",
+    );
+  });
+
+  it("normalizes empty bgaUrl string to null", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+        bgaUrl: "",
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.bgaUrl).toBeNull();
+  });
+
+  it("400s on bgaUrl from a different domain", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+        bgaUrl: "https://otrositio.com/x",
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it("400s on bgaUrl that does not look like a URL", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/tables")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        boardGame: "Catán",
+        date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        maxPlayers: 4,
+        bgaUrl: "not a url",
+      });
+    expect(res.status).toBe(400);
+  });
 });
 
 describe("GET /api/tables", () => {
@@ -771,6 +846,70 @@ describe("PUT /api/tables/:id (host only)", () => {
         date: new Date(Date.now() + 14 * 86400000).toISOString(),
         maxPlayers: 4,
         tutorialMode: "manual",
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it("PUT updates bgaUrl when provided", async () => {
+    const host = await createUser();
+    const table = await createTable(host);
+    const res = await request(app)
+      .put(`/api/tables/${table._id}`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`)
+      .send({
+        date: new Date(Date.now() + 14 * 86400000).toISOString(),
+        maxPlayers: 4,
+        bgaUrl: "https://boardgamearena.com/gamepanel?game=catan",
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.bgaUrl).toBe(
+      "https://boardgamearena.com/gamepanel?game=catan",
+    );
+  });
+
+  it("PUT can clear bgaUrl by sending empty string", async () => {
+    const host = await createUser();
+    const table = await createTable(host, {
+      bgaUrl: "https://boardgamearena.com/x",
+    });
+    const res = await request(app)
+      .put(`/api/tables/${table._id}`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`)
+      .send({
+        date: new Date(Date.now() + 14 * 86400000).toISOString(),
+        maxPlayers: 4,
+        bgaUrl: "",
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.bgaUrl).toBeNull();
+  });
+
+  it("PUT preserves bgaUrl when not sent in body", async () => {
+    const host = await createUser();
+    const table = await createTable(host, {
+      bgaUrl: "https://boardgamearena.com/x",
+    });
+    const res = await request(app)
+      .put(`/api/tables/${table._id}`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`)
+      .send({
+        date: new Date(Date.now() + 14 * 86400000).toISOString(),
+        maxPlayers: 4,
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.bgaUrl).toBe("https://boardgamearena.com/x");
+  });
+
+  it("400s on PUT with invalid bgaUrl domain", async () => {
+    const host = await createUser();
+    const table = await createTable(host);
+    const res = await request(app)
+      .put(`/api/tables/${table._id}`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`)
+      .send({
+        date: new Date(Date.now() + 14 * 86400000).toISOString(),
+        maxPlayers: 4,
+        bgaUrl: "https://otrositio.com/x",
       });
     expect(res.status).toBe(400);
   });

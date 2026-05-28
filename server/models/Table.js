@@ -107,6 +107,18 @@ const tableSchema = new mongoose.Schema(
         message: "tutorialVideoId inválido",
       },
     },
+    // URL opcional a la página del juego en boardgamearena.com. Si está
+    // presente, TableDetail muestra la sección "Probá el juego online".
+    bgaUrl: {
+      type: String,
+      default: null,
+      validate: {
+        validator: (v) =>
+          v === null ||
+          /^https?:\/\/(www\.)?boardgamearena\.com\/.*/i.test(v),
+        message: "El link debe ser de boardgamearena.com",
+      },
+    },
     pendingRequests: [
       {
         type: mongoose.Schema.Types.ObjectId,

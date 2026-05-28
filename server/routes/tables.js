@@ -347,6 +347,15 @@ router.post(
       }
       return true;
     }),
+    body("bgaUrl")
+      .optional({ nullable: true })
+      .custom(
+        (v) =>
+          v === null ||
+          v === "" ||
+          /^https?:\/\/(www\.)?boardgamearena\.com\/.*/i.test(v),
+      )
+      .withMessage("El link debe ser de boardgamearena.com"),
   ],
   asyncHandler(async (req, res) => {
     checkValidation(req);
@@ -367,6 +376,7 @@ router.post(
       eventoId,
       tutorialMode,
       tutorialVideoId,
+      bgaUrl,
     } = req.body;
 
     if (!boardGame || !date || !maxPlayers) {
@@ -459,6 +469,8 @@ router.post(
         ...(tutorialMode !== undefined && { tutorialMode }),
         tutorialVideoId:
           tutorialMode === "manual" ? tutorialVideoId || null : null,
+        // BGA: empty string → null para no romper el validator del modelo.
+        bgaUrl: bgaUrl && bgaUrl.trim() ? bgaUrl.trim() : null,
       });
     } catch (err) {
       rethrowValidation(err);
@@ -598,6 +610,15 @@ router.put(
       }
       return true;
     }),
+    body("bgaUrl")
+      .optional({ nullable: true })
+      .custom(
+        (v) =>
+          v === null ||
+          v === "" ||
+          /^https?:\/\/(www\.)?boardgamearena\.com\/.*/i.test(v),
+      )
+      .withMessage("El link debe ser de boardgamearena.com"),
   ],
   asyncHandler(async (req, res) => {
     checkValidation(req);
@@ -661,6 +682,10 @@ router.put(
           !Object.prototype.hasOwnProperty.call(req.body, "tutorialMode")))
     ) {
       table.tutorialVideoId = req.body.tutorialVideoId || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "bgaUrl")) {
+      const v = req.body.bgaUrl;
+      table.bgaUrl = v && typeof v === "string" && v.trim() ? v.trim() : null;
     }
 
     try {
