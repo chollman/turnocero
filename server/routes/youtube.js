@@ -1,0 +1,39 @@
+const express = require("express");
+const asyncHandler = require("../utils/asyncHandler");
+const userRateLimit = require("../middleware/userRateLimit");
+const { searchTutorials } = require("../services/youtube/youtubeSearch");
+
+const router = express.Router();
+
+// Sin auth — mesas públicas son visibles sin login. userRateLimit cae a
+// `ip:<addr>` cuando no hay req.user, así que esto rate-limitea por IP
+// para visitantes anónimos. 60 req/min/IP es generoso para uso humano
+// (cada TableDetail dispara 1 call) y corta abuso scripteado.
+const tutorialsLimiter = userRateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: "Demasiados pedidos, esperá un momento.",
+});
+
+/**
+ * GET /api/youtube/como-se-juega?juego=<nombre>
+ *
+ * Devuelve los primeros 3 resultados de YouTube para "Como se juega <nombre>".
+ * Cacheado server-side 7 días en Mongo + 5 min de browser cache.
+ *
+ * El servicio nunca tira — si falta la key, YouTube responde error, o la
+ * quota se agotó, devuelve `{ items: [] }`. La sección del frontend se
+ * auto-oculta con items vacíos.
+ */
+router.get(
+  "/como-se-juega",
+  tutorialsLimiter,
+  asyncHandler(async (req, res) => {
+    const juego = (req.query.juego || "").toString();
+    const result = await searchTutorials(juego);
+    res.set("Cache-Control", "public, max-age=300"); // 5 min browser cache
+    res.json(result);
+  }),
+);
+
+module.exports = router;

@@ -19,6 +19,7 @@ import TableChat from "./TableChat";
 import TableComments from "./TableComments";
 import TableGallery from "./TableGallery";
 import TableRatings from "./TableRatings";
+import TableTutorials from "./TableTutorials";
 import MesaStub from "./MesaStub";
 import styles from "./TableDetail.module.css";
 
@@ -805,6 +806,8 @@ export default function TableDetail() {
                   </div>
                 </div>
               </section>
+
+              <TableTutorials boardGame={table.boardGame} />
 
               {/* Pending requests — host only on private tables */}
               {isHost && isPrivate && (

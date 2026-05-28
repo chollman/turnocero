@@ -196,6 +196,11 @@ export const API = {
   // ── Geocoding ────────────────────────────────────────────────────────
   geocode: "/api/geocode",
 
+  // ── YouTube (tutoriales "Como se juega") ─────────────────────────────
+  youtube: {
+    COMO_SE_JUEGA: "/api/youtube/como-se-juega",
+  },
+
   // ── Health ───────────────────────────────────────────────────────────
   health: "/api/health",
 };
