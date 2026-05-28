@@ -35,7 +35,18 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Take over immediately on activation and skip the "waiting" phase.
+        // Without these, a new SW would wait for every open tab to close
+        // before activating — leaving users on a stale cache that points
+        // to JS chunks that no longer exist on the server (white screen).
+        clientsClaim: true,
+        skipWaiting: true,
+        // Drop precaches from previous SW versions so we don't keep
+        // serving deleted chunks.
+        cleanupOutdatedCaches: true,
         navigateFallback: "/index.html",
+        // Don't serve the SPA shell for API requests.
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
             urlPattern: /^\/api\//,
