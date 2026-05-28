@@ -108,4 +108,42 @@ describe("<TableMap>", () => {
     );
     expect(container.querySelector("image")).toBeNull();
   });
+
+  it("renders the user's avatar clipped to the seat circle when available", () => {
+    const HOST_WITH_AVATAR = {
+      _id: "h2",
+      username: "withavatar",
+      avatar: {
+        url: "https://example.com/avatar.webp",
+        publicId: "users/h2/avatar",
+      },
+    };
+    const { container } = render(
+      <TableMap host={HOST_WITH_AVATAR} players={[]} maxPlayers={2} />,
+    );
+    const avatarImg = container.querySelector(
+      'image[href="https://example.com/avatar.webp"]',
+    );
+    expect(avatarImg).not.toBeNull();
+    // clipPath that matches the seat radius (7) must exist.
+    const clipCircle = container.querySelector('clipPath circle[r="7"]');
+    expect(clipCircle).not.toBeNull();
+  });
+
+  it("hides the seat initial text when the user has a custom avatar", () => {
+    const HOST_WITH_AVATAR = {
+      _id: "h2",
+      username: "withavatar",
+      avatar: {
+        url: "https://example.com/avatar.webp",
+        publicId: "users/h2/avatar",
+      },
+    };
+    const { container } = render(
+      <TableMap host={HOST_WITH_AVATAR} players={[]} maxPlayers={2} />,
+    );
+    // 1 host seat with avatar + 2 empty seats with "?" initials = 2 initials.
+    const initials = container.querySelectorAll('[class*="seatInitial"]');
+    expect(initials.length).toBe(2);
+  });
 });

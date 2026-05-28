@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { hashStringToInt, AVATAR_PALETTE } from "../../utils/hash";
 import { getUserDisplay } from "../../utils/userDisplay";
 import styles from "./TableMap.module.css";
@@ -38,8 +39,7 @@ const PALETTE_HEX = {
 function colorFor(user) {
   if (!user) return PALETTE_HEX["--amber"];
   const id = String(user._id || user.id || user.username || "anon");
-  const tokenVar =
-    AVATAR_PALETTE[hashStringToInt(id) % AVATAR_PALETTE.length];
+  const tokenVar = AVATAR_PALETTE[hashStringToInt(id) % AVATAR_PALETTE.length];
   return PALETTE_HEX[tokenVar] || PALETTE_HEX["--amber"];
 }
 
@@ -58,6 +58,13 @@ function handleOf(user) {
   return `@${d.username || d.displayName || "anon"}`;
 }
 
+function avatarUrlOf(user) {
+  if (!user) return null;
+  const d = getUserDisplay(user);
+  if (d.isDeleted) return null;
+  return d.avatar?.url || null;
+}
+
 export default function TableMap({
   host,
   players = [],
@@ -66,6 +73,9 @@ export default function TableMap({
   game = "",
   imageUrl = null,
 }) {
+  // Prefix único para los clipPaths de los avatares — evita colisiones si
+  // hay más de un <TableMap> en el DOM (p. ej. listas de mesas).
+  const clipPrefix = useId().replace(/:/g, "");
   const totalSeats = (maxPlayers || 0) + 1; // host counts
   // Build seats: [host, ...players, ...empty]
   const seats = [{ kind: "host", user: host }];
@@ -172,15 +182,13 @@ export default function TableMap({
       {/* Center game tile — si hay imagen del juego (bggImage), la usamos
           como background del rect, clippeada al mismo rounded-rect, con
           un overlay oscuro encima para que el texto siga siendo legible.
-          Sin imagen, fallback al rect oscuro original.
-          El rect mide 36×24 (2× del tamaño original 18×12) para dejar
-          ver mejor la imagen del juego en el centro de la mesa. */}
+          Sin imagen, fallback al rect oscuro original. */}
       <g transform={`translate(${CX} ${CY})`}>
         {imageUrl && (
           <>
             <defs>
               <clipPath id="centerTileClip">
-                <rect x={-18} y={-12} width={36} height={24} rx={3} />
+                <rect x={-16} y={-16} width={32} height={32} rx={3} />
               </clipPath>
             </defs>
             {/* Bump sutil de brillo + saturación para que la imagen
@@ -188,29 +196,29 @@ export default function TableMap({
                 vivo de la mesa. */}
             <image
               href={imageUrl}
-              x={-18}
-              y={-12}
-              width={36}
-              height={24}
+              x={-16}
+              y={-16}
+              width={32}
+              height={32}
               preserveAspectRatio="xMidYMid slice"
               clipPath="url(#centerTileClip)"
               style={{ filter: "brightness(1.1) saturate(1.15)" }}
             />
             <rect
-              x={-18}
-              y={-12}
-              width={36}
-              height={24}
+              x={-16}
+              y={-16}
+              width={32}
+              height={32}
               rx={3}
               fill="var(--tm-tile-overlay)"
             />
           </>
         )}
         <rect
-          x={-18}
-          y={-12}
-          width={36}
-          height={24}
+          x={-16}
+          y={-16}
+          width={32}
+          height={32}
           rx={3}
           fill={imageUrl ? "transparent" : "var(--tm-tile-bg)"}
           stroke="var(--tm-tile-stroke)"
@@ -225,6 +233,8 @@ export default function TableMap({
         const isEmpty = p.kind === "empty";
         const color = isEmpty ? "transparent" : colorFor(p.user);
         const initial = isEmpty ? "?" : initialOf(p.user);
+        const avatarUrl = isEmpty ? null : avatarUrlOf(p.user);
+        const clipId = `${clipPrefix}-seat-${i}`;
         // Strokes / lines de los asientos — tokens theme-aware definidos
         // en TableMap.module.css. Los `colorFor(user)` siguen siendo brand
         // hex porque son colores derivados del avatar (estables across
@@ -233,9 +243,7 @@ export default function TableMap({
           ? "var(--tm-empty-stroke)"
           : "var(--tm-seat-stroke)";
         const strokeDasharray = isEmpty ? "0.8 0.8" : "0";
-        const lineColor = isEmpty
-          ? "var(--tm-empty-line)"
-          : colorFor(p.user);
+        const lineColor = isEmpty ? "var(--tm-empty-line)" : colorFor(p.user);
 
         return (
           <g key={i} className={styles.seatGroup}>
@@ -270,31 +278,59 @@ export default function TableMap({
                 />
               </circle>
             )}
-            {/* Seat circle */}
+            {/* Seat circle — fill con brand color (fallback) o avatar
+                clippeado al círculo si el usuario lo tiene. El stroke se
+                pinta encima como ring. */}
+            {avatarUrl && (
+              <defs>
+                <clipPath id={clipId}>
+                  <circle cx={p.x} cy={p.y} r={SEAT_RADIUS} />
+                </clipPath>
+              </defs>
+            )}
             <circle
               cx={p.x}
               cy={p.y}
               r={SEAT_RADIUS}
               fill={color}
+              filter={!isEmpty ? "url(#seatShadow)" : undefined}
+            />
+            {avatarUrl && (
+              <image
+                href={avatarUrl}
+                x={p.x - SEAT_RADIUS}
+                y={p.y - SEAT_RADIUS}
+                width={SEAT_RADIUS * 2}
+                height={SEAT_RADIUS * 2}
+                preserveAspectRatio="xMidYMid slice"
+                clipPath={`url(#${clipId})`}
+              />
+            )}
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r={SEAT_RADIUS}
+              fill="none"
               stroke={stroke}
               strokeWidth="0.5"
               strokeDasharray={strokeDasharray}
-              filter={!isEmpty ? "url(#seatShadow)" : undefined}
             />
-            {/* Initial — para seats filled siempre blanco (sobre brand color),
-                para empty usamos var(--text-primary) que en light vira a
+            {/* Initial — sólo si no hay avatar. Filled: blanco sobre brand
+                color; empty: var(--text-primary) que en light vira a
                 oscuro y queda legible sobre el felt mint claro. */}
-            <text
-              x={p.x}
-              y={p.y}
-              className={styles.seatInitial}
-              style={{
-                opacity: isEmpty ? 0.4 : 1,
-                fill: isEmpty ? "var(--text-primary)" : "#fff",
-              }}
-            >
-              {initial}
-            </text>
+            {!avatarUrl && (
+              <text
+                x={p.x}
+                y={p.y}
+                className={styles.seatInitial}
+                style={{
+                  opacity: isEmpty ? 0.4 : 1,
+                  fill: isEmpty ? "var(--text-primary)" : "#fff",
+                }}
+              >
+                {initial}
+              </text>
+            )}
             {/* Host crown */}
             {isHost && (
               <text
