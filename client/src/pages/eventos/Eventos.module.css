@@ -221,6 +221,12 @@
   box-shadow: 0 4px 22px var(--amber-glow);
 }
 
+/* Mobile FAB — hidden on desktop; shown via @media below.
+   Pattern mirrored from Dashboard.module.css. */
+.fab {
+  display: none;
+}
+
 /* Form wrapper */
 .formWrap {
   margin-bottom: 32px;
@@ -436,7 +442,7 @@
     margin-bottom: 0;
   }
   .heroRight {
-    justify-content: center;
+    justify-content: space-evenly;
     gap: 18px;
   }
   .heroStatRow {
@@ -450,13 +456,55 @@
     font-size: clamp(2rem, 7vw, 2.8rem);
   }
 
+  /* Mirror Dashboard's mobile controls layout: stack vertically with the
+     search taking full width on top and the chip/view row underneath. */
   .controls {
-    gap: 18px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
     margin-top: 18px;
     margin-bottom: 18px;
   }
+  .searchInput {
+    width: 100%;
+    flex: 1;
+    min-width: 0;
+  }
   .controlsRight {
+    justify-content: space-between;
     flex-wrap: wrap;
+  }
+  /* The inline "+ Nuevo evento" button is replaced by the FAB on mobile. */
+  .newBtn {
+    display: none;
+  }
+
+  .fab {
+    position: fixed;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    right: 16px;
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--amber);
+    color: var(--on-amber);
+    border: none;
+    text-decoration: none;
+    padding: 12px 18px;
+    border-radius: 999px;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 16px var(--amber-glow);
+    transition: all var(--transition);
+    cursor: pointer;
+  }
+  .fab:hover {
+    background: var(--amber-light);
+    color: var(--on-amber);
+    box-shadow: 0 4px 22px var(--amber-glow);
   }
 
   .formWrap {

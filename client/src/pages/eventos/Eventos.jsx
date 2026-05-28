@@ -544,6 +544,18 @@ export default function Eventos() {
             </button>
           </div>
         )}
+
+      {/* FAB — mobile only, admin only. Hidden while the create form is open. */}
+      {isAdmin && !creating && (
+        <button
+          type="button"
+          className={styles.fab}
+          onClick={startCreating}
+          aria-label="Nuevo evento"
+        >
+          <PlusIcon size={13} /> Nuevo evento
+        </button>
+      )}
     </div>
   );
 }

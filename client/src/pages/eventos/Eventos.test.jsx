@@ -187,8 +187,10 @@ describe("<Eventos>", () => {
   it('admins see the "Nuevo evento" button and chips for borradores/cancelados', async () => {
     renderPage({ user: { _id: "admin", isAdmin: true } });
     await screen.findByText("Open House");
+    // Two buttons share this name in the DOM (the inline newBtn + the mobile
+    // FAB). Either one being present satisfies the contract.
     expect(
-      screen.getByRole("button", { name: /nuevo evento/i }),
+      screen.getAllByRole("button", { name: /nuevo evento/i })[0],
     ).toBeInTheDocument();
     openFilters();
     expect(
@@ -287,7 +289,10 @@ describe("<Eventos>", () => {
   it('admin: clicking "Nuevo evento" reveals the EventoForm', async () => {
     renderPage({ user: { _id: "admin", isAdmin: true } });
     await screen.findByText("Open House");
-    fireEvent.click(screen.getByRole("button", { name: /nuevo evento/i }));
+    // Inline newBtn (mobile FAB is the second match).
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /nuevo evento/i })[0],
+    );
     expect(await screen.findByLabelText(/título/i)).toBeInTheDocument();
   });
 
@@ -508,8 +513,11 @@ describe("<Eventos>", () => {
     renderPage({ user: { _id: "admin", isAdmin: true } });
     // Esperar que termine el load inicial (lista vacía).
     await screen.findByText(/no hay eventos/i);
-    // Click "Nuevo evento" → abre el form
-    fireEvent.click(screen.getByRole("button", { name: /nuevo evento/i }));
+    // Click "Nuevo evento" (inline button — FAB shares the same name) →
+    // abre el form
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /nuevo evento/i })[0],
+    );
     // Llenar título, fecha y lugar (los 3 son obligatorios)
     fireEvent.change(await screen.findByLabelText(/título/i), {
       target: { value: "Mi Draft" },
@@ -727,12 +735,15 @@ describe("<Eventos>", () => {
     // Esperar a que cargue la lista vacía.
     await waitFor(() => {
       expect(
-        screen.getByRole("button", { name: /nuevo evento/i }),
+        screen.getAllByRole("button", { name: /nuevo evento/i })[0],
       ).toBeInTheDocument();
     });
 
-    // Abrir el form y submitearlo con datos mínimos.
-    fireEvent.click(screen.getByRole("button", { name: /nuevo evento/i }));
+    // Abrir el form y submitearlo con datos mínimos (inline newBtn — el FAB
+    // comparte el accessible name).
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /nuevo evento/i })[0],
+    );
     fireEvent.change(await screen.findByLabelText(/título/i), {
       target: { value: "Recién Creado" },
     });
