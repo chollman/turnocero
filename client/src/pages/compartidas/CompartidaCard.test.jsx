@@ -312,6 +312,62 @@ describe("<CompartidaCard>", () => {
     expect(screen.getByText(/compartida del día/i)).toBeInTheDocument();
   });
 
+  it("featured: la mesa enlazada es clickeable (link a /mesas/:id) con CTA impactante", () => {
+    useAuth.mockReturnValue({ user: null });
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+    const { container } = render(
+      <MemoryRouter>
+        <CompartidaCard
+          post={makePost({
+            linkedTable: {
+              _id: "tF",
+              boardGame: "Catán",
+              date: new Date(Date.now() + 86400000).toISOString(),
+              players: [],
+              maxPlayers: 4,
+              status: "open",
+            },
+          })}
+          featured
+          onDeleted={vi.fn()}
+          onUpdated={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    const link = container.querySelector('a[href="/mesas/tF"]');
+    expect(link).toBeInTheDocument();
+    // Open table → strong "Sumate" CTA + availability badge.
+    expect(link).toHaveTextContent(/sumate/i);
+    expect(link).toHaveTextContent(/lugares? libres?/i);
+  });
+
+  it("featured: muestra las fotos extra como thumbnails (no solo una)", () => {
+    useAuth.mockReturnValue({ user: null });
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+    const { container } = render(
+      <MemoryRouter>
+        <CompartidaCard
+          post={makePost({
+            images: [
+              { _id: "i1", url: "https://cdn/1.jpg" },
+              { _id: "i2", url: "https://cdn/2.jpg" },
+              { _id: "i3", url: "https://cdn/3.jpg" },
+            ],
+          })}
+          featured
+          onDeleted={vi.fn()}
+          onUpdated={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    const srcs = [...container.querySelectorAll("img")].map((i) =>
+      i.getAttribute("src"),
+    );
+    // hero polaroid + thumbnail strip → the extra photos are reachable
+    expect(srcs).toContain("https://cdn/2.jpg");
+    expect(srcs).toContain("https://cdn/3.jpg");
+  });
+
   // -----------------------------------------------------------------------
   // Body expand/collapse
   // -----------------------------------------------------------------------

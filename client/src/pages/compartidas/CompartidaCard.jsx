@@ -298,6 +298,180 @@ export default function CompartidaCard({
     ? post.body.slice(0, 180) + (post.body.length > 180 ? "…" : "")
     : null;
 
+  // Linked mesa/evento tickets — shared between the normal and the featured
+  // (compartida del día) layouts so the linked mesa/evento is clickable in
+  // both (the featured card used to show only a non-clickable text pill).
+  const linkedTickets = (
+    <>
+      {table && (
+        <div className={styles.mesaTicket}>
+          <div className={styles.mesaTile}>
+            <GameTile
+              game={table.boardGame}
+              seed={table._id?.charCodeAt(0) || 42}
+              size={38}
+              imageUrl={table.bggThumbnail}
+            />
+          </div>
+          <div className={styles.mesaInfo}>
+            <span className={styles.mesaLabel}>◆ Mesa enlazada</span>
+            <span className={styles.mesaGame}>{table.boardGame}</span>
+            <span className={styles.mesaMeta}>
+              {formatTableDate(table.date)}
+              {(() => {
+                const loc = getLocationDisplay(table.location, "city");
+                return loc ? ` · ${loc}` : "";
+              })()}
+              {tableOpen &&
+                ` · ${tableSeats} lugar${tableSeats !== 1 ? "es" : ""}`}
+            </span>
+          </div>
+          <Link
+            to={`/mesas/${table._id}`}
+            className={`${styles.mesaCta} ${tableOpen ? styles.mesaCtaOpen : ""}`}
+          >
+            {tableOpen ? "Unirse" : "Ver mesa"}
+          </Link>
+        </div>
+      )}
+
+      {evento && (
+        <div className={styles.mesaTicket}>
+          <div className={styles.mesaTile} aria-hidden="true">
+            <span style={{ fontSize: 22 }}>🎟️</span>
+          </div>
+          <div className={styles.mesaInfo}>
+            <span className={styles.mesaLabel}>◆ Evento enlazado</span>
+            <span className={styles.mesaGame}>{evento.title}</span>
+            <span className={styles.mesaMeta}>
+              {formatTableDate(evento.eventDate)}
+              {evento.location?.texto ? ` · ${evento.location.texto}` : ""}
+            </span>
+          </div>
+          <Link to={`/eventos/${evento._id}`} className={styles.mesaCta}>
+            Ver evento
+          </Link>
+        </div>
+      )}
+    </>
+  );
+
+  // Bolder linked-mesa/evento design reserved for the featured (compartida del
+  // día) layout: a full-width "join the table" CTA card with the game art as a
+  // blurred backdrop, a large cover, big title, availability badge and a strong
+  // primary CTA. The whole card is the link.
+  const ctaArrow = (
+    <svg
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M5 12h14" />
+      <path d="M13 6l6 6-6 6" />
+    </svg>
+  );
+
+  const featuredLinkedTickets = (
+    <>
+      {table && (
+        <Link
+          to={`/mesas/${table._id}`}
+          className={styles.featuredMesa}
+          aria-label={`${tableOpen ? "Sumate a la mesa" : "Ver la mesa"} de ${table.boardGame}`}
+        >
+          {table.bggThumbnail && (
+            <div
+              className={styles.featuredMesaBg}
+              style={{ backgroundImage: `url(${table.bggThumbnail})` }}
+              aria-hidden="true"
+            />
+          )}
+          <div className={styles.featuredMesaCover}>
+            <GameTile
+              game={table.boardGame}
+              seed={table._id?.charCodeAt(0) || 42}
+              size={72}
+              imageUrl={table.bggThumbnail}
+            />
+          </div>
+          <div className={styles.featuredMesaBody}>
+            <span className={styles.featuredMesaLabel}>
+              ◆ La mesa de esta compartida
+            </span>
+            <span className={styles.featuredMesaGame}>{table.boardGame}</span>
+            <span className={styles.featuredMesaMeta}>
+              <span>
+                {formatTableDate(table.date)}
+                {(() => {
+                  const loc = getLocationDisplay(table.location, "city");
+                  return loc ? ` · ${loc}` : "";
+                })()}
+              </span>
+              {tableOpen && (
+                <span className={styles.featuredMesaSeats}>
+                  {tableSeats} {tableSeats === 1 ? "lugar libre" : "lugares libres"}
+                </span>
+              )}
+            </span>
+          </div>
+          <span
+            className={`${styles.featuredMesaCta} ${tableOpen ? styles.featuredMesaCtaOpen : ""}`}
+          >
+            {tableOpen ? "Sumate" : "Ver mesa"}
+            {ctaArrow}
+          </span>
+        </Link>
+      )}
+
+      {evento && (
+        <Link
+          to={`/eventos/${evento._id}`}
+          className={styles.featuredMesa}
+          aria-label={`Ver el evento ${evento.title}`}
+        >
+          {evento.image?.url && (
+            <div
+              className={styles.featuredMesaBg}
+              style={{ backgroundImage: `url(${evento.image.url})` }}
+              aria-hidden="true"
+            />
+          )}
+          <div className={styles.featuredMesaCover}>
+            {evento.image?.url ? (
+              <img src={evento.image.url} alt="" loading="lazy" />
+            ) : (
+              <span style={{ fontSize: 30 }} aria-hidden="true">
+                🎟️
+              </span>
+            )}
+          </div>
+          <div className={styles.featuredMesaBody}>
+            <span className={styles.featuredMesaLabel}>
+              ◆ El evento de esta compartida
+            </span>
+            <span className={styles.featuredMesaGame}>{evento.title}</span>
+            <span className={styles.featuredMesaMeta}>
+              <span>
+                {formatTableDate(evento.eventDate)}
+                {evento.location?.texto ? ` · ${evento.location.texto}` : ""}
+              </span>
+            </span>
+          </div>
+          <span className={styles.featuredMesaCta}>
+            Ver evento
+            {ctaArrow}
+          </span>
+        </Link>
+      )}
+    </>
+  );
+
   // ── Featured broadside (compartida del día) ──
   // Renders the desktop-handoff broadside layout: eyebrow + title + body
   // + integrated meta row (game · likes · comments) on the left, big
@@ -349,11 +523,6 @@ export default function CompartidaCard({
               {post.body && <p className={styles.pullQuote}>{pullQuote}</p>}
 
               <div className={styles.broadsideMeta}>
-                {table && (
-                  <span>
-                    ◆ <strong>{table.boardGame}</strong>
-                  </span>
-                )}
                 <button
                   type="button"
                   className={`${styles.broadsideStat} ${liked ? styles.broadsideStatLiked : ""}`}
@@ -435,8 +604,25 @@ export default function CompartidaCard({
                   caption="el momento exacto"
                 />
               </button>
+              {imageCount > 1 && (
+                <div className={styles.featuredThumbs}>
+                  {post.images.slice(1).map((img, i) => (
+                    <button
+                      key={img._id || i}
+                      type="button"
+                      className={styles.featuredThumb}
+                      onClick={() => img.url && setLightbox(img.url)}
+                      aria-label={`Ver foto ${i + 2}`}
+                    >
+                      <img src={img.url} alt="" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
+
+          {featuredLinkedTickets}
 
           {showComments && (
             <CompartidaComments
@@ -621,67 +807,7 @@ export default function CompartidaCard({
         </div>
       )}
 
-      {/* ── Linked Mesa (ticket-stub with perforations) ── */}
-      {table && (
-        <div className={styles.mesaTicket}>
-          <div className={styles.mesaTile}>
-            <GameTile
-              game={table.boardGame}
-              seed={table._id?.charCodeAt(0) || 42}
-              size={38}
-              imageUrl={table.bggThumbnail}
-            />
-          </div>
-          <div className={styles.mesaInfo}>
-            <span className={styles.mesaLabel}>◆ Mesa enlazada</span>
-            <span className={styles.mesaGame}>{table.boardGame}</span>
-            <span className={styles.mesaMeta}>
-              {formatTableDate(table.date)}
-              {(() => {
-                const loc = getLocationDisplay(table.location, "city");
-                return loc ? ` · ${loc}` : "";
-              })()}
-              {tableOpen &&
-                ` · ${tableSeats} lugar${tableSeats !== 1 ? "es" : ""}`}
-            </span>
-          </div>
-          <Link
-            to={`/mesas/${table._id}`}
-            className={`${styles.mesaCta} ${tableOpen ? styles.mesaCtaOpen : ""}`}
-          >
-            {tableOpen ? "Unirse" : "Ver mesa"}
-          </Link>
-        </div>
-      )}
-
-      {/* ── Linked Evento (mismo patrón que mesa) ── */}
-      {evento && (
-        <div className={styles.mesaTicket}>
-          <div className={styles.mesaTile} aria-hidden="true">
-            <span style={{ fontSize: 22 }}>🎟️</span>
-          </div>
-          <div className={styles.mesaInfo}>
-            <span className={styles.mesaLabel}>◆ Evento enlazado</span>
-            <span className={styles.mesaGame}>{evento.title}</span>
-            <span className={styles.mesaMeta}>
-              {formatTableDate(evento.eventDate)}
-              {evento.location?.texto ? ` · ${evento.location.texto}` : ""}
-            </span>
-          </div>
-          <Link to={`/eventos/${evento._id}`} className={styles.mesaCta}>
-            Ver evento
-          </Link>
-        </div>
-      )}
-
-      {/* ── Featured meta row (game pill only; counts live in footer) ── */}
-      {featured && table && (
-        <div className={styles.broadsideMeta}>
-          <span>
-            ◆ <strong>{table.boardGame}</strong>
-          </span>
-        </div>
-      )}
+      {linkedTickets}
     </>
   );
 

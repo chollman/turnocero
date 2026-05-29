@@ -592,7 +592,226 @@
   padding: 0;
   display: grid;
   place-items: center;
+  gap: 14px;
   perspective: 1000px;
+}
+
+/* With extra photos, lay them out as a vertical strip to the RIGHT of the hero
+   polaroid (compartidas allow ≤3 images → ≤2 extras, so it stays compact). The
+   hero shrinks a touch to make room within the 260px photo column. */
+.photosFeatured:has(.featuredThumbs) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.photosFeatured:has(.featuredThumbs) .photoBtn {
+  width: 200px;
+}
+
+/* Extra photos of a featured compartida (beyond the hero polaroid) — a
+   clickable thumbnail strip so the rest of the gallery stays accessible. */
+.featuredThumbs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.featuredThumb {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  cursor: pointer;
+  transition:
+    transform var(--transition),
+    border-color var(--transition);
+}
+
+.featuredThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.featuredThumb:hover {
+  transform: scale(1.05);
+  border-color: var(--amber);
+}
+
+/* ── Featured (compartida del día) linked mesa/evento ─────────────
+   A bolder, more impactful "join the table" CTA than the regular
+   ticket-stub: game art as a blurred backdrop, a large cover, big
+   title, availability badge and a strong primary CTA. Whole card links. */
+.featuredMesa {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 18px 0 0;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  background:
+    radial-gradient(620px circle at 0% 50%, var(--amber-15), transparent 62%),
+    var(--bg-elevated);
+  overflow: hidden;
+  text-decoration: none;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition);
+}
+
+.featuredMesa:hover {
+  transform: translateY(-2px);
+  border-color: var(--amber);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.45),
+    0 0 0 1px var(--amber-30);
+}
+
+/* Blurred game art backdrop. Sits above the card bg, below the content
+   (which is position:relative z-index:1). Inset negative + overflow:hidden
+   on the card hides the blur edges. */
+.featuredMesaBg {
+  position: absolute;
+  inset: -22%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(24px) brightness(0.45) saturate(1.25);
+  opacity: 0.5;
+}
+
+.featuredMesaBg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(10, 13, 21, 0.55),
+    rgba(10, 13, 21, 0.82)
+  );
+}
+
+.featuredMesaCover {
+  position: relative;
+  z-index: 1;
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg-dark);
+  display: grid;
+  place-items: center;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.45),
+    0 0 0 2px var(--amber-25);
+}
+.featuredMesaCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.featuredMesaBody {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.featuredMesaLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber-light);
+}
+
+.featuredMesaGame {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.featuredMesaMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.featuredMesaSeats {
+  background: var(--green-15);
+  color: var(--green);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.featuredMesaCta {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  background: var(--amber);
+  color: var(--on-amber);
+  padding: 11px 18px;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
+}
+
+.featuredMesa:hover .featuredMesaCta {
+  background: var(--amber-light);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.featuredMesaCta svg {
+  transition: transform var(--transition);
+}
+.featuredMesa:hover .featuredMesaCta svg {
+  transform: translateX(3px);
+}
+
+@media (max-width: 560px) {
+  .featuredMesa {
+    flex-wrap: wrap;
+  }
+  .featuredMesaCta {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .photosFeatured .photoBtn {
@@ -832,6 +1051,10 @@
 .broadsideMain {
   display: flex;
   flex-direction: column;
+  /* Center the text block (eyebrow + title + quote + meta) vertically against
+     the tall polaroid column. Keeps short descriptions from leaving a big
+     empty gap between the quote and the stats row. */
+  justify-content: center;
   min-width: 0;
 }
 
@@ -875,10 +1098,10 @@
   color: var(--text-muted);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  /* Anchor the stats row to the bottom of broadsideMain so the eyebrow,
-     title and quote stay glued to the top and the polaroid stays
-     centered against the whole column. */
-  margin-top: auto;
+  /* Fixed gap above the stats row (instead of pinning it to the bottom of the
+     column) so the whole text block can center as a group — no empty space
+     when the description is short. */
+  margin-top: 16px;
 }
 
 .broadsideMeta strong {
