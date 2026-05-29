@@ -6,7 +6,7 @@ import {
   fireEvent,
   waitFor,
 } from "@testing-library/react";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
@@ -545,5 +545,94 @@ describe("<EventoDetail>", () => {
     } finally {
       localStorage.removeItem("token");
     }
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────
+// "Compartir tu experiencia" → crea una compartida vinculada al evento
+// ───────────────────────────────────────────────────────────────────────
+function CompartidasProbe() {
+  const loc = useLocation();
+  return (
+    <div>
+      probe{loc.pathname}
+      {loc.search}
+    </div>
+  );
+}
+
+function renderWithProbe({ user = null, evento }) {
+  setupEvento(evento);
+  useAuth.mockReturnValue({ user });
+  useNotifications.mockReturnValue({ setActiveEvento: vi.fn() });
+  return render(
+    <HelmetProvider>
+      <MemoryRouter initialEntries={["/eventos/e1"]}>
+        <Routes>
+          <Route path="/eventos/:id" element={<EventoDetail />} />
+          <Route path="/compartidas" element={<CompartidasProbe />} />
+        </Routes>
+      </MemoryRouter>
+    </HelmetProvider>,
+  );
+}
+
+describe("<EventoDetail> — Compartir tu experiencia", () => {
+  const SHARE = { name: /compartir tu experiencia/i };
+
+  it("visible para el host → navega a /compartidas?evento=e1", async () => {
+    renderWithProbe({
+      user: { _id: "me" },
+      evento: makeEvento({
+        author: { _id: "me", username: "me", displayName: "Me", avatar: null },
+      }),
+    });
+    fireEvent.click(await screen.findByRole("button", SHARE));
+    expect(
+      await screen.findByText(/\/compartidas\?evento=e1/),
+    ).toBeInTheDocument();
+  });
+
+  it("visible para inscripción confirmada", async () => {
+    renderWithProbe({
+      user: { _id: "me" },
+      evento: makeEvento({ userRegistration: { status: "confirmed" } }),
+    });
+    expect(await screen.findByRole("button", SHARE)).toBeInTheDocument();
+  });
+
+  it("visible para inscripción pendiente", async () => {
+    renderWithProbe({
+      user: { _id: "me" },
+      evento: makeEvento({ userRegistration: { status: "pending" } }),
+    });
+    expect(await screen.findByRole("button", SHARE)).toBeInTheDocument();
+  });
+
+  it("NO visible para un usuario sin inscripción", async () => {
+    renderWithProbe({
+      user: { _id: "me" },
+      evento: makeEvento({ userRegistration: null }),
+    });
+    await screen.findByRole("heading", { name: "Mi Evento" });
+    expect(screen.queryByRole("button", SHARE)).not.toBeInTheDocument();
+  });
+
+  it("NO visible para invitado (sin login)", async () => {
+    renderWithProbe({ user: null, evento: makeEvento() });
+    await screen.findByRole("heading", { name: "Mi Evento" });
+    expect(screen.queryByRole("button", SHARE)).not.toBeInTheDocument();
+  });
+
+  it("NO visible en eventos draft o cancelled aunque seas host", async () => {
+    renderWithProbe({
+      user: { _id: "me" },
+      evento: makeEvento({
+        status: "cancelled",
+        author: { _id: "me", username: "me", displayName: "Me", avatar: null },
+      }),
+    });
+    await screen.findByRole("heading", { name: "Mi Evento" });
+    expect(screen.queryByRole("button", SHARE)).not.toBeInTheDocument();
   });
 });

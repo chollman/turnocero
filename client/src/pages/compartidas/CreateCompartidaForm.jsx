@@ -3,6 +3,8 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
+import GameTile from "../../components/shared/GameTile";
+import { getLocationDisplay } from "../../utils/location";
 import styles from "./CreateCompartidaForm.module.css";
 
 const PRIVACY_OPTIONS = [
@@ -11,45 +13,81 @@ const PRIVACY_OPTIONS = [
   { value: "private", label: "Solo yo", desc: "Privado" },
 ];
 
+function formatChipDate(date) {
+  if (!date) return "";
+  return new Date(date).toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
 export default function CreateCompartidaForm({
   onCreated,
   onCancel,
   prefilledTableId,
   prefilledEventoId,
+  initialFiles,
 }) {
   const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [privacy, setPrivacy] = useState("public");
+  // El linking es solo contextual: el id viene de la mesa/evento desde donde
+  // se abrió la compartida (no hay dropdown manual). Mostramos un chip quitable.
   const [linkedTableId, setLinkedTableId] = useState(prefilledTableId || "");
   const [linkedEventoId, setLinkedEventoId] = useState(prefilledEventoId || "");
-  const [myTables, setMyTables] = useState([]);
-  const [myEventos, setMyEventos] = useState([]);
+  const [linkedTable, setLinkedTable] = useState(null);
+  const [linkedEvento, setLinkedEvento] = useState(null);
   const [images, setImages] = useState([]); // [{ file, preview }]
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
 
+  // Sembrar fotos pasadas desde el composer ("Subir foto"). Una sola vez —
+  // ref guarda contra el doble-invoke de StrictMode (evita previews duplicadas).
+  const seededRef = useRef(false);
   useEffect(() => {
-    axios
-      .get(API.tables.MINE)
-      .then(({ data }) => {
-        // Solo mesas activas y públicas — el server rechaza vincular
-        // privadas/amigos (ver assertLinkable en utils/tablePrivacy.js).
-        const active = (data.tables || []).filter(
-          (t) =>
-            t.status !== "cancelled" && (t.privacy || "public") === "public",
-        );
-        setMyTables(active);
-      })
-      .catch(() => {});
-    axios
-      .get(API.eventos.MINE)
-      .then(({ data }) => {
-        setMyEventos(data.eventos || []);
-      })
-      .catch(() => {});
+    if (seededRef.current) return;
+    seededRef.current = true;
+    const files = Array.from(initialFiles || []).slice(0, 3);
+    if (files.length === 0) return;
+    setImages(files.map((file) => ({ file, preview: URL.createObjectURL(file) })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Resolver la mesa/evento prefilled para renderizar el chip. Si el fetch
+  // falla (403/404/sin acceso), limpiamos el id para no enviar un link inválido.
+  useEffect(() => {
+    if (!prefilledTableId) return undefined;
+    const ac = new AbortController();
+    axios
+      .get(API.tables.DETAIL(prefilledTableId), { signal: ac.signal })
+      .then(({ data }) => {
+        if (!ac.signal.aborted) setLinkedTable(data);
+      })
+      .catch((err) => {
+        if (axios.isCancel(err)) return;
+        setLinkedTable(null);
+        setLinkedTableId("");
+      });
+    return () => ac.abort();
+  }, [prefilledTableId]);
+
+  useEffect(() => {
+    if (!prefilledEventoId) return undefined;
+    const ac = new AbortController();
+    axios
+      .get(API.eventos.DETAIL(prefilledEventoId), { signal: ac.signal })
+      .then(({ data }) => {
+        if (!ac.signal.aborted) setLinkedEvento(data);
+      })
+      .catch((err) => {
+        if (axios.isCancel(err)) return;
+        setLinkedEvento(null);
+        setLinkedEventoId("");
+      });
+    return () => ac.abort();
+  }, [prefilledEventoId]);
 
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files || []);
@@ -67,6 +105,16 @@ export default function CreateCompartidaForm({
       URL.revokeObjectURL(prev[idx].preview);
       return prev.filter((_, i) => i !== idx);
     });
+  };
+
+  const unlinkTable = () => {
+    setLinkedTable(null);
+    setLinkedTableId("");
+  };
+
+  const unlinkEvento = () => {
+    setLinkedEvento(null);
+    setLinkedEventoId("");
   };
 
   const submittingRef = useRef(false);
@@ -126,6 +174,11 @@ export default function CreateCompartidaForm({
   const canSubmit =
     (title.trim() || body.trim() || images.length > 0) && !loading;
 
+  const tableLoc = linkedTable
+    ? getLocationDisplay(linkedTable.location, "city")
+    : "";
+  const eventoLoc = linkedEvento?.location?.texto || "";
+
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <div className={styles.header}>
@@ -134,6 +187,65 @@ export default function CreateCompartidaForm({
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
+
+      {/* ── Chip de mesa enlazada (contextual, quitable) ── */}
+      {linkedTable && (
+        <div className={styles.linkChip}>
+          <div className={styles.linkChipTile}>
+            <GameTile
+              game={linkedTable.boardGame}
+              seed={linkedTable._id?.charCodeAt(0) || 42}
+              size={40}
+              imageUrl={linkedTable.bggThumbnail}
+            />
+          </div>
+          <div className={styles.linkChipInfo}>
+            <span className={styles.linkChipLabel}>◆ Mesa enlazada</span>
+            <span className={styles.linkChipName}>{linkedTable.boardGame}</span>
+            <span className={styles.linkChipMeta}>
+              {formatChipDate(linkedTable.date)}
+              {tableLoc ? ` · ${tableLoc}` : ""}
+            </span>
+          </div>
+          <button
+            type="button"
+            className={styles.linkChipRemove}
+            onClick={unlinkTable}
+            disabled={loading}
+            aria-label="Quitar mesa enlazada"
+            title="Quitar mesa"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* ── Chip de evento enlazado (contextual, quitable) ── */}
+      {linkedEvento && (
+        <div className={styles.linkChip}>
+          <div className={styles.linkChipTile} aria-hidden="true">
+            <span style={{ fontSize: 22 }}>🎟️</span>
+          </div>
+          <div className={styles.linkChipInfo}>
+            <span className={styles.linkChipLabel}>◆ Evento enlazado</span>
+            <span className={styles.linkChipName}>{linkedEvento.title}</span>
+            <span className={styles.linkChipMeta}>
+              {formatChipDate(linkedEvento.eventDate)}
+              {eventoLoc ? ` · ${eventoLoc}` : ""}
+            </span>
+          </div>
+          <button
+            type="button"
+            className={styles.linkChipRemove}
+            onClick={unlinkEvento}
+            disabled={loading}
+            aria-label="Quitar evento enlazado"
+            title="Quitar evento"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <input
         className={styles.titleInput}
@@ -205,40 +317,6 @@ export default function CreateCompartidaForm({
           className={styles.fileInput}
           onChange={handleImageSelect}
         />
-
-        {/* Linked table picker */}
-        <select
-          className={styles.tableSelect}
-          value={linkedTableId}
-          onChange={(e) => setLinkedTableId(e.target.value)}
-          disabled={loading}
-        >
-          <option value="">Vincular mesa (opcional)</option>
-          {myTables.map((t) => (
-            <option key={t._id} value={t._id}>
-              {t.boardGame}
-            </option>
-          ))}
-        </select>
-
-        {/* Linked evento picker — solo se muestra si el usuario tiene
-            eventos donde participó (author o inscripción active). */}
-        {myEventos.length > 0 && (
-          <select
-            className={styles.tableSelect}
-            value={linkedEventoId}
-            onChange={(e) => setLinkedEventoId(e.target.value)}
-            disabled={loading}
-            aria-label="Vincular evento"
-          >
-            <option value="">Vincular evento (opcional)</option>
-            {myEventos.map((e) => (
-              <option key={e._id} value={e._id}>
-                {e.title}
-              </option>
-            ))}
-          </select>
-        )}
       </div>
 
       {/* Privacy */}

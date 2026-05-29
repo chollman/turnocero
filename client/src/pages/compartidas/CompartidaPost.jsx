@@ -54,11 +54,12 @@ export default function CompartidaPost() {
     ? post.body.slice(0, 160) + (post.body.length > 160 ? "…" : "")
     : "Mirá esta compartida en TurnoCero, la comunidad de juegos de mesa.";
   const rawImage = post?.images?.[0]?.url;
-  // Resize to 1200×630 via Cloudinary transformation for optimal OG display
+  // Resize to 1200×630 via Cloudinary transformation for optimal OG display.
+  // Sin foto cae al og-default.png (también 1200×630), así que siempre hay una
+  // imagen grande válida para la preview.
   const metaImage = rawImage
     ? rawImage.replace("/upload/", "/upload/w_1200,h_630,c_fill,g_auto/")
     : `${origin}/og-default.png`;
-  const hasImage = Boolean(rawImage);
 
   return (
     <div className={styles.page}>
@@ -80,10 +81,7 @@ export default function CompartidaPost() {
         <meta property="og:image:alt" content={metaTitle} />
 
         {/* Twitter / X */}
-        <meta
-          name="twitter:card"
-          content={hasImage ? "summary_large_image" : "summary"}
-        />
+        <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={metaTitle} />
         <meta name="twitter:description" content={metaDesc} />
         <meta name="twitter:image" content={metaImage} />

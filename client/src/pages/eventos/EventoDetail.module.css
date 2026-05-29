@@ -571,6 +571,14 @@
   gap: 12px;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .shareBtn {
   display: inline-flex;
   align-items: center;

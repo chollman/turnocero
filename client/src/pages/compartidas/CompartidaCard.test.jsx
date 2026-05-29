@@ -634,4 +634,46 @@ describe("<CompartidaCard>", () => {
       ),
     ).toBeInTheDocument();
   });
+
+  // -----------------------------------------------------------------------
+  // Compartir (share buttons) — regresión del deeplink duplicado
+  // -----------------------------------------------------------------------
+  it("el href de Telegram NO duplica el deeplink (url y caption por separado)", () => {
+    renderCard(makePost({ title: "Épica", body: "Ganamos en el último turno" }));
+    const tg = screen
+      .getByTitle(/compartir en telegram/i)
+      .getAttribute("href");
+    const occurrences = tg.split("compartidas%2Fc1").length - 1;
+    expect(occurrences).toBe(1);
+  });
+
+  it("el texto de WhatsApp incluye el deeplink exactamente una vez", () => {
+    renderCard(makePost({ title: "Épica", body: "Qué partidaza" }));
+    const wa = screen
+      .getByTitle(/compartir en whatsapp/i)
+      .getAttribute("href");
+    const occurrences = wa.split("compartidas%2Fc1").length - 1;
+    expect(occurrences).toBe(1);
+    // El emoji va una vez (decodificado %F0%9F%8E%B2 = 🎲)
+    expect(wa).toContain("%F0%9F%8E%B2");
+  });
+
+  it("copiar enlace escribe solo la url (sin caption ni emoji)", () => {
+    const writeText = vi.fn();
+    const original = navigator.clipboard;
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    renderCard(makePost({ title: "Épica", body: "Texto largo" }));
+    fireEvent.click(screen.getByTitle(/copiar enlace/i));
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const copied = writeText.mock.calls[0][0];
+    expect(copied).toMatch(/\/compartidas\/c1$/);
+    expect(copied).not.toContain("🎲");
+    Object.defineProperty(navigator, "clipboard", {
+      value: original,
+      configurable: true,
+    });
+  });
 });

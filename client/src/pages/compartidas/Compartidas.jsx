@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Fragment } from "react";
+import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
@@ -46,6 +46,7 @@ export default function Compartidas() {
   const bgwatchEnabled = isSectionEnabled("bgwatch");
   const [searchParams] = useSearchParams();
   const prefilledMesa = searchParams.get("mesa") || "";
+  const prefilledEvento = searchParams.get("evento") || "";
 
   const [posts, setPosts] = useState([]);
   const [featured, setFeatured] = useState(null);
@@ -54,8 +55,26 @@ export default function Compartidas() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [showCreate, setShowCreate] = useState(!!prefilledMesa);
+  const [showCreate, setShowCreate] = useState(
+    !!prefilledMesa || !!prefilledEvento,
+  );
+  // Fotos elegidas desde el "Subir foto" del composer — se siembran en el form.
+  const [composerFiles, setComposerFiles] = useState(null);
+  const composerFileRef = useRef(null);
   const [weekCount, setWeekCount] = useState(0);
+
+  const closeCreate = () => {
+    setShowCreate(false);
+    setComposerFiles(null);
+  };
+
+  const handleComposerPhoto = (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (files.length === 0) return;
+    setComposerFiles(files);
+    setShowCreate(true);
+  };
 
   const loadFeed = useCallback(async (pageNum = 1, replace = true) => {
     if (pageNum === 1) setLoading(true);
@@ -85,7 +104,7 @@ export default function Compartidas() {
 
   const handleCreated = (newPost) => {
     setPosts((prev) => [newPost, ...prev]);
-    setShowCreate(false);
+    closeCreate();
   };
 
   const handleDeleted = (id) => {
@@ -186,7 +205,7 @@ export default function Compartidas() {
                 <div className={styles.composerActions}>
                   <button
                     className={styles.composerIconBtn}
-                    onClick={() => setShowCreate(true)}
+                    onClick={() => composerFileRef.current?.click()}
                     aria-label="Subir foto"
                     title="Subir foto"
                   >
@@ -203,28 +222,15 @@ export default function Compartidas() {
                       <polyline points="21 15 16 10 5 21" />
                     </svg>
                   </button>
-                  <button
-                    className={styles.composerIconBtn}
-                    onClick={() => setShowCreate(true)}
-                    aria-label="Enlazar mesa"
-                    title="Enlazar mesa"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="3" width="18" height="18" rx="3" />
-                      <circle cx="8" cy="8" r="1.2" fill="currentColor" />
-                      <circle cx="16" cy="8" r="1.2" fill="currentColor" />
-                      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
-                      <circle cx="8" cy="16" r="1.2" fill="currentColor" />
-                      <circle cx="16" cy="16" r="1.2" fill="currentColor" />
-                    </svg>
-                  </button>
+                  <input
+                    ref={composerFileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    multiple
+                    hidden
+                    aria-hidden="true"
+                    onChange={handleComposerPhoto}
+                  />
                 </div>
               </div>
             </div>
@@ -241,8 +247,10 @@ export default function Compartidas() {
           {showCreate && (
             <CreateCompartidaForm
               onCreated={handleCreated}
-              onCancel={() => setShowCreate(false)}
+              onCancel={closeCreate}
               prefilledTableId={prefilledMesa}
+              prefilledEventoId={prefilledEvento}
+              initialFiles={composerFiles}
             />
           )}
 

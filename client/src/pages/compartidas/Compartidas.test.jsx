@@ -23,8 +23,19 @@ vi.mock("./CompartidaCard", () => ({
   ),
 }));
 vi.mock("./CreateCompartidaForm", () => ({
-  default: ({ onCreated, onCancel }) => (
-    <div data-testid="create-form">
+  default: ({
+    onCreated,
+    onCancel,
+    prefilledTableId,
+    prefilledEventoId,
+    initialFiles,
+  }) => (
+    <div
+      data-testid="create-form"
+      data-prefilled-table={prefilledTableId || ""}
+      data-prefilled-evento={prefilledEventoId || ""}
+      data-initial-files={(initialFiles || []).length}
+    >
       <button
         onClick={() =>
           onCreated?.({
@@ -55,12 +66,15 @@ import Compartidas from "./Compartidas";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 
-function renderPage({ user = { _id: "me", username: "me" } } = {}) {
+function renderPage({
+  user = { _id: "me", username: "me" },
+  initialEntries = ["/"],
+} = {}) {
   useAuth.mockReturnValue({ user });
   useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
   return render(
     <HelmetProvider>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={initialEntries}>
         <Compartidas />
       </MemoryRouter>
     </HelmetProvider>,
@@ -334,5 +348,37 @@ describe("<Compartidas>", () => {
       expect(screen.getByText("Página 2")).toBeInTheDocument(),
     );
     expect(screen.getByText("Página 1")).toBeInTheDocument();
+  });
+
+  it("el composer ya no tiene el botón 'Enlazar mesa'", async () => {
+    renderPage();
+    await screen.findByRole("button", { name: /qué jugaste hoy/i });
+    expect(
+      screen.queryByRole("button", { name: /enlazar mesa/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("'Subir foto' del composer abre el form con las fotos elegidas", async () => {
+    renderPage();
+    await screen.findByRole("button", { name: /subir foto/i });
+    const fileInput = document.querySelector('input[type="file"]');
+    expect(fileInput).toBeTruthy();
+    const file = new File(["img"], "p.jpg", { type: "image/jpeg" });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    const form = await screen.findByTestId("create-form");
+    expect(form).toBeInTheDocument();
+    expect(form.getAttribute("data-initial-files")).toBe("1");
+  });
+
+  it("?evento= abre el form y pasa prefilledEventoId", async () => {
+    renderPage({ initialEntries: ["/compartidas?evento=ev1"] });
+    const form = await screen.findByTestId("create-form");
+    expect(form.getAttribute("data-prefilled-evento")).toBe("ev1");
+  });
+
+  it("?mesa= abre el form y pasa prefilledTableId", async () => {
+    renderPage({ initialEntries: ["/compartidas?mesa=t9"] });
+    const form = await screen.findByTestId("create-form");
+    expect(form.getAttribute("data-prefilled-table")).toBe("t9");
   });
 });

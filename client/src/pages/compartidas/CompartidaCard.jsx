@@ -9,21 +9,10 @@ import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { getLocationDisplay } from "../../utils/location";
+import { buildCompartidaShare } from "../../utils/share";
 import CompartidaComments from "./CompartidaComments";
 import { useCompartidaLike } from "./useCompartidaLike";
 import styles from "./CompartidaCard.module.css";
-
-function buildShareData(post) {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const url = `${origin}/compartidas/${post._id}`;
-  const parts = [];
-  if (post.title) parts.push(`*${post.title}*`);
-  if (post.body)
-    parts.push(post.body.slice(0, 180) + (post.body.length > 180 ? "…" : ""));
-  parts.push(`🎲 ${url}`);
-  const text = parts.join("\n");
-  return { url, text };
-}
 
 // Returns a fully formed label (incl. its own "hace"/"el" prefix), so callers
 // must NOT prepend "hace" — recent posts read "hace 3h" and older ones spell
@@ -301,6 +290,10 @@ export default function CompartidaCard({
   const privacyLabel = PRIVACY_LABELS[post.privacy];
   const imageCount = post.images.length;
   const imageGridClass = styles[`photoGrid${Math.min(imageCount, 4)}`];
+  const share = buildCompartidaShare(
+    post,
+    typeof window !== "undefined" ? window.location.origin : "",
+  );
   const pullQuote = featured
     ? post.body.slice(0, 180) + (post.body.length > 180 ? "…" : "")
     : null;
@@ -765,7 +758,7 @@ export default function CompartidaCard({
             {/* WhatsApp */}
             <a
               className={styles.shareBtn}
-              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(buildShareData(post).text)}`}
+              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(share.whatsappText)}`}
               target="_blank"
               rel="noopener noreferrer"
               title="Compartir en WhatsApp"
@@ -776,10 +769,10 @@ export default function CompartidaCard({
               </svg>
             </a>
 
-            {/* Telegram */}
+            {/* Telegram — url y caption por separado para no duplicar el deeplink */}
             <a
               className={styles.shareBtn}
-              href={`https://t.me/share/url?url=${encodeURIComponent(buildShareData(post).url)}&text=${encodeURIComponent(buildShareData(post).text)}`}
+              href={`https://t.me/share/url?url=${encodeURIComponent(share.url)}&text=${encodeURIComponent(share.caption)}`}
               target="_blank"
               rel="noopener noreferrer"
               title="Compartir en Telegram"
@@ -793,7 +786,7 @@ export default function CompartidaCard({
             <button
               className={`${styles.shareBtn} ${copied ? styles.shareBtnCopied : ""}`}
               onClick={() => {
-                navigator.clipboard.writeText(buildShareData(post).url);
+                navigator.clipboard.writeText(share.url);
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}

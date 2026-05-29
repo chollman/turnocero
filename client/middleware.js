@@ -53,7 +53,10 @@ async function handleCompartida(url, id, apiUrl) {
     ? data.image.replace("/upload/", "/upload/w_1200,h_630,c_fill,g_auto/")
     : `${url.origin}/og-default.png`;
 
-  return ogHtml({ title, desc, image, imageIsLarge: hasImage, canonicalUrl });
+  // Siempre card grande: con foto va la imagen de la compartida; sin foto va el
+  // og-default.png (1200×630), así que el summary_large_image queda consistente
+  // con eventos (antes, sin foto, caía a card chica).
+  return ogHtml({ title, desc, image, imageIsLarge: true, canonicalUrl });
 }
 
 async function handleEvento(url, id, apiUrl) {

@@ -533,6 +533,16 @@ export default function EventoDetail() {
       isHost ||
       evento?.userRegistration?.status === "confirmed");
 
+  // "Compartir tu experiencia" → crear una compartida vinculada a este evento.
+  // Espejo del gating del server (routes/compartidas.js): author o inscripción
+  // confirmed/pending (más amplio que canActInEvento, que es solo confirmed).
+  const canCompartirExperiencia =
+    !!user &&
+    evento.status !== "draft" &&
+    evento.status !== "cancelled" &&
+    (isHost ||
+      ["confirmed", "pending"].includes(evento?.userRegistration?.status));
+
   // Las tabs se muestran solo a usuarios autenticados — guests sólo ven el
   // detalle (vista actual). En edit mode (admin editando) las tabs se ocultan
   // para no distraer del form.
@@ -588,33 +598,63 @@ export default function EventoDetail() {
         <Link to="/eventos" className={styles.back}>
           <ArrowLeftIcon size={11} /> Volver a eventos
         </Link>
-        {evento.status !== "draft" && evento.status !== "cancelled" && (
-          <button
-            type="button"
-            onClick={handleShare}
-            className={styles.shareBtn}
-            aria-label="Compartir evento"
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="18" cy="5" r="3" />
-              <circle cx="6" cy="12" r="3" />
-              <circle cx="18" cy="19" r="3" />
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-            </svg>
-            Compartir
-          </button>
-        )}
+        {(evento.status !== "draft" && evento.status !== "cancelled") ||
+        canCompartirExperiencia ? (
+          <div className={styles.headerActions}>
+            {canCompartirExperiencia && (
+              <button
+                type="button"
+                onClick={() => navigate(`/compartidas?evento=${id}`)}
+                className={styles.shareBtn}
+                aria-label="Compartir tu experiencia en este evento"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                Compartir tu experiencia
+              </button>
+            )}
+            {evento.status !== "draft" && evento.status !== "cancelled" && (
+              <button
+                type="button"
+                onClick={handleShare}
+                className={styles.shareBtn}
+                aria-label="Compartir evento"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+                Compartir
+              </button>
+            )}
+          </div>
+        ) : null}
       </div>
 
       <div className={styles.layout}>

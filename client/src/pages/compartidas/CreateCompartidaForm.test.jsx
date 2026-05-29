@@ -9,31 +9,24 @@ vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 import CreateCompartidaForm from "./CreateCompartidaForm";
 import { useAuth } from "../../context/AuthContext";
 
-function setup({
-  user = { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
-  myEventos = [],
-} = {}) {
-  useAuth.mockReturnValue({ user });
-  server.use(
-    http.get("/api/tables/mine", () =>
-      HttpResponse.json({
-        tables: [{ _id: "t1", boardGame: "Catán", status: "open" }],
-      }),
-    ),
-    http.get("/api/eventos/mine", () =>
-      HttpResponse.json({ eventos: myEventos }),
-    ),
-  );
+const baseUser = {
+  _id: "me",
+  username: "me",
+  avatar: { url: "", publicId: "" },
+};
+
+function renderForm(props = {}) {
+  useAuth.mockReturnValue({ user: baseUser });
   return render(
     <MemoryRouter>
-      <CreateCompartidaForm onCreated={vi.fn()} onCancel={vi.fn()} />
+      <CreateCompartidaForm onCreated={vi.fn()} onCancel={vi.fn()} {...props} />
     </MemoryRouter>,
   );
 }
 
 describe("<CreateCompartidaForm>", () => {
-  it("renders title + body inputs + the photo button", async () => {
-    setup();
+  it("renders title + body inputs + the photo button", () => {
+    renderForm();
     expect(screen.getByPlaceholderText(/título/i)).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
@@ -44,20 +37,25 @@ describe("<CreateCompartidaForm>", () => {
     ).toBeInTheDocument();
   });
 
+  it("ya no tiene dropdowns de vincular mesa/evento (linking es solo contextual)", () => {
+    renderForm();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    expect(screen.queryByText(/vincular mesa/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/vincular evento/i)).not.toBeInTheDocument();
+  });
+
   it("submit button is disabled when all fields are empty", () => {
-    setup();
+    renderForm();
     expect(
       screen.getByRole("button", { name: /publicar compartida/i }),
     ).toBeDisabled();
   });
 
   it("typing a body enables the submit button", () => {
-    setup();
+    renderForm();
     fireEvent.change(
       screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
-      {
-        target: { value: "Anoche jugamos…" },
-      },
+      { target: { value: "Anoche jugamos…" } },
     );
     expect(
       screen.getByRole("button", { name: /publicar compartida/i }),
@@ -65,9 +63,7 @@ describe("<CreateCompartidaForm>", () => {
   });
 
   it("shows validation error when submitting completely empty (defensive)", () => {
-    setup();
-    // canSubmit guard prevents submission via the disabled state; force a submit anyway
-    // via form submit event to exercise the inline validation branch.
+    renderForm();
     const form = screen.getByPlaceholderText(/título/i).closest("form");
     fireEvent.submit(form);
     expect(
@@ -76,7 +72,7 @@ describe("<CreateCompartidaForm>", () => {
   });
 
   it("changes privacy when clicking a privacy button", () => {
-    setup();
+    renderForm();
     const friendsBtn = screen.getByRole("button", { name: "Amigos" });
     fireEvent.click(friendsBtn);
     expect(friendsBtn.className).toMatch(/active/i);
@@ -84,133 +80,33 @@ describe("<CreateCompartidaForm>", () => {
 
   it("cancel button calls onCancel", () => {
     const onCancel = vi.fn();
-    useAuth.mockReturnValue({
-      user: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
-    });
-    server.use(
-      http.get("/api/tables/mine", () => HttpResponse.json({ tables: [] })),
-    );
-    render(
-      <MemoryRouter>
-        <CreateCompartidaForm onCreated={vi.fn()} onCancel={onCancel} />
-      </MemoryRouter>,
-    );
+    renderForm({ onCancel });
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
   it("on success creates a compartida and calls onCreated", async () => {
     const onCreated = vi.fn();
-    useAuth.mockReturnValue({
-      user: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
-    });
     server.use(
-      http.get("/api/tables/mine", () => HttpResponse.json({ tables: [] })),
       http.post("/api/compartidas", () =>
         HttpResponse.json({ _id: "new", body: "Anoche jugamos", images: [] }),
       ),
     );
-    render(
-      <MemoryRouter>
-        <CreateCompartidaForm onCreated={onCreated} onCancel={vi.fn()} />
-      </MemoryRouter>,
-    );
+    renderForm({ onCreated });
     fireEvent.change(
       screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
-      {
-        target: { value: "Anoche jugamos" },
-      },
+      { target: { value: "Anoche jugamos" } },
     );
     fireEvent.click(
       screen.getByRole("button", { name: /publicar compartida/i }),
     );
-
     await waitFor(() => expect(onCreated).toHaveBeenCalled());
     expect(onCreated.mock.calls[0][0]._id).toBe("new");
   });
 
-  it("loads and displays the user's active tables in the select dropdown", async () => {
-    setup();
-    await waitFor(() => {
-      expect(screen.getByRole("option", { name: "Catán" })).toBeInTheDocument();
-    });
-  });
-
-  it("F1 — muestra select de eventos cuando el user tiene eventos donde participó", async () => {
-    setup({
-      myEventos: [
-        { _id: "ev1", title: "Torneo Catán", eventDate: "2027-01-01" },
-        { _id: "ev2", title: "Sábado de Eventos", eventDate: "2027-01-02" },
-      ],
-    });
-    await waitFor(() => {
-      expect(
-        screen.getByRole("option", { name: "Torneo Catán" }),
-      ).toBeInTheDocument();
-    });
-    expect(
-      screen.getByRole("option", { name: "Sábado de Eventos" }),
-    ).toBeInTheDocument();
-  });
-
-  it("F1 — no muestra select de eventos cuando el user no tiene (lista vacía)", async () => {
-    setup({ myEventos: [] });
-    await screen.findByPlaceholderText(/título/i);
-    expect(screen.queryByLabelText(/vincular evento/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Catán" })).toBeInTheDocument();
-  });
-
-  it("F1 — incluye linkedEvento en el body del POST cuando se selecciona", async () => {
-    const onCreated = vi.fn();
-    let captured = null;
-    useAuth.mockReturnValue({
-      user: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
-    });
-    server.use(
-      http.get("/api/tables/mine", () => HttpResponse.json({ tables: [] })),
-      http.get("/api/eventos/mine", () =>
-        HttpResponse.json({
-          eventos: [
-            { _id: "ev1", title: "Mi evento", eventDate: "2027-01-01" },
-          ],
-        }),
-      ),
-      http.post("/api/compartidas", async ({ request }) => {
-        captured = await request.json();
-        return HttpResponse.json({ _id: "new", body: "x", images: [] });
-      }),
-    );
-    render(
-      <MemoryRouter>
-        <CreateCompartidaForm onCreated={onCreated} onCancel={vi.fn()} />
-      </MemoryRouter>,
-    );
-    fireEvent.change(
-      screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
-      { target: { value: "x" } },
-    );
-    await waitFor(() => {
-      expect(
-        screen.getByRole("option", { name: "Mi evento" }),
-      ).toBeInTheDocument();
-    });
-    fireEvent.change(screen.getByLabelText(/vincular evento/i), {
-      target: { value: "ev1" },
-    });
-    fireEvent.click(
-      screen.getByRole("button", { name: /publicar compartida/i }),
-    );
-    await waitFor(() => expect(onCreated).toHaveBeenCalled());
-    expect(captured.linkedEvento).toBe("ev1");
-  });
-
   it("shows an error message when POST fails", async () => {
     const onCreated = vi.fn();
-    useAuth.mockReturnValue({
-      user: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
-    });
     server.use(
-      http.get("/api/tables/mine", () => HttpResponse.json({ tables: [] })),
       http.post("/api/compartidas", () =>
         HttpResponse.json(
           { message: "Error al publicar la compartida" },
@@ -218,16 +114,10 @@ describe("<CreateCompartidaForm>", () => {
         ),
       ),
     );
-    render(
-      <MemoryRouter>
-        <CreateCompartidaForm onCreated={onCreated} onCancel={vi.fn()} />
-      </MemoryRouter>,
-    );
+    renderForm({ onCreated });
     fireEvent.change(
       screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
-      {
-        target: { value: "Algo pasó" },
-      },
+      { target: { value: "Algo pasó" } },
     );
     fireEvent.click(
       screen.getByRole("button", { name: /publicar compartida/i }),
@@ -241,7 +131,7 @@ describe("<CreateCompartidaForm>", () => {
   });
 
   it("adding a file shows the image count in the Foto button", () => {
-    setup();
+    renderForm();
     const input = document.querySelector('input[type="file"]');
     const file = new File(["img"], "photo.jpg", { type: "image/jpeg" });
     fireEvent.change(input, { target: { files: [file] } });
@@ -251,7 +141,7 @@ describe("<CreateCompartidaForm>", () => {
   });
 
   it("clicking ✕ on a preview removes that image", () => {
-    setup();
+    renderForm();
     const input = document.querySelector('input[type="file"]');
     const file = new File(["img"], "photo.jpg", { type: "image/jpeg" });
     fireEvent.change(input, { target: { files: [file] } });
@@ -259,22 +149,13 @@ describe("<CreateCompartidaForm>", () => {
       screen.getByRole("button", { name: /foto \(1\/3\)/i }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "✕" }));
-    // Back to zero images — button name is just "Foto "
     expect(
       screen.queryByRole("button", { name: /foto \(1\/3\)/i }),
     ).not.toBeInTheDocument();
   });
 
-  it("clicking the Foto button triggers the file input click", () => {
-    setup();
-    const fotoBtn = screen.getByRole("button", { name: /^foto\s*$/i });
-    // Click the button — calls fileInputRef.current?.click() under the hood
-    fireEvent.click(fotoBtn);
-    // Just verify no crash; the file dialog won't open in jsdom
-  });
-
   it("Foto button is disabled when 3 images are already selected", () => {
-    setup();
+    renderForm();
     const input = document.querySelector('input[type="file"]');
     const files = [
       new File(["1"], "p1.jpg", { type: "image/jpeg" }),
@@ -288,7 +169,7 @@ describe("<CreateCompartidaForm>", () => {
   });
 
   it("submit enabled after adding only an image (no text)", () => {
-    setup();
+    renderForm();
     const input = document.querySelector('input[type="file"]');
     const file = new File(["img"], "photo.jpg", { type: "image/jpeg" });
     fireEvent.change(input, { target: { files: [file] } });
@@ -297,77 +178,87 @@ describe("<CreateCompartidaForm>", () => {
     ).not.toBeDisabled();
   });
 
-  it("changing linked table select updates the selection", async () => {
-    setup();
-    await waitFor(() =>
-      expect(screen.getByRole("option", { name: "Catán" })).toBeInTheDocument(),
-    );
-    const select = screen.getByRole("combobox");
-    fireEvent.change(select, { target: { value: "t1" } });
-    expect(select.value).toBe("t1");
+  it("initialFiles siembra las fotos en el form (preview + contador)", () => {
+    const file = new File(["img"], "fromcomposer.jpg", { type: "image/jpeg" });
+    renderForm({ initialFiles: [file] });
+    expect(
+      screen.getByRole("button", { name: /foto \(1\/3\)/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /publicar compartida/i }),
+    ).not.toBeDisabled();
   });
 
-  it("dropdown de mesas filtra fuera privadas y 'friends' (solo públicas vinculables)", async () => {
-    useAuth.mockReturnValue({
-      user: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
-    });
+  // ── Linking contextual (chips) ───────────────────────────────────────
+  it("prefilledTableId trae la mesa y renderiza el chip quitable", async () => {
     server.use(
-      http.get("/api/tables/mine", () =>
+      http.get("/api/tables/tPRE", () =>
         HttpResponse.json({
-          tables: [
-            {
-              _id: "t-pub",
-              boardGame: "Pública",
-              status: "open",
-              privacy: "public",
-            },
-            {
-              _id: "t-priv",
-              boardGame: "Privada",
-              status: "open",
-              privacy: "private",
-            },
-            {
-              _id: "t-friends",
-              boardGame: "Solo Amigos",
-              status: "open",
-              privacy: "friends",
-            },
-          ],
-        }),
-      ),
-      http.get("/api/eventos/mine", () => HttpResponse.json({ eventos: [] })),
-    );
-    render(
-      <MemoryRouter>
-        <CreateCompartidaForm onCreated={vi.fn()} onCancel={vi.fn()} />
-      </MemoryRouter>,
-    );
-    await waitFor(() =>
-      expect(
-        screen.getByRole("option", { name: "Pública" }),
-      ).toBeInTheDocument(),
-    );
-    expect(
-      screen.queryByRole("option", { name: "Privada" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: "Solo Amigos" }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("prefilledTableId sets the initial linked table selection", async () => {
-    useAuth.mockReturnValue({
-      user: { _id: "me", username: "me", avatar: { url: "", publicId: "" } },
-    });
-    server.use(
-      http.get("/api/tables/mine", () =>
-        HttpResponse.json({
-          tables: [{ _id: "tPRE", boardGame: "Pandemic", status: "open" }],
+          _id: "tPRE",
+          boardGame: "Pandemic",
+          date: "2027-01-01",
+          status: "open",
         }),
       ),
     );
-    render(
+    renderForm({ prefilledTableId: "tPRE" });
+    expect(await screen.findByText(/mesa enlazada/i)).toBeInTheDocument();
+    expect(screen.getByText("Pandemic")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /quitar mesa enlazada/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("✕ del chip desvincula la mesa", async () => {
+    server.use(
+      http.get("/api/tables/tPRE", () =>
+        HttpResponse.json({
+          _id: "tPRE",
+          boardGame: "Pandemic",
+          date: "2027-01-01",
+          status: "open",
+        }),
+      ),
+    );
+    renderForm({ prefilledTableId: "tPRE" });
+    await screen.findByText(/mesa enlazada/i);
+    fireEvent.click(
+      screen.getByRole("button", { name: /quitar mesa enlazada/i }),
+    );
+    expect(screen.queryByText(/mesa enlazada/i)).not.toBeInTheDocument();
+  });
+
+  it("el POST incluye linkedTable cuando hay chip, y lo excluye tras quitarlo", async () => {
+    let captured = null;
+    server.use(
+      http.get("/api/tables/tPRE", () =>
+        HttpResponse.json({
+          _id: "tPRE",
+          boardGame: "Pandemic",
+          date: "2027-01-01",
+          status: "open",
+        }),
+      ),
+      http.post("/api/compartidas", async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({ _id: "new", body: "x", images: [] });
+      }),
+    );
+    const { rerender } = renderForm({ prefilledTableId: "tPRE" });
+    await screen.findByText(/mesa enlazada/i);
+    fireEvent.change(
+      screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
+      { target: { value: "x" } },
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /publicar compartida/i }),
+    );
+    await waitFor(() => expect(captured).not.toBeNull());
+    expect(captured.linkedTable).toBe("tPRE");
+
+    // Ahora quitamos el chip y reenviamos → linkedTable ausente.
+    captured = null;
+    rerender(
       <MemoryRouter>
         <CreateCompartidaForm
           onCreated={vi.fn()}
@@ -376,12 +267,46 @@ describe("<CreateCompartidaForm>", () => {
         />
       </MemoryRouter>,
     );
-    await waitFor(() =>
-      expect(
-        screen.getByRole("option", { name: "Pandemic" }),
-      ).toBeInTheDocument(),
+    await screen.findByText(/mesa enlazada/i);
+    fireEvent.click(
+      screen.getByRole("button", { name: /quitar mesa enlazada/i }),
     );
-    const select = screen.getByRole("combobox");
-    expect(select.value).toBe("tPRE");
+    fireEvent.change(
+      screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
+      { target: { value: "y" } },
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /publicar compartida/i }),
+    );
+    await waitFor(() => expect(captured).not.toBeNull());
+    expect(captured.linkedTable).toBeUndefined();
+  });
+
+  it("prefilledEventoId trae el evento y renderiza el chip", async () => {
+    server.use(
+      http.get("/api/eventos/evPRE", () =>
+        HttpResponse.json({
+          _id: "evPRE",
+          title: "Sábado de mesas",
+          eventDate: "2027-02-02",
+        }),
+      ),
+    );
+    renderForm({ prefilledEventoId: "evPRE" });
+    expect(await screen.findByText(/evento enlazado/i)).toBeInTheDocument();
+    expect(screen.getByText("Sábado de mesas")).toBeInTheDocument();
+  });
+
+  it("si la mesa prefilled no es accesible (404), no muestra chip", async () => {
+    server.use(
+      http.get("/api/tables/tBAD", () =>
+        HttpResponse.json({ message: "No encontrada" }, { status: 404 }),
+      ),
+    );
+    renderForm({ prefilledTableId: "tBAD" });
+    await screen.findByPlaceholderText(/título/i);
+    await waitFor(() =>
+      expect(screen.queryByText(/mesa enlazada/i)).not.toBeInTheDocument(),
+    );
   });
 });
