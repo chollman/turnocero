@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
@@ -6,16 +7,19 @@ import { getErrorMessage } from "../../utils/getErrorMessage";
 import { API } from "../../api/endpoints";
 import styles from "./CompartidaCard.module.css";
 
-function timeAgo(date) {
-  const diff = (Date.now() - new Date(date)) / 1000;
-  if (diff < 60) return "ahora";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
-  return new Date(date).toLocaleDateString("es-AR", {
-    day: "numeric",
-    month: "short",
-  });
+// Comentarios muestran fecha+hora absoluta en formato dd/MM/aa HH:mm
+// (ej. "05/01/26 14:30"). Lo armamos a mano para fijar el separador exacto
+// (espacio) que toLocaleString variaría a coma según la locale.
+function formatDateTime(date) {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  const dd = pad(d.getDate());
+  const MM = pad(d.getMonth() + 1);
+  const aa = pad(d.getFullYear() % 100);
+  const HH = pad(d.getHours());
+  const mm = pad(d.getMinutes());
+  return `${dd}/${MM}/${aa} ${HH}:${mm}`;
 }
 
 // Sección "Comentarios" de una compartida. Antes vivía DUPLICADA byte-por-byte
@@ -137,6 +141,10 @@ export default function CompartidaComments({
       {error && <p className={styles.commentsError}>{error}</p>}
       {comments.map((c) => {
         const cAuthorInfo = getUserDisplay(c.author);
+        const cProfilePath =
+          !cAuthorInfo.isDeleted && cAuthorInfo._id
+            ? `/usuarios/${cAuthorInfo._id}`
+            : null;
         const isOwn =
           user &&
           c.author &&
@@ -144,12 +152,33 @@ export default function CompartidaComments({
         const canDel = isOwn || canDeleteOthers;
         return (
           <div key={c._id} className={styles.comment}>
-            <Avatar user={c.author} size="xs" />
+            {cProfilePath ? (
+              <Link
+                to={cProfilePath}
+                className={styles.avatarLink}
+                aria-label={`Ver perfil de ${cAuthorInfo.name}`}
+              >
+                <Avatar user={c.author} size="xs" />
+              </Link>
+            ) : (
+              <Avatar user={c.author} size="xs" />
+            )}
             <div className={styles.commentBody}>
               <div className={styles.commentMeta}>
-                <span className={styles.commentAuthor}>{cAuthorInfo.name}</span>
+                {cProfilePath ? (
+                  <Link
+                    to={cProfilePath}
+                    className={`${styles.commentAuthor} ${styles.authorNameLink}`}
+                  >
+                    {cAuthorInfo.name}
+                  </Link>
+                ) : (
+                  <span className={styles.commentAuthor}>
+                    {cAuthorInfo.name}
+                  </span>
+                )}
                 <span className={styles.commentTime}>
-                  {timeAgo(c.createdAt)}
+                  {formatDateTime(c.createdAt)}
                 </span>
                 {c.editedAt && (
                   <span className={styles.editedBadge}>editado</span>

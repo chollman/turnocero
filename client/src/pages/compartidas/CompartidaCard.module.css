@@ -153,6 +153,39 @@
   white-space: nowrap;
 }
 
+/* Avatar/name links to the author's public profile. The avatar grows a soft
+   amber ring on hover; the name shifts to amber — same language as the rest of
+   the brand's interactive accents (cf. .authorBgWatchLink, UserRef .link). */
+.avatarLink {
+  display: inline-flex;
+  flex-shrink: 0;
+  /* Pin to the top and size to the avatar — without this the link stretches to
+     the flex row's full height (e.g. in a comment), turning the round ring into
+     an elongated oval. */
+  align-self: flex-start;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 var(--amber-glow);
+  transition:
+    box-shadow var(--transition),
+    transform var(--transition);
+}
+
+.avatarLink:hover {
+  box-shadow: 0 0 0 2px var(--amber);
+  transform: translateY(-1px);
+}
+
+.authorNameLink {
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+  transition: color var(--transition);
+}
+
+.authorNameLink:hover {
+  color: var(--amber);
+}
+
 .authorBgWatchLink {
   display: inline-flex;
   align-items: center;

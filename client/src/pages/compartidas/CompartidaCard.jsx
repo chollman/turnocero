@@ -25,16 +25,23 @@ function buildShareData(post) {
   return { url, text };
 }
 
+// Returns a fully formed label (incl. its own "hace"/"el" prefix), so callers
+// must NOT prepend "hace" — recent posts read "hace 3h" and older ones spell
+// out the full date ("el 15 de enero"), adding the year only when it's from a
+// previous year ("el 15 de enero de 2025").
 function timeAgo(date) {
-  const diff = (Date.now() - new Date(date)) / 1000;
-  if (diff < 60) return "ahora";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
-  return new Date(date).toLocaleDateString("es-AR", {
+  const d = new Date(date);
+  const diff = (Date.now() - d) / 1000;
+  if (diff < 60) return "recién";
+  if (diff < 3600) return `hace ${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `hace ${Math.floor(diff / 3600)}h`;
+  if (diff < 604800) return `hace ${Math.floor(diff / 86400)}d`;
+  const isOlderYear = d.getFullYear() < new Date().getFullYear();
+  return `el ${d.toLocaleDateString("es-AR", {
     day: "numeric",
-    month: "short",
-  });
+    month: "long",
+    ...(isOlderYear && { year: "numeric" }),
+  })}`;
 }
 
 // Small inline link rendered next to the author's name when they have an active
@@ -66,6 +73,23 @@ function AuthorBgWatchLink({ author, enabled }) {
         <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
         <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
       </svg>
+    </Link>
+  );
+}
+
+// Wraps the avatar/name in a link to the author's public profile, unless the
+// author was deleted (then there's nothing to link to). stopPropagation keeps
+// the click from bubbling up to any card-level navigation.
+function ProfileLink({ to, className, label, children }) {
+  if (!to) return children;
+  return (
+    <Link
+      to={to}
+      className={className}
+      aria-label={label}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {children}
     </Link>
   );
 }
@@ -200,6 +224,10 @@ export default function CompartidaCard({
   const menuRef = useRef(null);
 
   const authorInfo = getUserDisplay(post.author);
+  const authorProfilePath =
+    !authorInfo.isDeleted && authorInfo._id
+      ? `/usuarios/${authorInfo._id}`
+      : null;
   const isAuthor =
     user &&
     post.author &&
@@ -299,10 +327,22 @@ export default function CompartidaCard({
           <div className={styles.broadsideGrid}>
             <div className={styles.broadsideMain}>
               <div className={styles.broadsideEyebrow}>
-                <Avatar user={post.author} size="xs" />
+                <ProfileLink
+                  to={authorProfilePath}
+                  className={styles.avatarLink}
+                  label={`Ver perfil de ${authorName}`}
+                >
+                  <Avatar user={post.author} size="xs" />
+                </ProfileLink>
                 <span>
-                  Por <strong>{authorName}</strong> · hace{" "}
-                  {timeAgo(post.createdAt)}
+                  Por{" "}
+                  <ProfileLink
+                    to={authorProfilePath}
+                    className={styles.authorNameLink}
+                  >
+                    <strong>{authorName}</strong>
+                  </ProfileLink>{" "}
+                  · {timeAgo(post.createdAt)}
                 </span>
                 {!authorInfo.isDeleted && (
                   <AuthorBgWatchLink
@@ -430,10 +470,21 @@ export default function CompartidaCard({
     <>
       {/* ── Header ── */}
       <div className={styles.header}>
-        <Avatar user={post.author} size="md" />
+        <ProfileLink
+          to={authorProfilePath}
+          className={styles.avatarLink}
+          label={`Ver perfil de ${authorName}`}
+        >
+          <Avatar user={post.author} size="md" />
+        </ProfileLink>
         <div className={styles.authorMeta}>
           <div className={styles.authorNameRow}>
-            <span className={styles.authorName}>{authorName}</span>
+            <ProfileLink
+              to={authorProfilePath}
+              className={styles.authorNameLink}
+            >
+              <span className={styles.authorName}>{authorName}</span>
+            </ProfileLink>
             {!authorInfo.isDeleted && (
               <AuthorBgWatchLink
                 author={post.author}
@@ -442,9 +493,7 @@ export default function CompartidaCard({
             )}
           </div>
           <div className={styles.metaLine}>
-            <span className={styles.metaTime}>
-              ◆ hace {timeAgo(post.createdAt)}
-            </span>
+            <span className={styles.metaTime}>◆ {timeAgo(post.createdAt)}</span>
             {privacyLabel && post.privacy !== "public" && (
               <span className={styles.privacyBadge}>
                 <PrivacyIcon privacy={post.privacy} />

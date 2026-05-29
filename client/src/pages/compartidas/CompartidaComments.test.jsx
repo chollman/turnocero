@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
@@ -30,7 +31,11 @@ function renderComponent(props = {}) {
     onRequireLogin: vi.fn(),
     onCountChange: vi.fn(),
   };
-  return render(<CompartidaComments {...defaults} {...props} />);
+  return render(
+    <MemoryRouter>
+      <CompartidaComments {...defaults} {...props} />
+    </MemoryRouter>,
+  );
 }
 
 beforeEach(() => {
@@ -59,6 +64,58 @@ describe("<CompartidaComments>", () => {
       expect(screen.getByText("Muy bueno")).toBeInTheDocument();
       expect(screen.getByText("amigo")).toBeInTheDocument();
     });
+  });
+
+  it("muestra fecha y hora del comentario en formato dd/MM/aa HH:mm", async () => {
+    // 5 de enero de 2026, 14:30 hora local.
+    const d = new Date(2026, 0, 5, 14, 30);
+    setupComments([
+      {
+        _id: "c1",
+        content: "Con fecha",
+        author: other,
+        createdAt: d.toISOString(),
+      },
+    ]);
+    renderComponent();
+    await waitFor(() =>
+      expect(screen.getByText("05/01/26 14:30")).toBeInTheDocument(),
+    );
+  });
+
+  it("enlaza el nombre del autor del comentario a su perfil público", async () => {
+    setupComments([
+      {
+        _id: "c1",
+        content: "Muy bueno",
+        author: other,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    renderComponent();
+    await waitFor(() => expect(screen.getByText("amigo")).toBeInTheDocument());
+    expect(screen.getByText("amigo").closest("a")).toHaveAttribute(
+      "href",
+      "/usuarios/u2",
+    );
+  });
+
+  it("no enlaza a un perfil cuando el autor del comentario fue eliminado", async () => {
+    setupComments([
+      {
+        _id: "c1",
+        content: "Comentario huérfano",
+        author: null,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    renderComponent();
+    await waitFor(() =>
+      expect(screen.getByText("Comentario huérfano")).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole("link", { name: /ver perfil de/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("dispara onCountChange después del fetch inicial", async () => {

@@ -555,4 +555,83 @@ describe("<CompartidaCard>", () => {
       screen.queryByRole("link", { name: /bg watch/i }),
     ).not.toBeInTheDocument();
   });
+
+  // -----------------------------------------------------------------------
+  // Public profile links (avatar + author name)
+  // -----------------------------------------------------------------------
+  it("links the author name to their public profile", () => {
+    renderCard(makePost());
+    const link = screen.getByRole("link", { name: "Claudio H" });
+    expect(link).toHaveAttribute("href", "/usuarios/a1");
+  });
+
+  it("links the author avatar to their public profile", () => {
+    renderCard(makePost());
+    const link = screen.getByRole("link", { name: /ver perfil de claudio h/i });
+    expect(link).toHaveAttribute("href", "/usuarios/a1");
+  });
+
+  it("does not link to a profile when the author is deleted", () => {
+    renderCard(makePost({ author: null }));
+    expect(
+      screen.queryByRole("link", { name: /ver perfil de/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/usuario eliminado/i)).toBeInTheDocument();
+  });
+
+  it("links the author name to their profile in the featured layout", () => {
+    useAuth.mockReturnValue({ user: null });
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+    render(
+      <MemoryRouter>
+        <CompartidaCard
+          post={makePost()}
+          featured
+          onDeleted={vi.fn()}
+          onUpdated={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    const link = screen.getByRole("link", { name: "Claudio H" });
+    expect(link).toHaveAttribute("href", "/usuarios/a1");
+  });
+
+  // Regression: timeAgo owns its own prefix. Old posts used to render
+  // "hace 15 may" and brand-new ones "hace ahora" because the JSX hardcoded
+  // "hace" before an absolute date / "ahora".
+  it("does not say 'hace' before an absolute date for old posts", () => {
+    const old = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
+    renderCard(makePost({ createdAt: old }));
+    expect(screen.getByText(/◆\s+el\s/)).toBeInTheDocument();
+    expect(screen.queryByText(/hace/)).toBeNull();
+  });
+
+  it("uses 'recién' (not 'hace ahora') for a fresh post", () => {
+    renderCard(makePost({ createdAt: new Date().toISOString() }));
+    expect(screen.getByText(/◆\s+recién/)).toBeInTheDocument();
+    expect(screen.queryByText(/ahora/)).toBeNull();
+  });
+
+  it("keeps 'hace' for relative durations", () => {
+    const threeHrs = new Date(Date.now() - 3 * 3600 * 1000).toISOString();
+    renderCard(makePost({ createdAt: threeHrs }));
+    expect(screen.getByText(/◆\s+hace\s+3h/)).toBeInTheDocument();
+  });
+
+  it("spells out the full date without the year for same-year old posts", () => {
+    // Jan 5 of the current year, rendered any time later in the same year.
+    const sameYear = new Date(new Date().getFullYear(), 0, 5).toISOString();
+    renderCard(makePost({ createdAt: sameYear }));
+    expect(screen.getByText(/◆\s+el\s+5 de enero$/)).toBeInTheDocument();
+  });
+
+  it("includes the year for posts from a previous year", () => {
+    const lastYear = new Date(new Date().getFullYear() - 1, 0, 5).toISOString();
+    renderCard(makePost({ createdAt: lastYear }));
+    expect(
+      screen.getByText(
+        new RegExp(`◆\\s+el\\s+5 de enero de ${new Date().getFullYear() - 1}`),
+      ),
+    ).toBeInTheDocument();
+  });
 });
