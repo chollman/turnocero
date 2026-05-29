@@ -375,7 +375,9 @@ describe("<TableDetail>", () => {
     );
     renderTableDetail();
     await screen.findByRole("heading", { name: "Catán" });
-    expect(screen.getByText("theHost")).toBeInTheDocument();
+    // El host aparece dos veces: en el eyebrow del banner ("Mesa de …") y en
+    // la fila de jugadores. Los jugadores solo aparecen en su fila.
+    expect(screen.getAllByText("theHost").length).toBeGreaterThan(0);
     expect(screen.getByText("player1")).toBeInTheDocument();
     expect(screen.getByText("player2")).toBeInTheDocument();
     // 2 empty seats (maxPlayers=4 - 2 players = 2 empty)

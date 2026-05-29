@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import { RouterOnly } from "../../test/wrappers/AllProviders";
 
 import TableGallery from "./TableGallery";
 
@@ -23,7 +24,9 @@ function renderGallery(props = {}) {
     canDeleteImage: () => true,
     onImagesChange: vi.fn(),
   };
-  return render(<TableGallery {...defaults} {...props} />);
+  return render(<TableGallery {...defaults} {...props} />, {
+    wrapper: RouterOnly,
+  });
 }
 
 beforeEach(() => {

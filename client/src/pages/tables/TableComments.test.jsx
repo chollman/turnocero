@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import { RouterOnly } from "../../test/wrappers/AllProviders";
 
 import TableComments from "./TableComments";
 
@@ -33,6 +34,7 @@ function renderTableComments(props = {}) {
       onRequireLogin={vi.fn()}
       {...props}
     />,
+    { wrapper: RouterOnly },
   );
 }
 

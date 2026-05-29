@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import { RouterOnly } from "../../test/wrappers/AllProviders";
 
 // Mock socket.io-client globally — TableChat's `io(...)` connection has
 // to be inert in tests.
@@ -33,6 +34,7 @@ function setupMessages(messages = []) {
 function renderChat(props = {}) {
   return render(
     <TableChat tableId="t1" user={user} isViewingAsAdmin={false} {...props} />,
+    { wrapper: RouterOnly },
   );
 }
 
