@@ -145,32 +145,6 @@ export default function Colaborar() {
       <div className={styles.grid}>
         <article className={styles.card}>
           <div className={styles.cardIcon}>
-            <CoffeeIcon size={22} />
-          </div>
-          <h2 className={styles.cardTitle}>Aportá unos mangos</h2>
-          <p className={styles.cardDesc}>
-            Si querés bancarnos económicamente, podés invitarnos un café (o
-            varios) por Cafecito. Va directo a cubrir los costos operativos del
-            proyecto.
-          </p>
-          <a
-            href={CAFECITO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.cafecitoBtn}
-          >
-            <CoffeeIcon size={16} />
-            Invitanos un cafecito
-          </a>
-          <p className={styles.cardFootnote}>
-            Si lo tuyo no es Cafecito, también aceptamos transferencias, pago
-            en especias (canela y comino cuentan) y hasta algún bitcoin
-            olvidado en la wallet.
-          </p>
-        </article>
-
-        <article className={styles.card}>
-          <div className={styles.cardIcon}>
             <LightbulbIcon size={22} />
           </div>
           <h2 className={styles.cardTitle}>Tirá una idea</h2>
@@ -223,6 +197,32 @@ export default function Colaborar() {
               {submitting ? "Enviando…" : "Mandar idea"}
             </button>
           </form>
+        </article>
+
+        <article className={styles.card}>
+          <div className={styles.cardIcon}>
+            <CoffeeIcon size={22} />
+          </div>
+          <h2 className={styles.cardTitle}>Aportá unos mangos</h2>
+          <p className={styles.cardDesc}>
+            Si querés bancarnos económicamente, podés invitarnos un café (o
+            varios) por Cafecito. Va directo a cubrir los costos operativos del
+            proyecto.
+          </p>
+          <a
+            href={CAFECITO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.cafecitoBtn}
+          >
+            <CoffeeIcon size={16} />
+            Invitanos un cafecito
+          </a>
+          <p className={styles.cardFootnote}>
+            Si lo tuyo no es Cafecito, también aceptamos transferencias, pago
+            en especias (canela y comino cuentan) y hasta algún bitcoin
+            olvidado en la wallet.
+          </p>
         </article>
       </div>
 
