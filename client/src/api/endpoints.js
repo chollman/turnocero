@@ -1,4 +1,4 @@
-// Catálogo centralizado de paths de la API Turnocero. Fuente única de
+// Catálogo centralizado de paths de la API TurnoCero. Fuente única de
 // verdad — cualquier cambio de URL del server se refleja acá y los call
 // sites lo heredan sin tener que grep-replace.
 //

@@ -202,8 +202,8 @@ export default function PartidasPanel({
       .sort((a, b) => (b.numPlays || 0) - (a.numPlays || 0));
   }, [playedGamesFromServer, collection]);
 
-  // Map of bggUsernameLower → Turnocero user for any player on the current page
-  // that's also a Turnocero member. Used by PlayCard to render avatar + link.
+  // Map of bggUsernameLower → TurnoCero user for any player on the current page
+  // that's also a TurnoCero member. Used by PlayCard to render avatar + link.
   const userMap = useBggUserMap(plays?.plays);
 
   const handleFilter = (id) => {

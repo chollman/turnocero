@@ -160,7 +160,7 @@ describe("<PlayDetailModal>", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("links to /usuarios/:id when the player is a Turnocero member", () => {
+  it("links to /usuarios/:id when the player is a TurnoCero member", () => {
     renderModal({
       userMap: {
         alice: { _id: "u1", username: "alice", displayName: "Alice T" },
@@ -170,7 +170,7 @@ describe("<PlayDetailModal>", () => {
     expect(link).toHaveAttribute("href", "/usuarios/u1");
   });
 
-  it("links to BGG user profile when player is NOT a Turnocero member", () => {
+  it("links to BGG user profile when player is NOT a TurnoCero member", () => {
     renderModal();
     const link = screen.getByRole("link", { name: /@alice/i });
     expect(link).toHaveAttribute(

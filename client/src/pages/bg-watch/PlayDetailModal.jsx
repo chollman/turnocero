@@ -172,9 +172,9 @@ export default function PlayDetailModal({ play, userMap, onClose }) {
                               <Link
                                 to={`/usuarios/${turnoceroUser._id}`}
                                 className={styles.playerCellUsername}
-                                title="Ver perfil en Turnocero"
+                                title="Ver perfil en TurnoCero"
                               >
-                                @{turnoceroUser.username} · en Turnocero
+                                @{turnoceroUser.username} · en TurnoCero
                               </Link>
                             ) : (
                               p.username && (

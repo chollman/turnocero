@@ -119,19 +119,19 @@ export default function Compartidas() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Compartidas – Turnocero 🎲</title>
+        <title>Compartidas – TurnoCero 🎲</title>
         <meta
           name="description"
           content="Mirá las últimas compartidas de la comunidad de juegos de mesa."
         />
-        <meta property="og:title" content="Compartidas – Turnocero 🎲" />
+        <meta property="og:title" content="Compartidas – TurnoCero 🎲" />
         <meta
           property="og:description"
           content="Mirá las últimas compartidas de la comunidad de juegos de mesa."
         />
         <meta property="og:url" content={pageUrl} />
         <meta property="og:type" content="website" />
-        <meta name="twitter:title" content="Compartidas – Turnocero 🎲" />
+        <meta name="twitter:title" content="Compartidas – TurnoCero 🎲" />
         <meta
           name="twitter:description"
           content="Mirá las últimas compartidas de la comunidad de juegos de mesa."

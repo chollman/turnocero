@@ -39,7 +39,7 @@ beforeEach(() => {
 describe("<Colaborar>", () => {
   it("renders the hero, cafecito CTA and ideas form", () => {
     renderPage();
-    // El título contiene "Turnocero" envuelto en un <em>, así que matcheamos
+    // El título contiene "TurnoCero" envuelto en un <em>, así que matcheamos
     // por el <h1> en lugar de buscar el string completo (que se rompe por
     // los nodos hijos).
     const h1 = screen.getByRole("heading", { level: 1 });

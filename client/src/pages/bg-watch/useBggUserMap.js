@@ -15,7 +15,7 @@ export function extractBggUsernames(plays) {
 }
 
 // Given a list of BG Watch plays, returns a memoized map of
-// `{ bggUsernameLower → turnoceroUser }` for any players that are Turnocero
+// `{ bggUsernameLower → turnoceroUser }` for any players that are TurnoCero
 // members. Refetches only when the set of usernames changes.
 //
 // `turnoceroUser` shape: { _id, username, displayName, avatar, bggUsername }

@@ -300,7 +300,7 @@ export default function UsersList() {
         <div className={styles.heroBlock}>
           <div className={styles.eyebrow}>◆ COMUNIDAD</div>
           <h1 className={styles.heroTitle}>Comunidad</h1>
-          <p className={styles.heroSub}>Jugadores registrados en Turnocero</p>
+          <p className={styles.heroSub}>Jugadores registrados en TurnoCero</p>
         </div>
         <span className={styles.countBadge}>
           {visibleUsers.length} jugador{visibleUsers.length !== 1 ? "es" : ""}
@@ -358,7 +358,7 @@ export default function UsersList() {
             </strong>
             <p className={styles.bgWatchBannerSub}>
               Conectá tu cuenta de BoardGameGeek y llevá registro de tus
-              partidas desde Turnocero.
+              partidas desde TurnoCero.
             </p>
           </div>
           <span className={styles.bgWatchBannerCta}>Activá →</span>

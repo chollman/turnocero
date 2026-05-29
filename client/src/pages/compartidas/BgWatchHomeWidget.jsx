@@ -170,7 +170,7 @@ function PromoView({ onDismiss }) {
         </div>
         <h3 className={styles.title}>¿Llevás tus partidas en BGG?</h3>
         <p className={styles.promoSub}>
-          Conectá tu cuenta y registrá todo desde Turnocero.
+          Conectá tu cuenta y registrá todo desde TurnoCero.
         </p>
         <span className={styles.promoCta}>Activá BG Watch →</span>
       </Link>

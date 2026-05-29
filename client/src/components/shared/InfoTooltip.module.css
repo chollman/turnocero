@@ -20,7 +20,7 @@
   background: transparent;
   border: none;
   border-radius: 50%;
-  /* --amber es legacy-naming: en realidad es el azul brand de Turnocero (#1888ef). */
+  /* --amber es legacy-naming: en realidad es el azul brand de TurnoCero (#1888ef). */
   color: var(--amber);
   line-height: 0;
   cursor: pointer;

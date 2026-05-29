@@ -108,7 +108,7 @@ export default function EditTorneo() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Editar torneo – Turnocero</title>
+        <title>Editar torneo – TurnoCero</title>
       </Helmet>
       <div className={styles.inner}>
         <div className={styles.formHeader}>

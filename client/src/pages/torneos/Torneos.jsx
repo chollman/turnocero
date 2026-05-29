@@ -70,10 +70,10 @@ export default function Torneos() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Torneos – Turnocero 🏆</title>
+        <title>Torneos – TurnoCero 🏆</title>
         <meta
           name="description"
-          content="Torneos de juegos de mesa organizados por la comunidad Turnocero."
+          content="Torneos de juegos de mesa organizados por la comunidad TurnoCero."
         />
       </Helmet>
 

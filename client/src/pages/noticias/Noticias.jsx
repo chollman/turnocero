@@ -489,24 +489,24 @@ export default function Noticias() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Noticias – Turnocero 🎲</title>
+        <title>Noticias – TurnoCero 🎲</title>
         <meta
           name="description"
-          content="Novedades y eventos de la comunidad Turnocero."
+          content="Novedades y eventos de la comunidad TurnoCero."
         />
-        <meta property="og:title" content="Noticias – Turnocero 🎲" />
+        <meta property="og:title" content="Noticias – TurnoCero 🎲" />
         <meta
           property="og:description"
-          content="Novedades y eventos de la comunidad Turnocero."
+          content="Novedades y eventos de la comunidad TurnoCero."
         />
         <meta property="og:url" content={pageUrl} />
         <meta property="og:type" content="website" />
         {ogImage && <meta property="og:image" content={ogImage} />}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Noticias – Turnocero 🎲" />
+        <meta name="twitter:title" content="Noticias – TurnoCero 🎲" />
         <meta
           name="twitter:description"
-          content="Novedades y eventos de la comunidad Turnocero."
+          content="Novedades y eventos de la comunidad TurnoCero."
         />
         {ogImage && <meta name="twitter:image" content={ogImage} />}
       </Helmet>
@@ -516,7 +516,7 @@ export default function Noticias() {
             <div className={styles.eyebrow}>◆ COMUNIDAD</div>
             <h1 className={styles.title}>Noticias</h1>
             <p className={styles.sub}>
-              Novedades y eventos de la comunidad Turnocero.
+              Novedades y eventos de la comunidad TurnoCero.
             </p>
           </div>
           {isAdmin && (

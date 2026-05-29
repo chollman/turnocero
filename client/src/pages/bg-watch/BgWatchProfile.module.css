@@ -767,7 +767,7 @@ border-color: var(--amber-light);
   color: var(--amber-light, var(--amber));
 }
 
-/* Player chip variant when the BGG player is also a Turnocero member.
+/* Player chip variant when the BGG player is also a TurnoCero member.
    Renders as a Link wrapping the same chip layout. */
 .playerChipLinked {
   text-decoration: none;

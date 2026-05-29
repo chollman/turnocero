@@ -329,7 +329,7 @@ export default function Eventos() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Eventos — Turnocero</title>
+        <title>Eventos — TurnoCero</title>
         <meta
           name="description"
           content="Eventos y torneos de la comunidad de juegos de mesa"
@@ -347,7 +347,7 @@ export default function Eventos() {
           </h1>
           <p className={styles.heroSub}>
             Torneos, encuentros y demos producidos por la comunidad de
-            Turnocero. Reservá tu lugar o sumá tu evento.
+            TurnoCero. Reservá tu lugar o sumá tu evento.
           </p>
         </div>
         <div className={styles.heroRight}>

@@ -76,7 +76,7 @@ const FEATURES = [
   {
     Icon: PlayIcon,
     title: "Registrá tus partidas",
-    body: "Cargá, editá y eliminá partidas directamente desde Turnocero. Se sincronizan con tu cuenta de BoardGameGeek.",
+    body: "Cargá, editá y eliminá partidas directamente desde TurnoCero. Se sincronizan con tu cuenta de BoardGameGeek.",
   },
   {
     Icon: CollectionIcon,
@@ -116,7 +116,7 @@ export default function BgWatchLanding() {
         <div className={styles.eyebrow}>◆ BG WATCH</div>
         <h1 className={styles.heroTitle}>Llevá tus partidas como nunca</h1>
         <p className={styles.heroSub}>
-          BG Watch es el tracker de partidas de Turnocero. Conectá tu cuenta de
+          BG Watch es el tracker de partidas de TurnoCero. Conectá tu cuenta de
           BoardGameGeek y registrá, editá y explorá todo lo que jugaste — sin
           salir del app.
         </p>
@@ -161,7 +161,7 @@ export default function BgWatchLanding() {
           <>
             <h2 className={styles.ctaTitle}>Creá tu cuenta y empezá</h2>
             <p className={styles.ctaSub}>
-              Registrate gratis en Turnocero y conectá tu cuenta de
+              Registrate gratis en TurnoCero y conectá tu cuenta de
               BoardGameGeek desde tu perfil. Es rápido.
             </p>
             <div className={styles.ctaButtons}>
@@ -208,7 +208,7 @@ export default function BgWatchLanding() {
                 Cargá partidas nuevas
               </strong>
               <p className={styles.stepBody}>
-                Apenas termina la mesa, registrá la partida desde Turnocero. Se
+                Apenas termina la mesa, registrá la partida desde TurnoCero. Se
                 guarda en BGG automáticamente.
               </p>
             </div>
@@ -218,7 +218,7 @@ export default function BgWatchLanding() {
 
       <p className={styles.footnote}>
         BoardGameGeek es un servicio externo. BG Watch es la integración de
-        Turnocero con su API.
+        TurnoCero con su API.
       </p>
     </div>
   );

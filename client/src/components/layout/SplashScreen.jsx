@@ -160,7 +160,7 @@ export default function SplashScreen({ visible }) {
       ))}
       <div className={styles.content}>
         <div className={styles.logo}>🎲</div>
-        <h1 className={styles.title}>Turnocero</h1>
+        <h1 className={styles.title}>TurnoCero</h1>
         <p className={styles.subtitle}>Organizá tu mesa</p>
         <div className={styles.dots}>
           <span />

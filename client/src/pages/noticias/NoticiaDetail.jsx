@@ -105,10 +105,10 @@ export default function NoticiaDetail() {
   if (!noticia) return null;
 
   const url = SHARE_URL(id);
-  const shareTitle = noticia.title || "Turnocero — Noticias";
+  const shareTitle = noticia.title || "TurnoCero — Noticias";
   const shareDesc =
     noticia.body?.slice(0, 200) ||
-    "Novedades y eventos de la comunidad Turnocero.";
+    "Novedades y eventos de la comunidad TurnoCero.";
   const waText = encodeURIComponent(`${shareTitle}\n${url}`);
   const tgText = encodeURIComponent(shareTitle);
   const twText = encodeURIComponent(shareTitle);
@@ -116,9 +116,9 @@ export default function NoticiaDetail() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{shareTitle} – Turnocero 🎲</title>
+        <title>{shareTitle} – TurnoCero 🎲</title>
         <meta name="description" content={shareDesc} />
-        <meta property="og:title" content={`${shareTitle} – Turnocero 🎲`} />
+        <meta property="og:title" content={`${shareTitle} – TurnoCero 🎲`} />
         <meta property="og:description" content={shareDesc} />
         <meta property="og:url" content={url} />
         <meta property="og:type" content="article" />
@@ -126,7 +126,7 @@ export default function NoticiaDetail() {
           <meta property="og:image" content={noticia.image.url} />
         )}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${shareTitle} – Turnocero 🎲`} />
+        <meta name="twitter:title" content={`${shareTitle} – TurnoCero 🎲`} />
         <meta name="twitter:description" content={shareDesc} />
         {noticia.image?.url && (
           <meta name="twitter:image" content={noticia.image.url} />

@@ -29,7 +29,7 @@ export default function ColaborarFab() {
     <Link
       to="/colabora"
       className={styles.fab}
-      aria-label="Colaborar con Turnocero"
+      aria-label="Colaborar con TurnoCero"
     >
       <HeartIcon />
       <span>Bancanos</span>

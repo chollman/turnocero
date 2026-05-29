@@ -63,7 +63,7 @@ export default function CreateTorneo() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Nuevo torneo – Turnocero</title>
+        <title>Nuevo torneo – TurnoCero</title>
       </Helmet>
       <div className={styles.inner}>
         <div className={styles.formHeader}>

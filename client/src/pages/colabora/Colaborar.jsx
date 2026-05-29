@@ -123,7 +123,7 @@ export default function Colaborar() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Bancanos · Turnocero</title>
+        <title>Bancanos · TurnoCero</title>
       </Helmet>
 
       <header className={styles.hero}>

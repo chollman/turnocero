@@ -116,7 +116,7 @@ export default function BgWatchPerGameView() {
     };
   }, [bggUsername, gameId, page, refreshKey]);
 
-  // Map of bggUsernameLower → Turnocero user for players on the current page.
+  // Map of bggUsernameLower → TurnoCero user for players on the current page.
   // Same map is used both for the PlayCards in the list and for PlayDetailModal,
   // since the open play's players are always a subset.
   const userMap = useBggUserMap(plays?.plays);

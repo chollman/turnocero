@@ -301,7 +301,7 @@ export default function EventoInscripciones() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Inscripciones — {evento.title} — Turnocero</title>
+        <title>Inscripciones — {evento.title} — TurnoCero</title>
       </Helmet>
 
       <header className={styles.header}>

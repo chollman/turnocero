@@ -46,13 +46,13 @@ export default function CompartidaPost() {
   const postUrl = `${origin}/compartidas/${id}`;
   const authorName = post?.author
     ? post.author.displayName || post.author.username
-    : "Turnocero";
+    : "TurnoCero";
   const metaTitle = post?.title
-    ? `${post.title} – Turnocero 🎲`
-    : `Compartida de ${authorName} – Turnocero 🎲`;
+    ? `${post.title} – TurnoCero 🎲`
+    : `Compartida de ${authorName} – TurnoCero 🎲`;
   const metaDesc = post?.body
     ? post.body.slice(0, 160) + (post.body.length > 160 ? "…" : "")
-    : "Mirá esta compartida en Turnocero, la comunidad de juegos de mesa.";
+    : "Mirá esta compartida en TurnoCero, la comunidad de juegos de mesa.";
   const rawImage = post?.images?.[0]?.url;
   // Resize to 1200×630 via Cloudinary transformation for optimal OG display
   const metaImage = rawImage
@@ -72,7 +72,7 @@ export default function CompartidaPost() {
         <meta property="og:description" content={metaDesc} />
         <meta property="og:url" content={postUrl} />
         <meta property="og:locale" content="es_AR" />
-        <meta property="og:site_name" content="Turnocero" />
+        <meta property="og:site_name" content="TurnoCero" />
         <meta property="og:image" content={metaImage} />
         <meta property="og:image:secure_url" content={metaImage} />
         <meta property="og:image:width" content="1200" />

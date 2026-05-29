@@ -73,7 +73,7 @@ export function GuestInlineCTA() {
         </span>
         <h2 className={styles.inlineTitle}>¿Tenés cuenta en BoardGameGeek?</h2>
         <p className={styles.inlineBody}>
-          Conectala con Turnocero y llevá tus partidas como esta persona —
+          Conectala con TurnoCero y llevá tus partidas como esta persona —
           gratis y sin instalar nada.
         </p>
       </div>
@@ -94,7 +94,7 @@ export function GuestFooter({ bggUsername }) {
     <div className={styles.footer}>
       <p className={styles.footerCopy}>
         Este es el BG Watch de <strong>@{bggUsername}</strong>, una persona que
-        juega en Turnocero. Vos también podés tener el tuyo.
+        juega en TurnoCero. Vos también podés tener el tuyo.
       </p>
       <Link to={REGISTER_HREF} className={styles.footerCta}>
         Registrate gratis

@@ -12,7 +12,7 @@ afterEach(() => {
 describe("<SplashScreen>", () => {
   it("renders the logo, title and subtitle when visible", () => {
     render(<SplashScreen visible={true} />);
-    expect(screen.getByText("Turnocero")).toBeInTheDocument();
+    expect(screen.getByText("TurnoCero")).toBeInTheDocument();
     expect(screen.getByText("🎲")).toBeInTheDocument();
     expect(screen.getByText("Organizá tu mesa")).toBeInTheDocument();
   });

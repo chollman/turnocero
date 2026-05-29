@@ -407,10 +407,10 @@ export default function EventoDetail() {
     // disponible o el user cancela.
     const url = `${window.location.origin}/eventos/${id}`;
     const shareData = {
-      title: `${evento.title} – Turnocero`,
+      title: `${evento.title} – TurnoCero`,
       text: evento.description
         ? evento.description.slice(0, 200)
-        : `Sumate a este evento en Turnocero.`,
+        : `Sumate a este evento en TurnoCero.`,
       url,
     };
     try {
@@ -543,7 +543,7 @@ export default function EventoDetail() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{evento.title} — Turnocero</title>
+        <title>{evento.title} — TurnoCero</title>
         <meta
           name="description"
           content={

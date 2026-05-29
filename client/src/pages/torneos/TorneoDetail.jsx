@@ -158,7 +158,7 @@ export default function TorneoDetail() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{torneo.title} – Torneos – Turnocero 🏆</title>
+        <title>{torneo.title} – Torneos – TurnoCero 🏆</title>
         <meta name="description" content={`${torneo.title} — ${torneo.game}`} />
       </Helmet>
 

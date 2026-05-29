@@ -508,7 +508,7 @@ export default function UserProfile() {
                 </strong>
                 <p className={styles.bgWatchBannerSub}>
                   Activá BG Watch para registrar todas tus partidas desde
-                  Turnocero.
+                  TurnoCero.
                 </p>
               </div>
               <a
@@ -543,7 +543,7 @@ export default function UserProfile() {
             <div className={styles.section}>
               <div className={styles.sectionLabel}>Apariencia</div>
               <p className={styles.hint}>
-                Elegí cómo querés ver Turnocero. Tu preferencia se guarda en
+                Elegí cómo querés ver TurnoCero. Tu preferencia se guarda en
                 este dispositivo.
               </p>
               <div
@@ -716,7 +716,7 @@ export default function UserProfile() {
                 </div>
                 <p className={styles.hint}>
                   Conectá tu cuenta de BGG para cargar, editar y eliminar
-                  partidas directamente desde Turnocero. Tu password se guarda
+                  partidas directamente desde TurnoCero. Tu password se guarda
                   cifrada (AES-256-GCM) en nuestros servidores y nunca se envía
                   al navegador.
                 </p>

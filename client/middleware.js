@@ -25,7 +25,7 @@ function ogHtml({ title, desc, image, imageIsLarge, canonicalUrl }) {
   <meta property="og:image:alt"        content="${esc(title)}">
   <meta property="og:url"              content="${canonicalUrl}">
   <meta property="og:locale"           content="es_AR">
-  <meta property="og:site_name"        content="Turnocero">
+  <meta property="og:site_name"        content="TurnoCero">
   <meta name="twitter:card"            content="${imageIsLarge ? "summary_large_image" : "summary"}">
   <meta name="twitter:title"           content="${esc(title)}">
   <meta name="twitter:description"     content="${esc(desc)}">
@@ -43,11 +43,11 @@ async function handleCompartida(url, id, apiUrl) {
   const data = await apiRes.json();
 
   const title = data.title
-    ? `${data.title} – Turnocero 🎲`
-    : `Compartida de ${data.author} – Turnocero 🎲`;
+    ? `${data.title} – TurnoCero 🎲`
+    : `Compartida de ${data.author} – TurnoCero 🎲`;
   const desc =
     data.body ||
-    "Mirá esta compartida en Turnocero, la comunidad de juegos de mesa.";
+    "Mirá esta compartida en TurnoCero, la comunidad de juegos de mesa.";
   const hasImage = Boolean(data.image);
   const image = hasImage
     ? data.image.replace("/upload/", "/upload/w_1200,h_630,c_fill,g_auto/")
@@ -62,7 +62,7 @@ async function handleEvento(url, id, apiUrl) {
   if (!apiRes.ok) return null;
   const data = await apiRes.json();
 
-  const title = `${data.title} – Evento en Turnocero 🎲`;
+  const title = `${data.title} – Evento en TurnoCero 🎲`;
   const descParts = [];
   if (data.eventDate) {
     try {
@@ -84,7 +84,7 @@ async function handleEvento(url, id, apiUrl) {
     ? data.description
     : descParts.length
       ? descParts.join(" · ")
-      : "Sumate a este evento en Turnocero, la comunidad de juegos de mesa.";
+      : "Sumate a este evento en TurnoCero, la comunidad de juegos de mesa.";
 
   const hasImage = Boolean(data.image);
   const image = hasImage
@@ -102,7 +102,7 @@ async function handleBgWatch(url, bggUsername, apiUrl) {
   if (!apiRes.ok) return null;
   const data = await apiRes.json();
 
-  const title = `BG Watch de ${data.displayName} – Turnocero 🎲`;
+  const title = `BG Watch de ${data.displayName} – TurnoCero 🎲`;
 
   const descParts = [];
   if (typeof data.partidas === "number") {
@@ -120,7 +120,7 @@ async function handleBgWatch(url, bggUsername, apiUrl) {
   }
   const desc = descParts.length
     ? descParts.join(" · ")
-    : "Mirá el historial de partidas de este jugador en Turnocero.";
+    : "Mirá el historial de partidas de este jugador en TurnoCero.";
 
   const hasThumb = Boolean(data.topGame?.thumbnail);
   const image = hasThumb
