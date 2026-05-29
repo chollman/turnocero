@@ -145,6 +145,26 @@ describe("<CompartidaCard>", () => {
     expect(screen.getAllByText(/Catán/).length).toBeGreaterThan(0);
   });
 
+  it("muestra el thumbnail BGG de la mesa enlazada cuando está disponible", () => {
+    const { container } = renderCard(
+      makePost({
+        linkedTable: {
+          _id: "t1",
+          boardGame: "Catán",
+          date: new Date(Date.now() + 86400000).toISOString(),
+          players: [],
+          maxPlayers: 4,
+          status: "open",
+          bggThumbnail: "https://cf.geekdo-images.com/catan-thumb.jpg",
+        },
+      }),
+    );
+    const img = container.querySelector(
+      'img[src="https://cf.geekdo-images.com/catan-thumb.jpg"]',
+    );
+    expect(img).toBeInTheDocument();
+  });
+
   it("renders linked table location via getLocationDisplay (not [object Object])", () => {
     // Regresión: `table.location` es un subdoc `{texto, lat, lng}` desde 2026-05.
     // El render previo hacía `${table.location}` directo y mostraba "[object Object]".

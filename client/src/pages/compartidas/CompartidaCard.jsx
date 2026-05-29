@@ -629,6 +629,7 @@ export default function CompartidaCard({
               game={table.boardGame}
               seed={table._id?.charCodeAt(0) || 42}
               size={38}
+              imageUrl={table.bggThumbnail}
             />
           </div>
           <div className={styles.mesaInfo}>

@@ -29,7 +29,7 @@ const populateCompartida = (query) =>
     .populate("author", POPULATE_AUTHOR_FIELDS)
     .populate(
       "linkedTable",
-      "boardGame date maxPlayers players host status location",
+      "boardGame date maxPlayers players host status location bggThumbnail",
     )
     .populate("linkedEvento", "title eventDate location image status");
 

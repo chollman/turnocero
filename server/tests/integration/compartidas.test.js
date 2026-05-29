@@ -124,6 +124,29 @@ describe("POST /api/compartidas", () => {
       expect(linkedId).toBe(table._id.toString());
     });
 
+    it("popula bggThumbnail de la mesa enlazada al leer la compartida", async () => {
+      const { user, token } = await createAuthedUser();
+      const table = await createTable(user, {
+        privacy: "public",
+        bggThumbnail: "https://cf.geekdo-images.com/x-thumb.jpg",
+      });
+      const created = await request(app)
+        .post("/api/compartidas")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          body: "x",
+          privacy: "public",
+          linkedTable: table._id.toString(),
+        });
+      const res = await request(app)
+        .get(`/api/compartidas/${created.body._id}`)
+        .set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(res.body.linkedTable.bggThumbnail).toBe(
+        "https://cf.geekdo-images.com/x-thumb.jpg",
+      );
+    });
+
     it("403 cuando linkedTable es privada", async () => {
       const { user, token } = await createAuthedUser();
       const table = await createTable(user, { privacy: "private" });
