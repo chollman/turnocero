@@ -15,6 +15,7 @@ metadata:
 - **`useApi(fn, opts)`** — wrap async + `{ loading, error, data, execute }`. Auto-cleanup en unmount (evita setStates sobre componentes desmontados). Error usa `getErrorMessage`.
 - **`useShowcaseTables({ enabled? })`** — fetch de `/api/tables/showcase` con seed estable. Reemplazó el patrón duplicado en las 5 auth pages (Login/Register/Forgot/Reset/Verify). `enabled` permite saltarse el request cuando `SiteConfig.sections.mesas` está OFF.
 - **`useDebouncedValue(value, ms)`** — debounce de inputs → fetch ([[feedback-debounce-inputs]]).
+- **`useInfiniteScroll(onLoadMore, { enabled, root, rootMargin })`** — sentinel con IntersectionObserver para listas paginadas. `root` opcional = ref de una caja scrolleable (observa contra el contenedor, no el viewport). Ver el patrón completo en [[feedback-lazy-loading-pattern]].
 
 ## Client — `client/src/utils/`
 
