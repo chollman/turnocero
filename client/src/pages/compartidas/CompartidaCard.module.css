@@ -1506,6 +1506,59 @@
   text-align: center;
 }
 
+/* "Ver comentarios anteriores" — gatillo visible de la carga incremental
+   (además del IntersectionObserver). */
+.commentsMoreBtn {
+  display: block;
+  width: 100%;
+  margin: 6px 0 2px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.commentsMoreBtn:hover:not(:disabled) {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.commentsMoreBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Caja scrolleable de la lista de comentarios: altura limitada para que con
+   muchos comentarios aparezca un scrollbar y la carga incremental ocurra
+   adentro (el sentinel del IntersectionObserver observa contra este contenedor,
+   no el viewport). El form y el header quedan afuera/arriba, siempre visibles. */
+.commentsScroll {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.commentsScroll::-webkit-scrollbar {
+  width: 8px;
+}
+.commentsScroll::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+.commentsScroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .commentsLoader {
   display: flex;
   gap: 5px;

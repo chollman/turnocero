@@ -438,18 +438,23 @@ describe("<CompartidaCard>", () => {
   it("clicking comments toggle loads and shows the comments section", async () => {
     server.use(
       http.get("/api/compartidas/:id/comments", () =>
-        HttpResponse.json([
-          {
-            _id: "cm1",
-            content: "¡Qué partida!",
-            author: {
-              _id: "u2",
-              username: "bob",
-              avatar: { url: "", publicId: "" },
+        HttpResponse.json({
+          comments: [
+            {
+              _id: "cm1",
+              content: "¡Qué partida!",
+              author: {
+                _id: "u2",
+                username: "bob",
+                avatar: { url: "", publicId: "" },
+              },
+              createdAt: new Date().toISOString(),
             },
-            createdAt: new Date().toISOString(),
-          },
-        ]),
+          ],
+          total: 1,
+          page: 1,
+          pages: 1,
+        }),
       ),
     );
     renderCard(makePost({ commentCount: 1 }), {
@@ -467,7 +472,9 @@ describe("<CompartidaCard>", () => {
 
   it('guest sees "Iniciá sesión para comentar" in comments section', async () => {
     server.use(
-      http.get("/api/compartidas/:id/comments", () => HttpResponse.json([])),
+      http.get("/api/compartidas/:id/comments", () =>
+        HttpResponse.json({ comments: [], total: 0, page: 1, pages: 1 }),
+      ),
     );
     renderCard(makePost(), { user: null });
     fireEvent.click(screen.getByText(/comentario/i));
@@ -480,7 +487,9 @@ describe("<CompartidaCard>", () => {
 
   it('shows "Sin comentarios" when comment list is empty', async () => {
     server.use(
-      http.get("/api/compartidas/:id/comments", () => HttpResponse.json([])),
+      http.get("/api/compartidas/:id/comments", () =>
+        HttpResponse.json({ comments: [], total: 0, page: 1, pages: 1 }),
+      ),
     );
     renderCard(makePost(), { user: { _id: "me", username: "me" } });
     fireEvent.click(screen.getByText(/comentario/i));
@@ -497,7 +506,9 @@ describe("<CompartidaCard>", () => {
       createdAt: new Date().toISOString(),
     };
     server.use(
-      http.get("/api/compartidas/:id/comments", () => HttpResponse.json([])),
+      http.get("/api/compartidas/:id/comments", () =>
+        HttpResponse.json({ comments: [], total: 0, page: 1, pages: 1 }),
+      ),
       http.post("/api/compartidas/:id/comments", () =>
         HttpResponse.json(newComment),
       ),
@@ -529,7 +540,7 @@ describe("<CompartidaCard>", () => {
     };
     server.use(
       http.get("/api/compartidas/:id/comments", () =>
-        HttpResponse.json([comment]),
+        HttpResponse.json({ comments: [comment], total: 1, page: 1, pages: 1 }),
       ),
       http.delete("/api/compartidas/:id/comments/:cid", () =>
         HttpResponse.json({ ok: true }),
@@ -548,7 +559,9 @@ describe("<CompartidaCard>", () => {
 
   it("re-clicking the comments button collapses the section", async () => {
     server.use(
-      http.get("/api/compartidas/:id/comments", () => HttpResponse.json([])),
+      http.get("/api/compartidas/:id/comments", () =>
+        HttpResponse.json({ comments: [], total: 0, page: 1, pages: 1 }),
+      ),
     );
     renderCard(makePost(), { user: { _id: "me", username: "me" } });
     const btn = screen.getByText(/comentario/i);

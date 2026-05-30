@@ -309,3 +309,80 @@ describe("PUT/DELETE /api/compartidas/:id permissions", () => {
     expect(stillThere).toBeNull();
   });
 });
+
+describe("GET /api/compartidas/:id/comments — paginación (más nuevos primero)", () => {
+  const CompartidaComment = require("../../models/CompartidaComment");
+
+  // createdAt explícito y creciente (c0 el más viejo, c{n-1} el más nuevo) para
+  // un orden determinista; updateOne con timestamps:false para no pisar updatedAt.
+  async function seedComments(compartida, author, n) {
+    const base = Date.UTC(2026, 0, 1);
+    for (let i = 0; i < n; i++) {
+      const c = await CompartidaComment.create({
+        compartida: compartida._id,
+        author: author._id,
+        content: `c${i}`,
+      });
+      await CompartidaComment.updateOne(
+        { _id: c._id },
+        { $set: { createdAt: new Date(base + i * 60000) } },
+        { timestamps: false },
+      );
+    }
+  }
+
+  it("primera tanda: 10 más nuevos primero + total/pages", async () => {
+    const author = await createUser();
+    const compartida = await createCompartida(author, { privacy: "public" });
+    await seedComments(compartida, author, 20);
+    const res = await request(app).get(
+      `/api/compartidas/${compartida._id}/comments`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(20);
+    expect(res.body.page).toBe(1);
+    expect(res.body.pages).toBe(2);
+    expect(res.body.comments).toHaveLength(10);
+    expect(res.body.comments[0].content).toBe("c19"); // el más nuevo
+    expect(res.body.comments[9].content).toBe("c10");
+  });
+
+  it("page 2 trae los comentarios anteriores", async () => {
+    const author = await createUser();
+    const compartida = await createCompartida(author, { privacy: "public" });
+    await seedComments(compartida, author, 20);
+    const res = await request(app).get(
+      `/api/compartidas/${compartida._id}/comments?page=2`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.page).toBe(2);
+    expect(res.body.comments).toHaveLength(10);
+    expect(res.body.comments[0].content).toBe("c9");
+    expect(res.body.comments[9].content).toBe("c0"); // el más viejo
+  });
+
+  it("respeta el limit del query", async () => {
+    const author = await createUser();
+    const compartida = await createCompartida(author, { privacy: "public" });
+    await seedComments(compartida, author, 12);
+    const res = await request(app).get(
+      `/api/compartidas/${compartida._id}/comments?limit=5`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.comments).toHaveLength(5);
+    expect(res.body.pages).toBe(3);
+    expect(res.body.comments[0].content).toBe("c11");
+  });
+
+  it("compartida sin comentarios → lista vacía, total 0", async () => {
+    const author = await createUser();
+    const compartida = await createCompartida(author, { privacy: "public" });
+    const res = await request(app).get(
+      `/api/compartidas/${compartida._id}/comments`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.comments).toEqual([]);
+    expect(res.body.total).toBe(0);
+    expect(res.body.pages).toBe(0);
+  });
+});

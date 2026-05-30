@@ -430,16 +430,26 @@ router.delete(
 );
 
 // ── GET /api/compartidas/:id/comments ───────────────────────────────────────
+// Paginado, más nuevos primero (sort desc). El cliente carga de a tandas a
+// medida que se scrollea; los más viejos se appendean abajo.
 router.get(
   "/:id/comments",
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const comments = await CompartidaComment.find({
-      compartida: req.params.id,
-    })
-      .populate("author", "username avatar displayName")
-      .sort({ createdAt: 1 });
-    res.json(comments);
+    const { page, limit, skip } = parsePagination(req.query, {
+      defaultLimit: 10,
+      maxLimit: 50,
+    });
+    const filter = { compartida: req.params.id };
+    const [comments, total] = await Promise.all([
+      CompartidaComment.find(filter)
+        .populate("author", "username avatar displayName")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      CompartidaComment.countDocuments(filter),
+    ]);
+    res.json({ comments, total, page, pages: Math.ceil(total / limit) });
   }),
 );
 

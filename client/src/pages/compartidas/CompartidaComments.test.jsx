@@ -17,9 +17,18 @@ const other = {
   avatar: { url: "", publicId: "" },
 };
 
-function setupComments(payload = []) {
+// Wraps a single page of comments in the paginated response shape
+// { comments, total, page, pages }. Single page by default.
+function setupComments(comments = [], { total, pages = 1 } = {}) {
   server.use(
-    http.get("/api/compartidas/:id/comments", () => HttpResponse.json(payload)),
+    http.get("/api/compartidas/:id/comments", () =>
+      HttpResponse.json({
+        comments,
+        total: total ?? comments.length,
+        page: 1,
+        pages,
+      }),
+    ),
   );
 }
 
@@ -67,7 +76,6 @@ describe("<CompartidaComments>", () => {
   });
 
   it("muestra fecha y hora del comentario en formato dd/MM/aa HH:mm", async () => {
-    // 5 de enero de 2026, 14:30 hora local.
     const d = new Date(2026, 0, 5, 14, 30);
     setupComments([
       {
@@ -118,32 +126,44 @@ describe("<CompartidaComments>", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("dispara onCountChange después del fetch inicial", async () => {
+  it("dispara onCountChange con el total del server tras el fetch inicial", async () => {
     const onCountChange = vi.fn();
-    setupComments([
-      {
-        _id: "c1",
-        content: "x",
-        author: other,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        _id: "c2",
-        content: "y",
-        author: other,
-        createdAt: new Date().toISOString(),
-      },
-    ]);
+    // El server reporta total=8 aunque sólo mande 2 cargados.
+    setupComments(
+      [
+        {
+          _id: "c1",
+          content: "x",
+          author: other,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          _id: "c2",
+          content: "y",
+          author: other,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      { total: 8, pages: 1 },
+    );
     renderComponent({ onCountChange });
-    await waitFor(() => expect(onCountChange).toHaveBeenCalledWith(2));
+    await waitFor(() => expect(onCountChange).toHaveBeenCalledWith(8));
   });
 
-  it("envía un comentario y dispara onCountChange con el count actualizado", async () => {
+  it("agrega un comentario al TOPE (prepend) y sube el contador", async () => {
+    setupComments([
+      {
+        _id: "viejo",
+        content: "comentario viejo",
+        author: other,
+        createdAt: new Date(2026, 0, 1).toISOString(),
+      },
+    ]);
     server.use(
       http.post("/api/compartidas/:id/comments", () =>
         HttpResponse.json({
-          _id: "cn",
-          content: "Hola",
+          _id: "nuevo",
+          content: "comentario nuevo",
           author: user,
           createdAt: new Date().toISOString(),
         }),
@@ -151,14 +171,87 @@ describe("<CompartidaComments>", () => {
     );
     const onCountChange = vi.fn();
     renderComponent({ onCountChange });
-    const input = await screen.findByPlaceholderText(/Escribí un comentario/i);
-    fireEvent.change(input, { target: { value: "Hola" } });
+    await screen.findByText("comentario viejo");
+    const input = screen.getByPlaceholderText(/Escribí un comentario/i);
+    fireEvent.change(input, { target: { value: "comentario nuevo" } });
     fireEvent.submit(input.closest("form"));
-    await waitFor(() => {
-      expect(screen.getByText("Hola")).toBeInTheDocument();
+    await screen.findByText("comentario nuevo");
+    // El nuevo aparece ANTES que el viejo en el DOM (más reciente arriba).
+    const texts = screen.getAllByText(/comentario (viejo|nuevo)/);
+    expect(texts[0]).toHaveTextContent("comentario nuevo");
+    // Total pasó de 1 → 2.
+    expect(onCountChange.mock.calls.at(-1)).toEqual([2]);
+  });
+
+  it("carga incremental: 'Ver comentarios anteriores' trae y appendea la página vieja", async () => {
+    server.use(
+      http.get("/api/compartidas/:id/comments", ({ request }) => {
+        const page = Number(new URL(request.url).searchParams.get("page") || 1);
+        if (page === 2) {
+          return HttpResponse.json({
+            comments: [
+              {
+                _id: "old1",
+                content: "anterior",
+                author: other,
+                createdAt: new Date(2026, 0, 1).toISOString(),
+              },
+            ],
+            total: 3,
+            page: 2,
+            pages: 2,
+          });
+        }
+        return HttpResponse.json({
+          comments: [
+            {
+              _id: "new1",
+              content: "reciente A",
+              author: other,
+              createdAt: new Date(2026, 0, 3).toISOString(),
+            },
+            {
+              _id: "new2",
+              content: "reciente B",
+              author: other,
+              createdAt: new Date(2026, 0, 2).toISOString(),
+            },
+          ],
+          total: 3,
+          page: 1,
+          pages: 2,
+        });
+      }),
+    );
+    renderComponent();
+    await screen.findByText("reciente A");
+    // Aún no se cargó la página vieja.
+    expect(screen.queryByText("anterior")).not.toBeInTheDocument();
+    const moreBtn = screen.getByRole("button", {
+      name: /ver comentarios anteriores/i,
     });
-    // Última invocación es count=1 (luego del POST).
-    expect(onCountChange.mock.calls.at(-1)).toEqual([1]);
+    fireEvent.click(moreBtn);
+    await screen.findByText("anterior");
+    // Ya no hay más páginas → el botón desaparece.
+    expect(
+      screen.queryByRole("button", { name: /ver comentarios anteriores/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("no muestra el botón 'Ver comentarios anteriores' con una sola página", async () => {
+    setupComments([
+      {
+        _id: "c1",
+        content: "único",
+        author: other,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    renderComponent();
+    await screen.findByText("único");
+    expect(
+      screen.queryByRole("button", { name: /ver comentarios anteriores/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("permite editar un comentario propio", async () => {
@@ -192,7 +285,7 @@ describe("<CompartidaComments>", () => {
     });
   });
 
-  it("borra un comentario propio y actualiza onCountChange", async () => {
+  it("borra un comentario propio y baja onCountChange", async () => {
     setupComments([
       {
         _id: "c1",
