@@ -80,9 +80,13 @@ router.patch(
   protect,
   requireAdmin,
   asyncHandler(async (req, res) => {
+    // Reset count: 0 además de read: true — `admin_chat` es un tipo
+    // AGGREGATING (usa $inc). Sin el reset, el próximo mensaje hace $inc
+    // desde el count viejo y el badge se desincroniza (ver contrato en
+    // routes/notifications.js).
     await Notification.updateMany(
       { recipient: req.user._id, type: "admin_chat", read: false },
-      { $set: { read: true } },
+      { $set: { read: true, count: 0 } },
     );
     res.json({ ok: true });
   }),

@@ -116,8 +116,9 @@ export default function CompartidaComments({
         { content: commentInput.trim() },
       );
       setComments((c) => [data, ...c]); // más nuevo arriba
-      setTotal((t) => t + 1);
-      onCountChange?.(total + 1);
+      const next = total + 1;
+      setTotal(next);
+      onCountChange?.(next);
       setCommentInput("");
     } catch (err) {
       setError(getErrorMessage(err, "No pudimos enviar el comentario"));
@@ -144,8 +145,9 @@ export default function CompartidaComments({
     try {
       await axios.delete(API.compartidas.COMMENT_DETAIL(compartidaId, cid));
       setComments((cs) => cs.filter((c) => c._id !== cid));
-      setTotal((t) => Math.max(0, t - 1));
-      onCountChange?.(Math.max(0, total - 1));
+      const next = Math.max(0, total - 1);
+      setTotal(next);
+      onCountChange?.(next);
     } catch (err) {
       setError(getErrorMessage(err, "No pudimos eliminar el comentario"));
     }

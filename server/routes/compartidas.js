@@ -71,24 +71,25 @@ router.get(
 
     // "Compartida del día" — most-liked post in the last 24h
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const [compartidas, total, allRecent] = await Promise.all([
+    const [compartidas, total, mostLiked] = await Promise.all([
       populateCompartida(Compartida.find(filter))
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
       Compartida.countDocuments(filter),
-      Compartida.find({ ...filter, createdAt: { $gte: since24h } })
-        .sort({ "likes.length": -1 })
-        .limit(10)
-        .select("_id likes"),
+      // Most-liked post in the last 24h. Mongo no puede ordenar por el tamaño
+      // de un array vía `sort({ "likes.length": -1 })` (no es un campo escalar),
+      // así que usamos una aggregation con $size para ordenar correctamente.
+      Compartida.aggregate([
+        { $match: { ...filter, createdAt: { $gte: since24h } } },
+        { $addFields: { likeCount: { $size: { $ifNull: ["$likes", []] } } } },
+        { $sort: { likeCount: -1, createdAt: -1 } },
+        { $limit: 1 },
+        { $project: { _id: 1 } },
+      ]),
     ]);
 
-    // Pick the one with most likes from the last 24h
-    const featuredId = allRecent.length
-      ? allRecent.reduce((best, j) =>
-          j.likes.length > best.likes.length ? j : best,
-        )._id
-      : null;
+    const featuredId = mostLiked.length ? mostLiked[0]._id : null;
 
     const featured = featuredId
       ? await populateCompartida(Compartida.findById(featuredId))

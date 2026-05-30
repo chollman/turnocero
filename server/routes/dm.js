@@ -175,6 +175,9 @@ router.patch(
       { from: req.params.userId, to: req.user._id, readByRecipient: false },
       { $set: { readByRecipient: true } },
     );
+    // Reset count: 0 además de read: true — `dm` es un tipo AGGREGATING
+    // (usa $inc). Sin el reset, el próximo DM hace $inc desde el count viejo
+    // y el badge se desincroniza (ver contrato en routes/notifications.js).
     await Notification.updateMany(
       {
         recipient: req.user._id,
@@ -182,7 +185,7 @@ router.patch(
         fromUserId: req.params.userId,
         read: false,
       },
-      { $set: { read: true } },
+      { $set: { read: true, count: 0 } },
     );
     res.json({ ok: true });
   }),
