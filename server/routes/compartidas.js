@@ -449,7 +449,11 @@ router.get(
     const [comments, total] = await Promise.all([
       CompartidaComment.find(filter)
         .populate("author", "username avatar displayName")
-        .sort({ createdAt: -1 })
+        // `_id` como desempate: cuando varios comentarios comparten el mismo
+        // `createdAt` (mismo ms), ordenar solo por createdAt es no-determinístico
+        // y la paginación devuelve resultados inconsistentes. ObjectId es
+        // monotónico → orden estable.
+        .sort({ createdAt: -1, _id: -1 })
         .skip(skip)
         .limit(limit),
       CompartidaComment.countDocuments(filter),
