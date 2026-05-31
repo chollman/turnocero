@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { getErrorMessage } from "../../utils/getErrorMessage";
@@ -39,6 +40,26 @@ const CameraIcon = ({ size = 36 }) => (
   </svg>
 );
 
+const ChevronIcon = ({ dir = "left", size = 32 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    {dir === "left" ? (
+      <polyline points="15 18 9 12 15 6" />
+    ) : (
+      <polyline points="9 18 15 12 9 6" />
+    )}
+  </svg>
+);
+
 // Sección "Fotos de la mesa". El padre owna `images` porque también lo
 // necesita para hidratar `table.images` después del upload — paso el
 // callback `onImagesChange` para que el padre quede en sync sin que
@@ -55,8 +76,30 @@ export default function TableGallery({
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-  const [lightboxImage, setLightboxImage] = useState(null);
+  // El lightbox trackea el índice (no la url) para poder navegar prev/next.
+  const [lightboxIndex, setLightboxIndex] = useState(null);
   const fileInputRef = useRef(null);
+
+  const closeLightbox = () => setLightboxIndex(null);
+  const goPrev = () =>
+    setLightboxIndex((i) =>
+      i === null ? i : (i - 1 + images.length) % images.length,
+    );
+  const goNext = () =>
+    setLightboxIndex((i) => (i === null ? i : (i + 1) % images.length));
+
+  // Teclado: ←/→ navegan, Esc cierra. Solo mientras el lightbox está abierto.
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") closeLightbox();
+      else if (e.key === "ArrowLeft") goPrev();
+      else if (e.key === "ArrowRight") goNext();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lightboxIndex, images.length]);
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -118,13 +161,13 @@ export default function TableGallery({
                 />
               </>
             )}
-            {images.map((img) => (
+            {images.map((img, idx) => (
               <div key={img._id} className={styles.imageThumb}>
                 <img
                   src={img.url}
                   alt="Foto de la mesa"
                   className={styles.thumbImg}
-                  onClick={() => setLightboxImage(img.url)}
+                  onClick={() => setLightboxIndex(idx)}
                 />
                 {canDeleteImage?.(img) && (
                   <button
@@ -160,18 +203,64 @@ export default function TableGallery({
           </div>
         )}
       </div>
-      {lightboxImage && (
-        <div
-          className={styles.lightboxOverlay}
-          onClick={() => setLightboxImage(null)}
-        >
-          <img
-            src={lightboxImage}
-            alt="Vista ampliada"
-            className={styles.lightboxImg}
-          />
-        </div>
-      )}
+      {lightboxIndex !== null &&
+        images[lightboxIndex] &&
+        createPortal(
+          <div className={styles.lightboxOverlay} onClick={closeLightbox}>
+            <button
+              type="button"
+              className={styles.lightboxClose}
+              onClick={(e) => {
+                e.stopPropagation();
+                closeLightbox();
+              }}
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+            {images.length > 1 && (
+              <button
+                type="button"
+                className={`${styles.lightboxNav} ${styles.lightboxPrev}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goPrev();
+                }}
+                aria-label="Imagen anterior"
+              >
+                <ChevronIcon dir="left" />
+              </button>
+            )}
+            <img
+              src={images[lightboxIndex].url}
+              alt="Vista ampliada"
+              className={styles.lightboxImg}
+              onClick={(e) => {
+                e.stopPropagation();
+                closeLightbox();
+              }}
+            />
+            {images.length > 1 && (
+              <button
+                type="button"
+                className={`${styles.lightboxNav} ${styles.lightboxNext}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goNext();
+                }}
+                aria-label="Imagen siguiente"
+              >
+                <ChevronIcon dir="right" />
+              </button>
+            )}
+            {images.length > 1 && (
+              <span className={styles.lightboxCounter}>
+                {lightboxIndex + 1} / {images.length}
+              </span>
+            )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

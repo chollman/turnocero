@@ -68,6 +68,83 @@ describe("<TableGallery>", () => {
     expect(screen.queryByAltText(/Vista ampliada/i)).not.toBeInTheDocument();
   });
 
+  it("cierra el lightbox al hacer click sobre la propia imagen ampliada", () => {
+    renderGallery({ images: [makeImg("i1"), makeImg("i2")] });
+    fireEvent.click(screen.getAllByAltText(/Foto de la mesa/i)[0]);
+    expect(screen.getByAltText(/Vista ampliada/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByAltText(/Vista ampliada/i));
+    expect(screen.queryByAltText(/Vista ampliada/i)).not.toBeInTheDocument();
+  });
+
+  it("no muestra flechas ni contador con una sola imagen", () => {
+    renderGallery({ images: [makeImg("i1")] });
+    fireEvent.click(screen.getByAltText(/Foto de la mesa/i));
+    expect(
+      screen.queryByRole("button", { name: /imagen siguiente/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /imagen anterior/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/\d+ \/ \d+/)).not.toBeInTheDocument();
+  });
+
+  it("navega a la siguiente y anterior imagen con las flechas (con wrap-around)", () => {
+    const images = [makeImg("i1"), makeImg("i2"), makeImg("i3")];
+    renderGallery({ images });
+    // Abre en la primera imagen
+    fireEvent.click(screen.getAllByAltText(/Foto de la mesa/i)[0]);
+    expect(screen.getByAltText(/Vista ampliada/i)).toHaveAttribute(
+      "src",
+      images[0].url,
+    );
+    expect(screen.getByText("1 / 3")).toBeInTheDocument();
+
+    // Siguiente → i2
+    fireEvent.click(screen.getByRole("button", { name: /imagen siguiente/i }));
+    expect(screen.getByAltText(/Vista ampliada/i)).toHaveAttribute(
+      "src",
+      images[1].url,
+    );
+    expect(screen.getByText("2 / 3")).toBeInTheDocument();
+
+    // Anterior dos veces → i2 → i1 → i3 (wrap)
+    fireEvent.click(screen.getByRole("button", { name: /imagen anterior/i }));
+    fireEvent.click(screen.getByRole("button", { name: /imagen anterior/i }));
+    expect(screen.getByAltText(/Vista ampliada/i)).toHaveAttribute(
+      "src",
+      images[2].url,
+    );
+    expect(screen.getByText("3 / 3")).toBeInTheDocument();
+  });
+
+  it("navega con las flechas del teclado y cierra con Escape", () => {
+    const images = [makeImg("i1"), makeImg("i2")];
+    renderGallery({ images });
+    fireEvent.click(screen.getAllByAltText(/Foto de la mesa/i)[0]);
+
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(screen.getByAltText(/Vista ampliada/i)).toHaveAttribute(
+      "src",
+      images[1].url,
+    );
+
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(screen.getByAltText(/Vista ampliada/i)).toHaveAttribute(
+      "src",
+      images[0].url,
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByAltText(/Vista ampliada/i)).not.toBeInTheDocument();
+  });
+
+  it("cierra el lightbox con el botón de cerrar", () => {
+    renderGallery({ images: [makeImg("i1"), makeImg("i2")] });
+    fireEvent.click(screen.getAllByAltText(/Foto de la mesa/i)[0]);
+    fireEvent.click(screen.getByRole("button", { name: /^cerrar$/i }));
+    expect(screen.queryByAltText(/Vista ampliada/i)).not.toBeInTheDocument();
+  });
+
   it("dispara onImagesChange después de DELETE exitoso", async () => {
     server.use(
       http.delete("/api/tables/:id/images/:imgId", () =>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
@@ -90,6 +91,26 @@ function formatTableDate(date) {
     month: "short",
   });
 }
+
+const LightboxChevron = ({ dir = "left" }) => (
+  <svg
+    width="32"
+    height="32"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    {dir === "left" ? (
+      <polyline points="15 18 9 12 15 6" />
+    ) : (
+      <polyline points="9 18 15 12 9 6" />
+    )}
+  </svg>
+);
 
 const PRIVACY_LABELS = {
   public: "Público",
@@ -207,7 +228,8 @@ export default function CompartidaCard({
   const [editTitle, setEditTitle] = useState(post.title);
   const [editBody, setEditBody] = useState(post.body);
   const [editPrivacy, setEditPrivacy] = useState(post.privacy);
-  const [lightbox, setLightbox] = useState(null);
+  // Lightbox: trackea el índice (no la url) para navegar prev/next.
+  const [lightboxIndex, setLightboxIndex] = useState(null);
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const menuRef = useRef(null);
@@ -231,6 +253,28 @@ export default function CompartidaCard({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  const lbImages = post.images || [];
+  const closeLightbox = () => setLightboxIndex(null);
+  const goPrev = () =>
+    setLightboxIndex((i) =>
+      i === null ? i : (i - 1 + lbImages.length) % lbImages.length,
+    );
+  const goNext = () =>
+    setLightboxIndex((i) => (i === null ? i : (i + 1) % lbImages.length));
+
+  // Teclado: ←/→ navegan, Esc cierra. Solo mientras el lightbox está abierto.
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") closeLightbox();
+      else if (e.key === "ArrowLeft") goPrev();
+      else if (e.key === "ArrowRight") goNext();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lightboxIndex, lbImages.length]);
 
   // Check síncrono de auth antes del toggle async — el modal de login
   // debe aparecer en el mismo tick del click, no esperar la Promise.
@@ -297,6 +341,68 @@ export default function CompartidaCard({
   const pullQuote = featured
     ? post.body.slice(0, 180) + (post.body.length > 180 ? "…" : "")
     : null;
+
+  // Lightbox compartido entre el layout normal y el featured. Se renderiza con
+  // portal a document.body para escapar de cualquier stacking context del card.
+  const lightboxPortal =
+    lightboxIndex !== null && lbImages[lightboxIndex]
+      ? createPortal(
+          <div className={styles.lightbox} onClick={closeLightbox}>
+            <button
+              type="button"
+              className={styles.lightboxClose}
+              onClick={(e) => {
+                e.stopPropagation();
+                closeLightbox();
+              }}
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+            {lbImages.length > 1 && (
+              <button
+                type="button"
+                className={`${styles.lightboxNav} ${styles.lightboxPrev}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goPrev();
+                }}
+                aria-label="Imagen anterior"
+              >
+                <LightboxChevron dir="left" />
+              </button>
+            )}
+            <img
+              src={lbImages[lightboxIndex].url}
+              alt=""
+              className={styles.lightboxImg}
+              onClick={(e) => {
+                e.stopPropagation();
+                closeLightbox();
+              }}
+            />
+            {lbImages.length > 1 && (
+              <button
+                type="button"
+                className={`${styles.lightboxNav} ${styles.lightboxNext}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goNext();
+                }}
+                aria-label="Imagen siguiente"
+              >
+                <LightboxChevron dir="right" />
+              </button>
+            )}
+            {lbImages.length > 1 && (
+              <span className={styles.lightboxCounter}>
+                {lightboxIndex + 1} / {lbImages.length}
+              </span>
+            )}
+          </div>,
+          document.body,
+        )
+      : null;
 
   // Linked mesa/evento tickets — shared between the normal and the featured
   // (compartida del día) layouts so the linked mesa/evento is clickable in
@@ -415,7 +521,8 @@ export default function CompartidaCard({
               </span>
               {tableOpen && (
                 <span className={styles.featuredMesaSeats}>
-                  {tableSeats} {tableSeats === 1 ? "lugar libre" : "lugares libres"}
+                  {tableSeats}{" "}
+                  {tableSeats === 1 ? "lugar libre" : "lugares libres"}
                 </span>
               )}
             </span>
@@ -591,9 +698,7 @@ export default function CompartidaCard({
               <button
                 type="button"
                 className={styles.photoBtn}
-                onClick={() =>
-                  post.images[0]?.url && setLightbox(post.images[0].url)
-                }
+                onClick={() => post.images[0]?.url && setLightboxIndex(0)}
                 disabled={!post.images[0]?.url}
               >
                 <Polaroid
@@ -611,7 +716,7 @@ export default function CompartidaCard({
                       key={img._id || i}
                       type="button"
                       className={styles.featuredThumb}
-                      onClick={() => img.url && setLightbox(img.url)}
+                      onClick={() => img.url && setLightboxIndex(i + 1)}
                       aria-label={`Ver foto ${i + 2}`}
                     >
                       <img src={img.url} alt="" loading="lazy" />
@@ -635,12 +740,7 @@ export default function CompartidaCard({
           )}
         </article>
 
-        {lightbox && (
-          <div className={styles.lightbox} onClick={() => setLightbox(null)}>
-            <img src={lightbox} alt="" className={styles.lightboxImg} />
-            <button className={styles.lightboxClose}>✕</button>
-          </div>
-        )}
+        {lightboxPortal}
       </>
     );
   }
@@ -793,7 +893,7 @@ export default function CompartidaCard({
             <button
               key={img._id || i}
               className={styles.photoBtn}
-              onClick={() => setLightbox(img.url)}
+              onClick={() => setLightboxIndex(i)}
             >
               <Polaroid
                 image={img}
@@ -962,12 +1062,7 @@ export default function CompartidaCard({
       </article>
 
       {/* ── Lightbox ── */}
-      {lightbox && (
-        <div className={styles.lightbox} onClick={() => setLightbox(null)}>
-          <img src={lightbox} alt="" className={styles.lightboxImg} />
-          <button className={styles.lightboxClose}>✕</button>
-        </div>
-      )}
+      {lightboxPortal}
     </>
   );
 }

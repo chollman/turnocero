@@ -594,6 +594,85 @@ describe("<CompartidaCard>", () => {
     }
   });
 
+  // El lightbox se renderiza con portal a document.body, así que las
+  // aserciones consultan document, no el container del card.
+  const LB_IMAGES = [
+    { _id: "i1", url: "http://example.com/1.jpg" },
+    { _id: "i2", url: "http://example.com/2.jpg" },
+    { _id: "i3", url: "http://example.com/3.jpg" },
+  ];
+
+  function openLightbox(container, idx = 0) {
+    fireEvent.click(container.querySelectorAll("button.photoBtn")[idx]);
+  }
+
+  it("navega con flechas (con wrap-around) y muestra el contador", () => {
+    const { container } = renderCard(makePost({ images: LB_IMAGES }));
+    openLightbox(container, 0);
+
+    expect(document.querySelector(".lightboxImg")).toHaveAttribute(
+      "src",
+      LB_IMAGES[0].url,
+    );
+    expect(screen.getByText("1 / 3")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /imagen siguiente/i }));
+    expect(document.querySelector(".lightboxImg")).toHaveAttribute(
+      "src",
+      LB_IMAGES[1].url,
+    );
+    expect(screen.getByText("2 / 3")).toBeInTheDocument();
+
+    // Anterior dos veces: i2 → i1 → i3 (wrap)
+    fireEvent.click(screen.getByRole("button", { name: /imagen anterior/i }));
+    fireEvent.click(screen.getByRole("button", { name: /imagen anterior/i }));
+    expect(document.querySelector(".lightboxImg")).toHaveAttribute(
+      "src",
+      LB_IMAGES[2].url,
+    );
+    expect(screen.getByText("3 / 3")).toBeInTheDocument();
+  });
+
+  it("navega con el teclado y cierra con Escape", () => {
+    const { container } = renderCard(makePost({ images: LB_IMAGES }));
+    openLightbox(container, 0);
+
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(document.querySelector(".lightboxImg")).toHaveAttribute(
+      "src",
+      LB_IMAGES[1].url,
+    );
+
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(document.querySelector(".lightboxImg")).toHaveAttribute(
+      "src",
+      LB_IMAGES[0].url,
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(document.querySelector(".lightboxImg")).toBeNull();
+  });
+
+  it("cierra el lightbox al hacer click en la imagen ampliada", () => {
+    const { container } = renderCard(makePost({ images: LB_IMAGES }));
+    openLightbox(container, 0);
+    fireEvent.click(document.querySelector(".lightboxImg"));
+    expect(document.querySelector(".lightboxImg")).toBeNull();
+  });
+
+  it("no muestra flechas ni contador con una sola imagen", () => {
+    const { container } = renderCard(makePost({ images: [LB_IMAGES[0]] }));
+    openLightbox(container, 0);
+    expect(document.querySelector(".lightboxImg")).not.toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /imagen siguiente/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /imagen anterior/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/\d+ \/ \d+/)).not.toBeInTheDocument();
+  });
+
   // -----------------------------------------------------------------------
   // BgWatch author link
   // -----------------------------------------------------------------------
@@ -728,19 +807,17 @@ describe("<CompartidaCard>", () => {
   // Compartir (share buttons) — regresión del deeplink duplicado
   // -----------------------------------------------------------------------
   it("el href de Telegram NO duplica el deeplink (url y caption por separado)", () => {
-    renderCard(makePost({ title: "Épica", body: "Ganamos en el último turno" }));
-    const tg = screen
-      .getByTitle(/compartir en telegram/i)
-      .getAttribute("href");
+    renderCard(
+      makePost({ title: "Épica", body: "Ganamos en el último turno" }),
+    );
+    const tg = screen.getByTitle(/compartir en telegram/i).getAttribute("href");
     const occurrences = tg.split("compartidas%2Fc1").length - 1;
     expect(occurrences).toBe(1);
   });
 
   it("el texto de WhatsApp incluye el deeplink exactamente una vez", () => {
     renderCard(makePost({ title: "Épica", body: "Qué partidaza" }));
-    const wa = screen
-      .getByTitle(/compartir en whatsapp/i)
-      .getAttribute("href");
+    const wa = screen.getByTitle(/compartir en whatsapp/i).getAttribute("href");
     const occurrences = wa.split("compartidas%2Fc1").length - 1;
     expect(occurrences).toBe(1);
     // El emoji va una vez (decodificado %F0%9F%8E%B2 = 🎲)

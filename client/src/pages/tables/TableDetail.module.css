@@ -1199,6 +1199,80 @@
   border-radius: 8px;
   object-fit: contain;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  cursor: zoom-out;
+}
+
+/* El lightbox es una superficie forced-dark (overlay negro fijo); los
+   controles usan blanco/rgba literales como las pantallas inmersivas. */
+.lightboxNav,
+.lightboxClose {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(2px);
+  transition: all var(--transition);
+  z-index: 1;
+}
+.lightboxNav:hover,
+.lightboxClose:hover {
+  background: rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.lightboxNav {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+}
+.lightboxNav:hover {
+  transform: translateY(-50%) scale(1.06);
+}
+.lightboxPrev {
+  left: 1.25rem;
+}
+.lightboxNext {
+  right: 1.25rem;
+}
+.lightboxClose {
+  top: 1.25rem;
+  right: 1.25rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.lightboxCounter {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  letter-spacing: 0.02em;
+}
+@media (max-width: 600px) {
+  .lightboxNav {
+    width: 44px;
+    height: 44px;
+  }
+  .lightboxPrev {
+    left: 0.5rem;
+  }
+  .lightboxNext {
+    right: 0.5rem;
+  }
 }
 
 /* ─── Comments ─── */

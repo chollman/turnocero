@@ -1821,14 +1821,15 @@
   max-height: 90vh;
   object-fit: contain;
   border-radius: 8px;
+  cursor: zoom-out;
 }
 
 .lightboxClose {
-  position: absolute;
+  position: fixed;
   top: 20px;
   right: 20px;
   background: rgba(255, 255, 255, 0.1);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: #fff;
   font-size: 18px;
   width: 36px;
@@ -1837,6 +1838,56 @@
   cursor: pointer;
   display: grid;
   place-items: center;
+  transition: all var(--transition);
+  z-index: 1;
+}
+.lightboxClose:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.lightboxNav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(2px);
+  transition: all var(--transition);
+  z-index: 1;
+}
+.lightboxNav:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-50%) scale(1.06);
+}
+.lightboxPrev {
+  left: 1.25rem;
+}
+.lightboxNext {
+  right: 1.25rem;
+}
+.lightboxCounter {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  letter-spacing: 0.02em;
 }
 
 /* ── Mobile tweaks (≤ 600 px) ─────────────────────────── */
