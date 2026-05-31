@@ -198,6 +198,28 @@ export function NotificationProvider({ children }) {
     axios.delete(API.notifications.CLEAR).catch(() => {});
   }, []);
 
+  // Descartar una notif puntual (botón X de cada fila). Optimista: la saca
+  // del listado y dispara el DELETE; si el server falla, la restaura y avisa
+  // por toast (feedback_errors_as_toasts).
+  const dismiss = useCallback((notifId) => {
+    if (!notifId) return;
+    let removed = null;
+    setNotifications((prev) => {
+      const match = (n) => (n.notifId || n._id) === notifId;
+      removed = prev.find(match) || null;
+      return prev.filter((n) => !match(n));
+    });
+    axios.delete(API.notifications.DISMISS(notifId)).catch(() => {
+      if (removed) setNotifications((prev) => mergeNotifs(prev, [removed]));
+      setToasts((prev) =>
+        pushToast(prev, {
+          type: "error",
+          message: "No pudimos descartar la notificación. Intentá de nuevo.",
+        }),
+      );
+    });
+  }, []);
+
   const markAllRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     axios.patch(API.notifications.READ, {}).catch(() => {});
@@ -328,6 +350,7 @@ export function NotificationProvider({ children }) {
       markAllRead,
       loadOlder,
       clearAll,
+      dismiss,
       setActiveTable,
       setActiveTorneo,
       setActiveCompartida,
@@ -355,6 +378,7 @@ export function NotificationProvider({ children }) {
       markAllRead,
       loadOlder,
       clearAll,
+      dismiss,
       setActiveTable,
       setActiveTorneo,
       setActiveCompartida,

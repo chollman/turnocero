@@ -63,6 +63,10 @@ router.post(
           {
             lastSenderUsername: req.user.username,
             lastMessagePreview: req.body.content.slice(0, 60),
+            actor: {
+              userId: req.user._id.toString(),
+              username: req.user.username,
+            },
           },
           "admin:message",
           messagePayload,

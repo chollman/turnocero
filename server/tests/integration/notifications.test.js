@@ -153,3 +153,58 @@ describe("DELETE /api/notifications", () => {
     expect(await Notification.countDocuments({ recipient: user._id })).toBe(0);
   });
 });
+
+describe("DELETE /api/notifications/:id", () => {
+  it("dismisses a single notification of the caller", async () => {
+    const { user, token } = await createAuthedUser();
+    const keep = await Notification.create({
+      recipient: user._id,
+      type: "comment",
+      tableId: "keep",
+    });
+    const drop = await Notification.create({
+      recipient: user._id,
+      type: "comment",
+      tableId: "drop",
+    });
+    const res = await request(app)
+      .delete(`/api/notifications/${drop._id}`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    const remaining = await Notification.find({ recipient: user._id });
+    expect(remaining.map((n) => n._id.toString())).toEqual([
+      keep._id.toString(),
+    ]);
+  });
+
+  it("returns 404 when dismissing another user's notification", async () => {
+    const { token } = await createAuthedUser();
+    const { user: other } = await createAuthedUser();
+    const theirs = await Notification.create({
+      recipient: other._id,
+      type: "comment",
+      tableId: "x",
+    });
+    const res = await request(app)
+      .delete(`/api/notifications/${theirs._id}`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(404);
+    // No se borró.
+    expect(await Notification.countDocuments({ recipient: other._id })).toBe(1);
+  });
+
+  it("returns 400 on an invalid id", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .delete("/api/notifications/not-an-id")
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(400);
+  });
+
+  it("requires auth", async () => {
+    const res = await request(app).delete(
+      "/api/notifications/000000000000000000000000",
+    );
+    expect(res.status).toBe(401);
+  });
+});

@@ -364,6 +364,10 @@ router.post(
           compartidaId: compartida._id.toString(),
           compartidaTitle: compartida.title || "",
           lastSenderUsername: req.user.username,
+          actor: {
+            userId: req.user._id.toString(),
+            username: req.user.username,
+          },
         },
         "compartida:like",
         { fromUsername: req.user.username },
@@ -485,6 +489,10 @@ router.post(
           compartidaTitle: compartida.title || "",
           lastCommenterUsername: req.user.username,
           lastCommentPreview: preview,
+          actor: {
+            userId: req.user._id.toString(),
+            username: req.user.username,
+          },
         },
         "compartida:comment",
         { commenterUsername: req.user.username, commentPreview: preview },

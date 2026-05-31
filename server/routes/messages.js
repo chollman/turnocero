@@ -93,6 +93,10 @@ router.post(
             tableName: table.boardGame,
             lastSenderUsername: req.user.username,
             lastMessagePreview: messagePreview,
+            actor: {
+              userId: req.user._id.toString(),
+              username: req.user.username,
+            },
           },
           "chat:notification",
           { senderUsername: req.user.username, messagePreview },

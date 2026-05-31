@@ -1,304 +1,48 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useNotifications } from "../../context/NotificationContext";
 import { useChat } from "../../context/ChatContext";
 import { API } from "../../api/endpoints";
-import { formatTimeAgo } from "../../utils/time";
+import {
+  getDomain,
+  isActionable,
+  notifBucket,
+  notifLink,
+  NOTIF_BUCKETS,
+} from "../../utils/notifDomains";
+import NotifRow from "./NotifRow";
+import ResolvedRow from "./ResolvedRow";
+import SidePanel from "./SidePanel";
+import NotifIcon from "./NotifIcons";
 import styles from "./Notifications.module.css";
 
-const CATEGORIES = {
-  mesas: new Set([
-    "chat",
-    "comment",
-    "image",
-    "join_request",
-    "player_joined",
-    "player_left",
-    "join_accepted",
-    "spot_opened",
-    "table_cancelled",
-    "join_rejected",
-  ]),
-  torneos: new Set([
-    "tournament_accepted",
-    "tournament_rejected",
-    "tournament_advanced",
-    "tournament_eliminated",
-    "tournament_started",
-    "tournament_finished",
-  ]),
-  eventos: new Set([
-    "evento_confirmed",
-    "evento_rejected",
-    "evento_cancelled",
-    "evento_updated",
-    "evento_reminder",
-    "evento_ludoteca_added",
-    "evento_mesa_created",
-  ]),
-  amigos: new Set(["friend_request", "friend_accepted", "dm"]),
-  compartidas: new Set(["compartida_comment", "compartida_like"]),
-  admin: new Set(["admin_chat"]),
+const DOMAIN_FILTERS = [
+  { value: "mesa", label: "Mesas" },
+  { value: "evento", label: "Eventos" },
+  { value: "torneo", label: "Torneos" },
+  { value: "amigo", label: "Amigos" },
+  { value: "compartida", label: "Compartidas" },
+  { value: "admin", label: "Admin" },
+];
+
+const notifTime = (n) => new Date(n.updatedAt || n.timestamp || 0).getTime();
+const notifId = (n) =>
+  n.notifId ||
+  n._id ||
+  `${n.type}:${n.tableId ?? n.fromUserId ?? n.torneoId ?? n.compartidaId ?? n.eventoId ?? "g"}`;
+
+const matchesFilter = (n, filter) => {
+  if (filter === "all") return true;
+  if (filter === "unread") return !n.read;
+  if (filter === "actionable") return isActionable(n);
+  return getDomain(n.type) === filter;
 };
-
-const CATEGORY_LABELS = {
-  all: "Todas",
-  mesas: "Mesas",
-  torneos: "Torneos",
-  eventos: "Eventos",
-  amigos: "Amigos",
-  compartidas: "Compartidas",
-  admin: "Admin",
-};
-
-const getCategory = (type) => {
-  for (const [cat, set] of Object.entries(CATEGORIES)) {
-    if (set.has(type)) return cat;
-  }
-  return "mesas";
-};
-
-function getNotifMeta(n) {
-  switch (n.type) {
-    case "join_accepted":
-      return {
-        icon: "✅",
-        countLabel: "¡Aceptado!",
-        preview: `Ya sos parte de la mesa de ${n.tableName}`,
-        chipClass: "accepted",
-      };
-    case "join_request":
-      return {
-        icon: "🔔",
-        countLabel: `${n.count} ${n.count === 1 ? "solicitud" : "solicitudes"}`,
-        preview: `${n.lastRequesterUsername} quiere unirse`,
-        chipClass: "request",
-      };
-    case "player_joined":
-      return {
-        icon: "🙌",
-        countLabel: `${n.count} ${n.count === 1 ? "nuevo jugador" : "nuevos jugadores"}`,
-        preview: `${n.lastJoinerUsername} se unió a ${n.tableName}`,
-        chipClass: "accepted",
-      };
-    case "player_left":
-      return {
-        icon: "🚪",
-        countLabel: `${n.count} ${n.count === 1 ? "se fue" : "se fueron"}`,
-        preview: `${n.lastLeaverUsername} dejó ${n.tableName}`,
-        chipClass: "request",
-      };
-    case "friend_request":
-      return {
-        icon: "🤝",
-        countLabel: "Solicitud de amistad",
-        preview: `${n.fromUsername} te envió una solicitud de amistad`,
-        chipClass: "request",
-      };
-    case "friend_accepted":
-      return {
-        icon: "✅",
-        countLabel: "¡Amigos!",
-        preview: `${n.fromUsername} aceptó tu solicitud de amistad`,
-        chipClass: "accepted",
-      };
-    case "comment":
-      return {
-        icon: "🗨️",
-        countLabel: `${n.count} ${n.count === 1 ? "comentario nuevo" : "comentarios nuevos"}`,
-        preview: `${n.lastCommenterUsername}: ${n.lastCommentPreview ?? ""}${(n.lastCommentPreview?.length ?? 0) >= 60 ? "…" : ""}`,
-        chipClass: "chat",
-      };
-    case "image":
-      return {
-        icon: "📸",
-        countLabel: `${n.count} ${n.count === 1 ? "foto nueva" : "fotos nuevas"}`,
-        preview: `${n.lastUploaderUsername} subió una foto`,
-        chipClass: "chat",
-      };
-    case "spot_opened":
-      return {
-        icon: "🎯",
-        countLabel: "¡Lugar disponible!",
-        preview: `Se liberó un lugar en ${n.tableName}`,
-        chipClass: "request",
-      };
-    case "tournament_accepted":
-      return {
-        icon: "🏆",
-        countLabel: "¡Inscripción aprobada!",
-        preview: `Ya estás dentro del torneo`,
-        chipClass: "accepted",
-      };
-    case "tournament_rejected":
-      return {
-        icon: "🚫",
-        countLabel: "Inscripción rechazada",
-        preview: `Tu inscripción al torneo fue rechazada`,
-        chipClass: "request",
-      };
-    case "tournament_advanced": {
-      const label = n.isPhase ? "fase" : "ronda";
-      const nextNum = n.round != null ? n.round + 1 : null;
-      return {
-        icon: "🎉",
-        countLabel: `¡Pasaste de ${label}!`,
-        preview: `Avanzaste a la ${nextNum != null ? `${label} ${nextNum}` : `siguiente ${label}`}`,
-        chipClass: "accepted",
-      };
-    }
-    case "tournament_eliminated":
-      return {
-        icon: "🥲",
-        countLabel: "Quedaste fuera",
-        preview: `Suerte la próxima 🎲`,
-        chipClass: "request",
-      };
-    case "tournament_started":
-      return {
-        icon: "🚀",
-        countLabel: "¡Empezó el torneo!",
-        preview: `${n.torneoTitle} ya está en juego`,
-        chipClass: "accepted",
-      };
-    case "tournament_finished":
-      return {
-        icon: "🏁",
-        countLabel: "Torneo finalizado",
-        preview: `Terminó ${n.torneoTitle}`,
-        chipClass: "request",
-      };
-    case "compartida_comment":
-      return {
-        icon: "🗨️",
-        countLabel: `${n.count} ${n.count === 1 ? "comentario nuevo" : "comentarios nuevos"}`,
-        preview: `${n.lastCommenterUsername}: ${n.lastCommentPreview ?? ""}${(n.lastCommentPreview?.length ?? 0) >= 60 ? "…" : ""}`,
-        chipClass: "chat",
-      };
-    case "compartida_like":
-      return {
-        icon: "❤️",
-        countLabel: `${n.count} ${n.count === 1 ? "like nuevo" : "likes nuevos"}`,
-        preview: `${n.lastSenderUsername} le dio like a tu compartida`,
-        chipClass: "accepted",
-      };
-    case "table_cancelled":
-      return {
-        icon: "❌",
-        countLabel: "Mesa cancelada",
-        preview: `Se canceló ${n.tableName}`,
-        chipClass: "request",
-      };
-    case "join_rejected":
-      return {
-        icon: "🚷",
-        countLabel: "Solicitud rechazada",
-        preview: `Tu solicitud para ${n.tableName} fue rechazada`,
-        chipClass: "request",
-      };
-    case "evento_confirmed":
-      return {
-        icon: "🎉",
-        countLabel: "¡Inscripción confirmada!",
-        preview: `Estás dentro de ${n.eventoTitle}`,
-        chipClass: "accepted",
-      };
-    case "evento_rejected":
-      return {
-        icon: n.permanentlyRejected ? "🚫" : "🥲",
-        countLabel: n.permanentlyRejected
-          ? "Rechazada (permanente)"
-          : "Inscripción rechazada",
-        preview: n.permanentlyRejected
-          ? `No podrás volver a inscribirte a ${n.eventoTitle}`
-          : `Tu inscripción a ${n.eventoTitle} fue rechazada`,
-        chipClass: "request",
-      };
-    case "evento_cancelled":
-      return {
-        icon: "❌",
-        countLabel: n.eventoDeleted ? "Evento eliminado" : "Evento cancelado",
-        preview: n.eventoDeleted
-          ? `${n.eventoTitle} ya no está disponible`
-          : `Se canceló ${n.eventoTitle}`,
-        chipClass: "request",
-      };
-    case "evento_updated": {
-      const fields = Array.isArray(n.changedFields) ? n.changedFields : [];
-      const labels = fields.map((f) =>
-        f === "eventDate"
-          ? "nueva fecha"
-          : f === "location"
-            ? "nueva ubicación"
-            : f,
-      );
-      const detail = labels.length > 0 ? labels.join(" + ") : "cambios";
-      return {
-        icon: "🔄",
-        countLabel: "Cambios en el evento",
-        preview: `${n.eventoTitle}: ${detail}`,
-        chipClass: "chat",
-      };
-    }
-    case "evento_reminder":
-      return {
-        icon: "🔔",
-        countLabel: "Mañana",
-        preview: `Recordatorio: ${n.eventoTitle} es mañana`,
-        chipClass: "accepted",
-      };
-    case "evento_ludoteca_added": {
-      const who = n.addedByUsername || "alguien";
-      const game = n.gameName ? `“${n.gameName}”` : "un juego";
-      const noun = n.count === 1 ? "juego nuevo" : "juegos nuevos";
-      return {
-        icon: "🎲",
-        countLabel: `${n.count} ${noun} en la ludoteca`,
-        preview: `${who} sumó ${game} a ${n.eventoTitle}`,
-        chipClass: "chat",
-      };
-    }
-    case "evento_mesa_created": {
-      const who = n.hostUsername || "alguien";
-      const game = n.gameName ? `“${n.gameName}”` : "una partida";
-      const noun = n.count === 1 ? "mesa nueva" : "mesas nuevas";
-      return {
-        icon: "🎯",
-        countLabel: `${n.count} ${noun} en el evento`,
-        preview: `${who} armó ${game} en ${n.eventoTitle}`,
-        chipClass: "chat",
-      };
-    }
-    case "dm":
-      return {
-        icon: "💬",
-        countLabel: `${n.count} ${n.count === 1 ? "mensaje nuevo" : "mensajes nuevos"}`,
-        preview: `${n.fromUsername}: ${n.lastMessagePreview ?? ""}${(n.lastMessagePreview?.length ?? 0) >= 60 ? "…" : ""}`,
-        chipClass: "chat",
-      };
-    case "admin_chat":
-      return {
-        icon: "🛡️",
-        countLabel: `${n.count} ${n.count === 1 ? "mensaje nuevo" : "mensajes nuevos"}`,
-        preview: `${n.lastSenderUsername}: ${n.lastMessagePreview ?? ""}${(n.lastMessagePreview?.length ?? 0) >= 60 ? "…" : ""}`,
-        chipClass: "chat",
-      };
-    default:
-      return {
-        icon: "🎲",
-        countLabel: `${n.count} ${n.count === 1 ? "mensaje nuevo" : "mensajes nuevos"}`,
-        preview: `${n.lastSenderUsername}: ${n.lastMessagePreview ?? ""}${(n.lastMessagePreview?.length ?? 0) >= 60 ? "…" : ""}`,
-        chipClass: "chat",
-      };
-  }
-}
-
-const getNotifTime = (n) => new Date(n.updatedAt || n.timestamp || 0).getTime();
 
 export default function Notifications() {
   const {
     notifications,
+    unreadCount,
     markRead,
     markReadFriend,
     markReadTorneo,
@@ -309,43 +53,63 @@ export default function Notifications() {
     markAllRead,
     loadOlder,
     clearAll,
+    dismiss,
+    notifyFriendAdded,
+    addToast,
   } = useNotifications();
   const { clearConversationUnread } = useChat();
-  const [tab, setTab] = useState("all");
-  const [category, setCategory] = useState("all");
+  const navigate = useNavigate();
+
+  const [filter, setFilter] = useState("all");
+  const [resolved, setResolved] = useState({}); // id -> 'accept' | 'reject'
   const [, setNow] = useState(() => Date.now());
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [exhaustedOlder, setExhaustedOlder] = useState(false);
+  const timers = useRef({});
 
-  const handleLoadOlder = async () => {
-    setLoadingOlder(true);
-    const { count } = await loadOlder();
-    setLoadingOlder(false);
-    if (count === 0) setExhaustedOlder(true);
-  };
-
-  // Refresh relative timestamps every minute
+  // Refresca timestamps relativos cada minuto.
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(id);
   }, []);
 
-  const sorted = [...notifications].sort(
-    (a, b) => getNotifTime(b) - getNotifTime(a),
+  useEffect(() => {
+    const t = timers.current;
+    return () => Object.values(t).forEach((id) => clearTimeout(id));
+  }, []);
+
+  const sorted = useMemo(
+    () => [...notifications].sort((a, b) => notifTime(b) - notifTime(a)),
+    [notifications],
   );
-  const hasUnread = notifications.some((n) => !n.read);
+  const hasUnread = unreadCount > 0;
 
-  const filtered = sorted.filter((n) => {
-    if (tab === "unread" && n.read) return false;
-    if (category !== "all" && getCategory(n.type) !== category) return false;
-    return true;
-  });
+  const filtered = useMemo(
+    () => sorted.filter((n) => matchesFilter(n, filter)),
+    [sorted, filter],
+  );
 
-  const unreadCountByCategory = (cat) =>
-    notifications.filter(
-      (n) => !n.read && (cat === "all" || getCategory(n.type) === cat),
-    ).length;
+  const counts = useMemo(() => {
+    const c = { all: 0, unread: 0, actionable: 0 };
+    for (const n of notifications) {
+      c.all += 1;
+      if (!n.read) c.unread += 1;
+      if (isActionable(n)) c.actionable += 1;
+      const d = getDomain(n.type);
+      c[d] = (c[d] || 0) + 1;
+    }
+    return c;
+  }, [notifications]);
 
+  const buckets = useMemo(() => {
+    const groups = { today: [], week: [], earlier: [] };
+    for (const n of filtered) {
+      groups[notifBucket(n.updatedAt || n.timestamp)].push(n);
+    }
+    return groups;
+  }, [filtered]);
+
+  // markRead por recurso (un row ≈ un recurso → marca su doc leído).
   const markNotifRead = (n) => {
     if (n.type === "admin_chat") return markReadAdminChat();
     if (n.type === "dm") {
@@ -361,6 +125,67 @@ export default function Notifications() {
     return markRead(n.tableId);
   };
 
+  const handleNavigate = (n) => {
+    markNotifRead(n);
+    navigate(notifLink(n));
+  };
+
+  // Confirmación visual + markRead diferido tras aceptar/rechazar.
+  const resolveLater = (n, action) => {
+    const id = notifId(n);
+    setResolved((prev) => ({ ...prev, [id]: action }));
+    timers.current[id] = setTimeout(() => {
+      markNotifRead(n);
+      setResolved((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }, 1800);
+  };
+
+  const handleAccept = async (n) => {
+    try {
+      if (n.type === "friend_request") {
+        await axios.post(API.friends.ACCEPT(n.fromUserId));
+        notifyFriendAdded();
+      } else if (n.type === "join_request") {
+        const userId = n.actors?.[0]?.userId;
+        await axios.post(API.tables.REQUEST_ACCEPT(n.tableId, userId));
+      }
+      resolveLater(n, "accept");
+    } catch {
+      addToast({
+        type: "error",
+        message: "No pudimos completar la acción. Intentá de nuevo.",
+      });
+    }
+  };
+
+  const handleReject = async (n) => {
+    try {
+      if (n.type === "friend_request") {
+        await axios.post(API.friends.REJECT(n.fromUserId));
+      } else if (n.type === "join_request") {
+        const userId = n.actors?.[0]?.userId;
+        await axios.post(API.tables.REQUEST_REJECT(n.tableId, userId));
+      }
+      resolveLater(n, "reject");
+    } catch {
+      addToast({
+        type: "error",
+        message: "No pudimos completar la acción. Intentá de nuevo.",
+      });
+    }
+  };
+
+  const handleLoadOlder = async () => {
+    setLoadingOlder(true);
+    const { count } = await loadOlder();
+    setLoadingOlder(false);
+    if (count === 0) setExhaustedOlder(true);
+  };
+
   const handleClearAll = () => {
     if (
       !window.confirm(
@@ -371,191 +196,146 @@ export default function Notifications() {
     clearAll();
   };
 
+  const filters = [
+    { value: "all", label: "Todas", count: counts.all },
+    { value: "unread", label: "Sin leer", count: counts.unread },
+    {
+      value: "actionable",
+      label: "Requieren acción",
+      count: counts.actionable,
+      alert: true,
+    },
+    ...DOMAIN_FILTERS.filter((d) => counts[d.value] > 0).map((d) => ({
+      ...d,
+      count: counts[d.value],
+    })),
+  ];
+
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.heroBlock}>
-          <div className={styles.eyebrow}>◆ ACTIVIDAD</div>
-          <h1 className={styles.heroTitle}>Notificaciones</h1>
-          <p className={styles.heroSub}>Tus últimas notificaciones.</p>
-        </div>
-        {notifications.length > 0 && (
-          <div className={styles.headerActions}>
-            <button
-              className={styles.markAllBtn}
-              onClick={() => markAllRead()}
-              disabled={!hasUnread}
-            >
-              Marcar como leídas
-            </button>
-            <button className={styles.clearBtn} onClick={handleClearAll}>
-              Limpiar
-            </button>
-          </div>
-        )}
-      </div>
-
-      {sorted.length > 0 && (
-        <>
-          <div className={styles.tabs}>
-            <button
-              className={`${styles.tab} ${tab === "all" ? styles.tabActive : ""}`}
-              onClick={() => setTab("all")}
-            >
-              Todas
-            </button>
-            <button
-              className={`${styles.tab} ${tab === "unread" ? styles.tabActive : ""}`}
-              onClick={() => setTab("unread")}
-            >
-              Sin leer
-              {hasUnread && (
-                <span className={styles.tabCount}>
-                  {unreadCountByCategory("all")}
-                </span>
-              )}
-            </button>
-          </div>
-
-          <div className={styles.categoryChips}>
-            {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
-              const unread = unreadCountByCategory(key);
-              return (
+      <div className={styles.layout}>
+        <main className={styles.main}>
+          <header className={styles.hero}>
+            <div className={styles.heroLeft}>
+              <div className={styles.eyebrow}>
+                Bandeja · {unreadCount} sin leer
+              </div>
+              <h1 className={styles.title}>
+                Tu <em>actividad</em>.
+              </h1>
+              <p className={styles.heroSub}>
+                Todo lo que pasó en tus mesas, eventos, torneos y compartidas.
+              </p>
+            </div>
+            {notifications.length > 0 && (
+              <div className={styles.heroActions}>
                 <button
-                  key={key}
-                  className={`${styles.catChip} ${category === key ? styles.catChipActive : ""}`}
-                  onClick={() => setCategory(key)}
+                  className={styles.actionBtn}
+                  onClick={() => markAllRead()}
+                  disabled={!hasUnread}
                 >
-                  {label}
-                  {unread > 0 && (
-                    <span className={styles.catChipBadge}>{unread}</span>
+                  <NotifIcon name="DoubleCheck" size={15} /> Marcar todas
+                </button>
+                <button className={styles.actionBtn} onClick={handleClearAll}>
+                  <NotifIcon name="X" size={14} /> Limpiar
+                </button>
+              </div>
+            )}
+          </header>
+
+          {notifications.length > 0 && (
+            <div className={styles.filters}>
+              {filters.map((f) => (
+                <button
+                  key={f.value}
+                  className={`${styles.chip} ${filter === f.value ? styles.chipActive : ""} ${f.alert && f.count > 0 ? styles.chipAlert : ""}`}
+                  onClick={() => setFilter(f.value)}
+                >
+                  {f.label}
+                  {f.count > 0 && (
+                    <span className={styles.chipCount}>· {f.count}</span>
                   )}
                 </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {sorted.length === 0 ? (
-        <div className={styles.empty}>
-          <span className={styles.emptyIcon}>🔔</span>
-          <p className={styles.emptyText}>Sin notificaciones</p>
-          <p className={styles.emptySub}>
-            Cuando alguien te escriba, comente o invite, vas a verlo acá.
-          </p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className={styles.empty}>
-          <span className={styles.emptyIcon}>🔍</span>
-          <p className={styles.emptyText}>Sin resultados</p>
-          <p className={styles.emptySub}>Probá cambiar el filtro.</p>
-        </div>
-      ) : (
-        <ul className={styles.list}>
-          {filtered.map((n) => {
-            const { icon, countLabel, preview, chipClass } = getNotifMeta(n);
-            const isTorneo = n.type?.startsWith("tournament_");
-            const isEvento = n.type?.startsWith("evento_");
-            const to =
-              n.type === "admin_chat"
-                ? "/mensajes-admin"
-                : n.type === "dm"
-                  ? `/mensajes/${n.fromUserId}`
-                  : n.compartidaId
-                    ? `/compartidas/${n.compartidaId}`
-                    : // Evento eliminado: la URL del detalle tira 404. Mandamos a la lista.
-                      isEvento
-                      ? n.eventoDeleted
-                        ? "/eventos"
-                        : `/eventos/${n.eventoId}`
-                      : isTorneo
-                        ? `/torneos/${n.torneoId}`
-                        : n.fromUserId
-                          ? `/usuarios/${n.fromUserId}`
-                          : `/mesas/${n.tableId}`;
-            const handleClick = () => markNotifRead(n);
-            const handleMarkRead = (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              markNotifRead(n);
-            };
-            return (
-              <li
-                key={`${n.type ?? "chat"}:${n.tableId ?? n.fromUserId ?? n.torneoId ?? n.compartidaId ?? n.eventoId ?? "global"}`}
-              >
-                <Link
-                  to={to}
-                  className={`${styles.card} ${n.read ? styles.cardRead : ""}`}
-                  onClick={handleClick}
-                >
-                  <div className={styles.cardIconWrap}>
-                    <span className={styles.cardIcon}>{icon}</span>
-                    {!n.read && <span className={styles.unreadDot} />}
-                  </div>
-                  <div className={styles.cardBody}>
-                    <div className={styles.cardTop}>
-                      <span className={styles.cardGame}>
-                        {n.type === "admin_chat"
-                          ? "Chat de admins"
-                          : n.tableName ||
-                            n.fromUsername ||
-                            n.torneoTitle ||
-                            n.compartidaTitle ||
-                            n.eventoTitle ||
-                            "Compartida"}
-                      </span>
-                      {!n.read && (
-                        <span className={`${styles.chip} ${styles[chipClass]}`}>
-                          {countLabel}
-                        </span>
-                      )}
-                    </div>
-                    <span className={styles.cardPreview}>{preview}</span>
-                    <span className={styles.cardTime}>
-                      {formatTimeAgo(n.updatedAt || n.timestamp)}
-                    </span>
-                  </div>
-                  {!n.read && (
-                    <button
-                      type="button"
-                      className={styles.markReadBtn}
-                      onClick={handleMarkRead}
-                      aria-label="Marcar como leída"
-                      title="Marcar como leída"
-                    >
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    </button>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-          {!exhaustedOlder && notifications.length >= 20 && (
-            <li className={styles.loadMoreRow}>
-              <button
-                className={styles.loadMoreBtn}
-                onClick={handleLoadOlder}
-                disabled={loadingOlder}
-              >
-                {loadingOlder ? "Cargando…" : "Cargar más antiguas"}
-              </button>
-            </li>
+              ))}
+            </div>
           )}
-        </ul>
-      )}
+
+          {notifications.length === 0 ? (
+            <div className={styles.empty}>
+              <span className={styles.emptyIcon}>
+                <NotifIcon name="Inbox" size={34} />
+              </span>
+              <p className={styles.emptyText}>Sin notificaciones</p>
+              <p className={styles.emptySub}>
+                Cuando alguien te escriba, comente o invite, vas a verlo acá.
+              </p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className={styles.empty}>
+              <span className={styles.emptyIcon}>
+                <NotifIcon name="Inbox" size={34} />
+              </span>
+              <p className={styles.emptyText}>Sin resultados</p>
+              <p className={styles.emptySub}>Probá cambiar el filtro.</p>
+            </div>
+          ) : (
+            <>
+              {NOTIF_BUCKETS.map(
+                (bucket) =>
+                  buckets[bucket.key].length > 0 && (
+                    <section key={bucket.key} className={styles.bucket}>
+                      <div className={styles.bucketHeader}>
+                        <span className={styles.bucketLabel}>
+                          {bucket.label}
+                        </span>
+                        <span className={styles.bucketRule} />
+                        <span className={styles.bucketCount}>
+                          {buckets[bucket.key].length}
+                        </span>
+                      </div>
+                      <ul className={styles.list}>
+                        {buckets[bucket.key].map((n) => {
+                          const id = notifId(n);
+                          return resolved[id] ? (
+                            <ResolvedRow
+                              key={id}
+                              notif={n}
+                              action={resolved[id]}
+                            />
+                          ) : (
+                            <NotifRow
+                              key={id}
+                              notif={n}
+                              onNavigate={handleNavigate}
+                              onMarkRead={markNotifRead}
+                              onDismiss={(notif) => dismiss(notifId(notif))}
+                              onAccept={handleAccept}
+                              onReject={handleReject}
+                            />
+                          );
+                        })}
+                      </ul>
+                    </section>
+                  ),
+              )}
+
+              {!exhaustedOlder && notifications.length >= 20 && (
+                <div className={styles.loadMoreRow}>
+                  <button
+                    className={styles.loadMoreBtn}
+                    onClick={handleLoadOlder}
+                    disabled={loadingOlder}
+                  >
+                    {loadingOlder ? "Cargando…" : "Cargar más antiguas"}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </main>
+
+        <SidePanel notifications={notifications} />
+      </div>
     </div>
   );
 }

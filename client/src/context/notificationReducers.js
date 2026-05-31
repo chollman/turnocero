@@ -148,7 +148,11 @@ const upsertAggregating = ({
   count,
   timestamp,
   extra,
+  actors,
 }) => {
+  // `actors` (array autoritativo del server) sólo se aplica si vino — evita
+  // pisar el array existente con `undefined` en eventos sin actor.
+  const actorPatch = actors ? { actors } : {};
   const idx = prev.findIndex(
     (n) => (n.type ?? "chat") === type && n[resourceField] === resourceId,
   );
@@ -163,6 +167,7 @@ const upsertAggregating = ({
             count,
             timestamp,
             ...extra,
+            ...actorPatch,
           }
         : n,
     );
@@ -178,6 +183,7 @@ const upsertAggregating = ({
       read: false,
       timestamp,
       ...extra,
+      ...actorPatch,
     },
   ];
 };
@@ -225,6 +231,7 @@ export function applyChatNotif({ setNotifications, setToasts, payload }) {
       notifId: payload.notifId,
       count: payload.count,
       timestamp: payload.timestamp,
+      actors: payload.actors,
       extra: {
         tableName: payload.tableName,
         lastSenderUsername: payload.senderUsername,
@@ -253,6 +260,7 @@ export function applyCommentNotif({ setNotifications, setToasts, payload }) {
       notifId: payload.notifId,
       count: payload.count,
       timestamp: payload.timestamp,
+      actors: payload.actors,
       extra: {
         tableName: payload.tableName,
         lastCommenterUsername: payload.commenterUsername,
@@ -281,6 +289,7 @@ export function applyImageNotif({ setNotifications, setToasts, payload }) {
       notifId: payload.notifId,
       count: payload.count,
       timestamp: payload.timestamp,
+      actors: payload.actors,
       extra: {
         tableName: payload.tableName,
         lastUploaderUsername: payload.uploaderUsername,
@@ -311,6 +320,7 @@ export function applyJoinRequestNotif({
       notifId: payload.notifId,
       count: payload.count,
       timestamp: payload.timestamp,
+      actors: payload.actors,
       extra: {
         tableName: payload.tableName,
         lastRequesterUsername: payload.requesterUsername,
@@ -341,6 +351,7 @@ export function applyPlayerJoinedNotif({
       notifId: payload.notifId,
       count: payload.count,
       timestamp: payload.timestamp,
+      actors: payload.actors,
       extra: {
         tableName: payload.tableName,
         lastJoinerUsername: payload.joinerUsername,
@@ -367,6 +378,7 @@ export function applyPlayerLeftNotif({ setNotifications, setToasts, payload }) {
       notifId: payload.notifId,
       count: payload.count,
       timestamp: payload.timestamp,
+      actors: payload.actors,
       extra: {
         tableName: payload.tableName,
         lastLeaverUsername: payload.leaverUsername,
@@ -616,6 +628,7 @@ export function applyAdminMessageNotif({
               count: incomingCount ?? (n.count || 1) + 1,
               lastSenderUsername: senderUsername,
               lastMessagePreview: preview,
+              ...(payload.actors ? { actors: payload.actors } : {}),
               timestamp: payload.timestamp || new Date().toISOString(),
             }
           : n,
@@ -629,6 +642,7 @@ export function applyAdminMessageNotif({
         type: "admin_chat",
         lastSenderUsername: senderUsername,
         lastMessagePreview: preview,
+        ...(payload.actors ? { actors: payload.actors } : {}),
         count: incomingCount ?? 1,
         read: false,
         timestamp: payload.timestamp || new Date().toISOString(),
@@ -688,6 +702,7 @@ export function applyCompartidaCommentNotif({
       notifId: payload.notifId,
       count: payload.count,
       timestamp: payload.timestamp,
+      actors: payload.actors,
       extra: {
         compartidaTitle: payload.compartidaTitle,
         lastCommenterUsername: payload.commenterUsername,
@@ -720,6 +735,7 @@ export function applyCompartidaLikeNotif({
       notifId: payload.notifId,
       count: payload.count,
       timestamp: payload.timestamp,
+      actors: payload.actors,
       extra: {
         compartidaTitle: payload.compartidaTitle,
         lastSenderUsername: payload.fromUsername,

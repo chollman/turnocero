@@ -40,6 +40,7 @@ async function createCompartida(author, overrides = {}) {
     privacy: overrides.privacy || "public",
     images: overrides.images || [],
     linkedTable: overrides.linkedTable || undefined,
+    likes: overrides.likes || [],
   });
 }
 

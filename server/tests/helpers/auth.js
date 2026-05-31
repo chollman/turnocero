@@ -48,4 +48,21 @@ function authHeader(token) {
   return { Authorization: `Bearer ${token}` };
 }
 
-module.exports = { createUser, createAuthedUser, tokenFor, authHeader };
+/**
+ * Make two users mutual friends (push each other's _id into `User.friends`
+ * and persist). Matches how the DM/compartidas routes gate on friendship.
+ */
+async function makeFriends(userA, userB) {
+  await Promise.all([
+    User.findByIdAndUpdate(userA._id, { $addToSet: { friends: userB._id } }),
+    User.findByIdAndUpdate(userB._id, { $addToSet: { friends: userA._id } }),
+  ]);
+}
+
+module.exports = {
+  createUser,
+  createAuthedUser,
+  tokenFor,
+  authHeader,
+  makeFriends,
+};

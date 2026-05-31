@@ -83,16 +83,42 @@ async function saveNotification(recipientId, type, fields) {
     if (fields.eventoId) filter.eventoId = fields.eventoId;
 
     if (AGGREGATING.has(type)) {
-      const { tableName, ...updateFields } = fields;
-      return await Notification.findOneAndUpdate(
-        filter,
-        {
-          $inc: { count: 1 },
-          $set: { read: false, ...updateFields },
-          $setOnInsert: { tableName: tableName || "" },
-        },
-        { upsert: true, new: true },
-      );
+      // `actor` no se persiste como campo plano — alimenta el array `actors`.
+      const { tableName, actor, ...updateFields } = fields;
+      // Update con aggregation pipeline (no `$inc`/`$setOnInsert`): permite
+      // mantener `actors` dedupeado-por-userId + cap 8 en una sola operación
+      // atómica. `count` sigue siendo fuente de verdad del server.
+      const setStage = {
+        read: false,
+        count: { $add: [{ $ifNull: ["$count", 0] }, 1] },
+        // tableName se setea sólo en insert (se preserva el existente).
+        tableName: { $ifNull: ["$tableName", tableName || ""] },
+        ...updateFields,
+      };
+      if (actor && actor.userId) {
+        const actorId = String(actor.userId);
+        setStage.actors = {
+          $slice: [
+            {
+              $concatArrays: [
+                [{ userId: actorId, username: actor.username || "" }],
+                {
+                  $filter: {
+                    input: { $ifNull: ["$actors", []] },
+                    as: "a",
+                    cond: { $ne: ["$$a.userId", actorId] },
+                  },
+                },
+              ],
+            },
+            8,
+          ],
+        };
+      }
+      return await Notification.findOneAndUpdate(filter, [{ $set: setStage }], {
+        upsert: true,
+        new: true,
+      });
     }
 
     return await Notification.findOneAndUpdate(

@@ -13,7 +13,8 @@
       "WebFetch(domain:boardgamegeek.com)",
       "Bash(ls /Users/claudiohollman/Projects/turnocero/.claude/worktrees/epic-sinoussi-cc57f3/plans/ 2>/dev/null && echo \"---\" && ls /Users/claudiohollman/Projects/turnocero/plans/ 2>/dev/null)",
       "Bash(ls /Users/claudiohollman/.claude/projects/-Users-claudiohollman-Projects-turnocero/memory/ 2>/dev/null | head -50)",
-      "Bash(npm test *)"
+      "Bash(npm test *)",
+      "Bash(grep -E \"\\\\.\\(js|test\\\\.js\\)$\")"
     ]
   }
 }

@@ -91,6 +91,10 @@ router.post(
             tableId: table._id.toString(),
             tableName: table.boardGame,
             lastUploaderUsername: req.user.username,
+            actor: {
+              userId: req.user._id.toString(),
+              username: req.user.username,
+            },
           },
           "table:image",
           { uploaderUsername: req.user.username },

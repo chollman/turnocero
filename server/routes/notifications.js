@@ -3,6 +3,10 @@ const router = express.Router();
 const Notification = require("../models/Notification");
 const { protect } = require("../middleware/auth");
 const asyncHandler = require("../utils/asyncHandler");
+const httpError = require("../utils/httpError");
+const validateObjectId = require("../middleware/validateObjectId");
+
+router.param("id", validateObjectId("id"));
 
 // GET /api/notifications — own notifications, newest first
 // Query: ?before=<isoDate> ?limit=<n> (default 60, max 100)
@@ -51,6 +55,20 @@ router.delete(
   protect,
   asyncHandler(async (req, res) => {
     await Notification.deleteMany({ recipient: req.user._id });
+    res.json({ ok: true });
+  }),
+);
+
+// DELETE /api/notifications/:id — descartar una notificación puntual
+router.delete(
+  "/:id",
+  protect,
+  asyncHandler(async (req, res) => {
+    const deleted = await Notification.findOneAndDelete({
+      _id: req.params.id,
+      recipient: req.user._id,
+    });
+    if (!deleted) throw httpError(404, "Notificación no encontrada");
     res.json({ ok: true });
   }),
 );
