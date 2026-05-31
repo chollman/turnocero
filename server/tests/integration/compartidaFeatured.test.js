@@ -19,17 +19,15 @@ describe("GET /api/compartidas featured (compartida del día)", () => {
 
     // 10 posts con pocos likes, creados primero (orden natural).
     for (let i = 0; i < 10; i++) {
-      await createCompartida({
-        author: user,
-        text: `relleno ${i}`,
+      await createCompartida(user, {
+        body: `relleno ${i}`,
         privacy: "public",
         likes: fakeLikes(1),
       });
     }
     // El más likeado se crea ÚLTIMO → con el bug quedaba fuera del limit(10).
-    const winner = await createCompartida({
-      author: user,
-      text: "el ganador",
+    const winner = await createCompartida(user, {
+      body: "el ganador",
       privacy: "public",
       likes: fakeLikes(9),
     });

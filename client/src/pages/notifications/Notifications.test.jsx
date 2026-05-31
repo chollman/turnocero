@@ -19,17 +19,7 @@ import Notifications from "./Notifications";
 import { useNotifications } from "../../context/NotificationContext";
 import { useChat } from "../../context/ChatContext";
 
-let markReadMock,
-  markReadFriendMock,
-  markReadTorneoMock,
-  markReadCompartidaMock,
-  markReadEventoMock,
-  markReadDmMock,
-  markReadAdminChatMock,
-  markAllReadMock,
-  loadOlderMock,
-  clearAllMock,
-  clearConversationUnreadMock;
+let ctx, clearConversationUnreadMock;
 
 function makeNotif(overrides = {}) {
   return {
@@ -45,19 +35,24 @@ function makeNotif(overrides = {}) {
 }
 
 function setup({ notifications = [] } = {}) {
-  useNotifications.mockReturnValue({
+  ctx = {
     notifications,
-    markRead: markReadMock,
-    markReadFriend: markReadFriendMock,
-    markReadTorneo: markReadTorneoMock,
-    markReadCompartida: markReadCompartidaMock,
-    markReadEvento: markReadEventoMock,
-    markReadDm: markReadDmMock,
-    markReadAdminChat: markReadAdminChatMock,
-    markAllRead: markAllReadMock,
-    loadOlder: loadOlderMock,
-    clearAll: clearAllMock,
-  });
+    unreadCount: notifications.filter((n) => !n.read).length,
+    markRead: vi.fn(),
+    markReadFriend: vi.fn(),
+    markReadTorneo: vi.fn(),
+    markReadCompartida: vi.fn(),
+    markReadEvento: vi.fn(),
+    markReadDm: vi.fn(),
+    markReadAdminChat: vi.fn(),
+    markAllRead: vi.fn(),
+    loadOlder: vi.fn().mockResolvedValue({ count: 0 }),
+    clearAll: vi.fn(),
+    dismiss: vi.fn(),
+    notifyFriendAdded: vi.fn(),
+    addToast: vi.fn(),
+  };
+  useNotifications.mockReturnValue(ctx);
   useChat.mockReturnValue({
     clearConversationUnread: clearConversationUnreadMock,
   });
@@ -69,19 +64,17 @@ function setup({ notifications = [] } = {}) {
 }
 
 beforeEach(() => {
-  markReadMock = vi.fn();
-  markReadFriendMock = vi.fn();
-  markReadTorneoMock = vi.fn();
-  markReadCompartidaMock = vi.fn();
-  markReadEventoMock = vi.fn();
-  markReadDmMock = vi.fn();
-  markReadAdminChatMock = vi.fn();
-  markAllReadMock = vi.fn();
-  loadOlderMock = vi.fn().mockResolvedValue({ count: 0 });
-  clearAllMock = vi.fn();
   clearConversationUnreadMock = vi.fn();
   server.use(
     http.patch("/api/dm/:userId/read", () => HttpResponse.json({ ok: true })),
+    http.post("/api/friends/:id/accept", () => HttpResponse.json({ ok: true })),
+    http.post("/api/friends/:id/reject", () => HttpResponse.json({ ok: true })),
+    http.post("/api/tables/:id/requests/:userId/accept", () =>
+      HttpResponse.json({ ok: true }),
+    ),
+    http.post("/api/tables/:id/requests/:userId/reject", () =>
+      HttpResponse.json({ ok: true }),
+    ),
   );
 });
 
@@ -91,7 +84,7 @@ describe("<Notifications>", () => {
     expect(screen.getByText("Sin notificaciones")).toBeInTheDocument();
   });
 
-  it("renders one item per notification", () => {
+  it("renders one row per notification with its copy", () => {
     setup({
       notifications: [
         makeNotif({
@@ -99,78 +92,86 @@ describe("<Notifications>", () => {
           tableName: "Mesa Catán",
           lastCommenterUsername: "alice",
         }),
-        makeNotif({ type: "friend_request", fromUsername: "bob" }),
+        makeNotif({
+          type: "friend_request",
+          fromUserId: "u1",
+          fromUsername: "bob",
+          tableId: undefined,
+        }),
       ],
     });
     expect(screen.getByText(/Mesa Catán/)).toBeInTheDocument();
-    expect(screen.getByText(/bob/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/bob te envió una solicitud de amistad/i),
+    ).toBeInTheDocument();
   });
 
-  it("shows category tabs (Todas / Mesas / Torneos / Amigos / Compartidas / Admin)", () => {
+  it("shows the unread count in the hero eyebrow", () => {
+    setup({
+      notifications: [makeNotif({ read: false }), makeNotif({ read: false })],
+    });
+    expect(screen.getByText(/2 sin leer/i)).toBeInTheDocument();
+  });
+
+  it("renders base filter chips + only domains that have notifications", () => {
     setup({
       notifications: [
         makeNotif({ type: "chat" }),
         makeNotif({
           type: "tournament_accepted",
-          torneoTitle: "Torneo X",
+          torneoTitle: "Copa",
           torneoId: "tt1",
+          tableId: undefined,
         }),
-        makeNotif({ type: "friend_request", fromUsername: "cha" }),
       ],
     });
-    // At least these tabs should be in the DOM.
+    expect(screen.getByRole("button", { name: /^todas/i })).toBeInTheDocument();
     expect(
-      screen.getAllByRole("button", { name: /todas/i }).length,
-    ).toBeGreaterThan(0);
+      screen.getByRole("button", { name: /sin leer/i }),
+    ).toBeInTheDocument();
     expect(
-      screen.getAllByRole("button", { name: /mesas/i }).length,
-    ).toBeGreaterThan(0);
+      screen.getByRole("button", { name: /requieren acción/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /mesas/i })).toBeInTheDocument();
     expect(
-      screen.getAllByRole("button", { name: /torneos/i }).length,
-    ).toBeGreaterThan(0);
+      screen.getByRole("button", { name: /torneos/i }),
+    ).toBeInTheDocument();
+    // No friend notifs → no "Amigos" chip.
     expect(
-      screen.getAllByRole("button", { name: /amigos/i }).length,
-    ).toBeGreaterThan(0);
+      screen.queryByRole("button", { name: /^amigos/i }),
+    ).not.toBeInTheDocument();
   });
 
-  it('"Marcar todo como leído" calls markAllRead', () => {
-    setup({ notifications: [makeNotif({ read: false })] });
-    const btn = screen.queryByRole("button", { name: /marcar.*le[ií]do/i });
-    if (btn) {
-      fireEvent.click(btn);
-      expect(markAllReadMock).toHaveBeenCalled();
-    }
-  });
-
-  it('"Limpiar" calls clearAll after window.confirm', () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    setup({ notifications: [makeNotif()] });
-    fireEvent.click(screen.getByRole("button", { name: /limpiar/i }));
-    expect(clearAllMock).toHaveBeenCalled();
-    vi.restoreAllMocks();
-  });
-
-  it('"Limpiar" does NOT call clearAll when confirm is cancelled', () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
-    setup({ notifications: [makeNotif()] });
-    fireEvent.click(screen.getByRole("button", { name: /limpiar/i }));
-    expect(clearAllMock).not.toHaveBeenCalled();
-    vi.restoreAllMocks();
-  });
-
-  it('clicking "Sin leer" tab hides already-read notifications', () => {
+  it('"Sin leer" filter hides already-read notifications', () => {
     setup({
       notifications: [
         makeNotif({ type: "chat", tableName: "Mesa Leída", read: true }),
-        makeNotif({ type: "chat", tableName: "Mesa Sin Leer", read: false }),
+        makeNotif({ type: "chat", tableName: "Mesa Nueva", read: false }),
       ],
     });
     fireEvent.click(screen.getByRole("button", { name: /sin leer/i }));
-    expect(screen.queryByText("Mesa Leída")).not.toBeInTheDocument();
-    expect(screen.getByText("Mesa Sin Leer")).toBeInTheDocument();
+    expect(screen.queryByText(/Mesa Leída/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Mesa Nueva/)).toBeInTheDocument();
   });
 
-  it('clicking category "Torneos" filters to torneo notifications only', () => {
+  it('"Requieren acción" filter shows only actionable notifications', () => {
+    setup({
+      notifications: [
+        makeNotif({ type: "chat", tableName: "Mesa Chat" }),
+        makeNotif({
+          type: "friend_request",
+          fromUserId: "u1",
+          fromUsername: "bob",
+          tableId: undefined,
+        }),
+      ],
+    });
+    fireEvent.click(screen.getByRole("button", { name: /requieren acción/i }));
+    expect(screen.queryByText(/Mesa Chat/)).not.toBeInTheDocument();
+    expect(screen.getByText(/bob te envió una solicitud/i)).toBeInTheDocument();
+  });
+
+  it("domain chip Torneos filters to torneo notifications", () => {
     setup({
       notifications: [
         makeNotif({ type: "chat", tableName: "Mesa Chat" }),
@@ -179,90 +180,68 @@ describe("<Notifications>", () => {
           torneoId: "tn1",
           torneoTitle: "Copa X",
           tableId: undefined,
-          tableName: undefined,
         }),
       ],
     });
     fireEvent.click(screen.getByRole("button", { name: /torneos/i }));
-    expect(screen.queryByText("Mesa Chat")).not.toBeInTheDocument();
-    expect(screen.getByText("Copa X")).toBeInTheDocument();
+    expect(screen.queryByText(/Mesa Chat/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Copa X/)).toBeInTheDocument();
   });
 
-  it('shows empty "Sin resultados" when filter matches no notifications', () => {
-    setup({
-      notifications: [
-        makeNotif({ type: "chat", tableName: "Mesa", read: true }),
-      ],
-    });
-    // Switch to "Sin leer" — all are read, no results
-    fireEvent.click(screen.getByRole("button", { name: /sin leer/i }));
-    expect(screen.getByText(/sin resultados/i)).toBeInTheDocument();
+  it("renders time bucket headers", () => {
+    setup({ notifications: [makeNotif({ read: false })] });
+    // "Hoy" aparece como header de bucket y como stat del digest lateral.
+    expect(screen.getAllByText("Hoy").length).toBeGreaterThan(0);
   });
 
-  it("clicking a table notification link calls markRead with the tableId", () => {
+  it('"Marcar todas" calls markAllRead', () => {
+    setup({ notifications: [makeNotif({ read: false })] });
+    fireEvent.click(screen.getByRole("button", { name: /marcar todas/i }));
+    expect(ctx.markAllRead).toHaveBeenCalled();
+  });
+
+  it('"Limpiar" calls clearAll after confirm', () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    setup({ notifications: [makeNotif()] });
+    fireEvent.click(screen.getByRole("button", { name: /limpiar/i }));
+    expect(ctx.clearAll).toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
+  it('"Limpiar" does NOT call clearAll when confirm cancelled', () => {
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    setup({ notifications: [makeNotif()] });
+    fireEvent.click(screen.getByRole("button", { name: /limpiar/i }));
+    expect(ctx.clearAll).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
+  it("clicking a table row body marks read with tableId", () => {
     setup({
       notifications: [
-        makeNotif({
-          type: "chat",
-          tableId: "tX",
-          tableName: "Mesa X",
-          read: false,
-        }),
+        makeNotif({ type: "chat", tableId: "tX", tableName: "Mesa X" }),
       ],
     });
     fireEvent.click(screen.getByRole("link"));
-    expect(markReadMock).toHaveBeenCalledWith("tX");
+    expect(ctx.markRead).toHaveBeenCalledWith("tX");
   });
 
-  it("clicking a friend notification link calls markReadFriend", () => {
+  it("clicking a friend row marks read via markReadFriend", () => {
     setup({
       notifications: [
         makeNotif({
-          type: "friend_request",
+          type: "friend_accepted",
           fromUserId: "u1",
           fromUsername: "alice",
           tableId: undefined,
-          read: false,
         }),
       ],
     });
     fireEvent.click(screen.getByRole("link"));
-    expect(markReadFriendMock).toHaveBeenCalledWith("u1");
+    expect(ctx.markReadFriend).toHaveBeenCalledWith("u1");
   });
 
-  it("clicking a torneo notification link calls markReadTorneo", () => {
-    setup({
-      notifications: [
-        makeNotif({
-          type: "tournament_accepted",
-          torneoId: "tn2",
-          torneoTitle: "Liga",
-          tableId: undefined,
-          read: false,
-        }),
-      ],
-    });
-    fireEvent.click(screen.getByRole("link"));
-    expect(markReadTorneoMock).toHaveBeenCalledWith("tn2");
-  });
-
-  it("clicking a compartida notification link calls markReadCompartida", () => {
-    setup({
-      notifications: [
-        makeNotif({
-          type: "compartida_comment",
-          compartidaId: "c1",
-          compartidaTitle: "Mi post",
-          tableId: undefined,
-          read: false,
-        }),
-      ],
-    });
-    fireEvent.click(screen.getByRole("link"));
-    expect(markReadCompartidaMock).toHaveBeenCalledWith("c1");
-  });
-
-  it("clicking a DM notification calls markReadDm and clearConversationUnread", () => {
+  it("clicking a DM row marks read via markReadDm + clearConversationUnread", () => {
     setup({
       notifications: [
         makeNotif({
@@ -270,118 +249,174 @@ describe("<Notifications>", () => {
           fromUserId: "u3",
           fromUsername: "carol",
           tableId: undefined,
-          read: false,
         }),
       ],
     });
     fireEvent.click(screen.getByRole("link"));
-    expect(markReadDmMock).toHaveBeenCalledWith("u3");
+    expect(ctx.markReadDm).toHaveBeenCalledWith("u3");
     expect(clearConversationUnreadMock).toHaveBeenCalledWith("u3");
   });
 
-  it('clicking the "Marcar como leída" eye button stops propagation and marks read', () => {
+  it("clicking an evento row marks read via markReadEvento", () => {
     setup({
       notifications: [
         makeNotif({
-          type: "chat",
-          tableId: "tZ",
-          tableName: "Mesa Z",
+          type: "evento_confirmed",
+          eventoId: "ev1",
+          eventoTitle: "Torneo Otoño",
+          tableId: undefined,
+        }),
+      ],
+    });
+    fireEvent.click(screen.getByRole("link"));
+    expect(ctx.markReadEvento).toHaveBeenCalledWith("ev1");
+  });
+
+  it("hover mark-read button marks read without navigating", () => {
+    setup({
+      notifications: [
+        makeNotif({ type: "chat", tableId: "tZ", tableName: "Mesa Z" }),
+      ],
+    });
+    fireEvent.click(screen.getByLabelText("Marcar como leída"));
+    expect(ctx.markRead).toHaveBeenCalledWith("tZ");
+  });
+
+  it("dismiss button calls dismiss with the notif id", () => {
+    setup({
+      notifications: [makeNotif({ _id: "id-7", type: "chat" })],
+    });
+    fireEvent.click(screen.getByLabelText("Descartar"));
+    expect(ctx.dismiss).toHaveBeenCalledWith("id-7");
+  });
+
+  it("accepting a friend request POSTs accept, notifies, and shows ResolvedRow", async () => {
+    setup({
+      notifications: [
+        makeNotif({
+          _id: "f1",
+          type: "friend_request",
+          fromUserId: "u1",
+          fromUsername: "bob",
+          tableId: undefined,
           read: false,
         }),
       ],
     });
-    // The eye button has title="Marcar como leída" (singular) — distinct from the header "leídas"
-    const markBtn = screen.getByTitle("Marcar como leída");
-    fireEvent.click(markBtn);
-    expect(markReadMock).toHaveBeenCalledWith("tZ");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /aceptar/i }));
+    });
+    expect(ctx.notifyFriendAdded).toHaveBeenCalled();
+    expect(
+      await screen.findByText(/ahora sos amigo de bob/i),
+    ).toBeInTheDocument();
   });
 
-  it("renders different notification types without crashing", () => {
+  it("accepting a join request POSTs to the requester and confirms", async () => {
+    let hit = null;
+    server.use(
+      http.post("/api/tables/:id/requests/:userId/accept", ({ params }) => {
+        hit = params;
+        return HttpResponse.json({ ok: true });
+      }),
+    );
     setup({
       notifications: [
-        makeNotif({ type: "join_accepted", tableName: "Mesa A" }),
+        makeNotif({
+          _id: "j1",
+          type: "join_request",
+          tableId: "tabA",
+          tableName: "Catán",
+          actors: [{ userId: "u9", username: "lu" }],
+          count: 1,
+          read: false,
+        }),
+      ],
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /aceptar/i }));
+    });
+    await waitFor(() => expect(hit).toEqual({ id: "tabA", userId: "u9" }));
+    expect(
+      await screen.findByText(/aceptaste a lu en catán/i),
+    ).toBeInTheDocument();
+  });
+
+  it("rejecting a friend request shows the discard ResolvedRow", async () => {
+    setup({
+      notifications: [
+        makeNotif({
+          _id: "f2",
+          type: "friend_request",
+          fromUserId: "u2",
+          fromUsername: "ana",
+          tableId: undefined,
+          read: false,
+        }),
+      ],
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /rechazar/i }));
+    });
+    expect(
+      await screen.findByText(/listo, lo descartamos/i),
+    ).toBeInTheDocument();
+  });
+
+  it("a join request with multiple requesters shows a CTA instead of inline actions", () => {
+    setup({
+      notifications: [
         makeNotif({
           type: "join_request",
-          tableName: "Mesa B",
-          lastRequesterUsername: "bob",
+          tableId: "tabB",
+          tableName: "Root",
+          actors: [
+            { userId: "a", username: "ana" },
+            { userId: "b", username: "leo" },
+          ],
           count: 2,
+          read: false,
         }),
-        makeNotif({
-          type: "player_joined",
-          tableName: "Mesa B2",
-          lastJoinerUsername: "ana",
-          count: 3,
-        }),
-        makeNotif({
-          type: "player_left",
-          tableName: "Mesa B3",
-          lastLeaverUsername: "carl",
-          count: 1,
-        }),
-        makeNotif({ type: "join_rejected", tableName: "Mesa C" }),
-        makeNotif({
-          type: "friend_accepted",
-          fromUserId: "u1",
-          fromUsername: "alice",
-          tableId: undefined,
-        }),
-        makeNotif({
-          type: "image",
-          tableName: "Mesa D",
-          lastUploaderUsername: "bob",
-        }),
-        makeNotif({ type: "spot_opened", tableName: "Mesa E" }),
-        makeNotif({ type: "table_cancelled", tableName: "Mesa F" }),
-        makeNotif({
-          type: "tournament_rejected",
-          torneoId: "tn1",
-          torneoTitle: "Copa",
-          tableId: undefined,
-        }),
+      ],
+    });
+    expect(
+      screen.queryByRole("button", { name: /^aceptar$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /ver solicitudes/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("loadOlder button appears with ≥20 notifications and calls loadOlder", async () => {
+    const notifications = Array.from({ length: 20 }, (_, i) =>
+      makeNotif({ _id: `n${i}`, tableId: `t${i}`, read: true }),
+    );
+    setup({ notifications });
+    const btn = screen.getByRole("button", { name: /cargar más/i });
+    await act(async () => fireEvent.click(btn));
+    expect(ctx.loadOlder).toHaveBeenCalled();
+  });
+
+  it("renders a wide spread of notification types without crashing", () => {
+    setup({
+      notifications: [
+        makeNotif({ type: "join_accepted", tableName: "A" }),
+        makeNotif({ type: "join_rejected", tableName: "C" }),
+        makeNotif({ type: "spot_opened", tableName: "E" }),
+        makeNotif({ type: "table_cancelled", tableName: "F" }),
         makeNotif({
           type: "tournament_advanced",
           torneoId: "tn2",
           torneoTitle: "Liga",
           round: 2,
-          isPhase: false,
-          tableId: undefined,
-        }),
-        makeNotif({
-          type: "tournament_eliminated",
-          torneoId: "tn3",
-          torneoTitle: "Elim",
-          tableId: undefined,
-        }),
-        makeNotif({
-          type: "tournament_started",
-          torneoId: "tn4",
-          torneoTitle: "Start",
-          tableId: undefined,
-        }),
-        makeNotif({
-          type: "tournament_finished",
-          torneoId: "tn5",
-          torneoTitle: "Fin",
-          tableId: undefined,
-        }),
-        makeNotif({
-          type: "compartida_comment",
-          compartidaId: "c1",
-          compartidaTitle: "Post",
           tableId: undefined,
         }),
         makeNotif({
           type: "compartida_like",
           compartidaId: "c2",
           compartidaTitle: "Like",
+          lastSenderUsername: "ema",
           tableId: undefined,
-        }),
-        makeNotif({
-          type: "dm",
-          fromUserId: "u4",
-          fromUsername: "dan",
-          tableId: undefined,
-          lastMessagePreview: "hola",
         }),
         makeNotif({
           type: "admin_chat",
@@ -390,156 +425,14 @@ describe("<Notifications>", () => {
           lastSenderUsername: "admin",
           lastMessagePreview: "msg",
         }),
-      ],
-    });
-    // Just checking no crash — all 16 render
-    expect(screen.getAllByRole("listitem").length).toBeGreaterThanOrEqual(16);
-  });
-
-  it("loadOlder button appears when ≥20 notifications and calls handleLoadOlder", async () => {
-    const notifications = Array.from({ length: 20 }, (_, i) =>
-      makeNotif({
-        _id: `n${i}`,
-        tableId: `t${i}`,
-        tableName: `Mesa ${i}`,
-        read: true,
-      }),
-    );
-    loadOlderMock.mockResolvedValue({ count: 5 });
-    setup({ notifications });
-    const btn = screen.queryByRole("button", { name: /cargar más/i });
-    expect(btn).toBeInTheDocument();
-    await act(async () => {
-      fireEvent.click(btn);
-    });
-    expect(loadOlderMock).toHaveBeenCalled();
-  });
-
-  it("loadOlder exhausted hides the button after count=0 response", async () => {
-    const notifications = Array.from({ length: 20 }, (_, i) =>
-      makeNotif({
-        _id: `n${i}`,
-        tableId: `t${i}`,
-        tableName: `Mesa ${i}`,
-        read: true,
-      }),
-    );
-    loadOlderMock.mockResolvedValue({ count: 0 });
-    setup({ notifications });
-    const btn = screen.getByRole("button", { name: /cargar más/i });
-    await act(async () => {
-      fireEvent.click(btn);
-    });
-    await waitFor(() => {
-      expect(
-        screen.queryByRole("button", { name: /cargar más/i }),
-      ).not.toBeInTheDocument();
-    });
-  });
-
-  it("admin_chat notification marks read via markReadAdminChat", () => {
-    setup({
-      notifications: [
         makeNotif({
-          type: "admin_chat",
+          type: "evento_reminder",
+          eventoId: "ev1",
+          eventoTitle: "Evento",
           tableId: undefined,
-          count: 1,
-          lastSenderUsername: "admin",
-          lastMessagePreview: "aviso",
-          read: false,
         }),
       ],
     });
-    fireEvent.click(screen.getByRole("link"));
-    expect(markReadAdminChatMock).toHaveBeenCalled();
-  });
-
-  // ── Eventos ──
-  describe("Eventos notifications", () => {
-    const ev = (overrides) => ({
-      _id: `n${Math.random()}`,
-      type: "evento_confirmed",
-      read: false,
-      count: 1,
-      tableId: undefined,
-      eventoId: "ev1",
-      eventoTitle: "Torneo Otoño",
-      updatedAt: new Date().toISOString(),
-      ...overrides,
-    });
-
-    it('evento_confirmed renders with "Inscripción confirmada" chip', () => {
-      setup({ notifications: [ev()] });
-      expect(screen.getByText(/inscripción confirmada/i)).toBeInTheDocument();
-      expect(screen.getByText("Torneo Otoño")).toBeInTheDocument();
-    });
-
-    it('evento_rejected (single) shows "Inscripción rechazada"', () => {
-      setup({
-        notifications: [
-          ev({ type: "evento_rejected", permanentlyRejected: false }),
-        ],
-      });
-      expect(screen.getByText(/^inscripción rechazada$/i)).toBeInTheDocument();
-    });
-
-    it('evento_rejected (permanent) shows "Rechazada (permanente)"', () => {
-      setup({
-        notifications: [
-          ev({ type: "evento_rejected", permanentlyRejected: true }),
-        ],
-      });
-      expect(screen.getByText(/rechazada \(permanente\)/i)).toBeInTheDocument();
-    });
-
-    it('evento_cancelled shows "Evento cancelado"', () => {
-      setup({ notifications: [ev({ type: "evento_cancelled" })] });
-      expect(screen.getByText(/evento cancelado/i)).toBeInTheDocument();
-    });
-
-    it("evento_updated lists changed fields in human-readable form", () => {
-      setup({
-        notifications: [
-          ev({
-            type: "evento_updated",
-            changedFields: ["eventDate", "location"],
-          }),
-        ],
-      });
-      expect(screen.getByText(/cambios en el evento/i)).toBeInTheDocument();
-      // El preview combina los cambios.
-      expect(
-        screen.getByText(/nueva fecha.*nueva ubicación/i),
-      ).toBeInTheDocument();
-    });
-
-    it('evento_reminder shows "Mañana" chip', () => {
-      setup({ notifications: [ev({ type: "evento_reminder" })] });
-      expect(screen.getByText(/^mañana$/i)).toBeInTheDocument();
-    });
-
-    it("clicking an evento notification links to /eventos/:eventoId and calls markReadEvento", () => {
-      setup({ notifications: [ev()] });
-      const link = screen.getByRole("link");
-      expect(link).toHaveAttribute("href", "/eventos/ev1");
-      fireEvent.click(link);
-      expect(markReadEventoMock).toHaveBeenCalledWith("ev1");
-    });
-
-    it('chip "Eventos" appears in category filter and filters correctly', () => {
-      setup({
-        notifications: [
-          makeNotif({ tableId: "t1" }),
-          ev({ type: "evento_confirmed" }),
-        ],
-      });
-      // El chip de categoría tiene el label "Eventos" + posible badge de unread.
-      // Buscamos por accessible name flexible.
-      const eventosChip = screen.getByRole("button", { name: /eventos/i });
-      fireEvent.click(eventosChip);
-      // Solo aparece la notif de evento.
-      expect(screen.getByText("Torneo Otoño")).toBeInTheDocument();
-      expect(screen.queryByText("Mesa")).not.toBeInTheDocument();
-    });
+    expect(screen.getAllByRole("listitem").length).toBeGreaterThanOrEqual(8);
   });
 });

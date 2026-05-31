@@ -1,0 +1,333 @@
+/* Fila de notificación. `--rowColor` se inyecta por dominio desde NotifRow.jsx
+   y tinta icono, barra de no-leída, pip, tag y acentos. */
+
+.row {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--bg-dark);
+  list-style: none;
+  animation: rowEnter 0.4s ease both;
+}
+
+@keyframes rowEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.row:hover {
+  border-color: var(--border-amber);
+  background: var(--bg-hover);
+}
+
+/* No leída: fondo de card + barra de acento a la izquierda */
+.unread {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+
+.unread::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  background: var(--rowColor);
+  border-radius: 0 3px 3px 0;
+}
+
+/* Accionable: borde y tinte sutil del color del dominio */
+.actionable {
+  border-color: var(--rowColor);
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--rowColor) 8%, transparent),
+      transparent 55%
+    ),
+    var(--bg-card);
+  box-shadow: inset 1px 0 0 var(--rowColor);
+}
+
+/* ── Visual izquierdo ─────────────────────────────────────────────── */
+
+.avatarStack {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.domainIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  color: var(--rowColor);
+  background: color-mix(in srgb, var(--rowColor) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rowColor) 28%, transparent);
+}
+
+.groupAvatars {
+  display: flex;
+  align-items: center;
+}
+
+.gAv {
+  margin-left: -10px;
+  border: 2px solid var(--bg-card);
+  border-radius: 9px;
+}
+
+.gAv:first-child {
+  margin-left: 0;
+}
+
+.gMore {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+}
+
+.pip {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 7px;
+  color: var(--on-amber);
+  background: var(--rowColor);
+  border: 2px solid var(--bg-card);
+}
+
+/* ── Cuerpo ───────────────────────────────────────────────────────── */
+
+.body {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.body:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.topline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.unreadDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--rowColor);
+  flex-shrink: 0;
+}
+
+.domainTag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rowColor);
+}
+
+.target {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--on-amber);
+  background: var(--red);
+}
+
+.time {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.text {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Acciones inline ──────────────────────────────────────────────── */
+
+.rowActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btnReject,
+.btnAccept,
+.btnGhost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 7px 13px;
+  cursor: pointer;
+  transition: all var(--transition, 0.2s ease);
+}
+
+.btnReject {
+  background: transparent;
+  border: 1px solid var(--border-strong, var(--border));
+  color: var(--text-secondary);
+}
+
+.btnReject:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.btnAccept {
+  background: var(--green);
+  border: 1px solid var(--green);
+  color: var(--on-amber);
+}
+
+.btnAccept:hover {
+  filter: brightness(1.08);
+}
+
+.btnGhost {
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  color: var(--rowColor);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+}
+
+.btnGhost:hover {
+  gap: 9px;
+}
+
+/* ── Affordances de hover ─────────────────────────────────────────── */
+
+.hoverActions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--transition, 0.2s ease);
+}
+
+.row:hover .hoverActions,
+.hoverActions:focus-within {
+  opacity: 1;
+}
+
+.hoverBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition, 0.2s ease);
+}
+
+.hoverBtn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-amber);
+}
+
+/* ── ResolvedRow ──────────────────────────────────────────────────── */
+
+.resolved {
+  opacity: 0.7;
+  align-items: center;
+}
+
+.resolvedIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.resolvedOk {
+  color: var(--green);
+  background: var(
+    --green-15,
+    color-mix(in srgb, var(--green) 15%, transparent)
+  );
+}
+
+.resolvedNo {
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+}

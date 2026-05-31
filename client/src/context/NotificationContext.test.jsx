@@ -78,6 +78,13 @@ function Probe() {
         dismiss-first
       </button>
       <button onClick={() => n.notifyFriendAdded()}>notify-friend</button>
+      <button
+        onClick={() =>
+          n.dismiss(n.notifications[0]?.notifId || n.notifications[0]?._id)
+        }
+      >
+        dismiss-first-notif
+      </button>
     </div>
   );
 }
@@ -283,6 +290,67 @@ describe("NotificationContext", () => {
     );
     act(() => screen.getByText("clear-all").click());
     expect(screen.getByTestId("count").textContent).toBe("0");
+  });
+
+  it("dismiss removes one notification optimistically and DELETEs /:id", async () => {
+    let deletedId = null;
+    server.use(
+      http.get("/api/notifications", () =>
+        HttpResponse.json([
+          {
+            _id: "abc",
+            type: "chat",
+            tableId: "t1",
+            read: false,
+            timestamp: 1,
+          },
+        ]),
+      ),
+      http.delete("/api/notifications/:id", ({ params }) => {
+        deletedId = params.id;
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    renderApp();
+    await waitFor(() =>
+      expect(screen.getByTestId("count").textContent).toBe("1"),
+    );
+    await act(async () => {
+      screen.getByText("dismiss-first-notif").click();
+    });
+    expect(screen.getByTestId("count").textContent).toBe("0");
+    await waitFor(() => expect(deletedId).toBe("abc"));
+  });
+
+  it("dismiss rolls back and toasts when the server fails", async () => {
+    server.use(
+      http.get("/api/notifications", () =>
+        HttpResponse.json([
+          {
+            _id: "abc",
+            type: "chat",
+            tableId: "t1",
+            read: false,
+            timestamp: 1,
+          },
+        ]),
+      ),
+      http.delete("/api/notifications/:id", () =>
+        HttpResponse.json({ message: "nope" }, { status: 500 }),
+      ),
+    );
+    renderApp();
+    await waitFor(() =>
+      expect(screen.getByTestId("count").textContent).toBe("1"),
+    );
+    await act(async () => {
+      screen.getByText("dismiss-first-notif").click();
+    });
+    // Restaurada + toast de error.
+    await waitFor(() =>
+      expect(screen.getByTestId("count").textContent).toBe("1"),
+    );
+    expect(screen.getByTestId("toasts").textContent).toBe("1");
   });
 
   it("addToast adds a toast and dismissToast removes it", () => {

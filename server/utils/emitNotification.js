@@ -42,12 +42,17 @@ async function emitNotification({
   if (!notif) return null; // section disabled, save failed, etc.
   if (!io || !socketEvent) return notif;
 
+  // `actor` (singular) sólo alimenta el array `actors` del doc — no se emite
+  // suelto. En su lugar mandamos el `actors` autoritativo post-upsert para
+  // que el cliente pinte los avatares apilados en tiempo real.
+  const { actor: _actor, ...emitFields } = fields;
   const targetRoom = room || `user:${recipientIdStr}`;
   io.to(targetRoom).emit(socketEvent, {
-    ...fields,
+    ...emitFields,
     ...extra,
     notifId: notif._id.toString(),
     count: notif.count,
+    actors: notif.actors,
     timestamp: notif.updatedAt,
   });
   return notif;

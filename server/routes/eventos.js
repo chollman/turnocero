@@ -1285,6 +1285,10 @@ router.post(
             eventoTitle: evento.title,
             gameName: game.name,
             addedByUsername: req.user.username,
+            actor: {
+              userId: req.user._id.toString(),
+              username: req.user.username,
+            },
           },
           "evento:notification",
           { type: "evento_ludoteca_added" },

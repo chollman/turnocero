@@ -1,6 +1,7 @@
 const request = require("supertest");
 const app = require("../../app");
 const Table = require("../../models/Table");
+const Notification = require("../../models/Notification");
 const { createUser, createAuthedUser, tokenFor } = require("../helpers/auth");
 const { createTable } = require("../helpers/factories");
 const { loadSiteConfig, updateSiteConfig } = require("../../utils/siteConfig");
@@ -416,6 +417,29 @@ describe("POST /api/tables/:id/join", () => {
     expect(refreshed.pendingRequests.map((p) => p.toString())).toContain(
       user._id.toString(),
     );
+  });
+
+  it("private join persists a join_request notif with the requester as actor", async () => {
+    await enableAllSections();
+    const host = await createUser();
+    const table = await createTable(host, {
+      privacy: "private",
+      maxPlayers: 4,
+    });
+    const { user, token } = await createAuthedUser();
+
+    await request(app)
+      .post(`/api/tables/${table._id}/join`)
+      .set("Authorization", `Bearer ${token}`);
+
+    const notif = await Notification.findOne({
+      recipient: host._id,
+      type: "join_request",
+      tableId: table._id.toString(),
+    });
+    expect(notif).not.toBeNull();
+    expect(notif.actors.length).toBe(1);
+    expect(notif.actors[0].userId).toBe(user._id.toString());
   });
 
   it("400s when the host tries to join their own table", async () => {

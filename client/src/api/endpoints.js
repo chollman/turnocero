@@ -157,6 +157,7 @@ export const API = {
     LIST: "/api/notifications",
     READ: "/api/notifications/read",
     CLEAR: "/api/notifications",
+    DISMISS: (id) => `/api/notifications/${enc(id)}`,
   },
 
   // ── Direct messages ──────────────────────────────────────────────────

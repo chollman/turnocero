@@ -96,6 +96,10 @@ router.post(
             tableName: table.boardGame,
             lastCommenterUsername: req.user.username,
             lastCommentPreview: commentPreview,
+            actor: {
+              userId: req.user._id.toString(),
+              username: req.user.username,
+            },
           },
           "table:comment",
           { commenterUsername: req.user.username, commentPreview },

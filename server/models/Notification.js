@@ -50,6 +50,20 @@ const notificationSchema = new mongoose.Schema(
     type: { type: String, required: true, enum: NOTIFICATION_TYPES },
     read: { type: Boolean, default: false },
     count: { type: Number, default: 1 },
+    // Actores que dispararon la notif (más reciente primero, dedupeado por
+    // userId, tope 8). Sólo se popula en tipos AGGREGATING cuando el call
+    // site pasa `actor`. Habilita avatares apilados en la bandeja y, para
+    // `join_request`, el userId del solicitante para la acción inline del host.
+    actors: {
+      type: [
+        {
+          _id: false,
+          userId: { type: String },
+          username: { type: String, default: "" },
+        },
+      ],
+      default: [],
+    },
     // Table-related
     tableId: { type: String, default: null },
     tableName: { type: String, default: "" },

@@ -87,6 +87,72 @@ describe("saveNotification — aggregating types", () => {
     });
     expect(after.read).toBe(false);
   });
+
+  it("preserves tableName set on insert across increments", async () => {
+    const user = await createUser();
+    await saveNotification(user._id, "chat", {
+      tableId: "t1",
+      tableName: "Mesa Catán",
+    });
+    const after = await saveNotification(user._id, "chat", {
+      tableId: "t1",
+      tableName: "OTRO",
+    });
+    expect(after.tableName).toBe("Mesa Catán");
+  });
+});
+
+describe("saveNotification — actors array", () => {
+  beforeEach(enableAllSections);
+
+  it("appends the actor newest-first, deduped by userId", async () => {
+    const user = await createUser();
+    await saveNotification(user._id, "join_request", {
+      tableId: "t1",
+      tableName: "Mesa",
+      actor: { userId: "u1", username: "ana" },
+    });
+    await saveNotification(user._id, "join_request", {
+      tableId: "t1",
+      tableName: "Mesa",
+      actor: { userId: "u2", username: "leo" },
+    });
+    // Mismo userId que el primero → no duplica, lo sube al frente.
+    const n = await saveNotification(user._id, "join_request", {
+      tableId: "t1",
+      tableName: "Mesa",
+      actor: { userId: "u1", username: "ana" },
+    });
+    expect(n.actors.map((a) => a.userId)).toEqual(["u1", "u2"]);
+    expect(n.count).toBe(3);
+  });
+
+  it("caps the actors array at 8", async () => {
+    const user = await createUser();
+    for (let i = 0; i < 12; i += 1) {
+      await saveNotification(user._id, "compartida_like", {
+        compartidaId: "c1",
+        actor: { userId: `u${i}`, username: `user${i}` },
+      });
+    }
+    const n = await Notification.findOne({
+      recipient: user._id,
+      type: "compartida_like",
+      compartidaId: "c1",
+    });
+    expect(n.actors.length).toBe(8);
+    // El más nuevo (u11) queda primero.
+    expect(n.actors[0].userId).toBe("u11");
+  });
+
+  it("does not break when no actor is passed (actors stays empty)", async () => {
+    const user = await createUser();
+    const n = await saveNotification(user._id, "chat", {
+      tableId: "t1",
+      tableName: "Mesa",
+    });
+    expect(n.actors).toEqual([]);
+  });
 });
 
 describe("saveNotification — non-aggregating types", () => {

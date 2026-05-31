@@ -1,0 +1,133 @@
+.side {
+  position: sticky;
+  top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-self: start;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
+.head {
+  padding: 18px 18px 16px;
+  border-bottom: 1px solid var(--border);
+  background:
+    radial-gradient(120% 120% at 0% 0%, var(--amber-10), transparent 60%),
+    var(--bg-elevated);
+}
+
+.eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 6px;
+}
+
+.headTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  background: var(--bg-card);
+}
+
+.statValue {
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.statValue.red {
+  color: var(--red);
+}
+.statValue.orange {
+  color: var(--orange);
+}
+.statValue.amber {
+  color: var(--amber);
+}
+.statValue.green {
+  color: var(--green);
+}
+
+.statLabel {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+}
+
+.bdRow {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.bdIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bdTrack {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-dark);
+  overflow: hidden;
+}
+
+.bdFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  min-width: 4px;
+  transition: width 0.4s ease;
+}
+
+.bdCount {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  min-width: 14px;
+  text-align: right;
+}
+
+@media (max-width: 980px) {
+  .side {
+    position: static;
+    order: -1;
+  }
+}

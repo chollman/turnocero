@@ -41,7 +41,7 @@ describe("DM read endpoint resets notification count", () => {
 
     // Bob marca la conversación como leída.
     const res = await request(app)
-      .patch(`/api/dm/${alice._id}`)
+      .patch(`/api/dm/${alice._id}/read`)
       .set(authHeader(bobToken));
     expect(res.status).toBe(200);
 
