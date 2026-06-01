@@ -65,6 +65,7 @@ import Sidebar from "./components/layout/Sidebar";
 import BoardGameBackground from "./components/layout/BoardGameBackground";
 import SplashScreen from "./components/layout/SplashScreen";
 import PageTransition from "./components/layout/PageTransition";
+import usePageTransition from "./components/layout/usePageTransition";
 import useVisualViewportVars from "./utils/useVisualViewportVars";
 
 function ScrollToTop() {
@@ -127,11 +128,13 @@ const AUTH_PATHS = [
 ];
 const isAuthPath = (pathname) => AUTH_PATHS.includes(pathname);
 
-function AppRoutes() {
+export function AppRoutes({ transition }) {
   const { user } = useAuth();
-  const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const isAuthPage = isAuthPath(pathname);
+  // El chrome (sidebars/navbar/frame) deriva de la location que PageTransition
+  // está MOSTRANDO, no del pathname vivo, así swapea en lockstep con el
+  // contenido durante el slide (sin el salto del sidebar desapareciendo antes).
+  const isAuthPage = isAuthPath(transition.displayLocation.pathname);
   const toggleMenu = () => setMenuOpen((o) => !o);
   const closeMenu = () => setMenuOpen(false);
   return (
@@ -141,14 +144,17 @@ function AppRoutes() {
       )}
       <div className="appShell">
         <ScrollToTop />
-        {user ? (
-          <Sidebar open={menuOpen} onClose={closeMenu} />
-        ) : (
-          !isAuthPage && <GuestSidebar open={menuOpen} onClose={closeMenu} />
-        )}
+        {!isAuthPage &&
+          (user ? (
+            <Sidebar open={menuOpen} onClose={closeMenu} />
+          ) : (
+            <GuestSidebar open={menuOpen} onClose={closeMenu} />
+          ))}
         <div className={`appContent${!user ? " guestMode" : ""}`}>
-          {user && <Navbar menuOpen={menuOpen} onToggleMenu={toggleMenu} />}
-          <PageTransition>
+          {user && !isAuthPage && (
+            <Navbar menuOpen={menuOpen} onToggleMenu={toggleMenu} />
+          )}
+          <PageTransition transition={transition}>
             <Route
               path="/login"
               element={
@@ -498,7 +504,9 @@ function AppShell() {
   const { loading } = useAuth();
   const { loaded: configLoaded, backendDown, retryConnection } =
     useSiteConfig();
-  const { pathname } = useLocation();
+  // Fuente única del estado de transición: lo consumen el frame (acá) y el
+  // chrome (en AppRoutes), así ambos siguen la misma `displayLocation`.
+  const transition = usePageTransition();
   useVisualViewportVars();
 
   // El health-check de boot (GET /api/site-config) detectó que el backend no
@@ -513,14 +521,17 @@ function AppShell() {
   const showSplash = loading || !configLoaded;
   // Las auth pages no tienen sidebar, así que el frame necesita su borde
   // izquierdo (el resto del app lo omite porque el sidebar cubre esa franja).
-  const frameClass = isAuthPath(pathname) ? "appFrame appFrameAuth" : "appFrame";
+  // Usa la location MOSTRADA para entrar en sync con el sidebar durante el slide.
+  const frameClass = isAuthPath(transition.displayLocation.pathname)
+    ? "appFrame appFrameAuth"
+    : "appFrame";
   return (
     <>
       <SplashScreen visible={showSplash} />
       <BoardGameBackground />
       <div className={frameClass} aria-hidden="true" />
       <div style={{ position: "relative", zIndex: 1 }}>
-        <AppRoutes />
+        <AppRoutes transition={transition} />
       </div>
       <ToastContainer />
       <ChatWindowManager />
