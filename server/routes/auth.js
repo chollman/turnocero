@@ -281,7 +281,11 @@ router.post(
     if (info.aud !== process.env.GOOGLE_CLIENT_ID) {
       throw httpError(401, "Token de Google inválido");
     }
-    if (!info.email || info.email_verified !== true) {
+    // El endpoint tokeninfo de Google devuelve email_verified como string
+    // "true" (no booleano), y getTokenInfo no lo convierte — toleramos ambos.
+    const emailVerified =
+      info.email_verified === true || info.email_verified === "true";
+    if (!info.email || !emailVerified) {
       throw httpError(401, "Tu email de Google no está verificado");
     }
 
