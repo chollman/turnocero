@@ -215,6 +215,61 @@
   padding: 12px 18px 4px;
 }
 
+/* ── "Leer más" (recorte con slide) ── */
+.bodyClampWrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.bodyClamp {
+  position: relative;
+  overflow: hidden;
+  transition: max-height 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bodyFade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 88px;
+  background: linear-gradient(to bottom, transparent, var(--bg-card) 92%);
+  pointer-events: none;
+}
+
+.readMoreBtn {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 18px 4px;
+  padding: 7px 14px;
+  background: var(--amber-10);
+  border: 1px solid var(--border-amber);
+  border-radius: 8px;
+  color: var(--amber);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.readMoreBtn:hover {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--on-amber);
+}
+
+.readMoreChevron {
+  width: 15px;
+  height: 15px;
+  transition: transform var(--transition);
+}
+
+.readMoreChevronUp {
+  transform: rotate(180deg);
+}
+
 .images {
   display: flex;
   flex-wrap: wrap;

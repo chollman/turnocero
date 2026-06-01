@@ -38,15 +38,22 @@ function makeResena(overrides = {}) {
   };
 }
 
-function renderCard(post, { user = null } = {}) {
+function renderCard(post, { user = null, clampBody } = {}) {
   useAuth.mockReturnValue({ user });
   useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
   return render(
     <MemoryRouter>
-      <ResenaCard post={post} onDeleted={vi.fn()} onUpdated={vi.fn()} />
+      <ResenaCard
+        post={post}
+        onDeleted={vi.fn()}
+        onUpdated={vi.fn()}
+        {...(clampBody !== undefined ? { clampBody } : {})}
+      />
     </MemoryRouter>,
   );
 }
+
+const longBody = `<p>${"a".repeat(600)}</p>`;
 
 describe("<ResenaCard>", () => {
   it("renders the game header with name and year", () => {
@@ -83,6 +90,40 @@ describe("<ResenaCard>", () => {
     // 3 likes + 2 comentarios.
     expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.getByText(/comentarios/i)).toBeInTheDocument();
+  });
+
+  it("shows a 'Leer más' button for reviews longer than 500 characters", () => {
+    renderCard(makeResena({ body: longBody }));
+    expect(
+      screen.getByRole("button", { name: /leer más/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show 'Leer más' for short reviews", () => {
+    renderCard(makeResena({ body: "<p>Cortita</p>" }));
+    expect(
+      screen.queryByRole("button", { name: /leer más/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("toggles between 'Leer más' and 'Leer menos' when clicked", () => {
+    renderCard(makeResena({ body: longBody }));
+    const btn = screen.getByRole("button", { name: /leer más/i });
+    expect(btn).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(btn);
+    const collapseBtn = screen.getByRole("button", { name: /leer menos/i });
+    expect(collapseBtn).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(collapseBtn);
+    expect(
+      screen.getByRole("button", { name: /leer más/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not clamp the body when clampBody is false (detail page)", () => {
+    renderCard(makeResena({ body: longBody }), { clampBody: false });
+    expect(
+      screen.queryByRole("button", { name: /leer más/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("author sees the edit menu and can open the editor", () => {

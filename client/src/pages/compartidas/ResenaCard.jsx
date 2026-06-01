@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -40,12 +40,19 @@ const PRIVACY_LABELS = {
 
 const bodyToText = (html) => (html || "").replace(/<[^>]*>/g, " ").trim();
 
+// Reseñas con más de este largo (texto plano) se recortan en el feed y se
+// expanden con un botón "Leer más" (efecto slide).
+const LONG_BODY_CHARS = 500;
+// Altura (px) del preview recortado antes de expandir.
+const COLLAPSED_BODY_PX = 240;
+
 export default function ResenaCard({
   post: initialPost,
   onDeleted,
   onUpdated,
   featured,
   index = 0,
+  clampBody = true,
 }) {
   const { user } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
@@ -74,7 +81,10 @@ export default function ResenaCard({
   const [editError, setEditError] = useState("");
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [fullBodyHeight, setFullBodyHeight] = useState(0);
   const menuRef = useRef(null);
+  const bodyInnerRef = useRef(null);
 
   const authorInfo = getUserDisplay(post.author);
   const authorProfilePath =
@@ -177,6 +187,30 @@ export default function ResenaCard({
       setSaving(false);
     }
   };
+
+  // ── "Leer más" para reseñas largas (slide) ──
+  const bodyIsLong = useMemo(
+    () => bodyToText(post.body).length > LONG_BODY_CHARS,
+    [post.body],
+  );
+  const clampBodyActive = clampBody && bodyIsLong && !editing;
+  // Mientras no medimos (fullBodyHeight === 0, ej. SSR/tests) asumimos que
+  // desborda; en cuanto medimos sólo recortamos si supera el preview.
+  const bodyOverflows =
+    fullBodyHeight === 0 || fullBodyHeight > COLLAPSED_BODY_PX + 32;
+  const showReadMore = clampBodyActive && bodyOverflows;
+
+  useLayoutEffect(() => {
+    if (!clampBodyActive) return undefined;
+    const el = bodyInnerRef.current;
+    if (!el) return undefined;
+    const measure = () => setFullBodyHeight(el.offsetHeight);
+    measure();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [clampBodyActive, post.body]);
 
   const game = post.boardGame;
   const cover = game?.image || game?.thumbnail || "";
@@ -439,7 +473,53 @@ export default function ResenaCard({
         ) : (
           <>
             {post.title && <h2 className={styles.title}>{post.title}</h2>}
-            <RichTextContent html={post.body} className={styles.body} />
+            {clampBodyActive ? (
+              <div className={styles.bodyClampWrap}>
+                <div
+                  className={styles.bodyClamp}
+                  style={{
+                    maxHeight: !showReadMore
+                      ? "none"
+                      : expanded
+                        ? fullBodyHeight
+                          ? `${fullBodyHeight}px`
+                          : "none"
+                        : `${COLLAPSED_BODY_PX}px`,
+                  }}
+                >
+                  <div ref={bodyInnerRef}>
+                    <RichTextContent html={post.body} className={styles.body} />
+                  </div>
+                  {showReadMore && !expanded && (
+                    <div className={styles.bodyFade} aria-hidden="true" />
+                  )}
+                </div>
+                {showReadMore && (
+                  <button
+                    type="button"
+                    className={styles.readMoreBtn}
+                    onClick={() => setExpanded((e) => !e)}
+                    aria-expanded={expanded}
+                  >
+                    {expanded ? "Leer menos" : "Leer más"}
+                    <svg
+                      className={`${styles.readMoreChevron} ${expanded ? styles.readMoreChevronUp : ""}`}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <RichTextContent html={post.body} className={styles.body} />
+            )}
 
             {lbImages.length > 0 && (
               <div className={styles.images}>

@@ -135,6 +135,7 @@ export default function CompartidaPost() {
                 post={post}
                 onDeleted={() => navigate("/compartidas")}
                 onUpdated={(updated) => setPost(updated)}
+                clampBody={false}
               />
             ) : (
               <CompartidaCard
