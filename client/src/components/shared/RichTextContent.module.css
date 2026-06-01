@@ -1,0 +1,71 @@
+/* Tipografía de lectura para reseñas (debe matchear el editor). Todos los
+   colores salen de tokens → funciona en dark y light. */
+.content {
+  color: var(--text-primary);
+  font-size: 1.02rem;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.content :first-child {
+  margin-top: 0;
+}
+
+.content :last-child {
+  margin-bottom: 0;
+}
+
+.content p {
+  margin: 0 0 1em;
+}
+
+.content h2 {
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 1.5em 0 0.5em;
+  color: var(--text-primary);
+}
+
+.content h3 {
+  font-size: 1.18rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1.3em 0 0.45em;
+  color: var(--text-primary);
+}
+
+.content ul,
+.content ol {
+  margin: 0 0 1em;
+  padding-left: 1.4em;
+}
+
+.content li {
+  margin: 0.25em 0;
+}
+
+.content blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  border-left: 3px solid var(--amber);
+  background: var(--amber-10);
+  border-radius: 0 8px 8px 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.content a {
+  color: var(--amber);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.content a:hover {
+  color: var(--amber-light);
+}
+
+.content strong,
+.content b {
+  font-weight: 700;
+}

@@ -15,11 +15,21 @@ function truncate(text) {
   return text.length > MAX_BODY ? `${text.slice(0, MAX_BODY)}…` : text;
 }
 
+// El body de las reseñas es HTML enriquecido. Para el caption de compartir lo
+// pasamos a texto plano (las juntadas usan texto plano y quedan intactas).
+function plainBody(body) {
+  return (body || "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function buildCompartidaShare(post, origin = "") {
   const url = `${origin}/compartidas/${post._id}`;
   const parts = [];
   if (post.title) parts.push(`*${post.title}*`);
-  if (post.body) parts.push(truncate(post.body));
+  const body = plainBody(post.body);
+  if (body) parts.push(truncate(body));
   const caption = parts.join("\n");
   const whatsappText = caption ? `${caption}\n🎲 ${url}` : `🎲 ${url}`;
   return { url, caption, whatsappText };

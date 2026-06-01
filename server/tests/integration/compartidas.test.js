@@ -386,3 +386,260 @@ describe("GET /api/compartidas/:id/comments — paginación (más nuevos primero
     expect(res.body.pages).toBe(0);
   });
 });
+
+describe("Compartidas — reseñas vs juntadas", () => {
+  const BggGame = require("../../models/BggGame");
+
+  // Sembrar el juego en Mongo para que resolveGame() salga de la cache L2 y
+  // NO pegue a la red de BGG en los tests.
+  async function seedGame(overrides = {}) {
+    return BggGame.create({
+      gameId: overrides.gameId || 13,
+      name: overrides.name || "Catan",
+      thumbnail: overrides.thumbnail || "https://img/thumb.jpg",
+      image: overrides.image || "https://img/full.jpg",
+      yearPublished: overrides.year || 1995,
+    });
+  }
+
+  it("POST reseña sin juego → 400", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ category: "resena", rating: 8, body: "<p>buena</p>" });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/juego/i);
+  });
+
+  it("POST reseña sin rating → 400", async () => {
+    const { token } = await createAuthedUser();
+    await seedGame();
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        category: "resena",
+        boardGame: { bggId: 13 },
+        body: "<p>buena</p>",
+      });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/puntuaci/i);
+  });
+
+  it("POST reseña válida: sanitiza el body y persiste category/boardGame/rating", async () => {
+    const { token } = await createAuthedUser();
+    await seedGame();
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        category: "resena",
+        title: "Mi reseña",
+        boardGame: { bggId: 13, name: "FAKE", thumbnail: "x" },
+        rating: 9,
+        body: "<h2>Genial</h2><script>alert(1)</script><p>Muy bueno</p>",
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.category).toBe("resena");
+    expect(res.body.rating).toBe(9);
+    // El snapshot se re-resuelve server-side (ignora el name/thumb del cliente).
+    expect(res.body.boardGame.bggId).toBe(13);
+    expect(res.body.boardGame.name).toBe("Catan");
+    expect(res.body.boardGame.thumbnail).toBe("https://img/thumb.jpg");
+    // Body sanitizado.
+    expect(res.body.body).toContain("<h2>Genial</h2>");
+    expect(res.body.body).not.toContain("<script>");
+
+    const stored = await Compartida.findById(res.body._id);
+    expect(stored.body).not.toContain("script");
+  });
+
+  it("POST juntada sin juego sigue funcionando", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ body: "Una juntada copada" });
+    expect(res.status).toBe(201);
+    expect(res.body.category).toBe("juntada");
+    expect(res.body.boardGame).toBeNull();
+    expect(res.body.rating).toBeNull();
+  });
+
+  it("POST juntada con un juego (compat boardGame único) lo resuelve en la lista", async () => {
+    const { token } = await createAuthedUser();
+    await seedGame();
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ body: "jugamos", boardGame: { bggId: 13 } });
+    expect(res.status).toBe(201);
+    expect(res.body.category).toBe("juntada");
+    expect(res.body.boardGames).toHaveLength(1);
+    expect(res.body.boardGames[0].name).toBe("Catan");
+    expect(res.body.rating).toBeNull();
+  });
+
+  it("POST juntada con varios juegos: resuelve, dedupea y respeta orden", async () => {
+    const { token } = await createAuthedUser();
+    await seedGame({ gameId: 13, name: "Catan" });
+    await seedGame({ gameId: 99, name: "Wingspan" });
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        body: "noche de juegos",
+        boardGames: [{ bggId: 13 }, { bggId: 99 }, { bggId: 13 }],
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.boardGames.map((g) => g.name)).toEqual([
+      "Catan",
+      "Wingspan",
+    ]);
+  });
+
+  it("GET ?q= matchea por nombre de juego en la lista de una juntada", async () => {
+    const author = await createUser();
+    await seedGame({ gameId: 99, name: "Wingspan" });
+    await createCompartida(author, {
+      body: "jugamos",
+      boardGames: [
+        { bggId: 99, name: "Wingspan", thumbnail: "", image: "", year: 2019 },
+      ],
+    });
+    const res = await request(app).get("/api/compartidas?q=wingspan");
+    expect(res.body.compartidas.some((c) => c.body === "jugamos")).toBe(true);
+  });
+
+  it("PUT juntada edita la lista de juegos", async () => {
+    const { user, token } = await createAuthedUser();
+    await seedGame({ gameId: 13, name: "Catan" });
+    await seedGame({ gameId: 99, name: "Wingspan" });
+    const juntada = await createCompartida(user, { body: "hola" });
+    const res = await request(app)
+      .put(`/api/compartidas/${juntada._id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ boardGames: [{ bggId: 13 }, { bggId: 99 }] });
+    expect(res.status).toBe(200);
+    expect(res.body.boardGames.map((g) => g.name)).toEqual([
+      "Catan",
+      "Wingspan",
+    ]);
+  });
+
+  it("PUT reseña edita rating, body y juego", async () => {
+    const { user, token } = await createAuthedUser();
+    await seedGame();
+    await seedGame({ gameId: 99, name: "Wingspan" });
+    const { createResena } = require("../helpers/factories");
+    const resena = await createResena(user, { rating: 5 });
+
+    const res = await request(app)
+      .put(`/api/compartidas/${resena._id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        rating: 10,
+        body: "<p>actualizada</p><script>x</script>",
+        boardGame: { bggId: 99 },
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.rating).toBe(10);
+    expect(res.body.boardGame.name).toBe("Wingspan");
+    expect(res.body.body).not.toContain("script");
+  });
+
+  it("PUT no permite cambiar la categoría", async () => {
+    const { user, token } = await createAuthedUser();
+    const juntada = await createCompartida(user, { body: "hola" });
+    const res = await request(app)
+      .put(`/api/compartidas/${juntada._id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ category: "resena" });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/tipo/i);
+  });
+
+  it("GET ?category=resena filtra solo reseñas", async () => {
+    const author = await createUser();
+    const { createResena } = require("../helpers/factories");
+    await createCompartida(author, { body: "juntada A" });
+    await createResena(author, { title: "reseña A" });
+
+    const res = await request(app).get("/api/compartidas?category=resena");
+    expect(res.status).toBe(200);
+    const all = [
+      ...res.body.compartidas,
+      ...(res.body.featured ? [res.body.featured] : []),
+    ];
+    expect(all.every((c) => c.category === "resena")).toBe(true);
+    expect(all.some((c) => c.title === "reseña A")).toBe(true);
+  });
+
+  it("GET ?q= matchea título y nombre de juego, respetando privacidad", async () => {
+    const author = await createUser();
+    const { createResena } = require("../helpers/factories");
+    await createResena(author, {
+      title: "Análisis profundo",
+      boardGame: {
+        bggId: 13,
+        name: "Catan",
+        thumbnail: "",
+        image: "",
+        year: 1995,
+      },
+      privacy: "public",
+    });
+    await createResena(author, {
+      title: "Otra cosa",
+      boardGame: {
+        bggId: 99,
+        name: "Wingspan",
+        thumbnail: "",
+        image: "",
+        year: 2019,
+      },
+      privacy: "private",
+    });
+
+    // Matchea por nombre de juego.
+    const byGame = await request(app).get("/api/compartidas?q=catan");
+    const gameTitles = byGame.body.compartidas.map((c) => c.title);
+    expect(gameTitles).toContain("Análisis profundo");
+
+    // No filtra hacia afuera la privacidad: la privada de Wingspan no aparece a anon.
+    const byGame2 = await request(app).get("/api/compartidas?q=wingspan");
+    expect(byGame2.body.compartidas).toHaveLength(0);
+
+    // Matchea por título.
+    const byTitle = await request(app).get("/api/compartidas?q=análisis");
+    expect(byTitle.body.compartidas.map((c) => c.title)).toContain(
+      "Análisis profundo",
+    );
+  });
+
+  it("OG de reseña incluye rating y juego", async () => {
+    const author = await createUser();
+    const { createResena } = require("../helpers/factories");
+    const resena = await createResena(author, {
+      title: "Reseña OG",
+      rating: 7,
+      boardGame: {
+        bggId: 13,
+        name: "Catan",
+        thumbnail: "",
+        image: "",
+        year: 1995,
+      },
+      body: "<p>texto plano</p>",
+      privacy: "public",
+    });
+    const res = await request(app).get(`/api/compartidas/${resena._id}/og`);
+    expect(res.status).toBe(200);
+    expect(res.body.category).toBe("resena");
+    expect(res.body.rating).toBe(7);
+    expect(res.body.game).toBe("Catan");
+    expect(res.body.body).toContain("texto plano");
+    expect(res.body.body).not.toContain("<p>");
+  });
+});

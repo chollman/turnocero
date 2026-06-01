@@ -35,11 +35,37 @@ async function createTable(host, overrides = {}) {
 async function createCompartida(author, overrides = {}) {
   return Compartida.create({
     author: author._id,
+    category: overrides.category || "juntada",
     title: overrides.title || "",
     body: overrides.body || "Test post",
+    boardGame: overrides.boardGame || null,
+    boardGames: overrides.boardGames || [],
+    rating: overrides.rating ?? null,
     privacy: overrides.privacy || "public",
     images: overrides.images || [],
     linkedTable: overrides.linkedTable || undefined,
+    likes: overrides.likes || [],
+  });
+}
+
+// Reseña válida (juego + rating obligatorios). El pre('validate') del modelo
+// rechaza reseñas sin estos campos, así que esta factory los provee por default.
+async function createResena(author, overrides = {}) {
+  return Compartida.create({
+    author: author._id,
+    category: "resena",
+    title: overrides.title || "Mi reseña",
+    body: overrides.body || "<p>Excelente juego.</p>",
+    boardGame: overrides.boardGame || {
+      bggId: 13,
+      name: "Catan",
+      thumbnail: "",
+      image: "",
+      year: 1995,
+    },
+    rating: overrides.rating ?? 8,
+    privacy: overrides.privacy || "public",
+    images: overrides.images || [],
     likes: overrides.likes || [],
   });
 }
@@ -100,6 +126,7 @@ async function createEvento(author, overrides = {}) {
 module.exports = {
   createTable,
   createCompartida,
+  createResena,
   createNoticia,
   createTorneo,
   createEvento,

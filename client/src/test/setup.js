@@ -21,6 +21,28 @@ if (typeof URL.revokeObjectURL === "undefined") {
   URL.revokeObjectURL = () => {};
 }
 
+// jsdom no implementa estas APIs de layout que ProseMirror/Tiptap usan
+// (el editor de reseñas). Sin esto, el plugin de placeholder tira
+// "elementFromPoint is not a function" al montar.
+if (typeof document !== "undefined" && !document.elementFromPoint) {
+  document.elementFromPoint = () => null;
+}
+if (typeof Range !== "undefined") {
+  if (!Range.prototype.getBoundingClientRect) {
+    Range.prototype.getBoundingClientRect = () => ({
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: 0,
+      height: 0,
+    });
+  }
+  if (!Range.prototype.getClientRects) {
+    Range.prototype.getClientRects = () => ({ length: 0, item: () => null });
+  }
+}
+
 // Canvas methods used by AvatarCropModal / GameTile-style components.
 // jsdom provides a getContext that returns null — force-override.
 if (typeof HTMLCanvasElement !== "undefined") {

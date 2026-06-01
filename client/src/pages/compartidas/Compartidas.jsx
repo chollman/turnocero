@@ -7,12 +7,20 @@ import { useSiteConfig } from "../../context/SiteConfigContext";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 import CompartidaCard from "./CompartidaCard";
+import ResenaCard from "./ResenaCard";
 import CompartidaSkeleton from "./CompartidaSkeleton";
 import CreateCompartidaForm from "./CreateCompartidaForm";
 import CompartidasSidebar from "./CompartidasSidebar";
 import BgWatchHomeWidget from "./BgWatchHomeWidget";
 import styles from "./Compartidas.module.css";
+
+const TABS = [
+  { value: "todo", label: "Todo" },
+  { value: "resena", label: "Reseñas" },
+  { value: "juntada", label: "Juntadas" },
+];
 
 const INTERLEAVE_EVERY = 3;
 
@@ -55,6 +63,33 @@ export default function Compartidas() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  // Inicializar pestaña/búsqueda desde la URL para soportar deep-links
+  // compartibles (?tab=resena&q=catan).
+  const [tab, setTab] = useState(() => {
+    const t = searchParams.get("tab");
+    return ["resena", "juntada"].includes(t) ? t : "todo";
+  });
+  const [query, setQuery] = useState(() => searchParams.get("q") || "");
+  const debouncedQuery = useDebouncedValue(query, 300);
+
+  const categoryParam = tab === "todo" ? undefined : tab;
+  const qParam = debouncedQuery.trim();
+  const isFiltered = Boolean(categoryParam) || qParam.length > 0;
+
+  // Espejar pestaña + búsqueda en la URL (replaceState → no ensucia el
+  // historial con cada tecla). No usamos setSearchParams porque no es
+  // reactivo y se desincroniza del estado local (ver memoria del proyecto).
+  // Preservamos otros params (mesa/evento) leyéndolos de la URL viva.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (tab === "todo") params.delete("tab");
+    else params.set("tab", tab);
+    if (qParam) params.set("q", qParam);
+    else params.delete("q");
+    const qs = params.toString();
+    const url = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+    window.history.replaceState(window.history.state, "", url);
+  }, [tab, qParam]);
   const [showCreate, setShowCreate] = useState(
     !!prefilledMesa || !!prefilledEvento,
   );
@@ -76,31 +111,38 @@ export default function Compartidas() {
     setShowCreate(true);
   };
 
-  const loadFeed = useCallback(async (pageNum = 1, replace = true) => {
-    if (pageNum === 1) setLoading(true);
-    else setLoadingMore(true);
-    try {
-      const { data } = await axios.get(API.compartidas.LIST, {
-        params: { page: pageNum, limit: 10 },
-      });
-      setPosts((prev) =>
-        replace ? data.compartidas : [...prev, ...data.compartidas],
-      );
-      setTotalPages(data.pages);
-      setPage(pageNum);
-      if (typeof data.total === "number") setTotal(data.total);
-      if (pageNum === 1 && data.featured) setFeatured(data.featured);
-    } catch {
-      /* silently ignore */
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, []);
+  const loadFeed = useCallback(
+    async (pageNum = 1, replace = true, opts = {}) => {
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
+      try {
+        const params = { page: pageNum, limit: 10 };
+        if (opts.category) params.category = opts.category;
+        if (opts.q) params.q = opts.q;
+        const { data } = await axios.get(API.compartidas.LIST, { params });
+        setPosts((prev) =>
+          replace ? data.compartidas : [...prev, ...data.compartidas],
+        );
+        setTotalPages(data.pages);
+        setPage(pageNum);
+        if (typeof data.total === "number") setTotal(data.total);
+        if (pageNum === 1) {
+          setFeatured(data.featured || null);
+        }
+      } catch {
+        /* silently ignore */
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [],
+  );
 
+  // Recargar página 1 al cambiar de pestaña o búsqueda.
   useEffect(() => {
-    loadFeed(1);
-  }, [loadFeed]);
+    loadFeed(1, true, { category: categoryParam, q: qParam });
+  }, [loadFeed, categoryParam, qParam]);
 
   const handleCreated = (newPost) => {
     setPosts((prev) => [newPost, ...prev]);
@@ -116,6 +158,24 @@ export default function Compartidas() {
     setPosts((prev) => prev.map((p) => (p._id === updated._id ? updated : p)));
     if (featured?._id === updated._id) setFeatured(updated);
   };
+
+  // Routing del renderer: reseña → ResenaCard (editorial); juntada → CompartidaCard.
+  const renderCard = (post, extra = {}) =>
+    post.category === "resena" ? (
+      <ResenaCard
+        post={post}
+        onDeleted={handleDeleted}
+        onUpdated={handleUpdated}
+        {...extra}
+      />
+    ) : (
+      <CompartidaCard
+        post={post}
+        onDeleted={handleDeleted}
+        onUpdated={handleUpdated}
+        {...extra}
+      />
+    );
 
   const visiblePosts = posts.filter((p) => !featured || p._id !== featured._id);
 
@@ -254,6 +314,51 @@ export default function Compartidas() {
             />
           )}
 
+          {/* ── Tabs + buscador ── */}
+          <div className={styles.controls}>
+            <div
+              className={styles.tabs}
+              role="tablist"
+              aria-label="Filtrar compartidas"
+            >
+              {TABS.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === t.value}
+                  className={`${styles.tab} ${tab === t.value ? styles.tabActive : ""}`}
+                  onClick={() => setTab(t.value)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <div className={styles.searchWrap}>
+              <svg
+                className={styles.searchIcon}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                className={styles.search}
+                type="search"
+                placeholder="Buscar por título o juego…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Buscar compartidas"
+              />
+            </div>
+          </div>
+
           {/* ── Feed ── */}
           {loading ? (
             <div className={styles.feed}>
@@ -264,13 +369,19 @@ export default function Compartidas() {
           ) : posts.length === 0 && !featured ? (
             <div className={styles.empty}>
               <span className={styles.emptyIcon}>🎲</span>
-              <p className={styles.emptyTitle}>No hay compartidas todavía</p>
-              <p className={styles.emptySub}>
-                {user
-                  ? "¡Sé el primero en compartir tu partida!"
-                  : "Registrate para compartir tus partidas."}
+              <p className={styles.emptyTitle}>
+                {isFiltered
+                  ? "No hay compartidas que coincidan"
+                  : "No hay compartidas todavía"}
               </p>
-              {user && (
+              <p className={styles.emptySub}>
+                {isFiltered
+                  ? "Probá con otro filtro o búsqueda."
+                  : user
+                    ? "¡Sé el primero en compartir tu partida!"
+                    : "Registrate para compartir tus partidas."}
+              </p>
+              {user && !isFiltered && (
                 <button
                   className={styles.emptyBtn}
                   onClick={() => setShowCreate(true)}
@@ -281,26 +392,13 @@ export default function Compartidas() {
             </div>
           ) : (
             <div className={styles.feed}>
-              {featured && (
-                <CompartidaCard
-                  key={`featured-${featured._id}`}
-                  post={featured}
-                  featured
-                  onDeleted={handleDeleted}
-                  onUpdated={handleUpdated}
-                />
-              )}
+              {featured && renderCard(featured, { featured: true })}
               {visiblePosts.map((post, i) => (
                 <Fragment key={post._id}>
-                  <CompartidaCard
-                    post={post}
-                    index={featured ? i + 1 : i}
-                    onDeleted={handleDeleted}
-                    onUpdated={handleUpdated}
-                  />
+                  {renderCard(post, { index: featured ? i + 1 : i })}
                   {/* Interleave a quote widget every Nth post — mobile design uses these
                       between cards so the feed has more rhythm. */}
-                  {i + 1 === INTERLEAVE_EVERY && <QuoteWidget />}
+                  {!isFiltered && i + 1 === INTERLEAVE_EVERY && <QuoteWidget />}
                 </Fragment>
               ))}
 

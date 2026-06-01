@@ -4,6 +4,8 @@ import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
 import GameTile from "../../components/shared/GameTile";
+import BggGameSearch from "../../components/shared/BggGameSearch";
+import RichTextEditor from "../../components/shared/RichTextEditor";
 import { getLocationDisplay } from "../../utils/location";
 import styles from "./CreateCompartidaForm.module.css";
 
@@ -12,6 +14,21 @@ const PRIVACY_OPTIONS = [
   { value: "friends", label: "Amigos", desc: "Solo amigos" },
   { value: "private", label: "Solo yo", desc: "Privado" },
 ];
+
+const REVIEW_BODY_MAX = 20000;
+const MAX_JUNTADA_GAMES = 12;
+
+const toGamePayload = (g) => ({
+  bggId: g.id,
+  name: g.name,
+  thumbnail: g.thumbnail,
+  image: g.image,
+  year: g.year,
+});
+
+// Texto plano a partir del body (para chequear contenido real: un editor
+// vacío produce "<p></p>").
+const bodyToText = (html) => (html || "").replace(/<[^>]*>/g, " ").trim();
 
 function formatChipDate(date) {
   if (!date) return "";
@@ -29,9 +46,38 @@ export default function CreateCompartidaForm({
   initialFiles,
 }) {
   const { user } = useAuth();
+  const [category, setCategory] = useState("juntada");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  // Lista de juegos elegidos: reseña usa 1 (obligatorio); juntada 0..N.
+  const [games, setGames] = useState([]); // [{ id, name, thumbnail, image, year }]
+  const [rating, setRating] = useState(0); // 0 = sin elegir
   const [privacy, setPrivacy] = useState("public");
+
+  const isResena = category === "resena";
+  const maxGames = isResena ? 1 : MAX_JUNTADA_GAMES;
+  const canAddGame = games.length < maxGames;
+
+  const addGame = (g) => {
+    setGames((prev) => {
+      if (prev.length >= maxGames) return prev;
+      if (prev.some((x) => x.id === g.id)) return prev; // dedupe
+      return [...prev, g];
+    });
+  };
+  const removeGame = (id) =>
+    setGames((prev) => prev.filter((x) => x.id !== id));
+
+  // Cambiar de tipo limpia el body (el formato plano ↔ HTML no es compatible)
+  // y resetea rating. Si se pasa a reseña, recorta la lista a 1 juego.
+  const switchCategory = (next) => {
+    if (next === category) return;
+    setCategory(next);
+    setBody("");
+    setRating(0);
+    setError("");
+    if (next === "resena") setGames((prev) => prev.slice(0, 1));
+  };
   // El linking es solo contextual: el id viene de la mesa/evento desde donde
   // se abrió la compartida (no hay dropdown manual). Mostramos un chip quitable.
   const [linkedTableId, setLinkedTableId] = useState(prefilledTableId || "");
@@ -51,7 +97,9 @@ export default function CreateCompartidaForm({
     seededRef.current = true;
     const files = Array.from(initialFiles || []).slice(0, 3);
     if (files.length === 0) return;
-    setImages(files.map((file) => ({ file, preview: URL.createObjectURL(file) })));
+    setImages(
+      files.map((file) => ({ file, preview: URL.createObjectURL(file) })),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -122,18 +170,39 @@ export default function CreateCompartidaForm({
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submittingRef.current) return;
-    if (!title.trim() && !body.trim() && images.length === 0) {
+
+    const bodyText = isResena ? bodyToText(body) : body.trim();
+
+    if (isResena) {
+      if (games.length === 0) {
+        setError("Elegí un juego para la reseña.");
+        return;
+      }
+      if (!rating) {
+        setError("Elegí una puntuación de 1 a 10.");
+        return;
+      }
+      if (!title.trim() && !bodyText) {
+        setError("Escribí un título o el cuerpo de la reseña.");
+        return;
+      }
+    } else if (!title.trim() && !bodyText && images.length === 0) {
       setError("Agregá al menos un título, texto o foto.");
       return;
     }
+
     setError("");
     setLoading(true);
     submittingRef.current = true;
     let createdId = null;
     try {
       const { data: created } = await axios.post(API.compartidas.LIST, {
+        category,
         title: title.trim(),
-        body: body.trim(),
+        body: isResena ? body : body.trim(),
+        rating: isResena ? rating : undefined,
+        boardGame: isResena && games[0] ? toGamePayload(games[0]) : undefined,
+        boardGames: !isResena ? games.map(toGamePayload) : undefined,
         privacy,
         linkedTable: linkedTableId || undefined,
         linkedEvento: linkedEventoId || undefined,
@@ -171,8 +240,11 @@ export default function CreateCompartidaForm({
     }
   };
 
-  const canSubmit =
-    (title.trim() || body.trim() || images.length > 0) && !loading;
+  const bodyText = isResena ? bodyToText(body) : body.trim();
+  const canSubmit = isResena
+    ? Boolean(games.length > 0 && rating && (title.trim() || bodyText)) &&
+      !loading
+    : Boolean(title.trim() || bodyText || images.length > 0) && !loading;
 
   const tableLoc = linkedTable
     ? getLocationDisplay(linkedTable.location, "city")
@@ -183,10 +255,137 @@ export default function CreateCompartidaForm({
     <form className={styles.form} onSubmit={handleSubmit}>
       <div className={styles.header}>
         <Avatar user={user} size="md" />
-        <span className={styles.prompt}>¿Cómo estuvo la compartida?</span>
+        <span className={styles.prompt}>
+          {isResena ? "Escribí una reseña" : "¿Cómo estuvo la compartida?"}
+        </span>
+      </div>
+
+      {/* ── Tipo: Reseña / Juntada ── */}
+      <div
+        className={styles.typeToggle}
+        role="radiogroup"
+        aria-label="Tipo de compartida"
+      >
+        <button
+          type="button"
+          role="radio"
+          aria-checked={isResena}
+          className={`${styles.typeBtn} ${isResena ? styles.typeBtnActive : ""}`}
+          onClick={() => switchCategory("resena")}
+          disabled={loading}
+        >
+          <span className={styles.typeIcon} aria-hidden="true">
+            📝
+          </span>
+          <span className={styles.typeName}>Reseña</span>
+          <span className={styles.typeDesc}>Tu opinión sobre un juego</span>
+        </button>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={!isResena}
+          className={`${styles.typeBtn} ${!isResena ? styles.typeBtnActive : ""}`}
+          onClick={() => switchCategory("juntada")}
+          disabled={loading}
+        >
+          <span className={styles.typeIcon} aria-hidden="true">
+            📸
+          </span>
+          <span className={styles.typeName}>Juntada</span>
+          <span className={styles.typeDesc}>Fotos y relato del encuentro</span>
+        </button>
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
+
+      {/* ── Selector de juego (reseña: 1 obligatorio · juntada: varios opcional) ── */}
+      <div className={styles.gameField}>
+        <span className={styles.fieldLabel}>
+          {isResena ? "Juego " : "Juegos "}
+          {isResena ? (
+            <span className={styles.req}>· obligatorio</span>
+          ) : (
+            <span className={styles.opt}>· opcional, podés agregar varios</span>
+          )}
+        </span>
+
+        {games.length > 0 && (
+          <div className={styles.gameChips}>
+            {games.map((g) => (
+              <div key={g.id} className={styles.gameChip}>
+                {g.thumbnail || g.image ? (
+                  <img
+                    src={g.thumbnail || g.image}
+                    alt={g.name}
+                    className={styles.gameChipImg}
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className={styles.gameChipImg} aria-hidden="true">
+                    🎲
+                  </span>
+                )}
+                <div className={styles.gameChipInfo}>
+                  <span className={styles.gameChipName}>{g.name}</span>
+                  {g.year && (
+                    <span className={styles.gameChipYear}>{g.year}</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className={styles.linkChipRemove}
+                  onClick={() => removeGame(g.id)}
+                  disabled={loading}
+                  aria-label={`Quitar ${g.name}`}
+                  title="Quitar juego"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {canAddGame && (
+          <BggGameSearch
+            onPick={addGame}
+            autoFocus={false}
+            placeholder={
+              isResena
+                ? "Buscá el juego en BGG (≥3 caracteres)…"
+                : "Agregá un juego (≥3 caracteres)…"
+            }
+          />
+        )}
+      </div>
+
+      {/* ── Puntuación (solo reseña) ── */}
+      {isResena && (
+        <div className={styles.ratingField}>
+          <span className={styles.fieldLabel}>
+            Puntuación <span className={styles.req}>· 1 a 10</span>
+          </span>
+          <div
+            className={styles.ratingPills}
+            role="radiogroup"
+            aria-label="Puntuación"
+          >
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                role="radio"
+                aria-checked={rating === n}
+                className={`${styles.ratingPill} ${rating === n ? styles.ratingPillActive : ""}`}
+                onClick={() => setRating(n)}
+                disabled={loading}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Chip de mesa enlazada (contextual, quitable) ── */}
       {linkedTable && (
@@ -249,22 +448,32 @@ export default function CreateCompartidaForm({
 
       <input
         className={styles.titleInput}
-        placeholder="Título (opcional)"
+        placeholder={isResena ? "Título de la reseña" : "Título (opcional)"}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         maxLength={100}
         disabled={loading}
       />
 
-      <textarea
-        className={styles.bodyInput}
-        placeholder="Contá cómo salió, qué jugaron, anécdotas…"
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        rows={4}
-        maxLength={2000}
-        disabled={loading}
-      />
+      {isResena ? (
+        <RichTextEditor
+          value={body}
+          onChange={setBody}
+          placeholder="Escribí tu reseña… usá títulos y subsecciones a tu gusto."
+          maxLength={REVIEW_BODY_MAX}
+          disabled={loading}
+        />
+      ) : (
+        <textarea
+          className={styles.bodyInput}
+          placeholder="Contá cómo salió, qué jugaron, anécdotas…"
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={4}
+          maxLength={2000}
+          disabled={loading}
+        />
+      )}
 
       {/* Image previews */}
       {images.length > 0 && (

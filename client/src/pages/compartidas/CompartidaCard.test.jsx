@@ -54,6 +54,19 @@ describe("<CompartidaCard>", () => {
     expect(screen.getByText("Una sesión épica")).toBeInTheDocument();
   });
 
+  it("renders the played games (boardGames) of a juntada", () => {
+    renderCard(
+      makePost({
+        boardGames: [
+          { bggId: 13, name: "Catan", thumbnail: "", image: "" },
+          { bggId: 99, name: "Wingspan", thumbnail: "", image: "" },
+        ],
+      }),
+    );
+    expect(screen.getByText("Catan")).toBeInTheDocument();
+    expect(screen.getByText("Wingspan")).toBeInTheDocument();
+  });
+
   it("shows the like count when present", () => {
     renderCard(makePost({ likes: ["u1", "u2", "u3"] }));
     expect(screen.getByText("3")).toBeInTheDocument();
