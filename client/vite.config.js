@@ -58,6 +58,16 @@ export default defineConfig({
   ],
   server: {
     port: 3000,
+    // Google Identity Services abre un popup y devuelve el resultado vía
+    // window.postMessage al opener. Con COOP `same-origin` (default de
+    // muchos browsers/proxies) se corta esa relación y el login se bloquea
+    // ("Cross-Origin-Opener-Policy policy would block the window.postMessage
+    // call"). `same-origin-allow-popups` mantiene el aislamiento pero deja
+    // hablar con los popups que abre la propia página. Espejado en prod en
+    // client/vercel.json.
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+    },
     proxy: {
       "/api": {
         target: "http://localhost:4000",
