@@ -25,8 +25,9 @@ const httpError = require("../utils/httpError");
 const { findOrCreateOAuthUser } = require("../services/oauthService");
 const { OAuth2Client } = require("google-auth-library");
 
-// Cliente reutilizable para verificar ID tokens de Google. El audience se
-// chequea explícitamente en verifyIdToken.
+// Cliente reutilizable para validar access tokens de Google vía getTokenInfo
+// (devuelve aud/sub/email/email_verified). El aud se chequea contra
+// GOOGLE_CLIENT_ID en la ruta.
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const authLimiter = rateLimit({
@@ -253,39 +254,54 @@ function respondBannedIfNeeded(res, user) {
 }
 
 // POST /api/auth/oauth/google — public, rate-limited.
-// Body: { credential } — el ID token JWT que devuelve Google Identity Services.
-// Verifica firma + audience, exige email verificado, y hace login/registro.
+// Body: { accessToken } — el access token que devuelve el flujo implícito de
+// Google Identity Services (hook useGoogleLogin del cliente). Usamos access
+// token (no ID token) para poder renderizar un botón propio acorde al theme.
+// Validación: getTokenInfo confirma que el token fue emitido para NUESTRO
+// client (aud — anti token-substitution) y que el email está verificado;
+// luego enriquecemos nombre/foto con userinfo (best-effort).
 router.post(
   "/oauth/google",
   authLimiter,
   asyncHandler(async (req, res) => {
-    const { credential } = req.body || {};
-    if (!credential) throw httpError(400, "Falta el token de Google");
+    const { accessToken } = req.body || {};
+    if (!accessToken) throw httpError(400, "Falta el token de Google");
     if (!process.env.GOOGLE_CLIENT_ID) {
       throw httpError(503, "Login con Google no está configurado");
     }
 
-    let payload;
+    let info;
     try {
-      const ticket = await googleClient.verifyIdToken({
-        idToken: credential,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      });
-      payload = ticket.getPayload();
+      info = await googleClient.getTokenInfo(accessToken);
     } catch {
       throw httpError(401, "Token de Google inválido");
     }
 
-    if (!payload?.email || payload.email_verified !== true) {
+    // El token tiene que haber sido emitido para nuestro client ID.
+    if (info.aud !== process.env.GOOGLE_CLIENT_ID) {
+      throw httpError(401, "Token de Google inválido");
+    }
+    if (!info.email || info.email_verified !== true) {
       throw httpError(401, "Tu email de Google no está verificado");
+    }
+
+    // Nombre/foto son best-effort: si userinfo falla, seguimos sin ellos.
+    let profile = {};
+    try {
+      const r = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (r.ok) profile = await r.json();
+    } catch {
+      /* sin nombre/foto */
     }
 
     const user = await findOrCreateOAuthUser({
       provider: "google",
-      providerId: payload.sub,
-      email: payload.email,
-      name: payload.name,
-      picture: payload.picture,
+      providerId: info.sub,
+      email: info.email,
+      name: profile.name,
+      picture: profile.picture,
     });
 
     if (respondBannedIfNeeded(res, user)) return;

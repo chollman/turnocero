@@ -10,11 +10,12 @@ process.env.FB_APP_SECRET = "test-fb-secret";
 // Mock de google-auth-library vía require.cache ANTES de requerir la app.
 // (vi.mock no intercepta CommonJS require() de forma fiable en vitest 4 — el
 // resto del repo usa este mismo patrón de monkeypatch; ver tests/setup.js.)
-const mockVerifyIdToken = vi.fn();
+// Google ahora valida un access token con getTokenInfo (no verifyIdToken).
+const mockGetTokenInfo = vi.fn();
 const galPath = require.resolve("google-auth-library");
 class MockOAuth2Client {
-  verifyIdToken(...args) {
-    return mockVerifyIdToken(...args);
+  getTokenInfo(...args) {
+    return mockGetTokenInfo(...args);
   }
 }
 require.cache[galPath] = {
@@ -27,15 +28,22 @@ require.cache[galPath] = {
 const app = require("../../app");
 const User = require("../../models/User");
 
-function googlePayload(overrides = {}) {
+// Shape que devuelve OAuth2Client.getTokenInfo para un access token válido.
+function googleTokenInfo(overrides = {}) {
   return {
+    aud: process.env.GOOGLE_CLIENT_ID,
     sub: "g-sub-1",
     email: "oauth@test.local",
     email_verified: true,
-    name: "OAuth User",
-    picture: "https://pic/avatar.jpg",
     ...overrides,
   };
+}
+
+// El flujo de Google enriquece nombre/foto con un fetch a userinfo (best-effort).
+function stubGoogleUserinfo(
+  profile = { name: "OAuth User", picture: "https://pic/avatar.jpg" },
+) {
+  global.fetch = vi.fn(async () => ({ ok: true, json: async () => profile }));
 }
 
 // Helper: stubea global.fetch para el flujo de Facebook (debug_token + me).
@@ -65,18 +73,23 @@ function stubFacebookFetch({ debug, profile } = {}) {
 }
 
 beforeEach(() => {
-  mockVerifyIdToken.mockReset();
+  mockGetTokenInfo.mockReset();
 });
 
 describe("POST /api/auth/oauth/google", () => {
+  beforeEach(() => {
+    stubGoogleUserinfo();
+  });
+  afterEach(() => {
+    delete global.fetch;
+  });
+
   it("creates a verified, password-less account and returns { user, token }", async () => {
-    mockVerifyIdToken.mockResolvedValue({
-      getPayload: () => googlePayload(),
-    });
+    mockGetTokenInfo.mockResolvedValue(googleTokenInfo());
 
     const res = await request(app)
       .post("/api/auth/oauth/google")
-      .send({ credential: "fake-id-token" });
+      .send({ accessToken: "fake-access-token" });
 
     expect(res.status).toBe(200);
     expect(res.body.token).toBeTruthy();
@@ -95,13 +108,13 @@ describe("POST /api/auth/oauth/google", () => {
   });
 
   it("reuses the same account on a second login", async () => {
-    mockVerifyIdToken.mockResolvedValue({ getPayload: () => googlePayload() });
+    mockGetTokenInfo.mockResolvedValue(googleTokenInfo());
     await request(app)
       .post("/api/auth/oauth/google")
-      .send({ credential: "t1" });
+      .send({ accessToken: "t1" });
     await request(app)
       .post("/api/auth/oauth/google")
-      .send({ credential: "t2" });
+      .send({ accessToken: "t2" });
     expect(await User.countDocuments()).toBe(1);
   });
 
@@ -112,11 +125,11 @@ describe("POST /api/auth/oauth/google", () => {
       password: "Password1",
       emailVerified: false,
     });
-    mockVerifyIdToken.mockResolvedValue({ getPayload: () => googlePayload() });
+    mockGetTokenInfo.mockResolvedValue(googleTokenInfo());
 
     const res = await request(app)
       .post("/api/auth/oauth/google")
-      .send({ credential: "t" });
+      .send({ accessToken: "t" });
 
     expect(res.status).toBe(200);
     expect(res.body.user._id).toBe(existing._id.toString());
@@ -127,24 +140,34 @@ describe("POST /api/auth/oauth/google", () => {
   });
 
   it("rejects a token whose email is not verified", async () => {
-    mockVerifyIdToken.mockResolvedValue({
-      getPayload: () => googlePayload({ email_verified: false }),
-    });
+    mockGetTokenInfo.mockResolvedValue(
+      googleTokenInfo({ email_verified: false }),
+    );
     const res = await request(app)
       .post("/api/auth/oauth/google")
-      .send({ credential: "t" });
+      .send({ accessToken: "t" });
+    expect(res.status).toBe(401);
+  });
+
+  it("rejects a token issued for another client (aud mismatch)", async () => {
+    mockGetTokenInfo.mockResolvedValue(
+      googleTokenInfo({ aud: "someone-else" }),
+    );
+    const res = await request(app)
+      .post("/api/auth/oauth/google")
+      .send({ accessToken: "t" });
     expect(res.status).toBe(401);
   });
 
   it("rejects an invalid token", async () => {
-    mockVerifyIdToken.mockRejectedValue(new Error("bad token"));
+    mockGetTokenInfo.mockRejectedValue(new Error("bad token"));
     const res = await request(app)
       .post("/api/auth/oauth/google")
-      .send({ credential: "t" });
+      .send({ accessToken: "t" });
     expect(res.status).toBe(401);
   });
 
-  it("400 when credential is missing", async () => {
+  it("400 when accessToken is missing", async () => {
     const res = await request(app).post("/api/auth/oauth/google").send({});
     expect(res.status).toBe(400);
   });
@@ -157,10 +180,10 @@ describe("POST /api/auth/oauth/google", () => {
       isBanned: true,
       bannedReason: "spam",
     });
-    mockVerifyIdToken.mockResolvedValue({ getPayload: () => googlePayload() });
+    mockGetTokenInfo.mockResolvedValue(googleTokenInfo());
     const res = await request(app)
       .post("/api/auth/oauth/google")
-      .send({ credential: "t" });
+      .send({ accessToken: "t" });
     expect(res.status).toBe(403);
     expect(res.body.code).toBe("banned");
   });
