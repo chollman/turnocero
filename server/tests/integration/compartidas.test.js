@@ -644,6 +644,96 @@ describe("Compartidas — reseñas vs juntadas", () => {
   });
 });
 
+describe("Comentarios anidados (respuestas)", () => {
+  const CompartidaComment = require("../../models/CompartidaComment");
+
+  const postComment = (id, token, body) =>
+    request(app)
+      .post(`/api/compartidas/${id}/comments`)
+      .set("Authorization", `Bearer ${token}`)
+      .send(body);
+
+  it("crea una respuesta con parent y la anida en el GET", async () => {
+    const { user, token } = await createAuthedUser();
+    const compartida = await createCompartida(user, { privacy: "public" });
+
+    const top = await postComment(compartida._id, token, { content: "raíz" });
+    expect(top.status).toBe(201);
+    const reply = await postComment(compartida._id, token, {
+      content: "respuesta",
+      parent: top.body._id,
+    });
+    expect(reply.status).toBe(201);
+    expect(reply.body.parent).toBe(top.body._id);
+
+    const res = await request(app).get(
+      `/api/compartidas/${compartida._id}/comments`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(2); // cuenta todos (raíz + respuesta)
+    expect(res.body.comments).toHaveLength(1); // solo top-level
+    expect(res.body.comments[0].replies).toHaveLength(1);
+    expect(res.body.comments[0].replies[0].content).toBe("respuesta");
+  });
+
+  it("aplana la respuesta a una respuesta al comentario raíz", async () => {
+    const { user, token } = await createAuthedUser();
+    const compartida = await createCompartida(user, { privacy: "public" });
+    const top = await postComment(compartida._id, token, { content: "raíz" });
+    const r1 = await postComment(compartida._id, token, {
+      content: "r1",
+      parent: top.body._id,
+    });
+    // Responder a la respuesta → parent debe colapsar al raíz.
+    const r2 = await postComment(compartida._id, token, {
+      content: "r2",
+      parent: r1.body._id,
+    });
+    expect(r2.body.parent).toBe(top.body._id);
+
+    const res = await request(app).get(
+      `/api/compartidas/${compartida._id}/comments`,
+    );
+    expect(res.body.comments[0].replies).toHaveLength(2);
+  });
+
+  it("rechaza un parent de otra compartida (400)", async () => {
+    const { user, token } = await createAuthedUser();
+    const a = await createCompartida(user, { privacy: "public" });
+    const b = await createCompartida(user, { privacy: "public" });
+    const topA = await postComment(a._id, token, { content: "en A" });
+    const res = await postComment(b._id, token, {
+      content: "cross",
+      parent: topA.body._id,
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("borrar un comentario raíz borra sus respuestas en cascada", async () => {
+    const { user, token } = await createAuthedUser();
+    const compartida = await createCompartida(user, { privacy: "public" });
+    const top = await postComment(compartida._id, token, { content: "raíz" });
+    await postComment(compartida._id, token, {
+      content: "r1",
+      parent: top.body._id,
+    });
+    await postComment(compartida._id, token, {
+      content: "r2",
+      parent: top.body._id,
+    });
+
+    const del = await request(app)
+      .delete(`/api/compartidas/${compartida._id}/comments/${top.body._id}`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(del.status).toBe(200);
+
+    const remaining = await CompartidaComment.countDocuments({
+      compartida: compartida._id,
+    });
+    expect(remaining).toBe(0);
+  });
+});
+
 describe("POST /api/compartidas/:id/comments — notificaciones del hilo", () => {
   const Notification = require("../../models/Notification");
 

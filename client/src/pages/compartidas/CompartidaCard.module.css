@@ -1605,6 +1605,40 @@
   border-bottom: none;
 }
 
+/* ── Hilo de comentarios con respuestas ── */
+.commentThread {
+  border-bottom: 1px solid var(--border);
+}
+
+.commentThread:last-of-type {
+  border-bottom: none;
+}
+
+/* El comentario raíz dentro de un hilo no dibuja su propio borde
+   (lo dibuja el hilo). */
+.commentThread > .comment {
+  border-bottom: none;
+}
+
+/* Respuestas: indentadas, con una línea/conector a la izquierda. */
+.replies {
+  margin-left: 22px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+}
+
+.commentReply {
+  padding: 8px 0;
+  border-bottom: none;
+}
+
+.replyForm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .commentBody {
   flex: 1;
   min-width: 0;
