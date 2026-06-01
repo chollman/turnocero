@@ -49,6 +49,9 @@ function renderComponent(props = {}) {
 
 beforeEach(() => {
   setupComments([]);
+  // Borrar comentarios pide confirmación (window.confirm). Por defecto la
+  // aceptamos; los tests que prueban la cancelación la sobreescriben.
+  vi.spyOn(window, "confirm").mockReturnValue(true);
 });
 
 describe("<CompartidaComments>", () => {
@@ -307,6 +310,51 @@ describe("<CompartidaComments>", () => {
       expect(screen.queryByText("A borrar")).not.toBeInTheDocument();
     });
     expect(onCountChange.mock.calls.at(-1)).toEqual([0]);
+  });
+
+  it("pide confirmación antes de borrar y la respeta al cancelar", async () => {
+    window.confirm.mockReturnValue(false); // el usuario cancela
+    setupComments([
+      {
+        _id: "c1",
+        content: "No me borres",
+        author: user,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    let deleteCalled = false;
+    server.use(
+      http.delete("/api/compartidas/:id/comments/:cid", () => {
+        deleteCalled = true;
+        return HttpResponse.json({ message: "ok" });
+      }),
+    );
+    renderComponent();
+    await screen.findByText("No me borres");
+    fireEvent.click(screen.getByRole("button", { name: /eliminar/i }));
+    expect(window.confirm).toHaveBeenCalledWith("¿Eliminar tu comentario?");
+    // Cancelado → no se llamó al endpoint ni se quitó el comentario.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(deleteCalled).toBe(false);
+    expect(screen.getByText("No me borres")).toBeInTheDocument();
+  });
+
+  it("confirma con el nombre del autor al borrar el comentario de otro (admin/autor)", async () => {
+    window.confirm.mockReturnValue(false);
+    setupComments([
+      {
+        _id: "c1",
+        content: "De otro",
+        author: other,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    renderComponent({ canDeleteOthers: true });
+    await screen.findByText("De otro");
+    fireEvent.click(screen.getByRole("button", { name: /eliminar/i }));
+    expect(window.confirm).toHaveBeenCalledWith(
+      "¿Eliminar el comentario de amigo?",
+    );
   });
 
   it("muestra botón delete a usuarios con canDeleteOthers=true", async () => {

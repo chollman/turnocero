@@ -304,7 +304,14 @@ export default function CompartidaComments({
               {canDel && (
                 <button
                   className={`${styles.commentActionBtn} ${styles.commentActionDanger}`}
-                  onClick={() => handleDelete(c._id)}
+                  onClick={() => {
+                    // Confirmación antes de borrar — propio o, para autor/admin,
+                    // el comentario de otro usuario.
+                    const msg = isOwn
+                      ? "¿Eliminar tu comentario?"
+                      : `¿Eliminar el comentario de ${info.name}?`;
+                    if (window.confirm(msg)) handleDelete(c._id);
+                  }}
                 >
                   Eliminar
                 </button>
@@ -418,7 +425,9 @@ export default function CompartidaComments({
           <span className={styles.commentsLoaderDot} />
         </div>
       ) : total === 0 ? (
-        <p className={styles.noComments}>Sin comentarios aún. ¡Sé el primero!</p>
+        <p className={styles.noComments}>
+          Sin comentarios aún. ¡Sé el primero!
+        </p>
       ) : (
         <div className={styles.commentsScroll} ref={scrollRef}>
           {comments.map((c) => (
