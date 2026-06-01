@@ -85,6 +85,7 @@ export const API = {
     OG: (id) => `/api/compartidas/${enc(id)}/og`,
     LIKE: (id) => `/api/compartidas/${enc(id)}/like`,
     IMAGES: (id) => `/api/compartidas/${enc(id)}/images`,
+    INLINE_IMAGE: "/api/compartidas/inline-image",
     IMAGE_DETAIL: (id, imgId) =>
       `/api/compartidas/${enc(id)}/images/${enc(imgId)}`,
     COMMENTS: (id) => `/api/compartidas/${enc(id)}/comments`,

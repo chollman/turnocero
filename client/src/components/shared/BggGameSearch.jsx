@@ -23,12 +23,33 @@ export default function BggGameSearch({
   placeholder = "Buscá un juego en BGG (≥3 caracteres)…",
   autoFocus = true,
   minChars = 3,
+  clearOnPick = false,
 }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const debounced = useDebouncedValue(q, 300);
   const reqId = useRef(0);
+  const inputRef = useRef(null);
+
+  // Cuando se permite agregar varios (juntada), tras elegir limpiamos el input
+  // y los resultados para buscar otro juego de cero, y devolvemos el foco al
+  // input para encadenar búsquedas sin tener que volver a clickearlo.
+  const handlePick = (g) => {
+    onPick?.({
+      id: g.id,
+      name: g.name,
+      thumbnail: g.thumbnail,
+      image: g.image,
+      year: g.year,
+    });
+    if (clearOnPick) {
+      setQ("");
+      setResults([]);
+      reqId.current += 1; // descartar respuestas en vuelo
+      inputRef.current?.focus();
+    }
+  };
 
   useEffect(() => {
     const term = debounced.trim();
@@ -60,6 +81,7 @@ export default function BggGameSearch({
   return (
     <div className={styles.wrapper}>
       <input
+        ref={inputRef}
         type="text"
         className={styles.input}
         placeholder={placeholder}
@@ -77,15 +99,7 @@ export default function BggGameSearch({
               <button
                 type="button"
                 className={styles.item}
-                onClick={() =>
-                  onPick?.({
-                    id: g.id,
-                    name: g.name,
-                    thumbnail: g.thumbnail,
-                    image: g.image,
-                    year: g.year,
-                  })
-                }
+                onClick={() => handlePick(g)}
               >
                 {g.thumbnail ? (
                   <img

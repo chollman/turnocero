@@ -71,6 +71,45 @@ describe("<BggGameSearch>", () => {
     });
   });
 
+  it("clearOnPick: limpia el input y los resultados tras elegir", async () => {
+    const onPick = vi.fn();
+    server.use(
+      http.get("/api/bgg/search", () =>
+        HttpResponse.json([
+          { id: 13, name: "Catan", thumbnail: "thumb.jpg", year: 1995 },
+        ]),
+      ),
+    );
+    render(<BggGameSearch onPick={onPick} clearOnPick />);
+    const input = screen.getByLabelText(/buscar juego/i);
+    fireEvent.change(input, { target: { value: "Catan" } });
+    fireEvent.click(await screen.findByRole("button", { name: /catan/i }));
+    expect(onPick).toHaveBeenCalled();
+    expect(input).toHaveValue("");
+    expect(input).toHaveFocus();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: /catan/i }),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it("sin clearOnPick: mantiene el texto del input tras elegir", async () => {
+    const onPick = vi.fn();
+    server.use(
+      http.get("/api/bgg/search", () =>
+        HttpResponse.json([
+          { id: 13, name: "Catan", thumbnail: "thumb.jpg", year: 1995 },
+        ]),
+      ),
+    );
+    render(<BggGameSearch onPick={onPick} />);
+    const input = screen.getByLabelText(/buscar juego/i);
+    fireEvent.change(input, { target: { value: "Catan" } });
+    fireEvent.click(await screen.findByRole("button", { name: /catan/i }));
+    expect(input).toHaveValue("Catan");
+  });
+
   it("shows 'Sin resultados' when API returns empty for a valid query", async () => {
     render(<BggGameSearch onPick={() => {}} />);
     fireEvent.change(screen.getByLabelText(/buscar juego/i), {

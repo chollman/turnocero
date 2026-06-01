@@ -23,9 +23,10 @@ const ALLOWED_TAGS = [
   "blockquote",
   "a",
   "br",
+  "img",
 ];
 
-const ALLOWED_ATTR = ["href", "target", "rel"];
+const ALLOWED_ATTR = ["href", "target", "rel", "src", "alt"];
 
 // Solo links http(s)/mailto — bloquea javascript:, data:, etc.
 const ALLOWED_URI_REGEXP = /^(?:https?:|mailto:)/i;
@@ -38,6 +39,13 @@ function registerHook() {
     if (node.tagName === "A" && node.getAttribute("href")) {
       node.setAttribute("rel", "noopener noreferrer nofollow");
       node.setAttribute("target", "_blank");
+    }
+    // DOMPurify permite `data:` en <img> por defecto (no respeta el
+    // ALLOWED_URI_REGEXP para imágenes). Forzamos solo http(s): si el src no
+    // es http(s), lo quitamos.
+    if (node.tagName === "IMG") {
+      const src = node.getAttribute("src") || "";
+      if (!/^https?:\/\//i.test(src)) node.removeAttribute("src");
     }
   });
   hookRegistered = true;

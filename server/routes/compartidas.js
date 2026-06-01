@@ -572,6 +572,26 @@ router.post(
   }),
 );
 
+// ── POST /api/compartidas/inline-image — sube una imagen para el editor ─────
+// Usado por el RichTextEditor de las reseñas: la imagen se sube ANTES de que
+// la compartida exista (durante la composición), así que no se vincula a un
+// doc. Devuelve la URL de Cloudinary para insertarla inline en el HTML.
+router.post(
+  "/inline-image",
+  protect,
+  multer.single("image"),
+  asyncHandler(async (req, res) => {
+    if (!req.file) throw httpError(400, "No se recibió ninguna imagen");
+    const result = await uploadToCloudinary(req.file.buffer, {
+      folder: `turnocero/compartidas/inline/${req.user._id}`,
+      transformation: [{ width: 1200, crop: "limit" }],
+    });
+    res
+      .status(201)
+      .json({ url: result.secure_url, publicId: result.public_id });
+  }),
+);
+
 // ── POST /api/compartidas/:id/images — upload (author only, max 3) ──────────
 router.post(
   "/:id/images",

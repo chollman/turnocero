@@ -18,9 +18,10 @@ export const ALLOWED_TAGS = [
   "blockquote",
   "a",
   "br",
+  "img",
 ];
 
-export const ALLOWED_ATTR = ["href", "target", "rel"];
+export const ALLOWED_ATTR = ["href", "target", "rel", "src", "alt"];
 
 export const ALLOWED_URI_REGEXP = /^(?:https?:|mailto:)/i;
 
