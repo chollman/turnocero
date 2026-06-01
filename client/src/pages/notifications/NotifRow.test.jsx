@@ -31,7 +31,7 @@ describe("<NotifRow>", () => {
       count: 1,
     });
     expect(screen.getByLabelText("ana")).toBeInTheDocument();
-    expect(screen.getByText(/ana comentó tu compartida/i)).toBeInTheDocument();
+    expect(screen.getByText(/ana comentó «Post»/i)).toBeInTheDocument();
   });
 
   it("renders the grouped variant with stacked avatars + overflow", () => {

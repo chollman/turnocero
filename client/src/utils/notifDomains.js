@@ -238,15 +238,21 @@ export function getNotifMeta(n) {
         body: `${n.lastSenderUsername}: ${trunc(n.lastMessagePreview)}`,
         cta: "Abrir chat",
       };
-    case "compartida_comment":
+    case "compartida_comment": {
+      // Copy neutral: el destinatario puede ser el autor del post O alguien
+      // que también comentó el hilo, así que no decimos "tu compartida".
+      const dondeC = n.compartidaTitle
+        ? `«${n.compartidaTitle}»`
+        : "una compartida";
       return {
         title:
           n.count > 1
-            ? `${n.count} comentarios nuevos en tu compartida`
-            : `${n.lastCommenterUsername} comentó tu compartida`,
+            ? `${n.count} comentarios nuevos en ${dondeC}`
+            : `${n.lastCommenterUsername} comentó ${dondeC}`,
         body: trunc(n.lastCommentPreview),
         cta: "Responder",
       };
+    }
     case "compartida_like":
       return {
         title:
