@@ -368,3 +368,86 @@ describe("<CompartidaComments>", () => {
     });
   });
 });
+
+describe("<CompartidaComments> — respuestas (hilo)", () => {
+  const withReplies = [
+    {
+      _id: "c1",
+      content: "comentario raíz",
+      author: other,
+      createdAt: new Date().toISOString(),
+      replies: [
+        {
+          _id: "r1",
+          content: "una respuesta",
+          author: user,
+          parent: "c1",
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    },
+  ];
+
+  it("renderiza las respuestas anidadas bajo el comentario raíz", async () => {
+    setupComments(withReplies, { total: 2 });
+    renderComponent();
+    await waitFor(() => {
+      expect(screen.getByText("comentario raíz")).toBeInTheDocument();
+      expect(screen.getByText("una respuesta")).toBeInTheDocument();
+    });
+  });
+
+  it("responder a un comentario postea con parent y anida la respuesta", async () => {
+    setupComments([
+      {
+        _id: "c1",
+        content: "raíz",
+        author: other,
+        createdAt: new Date().toISOString(),
+        replies: [],
+      },
+    ]);
+    let sentBody = null;
+    server.use(
+      http.post("/api/compartidas/:id/comments", async ({ request }) => {
+        sentBody = await request.json();
+        return HttpResponse.json({
+          _id: "r1",
+          content: sentBody.content,
+          author: user,
+          parent: "c1",
+          createdAt: new Date().toISOString(),
+        });
+      }),
+    );
+    const onCountChange = vi.fn();
+    renderComponent({ onCountChange });
+    await screen.findByText("raíz");
+    fireEvent.click(screen.getByRole("button", { name: /responder/i }));
+    const replyInput = screen.getByPlaceholderText(/Escribí una respuesta/i);
+    fireEvent.change(replyInput, { target: { value: "mi respuesta" } });
+    fireEvent.submit(replyInput.closest("form"));
+    await screen.findByText("mi respuesta");
+    expect(sentBody.parent).toBe("c1");
+    expect(onCountChange).toHaveBeenLastCalledWith(2);
+  });
+
+  it("borrar el comentario raíz descuenta también sus respuestas", async () => {
+    setupComments(withReplies, { total: 2 });
+    server.use(
+      http.delete("/api/compartidas/:id/comments/:cid", () =>
+        HttpResponse.json({ message: "ok" }),
+      ),
+    );
+    const onCountChange = vi.fn();
+    renderComponent({ onCountChange, canDeleteOthers: true });
+    await screen.findByText("comentario raíz");
+    // El primer "Eliminar" es el del comentario raíz.
+    fireEvent.click(screen.getAllByRole("button", { name: /eliminar/i })[0]);
+    await waitFor(() =>
+      expect(screen.queryByText("comentario raíz")).not.toBeInTheDocument(),
+    );
+    // 2 (raíz + respuesta) descontados → 0.
+    expect(onCountChange).toHaveBeenLastCalledWith(0);
+  });
+});

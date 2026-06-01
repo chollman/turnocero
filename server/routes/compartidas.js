@@ -649,8 +649,11 @@ router.delete(
 );
 
 // ── GET /api/compartidas/:id/comments ───────────────────────────────────────
-// Paginado, más nuevos primero (sort desc). El cliente carga de a tandas a
-// medida que se scrollea; los más viejos se appendean abajo.
+// Paginado por comentarios de NIVEL SUPERIOR (más nuevos primero). Cada uno
+// trae sus `replies` (respuestas) anidadas, ordenadas de más viejas a más
+// nuevas (como en FB). `total` cuenta TODOS los comentarios (top-level +
+// respuestas) para que el contador del footer sea exacto; `pages` pagina solo
+// los de nivel superior.
 router.get(
   "/:id/comments",
   optionalAuth,
@@ -659,20 +662,38 @@ router.get(
       defaultLimit: 10,
       maxLimit: 50,
     });
-    const filter = { compartida: req.params.id };
-    const [comments, total] = await Promise.all([
-      CompartidaComment.find(filter)
+    const base = { compartida: req.params.id };
+    const [topLevel, topTotal, total] = await Promise.all([
+      CompartidaComment.find({ ...base, parent: null })
         .populate("author", "username avatar displayName")
-        // `_id` como desempate: cuando varios comentarios comparten el mismo
-        // `createdAt` (mismo ms), ordenar solo por createdAt es no-determinístico
-        // y la paginación devuelve resultados inconsistentes. ObjectId es
-        // monotónico → orden estable.
+        // `_id` como desempate: orden estable cuando comparten `createdAt`.
         .sort({ createdAt: -1, _id: -1 })
         .skip(skip)
         .limit(limit),
-      CompartidaComment.countDocuments(filter),
+      CompartidaComment.countDocuments({ ...base, parent: null }),
+      CompartidaComment.countDocuments(base),
     ]);
-    res.json({ comments, total, page, pages: Math.ceil(total / limit) });
+
+    // Respuestas de los top-level de esta página (ascendente: viejas primero).
+    const parentIds = topLevel.map((c) => c._id);
+    const replies = parentIds.length
+      ? await CompartidaComment.find({ ...base, parent: { $in: parentIds } })
+          .populate("author", "username avatar displayName")
+          .sort({ createdAt: 1, _id: 1 })
+      : [];
+    const byParent = new Map();
+    for (const r of replies) {
+      const k = r.parent.toString();
+      if (!byParent.has(k)) byParent.set(k, []);
+      byParent.get(k).push(r.toObject());
+    }
+
+    const comments = topLevel.map((c) => ({
+      ...c.toObject(),
+      replies: byParent.get(c._id.toString()) || [],
+    }));
+
+    res.json({ comments, total, page, pages: Math.ceil(topTotal / limit) });
   }),
 );
 
@@ -684,15 +705,31 @@ router.post(
     const compartida = await Compartida.findById(req.params.id);
     if (!compartida) throw httpError(404, "Compartida no encontrada");
 
-    const { content } = req.body;
+    const { content, parent } = req.body;
     if (!content?.trim()) {
       throw httpError(400, "El comentario no puede estar vacío");
+    }
+
+    // Respuesta: validar que el padre exista y sea de esta compartida.
+    // Aplanar a 1 nivel — si el padre ya es una respuesta, colgamos del raíz.
+    let parentId = null;
+    if (parent) {
+      const parentComment =
+        await CompartidaComment.findById(parent).select("compartida parent");
+      if (
+        !parentComment ||
+        !isSameId(parentComment.compartida, compartida._id)
+      ) {
+        throw httpError(400, "Comentario padre inválido");
+      }
+      parentId = parentComment.parent || parentComment._id;
     }
 
     const comment = await CompartidaComment.create({
       compartida: compartida._id,
       author: req.user._id,
       content: content.trim(),
+      parent: parentId,
     });
     await comment.populate("author", "username avatar displayName");
 
@@ -766,6 +803,13 @@ router.delete(
     }
 
     await comment.deleteOne();
+    // Si era un comentario raíz, borrar en cascada sus respuestas.
+    if (!comment.parent) {
+      await CompartidaComment.deleteMany({
+        compartida: req.params.id,
+        parent: comment._id,
+      });
+    }
     res.json({ message: "Comentario eliminado" });
   }),
 );

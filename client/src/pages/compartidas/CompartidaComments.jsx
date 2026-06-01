@@ -25,16 +25,11 @@ function formatDateTime(date) {
   return `${dd}/${MM}/${aa} ${HH}:${mm}`;
 }
 
-// Sección "Comentarios" de una compartida. Carga incremental (lazy): trae de a
-// PAGE_SIZE empezando por los MÁS NUEVOS y carga los anteriores a medida que se
-// scrollea (IntersectionObserver) o con el botón "Ver comentarios anteriores".
-//
-// - Más nuevos arriba: el form de comentar va arriba y los comentarios nuevos
-//   se *prependean* en el tope — así la inserción en vivo nunca desordena la
-//   lista respecto de páginas viejas todavía no cargadas.
-// - `onCountChange` reporta el TOTAL real del server (no la cantidad cargada),
-//   para que el contador del footer sea exacto sin traer la lista entera.
-// - `onRequireLogin` se llama si un anon intenta comentar.
+// Sección "Comentarios" de una compartida. Carga incremental (lazy) por
+// comentarios de NIVEL SUPERIOR; cada uno trae sus respuestas anidadas
+// (1 nivel, estilo Facebook). El form de comentar va arriba y los comentarios
+// nuevos se prependean. `onCountChange` reporta el TOTAL real (top-level +
+// respuestas). `onRequireLogin` se llama si un anon intenta comentar.
 export default function CompartidaComments({
   compartidaId,
   user,
@@ -42,7 +37,7 @@ export default function CompartidaComments({
   onRequireLogin,
   onCountChange,
 }) {
-  const [comments, setComments] = useState([]); // orden desc (idx 0 = más nuevo)
+  const [comments, setComments] = useState([]); // top-level, cada uno con .replies
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -52,8 +47,11 @@ export default function CompartidaComments({
   const [submitting, setSubmitting] = useState(false);
   const [editingCid, setEditingCid] = useState(null);
   const [editContent, setEditContent] = useState("");
+  const [replyingTo, setReplyingTo] = useState(null); // id del comentario al que se responde
+  const [replyText, setReplyText] = useState("");
+  const [replySubmitting, setReplySubmitting] = useState(false);
   const [error, setError] = useState("");
-  const scrollRef = useRef(null); // caja scrolleable que contiene la lista
+  const scrollRef = useRef(null);
 
   const loadComments = useCallback(
     async (pageNum, replace, signal) => {
@@ -101,9 +99,15 @@ export default function CompartidaComments({
 
   const sentinelRef = useInfiniteScroll(onLoadMore, {
     enabled: hasMore,
-    root: scrollRef, // observar contra la caja scrolleable, no el viewport
+    root: scrollRef,
     rootMargin: "80px",
   });
+
+  const bumpTotal = (delta) => {
+    const next = Math.max(0, total + delta);
+    setTotal(next);
+    onCountChange?.(next);
+  };
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -115,15 +119,47 @@ export default function CompartidaComments({
         API.compartidas.COMMENTS(compartidaId),
         { content: commentInput.trim() },
       );
-      setComments((c) => [data, ...c]); // más nuevo arriba
-      const next = total + 1;
-      setTotal(next);
-      onCountChange?.(next);
+      setComments((c) => [{ ...data, replies: [] }, ...c]); // más nuevo arriba
+      bumpTotal(1);
       setCommentInput("");
     } catch (err) {
       setError(getErrorMessage(err, "No pudimos enviar el comentario"));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Abrir el form de respuesta. `toName` precarga "@usuario " cuando se
+  // responde a una respuesta (para dejar claro a quién se le contesta).
+  const openReply = (commentId, toName) => {
+    setReplyingTo(commentId);
+    setReplyText(toName ? `@${toName} ` : "");
+  };
+
+  const handleAddReply = async (parentClickedId) => {
+    if (!replyText.trim() || replySubmitting) return;
+    setReplySubmitting(true);
+    setError("");
+    try {
+      const { data } = await axios.post(
+        API.compartidas.COMMENTS(compartidaId),
+        { content: replyText.trim(), parent: parentClickedId },
+      );
+      // El server aplana al raíz → data.parent es el comentario de nivel superior.
+      setComments((cs) =>
+        cs.map((c) =>
+          c._id === data.parent
+            ? { ...c, replies: [...(c.replies || []), data] }
+            : c,
+        ),
+      );
+      bumpTotal(1);
+      setReplyingTo(null);
+      setReplyText("");
+    } catch (err) {
+      setError(getErrorMessage(err, "No pudimos enviar la respuesta"));
+    } finally {
+      setReplySubmitting(false);
     }
   };
 
@@ -134,7 +170,18 @@ export default function CompartidaComments({
         API.compartidas.COMMENT_DETAIL(compartidaId, cid),
         { content: editContent.trim() },
       );
-      setComments((cs) => cs.map((c) => (c._id === cid ? data : c)));
+      setComments((cs) =>
+        cs.map((c) => {
+          if (c._id === cid) return { ...data, replies: c.replies || [] };
+          if (c.replies?.some((r) => r._id === cid)) {
+            return {
+              ...c,
+              replies: c.replies.map((r) => (r._id === cid ? data : r)),
+            };
+          }
+          return c;
+        }),
+      );
       setEditingCid(null);
     } catch (err) {
       setError(getErrorMessage(err, "No pudimos editar el comentario"));
@@ -144,13 +191,168 @@ export default function CompartidaComments({
   const handleDelete = async (cid) => {
     try {
       await axios.delete(API.compartidas.COMMENT_DETAIL(compartidaId, cid));
-      setComments((cs) => cs.filter((c) => c._id !== cid));
-      const next = Math.max(0, total - 1);
-      setTotal(next);
-      onCountChange?.(next);
+      const top = comments.find((c) => c._id === cid);
+      if (top) {
+        // Comentario raíz → se borra con sus respuestas (cascada en el server).
+        bumpTotal(-(1 + (top.replies?.length || 0)));
+        setComments((cs) => cs.filter((c) => c._id !== cid));
+      } else {
+        bumpTotal(-1);
+        setComments((cs) =>
+          cs.map((c) => ({
+            ...c,
+            replies: (c.replies || []).filter((r) => r._id !== cid),
+          })),
+        );
+      }
     } catch (err) {
       setError(getErrorMessage(err, "No pudimos eliminar el comentario"));
     }
+  };
+
+  // Render de un comentario individual (sirve para top-level y respuestas).
+  const renderComment = (c, { isReply = false } = {}) => {
+    const info = getUserDisplay(c.author);
+    const profilePath =
+      !info.isDeleted && info._id ? `/usuarios/${info._id}` : null;
+    const isOwn =
+      user &&
+      c.author &&
+      (c.author._id || c.author).toString() === user._id.toString();
+    const canDel = isOwn || canDeleteOthers;
+    return (
+      <div
+        key={c._id}
+        className={`${styles.comment} ${isReply ? styles.commentReply : ""}`}
+      >
+        {profilePath ? (
+          <Link
+            to={profilePath}
+            className={styles.avatarLink}
+            aria-label={`Ver perfil de ${info.name}`}
+          >
+            <Avatar user={c.author} size="xs" />
+          </Link>
+        ) : (
+          <Avatar user={c.author} size="xs" />
+        )}
+        <div className={styles.commentBody}>
+          <div className={styles.commentMeta}>
+            {profilePath ? (
+              <Link
+                to={profilePath}
+                className={`${styles.commentAuthor} ${styles.authorNameLink}`}
+              >
+                {info.name}
+              </Link>
+            ) : (
+              <span className={styles.commentAuthor}>{info.name}</span>
+            )}
+            <span className={styles.commentTime}>
+              {formatDateTime(c.createdAt)}
+            </span>
+            {c.editedAt && <span className={styles.editedBadge}>editado</span>}
+          </div>
+          {editingCid === c._id ? (
+            <div className={styles.inlineEdit}>
+              <textarea
+                className={styles.inlineEditArea}
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                rows={2}
+                maxLength={500}
+              />
+              <div className={styles.inlineEditActions}>
+                <button
+                  className={styles.btnSave}
+                  onClick={() => handleEdit(c._id)}
+                >
+                  Guardar
+                </button>
+                <button
+                  className={styles.btnGhost}
+                  onClick={() => setEditingCid(null)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className={styles.commentText}>{c.content}</p>
+          )}
+          {editingCid !== c._id && (
+            <div className={styles.commentActions}>
+              {user && (
+                <button
+                  className={styles.commentActionBtn}
+                  onClick={() => openReply(c._id, isReply ? info.name : null)}
+                >
+                  Responder
+                </button>
+              )}
+              {isOwn && (
+                <button
+                  className={styles.commentActionBtn}
+                  onClick={() => {
+                    setEditingCid(c._id);
+                    setEditContent(c.content);
+                  }}
+                >
+                  Editar
+                </button>
+              )}
+              {canDel && (
+                <button
+                  className={`${styles.commentActionBtn} ${styles.commentActionDanger}`}
+                  onClick={() => handleDelete(c._id)}
+                >
+                  Eliminar
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Form de respuesta inline */}
+          {replyingTo === c._id && (
+            <form
+              className={styles.replyForm}
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAddReply(c._id);
+              }}
+            >
+              <input
+                className={styles.commentInput}
+                placeholder="Escribí una respuesta…"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                maxLength={500}
+                disabled={replySubmitting}
+                autoFocus
+              />
+              <button
+                type="submit"
+                className={styles.commentSubmit}
+                disabled={!replyText.trim() || replySubmitting}
+                aria-label="Enviar respuesta"
+              >
+                {replySubmitting ? "…" : "➤"}
+              </button>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={() => {
+                  setReplyingTo(null);
+                  setReplyText("");
+                }}
+              >
+                Cancelar
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -219,105 +421,16 @@ export default function CompartidaComments({
         <p className={styles.noComments}>Sin comentarios aún. ¡Sé el primero!</p>
       ) : (
         <div className={styles.commentsScroll} ref={scrollRef}>
-          {comments.map((c) => {
-            const cAuthorInfo = getUserDisplay(c.author);
-            const cProfilePath =
-              !cAuthorInfo.isDeleted && cAuthorInfo._id
-                ? `/usuarios/${cAuthorInfo._id}`
-                : null;
-            const isOwn =
-              user &&
-              c.author &&
-              (c.author._id || c.author).toString() === user._id.toString();
-            const canDel = isOwn || canDeleteOthers;
-            return (
-              <div key={c._id} className={styles.comment}>
-                {cProfilePath ? (
-                  <Link
-                    to={cProfilePath}
-                    className={styles.avatarLink}
-                    aria-label={`Ver perfil de ${cAuthorInfo.name}`}
-                  >
-                    <Avatar user={c.author} size="xs" />
-                  </Link>
-                ) : (
-                  <Avatar user={c.author} size="xs" />
-                )}
-                <div className={styles.commentBody}>
-                  <div className={styles.commentMeta}>
-                    {cProfilePath ? (
-                      <Link
-                        to={cProfilePath}
-                        className={`${styles.commentAuthor} ${styles.authorNameLink}`}
-                      >
-                        {cAuthorInfo.name}
-                      </Link>
-                    ) : (
-                      <span className={styles.commentAuthor}>
-                        {cAuthorInfo.name}
-                      </span>
-                    )}
-                    <span className={styles.commentTime}>
-                      {formatDateTime(c.createdAt)}
-                    </span>
-                    {c.editedAt && (
-                      <span className={styles.editedBadge}>editado</span>
-                    )}
-                  </div>
-                  {editingCid === c._id ? (
-                    <div className={styles.inlineEdit}>
-                      <textarea
-                        className={styles.inlineEditArea}
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        rows={2}
-                        maxLength={500}
-                      />
-                      <div className={styles.inlineEditActions}>
-                        <button
-                          className={styles.btnSave}
-                          onClick={() => handleEdit(c._id)}
-                        >
-                          Guardar
-                        </button>
-                        <button
-                          className={styles.btnGhost}
-                          onClick={() => setEditingCid(null)}
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className={styles.commentText}>{c.content}</p>
-                  )}
-                  {editingCid !== c._id && (
-                    <div className={styles.commentActions}>
-                      {isOwn && (
-                        <button
-                          className={styles.commentActionBtn}
-                          onClick={() => {
-                            setEditingCid(c._id);
-                            setEditContent(c.content);
-                          }}
-                        >
-                          Editar
-                        </button>
-                      )}
-                      {canDel && (
-                        <button
-                          className={`${styles.commentActionBtn} ${styles.commentActionDanger}`}
-                          onClick={() => handleDelete(c._id)}
-                        >
-                          Eliminar
-                        </button>
-                      )}
-                    </div>
-                  )}
+          {comments.map((c) => (
+            <div key={c._id} className={styles.commentThread}>
+              {renderComment(c)}
+              {c.replies?.length > 0 && (
+                <div className={styles.replies}>
+                  {c.replies.map((r) => renderComment(r, { isReply: true }))}
                 </div>
-              </div>
-            );
-          })}
+              )}
+            </div>
+          ))}
 
           {hasMore && (
             <button
