@@ -507,7 +507,12 @@ function AppShell() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    // Opt-in a los future flags de React Router v7 para silenciar los warnings
+    // de v6. El único splat route (path="*") navega a una ruta absoluta ("/"),
+    // así que v7_relativeSplatPath no cambia comportamiento.
+    <BrowserRouter
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
         <ThemeProvider>
           <AuthProvider>
