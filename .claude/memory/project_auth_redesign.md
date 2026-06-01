@@ -18,3 +18,5 @@ metadata:
 **OAuth hardening.** `OAuthButtons.jsx` ahora gatea el botón de Google en `import.meta.env.VITE_GOOGLE_CLIENT_ID` (simétrico al de Facebook vía `useFacebookSdk.enabled`): `useGoogleLogin` es un hook y tira al renderizar si falta el clientId, lo que white-screeneaba toda la pantalla de auth. El botón vive en un subcomponente `GoogleButton` que sólo se monta si hay clientId; sin ningún proveedor, la sección no se renderiza. Ver [[project_oauth_login]].
 
 `AuthContext.register(username, email, password, { displayName, avatarColor })` — 4to arg opcional. Ver [[feedback_primary_cta_pattern]] (el submit amber), [[feedback_theme_support]], [[feedback_inline_svg_icons]].
+
+**Update 2026-06-01 (post-merge):** el form de registro **ya NO pide "Nombre para mostrar"** — se removió el campo (con su estado `name`, el icono `User` y su validación); el `autoFocus` pasó al campo de usuario. `register()` se llama solo con `{ avatarColor }` (el `displayName` arg sigue existiendo pero el registro no lo manda). El nombre para mostrar se setea después desde `/perfil`. Tests actualizados (`Auth.test.jsx`/`Register.test.jsx`).
