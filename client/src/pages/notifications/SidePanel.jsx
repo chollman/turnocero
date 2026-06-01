@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useMemo } from "react";
 import NotifIcon from "./NotifIcons";
 import {
@@ -41,7 +42,7 @@ export default function SidePanel({ notifications }) {
     <aside className={styles.side}>
       <div className={styles.card}>
         <div className={styles.head}>
-          <span className={styles.eyebrow}>◆ Resumen</span>
+          <span className={styles.eyebrow}><Meeple />Resumen</span>
           <h2 className={styles.headTitle}>Tu actividad en TurnoCero</h2>
         </div>
 

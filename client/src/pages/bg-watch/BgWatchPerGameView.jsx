@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
@@ -208,7 +209,7 @@ export default function BgWatchPerGameView() {
               className={styles.eyebrow}
               style={{ textDecoration: "none" }}
             >
-              ◆ {bggUsername}
+              <Meeple />{bggUsername}
             </Link>
             <h1 className={styles.heroTitle}>
               {game?.name || (gameError ? "Juego no encontrado" : "…")}

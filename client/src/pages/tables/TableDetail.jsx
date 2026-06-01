@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
@@ -167,13 +168,13 @@ export default function TableDetail() {
   // restantes en mobile sólo alternan fotos / reseñas en main.
   const [mobileTab, setMobileTab] = useState("fotos");
   // Avg + count bubblean desde TableRatings para poder pintarlos en el
-  // sectionHead de "◆ Valoraciones".
+  // sectionHead de "Valoraciones".
   const [ratingsSummary, setRatingsSummary] = useState({
     avg: null,
     count: 0,
   });
   // Cantidad de comentarios bubbleada desde TableComments para el
-  // sectionHead de "◆ Comentarios".
+  // sectionHead de "Comentarios".
   const [commentsCount, setCommentsCount] = useState(0);
 
   const isParticipant = useCallback(
@@ -654,7 +655,7 @@ export default function TableDetail() {
                 <section className={styles.section}>
                   <header className={styles.sectionHead}>
                     <span className={styles.sectionLabel}>
-                      ◆ Sobre la partida
+                      <Meeple />Sobre la partida
                     </span>
                     <span className={styles.sectionRule} />
                   </header>
@@ -667,7 +668,7 @@ export default function TableDetail() {
                 <section className={styles.section}>
                   <header className={styles.sectionHead}>
                     <span className={styles.sectionLabel}>
-                      ◆ Reglas de la casa
+                      <Meeple />Reglas de la casa
                     </span>
                     <span className={styles.sectionRule} />
                   </header>
@@ -679,7 +680,7 @@ export default function TableDetail() {
               <section className={styles.section}>
                 <header className={styles.sectionHead}>
                   <span className={styles.sectionLabel}>
-                    ◆ Alrededor de la mesa
+                    <Meeple />Alrededor de la mesa
                   </span>
                   <span className={styles.sectionRule} />
                   <span className={styles.sectionCount}>
@@ -823,7 +824,7 @@ export default function TableDetail() {
                 <section className={styles.section}>
                   <header className={styles.sectionHead}>
                     <span className={styles.sectionLabel}>
-                      ◆ Solicitudes pendientes
+                      <Meeple />Solicitudes pendientes
                     </span>
                     <span className={styles.sectionRule} />
                     <span className={styles.sectionCount}>
@@ -918,7 +919,7 @@ export default function TableDetail() {
                   className={`${styles.sectionHead} ${styles.sectionHead_tabbed}`}
                 >
                   <span className={styles.sectionLabel}>
-                    ◆ Fotos de la mesa
+                    <Meeple />Fotos de la mesa
                   </span>
                   <span className={styles.sectionRule} />
                   {(table.images || []).length > 0 && (
@@ -953,7 +954,7 @@ export default function TableDetail() {
                 <header
                   className={`${styles.sectionHead} ${styles.sectionHead_tabbed}`}
                 >
-                  <span className={styles.sectionLabel}>◆ Comentarios</span>
+                  <span className={styles.sectionLabel}><Meeple />Comentarios</span>
                   <span className={styles.sectionRule} />
                   {commentsCount > 0 && (
                     <span className={styles.sectionCount}>
@@ -978,7 +979,7 @@ export default function TableDetail() {
               >
                 <header className={styles.sectionHead}>
                   <span className={styles.sectionLabel}>
-                    ◆ Valoraciones
+                    <Meeple />Valoraciones
                     <InfoTooltip label="Acerca de las valoraciones">
                       Una vez finalizada la mesa, los participantes pueden dejar
                       una valoración de 1 a 5 estrellas y un comentario opcional
@@ -1036,7 +1037,7 @@ export default function TableDetail() {
                     <>
                       <header className={styles.sectionHead}>
                         <span className={styles.sectionLabel}>
-                          ◆ Chat de la mesa
+                          <Meeple />Chat de la mesa
                           <InfoTooltip label="Privacidad del chat">
                             El chat es privado. Sólo el host y los jugadores
                             unidos a esta mesa pueden ver y enviar mensajes —

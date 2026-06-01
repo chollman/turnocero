@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -106,7 +107,7 @@ function ConnectedView({ bggUsername }) {
   return (
     <div className={styles.widgetConnected}>
       <div className={styles.widgetHead}>
-        <span className={styles.connectedEyebrow}>◆ Tu BG Watch</span>
+        <span className={styles.connectedEyebrow}><Meeple />Tu BG Watch</span>
         <Link
           to={`/bg-watch/${encodeURIComponent(bggUsername)}`}
           className={styles.widgetLink}
@@ -166,7 +167,7 @@ function PromoView({ onDismiss }) {
       )}
       <Link to="/bg-watch" className={styles.promoLink}>
         <div className={styles.header}>
-          <span className={styles.eyebrow}>◆ BG WATCH</span>
+          <span className={styles.eyebrow}><Meeple />BG WATCH</span>
         </div>
         <h3 className={styles.title}>¿Llevás tus partidas en BGG?</h3>
         <p className={styles.promoSub}>

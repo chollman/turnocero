@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -134,7 +135,7 @@ export default function EventoLudoteca({
 
       {items.length === 0 ? (
         <div className={styles.empty}>
-          <span className={styles.emptyDot}>◆</span>
+          <span className={styles.emptyDot}><Meeple /></span>
           <p className={styles.emptyText}>
             {canAdd
               ? "Sé el primero en sumar un juego a la ludoteca."

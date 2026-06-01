@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -251,7 +252,7 @@ export default function Dashboard() {
       <header className={styles.hero}>
         <div className={styles.heroLeft}>
           <p className={styles.heroEyebrow}>
-            ◆ {totalLabel} · {todayLabel}
+            <Meeple />{totalLabel} · {todayLabel}
           </p>
           <h1 className={styles.heroTitle}>
             Tirá los <em>dados</em>.

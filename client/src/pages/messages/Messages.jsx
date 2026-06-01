@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -66,7 +67,7 @@ export default function Messages() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div className={styles.heroBlock}>
-          <div className={styles.eyebrow}>◆ MENSAJES</div>
+          <div className={styles.eyebrow}><Meeple />MENSAJES</div>
           <h1 className={styles.heroTitle}>Mensajes</h1>
           <p className={styles.heroSub}>Chateá con tus amigos.</p>
         </div>

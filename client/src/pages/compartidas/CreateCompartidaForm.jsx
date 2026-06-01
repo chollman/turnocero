@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
@@ -395,7 +396,7 @@ export default function CreateCompartidaForm({
             />
           </div>
           <div className={styles.linkChipInfo}>
-            <span className={styles.linkChipLabel}>◆ Mesa enlazada</span>
+            <span className={styles.linkChipLabel}><Meeple />Mesa enlazada</span>
             <span className={styles.linkChipName}>{linkedTable.boardGame}</span>
             <span className={styles.linkChipMeta}>
               {formatChipDate(linkedTable.date)}
@@ -422,7 +423,7 @@ export default function CreateCompartidaForm({
             <span style={{ fontSize: 22 }}>🎟️</span>
           </div>
           <div className={styles.linkChipInfo}>
-            <span className={styles.linkChipLabel}>◆ Evento enlazado</span>
+            <span className={styles.linkChipLabel}><Meeple />Evento enlazado</span>
             <span className={styles.linkChipName}>{linkedEvento.title}</span>
             <span className={styles.linkChipMeta}>
               {formatChipDate(linkedEvento.eventDate)}

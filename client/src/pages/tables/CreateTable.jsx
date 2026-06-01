@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef } from "react";
 import {
   Link,
@@ -428,7 +429,7 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
       <div className={styles.inner}>
         <div className={styles.hero}>
           <div className={styles.eyebrow}>
-            ◆ NUEVA MESA{eventoId ? " · DENTRO DEL EVENTO" : ""}
+            <Meeple />NUEVA MESA{eventoId ? " · DENTRO DEL EVENTO" : ""}
           </div>
           <h1 className={styles.heroTitle}>
             {eventoId ? "Armá una mesa para el evento" : "Convocá una partida"}

@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { Link } from "react-router-dom";
 import styles from "./BgWatchGuestCTAs.module.css";
 
@@ -69,7 +70,7 @@ export function GuestInlineCTA() {
     <div className={styles.inline}>
       <div className={styles.inlineCopy}>
         <span className={styles.inlineEyebrow}>
-          ◆ ACTIVÁ TU PROPIO BG WATCH
+          <Meeple />ACTIVÁ TU PROPIO BG WATCH
         </span>
         <h2 className={styles.inlineTitle}>¿Tenés cuenta en BoardGameGeek?</h2>
         <p className={styles.inlineBody}>

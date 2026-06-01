@@ -18,6 +18,13 @@ describe("<AvatarColorPicker>", () => {
     expect(screen.getByText("CH")).toBeInTheDocument();
   });
 
+  it("shows a meeple placeholder when there is no initial", () => {
+    const { container } = render(
+      <AvatarColorPicker value="--green" onChange={vi.fn()} initial="" />,
+    );
+    expect(container.querySelector("svg")).toBeInTheDocument();
+  });
+
   it("calls onChange with the token when a swatch is clicked", () => {
     const onChange = vi.fn();
     render(<AvatarColorPicker value="" onChange={onChange} initial="C" />);

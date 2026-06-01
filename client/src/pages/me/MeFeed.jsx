@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -78,7 +79,7 @@ function NextGameHighlight({ table }) {
           <GameTile game={table.boardGame} seed={seed} size={110} />
         </div>
         <div className={styles.nextGameInfo}>
-          <span className={styles.eyebrow}>◆ PRÓXIMA MESA · {daysLabel}</span>
+          <span className={styles.eyebrow}><Meeple />PRÓXIMA MESA · {daysLabel}</span>
           <div className={styles.nextGameTitle}>{table.boardGame}</div>
           <div className={styles.nextGameMeta}>{formatNextMeta(table)}</div>
           <SeatTrack filled={filled} total={total} />
@@ -190,7 +191,7 @@ export default function MeFeed() {
     <div className={styles.page}>
       <div className={styles.inner}>
         <div className={styles.hero}>
-          <div className={styles.eyebrow}>◆ MI FEED</div>
+          <div className={styles.eyebrow}><Meeple />MI FEED</div>
           <h1 className={styles.heroTitle}>Hola, {nombre}.</h1>
           {loading ? (
             <div className={styles.heroSubSkeleton} />

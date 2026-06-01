@@ -1,3 +1,4 @@
+import Meeple from "../shared/Meeple";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -391,7 +392,7 @@ export default function Sidebar({ open = false, onClose }) {
           </span>
           <span className={styles.logoText}>
             <span className={styles.logoName}>TurnoCero</span>
-            <span className={styles.logoSub}>◆ board game meetups</span>
+            <span className={styles.logoSub}><Meeple />board game meetups</span>
           </span>
         </Link>
         <button
@@ -427,7 +428,7 @@ export default function Sidebar({ open = false, onClose }) {
             key={sec.label}
             className={`${styles.navSection} ${sec.adminOnly ? styles.navSectionAdmin : ""}`}
           >
-            <span className={styles.navSectionLabel}>◆ {sec.label}</span>
+            <span className={styles.navSectionLabel}><Meeple />{sec.label}</span>
             {sec.items.map(renderNavItem)}
           </div>
         ))}

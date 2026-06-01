@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
@@ -498,7 +499,7 @@ export default function EventoDetail() {
     return (
       <div className={styles.page}>
         <div className={styles.notFound}>
-          <p className={styles.notFoundEyebrow}>◆ 404</p>
+          <p className={styles.notFoundEyebrow}><Meeple />404</p>
           <h1 className={styles.notFoundTitle}>Evento no encontrado</h1>
           <Link to="/eventos" className={styles.notFoundLink}>
             ← Volver a eventos
@@ -847,7 +848,7 @@ export default function EventoDetail() {
                       <section className={styles.section}>
                         <div className={styles.sectionHead}>
                           <span className={styles.sectionLabel}>
-                            ◆ Descripción
+                            <Meeple />Descripción
                           </span>
                           <span className={styles.sectionRule} />
                         </div>
@@ -859,7 +860,7 @@ export default function EventoDetail() {
                       <section className={styles.section}>
                         <div className={styles.sectionHead}>
                           <span className={styles.sectionLabel}>
-                            ◆ Condiciones
+                            <Meeple />Condiciones
                           </span>
                           <span className={styles.sectionRule} />
                         </div>
@@ -871,7 +872,7 @@ export default function EventoDetail() {
                       <section className={styles.section}>
                         <div className={styles.sectionHead}>
                           <span className={styles.sectionLabel}>
-                            ◆ Organiza
+                            <Meeple />Organiza
                           </span>
                           <span className={styles.sectionRule} />
                         </div>
@@ -906,7 +907,7 @@ export default function EventoDetail() {
                       <section className={styles.section}>
                         <div className={styles.sectionHead}>
                           <span className={styles.sectionLabel}>
-                            ◆ Inscriptos confirmados ·{" "}
+                            <Meeple />Inscriptos confirmados ·{" "}
                             {evento.confirmedRegistrations.length}
                           </span>
                           <span className={styles.sectionRule} />

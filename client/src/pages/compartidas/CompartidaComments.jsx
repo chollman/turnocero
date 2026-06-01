@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -365,7 +366,7 @@ export default function CompartidaComments({
   return (
     <div className={styles.comments}>
       <div className={styles.commentsHead}>
-        ◆ Dejá tu comentario{total > 1 ? ` (${total})` : ""}
+        <Meeple />Dejá tu comentario{total > 1 ? ` (${total})` : ""}
       </div>
 
       {/* Form arriba — los comentarios nuevos aparecen al instante en el tope. */}

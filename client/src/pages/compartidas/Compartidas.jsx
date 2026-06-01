@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
@@ -36,7 +37,7 @@ function QuoteWidget() {
   return (
     <div className={`${styles.inlineWidget} ${styles.gold}`}>
       <div className={styles.widgetEyebrow}>
-        <span className={styles.left}>◆ Frase de la semana</span>
+        <span className={styles.left}><Meeple />Frase de la semana</span>
       </div>
       <p className={styles.quoteText}>{QUOTE.text}</p>
       <div className={styles.quoteAttribution}>

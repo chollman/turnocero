@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef } from "react";
 import {
   Link,
@@ -127,7 +128,7 @@ export default function VerifyEmail() {
           <div className={styles.mobileHeroFade} />
         </div>
 
-        <div className={styles.eyebrow}>◆ VERIFICÁ TU EMAIL</div>
+        <div className={styles.eyebrow}><Meeple />VERIFICÁ TU EMAIL</div>
         <h1 className={styles.heading}>Un último paso.</h1>
         <p className={styles.sub}>
           Te enviamos un código de 6 dígitos
@@ -232,7 +233,7 @@ export default function VerifyEmail() {
         <div className={styles.showcaseGradient} />
         <div className={styles.showcaseContent}>
           <div>
-            <div className={styles.showcaseEyebrow}>◆ MESAS ACTIVAS</div>
+            <div className={styles.showcaseEyebrow}><Meeple />MESAS ACTIVAS</div>
             {showcase?.total > 0 ? (
               <h2 className={styles.showcaseTitle}>
                 {showcase.total} mesas

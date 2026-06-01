@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -113,7 +114,7 @@ export default function BgWatchLanding() {
         <div className={styles.heroIcon}>
           <DieIcon />
         </div>
-        <div className={styles.eyebrow}>◆ BG WATCH</div>
+        <div className={styles.eyebrow}><Meeple />BG WATCH</div>
         <h1 className={styles.heroTitle}>Llevá tus partidas como nunca</h1>
         <p className={styles.heroSub}>
           BG Watch es el tracker de partidas de TurnoCero. Conectá tu cuenta de

@@ -1,3 +1,4 @@
+import Meeple from "../shared/Meeple";
 import { Link, useNavigate } from "react-router-dom";
 import { useNotifications } from "../../context/NotificationContext";
 import { useChat } from "../../context/ChatContext";
@@ -51,7 +52,7 @@ export default function Navbar({ menuOpen = false, onToggleMenu }) {
         </span>
         <span className={styles.brandText}>
           <span className={styles.brandName}>TurnoCero</span>
-          <span className={styles.brandSub}>◆ board game meetups</span>
+          <span className={styles.brandSub}><Meeple />board game meetups</span>
         </span>
       </Link>
 

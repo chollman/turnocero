@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { API } from "../../api/endpoints";
@@ -106,7 +107,7 @@ export default function TableTutorials({
   return (
     <section className={styles.section}>
       <header className={styles.sectionHead}>
-        <span className={styles.sectionLabel}>◆ Andá preparado</span>
+        <span className={styles.sectionLabel}><Meeple />Andá preparado</span>
         <span className={styles.sectionRule} />
       </header>
       <p className={styles.tagline}>{tagline}</p>

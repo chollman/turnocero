@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
@@ -80,7 +81,7 @@ export default function Torneos() {
       <div className={styles.inner}>
         <div className={styles.header}>
           <div className={styles.heroBlock}>
-            <div className={styles.eyebrow}>◆ COMPETENCIAS</div>
+            <div className={styles.eyebrow}><Meeple />COMPETENCIAS</div>
             <h1 className={styles.title}>Torneos</h1>
             <p className={styles.sub}>
               Seguí el progreso de las competencias de la comunidad.

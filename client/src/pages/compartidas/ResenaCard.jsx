@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
@@ -287,7 +288,7 @@ export default function ResenaCard({
         style={{ "--i": index }}
       >
         {featured && (
-          <div className={styles.featuredBadge}>◆ Reseña destacada</div>
+          <div className={styles.featuredBadge}><Meeple />Reseña destacada</div>
         )}
 
         {/* ── Header de juego (cover + nombre + rating) ── */}

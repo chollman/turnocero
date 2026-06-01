@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import axios from "axios";
@@ -309,7 +310,7 @@ export default function EventoInscripciones() {
           <Link to={`/eventos/${id}`} className={styles.contextLink}>
             <ArrowLeftIcon size={11} /> Volver al evento
           </Link>
-          <span className={styles.eyebrow}>◆ Gestión de inscripciones</span>
+          <span className={styles.eyebrow}><Meeple />Gestión de inscripciones</span>
           <h1 className={styles.title}>{evento.title || "Evento"}</h1>
           {d && (
             <span className={styles.subtitle}>
