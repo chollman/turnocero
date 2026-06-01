@@ -41,31 +41,52 @@ const defaultSections = () =>
 
 const SiteConfigContext = createContext(null);
 
+// El boot pega a /api/site-config (request pública que corre siempre). Si falla
+// por caída del backend lo usamos como health-check: sin respuesta (connection
+// refused / timeout / CORS) o un 5xx ⇒ backend caído. Un 4xx significa que el
+// server está vivo (solo rechazó la request) y NO se trata como caída.
+const isBackendDown = (err) => !err?.response || err.response.status >= 500;
+
+// Cota superior para que un backend colgado (responde lento o nunca) no deje el
+// splash girando para siempre: a los 8s el request aborta y dispara backendDown.
+const BOOT_TIMEOUT_MS = 8000;
+
 export function SiteConfigProvider({ children }) {
   const { user } = useAuth();
   const [sections, setSections] = useState(defaultSections);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [updatedBy, setUpdatedBy] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const [backendDown, setBackendDown] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // Reintenta el health-check de boot (botón "Reintentar" de la pantalla 500).
+  // Re-dispara el effect, que vuelve a poner loaded=false (splash) y reevalúa.
+  const retryConnection = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
     let cancelled = false;
+    setLoaded(false);
+    setBackendDown(false);
     axios
-      .get(API.siteConfig)
+      .get(API.siteConfig, { timeout: BOOT_TIMEOUT_MS })
       .then(({ data }) => {
         if (cancelled) return;
         setSections(data.sections || defaultSections());
         setUpdatedAt(data.updatedAt || null);
         setUpdatedBy(data.updatedBy || null);
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (cancelled) return;
+        if (isBackendDown(err)) setBackendDown(true);
+      })
       .finally(() => {
         if (!cancelled) setLoaded(true);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   // El user efectivo de AuthContext ya respeta viewAsUser (si admin con viewAsUser ON,
   // user.isAdmin === false). isSectionEnabled lo respeta automáticamente.
@@ -97,6 +118,8 @@ export function SiteConfigProvider({ children }) {
     () => ({
       sections,
       loaded,
+      backendDown,
+      retryConnection,
       updatedAt,
       updatedBy,
       isSectionEnabled,
@@ -107,6 +130,8 @@ export function SiteConfigProvider({ children }) {
     [
       sections,
       loaded,
+      backendDown,
+      retryConnection,
       updatedAt,
       updatedBy,
       isSectionEnabled,

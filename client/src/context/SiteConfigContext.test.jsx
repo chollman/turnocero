@@ -9,10 +9,18 @@ vi.mock("./AuthContext", () => ({ useAuth: () => useAuthMock() }));
 import { SiteConfigProvider, useSiteConfig } from "./SiteConfigContext";
 
 function Probe() {
-  const { sections, loaded, isSectionEnabled, updateConfig } = useSiteConfig();
+  const {
+    sections,
+    loaded,
+    backendDown,
+    retryConnection,
+    isSectionEnabled,
+    updateConfig,
+  } = useSiteConfig();
   return (
     <div>
       <span data-testid="loaded">{String(loaded)}</span>
+      <span data-testid="backend-down">{String(backendDown)}</span>
       <span data-testid="mesas">{String(sections?.mesas?.enabled)}</span>
       <span data-testid="compartidas-enabled">
         {String(isSectionEnabled("compartidas"))}
@@ -23,6 +31,7 @@ function Probe() {
       <button onClick={() => updateConfig({ mesas: { enabled: true } })}>
         enable-mesas
       </button>
+      <button onClick={retryConnection}>retry</button>
     </div>
   );
 }
@@ -104,6 +113,65 @@ describe("SiteConfigContext", () => {
     });
     // Default for mesas is `false`
     expect(screen.getByTestId("mesas").textContent).toBe("false");
+  });
+
+  it("flags backendDown when the boot request returns a 5xx", async () => {
+    server.use(
+      http.get("/api/site-config", () =>
+        HttpResponse.json({}, { status: 503 }),
+      ),
+    );
+    renderProvider();
+    await waitFor(() => {
+      expect(screen.getByTestId("loaded").textContent).toBe("true");
+    });
+    expect(screen.getByTestId("backend-down").textContent).toBe("true");
+  });
+
+  it("flags backendDown when the boot request fails with a network error", async () => {
+    server.use(http.get("/api/site-config", () => HttpResponse.error()));
+    renderProvider();
+    await waitFor(() => {
+      expect(screen.getByTestId("loaded").textContent).toBe("true");
+    });
+    expect(screen.getByTestId("backend-down").textContent).toBe("true");
+  });
+
+  it("does NOT flag backendDown on a 4xx (server is alive)", async () => {
+    server.use(
+      http.get("/api/site-config", () =>
+        HttpResponse.json({ message: "nope" }, { status: 404 }),
+      ),
+    );
+    renderProvider();
+    await waitFor(() => {
+      expect(screen.getByTestId("loaded").textContent).toBe("true");
+    });
+    expect(screen.getByTestId("backend-down").textContent).toBe("false");
+  });
+
+  it("retryConnection clears backendDown when the backend recovers", async () => {
+    let calls = 0;
+    server.use(
+      http.get("/api/site-config", () => {
+        calls += 1;
+        if (calls === 1) return HttpResponse.error();
+        return HttpResponse.json({
+          sections: { mesas: { enabled: true } },
+        });
+      }),
+    );
+    renderProvider();
+    await waitFor(() => {
+      expect(screen.getByTestId("backend-down").textContent).toBe("true");
+    });
+    await act(async () => {
+      screen.getByText("retry").click();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("backend-down").textContent).toBe("false");
+    });
+    expect(screen.getByTestId("mesas").textContent).toBe("true");
   });
 
   it("updateConfig PATCHes /api/site-config and applies the response", async () => {

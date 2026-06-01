@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
+import { http, HttpResponse } from "msw";
+import { server } from "./test/server";
 
 // App importa muchos providers (Theme, Auth, SiteConfig, Notification, Chat) +
 // BrowserRouter. Por defecto AuthContext intenta `GET /api/auth/me` y el resto
@@ -45,5 +47,23 @@ describe("App", () => {
     await waitFor(() => {
       expect(document.body.firstChild).not.toBeNull();
     });
+  });
+
+  it("muestra la pantalla 500 cuando el backend no responde en el boot", async () => {
+    // El health-check de boot (GET /api/site-config) falla con un error de red
+    // ⇒ backendDown ⇒ AppShell toma la pantalla full-screen "se nos volcó el
+    // tablero" en vez del shell.
+    server.use(http.get("/api/site-config", () => HttpResponse.error()));
+    render(
+      <HelmetProvider>
+        <App />
+      </HelmetProvider>,
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { level: 1, name: "500" }),
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByText(/volcó el tablero/i)).toBeInTheDocument();
   });
 });

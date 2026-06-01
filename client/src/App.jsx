@@ -1,7 +1,7 @@
 import { BrowserRouter, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { SiteConfigProvider } from "./context/SiteConfigContext";
+import { SiteConfigProvider, useSiteConfig } from "./context/SiteConfigContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ChatProvider } from "./context/ChatContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -54,6 +54,9 @@ import FingerSelector from "./pages/utilidades/FingerSelector";
 import Temporizador from "./pages/utilidades/Temporizador";
 import Dado from "./pages/utilidades/Dado";
 import Colaborar from "./pages/colabora/Colaborar";
+import NotFound from "./pages/error/NotFound";
+import ServerError from "./pages/error/ServerError";
+import ErrorBoundary from "./components/ErrorBoundary";
 import ColaborarFab from "./components/colabora/ColaborarFab";
 import Navbar from "./components/layout/Navbar";
 import GuestSidebar from "./components/layout/GuestSidebar";
@@ -483,7 +486,7 @@ function AppRoutes() {
                 </SectionGate>
               }
             />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFound />} />
           </PageTransition>
         </div>
       </div>
@@ -493,14 +496,27 @@ function AppRoutes() {
 
 function AppShell() {
   const { loading } = useAuth();
+  const { loaded: configLoaded, backendDown, retryConnection } =
+    useSiteConfig();
   const { pathname } = useLocation();
   useVisualViewportVars();
+
+  // El health-check de boot (GET /api/site-config) detectó que el backend no
+  // responde → tomamos toda la pantalla con el 500 ("se nos volcó el tablero").
+  // "Reintentar" reintenta la conexión sin recargar la página entera.
+  if (backendDown) {
+    return <ServerError onRetry={retryConnection} />;
+  }
+
+  // Mantenemos el splash hasta que auth Y el config de boot resuelvan, así la
+  // toma del 500 (o el primer paint real) entra sin un flash del shell vacío.
+  const showSplash = loading || !configLoaded;
   // Las auth pages no tienen sidebar, así que el frame necesita su borde
   // izquierdo (el resto del app lo omite porque el sidebar cubre esa franja).
   const frameClass = isAuthPath(pathname) ? "appFrame appFrameAuth" : "appFrame";
   return (
     <>
-      <SplashScreen visible={loading} />
+      <SplashScreen visible={showSplash} />
       <BoardGameBackground />
       <div className={frameClass} aria-hidden="true" />
       <div style={{ position: "relative", zIndex: 1 }}>
@@ -530,7 +546,9 @@ export default function App() {
             <SiteConfigProvider>
               <NotificationProvider>
                 <ChatProvider>
-                  <AppShell />
+                  <ErrorBoundary>
+                    <AppShell />
+                  </ErrorBoundary>
                 </ChatProvider>
               </NotificationProvider>
             </SiteConfigProvider>
