@@ -5,6 +5,11 @@ import { SiteConfigProvider } from "./context/SiteConfigContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ChatProvider } from "./context/ChatContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+
+// Client ID de Google Identity Services. Si no está configurado, el provider
+// igual monta (los botones de Google simplemente no funcionarán hasta setearlo).
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 import ToastContainer from "./components/layout/ToastContainer";
 import ChatWindowManager from "./components/chat/ChatWindowManager";
 import ChatLauncher from "./components/chat/ChatLauncher";
@@ -503,17 +508,19 @@ function AppShell() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <SiteConfigProvider>
-            <NotificationProvider>
-              <ChatProvider>
-                <AppShell />
-              </ChatProvider>
-            </NotificationProvider>
-          </SiteConfigProvider>
-        </AuthProvider>
-      </ThemeProvider>
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <ThemeProvider>
+          <AuthProvider>
+            <SiteConfigProvider>
+              <NotificationProvider>
+                <ChatProvider>
+                  <AppShell />
+                </ChatProvider>
+              </NotificationProvider>
+            </SiteConfigProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </GoogleOAuthProvider>
     </BrowserRouter>
   );
 }

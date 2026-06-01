@@ -17,6 +17,9 @@ function Probe() {
       <button onClick={() => a.login("e@e", "pw")}>do-login</button>
       <button onClick={() => a.logout()}>do-logout</button>
       <button onClick={() => a.register("x", "x@x", "pw")}>do-register</button>
+      <button onClick={() => a.oauthLogin("google", { credential: "cred" })}>
+        do-oauth
+      </button>
       <button onClick={() => a.verifyEmail("e@e", "000000")}>do-verify</button>
       <button onClick={() => a.requestEmailVerification("e@e")}>
         do-resend
@@ -110,6 +113,27 @@ describe("AuthContext", () => {
     await act(async () => screen.getByText("do-login").click());
     expect(localStorage.getItem("token")).toBe("tok");
     expect(screen.getByTestId("user").textContent).toBe("alice");
+  });
+
+  it("oauthLogin posts to the google endpoint, stores token, and sets the user", async () => {
+    let body;
+    server.use(
+      http.post("/api/auth/oauth/google", async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({
+          token: "gtok",
+          user: { _id: "u9", username: "googler", isAdmin: false },
+        });
+      }),
+    );
+    renderApp();
+    await waitFor(() =>
+      expect(screen.getByTestId("loading").textContent).toBe("false"),
+    );
+    await act(async () => screen.getByText("do-oauth").click());
+    expect(body).toEqual({ credential: "cred" });
+    expect(localStorage.getItem("token")).toBe("gtok");
+    expect(screen.getByTestId("user").textContent).toBe("googler");
   });
 
   it("logout clears token, viewAsUser, and the user", async () => {

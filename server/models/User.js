@@ -25,14 +25,44 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
+      // Las cuentas creadas vía OAuth (Google/Facebook) no tienen contraseña.
+      // El proveedor verifica la identidad; el usuario puede setear una luego
+      // vía "olvidé mi contraseña" (reset-password autoverifica el email).
+      required: [
+        function () {
+          return !this.googleId && !this.facebookId;
+        },
+        "Password is required",
+      ],
       minlength: [8, "Password must be at least 8 characters"],
       validate: {
-        validator: (v) => /^(?=.*[A-Z])(?=.*\d).+$/.test(v),
+        // Tolerar undefined/empty en cuentas OAuth-only; la complejidad sólo
+        // aplica cuando hay una contraseña presente.
+        validator: (v) => !v || /^(?=.*[A-Z])(?=.*\d).+$/.test(v),
         message:
           "Password must contain at least one uppercase letter and one number",
       },
     },
+    // Identidades OAuth. Índice unique + partial filtrado por $type:string:
+    // las cuentas password-only no tienen el campo (queda ausente, no null) y
+    // por eso quedan fuera del índice — sólo dos cuentas con el mismo id de
+    // proveedor colisionan. (Un sparse index NO alcanza si el campo default es
+    // null, porque null cuenta como valor y choca con el resto de los nulls.)
+    googleId: {
+      type: String,
+      index: {
+        unique: true,
+        partialFilterExpression: { googleId: { $type: "string" } },
+      },
+    },
+    facebookId: {
+      type: String,
+      index: {
+        unique: true,
+        partialFilterExpression: { facebookId: { $type: "string" } },
+      },
+    },
+    authProviders: [{ type: String, enum: ["password", "google", "facebook"] }],
     avatar: {
       url: { type: String, default: "" },
       publicId: { type: String, default: "" },
@@ -178,6 +208,9 @@ userSchema.methods.toJSON = function () {
   delete obj.emailVerificationAttempts;
   delete obj.passwordResetTokenHash;
   delete obj.passwordResetExpiresAt;
+  // Los ids crudos de proveedor no aportan al cliente; authProviders sí.
+  delete obj.googleId;
+  delete obj.facebookId;
   return obj;
 };
 

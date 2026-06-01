@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import PasswordInput from "./PasswordInput";
+import OAuthButtons from "./OAuthButtons";
 import GameTile from "../../components/shared/GameTile";
 import Logo from "../../components/shared/Logo";
 import styles from "./Auth.module.css";
@@ -161,6 +162,8 @@ export default function Register() {
             )}
           </button>
         </form>
+
+        <OAuthButtons onError={setError} />
 
         <p className={styles.switchLink}>
           ¿Ya tenés cuenta? <Link to="/login">Iniciá sesión →</Link>

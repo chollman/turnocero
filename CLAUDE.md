@@ -93,6 +93,14 @@ The Vite dev server proxies `/api/*` to `http://localhost:4000/api`, so all fron
 5. `AuthContext` stores the JWT in `localStorage`, sets it as the Axios default `Authorization` header, and re-validates via `GET /api/auth/me` on app load.
 6. Routes are gated by a combination of `<PublicRoute>` (auth pages), `<PrivateRoute>`, `<AdminRoute>`, and `<SectionGate section="...">` (driven by `SiteConfig` — see below).
 
+**OAuth (Google / Facebook)** — token-based, no Passport/sessions; reuses the same JWT model:
+
+- `POST /api/auth/oauth/google { credential }` — the client gets an **ID token** via `@react-oauth/google`'s `<GoogleLogin>`; the server verifies signature + audience with `google-auth-library` (`OAuth2Client.verifyIdToken`, audience = `GOOGLE_CLIENT_ID`) and requires `email_verified === true`.
+- `POST /api/auth/oauth/facebook { accessToken }` — the client gets an **access token** via the FB JS SDK (`useFacebookSdk` hook); the server validates it against Graph API (`/debug_token` confirms `app_id` + `is_valid`, then `/me` for the profile). Requires the `email` permission.
+- Both delegate to `server/services/oauthService.js#findOrCreateOAuthUser`: (1) match by `googleId`/`facebookId`, (2) else match by email → **link the provider** to the existing account and set `emailVerified`, (3) else create a new account, already verified and **password-less**, with an auto-generated unique username (`generateUniqueUsername`, editable later in `/perfil`). Then they issue the same `{ user, token }` + cookie as `/login` (incl. the `code: 'banned'` 403 check).
+- `User.googleId` / `User.facebookId` are unique **partial** indexes (filtered by `$type: string`, NOT sparse — a `default: null` would collide). `User.password` is conditionally required (`!this.googleId && !this.facebookId`). OAuth-only users can set a password later via the forgot-password flow. `User.authProviders[]` tracks linked providers; raw provider ids are stripped from `toJSON`.
+- Env: server needs `GOOGLE_CLIENT_ID`, `FB_APP_ID`, `FB_APP_SECRET`; client needs `VITE_GOOGLE_CLIENT_ID`, `VITE_FB_APP_ID`. App is wrapped in `<GoogleOAuthProvider>` in `App.jsx`. The shared `OAuthButtons` component (used by both Login and Register) renders the buttons under the form.
+
 ### App shell and layout
 
 `App.jsx` renders a two-column shell for authenticated users:
@@ -527,6 +535,9 @@ The client needs `client/.env` (or `client/.env.local`) for:
 
 ```
 VITE_API_URL=http://localhost:4000
+# OAuth login — mismos valores que GOOGLE_CLIENT_ID / FB_APP_ID del server.
+VITE_GOOGLE_CLIENT_ID=
+VITE_FB_APP_ID=
 ```
 
 ### BG Watch (BGG integration)

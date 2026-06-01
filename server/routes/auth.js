@@ -22,6 +22,12 @@ const {
 } = require("../utils/email");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
+const { findOrCreateOAuthUser } = require("../services/oauthService");
+const { OAuth2Client } = require("google-auth-library");
+
+// Cliente reutilizable para verificar ID tokens de Google. El audience se
+// chequea explícitamente en verifyIdToken.
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -225,6 +231,129 @@ router.post(
     user.emailVerificationExpiresAt = null;
     user.emailVerificationAttempts = 0;
     await user.save({ validateModifiedOnly: true });
+
+    const token = generateToken(user._id);
+    res.cookie("token", token, COOKIE_OPTIONS);
+    res.json({ user, token });
+  }),
+);
+
+// Emite la sesión para un usuario OAuth ya resuelto: chequea baneo (mismo
+// contrato code:banned que /login) y, si está OK, setea cookie + responde
+// { user, token }. Devuelve true si ya respondió (baneado).
+function respondBannedIfNeeded(res, user) {
+  if (!user.isBanned) return false;
+  res.status(403).json({
+    code: "banned",
+    message: user.bannedReason
+      ? `Tu cuenta ha sido suspendida. Motivo: ${user.bannedReason}`
+      : "Tu cuenta ha sido suspendida.",
+  });
+  return true;
+}
+
+// POST /api/auth/oauth/google — public, rate-limited.
+// Body: { credential } — el ID token JWT que devuelve Google Identity Services.
+// Verifica firma + audience, exige email verificado, y hace login/registro.
+router.post(
+  "/oauth/google",
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { credential } = req.body || {};
+    if (!credential) throw httpError(400, "Falta el token de Google");
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      throw httpError(503, "Login con Google no está configurado");
+    }
+
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      throw httpError(401, "Token de Google inválido");
+    }
+
+    if (!payload?.email || payload.email_verified !== true) {
+      throw httpError(401, "Tu email de Google no está verificado");
+    }
+
+    const user = await findOrCreateOAuthUser({
+      provider: "google",
+      providerId: payload.sub,
+      email: payload.email,
+      name: payload.name,
+      picture: payload.picture,
+    });
+
+    if (respondBannedIfNeeded(res, user)) return;
+
+    const token = generateToken(user._id);
+    res.cookie("token", token, COOKIE_OPTIONS);
+    res.json({ user, token });
+  }),
+);
+
+// POST /api/auth/oauth/facebook — public, rate-limited.
+// Body: { accessToken } — el access token que devuelve el FB JS SDK.
+// Lo valida contra Graph API (debug_token, que confirma app_id + is_valid) y
+// luego lee el perfil; sin email otorgado, falla.
+router.post(
+  "/oauth/facebook",
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { accessToken } = req.body || {};
+    if (!accessToken) throw httpError(400, "Falta el token de Facebook");
+    if (!process.env.FB_APP_ID || !process.env.FB_APP_SECRET) {
+      throw httpError(503, "Login con Facebook no está configurado");
+    }
+
+    const appToken = `${process.env.FB_APP_ID}|${process.env.FB_APP_SECRET}`;
+
+    let debug;
+    try {
+      const debugRes = await fetch(
+        `https://graph.facebook.com/debug_token?input_token=${encodeURIComponent(
+          accessToken,
+        )}&access_token=${encodeURIComponent(appToken)}`,
+      );
+      debug = (await debugRes.json())?.data;
+    } catch {
+      throw httpError(401, "No pudimos validar el token de Facebook");
+    }
+
+    if (!debug?.is_valid || debug.app_id !== process.env.FB_APP_ID) {
+      throw httpError(401, "Token de Facebook inválido");
+    }
+
+    let profile;
+    try {
+      const meRes = await fetch(
+        `https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${encodeURIComponent(
+          accessToken,
+        )}`,
+      );
+      profile = await meRes.json();
+    } catch {
+      throw httpError(401, "No pudimos leer tu perfil de Facebook");
+    }
+
+    if (!profile?.id) throw httpError(401, "Token de Facebook inválido");
+    if (!profile.email) {
+      throw httpError(400, "No pudimos obtener tu email de Facebook");
+    }
+
+    const user = await findOrCreateOAuthUser({
+      provider: "facebook",
+      providerId: profile.id,
+      email: profile.email,
+      name: profile.name,
+      picture: profile.picture?.data?.url,
+    });
+
+    if (respondBannedIfNeeded(res, user)) return;
 
     const token = generateToken(user._id);
     res.cookie("token", token, COOKIE_OPTIONS);

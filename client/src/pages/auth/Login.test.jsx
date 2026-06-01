@@ -6,6 +6,9 @@ import { server } from "../../test/server";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
+// OAuthButtons tiene su propio test; acá lo stubeamos para no arrastrar sus
+// dependencias (GoogleOAuthProvider/ThemeProvider) al render de Login.
+vi.mock("./OAuthButtons", () => ({ default: () => null }));
 
 const navigateMock = vi.fn();
 vi.mock("react-router-dom", async () => {

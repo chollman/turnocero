@@ -138,6 +138,19 @@ export const AuthProvider = ({ children }) => {
     return data; // { email, message }
   };
 
+  // Login/registro vía OAuth. `provider` ∈ { "google", "facebook" }; el
+  // payload es { credential } para Google o { accessToken } para Facebook.
+  // Espeja login(): el server resuelve/crea el usuario y devuelve { user, token }.
+  const oauthLogin = async (provider, payload) => {
+    const url =
+      provider === "google" ? API.auth.OAUTH_GOOGLE : API.auth.OAUTH_FACEBOOK;
+    const { data } = await axios.post(url, payload);
+    local.set(STORAGE_KEYS.TOKEN, data.token);
+    setAuthHeader(data.token);
+    setRealUser(data.user);
+    return data;
+  };
+
   const verifyEmail = async (email, code) => {
     const { data } = await axios.post(API.auth.VERIFY_EMAIL, { email, code });
     local.set(STORAGE_KEYS.TOKEN, data.token);
@@ -202,6 +215,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         register,
+        oauthLogin,
         verifyEmail,
         requestEmailVerification,
         requestPasswordReset,
