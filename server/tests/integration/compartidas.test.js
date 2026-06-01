@@ -733,3 +733,49 @@ describe("Comentarios anidados (respuestas)", () => {
     expect(remaining).toBe(0);
   });
 });
+
+describe("POST /api/compartidas/:id/comments — notificaciones del hilo", () => {
+  const Notification = require("../../models/Notification");
+
+  const comment = (id, token, content) =>
+    request(app)
+      .post(`/api/compartidas/${id}/comments`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ content });
+
+  const commentNotifsFor = (userId) =>
+    Notification.find({ recipient: userId, type: "compartida_comment" });
+
+  it("notifica al autor y a los demás comentaristas, no a quien comenta", async () => {
+    const author = await createUser();
+    const compartida = await createCompartida(author, { privacy: "public" });
+    const { user: b, token: tb } = await createAuthedUser();
+    const { user: c, token: tc } = await createAuthedUser();
+
+    // B comenta → notifica al autor.
+    await comment(compartida._id, tb, "hola desde B");
+    // C comenta → notifica al autor (count 2) y a B (co-comentarista).
+    await comment(compartida._id, tc, "hola desde C");
+
+    const aNotifs = await commentNotifsFor(author._id);
+    const bNotifs = await commentNotifsFor(b._id);
+    const cNotifs = await commentNotifsFor(c._id);
+
+    expect(aNotifs).toHaveLength(1);
+    expect(aNotifs[0].count).toBe(2); // dos comentarios
+    expect(aNotifs[0].compartidaId).toBe(compartida._id.toString());
+    // B recibió notif del comentario de C (participó en el hilo).
+    expect(bNotifs).toHaveLength(1);
+    expect(bNotifs[0].lastCommenterUsername).toBe(c.username);
+    // C acaba de comentar → no se autonotifica.
+    expect(cNotifs).toHaveLength(0);
+  });
+
+  it("comentar tu propia compartida no te autonotifica", async () => {
+    const { user, token } = await createAuthedUser();
+    const compartida = await createCompartida(user, { privacy: "public" });
+    await comment(compartida._id, token, "comento mi propio post");
+    const own = await commentNotifsFor(user._id);
+    expect(own).toHaveLength(0);
+  });
+});
