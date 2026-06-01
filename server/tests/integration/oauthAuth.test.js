@@ -29,12 +29,15 @@ const app = require("../../app");
 const User = require("../../models/User");
 
 // Shape que devuelve OAuth2Client.getTokenInfo para un access token válido.
+// OJO: Google manda email_verified como string "true" (no booleano) y
+// getTokenInfo no lo convierte — usamos el string a propósito para que el
+// happy-path cubra esa regresión.
 function googleTokenInfo(overrides = {}) {
   return {
     aud: process.env.GOOGLE_CLIENT_ID,
     sub: "g-sub-1",
     email: "oauth@test.local",
-    email_verified: true,
+    email_verified: "true",
     ...overrides,
   };
 }
