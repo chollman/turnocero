@@ -5,6 +5,9 @@ import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
+// OAuthButtons tiene su propio test; lo stubeamos para no arrastrar sus
+// dependencias (GoogleOAuthProvider/ThemeProvider) al render de Register.
+vi.mock("./OAuthButtons", () => ({ default: () => null }));
 
 const navigateMock = vi.fn();
 vi.mock("react-router-dom", async () => {

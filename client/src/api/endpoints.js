@@ -34,6 +34,8 @@ export const API = {
     RESEND_VERIFICATION: "/api/auth/resend-verification",
     FORGOT_PASSWORD: "/api/auth/forgot-password",
     RESET_PASSWORD: "/api/auth/reset-password",
+    OAUTH_GOOGLE: "/api/auth/oauth/google",
+    OAUTH_FACEBOOK: "/api/auth/oauth/facebook",
     BGG_CONNECT: "/api/auth/bgg-connect",
     BGG_CONNECTION: "/api/auth/bgg-connection",
   },
