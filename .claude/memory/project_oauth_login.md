@@ -29,6 +29,7 @@ OAuth de Google + Facebook (2026-06-01). **Token-based, sin Passport ni sesiones
 **Config Google Cloud:** OAuth Client ID tipo **Web application**; el origen exacto (`http://localhost:3000`, dominio prod) debe estar en **Authorized JavaScript origins** (no en redirect URIs). Sin client secret (flujo implícito). Propagación de orígenes nuevos: minutos hasta ~horas.
 
 **Config Facebook (Meta) — estado e issues:**
+
 - En el dev console hay que **agregar `email` al caso de uso** de Facebook Login o sale "Invalid Scopes: email". Ya hecho.
 - En modo **Desarrollo** funciona para admin + testers sin review.
 - **Para abrir al público** falta (pendiente): (1) **verificación individual** de Claudio (DNI personal) — NO la de negocio (esa pide docs de empresa + un email `@turnocero.app` en loop, que no tenemos; la individual lo evita); (2) **Advanced Access** de `email`+`public_profile` vía App Review; (3) **URL de Política de Privacidad** + **callback/instrucciones de eliminación de datos** (obligatorios — TurnoCero aún NO tiene estas páginas, hay que crearlas: rutas tipo `/privacidad` y data-deletion); (4) pasar la app a **Live**.
