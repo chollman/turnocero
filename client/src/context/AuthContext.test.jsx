@@ -17,7 +17,9 @@ function Probe() {
       <button onClick={() => a.login("e@e", "pw")}>do-login</button>
       <button onClick={() => a.logout()}>do-logout</button>
       <button onClick={() => a.register("x", "x@x", "pw")}>do-register</button>
-      <button onClick={() => a.oauthLogin("google", { credential: "cred" })}>
+      <button
+        onClick={() => a.oauthLogin("google", { accessToken: "g-access" })}
+      >
         do-oauth
       </button>
       <button onClick={() => a.verifyEmail("e@e", "000000")}>do-verify</button>
@@ -131,7 +133,7 @@ describe("AuthContext", () => {
       expect(screen.getByTestId("loading").textContent).toBe("false"),
     );
     await act(async () => screen.getByText("do-oauth").click());
-    expect(body).toEqual({ credential: "cred" });
+    expect(body).toEqual({ accessToken: "g-access" });
     expect(localStorage.getItem("token")).toBe("gtok");
     expect(screen.getByTestId("user").textContent).toBe("googler");
   });

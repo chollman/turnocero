@@ -2,19 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
-// Stub del botón oficial de Google: renderiza un botón propio que dispara
-// onSuccess con un credential simulado.
-let googleSuccessPayload = { credential: "g-cred" };
+// Mock de useGoogleLogin: captura el onSuccess y devuelve un trigger que, al
+// invocarse (click del botón), simula el callback con un access token.
+let googleOnSuccess;
+let googleTokenResponse = { access_token: "g-access" };
 vi.mock("@react-oauth/google", () => ({
-  GoogleLogin: ({ onSuccess }) => (
-    <button onClick={() => onSuccess(googleSuccessPayload)}>google-mock</button>
-  ),
+  useGoogleLogin: (opts) => {
+    googleOnSuccess = opts.onSuccess;
+    return () => googleOnSuccess(googleTokenResponse);
+  },
 }));
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
-vi.mock("../../context/ThemeContext", () => ({
-  useTheme: () => ({ theme: "dark" }),
-}));
 vi.mock("../../hooks/useFacebookSdk", () => ({ useFacebookSdk: vi.fn() }));
 
 const navigateMock = vi.fn();
@@ -44,14 +43,14 @@ function renderButtons({ oauthLogin = vi.fn(), fb = {}, onError } = {}) {
 
 beforeEach(() => {
   navigateMock.mockReset();
-  googleSuccessPayload = { credential: "g-cred" };
+  googleTokenResponse = { access_token: "g-access" };
 });
 
 describe("OAuthButtons", () => {
   it("renders the divider and both provider buttons", () => {
     renderButtons();
     expect(screen.getByText("o continuá con")).toBeInTheDocument();
-    expect(screen.getByText("google-mock")).toBeInTheDocument();
+    expect(screen.getByText("Continuar con Google")).toBeInTheDocument();
     expect(screen.getByText("Continuar con Facebook")).toBeInTheDocument();
   });
 
@@ -60,13 +59,13 @@ describe("OAuthButtons", () => {
     expect(screen.queryByText("Continuar con Facebook")).toBeNull();
   });
 
-  it("calls oauthLogin('google', { credential }) on Google success and navigates", async () => {
+  it("calls oauthLogin('google', { accessToken }) on Google success and navigates", async () => {
     const oauthLogin = vi.fn().mockResolvedValue({});
     renderButtons({ oauthLogin });
-    fireEvent.click(screen.getByText("google-mock"));
+    fireEvent.click(screen.getByText("Continuar con Google"));
     await waitFor(() =>
       expect(oauthLogin).toHaveBeenCalledWith("google", {
-        credential: "g-cred",
+        accessToken: "g-access",
       }),
     );
     expect(navigateMock).toHaveBeenCalledWith("/");
@@ -76,7 +75,7 @@ describe("OAuthButtons", () => {
     const onError = vi.fn();
     const oauthLogin = vi.fn().mockRejectedValue(new Error("boom"));
     renderButtons({ oauthLogin, onError });
-    fireEvent.click(screen.getByText("google-mock"));
+    fireEvent.click(screen.getByText("Continuar con Google"));
     await waitFor(() => expect(onError).toHaveBeenCalled());
     expect(navigateMock).not.toHaveBeenCalled();
   });
