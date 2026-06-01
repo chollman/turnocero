@@ -629,6 +629,23 @@ export default function CompartidaCard({
               {post.title && <h2 className={styles.title}>{post.title}</h2>}
               {post.body && <p className={styles.pullQuote}>{pullQuote}</p>}
 
+              {post.boardGames?.length > 0 && (
+                <div className={styles.gameTags}>
+                  {post.boardGames.map((g) => (
+                    <span key={g.bggId} className={styles.gameTag}>
+                      {(g.thumbnail || g.image) && (
+                        <img
+                          src={g.thumbnail || g.image}
+                          alt=""
+                          loading="lazy"
+                        />
+                      )}
+                      {g.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <div className={styles.broadsideMeta}>
                 <button
                   type="button"
@@ -882,6 +899,20 @@ export default function CompartidaCard({
             )}
           </div>
         </>
+      )}
+
+      {/* ── Juegos jugados (juntada) ── */}
+      {!editing && post.boardGames?.length > 0 && (
+        <div className={styles.gameTags}>
+          {post.boardGames.map((g) => (
+            <span key={g.bggId} className={styles.gameTag}>
+              {(g.thumbnail || g.image) && (
+                <img src={g.thumbnail || g.image} alt="" loading="lazy" />
+              )}
+              {g.name}
+            </span>
+          ))}
+        </div>
       )}
 
       {/* ── Photos (polaroid grid) ── */}

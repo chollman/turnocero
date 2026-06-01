@@ -15,6 +15,9 @@ const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { isSameId } = require("../utils/idCompare");
 const { assertLinkable } = require("../utils/tablePrivacy");
+const { sanitizeCompartidaHtml, stripHtml } = require("../utils/sanitizeHtml");
+const { escapeRegex } = require("../utils/regex");
+const { resolveGame } = require("../services/bgg/bggResolve");
 
 router.use(requireSection("compartidas"));
 
@@ -45,20 +48,65 @@ const visibilityFilter = (user) => {
   };
 };
 
-// ── Attach real comment counts to an array of compartida objects ─────────────
-const withCommentCounts = async (compartidas) => {
-  const ids = compartidas.map((j) => j._id);
+// ── Resolve a board-game snapshot from a client-sent { bggId } ───────────────
+// Nunca confiamos en el name/thumbnail/image que manda el cliente: el endpoint
+// de búsqueda de BGG devuelve thumbnails null, así que re-resolvemos el arte
+// server-side vía `resolveGame`. Devuelve null si no hay bggId; tira 400 si el
+// juego no existe en BGG.
+const resolveBoardGameSnapshot = async (input) => {
+  const bggId = Number(input?.bggId ?? input?.id ?? input);
+  if (!Number.isFinite(bggId) || bggId <= 0) return null;
+  const game = await resolveGame(bggId);
+  if (!game) throw httpError(400, "Juego no encontrado en BGG");
+  return {
+    bggId: game.id,
+    name: game.name,
+    thumbnail: game.thumbnail || "",
+    image: game.image || "",
+    year: game.year ?? null,
+  };
+};
+
+// Máximo de juegos por juntada (evita listas absurdas).
+const MAX_JUNTADA_GAMES = 12;
+
+// Resuelve una lista de juegos (juntada), deduplicando por bggId y respetando
+// el tope. Cada item se re-resuelve server-side (igual que el snapshot único).
+const resolveBoardGameList = async (input) => {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const item of input.slice(0, MAX_JUNTADA_GAMES)) {
+    const snap = await resolveBoardGameSnapshot(item);
+    if (snap && !seen.has(snap.bggId)) {
+      seen.add(snap.bggId);
+      out.push(snap);
+    }
+  }
+  return out;
+};
+
+// ── Build a { compartidaId → commentCount } map for a set of docs ────────────
+const commentCountMap = async (docs) => {
+  const ids = docs.map((j) => j._id);
   const counts = await CompartidaComment.aggregate([
     { $match: { compartida: { $in: ids } } },
     { $group: { _id: "$compartida", count: { $sum: 1 } } },
   ]);
-  const map = Object.fromEntries(
-    counts.map((c) => [c._id.toString(), c.count]),
-  );
-  return compartidas.map((j) => ({
+  return Object.fromEntries(counts.map((c) => [c._id.toString(), c.count]));
+};
+
+// Apply a comment-count map to a list of compartida docs (→ plain objects).
+const attachCounts = (docs, map) =>
+  docs.map((j) => ({
     ...j.toObject(),
     commentCount: map[j._id.toString()] ?? 0,
   }));
+
+// ── Attach real comment counts to an array of compartida objects ─────────────
+const withCommentCounts = async (compartidas) => {
+  const map = await commentCountMap(compartidas);
+  return attachCounts(compartidas, map);
 };
 
 // ── GET /api/compartidas — paginated feed (public compartidas visible without auth) ─
@@ -67,46 +115,95 @@ router.get(
   optionalAuth,
   asyncHandler(async (req, res) => {
     const { page, limit, skip } = parsePagination(req.query);
-    const filter = visibilityFilter(req.user);
 
-    // "Compartida del día" — most-liked post in the last 24h
+    // Filtros de pestaña (category) y búsqueda (q). El filtro de visibilidad
+    // siempre se respeta — se combina con $and para que `q` no lo bypassee.
+    const visibility = visibilityFilter(req.user);
+    const category = ["resena", "juntada"].includes(req.query.category)
+      ? req.query.category
+      : null;
+    const q = (req.query.q || "").trim();
+
+    const clauses = [visibility];
+    if (category) clauses.push({ category });
+    if (q) {
+      const rx = new RegExp(escapeRegex(q), "i");
+      clauses.push({
+        $or: [
+          { title: rx },
+          { "boardGame.name": rx },
+          { "boardGames.name": rx },
+        ],
+      });
+    }
+    const filter = clauses.length > 1 ? { $and: clauses } : clauses[0];
+
+    // El featured ("Compartida del día") solo tiene sentido en la vista sin
+    // filtros — al filtrar por tab o buscar, devolvemos una lista plana.
+    const isFiltered = Boolean(category) || Boolean(q);
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const [compartidas, total, mostLiked] = await Promise.all([
+
+    const [compartidas, total, topEngaged] = await Promise.all([
       populateCompartida(Compartida.find(filter))
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
       Compartida.countDocuments(filter),
-      // Most-liked post in the last 24h. Mongo no puede ordenar por el tamaño
-      // de un array vía `sort({ "likes.length": -1 })` (no es un campo escalar),
-      // así que usamos una aggregation con $size para ordenar correctamente.
-      Compartida.aggregate([
-        { $match: { ...filter, createdAt: { $gte: since24h } } },
-        { $addFields: { likeCount: { $size: { $ifNull: ["$likes", []] } } } },
-        { $sort: { likeCount: -1, createdAt: -1 } },
-        { $limit: 1 },
-        { $project: { _id: 1 } },
-      ]),
+      // Post con más "engagement" (likes + comentarios) en las últimas 24h.
+      // Los comentarios viven en otra colección → $lookup para contarlos.
+      // Empate → el más reciente. Se usa aggregation porque Mongo no puede
+      // ordenar por el tamaño de un array vía sort() de un find().
+      isFiltered
+        ? Promise.resolve([])
+        : Compartida.aggregate([
+            { $match: { ...visibility, createdAt: { $gte: since24h } } },
+            {
+              $lookup: {
+                from: CompartidaComment.collection.name,
+                localField: "_id",
+                foreignField: "compartida",
+                as: "_comments",
+              },
+            },
+            {
+              $addFields: {
+                engagement: {
+                  $add: [
+                    { $size: { $ifNull: ["$likes", []] } },
+                    { $size: "$_comments" },
+                  ],
+                },
+              },
+            },
+            // Umbral mínimo: sin engagement no hay destacado (no destacamos un
+            // post solo por ser reciente).
+            { $match: { engagement: { $gte: 1 } } },
+            { $sort: { engagement: -1, createdAt: -1 } },
+            { $limit: 1 },
+            { $project: { _id: 1 } },
+          ]),
     ]);
 
-    const featuredId = mostLiked.length ? mostLiked[0]._id : null;
+    const featuredId = topEngaged.length ? topEngaged[0]._id : null;
 
     const featured = featuredId
       ? await populateCompartida(Compartida.findById(featuredId))
       : null;
 
-    const allForCounts = [...compartidas, ...(featured ? [featured] : [])];
-    const withCounts = await withCommentCounts(allForCounts);
-    const featuredWithCount = featured
-      ? withCounts.find((j) => isSameId(j._id, featured._id))
-      : null;
-    const compartidasWithCounts = withCounts.filter(
-      (j) => !featured || !isSameId(j._id, featured._id),
-    );
+    // Un solo mapa de conteos para todas las listas (dedup por id implícito).
+    const countMap = await commentCountMap([
+      ...compartidas,
+      ...(featured ? [featured] : []),
+    ]);
+
+    // El featured se excluye de la lista principal para no duplicarlo.
+    const listDocs = featured
+      ? compartidas.filter((c) => !isSameId(c._id, featured._id))
+      : compartidas;
 
     res.json({
-      compartidas: compartidasWithCounts,
-      featured: featuredWithCount ?? null,
+      compartidas: attachCounts(listDocs, countMap),
+      featured: featured ? attachCounts([featured], countMap)[0] : null,
       total,
       page,
       pages: Math.ceil(total / limit),
@@ -125,15 +222,28 @@ router.get(
     try {
       const compartida = await Compartida.findById(req.params.id)
         .populate("author", "username displayName")
-        .select("title body images privacy author");
+        .select("title body images privacy author category rating boardGame");
       if (!compartida || compartida.privacy !== "public") {
         return res.status(404).json({});
       }
+      // Para reseñas el body es HTML → recortar texto plano. Para juntadas es
+      // texto plano directo.
+      const preview =
+        compartida.category === "resena"
+          ? stripHtml(compartida.body)
+          : compartida.body || "";
       res.json({
         title: compartida.title || null,
-        body: compartida.body?.slice(0, 160) || null,
-        image: compartida.images?.[0]?.url || null,
+        body: preview.slice(0, 160) || null,
+        image:
+          compartida.images?.[0]?.url ||
+          compartida.boardGame?.image ||
+          compartida.boardGame?.thumbnail ||
+          null,
         author: compartida.author.displayName || compartida.author.username,
+        category: compartida.category,
+        rating: compartida.rating ?? null,
+        game: compartida.boardGame?.name || null,
       });
     } catch {
       res.status(500).json({});
@@ -180,9 +290,46 @@ router.post(
   "/",
   protect,
   asyncHandler(async (req, res) => {
-    const { title, body, linkedTable, linkedEvento, privacy } = req.body;
+    const {
+      title,
+      body,
+      linkedTable,
+      linkedEvento,
+      privacy,
+      boardGame,
+      boardGames,
+    } = req.body;
+    const category = req.body.category === "resena" ? "resena" : "juntada";
+    const rating = req.body.rating;
 
-    if (!title?.trim() && !body?.trim()) {
+    // Reseña: 1 juego + rating obligatorios; body HTML sanitizado.
+    // Juntada: lista de juegos opcional (0..N); body plano.
+    let boardGameSnapshot = null;
+    let boardGameList = [];
+    let finalBody = body?.trim() || "";
+    let finalRating = null;
+
+    if (category === "resena") {
+      if (!boardGame?.bggId && !boardGame?.id) {
+        throw httpError(400, "La reseña necesita un juego");
+      }
+      const r = Number(rating);
+      if (!Number.isInteger(r) || r < 1 || r > 10) {
+        throw httpError(400, "Elegí una puntuación de 1 a 10");
+      }
+      boardGameSnapshot = await resolveBoardGameSnapshot(boardGame);
+      finalRating = r;
+      finalBody = sanitizeCompartidaHtml(body || "");
+    } else {
+      // Juntada: aceptar lista `boardGames`, o un `boardGame` único (compat).
+      boardGameList = await resolveBoardGameList(
+        boardGames || (boardGame ? [boardGame] : []),
+      );
+    }
+
+    const hasBody =
+      category === "resena" ? stripHtml(finalBody).length > 0 : !!finalBody;
+    if (!title?.trim() && !hasBody) {
       throw httpError(400, "La compartida necesita al menos un título o texto");
     }
 
@@ -226,8 +373,12 @@ router.post(
 
     const compartida = await Compartida.create({
       author: req.user._id,
+      category,
       title: title?.trim() || "",
-      body: body?.trim() || "",
+      body: finalBody,
+      boardGame: boardGameSnapshot,
+      boardGames: boardGameList,
+      rating: finalRating,
       linkedTable: linkedTable || null,
       linkedEvento: linkedEvento || null,
       privacy: privacy || "public",
@@ -251,10 +402,53 @@ router.put(
       throw httpError(403, "Solo el autor puede editar esta compartida");
     }
 
-    const { title, body, privacy, linkedTable, linkedEvento } = req.body;
+    const {
+      title,
+      body,
+      privacy,
+      linkedTable,
+      linkedEvento,
+      boardGame,
+      boardGames,
+    } = req.body;
+    const isResena = compartida.category === "resena";
+
+    // category es inmutable tras crear (cambiar de tipo = borrar y recrear).
+    if (
+      req.body.category !== undefined &&
+      req.body.category !== compartida.category
+    ) {
+      throw httpError(400, "No se puede cambiar el tipo de una compartida");
+    }
+
     if (title !== undefined) compartida.title = title.trim();
-    if (body !== undefined) compartida.body = body.trim();
+    if (body !== undefined) {
+      compartida.body = isResena ? sanitizeCompartidaHtml(body) : body.trim();
+    }
     if (privacy !== undefined) compartida.privacy = privacy;
+
+    // Solo las reseñas tienen rating/juego editables.
+    if (isResena) {
+      if (req.body.rating !== undefined) {
+        const r = Number(req.body.rating);
+        if (!Number.isInteger(r) || r < 1 || r > 10) {
+          throw httpError(400, "Elegí una puntuación de 1 a 10");
+        }
+        compartida.rating = r;
+      }
+      if (boardGame !== undefined) {
+        if (!boardGame?.bggId && !boardGame?.id) {
+          throw httpError(400, "La reseña necesita un juego");
+        }
+        compartida.boardGame = await resolveBoardGameSnapshot(boardGame);
+      }
+    } else if (boardGames !== undefined || boardGame !== undefined) {
+      // Juntada: editar la lista de juegos (acepta `boardGames` o un
+      // `boardGame` único por compat).
+      compartida.boardGames = await resolveBoardGameList(
+        boardGames || (boardGame ? [boardGame] : []),
+      );
+    }
     if (linkedTable !== undefined) {
       // Mismo check que POST: si se está seteando una mesa, debe ser pública
       // y el autor debe haber participado.

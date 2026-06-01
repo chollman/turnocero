@@ -13,6 +13,11 @@ vi.mock("./CompartidaCard", () => ({
     <div data-testid="compartida-card">{post.body || post.title}</div>
   ),
 }));
+vi.mock("./ResenaCard", () => ({
+  default: ({ post }) => (
+    <div data-testid="resena-card">{post.title || post.body}</div>
+  ),
+}));
 vi.mock("./CompartidasSidebar", () => ({ default: () => null }));
 
 import CompartidaPost from "./CompartidaPost";
@@ -56,6 +61,22 @@ describe("<CompartidaPost>", () => {
     renderPage();
     expect(await screen.findByTestId("compartida-card")).toBeInTheDocument();
     expect(screen.getByText("Mi publicación")).toBeInTheDocument();
+  });
+
+  it("renders a reseña via ResenaCard (not CompartidaCard)", async () => {
+    setupPost(
+      makePost({
+        category: "resena",
+        title: "Mi reseña pro",
+        rating: 9,
+        boardGame: { bggId: 13, name: "Catan" },
+        body: "<p>genial</p>",
+      }),
+    );
+    renderPage();
+    expect(await screen.findByTestId("resena-card")).toBeInTheDocument();
+    expect(screen.queryByTestId("compartida-card")).not.toBeInTheDocument();
+    expect(screen.getByText("Mi reseña pro")).toBeInTheDocument();
   });
 
   it('shows the "Volver al feed" button', async () => {

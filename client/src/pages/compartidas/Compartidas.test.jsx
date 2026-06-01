@@ -59,6 +59,11 @@ vi.mock("./CreateCompartidaForm", () => ({
     </div>
   ),
 }));
+vi.mock("./ResenaCard", () => ({
+  default: ({ post }) => (
+    <div data-testid="resena-card">{post.title || post.body}</div>
+  ),
+}));
 vi.mock("./CompartidasSidebar", () => ({ default: () => null }));
 vi.mock("./BgWatchHomeWidget", () => ({ default: () => null }));
 
@@ -348,6 +353,107 @@ describe("<Compartidas>", () => {
       expect(screen.getByText("Página 2")).toBeInTheDocument(),
     );
     expect(screen.getByText("Página 1")).toBeInTheDocument();
+  });
+
+  // ── Tabs + buscador ─────────────────────────────────────────────────
+  it("renderiza las pestañas Todo / Reseñas / Juntadas", async () => {
+    renderPage();
+    await screen.findByRole("tab", { name: "Todo" });
+    expect(screen.getByRole("tab", { name: "Reseñas" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Juntadas" })).toBeInTheDocument();
+  });
+
+  it("clickear la pestaña Reseñas pide category=resena", async () => {
+    const seen = [];
+    server.use(
+      http.get("/api/compartidas", ({ request }) => {
+        seen.push(new URL(request.url).searchParams.get("category"));
+        return HttpResponse.json({
+          compartidas: [],
+          featured: null,
+          page: 1,
+          pages: 1,
+          total: 0,
+        });
+      }),
+    );
+    renderPage();
+    await screen.findByRole("tab", { name: "Reseñas" });
+    fireEvent.click(screen.getByRole("tab", { name: "Reseñas" }));
+    await waitFor(() => expect(seen).toContain("resena"));
+  });
+
+  it("escribir en el buscador dispara una request con q (debounced)", async () => {
+    const seen = [];
+    server.use(
+      http.get("/api/compartidas", ({ request }) => {
+        seen.push(new URL(request.url).searchParams.get("q"));
+        return HttpResponse.json({
+          compartidas: [],
+          featured: null,
+          page: 1,
+          pages: 1,
+          total: 0,
+        });
+      }),
+    );
+    renderPage();
+    const input = await screen.findByRole("searchbox", {
+      name: /buscar compartidas/i,
+    });
+    fireEvent.change(input, { target: { value: "catan" } });
+    await waitFor(() => expect(seen).toContain("catan"), { timeout: 2000 });
+  });
+
+  it("deep-link ?tab=resena inicializa la pestaña Reseñas y pide category=resena", async () => {
+    const seen = [];
+    server.use(
+      http.get("/api/compartidas", ({ request }) => {
+        seen.push(new URL(request.url).searchParams.get("category"));
+        return HttpResponse.json({
+          compartidas: [],
+          featured: null,
+          page: 1,
+          pages: 1,
+          total: 0,
+        });
+      }),
+    );
+    renderPage({ initialEntries: ["/compartidas?tab=resena"] });
+    await waitFor(() => expect(seen).toContain("resena"));
+    expect(screen.getByRole("tab", { name: "Reseñas" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  it("deep-link ?q=catan inicializa el buscador y pide q=catan", async () => {
+    const seen = [];
+    server.use(
+      http.get("/api/compartidas", ({ request }) => {
+        seen.push(new URL(request.url).searchParams.get("q"));
+        return HttpResponse.json({
+          compartidas: [],
+          featured: null,
+          page: 1,
+          pages: 1,
+          total: 0,
+        });
+      }),
+    );
+    renderPage({ initialEntries: ["/compartidas?q=catan"] });
+    await waitFor(() => expect(seen).toContain("catan"));
+    expect(
+      screen.getByRole("searchbox", { name: /buscar compartidas/i }),
+    ).toHaveValue("catan");
+  });
+
+  it("clickear una pestaña refleja tab= en la URL del navegador", async () => {
+    window.history.replaceState({}, "", "/compartidas");
+    renderPage();
+    await screen.findByRole("tab", { name: "Reseñas" });
+    fireEvent.click(screen.getByRole("tab", { name: "Reseñas" }));
+    await waitFor(() => expect(window.location.search).toContain("tab=resena"));
   });
 
   it("el composer ya no tiene el botón 'Enlazar mesa'", async () => {

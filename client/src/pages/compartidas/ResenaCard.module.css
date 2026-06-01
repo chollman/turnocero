@@ -1,0 +1,530 @@
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cardFeatured {
+  border-color: var(--amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+
+.featuredBadge {
+  background: var(--amber);
+  color: var(--on-amber);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 6px 16px;
+  text-transform: uppercase;
+}
+
+/* ── Header de juego ── */
+.gameHeader {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  padding: 18px 18px;
+  isolation: isolate;
+}
+
+.gameHeaderOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.55));
+  backdrop-filter: blur(2px);
+  z-index: -1;
+}
+
+.gameHeaderInner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.gameCover {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  background: var(--bg-dark);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.gameHeaderInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.gameName {
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.gameYear {
+  font-weight: 500;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.ratingBadge {
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  background: var(--amber);
+  color: var(--on-amber);
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 12px var(--amber-glow);
+}
+
+.ratingNum {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.ratingMax {
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+/* ── Autor ── */
+.authorRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px 0;
+}
+
+.avatarLink {
+  display: inline-flex;
+  text-decoration: none;
+}
+
+.authorMeta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.authorNameLink {
+  text-decoration: none;
+}
+
+.authorName {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.metaTime {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.bgwatchLink {
+  color: var(--amber);
+  text-decoration: none;
+}
+
+.bgwatchLink:hover {
+  text-decoration: underline;
+}
+
+.menuWrap {
+  position: relative;
+}
+
+.menuBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 6px;
+  line-height: 1;
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 5;
+  min-width: 120px;
+  box-shadow: var(--shadow-md);
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 9px 14px;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background: var(--bg-hover);
+}
+
+.menuItemDanger {
+  color: var(--red);
+}
+
+/* ── Contenido ── */
+.title {
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 12px 18px 0;
+  color: var(--text-primary);
+}
+
+.body {
+  padding: 12px 18px 4px;
+}
+
+.images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 18px 4px;
+}
+
+.imageBtn {
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  width: 96px;
+  height: 96px;
+}
+
+.imageBtn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Edición ── */
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 18px;
+}
+
+.editErr {
+  background: var(--red-10);
+  border: 1px solid var(--red-30);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--red);
+  font-size: 13px;
+}
+
+.editTitle {
+  background: var(--bg-dark);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.editTitle:focus {
+  border-color: var(--amber);
+}
+
+.editGameChip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-amber);
+  border-radius: 8px;
+  background: var(--amber-10);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.editGameChip button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.editRatingRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ratingPill {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-dark);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.ratingPill:hover {
+  border-color: var(--border-amber);
+  color: var(--text-primary);
+}
+
+.ratingPillActive,
+.ratingPillActive:hover {
+  border-color: var(--amber);
+  background: var(--amber);
+  color: var(--on-amber);
+}
+
+.editActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btnGhost {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btnSave {
+  background: var(--amber);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  color: var(--on-amber);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
+}
+
+.btnSave:hover:not(:disabled) {
+  background: var(--amber-light);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+
+.btnSave:disabled,
+.btnGhost:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Footer ── */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px 14px;
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.reactionGroup,
+.shareGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reactionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: all var(--transition);
+}
+
+.reactionBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.reactionBtn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.reactionBtnLiked {
+  color: var(--red);
+}
+
+.reactionLabel {
+  font-size: 12px;
+}
+
+.likeHeart {
+  display: inline-flex;
+  transition: transform var(--transition);
+}
+
+.likeHeartPop {
+  transform: scale(1.3);
+}
+
+.shareBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 14px;
+  transition: all var(--transition);
+}
+
+.shareBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.shareBtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.shareBtnCopied {
+  color: var(--green);
+}
+
+/* ── Lightbox ── */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.lightboxImg {
+  max-width: 92vw;
+  max-height: 88vh;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.lightboxClose {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.lightboxNav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: #fff;
+  font-size: 38px;
+  line-height: 1;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.lightboxPrev {
+  left: 16px;
+}
+
+.lightboxNext {
+  right: 16px;
+}
+
+.lightboxCounter {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .gameName {
+    font-size: 1.1rem;
+  }
+  .title {
+    font-size: 1.3rem;
+  }
+  .ratingNum {
+    font-size: 1.35rem;
+  }
+}

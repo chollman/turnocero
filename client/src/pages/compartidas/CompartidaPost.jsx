@@ -5,9 +5,17 @@ import axios from "axios";
 import { useNotifications } from "../../context/NotificationContext";
 import { API } from "../../api/endpoints";
 import CompartidaCard from "./CompartidaCard";
+import ResenaCard from "./ResenaCard";
 import CompartidasSidebar from "./CompartidasSidebar";
 import CompartidaSkeleton from "./CompartidaSkeleton";
 import styles from "./CompartidaPost.module.css";
+
+// Texto plano a partir del body HTML de una reseña (para meta/description).
+const stripHtml = (html) =>
+  (html || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 export default function CompartidaPost() {
   const { id } = useParams();
@@ -47,13 +55,23 @@ export default function CompartidaPost() {
   const authorName = post?.author
     ? post.author.displayName || post.author.username
     : "TurnoCero";
+  const isResena = post?.category === "resena";
   const metaTitle = post?.title
     ? `${post.title} – TurnoCero 🎲`
-    : `Compartida de ${authorName} – TurnoCero 🎲`;
-  const metaDesc = post?.body
-    ? post.body.slice(0, 160) + (post.body.length > 160 ? "…" : "")
+    : isResena
+      ? `Reseña de ${post?.boardGame?.name || "un juego"} – TurnoCero 🎲`
+      : `Compartida de ${authorName} – TurnoCero 🎲`;
+  // Para reseñas el body es HTML → texto plano; sumamos juego + puntuación.
+  const bodyText = isResena ? stripHtml(post?.body) : post?.body || "";
+  const resenaPrefix =
+    isResena && post?.boardGame?.name
+      ? `Reseña de ${post.boardGame.name}${post.rating != null ? ` · ${post.rating}/10` : ""}. `
+      : "";
+  const fullDesc = `${resenaPrefix}${bodyText}`.trim();
+  const metaDesc = fullDesc
+    ? fullDesc.slice(0, 160) + (fullDesc.length > 160 ? "…" : "")
     : "Mirá esta compartida en TurnoCero, la comunidad de juegos de mesa.";
-  const rawImage = post?.images?.[0]?.url;
+  const rawImage = post?.images?.[0]?.url || post?.boardGame?.image;
   // Resize to 1200×630 via Cloudinary transformation for optimal OG display.
   // Sin foto cae al og-default.png (también 1200×630), así que siempre hay una
   // imagen grande válida para la preview.
@@ -111,13 +129,20 @@ export default function CompartidaPost() {
             </div>
           )}
 
-          {post && (
-            <CompartidaCard
-              post={post}
-              onDeleted={() => navigate("/compartidas")}
-              onUpdated={(updated) => setPost(updated)}
-            />
-          )}
+          {post &&
+            (isResena ? (
+              <ResenaCard
+                post={post}
+                onDeleted={() => navigate("/compartidas")}
+                onUpdated={(updated) => setPost(updated)}
+              />
+            ) : (
+              <CompartidaCard
+                post={post}
+                onDeleted={() => navigate("/compartidas")}
+                onUpdated={(updated) => setPost(updated)}
+              />
+            ))}
         </div>
         <CompartidasSidebar />
       </div>

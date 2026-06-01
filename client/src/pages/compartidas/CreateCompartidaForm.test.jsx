@@ -6,6 +6,54 @@ import { server } from "../../test/server";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
+// Tiptap rompe en jsdom → mock simple con un textarea que llama onChange.
+vi.mock("../../components/shared/RichTextEditor", () => ({
+  default: ({ value, onChange, placeholder }) => (
+    <textarea
+      aria-label="editor reseña"
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  ),
+}));
+
+// Mock del buscador BGG: botones que eligen juegos fijos (evita debounce/MSW).
+vi.mock("../../components/shared/BggGameSearch", () => ({
+  default: ({ onPick }) => (
+    <>
+      <button
+        type="button"
+        onClick={() =>
+          onPick({
+            id: 13,
+            name: "Catan",
+            thumbnail: "t.jpg",
+            image: "i.jpg",
+            year: 1995,
+          })
+        }
+      >
+        mock-pick-game
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onPick({
+            id: 99,
+            name: "Wingspan",
+            thumbnail: "w.jpg",
+            image: "w.jpg",
+            year: 2019,
+          })
+        }
+      >
+        mock-pick-game-2
+      </button>
+    </>
+  ),
+}));
+
 import CreateCompartidaForm from "./CreateCompartidaForm";
 import { useAuth } from "../../context/AuthContext";
 
@@ -76,6 +124,130 @@ describe("<CreateCompartidaForm>", () => {
     const friendsBtn = screen.getByRole("button", { name: "Amigos" });
     fireEvent.click(friendsBtn);
     expect(friendsBtn.className).toMatch(/active/i);
+  });
+
+  // ── Reseña vs juntada ────────────────────────────────────────────────
+  it("default es juntada (textarea de juntada presente)", () => {
+    renderForm();
+    expect(
+      screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("editor reseña")).not.toBeInTheDocument();
+  });
+
+  it("al elegir Reseña aparece el editor enriquecido y la puntuación", () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("radio", { name: /reseña/i }));
+    expect(screen.getByLabelText("editor reseña")).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
+    ).not.toBeInTheDocument();
+    // Pills de puntuación 1..10.
+    expect(screen.getByRole("radio", { name: "8" })).toBeInTheDocument();
+  });
+
+  it("reseña sin juego: muestra error al enviar", () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("radio", { name: /reseña/i }));
+    fireEvent.change(screen.getByLabelText("editor reseña"), {
+      target: { value: "<p>buena</p>" },
+    });
+    const form = document.querySelector("form");
+    fireEvent.submit(form);
+    expect(screen.getByText(/elegí un juego/i)).toBeInTheDocument();
+  });
+
+  it("reseña con juego pero sin puntuación: muestra error", () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("radio", { name: /reseña/i }));
+    fireEvent.click(screen.getByRole("button", { name: "mock-pick-game" }));
+    fireEvent.change(screen.getByLabelText("editor reseña"), {
+      target: { value: "<p>buena</p>" },
+    });
+    const form = document.querySelector("form");
+    fireEvent.submit(form);
+    expect(
+      screen.getByText(/elegí una puntuación de 1 a 10/i),
+    ).toBeInTheDocument();
+  });
+
+  it("reseña válida: el POST incluye category, boardGame y rating", async () => {
+    const onCreated = vi.fn();
+    let captured = null;
+    server.use(
+      http.post("/api/compartidas", async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({ _id: "r1", category: "resena", images: [] });
+      }),
+    );
+    renderForm({ onCreated });
+    fireEvent.click(screen.getByRole("radio", { name: /reseña/i }));
+    fireEvent.click(screen.getByRole("button", { name: "mock-pick-game" }));
+    fireEvent.click(screen.getByRole("radio", { name: "9" }));
+    fireEvent.change(screen.getByLabelText("editor reseña"), {
+      target: { value: "<p>Excelente</p>" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /publicar compartida/i }),
+    );
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(captured.category).toBe("resena");
+    expect(captured.rating).toBe(9);
+    expect(captured.boardGame.bggId).toBe(13);
+    expect(captured.body).toContain("Excelente");
+  });
+
+  it("juntada permite agregar varios juegos y el POST manda boardGames", async () => {
+    const onCreated = vi.fn();
+    let captured = null;
+    server.use(
+      http.post("/api/compartidas", async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({ _id: "j1", images: [] });
+      }),
+    );
+    renderForm({ onCreated }); // default = juntada
+    fireEvent.change(
+      screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
+      { target: { value: "noche de juegos" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "mock-pick-game" }));
+    fireEvent.click(screen.getByRole("button", { name: "mock-pick-game-2" }));
+    // Dos chips removibles.
+    expect(
+      screen.getByRole("button", { name: /quitar catan/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /quitar wingspan/i }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: /publicar compartida/i }),
+    );
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(captured.boardGames.map((g) => g.bggId)).toEqual([13, 99]);
+    expect(captured.boardGame).toBeUndefined();
+  });
+
+  it("juntada dedupea el mismo juego", () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("button", { name: "mock-pick-game" }));
+    fireEvent.click(screen.getByRole("button", { name: "mock-pick-game" }));
+    expect(
+      screen.getAllByRole("button", { name: /quitar catan/i }),
+    ).toHaveLength(1);
+  });
+
+  it("reseña acepta un solo juego (oculta el buscador tras elegir)", () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("radio", { name: /reseña/i }));
+    fireEvent.click(screen.getByRole("button", { name: "mock-pick-game" }));
+    // Tras elegir 1, el buscador (sus botones mock) desaparece.
+    expect(
+      screen.queryByRole("button", { name: "mock-pick-game" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /quitar catan/i }),
+    ).toBeInTheDocument();
   });
 
   it("cancel button calls onCancel", () => {
