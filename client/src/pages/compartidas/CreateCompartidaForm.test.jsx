@@ -146,6 +146,15 @@ describe("<CreateCompartidaForm>", () => {
     expect(screen.getByRole("radio", { name: "8" })).toBeInTheDocument();
   });
 
+  it("la reseña oculta el control de foto separado", () => {
+    renderForm(); // juntada: el botón Foto está presente
+    expect(screen.getByRole("button", { name: /foto/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: /reseña/i }));
+    expect(
+      screen.queryByRole("button", { name: /foto/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("reseña sin juego: muestra error al enviar", () => {
     renderForm();
     fireEvent.click(screen.getByRole("radio", { name: /reseña/i }));

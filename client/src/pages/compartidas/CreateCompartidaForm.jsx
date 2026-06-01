@@ -76,7 +76,14 @@ export default function CreateCompartidaForm({
     setBody("");
     setRating(0);
     setError("");
-    if (next === "resena") setGames((prev) => prev.slice(0, 1));
+    if (next === "resena") {
+      setGames((prev) => prev.slice(0, 1));
+      // La reseña no usa el control de foto separado (van inline en el editor).
+      setImages((prev) => {
+        prev.forEach((img) => URL.revokeObjectURL(img.preview));
+        return [];
+      });
+    }
   };
   // El linking es solo contextual: el id viene de la mesa/evento desde donde
   // se abrió la compartida (no hay dropdown manual). Mostramos un chip quitable.
@@ -296,6 +303,22 @@ export default function CreateCompartidaForm({
         </button>
       </div>
 
+      {/* Visibilidad — al inicio para ambos tipos */}
+      <div className={styles.privacyRow}>
+        <span className={styles.privacyLabel}>Visibilidad:</span>
+        {PRIVACY_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            className={`${styles.privacyBtn} ${privacy === opt.value ? styles.privacyBtnActive : ""}`}
+            onClick={() => setPrivacy(opt.value)}
+            disabled={loading}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {error && <div className={styles.error}>{error}</div>}
 
       {/* ── Selector de juego (reseña: 1 obligatorio · juntada: varios opcional) ── */}
@@ -350,6 +373,7 @@ export default function CreateCompartidaForm({
           <BggGameSearch
             onPick={addGame}
             autoFocus={false}
+            clearOnPick={!isResena}
             placeholder={
               isResena
                 ? "Buscá el juego en BGG (≥3 caracteres)…"
@@ -358,34 +382,6 @@ export default function CreateCompartidaForm({
           />
         )}
       </div>
-
-      {/* ── Puntuación (solo reseña) ── */}
-      {isResena && (
-        <div className={styles.ratingField}>
-          <span className={styles.fieldLabel}>
-            Puntuación <span className={styles.req}>· 1 a 10</span>
-          </span>
-          <div
-            className={styles.ratingPills}
-            role="radiogroup"
-            aria-label="Puntuación"
-          >
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-              <button
-                key={n}
-                type="button"
-                role="radio"
-                aria-checked={rating === n}
-                className={`${styles.ratingPill} ${rating === n ? styles.ratingPillActive : ""}`}
-                onClick={() => setRating(n)}
-                disabled={loading}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* ── Chip de mesa enlazada (contextual, quitable) ── */}
       {linkedTable && (
@@ -475,74 +471,93 @@ export default function CreateCompartidaForm({
         />
       )}
 
-      {/* Image previews */}
-      {images.length > 0 && (
-        <div className={styles.previews}>
-          {images.map((img, i) => (
-            <div key={i} className={styles.previewWrap}>
-              <img src={img.preview} alt="" className={styles.preview} />
-              <button
-                type="button"
-                className={styles.removeImg}
-                onClick={() => removeImage(i)}
-              >
-                ✕
-              </button>
+      {/* Fotos — solo en juntada. En reseña las imágenes van inline en el
+          editor enriquecido, así que no mostramos el control separado. */}
+      {!isResena && (
+        <>
+          {images.length > 0 && (
+            <div className={styles.previews}>
+              {images.map((img, i) => (
+                <div key={i} className={styles.previewWrap}>
+                  <img src={img.preview} alt="" className={styles.preview} />
+                  <button
+                    type="button"
+                    className={styles.removeImg}
+                    onClick={() => removeImage(i)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+
+          <div className={styles.controls}>
+            {/* Photo picker */}
+            <button
+              type="button"
+              className={styles.photoBtn}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={images.length >= 3 || loading}
+              title={images.length >= 3 ? "Máximo 3 fotos" : "Agregar foto"}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+              <span>
+                Foto {images.length > 0 ? `(${images.length}/3)` : ""}
+              </span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              className={styles.fileInput}
+              onChange={handleImageSelect}
+            />
+          </div>
+        </>
       )}
 
-      <div className={styles.controls}>
-        {/* Photo picker */}
-        <button
-          type="button"
-          className={styles.photoBtn}
-          onClick={() => fileInputRef.current?.click()}
-          disabled={images.length >= 3 || loading}
-          title={images.length >= 3 ? "Máximo 3 fotos" : "Agregar foto"}
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+      {/* ── Puntuación (solo reseña) — al final del form ── */}
+      {isResena && (
+        <div className={styles.ratingField}>
+          <span className={styles.fieldLabel}>
+            Puntuación <span className={styles.req}>· 1 a 10</span>
+          </span>
+          <div
+            className={styles.ratingPills}
+            role="radiogroup"
+            aria-label="Puntuación"
           >
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <polyline points="21 15 16 10 5 21" />
-          </svg>
-          <span>Foto {images.length > 0 ? `(${images.length}/3)` : ""}</span>
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          multiple
-          className={styles.fileInput}
-          onChange={handleImageSelect}
-        />
-      </div>
-
-      {/* Privacy */}
-      <div className={styles.privacyRow}>
-        <span className={styles.privacyLabel}>Visibilidad:</span>
-        {PRIVACY_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            className={`${styles.privacyBtn} ${privacy === opt.value ? styles.privacyBtnActive : ""}`}
-            onClick={() => setPrivacy(opt.value)}
-            disabled={loading}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                role="radio"
+                aria-checked={rating === n}
+                className={`${styles.ratingPill} ${rating === n ? styles.ratingPillActive : ""}`}
+                onClick={() => setRating(n)}
+                disabled={loading}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div className={styles.actions}>

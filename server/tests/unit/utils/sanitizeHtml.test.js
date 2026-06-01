@@ -14,10 +14,13 @@ describe("sanitizeCompartidaHtml", () => {
   });
 
   it("strips event handler attributes (onerror)", () => {
-    const out = sanitizeCompartidaHtml('<img src="x" onerror="alert(1)">');
+    const out = sanitizeCompartidaHtml(
+      '<img src="https://x.com/a.jpg" onerror="alert(1)">',
+    );
     expect(out).not.toContain("onerror");
-    // <img> no está en el allow-list → se elimina por completo.
-    expect(out).not.toContain("<img");
+    expect(out).not.toContain("alert");
+    // El <img> con src http válido se conserva.
+    expect(out).toContain('src="https://x.com/a.jpg"');
   });
 
   it("strips <iframe>", () => {
@@ -43,6 +46,24 @@ describe("sanitizeCompartidaHtml", () => {
     expect(out).toContain('href="https://x.com"');
     expect(out).toContain('rel="noopener noreferrer nofollow"');
     expect(out).toContain('target="_blank"');
+  });
+
+  it("keeps <img> with an http(s) src", () => {
+    const out = sanitizeCompartidaHtml(
+      '<p>foto</p><img src="https://cf.geekdo.com/x.jpg" alt="juego">',
+    );
+    expect(out).toContain("<img");
+    expect(out).toContain('src="https://cf.geekdo.com/x.jpg"');
+    expect(out).toContain('alt="juego"');
+  });
+
+  it("drops <img> with a non-http src (data:/javascript:)", () => {
+    const data = sanitizeCompartidaHtml(
+      '<img src="data:image/png;base64,AAAA">',
+    );
+    expect(data).not.toContain("data:");
+    const js = sanitizeCompartidaHtml('<img src="javascript:alert(1)">');
+    expect(js).not.toContain("javascript:");
   });
 
   it("drops javascript: protocol links", () => {

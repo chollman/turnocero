@@ -2,7 +2,10 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
-import { useEffect } from "react";
+import Image from "@tiptap/extension-image";
+import { useEffect, useRef, useState } from "react";
+import axios from "axios";
+import { API } from "../../api/endpoints";
 import styles from "./RichTextEditor.module.css";
 
 // Botón de la toolbar. A nivel de módulo (no dentro del render) para no crear
@@ -43,6 +46,9 @@ export default function RichTextEditor({
   disabled = false,
   maxLength = 20000,
 }) {
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+
   const editor = useEditor({
     editable: !disabled,
     extensions: [
@@ -64,6 +70,7 @@ export default function RichTextEditor({
         },
       }),
       Placeholder.configure({ placeholder }),
+      Image.configure({ inline: false, allowBase64: false }),
     ],
     content: value || "",
     onUpdate: ({ editor: ed }) => {
@@ -123,6 +130,27 @@ export default function RichTextEditor({
       return;
     }
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  };
+
+  // Subir una imagen al servidor (Cloudinary) e insertarla inline. Se sube
+  // antes de que la compartida exista, así que usa un endpoint genérico.
+  const handleImageFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const { data } = await axios.post(API.compartidas.INLINE_IMAGE, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      editor.chain().focus().setImage({ src: data.url }).run();
+    } catch {
+      window.alert("No se pudo subir la imagen.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -202,6 +230,21 @@ export default function RichTextEditor({
         >
           {"🔗"}
         </ToolbarButton>
+        <ToolbarButton
+          label="Imagen"
+          disabled={disabled || uploading}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {uploading ? "…" : "🖼️"}
+        </ToolbarButton>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          hidden
+          aria-hidden="true"
+          onChange={handleImageFile}
+        />
       </div>
       <EditorContent editor={editor} className={styles.editorBox} />
       {maxLength ? (

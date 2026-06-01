@@ -633,14 +633,24 @@ export default function CompartidaCard({
                 <div className={styles.gameTags}>
                   {post.boardGames.map((g) => (
                     <span key={g.bggId} className={styles.gameTag}>
-                      {(g.thumbnail || g.image) && (
+                      {g.thumbnail || g.image ? (
                         <img
                           src={g.thumbnail || g.image}
                           alt=""
                           loading="lazy"
+                          className={styles.gameTagImg}
                         />
+                      ) : (
+                        <span className={styles.gameTagImg} aria-hidden="true">
+                          🎲
+                        </span>
                       )}
-                      {g.name}
+                      <span className={styles.gameTagInfo}>
+                        <span className={styles.gameTagName}>{g.name}</span>
+                        {g.year && (
+                          <span className={styles.gameTagYear}>{g.year}</span>
+                        )}
+                      </span>
                     </span>
                   ))}
                 </div>
@@ -906,10 +916,22 @@ export default function CompartidaCard({
         <div className={styles.gameTags}>
           {post.boardGames.map((g) => (
             <span key={g.bggId} className={styles.gameTag}>
-              {(g.thumbnail || g.image) && (
-                <img src={g.thumbnail || g.image} alt="" loading="lazy" />
+              {g.thumbnail || g.image ? (
+                <img
+                  src={g.thumbnail || g.image}
+                  alt=""
+                  loading="lazy"
+                  className={styles.gameTagImg}
+                />
+              ) : (
+                <span className={styles.gameTagImg} aria-hidden="true">
+                  🎲
+                </span>
               )}
-              {g.name}
+              <span className={styles.gameTagInfo}>
+                <span className={styles.gameTagName}>{g.name}</span>
+                {g.year && <span className={styles.gameTagYear}>{g.year}</span>}
+              </span>
             </span>
           ))}
         </div>

@@ -121,6 +121,18 @@
   text-decoration: underline;
 }
 
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0.5em 0;
+  display: block;
+}
+
+.prose img.ProseMirror-selectednode {
+  outline: 2px solid var(--amber);
+}
+
 .counter {
   padding: 4px 10px;
   text-align: right;

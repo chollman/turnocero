@@ -15,6 +15,7 @@ describe("<RichTextEditor>", () => {
       screen.getByRole("button", { name: /negrita/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^link$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /imagen/i })).toBeInTheDocument();
   });
 
   it("shows the character counter", () => {

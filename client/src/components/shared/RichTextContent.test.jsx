@@ -23,10 +23,20 @@ describe("<RichTextContent>", () => {
 
   it("strips onerror handlers and disallowed tags", () => {
     const { container } = render(
-      <RichTextContent html='<img src="x" onerror="alert(1)">hola' />,
+      <RichTextContent html='<iframe src="evil"></iframe><p onclick="x()">hola</p>' />,
     );
-    expect(container.querySelector("img")).not.toBeInTheDocument();
-    expect(container.innerHTML).not.toContain("onerror");
+    expect(container.querySelector("iframe")).not.toBeInTheDocument();
+    expect(container.innerHTML).not.toContain("onclick");
+    expect(container.textContent).toContain("hola");
+  });
+
+  it("keeps <img> with an http(s) src", () => {
+    const { container } = render(
+      <RichTextContent html='<p>foto</p><img src="https://cf.geekdo.com/x.jpg" alt="j">' />,
+    );
+    const img = container.querySelector("img");
+    expect(img).toBeInTheDocument();
+    expect(img.getAttribute("src")).toBe("https://cf.geekdo.com/x.jpg");
   });
 
   it("renders nothing for empty html", () => {
