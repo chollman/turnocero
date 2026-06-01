@@ -8,6 +8,14 @@ import {
 } from "@testing-library/react";
 import { MemoryRouter, Route, Link } from "react-router-dom";
 import PageTransition from "./PageTransition";
+import usePageTransition from "./usePageTransition";
+
+// PageTransition es presentacional: el estado de transición vive en el hook.
+// El Harness reproduce el wiring real (AppShell llama al hook y lo pasa por prop).
+function Harness({ children }) {
+  const transition = usePageTransition();
+  return <PageTransition transition={transition}>{children}</PageTransition>;
+}
 
 function renderApp(initialEntry = "/") {
   return render(
@@ -15,7 +23,7 @@ function renderApp(initialEntry = "/") {
       <Link to="/mesas">Mesas</Link>
       <Link to="/compartidas">Compartidas</Link>
       <Link to="/mesas/123">Detail</Link>
-      <PageTransition>
+      <Harness>
         <Route path="/" element={<div data-testid="home">Home</div>} />
         <Route
           path="/mesas"
@@ -29,7 +37,7 @@ function renderApp(initialEntry = "/") {
           path="/compartidas"
           element={<div data-testid="compartidas">Compartidas Page</div>}
         />
-      </PageTransition>
+      </Harness>
     </MemoryRouter>,
   );
 }
@@ -52,13 +60,13 @@ describe("<PageTransition>", () => {
     const { container } = render(
       <MemoryRouter initialEntries={["/login"]}>
         <Link to="/register">ToRegister</Link>
-        <PageTransition>
+        <Harness>
           <Route path="/login" element={<div data-testid="login">Login</div>} />
           <Route
             path="/register"
             element={<div data-testid="register">Register</div>}
           />
-        </PageTransition>
+        </Harness>
       </MemoryRouter>,
     );
     expect(screen.getByTestId("login")).toBeInTheDocument();
