@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
@@ -509,7 +510,7 @@ export default function ErrorScreen({
           links.length > 0 && (
             <div className={styles.errLinks}>
               <span className={styles.errLinksLabel}>
-                ◆ O probá una de estas mesas
+                <Meeple />O probá una de estas mesas
               </span>
               {links.map((l) => (
                 <Link key={l.to} className={styles.errLink} to={l.to}>

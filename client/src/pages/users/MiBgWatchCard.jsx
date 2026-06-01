@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -112,7 +113,7 @@ export default function MiBgWatchCard({ bggUsername }) {
           </span>
         </div>
         <div className={styles.identity}>
-          <span className={styles.eyebrow}>◆ MI BG WATCH</span>
+          <span className={styles.eyebrow}><Meeple />MI BG WATCH</span>
           <span className={styles.username}>@{bggUsername}</span>
           <span className={styles.connectedTag}>
             <span className={styles.connectedDot} aria-hidden="true" />

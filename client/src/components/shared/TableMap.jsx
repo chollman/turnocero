@@ -11,7 +11,7 @@ import styles from "./TableMap.module.css";
 //   - empty: círculo punteado transparente, "?" adentro
 //
 // El centro de la mesa muestra el nombre del juego truncado a 16 chars
-// (el SVG tiene poco espacio horizontal disponible) y "◆ MESA" debajo.
+// (el SVG tiene poco espacio horizontal disponible) y "MESA" debajo.
 //
 // El componente NO hace fetching ni mutación — sólo renderea. Es seguro
 // pasar arrays vacíos / refs no populadas; el helper `getUserDisplay`

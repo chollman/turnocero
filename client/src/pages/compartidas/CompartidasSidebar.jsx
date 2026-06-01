@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -68,7 +69,7 @@ export default function CompartidasSidebar() {
       {mesasEnabled && (
         <div className={styles.widget}>
           <div className={styles.widgetHeader}>
-            <span className={styles.widgetEyebrow}>◆ TUS MESAS</span>
+            <span className={styles.widgetEyebrow}><Meeple />TUS MESAS</span>
             <Link to="/mesas" className={styles.widgetLink}>
               Ver todas →
             </Link>
@@ -124,7 +125,7 @@ export default function CompartidasSidebar() {
       {mesasEnabled && (
         <div className={styles.widget}>
           <div className={styles.widgetHeader}>
-            <span className={styles.widgetEyebrow}>◆ COMUNIDAD</span>
+            <span className={styles.widgetEyebrow}><Meeple />COMUNIDAD</span>
           </div>
           <h3 className={styles.widgetTitle}>Top juegos esta semana</h3>
 

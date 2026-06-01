@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -119,7 +120,7 @@ export default function EventoMesas({
 
       {tables.length === 0 ? (
         <div className={styles.empty}>
-          <span className={styles.emptyDot}>◆</span>
+          <span className={styles.emptyDot}><Meeple /></span>
           <p className={styles.emptyText}>
             {canAdd
               ? "Sé el primero en armar una mesa para este evento."

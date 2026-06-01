@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useCallback, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -75,7 +76,7 @@ export default function BgWatchProfile() {
         </button>
 
         <div className={styles.hero}>
-          <div className={styles.eyebrow}>◆ BG WATCH</div>
+          <div className={styles.eyebrow}><Meeple />BG WATCH</div>
           <h1 className={styles.heroTitle}>{bggUsername}</h1>
           <a
             href={`https://boardgamegeek.com/user/${bggUsername}`}

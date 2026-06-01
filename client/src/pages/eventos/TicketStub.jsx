@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState } from "react";
 import ComprobanteDropzone from "./ComprobanteDropzone";
 import { dateParts, countdown, formatFee } from "../../utils/eventoDate";
@@ -87,21 +88,21 @@ export default function TicketStub({
       <div className={styles.form}>
         {evento.conditions && (
           <div>
-            <div className={styles.formLabel}>◆ Condiciones</div>
+            <div className={styles.formLabel}><Meeple />Condiciones</div>
             <p className={styles.formText}>{evento.conditions}</p>
           </div>
         )}
         {!isFree && evento.transferDetails && (
           <div>
             <div className={styles.formLabel}>
-              ◆ Datos de transferencia · {formatFee(evento.fee)}
+              <Meeple />Datos de transferencia · {formatFee(evento.fee)}
             </div>
             <div className={styles.transferBox}>{evento.transferDetails}</div>
           </div>
         )}
         {!isFree && (
           <div>
-            <div className={styles.formLabel}>◆ Comprobante *</div>
+            <div className={styles.formLabel}><Meeple />Comprobante *</div>
             <ComprobanteDropzone file={comprobante} onFile={setComprobante} />
           </div>
         )}
@@ -135,7 +136,7 @@ export default function TicketStub({
   return (
     <div className={styles.stub}>
       <div className={styles.top}>
-        <div className={styles.label}>◆ Marcá la fecha</div>
+        <div className={styles.label}><Meeple />Marcá la fecha</div>
         {d && (
           <div className={styles.dateBlock}>
             <span className={styles.day}>{d.day}</span>
@@ -219,7 +220,7 @@ export default function TicketStub({
                 </button>
               )}
               <div className={styles.adminBlock}>
-                <div className={styles.adminTitle}>◆ Acciones de host</div>
+                <div className={styles.adminTitle}><Meeple />Acciones de host</div>
                 <div className={styles.adminActions}>
                   {onEdit && (
                     <button

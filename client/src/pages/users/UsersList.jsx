@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -298,7 +299,7 @@ export default function UsersList() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div className={styles.heroBlock}>
-          <div className={styles.eyebrow}>◆ COMUNIDAD</div>
+          <div className={styles.eyebrow}><Meeple />COMUNIDAD</div>
           <h1 className={styles.heroTitle}>Comunidad</h1>
           <p className={styles.heroSub}>Jugadores registrados en TurnoCero</p>
         </div>

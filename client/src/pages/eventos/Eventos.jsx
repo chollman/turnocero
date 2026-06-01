@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import {
   useState,
   useEffect,
@@ -464,7 +465,7 @@ export default function Eventos() {
         )
       ) : visibleEventos.length === 0 ? (
         <div className={styles.empty}>
-          <span className={styles.emptyDot}>◆</span>
+          <span className={styles.emptyDot}><Meeple /></span>
           <p className={styles.emptyText}>
             {filter === "mine"
               ? "No tenés inscripciones en eventos cargados."

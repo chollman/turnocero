@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -401,7 +402,7 @@ export default function UserProfile() {
     <div className={styles.page}>
       <div className={styles.inner}>
         <div className={styles.hero}>
-          <div className={styles.eyebrow}>◆ MI PERFIL</div>
+          <div className={styles.eyebrow}><Meeple />MI PERFIL</div>
           <div className={styles.titleRow}>
             <h1 className={styles.heroTitle}>@{user?.username}</h1>
             {bgwatchEnabled &&

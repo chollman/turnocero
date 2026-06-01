@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
@@ -513,7 +514,7 @@ export default function Noticias() {
       <div className={styles.inner}>
         <div className={styles.header}>
           <div className={styles.heroBlock}>
-            <div className={styles.eyebrow}>◆ COMUNIDAD</div>
+            <div className={styles.eyebrow}><Meeple />COMUNIDAD</div>
             <h1 className={styles.title}>Noticias</h1>
             <p className={styles.sub}>
               Novedades y eventos de la comunidad TurnoCero.

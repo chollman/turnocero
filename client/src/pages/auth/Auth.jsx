@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -223,7 +224,7 @@ export default function Auth({ mode }) {
   }, [isLogin]);
 
   const strength = useMemo(() => passwordStrength(password), [password]);
-  const initial = (username.trim()[0] || "◆").toUpperCase();
+  const initial = (username.trim()[0] || "").toUpperCase();
   const canRegister =
     !loading &&
     username.trim().length >= 3 &&
@@ -285,7 +286,7 @@ export default function Auth({ mode }) {
           <Logo className={styles.brandMark} />
           <div className={styles.brandText}>
             <span className={styles.brandName}>TurnoCero</span>
-            <span className={styles.brandSub}>◆ board game meetups</span>
+            <span className={styles.brandSub}><Meeple />board game meetups</span>
           </div>
         </div>
 
@@ -330,7 +331,8 @@ export default function Auth({ mode }) {
           </div>
 
           <span className={styles.kicker}>
-            {isLogin ? "◆ Bienvenido de vuelta" : "◆ Sumate a la comunidad"}
+            <Meeple />
+            {isLogin ? "Bienvenido de vuelta" : "Sumate a la comunidad"}
           </span>
           <h1 className={styles.title}>
             {isLogin ? (

@@ -43,7 +43,7 @@ const SendIcon = () => (
 // Layout sigue el handoff (mesas-styles.css → .chatPreview / .chatRow /
 // .chatBubble): la card del chat NO tiene altura fija ni scroll interno
 // dedicado — crece con el contenido. La sección padre (TableDetail)
-// renderiza el header "◆ Chat de la mesa", así que acá no repetimos el
+// renderiza el header "Chat de la mesa", así que acá no repetimos el
 // eyebrow.
 export default function TableChat({
   tableId,

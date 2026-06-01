@@ -8,7 +8,7 @@ import { API } from "../../api/endpoints";
 import styles from "./TableDetail.module.css";
 
 // Mobile breakpoint para el placeholder del textarea — el sectionHead
-// "◆ Comentarios" se oculta en mobile (tab bar identifica la sección)
+// "Comentarios" se oculta en mobile (tab bar identifica la sección)
 // y por eso el placeholder largo "Escribí un comentario…" queda redundante.
 const MOBILE_BREAKPOINT = 980;
 

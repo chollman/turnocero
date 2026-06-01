@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import styles from "./TableBga.module.css";
 
 // "Probá el juego online" — render condicional al lado de TableTutorials.
@@ -13,7 +14,7 @@ export default function TableBga({ boardGame, bgaUrl }) {
   return (
     <section className={styles.section}>
       <header className={styles.sectionHead}>
-        <span className={styles.sectionLabel}>◆ Probá el juego online</span>
+        <span className={styles.sectionLabel}><Meeple />Probá el juego online</span>
         <span className={styles.sectionRule} />
       </header>
       <a

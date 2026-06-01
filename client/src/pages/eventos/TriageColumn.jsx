@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import InscItem from "./InscItem";
 import styles from "./TriageColumn.module.css";
 
@@ -30,7 +31,7 @@ export default function TriageColumn({
   return (
     <section className={`${styles.col} ${toneClass}`}>
       <div className={styles.head}>
-        <span className={`${styles.label} ${labelClass}`}>◆ {title}</span>
+        <span className={`${styles.label} ${labelClass}`}><Meeple />{title}</span>
         <span className={styles.count}>{items.length}</span>
       </div>
       <div className={styles.body}>

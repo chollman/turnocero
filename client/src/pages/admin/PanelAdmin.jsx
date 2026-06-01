@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useCallback } from "react";
 import { Navigate } from "react-router-dom";
 import axios from "axios";
@@ -397,7 +398,7 @@ function PanelAdminInner() {
       <div className={styles.page}>
         <div className={styles.inner}>
           <div className={styles.hero}>
-            <div className={styles.eyebrow}>◆ ADMIN</div>
+            <div className={styles.eyebrow}><Meeple />ADMIN</div>
             <h1 className={styles.title}>Panel de secciones</h1>
             <p className={styles.sub}>Cargando configuración…</p>
           </div>
@@ -410,7 +411,7 @@ function PanelAdminInner() {
     <div className={styles.page}>
       <div className={styles.inner}>
         <div className={styles.hero}>
-          <div className={styles.eyebrow}>◆ ADMIN</div>
+          <div className={styles.eyebrow}><Meeple />ADMIN</div>
           <h1 className={styles.title}>Panel de secciones</h1>
           <p className={styles.sub}>
             Prendé o apagá secciones del sitio para usuarios no-admin. Vos

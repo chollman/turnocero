@@ -20,6 +20,15 @@
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
 }
 
+/* Meeple placeholder cuando todavía no hay inicial — hereda color: var(--on-amber)
+   del .preview, y se dimensiona relativo a la caja de 52px. */
+.previewMeeple {
+  width: 60%;
+  height: 60%;
+  margin-right: 0;
+  vertical-align: middle;
+}
+
 /* "Auto" preview (no explicit token): neutral surface + a hint of the palette */
 .previewAuto {
   color: var(--text-muted);

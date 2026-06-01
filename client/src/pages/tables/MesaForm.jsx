@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
@@ -569,7 +570,7 @@ export default function MesaForm({
       <header className={styles.hero}>
         <div className={styles.heroLeft}>
           <p className={styles.heroEyebrow}>
-            ◆ {editMode ? "Editar mesa" : "Nueva mesa"} · paso a paso
+            <Meeple />{editMode ? "Editar mesa" : "Nueva mesa"} · paso a paso
           </p>
           <h1 className={styles.heroTitle}>
             {editMode ? (
@@ -636,7 +637,7 @@ export default function MesaForm({
             className={styles.section}
           >
             <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}>◆ Paso 1</span>
+              <span className={styles.sectionLabel}><Meeple />Paso 1</span>
               <span className={styles.sectionTitle}>El juego</span>
             </header>
 
@@ -722,7 +723,7 @@ export default function MesaForm({
             className={styles.section}
           >
             <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}>◆ Paso 2</span>
+              <span className={styles.sectionLabel}><Meeple />Paso 2</span>
               <span className={styles.sectionTitle}>Cuándo</span>
             </header>
             <div className={styles.field}>
@@ -750,7 +751,7 @@ export default function MesaForm({
             className={styles.section}
           >
             <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}>◆ Paso 3</span>
+              <span className={styles.sectionLabel}><Meeple />Paso 3</span>
               <span className={styles.sectionTitle}>Dónde</span>
             </header>
             <div className={styles.field}>
@@ -797,7 +798,7 @@ export default function MesaForm({
             className={styles.section}
           >
             <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}>◆ Paso 4</span>
+              <span className={styles.sectionLabel}><Meeple />Paso 4</span>
               <span className={styles.sectionTitle}>Detalles</span>
             </header>
 
@@ -919,7 +920,7 @@ export default function MesaForm({
             className={styles.section}
           >
             <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}>◆ Extras (opcional)</span>
+              <span className={styles.sectionLabel}><Meeple />Extras (opcional)</span>
               <span className={styles.sectionRule} />
             </header>
             <p className={styles.sectionHelp}>
@@ -1091,7 +1092,7 @@ export default function MesaForm({
 
           {editMode && onDelete && (
             <div className={styles.dangerZone}>
-              <div className={styles.dangerLabel}>◆ Zona delicada</div>
+              <div className={styles.dangerLabel}><Meeple />Zona delicada</div>
               <div className={styles.dangerTitle}>Cancelar la mesa</div>
               <p className={styles.dangerSub}>
                 Esta acción no se puede deshacer.{" "}
@@ -1113,7 +1114,7 @@ export default function MesaForm({
 
         <aside className={styles.preview}>
           <div className={styles.previewLabel}>
-            ◆ Tu carta · vista previa en vivo
+            <Meeple />Tu carta · vista previa en vivo
           </div>
           <div className={styles.previewCard} aria-hidden="true">
             <TableCard

@@ -1,0 +1,11 @@
+/* Uso por defecto = viñeta inline (donde antes iba "◆ "). El tamaño en `em`
+   lo hace seguir la tipografía del contexto, y `currentColor` lo pinta del
+   mismo color que tenía el rombo. Un poco más grande que el glifo original. */
+.meeple {
+  width: 1.15em;
+  height: 1.15em;
+  fill: currentColor;
+  vertical-align: -0.18em; /* baseline para uso inline dentro de texto */
+  flex-shrink: 0; /* no se aplasta dentro de contenedores flex */
+  margin-right: 0.35em; /* reemplaza el espacio que seguía a "◆ " */
+}

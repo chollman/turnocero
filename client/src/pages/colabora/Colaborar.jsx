@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState } from "react";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
@@ -128,7 +129,7 @@ export default function Colaborar() {
 
       <header className={styles.hero}>
         <div className={styles.heroLeft}>
-          <p className={styles.heroEyebrow}>◆ COLABORÁ CON TURNOCERO</p>
+          <p className={styles.heroEyebrow}><Meeple />COLABORÁ CON TURNOCERO</p>
           <h1 className={styles.heroTitle}>
             Bancá a <em>TurnoCero</em>.
           </h1>

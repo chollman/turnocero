@@ -1,3 +1,4 @@
+import Meeple from "../shared/Meeple";
 import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useSiteConfig } from "../../context/SiteConfigContext";
@@ -115,7 +116,7 @@ export default function GuestSidebar({ open = false, onClose }) {
             </span>
             <span className={styles.logoText}>
               <span className={styles.logoName}>TurnoCero</span>
-              <span className={styles.logoSub}>◆ board game meetups</span>
+              <span className={styles.logoSub}><Meeple />board game meetups</span>
             </span>
           </Link>
         </div>
@@ -123,7 +124,7 @@ export default function GuestSidebar({ open = false, onClose }) {
         <nav className={styles.nav}>
           {visibleNav.length > 0 && (
             <div className={styles.navSection}>
-              <span className={styles.navSectionLabel}>◆ Comunidad</span>
+              <span className={styles.navSectionLabel}><Meeple />Comunidad</span>
               {visibleNav.map((item, i) => {
                 const isActive = active === item.id;
                 return (

@@ -1,3 +1,4 @@
+import Meeple from "./Meeple";
 import { AVATAR_PALETTE, isValidAvatarColor } from "../../utils/hash";
 import styles from "./AvatarColorPicker.module.css";
 
@@ -8,7 +9,8 @@ import styles from "./AvatarColorPicker.module.css";
 // Props:
 //  - value:      token actual ("" = automático / hasheado) — controlado.
 //  - onChange:   (token) => void. Pasa "" cuando se elige "Automático".
-//  - initial:    letra(s) a previsualizar (ej. "C" o "CH").
+//  - initial:    letra(s) a previsualizar (ej. "C" o "CH"). Si está vacío
+//                (todavía no hay nombre), se muestra un meeple como placeholder.
 //  - autoColor:  token usado para el preview cuando value === "" (ej. el color
 //                hasheado del _id en /perfil). Si falta, el preview "auto" usa
 //                un fondo neutro.
@@ -18,7 +20,7 @@ import styles from "./AvatarColorPicker.module.css";
 export default function AvatarColorPicker({
   value = "",
   onChange,
-  initial = "◆",
+  initial = "",
   autoColor = "",
   allowAuto = false,
   disabled = false,
@@ -41,7 +43,7 @@ export default function AvatarColorPicker({
         style={previewStyle}
         aria-hidden="true"
       >
-        {initial}
+        {initial ? initial : <Meeple className={styles.previewMeeple} />}
       </div>
 
       <div className={styles.swatches} role="group" aria-label="Color de avatar">

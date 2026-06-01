@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState } from "react";
 import SeatTrack from "../../components/shared/SeatTrack";
 import { dateParts, countdown } from "../../utils/eventoDate";
@@ -111,7 +112,7 @@ export default function MesaStub({
   onLoginRequest,
   now,
   // Slot opcional para el chat privado de la mesa. Cuando el viewer es
-  // participante, el parent (TableDetail) le pasa el header "◆ Chat" + el
+  // participante, el parent (TableDetail) le pasa el header "Chat" + el
   // <TableChat>; en otros estados queda null y la sección no se renderiza.
   chatSlot = null,
 }) {
@@ -135,7 +136,7 @@ export default function MesaStub({
   return (
     <aside className={styles.stub}>
       <div className={styles.top}>
-        <div className={styles.label}>◆ Esta mesa</div>
+        <div className={styles.label}><Meeple />Esta mesa</div>
         {d && (
           <div className={styles.dateBlock}>
             <span className={styles.day}>{d.day}</span>
@@ -234,7 +235,7 @@ export default function MesaStub({
                 </span>
               </div>
               <div className={styles.adminBlock}>
-                <div className={styles.adminTitle}>◆ Acciones de host</div>
+                <div className={styles.adminTitle}><Meeple />Acciones de host</div>
                 <div className={styles.adminActions}>
                   {onEdit && (
                     <button

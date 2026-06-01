@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -76,7 +77,7 @@ export default function ResetPassword() {
           <div className={styles.mobileHeroFade} />
         </div>
 
-        <div className={styles.eyebrow}>◆ NUEVA CONTRASEÑA</div>
+        <div className={styles.eyebrow}><Meeple />NUEVA CONTRASEÑA</div>
         <h1 className={styles.heading}>Elegí una nueva contraseña.</h1>
         <p className={styles.sub}>
           Ingresá una contraseña segura para tu cuenta.
@@ -161,7 +162,7 @@ export default function ResetPassword() {
         <div className={styles.showcaseGradient} />
         <div className={styles.showcaseContent}>
           <div>
-            <div className={styles.showcaseEyebrow}>◆ MESAS ACTIVAS</div>
+            <div className={styles.showcaseEyebrow}><Meeple />MESAS ACTIVAS</div>
             {showcase?.total > 0 ? (
               <h2 className={styles.showcaseTitle}>
                 {showcase.total} mesas

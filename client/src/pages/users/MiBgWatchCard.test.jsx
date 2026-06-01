@@ -38,7 +38,7 @@ describe("<MiBgWatchCard>", () => {
     );
   });
 
-  it('renders the eyebrow "◆ MI BG WATCH" and @username', () => {
+  it('renders the eyebrow "MI BG WATCH" and @username', () => {
     renderCard("CarcaFan");
     expect(screen.getByText(/MI BG WATCH/)).toBeInTheDocument();
     expect(screen.getByText("@CarcaFan")).toBeInTheDocument();

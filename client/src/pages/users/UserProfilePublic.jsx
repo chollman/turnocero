@@ -1,3 +1,4 @@
+import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -203,7 +204,7 @@ export default function UserProfilePublic() {
           <Avatar user={profile} size="xl" />
           <div className={styles.heroInfo}>
             <div className={styles.eyebrow}>
-              ◆ PERFIL{joinYear ? ` · DESDE ${joinYear}` : ""}
+              <Meeple />PERFIL{joinYear ? ` · DESDE ${joinYear}` : ""}
             </div>
             <h1 className={styles.heroTitle}>{displayName}</h1>
             <div className={styles.heroSub}>

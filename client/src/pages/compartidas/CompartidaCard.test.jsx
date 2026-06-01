@@ -788,27 +788,27 @@ describe("<CompartidaCard>", () => {
   it("does not say 'hace' before an absolute date for old posts", () => {
     const old = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
     renderCard(makePost({ createdAt: old }));
-    expect(screen.getByText(/◆\s+el\s/)).toBeInTheDocument();
+    expect(screen.getByText(/^el\s/)).toBeInTheDocument();
     expect(screen.queryByText(/hace/)).toBeNull();
   });
 
   it("uses 'recién' (not 'hace ahora') for a fresh post", () => {
     renderCard(makePost({ createdAt: new Date().toISOString() }));
-    expect(screen.getByText(/◆\s+recién/)).toBeInTheDocument();
+    expect(screen.getByText(/^recién/)).toBeInTheDocument();
     expect(screen.queryByText(/ahora/)).toBeNull();
   });
 
   it("keeps 'hace' for relative durations", () => {
     const threeHrs = new Date(Date.now() - 3 * 3600 * 1000).toISOString();
     renderCard(makePost({ createdAt: threeHrs }));
-    expect(screen.getByText(/◆\s+hace\s+3h/)).toBeInTheDocument();
+    expect(screen.getByText(/^hace\s+3h/)).toBeInTheDocument();
   });
 
   it("spells out the full date without the year for same-year old posts", () => {
     // Jan 5 of the current year, rendered any time later in the same year.
     const sameYear = new Date(new Date().getFullYear(), 0, 5).toISOString();
     renderCard(makePost({ createdAt: sameYear }));
-    expect(screen.getByText(/◆\s+el\s+5 de enero$/)).toBeInTheDocument();
+    expect(screen.getByText(/^el\s+5 de enero$/)).toBeInTheDocument();
   });
 
   it("includes the year for posts from a previous year", () => {
@@ -816,7 +816,7 @@ describe("<CompartidaCard>", () => {
     renderCard(makePost({ createdAt: lastYear }));
     expect(
       screen.getByText(
-        new RegExp(`◆\\s+el\\s+5 de enero de ${new Date().getFullYear() - 1}`),
+        new RegExp(`^el\\s+5 de enero de ${new Date().getFullYear() - 1}`),
       ),
     ).toBeInTheDocument();
   });
