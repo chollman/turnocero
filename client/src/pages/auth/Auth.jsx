@@ -34,12 +34,6 @@ const Icon = {
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
   ),
-  User: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  ),
   Eye: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -203,7 +197,6 @@ export default function Auth({ mode }) {
 
   // ── Estado de campos ──
   const [identifier, setIdentifier] = useState("");
-  const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -230,10 +223,9 @@ export default function Auth({ mode }) {
   }, [isLogin]);
 
   const strength = useMemo(() => passwordStrength(password), [password]);
-  const initial = (name.trim()[0] || username.trim()[0] || "◆").toUpperCase();
+  const initial = (username.trim()[0] || "◆").toUpperCase();
   const canRegister =
     !loading &&
-    !!name.trim() &&
     username.trim().length >= 3 &&
     /\S+@\S+\.\S+/.test(email) &&
     isValidPassword(password) &&
@@ -274,10 +266,8 @@ export default function Auth({ mode }) {
     }
     setLoading(true);
     try {
-      await register(username, email, password, {
-        displayName: name.trim(),
-        avatarColor: color,
-      });
+      // El nombre para mostrar se setea después desde /perfil.
+      await register(username, email, password, { avatarColor: color });
       navigate("/verificar-email", { state: { email } });
     } catch (err) {
       setError(getErrorMessage(err, "Error al registrarse"));
@@ -428,26 +418,6 @@ export default function Auth({ mode }) {
           ) : (
             <form onSubmit={handleRegister} className={styles.fields}>
               <div className={styles.fld}>
-                <label htmlFor="auth-name">Nombre para mostrar</label>
-                <div className={styles.inputWrap}>
-                  <span className={styles.lead}>
-                    <Icon.User />
-                  </span>
-                  <input
-                    id="auth-name"
-                    className={styles.inp}
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Cami Rossi"
-                    autoComplete="name"
-                    maxLength={60}
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              <div className={styles.fld}>
                 <label htmlFor="auth-username">Nombre de usuario</label>
                 <div className={styles.inputWrap}>
                   <span className={styles.handlePrefix}>@</span>
@@ -463,6 +433,7 @@ export default function Auth({ mode }) {
                     autoComplete="username"
                     minLength={3}
                     maxLength={30}
+                    autoFocus
                   />
                 </div>
               </div>

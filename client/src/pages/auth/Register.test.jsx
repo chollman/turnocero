@@ -34,7 +34,6 @@ describe("<Register>", () => {
     expect(
       screen.getByRole("button", { name: /crear mi cuenta/i }),
     ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Cami Rossi")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("camir")).toBeInTheDocument();
     // The "Iniciar sesión" toggle tab points to /login.
     const loginTab = screen

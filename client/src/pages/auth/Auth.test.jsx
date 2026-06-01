@@ -162,9 +162,6 @@ describe("<Auth> — login mode", () => {
 
 describe("<Auth> — register mode", () => {
   function fillValidRegister({ password = "Password123" } = {}) {
-    fireEvent.change(screen.getByPlaceholderText("Cami Rossi"), {
-      target: { value: "Cami" },
-    });
     fireEvent.change(screen.getByPlaceholderText("camir"), {
       target: { value: "camir" },
     });
@@ -179,9 +176,9 @@ describe("<Auth> — register mode", () => {
     );
   }
 
-  it("renders the richer register fields", () => {
+  it("renders the register fields (no display name — set later in /perfil)", () => {
     renderAuth("register");
-    expect(screen.getByPlaceholderText("Cami Rossi")).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Cami Rossi")).toBeNull();
     expect(screen.getByPlaceholderText("camir")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("tu@email.com")).toBeInTheDocument();
     expect(
@@ -220,7 +217,7 @@ describe("<Auth> — register mode", () => {
     expect(screen.getByText(/Seguridad: Fuerte/)).toBeInTheDocument();
   });
 
-  it("registers with displayName + chosen avatarColor and navigates to verify", async () => {
+  it("registers with the chosen avatarColor (no displayName) and navigates to verify", async () => {
     const register = vi.fn().mockResolvedValue(undefined);
     renderAuth("register", { register });
     fillValidRegister();
@@ -230,7 +227,6 @@ describe("<Auth> — register mode", () => {
 
     await waitFor(() =>
       expect(register).toHaveBeenCalledWith("camir", "new@b.com", "Password123", {
-        displayName: "Cami",
         avatarColor: "--green",
       }),
     );
