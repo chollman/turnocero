@@ -545,6 +545,9 @@ describe("<CompartidaCard>", () => {
   });
 
   it("deleting a comment removes it from the list", async () => {
+    // PR #38 added a window.confirm step before deleting a comment, so the
+    // test must accept the confirmation for the delete to actually fire.
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     const comment = {
       _id: "cm1",
       content: "Viejito comentario",
@@ -568,6 +571,8 @@ describe("<CompartidaCard>", () => {
     await waitFor(() =>
       expect(screen.queryByText("Viejito comentario")).not.toBeInTheDocument(),
     );
+    expect(confirmSpy).toHaveBeenCalled();
+    confirmSpy.mockRestore();
   });
 
   it("re-clicking the comments button collapses the section", async () => {
