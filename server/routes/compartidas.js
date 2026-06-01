@@ -733,11 +733,11 @@ router.post(
     });
     await comment.populate("author", "username avatar displayName");
 
-    if (!isSameId(compartida.author, req.user._id)) {
-      const preview = content.trim().slice(0, 60);
-      await emitNotificationReq(
+    const preview = content.trim().slice(0, 60);
+    const notifyComment = (recipientId) =>
+      emitNotificationReq(
         req,
-        compartida.author,
+        recipientId,
         "compartida_comment",
         {
           compartidaId: compartida._id.toString(),
@@ -752,7 +752,21 @@ router.post(
         "compartida:comment",
         { commenterUsername: req.user.username, commentPreview: preview },
       ).catch(() => {});
+
+    // Destinatarios: el autor del post + los demás usuarios que ya comentaron
+    // el hilo (incluye al autor del comentario respondido). Se excluye a quien
+    // acaba de comentar y se dedupea por id.
+    const commenterIds = await CompartidaComment.distinct("author", {
+      compartida: compartida._id,
+    });
+    const recipients = new Map(); // id → ObjectId (dedupe)
+    if (!isSameId(compartida.author, req.user._id)) {
+      recipients.set(compartida.author.toString(), compartida.author);
     }
+    for (const uid of commenterIds) {
+      if (!isSameId(uid, req.user._id)) recipients.set(uid.toString(), uid);
+    }
+    await Promise.all([...recipients.values()].map(notifyComment));
 
     res.status(201).json(comment);
   }),
