@@ -22,6 +22,7 @@ const {
 } = require("../utils/email");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
+const { isValidAvatarColor } = require("../utils/avatarColors");
 const { findOrCreateOAuthUser } = require("../services/oauthService");
 const { OAuth2Client } = require("google-auth-library");
 
@@ -85,7 +86,7 @@ router.post(
   "/register",
   authLimiter,
   asyncHandler(async (req, res) => {
-    const { username, email, password } = req.body;
+    const { username, email, password, displayName, avatarColor } = req.body;
 
     if (!username || !email || !password) {
       throw httpError(400, "All fields are required");
@@ -98,6 +99,13 @@ router.post(
         username,
         email,
         password,
+        // displayName/avatarColor son opcionales (los manda el registro nuevo).
+        // El color es cosmético: si viene inválido lo ignoramos en vez de
+        // bloquear el alta. displayName se valida por maxlength en el schema.
+        ...(displayName ? { displayName } : {}),
+        ...(isValidAvatarColor(avatarColor)
+          ? { avatar: { color: avatarColor } }
+          : {}),
         emailVerified: false,
         emailVerificationCodeHash: hashToken(code),
         emailVerificationExpiresAt: new Date(
@@ -553,11 +561,19 @@ router.put(
       celular,
       bggUsername,
       eventoReminderHours,
+      avatarColor,
     } = req.body;
     const user = await User.findById(req.user._id);
     if (!user) throw httpError(404, "User not found");
 
     if (displayName !== undefined) user.displayName = displayName;
+    // Color de avatar (sólo aplica cuando no hay foto). "" lo limpia; un token
+    // válido lo setea; cualquier otra cosa se ignora. Preserva url/publicId.
+    if (avatarColor !== undefined) {
+      if (avatarColor === "" || isValidAvatarColor(avatarColor)) {
+        user.avatar.color = avatarColor;
+      }
+    }
     if (nombre !== undefined) user.nombre = nombre;
     if (apellido !== undefined) user.apellido = apellido;
     if (telegram !== undefined) user.telegram = telegram;
@@ -624,7 +640,13 @@ router.put(
       ],
     });
 
-    user.avatar = { url: result.secure_url, publicId: result.public_id };
+    // Preservamos el color elegido: si más adelante quita la foto, vuelve a
+    // mostrarse con su color en vez del hash del _id.
+    user.avatar = {
+      url: result.secure_url,
+      publicId: result.public_id,
+      color: user.avatar?.color || "",
+    };
     await user.save({ validateModifiedOnly: true });
     res.json(user);
   }),
@@ -640,7 +662,8 @@ router.delete(
     if (user.avatar?.publicId) {
       await cloudinary.uploader.destroy(user.avatar.publicId).catch(() => {});
     }
-    user.avatar = { url: "", publicId: "" };
+    // Quita la foto pero conserva el color elegido para el fallback de inicial.
+    user.avatar = { url: "", publicId: "", color: user.avatar?.color || "" };
     await user.save({ validateModifiedOnly: true });
     res.json(user);
   }),

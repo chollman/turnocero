@@ -36,25 +36,21 @@ const FacebookIcon = () => (
   </svg>
 );
 
-// Botones de login/registro social. Compartido entre Login y Register.
-// Ambos botones usan el estilo themed `.oauthBtn` (no el botón oficial de
-// Google) para combinar con el resto del sitio. Google va por el flujo
-// implícito (useGoogleLogin → access token); el server lo valida.
-// `onError` deja que el padre muestre el mensaje en su propio .errorBox.
-export default function OAuthButtons({ onError }) {
+// El botón de Google va en su propio componente porque `useGoogleLogin` es un
+// hook y NO se puede llamar condicionalmente. Si `VITE_GOOGLE_CLIENT_ID` no
+// está configurado, `GoogleOAuthProvider` no inicializa y el hook tira al
+// renderizar — así que sólo montamos este subcomponente cuando hay clientId
+// (gating simétrico al de Facebook vía useFacebookSdk).
+function GoogleButton({ busy, setBusy, onError }) {
   const { oauthLogin } = useAuth();
   const navigate = useNavigate();
-  const facebook = useFacebookSdk();
-  const [busy, setBusy] = useState(false);
 
   const googleLogin = useGoogleLogin({
     scope: "openid email profile",
     onSuccess: async (tokenResponse) => {
       setBusy(true);
       try {
-        await oauthLogin("google", {
-          accessToken: tokenResponse.access_token,
-        });
+        await oauthLogin("google", { accessToken: tokenResponse.access_token });
         navigate("/");
       } catch (err) {
         onError?.(getErrorMessage(err, "Error al iniciar sesión con Google"));
@@ -64,6 +60,36 @@ export default function OAuthButtons({ onError }) {
     },
     onError: () => onError?.("Error al iniciar sesión con Google"),
   });
+
+  return (
+    <button
+      type="button"
+      className={styles.oauthBtn}
+      onClick={() => googleLogin()}
+      disabled={busy}
+    >
+      <GoogleIcon />
+      Continuar con Google
+    </button>
+  );
+}
+
+// Botones de login/registro social. Compartido entre Login y Register.
+// Ambos botones usan el estilo themed `.oauthBtn` (no el botón oficial de
+// Google) para combinar con el resto del sitio. Google va por el flujo
+// implícito (useGoogleLogin → access token); el server lo valida.
+// `onError` deja que el padre muestre el mensaje en su propio .errorBox.
+//
+// Cada proveedor se muestra sólo si está configurado (Google: env client id;
+// Facebook: useFacebookSdk.enabled). Sin ningún proveedor, la sección no se
+// renderiza — así un deploy sin envs de OAuth no rompe la pantalla de auth.
+export default function OAuthButtons({ onError }) {
+  const { oauthLogin } = useAuth();
+  const navigate = useNavigate();
+  const facebook = useFacebookSdk();
+  const [busy, setBusy] = useState(false);
+
+  const googleEnabled = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const handleFacebook = async () => {
     setBusy(true);
@@ -81,19 +107,15 @@ export default function OAuthButtons({ onError }) {
     }
   };
 
+  if (!googleEnabled && !facebook.enabled) return null;
+
   return (
     <div className={styles.oauthSection}>
       <div className={styles.divider}>o continuá con</div>
 
-      <button
-        type="button"
-        className={styles.oauthBtn}
-        onClick={() => googleLogin()}
-        disabled={busy}
-      >
-        <GoogleIcon />
-        Continuar con Google
-      </button>
+      {googleEnabled && (
+        <GoogleButton busy={busy} setBusy={setBusy} onError={onError} />
+      )}
 
       {facebook.enabled && (
         <button

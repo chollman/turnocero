@@ -2,7 +2,21 @@ import { useEffect, useState } from "react";
 import { Routes, useLocation } from "react-router-dom";
 import styles from "./PageTransition.module.css";
 
-const getSection = (pathname) => pathname.split("/")[1] || "";
+// Las pantallas de auth comparten una sola "sección" para que navegar entre
+// ellas (toggle login ↔ register, ir a verificar-email, etc.) sea instantáneo,
+// sin la animación de slide que se aplica al cambiar de sección.
+const AUTH_SECTIONS = new Set([
+  "login",
+  "register",
+  "verificar-email",
+  "recuperar-contrasenia",
+  "restablecer-contrasenia",
+]);
+
+const getSection = (pathname) => {
+  const seg = pathname.split("/")[1] || "";
+  return AUTH_SECTIONS.has(seg) ? "auth" : seg;
+};
 
 /**
  * Wraps <Routes> and animates section changes as a two-phase slide:

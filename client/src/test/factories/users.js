@@ -18,7 +18,7 @@ export function makeUser(overrides = {}) {
     displayName: overrides.displayName ?? "",
     nombre: overrides.nombre ?? "",
     apellido: overrides.apellido ?? "",
-    avatar: overrides.avatar ?? { url: "", publicId: "" },
+    avatar: overrides.avatar ?? { url: "", publicId: "", color: "" },
     bggUsername: overrides.bggUsername ?? "",
     bggConnected: overrides.bggConnected ?? false,
     bggInvalid: overrides.bggInvalid ?? false,

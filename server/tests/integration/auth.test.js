@@ -69,6 +69,34 @@ describe("POST /api/auth/register", () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it("stores displayName and a valid avatarColor when provided", async () => {
+    const res = await request(app).post("/api/auth/register").send({
+      username: "fancy",
+      email: "fancy@test.local",
+      password: "Password123",
+      displayName: "Cami Rossi",
+      avatarColor: "--green",
+    });
+    expect(res.status).toBe(201);
+
+    const user = await User.findOne({ email: "fancy@test.local" });
+    expect(user.displayName).toBe("Cami Rossi");
+    expect(user.avatar.color).toBe("--green");
+  });
+
+  it("ignores an invalid avatarColor (does not block signup)", async () => {
+    const res = await request(app).post("/api/auth/register").send({
+      username: "sneaky",
+      email: "sneaky@test.local",
+      password: "Password123",
+      avatarColor: "red; background:url(evil)",
+    });
+    expect(res.status).toBe(201);
+
+    const user = await User.findOne({ email: "sneaky@test.local" });
+    expect(user.avatar.color).toBe("");
+  });
 });
 
 describe("POST /api/auth/verify-email", () => {
@@ -325,6 +353,36 @@ describe("PUT /api/auth/profile", () => {
     expect(res.status).toBe(200);
     expect(res.body.eventoReminderHours).toBe(2);
   });
+
+  it("sets a valid avatarColor and can clear it with an empty string", async () => {
+    const user = await createUser();
+    const set = await request(app)
+      .put("/api/auth/profile")
+      .set("Authorization", `Bearer ${tokenFor(user)}`)
+      .send({ avatarColor: "--purple" });
+    expect(set.status).toBe(200);
+    expect(set.body.avatar.color).toBe("--purple");
+
+    const clear = await request(app)
+      .put("/api/auth/profile")
+      .set("Authorization", `Bearer ${tokenFor(user)}`)
+      .send({ avatarColor: "" });
+    expect(clear.status).toBe(200);
+    expect(clear.body.avatar.color).toBe("");
+  });
+
+  it("ignores an invalid avatarColor and leaves the previous one", async () => {
+    const user = await createUser();
+    user.avatar = { url: "", publicId: "", color: "--green" };
+    await user.save();
+
+    const res = await request(app)
+      .put("/api/auth/profile")
+      .set("Authorization", `Bearer ${tokenFor(user)}`)
+      .send({ avatarColor: "rgb(1,2,3)" });
+    expect(res.status).toBe(200);
+    expect(res.body.avatar.color).toBe("--green");
+  });
 });
 
 describe("PUT /api/auth/avatar + DELETE /api/auth/avatar", () => {
@@ -378,6 +436,24 @@ describe("PUT /api/auth/avatar + DELETE /api/auth/avatar", () => {
     expect(cloudMock.cloudinary.uploader.destroy).toHaveBeenCalledWith(
       "turnocero/users/abc/avatar",
     );
+  });
+
+  it("preserves the chosen avatarColor when the photo is deleted", async () => {
+    const user = await createUser();
+    user.avatar = {
+      url: "https://x/y.webp",
+      publicId: "turnocero/users/abc/avatar",
+      color: "--orange",
+    };
+    await user.save();
+
+    const res = await request(app)
+      .delete("/api/auth/avatar")
+      .set("Authorization", `Bearer ${tokenFor(user)}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.avatar.url).toBe("");
+    expect(res.body.avatar.color).toBe("--orange");
   });
 
   it("requires authentication", async () => {

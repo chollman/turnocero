@@ -20,3 +20,9 @@ export function hashStringToInt(key = "") {
 export function hashToBrandColor(key = "") {
   return AVATAR_PALETTE[hashStringToInt(key) % AVATAR_PALETTE.length];
 }
+
+// True si `color` es uno de los tokens elegibles para el avatar (los que ofrece
+// el picker cuando el usuario no subió foto). Espeja server/utils/avatarColors.js.
+export function isValidAvatarColor(color) {
+  return typeof color === "string" && AVATAR_PALETTE.includes(color);
+}

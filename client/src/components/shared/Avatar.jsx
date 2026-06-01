@@ -1,5 +1,9 @@
 import { getUserDisplay } from "../../utils/userDisplay";
-import { hashToBrandColor, AVATAR_PALETTE } from "../../utils/hash";
+import {
+  hashToBrandColor,
+  isValidAvatarColor,
+  AVATAR_PALETTE,
+} from "../../utils/hash";
 import { getInitials } from "../../utils/initials";
 import { GhostIcon } from "./UserRef";
 import styles from "./Avatar.module.css";
@@ -42,9 +46,11 @@ export default function Avatar({ user, size = "md", className = "" }) {
     );
   }
 
-  const colorVar = hashToBrandColor(
-    String(display._id || display.username || ""),
-  );
+  // El color elegido por el usuario gana al hash determinístico del _id; sólo
+  // aceptamos tokens de la paleta para no inyectar valores arbitrarios en var().
+  const colorVar = isValidAvatarColor(display.avatar?.color)
+    ? display.avatar.color
+    : hashToBrandColor(String(display._id || display.username || ""));
   return (
     <span
       className={`${styles.avatar} ${sizeClass} ${styles.initials} ${className}`}

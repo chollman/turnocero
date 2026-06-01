@@ -9,7 +9,7 @@ import { useAuth } from "../../context/AuthContext";
 import GameTile from "../../components/shared/GameTile";
 import Logo from "../../components/shared/Logo";
 import styles from "./Auth.module.css";
-import { ShowcaseCard } from "./Login";
+import ShowcaseCard from "./ShowcaseCard";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { STORAGE_KEYS } from "../../utils/storageKeys";
 import { useShowcaseTables } from "../../hooks/useShowcaseTables";

@@ -9,6 +9,10 @@ import { API } from "../../api/endpoints";
 import MiBgWatchCard from "./MiBgWatchCard";
 import Avatar from "../../components/shared/Avatar";
 import AvatarCropModal from "../../components/shared/AvatarCropModal";
+import AvatarColorPicker from "../../components/shared/AvatarColorPicker";
+import { hashToBrandColor } from "../../utils/hash";
+import { getInitials } from "../../utils/initials";
+import { getUserDisplay } from "../../utils/userDisplay";
 import AddressMap from "../../components/shared/AddressMap";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
 import styles from "./UserProfile.module.css";
@@ -346,6 +350,23 @@ export default function UserProfile() {
     }
   };
 
+  // Color de la inicial cuando no hay foto. Persiste al instante (no espera al
+  // submit del perfil); updateProfile reemplaza al user y el <Avatar> se
+  // re-renderiza solo. "" vuelve al color automático (hasheado del _id).
+  const handleAvatarColor = async (token) => {
+    setAvatarBusy(true);
+    setAvatarError("");
+    try {
+      await updateProfile({ avatarColor: token });
+    } catch (err) {
+      setAvatarError(
+        err.response?.data?.message || "Error al guardar el color.",
+      );
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -603,6 +624,25 @@ export default function UserProfile() {
               </div>
               {avatarError && (
                 <div className={styles.avatarError}>{avatarError}</div>
+              )}
+              {!user?.avatar?.url && (
+                <div className={styles.avatarColorBlock}>
+                  <div className={styles.sectionLabel}>Color del avatar</div>
+                  <p className={styles.hint}>
+                    Mientras no subas una foto, tu inicial se muestra sobre este
+                    color.
+                  </p>
+                  <AvatarColorPicker
+                    value={user?.avatar?.color || ""}
+                    onChange={handleAvatarColor}
+                    initial={getInitials(getUserDisplay(user))}
+                    autoColor={hashToBrandColor(
+                      String(user?._id || user?.username || ""),
+                    )}
+                    allowAuto
+                    disabled={avatarBusy}
+                  />
+                </div>
               )}
               <input
                 ref={avatarInputRef}

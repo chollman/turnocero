@@ -1,0 +1,96 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.preview {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--on-amber);
+  flex-shrink: 0;
+  text-transform: uppercase;
+  transition: background var(--transition);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+/* "Auto" preview (no explicit token): neutral surface + a hint of the palette */
+.previewAuto {
+  color: var(--text-muted);
+  background:
+    conic-gradient(
+      from 180deg,
+      var(--amber),
+      var(--red),
+      var(--green),
+      var(--orange),
+      var(--purple),
+      var(--amber)
+    );
+  background-clip: padding-box;
+  position: relative;
+}
+
+.previewAuto::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 11px;
+  background: var(--bg-elevated);
+}
+
+.swatches {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition);
+  padding: 0;
+}
+
+.swatch:hover:not(:disabled) {
+  transform: scale(1.12);
+}
+
+.swatch:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Active swatch: white inner ring + a halo in the swatch's own color
+   (set via inline `color: var(--token)` so currentColor matches). */
+.active {
+  border-color: #fff;
+  box-shadow:
+    0 0 0 2px var(--bg-card),
+    0 0 0 3px currentColor;
+}
+
+/* "Automático" swatch — a conic sample of the whole palette */
+.swatchAuto {
+  background: conic-gradient(
+    from 180deg,
+    var(--amber),
+    var(--red),
+    var(--green),
+    var(--orange),
+    var(--purple),
+    var(--amber)
+  );
+  color: var(--text-muted);
+}

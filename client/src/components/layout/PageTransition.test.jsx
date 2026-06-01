@@ -48,6 +48,26 @@ describe("<PageTransition>", () => {
     expect(screen.getByTestId("mesa-detail")).toBeInTheDocument();
   });
 
+  it("swaps instantly between auth screens (login ↔ register) with no slide", () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={["/login"]}>
+        <Link to="/register">ToRegister</Link>
+        <PageTransition>
+          <Route path="/login" element={<div data-testid="login">Login</div>} />
+          <Route
+            path="/register"
+            element={<div data-testid="register">Register</div>}
+          />
+        </PageTransition>
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId("login")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("ToRegister"));
+    // Same "auth" section → instant swap, no slide animation class.
+    expect(screen.getByTestId("register")).toBeInTheDocument();
+    expect(container.querySelector('div[class*="slide"]')).toBeNull();
+  });
+
   it("applies a slide animation class when switching sections", () => {
     const { container } = renderApp("/mesas");
     expect(screen.getByTestId("mesas")).toBeInTheDocument();

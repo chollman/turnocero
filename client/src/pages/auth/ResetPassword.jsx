@@ -5,7 +5,7 @@ import PasswordInput from "./PasswordInput";
 import GameTile from "../../components/shared/GameTile";
 import Logo from "../../components/shared/Logo";
 import styles from "./Auth.module.css";
-import { ShowcaseCard } from "./Login";
+import ShowcaseCard from "./ShowcaseCard";
 import {
   isValidPassword,
   PASSWORD_REQUIREMENTS,

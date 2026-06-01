@@ -216,6 +216,14 @@ select {
     pointer-events: none;
     z-index: 1000;
   }
+
+  /* Auth pages (login/registro/…) no tienen sidebar: el frame lleva los 4
+     lados para enmarcar la pantalla split centrada. La hairline interna lo
+     hace legible sobre el form oscuro (sin sidebar que defina el borde). */
+  .appFrameAuth {
+    border-left: 0.75rem solid var(--bg-card);
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+  }
 }
 
 .appContent {

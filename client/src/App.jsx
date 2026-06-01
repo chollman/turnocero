@@ -112,16 +112,23 @@ const AdminRoute = ({ children }) => {
   return isActuallyAdmin ? children : <Navigate to="/" replace />;
 };
 
+// Rutas de autenticación: no tienen sidebar/navbar y rinden la pantalla split
+// dentro del appframe. Compartido entre AppRoutes (gating del shell) y AppShell
+// (variante del frame con borde izquierdo, ya que no hay sidebar que lo cubra).
+const AUTH_PATHS = [
+  "/login",
+  "/register",
+  "/verificar-email",
+  "/recuperar-contrasenia",
+  "/restablecer-contrasenia",
+];
+const isAuthPath = (pathname) => AUTH_PATHS.includes(pathname);
+
 function AppRoutes() {
   const { user } = useAuth();
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const isAuthPage =
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname === "/verificar-email" ||
-    pathname === "/recuperar-contrasenia" ||
-    pathname === "/restablecer-contrasenia";
+  const isAuthPage = isAuthPath(pathname);
   const toggleMenu = () => setMenuOpen((o) => !o);
   const closeMenu = () => setMenuOpen(false);
   return (
@@ -486,12 +493,16 @@ function AppRoutes() {
 
 function AppShell() {
   const { loading } = useAuth();
+  const { pathname } = useLocation();
   useVisualViewportVars();
+  // Las auth pages no tienen sidebar, así que el frame necesita su borde
+  // izquierdo (el resto del app lo omite porque el sidebar cubre esa franja).
+  const frameClass = isAuthPath(pathname) ? "appFrame appFrameAuth" : "appFrame";
   return (
     <>
       <SplashScreen visible={loading} />
       <BoardGameBackground />
-      <div className="appFrame" aria-hidden="true" />
+      <div className={frameClass} aria-hidden="true" />
       <div style={{ position: "relative", zIndex: 1 }}>
         <AppRoutes />
       </div>

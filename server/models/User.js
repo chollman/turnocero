@@ -66,6 +66,10 @@ const userSchema = new mongoose.Schema(
     avatar: {
       url: { type: String, default: "" },
       publicId: { type: String, default: "" },
+      // Token de color de marca (ej. "--green") que el usuario elige para su
+      // avatar cuando no subió foto. Vacío = se usa el color hasheado del _id.
+      // Validado contra utils/avatarColors.js en las rutas que lo escriben.
+      color: { type: String, default: "" },
     },
     displayName: {
       type: String,

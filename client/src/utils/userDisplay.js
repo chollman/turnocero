@@ -1,11 +1,15 @@
 export const DELETED_USER_LABEL = "Usuario eliminado";
 
 function normalizeAvatar(avatar) {
-  if (typeof avatar === "string") return { url: avatar, publicId: "" };
+  if (typeof avatar === "string") return { url: avatar, publicId: "", color: "" };
   if (avatar && typeof avatar === "object") {
-    return { url: avatar.url || "", publicId: avatar.publicId || "" };
+    return {
+      url: avatar.url || "",
+      publicId: avatar.publicId || "",
+      color: avatar.color || "",
+    };
   }
-  return { url: "", publicId: "" };
+  return { url: "", publicId: "", color: "" };
 }
 
 export function getUserDisplay(user) {
@@ -13,7 +17,7 @@ export function getUserDisplay(user) {
     return {
       name: DELETED_USER_LABEL,
       isDeleted: true,
-      avatar: { url: "", publicId: "" },
+      avatar: { url: "", publicId: "", color: "" },
     };
   }
   const name =

@@ -50,6 +50,32 @@ describe("<Avatar>", () => {
     );
   });
 
+  it("uses the chosen avatar.color over the hashed color when set", () => {
+    const user = makeUser({
+      _id: "abc",
+      username: "a",
+      avatar: { url: "", publicId: "", color: "--green" },
+    });
+    const { container } = render(<Avatar user={user} size="md" />);
+    expect(container.firstChild.getAttribute("style")).toContain(
+      "var(--green)",
+    );
+  });
+
+  it("ignores an invalid avatar.color and falls back to the hashed color", () => {
+    const chosen = makeUser({
+      _id: "abc",
+      username: "a",
+      avatar: { url: "", publicId: "", color: "rgb(1,2,3)" },
+    });
+    const hashed = makeUser({ _id: "abc", username: "a" });
+    const { container: c1 } = render(<Avatar user={chosen} size="md" />);
+    const { container: c2 } = render(<Avatar user={hashed} size="md" />);
+    expect(c1.firstChild.getAttribute("style")).toBe(
+      c2.firstChild.getAttribute("style"),
+    );
+  });
+
   it("renders different sizes via classNames", () => {
     const user = makeUser({ username: "a" });
     const { container: sm } = render(<Avatar user={user} size="sm" />);

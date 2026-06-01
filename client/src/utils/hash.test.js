@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { hashStringToInt, hashToBrandColor, AVATAR_PALETTE } from "./hash";
+import {
+  hashStringToInt,
+  hashToBrandColor,
+  isValidAvatarColor,
+  AVATAR_PALETTE,
+} from "./hash";
 
 describe("hashStringToInt", () => {
   it("is deterministic for the same input", () => {
@@ -32,5 +37,21 @@ describe("hashToBrandColor", () => {
     expect(hashToBrandColor("5f1a2b3c4d5e6f7a8b9c0d1e")).toBe(
       hashToBrandColor("5f1a2b3c4d5e6f7a8b9c0d1e"),
     );
+  });
+});
+
+describe("isValidAvatarColor", () => {
+  it("accepts every token in the palette", () => {
+    for (const token of AVATAR_PALETTE) {
+      expect(isValidAvatarColor(token)).toBe(true);
+    }
+  });
+
+  it("rejects values outside the palette and non-strings", () => {
+    expect(isValidAvatarColor("--amber-light")).toBe(false);
+    expect(isValidAvatarColor("#00d984")).toBe(false);
+    expect(isValidAvatarColor("")).toBe(false);
+    expect(isValidAvatarColor(undefined)).toBe(false);
+    expect(isValidAvatarColor(null)).toBe(false);
   });
 });

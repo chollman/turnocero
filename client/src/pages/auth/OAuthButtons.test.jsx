@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -44,6 +44,12 @@ function renderButtons({ oauthLogin = vi.fn(), fb = {}, onError } = {}) {
 beforeEach(() => {
   navigateMock.mockReset();
   googleTokenResponse = { access_token: "g-access" };
+  // El botón de Google sólo se monta si hay clientId configurado.
+  vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "test-google-client");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("OAuthButtons", () => {
@@ -57,6 +63,21 @@ describe("OAuthButtons", () => {
   it("hides the Facebook button when the SDK is not enabled", () => {
     renderButtons({ fb: { enabled: false, ready: false } });
     expect(screen.queryByText("Continuar con Facebook")).toBeNull();
+  });
+
+  it("hides the Google button when VITE_GOOGLE_CLIENT_ID is not configured", () => {
+    vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "");
+    renderButtons();
+    expect(screen.queryByText("Continuar con Google")).toBeNull();
+    // Facebook still enabled → the section (divider) is still shown.
+    expect(screen.getByText("o continuá con")).toBeInTheDocument();
+  });
+
+  it("renders nothing when no provider is configured", () => {
+    vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "");
+    const { container } = renderButtons({ fb: { enabled: false, ready: false } });
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText("o continuá con")).toBeNull();
   });
 
   it("calls oauthLogin('google', { accessToken }) on Google success and navigates", async () => {

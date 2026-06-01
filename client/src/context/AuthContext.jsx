@@ -129,11 +129,16 @@ export const AuthProvider = ({ children }) => {
 
   // Creates an unverified account. No session is established here — the user
   // must complete /verify-email with the code we sent to confirm ownership.
-  const register = async (username, email, password) => {
+  // `extra` lleva campos opcionales del registro nuevo (displayName + color de
+  // avatar elegido); el server los valida e ignora lo inválido.
+  const register = async (username, email, password, extra = {}) => {
+    const { displayName, avatarColor } = extra;
     const { data } = await axios.post(API.auth.REGISTER, {
       username,
       email,
       password,
+      ...(displayName ? { displayName } : {}),
+      ...(avatarColor ? { avatarColor } : {}),
     });
     return data; // { email, message }
   };

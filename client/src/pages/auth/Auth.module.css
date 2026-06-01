@@ -596,3 +596,705 @@
     display: none;
   }
 }
+
+/* ==========================================================================
+   REDISEÑO Login / Register (handoff) — split full-screen + showcase SVG.
+   Clases con namespace propio para no colisionar con las legacy de arriba,
+   que siguen usando VerifyEmail / ForgotPassword / ResetPassword.
+   Mapea los tokens del handoff (--accent*) a los del app (--amber*).
+   El panel del form es theme-aware; el showcase es "forzado-oscuro" (misma
+   convención que /utilidades): ignora el tema y usa colores literales.
+   ========================================================================== */
+/* In-flow dentro de .appContent (shell max-width 1440 + .appFrame decorativo)
+   en vez de un overlay fixed full-viewport, para quedar DENTRO del appframe. */
+.stage {
+  display: grid;
+  grid-template-columns: minmax(420px, 0.62fr) 1fr;
+  /* Altura definida: el formPane scrollea internamente (no la página). */
+  height: 100dvh;
+  background: var(--bg-dark);
+  overflow: hidden;
+}
+
+/* ── Left · form pane ── */
+.formPane {
+  position: relative;
+  z-index: 2;
+  padding: 44px 52px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--bg-dark);
+  scrollbar-width: none;
+}
+.formPane::-webkit-scrollbar {
+  width: 0;
+}
+
+/* Brand lockup — arriba de todo, encima de los tabs. Mismo contenedor de 380
+   centrado que el tablist; el padding-left iguala el borde (1px) + padding (4px)
+   del switch para que el logo arranque en el borde de los BOTONES del tablist. */
+.brand {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 380px;
+  margin-inline: auto;
+  padding-left: 5px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.brandMark {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: block;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px var(--amber-glow);
+}
+.brandText {
+  display: flex;
+  flex-direction: column;
+}
+.brandName {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: var(--text-primary);
+  line-height: 1.05;
+}
+.brandSub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* Form body — centrado vertical (margin auto es scroll-safe: colapsa a 0 al
+   desbordar) + horizontal; los hijos se centran salvo el form (text-align). */
+.body {
+  margin: auto;
+  width: 100%;
+  max-width: 380px;
+  /* mismo inset que el brand/tablist → contenido alineado a la izquierda en el
+     borde de los botones del tablist (60px). */
+  padding-left: 5px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+/* Segmented login/register toggle — arriba de todo, centrado horizontalmente */
+.switch {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 380px;
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 4px;
+}
+.switchBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 9px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-align: center;
+  text-decoration: none;
+  transition: all var(--transition);
+}
+.switchActive {
+  background: var(--bg-elevated);
+  color: var(--amber-light);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* kicker / title / lede espejan los headers de sección (ej. Compartidas
+   `.pageEyebrow` / `.pageTitle` / `.heroSub`): eyebrow mono con rule-line,
+   título display con el <em> en fuente script (Caveat), sub en secondary. */
+.kicker {
+  align-self: flex-start;
+  /* separación de los tabs (cuando el form desborda y el body queda pegado) */
+  margin-top: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+}
+.kicker::before {
+  content: "";
+  width: 26px;
+  height: 1px;
+  background: var(--amber-light);
+}
+.title {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  margin: 8px 0;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+.title em {
+  font-family: var(--font-script);
+  font-style: normal;
+  font-weight: 600;
+  color: var(--amber-light);
+  font-size: 1.15em;
+  letter-spacing: -0.02em;
+  padding: 0 4px;
+}
+.lede {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 8px 0 28px;
+  max-width: 540px;
+}
+
+/* Fields — full-width; el form se alinea a la izquierda aunque el resto del
+   bloque esté centrado (labels/inputs consistentes). */
+.fields {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.fld {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.fld label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.forgot {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--amber-light);
+  text-decoration: none;
+  text-transform: none;
+}
+.forgot:hover {
+  text-decoration: underline;
+}
+.inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.inputWrap .lead {
+  position: absolute;
+  left: 13px;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.inputWrap .lead svg {
+  width: 15px;
+  height: 15px;
+}
+.handlePrefix {
+  position: absolute;
+  left: 13px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.inp {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px 12px 38px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  transition: all var(--transition);
+}
+.inpHandle {
+  padding-left: 30px;
+}
+.inp::placeholder {
+  color: var(--text-muted);
+}
+.inp:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px var(--amber-20);
+}
+.reveal {
+  position: absolute;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.reveal:hover {
+  color: var(--text-secondary);
+}
+.reveal svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Password strength */
+.strength {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 2px;
+}
+.strengthBars {
+  display: flex;
+  gap: 4px;
+}
+.strengthBar {
+  flex: 1;
+  height: 3px;
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  transition: background var(--transition);
+}
+.on1 {
+  background: var(--red);
+}
+.on2 {
+  background: var(--orange);
+}
+.on3 {
+  background: var(--amber-light);
+}
+.on4 {
+  background: var(--green);
+}
+.strengthLabel {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* Terms checkbox */
+.terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  cursor: pointer;
+}
+.checkInput {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.checkBox {
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  border: 1.5px solid var(--border-strong);
+  background: var(--bg-card);
+  display: grid;
+  place-items: center;
+  color: var(--on-amber);
+  transition: all var(--transition);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.checkInput:checked + .checkBox {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+.checkInput:focus-visible + .checkBox {
+  box-shadow: 0 0 0 3px var(--amber-20);
+}
+.checkBox svg {
+  width: 11px;
+  height: 11px;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.checkInput:checked + .checkBox svg {
+  opacity: 1;
+}
+.termsAccent {
+  color: var(--amber-light);
+}
+
+/* Submit — clon del CTA primario amber del handoff (ver memoria) */
+.submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  background: var(--amber);
+  color: var(--on-amber);
+  border: none;
+  padding: 14px;
+  border-radius: 11px;
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
+  margin-top: 4px;
+  cursor: pointer;
+}
+.submit:hover:not(:disabled) {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.submit svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Footer cross-link */
+.footLine {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 22px;
+}
+.footLine a {
+  color: var(--amber-light);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.footLine a:hover {
+  text-decoration: underline;
+}
+
+/* Mobile hero (only < 900px; replaces showcase) */
+.mhero {
+  display: none;
+}
+.mheroHeadline {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  color: var(--text-primary);
+  margin: 0;
+}
+.mheroHeadline em {
+  font-style: normal;
+  color: var(--amber-light);
+}
+
+/* ── Right · showcase (forced-dark immersive surface) ── */
+.showcasePane {
+  position: relative;
+  overflow: hidden;
+  border-left: 1px solid var(--border);
+  background: linear-gradient(155deg, #101a2e, #080b13 70%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 52px 52px 40px;
+}
+.scImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+.scVignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(8, 11, 19, 0.55) 0%,
+      rgba(8, 11, 19, 0.15) 32%,
+      rgba(8, 11, 19, 0.45) 62%,
+      rgba(8, 11, 19, 0.92) 100%
+    ),
+    linear-gradient(100deg, rgba(8, 11, 19, 0.55), transparent 45%);
+}
+.scTop {
+  position: relative;
+  z-index: 2;
+}
+.scEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.liveDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(0, 217, 132, 0.2);
+  animation: authPulse 2s ease-in-out infinite;
+}
+@keyframes authPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+.scHeadline {
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 4vw, 3.8rem);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+  color: #fff;
+  margin: 0;
+  max-width: 460px;
+  text-wrap: balance;
+}
+.scHeadline em {
+  font-style: normal;
+  color: var(--amber-light);
+}
+.statStrip {
+  display: flex;
+  gap: 28px;
+  margin-top: 26px;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.statValue {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: #fff;
+}
+.statAccent {
+  color: var(--amber-light);
+}
+.statLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+}
+
+/* Live mesa preview card */
+.previewCard {
+  position: relative;
+  z-index: 2;
+  background: rgba(13, 18, 28, 0.82);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  padding: 16px;
+  backdrop-filter: blur(14px);
+  max-width: 380px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  animation: authCardFloat 0.5s ease both;
+}
+@keyframes authCardFloat {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.previewLabel {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.previewLabel svg {
+  width: 12px;
+  height: 12px;
+}
+.previewHead {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 12px;
+}
+.previewAv {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  color: #fff;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  overflow: hidden;
+}
+.previewAv img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.previewInfo {
+  min-width: 0;
+}
+.previewGame {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+  line-height: 1.15;
+}
+.previewMeta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 2px;
+}
+.previewSeatTrack {
+  height: 6px;
+  background: #050810;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  position: relative;
+}
+.previewSeatFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--amber), var(--amber-light));
+  box-shadow: 0 0 10px var(--amber-glow);
+  transition: width 0.5s ease;
+}
+.previewFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+.previewSeats {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.previewSeats::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.previewWhen {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .stage {
+    grid-template-columns: 1fr;
+  }
+  .showcasePane {
+    display: none;
+  }
+  .formPane {
+    padding: 36px 28px;
+  }
+  .mhero {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+}
+
+@media (max-width: 520px) {
+  .formPane {
+    padding: 28px 20px;
+  }
+  .inp {
+    font-size: 16px;
+  }
+}
+

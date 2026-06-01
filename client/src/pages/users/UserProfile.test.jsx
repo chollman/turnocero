@@ -134,6 +134,49 @@ describe("<UserProfile> — Avatar section", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows the avatar color picker when there is no uploaded photo", () => {
+    setup({
+      user: {
+        _id: "u1",
+        username: "cha",
+        email: "a@b.com",
+        avatar: { url: "", publicId: "", color: "" },
+      },
+    });
+    expect(screen.getByText("Color del avatar")).toBeInTheDocument();
+    expect(screen.getByLabelText("Color green")).toBeInTheDocument();
+    expect(screen.getByLabelText("Color automático")).toBeInTheDocument();
+  });
+
+  it("hides the color picker once an avatar photo is set", () => {
+    setup({
+      user: {
+        _id: "u1",
+        username: "cha",
+        email: "a@b.com",
+        avatar: { url: "https://x/y.webp", publicId: "p", color: "" },
+      },
+    });
+    expect(screen.queryByText("Color del avatar")).not.toBeInTheDocument();
+  });
+
+  it("persists the chosen avatar color via updateProfile", async () => {
+    const updateProfile = vi.fn().mockResolvedValue({});
+    setup({
+      user: {
+        _id: "u1",
+        username: "cha",
+        email: "a@b.com",
+        avatar: { url: "", publicId: "", color: "" },
+      },
+      updateProfile,
+    });
+    fireEvent.click(screen.getByLabelText("Color green"));
+    await waitFor(() =>
+      expect(updateProfile).toHaveBeenCalledWith({ avatarColor: "--green" }),
+    );
+  });
+
   it("rejects an unsupported file type before opening the crop modal", () => {
     const { container } = setup();
     const file = new File(["x"], "doc.pdf", { type: "application/pdf" });

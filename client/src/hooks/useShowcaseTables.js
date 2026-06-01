@@ -21,25 +21,33 @@ import { API } from "../api/endpoints";
 // "TurnoCero" cuando no hay showcase). No queremos un toast bloqueando
 // el flujo de auth si la API está rota.
 
-export function useShowcaseTables({ enabled = true } = {}) {
+// `refreshMs` (opcional) re-fetchea cada N ms para rotar la mesa que se muestra
+// en el showcase (el endpoint devuelve una mesa random por llamada). Default 0
+// = una sola lectura, comportamiento histórico para los otros 4 callers.
+export function useShowcaseTables({ enabled = true, refreshMs = 0 } = {}) {
   const [showcase, setShowcase] = useState(null);
   const [seed] = useState(() => Math.floor(Math.random() * 100));
 
   useEffect(() => {
     if (!enabled) return undefined;
     let cancelled = false;
-    axios
-      .get(API.tables.SHOWCASE)
-      .then(({ data }) => {
-        if (!cancelled) setShowcase(data);
-      })
-      .catch(() => {
-        /* fallback en UI */
-      });
+    const fetchOne = () => {
+      axios
+        .get(API.tables.SHOWCASE)
+        .then(({ data }) => {
+          if (!cancelled) setShowcase(data);
+        })
+        .catch(() => {
+          /* fallback en UI */
+        });
+    };
+    fetchOne();
+    const id = refreshMs > 0 ? setInterval(fetchOne, refreshMs) : null;
     return () => {
       cancelled = true;
+      if (id) clearInterval(id);
     };
-  }, [enabled]);
+  }, [enabled, refreshMs]);
 
   return { showcase, seed };
 }
