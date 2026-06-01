@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Login · Reimaginado — Turnocero</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="reimagined-styles.css" />
+<link rel="stylesheet" href="auth-styles.css" />
+
+<style>
+  html, body { margin: 0; padding: 0; background: #0a0d15; min-height: 100%; }
+  body { font-family: 'Archivo', sans-serif; }
+  #app { min-height: 100vh; }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <rect width="100" height="100" fill="#0a0d15"/>
+    <ellipse cx="50" cy="50" rx="34" ry="34" fill="#1d3a2a" stroke="#1888ef" stroke-width="0.6" opacity="0.9"/>
+    <rect x="42" y="42" width="16" height="16" rx="2" fill="none" stroke="#00aeff" stroke-width="1.4"/>
+    <circle cx="47" cy="47" r="1.4" fill="#00aeff"/>
+    <circle cx="53" cy="53" r="1.4" fill="#00aeff"/>
+    <circle cx="50" cy="20" r="6" fill="#f5a623"/>
+    <circle cx="80" cy="50" r="6" fill="#1888ef"/>
+    <circle cx="50" cy="80" r="6" fill="#00d984"/>
+    <circle cx="20" cy="50" r="6" fill="#f31d77"/>
+  </svg>
+</template>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="auth-app.jsx"></script>
+
+</body>
+</html>
