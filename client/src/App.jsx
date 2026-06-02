@@ -48,6 +48,7 @@ import EventoDetail from "./pages/eventos/EventoDetail";
 import EventoInscripciones from "./pages/eventos/EventoInscripciones";
 import Calendario from "./pages/calendario/Calendario";
 import Comunidades from "./pages/comunidades/Comunidades";
+import ComunidadGestion from "./pages/comunidades/ComunidadGestion";
 import Compartidas from "./pages/compartidas/Compartidas";
 import CompartidaPost from "./pages/compartidas/CompartidaPost";
 import BgWatchProfile from "./pages/bg-watch/BgWatchProfile";
@@ -432,6 +433,16 @@ export function AppRoutes({ transition }) {
                 <SectionGate section="comunidades">
                   <Comunidades />
                 </SectionGate>
+              }
+            />
+            <Route
+              path="/comunidades/:slug/gestion"
+              element={
+                <PrivateRoute>
+                  <SectionGate section="comunidades">
+                    <ComunidadGestion />
+                  </SectionGate>
+                </PrivateRoute>
               }
             />
             <Route

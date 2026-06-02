@@ -38,6 +38,15 @@ function assertMembership(user, communityId) {
   }
 }
 
+// ¿El usuario puede moderar (borrar/ocultar) este doc de contenido?
+// Autor del doc, admin global, o subadmin de la comunidad del doc.
+function canModerate(user, doc) {
+  if (!user || !doc) return false;
+  if (user.isAdmin) return true;
+  if (doc.author && isSameId(doc.author, user._id)) return true;
+  return !!(doc.community && isSubadmin(user, doc.community));
+}
+
 // Agrega la membership al doc (sin guardar). Regla viewing-on-join: si el user
 // curó un `viewing` (no vacío), sumar la comunidad nueva para que no quede
 // invisible en el feed combinado.
@@ -289,6 +298,7 @@ module.exports = {
   isMember,
   isSubadmin,
   assertMembership,
+  canModerate,
   addMembership,
   defaultCommunityFor,
   resolveCreateCommunity,

@@ -3,6 +3,7 @@ const router = express.Router();
 const { body, param, validationResult } = require("express-validator");
 const Table = require("../models/Table");
 const User = require("../models/User");
+const Community = require("../models/Community");
 const { protect, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const {
@@ -1085,18 +1086,44 @@ router.delete(
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
 
+    // Quién puede cancelar: el host, un admin global, o un subadmin de la
+    // comunidad de la mesa (moderación).
+    const isHost = isSameId(table.host, req.user._id);
+    const isMod =
+      req.user.isAdmin ||
+      (table.community &&
+        communityService.isSubadmin(req.user, table.community));
     // Freeze: cancelar una mesa pasada no tiene sentido funcional (ya pasó),
-    // pero admin queda como escape hatch para casos de spam/moderación.
+    // pero admin/subadmin quedan como escape hatch para spam/moderación.
     if (isPastTable(table)) {
-      if (!req.user.isAdmin) {
+      if (!isMod) {
         throw httpError(403, "Mesa finalizada: ya no se puede cancelar");
       }
-    } else if (!isSameId(table.host, req.user._id)) {
+    } else if (!isHost && !isMod) {
       throw httpError(403, "Only the host can cancel this table");
     }
+    const moderatedByOther = !isHost;
 
     table.status = "cancelled";
     await table.save();
+
+    // Si lo canceló un moderador (no el host), avisamos al host.
+    if (moderatedByOther && table.community) {
+      const community = await Community.findById(table.community).select(
+        "name slug",
+      );
+      await emitNotificationReq(
+        req,
+        table.host,
+        "community_content_removed",
+        {
+          communityId: String(table.community),
+          communityName: community?.name || "",
+          communitySlug: community?.slug || "",
+        },
+        "community:content-removed",
+      );
+    }
 
     const hostId = req.user._id.toString();
     // Players siempre se notifican (estaban "inscriptos" a la mesa). Followers

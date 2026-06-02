@@ -63,6 +63,7 @@ const TYPE_TO_SECTION = {
   community_join_request: "comunidades",
   community_join_accepted: "comunidades",
   community_join_rejected: "comunidades",
+  community_content_removed: "comunidades",
 };
 
 /**

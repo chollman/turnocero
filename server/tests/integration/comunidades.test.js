@@ -4,13 +4,14 @@ const app = require("../../app");
 const Community = require("../../models/Community");
 const User = require("../../models/User");
 const Table = require("../../models/Table");
+const Compartida = require("../../models/Compartida");
 const {
   createUser,
   createAuthedUser,
   tokenFor,
   authHeader,
 } = require("../helpers/auth");
-const { createTable } = require("../helpers/factories");
+const { createTable, createCompartida } = require("../helpers/factories");
 
 const hasMembership = (user, communityId) =>
   user.communityMemberships.some(
@@ -348,5 +349,81 @@ describe("Skin editing (PUT /skin, POST /logo)", () => {
       })
       .expect(200);
     expect(res.body.skin.logoLight.url).toBeTruthy();
+  });
+});
+
+describe("Content moderation by a community subadmin", () => {
+  it("a subadmin deletes a compartida in their community; the author is notified", async () => {
+    const beta = await Community.create({
+      name: "ModC",
+      slug: "modc",
+      joinPolicy: "open",
+    });
+    const author = await createUser({
+      communityMemberships: [{ community: beta._id, role: "member" }],
+    });
+    const sub = await createUser({
+      communityMemberships: [{ community: beta._id, role: "subadmin" }],
+    });
+    const post = await createCompartida(author, { community: beta._id });
+
+    global.__ioStub.__reset();
+    await request(app)
+      .delete(`/api/compartidas/${post._id}`)
+      .set(authHeader(tokenFor(sub)))
+      .expect(200);
+    expect(await Compartida.findById(post._id)).toBeNull();
+
+    const emitted = global.__ioStub.emitted.filter(
+      (e) => e.event === "community:content-removed",
+    );
+    expect(emitted.some((e) => e.room === `user:${author._id}`)).toBe(true);
+  });
+
+  it("a subadmin of another community cannot delete it (403)", async () => {
+    const beta = await Community.create({
+      name: "ModC2",
+      slug: "modc2",
+      joinPolicy: "open",
+    });
+    const other = await Community.create({
+      name: "Other",
+      slug: "other-c",
+      joinPolicy: "open",
+    });
+    const author = await createUser({
+      communityMemberships: [{ community: beta._id, role: "member" }],
+    });
+    const sub = await createUser({
+      communityMemberships: [{ community: other._id, role: "subadmin" }],
+    });
+    const post = await createCompartida(author, { community: beta._id });
+
+    await request(app)
+      .delete(`/api/compartidas/${post._id}`)
+      .set(authHeader(tokenFor(sub)))
+      .expect(403);
+  });
+
+  it("the author can still delete their own compartida (no self-notification)", async () => {
+    const beta = await Community.create({
+      name: "ModC3",
+      slug: "modc3",
+      joinPolicy: "open",
+    });
+    const { user: author, token } = await createAuthedUser({
+      communityMemberships: [{ community: beta._id, role: "member" }],
+    });
+    const post = await createCompartida(author, { community: beta._id });
+
+    global.__ioStub.__reset();
+    await request(app)
+      .delete(`/api/compartidas/${post._id}`)
+      .set(authHeader(token))
+      .expect(200);
+    const emitted = global.__ioStub.emitted.filter(
+      (e) => e.event === "community:content-removed",
+    );
+    expect(emitted).toHaveLength(0);
   });
 });

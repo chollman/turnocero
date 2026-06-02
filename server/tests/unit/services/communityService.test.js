@@ -74,6 +74,39 @@ describe("communityService.assertMembership / isMember", () => {
   });
 });
 
+describe("communityService.canModerate", () => {
+  it("allows author, global admin, and a subadmin of the doc community", async () => {
+    const c = await Community.create({ name: "CM", slug: "cm" });
+    const author = await createUser();
+    const doc = { author: author._id, community: c._id };
+    expect(communityService.canModerate(author, doc)).toBe(true);
+    expect(
+      communityService.canModerate(
+        { isAdmin: true, _id: author._id, communityMemberships: [] },
+        doc,
+      ),
+    ).toBe(true);
+    const sub = await createUser({
+      communityMemberships: [{ community: c._id, role: "subadmin" }],
+    });
+    expect(communityService.canModerate(sub, doc)).toBe(true);
+  });
+
+  it("denies a non-author plain member", async () => {
+    const c = await Community.create({ name: "CM2", slug: "cm2" });
+    const author = await createUser();
+    const stranger = await createUser({
+      communityMemberships: [{ community: c._id, role: "member" }],
+    });
+    expect(
+      communityService.canModerate(stranger, {
+        author: author._id,
+        community: c._id,
+      }),
+    ).toBe(false);
+  });
+});
+
 describe("communityService.joinCommunity / leaveCommunity", () => {
   it("joinCommunity (open) adds membership and extends a curated viewing list", async () => {
     const a = await Community.create({ name: "A", slug: "a", joinPolicy: "open" });

@@ -6,6 +6,7 @@ const Compartida = require("../models/Compartida");
 const CompartidaComment = require("../models/CompartidaComment");
 const Table = require("../models/Table");
 const Evento = require("../models/Evento");
+const Community = require("../models/Community");
 const { protect, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const {
@@ -518,9 +519,13 @@ router.delete(
   asyncHandler(async (req, res) => {
     const compartida = await Compartida.findById(req.params.id);
     if (!compartida) throw httpError(404, "Compartida no encontrada");
-    if (!isSameId(compartida.author, req.user._id) && !req.user.isAdmin) {
-      throw httpError(403, "Solo el autor puede eliminar esta compartida");
+    // Autor, admin global, o subadmin de la comunidad del post.
+    if (!communityService.canModerate(req.user, compartida)) {
+      throw httpError(403, "No tenés permiso para eliminar esta compartida");
     }
+    const moderatedByOther = !isSameId(compartida.author, req.user._id);
+    const authorId = compartida.author;
+    const communityId = compartida.community;
 
     // Delete images from Cloudinary
     await Promise.allSettled(
@@ -529,6 +534,22 @@ router.delete(
 
     await CompartidaComment.deleteMany({ compartida: compartida._id });
     await compartida.deleteOne();
+
+    // Si lo bajó un moderador (no el autor), avisamos al autor.
+    if (moderatedByOther && communityId) {
+      const community = await Community.findById(communityId).select("name slug");
+      await emitNotificationReq(
+        req,
+        authorId,
+        "community_content_removed",
+        {
+          communityId: String(communityId),
+          communityName: community?.name || "",
+          communitySlug: community?.slug || "",
+        },
+        "community:content-removed",
+      );
+    }
 
     res.json({ message: "Compartida eliminada" });
   }),

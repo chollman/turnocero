@@ -43,6 +43,7 @@ const NOTIFICATION_TYPES = [
   "community_join_request", // a subadmins/admins — AGREGANTE
   "community_join_accepted", // al solicitante
   "community_join_rejected", // al solicitante
+  "community_content_removed", // al autor cuando un subadmin baja su contenido
 ];
 
 const notificationSchema = new mongoose.Schema(
