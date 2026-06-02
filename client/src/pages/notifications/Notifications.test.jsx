@@ -100,7 +100,9 @@ describe("<Notifications>", () => {
         }),
       ],
     });
-    expect(screen.getByText(/Mesa Catán/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/alice comentó la mesa de/i),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/bob te envió una solicitud de amistad/i),
     ).toBeInTheDocument();

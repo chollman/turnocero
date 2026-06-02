@@ -417,7 +417,7 @@ describe("<CompartidaCard>", () => {
     renderCard(post, { user: { _id: "me", username: "me" } });
     fireEvent.click(screen.getByText("⋯"));
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
-    const textarea = screen.getByPlaceholderText(/cómo estuvo/i);
+    const textarea = screen.getByPlaceholderText(/ganas de compartir/i);
     fireEvent.change(textarea, { target: { value: "Cuerpo actualizado" } });
     fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
     await waitFor(() =>
