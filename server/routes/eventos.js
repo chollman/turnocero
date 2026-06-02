@@ -281,7 +281,10 @@ router.post(
     let evento;
     try {
       evento = await Evento.create({
-        community: await communityService.defaultCommunityFor(req.user),
+        community: await communityService.resolveCreateCommunity(
+          req.user,
+          req.body.community,
+        ),
         title: req.body.title?.trim(),
         description: req.body.description?.trim() || undefined,
         conditions: req.body.conditions?.trim() || undefined,

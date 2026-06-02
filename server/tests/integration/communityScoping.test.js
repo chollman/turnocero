@@ -65,6 +65,28 @@ describe("Community read-scoping — compartidas", () => {
     const created = await Compartida.findById(res.body._id);
     expect(String(created.community)).toBe(String(base._id));
   });
+
+  it("POST with a community the user belongs to assigns it", async () => {
+    const member = await createUser({
+      communityMemberships: [{ community: beta._id, role: "member" }],
+    });
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set(authHeader(tokenFor(member)))
+      .send({ category: "juntada", body: "x", community: beta._id.toString() })
+      .expect(201);
+    const created = await Compartida.findById(res.body._id);
+    expect(String(created.community)).toBe(String(beta._id));
+  });
+
+  it("POST to a community the user does NOT belong to is rejected (403)", async () => {
+    const { token } = await createAuthedUser(); // base-only
+    await request(app)
+      .post("/api/compartidas")
+      .set(authHeader(token))
+      .send({ category: "juntada", body: "x", community: beta._id.toString() })
+      .expect(403);
+  });
 });
 
 describe("Community scoping — /mine and event tables are NOT scoped", () => {

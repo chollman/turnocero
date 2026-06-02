@@ -184,7 +184,10 @@ router.post(
     const deadline = submissionDeadline ? new Date(submissionDeadline) : null;
 
     const mt = await MathTrade.create({
-      community: await communityService.defaultCommunityFor(req.user),
+      community: await communityService.resolveCreateCommunity(
+        req.user,
+        req.body.community,
+      ),
       title: title.trim(),
       description: description?.trim() || "",
       submissionDeadline:

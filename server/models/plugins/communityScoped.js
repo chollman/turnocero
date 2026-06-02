@@ -10,11 +10,14 @@ const mongoose = require("mongoose");
 // Definir el campo en UN solo lugar evita copy-paste divergente entre los ~6
 // modelos de contenido. Ver plan §7.2.
 //
-// `COMMUNITY_REQUIRED`: queda en `false` durante la migración (Fase 0/1) para
-// que los docs viejos (sin comunidad) hidraten sin romper. Se flipa a `true`
-// en la Fase 3, una vez que el default server-side garantiza que todo doc nuevo
-// nace con comunidad — así cualquier code-path futuro que olvide setearla falla
-// ruidoso (ValidationError) en vez de crear contenido sin scope que leakea.
+// `COMMUNITY_REQUIRED`: se mantiene en `false`. La intención original (Fase 3)
+// era flipearlo a `true` como guardrail "fail-loud", pero en la práctica obliga
+// a CADA `Model.create` directo (model/service/job tests, fixtures, código
+// futuro) a setear `community` — un impuesto de mantenimiento alto. La garantía
+// real la dan: (1) `communityService.resolveCreateCommunity` en todas las rutas
+// de creación (todo contenido creado vía API nace con comunidad), y (2) el
+// test-guardrail `communityScoping.test.js`, que recorre el registro y verifica
+// que cada lista scopee. Ese par cubre el riesgo de leak sin el costo del flip.
 const COMMUNITY_REQUIRED = false;
 
 function communityScoped(schema, opts = {}) {

@@ -68,6 +68,17 @@ async function defaultCommunityFor(user) {
   return base._id;
 }
 
+// Resuelve la comunidad de un contenido nuevo. Si el cliente mandó `requested`,
+// valida que el usuario sea miembro (los admins pueden publicar en cualquiera);
+// si no, cae al default (skin activo ?? base).
+async function resolveCreateCommunity(user, requested) {
+  if (requested) {
+    if (!user?.isAdmin) assertMembership(user, requested);
+    return requested;
+  }
+  return defaultCommunityFor(user);
+}
+
 // Garantiza membership base + skin base. Idempotente. Se llama en TODO alta de
 // usuario (registro password + OAuth). Muta y persiste el doc.
 async function ensureBaseMembership(user) {
@@ -280,6 +291,7 @@ module.exports = {
   assertMembership,
   addMembership,
   defaultCommunityFor,
+  resolveCreateCommunity,
   ensureBaseMembership,
   joinCommunity,
   leaveCommunity,

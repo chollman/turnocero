@@ -12,7 +12,7 @@ describe("communityScoped plugin", () => {
     expect(path.options.ref).toBe("Community");
   });
 
-  it("is nullable during migration (COMMUNITY_REQUIRED=false)", () => {
+  it("keeps community optional at the model level (route default + guardrail cover the risk)", () => {
     expect(communityScoped.COMMUNITY_REQUIRED).toBe(false);
     const schema = new mongoose.Schema({});
     schema.plugin(communityScoped);

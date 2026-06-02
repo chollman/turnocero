@@ -54,6 +54,11 @@ vi.mock("../../components/shared/BggGameSearch", () => ({
   ),
 }));
 
+// CommunitySelect uses CommunityContext + has its own test; stub it here.
+vi.mock("../../components/shared/CommunitySelect", () => ({
+  default: () => null,
+}));
+
 import CreateCompartidaForm from "./CreateCompartidaForm";
 import { useAuth } from "../../context/AuthContext";
 

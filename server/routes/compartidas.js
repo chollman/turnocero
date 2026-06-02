@@ -382,7 +382,10 @@ router.post(
 
     const compartida = await Compartida.create({
       author: req.user._id,
-      community: await communityService.defaultCommunityFor(req.user),
+      community: await communityService.resolveCreateCommunity(
+        req.user,
+        req.body.community,
+      ),
       category,
       title: title?.trim() || "",
       body: finalBody,

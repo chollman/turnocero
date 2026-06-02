@@ -465,7 +465,10 @@ router.post(
     const tableCommunity =
       validatedEventoId && eventoCommunity
         ? eventoCommunity
-        : await communityService.defaultCommunityFor(req.user);
+        : await communityService.resolveCreateCommunity(
+            req.user,
+            req.body.community,
+          );
     let table;
     try {
       table = await Table.create({

@@ -67,7 +67,10 @@ router.post(
       linkLabel: req.body.linkLabel?.trim() || undefined,
       image,
       author: req.user._id,
-      community: await communityService.defaultCommunityFor(req.user),
+      community: await communityService.resolveCreateCommunity(
+        req.user,
+        req.body.community,
+      ),
     });
 
     const populated = await noticia.populate(
