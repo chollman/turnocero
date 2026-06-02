@@ -7,6 +7,11 @@ const MathTrade = require("../models/MathTrade");
 const MathTradeItem = require("../models/MathTradeItem");
 const { protect, requireAdmin, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const {
+  resolveCommunities,
+  communityFilter,
+} = require("../middleware/resolveCommunities");
+const communityService = require("../services/communityService");
 const validateObjectId = require("../middleware/validateObjectId");
 const { parsePagination } = require("../utils/paginate");
 const { escapeRegex } = require("../utils/regex");
@@ -102,13 +107,14 @@ async function snapshotItemFields(body) {
 router.get(
   "/",
   optionalAuth,
+  resolveCommunities,
   asyncHandler(async (req, res) => {
     const { page, limit, skip } = parsePagination(req.query, {
       defaultLimit: 12,
       maxLimit: 20,
     });
 
-    const filter = { ...visibleStatusFilter(req) };
+    const filter = { ...visibleStatusFilter(req), ...communityFilter(req) };
     if (req.query.status) {
       const requested = String(req.query.status);
       if (requested === "draft" && !isAdmin(req)) {
@@ -178,6 +184,7 @@ router.post(
     const deadline = submissionDeadline ? new Date(submissionDeadline) : null;
 
     const mt = await MathTrade.create({
+      community: await communityService.defaultCommunityFor(req.user),
       title: title.trim(),
       description: description?.trim() || "",
       submissionDeadline:

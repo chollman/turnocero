@@ -24,6 +24,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { isValidAvatarColor } = require("../utils/avatarColors");
 const { findOrCreateOAuthUser } = require("../services/oauthService");
+const communityService = require("../services/communityService");
 const { OAuth2Client } = require("google-auth-library");
 
 // Cliente reutilizable para validar access tokens de Google vía getTokenInfo
@@ -121,6 +122,10 @@ router.post(
       });
       rethrowAsValidation(err);
     }
+
+    // Todo usuario pertenece a la comunidad base desde el alta (membership +
+    // skin base). Sin esto quedaría sin comunidad y con prefs inconsistentes.
+    await communityService.ensureBaseMembership(user);
 
     // Send email — if it fails we still return 201 so the user can request a resend.
     try {
@@ -318,6 +323,10 @@ router.post(
 
     if (respondBannedIfNeeded(res, user)) return;
 
+    // Garantiza membership + skin base (incluye cuentas OAuth ya existentes que
+    // se crearon antes de Comunidades). Idempotente.
+    await communityService.ensureBaseMembership(user);
+
     const token = generateToken(user._id);
     res.cookie("token", token, COOKIE_OPTIONS);
     res.json({ user, token });
@@ -382,6 +391,10 @@ router.post(
     });
 
     if (respondBannedIfNeeded(res, user)) return;
+
+    // Garantiza membership + skin base (incluye cuentas OAuth ya existentes que
+    // se crearon antes de Comunidades). Idempotente.
+    await communityService.ensureBaseMembership(user);
 
     const token = generateToken(user._id);
     res.cookie("token", token, COOKIE_OPTIONS);

@@ -8,6 +8,11 @@ const Table = require("../models/Table");
 const Evento = require("../models/Evento");
 const { protect, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const {
+  resolveCommunities,
+  communityFilter,
+} = require("../middleware/resolveCommunities");
+const communityService = require("../services/communityService");
 const validateObjectId = require("../middleware/validateObjectId");
 const { parsePagination } = require("../utils/paginate");
 const { emitNotificationReq } = require("../utils/emitNotification");
@@ -113,18 +118,20 @@ const withCommentCounts = async (compartidas) => {
 router.get(
   "/",
   optionalAuth,
+  resolveCommunities,
   asyncHandler(async (req, res) => {
     const { page, limit, skip } = parsePagination(req.query);
 
     // Filtros de pestaña (category) y búsqueda (q). El filtro de visibilidad
     // siempre se respeta — se combina con $and para que `q` no lo bypassee.
     const visibility = visibilityFilter(req.user);
+    const scope = communityFilter(req);
     const category = ["resena", "juntada"].includes(req.query.category)
       ? req.query.category
       : null;
     const q = (req.query.q || "").trim();
 
-    const clauses = [visibility];
+    const clauses = [visibility, scope];
     if (category) clauses.push({ category });
     if (q) {
       const rx = new RegExp(escapeRegex(q), "i");
@@ -156,7 +163,9 @@ router.get(
       isFiltered
         ? Promise.resolve([])
         : Compartida.aggregate([
-            { $match: { ...visibility, createdAt: { $gte: since24h } } },
+            {
+              $match: { ...visibility, ...scope, createdAt: { $gte: since24h } },
+            },
             {
               $lookup: {
                 from: CompartidaComment.collection.name,
@@ -373,6 +382,7 @@ router.post(
 
     const compartida = await Compartida.create({
       author: req.user._id,
+      community: await communityService.defaultCommunityFor(req.user),
       category,
       title: title?.trim() || "",
       body: finalBody,

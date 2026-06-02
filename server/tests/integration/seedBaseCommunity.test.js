@@ -18,9 +18,16 @@ describe("seed-base-community", () => {
     const user = await createUser();
     const table = await createTable(user);
     const compartida = await createCompartida(user);
-    // Pre-migración: el contenido nace sin comunidad (campo nullable en Fase 0).
-    expect(table.community).toBeUndefined();
-    expect(compartida.community).toBeUndefined();
+    // Simular contenido pre-migración: docs sin el campo `community` (las
+    // factories ya lo setean, así que lo quitamos a mano vía la colección raw).
+    await Table.collection.updateOne(
+      { _id: table._id },
+      { $unset: { community: "" } },
+    );
+    await Compartida.collection.updateOne(
+      { _id: compartida._id },
+      { $unset: { community: "" } },
+    );
 
     await seedBaseCommunity();
     const base = await Community.getBase();

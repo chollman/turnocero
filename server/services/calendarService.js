@@ -32,8 +32,12 @@ function tipoVisible(section, isAdmin) {
   return isSectionEnabled(section) || !!isAdmin;
 }
 
-async function fetchMesas({ user, friendIds, from, to, scope }) {
-  const base = { date: { $gte: from, $lte: to }, status: { $ne: "cancelled" } };
+async function fetchMesas({ user, friendIds, from, to, scope, communityScope }) {
+  const base = {
+    date: { $gte: from, $lte: to },
+    status: { $ne: "cancelled" },
+    ...communityScope,
+  };
   let scopeFilter;
   if (scope === "mias") {
     if (!user) return [];
@@ -58,8 +62,8 @@ async function fetchMesas({ user, friendIds, from, to, scope }) {
   }));
 }
 
-async function fetchEventos({ user, from, to, scope, isAdmin }) {
-  const base = { eventDate: { $gte: from, $lte: to } };
+async function fetchEventos({ user, from, to, scope, isAdmin, communityScope }) {
+  const base = { eventDate: { $gte: from, $lte: to }, ...communityScope };
   let statusFilter;
   let scopeFilter = {};
   if (scope === "mias") {
@@ -105,8 +109,8 @@ async function fetchEventos({ user, from, to, scope, isAdmin }) {
   }));
 }
 
-async function fetchTorneos({ user, from, to, scope, isAdmin }) {
-  const base = { fecha: { $ne: null, $gte: from, $lte: to } };
+async function fetchTorneos({ user, from, to, scope, isAdmin, communityScope }) {
+  const base = { fecha: { $ne: null, $gte: from, $lte: to }, ...communityScope };
   let scopeFilter;
   if (scope === "mias") {
     if (!user) return [];
@@ -140,6 +144,7 @@ async function getCalendarItems({
   scope = "todas",
   tipos = ALL_TIPOS,
   isAdmin = false,
+  viewingCommunities = [],
 }) {
   const wanted = new Set(
     (Array.isArray(tipos) ? tipos : ALL_TIPOS).filter((t) =>
@@ -147,15 +152,22 @@ async function getCalendarItems({
     ),
   );
 
+  // Scoping por comunidad. Condicional: si no se pasan comunidades (ej. tests
+  // que llaman al service directo), no se scopea. La ruta siempre pasa ≥1 (el
+  // invariante never-empty garantiza al menos la base).
+  const communityScope = viewingCommunities.length
+    ? { community: { $in: viewingCommunities } }
+    : {};
+
   const tasks = [];
   if (wanted.has("mesa") && tipoVisible("mesas", isAdmin)) {
-    tasks.push(fetchMesas({ user, friendIds, from, to, scope }));
+    tasks.push(fetchMesas({ user, friendIds, from, to, scope, communityScope }));
   }
   if (wanted.has("evento") && tipoVisible("eventos", isAdmin)) {
-    tasks.push(fetchEventos({ user, from, to, scope, isAdmin }));
+    tasks.push(fetchEventos({ user, from, to, scope, isAdmin, communityScope }));
   }
   if (wanted.has("torneo") && tipoVisible("torneos", isAdmin)) {
-    tasks.push(fetchTorneos({ user, from, to, scope, isAdmin }));
+    tasks.push(fetchTorneos({ user, from, to, scope, isAdmin, communityScope }));
   }
 
   const results = await Promise.all(tasks);

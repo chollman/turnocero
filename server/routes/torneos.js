@@ -10,6 +10,11 @@ const TorneoGame = require("../models/TorneoGame");
 const User = require("../models/User");
 const { protect, requireAdmin } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const {
+  resolveCommunities,
+  communityFilter,
+} = require("../middleware/resolveCommunities");
+const communityService = require("../services/communityService");
 const validateObjectId = require("../middleware/validateObjectId");
 const { parsePagination } = require("../utils/paginate");
 const { escapeRegex } = require("../utils/regex");
@@ -74,13 +79,14 @@ router.get(
   "/",
   protect,
   requireAdmin,
+  resolveCommunities,
   asyncHandler(async (req, res) => {
     const { page, limit, skip } = parsePagination(req.query, {
       defaultLimit: 12,
       maxLimit: 20,
     });
 
-    const filter = { ...visibleStatusFilter(req) };
+    const filter = { ...visibleStatusFilter(req), ...communityFilter(req) };
     if (req.query.status) {
       const requested = String(req.query.status);
       if (requested === "draft" && !isAdmin(req)) {
@@ -186,6 +192,7 @@ router.post(
         : 2;
     }
 
+    data.community = await communityService.defaultCommunityFor(req.user);
     const torneo = await Torneo.create(data);
     const populated = await Torneo.findById(torneo._id).populate(
       "createdBy",
