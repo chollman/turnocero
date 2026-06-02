@@ -98,6 +98,21 @@
 
 .action {
   margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.manageLink {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--amber);
+  text-decoration: none;
+}
+
+.manageLink:hover {
+  text-decoration: underline;
 }
 
 .joinRow {

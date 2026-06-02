@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useCommunity } from "../../context/CommunityContext";
 import { useNotifications } from "../../context/NotificationContext";
 import styles from "./CommunityPrefs.module.css";
@@ -89,6 +90,14 @@ export default function CommunityPrefs() {
                 />
                 Skin
               </label>
+              {m.role === "subadmin" && (
+                <Link
+                  className={styles.manage}
+                  to={`/comunidades/${m.community.slug}/gestion`}
+                >
+                  Gestionar
+                </Link>
+              )}
               {!m.community.isBase && (
                 <button
                   type="button"

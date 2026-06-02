@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import Meeple from "../../components/shared/Meeple";
 import { API } from "../../api/endpoints";
@@ -15,8 +16,15 @@ function policyLabel(p) {
 
 export default function Comunidades() {
   const { user } = useAuth();
-  const { joinCommunity, leaveCommunity } = useCommunity();
+  const { joinCommunity, leaveCommunity, memberships } = useCommunity();
   const { addToast } = useNotifications();
+
+  // Subadmin de esta comunidad o admin global → puede gestionarla.
+  const canManage = (c) =>
+    !!user?.isAdmin ||
+    (memberships || []).some(
+      (m) => m.community.slug === c.slug && m.role === "subadmin",
+    );
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [codes, setCodes] = useState({});
@@ -167,7 +175,17 @@ export default function Comunidades() {
                   {policyLabel(c.joinPolicy)}
                 </span>
               </div>
-              <div className={styles.action}>{renderAction(c)}</div>
+              <div className={styles.action}>
+                {renderAction(c)}
+                {canManage(c) && (
+                  <Link
+                    className={styles.manageLink}
+                    to={`/comunidades/${c.slug}/gestion`}
+                  >
+                    Gestionar
+                  </Link>
+                )}
+              </div>
             </article>
           ))}
         </div>

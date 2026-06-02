@@ -70,6 +70,18 @@
   cursor: pointer;
 }
 
+.manage {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--amber);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.manage:hover {
+  text-decoration: underline;
+}
+
 .leave {
   background: transparent;
   border: 1px solid var(--border-strong);

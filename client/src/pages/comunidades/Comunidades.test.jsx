@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
@@ -110,5 +111,30 @@ describe("<Comunidades> directory", () => {
     expect(
       screen.queryByRole("button", { name: /unirme|solicitar/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows a Gestionar link for a community the user is subadmin of", async () => {
+    useCommunity.mockReturnValue({
+      joinCommunity: vi.fn(),
+      leaveCommunity: vi.fn(),
+      memberships: [{ community: { slug: "beta" }, role: "subadmin" }],
+    });
+    mockDirectory([
+      {
+        slug: "beta",
+        name: "Beta",
+        memberCount: 2,
+        joinPolicy: "open",
+        isBase: false,
+        viewerStatus: "member",
+      },
+    ]);
+    render(
+      <MemoryRouter>
+        <Comunidades />
+      </MemoryRouter>,
+    );
+    const link = await screen.findByRole("link", { name: "Gestionar" });
+    expect(link).toHaveAttribute("href", "/comunidades/beta/gestion");
   });
 });

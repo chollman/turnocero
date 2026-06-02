@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 
 vi.mock("../../context/CommunityContext", () => ({ useCommunity: vi.fn() }));
 vi.mock("../../context/NotificationContext", () => ({
@@ -21,6 +22,13 @@ const twoMemberships = [
   },
 ];
 
+const renderPrefs = () =>
+  render(
+    <MemoryRouter>
+      <CommunityPrefs />
+    </MemoryRouter>,
+  );
+
 beforeEach(() => {
   vi.clearAllMocks();
   useNotifications.mockReturnValue({ addToast: vi.fn() });
@@ -36,7 +44,7 @@ describe("<CommunityPrefs>", () => {
       setSkinPref: vi.fn(),
       leaveCommunity: vi.fn(),
     });
-    const { container } = render(<CommunityPrefs />);
+    const { container } = renderPrefs();
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -50,7 +58,7 @@ describe("<CommunityPrefs>", () => {
       setSkinPref: vi.fn().mockResolvedValue({}),
       leaveCommunity: vi.fn().mockResolvedValue({}),
     });
-    render(<CommunityPrefs />);
+    renderPrefs();
     expect(screen.getByText("Beta")).toBeInTheDocument();
     expect(screen.getByText("Subadmin")).toBeInTheDocument();
 
@@ -72,7 +80,7 @@ describe("<CommunityPrefs>", () => {
       setSkinPref,
       leaveCommunity: vi.fn().mockResolvedValue({}),
     });
-    render(<CommunityPrefs />);
+    renderPrefs();
     const radios = screen.getAllByRole("radio");
     fireEvent.click(radios[0]); // base
     await waitFor(() => expect(setSkinPref).toHaveBeenCalledWith("base1"));
@@ -88,7 +96,7 @@ describe("<CommunityPrefs>", () => {
       setSkinPref: vi.fn(),
       leaveCommunity,
     });
-    render(<CommunityPrefs />);
+    renderPrefs();
     // Solo Beta (no base) tiene botón Salir
     fireEvent.click(screen.getByRole("button", { name: "Salir" }));
     await waitFor(() => expect(leaveCommunity).toHaveBeenCalledWith("beta"));
