@@ -24,31 +24,66 @@ import {
 // ─── Inline icons (no icon libs — patrón del repo) ───────────────
 const Icon = {
   Mail: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="2" y="4" width="20" height="16" rx="2" />
       <path d="m22 7-10 5L2 7" />
     </svg>
   ),
   Lock: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="3" y="11" width="18" height="11" rx="2" />
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
   ),
   Eye: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
       <circle cx="12" cy="12" r="3" />
     </svg>
   ),
   EyeOff: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
       <line x1="1" y1="1" x2="23" y2="23" />
     </svg>
   ),
   Dice: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="3" y="3" width="18" height="18" rx="3" />
       <circle cx="8" cy="8" r="1.3" fill="currentColor" />
       <circle cx="16" cy="8" r="1.3" fill="currentColor" />
@@ -58,7 +93,14 @@ const Icon = {
     </svg>
   ),
   Check: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <polyline points="20 6 9 17 4 12" />
     </svg>
   ),
@@ -151,7 +193,7 @@ function Showcase({ showcase }) {
         <h2 className={styles.scHeadline}>
           {total > 0 ? (
             <>
-              {total} mesas activas <em>esperando jugadores.</em>
+              {total} mesas activas <em>esperando</em> jugadores.
             </>
           ) : (
             <>
@@ -286,7 +328,10 @@ export default function Auth({ mode }) {
           <Logo className={styles.brandMark} />
           <div className={styles.brandText}>
             <span className={styles.brandName}>TurnoCero</span>
-            <span className={styles.brandSub}><Meeple />board game meetups</span>
+            <span className={styles.brandSub}>
+              <Meeple />
+              board game meetups
+            </span>
           </div>
         </div>
 
@@ -337,11 +382,11 @@ export default function Auth({ mode }) {
           <h1 className={styles.title}>
             {isLogin ? (
               <>
-                Volvé a la <em>mesa.</em>
+                Volvé a la <em>mesa</em>.
               </>
             ) : (
               <>
-                Armá tu <em>lugar.</em>
+                Armá tu <em>lugar</em>.
               </>
             )}
           </h1>
@@ -429,7 +474,9 @@ export default function Auth({ mode }) {
                     type="text"
                     value={username}
                     onChange={(e) =>
-                      setUsername(e.target.value.replace(/\s/g, "").toLowerCase())
+                      setUsername(
+                        e.target.value.replace(/\s/g, "").toLowerCase(),
+                      )
                     }
                     placeholder="camir"
                     autoComplete="username"
@@ -523,8 +570,8 @@ export default function Auth({ mode }) {
                   <Icon.Check />
                 </span>
                 <span>
-                  Acepto los <span className={styles.termsAccent}>términos</span>{" "}
-                  y la{" "}
+                  Acepto los{" "}
+                  <span className={styles.termsAccent}>términos</span> y la{" "}
                   <span className={styles.termsAccent}>
                     política de privacidad
                   </span>{" "}
