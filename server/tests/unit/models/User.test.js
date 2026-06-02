@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const User = require("../../../models/User");
 
 // Test fixture values. Not real credentials — pulled into constants so static
@@ -129,5 +130,52 @@ describe("User#toJSON", () => {
     expect(json.bggConnected).toBe(true);
     expect(json.bggInvalid).toBe(false);
     expect(json.bggConnectedAt).toBeInstanceOf(Date);
+  });
+});
+
+describe("User model — community membership fields", () => {
+  it("defaults communityMemberships to [] and communityPrefs to empty", async () => {
+    const user = await User.create({
+      username: "commdefaults",
+      email: "commdefaults@test.local",
+      password: PRIMARY_PWD,
+      emailVerified: true,
+    });
+    expect(user.communityMemberships).toEqual([]);
+    expect(user.communityPrefs.viewing).toEqual([]);
+    expect(user.communityPrefs.skin).toBeNull();
+  });
+
+  it("stores a membership with role + joinedAt and a prefs skin", async () => {
+    const communityId = new mongoose.Types.ObjectId();
+    const user = await User.create({
+      username: "commmember",
+      email: "commmember@test.local",
+      password: PRIMARY_PWD,
+      emailVerified: true,
+      communityMemberships: [{ community: communityId, role: "subadmin" }],
+      communityPrefs: { viewing: [communityId], skin: communityId },
+    });
+    expect(user.communityMemberships).toHaveLength(1);
+    expect(user.communityMemberships[0].community.toString()).toBe(
+      communityId.toString(),
+    );
+    expect(user.communityMemberships[0].role).toBe("subadmin");
+    expect(user.communityMemberships[0].joinedAt).toBeInstanceOf(Date);
+    expect(user.communityPrefs.skin.toString()).toBe(communityId.toString());
+  });
+
+  it("rejects an invalid membership role", async () => {
+    await expect(
+      User.create({
+        username: "commbadrole",
+        email: "commbadrole@test.local",
+        password: PRIMARY_PWD,
+        emailVerified: true,
+        communityMemberships: [
+          { community: new mongoose.Types.ObjectId(), role: "owner" },
+        ],
+      }),
+    ).rejects.toThrow();
   });
 });

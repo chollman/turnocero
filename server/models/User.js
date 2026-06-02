@@ -168,6 +168,34 @@ const userSchema = new mongoose.Schema(
         sentAt: { type: Date, default: Date.now },
       },
     ],
+    // ── Comunidades (multi-tenancy suave) ────────────────────────────────
+    // Membresías del usuario. El rol subadmin vive EN la membership (un user
+    // puede ser subadmin de A y member de B), no es un flag global. Espeja
+    // cómo viven friends/friendRequests.
+    communityMemberships: [
+      {
+        _id: false,
+        community: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Community",
+          required: true,
+        },
+        role: { type: String, enum: ["member", "subadmin"], default: "member" },
+        joinedAt: { type: Date, default: Date.now },
+      },
+    ],
+    // Preferencias de visualización. `viewing` = subconjunto de comunidades a
+    // "ver juntas" (feed combinado); vacío ⇒ "todas las memberships" en lectura
+    // (solo se persiste un subconjunto cuando el usuario lo cura). `skin` = la
+    // única comunidad cuyo skin se aplica (debe ser una membership).
+    communityPrefs: {
+      viewing: [{ type: mongoose.Schema.Types.ObjectId, ref: "Community" }],
+      skin: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Community",
+        default: null,
+      },
+    },
     emailVerified: { type: Boolean, default: false },
     emailVerificationCodeHash: { type: String, default: null, select: false },
     emailVerificationExpiresAt: { type: Date, default: null, select: false },
@@ -177,6 +205,9 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+// Index para "quién está en la comunidad X" + expulsar/cambiar rol.
+userSchema.index({ "communityMemberships.community": 1 });
 
 // Normalize legacy avatar (string) → { url, publicId } on hydrate from DB
 userSchema.pre("init", (doc) => {

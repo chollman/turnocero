@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const communityScoped = require("./plugins/communityScoped");
 
 const tableSchema = new mongoose.Schema(
   {
@@ -194,5 +195,8 @@ tableSchema.pre("save", function (next) {
   }
   next();
 });
+
+// Scoping por comunidad: campo `community` + índice { community, status, date }.
+tableSchema.plugin(communityScoped, { indexes: [{ status: 1, date: 1 }] });
 
 module.exports = mongoose.model("Table", tableSchema);

@@ -11,6 +11,7 @@ const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const User = require("./models/User");
+const Community = require("./models/Community");
 const logger = require("./utils/logger");
 const { loadSiteConfig } = require("./utils/siteConfig");
 const { startSchedulers } = require("./jobs/scheduler");
@@ -96,6 +97,10 @@ mongoose
   .then(async () => {
     logger.info("Connected to MongoDB");
     await loadSiteConfig();
+    // Garantizar que la comunidad base exista SIEMPRE: resolveCommunities cae a
+    // ella para anónimos y como piso del invariante "viewing nunca vacío" (sin
+    // base, `community: { $in: [] }` vaciaría todas las listas).
+    await Community.ensureBase();
     // Arrancar cron jobs después de Mongo (necesitan el conn) y antes de listen.
     // No se arrancan desde app.js para que los tests no los disparen.
     startSchedulers({ io });

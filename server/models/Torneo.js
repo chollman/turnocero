@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const communityScoped = require("./plugins/communityScoped");
 
 const torneoSchema = new mongoose.Schema(
   {
@@ -71,5 +72,8 @@ const torneoSchema = new mongoose.Schema(
 
 torneoSchema.index({ status: 1, createdAt: -1 });
 torneoSchema.index({ createdBy: 1 });
+
+// Scoping por comunidad: campo `community` + índice { community, status, createdAt }.
+torneoSchema.plugin(communityScoped, { indexes: [{ status: 1, createdAt: -1 }] });
 
 module.exports = mongoose.model("Torneo", torneoSchema);

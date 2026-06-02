@@ -97,6 +97,10 @@ afterEach(async () => {
   for (const key in collections) {
     await collections[key].deleteMany({});
   }
+  // El caché del singleton base de Community guarda el _id; al limpiar las
+  // colecciones entre tests ese id queda stale. Resetear para que el próximo
+  // getBase()/ensureBase() vuelva a consultar/crear.
+  require("../models/Community").__resetBaseCache();
 });
 
 afterAll(async () => {
