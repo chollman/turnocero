@@ -1,7 +1,7 @@
 ---
 name: feedback-mongo-latest-tiebreak
 description: "Elegir 'el último' en una aggregation de Mongo ($sort + $first / top-N) SIEMPRE desempata por _id, o el orden es indefinido con timestamps empatados"
-metadata: 
+metadata:
   node_type: memory
   type: feedback
   originSessionId: 8bcb51b4-2015-4bb3-9e66-48df60228e3a
@@ -12,9 +12,11 @@ Cuando una aggregation de Mongo elige "el más reciente" con `$sort` + `$first` 
 **Por qué:** inserts en ráfaga pueden compartir `createdAt` al milisegundo. Con la clave de sort empatada, Mongo rompe el empate en **orden indefinido** → `$first` devuelve a veces el doc viejo. Es un bug **no determinístico** que aparece como test flaky (típicamente bajo carga, donde los inserts caen en el mismo ms). El `_id` de ObjectId es **monótono por inserción**, así que `_id: -1` garantiza que gane el insertado último = el realmente más reciente.
 
 **Patrón:**
+
 ```js
 { $sort: { createdAt: -1, _id: -1 } }   // no solo { createdAt: -1 }
 ```
+
 Si después agrupás y volvés a ordenar por un campo anidado, desempatá igual: `{ "lastMessage.createdAt": -1, "lastMessage._id": -1 }`.
 
 **Caso real:** la lista de conversaciones de DM (`server/routes/dm.js`, `GET /api/dm`) devolvía el mensaje viejo como "último mensaje" cuando dos mensajes empataban en `createdAt`. Fix = agregar `_id` a ambos sorts de la pipeline. Detectado como falla flaky de `tests/integration/dm.test.js` (`'hi 1'` en vez de `'hi 2'`) en la corrida completa bajo carga.
