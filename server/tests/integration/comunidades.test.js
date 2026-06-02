@@ -301,3 +301,52 @@ describe("GET /api/comunidades/mias", () => {
     expect(res.body.memberships[0].community.slug).toBe("mias-c");
   });
 });
+
+describe("Skin editing (PUT /skin, POST /logo)", () => {
+  it("admin updates skin tokens (sanitized) + brand", async () => {
+    await Community.create({ name: "Skinned", slug: "skinned", joinPolicy: "open" });
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const res = await request(app)
+      .put("/api/comunidades/skinned/skin")
+      .set(authHeader(token))
+      .send({
+        accents: { amber: "#e63946", bad: "red", evil: "url(x)" },
+        neutralsDark: { bgCard: "#101010" },
+        brandName: "Skinned Club",
+        tagline: "Jugamos en Rosario",
+      })
+      .expect(200);
+    expect(res.body.skin.accents.amber).toBe("#e63946");
+    // valores no-color descartados por el sanitizer
+    expect(res.body.skin.accents.bad).toBeUndefined();
+    expect(res.body.skin.accents.evil).toBeUndefined();
+    expect(res.body.skin.neutralsDark.bgCard).toBe("#101010");
+    expect(res.body.skin.brandName).toBe("Skinned Club");
+    expect(res.body.skin.tagline).toBe("Jugamos en Rosario");
+  });
+
+  it("rejects a non-admin editing the skin (403)", async () => {
+    await Community.create({ name: "Sk2", slug: "sk2", joinPolicy: "open" });
+    const { token } = await createAuthedUser();
+    await request(app)
+      .put("/api/comunidades/sk2/skin")
+      .set(authHeader(token))
+      .send({ brandName: "x" })
+      .expect(403);
+  });
+
+  it("admin uploads a logo (light variant)", async () => {
+    await Community.create({ name: "Logo", slug: "logo-c", joinPolicy: "open" });
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const res = await request(app)
+      .post("/api/comunidades/logo-c/logo")
+      .set(authHeader(token))
+      .field("variant", "light")
+      .attach("logo", Buffer.from("fakeimage"), {
+        filename: "logo.png",
+        contentType: "image/png",
+      })
+      .expect(200);
+    expect(res.body.skin.logoLight.url).toBeTruthy();
+  });
+});

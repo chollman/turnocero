@@ -175,6 +175,8 @@ export const API = {
     JOIN: (slug) => `/api/comunidades/${enc(slug)}/join`,
     LEAVE: (slug) => `/api/comunidades/${enc(slug)}/leave`,
     REASSIGN_TO_BASE: (slug) => `/api/comunidades/${enc(slug)}/reasignar-a-base`,
+    SKIN: (slug) => `/api/comunidades/${enc(slug)}/skin`,
+    LOGO: (slug) => `/api/comunidades/${enc(slug)}/logo`,
     SOLICITUDES: (slug) => `/api/comunidades/${enc(slug)}/solicitudes`,
     SOLICITUD_ACCEPT: (slug, userId) =>
       `/api/comunidades/${enc(slug)}/solicitudes/${enc(userId)}/aceptar`,

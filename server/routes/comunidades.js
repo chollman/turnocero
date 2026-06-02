@@ -1,5 +1,7 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("../config/multer");
+const { uploadToCloudinary } = require("../config/cloudinary");
 const Community = require("../models/Community");
 const User = require("../models/User");
 const SiteConfig = require("../models/SiteConfig");
@@ -168,6 +170,67 @@ router.put(
         }
       }
     }
+    await community.save();
+    res.json(community.toJSON());
+  }),
+);
+
+// PUT /api/comunidades/:slug/skin — admin: editar el skin (tokens + brand).
+// Los tokens de color se sanitizan (allowlist hex/rgb) antes de guardar.
+router.put(
+  "/:slug/skin",
+  protect,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const community = await Community.findOne({ slug: req.params.slug });
+    if (!community) throw httpError(404, "Comunidad no encontrada");
+
+    if (req.body.accents) {
+      community.set("skin.accents", Community.sanitizeSkinTokens(req.body.accents));
+    }
+    if (req.body.neutralsDark) {
+      community.set(
+        "skin.neutralsDark",
+        Community.sanitizeSkinTokens(req.body.neutralsDark),
+      );
+    }
+    if (req.body.neutralsLight) {
+      community.set(
+        "skin.neutralsLight",
+        Community.sanitizeSkinTokens(req.body.neutralsLight),
+      );
+    }
+    if (req.body.brandName !== undefined) {
+      community.skin.brandName = String(req.body.brandName).slice(0, 60);
+    }
+    if (req.body.tagline !== undefined) {
+      community.skin.tagline = String(req.body.tagline).slice(0, 140);
+    }
+    if (req.body.font !== undefined) {
+      community.skin.font = String(req.body.font).slice(0, 80);
+    }
+    await community.save();
+    res.json(community.toJSON());
+  }),
+);
+
+// POST /api/comunidades/:slug/logo — admin: sube el logo (variant light|dark).
+router.post(
+  "/:slug/logo",
+  protect,
+  requireAdmin,
+  multer.single("logo"),
+  asyncHandler(async (req, res) => {
+    const community = await Community.findOne({ slug: req.params.slug });
+    if (!community) throw httpError(404, "Comunidad no encontrada");
+    if (!req.file) throw httpError(400, "Falta el archivo del logo");
+    const variant = req.body.variant === "dark" ? "dark" : "light";
+    const result = await uploadToCloudinary(req.file.buffer, {
+      folder: `turnocero/communities/${community._id}`,
+      transformation: [{ width: 400, crop: "limit" }],
+    });
+    const asset = { url: result.secure_url, publicId: result.public_id };
+    community.set(variant === "dark" ? "skin.logoDark" : "skin.logoLight", asset);
     await community.save();
     res.json(community.toJSON());
   }),
