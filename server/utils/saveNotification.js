@@ -54,6 +54,8 @@ const TYPE_TO_SECTION = {
   evento_reminder: "eventos",
   evento_ludoteca_added: "eventos",
   evento_mesa_created: "eventos",
+  // Math Trade
+  mathtrade_results: "mathtrade",
 };
 
 /**
@@ -81,6 +83,7 @@ async function saveNotification(recipientId, type, fields) {
     if (fields.torneoId) filter.torneoId = fields.torneoId;
     if (fields.compartidaId) filter.compartidaId = fields.compartidaId;
     if (fields.eventoId) filter.eventoId = fields.eventoId;
+    if (fields.mathtradeId) filter.mathtradeId = fields.mathtradeId;
 
     if (AGGREGATING.has(type)) {
       // `actor` no se persiste como campo plano — alimenta el array `actors`.

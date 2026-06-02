@@ -163,6 +163,44 @@ describe("GET /api/dm — conversation list", () => {
     expect(f2.contact.username).toBe("friend2");
     expect(f2.unread).toBe(0); // outgoing doesn't count
   });
+
+  it("elige el último mensaje de forma determinística cuando empatan los timestamps", async () => {
+    // Regresión: con createdAt idéntico al milisegundo (inserts en ráfaga), la
+    // agregación elegía el "último" mensaje de forma no determinística. El
+    // desempate por _id (monótono) garantiza que gane el insertado después.
+    const friend = await createUser({ username: "tiebreak" });
+    const { user, token } = await createAuthedUser();
+    await makeMutualFriends(user, friend);
+
+    const first = await DirectMessage.create({
+      from: friend._id,
+      to: user._id,
+      content: "primero",
+      readByRecipient: false,
+    });
+    const second = await DirectMessage.create({
+      from: friend._id,
+      to: user._id,
+      content: "segundo",
+      readByRecipient: false,
+    });
+    // Forzamos el empate exacto de createdAt entre ambos.
+    const sameTs = new Date("2026-01-01T00:00:00.000Z");
+    await DirectMessage.updateMany(
+      { _id: { $in: [first._id, second._id] } },
+      { $set: { createdAt: sameTs } },
+    );
+
+    const res = await request(app)
+      .get("/api/dm")
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    const conv = res.body.find(
+      (c) => c.contact._id.toString() === friend._id.toString(),
+    );
+    // El insertado después (mayor _id) debe ser el "último mensaje".
+    expect(conv.lastMessage.content).toBe("segundo");
+  });
 });
 
 describe("PATCH /api/dm/:userId/read", () => {

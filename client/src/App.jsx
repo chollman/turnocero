@@ -38,6 +38,10 @@ import Torneos from "./pages/torneos/Torneos";
 import TorneoDetail from "./pages/torneos/TorneoDetail";
 import CreateTorneo from "./pages/torneos/CreateTorneo";
 import EditTorneo from "./pages/torneos/EditTorneo";
+import MathTrades from "./pages/mathtrade/MathTrades";
+import MathTradeDetail from "./pages/mathtrade/MathTradeDetail";
+import CreateMathTrade from "./pages/mathtrade/CreateMathTrade";
+import EditMathTrade from "./pages/mathtrade/EditMathTrade";
 import Eventos from "./pages/eventos/Eventos";
 import EventoDetail from "./pages/eventos/EventoDetail";
 import EventoInscripciones from "./pages/eventos/EventoInscripciones";
@@ -352,6 +356,42 @@ export function AppRoutes({ transition }) {
                 <AdminRoute>
                   <SectionGate section="torneos">
                     <EditTorneo />
+                  </SectionGate>
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/math-trade"
+              element={
+                <SectionGate section="mathtrade">
+                  <MathTrades />
+                </SectionGate>
+              }
+            />
+            <Route
+              path="/math-trade/crear"
+              element={
+                <AdminRoute>
+                  <SectionGate section="mathtrade">
+                    <CreateMathTrade />
+                  </SectionGate>
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/math-trade/:id"
+              element={
+                <SectionGate section="mathtrade">
+                  <MathTradeDetail />
+                </SectionGate>
+              }
+            />
+            <Route
+              path="/math-trade/:id/editar"
+              element={
+                <AdminRoute>
+                  <SectionGate section="mathtrade">
+                    <EditMathTrade />
                   </SectionGate>
                 </AdminRoute>
               }

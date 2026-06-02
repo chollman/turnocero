@@ -47,6 +47,16 @@ const SECTION_META = [
         ],
       },
       {
+        key: "mathtrade",
+        label: "Math Trade",
+        desc: "Intercambios múltiples: los usuarios ofrecen juegos y arman want lists; el sistema calcula los trades.",
+        affects: [
+          "Oculta /math-trade y subrutas",
+          "Bloquea la carga de ofertas y want lists",
+          "Bloquea notificaciones de resultados",
+        ],
+      },
+      {
         key: "mesas",
         label: "Mesas",
         desc: "Mesas para organizar partidas (con chat, comentarios, fotos).",

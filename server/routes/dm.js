@@ -26,7 +26,11 @@ router.get(
 
     const conversations = await DirectMessage.aggregate([
       { $match: { $or: [{ from: userId }, { to: userId }] } },
-      { $sort: { createdAt: -1 } },
+      // `_id` desempata cuando dos mensajes comparten createdAt al milisegundo
+      // (inserts en ráfaga): el ObjectId es monótono por inserción, así que el
+      // último insertado gana y `$first` elige el mensaje más reciente de forma
+      // determinística.
+      { $sort: { createdAt: -1, _id: -1 } },
       {
         $group: {
           _id: {
@@ -49,7 +53,7 @@ router.get(
           },
         },
       },
-      { $sort: { "lastMessage.createdAt": -1 } },
+      { $sort: { "lastMessage.createdAt": -1, "lastMessage._id": -1 } },
       {
         $lookup: {
           from: "users",

@@ -14,6 +14,7 @@ const SECTION_KEYS = [
   "utilidades",
   "colabora",
   "calendario",
+  "mathtrade",
 ];
 
 // Defaults que preservan el comportamiento actual hardcodeado:
@@ -23,6 +24,7 @@ const DEFAULT_ENABLED = {
   mesas: false,
   torneos: false,
   miFeed: false,
+  mathtrade: false,
 };
 
 function defaultFor(key) {

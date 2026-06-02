@@ -1,0 +1,467 @@
+.page {
+  width: 100%;
+  padding: var(--page-pad-y, 32px) var(--page-pad-x, 24px);
+}
+.inner {
+  width: 100%;
+}
+.back {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+.back:hover {
+  color: var(--text-secondary);
+}
+.hero {
+  margin: 12px 0 24px;
+}
+.banner {
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  border-radius: 16px;
+  margin-bottom: 16px;
+}
+.heroTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.title {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  color: var(--text-primary);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.desc {
+  color: var(--text-secondary);
+  margin-top: 10px;
+  max-width: 70ch;
+  white-space: pre-wrap;
+}
+.metaRow {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  margin: 22px 0;
+  flex-wrap: wrap;
+}
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  padding: 10px 6px;
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.tabActive {
+  color: var(--text-primary);
+  border-bottom-color: var(--green);
+}
+
+/* ── Items / ofertas ───────────────────────────────────────── */
+.sectionTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+.itemGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.itemCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+.itemHead {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+.thumbFallback {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--bg-elevated);
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+.itemGame {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.itemOwner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.wantsLabel {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.wantChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.wantChip {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+.itemActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.smallBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.smallBtn:hover {
+  border-color: var(--green);
+  color: var(--text-primary);
+}
+.dangerBtn:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* ── Item form ─────────────────────────────────────────────── */
+.form {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.formLabel {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  display: block;
+}
+.pickedGame {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.notesInput {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: var(--text-primary);
+  width: 100%;
+  font-family: inherit;
+}
+.cta {
+  background: var(--amber);
+  color: var(--on-amber);
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
+}
+.cta:hover {
+  background: var(--amber-light);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Want list builder ─────────────────────────────────────── */
+.wantRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+}
+.wantRank {
+  width: 22px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.wantName {
+  flex: 1;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+}
+.iconBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+.iconBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Results ───────────────────────────────────────────────── */
+.summaryBanner {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+.statNum {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.statLabel {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.approxBanner {
+  background: var(--orange-15);
+  border: 1px solid var(--orange);
+  color: var(--text-primary);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+.youBox {
+  background: var(--green-10);
+  border: 1px solid var(--green);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.chain {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.chainTitle {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.chainMember {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+.chainGive {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+.chainArrow {
+  color: var(--green);
+  font-weight: 700;
+}
+.chainName {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.chainConnector {
+  border-left: 2px dashed var(--border);
+  height: 12px;
+  margin-left: 16px;
+}
+
+/* ── Toggle de agrupación (cadena / usuario) ───────────────── */
+.viewToggle {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px;
+  margin-bottom: 18px;
+}
+.viewToggleBtn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.viewToggleBtnActive {
+  background: var(--green-15);
+  color: var(--text-primary);
+}
+
+/* ── Vista por usuario ─────────────────────────────────────── */
+.userBlock {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.userHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.userName {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.userCount {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.userRows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.userRow {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+.userRowMuted {
+  color: var(--text-muted);
+}
+
+/* ── Admin panel ───────────────────────────────────────────── */
+.adminPanel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-amber, var(--amber));
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 24px;
+}
+.adminTitle {
+  font-weight: 700;
+  color: var(--amber);
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+}
+.adminRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.adminBtn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 8px 14px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.adminBtn:hover {
+  border-color: var(--amber);
+}
+.adminBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.adminSelect {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  color: var(--text-primary);
+}
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+.loginPrompt {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  text-align: center;
+  color: var(--text-secondary);
+}

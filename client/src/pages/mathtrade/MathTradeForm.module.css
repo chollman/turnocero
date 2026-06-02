@@ -1,0 +1,133 @@
+.page {
+  width: 100%;
+  padding: var(--page-pad-y, 32px) var(--page-pad-x, 24px);
+}
+.inner {
+  width: 100%;
+  max-width: 720px;
+}
+.back {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+.back:hover {
+  color: var(--text-secondary);
+}
+.title {
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  margin: 10px 0 24px;
+  color: var(--text-primary);
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.input,
+.textarea {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 13px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: inherit;
+  width: 100%;
+}
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--green);
+}
+.textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+.modeRow {
+  display: flex;
+  gap: 10px;
+}
+.modeBtn {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  text-align: left;
+  transition: all var(--transition);
+}
+.modeBtnActive {
+  border-color: var(--green);
+  background: var(--green-15);
+  color: var(--text-primary);
+}
+.modeBtnTitle {
+  display: block;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.modeBtnDesc {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.numberRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.numberInput {
+  width: 90px;
+}
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.submit {
+  background: var(--amber);
+  color: var(--on-amber);
+  border: none;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
+}
+.submit:hover {
+  background: var(--amber-light);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.cancel {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 12px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
