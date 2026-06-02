@@ -86,6 +86,26 @@ const ICONS = {
       <line x1="9" y1="22" x2="15" y2="22" />
     </svg>
   ),
+  calendario: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <line x1="7.5" y1="14" x2="7.5" y2="14" />
+      <line x1="12" y1="14" x2="12" y2="14" />
+      <line x1="16.5" y1="14" x2="16.5" y2="14" />
+      <line x1="7.5" y1="18" x2="7.5" y2="18" />
+      <line x1="12" y1="18" x2="12" y2="18" />
+    </svg>
+  ),
   compartidas: (
     <svg
       viewBox="0 0 24 24"
@@ -227,6 +247,12 @@ const SECTIONS = [
       { id: "dash", label: "Mesas", to: "/mesas", section: "mesas" },
       { id: "eventos", label: "Eventos", to: "/eventos", section: "eventos" },
       { id: "torneos", label: "Torneos", to: "/torneos", section: "torneos" },
+      {
+        id: "calendario",
+        label: "Calendario",
+        to: "/calendario",
+        section: "calendario",
+      },
     ],
   },
   {
@@ -385,122 +411,124 @@ export default function Sidebar({ open = false, onClose }) {
         className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}
         aria-hidden={onClose && !open ? "true" : undefined}
       >
-      <div className={styles.logoRow}>
-        <Link to="/" className={styles.logo} aria-label="TurnoCero">
-          <span className={styles.logoMark} aria-hidden="true">
-            <Logo className={styles.logoMarkImg} alt="" />
-          </span>
-          <span className={styles.logoText}>
-            <span className={styles.logoName}>TurnoCero</span>
-            <span className={styles.logoSub}><Meeple />board game meetups</span>
-          </span>
-        </Link>
-        <button
-          className={`${styles.bellBtn} ${active === "notif" ? styles.bellBtnActive : ""}`}
-          onClick={() => navigate("/notificaciones")}
-          aria-label="Notificaciones"
-          title="Notificaciones"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-          {unreadCount > 0 && (
-            <span key={unreadCount} className={styles.bellBadge}>
-              {unreadCount > 9 ? "9+" : unreadCount}
+        <div className={styles.logoRow}>
+          <Link to="/" className={styles.logo} aria-label="TurnoCero">
+            <span className={styles.logoMark} aria-hidden="true">
+              <Logo className={styles.logoMarkImg} alt="" />
             </span>
-          )}
-        </button>
-      </div>
-
-      <nav className={styles.nav}>
-        {visibleSections.map((sec) => (
-          <div
-            key={sec.label}
-            className={`${styles.navSection} ${sec.adminOnly ? styles.navSectionAdmin : ""}`}
-          >
-            <span className={styles.navSectionLabel}><Meeple />{sec.label}</span>
-            {sec.items.map(renderNavItem)}
-          </div>
-        ))}
-      </nav>
-
-      <div className={styles.sidebarFooter}>
-        {confirmingLogout ? (
-          <div className={styles.logoutConfirm}>
-            <span className={styles.logoutConfirmLabel}>¿Cerrar sesión?</span>
-            <div className={styles.logoutConfirmActions}>
-              <button
-                className={styles.logoutConfirmYes}
-                onClick={handleLogoutConfirm}
-              >
-                Sí
-              </button>
-              <button
-                className={styles.logoutConfirmNo}
-                onClick={() => setConfirmingLogout(false)}
-              >
-                No
-              </button>
-            </div>
-          </div>
-        ) : (
-          <Link
-            to="/perfil"
-            className={styles.userTicket}
-            onClick={onClose}
-          >
-            <span className={styles.userAvatar} aria-hidden="true">
-              {(display.name || "?").charAt(0).toUpperCase()}
-            </span>
-            <span className={styles.userInfo}>
-              <span className={styles.userName}>
-                {display.name || user?.username}
-              </span>
-              <span className={styles.userMeta}>
-                <span className={styles.statusDot} aria-hidden="true" />@
-                {user?.username}
+            <span className={styles.logoText}>
+              <span className={styles.logoName}>TurnoCero</span>
+              <span className={styles.logoSub}>
+                <Meeple />
+                board game meetups
               </span>
             </span>
-            <button
-              type="button"
-              className={styles.logoutBtn}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setConfirmingLogout(true);
-              }}
-              title="Cerrar sesión"
-              aria-label="Cerrar sesión"
-            >
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-            </button>
           </Link>
-        )}
-      </div>
-    </aside>
+          <button
+            className={`${styles.bellBtn} ${active === "notif" ? styles.bellBtnActive : ""}`}
+            onClick={() => navigate("/notificaciones")}
+            aria-label="Notificaciones"
+            title="Notificaciones"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            {unreadCount > 0 && (
+              <span key={unreadCount} className={styles.bellBadge}>
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <nav className={styles.nav}>
+          {visibleSections.map((sec) => (
+            <div
+              key={sec.label}
+              className={`${styles.navSection} ${sec.adminOnly ? styles.navSectionAdmin : ""}`}
+            >
+              <span className={styles.navSectionLabel}>
+                <Meeple />
+                {sec.label}
+              </span>
+              {sec.items.map(renderNavItem)}
+            </div>
+          ))}
+        </nav>
+
+        <div className={styles.sidebarFooter}>
+          {confirmingLogout ? (
+            <div className={styles.logoutConfirm}>
+              <span className={styles.logoutConfirmLabel}>¿Cerrar sesión?</span>
+              <div className={styles.logoutConfirmActions}>
+                <button
+                  className={styles.logoutConfirmYes}
+                  onClick={handleLogoutConfirm}
+                >
+                  Sí
+                </button>
+                <button
+                  className={styles.logoutConfirmNo}
+                  onClick={() => setConfirmingLogout(false)}
+                >
+                  No
+                </button>
+              </div>
+            </div>
+          ) : (
+            <Link to="/perfil" className={styles.userTicket} onClick={onClose}>
+              <span className={styles.userAvatar} aria-hidden="true">
+                {(display.name || "?").charAt(0).toUpperCase()}
+              </span>
+              <span className={styles.userInfo}>
+                <span className={styles.userName}>
+                  {display.name || user?.username}
+                </span>
+                <span className={styles.userMeta}>
+                  <span className={styles.statusDot} aria-hidden="true" />@
+                  {user?.username}
+                </span>
+              </span>
+              <button
+                type="button"
+                className={styles.logoutBtn}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setConfirmingLogout(true);
+                }}
+                title="Cerrar sesión"
+                aria-label="Cerrar sesión"
+              >
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </button>
+            </Link>
+          )}
+        </div>
+      </aside>
     </>
   );
 }

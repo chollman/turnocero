@@ -3,6 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { API } from "../../api/endpoints";
+import { fromLocalInputValue } from "../../utils/eventoDate";
+import DateTimePicker from "../../components/shared/DateTimePicker";
 import ImageDropzone from "./components/ImageDropzone";
 import styles from "./Torneos.module.css";
 
@@ -14,6 +16,7 @@ export default function CreateTorneo() {
   const [format, setFormat] = useState("league");
   const [inscriptionMode, setInscMode] = useState("open");
   const [maxParticipants, setMax] = useState("");
+  const [fecha, setFecha] = useState("");
   const [tableSize, setTableSize] = useState(4);
   const [gamesPerGroup, setGamesPerGroup] = useState(3);
   const [qualifiersPerGroup, setQualif] = useState(2);
@@ -43,6 +46,7 @@ export default function CreateTorneo() {
       fd.append("format", format);
       fd.append("inscriptionMode", inscriptionMode);
       if (maxParticipants) fd.append("maxParticipants", maxParticipants);
+      if (fecha) fd.append("fecha", fromLocalInputValue(fecha));
       if (format === "groups") {
         fd.append("tableSize", String(tableSize));
         fd.append("gamesPerGroup", String(gamesPerGroup));
@@ -249,6 +253,19 @@ export default function CreateTorneo() {
               onChange={(e) => setMax(e.target.value)}
               placeholder="Dejá vacío para sin tope"
             />
+          </label>
+
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>Fecha (opcional)</span>
+            <DateTimePicker
+              id="torneo-fecha"
+              name="fecha"
+              value={fecha}
+              onChange={setFecha}
+            />
+            <span className={styles.formHint}>
+              Si la cargás, el torneo aparece en el Calendario.
+            </span>
           </label>
 
           {error && <p className={styles.errorMsg}>{error}</p>}

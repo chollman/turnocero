@@ -63,6 +63,15 @@ const SECTION_META = [
         desc: "Feed personal del usuario con sus propias mesas.",
         affects: ["Oculta /mi"],
       },
+      {
+        key: "calendario",
+        label: "Calendario",
+        desc: "Vista unificada (mesas, eventos y torneos) en grilla y agenda.",
+        affects: [
+          "Oculta /calendario y el item del nav",
+          "Solo muestra los tipos cuyas secciones (mesas/eventos/torneos) estén habilitadas",
+        ],
+      },
     ],
   },
   {
@@ -231,7 +240,10 @@ function IdeasSection() {
       <h2 className={styles.groupTitle}>
         Ideas recibidas
         {counts.new > 0 && (
-          <span className={styles.ideasBadge} aria-label={`${counts.new} nuevas`}>
+          <span
+            className={styles.ideasBadge}
+            aria-label={`${counts.new} nuevas`}
+          >
             {counts.new}
           </span>
         )}
@@ -398,7 +410,10 @@ function PanelAdminInner() {
       <div className={styles.page}>
         <div className={styles.inner}>
           <div className={styles.hero}>
-            <div className={styles.eyebrow}><Meeple />ADMIN</div>
+            <div className={styles.eyebrow}>
+              <Meeple />
+              ADMIN
+            </div>
             <h1 className={styles.title}>Panel de secciones</h1>
             <p className={styles.sub}>Cargando configuración…</p>
           </div>
@@ -411,7 +426,10 @@ function PanelAdminInner() {
     <div className={styles.page}>
       <div className={styles.inner}>
         <div className={styles.hero}>
-          <div className={styles.eyebrow}><Meeple />ADMIN</div>
+          <div className={styles.eyebrow}>
+            <Meeple />
+            ADMIN
+          </div>
           <h1 className={styles.title}>Panel de secciones</h1>
           <p className={styles.sub}>
             Prendé o apagá secciones del sitio para usuarios no-admin. Vos

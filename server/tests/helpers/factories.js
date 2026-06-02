@@ -90,6 +90,7 @@ async function createTorneo(createdBy, overrides = {}) {
     status: overrides.status || "draft",
     inscriptionMode: overrides.inscriptionMode || "open",
     maxParticipants: overrides.maxParticipants ?? 8,
+    fecha: overrides.fecha ?? null,
     createdBy: createdBy._id,
     participants: overrides.participants || [],
     pendingRegistrations: overrides.pendingRegistrations || [],

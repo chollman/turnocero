@@ -2,6 +2,7 @@
 
 - [Claudio Hollman — developer profile](user_profile.md) — sole dev/owner, full-stack, Argentine Spanish UI, English commit messages
 - [Turnocero current feature set](project_features.md) — Noticias, Compartidas, Torneos, Friends, public browsing, Sidebar/Navbar/GuestNavbar (BottomNav removed May 2026), admin moderation — features beyond CLAUDE.md
+- [Calendario unificado](project_calendario_unificado.md) — sección `/calendario` (2026-06-02): agrega mesas+eventos+torneos en grilla+agenda, read-only, `Torneo.fecha` opcional, calendarService
 - [Code style and workflow preferences](feedback_style.md) — commit-msg/UI language, BGG warning, CSS Modules
 - [Tests are required for every new component and method](feedback_tests_required.md) — non-negotiable since 2026-05-18: every new component, route, hook, util, or method ships with its tests in the same change (client AND server)
 - [Page layout standard](padding_system.md) — padding variables + full-width rule (NO max-width caps on page wrappers, even long-form/legal) + editorial hero header pattern every new screen follows

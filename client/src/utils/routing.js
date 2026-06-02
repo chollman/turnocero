@@ -12,6 +12,7 @@ export function getActiveNavId(pathname) {
   if (pathname.startsWith("/noticias")) return "noticias";
   if (pathname.startsWith("/torneos")) return "torneos";
   if (pathname.startsWith("/eventos")) return "eventos";
+  if (pathname.startsWith("/calendario")) return "calendario";
   if (pathname === "/" || pathname.startsWith("/compartidas"))
     return "compartidas";
   if (pathname === "/notificaciones") return "notif";

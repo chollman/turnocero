@@ -3,6 +3,8 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { API } from "../../api/endpoints";
+import { toLocalInputValue, fromLocalInputValue } from "../../utils/eventoDate";
+import DateTimePicker from "../../components/shared/DateTimePicker";
 import ImageDropzone from "./components/ImageDropzone";
 import styles from "./Torneos.module.css";
 
@@ -15,6 +17,7 @@ export default function EditTorneo() {
   const [description, setDesc] = useState("");
   const [game, setGame] = useState("");
   const [maxParticipants, setMax] = useState("");
+  const [fecha, setFecha] = useState("");
   const [inscriptionMode, setInscMode] = useState("open");
   const [torneoFormat, setTorneoFormat] = useState("league");
   const [torneoStatus, setTorneoStatus] = useState("draft");
@@ -37,6 +40,7 @@ export default function EditTorneo() {
         setDesc(data.description || "");
         setGame(data.game || "");
         setMax(data.maxParticipants ?? "");
+        setFecha(data.fecha ? toLocalInputValue(data.fecha) : "");
         setInscMode(data.inscriptionMode || "open");
         setTorneoFormat(data.format);
         setTorneoStatus(data.status);
@@ -71,6 +75,8 @@ export default function EditTorneo() {
       fd.append("game", game.trim());
       fd.append("inscriptionMode", inscriptionMode);
       if (maxParticipants !== "") fd.append("maxParticipants", maxParticipants);
+      // Siempre la mandamos: "" limpia la fecha (PUT parcial la borra).
+      fd.append("fecha", fecha ? fromLocalInputValue(fecha) : "");
       if (torneoFormat === "groups" && torneoStatus === "draft") {
         fd.append("tableSize", String(tableSize));
         fd.append("gamesPerGroup", String(gamesPerGroup));
@@ -172,6 +178,19 @@ export default function EditTorneo() {
               onChange={(e) => setMax(e.target.value)}
               placeholder="Dejá vacío para sin tope"
             />
+          </label>
+
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>Fecha (opcional)</span>
+            <DateTimePicker
+              id="torneo-fecha"
+              name="fecha"
+              value={fecha}
+              onChange={setFecha}
+            />
+            <span className={styles.formHint}>
+              Si la cargás, el torneo aparece en el Calendario.
+            </span>
           </label>
 
           {["draft", "registration"].includes(torneoStatus) && (

@@ -41,6 +41,7 @@ import EditTorneo from "./pages/torneos/EditTorneo";
 import Eventos from "./pages/eventos/Eventos";
 import EventoDetail from "./pages/eventos/EventoDetail";
 import EventoInscripciones from "./pages/eventos/EventoInscripciones";
+import Calendario from "./pages/calendario/Calendario";
 import Compartidas from "./pages/compartidas/Compartidas";
 import CompartidaPost from "./pages/compartidas/CompartidaPost";
 import BgWatchProfile from "./pages/bg-watch/BgWatchProfile";
@@ -373,6 +374,14 @@ export function AppRoutes({ transition }) {
                     <EventoDetail />
                   </SectionGate>
                 </PrivateRoute>
+              }
+            />
+            <Route
+              path="/calendario"
+              element={
+                <SectionGate section="calendario">
+                  <Calendario />
+                </SectionGate>
               }
             />
             <Route

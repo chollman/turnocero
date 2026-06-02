@@ -27,6 +27,11 @@ const torneoSchema = new mongoose.Schema(
     },
     maxParticipants: { type: Number, default: null, min: 2 },
 
+    // Fecha opcional del torneo. Solo se usa para ubicarlo en el Calendario
+    // unificado — los torneos con `fecha` aparecen ahí; los que no la tienen
+    // simplemente no se muestran. Campo nullable, sin migración.
+    fecha: { type: Date, default: null },
+
     // Groups format config (only used when format === 'groups')
     tableSize: { type: Number, min: 2, max: 12, default: 4 },
     gamesPerGroup: { type: Number, min: 1, max: 12, default: 3 },
