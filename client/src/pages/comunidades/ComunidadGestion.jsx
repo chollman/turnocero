@@ -91,6 +91,15 @@ export default function ComunidadGestion() {
       () => axios.delete(API.comunidades.MIEMBRO(slug, userId)),
       "Miembro expulsado",
     );
+  // Asignar/revocar subadmin — solo admin global (el endpoint es requireAdmin).
+  const setSubadmin = (userId, makeSubadmin) =>
+    act(
+      () =>
+        axios.put(API.comunidades.SUBADMIN(slug, userId), {
+          subadmin: makeSubadmin,
+        }),
+      makeSubadmin ? "Subadmin asignado" : "Subadmin removido",
+    );
 
   return (
     <div className={styles.page}>
@@ -164,15 +173,30 @@ export default function ComunidadGestion() {
               {m.role === "subadmin" && (
                 <span className={styles.roleTag}>Subadmin</span>
               )}
-              {String(m._id) !== String(user._id) && (
-                <button
-                  type="button"
-                  className={styles.reject}
-                  onClick={() => expel(m._id)}
-                >
-                  Expulsar
-                </button>
-              )}
+              <div className={styles.actions}>
+                {user?.isAdmin && String(m._id) !== String(user._id) && (
+                  <button
+                    type="button"
+                    className={styles.roleBtn}
+                    onClick={() =>
+                      setSubadmin(m._id, m.role !== "subadmin")
+                    }
+                  >
+                    {m.role === "subadmin"
+                      ? "Quitar subadmin"
+                      : "Hacer subadmin"}
+                  </button>
+                )}
+                {String(m._id) !== String(user._id) && (
+                  <button
+                    type="button"
+                    className={styles.reject}
+                    onClick={() => expel(m._id)}
+                  >
+                    Expulsar
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>
