@@ -1,7 +1,7 @@
 ---
 name: project-math-trade
 description: "Sección Math Trade (mergeada a master 2026-06-02, commit f890ef3 / merge 5463ed1) — intercambios múltiples de juegos con motor de matching de 3 modos (max/bounded/auto)"
-metadata: 
+metadata:
   node_type: memory
   type: project
   originSessionId: 8bcb51b4-2015-4bb3-9e66-48df60228e3a
@@ -10,10 +10,12 @@ metadata:
 Sección **Math Trade** (`/math-trade`), admin-managed como Torneos. Mergeada a master 2026-06-02 (commit `f890ef3`, merge `5463ed1`). Los usuarios **ofrecen** juegos y arman una **want list por juego ofrecido** (referenciada por TÍTULO = `bggGameId`, el matcher la expande a cualquier copia ofrecida de ese título por OTRO dueño). Un algoritmo calcula los intercambios óptimos en **ciclos**: si tu juego se va, recibís uno de tu want list (invariante: todo el que entrega, recibe).
 
 **Modelos** (separados, no embebidos — espejo Torneo↔TorneoGame):
+
 - `MathTrade`: title, description, image, `status` (`draft→open→locked→results→finished` + `cancelled`), `submissionDeadline`, `matching: { mode: max|bounded|auto, maxChainLength 2..12 }`, `published`, `lastRunAt`, `summary { itemsOffered, itemsTraded, cyclesCount, longestCycle, approximate, chosenChainLength }`.
 - `MathTradeItem`: un doc por juego ofrecido (una copia). `mathtrade`, `owner`, `bggGameId`+snapshot `gameName/thumbnail` (vía `resolveGamesBatch`), `wants: [{ bggGameId, gameName, thumbnail, rank }]` (rank asc = preferencia), `notes`, + resultado `traded/givesToItem/receivesFromItem/matchedGameId`.
 
 **Motor — `server/utils/mathTradeMatching.js`** (puro, sin Mongo). Input `[{ id, ownerId, gameId, wants:[{gameId,rank}] }]`. Tres engines:
+
 - `solveUnbounded` (mode `max`): maximiza ítems intercambiados, cadenas de cualquier largo. **Exacto** — asignación de costo mínimo (Hungarian O(n³)): cada ítem "recibe" sí mismo (penalidad) o un ítem de su want list (costo = rank). La permutación garantiza el invariante. Es el problema clásico de TradeMaximizer.
 - `solveBounded(items, K)` (mode `bounded`): max intercambios sin ciclo > K personas. **NP-hard** (cubrimiento de ciclos acotado = kidney-exchange). Pipeline: enumeración **justa** de ciclos ≤K (cap POR NODO de arranque, no global — evita el sesgo a índices bajos) → B&B exacto si es chico, si no **peeling greedy multi-start** (varias semillas, mejor cobertura) → **pasada final de peeling** que cubre nodos libres que la búsqueda se perdió. Flag `approximate` cuando no se prueba optimalidad.
 - `solveAuto(items)` (mode `auto`, recomendado): techo = `solveUnbounded`; barre K=2..`AUTO_MAX_K`(10) y elige el **K más chico** cuyos intercambios llegan a ≥(1-`AUTO_TOLERANCE`=0.05)·techo; si ninguno llega, cae a ilimitado. → cadenas cortas/robustas sin perder intercambios. Devuelve `summary.chosenChainLength` (número, o null=ilimitado) + `curve`.
