@@ -421,7 +421,10 @@ export default function CompartidaCard({
             />
           </div>
           <div className={styles.mesaInfo}>
-            <span className={styles.mesaLabel}><Meeple />Mesa enlazada</span>
+            <span className={styles.mesaLabel}>
+              <Meeple />
+              Mesa enlazada
+            </span>
             <span className={styles.mesaGame}>{table.boardGame}</span>
             <span className={styles.mesaMeta}>
               {formatTableDate(table.date)}
@@ -448,7 +451,10 @@ export default function CompartidaCard({
             <span style={{ fontSize: 22 }}>🎟️</span>
           </div>
           <div className={styles.mesaInfo}>
-            <span className={styles.mesaLabel}><Meeple />Evento enlazado</span>
+            <span className={styles.mesaLabel}>
+              <Meeple />
+              Evento enlazado
+            </span>
             <span className={styles.mesaGame}>{evento.title}</span>
             <span className={styles.mesaMeta}>
               {formatTableDate(evento.eventDate)}
@@ -509,7 +515,8 @@ export default function CompartidaCard({
           </div>
           <div className={styles.featuredMesaBody}>
             <span className={styles.featuredMesaLabel}>
-              <Meeple />La mesa de esta compartida
+              <Meeple />
+              La mesa de esta compartida
             </span>
             <span className={styles.featuredMesaGame}>{table.boardGame}</span>
             <span className={styles.featuredMesaMeta}>
@@ -561,7 +568,8 @@ export default function CompartidaCard({
           </div>
           <div className={styles.featuredMesaBody}>
             <span className={styles.featuredMesaLabel}>
-              <Meeple />El evento de esta compartida
+              <Meeple />
+              El evento de esta compartida
             </span>
             <span className={styles.featuredMesaGame}>{evento.title}</span>
             <span className={styles.featuredMesaMeta}>
@@ -598,7 +606,10 @@ export default function CompartidaCard({
           className={`${styles.card} ${styles.cardFeatured}`}
           style={{ "--i": index }}
         >
-          <div className={styles.featuredBadge}><Meeple />Compartida del día</div>
+          <div className={styles.featuredBadge}>
+            <Meeple />
+            Compartida del día
+          </div>
           <div className={styles.broadsideGrid}>
             <div className={styles.broadsideMain}>
               <div className={styles.broadsideEyebrow}>
@@ -800,7 +811,10 @@ export default function CompartidaCard({
             )}
           </div>
           <div className={styles.metaLine}>
-            <span className={styles.metaTime}><Meeple />{timeAgo(post.createdAt)}</span>
+            <span className={styles.metaTime}>
+              <Meeple />
+              {timeAgo(post.createdAt)}
+            </span>
             {privacyLabel && post.privacy !== "public" && (
               <span className={styles.privacyBadge}>
                 <PrivacyIcon privacy={post.privacy} />
@@ -854,7 +868,7 @@ export default function CompartidaCard({
             className={styles.editBody}
             value={editBody}
             onChange={(e) => setEditBody(e.target.value)}
-            placeholder="¿Cómo estuvo la compartida?"
+            placeholder="¿Qué tenés ganas de compartir hoy?"
             rows={4}
             maxLength={2000}
           />
@@ -977,7 +991,10 @@ export default function CompartidaCard({
         style={{ "--i": index }}
       >
         {featured && (
-          <div className={styles.featuredBadge}><Meeple />Compartida del día</div>
+          <div className={styles.featuredBadge}>
+            <Meeple />
+            Compartida del día
+          </div>
         )}
 
         {upperSections}

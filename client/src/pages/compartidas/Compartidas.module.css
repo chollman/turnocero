@@ -33,7 +33,7 @@
 
 .asideCol {
   position: sticky;
-  top: 0px;
+  top: 1.5rem;
   align-self: start;
 }
 
