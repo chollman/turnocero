@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/server";
@@ -48,6 +48,18 @@ const renderProvider = () =>
   );
 
 beforeEach(() => vi.clearAllMocks());
+
+afterEach(() => {
+  // El motor de skin muta el documento global de jsdom — limpiar entre tests.
+  document.documentElement.removeAttribute("data-community");
+  const el = document.getElementById("community-skin");
+  if (el) el.remove();
+  try {
+    localStorage.clear();
+  } catch {
+    /* ignore */
+  }
+});
 
 describe("CommunityContext", () => {
   it("anonymous → empty memberships, loaded true, no skin restriction", async () => {
@@ -102,6 +114,36 @@ describe("CommunityContext", () => {
       expect(screen.getByTestId("loaded").textContent).toBe("true"),
     );
     expect(screen.getByTestId("viewing").textContent).toBe("beta1");
+  });
+
+  it("injects the skin <style> + data-community for a non-base skin community", async () => {
+    useAuth.mockReturnValue({ user: { _id: "u1" } });
+    const skinned = {
+      _id: "sk1",
+      name: "Skinned",
+      slug: "skinned",
+      isBase: false,
+      sections: {},
+      skin: { accents: { amber: "#e63946" } },
+    };
+    server.use(
+      http.get("/api/comunidades/mias", () =>
+        HttpResponse.json({
+          memberships: [{ community: skinned, role: "member" }],
+          viewing: [],
+          skin: "sk1",
+        }),
+      ),
+    );
+    renderProvider();
+    await waitFor(() =>
+      expect(document.documentElement.getAttribute("data-community")).toBe(
+        "skinned",
+      ),
+    );
+    const styleEl = document.getElementById("community-skin");
+    expect(styleEl).toBeTruthy();
+    expect(styleEl.textContent).toContain("--amber: #e63946;");
   });
 
   it("falls back to base-only mode when /mias errors (section off)", async () => {

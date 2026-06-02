@@ -26,6 +26,22 @@
           var t = localStorage.getItem("turnocero_theme");
           if (t !== "dark" && t !== "light") t = "dark";
           document.documentElement.setAttribute("data-theme", t);
+          // Skin de comunidad: reaplicar antes de hidratar para evitar el flash
+          // base→skin. CommunityContext persiste { slug, css } en localStorage.
+          var s = localStorage.getItem("turnocero_skin");
+          if (s) {
+            var skin = JSON.parse(s);
+            if (skin && skin.slug && skin.css) {
+              document.documentElement.setAttribute(
+                "data-community",
+                skin.slug,
+              );
+              var el = document.createElement("style");
+              el.id = "community-skin";
+              el.textContent = skin.css;
+              document.head.appendChild(el);
+            }
+          }
         } catch (e) {
           document.documentElement.setAttribute("data-theme", "dark");
         }

@@ -3,12 +3,16 @@ import {
   useContext,
   useState,
   useEffect,
+  useLayoutEffect,
   useCallback,
   useMemo,
 } from "react";
 import axios from "axios";
 import { useAuth } from "./AuthContext";
 import { API } from "../api/endpoints";
+import { buildSkinCss } from "../utils/skin";
+
+const SKIN_STORAGE_KEY = "turnocero_skin";
 
 const CommunityContext = createContext(null);
 
@@ -58,6 +62,43 @@ export function CommunityProvider({ children }) {
     const m = memberships.find((mm) => String(mm.community._id) === skin);
     return m ? m.community : null;
   }, [skin, memberships]);
+
+  // ── Motor de reskin ──────────────────────────────────────────────────
+  // Inyecta/actualiza el <style id="community-skin"> con los overrides de la
+  // comunidad-skin + setea `data-community`. En useLayoutEffect para que el CSS
+  // aplique ANTES de que cualquier lector de getComputedStyle corra. Persiste a
+  // localStorage para que el script FOUC de index.html lo reaplique sin flash.
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    let styleEl = document.getElementById("community-skin");
+
+    // Base o sin skin → sin override (la base usa los tokens estándar).
+    if (!skinCommunity || skinCommunity.isBase) {
+      root.removeAttribute("data-community");
+      if (styleEl) styleEl.textContent = "";
+      try {
+        localStorage.removeItem(SKIN_STORAGE_KEY);
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+
+    const slug = skinCommunity.slug;
+    const css = buildSkinCss(slug, skinCommunity.skin);
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "community-skin";
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = css;
+    root.setAttribute("data-community", slug);
+    try {
+      localStorage.setItem(SKIN_STORAGE_KEY, JSON.stringify({ slug, css }));
+    } catch {
+      /* ignore */
+    }
+  }, [skinCommunity]);
 
   // Viewing efectivo: el subconjunto curado intersectado con las memberships;
   // vacío = todas (espeja la lógica del server).

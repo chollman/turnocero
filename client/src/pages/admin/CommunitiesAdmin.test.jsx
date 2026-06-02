@@ -92,4 +92,36 @@ describe("<CommunitiesAdmin>", () => {
     // La key 'comunidades' se excluye de los toggles por comunidad
     expect(screen.queryByLabelText("comunidades")).not.toBeInTheDocument();
   });
+
+  it("saves the skin (accents) via PUT /skin", async () => {
+    let putBody = null;
+    server.use(
+      http.get("/api/comunidades", () =>
+        HttpResponse.json({
+          comunidades: [
+            {
+              slug: "beta",
+              name: "Beta",
+              isBase: false,
+              memberCount: 1,
+              joinPolicy: "open",
+              sections: {},
+              skin: { accents: {} },
+            },
+          ],
+        }),
+      ),
+      http.put("/api/comunidades/beta/skin", async ({ request }) => {
+        putBody = await request.json();
+        return HttpResponse.json({ slug: "beta" });
+      }),
+    );
+    render(<CommunitiesAdmin />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    fireEvent.change(screen.getByLabelText("Color amber"), {
+      target: { value: "#e63946" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar skin" }));
+    await waitFor(() => expect(putBody?.accents?.amber).toBe("#e63946"));
+  });
 });

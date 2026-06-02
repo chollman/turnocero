@@ -13,12 +13,67 @@ const POLICIES = [
 
 const errMsg = (err, fallback) => err?.response?.data?.message || fallback;
 
-function CommunityEditor({ community, sectionKeys, onSave, onToggleSection }) {
+const ACCENT_DEFAULTS = {
+  amber: "#1888ef",
+  red: "#f31d77",
+  green: "#00d984",
+  orange: "#f5a623",
+  purple: "#b48cff",
+};
+const ACCENT_KEYS = Object.keys(ACCENT_DEFAULTS);
+
+function CommunityEditor({
+  community,
+  sectionKeys,
+  onSave,
+  onToggleSection,
+  onChanged,
+}) {
+  const { addToast } = useNotifications();
   const [name, setName] = useState(community.name);
   const [description, setDescription] = useState(community.description || "");
   const [joinPolicy, setJoinPolicy] = useState(community.joinPolicy);
   const [inviteCode, setInviteCode] = useState("");
   const sections = community.sections || {};
+
+  // ── Skin ──
+  const [accents, setAccents] = useState(() => ({
+    ...ACCENT_DEFAULTS,
+    ...(community.skin?.accents || {}),
+  }));
+  const [brandName, setBrandName] = useState(community.skin?.brandName || "");
+  const [tagline, setTagline] = useState(community.skin?.tagline || "");
+
+  const saveSkin = async () => {
+    try {
+      await axios.put(API.comunidades.SKIN(community.slug), {
+        accents,
+        brandName,
+        tagline,
+      });
+      addToast({ type: "success", message: "Skin guardado" });
+      onChanged?.();
+    } catch (err) {
+      addToast({ type: "error", message: errMsg(err, "No se pudo guardar el skin") });
+    }
+  };
+
+  const uploadLogo = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("logo", file);
+    fd.append("variant", "light");
+    try {
+      await axios.post(API.comunidades.LOGO(community.slug), fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      addToast({ type: "success", message: "Logo subido" });
+      onChanged?.();
+    } catch (err) {
+      addToast({ type: "error", message: errMsg(err, "No se pudo subir el logo") });
+    }
+  };
 
   return (
     <div className={styles.editor}>
@@ -87,6 +142,44 @@ function CommunityEditor({ community, sectionKeys, onSave, onToggleSection }) {
               {k}
             </label>
           ))}
+      </div>
+
+      <div className={styles.skin}>
+        <span className={styles.sectionsLabel}>Skin (colores de marca)</span>
+        {ACCENT_KEYS.map((k) => (
+          <label key={k} className={styles.colorField}>
+            <input
+              type="color"
+              value={accents[k]}
+              aria-label={`Color ${k}`}
+              onChange={(e) =>
+                setAccents((a) => ({ ...a, [k]: e.target.value }))
+              }
+            />
+            {k}
+          </label>
+        ))}
+        <input
+          className={styles.input}
+          placeholder="Nombre de marca (opcional)"
+          aria-label="Nombre de marca"
+          value={brandName}
+          onChange={(e) => setBrandName(e.target.value)}
+        />
+        <input
+          className={styles.input}
+          placeholder="Tagline (opcional)"
+          aria-label="Tagline"
+          value={tagline}
+          onChange={(e) => setTagline(e.target.value)}
+        />
+        <button type="button" className={styles.btn} onClick={saveSkin}>
+          Guardar skin
+        </button>
+        <label className={styles.btn}>
+          Subir logo
+          <input type="file" accept="image/*" hidden onChange={uploadLogo} />
+        </label>
       </div>
     </div>
   );
@@ -273,6 +366,7 @@ export default function CommunitiesAdmin() {
                   onToggleSection={(k, v) =>
                     saveEdit(c, { sections: { [k]: v } })
                   }
+                  onChanged={load}
                 />
               )}
             </li>
