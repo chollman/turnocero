@@ -114,6 +114,26 @@ describe("notifDomains", () => {
       );
     });
 
+    it("comment usa copy neutral (no asume 'tu mesa') con el nombre de la mesa", () => {
+      const single = getNotifMeta({
+        type: "comment",
+        count: 1,
+        lastCommenterUsername: "ana",
+        tableName: "Catan",
+      });
+      // No debe decir "tu mesa" — el destinatario puede ser un participante
+      // del hilo (respuestas), no el host.
+      expect(single.title).not.toMatch(/tu mesa/i);
+      expect(single.title).toMatch(/ana comentó la mesa de Catan/i);
+
+      const many = getNotifMeta({
+        type: "comment",
+        count: 4,
+        tableName: "Catan",
+      });
+      expect(many.title).toMatch(/4 comentarios nuevos en la mesa de Catan/i);
+    });
+
     it("compartida_like aggregates names with count", () => {
       const meta = getNotifMeta({
         type: "compartida_like",

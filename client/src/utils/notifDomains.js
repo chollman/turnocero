@@ -192,15 +192,19 @@ export function getNotifMeta(n) {
         body: `${n.lastSenderUsername}: ${trunc(n.lastMessagePreview)}`,
         cta: "Abrir chat",
       };
-    case "comment":
+    case "comment": {
+      // Copy neutral: el destinatario puede ser el host O alguien que también
+      // comentó el hilo (respuestas), así que no decimos "tu mesa".
+      const dondeM = n.tableName ? `la mesa de ${n.tableName}` : "una mesa";
       return {
         title:
           n.count > 1
-            ? `${n.count} comentarios nuevos`
-            : `${n.lastCommenterUsername} comentó tu mesa`,
+            ? `${n.count} comentarios nuevos en ${dondeM}`
+            : `${n.lastCommenterUsername} comentó ${dondeM}`,
         body: trunc(n.lastCommentPreview),
         cta: "Ver mesa",
       };
+    }
     case "image":
       return {
         title:

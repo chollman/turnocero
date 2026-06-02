@@ -22,17 +22,20 @@ const formatDate = (dateStr) =>
     minute: "2-digit",
   });
 
+// Cuenta el total real de comentarios (top-level + respuestas anidadas).
+const countAll = (list) =>
+  list.reduce((n, c) => n + 1 + (c.replies?.length || 0), 0);
+
 // Sección "Comentarios" del detalle de mesa. Estado autocontenido:
-// la lista, el input nuevo, el inline edit y los flags de submitting/
-// error son todos internos. Antes el padre tenía 6 useStates dedicados
-// solo a esto + 3 handlers, y el fetch inicial estaba mezclado en un
-// Promise.all con messages y ratings.
+// la lista, el input nuevo, el inline edit, las respuestas y los flags de
+// submitting/error son todos internos. Los comentarios soportan respuestas
+// de 1 nivel (estilo Facebook): cada top-level trae sus `replies` anidadas.
 //
 // Props:
 //   - tableId, user, isHost: para los chequeos de ownership y delete.
 //   - isAnon: si es true, el form se reemplaza por un CTA que abre el
 //     LoginPromptModal (callback `onRequireLogin`).
-//   - onCountChange(n): callback opcional que bubblea la cantidad de
+//   - onCountChange(n): callback opcional que bubblea la cantidad total de
 //     comentarios al padre (TableDetail lo usa para pintar el contador
 //     en el sectionHead).
 //   - className: para la regla responsive (oculto en mobile salvo en
@@ -47,12 +50,15 @@ export default function TableComments({
   onCountChange,
   className = "",
 }) {
-  const [comments, setComments] = useState([]);
+  const [comments, setComments] = useState([]); // top-level, cada uno con .replies
   const [commentInput, setCommentInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editingContent, setEditingContent] = useState("");
+  const [replyingTo, setReplyingTo] = useState(null); // id del comentario al que se responde
+  const [replyText, setReplyText] = useState("");
+  const [replySubmitting, setReplySubmitting] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -66,10 +72,10 @@ export default function TableComments({
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Bubble la cantidad al padre cuando cambia.
+  // Bubble el total (top-level + respuestas) al padre cuando cambia.
   useEffect(() => {
-    onCountChange?.(comments.length);
-  }, [comments.length, onCountChange]);
+    onCountChange?.(countAll(comments));
+  }, [comments, onCountChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,12 +102,46 @@ export default function TableComments({
       const { data } = await axios.post(API.tables.COMMENTS(tableId), {
         content,
       });
-      setComments((prev) => [...prev, data]);
+      setComments((prev) => [...prev, { ...data, replies: [] }]);
       setCommentInput("");
     } catch (err) {
       setError(getErrorMessage(err, "Error al comentar"));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Abrir el form de respuesta. `toName` precarga "@usuario " cuando se
+  // responde a una respuesta (para dejar claro a quién se le contesta).
+  const openReply = (commentId, toName) => {
+    setReplyingTo(commentId);
+    setReplyText(toName ? `@${toName} ` : "");
+  };
+
+  const handleAddReply = async (parentClickedId) => {
+    const content = replyText.trim();
+    if (!content || replySubmitting) return;
+    setReplySubmitting(true);
+    setError("");
+    try {
+      const { data } = await axios.post(API.tables.COMMENTS(tableId), {
+        content,
+        parent: parentClickedId,
+      });
+      // El server aplana al raíz → data.parent es el comentario de nivel superior.
+      setComments((cs) =>
+        cs.map((c) =>
+          c._id === data.parent
+            ? { ...c, replies: [...(c.replies || []), data] }
+            : c,
+        ),
+      );
+      setReplyingTo(null);
+      setReplyText("");
+    } catch (err) {
+      setError(getErrorMessage(err, "Error al responder"));
+    } finally {
+      setReplySubmitting(false);
     }
   };
 
@@ -114,7 +154,18 @@ export default function TableComments({
         API.tables.COMMENT_DETAIL(tableId, commentId),
         { content },
       );
-      setComments((prev) => prev.map((c) => (c._id === commentId ? data : c)));
+      setComments((prev) =>
+        prev.map((c) => {
+          if (c._id === commentId) return { ...data, replies: c.replies || [] };
+          if (c.replies?.some((r) => r._id === commentId)) {
+            return {
+              ...c,
+              replies: c.replies.map((r) => (r._id === commentId ? data : r)),
+            };
+          }
+          return c;
+        }),
+      );
       setEditingId(null);
       setEditingContent("");
     } catch (err) {
@@ -127,10 +178,154 @@ export default function TableComments({
     setError("");
     try {
       await axios.delete(API.tables.COMMENT_DETAIL(tableId, commentId));
-      setComments((prev) => prev.filter((c) => c._id !== commentId));
+      const isTop = comments.some((c) => c._id === commentId);
+      if (isTop) {
+        // Comentario raíz → se borra con sus respuestas (cascada en el server).
+        setComments((prev) => prev.filter((c) => c._id !== commentId));
+      } else {
+        setComments((prev) =>
+          prev.map((c) => ({
+            ...c,
+            replies: (c.replies || []).filter((r) => r._id !== commentId),
+          })),
+        );
+      }
     } catch (err) {
       setError(getErrorMessage(err, "Error al eliminar"));
     }
+  };
+
+  // Render de un comentario individual (sirve para top-level y respuestas).
+  const renderComment = (comment, { isReply = false } = {}) => {
+    const authorInfo = getUserDisplay(comment.author);
+    const isOwn =
+      user &&
+      comment.author &&
+      (comment.author._id || comment.author).toString() === user._id.toString();
+    const canDelete = isOwn || isHost || user?.isAdmin;
+    return (
+      <div key={comment._id} className={styles.commentItem}>
+        <Avatar user={comment.author} size="sm" />
+        <div className={styles.commentBody}>
+          <div className={styles.commentMeta}>
+            <span className={styles.commentAuthor}>
+              {authorInfo.isDeleted ? (
+                DELETED_USER_LABEL
+              ) : (
+                <Link
+                  to={`/usuarios/${comment.author._id}`}
+                  className={styles.userLink}
+                >
+                  {comment.author.username}
+                </Link>
+              )}
+            </span>
+            <span className={styles.commentTime}>
+              {formatDate(comment.createdAt)}
+            </span>
+            {comment.editedAt && (
+              <span className={styles.editedBadge}>editado</span>
+            )}
+          </div>
+          {editingId === comment._id ? (
+            <div className={styles.editForm}>
+              <textarea
+                className={styles.editTextarea}
+                value={editingContent}
+                onChange={(e) => setEditingContent(e.target.value)}
+                maxLength={500}
+                rows={2}
+              />
+              <div className={styles.editActions}>
+                <button
+                  className={styles.btnSaveEdit}
+                  onClick={() => handleEdit(comment._id)}
+                >
+                  Guardar
+                </button>
+                <button
+                  className={styles.btnCancelEdit}
+                  onClick={() => setEditingId(null)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className={styles.commentContent}>{comment.content}</p>
+          )}
+          {editingId !== comment._id && (
+            <div className={styles.commentActions}>
+              {user && canPost && (
+                <button
+                  className={styles.btnCommentReply}
+                  onClick={() =>
+                    openReply(comment._id, isReply ? authorInfo.name : null)
+                  }
+                >
+                  Responder
+                </button>
+              )}
+              {isOwn && (
+                <button
+                  className={styles.btnCommentEdit}
+                  onClick={() => {
+                    setEditingId(comment._id);
+                    setEditingContent(comment.content);
+                  }}
+                >
+                  Editar
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  className={styles.btnCommentDelete}
+                  onClick={() => handleDelete(comment._id)}
+                >
+                  Eliminar
+                </button>
+              )}
+            </div>
+          )}
+          {replyingTo === comment._id && (
+            <form
+              className={styles.replyForm}
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAddReply(comment._id);
+              }}
+            >
+              <input
+                className={styles.replyInput}
+                placeholder="Escribí una respuesta…"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                maxLength={500}
+                disabled={replySubmitting}
+                autoFocus
+              />
+              <button
+                type="submit"
+                className={styles.btnReplySend}
+                disabled={!replyText.trim() || replySubmitting}
+              >
+                {replySubmitting ? "…" : "Responder"}
+              </button>
+              <button
+                type="button"
+                className={styles.btnCancelEdit}
+                onClick={() => {
+                  setReplyingTo(null);
+                  setReplyText("");
+                }}
+              >
+                Cancelar
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -142,92 +337,18 @@ export default function TableComments({
         </p>
       ) : (
         <div className={styles.commentsList}>
-          {comments.map((comment) => {
-            const authorInfo = getUserDisplay(comment.author);
-            const isOwn =
-              user &&
-              comment.author &&
-              (comment.author._id || comment.author).toString() ===
-                user._id.toString();
-            const canDelete = isOwn || isHost || user?.isAdmin;
-            return (
-              <div key={comment._id} className={styles.commentItem}>
-                <Avatar user={comment.author} size="sm" />
-                <div className={styles.commentBody}>
-                  <div className={styles.commentMeta}>
-                    <span className={styles.commentAuthor}>
-                      {authorInfo.isDeleted ? (
-                        DELETED_USER_LABEL
-                      ) : (
-                        <Link
-                          to={`/usuarios/${comment.author._id}`}
-                          className={styles.userLink}
-                        >
-                          {comment.author.username}
-                        </Link>
-                      )}
-                    </span>
-                    <span className={styles.commentTime}>
-                      {formatDate(comment.createdAt)}
-                    </span>
-                    {comment.editedAt && (
-                      <span className={styles.editedBadge}>editado</span>
-                    )}
-                  </div>
-                  {editingId === comment._id ? (
-                    <div className={styles.editForm}>
-                      <textarea
-                        className={styles.editTextarea}
-                        value={editingContent}
-                        onChange={(e) => setEditingContent(e.target.value)}
-                        maxLength={500}
-                        rows={2}
-                      />
-                      <div className={styles.editActions}>
-                        <button
-                          className={styles.btnSaveEdit}
-                          onClick={() => handleEdit(comment._id)}
-                        >
-                          Guardar
-                        </button>
-                        <button
-                          className={styles.btnCancelEdit}
-                          onClick={() => setEditingId(null)}
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className={styles.commentContent}>{comment.content}</p>
+          {comments.map((comment) => (
+            <div key={comment._id} className={styles.commentThread}>
+              {renderComment(comment)}
+              {comment.replies?.length > 0 && (
+                <div className={styles.replies}>
+                  {comment.replies.map((r) =>
+                    renderComment(r, { isReply: true }),
                   )}
                 </div>
-                {editingId !== comment._id && (
-                  <div className={styles.commentActions}>
-                    {isOwn && (
-                      <button
-                        className={styles.btnCommentEdit}
-                        onClick={() => {
-                          setEditingId(comment._id);
-                          setEditingContent(comment.content);
-                        }}
-                      >
-                        Editar
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        className={styles.btnCommentDelete}
-                        onClick={() => handleDelete(comment._id)}
-                      >
-                        Eliminar
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              )}
+            </div>
+          ))}
         </div>
       )}
       {!canPost ? (
