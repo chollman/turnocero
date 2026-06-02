@@ -57,6 +57,14 @@ function visibleStatusFilter(req) {
   return { status: { $ne: "draft" } };
 }
 
+// Normaliza la `fecha` opcional del torneo. "" / null / inválida → null
+// (sin fecha = no aparece en el Calendario). ISO string válido → Date.
+function parseFecha(raw) {
+  if (raw === undefined || raw === null || raw === "") return null;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 // ─────────────────────────────────────────────────────────────────
 // CRUD básico del torneo
 // ─────────────────────────────────────────────────────────────────
@@ -131,6 +139,7 @@ router.post(
       tableSize,
       gamesPerGroup,
       qualifiersPerGroup,
+      fecha,
     } = req.body;
     if (!title?.trim() || !game?.trim() || !format) {
       throw httpError(
@@ -163,6 +172,7 @@ router.post(
       maxParticipants: maxParticipants
         ? Math.max(2, parseInt(maxParticipants))
         : null,
+      fecha: parseFecha(fecha),
       image,
       createdBy: req.user._id,
     };
@@ -233,11 +243,14 @@ router.put(
       tableSize,
       gamesPerGroup,
       qualifiersPerGroup,
+      fecha,
     } = req.body;
     if (title?.trim()) torneo.title = title.trim();
     if (typeof description === "string")
       torneo.description = description.trim();
     if (game?.trim()) torneo.game = game.trim();
+    // Solo tocamos `fecha` si vino en el body (PUT parcial). "" la limpia.
+    if (fecha !== undefined) torneo.fecha = parseFecha(fecha);
     if (maxParticipants !== undefined) {
       const n = parseInt(maxParticipants);
       torneo.maxParticipants = Number.isFinite(n) ? Math.max(2, n) : null;

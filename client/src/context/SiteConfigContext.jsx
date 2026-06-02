@@ -23,6 +23,7 @@ const SECTION_KEYS = [
   "bgwatch",
   "utilidades",
   "colabora",
+  "calendario",
 ];
 
 const DEFAULT_ENABLED = {

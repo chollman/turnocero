@@ -147,6 +147,11 @@ export const API = {
       `/api/eventos/${enc(id)}/ludoteca/${enc(itemId)}`,
   },
 
+  // ── Calendario (vista unificada read-only) ───────────────────────────
+  calendario: {
+    LIST: "/api/calendario",
+  },
+
   // ── Friends ──────────────────────────────────────────────────────────
   friends: {
     REQUEST: (id) => `/api/friends/${enc(id)}/request`,

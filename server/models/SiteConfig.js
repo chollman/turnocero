@@ -13,6 +13,7 @@ const SECTION_KEYS = [
   "bgwatch",
   "utilidades",
   "colabora",
+  "calendario",
 ];
 
 // Defaults que preservan el comportamiento actual hardcodeado:
