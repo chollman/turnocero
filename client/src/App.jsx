@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SiteConfigProvider, useSiteConfig } from "./context/SiteConfigContext";
+import { CommunityProvider } from "./context/CommunityContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ChatProvider } from "./context/ChatContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -46,6 +47,7 @@ import Eventos from "./pages/eventos/Eventos";
 import EventoDetail from "./pages/eventos/EventoDetail";
 import EventoInscripciones from "./pages/eventos/EventoInscripciones";
 import Calendario from "./pages/calendario/Calendario";
+import Comunidades from "./pages/comunidades/Comunidades";
 import Compartidas from "./pages/compartidas/Compartidas";
 import CompartidaPost from "./pages/compartidas/CompartidaPost";
 import BgWatchProfile from "./pages/bg-watch/BgWatchProfile";
@@ -425,6 +427,14 @@ export function AppRoutes({ transition }) {
               }
             />
             <Route
+              path="/comunidades"
+              element={
+                <SectionGate section="comunidades">
+                  <Comunidades />
+                </SectionGate>
+              }
+            />
+            <Route
               path="/eventos/:id/inscripciones"
               element={
                 <AdminRoute>
@@ -611,13 +621,15 @@ export default function App() {
         <ThemeProvider>
           <AuthProvider>
             <SiteConfigProvider>
-              <NotificationProvider>
-                <ChatProvider>
-                  <ErrorBoundary>
-                    <AppShell />
-                  </ErrorBoundary>
-                </ChatProvider>
-              </NotificationProvider>
+              <CommunityProvider>
+                <NotificationProvider>
+                  <ChatProvider>
+                    <ErrorBoundary>
+                      <AppShell />
+                    </ErrorBoundary>
+                  </ChatProvider>
+                </NotificationProvider>
+              </CommunityProvider>
             </SiteConfigProvider>
           </AuthProvider>
         </ThemeProvider>

@@ -8,6 +8,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { API } from "../../api/endpoints";
 import MiBgWatchCard from "./MiBgWatchCard";
+import CommunityPrefs from "./CommunityPrefs";
 import Avatar from "../../components/shared/Avatar";
 import AvatarCropModal from "../../components/shared/AvatarCropModal";
 import AvatarColorPicker from "../../components/shared/AvatarColorPicker";
@@ -556,6 +557,8 @@ export default function UserProfile() {
           user?.bggUsername &&
           user?.bggConnected &&
           !user?.bggInvalid && <MiBgWatchCard bggUsername={user.bggUsername} />}
+
+        <CommunityPrefs />
 
         <div className={styles.formCard}>
           {error && <div className={styles.errorBox}>{error}</div>}

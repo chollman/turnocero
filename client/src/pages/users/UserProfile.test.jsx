@@ -52,6 +52,11 @@ vi.mock("./MiBgWatchCard", () => ({
   default: () => null,
 }));
 
+// CommunityPrefs — has its own test + needs CommunityContext; stub here.
+vi.mock("./CommunityPrefs", () => ({
+  default: () => null,
+}));
+
 import UserProfile from "./UserProfile";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";

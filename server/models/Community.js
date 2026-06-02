@@ -188,8 +188,11 @@ communitySchema.statics.__resetBaseCache = function __resetBaseCache() {
 communitySchema.statics.sanitizeSkinTokens = sanitizeSkinTokens;
 
 // toJSON: nunca exponer el inviteCode crudo; exponer solo `hasCode`.
+// `flattenMaps` convierte los Map (sections, skin.accents/neutrals*) a objetos
+// planos — sin esto, JSON.stringify(Map) los serializa como `{}` y el cliente
+// pierde los valores (toggles de sección, tokens del skin).
 communitySchema.methods.toJSON = function () {
-  const obj = this.toObject();
+  const obj = this.toObject({ flattenMaps: true });
   obj.hasCode = !!(this.inviteCode && this.inviteCode.length);
   delete obj.inviteCode;
   return obj;

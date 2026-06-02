@@ -15,6 +15,9 @@ vi.mock("../../context/NotificationContext", () => ({
   useNotifications: () => useNotificationsMock(),
 }));
 
+// CommunitiesAdmin — has its own test + fetches /api/comunidades; stub here.
+vi.mock("./CommunitiesAdmin", () => ({ default: () => null }));
+
 import PanelAdmin from "./PanelAdmin";
 
 function renderPanel() {

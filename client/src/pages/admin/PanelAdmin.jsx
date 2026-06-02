@@ -9,6 +9,7 @@ import { API } from "../../api/endpoints";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
+import CommunitiesAdmin from "./CommunitiesAdmin";
 import styles from "./PanelAdmin.module.css";
 
 const SECTION_META = [
@@ -92,6 +93,16 @@ const SECTION_META = [
         label: "Comunidad",
         desc: "Listado y perfiles públicos de usuarios.",
         affects: ["Oculta /usuarios y /usuarios/:id"],
+      },
+      {
+        key: "comunidades",
+        label: "Comunidades",
+        desc: "Directorio de comunidades, unión y feed por comunidad.",
+        affects: [
+          "Oculta /comunidades y el directorio",
+          "Bloquea unirse / cambiar de comunidad desde el perfil",
+          "Bloquea notificaciones de solicitudes de unión",
+        ],
       },
       {
         key: "amigos",
@@ -479,6 +490,8 @@ function PanelAdminInner() {
             </div>
           </div>
         ))}
+
+        <CommunitiesAdmin />
 
         <IdeasSection />
       </div>

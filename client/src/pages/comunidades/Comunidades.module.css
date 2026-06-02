@@ -1,0 +1,170 @@
+.page {
+  padding: clamp(16px, 4vw, 40px);
+}
+
+.hero {
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--amber);
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  max-width: 60ch;
+  margin: 0;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cardName {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.baseBadge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--on-amber);
+  background: var(--amber);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.cardDesc {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  margin: 0;
+  flex: 1;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.policy {
+  color: var(--text-secondary);
+  background: var(--overlay-soft);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+.action {
+  margin-top: 4px;
+}
+
+.joinRow {
+  display: flex;
+  gap: 8px;
+}
+
+.codeInput {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.joinBtn {
+  background: var(--amber);
+  color: var(--on-amber);
+  border: none;
+  border-radius: 10px;
+  padding: 9px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
+}
+
+.joinBtn:hover:not(:disabled) {
+  background: var(--amber-light);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+
+.joinBtn:disabled,
+.leaveBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.leaveBtn {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 9px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.leaveBtn:hover:not(:disabled) {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+.memberTag {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--green);
+}
+
+.pendingTag {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--orange);
+}
