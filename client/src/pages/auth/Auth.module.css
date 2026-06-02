@@ -962,6 +962,11 @@
 }
 .termsAccent {
   color: var(--amber-light);
+  text-decoration: none;
+  font-weight: 600;
+}
+a.termsAccent:hover {
+  text-decoration: underline;
 }
 
 /* Submit — clon del CTA primario amber del handoff (ver memoria) */
@@ -1297,4 +1302,3 @@
     font-size: 16px;
   }
 }
-

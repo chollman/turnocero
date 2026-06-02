@@ -54,6 +54,8 @@ import FingerSelector from "./pages/utilidades/FingerSelector";
 import Temporizador from "./pages/utilidades/Temporizador";
 import Dado from "./pages/utilidades/Dado";
 import Colaborar from "./pages/colabora/Colaborar";
+import Terminos from "./pages/legal/Terminos";
+import Privacidad from "./pages/legal/Privacidad";
 import NotFound from "./pages/error/NotFound";
 import ServerError from "./pages/error/ServerError";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -492,6 +494,8 @@ export function AppRoutes({ transition }) {
                 </SectionGate>
               }
             />
+            <Route path="/terminos" element={<Terminos />} />
+            <Route path="/privacidad" element={<Privacidad />} />
             <Route path="*" element={<NotFound />} />
           </PageTransition>
         </div>
@@ -502,8 +506,11 @@ export function AppRoutes({ transition }) {
 
 function AppShell() {
   const { loading } = useAuth();
-  const { loaded: configLoaded, backendDown, retryConnection } =
-    useSiteConfig();
+  const {
+    loaded: configLoaded,
+    backendDown,
+    retryConnection,
+  } = useSiteConfig();
   // Fuente única del estado de transición: lo consumen el frame (acá) y el
   // chrome (en AppRoutes), así ambos siguen la misma `displayLocation`.
   const transition = usePageTransition();
