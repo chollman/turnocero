@@ -24,6 +24,9 @@ const checkValidation = (req) => {
 };
 
 // GET /api/tables/:id/comments — any logged-in user
+// Devuelve los comentarios de NIVEL SUPERIOR (más viejos primero, como
+// siempre), cada uno con sus `replies` (respuestas) anidadas de 1 nivel
+// (estilo Facebook), también ordenadas de más viejas a más nuevas.
 router.get(
   "/",
   protect,
@@ -31,9 +34,27 @@ router.get(
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
 
-    const comments = await Comment.find({ table: req.params.id })
+    const base = { table: req.params.id };
+    const all = await Comment.find(base)
       .populate("author", "username displayName avatar")
-      .sort({ createdAt: 1 });
+      .sort({ createdAt: 1, _id: 1 });
+
+    const byParent = new Map(); // parentId → [replies]
+    const topLevel = [];
+    for (const c of all) {
+      if (c.parent) {
+        const k = c.parent.toString();
+        if (!byParent.has(k)) byParent.set(k, []);
+        byParent.get(k).push(c.toObject());
+      } else {
+        topLevel.push(c);
+      }
+    }
+
+    const comments = topLevel.map((c) => ({
+      ...c.toObject(),
+      replies: byParent.get(c._id.toString()) || [],
+    }));
 
     res.json(comments);
   }),
@@ -68,20 +89,41 @@ router.post(
     // privacidad después de comentarios existentes).
     assertCanComment(table);
 
+    // Respuesta: validar que el padre exista y sea de esta mesa. Aplanar a
+    // 1 nivel — si el padre ya es una respuesta, colgamos del raíz.
+    let parentId = null;
+    if (req.body.parent) {
+      const parentComment = await Comment.findById(req.body.parent).select(
+        "table parent",
+      );
+      if (!parentComment || !isSameId(parentComment.table, table._id)) {
+        throw httpError(400, "Comentario padre inválido");
+      }
+      parentId = parentComment.parent || parentComment._id;
+    }
+
     const comment = await Comment.create({
       table: req.params.id,
       author: req.user._id,
       content: req.body.content,
+      parent: parentId,
     });
 
     await comment.populate("author", "username displayName avatar");
 
-    // Notify members and followers (except the author)
+    // Destinatarios: host + jugadores + seguidores de la mesa Y quienes ya
+    // comentaron el hilo (para que una respuesta llegue al autor del
+    // comentario respondido) — igual que en compartidas. Se dedupea por id y
+    // se excluye al autor del comentario actual.
     const uid = req.user._id.toString();
+    const commenterIds = await Comment.distinct("author", {
+      table: table._id,
+    });
     const recipients = new Set([
       table.host.toString(),
       ...table.players.map((p) => p.toString()),
       ...table.followers.map((f) => f.toString()),
+      ...commenterIds.map((c) => c.toString()),
     ]);
     recipients.delete(uid);
     const commentPreview = req.body.content.slice(0, 60);
@@ -163,6 +205,13 @@ router.delete(
     }
 
     await comment.deleteOne();
+    // Si era un comentario raíz, borrar en cascada sus respuestas.
+    if (!comment.parent) {
+      await Comment.deleteMany({
+        table: req.params.id,
+        parent: comment._id,
+      });
+    }
     res.json({ message: "Comment deleted" });
   }),
 );

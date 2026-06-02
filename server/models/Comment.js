@@ -13,6 +13,16 @@ const commentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    // Respuesta a otro comentario (hilo de 1 nivel, estilo Facebook). null =
+    // comentario de nivel superior. Las respuestas a una respuesta se aplanan
+    // al comentario raíz en la ruta, así que `parent` siempre apunta a un
+    // comentario de nivel superior.
+    parent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Comment",
+      default: null,
+      index: true,
+    },
     content: {
       type: String,
       required: [true, "Comment content is required"],

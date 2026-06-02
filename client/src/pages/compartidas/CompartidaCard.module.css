@@ -1634,7 +1634,9 @@
 
 .replyForm {
   display: flex;
-  align-items: center;
+  /* stretch → el input y el botón "Cancelar" igualan el alto del botón de
+     envío (36px, height fijo) en vez de quedar más bajos. */
+  align-items: stretch;
   gap: 8px;
   margin-top: 8px;
 }

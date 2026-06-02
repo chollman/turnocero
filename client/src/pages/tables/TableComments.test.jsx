@@ -148,6 +148,66 @@ describe("<TableComments>", () => {
     confirmSpy.mockRestore();
   });
 
+  it("anida las respuestas bajo su comentario padre y las cuenta en el total", async () => {
+    setupComments([
+      {
+        _id: "c1",
+        content: "Comentario raíz",
+        author: otherUser,
+        createdAt: new Date().toISOString(),
+        replies: [
+          {
+            _id: "r1",
+            content: "Una respuesta",
+            author: user,
+            parent: "c1",
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+    ]);
+    const onCountChange = vi.fn();
+    renderTableComments({ onCountChange });
+    await waitFor(() => {
+      expect(screen.getByText("Comentario raíz")).toBeInTheDocument();
+      expect(screen.getByText("Una respuesta")).toBeInTheDocument();
+      // Total = top-level (1) + respuesta (1).
+      expect(onCountChange).toHaveBeenCalledWith(2);
+    });
+  });
+
+  it("responde a un comentario y agrega la respuesta anidada", async () => {
+    setupComments([
+      {
+        _id: "c1",
+        content: "Comentario raíz",
+        author: otherUser,
+        createdAt: new Date().toISOString(),
+        replies: [],
+      },
+    ]);
+    server.use(
+      http.post("/api/tables/:id/comments", () =>
+        HttpResponse.json({
+          _id: "r-new",
+          content: "Mi respuesta",
+          author: user,
+          parent: "c1",
+          createdAt: new Date().toISOString(),
+        }),
+      ),
+    );
+    renderTableComments();
+    await screen.findByText("Comentario raíz");
+    fireEvent.click(screen.getByRole("button", { name: /responder/i }));
+    const replyInput = screen.getByPlaceholderText(/Escribí una respuesta/);
+    fireEvent.change(replyInput, { target: { value: "Mi respuesta" } });
+    fireEvent.submit(replyInput.closest("form"));
+    await waitFor(() => {
+      expect(screen.getByText("Mi respuesta")).toBeInTheDocument();
+    });
+  });
+
   it("muestra el botón de login si isAnon=true en vez del form", () => {
     renderTableComments({ isAnon: true, user: null });
     expect(

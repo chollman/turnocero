@@ -1422,6 +1422,86 @@
   border-color: var(--red);
   color: var(--red);
 }
+
+/* ── Hilos de comentarios + respuestas (1 nivel) ───────────── */
+.commentThread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+/* Respuestas: indentadas con un conector vertical a la izquierda. */
+.replies {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-left: 1.4rem;
+  padding-left: 0.85rem;
+  border-left: 2px solid var(--border);
+}
+.btnCommentReply {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: color 0.2s ease;
+  font-family: var(--font-body);
+}
+.btnCommentReply:hover {
+  color: var(--amber-light);
+}
+.replyForm {
+  display: flex;
+  /* stretch → los botones "Responder" y "Cancelar" igualan el alto del input
+     (36px) en lugar de quedar más bajos por su padding propio. */
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.replyInput {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-amber);
+  border-radius: 8px;
+  padding: 0 0.75rem;
+  line-height: 34px;
+  box-sizing: border-box;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  outline: none;
+}
+.replyInput::placeholder {
+  color: var(--text-muted);
+}
+.replyInput:disabled {
+  opacity: 0.5;
+}
+.btnReplySend {
+  background: var(--amber);
+  color: var(--on-amber);
+  box-shadow: 0 4px 16px var(--amber-glow);
+  border: none;
+  border-radius: 6px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-body);
+  transition: all 0.2s ease;
+}
+.btnReplySend:hover:not(:disabled) {
+  background: var(--amber-light);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+.btnReplySend:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .addCommentForm {
   display: flex;
   gap: 0.75rem;

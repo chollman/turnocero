@@ -1,6 +1,7 @@
 const request = require("supertest");
 const app = require("../../app");
 const Comment = require("../../models/Comment");
+const Notification = require("../../models/Notification");
 const { createUser, createAuthedUser, tokenFor } = require("../helpers/auth");
 const { createTable } = require("../helpers/factories");
 const { loadSiteConfig, updateSiteConfig } = require("../../utils/siteConfig");
@@ -79,5 +80,145 @@ describe("GET /api/tables/:id/comments — sigue libre", () => {
       .set("Authorization", `Bearer ${tokenFor(host)}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
+  });
+});
+
+describe("Respuestas a comentarios (hilo de 1 nivel)", () => {
+  it("crea una respuesta y la anida bajo el comentario padre en el GET", async () => {
+    const host = await createUser();
+    const replier = await createAuthedUser();
+    const table = await createTable(host, { privacy: "public" });
+
+    const root = await Comment.create({
+      table: table._id,
+      author: host._id,
+      content: "comentario raíz",
+    });
+
+    const replyRes = await request(app)
+      .post(`/api/tables/${table._id}/comments`)
+      .set("Authorization", `Bearer ${replier.token}`)
+      .send({ content: "una respuesta", parent: root._id.toString() });
+    expect(replyRes.status).toBe(201);
+    expect(replyRes.body.parent).toBe(root._id.toString());
+
+    const getRes = await request(app)
+      .get(`/api/tables/${table._id}/comments`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`);
+    expect(getRes.status).toBe(200);
+    // Solo un comentario de nivel superior, con la respuesta anidada.
+    expect(getRes.body).toHaveLength(1);
+    expect(getRes.body[0]._id).toBe(root._id.toString());
+    expect(getRes.body[0].replies).toHaveLength(1);
+    expect(getRes.body[0].replies[0].content).toBe("una respuesta");
+  });
+
+  it("aplana la respuesta a una respuesta hacia el comentario raíz", async () => {
+    const host = await createUser();
+    const replier = await createAuthedUser();
+    const table = await createTable(host, { privacy: "public" });
+
+    const root = await Comment.create({
+      table: table._id,
+      author: host._id,
+      content: "raíz",
+    });
+    const reply = await Comment.create({
+      table: table._id,
+      author: host._id,
+      content: "respuesta 1",
+      parent: root._id,
+    });
+
+    const res = await request(app)
+      .post(`/api/tables/${table._id}/comments`)
+      .set("Authorization", `Bearer ${replier.token}`)
+      .send({
+        content: "respuesta a la respuesta",
+        parent: reply._id.toString(),
+      });
+    expect(res.status).toBe(201);
+    // Se cuelga del raíz, no del comentario intermedio.
+    expect(res.body.parent).toBe(root._id.toString());
+  });
+
+  it("400 si el comentario padre no pertenece a la mesa", async () => {
+    const host = await createUser();
+    const tableA = await createTable(host, { privacy: "public" });
+    const tableB = await createTable(host, { privacy: "public" });
+    const rootB = await Comment.create({
+      table: tableB._id,
+      author: host._id,
+      content: "de otra mesa",
+    });
+
+    const res = await request(app)
+      .post(`/api/tables/${tableA._id}/comments`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`)
+      .send({ content: "respuesta cruzada", parent: rootB._id.toString() });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/padre inválido/i);
+  });
+
+  it("notifica al autor del comentario respondido aunque no sea host/jugador/seguidor", async () => {
+    // Igual que en compartidas: una respuesta debe llegar al autor del
+    // comentario original aunque ese usuario no sea miembro de la mesa.
+    const host = await createUser();
+    const commenter = await createAuthedUser(); // comenta pero NO es miembro
+    const replier = await createAuthedUser();
+    const table = await createTable(host, { privacy: "public" });
+
+    // commenter (no-miembro) deja un comentario de nivel superior.
+    const topRes = await request(app)
+      .post(`/api/tables/${table._id}/comments`)
+      .set("Authorization", `Bearer ${commenter.token}`)
+      .send({ content: "hola desde un no-miembro" });
+    expect(topRes.status).toBe(201);
+
+    // replier responde ese comentario.
+    const replyRes = await request(app)
+      .post(`/api/tables/${table._id}/comments`)
+      .set("Authorization", `Bearer ${replier.token}`)
+      .send({ content: "te respondo", parent: topRes.body._id });
+    expect(replyRes.status).toBe(201);
+
+    // El autor del comentario original (no-miembro) recibió la notif.
+    const notif = await Notification.findOne({
+      recipient: commenter.user._id,
+      type: "comment",
+      tableId: table._id.toString(),
+    });
+    expect(notif).not.toBeNull();
+
+    // El que respondió NO se notifica a sí mismo.
+    const selfNotif = await Notification.findOne({
+      recipient: replier.user._id,
+      type: "comment",
+    });
+    expect(selfNotif).toBeNull();
+  });
+
+  it("borra en cascada las respuestas al eliminar el comentario raíz", async () => {
+    const host = await createUser();
+    const table = await createTable(host, { privacy: "public" });
+    const root = await Comment.create({
+      table: table._id,
+      author: host._id,
+      content: "raíz",
+    });
+    await Comment.create({
+      table: table._id,
+      author: host._id,
+      content: "respuesta",
+      parent: root._id,
+    });
+
+    const res = await request(app)
+      .delete(`/api/tables/${table._id}/comments/${root._id}`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`);
+    expect(res.status).toBe(200);
+
+    const remaining = await Comment.countDocuments({ table: table._id });
+    expect(remaining).toBe(0);
   });
 });
