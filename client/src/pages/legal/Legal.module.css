@@ -1,0 +1,156 @@
+/* ============================================================
+   LEGAL · Términos y Política de privacidad
+   Mismo sistema de page-padding y hero editorial que Colaborar /
+   Mesas / Eventos. Contenido a 820px máximo (lectura cómoda),
+   gutters asimétricos en desktop y simétricos en mobile.
+   Theme-aware: usa variables, sin colores hardcodeados.
+   ============================================================ */
+
+.page {
+  position: relative;
+  min-height: calc(100vh - var(--navbar-h, 64px));
+  padding-inline: var(--page-padding-left) var(--page-padding);
+  padding-block: var(--navbar-h, 0) 5rem;
+}
+
+@media (min-width: 960px) {
+  .page {
+    padding-top: 1.5rem;
+  }
+}
+
+@media (max-width: 959px) {
+  .page {
+    padding-inline: var(--page-padding-mobile);
+  }
+}
+
+/* ----- Hero ----- */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.75rem;
+  min-width: 0;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+  margin: 0;
+}
+.eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1px;
+  background: var(--amber-light);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: clamp(2.1rem, 4.5vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  color: var(--text-primary);
+  margin: 10px 0 6px;
+  text-wrap: balance;
+}
+
+.updated {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ----- Cuerpo del documento ----- */
+
+.body {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.body h2 {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 2rem 0 0.6rem;
+}
+
+.body h2:first-child {
+  margin-top: 0;
+}
+
+.body p {
+  margin: 0 0 0.9rem;
+}
+
+.body ul {
+  margin: 0 0 0.9rem;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.body li {
+  line-height: 1.55;
+}
+
+.body strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.body a {
+  color: var(--amber-light);
+  text-decoration: none;
+}
+.body a:hover {
+  text-decoration: underline;
+}
+
+.intro {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 1.75rem;
+}
+.intro p {
+  margin: 0;
+}
+
+.footer {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.crossLink {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+.crossLink a {
+  color: var(--amber-light);
+  text-decoration: none;
+  font-weight: 600;
+}
+.crossLink a:hover {
+  text-decoration: underline;
+}

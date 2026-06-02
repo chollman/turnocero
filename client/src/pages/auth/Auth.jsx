@@ -571,10 +571,25 @@ export default function Auth({ mode }) {
                 </span>
                 <span>
                   Acepto los{" "}
-                  <span className={styles.termsAccent}>términos</span> y la{" "}
-                  <span className={styles.termsAccent}>
+                  <Link
+                    to="/terminos"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.termsAccent}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    términos
+                  </Link>{" "}
+                  y la{" "}
+                  <Link
+                    to="/privacidad"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.termsAccent}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     política de privacidad
-                  </span>{" "}
+                  </Link>{" "}
                   de TurnoCero.
                 </span>
               </label>

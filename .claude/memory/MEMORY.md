@@ -4,7 +4,7 @@
 - [Turnocero current feature set](project_features.md) — Noticias, Compartidas, Torneos, Friends, public browsing, Sidebar/Navbar/GuestNavbar (BottomNav removed May 2026), admin moderation — features beyond CLAUDE.md
 - [Code style and workflow preferences](feedback_style.md) — commit-msg/UI language, BGG warning, CSS Modules
 - [Tests are required for every new component and method](feedback_tests_required.md) — non-negotiable since 2026-05-18: every new component, route, hook, util, or method ships with its tests in the same change (client AND server)
-- [Page padding system](padding_system.md) — `--page-padding`, `--page-padding-left`, `--page-padding-mobile` variables; patterns per page type
+- [Page layout standard](padding_system.md) — padding variables + full-width rule (NO max-width caps on page wrappers, even long-form/legal) + editorial hero header pattern every new screen follows
 - [Skeleton shimmer pattern](skeleton_pattern.md) — standard for all loading states; which screens are done, which are pending (BggProfile skipped)
 - [Mobile nav drawer (replaces BottomNav)](feedback_mobile_nav_drawer.md) — Sidebar/GuestSidebar is a slide-in right drawer on mobile, toggled by a hamburger in the Navbar that morphs to X via CSS. Navbar z-index 250 sits above drawer 200 + backdrop 199 and acts as the visual header. Two close paths required (useEffect[pathname] + onClick={onClose}) — same-route Link clicks don't fire the effect alone.
 - [PWA service worker config](feedback_pwa_sw_config.md) — workbox MUST have `skipWaiting + clientsClaim + cleanupOutdatedCaches` + `navigateFallbackDenylist: [/^\/api\//]`. Without these, deploys leave users on a stale cache → white screen after they clear browser cache.
