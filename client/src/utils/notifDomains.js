@@ -39,6 +39,8 @@ export const TYPE_DOMAIN = {
   evento_reminder: "evento",
   evento_ludoteca_added: "evento",
   evento_mesa_created: "evento",
+  // Math Trade
+  mathtrade_results: "mathtrade",
   // Admin chat
   admin_chat: "admin",
 };
@@ -53,6 +55,7 @@ export const DOMAIN_META = {
   torneo: { label: "Torneos", colorVar: "--orange", icon: "Trophy" },
   amigo: { label: "Amigos", colorVar: "--green", icon: "Users" },
   compartida: { label: "Compartidas", colorVar: "--red", icon: "Heart" },
+  mathtrade: { label: "Math Trade", colorVar: "--green", icon: "Swap" },
   admin: { label: "Admin", colorVar: "--text-muted", icon: "Megaphone" },
 };
 
@@ -109,6 +112,7 @@ export function notifLink(n) {
     return n.eventoDeleted ? "/eventos" : `/eventos/${n.eventoId}`;
   }
   if (n.type?.startsWith("tournament_")) return `/torneos/${n.torneoId}`;
+  if (n.type?.startsWith("mathtrade_")) return `/math-trade/${n.mathtradeId}`;
   if (n.fromUserId) return `/usuarios/${n.fromUserId}`;
   return `/mesas/${n.tableId}`;
 }
@@ -121,6 +125,7 @@ export function notifTarget(n) {
     n.torneoTitle ||
     n.compartidaTitle ||
     n.eventoTitle ||
+    n.mathtradeTitle ||
     n.fromUsername ||
     null
   );
@@ -375,6 +380,12 @@ export function getNotifMeta(n) {
         cta: "Ver evento",
       };
     }
+    case "mathtrade_results":
+      return {
+        title: "¡Salieron los resultados del intercambio!",
+        body: `Ya podés ver tus trades en ${n.mathtradeTitle || "el math trade"}`,
+        cta: "Ver resultados",
+      };
     default:
       return {
         title: "Notificación nueva",

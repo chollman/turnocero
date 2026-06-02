@@ -86,6 +86,21 @@ const ICONS = {
       <line x1="9" y1="22" x2="15" y2="22" />
     </svg>
   ),
+  mathtrade: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="17 1 21 5 17 9" />
+      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+      <polyline points="7 23 3 19 7 15" />
+      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+    </svg>
+  ),
   calendario: (
     <svg
       viewBox="0 0 24 24"
@@ -247,6 +262,12 @@ const SECTIONS = [
       { id: "dash", label: "Mesas", to: "/mesas", section: "mesas" },
       { id: "eventos", label: "Eventos", to: "/eventos", section: "eventos" },
       { id: "torneos", label: "Torneos", to: "/torneos", section: "torneos" },
+      {
+        id: "mathtrade",
+        label: "Math Trade",
+        to: "/math-trade",
+        section: "mathtrade",
+      },
       {
         id: "calendario",
         label: "Calendario",

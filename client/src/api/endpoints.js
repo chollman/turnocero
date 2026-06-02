@@ -128,6 +128,20 @@ export const API = {
     RESET: (id) => `/api/torneos/${enc(id)}/reset`,
   },
 
+  // ── Math Trade ───────────────────────────────────────────────────────
+  mathtrade: {
+    LIST: "/api/mathtrade",
+    DETAIL: (id) => `/api/mathtrade/${enc(id)}`,
+    STATUS: (id) => `/api/mathtrade/${enc(id)}/status`,
+    ITEMS: (id) => `/api/mathtrade/${enc(id)}/items`,
+    MY_ITEMS: (id) => `/api/mathtrade/${enc(id)}/my-items`,
+    ITEM: (id, itemId) => `/api/mathtrade/${enc(id)}/items/${enc(itemId)}`,
+    RUN_MATCHING: (id) => `/api/mathtrade/${enc(id)}/run-matching`,
+    RUN_MATCHING_PREVIEW: (id) =>
+      `/api/mathtrade/${enc(id)}/run-matching/preview`,
+    RESULTS: (id) => `/api/mathtrade/${enc(id)}/results`,
+  },
+
   // ── Eventos ──────────────────────────────────────────────────────────
   eventos: {
     LIST: "/api/eventos",

@@ -25,6 +25,7 @@ app.use("/api/compartidas", require("./routes/compartidas"));
 app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/noticias", require("./routes/noticias"));
 app.use("/api/torneos", require("./routes/torneos"));
+app.use("/api/mathtrade", require("./routes/mathtrade"));
 app.use("/api/eventos", require("./routes/eventos"));
 app.use("/api/calendario", require("./routes/calendario"));
 app.use("/api/bgg", require("./routes/bgg"));

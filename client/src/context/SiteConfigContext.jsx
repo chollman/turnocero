@@ -24,12 +24,14 @@ const SECTION_KEYS = [
   "utilidades",
   "colabora",
   "calendario",
+  "mathtrade",
 ];
 
 const DEFAULT_ENABLED = {
   mesas: false,
   torneos: false,
   miFeed: false,
+  mathtrade: false,
 };
 
 const defaultFor = (key) => DEFAULT_ENABLED[key] !== false;

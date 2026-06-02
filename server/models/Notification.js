@@ -37,6 +37,8 @@ const NOTIFICATION_TYPES = [
   // un usuario que agrega 3 juegos seguidos genera UNA notif con count=3.
   "evento_ludoteca_added",
   "evento_mesa_created",
+  // Math Trade
+  "mathtrade_results",
 ];
 
 const notificationSchema = new mongoose.Schema(
@@ -106,6 +108,9 @@ const notificationSchema = new mongoose.Schema(
     // se reusa del campo de arriba (es el mismo metadata).
     eventoTableId: { type: String, default: null },
     hostUsername: { type: String, default: "" },
+    // Math Trade-related
+    mathtradeId: { type: String, default: null },
+    mathtradeTitle: { type: String, default: "" },
   },
   { timestamps: true },
 );
@@ -116,6 +121,7 @@ notificationSchema.index({ recipient: 1, type: 1, fromUserId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, torneoId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, compartidaId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, eventoId: 1 });
+notificationSchema.index({ recipient: 1, type: 1, mathtradeId: 1 });
 // Auto-purge old notifications (90 days since last update). Lightweight retention policy.
 notificationSchema.index(
   { updatedAt: 1 },

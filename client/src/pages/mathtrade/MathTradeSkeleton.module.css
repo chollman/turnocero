@@ -1,0 +1,62 @@
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+}
+.top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.line,
+.lineShort,
+.lineTitle,
+.chip,
+.pill {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-hover) 37%,
+    var(--bg-elevated) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+.lineTitle {
+  width: 55%;
+  height: 18px;
+}
+.chip {
+  width: 80px;
+  height: 18px;
+  border-radius: 999px;
+}
+.line {
+  width: 100%;
+  height: 12px;
+  margin-bottom: 8px;
+}
+.lineShort {
+  width: 70%;
+  height: 12px;
+}
+.meta {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.pill {
+  width: 64px;
+  height: 14px;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
