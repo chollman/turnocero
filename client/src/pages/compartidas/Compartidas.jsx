@@ -9,6 +9,7 @@ import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
+import { randomCompartidaQuote } from "../../utils/compartidaQuotes";
 import CompartidaCard from "./CompartidaCard";
 import ResenaCard from "./ResenaCard";
 import CompartidaSkeleton from "./CompartidaSkeleton";
@@ -25,26 +26,18 @@ const TABS = [
 
 const INTERLEAVE_EVERY = 3;
 
-// Quote of the week (interleaved widget). Static for now; future iteration can
-// pull from a server endpoint. Kept short and tabletop-flavored.
-const QUOTE = {
-  text: "Lo mejor del juego de mesa no es ganar — es discutir 30 minutos por qué la madera vale más que la oveja.",
-  authorName: "Pancho M.",
-  game: "Catán",
-};
-
-function QuoteWidget() {
+// Frase intercalada en el feed. Se elige una al azar por visita a la sección
+// (ver utils/compartidaQuotes.js).
+function QuoteWidget({ text }) {
   return (
     <div className={`${styles.inlineWidget} ${styles.gold}`}>
       <div className={styles.widgetEyebrow}>
-        <span className={styles.left}><Meeple />Frase de la semana</span>
-      </div>
-      <p className={styles.quoteText}>{QUOTE.text}</p>
-      <div className={styles.quoteAttribution}>
-        <span>
-          — <strong>{QUOTE.authorName}</strong> · {QUOTE.game}
+        <span className={styles.left}>
+          <Meeple />
+          Frase de la mesa
         </span>
       </div>
+      <p className={styles.quoteText}>{text}</p>
     </div>
   );
 }
@@ -98,6 +91,8 @@ export default function Compartidas() {
   const [composerFiles, setComposerFiles] = useState(null);
   const composerFileRef = useRef(null);
   const [weekCount, setWeekCount] = useState(0);
+  // Frase al azar, fijada una vez por visita (montaje) a la sección.
+  const [quote] = useState(randomCompartidaQuote);
 
   const closeCreate = () => {
     setShowCreate(false);
@@ -399,7 +394,9 @@ export default function Compartidas() {
                   {renderCard(post, { index: featured ? i + 1 : i })}
                   {/* Interleave a quote widget every Nth post — mobile design uses these
                       between cards so the feed has more rhythm. */}
-                  {!isFiltered && i + 1 === INTERLEAVE_EVERY && <QuoteWidget />}
+                  {!isFiltered && i + 1 === INTERLEAVE_EVERY && (
+                    <QuoteWidget text={quote} />
+                  )}
                 </Fragment>
               ))}
 
