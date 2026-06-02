@@ -478,7 +478,7 @@ export default function Auth({ mode }) {
                         e.target.value.replace(/\s/g, "").toLowerCase(),
                       )
                     }
-                    placeholder="camir"
+                    placeholder="BlackwatchGames"
                     autoComplete="username"
                     minLength={3}
                     maxLength={30}
