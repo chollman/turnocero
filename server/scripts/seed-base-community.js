@@ -18,6 +18,13 @@
 require("dotenv").config({
   path: require("path").join(__dirname, "..", ".env"),
 });
+// Mismo escape-hatch que server.js: algunos DNS (ISP/router) no resuelven los
+// registros SRV de `mongodb+srv://` (Atlas). DNS_SERVERS permite forzar un
+// resolver público (ej. 8.8.8.8,1.1.1.1).
+const dns = require("dns");
+if (process.env.DNS_SERVERS) {
+  dns.setServers(process.env.DNS_SERVERS.split(",").map((s) => s.trim()));
+}
 const mongoose = require("mongoose");
 const Community = require("../models/Community");
 const User = require("../models/User");
