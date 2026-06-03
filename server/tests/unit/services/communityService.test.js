@@ -5,6 +5,25 @@ const Table = require("../../../models/Table");
 const { createUser } = require("../../helpers/auth");
 const { createTable } = require("../../helpers/factories");
 
+describe("communityService.memberCount", () => {
+  it("counts only the members of the given community", async () => {
+    const a = await Community.create({ name: "A", slug: "a" });
+    const b = await Community.create({ name: "B", slug: "b" });
+    await createUser({
+      communityMemberships: [{ community: a._id, role: "member" }],
+    });
+    await createUser({
+      communityMemberships: [{ community: a._id, role: "member" }],
+    });
+    await createUser({
+      communityMemberships: [{ community: b._id, role: "member" }],
+    });
+
+    expect(await communityService.memberCount(a._id)).toBe(2);
+    expect(await communityService.memberCount(b._id)).toBe(1);
+  });
+});
+
 describe("communityService.ensureBaseMembership", () => {
   it("adds base membership + skin and is idempotent", async () => {
     const user = await createUser();

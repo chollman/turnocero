@@ -265,6 +265,14 @@ async function deleteCommunity(community) {
 
 // ── Directorio / notificaciones ────────────────────────────────────────────
 
+// Conteo de miembros de UNA comunidad (lookup por índice). Para el detalle:
+// evita el $unwind+$group sobre TODOS los usuarios que hace memberCounts().
+async function memberCount(communityId) {
+  return User.countDocuments({
+    "communityMemberships.community": communityId,
+  });
+}
+
 // Map<communityId(string), memberCount> en una sola aggregation.
 async function memberCounts() {
   const rows = await User.aggregate([
@@ -312,6 +320,7 @@ module.exports = {
   countContent,
   reassignContentToBase,
   deleteCommunity,
+  memberCount,
   memberCounts,
   joinRequestRecipientIds,
 };

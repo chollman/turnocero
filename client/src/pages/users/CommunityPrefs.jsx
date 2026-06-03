@@ -2,56 +2,22 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCommunity } from "../../context/CommunityContext";
 import { useNotifications } from "../../context/NotificationContext";
+import useViewingControls from "../../hooks/useViewingControls";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import styles from "./CommunityPrefs.module.css";
 
 // Sección "Comunidades" del perfil: elegir qué comunidades ver en conjunto
 // (viewing) + cuál aplica su skin, y salir de comunidades.
 export default function CommunityPrefs() {
-  const {
-    memberships,
-    viewing,
-    skin,
-    setViewingPref,
-    setSkinPref,
-    leaveCommunity,
-  } = useCommunity();
+  const { memberships, skin, leaveCommunity } = useCommunity();
   const { addToast } = useNotifications();
-  const [busy, setBusy] = useState(false);
+  const { busy, viewingSet, toggleViewing, chooseSkin, guard } =
+    useViewingControls();
   // Membership pendiente de confirmación de salida (abre el modal).
   const [leaveTarget, setLeaveTarget] = useState(null);
 
   // Una sola membership (la base) → no hay nada que elegir todavía.
   if (memberships.length <= 1) return null;
-
-  // viewing vacío = todas. En la UI, mostrar "todas" tildadas en ese caso.
-  const viewingSet = new Set(
-    viewing.length ? viewing : memberships.map((m) => String(m.community._id)),
-  );
-
-  const guard = async (fn, errMsg) => {
-    setBusy(true);
-    try {
-      await fn();
-    } catch (err) {
-      addToast({ type: "error", message: err?.response?.data?.message || errMsg });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const toggleViewing = (id) => {
-    const next = new Set(viewingSet);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    return guard(
-      () => setViewingPref([...next]),
-      "No pudimos guardar tus preferencias",
-    );
-  };
-
-  const chooseSkin = (id) =>
-    guard(() => setSkinPref(id), "No pudimos cambiar el skin");
 
   const confirmLeave = () =>
     guard(async () => {

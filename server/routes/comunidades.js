@@ -457,13 +457,9 @@ router.get(
   asyncHandler(async (req, res) => {
     const community = await Community.findOne({ slug: req.params.slug });
     if (!community) throw httpError(404, "Comunidad no encontrada");
-    const counts = await communityService.memberCounts();
-    res.json(
-      publicView(community, {
-        memberCount: counts.get(String(community._id)) || 0,
-        user: req.user,
-      }),
-    );
+    // Detalle de una sola comunidad → contar por índice, no agregar todos.
+    const memberCount = await communityService.memberCount(community._id);
+    res.json(publicView(community, { memberCount, user: req.user }));
   }),
 );
 

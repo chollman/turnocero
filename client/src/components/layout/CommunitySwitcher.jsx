@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useCommunity } from "../../context/CommunityContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
-import { useNotifications } from "../../context/NotificationContext";
+import useViewingControls from "../../hooks/useViewingControls";
 import Meeple from "../shared/Meeple";
 import styles from "./CommunitySwitcher.module.css";
 
@@ -11,19 +11,10 @@ import styles from "./CommunitySwitcher.module.css";
 // comunidades ver en conjunto (viewing) y saltar a "Mis Comunidades".
 // Reemplaza el descubrimiento enterrado en /perfil (CommunityPrefs sigue ahí).
 export default function CommunitySwitcher({ onNavigate }) {
-  const {
-    memberships = [],
-    viewing = [],
-    skin,
-    skinCommunity,
-    setViewingPref,
-    setSkinPref,
-    loaded,
-  } = useCommunity();
+  const { memberships = [], skin, skinCommunity, loaded } = useCommunity();
   const { isSectionEnabled } = useSiteConfig();
-  const { addToast } = useNotifications();
+  const { busy, viewingSet, toggleViewing, chooseSkin } = useViewingControls();
   const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
   const ref = useRef(null);
 
   // Cerrar al clickear afuera o con Escape.
@@ -50,37 +41,6 @@ export default function CommunitySwitcher({ onNavigate }) {
   if (!loaded || memberships.length <= 1) return null;
 
   const activeName = skinCommunity?.name || "TurnoCero";
-  // viewing vacío = todas tildadas (espeja la lógica del server/CommunityPrefs).
-  const viewingSet = new Set(
-    viewing.length ? viewing : memberships.map((m) => String(m.community._id)),
-  );
-
-  const guard = async (fn, errMsg) => {
-    setBusy(true);
-    try {
-      await fn();
-    } catch (err) {
-      addToast?.({
-        type: "error",
-        message: err?.response?.data?.message || errMsg,
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const toggleViewing = (id) => {
-    const next = new Set(viewingSet);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    return guard(
-      () => setViewingPref([...next]),
-      "No pudimos guardar tus preferencias",
-    );
-  };
-
-  const chooseSkin = (id) =>
-    guard(() => setSkinPref(id), "No pudimos cambiar el aspecto");
 
   const closeAndNavigate = () => {
     setOpen(false);
