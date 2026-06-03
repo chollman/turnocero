@@ -14,7 +14,11 @@ import { buildSkinCss } from "../utils/skin";
 
 const SKIN_STORAGE_KEY = "turnocero_skin";
 
-const CommunityContext = createContext(null);
+// Exportado para que consumidores que son DESCENDIENTES del provider (p. ej.
+// NotificationProvider) puedan leer el contexto de forma null-safe con
+// useContext(CommunityContext) sin que `useCommunity()` tire si falta el
+// provider (útil en tests que montan NotificationProvider aislado).
+export const CommunityContext = createContext(null);
 
 // Maneja la pertenencia del usuario a comunidades y sus preferencias de
 // visualización (qué comunidades ve "juntas" + cuál skin aplica). Deriva del
