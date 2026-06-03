@@ -29,6 +29,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  margin-bottom: 5px;
   font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -38,6 +39,9 @@
 .activeName {
   grid-column: 1;
   grid-row: 2;
+  /* Alinear el inicio del nombre con la palabra "COMUNIDAD" del eyebrow: indent
+     = ancho del Meeple (1.15em + 0.35em de margin, a 0.6rem) + el gap de 5px. */
+  margin-left: calc(0.9rem + 5px);
   font-size: 0.92rem;
   font-weight: 700;
   color: var(--text-primary);
