@@ -123,5 +123,40 @@ describe("<CommunitiesAdmin>", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Guardar skin" }));
     await waitFor(() => expect(putBody?.accents?.amber).toBe("#e63946"));
+    // el payload también incluye los neutros por tema (defaults si no se tocan)
+    expect(putBody?.neutralsDark).toBeTruthy();
+    expect(putBody?.neutralsLight).toBeTruthy();
+  });
+
+  it("sends a per-theme neutral override in the skin save", async () => {
+    let putBody = null;
+    server.use(
+      http.get("/api/comunidades", () =>
+        HttpResponse.json({
+          comunidades: [
+            {
+              slug: "beta",
+              name: "Beta",
+              isBase: false,
+              memberCount: 1,
+              joinPolicy: "open",
+              sections: {},
+              skin: { accents: {} },
+            },
+          ],
+        }),
+      ),
+      http.put("/api/comunidades/beta/skin", async ({ request }) => {
+        putBody = await request.json();
+        return HttpResponse.json({ slug: "beta" });
+      }),
+    );
+    render(<CommunitiesAdmin />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    fireEvent.change(screen.getByLabelText("Fondo oscuro"), {
+      target: { value: "#1a0e12" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar skin" }));
+    await waitFor(() => expect(putBody?.neutralsDark?.bgDark).toBe("#1a0e12"));
   });
 });

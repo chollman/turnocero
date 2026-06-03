@@ -22,6 +22,25 @@ const ACCENT_DEFAULTS = {
 };
 const ACCENT_KEYS = Object.keys(ACCENT_DEFAULTS);
 
+// Neutros editables por tema (un subconjunto representativo). Los defaults son
+// los valores base de index.css, así que "guardar sin tocar" no cambia nada.
+const NEUTRAL_KEYS = ["bgDark", "bgCard", "textPrimary"];
+const NEUTRAL_LABELS = {
+  bgDark: "Fondo",
+  bgCard: "Tarjeta",
+  textPrimary: "Texto",
+};
+const NEUTRAL_DEFAULTS_DARK = {
+  bgDark: "#0a0d15",
+  bgCard: "#151c28",
+  textPrimary: "#ffffff",
+};
+const NEUTRAL_DEFAULTS_LIGHT = {
+  bgDark: "#f5f7fb",
+  bgCard: "#ffffff",
+  textPrimary: "#0a0d15",
+};
+
 function CommunityEditor({
   community,
   sectionKeys,
@@ -43,11 +62,21 @@ function CommunityEditor({
   }));
   const [brandName, setBrandName] = useState(community.skin?.brandName || "");
   const [tagline, setTagline] = useState(community.skin?.tagline || "");
+  const [neutralsDark, setNeutralsDark] = useState(() => ({
+    ...NEUTRAL_DEFAULTS_DARK,
+    ...(community.skin?.neutralsDark || {}),
+  }));
+  const [neutralsLight, setNeutralsLight] = useState(() => ({
+    ...NEUTRAL_DEFAULTS_LIGHT,
+    ...(community.skin?.neutralsLight || {}),
+  }));
 
   const saveSkin = async () => {
     try {
       await axios.put(API.comunidades.SKIN(community.slug), {
         accents,
+        neutralsDark,
+        neutralsLight,
         brandName,
         tagline,
       });
@@ -159,6 +188,40 @@ function CommunityEditor({
             {k}
           </label>
         ))}
+
+        <div className={styles.neutralsRow}>
+          <span className={styles.neutralsLabel}>Neutros (oscuro)</span>
+          {NEUTRAL_KEYS.map((k) => (
+            <label key={`d-${k}`} className={styles.colorField}>
+              <input
+                type="color"
+                value={neutralsDark[k]}
+                aria-label={`${NEUTRAL_LABELS[k]} oscuro`}
+                onChange={(e) =>
+                  setNeutralsDark((n) => ({ ...n, [k]: e.target.value }))
+                }
+              />
+              {NEUTRAL_LABELS[k]}
+            </label>
+          ))}
+        </div>
+        <div className={styles.neutralsRow}>
+          <span className={styles.neutralsLabel}>Neutros (claro)</span>
+          {NEUTRAL_KEYS.map((k) => (
+            <label key={`l-${k}`} className={styles.colorField}>
+              <input
+                type="color"
+                value={neutralsLight[k]}
+                aria-label={`${NEUTRAL_LABELS[k]} claro`}
+                onChange={(e) =>
+                  setNeutralsLight((n) => ({ ...n, [k]: e.target.value }))
+                }
+              />
+              {NEUTRAL_LABELS[k]}
+            </label>
+          ))}
+        </div>
+
         <input
           className={styles.input}
           placeholder="Nombre de marca (opcional)"

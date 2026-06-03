@@ -199,3 +199,17 @@
   cursor: pointer;
   padding: 0;
 }
+
+.neutralsRow {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.neutralsLabel {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  min-width: 110px;
+}
