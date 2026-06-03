@@ -4,10 +4,17 @@
   gap: 5px;
   max-width: 160px;
   font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: var(--overlay-soft);
-  border: 1px solid var(--border);
+  font-weight: 700;
+  /* Tinte con el color primario de la comunidad (`--badge-color`, inyectado por
+     el componente). Fallback a los neutros si no se setea. */
+  color: var(--badge-color, var(--text-secondary));
+  background: color-mix(
+    in srgb,
+    var(--badge-color, var(--border)) 14%,
+    transparent
+  );
+  border: 1px solid
+    color-mix(in srgb, var(--badge-color, var(--border)) 40%, transparent);
   border-radius: 999px;
   padding: 2px 8px;
 }

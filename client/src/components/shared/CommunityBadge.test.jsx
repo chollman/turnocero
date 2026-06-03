@@ -30,4 +30,20 @@ describe("<CommunityBadge>", () => {
     const { container } = render(<CommunityBadge community={null} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("tints with the community's primary accent (skin.accents.amber)", () => {
+    render(
+      <CommunityBadge
+        community={{ name: "Rosario Juega", skin: { accents: { amber: "#e63946" } } }}
+      />,
+    );
+    const badge = screen.getByTitle("Rosario Juega");
+    expect(badge.style.getPropertyValue("--badge-color")).toBe("#e63946");
+  });
+
+  it("falls back to the default --amber when the community has no skin accent", () => {
+    render(<CommunityBadge community={{ name: "TurnoCero", skin: {} }} />);
+    const badge = screen.getByTitle("TurnoCero");
+    expect(badge.style.getPropertyValue("--badge-color")).toBe("var(--amber)");
+  });
 });
