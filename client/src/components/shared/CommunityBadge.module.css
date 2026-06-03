@@ -3,8 +3,16 @@
   align-items: center;
   gap: 5px;
   max-width: 160px;
+  /* Tipografía explícita (no heredar del contexto de cada card) para que el
+     chip se vea idéntico en todas las secciones: misma fuente, case y tamaño.
+     Sin esto heredaba uppercase/mono en la metaLine de las compartidas y case
+     normal en el resto. */
+  font-family: var(--font-body);
   font-size: 0.7rem;
   font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  line-height: 1.4;
   /* Tinte con el color primario de la comunidad (`--badge-color`, inyectado por
      el componente). Fallback a los neutros si no se setea. */
   color: var(--badge-color, var(--text-secondary));
