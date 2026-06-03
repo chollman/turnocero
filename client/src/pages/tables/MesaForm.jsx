@@ -10,6 +10,7 @@ import { parseBgaUrl } from "../../utils/bga";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import TableCard from "../dashboard/TableCard";
+import CommunitySelect from "../../components/shared/CommunitySelect";
 import styles from "./MesaForm.module.css";
 
 // ── Icons ────────────────────────────────────────────────────────────
@@ -253,6 +254,9 @@ export default function MesaForm({
   // hasta que se elige. En edit mode initialValues.privacy llega con la
   // privacidad existente del server.
   const [privacy, setPrivacy] = useState(initialValues.privacy || "");
+  // Comunidad donde se publica la mesa (solo al crear; oculto si el user tiene
+  // una sola comunidad — el server cae a la del skin / base).
+  const [community, setCommunity] = useState("");
 
   // ── Tutoriales (Paso 5 — opcional) ────────────────────────────────
   // Creaciones nuevas defaultean a "none" (lo pidió el user). En edit
@@ -546,6 +550,7 @@ export default function MesaForm({
       rules,
       tags,
       privacy,
+      ...(!editMode && community ? { community } : {}),
       tutorialMode,
       tutorialVideoId: tutorialMode === "manual" ? tutorialVideoId : null,
       bgaUrl: bgaUrl || null,
@@ -881,6 +886,12 @@ export default function MesaForm({
                 </button>
               </div>
             </div>
+
+            {!editMode && (
+              <div className={styles.field}>
+                <CommunitySelect value={community} onChange={setCommunity} />
+              </div>
+            )}
 
             <div className={styles.field}>
               <label className={styles.fieldLabel} htmlFor="mesa-desc">
