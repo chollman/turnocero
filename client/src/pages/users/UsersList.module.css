@@ -4,6 +4,12 @@
     var(--page-padding-left);
 }
 
+/* Modo embebido (dentro de ComunidadDetail): sin padding propio — el padre lo
+   provee. Solo aporta el browser (controles + grilla). */
+.embedded {
+  margin-top: 8px;
+}
+
 @media (max-width: 959px) {
   .page {
     padding-top: var(--navbar-h);

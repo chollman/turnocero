@@ -79,7 +79,7 @@ describe("<UserProfilePublic>", () => {
   it('shows a "Volver" / back link', async () => {
     setup();
     await screen.findByText("@theuser");
-    expect(screen.getByText(/jugadores|volver/i)).toBeInTheDocument();
+    expect(screen.getByText(/comunidades|volver/i)).toBeInTheDocument();
   });
 
   it("non-banned user shows the regular profile (no banned indicator)", async () => {

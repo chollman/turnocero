@@ -104,6 +104,25 @@
   flex-wrap: wrap;
 }
 
+.links {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.membersLink {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.membersLink:hover {
+  color: var(--amber);
+  text-decoration: underline;
+}
+
 .manageLink {
   font-size: 0.84rem;
   font-weight: 600;

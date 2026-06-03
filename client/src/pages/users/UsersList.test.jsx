@@ -325,6 +325,46 @@ describe("<UsersList>", () => {
     expect(screen.getByText("Admin")).toBeInTheDocument();
   });
 
+  describe("embedded (community) mode", () => {
+    it("scopes the fetch to ?community when communityId is provided", async () => {
+      let received = "unset";
+      useAuth.mockReturnValue({ user: { _id: "me", isAdmin: false } });
+      server.use(
+        http.get("/api/users", ({ request }) => {
+          received = new URL(request.url).searchParams.get("community");
+          return HttpResponse.json([makeUserCard({ username: "alice" })]);
+        }),
+      );
+      render(
+        <MemoryRouter>
+          <UsersList communityId="c123" />
+        </MemoryRouter>,
+      );
+      await screen.findByText("@alice");
+      expect(received).toBe("c123");
+    });
+
+    it("hides the global hero header and BG Watch banner in embedded mode", async () => {
+      // currentUser has no bggUsername → in global mode the banner would show.
+      useAuth.mockReturnValue({ user: { _id: "me", isAdmin: false } });
+      server.use(
+        http.get("/api/users", () =>
+          HttpResponse.json([makeUserCard({ username: "alice" })]),
+        ),
+      );
+      render(
+        <MemoryRouter>
+          <UsersList communityId="c123" />
+        </MemoryRouter>,
+      );
+      await screen.findByText("@alice");
+      expect(
+        screen.queryByRole("heading", { name: "Comunidad", level: 1 }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/ya conocés bg watch/i)).not.toBeInTheDocument();
+    });
+  });
+
   describe("debounce", () => {
     it("does NOT call /api/users while typing — only after the 350ms debounce settles", async () => {
       vi.useFakeTimers({ shouldAdvanceTime: false });

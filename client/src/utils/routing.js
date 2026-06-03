@@ -21,7 +21,8 @@ export function getActiveNavId(pathname) {
   if (pathname.startsWith("/mensajes")) return "mensajes";
   if (pathname === "/bg-watch") return "bgwatchCta";
   if (pathname.startsWith("/bg-watch")) return "bgwatch";
-  if (pathname.startsWith("/usuarios")) return "users";
+  if (pathname.startsWith("/comunidades")) return "comunidades";
+  if (pathname.startsWith("/usuarios")) return "comunidades";
   if (pathname.startsWith("/perfil")) return "profile";
   if (pathname.startsWith("/base-de-datos")) return "db";
   if (pathname.startsWith("/utilidades")) return "utilidades";

@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import Meeple from "../../components/shared/Meeple";
 import { API } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
 import { useCommunity } from "../../context/CommunityContext";
+import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useNotifications } from "../../context/NotificationContext";
 import styles from "./Comunidades.module.css";
 
@@ -14,9 +15,18 @@ function policyLabel(p) {
   return "Por código";
 }
 
+// Orden mine-first: miembro → pendiente → resto; dentro de cada grupo, base
+// primero y luego alfabético.
+function statusRank(c) {
+  if (c.viewerStatus === "member") return 0;
+  if (c.viewerStatus === "pending") return 1;
+  return 2;
+}
+
 export default function Comunidades() {
   const { user } = useAuth();
   const { joinCommunity, leaveCommunity, memberships } = useCommunity();
+  const { isSectionEnabled } = useSiteConfig();
   const { addToast } = useNotifications();
 
   // Subadmin de esta comunidad o admin global → puede gestionarla.
@@ -25,6 +35,15 @@ export default function Comunidades() {
     (memberships || []).some(
       (m) => m.community.slug === c.slug && m.role === "subadmin",
     );
+
+  // ¿Puede ver los miembros? Solo miembros (admin bypassea), con la sección
+  // `comunidad` habilitada globalmente Y en esa comunidad.
+  const canViewMembers = (c) => {
+    if (user?.isAdmin) return true;
+    if (c.viewerStatus !== "member") return false;
+    if (!isSectionEnabled("comunidad")) return false;
+    return c.sections?.comunidad !== false;
+  };
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [codes, setCodes] = useState({});
@@ -54,6 +73,19 @@ export default function Comunidades() {
     load(ac.signal);
     return () => ac.abort();
   }, [load]);
+
+  // Mine-first: las comunidades que integro arriba (luego pendientes, luego el
+  // resto). Estable: base primero y alfabético dentro de cada grupo.
+  const sortedCommunities = useMemo(() => {
+    return [...communities].sort((a, b) => {
+      const rank = statusRank(a) - statusRank(b);
+      if (rank !== 0) return rank;
+      if (a.isBase !== b.isBase) return a.isBase ? -1 : 1;
+      return (a.name || "").localeCompare(b.name || "", "es", {
+        sensitivity: "base",
+      });
+    });
+  }, [communities]);
 
   const handleJoin = async (community) => {
     setBusy(community.slug);
@@ -142,9 +174,9 @@ export default function Comunidades() {
     <div className={styles.page}>
       <header className={styles.hero}>
         <div className={styles.eyebrow}>
-          <Meeple /> COMUNIDADES
+          <Meeple /> MIS COMUNIDADES
         </div>
-        <h1 className={styles.title}>Elegí tu comunidad</h1>
+        <h1 className={styles.title}>Mis Comunidades</h1>
         <p className={styles.subtitle}>
           Unite a una comunidad para ver y compartir su contenido. Podés
           integrar varias a la vez y elegir cuáles ver desde tu perfil.
@@ -157,7 +189,7 @@ export default function Comunidades() {
         <p className={styles.muted}>Todavía no hay comunidades.</p>
       ) : (
         <div className={styles.grid}>
-          {communities.map((c) => (
+          {sortedCommunities.map((c) => (
             <article key={c.slug} className={styles.card}>
               <div className={styles.cardHead}>
                 <h2 className={styles.cardName}>{c.name}</h2>
@@ -177,14 +209,24 @@ export default function Comunidades() {
               </div>
               <div className={styles.action}>
                 {renderAction(c)}
-                {canManage(c) && (
-                  <Link
-                    className={styles.manageLink}
-                    to={`/comunidades/${c.slug}/gestion`}
-                  >
-                    Gestionar
-                  </Link>
-                )}
+                <div className={styles.links}>
+                  {canViewMembers(c) && (
+                    <Link
+                      className={styles.membersLink}
+                      to={`/comunidades/${c.slug}`}
+                    >
+                      Ver miembros
+                    </Link>
+                  )}
+                  {canManage(c) && (
+                    <Link
+                      className={styles.manageLink}
+                      to={`/comunidades/${c.slug}/gestion`}
+                    >
+                      Gestionar
+                    </Link>
+                  )}
+                </div>
               </div>
             </article>
           ))}

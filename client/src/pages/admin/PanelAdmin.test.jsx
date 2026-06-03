@@ -112,7 +112,7 @@ describe("<PanelAdmin>", () => {
     expect(screen.getByText("Noticias")).toBeInTheDocument();
     expect(screen.getByText("Torneos")).toBeInTheDocument();
     expect(screen.getByText("Eventos")).toBeInTheDocument();
-    expect(screen.getByText("Comunidad")).toBeInTheDocument();
+    expect(screen.getByText("Miembros de comunidad")).toBeInTheDocument();
     expect(screen.getByText("Mi Feed")).toBeInTheDocument();
     expect(screen.getByText("Amigos")).toBeInTheDocument();
     expect(screen.getByText("Mensajes Directos")).toBeInTheDocument();

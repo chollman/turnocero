@@ -90,9 +90,12 @@ const SECTION_META = [
     items: [
       {
         key: "comunidad",
-        label: "Comunidad",
-        desc: "Listado y perfiles públicos de usuarios.",
-        affects: ["Oculta /usuarios y /usuarios/:id"],
+        label: "Miembros de comunidad",
+        desc: "Lista de miembros dentro de cada comunidad (/comunidades/:slug).",
+        affects: [
+          'Oculta "Ver miembros" en el directorio de comunidades',
+          "Bloquea la lista de miembros de cada comunidad",
+        ],
       },
       {
         key: "comunidades",

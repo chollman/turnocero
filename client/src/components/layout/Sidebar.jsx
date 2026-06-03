@@ -138,7 +138,7 @@ const ICONS = {
       <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
     </svg>
   ),
-  users: (
+  comunidades: (
     <svg
       viewBox="0 0 24 24"
       fill="none"
@@ -250,10 +250,10 @@ const SECTIONS = [
         section: "noticias",
       },
       {
-        id: "users",
-        label: "Comunidad",
-        to: "/usuarios",
-        section: "comunidad",
+        id: "comunidades",
+        label: "Mis Comunidades",
+        to: "/comunidades",
+        section: "comunidades",
       },
     ],
   },
