@@ -36,6 +36,8 @@ function Probe() {
       <span data-testid="mesasInSkin">
         {String(c.isSectionEnabledInSkin("mesas"))}
       </span>
+      <span data-testid="brandName">{c.brand.name}</span>
+      <span data-testid="brandLogoLight">{c.brand.logoLight}</span>
     </div>
   );
 }
@@ -144,6 +146,40 @@ describe("CommunityContext", () => {
     const styleEl = document.getElementById("community-skin");
     expect(styleEl).toBeTruthy();
     expect(styleEl.textContent).toContain("--amber: #e63946;");
+  });
+
+  it("derives the brand (name + logo) from the skin community", async () => {
+    useAuth.mockReturnValue({ user: { _id: "u1" } });
+    const branded = {
+      _id: "b9",
+      name: "Rosario Juega",
+      slug: "rosario",
+      isBase: false,
+      sections: {},
+      skin: {
+        brandName: "Rosario Juega Club",
+        logoLight: { url: "http://x/light.png" },
+      },
+    };
+    server.use(
+      http.get("/api/comunidades/mias", () =>
+        HttpResponse.json({
+          memberships: [{ community: branded, role: "member" }],
+          viewing: [],
+          skin: "b9",
+        }),
+      ),
+    );
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId("brandName").textContent).toBe(
+        "Rosario Juega Club",
+      ),
+    );
+    // un solo logo subido → se usa para ambos temas
+    expect(screen.getByTestId("brandLogoLight").textContent).toBe(
+      "http://x/light.png",
+    );
   });
 
   it("falls back to base-only mode when /mias errors (section off)", async () => {

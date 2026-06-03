@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useCommunity } from "../../context/CommunityContext";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { getActiveNavId } from "../../utils/routing";
 import Logo from "../shared/Logo";
@@ -299,6 +300,7 @@ export default function Sidebar({ open = false, onClose }) {
   const { user, isActuallyAdmin, logout } = useAuth();
   const { unreadCount, adminChatUnread } = useNotifications();
   const { isSectionEnabled } = useSiteConfig();
+  const { brand } = useCommunity();
   const location = useLocation();
   const navigate = useNavigate();
   const active = getActiveNavId(location.pathname);
@@ -433,12 +435,17 @@ export default function Sidebar({ open = false, onClose }) {
         aria-hidden={onClose && !open ? "true" : undefined}
       >
         <div className={styles.logoRow}>
-          <Link to="/" className={styles.logo} aria-label="TurnoCero">
+          <Link to="/" className={styles.logo} aria-label={brand.name}>
             <span className={styles.logoMark} aria-hidden="true">
-              <Logo className={styles.logoMarkImg} alt="" />
+              <Logo
+                className={styles.logoMarkImg}
+                alt=""
+                srcLight={brand.logoLight}
+                srcDark={brand.logoDark}
+              />
             </span>
             <span className={styles.logoText}>
-              <span className={styles.logoName}>TurnoCero</span>
+              <span className={styles.logoName}>{brand.name}</span>
               <span className={styles.logoSub}>
                 <Meeple />
                 board game meetups

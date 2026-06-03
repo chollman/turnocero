@@ -63,4 +63,22 @@ describe("<Logo>", () => {
     render(<Logo alt="Marca" />);
     expect(screen.getByRole("img", { name: "Marca" })).toBeInTheDocument();
   });
+
+  it("uses the per-theme src override when provided", () => {
+    document.documentElement.setAttribute("data-theme", "light");
+    render(<Logo srcLight="http://x/l.png" srcDark="http://x/d.png" />);
+    expect(screen.getByRole("img", { name: "TurnoCero" })).toHaveAttribute(
+      "src",
+      "http://x/l.png",
+    );
+  });
+
+  it("falls back to the static asset when the override for the active theme is empty", () => {
+    document.documentElement.setAttribute("data-theme", "dark");
+    render(<Logo srcLight="http://x/l.png" srcDark="" />);
+    expect(screen.getByRole("img", { name: "TurnoCero" })).toHaveAttribute(
+      "src",
+      "/logo.svg",
+    );
+  });
 });

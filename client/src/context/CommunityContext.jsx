@@ -156,6 +156,19 @@ export function CommunityProvider({ children }) {
     [skinCommunity],
   );
 
+  // Identidad de marca de la comunidad-skin activa (nombre + logos), con
+  // fallback a "TurnoCero" / assets base. Si solo se subió un logo, se usa para
+  // ambos temas.
+  const brand = useMemo(() => {
+    const s = skinCommunity?.skin;
+    return {
+      name: s?.brandName || "TurnoCero",
+      tagline: s?.tagline || "",
+      logoLight: s?.logoLight?.url || s?.logoDark?.url || "",
+      logoDark: s?.logoDark?.url || s?.logoLight?.url || "",
+    };
+  }, [skinCommunity]);
+
   const value = useMemo(
     () => ({
       memberships,
@@ -163,6 +176,7 @@ export function CommunityProvider({ children }) {
       effectiveViewing,
       skin,
       skinCommunity,
+      brand,
       loaded,
       setViewingPref,
       setSkinPref,
@@ -177,6 +191,7 @@ export function CommunityProvider({ children }) {
       effectiveViewing,
       skin,
       skinCommunity,
+      brand,
       loaded,
       setViewingPref,
       setSkinPref,
