@@ -299,3 +299,39 @@ describe("<Comunidades> mine-first ordering", () => {
     expect(headings).toEqual(["Alpha Member", "Beta Pending", "Zeta None"]);
   });
 });
+
+describe("<Comunidades> leave confirmation", () => {
+  const memberCard = {
+    slug: "beta",
+    name: "Beta",
+    memberCount: 3,
+    joinPolicy: "open",
+    isBase: false,
+    viewerStatus: "member",
+  };
+
+  it("asks for confirmation before leaving, then calls leaveCommunity", async () => {
+    const leaveCommunity = vi.fn().mockResolvedValue({});
+    useCommunity.mockReturnValue({ joinCommunity: vi.fn(), leaveCommunity });
+    mockDirectory([memberCard]);
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Salir" }));
+    expect(leaveCommunity).not.toHaveBeenCalled();
+    expect(screen.getByText("Salir de la comunidad")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Sí, salir" }));
+    await waitFor(() => expect(leaveCommunity).toHaveBeenCalledWith("beta"));
+  });
+
+  it("cancelling the modal does not call leaveCommunity", async () => {
+    const leaveCommunity = vi.fn().mockResolvedValue({});
+    useCommunity.mockReturnValue({ joinCommunity: vi.fn(), leaveCommunity });
+    mockDirectory([memberCard]);
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Salir" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(leaveCommunity).not.toHaveBeenCalled();
+    expect(
+      screen.queryByText("Salir de la comunidad"),
+    ).not.toBeInTheDocument();
+  });
+});

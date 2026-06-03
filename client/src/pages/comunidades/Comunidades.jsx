@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import Meeple from "../../components/shared/Meeple";
+import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import { API } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
 import { useCommunity } from "../../context/CommunityContext";
@@ -48,6 +49,9 @@ export default function Comunidades() {
   const [loading, setLoading] = useState(true);
   const [codes, setCodes] = useState({});
   const [busy, setBusy] = useState(null);
+  // Comunidad pendiente de confirmación de salida (abre el modal).
+  const [leaveTarget, setLeaveTarget] = useState(null);
+  const [leaving, setLeaving] = useState(false);
 
   const load = useCallback(
     async (signal) => {
@@ -109,11 +113,14 @@ export default function Comunidades() {
     }
   };
 
-  const handleLeave = async (community) => {
-    setBusy(community.slug);
+  // Confirma la salida de `leaveTarget` (disparado desde el modal).
+  const confirmLeave = async () => {
+    if (!leaveTarget) return;
+    setLeaving(true);
     try {
-      await leaveCommunity(community.slug);
-      addToast({ type: "success", message: `Saliste de ${community.name}` });
+      await leaveCommunity(leaveTarget.slug);
+      addToast({ type: "success", message: `Saliste de ${leaveTarget.name}` });
+      setLeaveTarget(null);
       await load();
     } catch (err) {
       addToast({
@@ -121,7 +128,7 @@ export default function Comunidades() {
         message: err.response?.data?.message || "No pudimos completar la acción",
       });
     } finally {
-      setBusy(null);
+      setLeaving(false);
     }
   };
 
@@ -135,8 +142,8 @@ export default function Comunidades() {
         <button
           type="button"
           className={styles.leaveBtn}
-          disabled={busy === c.slug}
-          onClick={() => handleLeave(c)}
+          disabled={leaving}
+          onClick={() => setLeaveTarget(c)}
         >
           Salir
         </button>
@@ -232,6 +239,19 @@ export default function Comunidades() {
           ))}
         </div>
       )}
+
+      <ConfirmActionModal
+        isOpen={!!leaveTarget}
+        title="Salir de la comunidad"
+        message={`¿Querés salir de ${leaveTarget?.name}? Vas a dejar de ver su contenido. Podés volver a unirte cuando quieras.`}
+        confirmLabel="Sí, salir"
+        variant="danger"
+        loading={leaving}
+        onConfirm={confirmLeave}
+        onCancel={() => {
+          if (!leaving) setLeaveTarget(null);
+        }}
+      />
     </div>
   );
 }

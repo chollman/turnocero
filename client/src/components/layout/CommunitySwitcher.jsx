@@ -43,11 +43,12 @@ export default function CommunitySwitcher({ onNavigate }) {
     };
   }, [open]);
 
-  // Feature apagada, contexto sin cargar o usuario sin comunidades → nada.
+  // Feature apagada, contexto sin cargar, o el usuario integra una sola
+  // comunidad (no hay nada que cambiar) → no se muestra el selector. El acceso
+  // a "Mis Comunidades" sigue disponible desde el nav del Sidebar.
   if (!isSectionEnabled("comunidades")) return null;
-  if (!loaded || memberships.length === 0) return null;
+  if (!loaded || memberships.length <= 1) return null;
 
-  const hasMultiple = memberships.length > 1;
   const activeName = skinCommunity?.name || "TurnoCero";
   // viewing vacío = todas tildadas (espeja la lógica del server/CommunityPrefs).
   const viewingSet = new Set(
@@ -116,51 +117,42 @@ export default function CommunitySwitcher({ onNavigate }) {
 
       {open && (
         <div className={styles.panel} role="menu">
-          {hasMultiple ? (
-            <>
-              <p className={styles.help}>
-                Tildá las que querés ver en conjunto y elegí cuál define el
-                aspecto del sitio.
-              </p>
-              <ul className={styles.list}>
-                {memberships.map((m) => {
-                  const id = String(m.community._id);
-                  const isSkin = String(skin) === id;
-                  return (
-                    <li key={id} className={styles.row}>
-                      <label className={styles.viewing}>
-                        <input
-                          type="checkbox"
-                          checked={viewingSet.has(id)}
-                          disabled={busy}
-                          onChange={() => toggleViewing(id)}
-                        />
-                        <span className={styles.cname}>{m.community.name}</span>
-                      </label>
-                      <button
-                        type="button"
-                        className={`${styles.skinBtn} ${isSkin ? styles.skinBtnActive : ""}`}
-                        disabled={busy || isSkin}
-                        onClick={() => chooseSkin(id)}
-                        title={
-                          isSkin
-                            ? "Esta comunidad define el aspecto"
-                            : "Usar el aspecto de esta comunidad"
-                        }
-                      >
-                        {isSkin ? "Aspecto activo" : "Usar aspecto"}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          ) : (
-            <p className={styles.help}>
-              Por ahora solo estás en TurnoCero. Descubrí y unite a otras
-              comunidades para ver su contenido y su aspecto.
-            </p>
-          )}
+          <p className={styles.help}>
+            Tildá las que querés ver en conjunto y elegí cuál define el aspecto
+            del sitio.
+          </p>
+          <ul className={styles.list}>
+            {memberships.map((m) => {
+              const id = String(m.community._id);
+              const isSkin = String(skin) === id;
+              return (
+                <li key={id} className={styles.row}>
+                  <label className={styles.viewing}>
+                    <input
+                      type="checkbox"
+                      checked={viewingSet.has(id)}
+                      disabled={busy}
+                      onChange={() => toggleViewing(id)}
+                    />
+                    <span className={styles.cname}>{m.community.name}</span>
+                  </label>
+                  <button
+                    type="button"
+                    className={`${styles.skinBtn} ${isSkin ? styles.skinBtnActive : ""}`}
+                    disabled={busy || isSkin}
+                    onClick={() => chooseSkin(id)}
+                    title={
+                      isSkin
+                        ? "Esta comunidad define el aspecto"
+                        : "Usar el aspecto de esta comunidad"
+                    }
+                  >
+                    {isSkin ? "Aspecto activo" : "Usar aspecto"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
           <Link
             to="/comunidades"
             className={styles.allLink}

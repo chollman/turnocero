@@ -68,6 +68,17 @@ describe("<CommunitySwitcher>", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it("renders nothing when the user belongs to a single community", () => {
+    const { container } = setup({
+      community: {
+        memberships: [MEMBERSHIPS[0]],
+        skinCommunity: MEMBERSHIPS[0].community,
+        skin: "a",
+      },
+    });
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("shows the active skin community name on the trigger", () => {
     setup();
     expect(screen.getByLabelText("Cambiar de comunidad")).toBeInTheDocument();
@@ -99,19 +110,6 @@ describe("<CommunitySwitcher>", () => {
     const checkboxes = screen.getAllByRole("checkbox");
     fireEvent.click(checkboxes[1]);
     await waitFor(() => expect(setViewingPref).toHaveBeenCalledWith(["a"]));
-  });
-
-  it("shows a discovery message + directory link when only in the base", () => {
-    setup({
-      community: {
-        memberships: [MEMBERSHIPS[0]],
-        skinCommunity: MEMBERSHIPS[0].community,
-        skin: "a",
-      },
-    });
-    fireEvent.click(screen.getByLabelText("Cambiar de comunidad"));
-    expect(screen.getByText(/solo estás en turnocero/i)).toBeInTheDocument();
-    expect(screen.queryByText("Usar aspecto")).not.toBeInTheDocument();
   });
 
   it('the "Ver todas" link points to /comunidades and calls onNavigate', () => {

@@ -86,7 +86,7 @@ describe("<CommunityPrefs>", () => {
     await waitFor(() => expect(setSkinPref).toHaveBeenCalledWith("base1"));
   });
 
-  it("leaves a non-base community", async () => {
+  it("leaves a non-base community after confirming in the modal", async () => {
     const leaveCommunity = vi.fn().mockResolvedValue({});
     useCommunity.mockReturnValue({
       memberships: twoMemberships,
@@ -97,8 +97,29 @@ describe("<CommunityPrefs>", () => {
       leaveCommunity,
     });
     renderPrefs();
-    // Solo Beta (no base) tiene botón Salir
+    // Solo Beta (no base) tiene botón Salir → abre el modal de confirmación.
     fireEvent.click(screen.getByRole("button", { name: "Salir" }));
+    expect(leaveCommunity).not.toHaveBeenCalled();
+    expect(screen.getByText("Salir de la comunidad")).toBeInTheDocument();
+    // Confirmar en el modal.
+    fireEvent.click(screen.getByRole("button", { name: "Sí, salir" }));
     await waitFor(() => expect(leaveCommunity).toHaveBeenCalledWith("beta"));
+  });
+
+  it("cancelling the leave modal does not call leaveCommunity", async () => {
+    const leaveCommunity = vi.fn().mockResolvedValue({});
+    useCommunity.mockReturnValue({
+      memberships: twoMemberships,
+      viewing: [],
+      skin: "beta1",
+      setViewingPref: vi.fn(),
+      setSkinPref: vi.fn(),
+      leaveCommunity,
+    });
+    renderPrefs();
+    fireEvent.click(screen.getByRole("button", { name: "Salir" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(leaveCommunity).not.toHaveBeenCalled();
+    expect(screen.queryByText("Salir de la comunidad")).not.toBeInTheDocument();
   });
 });

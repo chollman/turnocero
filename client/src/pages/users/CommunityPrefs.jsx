@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCommunity } from "../../context/CommunityContext";
 import { useNotifications } from "../../context/NotificationContext";
+import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import styles from "./CommunityPrefs.module.css";
 
 // Sección "Comunidades" del perfil: elegir qué comunidades ver en conjunto
@@ -17,6 +18,8 @@ export default function CommunityPrefs() {
   } = useCommunity();
   const { addToast } = useNotifications();
   const [busy, setBusy] = useState(false);
+  // Membership pendiente de confirmación de salida (abre el modal).
+  const [leaveTarget, setLeaveTarget] = useState(null);
 
   // Una sola membership (la base) → no hay nada que elegir todavía.
   if (memberships.length <= 1) return null;
@@ -50,10 +53,12 @@ export default function CommunityPrefs() {
   const chooseSkin = (id) =>
     guard(() => setSkinPref(id), "No pudimos cambiar el skin");
 
-  const handleLeave = (m) =>
+  const confirmLeave = () =>
     guard(async () => {
+      const m = leaveTarget;
       await leaveCommunity(m.community.slug);
       addToast({ type: "success", message: `Saliste de ${m.community.name}` });
+      setLeaveTarget(null);
     }, "No pudimos salir de la comunidad");
 
   return (
@@ -103,7 +108,7 @@ export default function CommunityPrefs() {
                   type="button"
                   className={styles.leave}
                   disabled={busy}
-                  onClick={() => handleLeave(m)}
+                  onClick={() => setLeaveTarget(m)}
                 >
                   Salir
                 </button>
@@ -115,6 +120,19 @@ export default function CommunityPrefs() {
       <p className={styles.note}>
         Si no marcás ninguna en "ver juntas", ves todas.
       </p>
+
+      <ConfirmActionModal
+        isOpen={!!leaveTarget}
+        title="Salir de la comunidad"
+        message={`¿Querés salir de ${leaveTarget?.community?.name}? Vas a dejar de ver su contenido. Podés volver a unirte cuando quieras.`}
+        confirmLabel="Sí, salir"
+        variant="danger"
+        loading={busy}
+        onConfirm={confirmLeave}
+        onCancel={() => {
+          if (!busy) setLeaveTarget(null);
+        }}
+      />
     </section>
   );
 }
