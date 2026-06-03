@@ -386,6 +386,28 @@ describe("Skin editing (PUT /skin, POST /logo)", () => {
       .expect(200);
     expect(res.body.skin.logoLight.url).toBeTruthy();
   });
+
+  it("rejects editing the base community's skin (403, code-only)", async () => {
+    const base = await Community.ensureBase();
+    const { token } = await createAuthedUser({ isAdmin: true });
+    await request(app)
+      .put(`/api/comunidades/${base.slug}/skin`)
+      .set(authHeader(token))
+      .send({ brandName: "Hackeado", accents: { amber: "#000000" } })
+      .expect(403);
+    await request(app)
+      .post(`/api/comunidades/${base.slug}/logo`)
+      .set(authHeader(token))
+      .field("variant", "light")
+      .attach("logo", Buffer.from("fakeimage"), {
+        filename: "logo.png",
+        contentType: "image/png",
+      })
+      .expect(403);
+    // El skin base quedó intacto.
+    const reloaded = await Community.findById(base._id);
+    expect(reloaded.skin?.brandName || "").toBe("");
+  });
 });
 
 describe("Content moderation by a community subadmin", () => {

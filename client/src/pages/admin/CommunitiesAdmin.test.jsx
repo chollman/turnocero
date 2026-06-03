@@ -159,4 +159,35 @@ describe("<CommunitiesAdmin>", () => {
     fireEvent.click(screen.getByRole("button", { name: "Guardar skin" }));
     await waitFor(() => expect(putBody?.neutralsDark?.bgDark).toBe("#1a0e12"));
   });
+
+  it("hides skin editing for the base community (code-only)", async () => {
+    server.use(
+      http.get("/api/comunidades", () =>
+        HttpResponse.json({
+          comunidades: [
+            {
+              slug: "turnocero",
+              name: "TurnoCero",
+              isBase: true,
+              memberCount: 5,
+              joinPolicy: "open",
+              sections: {},
+              skin: { accents: {} },
+            },
+          ],
+        }),
+      ),
+    );
+    render(<CommunitiesAdmin />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    // Nota explicativa en lugar de los controles de skin.
+    expect(screen.getByText(/se define por código/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Color amber")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Guardar skin" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Nombre de marca"),
+    ).not.toBeInTheDocument();
+  });
 });

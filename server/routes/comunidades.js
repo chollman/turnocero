@@ -184,6 +184,11 @@ router.put(
   asyncHandler(async (req, res) => {
     const community = await Community.findOne({ slug: req.params.slug });
     if (!community) throw httpError(404, "Comunidad no encontrada");
+    // El skin base (TurnoCero) es el tema por defecto de la app (index.css);
+    // solo se modifica por código. No editable desde la API.
+    if (community.isBase) {
+      throw httpError(403, "El skin de TurnoCero se define por código");
+    }
 
     if (req.body.accents) {
       community.set("skin.accents", Community.sanitizeSkinTokens(req.body.accents));
@@ -223,6 +228,9 @@ router.post(
   asyncHandler(async (req, res) => {
     const community = await Community.findOne({ slug: req.params.slug });
     if (!community) throw httpError(404, "Comunidad no encontrada");
+    if (community.isBase) {
+      throw httpError(403, "El logo de TurnoCero se define por código");
+    }
     if (!req.file) throw httpError(400, "Falta el archivo del logo");
     const variant = req.body.variant === "dark" ? "dark" : "light";
     const result = await uploadToCloudinary(req.file.buffer, {

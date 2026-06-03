@@ -175,6 +175,13 @@ function CommunityEditor({
 
       <div className={styles.skin}>
         <span className={styles.sectionsLabel}>Skin (colores de marca)</span>
+        {community.isBase ? (
+          <p className={styles.muted}>
+            El skin base de TurnoCero se define por código (index.css) y no se
+            edita desde acá.
+          </p>
+        ) : (
+          <>
         {ACCENT_KEYS.map((k) => (
           <label key={k} className={styles.colorField}>
             <input
@@ -243,6 +250,8 @@ function CommunityEditor({
           Subir logo
           <input type="file" accept="image/*" hidden onChange={uploadLogo} />
         </label>
+          </>
+        )}
       </div>
     </div>
   );
