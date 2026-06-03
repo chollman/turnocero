@@ -347,13 +347,20 @@ describe("Skin editing (PUT /skin, POST /logo)", () => {
       .put("/api/comunidades/skinned/skin")
       .set(authHeader(token))
       .send({
-        accents: { amber: "#e63946", bad: "red", evil: "url(x)" },
+        accents: {
+          amber: "#e63946",
+          onAmber: "#101010",
+          bad: "red",
+          evil: "url(x)",
+        },
         neutralsDark: { bgCard: "#101010" },
         brandName: "Skinned Club",
         tagline: "Jugamos en Rosario",
       })
       .expect(200);
     expect(res.body.skin.accents.amber).toBe("#e63946");
+    // Texto sobre botones primarios → se persiste como otro token de accents.
+    expect(res.body.skin.accents.onAmber).toBe("#101010");
     // valores no-color descartados por el sanitizer
     expect(res.body.skin.accents.bad).toBeUndefined();
     expect(res.body.skin.accents.evil).toBeUndefined();

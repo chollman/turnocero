@@ -7,6 +7,8 @@ describe("cssVarName", () => {
     expect(cssVarName("bgCard")).toBe("--bg-card");
     expect(cssVarName("textPrimary")).toBe("--text-primary");
     expect(cssVarName("borderStrong")).toBe("--border-strong");
+    // Texto sobre botones primarios.
+    expect(cssVarName("onAmber")).toBe("--on-amber");
   });
 });
 
@@ -23,6 +25,13 @@ describe("buildSkinCss", () => {
     expect(css).toContain(':root[data-community="rosario"] {');
     expect(css).toContain("--amber: #e63946;");
     expect(css).toContain("--red: #d62828;");
+  });
+
+  it("emits --on-amber from the onAmber accent (text on primary buttons)", () => {
+    const css = buildSkinCss("rosario", {
+      accents: { amber: "#ffd24a", onAmber: "#101010" },
+    });
+    expect(css).toContain("--on-amber: #101010;");
   });
 
   it("emits theme-scoped neutral blocks", () => {

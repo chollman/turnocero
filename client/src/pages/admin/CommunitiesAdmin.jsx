@@ -56,8 +56,12 @@ function CommunityEditor({
   const sections = community.sections || {};
 
   // ── Skin ──
+  // `onAmber` (texto sobre botones/badges de fondo de acento) se guarda dentro
+  // de `accents`: cssVarName lo mapea a `--on-amber`. Default blanco = el de
+  // index.css, así "guardar sin tocar" no cambia nada.
   const [accents, setAccents] = useState(() => ({
     ...ACCENT_DEFAULTS,
+    onAmber: "#ffffff",
     ...(community.skin?.accents || {}),
   }));
   const [brandName, setBrandName] = useState(community.skin?.brandName || "");
@@ -195,6 +199,21 @@ function CommunityEditor({
             {k}
           </label>
         ))}
+
+        <div className={styles.neutralsRow}>
+          <span className={styles.neutralsLabel}>Texto sobre primario</span>
+          <label className={styles.colorField}>
+            <input
+              type="color"
+              value={accents.onAmber}
+              aria-label="Texto sobre botones primarios"
+              onChange={(e) =>
+                setAccents((a) => ({ ...a, onAmber: e.target.value }))
+              }
+            />
+            texto en botones
+          </label>
+        </div>
 
         <div className={styles.neutralsRow}>
           <span className={styles.neutralsLabel}>Neutros (oscuro)</span>

@@ -160,6 +160,39 @@ describe("<CommunitiesAdmin>", () => {
     await waitFor(() => expect(putBody?.neutralsDark?.bgDark).toBe("#1a0e12"));
   });
 
+  it("saves the text-on-primary color (onAmber) inside accents", async () => {
+    let putBody = null;
+    server.use(
+      http.get("/api/comunidades", () =>
+        HttpResponse.json({
+          comunidades: [
+            {
+              slug: "beta",
+              name: "Beta",
+              isBase: false,
+              memberCount: 1,
+              joinPolicy: "open",
+              sections: {},
+              skin: { accents: {} },
+            },
+          ],
+        }),
+      ),
+      http.put("/api/comunidades/beta/skin", async ({ request }) => {
+        putBody = await request.json();
+        return HttpResponse.json({ slug: "beta" });
+      }),
+    );
+    render(<CommunitiesAdmin />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    fireEvent.change(
+      screen.getByLabelText("Texto sobre botones primarios"),
+      { target: { value: "#101010" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Guardar skin" }));
+    await waitFor(() => expect(putBody?.accents?.onAmber).toBe("#101010"));
+  });
+
   it("hides skin editing for the base community (code-only)", async () => {
     server.use(
       http.get("/api/comunidades", () =>
