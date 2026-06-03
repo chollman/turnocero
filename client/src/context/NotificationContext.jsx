@@ -141,7 +141,13 @@ export function NotificationProvider({ children }) {
     setNotifications,
     setToasts,
   });
-  useCommunityNotificationListeners({ socket, gated, reloadCommunity });
+  useCommunityNotificationListeners({
+    socket,
+    gated,
+    setNotifications,
+    setToasts,
+    reloadCommunity,
+  });
   useSiteConfigSocketListener({ socket, applyServerConfig });
 
   // ── markRead helpers ────────────────────────────────────────────────
@@ -183,6 +189,13 @@ export function NotificationProvider({ children }) {
       markReadByPredicate(prev, (n) => n.eventoId === eventoId),
     );
     axios.patch(API.notifications.READ, { eventoId }).catch(() => {});
+  }, []);
+
+  const markReadCommunity = useCallback((communityId) => {
+    setNotifications((prev) =>
+      markReadByPredicate(prev, (n) => n.communityId === communityId),
+    );
+    axios.patch(API.notifications.READ, { communityId }).catch(() => {});
   }, []);
 
   const markReadDm = useCallback((fromUserId) => {
@@ -353,6 +366,7 @@ export function NotificationProvider({ children }) {
       markReadTorneo,
       markReadCompartida,
       markReadEvento,
+      markReadCommunity,
       markReadDm,
       markReadAdminChat,
       markAllRead,
@@ -381,6 +395,7 @@ export function NotificationProvider({ children }) {
       markReadTorneo,
       markReadCompartida,
       markReadEvento,
+      markReadCommunity,
       markReadDm,
       markReadAdminChat,
       markAllRead,

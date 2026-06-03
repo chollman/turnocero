@@ -132,6 +132,35 @@ describe("PATCH /api/notifications/read", () => {
     expect(t1.read).toBe(true);
     expect(t2.read).toBe(false);
   });
+
+  it("marks only matching communityId as read", async () => {
+    const { user, token } = await createAuthedUser();
+    await Notification.create({
+      recipient: user._id,
+      type: "community_join_request",
+      communityId: "cm1",
+      count: 2,
+      read: false,
+    });
+    await Notification.create({
+      recipient: user._id,
+      type: "community_join_request",
+      communityId: "cm2",
+      read: false,
+    });
+
+    await request(app)
+      .patch("/api/notifications/read")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ communityId: "cm1" });
+
+    const ns = await Notification.find({ recipient: user._id });
+    const a = ns.find((n) => n.communityId === "cm1");
+    const b = ns.find((n) => n.communityId === "cm2");
+    expect(a.read).toBe(true);
+    expect(a.count).toBe(0);
+    expect(b.read).toBe(false);
+  });
 });
 
 describe("DELETE /api/notifications", () => {

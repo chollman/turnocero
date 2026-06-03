@@ -120,12 +120,48 @@ describe("POST /api/comunidades/:slug/join — policies", () => {
       .expect(200);
     expect(list.body.solicitudes).toHaveLength(1);
 
+    global.__ioStub.__reset();
     await request(app)
       .post(`/api/comunidades/aprob/solicitudes/${applicant._id}/aceptar`)
       .set(authHeader(tokenFor(sub)))
       .expect(200);
     const reloaded = await User.findById(applicant._id);
     expect(hasMembership(reloaded, beta._id)).toBe(true);
+    // El requester recibe community:join-resolved con resolution accepted.
+    const resolved = global.__ioStub.emitted.filter(
+      (e) => e.event === "community:join-resolved",
+    );
+    expect(resolved.some((e) => e.room === `user:${applicant._id}`)).toBe(true);
+    expect(resolved[0].payload.resolution).toBe("accepted");
+  });
+
+  it("rejecting a request emits join-resolved with resolution rejected", async () => {
+    const beta = await Community.create({
+      name: "Rech",
+      slug: "rech",
+      joinPolicy: "approval",
+    });
+    const sub = await createUser({
+      communityMemberships: [{ community: beta._id, role: "subadmin" }],
+    });
+    const { user: applicant, token } = await createAuthedUser();
+    await request(app)
+      .post("/api/comunidades/rech/join")
+      .set(authHeader(token))
+      .expect(200);
+
+    global.__ioStub.__reset();
+    await request(app)
+      .post(`/api/comunidades/rech/solicitudes/${applicant._id}/rechazar`)
+      .set(authHeader(tokenFor(sub)))
+      .expect(200);
+    const resolved = global.__ioStub.emitted.filter(
+      (e) => e.event === "community:join-resolved",
+    );
+    expect(resolved.some((e) => e.room === `user:${applicant._id}`)).toBe(true);
+    expect(resolved[0].payload.resolution).toBe("rejected");
+    const reloaded = await User.findById(applicant._id);
+    expect(hasMembership(reloaded, beta._id)).toBe(false);
   });
 });
 

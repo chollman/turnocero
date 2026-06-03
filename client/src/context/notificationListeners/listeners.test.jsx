@@ -183,28 +183,40 @@ describe("notification listener hooks — event registration", () => {
     expect([...socket._events.keys()]).toEqual(["site-config:updated"]);
   });
 
-  it("useCommunityNotificationListeners registra community:join-resolved", () => {
+  it("useCommunityNotificationListeners registra los 2 eventos de comunidad", () => {
     const socket = makeSocket();
     renderHook(() =>
       useCommunityNotificationListeners({
         socket,
         gated,
+        setNotifications,
+        setToasts,
         reloadCommunity: vi.fn(),
       }),
     );
-    expect([...socket._events.keys()]).toEqual(["community:join-resolved"]);
+    expect([...socket._events.keys()].sort()).toEqual([
+      "community:join-request",
+      "community:join-resolved",
+    ]);
   });
 
   it("community:join-resolved recarga las memberships del CommunityContext", () => {
     const socket = makeSocket();
     const reloadCommunity = vi.fn();
     renderHook(() =>
-      useCommunityNotificationListeners({ socket, gated, reloadCommunity }),
+      useCommunityNotificationListeners({
+        socket,
+        gated,
+        setNotifications,
+        setToasts,
+        reloadCommunity,
+      }),
     );
     // Simular el emit del server (accept/reject) → debe disparar el reload.
     socket._events.get("community:join-resolved")({
       communityId: "c1",
       communitySlug: "rosario-juega",
+      resolution: "accepted",
     });
     expect(reloadCommunity).toHaveBeenCalledTimes(1);
   });
@@ -215,6 +227,8 @@ describe("notification listener hooks — event registration", () => {
       useCommunityNotificationListeners({
         socket,
         gated,
+        setNotifications,
+        setToasts,
         reloadCommunity: undefined,
       }),
     );

@@ -348,6 +348,7 @@ router.post(
           communitySlug: req.community.slug,
         },
         "community:join-resolved",
+        { resolution: "accepted" },
       );
     }
     res.json({ message: "Solicitud aceptada" });
@@ -375,6 +376,7 @@ router.post(
           communitySlug: req.community.slug,
         },
         "community:join-resolved",
+        { resolution: "rejected" },
       );
     }
     res.json({ message: "Solicitud rechazada" });

@@ -37,6 +37,9 @@ const DURATION = {
   evento_cancelled: 6000,
   evento_updated: 5500,
   evento_reminder: 7000,
+  community_join_request: 6000,
+  community_join_accepted: 6000,
+  community_join_rejected: 5500,
   // Toasts disparados manualmente desde el client (sin backend event).
   error: 5000,
   success: 5000,
@@ -51,6 +54,7 @@ function ToastItem({ toast, onDismiss }) {
     markReadTorneo,
     markReadCompartida,
     markReadEvento,
+    markReadCommunity,
   } = useNotifications();
   const duration = DURATION[toast.type] ?? 4000;
   const [paused, setPaused] = useState(false);
@@ -105,6 +109,15 @@ function ToastItem({ toast, onDismiss }) {
       navigate(toast.eventoDeleted ? "/eventos" : `/eventos/${toast.eventoId}`);
     } else if (toast.type === "noticia") {
       navigate(`/noticias/${toast.noticiaId}`);
+    } else if (toast.type?.startsWith("community_")) {
+      markReadCommunity(toast.communityId);
+      navigate(
+        !toast.communitySlug
+          ? "/comunidades"
+          : toast.type === "community_join_request"
+            ? `/comunidades/${toast.communitySlug}/gestion`
+            : `/comunidades/${toast.communitySlug}`,
+      );
     } else if (toast.type === "bgwatch_connected") {
       navigate(`/bg-watch/${encodeURIComponent(toast.bggUsername)}`);
     } else if (toast.type === "error" || toast.type === "success") {
@@ -195,12 +208,21 @@ function ToastItem({ toast, onDismiss }) {
                                                                     "evento_mesa_created"
                                                                   ? "🎯"
                                                                   : toast.type ===
-                                                                      "error"
-                                                                    ? "⚠️"
+                                                                      "community_join_request"
+                                                                    ? "🙋"
                                                                     : toast.type ===
-                                                                        "success"
-                                                                      ? "✅"
-                                                                      : "🎲";
+                                                                        "community_join_accepted"
+                                                                      ? "🎉"
+                                                                      : toast.type ===
+                                                                          "community_join_rejected"
+                                                                        ? "🚫"
+                                                                        : toast.type ===
+                                                                            "error"
+                                                                          ? "⚠️"
+                                                                          : toast.type ===
+                                                                              "success"
+                                                                            ? "✅"
+                                                                            : "🎲";
 
   const title =
     toast.type === "join_accepted"
@@ -273,14 +295,24 @@ function ToastItem({ toast, onDismiss }) {
                                                               "evento_mesa_created"
                                                             ? "Nueva mesa en el evento"
                                                             : toast.type ===
-                                                                "error"
-                                                              ? toast.title ||
-                                                                "Algo salió mal"
+                                                                "community_join_request"
+                                                              ? toast.communityName ||
+                                                                "Tu comunidad"
                                                               : toast.type ===
-                                                                  "success"
-                                                                ? toast.title ||
-                                                                  "¡Listo!"
-                                                                : toast.tableName;
+                                                                  "community_join_accepted"
+                                                                ? "¡Te uniste a la comunidad!"
+                                                                : toast.type ===
+                                                                    "community_join_rejected"
+                                                                  ? "Solicitud rechazada"
+                                                                  : toast.type ===
+                                                                      "error"
+                                                                    ? toast.title ||
+                                                                      "Algo salió mal"
+                                                                    : toast.type ===
+                                                                        "success"
+                                                                      ? toast.title ||
+                                                                        "¡Listo!"
+                                                                      : toast.tableName;
 
   const body =
     toast.type === "chat"
@@ -401,14 +433,23 @@ function ToastItem({ toast, onDismiss }) {
                                                                       return `${who} armó ${game} en ${toast.eventoTitle}`;
                                                                     })()
                                                                   : toast.type ===
-                                                                      "error"
-                                                                    ? toast.message ||
-                                                                      ""
+                                                                      "community_join_request"
+                                                                    ? `${toast.requesterUsername} quiere unirse`
                                                                     : toast.type ===
-                                                                        "success"
-                                                                      ? toast.message ||
-                                                                        ""
-                                                                      : `Ya sos parte de la mesa de ${toast.tableName}`;
+                                                                        "community_join_accepted"
+                                                                      ? `Ya sos parte de ${toast.communityName || "la comunidad"}`
+                                                                      : toast.type ===
+                                                                          "community_join_rejected"
+                                                                        ? `Tu solicitud para ${toast.communityName || "la comunidad"} fue rechazada`
+                                                                        : toast.type ===
+                                                                            "error"
+                                                                          ? toast.message ||
+                                                                            ""
+                                                                          : toast.type ===
+                                                                              "success"
+                                                                            ? toast.message ||
+                                                                              ""
+                                                                            : `Ya sos parte de la mesa de ${toast.tableName}`;
 
   return (
     <div
