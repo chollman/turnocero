@@ -266,6 +266,27 @@
   align-self: flex-start;
 }
 
+/* Chip de comunidad SOBRE el banner (modo grilla): el fondo translúcido del
+   CommunityBadge se pierde con la foto de la mesa. Le damos un glass dark
+   opaco (misma convención que .dateChip — el banner siempre es oscuro, por eso
+   color fijo y no var temáticas) tintado con el acento de la comunidad, y
+   mantenemos el texto/borde en el color de la comunidad. La especificidad
+   (.bannerRight .bannerChip) gana sobre el .badge del módulo de CommunityBadge. */
+.bannerRight .bannerChip {
+  background: color-mix(
+    in srgb,
+    var(--badge-color, transparent) 20%,
+    rgba(10, 13, 21, 0.84)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--badge-color, var(--border)) 60%,
+    transparent
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

@@ -645,7 +645,10 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
             )}
             <div className={styles.bannerRight}>
               <div className={styles.bannerBadges}>{badges}</div>
-              <ItemCommunityTag communityId={table.community} />
+              <ItemCommunityTag
+                communityId={table.community}
+                className={styles.bannerChip}
+              />
             </div>
           </div>
         </div>
