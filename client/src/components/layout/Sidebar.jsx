@@ -8,6 +8,7 @@ import { useCommunity } from "../../context/CommunityContext";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { getActiveNavId } from "../../utils/routing";
 import Logo from "../shared/Logo";
+import CommunitySwitcher from "./CommunitySwitcher";
 import styles from "./Sidebar.module.css";
 
 const ICONS = {
@@ -478,6 +479,8 @@ export default function Sidebar({ open = false, onClose }) {
             )}
           </button>
         </div>
+
+        <CommunitySwitcher onNavigate={onClose} />
 
         <nav className={styles.nav}>
           {visibleSections.map((sec) => (
