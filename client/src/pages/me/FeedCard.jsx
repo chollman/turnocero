@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import GameTile from "../../components/shared/GameTile";
+import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import styles from "./FeedCard.module.css";
 
 function seedFromId(id = "") {
@@ -59,7 +60,10 @@ export default function FeedCard({ table, userId, isPast, index = 0 }) {
             {isHost ? "HOST" : "JUGADOR"}
           </span>
         </div>
-        <div className={styles.meta}>{meta}</div>
+        <div className={styles.meta}>
+          <ItemCommunityTag communityId={table.community} />
+          {meta}
+        </div>
       </div>
       <Link to={`/mesas/${table._id}`} className={styles.viewBtn}>
         Ver →

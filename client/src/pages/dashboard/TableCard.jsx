@@ -8,6 +8,7 @@ import MesaTile from "../../components/shared/MesaTile";
 import SeatTrack from "../../components/shared/SeatTrack";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Avatar from "../../components/shared/Avatar";
+import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import { GhostIcon } from "../../components/shared/UserRef";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { formatDistanceKm } from "../../utils/distance";
@@ -437,6 +438,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
 
   const badges = (
     <>
+      <ItemCommunityTag communityId={table.community} />
       {isHost && (
         <span className={`${styles.badge} ${styles.badge_host}`}>Host</span>
       )}

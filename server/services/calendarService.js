@@ -47,7 +47,7 @@ async function fetchMesas({ user, friendIds, from, to, scope, communityScope }) 
   }
   const mesas = await Table.find({ ...base, ...scopeFilter })
     .populate("host", USER_FIELDS)
-    .select("boardGame date status location host")
+    .select("boardGame date status location host community")
     .sort({ date: 1 })
     .lean();
   return mesas.map((m) => ({
@@ -59,6 +59,7 @@ async function fetchMesas({ user, friendIds, from, to, scope, communityScope }) 
     status: m.status,
     url: `/mesas/${m._id}`,
     host: m.host || null,
+    community: m.community ? String(m.community) : null,
   }));
 }
 
@@ -94,7 +95,7 @@ async function fetchEventos({ user, from, to, scope, isAdmin, communityScope }) 
     ...scopeFilter,
   })
     .populate("author", USER_FIELDS)
-    .select("title eventDate status location author")
+    .select("title eventDate status location author community")
     .sort({ eventDate: 1 })
     .lean();
   return eventos.map((e) => ({
@@ -106,6 +107,7 @@ async function fetchEventos({ user, from, to, scope, isAdmin, communityScope }) 
     status: e.status,
     url: `/eventos/${e._id}`,
     host: e.author || null,
+    community: e.community ? String(e.community) : null,
   }));
 }
 
@@ -120,7 +122,7 @@ async function fetchTorneos({ user, from, to, scope, isAdmin, communityScope }) 
   }
   const torneos = await Torneo.find({ ...base, ...scopeFilter })
     .populate("createdBy", USER_FIELDS)
-    .select("title game fecha status createdBy")
+    .select("title game fecha status createdBy community")
     .sort({ fecha: 1 })
     .lean();
   return torneos.map((t) => ({
@@ -132,6 +134,7 @@ async function fetchTorneos({ user, from, to, scope, isAdmin, communityScope }) 
     status: t.status,
     url: `/torneos/${t._id}`,
     host: t.createdBy || null,
+    community: t.community ? String(t.community) : null,
   }));
 }
 

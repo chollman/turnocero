@@ -38,6 +38,9 @@ function Probe() {
       </span>
       <span data-testid="brandName">{c.brand.name}</span>
       <span data-testid="brandLogoLight">{c.brand.logoLight}</span>
+      <span data-testid="resolvedBeta">
+        {c.communityById?.get("beta1")?.name || ""}
+      </span>
       <span data-testid="version">{c.viewingVersion}</span>
       <button onClick={() => c.setViewingPref(["base1"])}>setViewing</button>
       <button onClick={() => c.setSkinPref("base1")}>setSkin</button>
@@ -97,6 +100,8 @@ describe("CommunityContext", () => {
     );
     // viewing vacío = todas las memberships
     expect(screen.getByTestId("viewing").textContent).toBe("base1,beta1");
+    // communityById resuelve un id de membership → comunidad
+    expect(screen.getByTestId("resolvedBeta").textContent).toBe("Beta");
     expect(screen.getByTestId("skin").textContent).toBe("beta");
     // Beta apaga torneos en su skin → gating por comunidad lo refleja
     expect(screen.getByTestId("torneosInSkin").textContent).toBe("false");

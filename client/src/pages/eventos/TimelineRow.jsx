@@ -6,6 +6,7 @@ import { formatDistanceKm } from "../../utils/distance";
 import { getLocationDisplay } from "../../utils/location";
 import { PinIcon, UsersIcon } from "./EventoIcons";
 import { getEventoStatusBadge } from "../../utils/eventoStatus";
+import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import styles from "./TimelineRow.module.css";
 
 // `now` lo provee siempre el caller (Eventos.jsx) para no romper la regla
@@ -78,6 +79,7 @@ export default function TimelineRow({
 
       <div className={styles.content}>
         <div className={styles.badges}>
+          <ItemCommunityTag communityId={evento.community} />
           {statusInfo && (
             <span
               className={`${styles.status} ${styles[`status_${statusInfo.className}`]}`}

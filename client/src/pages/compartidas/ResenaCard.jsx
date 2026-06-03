@@ -7,6 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
+import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import RichTextContent from "../../components/shared/RichTextContent";
 import RichTextEditor from "../../components/shared/RichTextEditor";
@@ -312,6 +313,7 @@ export default function ResenaCard({
             )}
             <div className={styles.gameHeaderInfo}>
               <span className={styles.eyebrow}>Reseña</span>
+              <ItemCommunityTag communityId={post.community} />
               <span className={styles.gameName}>
                 {game?.name || "Juego"}
                 {game?.year ? (

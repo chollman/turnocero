@@ -9,6 +9,7 @@ import { API } from "../../api/endpoints";
 import GameTile from "../../components/shared/GameTile";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Avatar from "../../components/shared/Avatar";
+import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { getLocationDisplay } from "../../utils/location";
 import { buildCompartidaShare } from "../../utils/share";
@@ -815,6 +816,7 @@ export default function CompartidaCard({
               <Meeple />
               {timeAgo(post.createdAt)}
             </span>
+            <ItemCommunityTag communityId={post.community} />
             {privacyLabel && post.privacy !== "public" && (
               <span className={styles.privacyBadge}>
                 <PrivacyIcon privacy={post.privacy} />

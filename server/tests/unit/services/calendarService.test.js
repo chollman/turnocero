@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const { getCalendarItems } = require("../../../services/calendarService");
 const { createUser } = require("../../helpers/auth");
 const { createTable, createEvento } = require("../../helpers/factories");
@@ -35,6 +36,22 @@ describe("calendarService.getCalendarItems", () => {
     expect(it.url).toBe(`/mesas/${it.id}`);
     expect(it.host?.displayName).toBe("Anfitrión");
     expect(it.date).toBeInstanceOf(Date);
+  });
+
+  it("incluye el community id en cada item (para etiquetar el feed combinado)", async () => {
+    const host = await createUser();
+    const communityId = new mongoose.Types.ObjectId();
+    await createTable(host, { date: daysFromNow(3), community: communityId });
+
+    const { items } = await getCalendarItems({
+      user: host,
+      from,
+      to,
+      scope: "todas",
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0].community).toBe(String(communityId));
   });
 
   it("ordena por fecha ascendente entre tipos distintos", async () => {

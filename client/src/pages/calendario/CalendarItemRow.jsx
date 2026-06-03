@@ -1,13 +1,16 @@
 import { Link } from "react-router-dom";
 import Avatar from "../../components/shared/Avatar";
+import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { dateParts, countdown } from "../../utils/eventoDate";
 import { TIPO_META } from "./tipos";
 import styles from "./Calendario.module.css";
 
 // Fila de un item del calendario — usada en la Agenda y en el panel de día
-// de la grilla. Linkea al detalle de la entidad (item.url).
-export default function CalendarItemRow({ item, now = Date.now() }) {
+// de la grilla. Linkea al detalle de la entidad (item.url). `now` lo provee el
+// caller (AgendaList); si no llega, countdown() aplica su propio fallback —
+// evitamos el default impuro `Date.now()` en los params (react-hooks/purity).
+export default function CalendarItemRow({ item, now }) {
   const meta = TIPO_META[item.tipo];
   const parts = dateParts(item.date);
   const cd = countdown(item.date, now);
@@ -24,6 +27,7 @@ export default function CalendarItemRow({ item, now = Date.now() }) {
           <span className={`${styles.tipoTag} ${styles[meta.cls]}`}>
             {meta.label}
           </span>
+          <ItemCommunityTag communityId={item.community} />
           {parts?.time && <span className={styles.rowTime}>{parts.time}</span>}
         </span>
         <span className={styles.rowTitle}>{item.title}</span>

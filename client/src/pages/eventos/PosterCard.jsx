@@ -4,6 +4,7 @@ import { formatDistanceKm } from "../../utils/distance";
 import { getLocationDisplay } from "../../utils/location";
 import { PinIcon, UsersIcon, ImageIcon, ArrowIcon } from "./EventoIcons";
 import { getEventoStatusBadge } from "../../utils/eventoStatus";
+import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import styles from "./PosterCard.module.css";
 
 // `now` viene del caller (Eventos.jsx) para mantener la pureza del render —
@@ -92,6 +93,7 @@ export default function PosterCard({
       )}
 
       <div className={styles.body}>
+        <ItemCommunityTag communityId={evento.community} />
         <h3 className={styles.title}>{evento.title}</h3>
         <div className={styles.meta}>
           {locationDisplay && (

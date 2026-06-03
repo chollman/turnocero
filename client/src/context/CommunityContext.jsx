@@ -118,6 +118,15 @@ export function CommunityProvider({ children }) {
     return viewing.filter((v) => memberIds.includes(v));
   }, [viewing, memberships]);
 
+  // Resolutor id → comunidad (objeto completo) desde las memberships. Lo usa
+  // <ItemCommunityTag> para etiquetar cada item del feed combinado con su
+  // comunidad. Cada item viene de una comunidad que el usuario integra (el
+  // scoping del server lo garantiza), así que siempre resuelve.
+  const communityById = useMemo(
+    () => new Map(memberships.map((m) => [String(m.community._id), m.community])),
+    [memberships],
+  );
+
   const savePrefs = useCallback(async (patch) => {
     const { data } = await axios.put(API.comunidades.PREFERENCIAS, patch);
     setViewing((data.viewing || []).map(String));
@@ -189,6 +198,7 @@ export function CommunityProvider({ children }) {
       memberships,
       viewing,
       effectiveViewing,
+      communityById,
       skin,
       skinCommunity,
       brand,
@@ -205,6 +215,7 @@ export function CommunityProvider({ children }) {
       memberships,
       viewing,
       effectiveViewing,
+      communityById,
       skin,
       skinCommunity,
       brand,
