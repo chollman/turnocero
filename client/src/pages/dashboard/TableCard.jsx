@@ -438,7 +438,6 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
 
   const badges = (
     <>
-      <ItemCommunityTag communityId={table.community} />
       {isHost && (
         <span className={`${styles.badge} ${styles.badge_host}`}>Host</span>
       )}
@@ -516,6 +515,10 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
               <h3 className={styles.rowGame}>{table.boardGame}</h3>
               <div className={styles.rowBadges}>{badges}</div>
             </div>
+            <ItemCommunityTag
+              communityId={table.community}
+              className={styles.communityChip}
+            />
             <div className={styles.rowMeta}>
               {locationTexto && (
                 <span className={styles.rowMetaItem}>
@@ -640,7 +643,10 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
                 {dateChipText}
               </span>
             )}
-            <div className={styles.bannerBadges}>{badges}</div>
+            <div className={styles.bannerRight}>
+              <div className={styles.bannerBadges}>{badges}</div>
+              <ItemCommunityTag communityId={table.community} />
+            </div>
           </div>
         </div>
 

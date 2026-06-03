@@ -250,6 +250,22 @@
   justify-content: flex-end;
 }
 
+/* Columna de la esquina superior derecha del banner: los badges de estado
+   (Host / privada / etc.) arriba y el chip de comunidad debajo, alineado a la
+   derecha. */
+.bannerRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+/* Chip de comunidad en modo lista: va en su propia línea debajo de los badges
+   de estado. align-self evita que el flex-column del rowBody lo estire. */
+.communityChip {
+  align-self: flex-start;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
