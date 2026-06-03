@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { useState, useEffect } from "react";
 import {
   render,
   screen,
@@ -92,6 +93,68 @@ describe("<PageTransition>", () => {
       fireEvent.animationEnd(container.firstChild);
     });
     expect(screen.getByTestId("mesas")).toBeInTheDocument();
+  });
+
+  it("remounts the routed content when routesKey changes (viewing switch)", () => {
+    const mounts = [];
+    function Counter() {
+      useEffect(() => {
+        mounts.push(1);
+      }, []);
+      return <div data-testid="counter">c</div>;
+    }
+    function Wrapper() {
+      const [rk, setRk] = useState("v0");
+      const transition = usePageTransition();
+      return (
+        <div>
+          <button onClick={() => setRk("v1")}>bump</button>
+          <PageTransition transition={transition} routesKey={rk}>
+            <Route path="/" element={<Counter />} />
+          </PageTransition>
+        </div>
+      );
+    }
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Wrapper />
+      </MemoryRouter>,
+    );
+    expect(mounts.length).toBe(1);
+    // Cambiar routesKey (≈ el usuario cambió su viewing) → remonta el contenido.
+    fireEvent.click(screen.getByText("bump"));
+    expect(mounts.length).toBe(2);
+    expect(screen.getByTestId("counter")).toBeInTheDocument();
+  });
+
+  it("does NOT remount the content when routesKey stays the same", () => {
+    const mounts = [];
+    function Counter() {
+      useEffect(() => {
+        mounts.push(1);
+      }, []);
+      return <div data-testid="counter">c</div>;
+    }
+    function Wrapper() {
+      const [, force] = useState(0);
+      const transition = usePageTransition();
+      return (
+        <div>
+          <button onClick={() => force((n) => n + 1)}>rerender</button>
+          <PageTransition transition={transition} routesKey="v0">
+            <Route path="/" element={<Counter />} />
+          </PageTransition>
+        </div>
+      );
+    }
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Wrapper />
+      </MemoryRouter>,
+    );
+    expect(mounts.length).toBe(1);
+    fireEvent.click(screen.getByText("rerender"));
+    expect(mounts.length).toBe(1); // sin cambio de key → no remonta
   });
 
   it("handleAnimationEnd: out phase triggers route swap", async () => {

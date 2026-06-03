@@ -25,6 +25,11 @@ vi.mock("./context/AuthContext", () => ({
   useAuth: () => useAuthMock(),
   AuthProvider: ({ children }) => children,
 }));
+// AppRoutes lee viewingVersion del CommunityContext para el `key` de rutas.
+vi.mock("./context/CommunityContext", () => ({
+  useCommunity: () => ({ viewingVersion: 0 }),
+  CommunityProvider: ({ children }) => children,
+}));
 
 import { AppRoutes } from "./App";
 

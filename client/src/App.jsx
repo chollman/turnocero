@@ -2,7 +2,7 @@ import { BrowserRouter, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SiteConfigProvider, useSiteConfig } from "./context/SiteConfigContext";
-import { CommunityProvider } from "./context/CommunityContext";
+import { CommunityProvider, useCommunity } from "./context/CommunityContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ChatProvider } from "./context/ChatContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -140,6 +140,10 @@ const isAuthPath = (pathname) => AUTH_PATHS.includes(pathname);
 
 export function AppRoutes({ transition }) {
   const { user } = useAuth();
+  // Cambia cuando el usuario edita su `viewing` de comunidades → se usa como
+  // `key` de las rutas para remontar la página visible y re-fetchear con el
+  // scope nuevo en tiempo real.
+  const { viewingVersion } = useCommunity();
   const [menuOpen, setMenuOpen] = useState(false);
   // El chrome (sidebars/navbar/frame) deriva de la location que PageTransition
   // está MOSTRANDO, no del pathname vivo, así swapea en lockstep con el
@@ -164,7 +168,10 @@ export function AppRoutes({ transition }) {
           {user && !isAuthPage && (
             <Navbar menuOpen={menuOpen} onToggleMenu={toggleMenu} />
           )}
-          <PageTransition transition={transition}>
+          <PageTransition
+            transition={transition}
+            routesKey={`v${viewingVersion}`}
+          >
             <Route
               path="/login"
               element={

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/server";
 
@@ -38,6 +38,9 @@ function Probe() {
       </span>
       <span data-testid="brandName">{c.brand.name}</span>
       <span data-testid="brandLogoLight">{c.brand.logoLight}</span>
+      <span data-testid="version">{c.viewingVersion}</span>
+      <button onClick={() => c.setViewingPref(["base1"])}>setViewing</button>
+      <button onClick={() => c.setSkinPref("base1")}>setSkin</button>
     </div>
   );
 }
@@ -179,6 +182,41 @@ describe("CommunityContext", () => {
     // un solo logo subido → se usa para ambos temas
     expect(screen.getByTestId("brandLogoLight").textContent).toBe(
       "http://x/light.png",
+    );
+  });
+
+  it("bumps viewingVersion when the user changes viewing (not on skin change)", async () => {
+    useAuth.mockReturnValue({ user: { _id: "u1" } });
+    server.use(
+      http.get("/api/comunidades/mias", () =>
+        HttpResponse.json({
+          memberships: [
+            { community: base, role: "member" },
+            { community: beta, role: "member" },
+          ],
+          viewing: [],
+          skin: "base1",
+        }),
+      ),
+      http.put("/api/comunidades/preferencias", () =>
+        HttpResponse.json({ viewing: ["base1"], skin: "base1" }),
+      ),
+    );
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId("memberships").textContent).toBe("2"),
+    );
+    expect(screen.getByTestId("version").textContent).toBe("0");
+
+    // Cambiar el skin NO debe bumpear la versión (no afecta el contenido).
+    fireEvent.click(screen.getByText("setSkin"));
+    await waitFor(() => {});
+    expect(screen.getByTestId("version").textContent).toBe("0");
+
+    // Cambiar el viewing SÍ bumpea → remonta la página visible.
+    fireEvent.click(screen.getByText("setViewing"));
+    await waitFor(() =>
+      expect(screen.getByTestId("version").textContent).toBe("1"),
     );
   });
 

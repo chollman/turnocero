@@ -30,6 +30,12 @@ export function CommunityProvider({ children }) {
   const [viewing, setViewing] = useState([]); // ids (string)
   const [skin, setSkin] = useState(null); // id (string)
   const [loaded, setLoaded] = useState(false);
+  // Se incrementa SOLO cuando el usuario cambia su `viewing` (los checks del
+  // selector). Alimenta el `key` de las rutas en App.jsx para remontar la
+  // página visible y re-fetchear su contenido con el nuevo scope, en tiempo
+  // real. No se toca en la carga inicial ni al cambiar el skin (el skin no
+  // afecta qué contenido se ve).
+  const [viewingVersion, setViewingVersion] = useState(0);
 
   const userId = user?._id || null;
 
@@ -120,7 +126,12 @@ export function CommunityProvider({ children }) {
   }, []);
 
   const setViewingPref = useCallback(
-    (ids) => savePrefs({ viewing: ids.map(String) }),
+    async (ids) => {
+      const result = await savePrefs({ viewing: ids.map(String) });
+      // Bump tras persistir → remonta la página actual con el scope nuevo.
+      setViewingVersion((v) => v + 1);
+      return result;
+    },
     [savePrefs],
   );
 
@@ -182,6 +193,7 @@ export function CommunityProvider({ children }) {
       skinCommunity,
       brand,
       loaded,
+      viewingVersion,
       setViewingPref,
       setSkinPref,
       joinCommunity,
@@ -197,6 +209,7 @@ export function CommunityProvider({ children }) {
       skinCommunity,
       brand,
       loaded,
+      viewingVersion,
       setViewingPref,
       setSkinPref,
       joinCommunity,
