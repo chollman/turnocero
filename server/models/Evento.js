@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const communityScoped = require("./plugins/communityScoped");
 
 // Ludoteca del Evento: cada user (confirmed registrant o admin del evento)
 // agrega juegos que va a llevar/proponer para jugar el día del evento.
@@ -138,5 +139,8 @@ eventoSchema.pre("save", function () {
     this.markModified("location");
   }
 });
+
+// Scoping por comunidad: campo `community` + índice { community, status, createdAt }.
+eventoSchema.plugin(communityScoped, { indexes: [{ status: 1, createdAt: -1 }] });
 
 module.exports = mongoose.model("Evento", eventoSchema);

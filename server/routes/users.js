@@ -1,17 +1,23 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
 const User = require("../models/User");
 const Table = require("../models/Table");
 const Compartida = require("../models/Compartida");
+const Community = require("../models/Community");
 const { optionalAuth } = require("../middleware/auth");
-const { requireSection } = require("../middleware/sectionGate");
 const validateObjectId = require("../middleware/validateObjectId");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { isSameId } = require("../utils/idCompare");
+const { isSectionEnabled } = require("../utils/siteConfig");
+const communityService = require("../services/communityService");
 
-router.use(requireSection("comunidad"));
-
+// NOTA: este router NO se gatea a nivel router. `GET /api/users` (sin
+// `?community`) es infraestructura compartida — lo consumen DMs, búsqueda de
+// participantes de torneos, BG Watch y los perfiles linkeados desde
+// notificaciones. La sección `comunidad` solo restringe la vista de miembros
+// POR comunidad (`?community=<id>`, ver abajo).
 router.param("id", validateObjectId("id"));
 
 // GET /api/users — public list with optional search, sortBy, activeOnly
@@ -19,13 +25,37 @@ router.get(
   "/",
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const { search, sortBy, activeOnly, friendsOnly, bgWatchOnly } = req.query;
+    const { search, sortBy, activeOnly, friendsOnly, bgWatchOnly, community } =
+      req.query;
     const isAdmin = !!req.user?.isAdmin;
 
     const query = {};
     if (!isAdmin) {
       query.isBanned = { $ne: true };
     }
+
+    // ── Vista de miembros de una comunidad (lista de /comunidades/:slug) ──
+    // Solo cuando viene `?community`. Gateada por la sección `comunidad`
+    // (global Y per-comunidad) y restringida a miembros de esa comunidad.
+    // Los admins bypassean todos los gates.
+    if (community) {
+      if (!mongoose.isValidObjectId(community)) {
+        throw httpError(400, "Comunidad inválida");
+      }
+      if (!isAdmin && !isSectionEnabled("comunidad")) {
+        throw httpError(403, "Sección deshabilitada");
+      }
+      const targetCommunity = await Community.findById(community);
+      if (!targetCommunity) throw httpError(404, "Comunidad no encontrada");
+      if (!isAdmin && targetCommunity.sections?.get("comunidad") === false) {
+        throw httpError(403, "Sección deshabilitada");
+      }
+      if (!isAdmin && !communityService.isMember(req.user, targetCommunity._id)) {
+        throw httpError(403, "No sos miembro de esta comunidad");
+      }
+      query["communityMemberships.community"] = targetCommunity._id;
+    }
+
     if (friendsOnly === "true" && req.user) {
       query._id = { $in: req.user.friends };
     }

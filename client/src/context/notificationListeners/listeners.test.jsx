@@ -14,6 +14,7 @@ import { useTorneoNotificationListeners } from "./useTorneoNotificationListeners
 import { useCompartidaNotificationListeners } from "./useCompartidaNotificationListeners";
 import { useNoticiaNotificationListeners } from "./useNoticiaNotificationListeners";
 import { useEventoNotificationListeners } from "./useEventoNotificationListeners";
+import { useCommunityNotificationListeners } from "./useCommunityNotificationListeners";
 import { useSiteConfigSocketListener } from "./useSiteConfigSocketListener";
 
 function makeSocket() {
@@ -180,6 +181,60 @@ describe("notification listener hooks — event registration", () => {
       useSiteConfigSocketListener({ socket, applyServerConfig }),
     );
     expect([...socket._events.keys()]).toEqual(["site-config:updated"]);
+  });
+
+  it("useCommunityNotificationListeners registra los 2 eventos de comunidad", () => {
+    const socket = makeSocket();
+    renderHook(() =>
+      useCommunityNotificationListeners({
+        socket,
+        gated,
+        setNotifications,
+        setToasts,
+        reloadCommunity: vi.fn(),
+      }),
+    );
+    expect([...socket._events.keys()].sort()).toEqual([
+      "community:join-request",
+      "community:join-resolved",
+    ]);
+  });
+
+  it("community:join-resolved recarga las memberships del CommunityContext", () => {
+    const socket = makeSocket();
+    const reloadCommunity = vi.fn();
+    renderHook(() =>
+      useCommunityNotificationListeners({
+        socket,
+        gated,
+        setNotifications,
+        setToasts,
+        reloadCommunity,
+      }),
+    );
+    // Simular el emit del server (accept/reject) → debe disparar el reload.
+    socket._events.get("community:join-resolved")({
+      communityId: "c1",
+      communitySlug: "rosario-juega",
+      resolution: "accepted",
+    });
+    expect(reloadCommunity).toHaveBeenCalledTimes(1);
+  });
+
+  it("no rompe si reloadCommunity es undefined (provider ausente en tests)", () => {
+    const socket = makeSocket();
+    renderHook(() =>
+      useCommunityNotificationListeners({
+        socket,
+        gated,
+        setNotifications,
+        setToasts,
+        reloadCommunity: undefined,
+      }),
+    );
+    expect(() =>
+      socket._events.get("community:join-resolved")({ communityId: "c1" }),
+    ).not.toThrow();
   });
 });
 

@@ -35,7 +35,7 @@ After that, Claude will read and write memories directly from the repo folder.
 
 ## Project Overview
 
-**Turnocero** is a full-stack web app for the Argentine board-game community. Core feature: organize _mesas_ (game sessions) — create, join, chat, and manage them. Additional features: _Compartidas_ (social posts about sessions), _Noticias_ (admin news/announcements), _Torneos_ (admin-managed tournaments — league, single-elimination, and multi-table groups), _Eventos_ (paid events with admin-confirmed registrations), a friends system, direct messages between friends, _Utilidades_ (small tabletop tools), and public browsing without login. The UI and all user-facing content are in **Argentine Spanish**. The app is deployed as a **PWA** (vite-plugin-pwa; assets in `client/public/`).
+**Turnocero** is a full-stack web app for the Argentine board-game community. Core feature: organize _mesas_ (game sessions) — create, join, chat, and manage them. Additional features: _Compartidas_ (social posts about sessions), _Noticias_ (admin news/announcements), _Torneos_ (admin-managed tournaments — league, single-elimination, and multi-table groups), _Eventos_ (paid events with admin-confirmed registrations), _Comunidades_ (soft multi-tenancy: content separated by community + per-community reskin), a friends system, direct messages between friends, _Utilidades_ (small tabletop tools), and public browsing without login. The UI and all user-facing content are in **Argentine Spanish**. The app is deployed as a **PWA** (vite-plugin-pwa; assets in `client/public/`).
 
 ## Development Commands
 
@@ -69,7 +69,7 @@ See "Testing" section below for the full layout (helpers, mocks, MSW handlers).
 
 ## Frontend routing
 
-All client-side routes **must use Spanish slugs**. Examples: `/mesas`, `/mesas/crear`, `/mesas/:id/editar`, `/compartidas`, `/noticias`, `/torneos`, `/torneos/crear`, `/torneos/:id/editar`, `/eventos`, `/eventos/:id`, `/eventos/:id/inscripciones`, `/perfil`, `/usuarios`, `/notificaciones`, `/mi`, `/mensajes`, `/utilidades`, `/utilidades/dado`, `/utilidades/temporizador`, `/utilidades/selector-de-dedos`, `/base-de-datos`, `/panel-admin`, `/verificar-email`, `/recuperar-contrasenia`, `/restablecer-contrasenia`. The only English exceptions are `/login` and `/register`.
+All client-side routes **must use Spanish slugs**. Examples: `/mesas`, `/mesas/crear`, `/mesas/:id/editar`, `/compartidas`, `/noticias`, `/torneos`, `/torneos/crear`, `/torneos/:id/editar`, `/eventos`, `/eventos/:id`, `/eventos/:id/inscripciones`, `/comunidades`, `/comunidades/:slug`, `/comunidades/:slug/gestion`, `/perfil`, `/usuarios/:id`, `/notificaciones`, `/mi`, `/mensajes`, `/utilidades`, `/utilidades/dado`, `/utilidades/temporizador`, `/utilidades/selector-de-dedos`, `/base-de-datos`, `/panel-admin`, `/verificar-email`, `/recuperar-contrasenia`, `/restablecer-contrasenia`. The only English exceptions are `/login` and `/register`. Note: `/usuarios` (the old global members list) now redirects to `/comunidades`; member lists live per-community at `/comunidades/:slug`.
 
 ## Git conventions
 
@@ -177,13 +177,35 @@ Admin-managed paid (or free) one-off events with manual registration confirmatio
 
 Each registration: `{ user, status: 'pending' | 'confirmed' | 'rejected', submittedAt, reviewedAt, reviewedBy, adminNotes, comprobante: { url, publicId, resourceType ('image' | 'raw' for PDF), uploadedAt } }`. The `comprobante` is a payment receipt the user uploads when they self-register; admins review and confirm/reject via `PATCH /api/eventos/:id/inscripciones/:userId/confirmar|rechazar`. Comprobantes accept images and PDFs (PDFs are stored as Cloudinary `resource_type: 'raw'`).
 
+### Comunidades
+
+Soft multi-tenancy + per-community reskin. The site stays branded "TurnoCero" but its content is separated by community: a user joins one or more communities, picks a subset to "view together", and picks one community's skin. Content (Mesas, Compartidas, Eventos, Torneos, Noticias, MathTrade) is scoped to a community; a user sees only the content of the communities they're viewing.
+
+**Models / data:**
+
+- `Community` ([server/models/Community.js](server/models/Community.js)): `name`, `slug` (immutable, derived from name — feeds the `data-community` CSS selector + URLs), `description`, `isBase` (exactly one base community "TurnoCero" with `isBase: true` — undeletable, holds all historical content, everyone belongs to it), `joinPolicy` (`open` | `approval` | `code`), `inviteCode` (`select: false`, only `hasCode` exposed), `pendingMembers[]` (approval queue), `skin` (see below), `sections` (Map String→Bool, per-community section override mirroring `SiteConfig.sections`), `createdBy`. Statics: `getBase()`/`ensureBase()` (cached singleton, lazy-upsert; reset between tests via `__resetBaseCache()`), `generateSlug` (NFD + strip diacritics), `sanitizeSkinTokens` (hex/rgb allowlist). `toJSON` uses `toObject({ flattenMaps: true })` so the Map fields (`sections`, `skin.*`) serialize as plain objects, NOT `{}`.
+- Membership lives on `User`: `communityMemberships: [{ community, role: 'member' | 'subadmin', joinedAt }]` (indexed) + `communityPrefs: { viewing: [Community], skin: Community }`. Every user (password + OAuth signup) gets base membership + base skin via `communityService.ensureBaseMembership`.
+- The `community` field is added to content models by the **`communityScoped` Mongoose plugin** ([server/models/plugins/communityScoped.js](server/models/plugins/communityScoped.js)); the registry of scoped models is [server/config/scopedModels.js](server/config/scopedModels.js) (Table, Compartida, Evento, Torneo, Noticia, MathTrade). `community` is `required: false` at the model level (a `required: true` would tax every direct `Model.create`); the create routes + `communityService.resolveCreateCommunity` are the guardrail. New scoped models: add the plugin + register in `scopedModels.js`.
+
+**Read-scoping:** reads inject `community: { $in: viewingCommunities }` as an orthogonal `$and` clause (never folded into privacy filters), with a never-empty invariant (base is the floor). A `<CommunitySelect>` "Publicar en" selector on content-create forms chooses the target community (hidden when the user has ≤1 membership).
+
+**Reskin:** `Community.skin` carries `accents` (brand colors — theme-independent), `neutralsDark`/`neutralsLight` (theme-split via `:root[data-theme="..."][data-community="..."]`), `logoLight`/`logoDark`, `brandName`, `tagline`. Color tokens are sanitized server-side (hex/rgb allowlist, no raw CSS). The client `CommunityContext` injects a `<style id="community-skin">` from the skin community in a `useLayoutEffect`, sets `data-community` on `<html>`, and persists `{slug, css}` to `localStorage` (key `turnocero_skin`); an inline script in `index.html` reapplies it pre-hydration to avoid FOUC. Skin editing is admin-only (`CommunitiesAdmin` in `/panel-admin`). Opacity variants use `color-mix(in srgb, var(--accent) N%, transparent)`.
+
+**Roles & moderation:** per-membership `subadmin` role moderates a community's memberships (accept/reject join requests, expel members) + content (`communityService.canModerate` = author OR global admin OR subadmin of the doc's community). Only global admins create communities and edit skins / assign subadmins. Subadmin tools live at `/comunidades/:slug/gestion` (`ComunidadGestion`).
+
+**Section gating** is two-layered: the global `SiteConfig.isSectionEnabled(key)` AND the per-community-**skin** override (client hook `useSectionEnabled`). Distinct from this is the per-**target**-community gate used by the member list (see below).
+
+**Member lists ("Mis Comunidades"):** `/comunidades` (`Comunidades`) is the directory of all communities (join open ones directly / request approval ones / enter code), ordered **mine-first** (member → pending → rest). Each card a user is a member of shows a "Ver miembros" link to `/comunidades/:slug` (`ComunidadDetail`), which renders that community's member list by reusing `UsersList` with a `communityId` prop (embedded mode → fetches `GET /api/users?community=<id>`, hides the global hero/BG-Watch banner). This member view is gated by the **`comunidad`** section (singular — global toggle AND the target community's `sections.comunidad` toggle) and restricted to members; admins bypass. Note the two section keys: **`comunidades`** (plural) gates the directory; **`comunidad`** (singular) gates the per-community member list. Turning `comunidad` off only hides "Ver miembros" + blocks `/comunidades/:slug` — the community stays listed and joinable. Public profiles `/usuarios/:id` are shared infra (linked from notifications/DMs) and are NOT gated by `comunidad`; `GET /api/users` (without `?community`) is likewise ungated (DMs, tournament participant search, BG Watch depend on it).
+
+**Migration / deploy:** existing content predating Comunidades was assigned to the base community by `server/scripts/seed-base-community.js` (idempotent). **Run this once on first deploy of the feature** (and it self-heals: `getBase()` lazily upserts the base community so `$in:[base]` is never empty).
+
 ### Utilidades
 
 Small standalone tabletop tools, intentionally **forced-dark** regardless of the active theme (they ignore `data-theme`): `/utilidades/dado` (dice roller), `/utilidades/temporizador` (timer), `/utilidades/selector-de-dedos` (touch-finger random picker). The hub `/utilidades` lists them via `UtilCard`. Keep this dark-mood convention for any new immersive tool screens.
 
 ### Panel Admin and SiteConfig (section toggles)
 
-`SiteConfig` is a single MongoDB document (`_id: 'singleton'`) that controls which top-level sections are enabled site-wide. Section keys: `mesas`, `compartidas`, `noticias`, `torneos`, `eventos`, `comunidad`, `miFeed`, `amigos`, `dms`, `bgwatch`, `utilidades`. Defaults preserve historical hardcoded admin-only-ness for `mesas`, `torneos`, and `miFeed` (default `enabled: false`); all others default `true`. Admins flip toggles in `/panel-admin`; server enforces via `requireSection` middleware, client gates via `<SectionGate section="...">` (see [`App.jsx`](client/src/App.jsx)). When you add a new top-level feature, plumb it through `SECTION_KEYS`, the route guard, and the panel — see `feedback_panel_admin_toggles.md`.
+`SiteConfig` is a single MongoDB document (`_id: 'singleton'`) that controls which top-level sections are enabled site-wide. Section keys: `mesas`, `compartidas`, `noticias`, `torneos`, `eventos`, `comunidad`, `miFeed`, `amigos`, `dms`, `bgwatch`, `utilidades`, `colabora`, `calendario`, `mathtrade`, `comunidades`. Note the two community keys: **`comunidades`** (plural) gates the Comunidades directory; **`comunidad`** (singular) gates the per-community member list (see Comunidades above). Defaults preserve historical hardcoded admin-only-ness for `mesas`, `torneos`, `miFeed`, and `mathtrade` (default `enabled: false`); all others default `true`. Admins flip toggles in `/panel-admin`; server enforces via `requireSection` middleware, client gates via `<SectionGate section="...">` (see [`App.jsx`](client/src/App.jsx)). When you add a new top-level feature, plumb it through `SECTION_KEYS`, the route guard, and the panel — see `feedback_panel_admin_toggles.md`.
 
 `SiteConfigContext` loads the config once on app boot and exposes `isSectionEnabled(key)`. Routes wrapped in `<SectionGate>` redirect/hide for disabled sections; admins always see disabled sections (with a banner) unless they enable "view as user".
 
@@ -237,6 +259,8 @@ Server-emitted events:
 | `torneo:advanced` | `user:<id>` | single-elim match winner advances (not on final) |
 | `torneo:eliminated` | `user:<id>` | single-elim match loser is out |
 | `evento:notification` | `user:<id>` | event notification (confirmed/rejected/cancelled/updated/reminder) — payload has `type` discriminator |
+| `community:join-request` | `user:<id>` | someone requests to join an approval-policy community (to subadmins + admins) |
+| `community:join-resolved` | `user:<id>` | a subadmin/admin accepts or rejects a community join request |
 
 ### NotificationContext
 
@@ -260,7 +284,7 @@ For routes that need to emit-and-respond, **always await** `emitNotificationReq(
 
 For the cron job (`server/jobs/eventoReminders.js`), the scheduler passes `io` into `runOnce({ io })` and the job uses `emitNotification({ io, ... })` directly (no `req`).
 
-**Notification types** (`server/models/Notification.js#NOTIFICATION_TYPES`): 22 types total spanning mesas, amigos, mensajes, compartidas, torneos, and eventos. Eventos types (`evento_confirmed`, `evento_rejected` con flag `permanentlyRejected`, `evento_cancelled`, `evento_updated` con `changedFields`, `evento_reminder` cron 24h) son los más recientes — disparados desde `routes/eventos.js` helpers `notifyOne` + `notifyActiveRegistrations` y desde `jobs/eventoReminders.js`. Cron jobs se booteanan en `server.js` (NO en `app.js` para que no corran en tests).
+**Notification types** (`server/models/Notification.js#NOTIFICATION_TYPES`): 34 types total spanning mesas, amigos, mensajes, compartidas, torneos, eventos, and comunidades. Comunidades types: `community_join_request` (to subadmins/admins), `community_join_accepted`, `community_join_rejected`, and `community_content_removed` (when a subadmin moderates your content) — emitted via `routes/comunidades.js` through `emitNotificationReq`. Eventos types (`evento_confirmed`, `evento_rejected` con flag `permanentlyRejected`, `evento_cancelled`, `evento_updated` con `changedFields`, `evento_reminder` cron 24h) son los más recientes — disparados desde `routes/eventos.js` helpers `notifyOne` + `notifyActiveRegistrations` y desde `jobs/eventoReminders.js`. Cron jobs se booteanan en `server.js` (NO en `app.js` para que no corran en tests).
 
 ### Key API endpoints
 
@@ -368,6 +392,24 @@ PATCH  /api/eventos/:id/inscripciones/:userId/rechazar   — admin only
 GET    /api/site-config                         — public (section enable/disable flags)
 PATCH  /api/site-config                         — admin only
 
+GET    /api/comunidades                         — optionalAuth; directory (memberCount + viewerStatus)
+GET    /api/comunidades/mias                    — auth; own memberships + prefs (viewing, skin)
+PUT    /api/comunidades/preferencias            — auth; set viewing[] + skin (⊆ memberships)
+POST   /api/comunidades                         — admin only; create (slug auto-derived)
+GET    /api/comunidades/:slug                   — optionalAuth; detail (publicView)
+PUT    /api/comunidades/:slug                   — admin only; edit (partial; slug immutable; sections)
+DELETE /api/comunidades/:slug                   — admin only (403 base, 409 if has content)
+PUT    /api/comunidades/:slug/skin              — admin only; edit skin tokens (sanitized) + brand
+POST   /api/comunidades/:slug/logo              — admin only; multipart logo (variant light|dark)
+POST   /api/comunidades/:slug/reasignar-a-base  — admin only; move content to base (before delete)
+POST   /api/comunidades/:slug/join              — auth; open=join, approval=pending, code=validate
+DELETE /api/comunidades/:slug/leave             — auth; leave (403 base)
+GET    /api/comunidades/:slug/solicitudes       — subadmin/admin; pending join requests
+POST   /api/comunidades/:slug/solicitudes/:userId/aceptar|rechazar  — subadmin/admin
+GET    /api/comunidades/:slug/miembros          — subadmin/admin; lean member list (gestión)
+DELETE /api/comunidades/:slug/miembros/:userId  — subadmin/admin; expel
+PUT    /api/comunidades/:slug/subadmins/:userId — admin only; assign/revoke subadmin
+
 POST   /api/friends/:id/request
 DELETE /api/friends/:id/request                 — cancel sent request
 POST   /api/friends/:id/accept
@@ -386,8 +428,8 @@ PATCH  /api/dm/:userId/read                     — mark messages from that user
 GET    /api/admin-chat                          — last 100 messages; admin only
 POST   /api/admin-chat                          — send message; admin only
 
-GET    /api/users
-GET    /api/users/:id
+GET    /api/users                               — optionalAuth; shared infra (DMs, torneos, BG Watch). With ?community=<id>: that community's members, gated by `comunidad` section + membership (admin bypass)
+GET    /api/users/:id                           — public profile (NOT gated by `comunidad`; linked from notifs/DMs)
 
 GET    /api/admin/*                             — isAdmin only
 ```
@@ -395,11 +437,11 @@ GET    /api/admin/*                             — isAdmin only
 ### Frontend pages
 
 ```
-App (ThemeProvider + AuthProvider + SiteConfigProvider + NotificationProvider + ChatProvider + Router)
+App (ThemeProvider + AuthProvider + SiteConfigProvider + CommunityProvider + NotificationProvider + ChatProvider + Router)
 ├── components/layout/          ← shell (GuestNavbar/GuestSidebar/GuestBottomNav, Sidebar, Navbar,
 │                                  BottomNav, BoardGameBackground, SplashScreen,
 │                                  ToastContainer, PageTransition)
-├── components/shared/          ← GameTile, LoginPromptModal, SectionGate
+├── components/shared/          ← GameTile, LoginPromptModal, SectionGate, CommunitySelect ("Publicar en")
 ├── components/admin/           ← AdminViewToggle, ViewAsUserBanner
 ├── components/chat/            ← ChatWindowManager, ChatLauncher, ChatWindow
 │
@@ -422,7 +464,12 @@ App (ThemeProvider + AuthProvider + SiteConfigProvider + NotificationProvider + 
 │                                  EventoInscripciones /eventos/:id/inscripciones (admin)
 │                                  + EventoCard, EventoSkeleton
 ├── pages/me/                   ← MeFeed /mi + FeedCard  (own tables feed)
-├── pages/users/                ← UsersList /usuarios, UserProfile /perfil, UserProfilePublic /usuarios/:id
+├── pages/comunidades/          ← Comunidades /comunidades ("Mis Comunidades" directory),
+│                                  ComunidadDetail /comunidades/:slug (member list),
+│                                  ComunidadGestion /comunidades/:slug/gestion (subadmin)
+├── pages/users/                ← UserProfile /perfil, UserProfilePublic /usuarios/:id,
+│                                  UsersList (member-list browser; rendered embedded by
+│                                  ComunidadDetail with a communityId prop)
 ├── pages/messages/             ← Messages /mensajes, DirectChat /mensajes/:userId, AdminChat /mensajes-admin
 ├── pages/notifications/        ← Notifications /notificaciones
 ├── pages/bg-watch/             ← BgWatchProfile /bg-watch/:bggUsername,
@@ -435,7 +482,9 @@ App (ThemeProvider + AuthProvider + SiteConfigProvider + NotificationProvider + 
 │                                  Temporizador /utilidades/temporizador,
 │                                  FingerSelector /utilidades/selector-de-dedos
 │                                  + UtilCard. Forced-dark — ignore active theme.
-└── pages/admin/                ← DatabaseViewer /base-de-datos, PanelAdmin /panel-admin (both isActuallyAdmin only)
+└── pages/admin/                ← DatabaseViewer /base-de-datos, PanelAdmin /panel-admin
+                                   (both isActuallyAdmin only; PanelAdmin embeds CommunitiesAdmin —
+                                   create/edit communities, skin pickers, per-community section toggles)
 ```
 
 ### Image uploads
@@ -447,6 +496,7 @@ All image uploads go through Multer (memory storage, no disk) before Cloudinary.
 - Noticias: `turnocero/noticias/`
 - Torneos: `turnocero/torneos/` (banner per tournament; max 1200 px wide)
 - Eventos: `turnocero/eventos/` (banner) and `turnocero/eventos/<eventoId>/comprobantes/` for payment receipts (also accepts PDF — stored as `resource_type: 'raw'`)
+- Comunidades: `turnocero/communities/<communityId>/` (per-community light/dark logos; max 400 px wide)
 - User avatars: `turnocero/users/<userId>/avatar.webp` with `public_id: 'avatar'` + `overwrite: true` + `format: 'webp'` + 400×400 `c_fill, g_face`, `quality: 'auto'`. The fixed publicId means every upload atomically replaces the previous asset — no explicit `destroy` is needed in `PUT /api/auth/avatar` and orphans are impossible. `DELETE /api/auth/avatar` still calls `cloudinary.uploader.destroy()` explicitly.
 
 ### User avatars and identity rendering

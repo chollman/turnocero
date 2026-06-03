@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SiteConfigProvider, useSiteConfig } from "./context/SiteConfigContext";
+import { CommunityProvider, useCommunity } from "./context/CommunityContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ChatProvider } from "./context/ChatContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -25,7 +26,6 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import CreateTable from "./pages/tables/CreateTable";
 import EditTable from "./pages/tables/EditTable";
 import UserProfile from "./pages/users/UserProfile";
-import UsersList from "./pages/users/UsersList";
 import UserProfilePublic from "./pages/users/UserProfilePublic";
 import DatabaseViewer from "./pages/admin/DatabaseViewer";
 import PanelAdmin from "./pages/admin/PanelAdmin";
@@ -46,6 +46,9 @@ import Eventos from "./pages/eventos/Eventos";
 import EventoDetail from "./pages/eventos/EventoDetail";
 import EventoInscripciones from "./pages/eventos/EventoInscripciones";
 import Calendario from "./pages/calendario/Calendario";
+import Comunidades from "./pages/comunidades/Comunidades";
+import ComunidadDetail from "./pages/comunidades/ComunidadDetail";
+import ComunidadGestion from "./pages/comunidades/ComunidadGestion";
 import Compartidas from "./pages/compartidas/Compartidas";
 import CompartidaPost from "./pages/compartidas/CompartidaPost";
 import BgWatchProfile from "./pages/bg-watch/BgWatchProfile";
@@ -137,6 +140,10 @@ const isAuthPath = (pathname) => AUTH_PATHS.includes(pathname);
 
 export function AppRoutes({ transition }) {
   const { user } = useAuth();
+  // Cambia cuando el usuario edita su `viewing` de comunidades → se usa como
+  // `key` de las rutas para remontar la página visible y re-fetchear con el
+  // scope nuevo en tiempo real.
+  const { viewingVersion } = useCommunity();
   const [menuOpen, setMenuOpen] = useState(false);
   // El chrome (sidebars/navbar/frame) deriva de la location que PageTransition
   // está MOSTRANDO, no del pathname vivo, así swapea en lockstep con el
@@ -161,7 +168,10 @@ export function AppRoutes({ transition }) {
           {user && !isAuthPage && (
             <Navbar menuOpen={menuOpen} onToggleMenu={toggleMenu} />
           )}
-          <PageTransition transition={transition}>
+          <PageTransition
+            transition={transition}
+            routesKey={`v${viewingVersion}`}
+          >
             <Route
               path="/login"
               element={
@@ -262,23 +272,19 @@ export function AppRoutes({ transition }) {
                 </PrivateRoute>
               }
             />
+            {/* La lista global de usuarios se movió a la vista por comunidad
+                (`/comunidades/:slug`). Mantener el redirect para bookmarks. */}
             <Route
               path="/usuarios"
-              element={
-                <PrivateRoute>
-                  <SectionGate section="comunidad">
-                    <UsersList />
-                  </SectionGate>
-                </PrivateRoute>
-              }
+              element={<Navigate to="/comunidades" replace />}
             />
+            {/* Perfil público: infra compartida (linkeado desde notifs/DMs).
+                NO se gatea por `comunidad`. */}
             <Route
               path="/usuarios/:id"
               element={
                 <PrivateRoute>
-                  <SectionGate section="comunidad">
-                    <UserProfilePublic />
-                  </SectionGate>
+                  <UserProfilePublic />
                 </PrivateRoute>
               }
             />
@@ -422,6 +428,34 @@ export function AppRoutes({ transition }) {
                 <SectionGate section="calendario">
                   <Calendario />
                 </SectionGate>
+              }
+            />
+            <Route
+              path="/comunidades"
+              element={
+                <SectionGate section="comunidades">
+                  <Comunidades />
+                </SectionGate>
+              }
+            />
+            <Route
+              path="/comunidades/:slug"
+              element={
+                <PrivateRoute>
+                  <SectionGate section="comunidades">
+                    <ComunidadDetail />
+                  </SectionGate>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/comunidades/:slug/gestion"
+              element={
+                <PrivateRoute>
+                  <SectionGate section="comunidades">
+                    <ComunidadGestion />
+                  </SectionGate>
+                </PrivateRoute>
               }
             />
             <Route
@@ -611,13 +645,15 @@ export default function App() {
         <ThemeProvider>
           <AuthProvider>
             <SiteConfigProvider>
-              <NotificationProvider>
-                <ChatProvider>
-                  <ErrorBoundary>
-                    <AppShell />
-                  </ErrorBoundary>
-                </ChatProvider>
-              </NotificationProvider>
+              <CommunityProvider>
+                <NotificationProvider>
+                  <ChatProvider>
+                    <ErrorBoundary>
+                      <AppShell />
+                    </ErrorBoundary>
+                  </ChatProvider>
+                </NotificationProvider>
+              </CommunityProvider>
             </SiteConfigProvider>
           </AuthProvider>
         </ThemeProvider>

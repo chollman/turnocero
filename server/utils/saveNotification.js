@@ -19,6 +19,9 @@ const AGGREGATING = new Set([
   // los inscriptos reciben UNA notif con count incrementado por evento.
   "evento_ludoteca_added",
   "evento_mesa_created",
+  // Varias solicitudes de unión a la misma comunidad → UNA notif al subadmin
+  // con count + actores apilados.
+  "community_join_request",
 ]);
 
 // Mapea tipo de notificación → sección controlada por SiteConfig.
@@ -56,6 +59,11 @@ const TYPE_TO_SECTION = {
   evento_mesa_created: "eventos",
   // Math Trade
   mathtrade_results: "mathtrade",
+  // Comunidades
+  community_join_request: "comunidades",
+  community_join_accepted: "comunidades",
+  community_join_rejected: "comunidades",
+  community_content_removed: "comunidades",
 };
 
 /**
@@ -84,6 +92,7 @@ async function saveNotification(recipientId, type, fields) {
     if (fields.compartidaId) filter.compartidaId = fields.compartidaId;
     if (fields.eventoId) filter.eventoId = fields.eventoId;
     if (fields.mathtradeId) filter.mathtradeId = fields.mathtradeId;
+    if (fields.communityId) filter.communityId = fields.communityId;
 
     if (AGGREGATING.has(type)) {
       // `actor` no se persiste como campo plano — alimenta el array `actors`.

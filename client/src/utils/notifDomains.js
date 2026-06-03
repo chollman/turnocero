@@ -41,6 +41,11 @@ export const TYPE_DOMAIN = {
   evento_mesa_created: "evento",
   // Math Trade
   mathtrade_results: "mathtrade",
+  // Comunidades
+  community_join_request: "comunidad",
+  community_join_accepted: "comunidad",
+  community_join_rejected: "comunidad",
+  community_content_removed: "comunidad",
   // Admin chat
   admin_chat: "admin",
 };
@@ -56,6 +61,7 @@ export const DOMAIN_META = {
   amigo: { label: "Amigos", colorVar: "--green", icon: "Users" },
   compartida: { label: "Compartidas", colorVar: "--red", icon: "Heart" },
   mathtrade: { label: "Math Trade", colorVar: "--green", icon: "Swap" },
+  comunidad: { label: "Comunidades", colorVar: "--purple", icon: "Community" },
   admin: { label: "Admin", colorVar: "--text-muted", icon: "Megaphone" },
 };
 
@@ -80,6 +86,7 @@ const COUNT_BADGE_TYPES = new Set([
   "compartida_like",
   "evento_ludoteca_added",
   "evento_mesa_created",
+  "community_join_request",
 ]);
 
 export const getCountBadge = (n) =>
@@ -113,6 +120,14 @@ export function notifLink(n) {
   }
   if (n.type?.startsWith("tournament_")) return `/torneos/${n.torneoId}`;
   if (n.type?.startsWith("mathtrade_")) return `/math-trade/${n.mathtradeId}`;
+  if (n.type?.startsWith("community_")) {
+    if (!n.communitySlug) return "/comunidades";
+    // Una solicitud de unión se resuelve desde la gestión de la comunidad;
+    // el resto (te aceptaron/rechazaron/bajaron contenido) va al detalle.
+    return n.type === "community_join_request"
+      ? `/comunidades/${n.communitySlug}/gestion`
+      : `/comunidades/${n.communitySlug}`;
+  }
   if (n.fromUserId) return `/usuarios/${n.fromUserId}`;
   return `/mesas/${n.tableId}`;
 }
@@ -126,6 +141,7 @@ export function notifTarget(n) {
     n.compartidaTitle ||
     n.eventoTitle ||
     n.mathtradeTitle ||
+    n.communityName ||
     n.fromUsername ||
     null
   );
@@ -385,6 +401,35 @@ export function getNotifMeta(n) {
         title: "¡Salieron los resultados del intercambio!",
         body: `Ya podés ver tus trades en ${n.mathtradeTitle || "el math trade"}`,
         cta: "Ver resultados",
+      };
+    case "community_join_request": {
+      const who = n.actors?.[0]?.username || "Alguien";
+      return {
+        title:
+          n.count > 1
+            ? `${n.count} solicitudes para unirse a ${n.communityName || "tu comunidad"}`
+            : `${who} quiere unirse a ${n.communityName || "tu comunidad"}`,
+        body: "Revisá las solicitudes pendientes",
+        cta: "Ver solicitudes",
+      };
+    }
+    case "community_join_accepted":
+      return {
+        title: "¡Te uniste a la comunidad!",
+        body: `Ya sos parte de ${n.communityName || "la comunidad"}`,
+        cta: "Ver comunidad",
+      };
+    case "community_join_rejected":
+      return {
+        title: "Solicitud rechazada",
+        body: `Tu solicitud para ${n.communityName || "la comunidad"} fue rechazada`,
+        cta: "Ver comunidades",
+      };
+    case "community_content_removed":
+      return {
+        title: "Un moderador bajó tu contenido",
+        body: `Se removió una publicación tuya en ${n.communityName || "la comunidad"}`,
+        cta: "Ver comunidad",
       };
     default:
       return {

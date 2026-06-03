@@ -25,6 +25,7 @@ const SECTION_KEYS = [
   "colabora",
   "calendario",
   "mathtrade",
+  "comunidades",
 ];
 
 const DEFAULT_ENABLED = {

@@ -8,6 +8,7 @@ import MesaTile from "../../components/shared/MesaTile";
 import SeatTrack from "../../components/shared/SeatTrack";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import Avatar from "../../components/shared/Avatar";
+import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import { GhostIcon } from "../../components/shared/UserRef";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { formatDistanceKm } from "../../utils/distance";
@@ -514,6 +515,10 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
               <h3 className={styles.rowGame}>{table.boardGame}</h3>
               <div className={styles.rowBadges}>{badges}</div>
             </div>
+            <ItemCommunityTag
+              communityId={table.community}
+              className={styles.communityChip}
+            />
             <div className={styles.rowMeta}>
               {locationTexto && (
                 <span className={styles.rowMetaItem}>
@@ -638,7 +643,13 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
                 {dateChipText}
               </span>
             )}
-            <div className={styles.bannerBadges}>{badges}</div>
+            <div className={styles.bannerRight}>
+              <div className={styles.bannerBadges}>{badges}</div>
+              <ItemCommunityTag
+                communityId={table.community}
+                className={styles.bannerChip}
+              />
+            </div>
           </div>
         </div>
 

@@ -78,6 +78,7 @@ function CreateMesaStandalone() {
         rules: payload.rules,
         tags: payload.tags,
         privacy: payload.privacy,
+        community: payload.community,
         tutorialMode: payload.tutorialMode,
         tutorialVideoId: payload.tutorialVideoId,
         bgaUrl: payload.bgaUrl,

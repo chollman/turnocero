@@ -7,7 +7,11 @@ const readTheme = () => {
     : "dark";
 };
 
-export default function Logo({ className, alt = "TurnoCero" }) {
+// `srcLight`/`srcDark` permiten overridear el logo (ej. el de la comunidad-skin
+// activa) por tema. Si no se pasan, cae a los assets estáticos de TurnoCero. El
+// componente sigue siendo context-free a propósito (el brand lo inyecta el
+// parent vía estas props), para no acoplar Logo a CommunityContext.
+export default function Logo({ className, alt = "TurnoCero", srcLight, srcDark }) {
   const [theme, setTheme] = useState(readTheme);
 
   useEffect(() => {
@@ -19,6 +23,7 @@ export default function Logo({ className, alt = "TurnoCero" }) {
     return () => observer.disconnect();
   }, []);
 
-  const src = theme === "light" ? "/logo-light.svg" : "/logo.svg";
-  return <img src={src} alt={alt} className={className} />;
+  const fallback = theme === "light" ? "/logo-light.svg" : "/logo.svg";
+  const override = theme === "light" ? srcLight : srcDark;
+  return <img src={override || fallback} alt={alt} className={className} />;
 }

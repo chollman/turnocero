@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
 import MathTradeSkeleton from "./MathTradeSkeleton";
+import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import { getStatusMeta, getModeLabel } from "./mathtradeStatus";
 import styles from "./MathTrades.module.css";
 
@@ -34,6 +35,7 @@ function MathTradeCard({ mt }) {
       </div>
       {mt.description && <p className={styles.cardDesc}>{mt.description}</p>}
       <div className={styles.cardMeta}>
+        <ItemCommunityTag communityId={mt.community} />
         <span>{mt.itemCount || 0} juegos ofrecidos</span>
         <span>· {getModeLabel(mt.matching?.mode)}</span>
       </div>

@@ -32,8 +32,12 @@ function tipoVisible(section, isAdmin) {
   return isSectionEnabled(section) || !!isAdmin;
 }
 
-async function fetchMesas({ user, friendIds, from, to, scope }) {
-  const base = { date: { $gte: from, $lte: to }, status: { $ne: "cancelled" } };
+async function fetchMesas({ user, friendIds, from, to, scope, communityScope }) {
+  const base = {
+    date: { $gte: from, $lte: to },
+    status: { $ne: "cancelled" },
+    ...communityScope,
+  };
   let scopeFilter;
   if (scope === "mias") {
     if (!user) return [];
@@ -43,7 +47,7 @@ async function fetchMesas({ user, friendIds, from, to, scope }) {
   }
   const mesas = await Table.find({ ...base, ...scopeFilter })
     .populate("host", USER_FIELDS)
-    .select("boardGame date status location host")
+    .select("boardGame date status location host community")
     .sort({ date: 1 })
     .lean();
   return mesas.map((m) => ({
@@ -55,11 +59,12 @@ async function fetchMesas({ user, friendIds, from, to, scope }) {
     status: m.status,
     url: `/mesas/${m._id}`,
     host: m.host || null,
+    community: m.community ? String(m.community) : null,
   }));
 }
 
-async function fetchEventos({ user, from, to, scope, isAdmin }) {
-  const base = { eventDate: { $gte: from, $lte: to } };
+async function fetchEventos({ user, from, to, scope, isAdmin, communityScope }) {
+  const base = { eventDate: { $gte: from, $lte: to }, ...communityScope };
   let statusFilter;
   let scopeFilter = {};
   if (scope === "mias") {
@@ -90,7 +95,7 @@ async function fetchEventos({ user, from, to, scope, isAdmin }) {
     ...scopeFilter,
   })
     .populate("author", USER_FIELDS)
-    .select("title eventDate status location author")
+    .select("title eventDate status location author community")
     .sort({ eventDate: 1 })
     .lean();
   return eventos.map((e) => ({
@@ -102,11 +107,12 @@ async function fetchEventos({ user, from, to, scope, isAdmin }) {
     status: e.status,
     url: `/eventos/${e._id}`,
     host: e.author || null,
+    community: e.community ? String(e.community) : null,
   }));
 }
 
-async function fetchTorneos({ user, from, to, scope, isAdmin }) {
-  const base = { fecha: { $ne: null, $gte: from, $lte: to } };
+async function fetchTorneos({ user, from, to, scope, isAdmin, communityScope }) {
+  const base = { fecha: { $ne: null, $gte: from, $lte: to }, ...communityScope };
   let scopeFilter;
   if (scope === "mias") {
     if (!user) return [];
@@ -116,7 +122,7 @@ async function fetchTorneos({ user, from, to, scope, isAdmin }) {
   }
   const torneos = await Torneo.find({ ...base, ...scopeFilter })
     .populate("createdBy", USER_FIELDS)
-    .select("title game fecha status createdBy")
+    .select("title game fecha status createdBy community")
     .sort({ fecha: 1 })
     .lean();
   return torneos.map((t) => ({
@@ -128,6 +134,7 @@ async function fetchTorneos({ user, from, to, scope, isAdmin }) {
     status: t.status,
     url: `/torneos/${t._id}`,
     host: t.createdBy || null,
+    community: t.community ? String(t.community) : null,
   }));
 }
 
@@ -140,6 +147,7 @@ async function getCalendarItems({
   scope = "todas",
   tipos = ALL_TIPOS,
   isAdmin = false,
+  viewingCommunities = [],
 }) {
   const wanted = new Set(
     (Array.isArray(tipos) ? tipos : ALL_TIPOS).filter((t) =>
@@ -147,15 +155,22 @@ async function getCalendarItems({
     ),
   );
 
+  // Scoping por comunidad. Condicional: si no se pasan comunidades (ej. tests
+  // que llaman al service directo), no se scopea. La ruta siempre pasa ≥1 (el
+  // invariante never-empty garantiza al menos la base).
+  const communityScope = viewingCommunities.length
+    ? { community: { $in: viewingCommunities } }
+    : {};
+
   const tasks = [];
   if (wanted.has("mesa") && tipoVisible("mesas", isAdmin)) {
-    tasks.push(fetchMesas({ user, friendIds, from, to, scope }));
+    tasks.push(fetchMesas({ user, friendIds, from, to, scope, communityScope }));
   }
   if (wanted.has("evento") && tipoVisible("eventos", isAdmin)) {
-    tasks.push(fetchEventos({ user, from, to, scope, isAdmin }));
+    tasks.push(fetchEventos({ user, from, to, scope, isAdmin, communityScope }));
   }
   if (wanted.has("torneo") && tipoVisible("torneos", isAdmin)) {
-    tasks.push(fetchTorneos({ user, from, to, scope, isAdmin }));
+    tasks.push(fetchTorneos({ user, from, to, scope, isAdmin, communityScope }));
   }
 
   const results = await Promise.all(tasks);

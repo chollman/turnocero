@@ -5,6 +5,11 @@ const { cloudinary, uploadToCloudinary } = require("../config/cloudinary");
 const Noticia = require("../models/Noticia");
 const { protect, requireAdmin, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const {
+  resolveCommunities,
+  communityFilter,
+} = require("../middleware/resolveCommunities");
+const communityService = require("../services/communityService");
 const validateObjectId = require("../middleware/validateObjectId");
 const { parsePagination } = require("../utils/paginate");
 const asyncHandler = require("../utils/asyncHandler");
@@ -18,19 +23,21 @@ router.param("id", validateObjectId("id"));
 router.get(
   "/",
   optionalAuth,
+  resolveCommunities,
   asyncHandler(async (req, res) => {
     const { page, limit, skip } = parsePagination(req.query, {
       defaultLimit: 10,
       maxLimit: 20,
     });
 
+    const filter = communityFilter(req);
     const [noticias, total] = await Promise.all([
-      Noticia.find()
+      Noticia.find(filter)
         .populate("author", "username displayName avatar")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      Noticia.countDocuments(),
+      Noticia.countDocuments(filter),
     ]);
 
     res.json({ noticias, total, page, pages: Math.ceil(total / limit) });
@@ -60,6 +67,10 @@ router.post(
       linkLabel: req.body.linkLabel?.trim() || undefined,
       image,
       author: req.user._id,
+      community: await communityService.resolveCreateCommunity(
+        req.user,
+        req.body.community,
+      ),
     });
 
     const populated = await noticia.populate(

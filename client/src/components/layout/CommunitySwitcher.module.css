@@ -1,0 +1,180 @@
+.wrap {
+  position: relative;
+  padding: 0 16px 10px;
+}
+
+.trigger {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.trigger:hover {
+  border-color: var(--border-amber);
+}
+
+.eyebrow {
+  grid-column: 1;
+  grid-row: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--amber);
+}
+
+.activeName {
+  grid-column: 1;
+  grid-row: 2;
+  /* Alinear el inicio del nombre con la palabra "COMUNIDAD" del eyebrow: indent
+     = ancho del Meeple (1.15em + 0.35em de margin, a 0.6rem) + el gap de 5px. */
+  margin-left: calc(0.9rem + 5px);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  transition: transform var(--transition);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% - 4px);
+  left: 16px;
+  right: 16px;
+  z-index: 20;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  padding: 12px;
+  animation: switcherIn 0.14s ease-out;
+}
+
+@keyframes switcherIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.help {
+  margin: 0 0 10px;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.viewing {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.viewing input {
+  accent-color: var(--amber);
+  cursor: pointer;
+}
+
+.cname {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skinBtn {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.skinBtn:hover:not(:disabled) {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.skinBtnActive {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--on-amber);
+  cursor: default;
+}
+
+.skinBtn:disabled {
+  opacity: 0.9;
+}
+
+.allLink {
+  display: block;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--amber);
+  text-decoration: none;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-amber);
+  transition: background var(--transition);
+}
+
+.allLink:hover {
+  background: var(--amber-15);
+}

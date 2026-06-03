@@ -8,6 +8,7 @@ vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
 import TableCard from "./TableCard";
 import { useAuth } from "../../context/AuthContext";
+import { CommunityContext } from "../../context/CommunityContext";
 
 function makeTable(overrides = {}) {
   return {
@@ -38,6 +39,38 @@ function renderCard(table, { user = { _id: "me", username: "me" } } = {}) {
     </MemoryRouter>,
   );
 }
+
+describe("<TableCard> community tag", () => {
+  const renderWithCommunity = (table, ctxValue) => {
+    useAuth.mockReturnValue({ user: { _id: "me", username: "me" } });
+    return render(
+      <MemoryRouter>
+        <CommunityContext.Provider value={ctxValue}>
+          <TableCard table={table} onUpdate={vi.fn()} onCancel={vi.fn()} />
+        </CommunityContext.Provider>
+      </MemoryRouter>,
+    );
+  };
+  const multiCtx = {
+    effectiveViewing: ["c0", "c1"],
+    communityById: new Map([
+      ["c1", { _id: "c1", name: "Rosario Juega", slug: "rosario-juega", skin: {} }],
+    ]),
+  };
+
+  it("shows the community pill when viewing multiple communities", () => {
+    renderWithCommunity(makeTable({ community: "c1" }), multiCtx);
+    expect(screen.getByText("Rosario Juega")).toBeInTheDocument();
+  });
+
+  it("hides the community pill when viewing a single community", () => {
+    renderWithCommunity(makeTable({ community: "c1" }), {
+      ...multiCtx,
+      effectiveViewing: ["c1"],
+    });
+    expect(screen.queryByText("Rosario Juega")).not.toBeInTheDocument();
+  });
+});
 
 describe("<TableCard> grid mode", () => {
   it("renders the game name, location, and host", () => {

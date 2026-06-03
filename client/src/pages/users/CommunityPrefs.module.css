@@ -1,0 +1,111 @@
+.section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.heading {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.help {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0 0 14px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.viewing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.cname {
+  font-weight: 600;
+}
+
+.roleTag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--purple);
+  background: var(--purple-15);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.skin {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.manage {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--amber);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.manage:hover {
+  text-decoration: underline;
+}
+
+.leave {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.leave:hover:not(:disabled) {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+.leave:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.note {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin: 12px 0 0;
+}

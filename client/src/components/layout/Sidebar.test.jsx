@@ -12,12 +12,14 @@ vi.mock("../../context/NotificationContext", () => ({
   useNotifications: vi.fn(),
 }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
+vi.mock("../../context/CommunityContext", () => ({ useCommunity: vi.fn() }));
 
 import Sidebar from "./Sidebar";
 
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useCommunity } from "../../context/CommunityContext";
 
 function setup({
   user = { _id: "u1", username: "cha", bggUsername: "" },
@@ -29,12 +31,14 @@ function setup({
   pathname = "/",
   open,
   onClose,
+  brand = { name: "TurnoCero", logoLight: "", logoDark: "" },
 } = {}) {
   useAuth.mockReturnValue({ user, isActuallyAdmin, logout });
   useNotifications.mockReturnValue({ unreadCount, adminChatUnread });
   useSiteConfig.mockReturnValue({
     isSectionEnabled: (k) => sections[k] ?? true,
   });
+  useCommunity.mockReturnValue({ brand });
   return render(
     <MemoryRouter initialEntries={[pathname]}>
       <Sidebar open={open} onClose={onClose} />
@@ -47,6 +51,14 @@ describe("<Sidebar>", () => {
     setup();
     expect(screen.getByText("TurnoCero")).toBeInTheDocument();
     expect(screen.getByText("cha")).toBeInTheDocument();
+  });
+
+  it("shows the active community's brand name when skinned", () => {
+    setup({
+      brand: { name: "Rosario Juega Club", logoLight: "", logoDark: "" },
+    });
+    expect(screen.getByText("Rosario Juega Club")).toBeInTheDocument();
+    expect(screen.queryByText("TurnoCero")).not.toBeInTheDocument();
   });
 
   it("shows the notifications bell with unread badge when count > 0", () => {

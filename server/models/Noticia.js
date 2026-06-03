@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const communityScoped = require("./plugins/communityScoped");
 
 const noticiaSchema = new mongoose.Schema(
   {
@@ -18,5 +19,8 @@ const noticiaSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+// Scoping por comunidad: campo `community` + índice { community, createdAt }.
+noticiaSchema.plugin(communityScoped, { indexes: [{ createdAt: -1 }] });
 
 module.exports = mongoose.model("Noticia", noticiaSchema);

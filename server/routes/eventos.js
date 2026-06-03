@@ -6,6 +6,11 @@ const { cloudinary, uploadToCloudinary } = require("../config/cloudinary");
 const Evento = require("../models/Evento");
 const { protect, requireAdmin, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const {
+  resolveCommunities,
+  communityFilter,
+} = require("../middleware/resolveCommunities");
+const communityService = require("../services/communityService");
 const validateObjectId = require("../middleware/validateObjectId");
 const userRateLimit = require("../middleware/userRateLimit");
 
@@ -100,6 +105,7 @@ const comprobanteUpload = multerLib({
 router.get(
   "/",
   optionalAuth,
+  resolveCommunities,
   asyncHandler(async (req, res) => {
     await closePastOpenEvents(req);
     const { page, limit, skip } = parsePagination(req.query, {
@@ -107,7 +113,7 @@ router.get(
       maxLimit: 20,
     });
 
-    const filter = {};
+    const filter = { ...communityFilter(req) };
     if (req.user?.isAdmin) {
       if (req.query.status) filter.status = req.query.status;
     } else if (req.query.status === "open" || req.query.status === "closed") {
@@ -275,6 +281,10 @@ router.post(
     let evento;
     try {
       evento = await Evento.create({
+        community: await communityService.resolveCreateCommunity(
+          req.user,
+          req.body.community,
+        ),
         title: req.body.title?.trim(),
         description: req.body.description?.trim() || undefined,
         conditions: req.body.conditions?.trim() || undefined,

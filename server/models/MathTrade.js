@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const communityScoped = require("./plugins/communityScoped");
 
 const mathTradeSchema = new mongoose.Schema(
   {
@@ -67,5 +68,8 @@ const mathTradeSchema = new mongoose.Schema(
 
 mathTradeSchema.index({ status: 1, createdAt: -1 });
 mathTradeSchema.index({ createdBy: 1 });
+
+// Scoping por comunidad: campo `community` + índice { community, status, createdAt }.
+mathTradeSchema.plugin(communityScoped, { indexes: [{ status: 1, createdAt: -1 }] });
 
 module.exports = mongoose.model("MathTrade", mathTradeSchema);

@@ -97,6 +97,14 @@ afterEach(async () => {
   for (const key in collections) {
     await collections[key].deleteMany({});
   }
+  // El caché del singleton base de Community guarda el _id; al limpiar las
+  // colecciones entre tests ese id queda stale. Resetear para que el próximo
+  // getBase()/ensureBase() vuelva a consultar/crear.
+  require("../models/Community").__resetBaseCache();
+  // Limpiar los emits acumulados del socket stub para que un test no vea
+  // eventos emitidos por el anterior (los tests que assertean sobre emits ya
+  // no dependen de un __reset() manual previo).
+  ioStub.__reset();
 });
 
 afterAll(async () => {

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import UserRef from "../../../components/shared/UserRef";
+import ItemCommunityTag from "../../../components/shared/ItemCommunityTag";
 import styles from "../Torneos.module.css";
 
 const STATUS_META = {
@@ -65,6 +66,7 @@ export default function TorneoCard({ torneo, index = 0 }) {
 
       <div className={styles.cardBody}>
         <div className={styles.cardMeta}>
+          <ItemCommunityTag communityId={torneo.community} />
           <span className={`${styles.chip} ${styles[status.className]}`}>
             {status.label}
           </span>

@@ -6,8 +6,14 @@ const Compartida = require("../models/Compartida");
 const CompartidaComment = require("../models/CompartidaComment");
 const Table = require("../models/Table");
 const Evento = require("../models/Evento");
+const Community = require("../models/Community");
 const { protect, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const {
+  resolveCommunities,
+  communityFilter,
+} = require("../middleware/resolveCommunities");
+const communityService = require("../services/communityService");
 const validateObjectId = require("../middleware/validateObjectId");
 const { parsePagination } = require("../utils/paginate");
 const { emitNotificationReq } = require("../utils/emitNotification");
@@ -113,18 +119,20 @@ const withCommentCounts = async (compartidas) => {
 router.get(
   "/",
   optionalAuth,
+  resolveCommunities,
   asyncHandler(async (req, res) => {
     const { page, limit, skip } = parsePagination(req.query);
 
     // Filtros de pestaña (category) y búsqueda (q). El filtro de visibilidad
     // siempre se respeta — se combina con $and para que `q` no lo bypassee.
     const visibility = visibilityFilter(req.user);
+    const scope = communityFilter(req);
     const category = ["resena", "juntada"].includes(req.query.category)
       ? req.query.category
       : null;
     const q = (req.query.q || "").trim();
 
-    const clauses = [visibility];
+    const clauses = [visibility, scope];
     if (category) clauses.push({ category });
     if (q) {
       const rx = new RegExp(escapeRegex(q), "i");
@@ -156,7 +164,9 @@ router.get(
       isFiltered
         ? Promise.resolve([])
         : Compartida.aggregate([
-            { $match: { ...visibility, createdAt: { $gte: since24h } } },
+            {
+              $match: { ...visibility, ...scope, createdAt: { $gte: since24h } },
+            },
             {
               $lookup: {
                 from: CompartidaComment.collection.name,
@@ -373,6 +383,10 @@ router.post(
 
     const compartida = await Compartida.create({
       author: req.user._id,
+      community: await communityService.resolveCreateCommunity(
+        req.user,
+        req.body.community,
+      ),
       category,
       title: title?.trim() || "",
       body: finalBody,
@@ -505,9 +519,13 @@ router.delete(
   asyncHandler(async (req, res) => {
     const compartida = await Compartida.findById(req.params.id);
     if (!compartida) throw httpError(404, "Compartida no encontrada");
-    if (!isSameId(compartida.author, req.user._id) && !req.user.isAdmin) {
-      throw httpError(403, "Solo el autor puede eliminar esta compartida");
+    // Autor, admin global, o subadmin de la comunidad del post.
+    if (!communityService.canModerate(req.user, compartida)) {
+      throw httpError(403, "No tenés permiso para eliminar esta compartida");
     }
+    const moderatedByOther = !isSameId(compartida.author, req.user._id);
+    const authorId = compartida.author;
+    const communityId = compartida.community;
 
     // Delete images from Cloudinary
     await Promise.allSettled(
@@ -516,6 +534,22 @@ router.delete(
 
     await CompartidaComment.deleteMany({ compartida: compartida._id });
     await compartida.deleteOne();
+
+    // Si lo bajó un moderador (no el autor), avisamos al autor.
+    if (moderatedByOther && communityId) {
+      const community = await Community.findById(communityId).select("name slug");
+      await emitNotificationReq(
+        req,
+        authorId,
+        "community_content_removed",
+        {
+          communityId: String(communityId),
+          communityName: community?.name || "",
+          communitySlug: community?.slug || "",
+        },
+        "community:content-removed",
+      );
+    }
 
     res.json({ message: "Compartida eliminada" });
   }),

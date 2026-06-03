@@ -23,6 +23,8 @@ import {
   applyCompartidaLikeNotif,
   applyNoticiaPublishedNotif,
   applyEventoNotif,
+  applyCommunityJoinRequestNotif,
+  applyCommunityJoinResolvedNotif,
   markReadByPredicate,
   EVENT_SECTION,
   EVENTO_TYPE_MAP,
@@ -434,6 +436,86 @@ describe("applySpotOpenedNotif", () => {
       payload: { tableId: "t1", tableName: "Catan", timestamp: "x" },
     });
     expect(setN.state()[0].type).toBe("spot_opened");
+  });
+});
+
+describe("applyCommunityJoinRequestNotif", () => {
+  it("agrega notif aggregating keyed por communityId con actors + count", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyCommunityJoinRequestNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: {
+        communityId: "c1",
+        communityName: "Rosario Juega",
+        communitySlug: "rosario-juega",
+        notifId: "n1",
+        count: 2,
+        timestamp: "x",
+        actors: [{ userId: "u9", username: "ana" }],
+      },
+    });
+    const n = setN.state()[0];
+    expect(n.type).toBe("community_join_request");
+    expect(n.communityId).toBe("c1");
+    expect(n.count).toBe(2);
+    expect(n.actors[0].username).toBe("ana");
+    // Toast lleva el requester más reciente.
+    expect(setT.state()[0].requesterUsername).toBe("ana");
+    expect(setT.state()[0].communitySlug).toBe("rosario-juega");
+  });
+});
+
+describe("applyCommunityJoinResolvedNotif", () => {
+  it("accepted → notif community_join_accepted + onResolved", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    const onResolved = vi.fn();
+    applyCommunityJoinResolvedNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      onResolved,
+      payload: {
+        communityId: "c1",
+        communityName: "Rosario Juega",
+        communitySlug: "rosario-juega",
+        resolution: "accepted",
+        timestamp: "x",
+      },
+    });
+    expect(setN.state()[0].type).toBe("community_join_accepted");
+    expect(setT.state()[0].type).toBe("community_join_accepted");
+    expect(onResolved).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejected → notif community_join_rejected", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyCommunityJoinResolvedNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      onResolved: vi.fn(),
+      payload: {
+        communityId: "c1",
+        communityName: "Rosario Juega",
+        resolution: "rejected",
+        timestamp: "x",
+      },
+    });
+    expect(setN.state()[0].type).toBe("community_join_rejected");
+  });
+
+  it("sin resolution explícita asume accepted (degradación)", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyCommunityJoinResolvedNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      onResolved: vi.fn(),
+      payload: { communityId: "c1", timestamp: "x" },
+    });
+    expect(setN.state()[0].type).toBe("community_join_accepted");
   });
 });
 

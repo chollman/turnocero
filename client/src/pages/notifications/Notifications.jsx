@@ -48,6 +48,7 @@ export default function Notifications() {
     markReadTorneo,
     markReadCompartida,
     markReadEvento,
+    markReadCommunity,
     markReadDm,
     markReadAdminChat,
     markAllRead,
@@ -120,6 +121,7 @@ export default function Notifications() {
     }
     if (n.compartidaId) return markReadCompartida(n.compartidaId);
     if (n.eventoId) return markReadEvento(n.eventoId);
+    if (n.communityId) return markReadCommunity(n.communityId);
     if (n.type?.startsWith("tournament_")) return markReadTorneo(n.torneoId);
     if (n.fromUserId) return markReadFriend(n.fromUserId);
     return markRead(n.tableId);

@@ -29,17 +29,19 @@ router.get(
 );
 
 // PATCH /api/notifications/read — mark matching notifications as read
-// Body: { tableId } or { fromUserId } or { torneoId } or { compartidaId } or { type } or {} (mark all)
+// Body: { tableId } or { fromUserId } or { torneoId } or { compartidaId } or { communityId } or { type } or {} (mark all)
 router.patch(
   "/read",
   protect,
   asyncHandler(async (req, res) => {
-    const { tableId, fromUserId, torneoId, compartidaId, type } = req.body;
+    const { tableId, fromUserId, torneoId, compartidaId, communityId, type } =
+      req.body;
     const filter = { recipient: req.user._id, read: false };
     if (tableId) filter.tableId = tableId;
     if (fromUserId) filter.fromUserId = fromUserId;
     if (torneoId) filter.torneoId = torneoId;
     if (compartidaId) filter.compartidaId = compartidaId;
+    if (communityId) filter.communityId = communityId;
     if (type) filter.type = type;
     // Reset count: 0 además de read: true — sin esto, el próximo evento
     // hace $inc desde el count viejo (ej: count=3 antes de markRead → nuevo

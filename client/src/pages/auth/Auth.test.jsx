@@ -162,7 +162,7 @@ describe("<Auth> — login mode", () => {
 
 describe("<Auth> — register mode", () => {
   function fillValidRegister({ password = "Password123" } = {}) {
-    fireEvent.change(screen.getByPlaceholderText("camir"), {
+    fireEvent.change(screen.getByPlaceholderText("BlackwatchGames"), {
       target: { value: "camir" },
     });
     fireEvent.change(screen.getByPlaceholderText("tu@email.com"), {
@@ -179,7 +179,7 @@ describe("<Auth> — register mode", () => {
   it("renders the register fields (no display name — set later in /perfil)", () => {
     renderAuth("register");
     expect(screen.queryByPlaceholderText("Cami Rossi")).toBeNull();
-    expect(screen.getByPlaceholderText("camir")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("BlackwatchGames")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("tu@email.com")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /crear mi cuenta/i }),
@@ -254,7 +254,7 @@ describe("<Auth> — register mode", () => {
 
   it("sanitizes the username to lowercase without spaces", () => {
     renderAuth("register");
-    const input = screen.getByPlaceholderText("camir");
+    const input = screen.getByPlaceholderText("BlackwatchGames");
     fireEvent.change(input, { target: { value: "Cami Rossi" } });
     expect(input.value).toBe("camirossi");
   });

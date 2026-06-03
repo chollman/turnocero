@@ -4,6 +4,7 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
+import CommunitySelect from "../../components/shared/CommunitySelect";
 import GameTile from "../../components/shared/GameTile";
 import BggGameSearch from "../../components/shared/BggGameSearch";
 import RichTextEditor from "../../components/shared/RichTextEditor";
@@ -173,6 +174,7 @@ export default function CreateCompartidaForm({
     setLinkedEventoId("");
   };
 
+  const [community, setCommunity] = useState("");
   const submittingRef = useRef(false);
 
   const handleSubmit = async (e) => {
@@ -206,6 +208,7 @@ export default function CreateCompartidaForm({
     try {
       const { data: created } = await axios.post(API.compartidas.LIST, {
         category,
+        community: community || undefined,
         title: title.trim(),
         body: isResena ? body : body.trim(),
         rating: isResena ? rating : undefined,
@@ -269,6 +272,8 @@ export default function CreateCompartidaForm({
             : "¿Qué tenés ganas de compartir hoy?"}
         </span>
       </div>
+
+      <CommunitySelect value={community} onChange={setCommunity} />
 
       {/* ── Tipo: Reseña / Juntada ── */}
       <div

@@ -166,6 +166,29 @@ export const API = {
     LIST: "/api/calendario",
   },
 
+  // ── Comunidades ──────────────────────────────────────────────────────
+  comunidades: {
+    LIST: "/api/comunidades",
+    MIAS: "/api/comunidades/mias",
+    PREFERENCIAS: "/api/comunidades/preferencias",
+    DETAIL: (slug) => `/api/comunidades/${enc(slug)}`,
+    JOIN: (slug) => `/api/comunidades/${enc(slug)}/join`,
+    LEAVE: (slug) => `/api/comunidades/${enc(slug)}/leave`,
+    REASSIGN_TO_BASE: (slug) => `/api/comunidades/${enc(slug)}/reasignar-a-base`,
+    SKIN: (slug) => `/api/comunidades/${enc(slug)}/skin`,
+    LOGO: (slug) => `/api/comunidades/${enc(slug)}/logo`,
+    SOLICITUDES: (slug) => `/api/comunidades/${enc(slug)}/solicitudes`,
+    SOLICITUD_ACCEPT: (slug, userId) =>
+      `/api/comunidades/${enc(slug)}/solicitudes/${enc(userId)}/aceptar`,
+    SOLICITUD_REJECT: (slug, userId) =>
+      `/api/comunidades/${enc(slug)}/solicitudes/${enc(userId)}/rechazar`,
+    MIEMBROS: (slug) => `/api/comunidades/${enc(slug)}/miembros`,
+    MIEMBRO: (slug, userId) =>
+      `/api/comunidades/${enc(slug)}/miembros/${enc(userId)}`,
+    SUBADMIN: (slug, userId) =>
+      `/api/comunidades/${enc(slug)}/subadmins/${enc(userId)}`,
+  },
+
   // ── Friends ──────────────────────────────────────────────────────────
   friends: {
     REQUEST: (id) => `/api/friends/${enc(id)}/request`,

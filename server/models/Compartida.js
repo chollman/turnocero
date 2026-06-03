@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const communityScoped = require("./plugins/communityScoped");
 
 // Límites de largo del body según la categoría: las juntadas guardan texto
 // plano corto; las reseñas guardan HTML enriquecido (sanitizado) y necesitan
@@ -123,6 +124,11 @@ compartidaSchema.pre("validate", function enforceCategoryShape(next) {
     this.rating = null;
   }
   next();
+});
+
+// Scoping por comunidad: campo `community` + índices para el feed y por categoría.
+compartidaSchema.plugin(communityScoped, {
+  indexes: [{ createdAt: -1 }, { category: 1, createdAt: -1 }],
 });
 
 module.exports = mongoose.model("Compartida", compartidaSchema);

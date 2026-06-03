@@ -197,9 +197,13 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
   );
 }
 
-export default function UsersList() {
+export default function UsersList({ communityId = null } = {}) {
   const { user: currentUser } = useAuth();
   const isAdmin = !!currentUser?.isAdmin;
+  // Modo "embebido": cuando se renderiza dentro de la vista de una comunidad
+  // (ComunidadDetail provee su propio encabezado). Oculta el hero global y el
+  // banner de onboarding de BG Watch, y scopea el fetch a esa comunidad.
+  const embedded = !!communityId;
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -223,6 +227,7 @@ export default function UsersList() {
         if (activeOnly) params.activeOnly = "true";
         if (friendsOnly) params.friendsOnly = "true";
         if (bgWatchOnly) params.bgWatchOnly = "true";
+        if (communityId) params.community = communityId;
         const { data } = await axios.get(API.users.LIST, { params, signal });
         if (signal?.aborted) return;
         setUsers(data);
@@ -233,7 +238,7 @@ export default function UsersList() {
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [debouncedSearch, sortBy, activeOnly, friendsOnly, bgWatchOnly],
+    [debouncedSearch, sortBy, activeOnly, friendsOnly, bgWatchOnly, communityId],
   );
 
   useEffect(() => {
@@ -296,19 +301,24 @@ export default function UsersList() {
   const visibleUsers = isAdmin ? users : users.filter((u) => !u.isBanned);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.heroBlock}>
-          <div className={styles.eyebrow}><Meeple />COMUNIDAD</div>
-          <h1 className={styles.heroTitle}>Comunidad</h1>
-          <p className={styles.heroSub}>Jugadores registrados en TurnoCero</p>
+    <div className={embedded ? styles.embedded : styles.page}>
+      {!embedded && (
+        <div className={styles.header}>
+          <div className={styles.heroBlock}>
+            <div className={styles.eyebrow}>
+              <Meeple />
+              COMUNIDAD
+            </div>
+            <h1 className={styles.heroTitle}>Comunidad</h1>
+            <p className={styles.heroSub}>Jugadores registrados en TurnoCero</p>
+          </div>
+          <span className={styles.countBadge}>
+            {visibleUsers.length} jugador{visibleUsers.length !== 1 ? "es" : ""}
+          </span>
         </div>
-        <span className={styles.countBadge}>
-          {visibleUsers.length} jugador{visibleUsers.length !== 1 ? "es" : ""}
-        </span>
-      </div>
+      )}
 
-      {currentUser && !currentUser.bggUsername && (
+      {!embedded && currentUser && !currentUser.bggUsername && (
         <Link to="/bg-watch" className={styles.bgWatchBanner}>
           <span className={styles.bgWatchBannerIcon} aria-hidden="true">
             <svg

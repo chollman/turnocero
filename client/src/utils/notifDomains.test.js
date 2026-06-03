@@ -152,5 +152,76 @@ describe("notifDomains", () => {
       const meta = getNotifMeta({ type: "mystery" });
       expect(meta.title).toBeTruthy();
     });
+
+    it("community copy: request (singular/plural), accepted, rejected", () => {
+      expect(
+        getNotifMeta({
+          type: "community_join_request",
+          count: 1,
+          communityName: "Rosario Juega",
+          actors: [{ username: "ana" }],
+        }).title,
+      ).toMatch(/ana quiere unirse a Rosario Juega/i);
+      expect(
+        getNotifMeta({
+          type: "community_join_request",
+          count: 3,
+          communityName: "Rosario Juega",
+        }).title,
+      ).toMatch(/3 solicitudes/i);
+      expect(
+        getNotifMeta({
+          type: "community_join_accepted",
+          communityName: "Rosario Juega",
+        }).body,
+      ).toMatch(/ya sos parte de Rosario Juega/i);
+      expect(
+        getNotifMeta({ type: "community_join_rejected" }).title,
+      ).toMatch(/rechazada/i);
+    });
+  });
+
+  describe("comunidades domain", () => {
+    it("maps community types to the comunidad domain", () => {
+      expect(getDomain("community_join_request")).toBe("comunidad");
+      expect(getDomain("community_join_accepted")).toBe("comunidad");
+      expect(getDomainMeta("community_join_accepted").icon).toBe("Community");
+    });
+
+    it("join_request shows a count badge when aggregated", () => {
+      expect(
+        getCountBadge({ type: "community_join_request", count: 3 }),
+      ).toBe(3);
+      expect(
+        getCountBadge({ type: "community_join_accepted", count: 5 }),
+      ).toBeNull();
+    });
+
+    it("links request to gestión and resolutions to the community detail", () => {
+      expect(
+        notifLink({
+          type: "community_join_request",
+          communitySlug: "rosario-juega",
+        }),
+      ).toBe("/comunidades/rosario-juega/gestion");
+      expect(
+        notifLink({
+          type: "community_join_accepted",
+          communitySlug: "rosario-juega",
+        }),
+      ).toBe("/comunidades/rosario-juega");
+      expect(notifLink({ type: "community_join_accepted" })).toBe(
+        "/comunidades",
+      );
+    });
+
+    it("notifTarget returns the community name", () => {
+      expect(
+        notifTarget({
+          type: "community_join_accepted",
+          communityName: "Rosario Juega",
+        }),
+      ).toBe("Rosario Juega");
+    });
   });
 });

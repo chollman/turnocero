@@ -7,6 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
+import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import RichTextContent from "../../components/shared/RichTextContent";
 import RichTextEditor from "../../components/shared/RichTextEditor";
@@ -352,22 +353,25 @@ export default function ResenaCard({
             ) : (
               <span className={styles.authorName}>{authorName}</span>
             )}
-            <span className={styles.metaTime}>
-              {timeAgo(post.createdAt)}
-              {privacyLabel && post.privacy !== "public"
-                ? ` · ${privacyLabel}`
-                : ""}
-              {bgwatchEnabled && post.author?.bggUsername ? (
-                <>
-                  {" · "}
-                  <Link
-                    to={`/bg-watch/${encodeURIComponent(post.author.bggUsername)}`}
-                    className={styles.bgwatchLink}
-                  >
-                    BG Watch
-                  </Link>
-                </>
-              ) : null}
+            <span className={styles.metaLine}>
+              <span className={styles.metaTime}>
+                {timeAgo(post.createdAt)}
+                {privacyLabel && post.privacy !== "public"
+                  ? ` · ${privacyLabel}`
+                  : ""}
+                {bgwatchEnabled && post.author?.bggUsername ? (
+                  <>
+                    {" · "}
+                    <Link
+                      to={`/bg-watch/${encodeURIComponent(post.author.bggUsername)}`}
+                      className={styles.bgwatchLink}
+                    >
+                      BG Watch
+                    </Link>
+                  </>
+                ) : null}
+              </span>
+              <ItemCommunityTag communityId={post.community} />
             </span>
           </div>
           {isAuthor && (

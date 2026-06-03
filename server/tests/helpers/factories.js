@@ -3,6 +3,7 @@ const Compartida = require("../../models/Compartida");
 const Noticia = require("../../models/Noticia");
 const Torneo = require("../../models/Torneo");
 const Evento = require("../../models/Evento");
+const Community = require("../../models/Community");
 
 // Acepta location como string legacy (la convertimos al subdoc nuevo) o
 // como objeto { texto, lat, lng }. Sin esto, tests que pasan strings caen
@@ -13,10 +14,19 @@ function normalizeLocationForFactory(loc) {
   return loc;
 }
 
+// Comunidad por defecto para el contenido de los tests = la base. Sin esto, el
+// read-scoping (Fase 1) filtraría todo el contenido de factory (community null).
+// Un test puede pasar `community` en overrides para scopear a otra comunidad.
+async function defaultCommunity(override) {
+  if (override) return override;
+  return (await Community.getBase())._id;
+}
+
 async function createTable(host, overrides = {}) {
-  const { location: locOverride, ...rest } = overrides;
+  const { location: locOverride, community, ...rest } = overrides;
   return Table.create({
     host: host._id,
+    community: await defaultCommunity(community),
     boardGame: "Catán",
     date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // a week away
     location: normalizeLocationForFactory(locOverride) ?? {
@@ -35,6 +45,7 @@ async function createTable(host, overrides = {}) {
 async function createCompartida(author, overrides = {}) {
   return Compartida.create({
     author: author._id,
+    community: await defaultCommunity(overrides.community),
     category: overrides.category || "juntada",
     title: overrides.title || "",
     body: overrides.body || "Test post",
@@ -53,6 +64,7 @@ async function createCompartida(author, overrides = {}) {
 async function createResena(author, overrides = {}) {
   return Compartida.create({
     author: author._id,
+    community: await defaultCommunity(overrides.community),
     category: "resena",
     title: overrides.title || "Mi reseña",
     body: overrides.body || "<p>Excelente juego.</p>",
@@ -73,6 +85,7 @@ async function createResena(author, overrides = {}) {
 async function createNoticia(author, overrides = {}) {
   return Noticia.create({
     author: author._id,
+    community: await defaultCommunity(overrides.community),
     title: overrides.title || "Test news",
     body: overrides.body || "Body of the news.",
     link: overrides.link || "",
@@ -84,6 +97,7 @@ async function createNoticia(author, overrides = {}) {
 async function createTorneo(createdBy, overrides = {}) {
   return Torneo.create({
     title: overrides.title || "Test Tournament",
+    community: await defaultCommunity(overrides.community),
     description: overrides.description || "",
     game: overrides.game || "Catán",
     format: overrides.format || "league",
@@ -103,9 +117,10 @@ async function createTorneo(createdBy, overrides = {}) {
 }
 
 async function createEvento(author, overrides = {}) {
-  const { location: locOverride, ...rest } = overrides;
+  const { location: locOverride, community, ...rest } = overrides;
   return Evento.create({
     author: author._id,
+    community: await defaultCommunity(community),
     title: "Test Event",
     description: "",
     conditions: "",

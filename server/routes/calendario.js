@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const { resolveCommunities } = require("../middleware/resolveCommunities");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { getCalendarItems, ALL_TIPOS } = require("../services/calendarService");
@@ -25,6 +26,7 @@ function parseDateParam(raw) {
 router.get(
   "/",
   optionalAuth,
+  resolveCommunities,
   asyncHandler(async (req, res) => {
     const now = new Date();
     const from =
@@ -64,6 +66,7 @@ router.get(
       scope,
       tipos,
       isAdmin: !!req.user?.isAdmin,
+      viewingCommunities: req.viewingCommunities || [],
     });
 
     res.json({

@@ -39,6 +39,11 @@ const NOTIFICATION_TYPES = [
   "evento_mesa_created",
   // Math Trade
   "mathtrade_results",
+  // Comunidades
+  "community_join_request", // a subadmins/admins — AGREGANTE
+  "community_join_accepted", // al solicitante
+  "community_join_rejected", // al solicitante
+  "community_content_removed", // al autor cuando un subadmin baja su contenido
 ];
 
 const notificationSchema = new mongoose.Schema(
@@ -111,6 +116,10 @@ const notificationSchema = new mongoose.Schema(
     // Math Trade-related
     mathtradeId: { type: String, default: null },
     mathtradeTitle: { type: String, default: "" },
+    // Comunidades-related
+    communityId: { type: String, default: null },
+    communityName: { type: String, default: "" },
+    communitySlug: { type: String, default: "" },
   },
   { timestamps: true },
 );
@@ -122,6 +131,7 @@ notificationSchema.index({ recipient: 1, type: 1, torneoId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, compartidaId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, eventoId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, mathtradeId: 1 });
+notificationSchema.index({ recipient: 1, type: 1, communityId: 1 });
 // Auto-purge old notifications (90 days since last update). Lightweight retention policy.
 notificationSchema.index(
   { updatedAt: 1 },

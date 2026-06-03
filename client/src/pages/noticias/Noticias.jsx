@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
+import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import styles from "./Noticias.module.css";
 
 function timeAgo(date) {
@@ -204,6 +205,7 @@ function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
             <span className={styles.cardDate}>
               {timeAgo(noticia.createdAt)}
             </span>
+            <ItemCommunityTag communityId={noticia.community} />
             {isAdmin && !editing && (
               <div className={styles.adminActions}>
                 <button className={styles.editBtn} onClick={openEdit}>

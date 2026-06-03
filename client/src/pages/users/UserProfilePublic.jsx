@@ -84,11 +84,11 @@ export default function UserProfilePublic() {
   // stack. idx > 0 = hubo navegación in-app previa (sea por click o por reload
   // de una URL a la que el user llegó navegando), así que back saca al user al
   // sitio del que vino. idx === 0 (o sin state) = llegó directo (tab nuevo,
-  // link compartido) y caemos al fallback /usuarios. `location.key !== 'default'`
+  // link compartido) y caemos al fallback /comunidades. `location.key !== 'default'`
   // no servía: sobrevive al reload y daba falsos positivos.
   const canGoBack = (window.history.state?.idx ?? 0) > 0;
-  const goBack = () => (canGoBack ? navigate(-1) : navigate("/usuarios"));
-  const backLabel = canGoBack ? "← Volver" : "← Jugadores";
+  const goBack = () => (canGoBack ? navigate(-1) : navigate("/comunidades"));
+  const backLabel = canGoBack ? "← Volver" : "← Comunidades";
   const { user: currentUser, refreshUser } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
   const { notifyFriendAdded } = useNotifications();

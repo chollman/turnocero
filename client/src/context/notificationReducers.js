@@ -34,6 +34,7 @@ export const notifKey = (n) => {
   if (n.torneoId) return `${type}:r:${n.torneoId}`;
   if (n.compartidaId) return `${type}:c:${n.compartidaId}`;
   if (n.eventoId) return `${type}:e:${n.eventoId}`;
+  if (n.communityId) return `${type}:cm:${n.communityId}`;
   if (n.fromUserId) return `${type}:u:${n.fromUserId}`;
   return type;
 };
@@ -44,6 +45,7 @@ export const resourceKey = (n) => {
   if (n.torneoId) return `${type}:r:${n.torneoId}`;
   if (n.compartidaId) return `${type}:c:${n.compartidaId}`;
   if (n.eventoId) return `${type}:e:${n.eventoId}`;
+  if (n.communityId) return `${type}:cm:${n.communityId}`;
   if (n.fromUserId) return `${type}:u:${n.fromUserId}`;
   return type;
 };
@@ -88,6 +90,7 @@ const toastDedupKey = (t) => {
   if (t.torneoId) return `${t.type}:r:${t.torneoId}`;
   if (t.compartidaId) return `${t.type}:c:${t.compartidaId}`;
   if (t.eventoId) return `${t.type}:e:${t.eventoId}`;
+  if (t.communityId) return `${t.type}:cm:${t.communityId}`;
   if (t.fromUserId) return `${t.type}:u:${t.fromUserId}`;
   return t.type;
 };
@@ -127,6 +130,8 @@ export const EVENT_SECTION = {
   "compartida:like": "compartidas",
   "noticia:published": "noticias",
   "evento:notification": "eventos",
+  "community:join-request": "comunidades",
+  "community:join-resolved": "comunidades",
 };
 
 // ── Helpers internos para reducers ────────────────────────────────────
@@ -831,6 +836,78 @@ export function applyEventoNotif({
   // setActiveEvento → markReadEvento.
   if (isActive?.(common.eventoId)) return;
   setToasts((prev) => pushToast(prev, common));
+}
+
+// ── Comunidades ──────────────────────────────────────────────────────
+
+// Solicitud de unión a una comunidad (a subadmins/admins). AGGREGATING:
+// varias solicitudes a la misma comunidad → una notif con count + actors
+// apilados (el server pushea ambos). El requester más reciente sale en
+// actors[0].
+export function applyCommunityJoinRequestNotif({
+  setNotifications,
+  setToasts,
+  payload,
+}) {
+  setNotifications((prev) =>
+    upsertAggregating({
+      prev,
+      type: "community_join_request",
+      resourceField: "communityId",
+      resourceId: payload.communityId,
+      notifId: payload.notifId,
+      count: payload.count,
+      timestamp: payload.timestamp,
+      actors: payload.actors,
+      extra: {
+        communityName: payload.communityName,
+        communitySlug: payload.communitySlug,
+      },
+    }),
+  );
+  setToasts((prev) =>
+    pushToast(prev, {
+      type: "community_join_request",
+      communityId: payload.communityId,
+      communityName: payload.communityName,
+      communitySlug: payload.communitySlug,
+      requesterUsername: payload.actors?.[0]?.username || "Alguien",
+    }),
+  );
+}
+
+// Resolución de una solicitud (al solicitante). `payload.resolution`
+// discrimina accepted/rejected (el server lo manda como `extra`). Side-effect
+// `onResolved` → recarga las memberships del CommunityContext.
+export function applyCommunityJoinResolvedNotif({
+  setNotifications,
+  setToasts,
+  payload,
+  onResolved,
+}) {
+  const accepted = payload.resolution !== "rejected";
+  const type = accepted
+    ? "community_join_accepted"
+    : "community_join_rejected";
+  const extra = {
+    communityName: payload.communityName,
+    communitySlug: payload.communitySlug,
+  };
+  setNotifications((prev) =>
+    replaceResource({
+      prev,
+      type,
+      resourceField: "communityId",
+      resourceId: payload.communityId,
+      timestamp: payload.timestamp || new Date().toISOString(),
+      notifId: payload.notifId,
+      extra,
+    }),
+  );
+  setToasts((prev) =>
+    pushToast(prev, { type, communityId: payload.communityId, ...extra }),
+  );
+  onResolved?.();
 }
 
 // ── markRead helpers ─────────────────────────────────────────────────

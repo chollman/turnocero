@@ -4,9 +4,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useCommunity } from "../../context/CommunityContext";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { getActiveNavId } from "../../utils/routing";
 import Logo from "../shared/Logo";
+import CommunitySwitcher from "./CommunitySwitcher";
 import styles from "./Sidebar.module.css";
 
 const ICONS = {
@@ -137,7 +139,7 @@ const ICONS = {
       <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
     </svg>
   ),
-  users: (
+  comunidades: (
     <svg
       viewBox="0 0 24 24"
       fill="none"
@@ -249,10 +251,10 @@ const SECTIONS = [
         section: "noticias",
       },
       {
-        id: "users",
-        label: "Comunidad",
-        to: "/usuarios",
-        section: "comunidad",
+        id: "comunidades",
+        label: "Mis Comunidades",
+        to: "/comunidades",
+        section: "comunidades",
       },
     ],
   },
@@ -299,6 +301,7 @@ export default function Sidebar({ open = false, onClose }) {
   const { user, isActuallyAdmin, logout } = useAuth();
   const { unreadCount, adminChatUnread } = useNotifications();
   const { isSectionEnabled } = useSiteConfig();
+  const { brand } = useCommunity();
   const location = useLocation();
   const navigate = useNavigate();
   const active = getActiveNavId(location.pathname);
@@ -433,12 +436,17 @@ export default function Sidebar({ open = false, onClose }) {
         aria-hidden={onClose && !open ? "true" : undefined}
       >
         <div className={styles.logoRow}>
-          <Link to="/" className={styles.logo} aria-label="TurnoCero">
+          <Link to="/" className={styles.logo} aria-label={brand.name}>
             <span className={styles.logoMark} aria-hidden="true">
-              <Logo className={styles.logoMarkImg} alt="" />
+              <Logo
+                className={styles.logoMarkImg}
+                alt=""
+                srcLight={brand.logoLight}
+                srcDark={brand.logoDark}
+              />
             </span>
             <span className={styles.logoText}>
-              <span className={styles.logoName}>TurnoCero</span>
+              <span className={styles.logoName}>{brand.name}</span>
               <span className={styles.logoSub}>
                 <Meeple />
                 board game meetups
@@ -471,6 +479,8 @@ export default function Sidebar({ open = false, onClose }) {
             )}
           </button>
         </div>
+
+        <CommunitySwitcher onNavigate={onClose} />
 
         <nav className={styles.nav}>
           {visibleSections.map((sec) => (

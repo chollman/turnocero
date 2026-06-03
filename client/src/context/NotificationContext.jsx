@@ -10,6 +10,7 @@ import {
 import axios from "axios";
 import { useAuth } from "./AuthContext";
 import { useSiteConfig } from "./SiteConfigContext";
+import { CommunityContext } from "./CommunityContext";
 import { API } from "../api/endpoints";
 import {
   EVENT_SECTION,
@@ -26,6 +27,7 @@ import { useTorneoNotificationListeners } from "./notificationListeners/useTorne
 import { useCompartidaNotificationListeners } from "./notificationListeners/useCompartidaNotificationListeners";
 import { useNoticiaNotificationListeners } from "./notificationListeners/useNoticiaNotificationListeners";
 import { useEventoNotificationListeners } from "./notificationListeners/useEventoNotificationListeners";
+import { useCommunityNotificationListeners } from "./notificationListeners/useCommunityNotificationListeners";
 import { useSiteConfigSocketListener } from "./notificationListeners/useSiteConfigSocketListener";
 
 const NotificationContext = createContext(null);
@@ -33,6 +35,11 @@ const NotificationContext = createContext(null);
 export function NotificationProvider({ children }) {
   const { user, refreshUser } = useAuth();
   const { applyServerConfig, isSectionEnabled } = useSiteConfig();
+  // Lectura null-safe del CommunityContext (provider padre). En el árbol real
+  // siempre existe; en tests que montan NotificationProvider aislado es null y
+  // `reloadCommunity` queda undefined (el listener no-opea).
+  const communityCtx = useContext(CommunityContext);
+  const reloadCommunity = communityCtx?.reload;
   const [notifications, setNotifications] = useState([]);
   const [toasts, setToasts] = useState([]);
   const activeTableRef = useRef(null);
@@ -134,6 +141,13 @@ export function NotificationProvider({ children }) {
     setNotifications,
     setToasts,
   });
+  useCommunityNotificationListeners({
+    socket,
+    gated,
+    setNotifications,
+    setToasts,
+    reloadCommunity,
+  });
   useSiteConfigSocketListener({ socket, applyServerConfig });
 
   // ── markRead helpers ────────────────────────────────────────────────
@@ -175,6 +189,13 @@ export function NotificationProvider({ children }) {
       markReadByPredicate(prev, (n) => n.eventoId === eventoId),
     );
     axios.patch(API.notifications.READ, { eventoId }).catch(() => {});
+  }, []);
+
+  const markReadCommunity = useCallback((communityId) => {
+    setNotifications((prev) =>
+      markReadByPredicate(prev, (n) => n.communityId === communityId),
+    );
+    axios.patch(API.notifications.READ, { communityId }).catch(() => {});
   }, []);
 
   const markReadDm = useCallback((fromUserId) => {
@@ -345,6 +366,7 @@ export function NotificationProvider({ children }) {
       markReadTorneo,
       markReadCompartida,
       markReadEvento,
+      markReadCommunity,
       markReadDm,
       markReadAdminChat,
       markAllRead,
@@ -373,6 +395,7 @@ export function NotificationProvider({ children }) {
       markReadTorneo,
       markReadCompartida,
       markReadEvento,
+      markReadCommunity,
       markReadDm,
       markReadAdminChat,
       markAllRead,

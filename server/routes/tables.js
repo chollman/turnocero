@@ -3,8 +3,14 @@ const router = express.Router();
 const { body, param, validationResult } = require("express-validator");
 const Table = require("../models/Table");
 const User = require("../models/User");
+const Community = require("../models/Community");
 const { protect, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const {
+  resolveCommunities,
+  communityFilter,
+} = require("../middleware/resolveCommunities");
+const communityService = require("../services/communityService");
 const validateObjectId = require("../middleware/validateObjectId");
 const { parsePagination } = require("../utils/paginate");
 const { escapeRegex } = require("../utils/regex");
@@ -110,7 +116,12 @@ const populateTable = (query) =>
 //   - `null`  → solo mesas globales (filtro estricto eventoId:null, también
 //               cuenta los docs viejos sin el campo).
 //   - String  → solo mesas asociadas a ese evento.
-async function listTables({ user, query, eventoId = null }) {
+async function listTables({
+  user,
+  query,
+  eventoId = null,
+  communityClause = null,
+}) {
   const { page, limit, skip } = parsePagination(query);
   const searchClause = await buildSearchClause(query.search);
   const friendIds = user ? await getFriendIds(user._id) : [];
@@ -123,6 +134,10 @@ async function listTables({ user, query, eventoId = null }) {
   // (scope, search) requiere `$and` para que todos sigan vigentes.
   const andClauses = [privacyFilter, scopeFilter];
   if (searchClause) andClauses.push(searchClause);
+  // Scoping por comunidad: SOLO en la lista global de mesas. Las mesas de un
+  // evento (eventoId set) se scopean por el evento, no por el `viewing` del
+  // usuario — por eso eventos.js NO pasa communityClause.
+  if (communityClause) andClauses.push(communityClause);
   const baseFilter = {
     status: { $ne: "cancelled" },
     $and: andClauses,
@@ -185,11 +200,13 @@ async function listTables({ user, query, eventoId = null }) {
 router.get(
   "/",
   optionalAuth,
+  resolveCommunities,
   asyncHandler(async (req, res) => {
     const result = await listTables({
       user: req.user,
       query: req.query,
       eventoId: null,
+      communityClause: communityFilter(req),
     });
     res.json(result);
   }),
@@ -241,6 +258,7 @@ router.get(
 router.get(
   "/top-games",
   optionalAuth,
+  resolveCommunities,
   asyncHandler(async (req, res) => {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const games = await Table.aggregate([
@@ -249,6 +267,7 @@ router.get(
           status: { $ne: "cancelled" },
           createdAt: { $gte: since },
           privacy: "public",
+          ...communityFilter(req),
         },
       },
       { $group: { _id: "$boardGame", count: { $sum: 1 } } },
@@ -389,12 +408,13 @@ router.post(
     // el user debe tener permiso.
     let validatedEventoId = null;
     let eventoLocation = null;
+    let eventoCommunity = null;
     let resolvedDate = date;
     if (eventoId) {
       const Evento = require("../models/Evento");
       const { canActInEvento } = require("../utils/eventoPermissions");
       const evento = await Evento.findById(eventoId).select(
-        "_id author status registrations location eventDate",
+        "_id author status registrations location eventDate community",
       );
       if (!evento) throw httpError(404, "Evento no encontrado");
       if (evento.status === "cancelled" || evento.status === "draft") {
@@ -407,6 +427,9 @@ router.post(
         );
       }
       validatedEventoId = evento._id;
+      // Las mesas del evento heredan la comunidad del evento (no la del skin
+      // del host) — el evento es el dueño del scope.
+      eventoCommunity = evento.community;
       // La ubicación de las mesas del evento se hereda del evento (single
       // source of truth). Ignoramos cualquier `location` del body para que
       // un cliente no pueda crear una mesa "del evento" en otra dirección.
@@ -440,9 +463,17 @@ router.post(
       }
     }
 
+    const tableCommunity =
+      validatedEventoId && eventoCommunity
+        ? eventoCommunity
+        : await communityService.resolveCreateCommunity(
+            req.user,
+            req.body.community,
+          );
     let table;
     try {
       table = await Table.create({
+        community: tableCommunity,
         boardGame,
         date: resolvedDate,
         maxPlayers,
@@ -1055,18 +1086,44 @@ router.delete(
     const table = await Table.findById(req.params.id);
     if (!table) throw httpError(404, "Table not found");
 
+    // Quién puede cancelar: el host, un admin global, o un subadmin de la
+    // comunidad de la mesa (moderación).
+    const isHost = isSameId(table.host, req.user._id);
+    const isMod =
+      req.user.isAdmin ||
+      (table.community &&
+        communityService.isSubadmin(req.user, table.community));
     // Freeze: cancelar una mesa pasada no tiene sentido funcional (ya pasó),
-    // pero admin queda como escape hatch para casos de spam/moderación.
+    // pero admin/subadmin quedan como escape hatch para spam/moderación.
     if (isPastTable(table)) {
-      if (!req.user.isAdmin) {
+      if (!isMod) {
         throw httpError(403, "Mesa finalizada: ya no se puede cancelar");
       }
-    } else if (!isSameId(table.host, req.user._id)) {
+    } else if (!isHost && !isMod) {
       throw httpError(403, "Only the host can cancel this table");
     }
+    const moderatedByOther = !isHost;
 
     table.status = "cancelled";
     await table.save();
+
+    // Si lo canceló un moderador (no el host), avisamos al host.
+    if (moderatedByOther && table.community) {
+      const community = await Community.findById(table.community).select(
+        "name slug",
+      );
+      await emitNotificationReq(
+        req,
+        table.host,
+        "community_content_removed",
+        {
+          communityId: String(table.community),
+          communityName: community?.name || "",
+          communitySlug: community?.slug || "",
+        },
+        "community:content-removed",
+      );
+    }
 
     const hostId = req.user._id.toString();
     // Players siempre se notifican (estaban "inscriptos" a la mesa). Followers

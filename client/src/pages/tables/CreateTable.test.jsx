@@ -20,6 +20,10 @@ vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/NotificationContext", () => ({
   useNotifications: () => ({ addToast: vi.fn() }),
 }));
+// CommunitySelect usa CommunityContext + tiene su propio test; stub acá.
+vi.mock("../../components/shared/CommunitySelect", () => ({
+  default: () => null,
+}));
 
 // Mock de PlaceAutocomplete — su test propio cubre el comportamiento.
 // AddressMap fue removido del form de creación (2026-05).

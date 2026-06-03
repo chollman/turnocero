@@ -1,14 +1,24 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import SectionGate from "./SectionGate";
 
-// Mock the SiteConfigContext hook so we can drive its return per test.
-vi.mock("../../context/SiteConfigContext", () => ({
-  useSiteConfig: vi.fn(),
-}));
+// Mock the three context/hook dependencies so we can drive them per test.
+vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
+vi.mock("../../context/CommunityContext", () => ({ useCommunity: vi.fn() }));
+vi.mock("../../hooks/useSectionEnabled", () => ({ useSectionEnabled: vi.fn() }));
 
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useCommunity } from "../../context/CommunityContext";
+import { useSectionEnabled } from "../../hooks/useSectionEnabled";
+
+function setup({ configLoaded = true, communityLoaded = true, enabled }) {
+  useSiteConfig.mockReturnValue({ loaded: configLoaded });
+  useCommunity.mockReturnValue({ loaded: communityLoaded });
+  useSectionEnabled.mockReturnValue(
+    typeof enabled === "function" ? enabled : () => enabled,
+  );
+}
 
 function renderWithRouter(ui, { initialEntries = ["/"] } = {}) {
   return render(
@@ -22,11 +32,20 @@ function renderWithRouter(ui, { initialEntries = ["/"] } = {}) {
 }
 
 describe("<SectionGate>", () => {
+  beforeEach(() => vi.clearAllMocks());
+
   it("renders null while site config is not loaded yet", () => {
-    useSiteConfig.mockReturnValue({
-      loaded: false,
-      isSectionEnabled: () => true,
-    });
+    setup({ configLoaded: false, enabled: true });
+    const { container } = renderWithRouter(
+      <SectionGate section="mesas">
+        <div>kids</div>
+      </SectionGate>,
+    );
+    expect(container.textContent).toBe("");
+  });
+
+  it("renders null while the community context is not loaded yet", () => {
+    setup({ communityLoaded: false, enabled: true });
     const { container } = renderWithRouter(
       <SectionGate section="mesas">
         <div>kids</div>
@@ -36,10 +55,7 @@ describe("<SectionGate>", () => {
   });
 
   it("renders children when the section is enabled", () => {
-    useSiteConfig.mockReturnValue({
-      loaded: true,
-      isSectionEnabled: (s) => s === "compartidas",
-    });
+    setup({ enabled: (s) => s === "compartidas" });
     renderWithRouter(
       <SectionGate section="compartidas">
         <div>visible</div>
@@ -49,10 +65,7 @@ describe("<SectionGate>", () => {
   });
 
   it('redirects to "/" when the section is disabled', () => {
-    useSiteConfig.mockReturnValue({
-      loaded: true,
-      isSectionEnabled: () => false,
-    });
+    setup({ enabled: false });
     render(
       <MemoryRouter initialEntries={["/mesas"]}>
         <Routes>
@@ -73,10 +86,7 @@ describe("<SectionGate>", () => {
   });
 
   it("honors custom redirectTo", () => {
-    useSiteConfig.mockReturnValue({
-      loaded: true,
-      isSectionEnabled: () => false,
-    });
+    setup({ enabled: false });
     render(
       <MemoryRouter initialEntries={["/mesas"]}>
         <Routes>
