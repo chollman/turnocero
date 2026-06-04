@@ -1,0 +1,281 @@
+/* ==========================================================================
+   Empty States Reimagined — sistema reutilizable
+   Patrón: ilustración SVG (lenguaje de juego de mesa) + ghost previews
+   detrás + prompt central con CTA. Variantes: first-run y filtered.
+   Usa tokens de reimagined-styles.css.
+   ========================================================================== */
+
+/* Demo stage (solo para el showcase) */
+.esStage { max-width: 1180px; margin: 0 auto; padding: 28px 28px 80px; }
+.esDemoHead {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-bottom: 18px; margin-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.esDemoEyebrow {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 0.16em;
+  color: var(--accent-light); text-transform: uppercase;
+}
+.esDemoEyebrow::before { content: ''; width: 22px; height: 1px; background: var(--accent-light); }
+.esDemoTitle {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+  font-weight: 700; letter-spacing: -0.04em; line-height: 0.98;
+  margin: 0;
+}
+.esDemoTitle em { font-style: normal; color: var(--accent-light); }
+.esDemoSub { color: var(--text-secondary); font-size: 14px; line-height: 1.55; max-width: 640px; }
+
+/* Frame que simula el contenedor de la sección */
+.esFrame {
+  background:
+    radial-gradient(900px circle at 50% -10%, rgba(24,136,239,0.04), transparent 55%),
+    var(--bg-dark);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 26px;
+}
+.esFrameLabel {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+.esFrameLabel .name {
+  font-family: var(--font-display);
+  font-size: 14px; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.esFrameLabel .kind {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.esFrameLabel .kind.filtered { color: var(--orange); border-color: var(--orange-25); }
+
+/* ==========================================================================
+   CORE — el empty state en sí
+   ========================================================================== */
+.empty {
+  position: relative;
+  min-height: 440px;
+  display: grid;
+  place-items: center;
+  padding: 48px 24px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.empty.compact { min-height: 300px; padding: 40px 24px; }
+
+/* ─── Ghost previews (fondo) ─── */
+.emptyGhosts {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 32px;
+  pointer-events: none;
+  /* desvanecer hacia el centro para que el prompt respire */
+  -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 45%, transparent 30%, #000 78%);
+          mask-image: radial-gradient(ellipse 70% 80% at 50% 45%, transparent 30%, #000 78%);
+  opacity: 0.5;
+}
+.emptyGhosts.rows { flex-direction: column; gap: 12px; padding: 24px 40px; }
+
+/* Ghost card genérico */
+.ghostCard {
+  flex: 0 0 auto;
+  width: 240px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  filter: saturate(0.5);
+}
+.ghostCard.tall { width: 220px; }
+.ghostBanner {
+  height: 90px;
+  background:
+    repeating-linear-gradient(135deg, rgba(24,136,239,0.06) 0, rgba(24,136,239,0.06) 12px, transparent 12px, transparent 24px),
+    linear-gradient(135deg, #16203a, #0e1320);
+}
+.ghostBody { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.ghostLine { height: 9px; border-radius: 5px; background: var(--bg-elevated); }
+.ghostLine.w70 { width: 70%; } .ghostLine.w50 { width: 50%; } .ghostLine.w90 { width: 90%; } .ghostLine.w40 { width: 40%; }
+.ghostLine.tall { height: 13px; }
+.ghostPill { height: 20px; width: 64px; border-radius: 999px; background: var(--bg-elevated); }
+.ghostTrack { height: 5px; border-radius: 999px; background: var(--bg-elevated); margin-top: 2px; }
+.ghostRowCard {
+  display: flex; align-items: center; gap: 14px;
+  width: 460px; max-width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  filter: saturate(0.5);
+}
+.ghostDate { width: 46px; height: 52px; border-radius: 8px; background: var(--bg-elevated); flex-shrink: 0; }
+.ghostAvatar { width: 38px; height: 38px; border-radius: 11px; background: var(--bg-elevated); flex-shrink: 0; }
+.ghostAvatar.round { border-radius: 999px; }
+.ghostRowBody { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ghostPolaroid {
+  flex: 0 0 auto;
+  width: 150px;
+  background: #f4eeda;
+  padding: 7px 7px 22px;
+  border-radius: 3px;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.35);
+}
+.ghostPolaroid:nth-child(odd) { transform: rotate(-3deg); }
+.ghostPolaroid:nth-child(even) { transform: rotate(2.5deg); }
+.ghostPolaroidPhoto {
+  aspect-ratio: 1; border-radius: 2px;
+  background:
+    repeating-linear-gradient(135deg, rgba(0,0,0,0.05) 0, rgba(0,0,0,0.05) 7px, transparent 7px, transparent 14px),
+    linear-gradient(135deg, #2a3550, #18202f);
+}
+
+/* ─── Core prompt (frente) ─── */
+.emptyCore {
+  position: relative;
+  z-index: 2;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center;
+  max-width: 460px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .emptyCore { animation: esRise 0.5s ease; }
+}
+@keyframes esRise {
+  from { transform: translateY(10px); }
+  to   { transform: translateY(0); }
+}
+
+.emptyArt {
+  width: 150px; height: 120px;
+  margin-bottom: 22px;
+  position: relative;
+}
+.empty.compact .emptyArt { width: 96px; height: 80px; margin-bottom: 16px; }
+.emptyArt svg { width: 100%; height: 100%; overflow: visible; display: block; }
+
+.emptyEyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px; letter-spacing: 0.16em;
+  color: var(--accent-light); text-transform: uppercase;
+  margin-bottom: 10px;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.emptyEyebrow.muted { color: var(--text-muted); }
+.emptyTitle {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  font-weight: 700; letter-spacing: -0.035em; line-height: 1.04;
+  color: var(--text-primary);
+  margin: 0 0 10px;
+  text-wrap: balance;
+}
+.emptyTitle em { font-style: normal; color: var(--accent-light); }
+.emptyText {
+  color: var(--text-secondary);
+  font-size: 14.5px; line-height: 1.6;
+  margin: 0 0 24px;
+  max-width: 400px;
+}
+.empty.compact .emptyText { margin-bottom: 18px; font-size: 13.5px; }
+
+.emptyActions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.emptyBtn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent); color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 13.5px; font-weight: 700; letter-spacing: 0.01em;
+  box-shadow: 0 6px 20px var(--accent-glow);
+  transition: all var(--t);
+}
+.emptyBtn:hover { background: var(--accent-light); transform: translateY(-1px); box-shadow: 0 8px 26px var(--accent-glow); }
+.emptyBtn svg { width: 15px; height: 15px; }
+.emptyBtn.ghost {
+  background: transparent; color: var(--text-secondary);
+  border: 1px solid var(--border-strong); box-shadow: none;
+}
+.emptyBtn.ghost:hover { border-color: var(--accent); color: var(--accent-light); transform: none; }
+
+/* Suggestion chips (filtered variant) */
+.emptyChips {
+  display: flex; gap: 7px; flex-wrap: wrap; justify-content: center;
+  margin-top: 16px;
+}
+.emptyChip {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 0.04em;
+  transition: all var(--t);
+}
+.emptyChip:hover { border-color: var(--accent); color: var(--accent-light); }
+
+/* Helper hint line below actions */
+.emptyHint {
+  margin-top: 18px;
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 0.04em;
+  color: var(--text-muted);
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.emptyHint a, .emptyHint button {
+  color: var(--accent-light); background: none; border: none;
+  font-family: inherit; font-size: inherit; cursor: pointer;
+}
+.emptyHint a:hover, .emptyHint button:hover { text-decoration: underline; }
+
+/* ==========================================================================
+   Showcase switcher
+   ========================================================================== */
+.esSwitcher {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 12px 20px;
+  background: rgba(10,13,21,0.85);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+.esSwitcherLogo {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-size: 14px; font-weight: 800;
+  letter-spacing: -0.02em; margin-right: 14px;
+}
+.esSwitcherLogo span:first-child {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  display: grid; place-items: center; font-size: 12px; color: #fff;
+}
+.esSwitcherTabs { display: flex; gap: 2px; flex-wrap: wrap; background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px; padding: 3px; }
+.esTab {
+  background: transparent; border: none; color: var(--text-secondary);
+  padding: 6px 12px; border-radius: 6px;
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 500;
+  letter-spacing: 0.04em; text-transform: uppercase; transition: all var(--t);
+}
+.esTab:hover { color: var(--text-primary); }
+.esTab.active { background: var(--bg-elevated); color: var(--accent-light); }
+
+@media (max-width: 640px) {
+  .emptyGhosts { display: none; }   /* en mobile, sin ghosts: foco total al prompt */
+  .empty { min-height: 380px; }
+}
