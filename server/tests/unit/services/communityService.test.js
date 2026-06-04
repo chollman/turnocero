@@ -58,6 +58,61 @@ describe("communityService.memberIds", () => {
   });
 });
 
+describe("communityService.ensureTenantMembership", () => {
+  it("adds membership ignoring joinPolicy (even 'approval')", async () => {
+    const c = await Community.create({
+      name: "Approval",
+      slug: "approval",
+      joinPolicy: "approval",
+    });
+    const user = await createUser();
+
+    const added = await communityService.ensureTenantMembership(user, c);
+    expect(added).toBe(true);
+    expect(communityService.isMember(user, c._id)).toBe(true);
+
+    // Persisted
+    const reloaded = await User.findById(user._id);
+    expect(communityService.isMember(reloaded, c._id)).toBe(true);
+  });
+
+  it("is idempotent (no-op + returns false if already a member)", async () => {
+    const c = await Community.create({ name: "C", slug: "c" });
+    const user = await createUser({
+      communityMemberships: [{ community: c._id, role: "member" }],
+    });
+    const added = await communityService.ensureTenantMembership(user, c);
+    expect(added).toBe(false);
+    expect(
+      user.communityMemberships.filter(
+        (m) => String(m.community) === String(c._id),
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("clears a pending join request when auto-joining", async () => {
+    const user = await createUser();
+    const c = await Community.create({
+      name: "Pend",
+      slug: "pend",
+      joinPolicy: "approval",
+      pendingMembers: [{ user: user._id }],
+    });
+
+    await communityService.ensureTenantMembership(user, c);
+    const reloaded = await Community.findById(c._id);
+    expect(reloaded.pendingMembers).toHaveLength(0);
+    expect(communityService.isMember(user, c._id)).toBe(true);
+  });
+
+  it("no-ops when there is no tenant", async () => {
+    const user = await createUser();
+    expect(await communityService.ensureTenantMembership(user, null)).toBe(
+      false,
+    );
+  });
+});
+
 describe("communityService.ensureBaseMembership", () => {
   it("adds base membership + skin and is idempotent", async () => {
     const user = await createUser();

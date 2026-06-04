@@ -127,6 +127,10 @@ router.post(
     // skin base). Sin esto quedaría sin comunidad y con prefs inconsistentes.
     await communityService.ensureBaseMembership(user);
 
+    // Si se registró desde un subdominio de comunidad, queda miembro de esa
+    // comunidad automáticamente (ignora joinPolicy). No-op si no hay tenant.
+    await communityService.ensureTenantMembership(user, req.tenant);
+
     // Send email — if it fails we still return 201 so the user can request a resend.
     try {
       const tpl = verificationEmail({ username: user.username, code });
@@ -185,6 +189,10 @@ router.post(
           : "Tu cuenta ha sido suspendida.",
       });
     }
+
+    // Login desde un subdominio de comunidad → auto-join a esa comunidad
+    // (ignora joinPolicy). No-op fuera de modo tenant.
+    await communityService.ensureTenantMembership(user, req.tenant);
 
     const token = generateToken(user._id);
 
@@ -245,6 +253,9 @@ router.post(
     user.emailVerificationExpiresAt = null;
     user.emailVerificationAttempts = 0;
     await user.save({ validateModifiedOnly: true });
+
+    // Verificación desde un subdominio de comunidad → auto-join (ignora joinPolicy).
+    await communityService.ensureTenantMembership(user, req.tenant);
 
     const token = generateToken(user._id);
     res.cookie("token", token, COOKIE_OPTIONS);
@@ -327,6 +338,9 @@ router.post(
     // se crearon antes de Comunidades). Idempotente.
     await communityService.ensureBaseMembership(user);
 
+    // OAuth desde un subdominio de comunidad → auto-join (ignora joinPolicy).
+    await communityService.ensureTenantMembership(user, req.tenant);
+
     const token = generateToken(user._id);
     res.cookie("token", token, COOKIE_OPTIONS);
     res.json({ user, token });
@@ -395,6 +409,9 @@ router.post(
     // Garantiza membership + skin base (incluye cuentas OAuth ya existentes que
     // se crearon antes de Comunidades). Idempotente.
     await communityService.ensureBaseMembership(user);
+
+    // OAuth desde un subdominio de comunidad → auto-join (ignora joinPolicy).
+    await communityService.ensureTenantMembership(user, req.tenant);
 
     const token = generateToken(user._id);
     res.cookie("token", token, COOKIE_OPTIONS);

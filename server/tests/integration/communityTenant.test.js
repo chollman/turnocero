@@ -3,6 +3,7 @@ const app = require("../../app");
 const Community = require("../../models/Community");
 const Compartida = require("../../models/Compartida");
 const Notification = require("../../models/Notification");
+const User = require("../../models/User");
 const {
   createUser,
   createAuthedUser,
@@ -211,5 +212,64 @@ describe("Tenant scoping — GET /api/notifications", () => {
     expect(tableIdsOf(res)).toEqual(
       expect.arrayContaining(["t-tenant", "t-base", "t-plain"]),
     );
+  });
+});
+
+// Auto-join al tenant: registrarse o loguearse desde un subdominio de comunidad
+// agrega al usuario como miembro de esa comunidad, sin importar su joinPolicy.
+describe("Tenant auto-join on auth", () => {
+  const mkTenant = () =>
+    Community.create({
+      name: "Patagonia",
+      slug: "patagonia",
+      subdomainEnabled: true,
+      joinPolicy: "approval", // el caso clave: aprobación NO debe frenar el auto-join
+    });
+
+  const memberIds = (u) =>
+    u.communityMemberships.map((m) => String(m.community));
+
+  it("login from a community subdomain joins the user (ignores approval policy)", async () => {
+    const tenant = await mkTenant();
+    const user = await createUser(); // verificado, password "Password123", no miembro
+
+    await request(app)
+      .post("/api/auth/login")
+      .set("X-Community-Slug", "patagonia")
+      .send({ email: user.email, password: "Password123" })
+      .expect(200);
+
+    const reloaded = await User.findById(user._id);
+    expect(memberIds(reloaded)).toContain(String(tenant._id));
+  });
+
+  it("login on the main site (no tenant header) does NOT auto-join", async () => {
+    const tenant = await mkTenant();
+    const user = await createUser();
+
+    await request(app)
+      .post("/api/auth/login")
+      .send({ email: user.email, password: "Password123" })
+      .expect(200);
+
+    const reloaded = await User.findById(user._id);
+    expect(memberIds(reloaded)).not.toContain(String(tenant._id));
+  });
+
+  it("register from a community subdomain joins the new user", async () => {
+    const tenant = await mkTenant();
+
+    await request(app)
+      .post("/api/auth/register")
+      .set("X-Community-Slug", "patagonia")
+      .send({
+        username: "nuevo_tenant",
+        email: "nuevo_tenant@test.local",
+        password: "Password123",
+      })
+      .expect(201);
+
+    const created = await User.findOne({ email: "nuevo_tenant@test.local" });
+    expect(memberIds(created)).toContain(String(tenant._id));
   });
 });

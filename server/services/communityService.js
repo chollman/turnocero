@@ -116,6 +116,28 @@ async function ensureBaseMembership(user) {
   return base;
 }
 
+// Auto-join al tenant. Si el request entró por un subdominio / single-tenant
+// (`tenant` presente — lean, lo setea el middleware resolveTenant), el usuario
+// que se registra o loguea se agrega como miembro de esa comunidad SIN importar
+// su `joinPolicy` (incluso 'approval' o 'code'): es la contrapartida de la
+// vidriera — si te logueás en `elclu.turnocero.app`, sos de El Clu. Idempotente.
+// Si tenía una solicitud pendiente previa, la limpia. Muta + persiste el user.
+// `tenant` nunca es la base (resolveTenant la excluye).
+async function ensureTenantMembership(user, tenant) {
+  if (!user || !tenant) return false;
+  const tid = tenant._id || tenant;
+  if (isMember(user, tid)) return false;
+  addMembership(user, tid);
+  await user.save({ validateModifiedOnly: true });
+  // Sacar cualquier solicitud pendiente (joinPolicy 'approval'/'code') — ahora
+  // es miembro directo. updateOne dirigido para no mutar el doc lean cacheado.
+  await Community.updateOne(
+    { _id: tid },
+    { $pull: { pendingMembers: { user: user._id } } },
+  );
+  return true;
+}
+
 // ── Join / leave ─────────────────────────────────────────────────────────
 
 // `community` debe venir con +inviteCode si su joinPolicy es 'code'.
@@ -332,6 +354,7 @@ module.exports = {
   defaultCommunityFor,
   resolveCreateCommunity,
   ensureBaseMembership,
+  ensureTenantMembership,
   memberIds,
   joinCommunity,
   leaveCommunity,
