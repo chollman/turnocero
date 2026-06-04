@@ -18,6 +18,21 @@ const SKIN_STORAGE_KEY = "turnocero_skin";
 // Slug del subdominio de comunidad, resuelto UNA vez (no cambia en runtime).
 const TENANT_SLUG = detectTenant()?.slug || null;
 
+// Nombre de marca del tenant, cacheado dentro del skin de localStorage (lo
+// escribe el effect de skin). Se lee UNA vez, síncrono, al cargar el módulo:
+// sirve de fallback mientras el GET del tenant está en vuelo, así el
+// SplashScreen (y el wordmark) muestran el nombre de la comunidad en vez de
+// "TurnoCero" en un subdominio (FOUC). Solo si el slug cacheado coincide.
+const CACHED_TENANT_BRAND = (() => {
+  if (!TENANT_SLUG) return null;
+  try {
+    const raw = JSON.parse(localStorage.getItem(SKIN_STORAGE_KEY) || "null");
+    return raw && raw.slug === TENANT_SLUG ? raw.brandName || null : null;
+  } catch {
+    return null;
+  }
+})();
+
 // Exportado para que consumidores que son DESCENDIENTES del provider (p. ej.
 // NotificationProvider) puedan leer el contexto de forma null-safe con
 // useContext(CommunityContext) sin que `useCommunity()` tire si falta el
@@ -136,8 +151,17 @@ export function CommunityProvider({ children }) {
     }
     styleEl.textContent = css;
     root.setAttribute("data-community", slug);
+    // Cacheamos también el nombre de marca para el fallback síncrono del splash
+    // (ver CACHED_TENANT_BRAND). Mismo valor que resuelve `brand.name`.
+    const brandName =
+      effectiveSkinCommunity.skin?.brandName ||
+      effectiveSkinCommunity.name ||
+      "";
     try {
-      localStorage.setItem(SKIN_STORAGE_KEY, JSON.stringify({ slug, css }));
+      localStorage.setItem(
+        SKIN_STORAGE_KEY,
+        JSON.stringify({ slug, css, brandName }),
+      );
     } catch {
       /* ignore */
     }
@@ -228,8 +252,12 @@ export function CommunityProvider({ children }) {
     // En modo tenant (subdominio o ?tenant=<slug>), la marca del sidebar se
     // transforma en la de la comunidad: si su skin no definió un `brandName`,
     // usamos el nombre de la comunidad en vez de caer a "TurnoCero".
+    // Mientras el GET del tenant está en vuelo (isTenant aún false), usamos el
+    // nombre cacheado del subdominio para que el splash no muestre "TurnoCero".
     const fallbackName =
-      (isTenant && effectiveSkinCommunity?.name) || "TurnoCero";
+      (isTenant && effectiveSkinCommunity?.name) ||
+      (TENANT_SLUG ? CACHED_TENANT_BRAND : null) ||
+      "TurnoCero";
     return {
       name: s?.brandName || fallbackName,
       tagline: s?.tagline || "",
