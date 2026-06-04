@@ -297,11 +297,11 @@ describe("<Auth> — register mode", () => {
     ).toBeInTheDocument();
   });
 
-  it("sanitizes the username to lowercase without spaces", () => {
+  it("strips spaces from the username but preserves case", () => {
     renderAuth("register");
     const input = screen.getByPlaceholderText("BlackwatchGames");
     fireEvent.change(input, { target: { value: "Cami Rossi" } });
-    expect(input.value).toBe("camirossi");
+    expect(input.value).toBe("CamiRossi");
   });
 });
 

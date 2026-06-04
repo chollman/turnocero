@@ -485,9 +485,7 @@ export default function Auth({ mode }) {
                     type="text"
                     value={username}
                     onChange={(e) =>
-                      setUsername(
-                        e.target.value.replace(/\s/g, "").toLowerCase(),
-                      )
+                      setUsername(e.target.value.replace(/\s/g, ""))
                     }
                     placeholder="BlackwatchGames"
                     autoComplete="username"
