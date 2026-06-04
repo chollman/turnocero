@@ -123,6 +123,7 @@ router.post(
       rethrowAsValidation(err);
     }
 
+    // eslint-disable-next-line no-warning-comments
     // Todo usuario pertenece a la comunidad base desde el alta (membership +
     // skin base). Sin esto quedaría sin comunidad y con prefs inconsistentes.
     await communityService.ensureBaseMembership(user);

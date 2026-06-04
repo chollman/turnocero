@@ -93,7 +93,7 @@ describe("CommunityContext — tenant mode (subdomain)", () => {
   it("falls back to the community name when the tenant skin has no brandName", async () => {
     useAuth.mockReturnValue({ user: null });
     const { skin, ...rest } = tenant;
-    const { brandName, ...skinNoBrand } = skin;
+    const { brandName: _brandName, ...skinNoBrand } = skin;
     server.use(
       http.get("/api/comunidades/patagonia", () =>
         HttpResponse.json({ ...rest, skin: skinNoBrand }),

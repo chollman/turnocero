@@ -1,4 +1,5 @@
 // Helpers puros para la grilla del Calendario unificado. Sin librerías de
+// eslint-disable-next-line no-warning-comments
 // fecha — todo nativo con `Date` (convención del repo, ver eventoDate.js).
 // La semana arranca en LUNES (convención es-AR).
 

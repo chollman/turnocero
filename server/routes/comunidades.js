@@ -160,6 +160,7 @@ router.put(
     }).select("+inviteCode");
     if (!community) throw httpError(404, "Comunidad no encontrada");
 
+    // eslint-disable-next-line no-warning-comments
     // Slug editable a mano. Se normaliza ("todo junto") y se valida unicidad.
     // Cambiarlo cambia el subdominio, las URLs y el `data-community` del skin.
     // La base ("turnocero") es inmutable.

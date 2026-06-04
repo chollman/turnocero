@@ -1,7 +1,7 @@
 const request = require("supertest");
 const app = require("../../app");
 const Rating = require("../../models/Rating");
-const { createUser, createAuthedUser, tokenFor } = require("../helpers/auth");
+const { createUser, tokenFor } = require("../helpers/auth");
 const { createTable } = require("../helpers/factories");
 const { loadSiteConfig, updateSiteConfig } = require("../../utils/siteConfig");
 const SiteConfig = require("../../models/SiteConfig");

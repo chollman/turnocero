@@ -481,7 +481,7 @@ export default function MesaForm({
   // muta mientras el user tipea en el buscador BGG. Una vez que el user
   // pickea un juego con `bggData.image`, el banner pasa a ser la imagen
   // del juego y el seed deja de importar.
-  const previewBannerSeed = useMemo(() => Math.random().toString(36), []);
+  const [previewBannerSeed] = useState(() => Math.random().toString(36));
 
   const previewMesa = useMemo(
     () => ({

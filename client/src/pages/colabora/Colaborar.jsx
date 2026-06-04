@@ -61,6 +61,7 @@ const SendIcon = ({ size = 16 }) => (
   </svg>
 );
 
+// eslint-disable-next-line no-warning-comments
 // TODO: confirmar username de Cafecito antes del deploy.
 const CAFECITO_URL = "https://cafecito.app/turnocero";
 

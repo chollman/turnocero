@@ -15,6 +15,7 @@ const mongoose = require("mongoose");
 // a CADA `Model.create` directo (model/service/job tests, fixtures, código
 // futuro) a setear `community` — un impuesto de mantenimiento alto. La garantía
 // real la dan: (1) `communityService.resolveCreateCommunity` en todas las rutas
+// eslint-disable-next-line no-warning-comments
 // de creación (todo contenido creado vía API nace con comunidad), y (2) el
 // test-guardrail `communityScoping.test.js`, que recorre el registro y verifica
 // que cada lista scopee. Ese par cubre el riesgo de leak sin el costo del flip.

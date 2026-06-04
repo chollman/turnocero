@@ -109,12 +109,6 @@ const attachCounts = (docs, map) =>
     commentCount: map[j._id.toString()] ?? 0,
   }));
 
-// ── Attach real comment counts to an array of compartida objects ─────────────
-const withCommentCounts = async (compartidas) => {
-  const map = await commentCountMap(compartidas);
-  return attachCounts(compartidas, map);
-};
-
 // ── GET /api/compartidas — paginated feed (public compartidas visible without auth) ─
 router.get(
   "/",

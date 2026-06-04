@@ -1,9 +1,7 @@
 const request = require("supertest");
-const mongoose = require("mongoose");
 const app = require("../../app");
 const Notification = require("../../models/Notification");
 const {
-  createUser,
   createAuthedUser,
   authHeader,
   makeFriends,

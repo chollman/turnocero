@@ -8,7 +8,7 @@
 // textPrimary → --text-primary, amber → --amber.
 
 export const cssVarName = (key) =>
-  "--" + String(key).replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
+  `--${String(key).replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}`;
 
 // Defensa en profundidad: el server ya sanitiza, pero re-validamos antes de
 // inyectar al <style> (nunca CSS crudo).

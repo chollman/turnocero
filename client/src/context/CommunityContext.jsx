@@ -59,6 +59,7 @@ export function CommunityProvider({ children }) {
   // ── Modo tenant (subdominio de comunidad) ────────────────────────────────
   // Si entramos por `<slug>.turnocero.com`, traemos esa comunidad (su skin /
   // sections / marca) aunque el visitante no sea miembro ni esté logueado, y
+  // eslint-disable-next-line no-warning-comments
   // acotamos TODO a ella. `GET /:slug` es público (optionalAuth). Solo entramos
   // en modo tenant si la comunidad tiene `subdomainEnabled` (el server scopea
   // bajo esa misma condición — así cliente y server quedan en sync).

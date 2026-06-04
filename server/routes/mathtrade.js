@@ -1,5 +1,4 @@
 const express = require("express");
-const mongoose = require("mongoose");
 const router = express.Router();
 const multer = require("../config/multer");
 const { cloudinary, uploadToCloudinary } = require("../config/cloudinary");
@@ -43,7 +42,6 @@ const STATUSES = [
   "cancelled",
 ];
 
-const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 const isAdmin = (req) => !!req.user?.isAdmin;
 
 // Oculta drafts a los no-admin.

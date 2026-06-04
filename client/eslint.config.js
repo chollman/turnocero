@@ -32,4 +32,12 @@ export default [
     },
     rules: sharedRules,
   },
+  // Vitest tests run under Node — grant node globals (e.g. `process`) on top of
+  // the browser globals from the src block above.
+  {
+    files: ["src/**/*.{test,spec}.{js,jsx}"],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
 ];

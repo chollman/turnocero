@@ -23,8 +23,10 @@ function groupItemsByMonth(items) {
   return Array.from(groups.values()).sort((a, b) => a.key.localeCompare(b.key));
 }
 
-// Vista agenda: lista cronológica agrupada por mes.
-export default function AgendaList({ items, now = Date.now() }) {
+// Vista agenda: lista cronológica agrupada por mes. `now` lo provee el caller
+// (Calendario); si no llega, countdown() aplica su propio fallback — evitamos el
+// default impuro `Date.now()` en los params (react-hooks/purity).
+export default function AgendaList({ items, now }) {
   const groups = useMemo(() => groupItemsByMonth(items), [items]);
 
   return (

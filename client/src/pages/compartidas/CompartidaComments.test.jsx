@@ -334,7 +334,9 @@ describe("<CompartidaComments>", () => {
     fireEvent.click(screen.getByRole("button", { name: /eliminar/i }));
     expect(window.confirm).toHaveBeenCalledWith("¿Eliminar tu comentario?");
     // Cancelado → no se llamó al endpoint ni se quitó el comentario.
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => {
+      setTimeout(r, 50);
+    });
     expect(deleteCalled).toBe(false);
     expect(screen.getByText("No me borres")).toBeInTheDocument();
   });
