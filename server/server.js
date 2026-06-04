@@ -15,6 +15,7 @@ const Community = require("./models/Community");
 const logger = require("./utils/logger");
 const { loadSiteConfig } = require("./utils/siteConfig");
 const { startSchedulers } = require("./jobs/scheduler");
+const { resolveHandshakeToken } = require("./utils/socketHelpers");
 const app = require("./app");
 const { socketCorsOptions } = require("./config/cors");
 
@@ -35,7 +36,10 @@ const io = new Server(server, {
 app.set("io", io);
 
 io.use((socket, next) => {
-  const token = socket.handshake.auth.token;
+  // Token del handshake (apex: localStorage) con fallback a la cookie httpOnly
+  // first-party — habilita el real-time bajo SSO entre subdominios. Ver
+  // `resolveHandshakeToken`.
+  const token = resolveHandshakeToken(socket.handshake);
   if (!token) return next(new Error("Authentication required"));
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

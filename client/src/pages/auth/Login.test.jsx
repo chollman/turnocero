@@ -9,6 +9,12 @@ import { server } from "../../test/server";
 // modo correcto.
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
+vi.mock("../../context/CommunityContext", () => ({
+  useCommunity: () => ({
+    isTenant: false,
+    brand: { name: "TurnoCero", tagline: "", logoLight: "", logoDark: "" },
+  }),
+}));
 vi.mock("./OAuthButtons", () => ({ default: () => null }));
 
 import Login from "./Login";

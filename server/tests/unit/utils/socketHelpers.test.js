@@ -1,10 +1,41 @@
 const {
+  resolveHandshakeToken,
   emitToUser,
   emitToTableRoom,
   emitToEventoRoom,
   emitToEventosList,
   emitToAdminRoom,
 } = require("../../../utils/socketHelpers");
+
+describe("resolveHandshakeToken", () => {
+  it("prefers auth.token (apex fast-path)", () => {
+    const hs = {
+      auth: { token: "from-auth" },
+      headers: { cookie: "token=from-cookie" },
+    };
+    expect(resolveHandshakeToken(hs)).toBe("from-auth");
+  });
+
+  it("falls back to the httpOnly cookie when auth.token is absent (subdomain SSO)", () => {
+    const hs = {
+      auth: {},
+      headers: { cookie: "foo=bar; token=jwt-from-cookie; baz=qux" },
+    };
+    expect(resolveHandshakeToken(hs)).toBe("jwt-from-cookie");
+  });
+
+  it("returns null when neither auth.token nor a token cookie is present", () => {
+    expect(resolveHandshakeToken({ auth: {}, headers: {} })).toBeNull();
+    expect(
+      resolveHandshakeToken({ auth: {}, headers: { cookie: "other=1" } }),
+    ).toBeNull();
+  });
+
+  it("does not throw on a malformed handshake", () => {
+    expect(resolveHandshakeToken(undefined)).toBeNull();
+    expect(resolveHandshakeToken({})).toBeNull();
+  });
+});
 
 function makeIo() {
   const emit = vi.fn();

@@ -3,6 +3,9 @@ import { render, screen, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/server";
+
+vi.mock("../utils/tenant", () => ({ detectTenant: vi.fn() }));
+import { detectTenant } from "../utils/tenant";
 import { AuthProvider, useAuth } from "./AuthContext";
 
 function Probe() {
@@ -53,6 +56,7 @@ function renderApp() {
 beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
+  detectTenant.mockReturnValue(null); // sitio principal por defecto
   // Default: /api/auth/me returns 401 — guest
   server.use(
     http.get("/api/auth/me", () => HttpResponse.json({}, { status: 401 })),
@@ -83,6 +87,33 @@ describe("AuthContext", () => {
       expect(screen.getByTestId("loading").textContent).toBe("false");
     });
     expect(meCalls).toBe(0);
+    expect(screen.getByTestId("user").textContent).toBe("null");
+  });
+
+  it("on a community subdomain, hits /me even without a local token (cookie SSO)", async () => {
+    detectTenant.mockReturnValue({ slug: "elclu" });
+    let meCalls = 0;
+    server.use(
+      http.get("/api/auth/me", () => {
+        meCalls += 1;
+        return HttpResponse.json({ _id: "u1", username: "alice" });
+      }),
+    );
+    // Sin token en localStorage: la sesión la levanta la cookie httpOnly.
+    renderApp();
+    await waitFor(() => {
+      expect(screen.getByTestId("loading").textContent).toBe("false");
+    });
+    expect(meCalls).toBe(1);
+    expect(screen.getByTestId("user").textContent).toBe("alice");
+  });
+
+  it("stays anonymous on a subdomain when the cookie is absent (/me 401)", async () => {
+    detectTenant.mockReturnValue({ slug: "elclu" });
+    renderApp();
+    await waitFor(() => {
+      expect(screen.getByTestId("loading").textContent).toBe("false");
+    });
     expect(screen.getByTestId("user").textContent).toBe("null");
   });
 

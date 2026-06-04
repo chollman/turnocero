@@ -9,6 +9,7 @@ Comunidades es multi-tenancy **suave**: un usuario pertenece a varias comunidade
 Objetivo de este cambio: darle a una comunidad un **subdominio propio** (`<slug>.turnocero.com`) de modo que, al entrar por ahí, **todo lo que se ve sea exclusivo de esa comunidad — como si las demás no existieran**.
 
 Decisiones tomadas (del usuario):
+
 1. **Vidriera pública**: no-miembros y anónimos ven el contenido público (read-only) + CTA para unirse.
 2. **Opt-in por comunidad**: solo las que un admin marca con `subdomainEnabled`.
 3. **Código + guía de infra**: implementado todo el código; la infra (DNS wildcard + dominio Vercel) la configura el dueño.
@@ -17,6 +18,7 @@ Decisiones tomadas (del usuario):
 ## Por qué fue de bajo riesgo
 
 Hay **un único punto de decisión por lado**:
+
 - **Server**: `resolveCommunities` ([server/middleware/resolveCommunities.js](../server/middleware/resolveCommunities.js)) fija `req.viewingCommunities` y `req.skinCommunity`. Todo el contenido scopeado filtra por `communityFilter(req)`.
 - **Cliente**: `CommunityContext` ([client/src/context/CommunityContext.jsx](../client/src/context/CommunityContext.jsx)) inyecta el skin y resuelve el `effectiveViewing`.
 
@@ -29,6 +31,7 @@ El cliente detecta el subdominio desde `window.location.hostname` y lo manda en 
 ## Qué se implementó
 
 ### Server
+
 - **`Community` model** ([server/models/Community.js](../server/models/Community.js)): campo `subdomainEnabled` (default false, index). Static `resolveTenant(slug)` (cache TTL 60s + negativo, solo `subdomainEnabled`, base excluida) + `__resetTenantCache()`. `generateSlug` ahora arma el slug "todo junto" (a-z0-9, NFD sin acentos, colisiones con número sin separador). Helper `normalizeSlug(str)` extraído y exportado.
 - **Middleware `resolveTenant`** (en resolveCommunities.js, montado **global** en [server/app.js](../server/app.js) antes de las rutas): lee `X-Community-Slug` (fallback `?tenant=`), setea `req.tenant`. No toca Mongo si no hay header.
 - **`resolveCommunities`**: si `req.tenant`, cortocircuita a `viewingCommunities=[tenant]` + `skinCommunity=tenant` (anónimos, no-miembros y miembros por igual).
@@ -38,6 +41,7 @@ El cliente detecta el subdominio desde `window.location.hostname` y lo manda en 
 - **CORS** ([server/config/cors.js](../server/config/cors.js)): nuevo `CORS_ORIGIN_SUFFIX` (ej. `.turnocero.com`) → matcheo de sufijo https compartido por Express + Socket.IO (`isAllowedOrigin` exportado). `X-Community-Slug` agregado a `allowedHeaders`. `socketCorsOptions.origin` pasó de array a función.
 
 ### Cliente
+
 - **`client/src/utils/tenant.js`** `detectTenant()`: parsea hostname vs `VITE_TENANT_DOMAIN`; reservados `www`/`app`/`api`/`turnocero`; override dev `?tenant=<slug>` + `<slug>.localhost`.
 - **`main.jsx`**: setea el header default de axios `X-Community-Slug` si hay tenant.
 - **`CommunityContext`**: `GET /api/comunidades/:slug`, entra en modo tenant solo si `data.subdomainEnabled`; fuerza skin/marca/sections desde el tenant (sirve para anónimos); expone `isTenant`/`tenant`; `effectiveViewing=[tenant]`.
@@ -59,7 +63,7 @@ El cliente detecta el subdominio desde `window.location.hostname` y lo manda en 
 - **DNS (Cloudflare):** CNAME `*` → `cname.vercel-dns.com` en **"DNS only"** (gris). El warning de "expone IP origen" es inofensivo (el target es Vercel, anycast público).
 - **Cert — subdominio PUNTUAL en Vercel, NO wildcard.** Un cert wildcard requiere desafío DNS-01, que Vercel solo automatiza si controla los nameservers; pero el DNS está en Cloudflare (y mover NS rompería el email de Resend + el `api` de Render). **Solución:** agregar cada `<slug>.turnocero.app` como dominio puntual en Vercel → valida por HTTP-01 vía el CNAME `*`, emite cert en minutos, sin tocar NS. Síntoma del wildcard mal configurado: `Invalid Configuration` + TLS handshake fallido (`SSL_ERROR_SYSCALL`).
 - **Env productivas:** Render `CORS_ORIGIN_SUFFIX=.turnocero.app` (+ `CORS_ORIGIN` con apex/www); Vercel `VITE_TENANT_DOMAIN=turnocero.app` (build-time → requiere redeploy).
-- **OAuth:** Google NO acepta wildcards en *Authorized JS origins* → agregar `https://<slug>.turnocero.app` por cada subdominio. Facebook sí cubre subdominios con el App Domain `turnocero.app` (una vez). FB Privacy/Data-Deletion URLs → `https://turnocero.app/privacidad`.
+- **OAuth:** Google NO acepta wildcards en _Authorized JS origins_ → agregar `https://<slug>.turnocero.app` por cada subdominio. Facebook sí cubre subdominios con el App Domain `turnocero.app` (una vez). FB Privacy/Data-Deletion URLs → `https://turnocero.app/privacidad`.
 - **Marca tenant:** login (`Auth.jsx`) + guest nav (`GuestSidebar.jsx`, `GuestNavbar.jsx`) muestran logo/nombre de la comunidad en modo tenant (commit 5558297). Borrado `AuthLogo.jsx` muerto (ce518f9).
 
 **Checklist por comunidad nueva:** (1) dominio puntual `<slug>.turnocero.app` en Vercel; (2) origin `https://<slug>.turnocero.app` en Google. DNS + backend ya lo cubren.

@@ -3,12 +3,15 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { STORAGE_KEYS } from "../utils/storageKeys";
 import { API } from "../api/endpoints";
+import { detectTenant } from "../utils/tenant";
 
-// Note (long-term): consider migrating to a custom domain (e.g. turnocero.com +
-// api.turnocero.com) so auth cookies become first-party (SameSite=lax). Safari's ITP
-// blocks cross-site cookies even with SameSite=None, which requires the Bearer-token
-// workaround below. See docs/safari-auth-fix.md for full context.
-
+// Auth es doble: token Bearer en `localStorage` (por-origin) + cookie httpOnly.
+// Con el dominio propio (`turnocero.app` front + `api.turnocero.app` back) la
+// cookie es first-party (mismo eTLD+1) → no la frena la ITP de Safari y viaja a
+// todos los subdominios de comunidad. Eso habilita el SSO entre subdominios: en
+// `<slug>.turnocero.app` el `localStorage` está vacío pero la cookie levanta la
+// sesión vía `/me` (ver el efecto de boot abajo). `withCredentials` manda la
+// cookie en cada request; el header Bearer sigue como fast-path en el apex.
 axios.defaults.withCredentials = true;
 
 // Safari/Firefox en modo privado tiran QuotaExceededError al escribir Storage,
@@ -102,19 +105,28 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const token = local.get(STORAGE_KEYS.TOKEN);
-    if (!token) {
+    // En un subdominio de comunidad (`<slug>.turnocero.app`) el `localStorage`
+    // está vacío — es por-origin — pero la cookie de auth httpOnly es
+    // first-party bajo `turnocero.app`, así que `/me` puede levantar la sesión
+    // igual (SSO entre subdominios). Por eso, aunque no haya token local,
+    // intentamos `/me` cuando estamos en modo tenant. En el sitio principal sin
+    // token nos quedamos anónimos sin pegar un request extra.
+    const onTenant = !!detectTenant();
+    if (!token && !onTenant) {
       setAuthHeader(null);
       setLoading(false);
       return;
     }
-    setAuthHeader(token);
+    setAuthHeader(token); // null-safe: limpia el header si no hay token
     axios
       .get(API.auth.ME)
       .then(({ data }) => setRealUser(data))
       .catch(() => {
         setRealUser(null);
-        local.remove(STORAGE_KEYS.TOKEN);
-        setAuthHeader(null);
+        if (token) {
+          local.remove(STORAGE_KEYS.TOKEN);
+          setAuthHeader(null);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
