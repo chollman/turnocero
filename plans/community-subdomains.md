@@ -75,9 +75,16 @@ El cliente detecta el subdominio desde `window.location.hostname` y lo manda en 
 - Abrir `http://localhost:3000/?tenant=<slug>` → verificar: solo contenido de esa comunidad (mesas/compartidas/etc.), skin aplicado, selector de comunidades oculto, "Publicar en" fijo. Repetir sin login (vidriera pública).
 - Alternativa: `http://<slug>.localhost:3000`.
 
+## SSO entre subdominios (fase 2 — HECHO, commit f7b3ebc, 2026-06-04)
+
+El login ahora **sí se comparte** entre subdominios. El backend ya emitía la cookie httpOnly `token` (host-only de `api.turnocero.app`) y la leía en `protect`/`optionalAuth`; como `api.turnocero.app` es same-site con todos los subdominios bajo `turnocero.app`, esa cookie es **first-party** y viaja en cualquier request credenciado — **no hace falta `Domain=.turnocero.app`** (todos pegan al mismo backend). Faltaba el cliente:
+
+- **`AuthContext` boot:** si no hay token en `localStorage` pero `detectTenant()` da un slug, igual pega `GET /api/auth/me` → la cookie levanta la sesión. El apex sin token sigue anónimo sin request extra. (`axios.defaults.withCredentials = true` ya estaba.)
+- **Socket.IO:** cliente con `withCredentials: true`; server cae a la cookie del handshake cuando falta `auth.token`, vía helper puro `resolveHandshakeToken(handshake)` ([server/utils/socketHelpers.js](../server/utils/socketHelpers.js)). Real-time bajo sesión cookie-only.
+- `cookie@^0.7.2` → dep directa de server. **Efecto colateral:** ya no hace falta registrar cada subdominio en Google OAuth para que el login ande (loguea en apex, sesión por cookie). Logout es global. El SSO cross-origin solo se prueba en prod.
+
 ## Limitaciones conocidas / próximos pasos
 
-- **Login NO se comparte entre subdominios**: el token vive en `localStorage`, que es por-origin → un miembro logueado en `turnocero.com` aparece deslogueado en `patagonia.turnocero.com`. Para la vidriera read-only no bloquea. **Fix futuro (fase 2)**: cookie de auth con `Domain=.turnocero.com` + SSO vía `/api/auth/me`.
 - **OG/crawlers por subdominio**: [client/middleware.js](../client/middleware.js) podría derivar el slug del `Host` para branding correcto en previews — opcional, no incluido.
 - Cambiar el slug de una comunidad existente rompe links/bookmarks viejos y el subdominio anterior (por eso es acción deliberada del admin, no automática al renombrar).
 
