@@ -48,7 +48,13 @@ router.get(
   "/",
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const communities = await Community.find().sort({ isBase: -1, name: 1 });
+    // En un subdominio tenant el directorio solo muestra esa comunidad: el sitio
+    // se comporta como si las demás no existieran.
+    const dirFilter = req.tenant ? { _id: req.tenant._id } : {};
+    const communities = await Community.find(dirFilter).sort({
+      isBase: -1,
+      name: 1,
+    });
     const counts = await communityService.memberCounts();
     res.json({
       comunidades: communities.map((c) =>
@@ -142,7 +148,8 @@ router.post(
 
 // ── Rutas /:slug ───────────────────────────────────────────────────────────
 
-// PUT /api/comunidades/:slug — admin: editar (parcial; slug INMUTABLE, skin aparte).
+// PUT /api/comunidades/:slug — admin: editar (parcial; skin aparte). El slug se
+// edita explícitamente acá (no cambia solo al renombrar), nunca en la base.
 router.put(
   "/:slug",
   protect,
@@ -152,6 +159,22 @@ router.put(
       slug: req.params.slug,
     }).select("+inviteCode");
     if (!community) throw httpError(404, "Comunidad no encontrada");
+
+    // Slug editable a mano. Se normaliza ("todo junto") y se valida unicidad.
+    // Cambiarlo cambia el subdominio, las URLs y el `data-community` del skin.
+    // La base ("turnocero") es inmutable.
+    if (req.body.slug !== undefined && !community.isBase) {
+      const next = Community.normalizeSlug(req.body.slug);
+      if (!next) throw httpError(400, "El slug no puede quedar vacío");
+      if (next !== community.slug) {
+        const taken = await Community.exists({
+          slug: next,
+          _id: { $ne: community._id },
+        });
+        if (taken) throw httpError(409, "Ese slug ya está en uso");
+        community.slug = next;
+      }
+    }
 
     if (req.body.name !== undefined) community.name = String(req.body.name).trim();
     if (req.body.description !== undefined) {
@@ -163,6 +186,10 @@ router.put(
     if (req.body.inviteCode !== undefined) {
       community.inviteCode = String(req.body.inviteCode).trim();
     }
+    // Opt-in al subdominio single-tenant. La base nunca puede serlo.
+    if (req.body.subdomainEnabled !== undefined && !community.isBase) {
+      community.subdomainEnabled = req.body.subdomainEnabled === true;
+    }
     if (req.body.sections && typeof req.body.sections === "object") {
       for (const [key, val] of Object.entries(req.body.sections)) {
         if (SiteConfig.SECTION_KEYS.includes(key)) {
@@ -171,6 +198,9 @@ router.put(
       }
     }
     await community.save();
+    // Invalidar el caché de tenants: un flip de subdomainEnabled (o cambios que
+    // afecten al doc tenant) debe verse sin esperar el TTL.
+    Community.__resetTenantCache();
     res.json(community.toJSON());
   }),
 );
@@ -215,6 +245,7 @@ router.put(
       community.skin.font = String(req.body.font).slice(0, 80);
     }
     await community.save();
+    Community.__resetTenantCache(); // el doc tenant cacheado quedó stale
     res.json(community.toJSON());
   }),
 );
@@ -240,6 +271,7 @@ router.post(
     const asset = { url: result.secure_url, publicId: result.public_id };
     community.set(variant === "dark" ? "skin.logoDark" : "skin.logoLight", asset);
     await community.save();
+    Community.__resetTenantCache(); // el doc tenant cacheado quedó stale
     res.json(community.toJSON());
   }),
 );

@@ -195,6 +195,7 @@ router.post(
     data.community = await communityService.resolveCreateCommunity(
       req.user,
       req.body.community,
+      req.tenant,
     );
     const torneo = await Torneo.create(data);
     const populated = await Torneo.findById(torneo._id).populate(

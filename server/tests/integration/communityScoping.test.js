@@ -89,15 +89,16 @@ describe("Community read-scoping — compartidas", () => {
   });
 });
 
-describe("Community scoping — /mine and event tables are NOT scoped", () => {
-  it("the global mesas list is scoped but /mine returns the user's own tables across communities", async () => {
+describe("Community scoping — /mine and /me/feed respect viewing communities", () => {
+  it("/mine only returns the user's own tables in the communities they're viewing", async () => {
     const beta = await Community.create({ name: "Beta2", slug: "beta2" });
     // Admin bypasea el requireSection('mesas') (default off para no-admins).
+    // Sin memberships → viewing=[base], así que solo ve sus mesas de la base.
     const { user: admin, token } = await createAuthedUser({ isAdmin: true });
     const baseTable = await createTable(admin);
     const betaTable = await createTable(admin, { community: beta._id });
 
-    // Lista global: scopeada a la base (admin sin memberships → viewing=[base]).
+    // Lista global: scopeada a la base.
     const list = await request(app)
       .get("/api/tables")
       .set(authHeader(token))
@@ -106,13 +107,53 @@ describe("Community scoping — /mine and event tables are NOT scoped", () => {
     expect(listIds).toContain(String(baseTable._id));
     expect(listIds).not.toContain(String(betaTable._id));
 
-    // /mine: NO scopeado — devuelve las mesas propias de cualquier comunidad.
+    // /mine: ahora también scopeado — la mesa de beta NO aparece.
     const mine = await request(app)
       .get("/api/tables/mine")
       .set(authHeader(token))
       .expect(200);
     const mineIds = mine.body.tables.map((t) => String(t._id));
     expect(mineIds).toContain(String(baseTable._id));
+    expect(mineIds).not.toContain(String(betaTable._id));
+  });
+
+  it("/mine in tenant mode only returns the tenant community's tables", async () => {
+    const beta = await Community.create({
+      name: "Beta3",
+      slug: "beta3",
+      subdomainEnabled: true,
+    });
+    // El usuario es miembro de base + beta y crea una mesa en cada una.
+    const { user: admin, token } = await createAuthedUser({
+      isAdmin: true,
+      communityMemberships: [{ community: beta._id, role: "member" }],
+    });
+    const baseTable = await createTable(admin);
+    const betaTable = await createTable(admin, { community: beta._id });
+
+    // Entrando por el subdominio (header X-Community-Slug) solo ve las de beta.
+    const mine = await request(app)
+      .get("/api/tables/mine")
+      .set(authHeader(token))
+      .set("X-Community-Slug", "beta3")
+      .expect(200);
+    const mineIds = mine.body.tables.map((t) => String(t._id));
     expect(mineIds).toContain(String(betaTable._id));
+    expect(mineIds).not.toContain(String(baseTable._id));
+  });
+
+  it("/me/feed is scoped to the viewing communities too", async () => {
+    const beta = await Community.create({ name: "Beta4", slug: "beta4" });
+    const { user: admin, token } = await createAuthedUser({ isAdmin: true });
+    const baseTable = await createTable(admin);
+    const betaTable = await createTable(admin, { community: beta._id });
+
+    const feed = await request(app)
+      .get("/api/tables/me/feed")
+      .set(authHeader(token))
+      .expect(200);
+    const feedIds = feed.body.tables.map((t) => String(t._id));
+    expect(feedIds).toContain(String(baseTable._id));
+    expect(feedIds).not.toContain(String(betaTable._id));
   });
 });

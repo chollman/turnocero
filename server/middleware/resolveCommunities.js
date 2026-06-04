@@ -1,5 +1,30 @@
 const Community = require("../models/Community");
 
+// ── resolveTenant ────────────────────────────────────────────────────────
+//
+// Middleware GLOBAL (montado en app.js antes de las rutas). Detecta si el
+// request llega por el subdominio de una comunidad (single-tenant) leyendo el
+// header `X-Community-Slug` que el cliente setea desde window.location.hostname
+// (fallback `?tenant=` para hits directos a la API / crawlers). Resuelve el slug
+// a su comunidad tenant (cacheada) y la deja en `req.tenant` (o null).
+//
+// Cuando NO hay slug (sitio principal — la mayoría del tráfico) no toca Mongo:
+// setea req.tenant = null y sigue. Así un request normal nunca depende de este
+// lookup. Con slug presente, un error real (Mongo caído) propaga vía next(err).
+async function resolveTenant(req, res, next) {
+  try {
+    const slug = req.get("X-Community-Slug") || req.query.tenant;
+    if (!slug) {
+      req.tenant = null;
+      return next();
+    }
+    req.tenant = await Community.resolveTenant(slug);
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ── resolveCommunities ───────────────────────────────────────────────────
 //
 // Middleware para endpoints de LISTA. Corre DESPUÉS del optionalAuth/protect
@@ -12,6 +37,16 @@ const Community = require("../models/Community");
 // vaciaría todas las listas — por eso siempre cae a [base].
 async function resolveCommunities(req, res, next) {
   try {
+    // Modo tenant (subdominio de comunidad): el contenido se acota SIEMPRE a esa
+    // comunidad — anónimos, no-miembros y miembros por igual (vidriera pública).
+    // Los filtros de privacy existentes se siguen componiendo aparte, así que el
+    // contenido friends/private ajeno queda oculto igual que en el sitio normal.
+    if (req.tenant) {
+      req.viewingCommunities = [req.tenant._id];
+      req.skinCommunity = req.tenant._id;
+      return next();
+    }
+
     const base = await Community.getBase();
 
     if (!req.user) {
@@ -53,4 +88,4 @@ function communityFilter(req) {
   return { community: { $in: req.viewingCommunities || [] } };
 }
 
-module.exports = { resolveCommunities, communityFilter };
+module.exports = { resolveTenant, resolveCommunities, communityFilter };

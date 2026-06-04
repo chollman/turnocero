@@ -386,6 +386,7 @@ router.post(
       community: await communityService.resolveCreateCommunity(
         req.user,
         req.body.community,
+        req.tenant,
       ),
       category,
       title: title?.trim() || "",

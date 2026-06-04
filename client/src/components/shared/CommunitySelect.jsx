@@ -11,7 +11,10 @@ export default function CommunitySelect({
   label = "Publicar en",
   className = "",
 }) {
-  const { memberships, skin } = useCommunity();
+  const { memberships, skin, isTenant } = useCommunity();
+  // En modo tenant (subdominio) el contenido se publica SIEMPRE en esa
+  // comunidad (el server lo fuerza) — no hay nada que elegir.
+  if (isTenant) return null;
   if (!memberships || memberships.length <= 1) return null;
 
   const current = value || skin || String(memberships[0].community._id);

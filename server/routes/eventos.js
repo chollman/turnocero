@@ -214,6 +214,7 @@ router.get(
 router.get(
   "/mine",
   protect,
+  resolveCommunities,
   asyncHandler(async (req, res) => {
     const uid = req.user._id;
     const eventos = await Evento.find({
@@ -229,6 +230,7 @@ router.get(
         },
       ],
       status: { $in: ["open", "closed"] }, // ocultamos drafts y cancelled
+      ...communityFilter(req),
     })
       .select("title eventDate status image")
       .sort({ eventDate: -1 })
@@ -284,6 +286,7 @@ router.post(
         community: await communityService.resolveCreateCommunity(
           req.user,
           req.body.community,
+          req.tenant,
         ),
         title: req.body.title?.trim(),
         description: req.body.description?.trim() || undefined,

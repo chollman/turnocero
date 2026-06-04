@@ -11,8 +11,12 @@ import axios from "axios";
 import { useAuth } from "./AuthContext";
 import { API } from "../api/endpoints";
 import { buildSkinCss } from "../utils/skin";
+import { detectTenant } from "../utils/tenant";
 
 const SKIN_STORAGE_KEY = "turnocero_skin";
+
+// Slug del subdominio de comunidad, resuelto UNA vez (no cambia en runtime).
+const TENANT_SLUG = detectTenant()?.slug || null;
 
 // Exportado para que consumidores que son DESCENDIENTES del provider (p. ej.
 // NotificationProvider) puedan leer el contexto de forma null-safe con
@@ -36,6 +40,30 @@ export function CommunityProvider({ children }) {
   // real. No se toca en la carga inicial ni al cambiar el skin (el skin no
   // afecta qué contenido se ve).
   const [viewingVersion, setViewingVersion] = useState(0);
+
+  // ── Modo tenant (subdominio de comunidad) ────────────────────────────────
+  // Si entramos por `<slug>.turnocero.com`, traemos esa comunidad (su skin /
+  // sections / marca) aunque el visitante no sea miembro ni esté logueado, y
+  // acotamos TODO a ella. `GET /:slug` es público (optionalAuth). Solo entramos
+  // en modo tenant si la comunidad tiene `subdomainEnabled` (el server scopea
+  // bajo esa misma condición — así cliente y server quedan en sync).
+  const [tenantCommunity, setTenantCommunity] = useState(null);
+
+  useEffect(() => {
+    if (!TENANT_SLUG) return undefined;
+    const ac = new AbortController();
+    axios
+      .get(API.comunidades.DETAIL(TENANT_SLUG), { signal: ac.signal })
+      .then(({ data }) => {
+        setTenantCommunity(data?.subdomainEnabled ? data : null);
+      })
+      .catch((err) => {
+        if (!axios.isCancel(err)) setTenantCommunity(null);
+      });
+    return () => ac.abort();
+  }, []);
+
+  const isTenant = !!tenantCommunity;
 
   const userId = user?._id || null;
 
@@ -73,6 +101,11 @@ export function CommunityProvider({ children }) {
     return m ? m.community : null;
   }, [skin, memberships]);
 
+  // En modo tenant el skin / marca / sections salen SIEMPRE de la comunidad del
+  // subdominio (forzado, incluso para no-miembros y anónimos). Si no, el skin
+  // que el usuario eligió.
+  const effectiveSkinCommunity = isTenant ? tenantCommunity : skinCommunity;
+
   // ── Motor de reskin ──────────────────────────────────────────────────
   // Inyecta/actualiza el <style id="community-skin"> con los overrides de la
   // comunidad-skin + setea `data-community`. En useLayoutEffect para que el CSS
@@ -83,7 +116,7 @@ export function CommunityProvider({ children }) {
     let styleEl = document.getElementById("community-skin");
 
     // Base o sin skin → sin override (la base usa los tokens estándar).
-    if (!skinCommunity || skinCommunity.isBase) {
+    if (!effectiveSkinCommunity || effectiveSkinCommunity.isBase) {
       root.removeAttribute("data-community");
       if (styleEl) styleEl.textContent = "";
       try {
@@ -94,8 +127,8 @@ export function CommunityProvider({ children }) {
       return;
     }
 
-    const slug = skinCommunity.slug;
-    const css = buildSkinCss(slug, skinCommunity.skin);
+    const slug = effectiveSkinCommunity.slug;
+    const css = buildSkinCss(slug, effectiveSkinCommunity.skin);
     if (!styleEl) {
       styleEl = document.createElement("style");
       styleEl.id = "community-skin";
@@ -108,24 +141,31 @@ export function CommunityProvider({ children }) {
     } catch {
       /* ignore */
     }
-  }, [skinCommunity]);
+  }, [effectiveSkinCommunity]);
 
   // Viewing efectivo: el subconjunto curado intersectado con las memberships;
   // vacío = todas (espeja la lógica del server).
   const effectiveViewing = useMemo(() => {
+    // Modo tenant: el contenido se acota SIEMPRE a la comunidad del subdominio.
+    if (isTenant) return [String(tenantCommunity._id)];
     const memberIds = memberships.map((m) => String(m.community._id));
     if (!viewing.length) return memberIds;
     return viewing.filter((v) => memberIds.includes(v));
-  }, [viewing, memberships]);
+  }, [isTenant, tenantCommunity, viewing, memberships]);
 
   // Resolutor id → comunidad (objeto completo) desde las memberships. Lo usa
   // <ItemCommunityTag> para etiquetar cada item del feed combinado con su
   // comunidad. Cada item viene de una comunidad que el usuario integra (el
   // scoping del server lo garantiza), así que siempre resuelve.
-  const communityById = useMemo(
-    () => new Map(memberships.map((m) => [String(m.community._id), m.community])),
-    [memberships],
-  );
+  const communityById = useMemo(() => {
+    const map = new Map(
+      memberships.map((m) => [String(m.community._id), m.community]),
+    );
+    // En modo tenant los items vienen todos de la comunidad del subdominio, que
+    // el visitante puede no integrar — asegurar que resuelva igual.
+    if (isTenant) map.set(String(tenantCommunity._id), tenantCommunity);
+    return map;
+  }, [memberships, isTenant, tenantCommunity]);
 
   const savePrefs = useCallback(async (patch) => {
     const { data } = await axios.put(API.comunidades.PREFERENCIAS, patch);
@@ -173,25 +213,30 @@ export function CommunityProvider({ children }) {
   // la comunidad-skin la apague explícitamente en su override `sections`.
   const isSectionEnabledInSkin = useCallback(
     (key) => {
-      const sections = skinCommunity?.sections;
+      const sections = effectiveSkinCommunity?.sections;
       if (!sections) return true;
       return sections[key] !== false;
     },
-    [skinCommunity],
+    [effectiveSkinCommunity],
   );
 
   // Identidad de marca de la comunidad-skin activa (nombre + logos), con
   // fallback a "TurnoCero" / assets base. Si solo se subió un logo, se usa para
   // ambos temas.
   const brand = useMemo(() => {
-    const s = skinCommunity?.skin;
+    const s = effectiveSkinCommunity?.skin;
+    // En modo tenant (subdominio o ?tenant=<slug>), la marca del sidebar se
+    // transforma en la de la comunidad: si su skin no definió un `brandName`,
+    // usamos el nombre de la comunidad en vez de caer a "TurnoCero".
+    const fallbackName =
+      (isTenant && effectiveSkinCommunity?.name) || "TurnoCero";
     return {
-      name: s?.brandName || "TurnoCero",
+      name: s?.brandName || fallbackName,
       tagline: s?.tagline || "",
       logoLight: s?.logoLight?.url || s?.logoDark?.url || "",
       logoDark: s?.logoDark?.url || s?.logoLight?.url || "",
     };
-  }, [skinCommunity]);
+  }, [isTenant, effectiveSkinCommunity]);
 
   const value = useMemo(
     () => ({
@@ -201,6 +246,11 @@ export function CommunityProvider({ children }) {
       communityById,
       skin,
       skinCommunity,
+      // Modo tenant (subdominio de comunidad): `isTenant` lo consumen los
+      // componentes para ocultar la UI cruzada (selector, directorio, "Publicar
+      // en") y forzar la comunidad. `tenant` es el doc de esa comunidad.
+      tenant: tenantCommunity,
+      isTenant,
       brand,
       loaded,
       viewingVersion,
@@ -218,6 +268,8 @@ export function CommunityProvider({ children }) {
       communityById,
       skin,
       skinCommunity,
+      tenantCommunity,
+      isTenant,
       brand,
       loaded,
       viewingVersion,

@@ -1,6 +1,7 @@
 const request = require("supertest");
 const app = require("../../app");
 const Evento = require("../../models/Evento");
+const Community = require("../../models/Community");
 const { createUser, createAuthedUser, tokenFor } = require("../helpers/auth");
 const { createEvento } = require("../helpers/factories");
 const { loadSiteConfig, updateSiteConfig } = require("../../utils/siteConfig");
@@ -117,6 +118,56 @@ describe("F1 — GET /api/eventos/mine (eventos donde el user participó)", () =
   it("401 sin auth", async () => {
     const res = await request(app).get("/api/eventos/mine");
     expect(res.status).toBe(401);
+  });
+
+  it("scopea por comunidad: oculta los eventos de comunidades que no se ven", async () => {
+    const beta = await Community.create({
+      name: "BetaMine",
+      slug: "betamine",
+    });
+    // Viewer base-only (viewing por defecto = [base]). El evento de beta se
+    // crea por el factory (bypasea el guard de membership del route).
+    const { user, token } = await createAuthedUser();
+    const baseEvento = await createEvento(user, {
+      title: "Base mío",
+      status: "open",
+    });
+    await createEvento(user, {
+      title: "Beta mío",
+      status: "open",
+      community: beta._id,
+    });
+
+    const res = await request(app)
+      .get("/api/eventos/mine")
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.eventos.map((e) => e.title)).toEqual(["Base mío"]);
+    void baseEvento;
+  });
+
+  it("en modo tenant solo devuelve los eventos de la comunidad del subdominio", async () => {
+    const beta = await Community.create({
+      name: "BetaTenant",
+      slug: "betatenant",
+      subdomainEnabled: true,
+    });
+    const { user, token } = await createAuthedUser({
+      communityMemberships: [{ community: beta._id, role: "member" }],
+    });
+    await createEvento(user, { title: "Base mío", status: "open" });
+    await createEvento(user, {
+      title: "Beta mío",
+      status: "open",
+      community: beta._id,
+    });
+
+    const res = await request(app)
+      .get("/api/eventos/mine")
+      .set("Authorization", `Bearer ${token}`)
+      .set("X-Community-Slug", "betatenant");
+    expect(res.status).toBe(200);
+    expect(res.body.eventos.map((e) => e.title)).toEqual(["Beta mío"]);
   });
 });
 
