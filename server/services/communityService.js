@@ -294,6 +294,17 @@ async function memberCounts() {
   return map;
 }
 
+// Ids de los miembros de UNA comunidad (lookup por índice). Lo usa la difusión
+// dirigida de contenido (ej. el toast `noticia:published`) para no emitir en
+// broadcast global a usuarios que ni integran la comunidad. `exclude` omite un
+// id (típicamente el autor, que no necesita un toast de su propia publicación).
+async function memberIds(communityId, { exclude } = {}) {
+  const query = { "communityMemberships.community": communityId };
+  if (exclude) query._id = { $ne: exclude };
+  const users = await User.find(query).select("_id").lean();
+  return users.map((u) => u._id);
+}
+
 // Ids de los destinatarios de una solicitud de unión: subadmins de la comunidad
 // + admins globales (así una solicitud nunca queda sin moderador).
 async function joinRequestRecipientIds(community) {
@@ -321,6 +332,7 @@ module.exports = {
   defaultCommunityFor,
   resolveCreateCommunity,
   ensureBaseMembership,
+  memberIds,
   joinCommunity,
   leaveCommunity,
   acceptRequest,

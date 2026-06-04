@@ -79,13 +79,27 @@ router.post(
       "username displayName avatar",
     );
 
+    // Toast en tiempo real dirigido SOLO a los miembros de la comunidad de la
+    // noticia (no broadcast global — antes un `io.emit` rociaba el toast a todos
+    // los usuarios, incluso los que no integran la comunidad). El autor se
+    // excluye (no necesita un toast de su propia publicación). El `community` en
+    // el payload mantiene el filtro por subdominio del cliente como defensa extra
+    // (un user que integra varias comunidades, en el subdominio de una, descarta
+    // los toasts de las otras).
     const io = req.app.get("io");
     if (io) {
-      io.emit("noticia:published", {
-        noticiaId: noticia._id.toString(),
-        title: noticia.title || "",
-        timestamp: new Date(),
+      const recipientIds = await communityService.memberIds(noticia.community, {
+        exclude: req.user._id,
       });
+      const rooms = recipientIds.map((id) => `user:${id}`);
+      if (rooms.length) {
+        io.to(rooms).emit("noticia:published", {
+          noticiaId: noticia._id.toString(),
+          title: noticia.title || "",
+          community: noticia.community ? noticia.community.toString() : null,
+          timestamp: new Date(),
+        });
+      }
     }
 
     res.status(201).json(populated);

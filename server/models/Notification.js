@@ -120,6 +120,14 @@ const notificationSchema = new mongoose.Schema(
     communityId: { type: String, default: null },
     communityName: { type: String, default: "" },
     communitySlug: { type: String, default: "" },
+    // Comunidad a la que pertenece el CONTENIDO de esta notificación (mesa,
+    // evento, torneo, compartida, etc.). Distinto de `communityId`, que es el
+    // SUJETO de las notifs `community_*`. Lo usa el scoping por subdominio
+    // (tenant): en un subdominio de comunidad solo se muestran las notifs cuyo
+    // `community` coincide (las personales — dm/amistad/admin-chat — pasan
+    // siempre porque no pertenecen a ninguna comunidad). Null en tipos
+    // personales y en notifs legacy previas a este campo.
+    community: { type: String, default: null },
   },
   { timestamps: true },
 );
@@ -132,6 +140,8 @@ notificationSchema.index({ recipient: 1, type: 1, compartidaId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, eventoId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, mathtradeId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, communityId: 1 });
+// Scoping por subdominio (tenant): listar las notifs de una comunidad puntual.
+notificationSchema.index({ recipient: 1, community: 1, updatedAt: -1 });
 // Auto-purge old notifications (90 days since last update). Lightweight retention policy.
 notificationSchema.index(
   { updatedAt: 1 },

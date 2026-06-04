@@ -14,6 +14,7 @@ import { CommunityContext } from "./CommunityContext";
 import { API } from "../api/endpoints";
 import {
   EVENT_SECTION,
+  PERSONAL_EVENTS,
   mergeNotifs,
   pushToast,
   markReadByPredicate,
@@ -52,15 +53,32 @@ export function NotificationProvider({ children }) {
     sectionCheckRef.current = isSectionEnabled;
   }, [isSectionEnabled]);
 
-  // Wrap un socket handler con check de section-enabled. Si la sección
-  // está OFF para el user, droppea silenciosamente (defense-in-depth — el
-  // server no debería emitir pero el filtro extra evita bugs). Memoizado
-  // con useCallback para que los useEffects de los hooks de listeners no
-  // re-corran innecesariamente.
+  // Id de la comunidad del subdominio (modo tenant), o null en el sitio normal.
+  // En un ref para que `gated` no se recree (y los listeners no re-attacheen).
+  const tenantIdRef = useRef(null);
+  useEffect(() => {
+    tenantIdRef.current = communityCtx?.isTenant
+      ? String(communityCtx.tenant?._id || "")
+      : null;
+  }, [communityCtx?.isTenant, communityCtx?.tenant]);
+
+  // Wrap un socket handler con dos filtros (defense-in-depth — el server ya
+  // debería no emitir, pero el filtro extra evita bugs):
+  //   1) section-enabled: si la sección está OFF para el user, droppea.
+  //   2) scoping por subdominio (tenant): en un subdominio de comunidad,
+  //      droppea los eventos de CONTENIDO cuya `community` no es la del tenant.
+  //      Los eventos PERSONALES (dm/amistad) pasan siempre.
+  // Memoizado con useCallback (lee tenant/section vía refs) para que los
+  // useEffects de los hooks de listeners no re-corran innecesariamente.
   const gated = useCallback(
     (event, handler) => (payload) => {
       const section = EVENT_SECTION[event];
       if (section && !sectionCheckRef.current(section)) return;
+      const tenantId = tenantIdRef.current;
+      if (tenantId && !PERSONAL_EVENTS.has(event)) {
+        const c = payload?.community ? String(payload.community) : null;
+        if (c !== tenantId) return;
+      }
       handler(payload);
     },
     [],

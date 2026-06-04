@@ -58,6 +58,32 @@ describe("emitNotification", () => {
     expect(io.emitted[0].payload.timestamp).toBeDefined();
   });
 
+  it("includes the content community in the emit payload (tenant scoping)", async () => {
+    const user = await createUser();
+    const io = makeIo();
+    await emitNotification({
+      io,
+      recipientId: user._id,
+      type: "evento_confirmed",
+      fields: { eventoId: "ev1", community: "comm-123" },
+      socketEvent: "evento:notification",
+    });
+    expect(io.emitted[0].payload.community).toBe("comm-123");
+  });
+
+  it("emits community: null for personal types (no community)", async () => {
+    const user = await createUser();
+    const io = makeIo();
+    await emitNotification({
+      io,
+      recipientId: user._id,
+      type: "friend_request",
+      fields: { fromUserId: "u2", fromUsername: "pal" },
+      socketEvent: "friend:request",
+    });
+    expect(io.emitted[0].payload.community).toBeNull();
+  });
+
   it("returns the absolute count from the server upsert (not relative)", async () => {
     const user = await createUser();
     const io = makeIo();

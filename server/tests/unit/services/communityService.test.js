@@ -24,6 +24,40 @@ describe("communityService.memberCount", () => {
   });
 });
 
+describe("communityService.memberIds", () => {
+  it("returns the ids of the community's members only", async () => {
+    const a = await Community.create({ name: "A", slug: "a" });
+    const b = await Community.create({ name: "B", slug: "b" });
+    const m1 = await createUser({
+      communityMemberships: [{ community: a._id, role: "member" }],
+    });
+    const m2 = await createUser({
+      communityMemberships: [{ community: a._id, role: "subadmin" }],
+    });
+    await createUser({
+      communityMemberships: [{ community: b._id, role: "member" }],
+    });
+
+    const ids = (await communityService.memberIds(a._id)).map(String);
+    expect(ids.sort()).toEqual([String(m1._id), String(m2._id)].sort());
+  });
+
+  it("excludes the given id (e.g. the author)", async () => {
+    const a = await Community.create({ name: "A", slug: "a" });
+    const author = await createUser({
+      communityMemberships: [{ community: a._id, role: "member" }],
+    });
+    const other = await createUser({
+      communityMemberships: [{ community: a._id, role: "member" }],
+    });
+
+    const ids = (
+      await communityService.memberIds(a._id, { exclude: author._id })
+    ).map(String);
+    expect(ids).toEqual([String(other._id)]);
+  });
+});
+
 describe("communityService.ensureBaseMembership", () => {
   it("adds base membership + skin and is idempotent", async () => {
     const user = await createUser();
@@ -53,9 +87,9 @@ describe("communityService.ensureBaseMembership", () => {
     await communityService.ensureBaseMembership(user);
     // Skin queda en la elegida; igual se agrega la membership base.
     expect(String(user.communityPrefs.skin)).toBe(String(other._id));
-    expect(communityService.isMember(user, (await Community.getBase())._id)).toBe(
-      true,
-    );
+    expect(
+      communityService.isMember(user, (await Community.getBase())._id),
+    ).toBe(true);
   });
 });
 
@@ -87,9 +121,7 @@ describe("communityService.assertMembership / isMember", () => {
 
     user.communityMemberships.push({ community: b._id, role: "member" });
     expect(communityService.isMember(user, b._id)).toBe(true);
-    expect(() =>
-      communityService.assertMembership(user, b._id),
-    ).not.toThrow();
+    expect(() => communityService.assertMembership(user, b._id)).not.toThrow();
   });
 });
 
@@ -128,8 +160,16 @@ describe("communityService.canModerate", () => {
 
 describe("communityService.joinCommunity / leaveCommunity", () => {
   it("joinCommunity (open) adds membership and extends a curated viewing list", async () => {
-    const a = await Community.create({ name: "A", slug: "a", joinPolicy: "open" });
-    const b = await Community.create({ name: "B", slug: "b", joinPolicy: "open" });
+    const a = await Community.create({
+      name: "A",
+      slug: "a",
+      joinPolicy: "open",
+    });
+    const b = await Community.create({
+      name: "B",
+      slug: "b",
+      joinPolicy: "open",
+    });
     const user = await createUser({
       communityMemberships: [{ community: a._id, role: "member" }],
       communityPrefs: { viewing: [a._id], skin: a._id },
@@ -143,7 +183,11 @@ describe("communityService.joinCommunity / leaveCommunity", () => {
 
   it("leaveCommunity prunes viewing and resets skin to base", async () => {
     const base = await Community.getBase();
-    const b = await Community.create({ name: "B2", slug: "b2", joinPolicy: "open" });
+    const b = await Community.create({
+      name: "B2",
+      slug: "b2",
+      joinPolicy: "open",
+    });
     const user = await createUser({
       communityMemberships: [{ community: b._id, role: "member" }],
       communityPrefs: { viewing: [b._id], skin: b._id },
@@ -158,7 +202,11 @@ describe("communityService.joinCommunity / leaveCommunity", () => {
 describe("communityService.reassignContentToBase / deleteCommunity", () => {
   it("reassignContentToBase moves a community's content to base", async () => {
     const base = await Community.getBase();
-    const b = await Community.create({ name: "B3", slug: "b3", joinPolicy: "open" });
+    const b = await Community.create({
+      name: "B3",
+      slug: "b3",
+      joinPolicy: "open",
+    });
     const owner = await createUser();
     const table = await createTable(owner, { community: b._id });
 
@@ -168,7 +216,11 @@ describe("communityService.reassignContentToBase / deleteCommunity", () => {
   });
 
   it("deleteCommunity throws 409 while content remains", async () => {
-    const b = await Community.create({ name: "B4", slug: "b4", joinPolicy: "open" });
+    const b = await Community.create({
+      name: "B4",
+      slug: "b4",
+      joinPolicy: "open",
+    });
     const owner = await createUser();
     await createTable(owner, { community: b._id });
     await expect(communityService.deleteCommunity(b)).rejects.toMatchObject({

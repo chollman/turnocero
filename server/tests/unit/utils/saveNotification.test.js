@@ -6,6 +6,8 @@ const {
   updateSiteConfig,
 } = require("../../../utils/siteConfig");
 const { createUser } = require("../../helpers/auth");
+const { createTable } = require("../../helpers/factories");
+const mongoose = require("mongoose");
 
 // All saveNotification tests except the section-gating block start with every
 // section enabled, so the underlying upsert logic is exercised in isolation
@@ -287,5 +289,77 @@ describe("saveNotification — evento types", () => {
       eventoId: "ev1",
     });
     expect(result).not.toBeNull();
+  });
+});
+
+// Comunidad del contenido (para el scoping por subdominio). saveNotification
+// resuelve `community` y la persiste, de modo que GET /api/notifications pueda
+// acotar por tenant.
+describe("saveNotification — community resolution (tenant scoping)", () => {
+  beforeEach(enableAllSections);
+
+  it("derives community from the content via the id-field (tableId → Table)", async () => {
+    const host = await createUser();
+    const recipient = await createUser();
+    const communityId = new mongoose.Types.ObjectId();
+    const table = await createTable(host, { community: communityId });
+
+    const n = await saveNotification(recipient._id, "chat", {
+      tableId: table._id.toString(),
+      tableName: "Mesa",
+      lastSenderUsername: "cha",
+    });
+    expect(n.community).toBe(communityId.toString());
+  });
+
+  it("uses communityId as the community for community_* types", async () => {
+    const recipient = await createUser();
+    const communityId = new mongoose.Types.ObjectId().toString();
+    const n = await saveNotification(recipient._id, "community_join_accepted", {
+      communityId,
+      communityName: "El Clu",
+    });
+    expect(n.community).toBe(communityId);
+  });
+
+  it("honors an explicit fields.community (skips the lookup)", async () => {
+    const recipient = await createUser();
+    const explicit = new mongoose.Types.ObjectId().toString();
+    const n = await saveNotification(recipient._id, "evento_confirmed", {
+      eventoId: "nonexistent",
+      community: explicit,
+    });
+    expect(n.community).toBe(explicit);
+  });
+
+  it("leaves community null for personal types (dm)", async () => {
+    const recipient = await createUser();
+    const n = await saveNotification(recipient._id, "dm", {
+      fromUserId: "u-other",
+      lastMessagePreview: "hola",
+    });
+    expect(n.community).toBeNull();
+  });
+
+  it("self-heals a legacy notif's community on the next aggregating event", async () => {
+    const host = await createUser();
+    const recipient = await createUser();
+    const communityId = new mongoose.Types.ObjectId();
+    const table = await createTable(host, { community: communityId });
+
+    // Legacy notif with no community (predates the field).
+    await Notification.create({
+      recipient: recipient._id,
+      type: "chat",
+      tableId: table._id.toString(),
+      tableName: "Mesa",
+      count: 2,
+    });
+    const n = await saveNotification(recipient._id, "chat", {
+      tableId: table._id.toString(),
+      tableName: "Mesa",
+    });
+    expect(n.count).toBe(3); // aggregated onto the existing doc
+    expect(n.community).toBe(communityId.toString());
   });
 });

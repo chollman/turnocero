@@ -33,6 +33,7 @@ vi.mock("./SiteConfigContext", () => ({
 }));
 
 import { NotificationProvider, useNotifications } from "./NotificationContext";
+import { CommunityContext } from "./CommunityContext";
 
 // Fire a captured socket event by name with a payload.
 function fireSocketEvent(event, payload) {
@@ -1106,5 +1107,74 @@ describe("NotificationContext", () => {
         Number(screen.getAllByTestId("count")[0].textContent),
       ).toBeGreaterThanOrEqual(1);
     });
+  });
+});
+
+// Scoping por subdominio (modo tenant): los eventos de socket de CONTENIDO de
+// otra comunidad se descartan; los de la comunidad del subdominio y los
+// PERSONALES (dm/amistad) pasan. Ver `gated` en NotificationContext.
+describe("NotificationContext — tenant realtime scoping", () => {
+  function renderTenant(tenantId = "tenant-1") {
+    return render(
+      <CommunityContext.Provider
+        value={{ isTenant: true, tenant: { _id: tenantId } }}
+      >
+        <NotificationProvider>
+          <Probe />
+        </NotificationProvider>
+      </CommunityContext.Provider>,
+    );
+  }
+
+  it("adds a content event whose community matches the tenant", async () => {
+    renderTenant("tenant-1");
+    await waitFor(() =>
+      expect(socketEvents.has("chat:notification")).toBe(true),
+    );
+    fireSocketEvent("chat:notification", {
+      tableId: "t1",
+      tableName: "Catán",
+      community: "tenant-1",
+      timestamp: Date.now(),
+    });
+    expect(screen.getByTestId("count").textContent).toBe("1");
+  });
+
+  it("drops a content event from another community", async () => {
+    renderTenant("tenant-1");
+    await waitFor(() =>
+      expect(socketEvents.has("chat:notification")).toBe(true),
+    );
+    fireSocketEvent("chat:notification", {
+      tableId: "t2",
+      tableName: "Otra",
+      community: "other-community",
+      timestamp: Date.now(),
+    });
+    expect(screen.getByTestId("count").textContent).toBe("0");
+  });
+
+  it("drops a content event with no community in tenant mode", async () => {
+    renderTenant("tenant-1");
+    await waitFor(() =>
+      expect(socketEvents.has("chat:notification")).toBe(true),
+    );
+    fireSocketEvent("chat:notification", {
+      tableId: "t3",
+      tableName: "Legacy",
+      timestamp: Date.now(),
+    });
+    expect(screen.getByTestId("count").textContent).toBe("0");
+  });
+
+  it("always lets personal events through (friend:request) regardless of community", async () => {
+    renderTenant("tenant-1");
+    await waitFor(() => expect(socketEvents.has("friend:request")).toBe(true));
+    fireSocketEvent("friend:request", {
+      fromUserId: "u1",
+      fromUsername: "alice",
+      timestamp: 1,
+    });
+    expect(screen.getByTestId("count").textContent).toBe("1");
   });
 });

@@ -134,6 +134,17 @@ export const EVENT_SECTION = {
   "community:join-resolved": "comunidades",
 };
 
+// Eventos de socket PERSONALES (persona-a-persona): no pertenecen a ninguna
+// comunidad, así que en modo tenant (subdominio) NO se filtran por comunidad —
+// se ven siempre. El resto de eventos de `EVENT_SECTION` son de contenido y, en
+// modo tenant, se descartan si su `community` no es la del subdominio.
+// (admin:message no pasa por `gated`, así que no hace falta listarlo acá.)
+export const PERSONAL_EVENTS = new Set([
+  "friend:request",
+  "friend:accepted",
+  "dm:message",
+]);
+
 // ── Helpers internos para reducers ────────────────────────────────────
 
 const findExisting = (prev, type, tableId) =>
@@ -886,9 +897,7 @@ export function applyCommunityJoinResolvedNotif({
   onResolved,
 }) {
   const accepted = payload.resolution !== "rejected";
-  const type = accepted
-    ? "community_join_accepted"
-    : "community_join_rejected";
+  const type = accepted ? "community_join_accepted" : "community_join_rejected";
   const extra = {
     communityName: payload.communityName,
     communitySlug: payload.communitySlug,

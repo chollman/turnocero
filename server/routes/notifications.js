@@ -8,6 +8,16 @@ const validateObjectId = require("../middleware/validateObjectId");
 
 router.param("id", validateObjectId("id"));
 
+// Tipos personales (persona-a-persona, sin comunidad): se ven SIEMPRE, también
+// dentro de un subdominio de comunidad. El resto son notifs de contenido y se
+// acotan a la comunidad del tenant.
+const PERSONAL_TYPES = [
+  "dm",
+  "friend_request",
+  "friend_accepted",
+  "admin_chat",
+];
+
 // GET /api/notifications — own notifications, newest first
 // Query: ?before=<isoDate> ?limit=<n> (default 60, max 100)
 router.get(
@@ -19,6 +29,16 @@ router.get(
     if (req.query.before) {
       const beforeDate = new Date(req.query.before);
       if (!isNaN(beforeDate)) filter.updatedAt = { $lt: beforeDate };
+    }
+    // Modo tenant (subdominio de comunidad): mostrar solo las notifs de contenido
+    // de esa comunidad + las personales (dm/amistad/admin-chat). `resolveTenant`
+    // (middleware global) deja `req.tenant`. Las notifs de contenido legacy sin
+    // `community` quedan ocultas en el subdominio (apuntan afuera del tenant).
+    if (req.tenant) {
+      filter.$or = [
+        { community: String(req.tenant._id) },
+        { type: { $in: PERSONAL_TYPES } },
+      ];
     }
     const notifs = await Notification.find(filter)
       .sort({ updatedAt: -1 })

@@ -1,7 +1,43 @@
+const mongoose = require("mongoose");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
 const { isSectionEnabled } = require("./siteConfig");
 const logger = require("./logger");
+
+// Mapea el id-field presente en una notif → el modelo scopeado del que sacar la
+// comunidad del contenido. El primer match gana.
+const ID_FIELD_TO_MODEL = [
+  ["tableId", "Table"],
+  ["torneoId", "Torneo"],
+  ["eventoId", "Evento"],
+  ["compartidaId", "Compartida"],
+  ["mathtradeId", "MathTrade"],
+];
+
+// Resuelve la comunidad del CONTENIDO de la notif (para el scoping por
+// subdominio). Orden:
+//   1) Si el caller ya la pasó en `fields.community` → usarla (evita el lookup).
+//   2) community_* → la comunidad ES el sujeto (`communityId`).
+//   3) Resto de tipos de contenido → lookup lean por el id-field.
+//   4) Tipos personales (dm, amistad, admin-chat) sin id-field → null.
+// Usa `mongoose.model(name)` perezoso para no crear ciclos de require.
+async function resolveContentCommunity(fields) {
+  if (fields.community) return String(fields.community);
+  if (fields.communityId) return String(fields.communityId);
+  for (const [idField, modelName] of ID_FIELD_TO_MODEL) {
+    if (!fields[idField]) continue;
+    try {
+      const Model = mongoose.model(modelName);
+      const doc = await Model.findById(fields[idField])
+        .select("community")
+        .lean();
+      return doc?.community ? String(doc.community) : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 // These types accumulate count across multiple events for the same target
 const AGGREGATING = new Set([
@@ -85,6 +121,12 @@ async function saveNotification(recipientId, type, fields) {
   }
 
   try {
+    // Resolver la comunidad del contenido (scoping por subdominio) y persistirla
+    // como un campo más. No entra en la clave de upsert: es constante para un
+    // mismo (recipient, type, resourceId), así que se re-setea idempotente.
+    const community = await resolveContentCommunity(fields);
+    fields = { ...fields, community };
+
     const filter = { recipient: recipientId, type };
     if (fields.tableId) filter.tableId = fields.tableId;
     if (fields.fromUserId) filter.fromUserId = fields.fromUserId;

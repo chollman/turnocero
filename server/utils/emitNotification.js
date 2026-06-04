@@ -54,6 +54,10 @@ async function emitNotification({
     count: notif.count,
     actors: notif.actors,
     timestamp: notif.updatedAt,
+    // Comunidad del contenido (resuelta en saveNotification). El cliente la usa
+    // para el scoping por subdominio en tiempo real (modo tenant): descarta los
+    // eventos de contenido cuya comunidad no es la del subdominio.
+    community: notif.community ?? null,
   });
   return notif;
 }
