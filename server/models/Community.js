@@ -76,9 +76,10 @@ const communitySchema = new mongoose.Schema(
       trim: true,
       maxlength: [60, "El nombre no puede superar 60 caracteres"],
     },
-    // URL-safe, derivado del nombre en la creación. INMUTABLE: alimenta el
-    // selector CSS `data-community`, el localStorage del skin y las URLs. El
-    // `name` se edita libre; el slug queda fijo.
+    // URL-safe, derivado del nombre en la creación (todo junto). Alimenta el
+    // selector CSS `data-community`, el localStorage del skin, las URLs y el
+    // subdominio. NO cambia al renombrar; se edita explícitamente por el admin
+    // (PUT /:slug con `slug`), nunca en la base. El `name` se edita libre.
     slug: {
       type: String,
       required: true,
@@ -91,6 +92,11 @@ const communitySchema = new mongoose.Schema(
     // Exactamente una comunidad con isBase:true. No se puede borrar; todos los
     // usuarios pertenecen a ella; hereda el contenido histórico.
     isBase: { type: Boolean, default: false, index: true },
+    // Opt-in: si true, la comunidad es accesible como tenant single-community en
+    // su propio subdominio `<slug>.turnocero.com`. Al entrar por ahí, todo el
+    // sitio se acota a esta comunidad (ver middleware resolveTenant). La base
+    // NUNCA es tenant (es el sitio principal multi-comunidad).
+    subdomainEnabled: { type: Boolean, default: false, index: true },
     joinPolicy: {
       type: String,
       enum: JOIN_POLICIES,
@@ -128,26 +134,37 @@ const communitySchema = new mongoose.Schema(
 // colecciones se limpian) vía `__resetBaseCache()` desde tests/setup.js.
 let baseCache = null;
 
-// Genera un slug único derivado del nombre (estilo retry como
-// generateUniqueUsername en oauthService.js).
-communitySchema.statics.generateSlug = async function generateSlug(name) {
-  const base =
-    String(name || "")
+// Normaliza un texto a slug "todo junto": minúsculas, sin acentos, sin espacios
+// ni símbolos (solo a-z0-9), cap 50. Reusado por generateSlug (derivar del
+// nombre) y por la edición manual del slug en el admin. Puede devolver "".
+function normalizeSlug(value) {
+  return (
+    String(value || "")
       .normalize("NFD")
       // Quitar marcas diacríticas combinantes (la ñ→n + tilde; é→e + acento)
-      // ANTES de colapsar separadores, si no la marca se vuelve un "-".
+      // ANTES de descartar lo no-alfanumérico.
       .replace(/\p{Diacritic}/gu, "")
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 50) || "comunidad";
+      // Descartar TODO lo que no sea a-z0-9 (espacios, guiones, símbolos) →
+      // queda en una sola palabra.
+      .replace(/[^a-z0-9]+/g, "")
+      .slice(0, 50)
+  );
+}
+
+// Genera un slug único derivado del nombre (estilo retry como
+// generateUniqueUsername en oauthService.js). Feeds el subdominio
+// `<slug>.dominio` y el selector CSS `data-community`.
+communitySchema.statics.generateSlug = async function generateSlug(name) {
+  const base = normalizeSlug(name) || "comunidad";
   if (!(await this.exists({ slug: base }))) return base;
+  // Desambiguar duplicados con un número al final (sin separador, "todo junto").
   for (let i = 1; i < 10000; i++) {
-    const suffix = `-${i}`;
+    const suffix = `${i}`;
     const candidate = `${base.slice(0, 50 - suffix.length)}${suffix}`;
     if (!(await this.exists({ slug: candidate }))) return candidate;
   }
-  return `${base.slice(0, 40)}-${Date.now().toString(36)}`.slice(0, 50);
+  return `${base.slice(0, 40)}${Date.now().toString(36)}`.slice(0, 50);
 };
 
 // Devuelve la comunidad base (cacheada). Lazy: si no existe, la crea (defensa
@@ -185,7 +202,45 @@ communitySchema.statics.__resetBaseCache = function __resetBaseCache() {
   baseCache = null;
 };
 
+// ── Caché de tenants (subdominios) ───────────────────────────────────────
+// `resolveTenant(slug)` corre en cada request cuando llega el header
+// X-Community-Slug. Cacheamos slug→doc (incluyendo el resultado negativo, para
+// no pegarle a Mongo con slugs basura) con un TTL corto: el mapeo slug→_id es
+// inmutable, pero `subdomainEnabled`/skin pueden cambiar y queremos que se
+// refleje sin reiniciar. Se invalida en tests vía `__resetTenantCache()`.
+const TENANT_TTL_MS = 60 * 1000;
+const tenantCache = new Map(); // slug -> { community, expires }
+
+// Resuelve un slug de subdominio a su comunidad tenant, o null. Solo comunidades
+// con `subdomainEnabled: true`; la base queda excluida (es el sitio principal).
+communitySchema.statics.resolveTenant = async function resolveTenant(slug) {
+  if (!slug || typeof slug !== "string") return null;
+  const key = slug.toLowerCase().trim();
+  if (!key) return null;
+  const now = Date.now();
+  const cached = tenantCache.get(key);
+  if (cached && cached.expires > now) return cached.community;
+  const community = await this.findOne({
+    slug: key,
+    subdomainEnabled: true,
+    isBase: { $ne: true },
+  }).lean();
+  tenantCache.set(key, {
+    community: community || null,
+    expires: now + TENANT_TTL_MS,
+  });
+  return community || null;
+};
+
+// Invalida el caché de tenants. Lo usan los tests (reset entre tests) y las
+// rutas de edición de comunidad (al cambiar subdomainEnabled/skin/logo) para
+// que el cambio se vea sin esperar el TTL.
+communitySchema.statics.__resetTenantCache = function __resetTenantCache() {
+  tenantCache.clear();
+};
+
 communitySchema.statics.sanitizeSkinTokens = sanitizeSkinTokens;
+communitySchema.statics.normalizeSlug = normalizeSlug;
 
 // toJSON: nunca exponer el inviteCode crudo; exponer solo `hasCode`.
 // `flattenMaps` convierte los Map (sections, skin.accents/neutrals*) a objetos
@@ -202,5 +257,6 @@ const Community = mongoose.model("Community", communitySchema);
 
 Community.JOIN_POLICIES = JOIN_POLICIES;
 Community.sanitizeSkinTokens = sanitizeSkinTokens;
+Community.normalizeSlug = normalizeSlug;
 
 module.exports = Community;

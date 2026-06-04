@@ -77,10 +77,20 @@ async function defaultCommunityFor(user) {
   return base._id;
 }
 
-// Resuelve la comunidad de un contenido nuevo. Si el cliente mandó `requested`,
-// valida que el usuario sea miembro (los admins pueden publicar en cualquiera);
-// si no, cae al default (skin activo ?? base).
-async function resolveCreateCommunity(user, requested) {
+// Resuelve la comunidad de un contenido nuevo.
+//   - En un subdominio tenant (`tenant` presente), el contenido SIEMPRE va a esa
+//     comunidad e ignora lo que mande el cliente — pero la validación de
+//     membresía sigue aplicando: un no-miembro no puede publicar (la vidriera es
+//     read-only), un admin global sí.
+//   - Si no hay tenant y el cliente mandó `requested`, valida membresía (admins
+//     exentos) y usa esa.
+//   - Si no, cae al default (skin activo ?? base).
+async function resolveCreateCommunity(user, requested, tenant = null) {
+  if (tenant) {
+    const tid = tenant._id || tenant;
+    if (!user?.isAdmin) assertMembership(user, tid);
+    return tid;
+  }
   if (requested) {
     if (!user?.isAdmin) assertMembership(user, requested);
     return requested;

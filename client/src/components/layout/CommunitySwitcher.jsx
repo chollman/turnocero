@@ -11,7 +11,8 @@ import styles from "./CommunitySwitcher.module.css";
 // comunidades ver en conjunto (viewing) y saltar a "Mis Comunidades".
 // Reemplaza el descubrimiento enterrado en /perfil (CommunityPrefs sigue ahí).
 export default function CommunitySwitcher({ onNavigate }) {
-  const { memberships = [], skin, skinCommunity, loaded } = useCommunity();
+  const { memberships = [], skin, skinCommunity, loaded, isTenant } =
+    useCommunity();
   const { isSectionEnabled } = useSiteConfig();
   const { busy, viewingSet, toggleViewing, chooseSkin } = useViewingControls();
   const [open, setOpen] = useState(false);
@@ -34,6 +35,9 @@ export default function CommunitySwitcher({ onNavigate }) {
     };
   }, [open]);
 
+  // En un subdominio de comunidad (modo tenant) el sitio es single-community:
+  // no hay nada que cambiar, así que el selector no se muestra.
+  if (isTenant) return null;
   // Feature apagada, contexto sin cargar, o el usuario integra una sola
   // comunidad (no hay nada que cambiar) → no se muestra el selector. El acceso
   // a "Mis Comunidades" sigue disponible desde el nav del Sidebar.

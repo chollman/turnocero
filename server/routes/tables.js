@@ -469,6 +469,7 @@ router.post(
         : await communityService.resolveCreateCommunity(
             req.user,
             req.body.community,
+            req.tenant,
           );
     let table;
     try {

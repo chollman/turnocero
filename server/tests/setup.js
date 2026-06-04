@@ -101,6 +101,9 @@ afterEach(async () => {
   // colecciones entre tests ese id queda stale. Resetear para que el próximo
   // getBase()/ensureBase() vuelva a consultar/crear.
   require("../models/Community").__resetBaseCache();
+  // Idem para el caché de tenants (slug→comunidad) — sin reset, un slug
+  // resuelto (o un negativo) de un test contaminaría al siguiente.
+  require("../models/Community").__resetTenantCache();
   // Limpiar los emits acumulados del socket stub para que un test no vea
   // eventos emitidos por el anterior (los tests que assertean sobre emits ya
   // no dependen de un __reset() manual previo).

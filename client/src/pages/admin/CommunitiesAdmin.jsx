@@ -51,9 +51,16 @@ function CommunityEditor({
   const { addToast } = useNotifications();
   const [name, setName] = useState(community.name);
   const [description, setDescription] = useState(community.description || "");
+  const [slug, setSlug] = useState(community.slug);
   const [joinPolicy, setJoinPolicy] = useState(community.joinPolicy);
   const [inviteCode, setInviteCode] = useState("");
+  // Toggle del subdominio single-tenant. Se guarda al instante (como las
+  // secciones), por eso lleva estado local optimista.
+  const [subdomainEnabled, setSubdomainEnabled] = useState(
+    !!community.subdomainEnabled,
+  );
   const sections = community.sections || {};
+  const tenantDomain = import.meta.env.VITE_TENANT_DOMAIN || "tudominio.com";
 
   // ── Skin ──
   // `onAmber` (texto sobre botones/badges de fondo de acento) se guarda dentro
@@ -123,6 +130,25 @@ function CommunityEditor({
         aria-label="Descripción"
         onChange={(e) => setDescription(e.target.value)}
       />
+      {!community.isBase && (
+        <>
+          <input
+            className={styles.input}
+            value={slug}
+            placeholder="slug"
+            aria-label="Slug (subdominio / URL)"
+            onChange={(e) => setSlug(e.target.value)}
+          />
+          <p className={styles.muted}>
+            Slug = lo que va en la URL y el subdominio (
+            <strong>
+              {(slug || "").trim() || community.slug}.{tenantDomain}
+            </strong>
+            ). No cambia al renombrar; editalo acá si querés. Ojo: cambiarlo
+            rompe links viejos.
+          </p>
+        </>
+      )}
       <select
         className={styles.input}
         value={joinPolicy}
@@ -152,12 +178,36 @@ function CommunityEditor({
             name,
             description,
             joinPolicy,
+            ...(community.isBase ? {} : { slug }),
             ...(joinPolicy === "code" && inviteCode ? { inviteCode } : {}),
           })
         }
       >
         Guardar datos
       </button>
+
+      {!community.isBase && (
+        <div className={styles.sections}>
+          <span className={styles.sectionsLabel}>Subdominio propio</span>
+          <label className={styles.sectionToggle}>
+            <input
+              type="checkbox"
+              checked={subdomainEnabled}
+              onChange={(e) => {
+                setSubdomainEnabled(e.target.checked);
+                onSave({ subdomainEnabled: e.target.checked });
+              }}
+            />
+            Activar single-tenant en este subdominio
+          </label>
+          {subdomainEnabled && (
+            <p className={styles.muted}>
+              Accesible en <strong>{community.slug}.{tenantDomain}</strong> — al
+              entrar por ahí el sitio se acota solo a esta comunidad.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className={styles.sections}>
         <span className={styles.sectionsLabel}>
@@ -418,6 +468,7 @@ export default function CommunitiesAdmin() {
                   {c.name}
                   {c.isBase && <span className={styles.base}>base</span>}
                 </span>
+                <span className={styles.count}>{c.slug}</span>
                 <span className={styles.count}>{c.memberCount} miembros</span>
                 <div className={styles.actions}>
                   <button

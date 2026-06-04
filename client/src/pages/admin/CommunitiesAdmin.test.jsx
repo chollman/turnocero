@@ -93,6 +93,116 @@ describe("<CommunitiesAdmin>", () => {
     expect(screen.queryByLabelText("comunidades")).not.toBeInTheDocument();
   });
 
+  it("toggles subdomainEnabled and saves it via PUT", async () => {
+    let putBody = null;
+    server.use(
+      http.get("/api/comunidades", () =>
+        HttpResponse.json({
+          comunidades: [
+            {
+              slug: "beta",
+              name: "Beta",
+              isBase: false,
+              memberCount: 1,
+              joinPolicy: "open",
+              sections: {},
+              subdomainEnabled: false,
+            },
+          ],
+        }),
+      ),
+      http.put("/api/comunidades/beta", async ({ request }) => {
+        putBody = await request.json();
+        return HttpResponse.json({ slug: "beta" });
+      }),
+    );
+    render(<CommunitiesAdmin />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    fireEvent.click(
+      screen.getByLabelText("Activar single-tenant en este subdominio"),
+    );
+    await waitFor(() => expect(putBody).toMatchObject({ subdomainEnabled: true }));
+  });
+
+  it("edits the slug and includes it in the Guardar datos PUT", async () => {
+    let putBody = null;
+    server.use(
+      http.get("/api/comunidades", () =>
+        HttpResponse.json({
+          comunidades: [
+            {
+              slug: "beta",
+              name: "Beta",
+              isBase: false,
+              memberCount: 1,
+              joinPolicy: "open",
+              sections: {},
+            },
+          ],
+        }),
+      ),
+      http.put("/api/comunidades/beta", async ({ request }) => {
+        putBody = await request.json();
+        return HttpResponse.json({ slug: "betagamers", name: "Beta" });
+      }),
+    );
+    render(<CommunitiesAdmin />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    fireEvent.change(screen.getByLabelText("Slug (subdominio / URL)"), {
+      target: { value: "betagamers" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar datos" }));
+    await waitFor(() => expect(putBody).toMatchObject({ slug: "betagamers" }));
+  });
+
+  it("hides the slug field for the base community", async () => {
+    server.use(
+      http.get("/api/comunidades", () =>
+        HttpResponse.json({
+          comunidades: [
+            {
+              slug: "turnocero",
+              name: "TurnoCero",
+              isBase: true,
+              memberCount: 5,
+              joinPolicy: "open",
+              sections: {},
+            },
+          ],
+        }),
+      ),
+    );
+    render(<CommunitiesAdmin />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    expect(
+      screen.queryByLabelText("Slug (subdominio / URL)"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides the subdomain toggle for the base community", async () => {
+    server.use(
+      http.get("/api/comunidades", () =>
+        HttpResponse.json({
+          comunidades: [
+            {
+              slug: "turnocero",
+              name: "TurnoCero",
+              isBase: true,
+              memberCount: 5,
+              joinPolicy: "open",
+              sections: {},
+            },
+          ],
+        }),
+      ),
+    );
+    render(<CommunitiesAdmin />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    expect(
+      screen.queryByLabelText("Activar single-tenant en este subdominio"),
+    ).not.toBeInTheDocument();
+  });
+
   it("saves the skin (accents) via PUT /skin", async () => {
     let putBody = null;
     server.use(

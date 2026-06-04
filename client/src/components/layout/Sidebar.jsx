@@ -301,7 +301,7 @@ export default function Sidebar({ open = false, onClose }) {
   const { user, isActuallyAdmin, logout } = useAuth();
   const { unreadCount, adminChatUnread } = useNotifications();
   const { isSectionEnabled } = useSiteConfig();
-  const { brand } = useCommunity();
+  const { brand, isTenant } = useCommunity();
   const location = useLocation();
   const navigate = useNavigate();
   const active = getActiveNavId(location.pathname);
@@ -350,6 +350,9 @@ export default function Sidebar({ open = false, onClose }) {
         badge: { value: "Nuevo", variant: "promo" },
       };
     }
+    // En un subdominio de comunidad (modo tenant) ocultamos el directorio: el
+    // sitio se comporta como si fuera la única comunidad.
+    if (item.id === "comunidades" && isTenant) return null;
     if (item.section && !isSectionEnabled(item.section)) return null;
     return item;
   };

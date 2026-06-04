@@ -284,6 +284,7 @@ router.post(
         community: await communityService.resolveCreateCommunity(
           req.user,
           req.body.community,
+          req.tenant,
         ),
         title: req.body.title?.trim(),
         description: req.body.description?.trim() || undefined,

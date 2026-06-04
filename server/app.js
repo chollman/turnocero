@@ -11,6 +11,10 @@ app.use(cookieParser());
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Detecta el tenant (subdominio de comunidad) vía header X-Community-Slug y lo
+// deja en req.tenant para TODAS las rutas. No toca Mongo si no hay header.
+app.use(require("./middleware/resolveCommunities").resolveTenant);
+
 // Routes
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/tables", require("./routes/tables"));

@@ -68,6 +68,12 @@ describe("<CommunitySwitcher>", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it("renders nothing in tenant mode (subdomain → single community)", () => {
+    // isTenant gana incluso con sección habilitada y varias memberships.
+    const { container } = setup({ community: { isTenant: true } });
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("renders nothing when the user belongs to a single community", () => {
     const { container } = setup({
       community: {

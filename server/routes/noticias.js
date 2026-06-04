@@ -70,6 +70,7 @@ router.post(
       community: await communityService.resolveCreateCommunity(
         req.user,
         req.body.community,
+        req.tenant,
       ),
     });
 

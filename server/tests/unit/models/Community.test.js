@@ -29,15 +29,77 @@ describe("Community model — getBase / ensureBase", () => {
   });
 });
 
+describe("Community model — resolveTenant", () => {
+  it("resolves a subdomain-enabled community by slug", async () => {
+    const c = await Community.create({
+      name: "Patagonia",
+      slug: "patagonia",
+      subdomainEnabled: true,
+    });
+    const tenant = await Community.resolveTenant("patagonia");
+    expect(tenant).not.toBeNull();
+    expect(String(tenant._id)).toBe(String(c._id));
+  });
+
+  it("is case-insensitive and trims the slug", async () => {
+    await Community.create({
+      name: "Patagonia",
+      slug: "patagonia",
+      subdomainEnabled: true,
+    });
+    expect(await Community.resolveTenant("  PATAGONIA ")).not.toBeNull();
+  });
+
+  it("returns null for a community without the flag", async () => {
+    await Community.create({ name: "Cerrada", slug: "cerrada" });
+    expect(await Community.resolveTenant("cerrada")).toBeNull();
+  });
+
+  it("never resolves the base community as a tenant", async () => {
+    const base = await Community.ensureBase();
+    // Even if somehow flagged, the base is excluded.
+    await Community.updateOne({ _id: base._id }, { subdomainEnabled: true });
+    Community.__resetTenantCache();
+    expect(await Community.resolveTenant(base.slug)).toBeNull();
+  });
+
+  it("returns null for empty / non-string input", async () => {
+    expect(await Community.resolveTenant("")).toBeNull();
+    expect(await Community.resolveTenant(null)).toBeNull();
+    expect(await Community.resolveTenant(undefined)).toBeNull();
+  });
+
+  it("caches the result (a later flag flip is not seen until the cache resets)", async () => {
+    await Community.create({
+      name: "Cache",
+      slug: "cachecomm",
+      subdomainEnabled: true,
+    });
+    expect(await Community.resolveTenant("cachecomm")).not.toBeNull();
+    // Disable the flag directly in Mongo (bypassing any hook) — the cached
+    // positive result should still be served until the TTL/reset.
+    await Community.updateOne(
+      { slug: "cachecomm" },
+      { subdomainEnabled: false },
+    );
+    expect(await Community.resolveTenant("cachecomm")).not.toBeNull();
+    Community.__resetTenantCache();
+    expect(await Community.resolveTenant("cachecomm")).toBeNull();
+  });
+});
+
 describe("Community model — generateSlug", () => {
-  it("slugifies a name (NFD-strips accents, lowercases)", async () => {
-    expect(await Community.generateSlug("Club Ñandú")).toBe("club-nandu");
-    expect(await Community.generateSlug("Rosario Juega")).toBe("rosario-juega");
+  it("slugifies a name todo-junto (NFD-strips accents, lowercases, no spaces/symbols)", async () => {
+    expect(await Community.generateSlug("Club Ñandú")).toBe("clubnandu");
+    expect(await Community.generateSlug("Rosario Juega")).toBe("rosariojuega");
+    expect(await Community.generateSlug("Patagonia Board-Gamers!")).toBe(
+      "patagoniaboardgamers",
+    );
   });
 
   it("appends a numeric suffix on collision", async () => {
     await Community.create({ name: "Rosario", slug: "rosario" });
-    expect(await Community.generateSlug("Rosario")).toBe("rosario-1");
+    expect(await Community.generateSlug("Rosario")).toBe("rosario1");
   });
 
   it("falls back to 'comunidad' for an empty/symbol-only name", async () => {

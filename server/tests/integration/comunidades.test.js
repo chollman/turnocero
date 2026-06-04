@@ -26,7 +26,7 @@ describe("POST /api/comunidades — create", () => {
       .set(authHeader(adminToken))
       .send({ name: "Rosario Juega", joinPolicy: "open" })
       .expect(201);
-    expect(res.body.slug).toBe("rosario-juega");
+    expect(res.body.slug).toBe("rosariojuega");
     expect(res.body.joinPolicy).toBe("open");
 
     const { token: userToken } = await createAuthedUser();
@@ -35,6 +35,56 @@ describe("POST /api/comunidades — create", () => {
       .set(authHeader(userToken))
       .send({ name: "Nope" })
       .expect(403);
+  });
+});
+
+describe("PUT /api/comunidades/:slug — edit slug", () => {
+  it("admin edits the slug; it normalizes and the new slug resolves", async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    await Community.create({ name: "Patagonia", slug: "patagonia" });
+    const res = await request(app)
+      .put("/api/comunidades/patagonia")
+      .set(authHeader(token))
+      .send({ slug: "Patagonia Gamers!" })
+      .expect(200);
+    expect(res.body.slug).toBe("patagoniagamers");
+    // El slug viejo ya no existe; el nuevo sí.
+    await request(app).get("/api/comunidades/patagonia").expect(404);
+    await request(app).get("/api/comunidades/patagoniagamers").expect(200);
+  });
+
+  it("rejects a slug already used by another community (409)", async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    await Community.create({ name: "Uno", slug: "uno" });
+    await Community.create({ name: "Dos", slug: "dos" });
+    await request(app)
+      .put("/api/comunidades/dos")
+      .set(authHeader(token))
+      .send({ slug: "uno" })
+      .expect(409);
+  });
+
+  it("ignores a slug change on the base community", async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const base = await Community.ensureBase();
+    const res = await request(app)
+      .put(`/api/comunidades/${base.slug}`)
+      .set(authHeader(token))
+      .send({ slug: "otracosa" })
+      .expect(200);
+    expect(res.body.slug).toBe("turnocero");
+  });
+
+  it("renaming does NOT change the slug", async () => {
+    const { token } = await createAuthedUser({ isAdmin: true });
+    await Community.create({ name: "Beta", slug: "beta" });
+    const res = await request(app)
+      .put("/api/comunidades/beta")
+      .set(authHeader(token))
+      .send({ name: "Beta Renombrada" })
+      .expect(200);
+    expect(res.body.name).toBe("Beta Renombrada");
+    expect(res.body.slug).toBe("beta");
   });
 });
 
