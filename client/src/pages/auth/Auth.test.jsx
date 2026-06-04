@@ -184,7 +184,9 @@ describe("<Auth> — login mode", () => {
       isSectionEnabled: () => false,
     });
     renderAuth("login");
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => {
+      setTimeout(r, 20);
+    });
     expect(showcaseRequestCount).toBe(0);
   });
 
@@ -194,7 +196,9 @@ describe("<Auth> — login mode", () => {
       isSectionEnabled: () => true,
     });
     renderAuth("login");
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => {
+      setTimeout(r, 20);
+    });
     expect(showcaseRequestCount).toBe(0);
   });
 
@@ -255,6 +259,37 @@ describe("<Auth> — register mode", () => {
       { target: { value: "Password123!" } },
     );
     expect(screen.getByText(/Seguridad: Fuerte/)).toBeInTheDocument();
+  });
+
+  it("shows the unmet password requirements while the password is invalid", () => {
+    renderAuth("register");
+    fireEvent.change(
+      screen.getByPlaceholderText("Mín. 8 caracteres, 1 mayúscula y 1 número"),
+      { target: { value: "weakpass" } },
+    );
+    const reqs = screen.getByLabelText("Requisitos de la contraseña");
+    expect(reqs).toBeInTheDocument();
+    expect(screen.getByText("Al menos 8 caracteres")).toBeInTheDocument();
+    expect(screen.getByText("Una letra mayúscula")).toBeInTheDocument();
+    expect(screen.getByText("Un número")).toBeInTheDocument();
+  });
+
+  it("hides the requirements checklist once the password is valid", () => {
+    renderAuth("register");
+    fireEvent.change(
+      screen.getByPlaceholderText("Mín. 8 caracteres, 1 mayúscula y 1 número"),
+      { target: { value: "Password123" } },
+    );
+    expect(
+      screen.queryByLabelText("Requisitos de la contraseña"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not show the requirements checklist when the field is empty", () => {
+    renderAuth("register");
+    expect(
+      screen.queryByLabelText("Requisitos de la contraseña"),
+    ).not.toBeInTheDocument();
   });
 
   it("registers with the chosen avatarColor (no displayName) and navigates to verify", async () => {

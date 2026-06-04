@@ -17,6 +17,7 @@ import { getUserDisplay } from "../../utils/userDisplay";
 import { getInitials } from "../../utils/initials";
 import {
   isValidPassword,
+  passwordChecks,
   passwordStrength,
   STRENGTH_LABELS,
   PASSWORD_REQUIREMENTS,
@@ -270,12 +271,14 @@ export default function Auth({ mode }) {
   }, [isLogin]);
 
   const strength = useMemo(() => passwordStrength(password), [password]);
+  const pwChecks = useMemo(() => passwordChecks(password), [password]);
+  const pwValid = useMemo(() => isValidPassword(password), [password]);
   const initial = (username.trim()[0] || "").toUpperCase();
   const canRegister =
     !loading &&
     username.trim().length >= 3 &&
     /\S+@\S+\.\S+/.test(email) &&
-    isValidPassword(password) &&
+    pwValid &&
     terms;
 
   const handleLogin = async (e) => {
@@ -327,6 +330,7 @@ export default function Auth({ mode }) {
     <div className={styles.stage}>
       {/* ── Left · form ── */}
       <div className={styles.formPane}>
+        {/* eslint-disable-next-line no-warning-comments */}
         {/* Marca — arriba de todo */}
         <div className={styles.brand}>
           <Logo
@@ -556,6 +560,31 @@ export default function Auth({ mode }) {
                       Seguridad: {STRENGTH_LABELS[strength] || "muy débil"}
                     </span>
                   </div>
+                )}
+                {password.length > 0 && !pwValid && (
+                  <ul
+                    className={styles.pwReqs}
+                    aria-live="polite"
+                    aria-label="Requisitos de la contraseña"
+                  >
+                    {pwChecks.map((c) => (
+                      <li
+                        key={c.key}
+                        className={`${styles.pwReq} ${
+                          c.met ? styles.pwReqMet : ""
+                        }`}
+                      >
+                        <span className={styles.pwReqIcon} aria-hidden="true">
+                          {c.met ? (
+                            <Icon.Check />
+                          ) : (
+                            <span className={styles.pwReqDot} />
+                          )}
+                        </span>
+                        {c.label}
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
 

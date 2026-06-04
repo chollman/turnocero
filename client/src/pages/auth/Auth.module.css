@@ -915,6 +915,47 @@
   text-transform: uppercase;
 }
 
+/* Password requirements checklist (validador inline) */
+.pwReqs {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pwReq {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--text-muted);
+  transition: color var(--transition);
+}
+.pwReqMet {
+  color: var(--green);
+}
+.pwReqIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+.pwReqIcon svg {
+  width: 13px;
+  height: 13px;
+}
+.pwReqDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.45;
+}
+
 /* Terms checkbox */
 .terms {
   display: flex;

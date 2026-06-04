@@ -7,11 +7,25 @@ export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_REQUIREMENTS =
   "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número";
 
+// Desglose por requisito para el feedback inline (registro / reset): permite
+// mostrar EXACTAMENTE qué falta en vez de un mensaje genérico. `isValidPassword`
+// se deriva de acá para que ambos no se desincronicen al cambiar las reglas.
+export function passwordChecks(pwd) {
+  const value = typeof pwd === "string" ? pwd : "";
+  return [
+    {
+      key: "length",
+      label: `Al menos ${PASSWORD_MIN_LENGTH} caracteres`,
+      met: value.length >= PASSWORD_MIN_LENGTH,
+    },
+    { key: "upper", label: "Una letra mayúscula", met: /[A-Z]/.test(value) },
+    { key: "digit", label: "Un número", met: /\d/.test(value) },
+  ];
+}
+
 export function isValidPassword(pwd) {
   if (typeof pwd !== "string") return false;
-  return (
-    pwd.length >= PASSWORD_MIN_LENGTH && /[A-Z]/.test(pwd) && /\d/.test(pwd)
-  );
+  return passwordChecks(pwd).every((c) => c.met);
 }
 
 // Medidor de fuerza para el feedback en vivo del registro (sólo visual; el
