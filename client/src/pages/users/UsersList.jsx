@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
@@ -199,6 +200,7 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
 
 export default function UsersList({ communityId = null } = {}) {
   const { user: currentUser } = useAuth();
+  const brandName = useBrandName();
   const isAdmin = !!currentUser?.isAdmin;
   // Modo "embebido": cuando se renderiza dentro de la vista de una comunidad
   // (ComunidadDetail provee su propio encabezado). Oculta el hero global y el
@@ -238,7 +240,14 @@ export default function UsersList({ communityId = null } = {}) {
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [debouncedSearch, sortBy, activeOnly, friendsOnly, bgWatchOnly, communityId],
+    [
+      debouncedSearch,
+      sortBy,
+      activeOnly,
+      friendsOnly,
+      bgWatchOnly,
+      communityId,
+    ],
   );
 
   useEffect(() => {
@@ -310,7 +319,9 @@ export default function UsersList({ communityId = null } = {}) {
               COMUNIDAD
             </div>
             <h1 className={styles.heroTitle}>Comunidad</h1>
-            <p className={styles.heroSub}>Jugadores registrados en TurnoCero</p>
+            <p className={styles.heroSub}>
+              Jugadores registrados en {brandName}
+            </p>
           </div>
           <span className={styles.countBadge}>
             {visibleUsers.length} jugador{visibleUsers.length !== 1 ? "es" : ""}
@@ -369,7 +380,7 @@ export default function UsersList({ communityId = null } = {}) {
             </strong>
             <p className={styles.bgWatchBannerSub}>
               Conectá tu cuenta de BoardGameGeek y llevá registro de tus
-              partidas desde TurnoCero.
+              partidas desde {brandName}.
             </p>
           </div>
           <span className={styles.bgWatchBannerCta}>Activá →</span>

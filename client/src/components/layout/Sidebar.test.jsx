@@ -71,6 +71,18 @@ describe("<Sidebar>", () => {
     expect(screen.queryByText("TurnoCero")).not.toBeInTheDocument();
   });
 
+  it('shows the "board game meetups" tagline on the main site', () => {
+    setup();
+    expect(screen.getByText(/board game meetups/i)).toBeInTheDocument();
+  });
+
+  it('shows "por TurnoCero" attribution in tenant mode instead of the tagline', () => {
+    setup({ isTenant: true, brand: { name: "El Clu" } });
+    expect(screen.queryByText(/board game meetups/i)).not.toBeInTheDocument();
+    const attr = screen.getByText("TurnoCero");
+    expect(attr.parentElement.textContent.toLowerCase()).toContain("por");
+  });
+
   it("shows the notifications bell with unread badge when count > 0", () => {
     setup({ unreadCount: 5 });
     expect(screen.getByText("5")).toBeInTheDocument();

@@ -4,6 +4,7 @@ import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import UserRef from "../../components/shared/UserRef";
 import AdminPanel from "./components/AdminPanel";
@@ -51,6 +52,7 @@ export default function TorneoDetail() {
   const navigate = useNavigate();
   const { user, isActuallyAdmin, viewAsUser } = useAuth();
   const { setActiveTorneo } = useNotifications();
+  const brandName = useBrandName();
   const showAdminUI = isActuallyAdmin && !viewAsUser;
 
   useEffect(() => {
@@ -158,7 +160,7 @@ export default function TorneoDetail() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{torneo.title} – Torneos – TurnoCero 🏆</title>
+        <title>{`${torneo.title} – Torneos – ${brandName} 🏆`}</title>
         <meta name="description" content={`${torneo.title} — ${torneo.game}`} />
       </Helmet>
 

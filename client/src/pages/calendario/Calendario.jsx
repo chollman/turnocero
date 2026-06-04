@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import useLocalStorageState from "../../utils/useLocalStorageState";
 import useTickingNow from "../../utils/useTickingNow";
@@ -57,6 +58,7 @@ export default function Calendario() {
   const { user } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
   const { addToast } = useNotifications();
+  const brandName = useBrandName();
   const now = useTickingNow();
 
   // Solo ofrecemos tipos cuyas secciones estén habilitadas (admins las ven
@@ -194,7 +196,7 @@ export default function Calendario() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Calendario — TurnoCero</title>
+        <title>{`Calendario — ${brandName}`}</title>
         <meta
           name="description"
           content="Mesas, eventos y torneos de la comunidad en un solo calendario"

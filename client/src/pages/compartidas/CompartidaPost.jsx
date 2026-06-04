@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import axios from "axios";
 import { useNotifications } from "../../context/NotificationContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import CompartidaCard from "./CompartidaCard";
 import ResenaCard from "./ResenaCard";
@@ -21,6 +22,7 @@ export default function CompartidaPost() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { setActiveCompartida } = useNotifications();
+  const brandName = useBrandName();
   const [post, setPost] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -57,10 +59,10 @@ export default function CompartidaPost() {
     : "TurnoCero";
   const isResena = post?.category === "resena";
   const metaTitle = post?.title
-    ? `${post.title} – TurnoCero 🎲`
+    ? `${post.title} – ${brandName} 🎲`
     : isResena
-      ? `Reseña de ${post?.boardGame?.name || "un juego"} – TurnoCero 🎲`
-      : `Compartida de ${authorName} – TurnoCero 🎲`;
+      ? `Reseña de ${post?.boardGame?.name || "un juego"} – ${brandName} 🎲`
+      : `Compartida de ${authorName} – ${brandName} 🎲`;
   // Para reseñas el body es HTML → texto plano; sumamos juego + puntuación.
   const bodyText = isResena ? stripHtml(post?.body) : post?.body || "";
   const resenaPrefix =

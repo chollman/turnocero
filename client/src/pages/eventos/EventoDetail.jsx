@@ -5,6 +5,7 @@ import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import useTickingNow from "../../utils/useTickingNow";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
@@ -39,6 +40,7 @@ export default function EventoDetail() {
   const location = useLocation();
   const { user } = useAuth();
   const { setActiveEvento, addToast } = useNotifications();
+  const brandName = useBrandName();
   const userId = user?._id;
 
   // Tab activo: useState como fuente única de verdad. Inicializa leyendo el
@@ -408,10 +410,10 @@ export default function EventoDetail() {
     // disponible o el user cancela.
     const url = `${window.location.origin}/eventos/${id}`;
     const shareData = {
-      title: `${evento.title} – TurnoCero`,
+      title: `${evento.title} – ${brandName}`,
       text: evento.description
         ? evento.description.slice(0, 200)
-        : `Sumate a este evento en TurnoCero.`,
+        : `Sumate a este evento en ${brandName}.`,
       url,
     };
     try {
@@ -499,7 +501,10 @@ export default function EventoDetail() {
     return (
       <div className={styles.page}>
         <div className={styles.notFound}>
-          <p className={styles.notFoundEyebrow}><Meeple />404</p>
+          <p className={styles.notFoundEyebrow}>
+            <Meeple />
+            404
+          </p>
           <h1 className={styles.notFoundTitle}>Evento no encontrado</h1>
           <Link to="/eventos" className={styles.notFoundLink}>
             ← Volver a eventos
@@ -554,7 +559,7 @@ export default function EventoDetail() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{evento.title} — TurnoCero</title>
+        <title>{`${evento.title} — ${brandName}`}</title>
         <meta
           name="description"
           content={
@@ -848,7 +853,8 @@ export default function EventoDetail() {
                       <section className={styles.section}>
                         <div className={styles.sectionHead}>
                           <span className={styles.sectionLabel}>
-                            <Meeple />Descripción
+                            <Meeple />
+                            Descripción
                           </span>
                           <span className={styles.sectionRule} />
                         </div>
@@ -860,7 +866,8 @@ export default function EventoDetail() {
                       <section className={styles.section}>
                         <div className={styles.sectionHead}>
                           <span className={styles.sectionLabel}>
-                            <Meeple />Condiciones
+                            <Meeple />
+                            Condiciones
                           </span>
                           <span className={styles.sectionRule} />
                         </div>
@@ -872,7 +879,8 @@ export default function EventoDetail() {
                       <section className={styles.section}>
                         <div className={styles.sectionHead}>
                           <span className={styles.sectionLabel}>
-                            <Meeple />Organiza
+                            <Meeple />
+                            Organiza
                           </span>
                           <span className={styles.sectionRule} />
                         </div>
@@ -907,7 +915,8 @@ export default function EventoDetail() {
                       <section className={styles.section}>
                         <div className={styles.sectionHead}>
                           <span className={styles.sectionLabel}>
-                            <Meeple />Inscriptos confirmados ·{" "}
+                            <Meeple />
+                            Inscriptos confirmados ·{" "}
                             {evento.confirmedRegistrations.length}
                           </span>
                           <span className={styles.sectionRule} />

@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useTheme } from "../../context/ThemeContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import MiBgWatchCard from "./MiBgWatchCard";
 import CommunityPrefs from "./CommunityPrefs";
@@ -77,6 +78,7 @@ const SunIcon = () => (
 export default function UserProfile() {
   const { user, updateProfile, refreshUser } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
+  const brandName = useBrandName();
   // theme se sigue usando para Apariencia (toggle dark/light); el mapa lo lee
   // por su cuenta vía useTheme dentro de AddressMap.
   const { theme, setTheme } = useTheme();
@@ -403,7 +405,10 @@ export default function UserProfile() {
     <div className={styles.page}>
       <div className={styles.inner}>
         <div className={styles.hero}>
-          <div className={styles.eyebrow}><Meeple />MI PERFIL</div>
+          <div className={styles.eyebrow}>
+            <Meeple />
+            MI PERFIL
+          </div>
           <div className={styles.titleRow}>
             <h1 className={styles.heroTitle}>@{user?.username}</h1>
             {bgwatchEnabled &&
@@ -530,8 +535,8 @@ export default function UserProfile() {
                   ¿Llevás partidas en BoardGameGeek?
                 </strong>
                 <p className={styles.bgWatchBannerSub}>
-                  Activá BG Watch para registrar todas tus partidas desde
-                  TurnoCero.
+                  Activá BG Watch para registrar todas tus partidas desde{" "}
+                  {brandName}.
                 </p>
               </div>
               <a
@@ -568,7 +573,7 @@ export default function UserProfile() {
             <div className={styles.section}>
               <div className={styles.sectionLabel}>Apariencia</div>
               <p className={styles.hint}>
-                Elegí cómo querés ver TurnoCero. Tu preferencia se guarda en
+                Elegí cómo querés ver {brandName}. Tu preferencia se guarda en
                 este dispositivo.
               </p>
               <div
@@ -760,7 +765,7 @@ export default function UserProfile() {
                 </div>
                 <p className={styles.hint}>
                   Conectá tu cuenta de BGG para cargar, editar y eliminar
-                  partidas directamente desde TurnoCero. Tu password se guarda
+                  partidas directamente desde {brandName}. Tu password se guarda
                   cifrada (AES-256-GCM) en nuestros servidores y nunca se envía
                   al navegador.
                 </p>

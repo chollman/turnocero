@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import { fromLocalInputValue } from "../../utils/eventoDate";
 import DateTimePicker from "../../components/shared/DateTimePicker";
@@ -10,6 +11,7 @@ import styles from "./Torneos.module.css";
 
 export default function CreateTorneo() {
   const navigate = useNavigate();
+  const brandName = useBrandName();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [game, setGame] = useState("");
@@ -67,7 +69,7 @@ export default function CreateTorneo() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Nuevo torneo – TurnoCero</title>
+        <title>{`Nuevo torneo – ${brandName}`}</title>
       </Helmet>
       <div className={styles.inner}>
         <div className={styles.formHeader}>

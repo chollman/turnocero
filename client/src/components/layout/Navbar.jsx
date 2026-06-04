@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useNotifications } from "../../context/NotificationContext";
 import { useChat } from "../../context/ChatContext";
 import { useSectionEnabled } from "../../hooks/useSectionEnabled";
+import { useCommunity } from "../../context/CommunityContext";
 import Logo from "../shared/Logo";
 import styles from "./Navbar.module.css";
 
@@ -41,6 +42,7 @@ export default function Navbar({ menuOpen = false, onToggleMenu }) {
   const { unreadCount } = useNotifications();
   const { dmUnreadTotal } = useChat();
   const isSectionEnabled = useSectionEnabled();
+  const { brand, isTenant } = useCommunity();
   const navigate = useNavigate();
   const dmsEnabled = isSectionEnabled("dms");
 
@@ -48,13 +50,24 @@ export default function Navbar({ menuOpen = false, onToggleMenu }) {
     <nav className={styles.nav}>
       <Link to="/" className={styles.brand}>
         <span className={styles.brandMark} aria-hidden="true">
-          <Logo className={styles.brandMarkImg} alt="" />
+          <Logo
+            className={styles.brandMarkImg}
+            alt=""
+            srcLight={brand.logoLight}
+            srcDark={brand.logoDark}
+          />
         </span>
         <span className={styles.brandText}>
-          <span className={styles.brandName}>TurnoCero</span>
+          <span className={styles.brandName}>{brand.name}</span>
           <span className={styles.brandSub}>
             <Meeple />
-            board game meetups
+            {isTenant ? (
+              <>
+                por <span className={styles.attribution}>TurnoCero</span>
+              </>
+            ) : (
+              "board game meetups"
+            )}
           </span>
         </span>
       </Link>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useBrandName } from "../../hooks/useBrandName";
 import styles from "./SplashScreen.module.css";
 
 const PIECES = [
@@ -127,6 +128,7 @@ const PIECES = [
 export default function SplashScreen({ visible }) {
   const [shouldRender, setShouldRender] = useState(true);
   const [hiding, setHiding] = useState(false);
+  const brandName = useBrandName();
 
   useEffect(() => {
     if (!visible) {
@@ -160,7 +162,7 @@ export default function SplashScreen({ visible }) {
       ))}
       <div className={styles.content}>
         <div className={styles.logo}>🎲</div>
-        <h1 className={styles.title}>TurnoCero</h1>
+        <h1 className={styles.title}>{brandName}</h1>
         <p className={styles.subtitle}>Organizá tu mesa</p>
         <div className={styles.dots}>
           <span />

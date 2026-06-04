@@ -14,11 +14,13 @@ import {
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { STORAGE_KEYS } from "../../utils/storageKeys";
 import { useShowcaseTables } from "../../hooks/useShowcaseTables";
+import { useBrandName } from "../../hooks/useBrandName";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { resetPassword } = useAuth();
+  const brandName = useBrandName();
 
   const token = searchParams.get("token") || "";
   const email = searchParams.get("email") || "";
@@ -67,7 +69,7 @@ export default function ResetPassword() {
         <div className={styles.logoBlock}>
           <Logo className={styles.logoIcon} />
           <div className={styles.logoText}>
-            <span className={styles.logoName}>TurnoCero</span>
+            <span className={styles.logoName}>{brandName}</span>
             <span className={styles.logoSub}>BOARD GAME MEETUPS</span>
           </div>
         </div>
@@ -77,7 +79,10 @@ export default function ResetPassword() {
           <div className={styles.mobileHeroFade} />
         </div>
 
-        <div className={styles.eyebrow}><Meeple />NUEVA CONTRASEÑA</div>
+        <div className={styles.eyebrow}>
+          <Meeple />
+          NUEVA CONTRASEÑA
+        </div>
         <h1 className={styles.heading}>Elegí una nueva contraseña.</h1>
         <p className={styles.sub}>
           Ingresá una contraseña segura para tu cuenta.
@@ -162,7 +167,10 @@ export default function ResetPassword() {
         <div className={styles.showcaseGradient} />
         <div className={styles.showcaseContent}>
           <div>
-            <div className={styles.showcaseEyebrow}><Meeple />MESAS ACTIVAS</div>
+            <div className={styles.showcaseEyebrow}>
+              <Meeple />
+              MESAS ACTIVAS
+            </div>
             {showcase?.total > 0 ? (
               <h2 className={styles.showcaseTitle}>
                 {showcase.total} mesas

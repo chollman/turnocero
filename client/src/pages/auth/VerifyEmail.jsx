@@ -14,6 +14,7 @@ import ShowcaseCard from "./ShowcaseCard";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { STORAGE_KEYS } from "../../utils/storageKeys";
 import { useShowcaseTables } from "../../hooks/useShowcaseTables";
+import { useBrandName } from "../../hooks/useBrandName";
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
@@ -22,6 +23,7 @@ export default function VerifyEmail() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { verifyEmail, requestEmailVerification } = useAuth();
+  const brandName = useBrandName();
 
   const stateEmail = location.state?.email;
   const queryEmail = searchParams.get("email");
@@ -118,7 +120,7 @@ export default function VerifyEmail() {
         <div className={styles.logoBlock}>
           <Logo className={styles.logoIcon} />
           <div className={styles.logoText}>
-            <span className={styles.logoName}>TurnoCero</span>
+            <span className={styles.logoName}>{brandName}</span>
             <span className={styles.logoSub}>BOARD GAME MEETUPS</span>
           </div>
         </div>
@@ -128,7 +130,10 @@ export default function VerifyEmail() {
           <div className={styles.mobileHeroFade} />
         </div>
 
-        <div className={styles.eyebrow}><Meeple />VERIFICÁ TU EMAIL</div>
+        <div className={styles.eyebrow}>
+          <Meeple />
+          VERIFICÁ TU EMAIL
+        </div>
         <h1 className={styles.heading}>Un último paso.</h1>
         <p className={styles.sub}>
           Te enviamos un código de 6 dígitos
@@ -233,7 +238,10 @@ export default function VerifyEmail() {
         <div className={styles.showcaseGradient} />
         <div className={styles.showcaseContent}>
           <div>
-            <div className={styles.showcaseEyebrow}><Meeple />MESAS ACTIVAS</div>
+            <div className={styles.showcaseEyebrow}>
+              <Meeple />
+              MESAS ACTIVAS
+            </div>
             {showcase?.total > 0 ? (
               <h2 className={styles.showcaseTitle}>
                 {showcase.total} mesas

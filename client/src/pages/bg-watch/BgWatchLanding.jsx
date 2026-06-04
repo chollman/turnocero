@@ -2,6 +2,7 @@ import Meeple from "../../components/shared/Meeple";
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import styles from "./BgWatchLanding.module.css";
 
 const DieIcon = () => (
@@ -73,11 +74,11 @@ const StatsIcon = () => (
   </svg>
 );
 
-const FEATURES = [
+const featuresFor = (brandName) => [
   {
     Icon: PlayIcon,
     title: "Registrá tus partidas",
-    body: "Cargá, editá y eliminá partidas directamente desde TurnoCero. Se sincronizan con tu cuenta de BoardGameGeek.",
+    body: `Cargá, editá y eliminá partidas directamente desde ${brandName}. Se sincronizan con tu cuenta de BoardGameGeek.`,
   },
   {
     Icon: CollectionIcon,
@@ -93,6 +94,7 @@ const FEATURES = [
 
 export default function BgWatchLanding() {
   const { user, loading } = useAuth();
+  const brandName = useBrandName();
   const navigate = useNavigate();
 
   // If a logged-in user has BG Watch active, jump them straight to their profile.
@@ -114,17 +116,20 @@ export default function BgWatchLanding() {
         <div className={styles.heroIcon}>
           <DieIcon />
         </div>
-        <div className={styles.eyebrow}><Meeple />BG WATCH</div>
+        <div className={styles.eyebrow}>
+          <Meeple />
+          BG WATCH
+        </div>
         <h1 className={styles.heroTitle}>Llevá tus partidas como nunca</h1>
         <p className={styles.heroSub}>
-          BG Watch es el tracker de partidas de TurnoCero. Conectá tu cuenta de
-          BoardGameGeek y registrá, editá y explorá todo lo que jugaste — sin
+          BG Watch es el tracker de partidas de {brandName}. Conectá tu cuenta
+          de BoardGameGeek y registrá, editá y explorá todo lo que jugaste — sin
           salir del app.
         </p>
       </header>
 
       <section className={styles.features}>
-        {FEATURES.map(({ Icon, title, body }) => (
+        {featuresFor(brandName).map(({ Icon, title, body }) => (
           <article key={title} className={styles.feature}>
             <div className={styles.featureIcon}>
               <Icon />
@@ -162,7 +167,7 @@ export default function BgWatchLanding() {
           <>
             <h2 className={styles.ctaTitle}>Creá tu cuenta y empezá</h2>
             <p className={styles.ctaSub}>
-              Registrate gratis en TurnoCero y conectá tu cuenta de
+              Registrate gratis en {brandName} y conectá tu cuenta de
               BoardGameGeek desde tu perfil. Es rápido.
             </p>
             <div className={styles.ctaButtons}>
@@ -209,8 +214,8 @@ export default function BgWatchLanding() {
                 Cargá partidas nuevas
               </strong>
               <p className={styles.stepBody}>
-                Apenas termina la mesa, registrá la partida desde TurnoCero. Se
-                guarda en BGG automáticamente.
+                Apenas termina la mesa, registrá la partida desde {brandName}.
+                Se guarda en BGG automáticamente.
               </p>
             </div>
           </li>
@@ -218,8 +223,8 @@ export default function BgWatchLanding() {
       </section>
 
       <p className={styles.footnote}>
-        BoardGameGeek es un servicio externo. BG Watch es la integración de
-        TurnoCero con su API.
+        BoardGameGeek es un servicio externo. BG Watch es la integración de{" "}
+        {brandName} con su API.
       </p>
     </div>
   );

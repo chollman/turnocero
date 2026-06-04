@@ -4,6 +4,7 @@ import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import MathTradeSkeleton from "./MathTradeSkeleton";
 import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
@@ -45,6 +46,7 @@ function MathTradeCard({ mt }) {
 
 export default function MathTrades() {
   const { isActuallyAdmin, viewAsUser } = useAuth();
+  const brandName = useBrandName();
   const showAdminUI = isActuallyAdmin && !viewAsUser;
 
   const [trades, setTrades] = useState([]);
@@ -100,7 +102,7 @@ export default function MathTrades() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Math Trade – TurnoCero 🔄</title>
+        <title>{`Math Trade – ${brandName} 🔄`}</title>
         <meta
           name="description"
           content="Intercambios múltiples de juegos de mesa de la comunidad TurnoCero."

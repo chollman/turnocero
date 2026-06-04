@@ -1,5 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { Link } from "react-router-dom";
+import { useBrandName } from "../../hooks/useBrandName";
 import styles from "./BgWatchGuestCTAs.module.css";
 
 const REGISTER_HREF = "/register?source=bg-watch";
@@ -66,15 +67,17 @@ export function GuestBanner({ bggUsername }) {
  * the visitor has just seen what BG Watch actually does.
  */
 export function GuestInlineCTA() {
+  const brandName = useBrandName();
   return (
     <div className={styles.inline}>
       <div className={styles.inlineCopy}>
         <span className={styles.inlineEyebrow}>
-          <Meeple />ACTIVÁ TU PROPIO BG WATCH
+          <Meeple />
+          ACTIVÁ TU PROPIO BG WATCH
         </span>
         <h2 className={styles.inlineTitle}>¿Tenés cuenta en BoardGameGeek?</h2>
         <p className={styles.inlineBody}>
-          Conectala con TurnoCero y llevá tus partidas como esta persona —
+          Conectala con {brandName} y llevá tus partidas como esta persona —
           gratis y sin instalar nada.
         </p>
       </div>
@@ -91,11 +94,12 @@ export function GuestInlineCTA() {
  * Reinforces the social proof framing.
  */
 export function GuestFooter({ bggUsername }) {
+  const brandName = useBrandName();
   return (
     <div className={styles.footer}>
       <p className={styles.footerCopy}>
         Este es el BG Watch de <strong>@{bggUsername}</strong>, una persona que
-        juega en TurnoCero. Vos también podés tener el tuyo.
+        juega en {brandName}. Vos también podés tener el tuyo.
       </p>
       <Link to={REGISTER_HREF} className={styles.footerCta}>
         Registrate gratis

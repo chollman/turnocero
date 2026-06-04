@@ -4,6 +4,7 @@ import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import TorneoCard from "./components/TorneoCard";
 import TorneoSkeleton from "./TorneoSkeleton";
@@ -18,6 +19,7 @@ const STATUS_TABS = [
 
 export default function Torneos() {
   const { isActuallyAdmin, viewAsUser } = useAuth();
+  const brandName = useBrandName();
   const showAdminUI = isActuallyAdmin && !viewAsUser;
 
   const [torneos, setTorneos] = useState([]);
@@ -71,7 +73,7 @@ export default function Torneos() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Torneos – TurnoCero 🏆</title>
+        <title>{`Torneos – ${brandName} 🏆`}</title>
         <meta
           name="description"
           content="Torneos de juegos de mesa organizados por la comunidad TurnoCero."
@@ -81,7 +83,10 @@ export default function Torneos() {
       <div className={styles.inner}>
         <div className={styles.header}>
           <div className={styles.heroBlock}>
-            <div className={styles.eyebrow}><Meeple />COMPETENCIAS</div>
+            <div className={styles.eyebrow}>
+              <Meeple />
+              COMPETENCIAS
+            </div>
             <h1 className={styles.title}>Torneos</h1>
             <p className={styles.sub}>
               Seguí el progreso de las competencias de la comunidad.

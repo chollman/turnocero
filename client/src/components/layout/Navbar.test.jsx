@@ -30,6 +30,8 @@ function setup({
   dmUnreadTotal = 0,
   sections = {},
   communitySections = {},
+  isTenant = false,
+  brand = { name: "TurnoCero", logoLight: "", logoDark: "" },
   menuOpen = false,
   onToggleMenu,
 } = {}) {
@@ -41,6 +43,8 @@ function setup({
   });
   useCommunity.mockReturnValue({
     isSectionEnabledInSkin: (k) => communitySections[k] ?? true,
+    isTenant,
+    brand,
   });
   return render(
     <MemoryRouter>
@@ -58,6 +62,21 @@ describe("<Navbar>", () => {
     setup();
     const logoLink = screen.getByRole("link", { name: /turnocero/i });
     expect(logoLink).toHaveAttribute("href", "/");
+  });
+
+  it('shows "board game meetups" tagline on the main site', () => {
+    setup();
+    expect(screen.getByText(/board game meetups/i)).toBeInTheDocument();
+  });
+
+  it('shows "por TurnoCero" attribution in tenant mode', () => {
+    setup({
+      isTenant: true,
+      brand: { name: "El Clu", logoLight: "", logoDark: "" },
+    });
+    expect(screen.queryByText(/board game meetups/i)).not.toBeInTheDocument();
+    const attr = screen.getByText("TurnoCero");
+    expect(attr.parentElement.textContent.toLowerCase()).toContain("por");
   });
 
   it("renders the hamburger button labeled 'Abrir menú' when closed", () => {

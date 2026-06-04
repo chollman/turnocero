@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import styles from "./NoticiaDetail.module.css";
 
@@ -28,6 +29,7 @@ export default function NoticiaDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const brandName = useBrandName();
   const isAdmin = user?.isAdmin;
 
   const [noticia, setNoticia] = useState(null);
@@ -116,7 +118,7 @@ export default function NoticiaDetail() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{shareTitle} – TurnoCero 🎲</title>
+        <title>{`${shareTitle} – ${brandName} 🎲`}</title>
         <meta name="description" content={shareDesc} />
         <meta property="og:title" content={`${shareTitle} – TurnoCero 🎲`} />
         <meta property="og:description" content={shareDesc} />

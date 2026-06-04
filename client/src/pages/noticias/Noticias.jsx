@@ -4,6 +4,7 @@ import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import styles from "./Noticias.module.css";
@@ -437,6 +438,7 @@ function CreateForm({ onCreated, onCancel }) {
 
 export default function Noticias() {
   const { user } = useAuth();
+  const brandName = useBrandName();
   const isAdmin = user?.isAdmin;
 
   const [noticias, setNoticias] = useState([]);
@@ -492,7 +494,7 @@ export default function Noticias() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Noticias – TurnoCero 🎲</title>
+        <title>{`Noticias – ${brandName} 🎲`}</title>
         <meta
           name="description"
           content="Novedades y eventos de la comunidad TurnoCero."
@@ -516,7 +518,10 @@ export default function Noticias() {
       <div className={styles.inner}>
         <div className={styles.header}>
           <div className={styles.heroBlock}>
-            <div className={styles.eyebrow}><Meeple />COMUNIDAD</div>
+            <div className={styles.eyebrow}>
+              <Meeple />
+              COMUNIDAD
+            </div>
             <h1 className={styles.title}>Noticias</h1>
             <p className={styles.sub}>
               Novedades y eventos de la comunidad TurnoCero.

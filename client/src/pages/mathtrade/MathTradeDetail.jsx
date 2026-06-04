@@ -4,6 +4,7 @@ import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
@@ -57,6 +58,7 @@ export default function MathTradeDetail() {
   const { id } = useParams();
   const { user, isActuallyAdmin, viewAsUser } = useAuth();
   const { addToast } = useNotifications();
+  const brandName = useBrandName();
   const showAdminUI = isActuallyAdmin && !viewAsUser;
 
   const [trade, setTrade] = useState(null);
@@ -172,7 +174,7 @@ export default function MathTradeDetail() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{trade.title} – Math Trade – TurnoCero</title>
+        <title>{`${trade.title} – Math Trade – ${brandName}`}</title>
       </Helmet>
       <div className={styles.inner}>
         <Link to="/math-trade" className={styles.back}>

@@ -4,6 +4,7 @@ import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { API } from "../../api/endpoints";
 import { useNotifications } from "../../context/NotificationContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import InfoTooltip from "../../components/shared/InfoTooltip";
@@ -14,6 +15,7 @@ import styles from "./MathTradeForm.module.css";
 export default function MathTradeForm({ mode = "create", initial = null }) {
   const navigate = useNavigate();
   const { addToast } = useNotifications();
+  const brandName = useBrandName();
 
   const [title, setTitle] = useState(initial?.title || "");
   const [description, setDescription] = useState(initial?.description || "");
@@ -74,8 +76,9 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
     <div className={styles.page}>
       <Helmet>
         <title>
-          {mode === "create" ? "Nuevo intercambio" : "Editar intercambio"} –
-          TurnoCero
+          {`${
+            mode === "create" ? "Nuevo intercambio" : "Editar intercambio"
+          } – ${brandName}`}
         </title>
       </Helmet>
       <div className={styles.inner}>

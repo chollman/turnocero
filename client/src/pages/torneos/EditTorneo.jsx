@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import { toLocalInputValue, fromLocalInputValue } from "../../utils/eventoDate";
 import DateTimePicker from "../../components/shared/DateTimePicker";
@@ -11,6 +12,7 @@ import styles from "./Torneos.module.css";
 export default function EditTorneo() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const brandName = useBrandName();
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [title, setTitle] = useState("");
@@ -114,7 +116,7 @@ export default function EditTorneo() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Editar torneo – TurnoCero</title>
+        <title>{`Editar torneo – ${brandName}`}</title>
       </Helmet>
       <div className={styles.inner}>
         <div className={styles.formHeader}>

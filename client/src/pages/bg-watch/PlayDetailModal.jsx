@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import ModalPortal from "../../components/shared/ModalPortal";
 import Avatar from "../../components/shared/Avatar";
+import { useBrandName } from "../../hooks/useBrandName";
 import { hasDisplayableScore } from "./playerScore";
 import styles from "./BgWatchProfile.module.css";
 
@@ -51,6 +52,7 @@ function colorSwatch(name) {
 }
 
 export default function PlayDetailModal({ play, userMap, onClose }) {
+  const brandName = useBrandName();
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
@@ -172,9 +174,9 @@ export default function PlayDetailModal({ play, userMap, onClose }) {
                               <Link
                                 to={`/usuarios/${turnoceroUser._id}`}
                                 className={styles.playerCellUsername}
-                                title="Ver perfil en TurnoCero"
+                                title={`Ver perfil en ${brandName}`}
                               >
-                                @{turnoceroUser.username} · en TurnoCero
+                                @{turnoceroUser.username} · en {brandName}
                               </Link>
                             ) : (
                               p.username && (

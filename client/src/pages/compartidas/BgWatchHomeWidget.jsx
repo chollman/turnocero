@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { API } from "../../api/endpoints";
+import { useBrandName } from "../../hooks/useBrandName";
 import styles from "./BgWatchHomeWidget.module.css";
 
 const DISMISS_KEY = "turnocero_bgwatch_promo_dismissed";
@@ -107,7 +108,10 @@ function ConnectedView({ bggUsername }) {
   return (
     <div className={styles.widgetConnected}>
       <div className={styles.widgetHead}>
-        <span className={styles.connectedEyebrow}><Meeple />Tu BG Watch</span>
+        <span className={styles.connectedEyebrow}>
+          <Meeple />
+          Tu BG Watch
+        </span>
         <Link
           to={`/bg-watch/${encodeURIComponent(bggUsername)}`}
           className={styles.widgetLink}
@@ -148,6 +152,7 @@ function ConnectedView({ bggUsername }) {
 }
 
 function PromoView({ onDismiss }) {
+  const brandName = useBrandName();
   return (
     <div className={`${styles.widget} ${styles.widgetPromo}`}>
       {onDismiss && (
@@ -167,11 +172,14 @@ function PromoView({ onDismiss }) {
       )}
       <Link to="/bg-watch" className={styles.promoLink}>
         <div className={styles.header}>
-          <span className={styles.eyebrow}><Meeple />BG WATCH</span>
+          <span className={styles.eyebrow}>
+            <Meeple />
+            BG WATCH
+          </span>
         </div>
         <h3 className={styles.title}>¿Llevás tus partidas en BGG?</h3>
         <p className={styles.promoSub}>
-          Conectá tu cuenta y registrá todo desde TurnoCero.
+          Conectá tu cuenta y registrá todo desde {brandName}.
         </p>
         <span className={styles.promoCta}>Activá BG Watch →</span>
       </Link>

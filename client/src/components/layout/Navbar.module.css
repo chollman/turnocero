@@ -150,6 +150,20 @@
   text-transform: uppercase;
 }
 
+/* Atribución "por TurnoCero" en modo tenant: TurnoCero en Caveat (cursive).
+   Color hardcodeado al azul de marca de TurnoCero (#1888ef) a propósito: en un
+   skin de comunidad `--amber` se reescribe, pero la firma "TurnoCero" mantiene
+   SIEMPRE el color de TurnoCero. */
+.attribution {
+  font-family: var(--font-script);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #1888ef;
+}
+
 /* ─── Actions ─── */
 .navActions {
   display: flex;

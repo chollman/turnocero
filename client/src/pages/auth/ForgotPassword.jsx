@@ -8,9 +8,11 @@ import styles from "./Auth.module.css";
 import ShowcaseCard from "./ShowcaseCard";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { useShowcaseTables } from "../../hooks/useShowcaseTables";
+import { useBrandName } from "../../hooks/useBrandName";
 
 export default function ForgotPassword() {
   const { requestPasswordReset } = useAuth();
+  const brandName = useBrandName();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -37,7 +39,7 @@ export default function ForgotPassword() {
         <div className={styles.logoBlock}>
           <Logo className={styles.logoIcon} />
           <div className={styles.logoText}>
-            <span className={styles.logoName}>TurnoCero</span>
+            <span className={styles.logoName}>{brandName}</span>
             <span className={styles.logoSub}>BOARD GAME MEETUPS</span>
           </div>
         </div>
@@ -47,7 +49,10 @@ export default function ForgotPassword() {
           <div className={styles.mobileHeroFade} />
         </div>
 
-        <div className={styles.eyebrow}><Meeple />RECUPERAR ACCESO</div>
+        <div className={styles.eyebrow}>
+          <Meeple />
+          RECUPERAR ACCESO
+        </div>
         <h1 className={styles.heading}>¿Olvidaste tu contraseña?</h1>
         <p className={styles.sub}>
           Pasanos tu email y te mandamos un link para elegir una nueva.
@@ -112,7 +117,10 @@ export default function ForgotPassword() {
         <div className={styles.showcaseGradient} />
         <div className={styles.showcaseContent}>
           <div>
-            <div className={styles.showcaseEyebrow}><Meeple />MESAS ACTIVAS</div>
+            <div className={styles.showcaseEyebrow}>
+              <Meeple />
+              MESAS ACTIVAS
+            </div>
             {showcase?.total > 0 ? (
               <h2 className={styles.showcaseTitle}>
                 {showcase.total} mesas

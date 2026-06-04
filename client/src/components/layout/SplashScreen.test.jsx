@@ -1,8 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, act } from "@testing-library/react";
+
+const brandNameMock = vi.fn(() => "TurnoCero");
+vi.mock("../../hooks/useBrandName", () => ({
+  useBrandName: () => brandNameMock(),
+}));
+
 import SplashScreen from "./SplashScreen";
 
 beforeEach(() => {
+  brandNameMock.mockReturnValue("TurnoCero");
   vi.useFakeTimers();
 });
 afterEach(() => {
@@ -15,6 +22,13 @@ describe("<SplashScreen>", () => {
     expect(screen.getByText("TurnoCero")).toBeInTheDocument();
     expect(screen.getByText("🎲")).toBeInTheDocument();
     expect(screen.getByText("Organizá tu mesa")).toBeInTheDocument();
+  });
+
+  it("shows the community brand name in tenant mode", () => {
+    brandNameMock.mockReturnValue("El Clu");
+    render(<SplashScreen visible={true} />);
+    expect(screen.getByText("El Clu")).toBeInTheDocument();
+    expect(screen.queryByText("TurnoCero")).not.toBeInTheDocument();
   });
 
   it("renders 15 decorative pieces", () => {

@@ -455,7 +455,13 @@ export default function Sidebar({ open = false, onClose }) {
               <span className={styles.logoName}>{brand.name}</span>
               <span className={styles.logoSub}>
                 <Meeple />
-                board game meetups
+                {isTenant ? (
+                  <>
+                    por <span className={styles.attribution}>TurnoCero</span>
+                  </>
+                ) : (
+                  "board game meetups"
+                )}
               </span>
             </span>
           </Link>

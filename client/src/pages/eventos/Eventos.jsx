@@ -12,6 +12,7 @@ import { io } from "socket.io-client";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import useLocalStorageState from "../../utils/useLocalStorageState";
@@ -40,6 +41,7 @@ const MAX_RADIUS_KM = 100;
 export default function Eventos() {
   const { user } = useAuth();
   const { addToast } = useNotifications();
+  const brandName = useBrandName();
   const isAdmin = !!user?.isAdmin;
   const userId = user?._id;
   const hasDireccion = Boolean(user?.direccion?.lat && user?.direccion?.lng);
@@ -330,7 +332,7 @@ export default function Eventos() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Eventos — TurnoCero</title>
+        <title>{`Eventos — ${brandName}`}</title>
         <meta
           name="description"
           content="Eventos y torneos de la comunidad de juegos de mesa"
@@ -347,8 +349,8 @@ export default function Eventos() {
             Eventos de la <em>comunidad</em>.
           </h1>
           <p className={styles.heroSub}>
-            Torneos, encuentros y demos producidos por la comunidad de
-            TurnoCero. Reservá tu lugar o sumá tu evento.
+            Torneos, encuentros y demos producidos por la comunidad de{" "}
+            {brandName}. Reservá tu lugar o sumá tu evento.
           </p>
         </div>
         <div className={styles.heroRight}>
@@ -465,7 +467,9 @@ export default function Eventos() {
         )
       ) : visibleEventos.length === 0 ? (
         <div className={styles.empty}>
-          <span className={styles.emptyDot}><Meeple /></span>
+          <span className={styles.emptyDot}>
+            <Meeple />
+          </span>
           <p className={styles.emptyText}>
             {filter === "mine"
               ? "No tenés inscripciones en eventos cargados."

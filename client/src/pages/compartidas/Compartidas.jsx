@@ -5,6 +5,7 @@ import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
@@ -45,6 +46,7 @@ function QuoteWidget({ text }) {
 export default function Compartidas() {
   const { user } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
+  const brandName = useBrandName();
   const bgwatchEnabled = isSectionEnabled("bgwatch");
   const [searchParams] = useSearchParams();
   const prefilledMesa = searchParams.get("mesa") || "";
@@ -194,7 +196,7 @@ export default function Compartidas() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Compartidas – TurnoCero 🎲</title>
+        <title>{`Compartidas – ${brandName} 🎲`}</title>
         <meta
           name="description"
           content="Mirá las últimas compartidas de la comunidad de juegos de mesa."
