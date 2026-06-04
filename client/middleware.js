@@ -236,7 +236,12 @@ export default async function middleware(request) {
   const tenantSlug = detectTenantSlug(url.hostname);
   const isRoot = url.pathname === "/" || url.pathname === "";
   // Sólo actuamos en deep-links O en la raíz de un subdominio de comunidad.
-  if (!compartidaMatch && !eventoMatch && !bgWatchMatch && !(tenantSlug && isRoot))
+  if (
+    !compartidaMatch &&
+    !eventoMatch &&
+    !bgWatchMatch &&
+    !(tenantSlug && isRoot)
+  )
     return;
 
   const ua = request.headers.get("user-agent") || "";

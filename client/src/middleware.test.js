@@ -67,7 +67,10 @@ describe("detectTenantSlug", () => {
 describe("middleware — OG", () => {
   it("ignora requests que no son de crawlers", async () => {
     const res = await middleware(
-      makeReq("https://turnocero.app/compartidas/" + "a".repeat(24), "Mozilla/5.0"),
+      makeReq(
+        `https://turnocero.app/compartidas/${  "a".repeat(24)}`,
+        "Mozilla/5.0",
+      ),
     );
     expect(res).toBeUndefined();
   });
