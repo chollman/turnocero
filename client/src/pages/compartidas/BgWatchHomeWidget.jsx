@@ -203,7 +203,14 @@ export default function BgWatchHomeWidget({ user, dismissible = false }) {
   );
 
   if (!user) return null;
-  const hasBgWatch = user.bggUsername && user.bggConnected && !user.bggInvalid;
+  // Tener BG Watch = tener `bggUsername`. La vista conectada (ConnectedView) es
+  // read-only (lee partidas de BGG), así que NO requiere la conexión por password
+  // (`bggConnected`, que solo habilita ESCRIBIR). Consistente con el Sidebar, que
+  // usa `bggUsername` como señal de "tiene BG Watch". Antes exigía bggConnected,
+  // por lo que un usuario read-only veía el promo "¿Llevás tus partidas en BGG?".
+  // `!bggInvalid` se mantiene: si las credenciales guardadas quedaron inválidas,
+  // el promo sirve de nudge para reconectar.
+  const hasBgWatch = !!user.bggUsername && !user.bggInvalid;
   if (hasBgWatch) {
     return <ConnectedView bggUsername={user.bggUsername} />;
   }

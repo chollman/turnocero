@@ -140,6 +140,21 @@ describe("<BgWatchHomeWidget>", () => {
     ).toHaveAttribute("href", "/bg-watch/CarcaFan");
   });
 
+  // Regression: BG Watch read-only (solo bggUsername, sin la conexión por
+  // password) debe mostrar la vista conectada, NO el promo "¿Llevás tus
+  // partidas en BGG?". Antes exigía bggConnected y el read-only veía el promo.
+  it("renders ConnectedView for a read-only user (bggUsername without bggConnected)", async () => {
+    renderWidget({
+      user: { _id: "me", bggUsername: "CarcaFan", bggConnected: false },
+    });
+    await waitFor(() => {
+      expect(screen.getByText(/tu bg watch/i)).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText(/¿Llevás tus partidas en BGG\?/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders empty-year headline when ConnectedView has no plays", async () => {
     server.use(
       http.get("/api/bgg/partidas/:bggUsername", () =>
