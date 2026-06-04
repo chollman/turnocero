@@ -225,13 +225,18 @@ export function CommunityProvider({ children }) {
   // ambos temas.
   const brand = useMemo(() => {
     const s = effectiveSkinCommunity?.skin;
+    // En modo tenant (subdominio o ?tenant=<slug>), la marca del sidebar se
+    // transforma en la de la comunidad: si su skin no definió un `brandName`,
+    // usamos el nombre de la comunidad en vez de caer a "TurnoCero".
+    const fallbackName =
+      (isTenant && effectiveSkinCommunity?.name) || "TurnoCero";
     return {
-      name: s?.brandName || "TurnoCero",
+      name: s?.brandName || fallbackName,
       tagline: s?.tagline || "",
       logoLight: s?.logoLight?.url || s?.logoDark?.url || "",
       logoDark: s?.logoDark?.url || s?.logoLight?.url || "",
     };
-  }, [effectiveSkinCommunity]);
+  }, [isTenant, effectiveSkinCommunity]);
 
   const value = useMemo(
     () => ({

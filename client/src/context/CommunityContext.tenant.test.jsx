@@ -6,7 +6,9 @@ import { server } from "../test/server";
 // Modo tenant: el subdominio resuelve a "patagonia". Se mockea detectTenant
 // (que CommunityContext lee UNA vez al cargar el módulo) en un archivo aparte
 // para no contaminar los tests del modo normal.
-vi.mock("../utils/tenant", () => ({ detectTenant: () => ({ slug: "patagonia" }) }));
+vi.mock("../utils/tenant", () => ({
+  detectTenant: () => ({ slug: "patagonia" }),
+}));
 vi.mock("./AuthContext", () => ({ useAuth: vi.fn() }));
 import { useAuth } from "./AuthContext";
 import { CommunityProvider, useCommunity } from "./CommunityContext";
@@ -86,6 +88,24 @@ describe("CommunityContext — tenant mode (subdomain)", () => {
     const styleEl = document.getElementById("community-skin");
     expect(styleEl).toBeTruthy();
     expect(styleEl.textContent).toContain("--amber: #e63946;");
+  });
+
+  it("falls back to the community name when the tenant skin has no brandName", async () => {
+    useAuth.mockReturnValue({ user: null });
+    const { skin, ...rest } = tenant;
+    const { brandName, ...skinNoBrand } = skin;
+    server.use(
+      http.get("/api/comunidades/patagonia", () =>
+        HttpResponse.json({ ...rest, skin: skinNoBrand }),
+      ),
+    );
+    renderProvider();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("isTenant").textContent).toBe("true"),
+    );
+    // Sin brandName en el skin → la marca del sidebar usa el nombre de la comunidad.
+    expect(screen.getByTestId("brandName").textContent).toBe("Patagonia");
   });
 
   it("does NOT enter tenant mode if the community lacks subdomainEnabled", async () => {

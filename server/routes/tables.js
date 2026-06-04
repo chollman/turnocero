@@ -216,12 +216,14 @@ router.get(
 router.get(
   "/mine",
   protect,
+  resolveCommunities,
   asyncHandler(async (req, res) => {
     const { page, limit, skip } = parsePagination(req.query);
     const searchClause = await buildSearchClause(req.query.search);
     const baseFilter = {
       $or: [{ host: req.user._id }, { players: req.user._id }],
       status: { $ne: "cancelled" },
+      ...communityFilter(req),
     };
     const filter = searchClause
       ? { $and: [baseFilter, searchClause] }
@@ -242,13 +244,17 @@ router.get(
 router.get(
   "/me/feed",
   protect,
+  resolveCommunities,
   asyncHandler(async (req, res) => {
     let ids = [req.user._id];
     if (req.query.includeFriends === "true") {
       const me = await User.findById(req.user._id).select("friends").lean();
       ids = [req.user._id, ...(me.friends || [])];
     }
-    const filter = { $or: [{ host: { $in: ids } }, { players: { $in: ids } }] };
+    const filter = {
+      $or: [{ host: { $in: ids } }, { players: { $in: ids } }],
+      ...communityFilter(req),
+    };
     const tables = await populateTable(Table.find(filter)).sort({ date: -1 });
     res.json({ tables, total: tables.length });
   }),

@@ -6,6 +6,7 @@ const Table = require("../models/Table");
 const Compartida = require("../models/Compartida");
 const Community = require("../models/Community");
 const { optionalAuth } = require("../middleware/auth");
+const { resolveCommunities } = require("../middleware/resolveCommunities");
 const validateObjectId = require("../middleware/validateObjectId");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
@@ -24,6 +25,7 @@ router.param("id", validateObjectId("id"));
 router.get(
   "/",
   optionalAuth,
+  resolveCommunities,
   asyncHandler(async (req, res) => {
     const { search, sortBy, activeOnly, friendsOnly, bgWatchOnly, community } =
       req.query;
@@ -50,7 +52,10 @@ router.get(
       if (!isAdmin && targetCommunity.sections?.get("comunidad") === false) {
         throw httpError(403, "Sección deshabilitada");
       }
-      if (!isAdmin && !communityService.isMember(req.user, targetCommunity._id)) {
+      if (
+        !isAdmin &&
+        !communityService.isMember(req.user, targetCommunity._id)
+      ) {
         throw httpError(403, "No sos miembro de esta comunidad");
       }
       query["communityMemberships.community"] = targetCommunity._id;
@@ -80,19 +85,41 @@ router.get(
 
     const userIds = users.map((u) => u._id);
 
+    // Scope de los conteos de actividad (mesas / compartidas). Si se pide una
+    // comunidad puntual (`?community`, vista de miembros), los números son de
+    // ESA comunidad; si no, de las comunidades que el viewer está viendo (en
+    // modo tenant = la del subdominio). `req.viewingCommunities` lo puebla
+    // `resolveCommunities`. Las agregaciones no castean strings → ObjectId.
+    const countScope = community
+      ? [new mongoose.Types.ObjectId(String(community))]
+      : req.viewingCommunities || [];
+    const inScope = { community: { $in: countScope } };
+
     const [hostedCounts, playerCounts, compartidaCounts] = await Promise.all([
       Table.aggregate([
-        { $match: { host: { $in: userIds }, status: { $ne: "cancelled" } } },
+        {
+          $match: {
+            host: { $in: userIds },
+            status: { $ne: "cancelled" },
+            ...inScope,
+          },
+        },
         { $group: { _id: "$host", count: { $sum: 1 } } },
       ]),
       Table.aggregate([
-        { $match: { players: { $in: userIds }, status: { $ne: "cancelled" } } },
+        {
+          $match: {
+            players: { $in: userIds },
+            status: { $ne: "cancelled" },
+            ...inScope,
+          },
+        },
         { $unwind: "$players" },
         { $match: { players: { $in: userIds } } },
         { $group: { _id: "$players", count: { $sum: 1 } } },
       ]),
       Compartida.aggregate([
-        { $match: { author: { $in: userIds }, privacy: "public" } },
+        { $match: { author: { $in: userIds }, privacy: "public", ...inScope } },
         { $group: { _id: "$author", count: { $sum: 1 } } },
       ]),
     ]);

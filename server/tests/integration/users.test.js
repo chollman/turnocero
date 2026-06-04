@@ -1,11 +1,8 @@
 const request = require("supertest");
 const app = require("../../app");
 const Community = require("../../models/Community");
-const {
-  createUser,
-  createAuthedUser,
-  authHeader,
-} = require("../helpers/auth");
+const { createUser, createAuthedUser, authHeader } = require("../helpers/auth");
+const { createTable } = require("../helpers/factories");
 const { loadSiteConfig, updateSiteConfig } = require("../../utils/siteConfig");
 const SiteConfig = require("../../models/SiteConfig");
 
@@ -59,6 +56,50 @@ describe("GET /api/users — infra compartida (sin ?community)", () => {
       .set(authHeader(token))
       .expect(200);
     expect(res.body.some((u) => u.username === "carcassonne_fan")).toBe(true);
+  });
+});
+
+describe("GET /api/users — conteos de actividad scopeados por comunidad", () => {
+  it("sin ?community los conteos se acotan a lo que el viewer ve", async () => {
+    const beta = await Community.create({ name: "BetaView", slug: "betaview" });
+    const target = await createUser({ username: "target_view" });
+    await createTable(target); // base
+    await createTable(target, { community: beta._id }); // beta
+
+    // Viewer base-only → conteos acotados a la base.
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .get("/api/users")
+      .set(authHeader(token))
+      .expect(200);
+    const row = res.body.find((u) => u.username === "target_view");
+    expect(row).toBeTruthy();
+    expect(row.tablesHosted).toBe(1); // solo la mesa de la base
+  });
+
+  it("con ?community los conteos son de esa comunidad, no globales", async () => {
+    const beta = await Community.create({
+      name: "BetaCount",
+      slug: "betacount",
+      joinPolicy: "open",
+    });
+    const target = await createUser({
+      username: "jugador_activo",
+      communityMemberships: [{ community: beta._id, role: "member" }],
+    });
+    await createTable(target); // base
+    await createTable(target, { community: beta._id }); // beta
+
+    // Admin bypasea gates; pide la lista de miembros de beta.
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const res = await request(app)
+      .get("/api/users")
+      .query({ community: String(beta._id) })
+      .set(authHeader(token))
+      .expect(200);
+    const row = res.body.find((u) => u.username === "jugador_activo");
+    expect(row).toBeTruthy();
+    expect(row.tablesHosted).toBe(1); // solo la mesa de beta
   });
 });
 
