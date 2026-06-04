@@ -60,7 +60,7 @@ describe("<GuestSidebar>", () => {
     );
   });
 
-  it("in tenant mode shows the community name + logo instead of TurnoCero", () => {
+  it("in tenant mode shows the community name + the 'por TurnoCero' attribution", () => {
     renderAt(
       "/",
       {},
@@ -76,9 +76,22 @@ describe("<GuestSidebar>", () => {
       },
     );
     expect(screen.getByText("El Clu")).toBeInTheDocument();
-    expect(screen.queryByText("TurnoCero")).not.toBeInTheDocument();
-    expect(screen.getByText("Comunidad de Telegram")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /el clu/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /el clu/i }).length).toBeGreaterThan(0);
+    // The subtitle drops "board game meetups" for the TurnoCero attribution,
+    // which links to /colabora.
+    const attribution = screen.getByRole("link", { name: "TurnoCero" });
+    expect(attribution).toHaveAttribute("href", "/colabora");
+  });
+
+  it("does not show the TurnoCero attribution outside tenant mode", () => {
+    renderAt("/");
+    expect(screen.getByText(/board game meetups/i)).toBeInTheDocument();
+    // The only TurnoCero links are the two home links (logo mark + name); none
+    // points to /colabora.
+    const colabora = screen
+      .queryAllByRole("link")
+      .filter((a) => a.getAttribute("href") === "/colabora");
+    expect(colabora).toHaveLength(0);
   });
 
   it("shows Noticias + Compartidas when both sections are enabled", () => {

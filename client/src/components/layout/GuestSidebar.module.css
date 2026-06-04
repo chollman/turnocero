@@ -113,6 +113,7 @@
   box-shadow: 0 4px 14px var(--amber-glow);
   position: relative;
   display: block;
+  text-decoration: none;
 }
 
 .logoMark::after {
@@ -147,6 +148,8 @@
   letter-spacing: -0.035em;
   color: var(--text-primary);
   line-height: 1.05;
+  text-decoration: none;
+  width: fit-content;
 }
 
 .logoSub {
@@ -157,6 +160,25 @@
   color: var(--text-muted);
   text-transform: uppercase;
   margin-top: 2px;
+}
+
+/* Atribución "por TurnoCero" en modo tenant: TurnoCero en cursiva (script).
+   Color hardcodeado al azul de marca de TurnoCero (#1888ef), a propósito: en un
+   skin de comunidad `--amber` se reescribe con el accent de esa comunidad, pero
+   la firma "TurnoCero" debe conservar SIEMPRE el color de TurnoCero. */
+.attribution {
+  font-family: var(--font-script);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #1888ef;
+  text-decoration: none;
+}
+
+.attribution:hover {
+  text-decoration: underline;
 }
 
 /* ─── Nav ─── */

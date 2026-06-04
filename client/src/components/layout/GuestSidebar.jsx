@@ -140,31 +140,34 @@ export default function GuestSidebar({ open = false, onClose }) {
         aria-hidden={onClose && !open ? "true" : undefined}
       >
         <div className={styles.logoRow}>
-          <Link
-            to="/"
-            className={styles.logo}
-            aria-label={isTenant ? brand.name : "TurnoCero"}
-          >
-            <span className={styles.logoMark} aria-hidden="true">
+          <div className={styles.logo}>
+            <Link to="/" className={styles.logoMark} aria-label={brand.name}>
               <Logo
                 className={styles.logoMarkImg}
                 alt=""
-                srcLight={isTenant ? brand.logoLight : undefined}
-                srcDark={isTenant ? brand.logoDark : undefined}
+                srcLight={brand.logoLight}
+                srcDark={brand.logoDark}
               />
-            </span>
+            </Link>
             <span className={styles.logoText}>
-              <span className={styles.logoName}>
-                {isTenant ? brand.name : "TurnoCero"}
-              </span>
+              <Link to="/" className={styles.logoName}>
+                {brand.name}
+              </Link>
               <span className={styles.logoSub}>
                 <Meeple />
-                {isTenant && brand.tagline
-                  ? brand.tagline
-                  : "board game meetups"}
+                {isTenant ? (
+                  <>
+                    por{" "}
+                    <Link to="/colabora" className={styles.attribution}>
+                      TurnoCero
+                    </Link>
+                  </>
+                ) : (
+                  "board game meetups"
+                )}
               </span>
             </span>
-          </Link>
+          </div>
         </div>
 
         <nav className={styles.nav}>
