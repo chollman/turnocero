@@ -9,8 +9,12 @@ vi.mock("../../context/SiteConfigContext", () => ({
 vi.mock("../../context/CommunityContext", () => ({
   useCommunity: vi.fn(),
 }));
+// GuestSidebar gates via the combined useSectionEnabled hook, which also reads
+// useAuth (guests → null user). Mock it so the real hook can run.
+vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useCommunity } from "../../context/CommunityContext";
+import { useAuth } from "../../context/AuthContext";
 
 const DEFAULT_BRAND = {
   name: "TurnoCero",
@@ -25,12 +29,14 @@ function renderAt(
   props = {},
   community = {},
 ) {
+  useAuth.mockReturnValue({ user: null });
   useSiteConfig.mockReturnValue({
     isSectionEnabled: (k) => sectionEnabledMap[k] ?? true,
   });
   useCommunity.mockReturnValue({
     isTenant: false,
     brand: DEFAULT_BRAND,
+    isSectionEnabledInSkin: (k) => community.communitySections?.[k] ?? true,
     ...community,
   });
   return render(
@@ -89,6 +95,24 @@ describe("<GuestSidebar>", () => {
 
   it("hides Noticias when the section is disabled", () => {
     renderAt("/", { noticias: false });
+    expect(
+      screen.queryByRole("link", { name: /noticias/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /compartidas/i }),
+    ).toBeInTheDocument();
+  });
+
+  // Regression: a guest on a community subdomain must see that community's
+  // section set. Noticias enabled globally but disabled by the community must
+  // not appear, matching the combined useSectionEnabled gating.
+  it("hides a section the community disabled even when globally enabled", () => {
+    renderAt(
+      "/",
+      { noticias: true },
+      {},
+      { isTenant: true, communitySections: { noticias: false } },
+    );
     expect(
       screen.queryByRole("link", { name: /noticias/i }),
     ).not.toBeInTheDocument();

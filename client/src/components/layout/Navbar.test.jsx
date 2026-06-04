@@ -7,6 +7,10 @@ vi.mock("../../context/NotificationContext", () => ({
 }));
 vi.mock("../../context/ChatContext", () => ({ useChat: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
+// Navbar gates "dms" via the combined useSectionEnabled hook (global +
+// per-community override), which also reads useAuth + useCommunity.
+vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
+vi.mock("../../context/CommunityContext", () => ({ useCommunity: vi.fn() }));
 
 const navigateMock = vi.fn();
 vi.mock("react-router-dom", async () => {
@@ -18,18 +22,25 @@ import Navbar from "./Navbar";
 import { useNotifications } from "../../context/NotificationContext";
 import { useChat } from "../../context/ChatContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useAuth } from "../../context/AuthContext";
+import { useCommunity } from "../../context/CommunityContext";
 
 function setup({
   unreadCount = 0,
   dmUnreadTotal = 0,
   sections = {},
+  communitySections = {},
   menuOpen = false,
   onToggleMenu,
 } = {}) {
   useNotifications.mockReturnValue({ unreadCount });
   useChat.mockReturnValue({ dmUnreadTotal });
+  useAuth.mockReturnValue({ user: { _id: "u1" } });
   useSiteConfig.mockReturnValue({
     isSectionEnabled: (k) => sections[k] ?? true,
+  });
+  useCommunity.mockReturnValue({
+    isSectionEnabledInSkin: (k) => communitySections[k] ?? true,
   });
   return render(
     <MemoryRouter>
@@ -86,6 +97,15 @@ describe("<Navbar>", () => {
 
   it("hides DMs button when dms section is disabled", () => {
     setup({ sections: { dms: false } });
+    expect(
+      screen.queryByRole("button", { name: /mensajes/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  // Regression: per-community override (tenant subdomain) must hide DMs even
+  // when globally enabled, via the combined useSectionEnabled gating.
+  it("hides DMs when the community disabled it though globally enabled", () => {
+    setup({ sections: { dms: true }, communitySections: { dms: false } });
     expect(
       screen.queryByRole("button", { name: /mensajes/i }),
     ).not.toBeInTheDocument();

@@ -10,6 +10,9 @@ vi.mock("../../context/NotificationContext", () => ({
   useNotifications: vi.fn(),
 }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
+// ChatLauncher gates "dms" via the combined useSectionEnabled hook (global +
+// per-community override).
+vi.mock("../../context/CommunityContext", () => ({ useCommunity: vi.fn() }));
 
 const navigateMock = vi.fn();
 vi.mock("react-router-dom", async () => {
@@ -22,6 +25,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useCommunity } from "../../context/CommunityContext";
 
 const FRIEND = (over = {}) => ({
   _id: over._id || `f${Math.random()}`,
@@ -33,6 +37,7 @@ const FRIEND = (over = {}) => ({
 function setup({
   user = { _id: "me", username: "me" },
   dmsEnabled = true,
+  communityDmsEnabled = true,
   conversations = {},
   dmUnreadTotal = 0,
   openChat = vi.fn(),
@@ -43,6 +48,9 @@ function setup({
   useNotifications.mockReturnValue({ addFriendListener: () => () => {} });
   useSiteConfig.mockReturnValue({
     isSectionEnabled: (k) => (k === "dms" ? dmsEnabled : true),
+  });
+  useCommunity.mockReturnValue({
+    isSectionEnabledInSkin: (k) => (k === "dms" ? communityDmsEnabled : true),
   });
 
   server.use(http.get("/api/users", () => HttpResponse.json(friends)));
@@ -64,6 +72,16 @@ describe("<ChatLauncher>", () => {
 
   it("renders nothing when the dms section is disabled", () => {
     const { container } = setup({ dmsEnabled: false });
+    expect(container.firstChild).toBeNull();
+  });
+
+  // Regression: per-community override (tenant subdomain) hides the launcher
+  // even when dms is globally enabled.
+  it("renders nothing when the community disabled dms though globally on", () => {
+    const { container } = setup({
+      dmsEnabled: true,
+      communityDmsEnabled: false,
+    });
     expect(container.firstChild).toBeNull();
   });
 

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useSectionEnabled } from "../../hooks/useSectionEnabled";
 import styles from "./ColaborarFab.module.css";
 
 const HeartIcon = () => (
@@ -19,7 +19,7 @@ const HeartIcon = () => (
 );
 
 export default function ColaborarFab() {
-  const { isSectionEnabled } = useSiteConfig();
+  const isSectionEnabled = useSectionEnabled();
   const { pathname } = useLocation();
 
   if (!isSectionEnabled("colabora")) return null;

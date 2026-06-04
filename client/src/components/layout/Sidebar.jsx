@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
-import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useSectionEnabled } from "../../hooks/useSectionEnabled";
 import { useCommunity } from "../../context/CommunityContext";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { getActiveNavId } from "../../utils/routing";
@@ -300,7 +300,10 @@ const SECTIONS = [
 export default function Sidebar({ open = false, onClose }) {
   const { user, isActuallyAdmin, logout } = useAuth();
   const { unreadCount, adminChatUnread } = useNotifications();
-  const { isSectionEnabled } = useSiteConfig();
+  // Gating combinado: global (SiteConfig) Y override por comunidad-skin. En modo
+  // tenant esto hace que el sidebar respete las secciones de la comunidad del
+  // subdominio, en sync con el guard de rutas <SectionGate>.
+  const isSectionEnabled = useSectionEnabled();
   const { brand, isTenant } = useCommunity();
   const location = useLocation();
   const navigate = useNavigate();

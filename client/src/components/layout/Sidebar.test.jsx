@@ -28,6 +28,8 @@ function setup({
   unreadCount = 0,
   adminChatUnread = 0,
   sections = {},
+  communitySections = {},
+  isTenant = false,
   pathname = "/",
   open,
   onClose,
@@ -35,10 +37,18 @@ function setup({
 } = {}) {
   useAuth.mockReturnValue({ user, isActuallyAdmin, logout });
   useNotifications.mockReturnValue({ unreadCount, adminChatUnread });
+  // Global section flags (SiteConfig). The real useSectionEnabled hook runs and
+  // ANDs these with the per-community override below.
   useSiteConfig.mockReturnValue({
     isSectionEnabled: (k) => sections[k] ?? true,
   });
-  useCommunity.mockReturnValue({ brand });
+  // Per-community override (skin community). In tenant mode this is the
+  // subdomain's community — the regression target for this suite.
+  useCommunity.mockReturnValue({
+    brand,
+    isTenant,
+    isSectionEnabledInSkin: (k) => communitySections[k] ?? true,
+  });
   return render(
     <MemoryRouter initialEntries={[pathname]}>
       <Sidebar open={open} onClose={onClose} />
@@ -96,6 +106,26 @@ describe("<Sidebar>", () => {
     expect(
       screen.queryByRole("link", { name: /^eventos$/i }),
     ).not.toBeInTheDocument();
+  });
+
+  // Regression: in a community subdomain (tenant mode) the sidebar must respect
+  // the community's per-section override, not just the global SiteConfig flag.
+  // A non-member landing on the subdomain previously saw the global section set
+  // because the sidebar gated on useSiteConfig directly. It now uses the
+  // combined useSectionEnabled hook, matching the <SectionGate> route guard.
+  it("hides a section the community disabled even when globally enabled (tenant)", () => {
+    setup({
+      sections: { eventos: true }, // globally on
+      communitySections: { eventos: false }, // but this community turned it off
+      isTenant: true,
+    });
+    expect(
+      screen.queryByRole("link", { name: /^eventos$/i }),
+    ).not.toBeInTheDocument();
+    // A section the community left enabled still shows.
+    expect(
+      screen.getByRole("link", { name: /^torneos$/i }),
+    ).toBeInTheDocument();
   });
 
   it('shows "Activá BG Watch" CTA for users without bggUsername (when bgwatch enabled)', () => {

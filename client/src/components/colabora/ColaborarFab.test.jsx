@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import ColaborarFab from "./ColaborarFab";
@@ -6,8 +6,23 @@ import ColaborarFab from "./ColaborarFab";
 vi.mock("../../context/SiteConfigContext", () => ({
   useSiteConfig: vi.fn(),
 }));
+// ColaborarFab gates "colabora" via the combined useSectionEnabled hook, which
+// also reads useCommunity (per-community override) + useAuth (admin bypass).
+vi.mock("../../context/CommunityContext", () => ({ useCommunity: vi.fn() }));
+vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useCommunity } from "../../context/CommunityContext";
+import { useAuth } from "../../context/AuthContext";
+
+// Default the community override + auth so the global flag drives unless a test
+// overrides it. Call before each render.
+function primeContexts({ communitySections = {}, user = { _id: "u1" } } = {}) {
+  useCommunity.mockReturnValue({
+    isSectionEnabledInSkin: (k) => communitySections[k] ?? true,
+  });
+  useAuth.mockReturnValue({ user });
+}
 
 function renderAt(path = "/") {
   return render(
@@ -20,6 +35,8 @@ function renderAt(path = "/") {
 }
 
 describe("<ColaborarFab>", () => {
+  beforeEach(() => primeContexts());
+
   it("renders a link to /colabora when the section is enabled", () => {
     useSiteConfig.mockReturnValue({
       isSectionEnabled: (s) => s === "colabora",
@@ -34,6 +51,15 @@ describe("<ColaborarFab>", () => {
     useSiteConfig.mockReturnValue({
       isSectionEnabled: () => false,
     });
+    const { container } = renderAt("/");
+    expect(container.textContent).toBe("");
+  });
+
+  // Regression: per-community override (tenant subdomain) hides the FAB even
+  // when colabora is globally enabled.
+  it("renders nothing when the community disabled colabora though globally on", () => {
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+    primeContexts({ communitySections: { colabora: false } });
     const { container } = renderAt("/");
     expect(container.textContent).toBe("");
   });

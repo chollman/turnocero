@@ -4,7 +4,7 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
 import { useNotifications } from "../../context/NotificationContext";
-import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useSectionEnabled } from "../../hooks/useSectionEnabled";
 import { API } from "../../api/endpoints";
 import Avatar from "../shared/Avatar";
 import styles from "./ChatLauncher.module.css";
@@ -15,7 +15,7 @@ export default function ChatLauncher() {
   const { user } = useAuth();
   const { conversations, openChat, dmUnreadTotal } = useChat();
   const { addFriendListener } = useNotifications();
-  const { isSectionEnabled } = useSiteConfig();
+  const isSectionEnabled = useSectionEnabled();
   const dmsEnabled = isSectionEnabled("dms");
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);

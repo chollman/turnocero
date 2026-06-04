@@ -1,7 +1,7 @@
 import Meeple from "../shared/Meeple";
 import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useSectionEnabled } from "../../hooks/useSectionEnabled";
 import { useCommunity } from "../../context/CommunityContext";
 import { getActiveNavId } from "../../utils/routing";
 import Logo from "../shared/Logo";
@@ -98,7 +98,8 @@ const NAV = [
 
 export default function GuestSidebar({ open = false, onClose }) {
   const { pathname } = useLocation();
-  const { isSectionEnabled } = useSiteConfig();
+  // Gating combinado global + override por comunidad-skin (ver useSectionEnabled).
+  const isSectionEnabled = useSectionEnabled();
   // En modo tenant (subdominio / ?tenant) la marca es la de la comunidad.
   const { isTenant, brand } = useCommunity();
   const active = getActiveNavId(pathname);
