@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  within,
+} from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
@@ -99,6 +105,44 @@ describe("<MeFeed>", () => {
       expect(screen.getByText("Cancelled")).toBeInTheDocument();
       expect(screen.queryByText("Active")).not.toBeInTheDocument();
     });
+  });
+
+  it("first-run empty state offers explore + create CTAs when the feed is empty", async () => {
+    setup({ tables: [] });
+    await waitFor(() => {
+      expect(screen.queryByTestId("skeleton")).not.toBeInTheDocument();
+    });
+    const explore = screen.getByRole("link", { name: /explorar mesas/i });
+    expect(explore).toHaveAttribute("href", "/mesas");
+    expect(
+      screen.getByRole("link", { name: /crear una mesa/i }),
+    ).toHaveAttribute("href", "/mesas/crear");
+  });
+
+  it("filtered empty state shows data-driven chips + clears the filter", async () => {
+    // Mesas existen pero ninguna está cancelada → al filtrar por "Canceladas"
+    // el resultado queda vacío → variante `filtered`.
+    setup({
+      tables: [
+        makeTable({ boardGame: "Hosteada", host: { _id: "me" } }),
+        makeTable({ boardGame: "Hosteada2", host: { _id: "me" } }),
+      ],
+    });
+    await screen.findAllByTestId("feed-card");
+    fireEvent.click(screen.getByRole("button", { name: /canceladas/i }));
+
+    const status = await screen.findByRole("status");
+    // Chip data-driven hacia un filtro con datos reales (Anfitrión · 2).
+    const chip = within(status).getByRole("button", { name: /anfitri[oó]n/i });
+    expect(chip).toHaveTextContent("2");
+
+    // "Limpiar filtros" vuelve a "Todas" y reaparecen las mesas.
+    fireEvent.click(
+      within(status).getByRole("button", { name: /limpiar filtros/i }),
+    );
+    await waitFor(() =>
+      expect(screen.getAllByTestId("feed-card").length).toBe(2),
+    );
   });
 
   it("hostedCount in subtitle reflects how many tables the user hosts", async () => {

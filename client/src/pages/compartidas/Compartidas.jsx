@@ -8,6 +8,9 @@ import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
+import EmptyState from "../../components/shared/EmptyState";
+import { ArtCompartida, ArtSearch } from "../../components/shared/EmptyArt";
+import { GhostPolaroids } from "../../components/shared/EmptyGhosts";
 import { getUserDisplay } from "../../utils/userDisplay";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import { randomCompartidaQuote } from "../../utils/compartidaQuotes";
@@ -365,29 +368,52 @@ export default function Compartidas() {
               <CompartidaSkeleton />
             </div>
           ) : posts.length === 0 && !featured ? (
-            <div className={styles.empty}>
-              <span className={styles.emptyIcon}>🎲</span>
-              <p className={styles.emptyTitle}>
-                {isFiltered
-                  ? "No hay compartidas que coincidan"
-                  : "No hay compartidas todavía"}
-              </p>
-              <p className={styles.emptySub}>
-                {isFiltered
-                  ? "Probá con otro filtro o búsqueda."
-                  : user
-                    ? "¡Sé el primero en compartir tu partida!"
-                    : "Registrate para compartir tus partidas."}
-              </p>
-              {user && !isFiltered && (
-                <button
-                  className={styles.emptyBtn}
-                  onClick={() => setShowCreate(true)}
-                >
-                  + Publicar compartida
-                </button>
-              )}
-            </div>
+            isFiltered ? (
+              <EmptyState
+                variant="filtered"
+                compact
+                art={<ArtSearch />}
+                eyebrow="Sin coincidencias"
+                title={
+                  <>
+                    Nada para <em>ese filtro.</em>
+                  </>
+                }
+                text="No hay compartidas que coincidan con tu búsqueda."
+                secondary={{
+                  label: "Limpiar filtros",
+                  icon: "clear",
+                  onClick: () => {
+                    setTab("todo");
+                    setQuery("");
+                  },
+                }}
+              />
+            ) : (
+              <EmptyState
+                art={<ArtCompartida />}
+                ghost={<GhostPolaroids />}
+                eyebrow="Diario en blanco"
+                title={
+                  <>
+                    Contá tu <em>última partida.</em>
+                  </>
+                }
+                text={
+                  user
+                    ? "El feed está vacío. Subí una foto de la mesa, una anécdota o ese final ajustado — la comunidad quiere verlo."
+                    : "El feed está vacío. Registrate para compartir tus partidas."
+                }
+                primary={
+                  user
+                    ? {
+                        label: "Compartir una partida",
+                        onClick: () => setShowCreate(true),
+                      }
+                    : { label: "Registrate", to: "/register" }
+                }
+              />
+            )
           ) : (
             <div className={styles.feed}>
               {featured && renderCard(featured, { featured: true })}

@@ -7,6 +7,9 @@ import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
+import EmptyState from "../../components/shared/EmptyState";
+import { ArtNoticia } from "../../components/shared/EmptyArt";
+import { GhostMesa } from "../../components/shared/EmptyGhosts";
 import styles from "./Noticias.module.css";
 
 function timeAgo(date) {
@@ -567,18 +570,22 @@ export default function Noticias() {
             ))}
           </div>
         ) : noticias.length === 0 ? (
-          <div className={styles.empty}>
-            <span className={styles.emptyIcon}>📰</span>
-            <p className={styles.emptyTitle}>Sin noticias todavía</p>
-            {isAdmin && (
-              <button
-                className={styles.emptyBtn}
-                onClick={() => setCreate(true)}
-              >
-                + Publicar noticia
-              </button>
-            )}
-          </div>
+          <EmptyState
+            art={<ArtNoticia />}
+            ghost={<GhostMesa />}
+            eyebrow="Sin novedades"
+            title={
+              <>
+                Nada que <em>anunciar</em>… por ahora.
+              </>
+            }
+            text="Cuando haya novedades, anuncios o convocatorias de la comunidad, las vas a ver acá."
+            primary={
+              isAdmin
+                ? { label: "Publicar noticia", onClick: () => setCreate(true) }
+                : undefined
+            }
+          />
         ) : (
           <div
             className={styles.feed}

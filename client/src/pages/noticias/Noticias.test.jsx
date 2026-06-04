@@ -62,7 +62,7 @@ describe("<Noticias>", () => {
 
   it("shows the empty state when there are no noticias", async () => {
     setup({ noticias: [] });
-    expect(await screen.findByText(/sin noticias/i)).toBeInTheDocument();
+    expect(await screen.findByText(/sin novedades/i)).toBeInTheDocument();
   });
 
   it('admin sees "+ Nueva noticia" button', async () => {
@@ -238,7 +238,7 @@ describe("<Noticias>", () => {
     ).toBeInTheDocument();
     resolve?.();
     await waitFor(() =>
-      expect(screen.getByText(/sin noticias/i)).toBeInTheDocument(),
+      expect(screen.getByText(/sin novedades/i)).toBeInTheDocument(),
     );
   });
 
@@ -286,7 +286,7 @@ describe("<Noticias>", () => {
 
   it('admin: clicking "+ Publicar noticia" in empty state opens the create form', async () => {
     setup({ user: { _id: "admin", isAdmin: true }, noticias: [] });
-    await screen.findByText(/sin noticias/i);
+    await screen.findByText(/sin novedades/i);
     fireEvent.click(screen.getByRole("button", { name: /publicar noticia/i }));
     expect(screen.getByText(/nueva noticia/i)).toBeInTheDocument();
   });

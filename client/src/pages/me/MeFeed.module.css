@@ -266,31 +266,6 @@ color: var(--on-amber);
   color: var(--red);
 }
 
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 48px 0;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-.emptyIcon {
-  font-size: 2.5rem;
-}
-
-.emptyLink {
-  color: var(--amber);
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.emptyLink:hover {
-  color: var(--amber-light);
-}
-
 /* ─── Mobile ─── */
 @media (max-width: 959px) {
   .page {

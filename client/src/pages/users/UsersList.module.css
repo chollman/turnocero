@@ -550,37 +550,6 @@
   background: var(--border);
 }
 
-/* States */
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 4rem 0;
-  color: var(--text-muted);
-  font-size: 0.95rem;
-}
-
-.emptyIcon {
-  font-size: 2.5rem;
-}
-
-.clearFiltersBtn {
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  transition: all var(--transition);
-}
-
-.clearFiltersBtn:hover {
-  border-color: var(--amber);
-  color: var(--amber);
-}
-
 @media (max-width: 640px) {
   .page {
     padding: var(--navbar-h) var(--page-padding-mobile)

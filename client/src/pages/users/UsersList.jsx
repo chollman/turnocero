@@ -8,6 +8,9 @@ import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import Avatar from "../../components/shared/Avatar";
+import EmptyState from "../../components/shared/EmptyState";
+import { ArtComunidad, ArtSearch } from "../../components/shared/EmptyArt";
+import { GhostMembers } from "../../components/shared/EmptyGhosts";
 import styles from "./UsersList.module.css";
 import UsersListSkeleton from "./UsersListSkeleton";
 
@@ -491,23 +494,42 @@ export default function UsersList({ communityId = null } = {}) {
           ))}
         </div>
       ) : visibleUsers.length === 0 ? (
-        <div className={styles.empty}>
-          <span className={styles.emptyIcon}>👥</span>
-          <p>No se encontraron jugadores</p>
-          {(search || activeOnly || friendsOnly || bgWatchOnly) && (
-            <button
-              className={styles.clearFiltersBtn}
-              onClick={() => {
+        search || activeOnly || friendsOnly || bgWatchOnly ? (
+          <EmptyState
+            variant="filtered"
+            compact
+            art={<ArtSearch />}
+            eyebrow="Sin coincidencias"
+            title={
+              <>
+                Ningún jugador con <em>esos filtros.</em>
+              </>
+            }
+            text="No encontramos a nadie así. Probá con otro nombre o sacá algún filtro."
+            secondary={{
+              label: "Limpiar filtros",
+              icon: "clear",
+              onClick: () => {
                 setSearch("");
                 setActiveOnly(false);
                 setFriendsOnly(false);
                 setBgWatchOnly(false);
-              }}
-            >
-              Limpiar filtros
-            </button>
-          )}
-        </div>
+              },
+            }}
+          />
+        ) : (
+          <EmptyState
+            art={<ArtComunidad />}
+            ghost={<GhostMembers />}
+            eyebrow="Roster vacío"
+            title={
+              <>
+                Todavía <em>nadie</em> por acá.
+              </>
+            }
+            text="No hay jugadores para mostrar. En cuanto se sumen los primeros, van a aparecer en este roster."
+          />
+        )
       ) : (
         <div className={styles.grid}>
           {visibleUsers.map((u, i) => (

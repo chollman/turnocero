@@ -11,6 +11,8 @@ import {
   notifLink,
   NOTIF_BUCKETS,
 } from "../../utils/notifDomains";
+import EmptyState from "../../components/shared/EmptyState";
+import { ArtNotif, ArtSearch } from "../../components/shared/EmptyArt";
 import NotifRow from "./NotifRow";
 import ResolvedRow from "./ResolvedRow";
 import SidePanel from "./SidePanel";
@@ -213,6 +215,17 @@ export default function Notifications() {
     })),
   ];
 
+  // Chips data-driven para el vacío "por filtro": otros filtros con datos
+  // reales (excluyendo "Todas" — eso lo cubre el botón "Ver todas" — y el
+  // filtro activo).
+  const emptyFilterChips = filters
+    .filter((f) => f.value !== "all" && f.value !== filter && f.count > 0)
+    .map((f) => ({
+      label: f.label,
+      count: f.count,
+      onClick: () => setFilter(f.value),
+    }));
+
   return (
     <div className={styles.page}>
       <div className={styles.layout}>
@@ -263,23 +276,40 @@ export default function Notifications() {
           )}
 
           {notifications.length === 0 ? (
-            <div className={styles.empty}>
-              <span className={styles.emptyIcon}>
-                <NotifIcon name="Inbox" size={34} />
-              </span>
-              <p className={styles.emptyText}>Sin notificaciones</p>
-              <p className={styles.emptySub}>
-                Cuando alguien te escriba, comente o invite, vas a verlo acá.
-              </p>
-            </div>
+            <EmptyState
+              art={<ArtNotif />}
+              eyebrow="Bandeja al día"
+              title={
+                <>
+                  Estás <em>al día.</em>
+                </>
+              }
+              text="No tenés notificaciones nuevas. Cuando alguien se sume a tu mesa, te etiquete o haya novedades, aparece acá."
+              secondary={{
+                label: "Explorar mesas",
+                icon: "compass",
+                to: "/mesas",
+              }}
+            />
           ) : filtered.length === 0 ? (
-            <div className={styles.empty}>
-              <span className={styles.emptyIcon}>
-                <NotifIcon name="Inbox" size={34} />
-              </span>
-              <p className={styles.emptyText}>Sin resultados</p>
-              <p className={styles.emptySub}>Probá cambiar el filtro.</p>
-            </div>
+            <EmptyState
+              variant="filtered"
+              compact
+              art={<ArtSearch />}
+              eyebrow="Sin coincidencias"
+              title={
+                <>
+                  Nada en <em>este filtro.</em>
+                </>
+              }
+              text="No hay notificaciones de este tipo."
+              chips={emptyFilterChips}
+              secondary={{
+                label: "Ver todas",
+                icon: "clear",
+                onClick: () => setFilter("all"),
+              }}
+            />
           ) : (
             <>
               {NOTIF_BUCKETS.map(

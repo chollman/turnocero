@@ -1,4 +1,3 @@
-import Meeple from "../../components/shared/Meeple";
 import {
   useState,
   useEffect,
@@ -19,6 +18,9 @@ import useLocalStorageState from "../../utils/useLocalStorageState";
 import useTickingNow from "../../utils/useTickingNow";
 import { groupByMonth, MESES_LARGO } from "../../utils/eventoDate";
 import ListFilters from "../../components/shared/ListFilters";
+import EmptyState from "../../components/shared/EmptyState";
+import { ArtEvento, ArtSearch } from "../../components/shared/EmptyArt";
+import { GhostRows } from "../../components/shared/EmptyGhosts";
 import TimelineRow from "./TimelineRow";
 import PosterCard from "./PosterCard";
 import EventoSkeleton from "./EventoSkeleton";
@@ -466,26 +468,76 @@ export default function Eventos() {
           </div>
         )
       ) : visibleEventos.length === 0 ? (
-        <div className={styles.empty}>
-          <span className={styles.emptyDot}>
-            <Meeple />
-          </span>
-          <p className={styles.emptyText}>
-            {filter === "mine"
-              ? "No tenés inscripciones en eventos cargados."
-              : "No hay eventos para esos filtros."}
-          </p>
-          {filter === "mine" && page < totalPages && (
-            <button
-              type="button"
-              className={styles.emptyBtn}
-              onClick={() => load(page + 1, false)}
-              disabled={loadingMore}
-            >
-              {loadingMore ? "Cargando…" : "Cargar más eventos →"}
-            </button>
-          )}
-        </div>
+        filter === "mine" ? (
+          <EmptyState
+            variant="filtered"
+            compact
+            art={<ArtSearch />}
+            eyebrow="Sin inscripciones"
+            title={
+              <>
+                No tenés <em>inscripciones</em> todavía.
+              </>
+            }
+            text="Cuando te anotes a un evento, lo vas a ver acá."
+            secondary={
+              page < totalPages
+                ? {
+                    label: loadingMore ? "Cargando…" : "Cargar más eventos",
+                    icon: "compass",
+                    onClick: () => load(page + 1, false),
+                  }
+                : {
+                    label: "Ver todos los eventos",
+                    icon: "compass",
+                    onClick: () => setFilter("all"),
+                  }
+            }
+          />
+        ) : filter === "open" && !debouncedSearch.trim() ? (
+          <EmptyState
+            art={<ArtEvento />}
+            ghost={<GhostRows />}
+            eyebrow="Agenda despejada"
+            title={
+              <>
+                Nada en la <em>agenda</em> todavía.
+              </>
+            }
+            text="No hay eventos próximos. Si organizás torneos o encuentros, este es el lugar para convocarlos."
+            primary={
+              isAdmin
+                ? { label: "Crear el primer evento", onClick: startCreating }
+                : undefined
+            }
+            secondary={{
+              label: "Ver cerrados",
+              icon: "compass",
+              onClick: () => setFilter("closed"),
+            }}
+          />
+        ) : (
+          <EmptyState
+            variant="filtered"
+            compact
+            art={<ArtSearch />}
+            eyebrow="Sin coincidencias"
+            title={
+              <>
+                Ningún evento con <em>esos filtros.</em>
+              </>
+            }
+            text="No encontramos eventos para esa combinación."
+            secondary={{
+              label: "Limpiar filtros",
+              icon: "clear",
+              onClick: () => {
+                setSearch("");
+                setFilter("open");
+              },
+            }}
+          />
+        )
       ) : viewMode === "poster" ? (
         <div className={styles.posterGrid}>
           {visibleEventos.map((ev, i) => (

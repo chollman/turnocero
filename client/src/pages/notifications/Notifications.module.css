@@ -225,35 +225,7 @@
   gap: 0.75rem;
 }
 
-/* ── Empty + load more ────────────────────────────────────────────── */
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 64px 20px;
-  text-align: center;
-}
-
-.emptyIcon {
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-.emptyText {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.emptySub {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  max-width: 320px;
-}
+/* ── Load more ────────────────────────────────────────────────────── */
 
 .loadMoreRow {
   display: flex;

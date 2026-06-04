@@ -8,6 +8,9 @@ import useDebouncedValue from "../../hooks/useDebouncedValue";
 import useLocalStorageState from "../../utils/useLocalStorageState";
 import { groupByHorizon } from "../../utils/mesaHorizon";
 import ListFilters from "../../components/shared/ListFilters";
+import EmptyState from "../../components/shared/EmptyState";
+import { ArtMesa, ArtSearch } from "../../components/shared/EmptyArt";
+import { GhostMesa } from "../../components/shared/EmptyGhosts";
 import TableCard from "./TableCard";
 import TableCardSkeleton from "./TableCardSkeleton";
 import styles from "./Dashboard.module.css";
@@ -232,6 +235,41 @@ export default function Dashboard() {
     [filteredTables],
   );
 
+  // ¿El vacío viene de una búsqueda/filtro activo, o de no haber mesas?
+  const isFiltered = Boolean(debouncedSearch) || filter !== "all";
+  const clearFilters = () => {
+    setSearch("");
+    setFilter("all");
+    setRadiusKm(0);
+  };
+  // Chips data-driven: contamos sobre la página cargada cuántas mesas
+  // satisfacen los predicados client-side (con lugar / públicas). Sólo
+  // ofrecemos los que tienen resultados reales y no son el filtro activo.
+  const filterChips = useMemo(() => {
+    const chips = [];
+    const openCount = tables.filter(buildPredicate("open", user)).length;
+    const publicCount = tables.filter(buildPredicate("public", user)).length;
+    if (filter !== "open" && openCount > 0)
+      chips.push({
+        label: "Con lugar",
+        count: openCount,
+        onClick: () => {
+          setSearch("");
+          setFilter("open");
+        },
+      });
+    if (filter !== "public" && publicCount > 0)
+      chips.push({
+        label: "Públicas",
+        count: publicCount,
+        onClick: () => {
+          setSearch("");
+          setFilter("public");
+        },
+      });
+    return chips;
+  }, [tables, filter, user, setFilter]);
+
   // Mesas "activas" = sólo las futuras. El server expone `upcomingTotal`
   // contado aparte; el `total` general incluye históricas (que viven en
   // el grupo "Pasadas" pero no son capacidad para sumarse).
@@ -342,27 +380,53 @@ export default function Dashboard() {
           </button>
         </div>
       ) : filteredTables.length === 0 ? (
-        <div className={styles.empty}>
-          <span className={styles.emptyIcon}>🃏</span>
-          <p className={styles.emptyTitle}>
-            {debouncedSearch
-              ? "Sin resultados para esa búsqueda"
-              : filter !== "all"
-                ? "Sin mesas para este filtro"
-                : "No hay mesas disponibles"}
-          </p>
-          <p className={styles.emptySub}>
-            {!debouncedSearch &&
-              (user
-                ? "¡Sé el primero en crear una mesa!"
-                : "¡Registrate para crear la primera!")}
-          </p>
-          {!debouncedSearch && user && (
-            <Link to="/mesas/crear" className={styles.createBtn}>
-              + Crear mesa
-            </Link>
-          )}
-        </div>
+        isFiltered ? (
+          <EmptyState
+            variant="filtered"
+            compact
+            art={<ArtSearch />}
+            eyebrow="Sin coincidencias"
+            title={
+              <>
+                Ninguna mesa con <em>esos filtros.</em>
+              </>
+            }
+            text="Probá ampliar la búsqueda o sacá algún filtro."
+            chips={filterChips}
+            secondary={{
+              label: "Limpiar filtros",
+              icon: "clear",
+              onClick: clearFilters,
+            }}
+          />
+        ) : (
+          <EmptyState
+            art={<ArtMesa />}
+            ghost={<GhostMesa />}
+            eyebrow="Ninguna mesa abierta"
+            title={
+              <>
+                La mesa está <em>servida.</em>
+              </>
+            }
+            text={
+              user
+                ? "Todavía no hay mesas en tu zona. Sé quien tira los dados primero — armá la tuya y la comunidad se suma."
+                : "Todavía no hay mesas abiertas. Registrate y armá la primera de tu zona."
+            }
+            primary={
+              user
+                ? { label: "Crear la primera mesa", to: "/mesas/crear" }
+                : { label: "Registrate", to: "/register" }
+            }
+            hint={
+              <span>
+                O esperá — las mesas suelen aparecer los{" "}
+                <strong>jueves y viernes</strong>.
+              </span>
+            }
+          />
+        )
       ) : (
         <>
           {horizonGroups.map((g) => (

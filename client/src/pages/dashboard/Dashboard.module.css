@@ -338,54 +338,6 @@
   box-shadow: 0 4px 22px var(--amber-glow);
 }
 
-.empty {
-  padding: 60px 0;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-.emptyIcon {
-  font-size: 42px;
-}
-.emptyTitle {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-  letter-spacing: -0.02em;
-}
-.emptySub {
-  color: var(--text-secondary);
-  margin: 0;
-  font-size: 14px;
-}
-.createBtn {
-  margin-top: 8px;
-  background: var(--amber);
-  color: var(--on-amber);
-  border: none;
-  padding: 9px 18px;
-  border-radius: 8px;
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  box-shadow: 0 4px 16px var(--amber-glow);
-  transition: all var(--transition);
-}
-.createBtn:hover {
-  background: var(--amber-light);
-  color: var(--on-amber);
-  box-shadow: 0 4px 22px var(--amber-glow);
-}
-
 .pagination {
   display: flex;
   justify-content: center;

@@ -372,54 +372,6 @@
   gap: 18px;
 }
 
-/* Empty state */
-.empty {
-  text-align: center;
-  padding: 80px 0;
-  color: var(--text-muted);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-}
-
-.emptyDot {
-  font-size: 28px;
-  color: var(--amber-light);
-  opacity: 0.5;
-}
-
-.emptyText {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin: 0;
-}
-
-.emptyBtn {
-  background: transparent;
-  border: 1px solid var(--border-strong);
-  color: var(--text-secondary);
-  padding: 9px 18px;
-  border-radius: 8px;
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition: all var(--transition);
-}
-
-.emptyBtn:hover {
-  border-color: var(--amber);
-  color: var(--amber-light);
-}
-.emptyBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .loadMoreWrap {
   display: flex;
   justify-content: center;

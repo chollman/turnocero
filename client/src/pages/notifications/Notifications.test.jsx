@@ -81,7 +81,9 @@ beforeEach(() => {
 describe("<Notifications>", () => {
   it("renders the empty state when there are no notifications", () => {
     setup({ notifications: [] });
-    expect(screen.getByText("Sin notificaciones")).toBeInTheDocument();
+    expect(
+      screen.getByText(/no tenés notificaciones nuevas/i),
+    ).toBeInTheDocument();
   });
 
   it("renders one row per notification with its copy", () => {

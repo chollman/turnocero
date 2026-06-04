@@ -213,7 +213,7 @@ describe("<UsersList>", () => {
     setup({ users: [] });
     await waitFor(() => {
       expect(
-        screen.getByText(/no se encontraron jugadores/i),
+        screen.getByText(/no hay jugadores para mostrar/i),
       ).toBeInTheDocument();
     });
   });

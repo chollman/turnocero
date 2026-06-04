@@ -312,7 +312,7 @@ describe("<Compartidas>", () => {
       expect(screen.queryByTestId("compartida-card")).not.toBeInTheDocument(),
     );
     const publishBtn = screen.getByRole("button", {
-      name: /publicar compartida/i,
+      name: /compartir una partida/i,
     });
     expect(publishBtn).toBeInTheDocument();
     fireEvent.click(publishBtn);

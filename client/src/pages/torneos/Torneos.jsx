@@ -2,10 +2,13 @@ import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
+import EmptyState from "../../components/shared/EmptyState";
+import { ArtTorneo, ArtSearch } from "../../components/shared/EmptyArt";
+import { GhostRows } from "../../components/shared/EmptyGhosts";
 import TorneoCard from "./components/TorneoCard";
 import TorneoSkeleton from "./TorneoSkeleton";
 import styles from "./Torneos.module.css";
@@ -121,15 +124,42 @@ export default function Torneos() {
             ))}
           </div>
         ) : visible.length === 0 && drafts.length === 0 ? (
-          <div className={styles.empty}>
-            <span className={styles.emptyIcon}>🏆</span>
-            <p className={styles.emptyTitle}>No hay torneos en esta vista</p>
-            {showAdminUI && (
-              <Link to="/torneos/crear" className={styles.emptyBtn}>
-                + Crear el primer torneo
-              </Link>
-            )}
-          </div>
+          tab !== "all" ? (
+            <EmptyState
+              variant="filtered"
+              compact
+              art={<ArtSearch />}
+              eyebrow="Sin coincidencias"
+              title={
+                <>
+                  Ningún torneo con <em>ese estado.</em>
+                </>
+              }
+              text="No hay torneos en esa categoría ahora mismo."
+              secondary={{
+                label: "Ver todos",
+                icon: "clear",
+                onClick: () => setTab("all"),
+              }}
+            />
+          ) : (
+            <EmptyState
+              art={<ArtTorneo />}
+              ghost={<GhostRows />}
+              eyebrow="Cuadro vacío"
+              title={
+                <>
+                  Que empiece la <em>competencia.</em>
+                </>
+              }
+              text="Todavía no hay torneos activos. Armá el bracket, definí el formato y dejá que gane el mejor."
+              primary={
+                showAdminUI
+                  ? { label: "Armar torneo", to: "/torneos/crear" }
+                  : undefined
+              }
+            />
+          )
         ) : (
           <>
             {drafts.length > 0 && (

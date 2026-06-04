@@ -5,6 +5,9 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
 import GameTile from "../../components/shared/GameTile";
+import EmptyState from "../../components/shared/EmptyState";
+import { ArtMesa, ArtSearch } from "../../components/shared/EmptyArt";
+import { GhostRows } from "../../components/shared/EmptyGhosts";
 import FeedCardSkeleton from "./FeedCardSkeleton";
 import FeedCard from "./FeedCard";
 import styles from "./MeFeed.module.css";
@@ -166,6 +169,19 @@ export default function MeFeed() {
     return 0;
   };
 
+  // Vacío "por filtro" = hay mesas cargadas pero el chip activo las esconde
+  // todas. Vacío "primera vez" = no hay nada en el feed (filter no ayuda).
+  const isFiltered = tables.length > 0;
+  // Chips data-driven: el filtrado es client-side, así que `countFor` da counts
+  // reales. Mostramos los otros chips con datos (no el activo, no "Todas").
+  const feedFilterChips = FILTERS.filter(
+    (f) => f.key !== "all" && f.key !== filter && countFor(f.key) > 0,
+  ).map((f) => ({
+    label: f.label,
+    count: countFor(f.key),
+    onClick: () => setFilter(f.key),
+  }));
+
   const hostedCount = tables.filter(isHostOf).length;
   const upcomingAll = tables.filter((t) => new Date(t.date) >= now);
   const nextAll =
@@ -231,15 +247,43 @@ export default function MeFeed() {
           <p className={`${styles.stateMsg} ${styles.errorMsg}`}>{error}</p>
         )}
 
-        {!loading && !error && filteredTables.length === 0 && (
-          <div className={styles.empty}>
-            <span className={styles.emptyIcon}>🎲</span>
-            <p>No hay mesas para mostrar.</p>
-            <Link to="/mesas" className={styles.emptyLink}>
-              Explorar mesas disponibles
-            </Link>
-          </div>
-        )}
+        {!loading &&
+          !error &&
+          filteredTables.length === 0 &&
+          (isFiltered ? (
+            <EmptyState
+              variant="filtered"
+              compact
+              art={<ArtSearch />}
+              eyebrow="Sin coincidencias"
+              title={
+                <>
+                  Nada con <em>ese filtro.</em>
+                </>
+              }
+              text="No tenés mesas en esta categoría."
+              chips={feedFilterChips}
+              secondary={{
+                label: "Limpiar filtros",
+                icon: "clear",
+                onClick: () => setFilter("all"),
+              }}
+            />
+          ) : (
+            <EmptyState
+              art={<ArtMesa />}
+              ghost={<GhostRows />}
+              eyebrow="Tu mesa te espera"
+              title={
+                <>
+                  Tu próxima partida <em>empieza acá.</em>
+                </>
+              }
+              text="Todavía no tenés mesas. Sumate a una o creá la tuya — acá vas a seguir todas tus partidas, las próximas y el historial."
+              primary={{ label: "Explorar mesas", to: "/mesas" }}
+              secondary={{ label: "Crear una mesa", to: "/mesas/crear" }}
+            />
+          ))}
 
         {!loading && !error && filteredTables.length > 0 && (
           <div className={styles.feed}>
