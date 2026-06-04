@@ -40,9 +40,7 @@ describe("<Register>", () => {
     expect(
       screen.getByRole("button", { name: /crear mi cuenta/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText("BlackwatchGames"),
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("BlackwatchGames")).toBeInTheDocument();
     // The "Iniciar sesión" toggle tab points to /login.
     const loginTab = screen
       .getAllByRole("tab")
