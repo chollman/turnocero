@@ -83,9 +83,16 @@ El login ahora **sí se comparte** entre subdominios. El backend ya emitía la c
 - **Socket.IO:** cliente con `withCredentials: true`; server cae a la cookie del handshake cuando falta `auth.token`, vía helper puro `resolveHandshakeToken(handshake)` ([server/utils/socketHelpers.js](../server/utils/socketHelpers.js)). Real-time bajo sesión cookie-only.
 - `cookie@^0.7.2` → dep directa de server. **Efecto colateral:** ya no hace falta registrar cada subdominio en Google OAuth para que el login ande (loguea en apex, sesión por cookie). Logout es global. El SSO cross-origin solo se prueba en prod.
 
+## OG/crawlers por subdominio (HECHO, commit 0a924b5, 2026-06-04)
+
+[client/middleware.js](../client/middleware.js) (edge function de Vercel) ahora deriva el slug del `Host` (`detectTenantSlug` con `VITE_TENANT_DOMAIN`) y trae la marca de la comunidad (`resolveTenantBrand` → `GET /api/comunidades/:slug`, solo si `subdomainEnabled`):
+
+- **Vidriera del subdominio**: compartir `https://<slug>.turnocero.app` genera OG propio (nombre + tagline + logo de la comunidad, `og:type=website`) en vez de caer al shell genérico. Se agregó `/` al `matcher` (sale temprano para no-crawlers y para el apex).
+- **Deep-links** (compartidas/eventos/bg-watch) compartidos desde un subdominio heredan `og:site_name` + sufijo de título de la comunidad.
+- `ogHtml` ganó params `siteName` + `ogType`. Tests: `src/middleware.test.js` (detectTenantSlug + casos OG apex vs tenant). Nota: la edge function no la corre Vite dev → verificación por tests, no por preview.
+
 ## Limitaciones conocidas / próximos pasos
 
-- **OG/crawlers por subdominio**: [client/middleware.js](../client/middleware.js) podría derivar el slug del `Host` para branding correcto en previews — opcional, no incluido.
 - Cambiar el slug de una comunidad existente rompe links/bookmarks viejos y el subdominio anterior (por eso es acción deliberada del admin, no automática al renombrar).
 
 ## Verificación (tests)
