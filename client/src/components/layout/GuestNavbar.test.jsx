@@ -1,9 +1,25 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import GuestNavbar from "./GuestNavbar";
 import { AllProviders } from "../../test/wrappers/AllProviders";
 
+vi.mock("../../context/CommunityContext", () => ({
+  useCommunity: vi.fn(),
+}));
+import { useCommunity } from "../../context/CommunityContext";
+
+const DEFAULT_BRAND = {
+  name: "TurnoCero",
+  tagline: "",
+  logoLight: "",
+  logoDark: "",
+};
+
 describe("<GuestNavbar>", () => {
+  beforeEach(() => {
+    useCommunity.mockReturnValue({ isTenant: false, brand: DEFAULT_BRAND });
+  });
+
   function renderNav(props = {}) {
     return render(<GuestNavbar {...props} />, { wrapper: AllProviders });
   }
@@ -16,6 +32,23 @@ describe("<GuestNavbar>", () => {
       "/logo.svg",
     );
     expect(screen.getByText("BOARD GAME MEETUPS")).toBeInTheDocument();
+  });
+
+  it("in tenant mode renders the community name + logo instead of TurnoCero", () => {
+    useCommunity.mockReturnValue({
+      isTenant: true,
+      brand: {
+        name: "El Clu",
+        tagline: "Comunidad de Telegram",
+        logoLight: "https://cdn/elclu-light.png",
+        logoDark: "https://cdn/elclu-dark.png",
+      },
+    });
+    renderNav();
+    expect(screen.getByText("El Clu")).toBeInTheDocument();
+    expect(screen.queryByText("TurnoCero")).not.toBeInTheDocument();
+    expect(screen.getByText("Comunidad de Telegram")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "El Clu" })).toBeInTheDocument();
   });
 
   it('logo links to "/"', () => {

@@ -6,6 +6,7 @@ import { server } from "../../test/server";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
+vi.mock("../../context/CommunityContext", () => ({ useCommunity: vi.fn() }));
 // OAuthButtons tiene su propio test; lo stubeamos para no arrastrar sus
 // dependencias (GoogleOAuthProvider/ThemeProvider) al render de Auth.
 vi.mock("./OAuthButtons", () => ({ default: () => null }));
@@ -19,6 +20,14 @@ vi.mock("react-router-dom", async () => {
 import Auth from "./Auth";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useCommunity } from "../../context/CommunityContext";
+
+const DEFAULT_BRAND = {
+  name: "TurnoCero",
+  tagline: "",
+  logoLight: "",
+  logoDark: "",
+};
 
 let showcaseRequestCount;
 
@@ -35,16 +44,45 @@ beforeEach(() => {
     loaded: true,
     isSectionEnabled: (key) => key === "mesas",
   });
+  useCommunity.mockReturnValue({ isTenant: false, brand: DEFAULT_BRAND });
 });
 
-function renderAuth(mode, auth = {}) {
+function renderAuth(mode, auth = {}, community) {
   useAuth.mockReturnValue({ login: vi.fn(), register: vi.fn(), ...auth });
+  if (community) useCommunity.mockReturnValue(community);
   return render(
     <MemoryRouter>
       <Auth mode={mode} />
     </MemoryRouter>,
   );
 }
+
+describe("<Auth> — tenant branding", () => {
+  it("shows the community name + tagline instead of TurnoCero in tenant mode", () => {
+    renderAuth(
+      "login",
+      {},
+      {
+        isTenant: true,
+        brand: {
+          name: "El Clu",
+          tagline: "Comunidad de Telegram",
+          logoLight: "https://cdn/elclu-light.png",
+          logoDark: "https://cdn/elclu-dark.png",
+        },
+      },
+    );
+    expect(screen.getByText("El Clu")).toBeInTheDocument();
+    expect(screen.getByText("Comunidad de Telegram")).toBeInTheDocument();
+    expect(screen.queryByText("TurnoCero")).not.toBeInTheDocument();
+  });
+
+  it("falls back to TurnoCero branding outside tenant mode", () => {
+    renderAuth("login");
+    expect(screen.getByText("TurnoCero")).toBeInTheDocument();
+    expect(screen.getByText("board game meetups")).toBeInTheDocument();
+  });
+});
 
 describe("<Auth> — login mode", () => {
   it("renders identifier + password fields and the submit button", () => {
@@ -141,14 +179,20 @@ describe("<Auth> — login mode", () => {
   });
 
   it("skips the showcase request when the mesas section is disabled", async () => {
-    useSiteConfig.mockReturnValue({ loaded: true, isSectionEnabled: () => false });
+    useSiteConfig.mockReturnValue({
+      loaded: true,
+      isSectionEnabled: () => false,
+    });
     renderAuth("login");
     await new Promise((r) => setTimeout(r, 20));
     expect(showcaseRequestCount).toBe(0);
   });
 
   it("does not fetch the showcase until site config is loaded", async () => {
-    useSiteConfig.mockReturnValue({ loaded: false, isSectionEnabled: () => true });
+    useSiteConfig.mockReturnValue({
+      loaded: false,
+      isSectionEnabled: () => true,
+    });
     renderAuth("login");
     await new Promise((r) => setTimeout(r, 20));
     expect(showcaseRequestCount).toBe(0);
@@ -169,9 +213,7 @@ describe("<Auth> — register mode", () => {
       target: { value: "new@b.com" },
     });
     fireEvent.change(
-      screen.getByPlaceholderText(
-        "Mín. 8 caracteres, 1 mayúscula y 1 número",
-      ),
+      screen.getByPlaceholderText("Mín. 8 caracteres, 1 mayúscula y 1 número"),
       { target: { value: password } },
     );
   }
@@ -209,9 +251,7 @@ describe("<Auth> — register mode", () => {
   it("shows a live password strength meter while typing", () => {
     renderAuth("register");
     fireEvent.change(
-      screen.getByPlaceholderText(
-        "Mín. 8 caracteres, 1 mayúscula y 1 número",
-      ),
+      screen.getByPlaceholderText("Mín. 8 caracteres, 1 mayúscula y 1 número"),
       { target: { value: "Password123!" } },
     );
     expect(screen.getByText(/Seguridad: Fuerte/)).toBeInTheDocument();
@@ -226,9 +266,14 @@ describe("<Auth> — register mode", () => {
     fireEvent.click(screen.getByRole("button", { name: /crear mi cuenta/i }));
 
     await waitFor(() =>
-      expect(register).toHaveBeenCalledWith("camir", "new@b.com", "Password123", {
-        avatarColor: "--green",
-      }),
+      expect(register).toHaveBeenCalledWith(
+        "camir",
+        "new@b.com",
+        "Password123",
+        {
+          avatarColor: "--green",
+        },
+      ),
     );
     expect(navigateMock).toHaveBeenCalledWith(
       "/verificar-email",

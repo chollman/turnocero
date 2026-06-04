@@ -2,6 +2,7 @@ import Meeple from "../shared/Meeple";
 import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useCommunity } from "../../context/CommunityContext";
 import { getActiveNavId } from "../../utils/routing";
 import Logo from "../shared/Logo";
 import styles from "./GuestSidebar.module.css";
@@ -98,6 +99,8 @@ const NAV = [
 export default function GuestSidebar({ open = false, onClose }) {
   const { pathname } = useLocation();
   const { isSectionEnabled } = useSiteConfig();
+  // En modo tenant (subdominio / ?tenant) la marca es la de la comunidad.
+  const { isTenant, brand } = useCommunity();
   const active = getActiveNavId(pathname);
   const visibleNav = NAV.filter((item) => isSectionEnabled(item.section));
 
@@ -136,15 +139,28 @@ export default function GuestSidebar({ open = false, onClose }) {
         aria-hidden={onClose && !open ? "true" : undefined}
       >
         <div className={styles.logoRow}>
-          <Link to="/" className={styles.logo} aria-label="TurnoCero">
+          <Link
+            to="/"
+            className={styles.logo}
+            aria-label={isTenant ? brand.name : "TurnoCero"}
+          >
             <span className={styles.logoMark} aria-hidden="true">
-              <Logo className={styles.logoMarkImg} />
+              <Logo
+                className={styles.logoMarkImg}
+                alt=""
+                srcLight={isTenant ? brand.logoLight : undefined}
+                srcDark={isTenant ? brand.logoDark : undefined}
+              />
             </span>
             <span className={styles.logoText}>
-              <span className={styles.logoName}>TurnoCero</span>
+              <span className={styles.logoName}>
+                {isTenant ? brand.name : "TurnoCero"}
+              </span>
               <span className={styles.logoSub}>
                 <Meeple />
-                board game meetups
+                {isTenant && brand.tagline
+                  ? brand.tagline
+                  : "board game meetups"}
               </span>
             </span>
           </Link>

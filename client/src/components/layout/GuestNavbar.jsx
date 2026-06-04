@@ -1,16 +1,28 @@
 import { Link } from "react-router-dom";
 import Logo from "../shared/Logo";
+import { useCommunity } from "../../context/CommunityContext";
 import styles from "./GuestNavbar.module.css";
 
 export default function GuestNavbar({ menuOpen = false, onToggleMenu }) {
+  // En modo tenant (subdominio / ?tenant) la marca es la de la comunidad.
+  const { isTenant, brand } = useCommunity();
   return (
     <nav className={styles.nav}>
       <div className={styles.inner}>
         <Link to="/" className={styles.logo}>
-          <Logo className={styles.logoIcon} />
+          <Logo
+            className={styles.logoIcon}
+            alt={isTenant ? brand.name : "TurnoCero"}
+            srcLight={isTenant ? brand.logoLight : undefined}
+            srcDark={isTenant ? brand.logoDark : undefined}
+          />
           <div className={styles.logoText}>
-            <span className={styles.logoName}>TurnoCero</span>
-            <span className={styles.logoSub}>BOARD GAME MEETUPS</span>
+            <span className={styles.logoName}>
+              {isTenant ? brand.name : "TurnoCero"}
+            </span>
+            <span className={styles.logoSub}>
+              {isTenant && brand.tagline ? brand.tagline : "BOARD GAME MEETUPS"}
+            </span>
           </div>
         </Link>
 

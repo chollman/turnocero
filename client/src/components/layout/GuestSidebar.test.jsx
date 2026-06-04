@@ -6,11 +6,32 @@ import GuestSidebar from "./GuestSidebar";
 vi.mock("../../context/SiteConfigContext", () => ({
   useSiteConfig: vi.fn(),
 }));
+vi.mock("../../context/CommunityContext", () => ({
+  useCommunity: vi.fn(),
+}));
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useCommunity } from "../../context/CommunityContext";
 
-function renderAt(pathname, sectionEnabledMap = {}, props = {}) {
+const DEFAULT_BRAND = {
+  name: "TurnoCero",
+  tagline: "",
+  logoLight: "",
+  logoDark: "",
+};
+
+function renderAt(
+  pathname,
+  sectionEnabledMap = {},
+  props = {},
+  community = {},
+) {
   useSiteConfig.mockReturnValue({
     isSectionEnabled: (k) => sectionEnabledMap[k] ?? true,
+  });
+  useCommunity.mockReturnValue({
+    isTenant: false,
+    brand: DEFAULT_BRAND,
+    ...community,
   });
   return render(
     <MemoryRouter initialEntries={[pathname]}>
@@ -31,6 +52,27 @@ describe("<GuestSidebar>", () => {
       "href",
       "/register",
     );
+  });
+
+  it("in tenant mode shows the community name + logo instead of TurnoCero", () => {
+    renderAt(
+      "/",
+      {},
+      {},
+      {
+        isTenant: true,
+        brand: {
+          name: "El Clu",
+          tagline: "Comunidad de Telegram",
+          logoLight: "https://cdn/elclu-light.png",
+          logoDark: "https://cdn/elclu-dark.png",
+        },
+      },
+    );
+    expect(screen.getByText("El Clu")).toBeInTheDocument();
+    expect(screen.queryByText("TurnoCero")).not.toBeInTheDocument();
+    expect(screen.getByText("Comunidad de Telegram")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /el clu/i })).toBeInTheDocument();
   });
 
   it("shows Noticias + Compartidas when both sections are enabled", () => {

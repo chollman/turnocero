@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
+import { useCommunity } from "../../context/CommunityContext";
 import OAuthButtons from "./OAuthButtons";
 import AvatarColorPicker from "../../components/shared/AvatarColorPicker";
 import AuthShowcaseScene from "./AuthShowcaseScene";
@@ -230,6 +231,9 @@ export default function Auth({ mode }) {
   const navigate = useNavigate();
   const { login, register } = useAuth();
   const { loaded: siteConfigLoaded, isSectionEnabled } = useSiteConfig();
+  // En modo tenant (subdominio / ?tenant) la marca del login es la de la
+  // comunidad: logo + nombre propios en vez de los de TurnoCero.
+  const { isTenant, brand } = useCommunity();
 
   // El showcase sólo se busca si la sección 'mesas' está habilitada site-wide.
   const showcaseEnabled = siteConfigLoaded && isSectionEnabled("mesas");
@@ -325,12 +329,19 @@ export default function Auth({ mode }) {
       <div className={styles.formPane}>
         {/* Marca — arriba de todo */}
         <div className={styles.brand}>
-          <Logo className={styles.brandMark} />
+          <Logo
+            className={styles.brandMark}
+            alt={brand.name}
+            srcLight={isTenant ? brand.logoLight : undefined}
+            srcDark={isTenant ? brand.logoDark : undefined}
+          />
           <div className={styles.brandText}>
-            <span className={styles.brandName}>TurnoCero</span>
+            <span className={styles.brandName}>
+              {isTenant ? brand.name : "TurnoCero"}
+            </span>
             <span className={styles.brandSub}>
               <Meeple />
-              board game meetups
+              {isTenant && brand.tagline ? brand.tagline : "board game meetups"}
             </span>
           </div>
         </div>
