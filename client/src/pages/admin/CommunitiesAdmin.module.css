@@ -213,3 +213,20 @@
   color: var(--text-muted);
   min-width: 110px;
 }
+
+/* Input de texto para tokens con alpha (rgba) — color picker no soporta alpha. */
+.tokenText {
+  width: 150px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  font-family: monospace;
+}
+
+.tokenText[aria-invalid="true"] {
+  border-color: var(--red);
+}

@@ -13,32 +13,94 @@ const POLICIES = [
 
 const errMsg = (err, fallback) => err?.response?.data?.message || fallback;
 
+// ── Tokens de skin ──
+// buildSkinCss mapea cualquier key camelCase → --kebab. Los inputs `type=color`
+// solo manejan hex; los tokens con alpha (rgba) usan input de texto validado.
+// Los defaults son los valores base de index.css, así "guardar sin tocar" no
+// cambia nada. Las variantes de opacidad (--amber-10..50, etc.) NO se exponen:
+// se derivan por color-mix del accent base y cascadean solas.
+
+// Validación de color para los inputs de texto (espeja sanitizeSkinTokens del server).
+const COLOR_RE =
+  /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$|^rgba?\(\s*[\d.,%/\s]+\)$/i;
+
+// Acentos (theme-independent → van en `accents`).
+const ACCENT_HEX_KEYS = [
+  "amber",
+  "amberLight",
+  "amberDark",
+  "red",
+  "green",
+  "orange",
+  "purple",
+];
+const ACCENT_ALPHA_KEYS = ["amberGlow", "borderAmber"];
 const ACCENT_DEFAULTS = {
   amber: "#1888ef",
+  amberLight: "#00aeff",
+  amberDark: "#0076d1",
   red: "#f31d77",
   green: "#00d984",
   orange: "#f5a623",
   purple: "#b48cff",
+  amberGlow: "rgba(24, 136, 239, 0.15)",
+  borderAmber: "rgba(24, 136, 239, 0.35)",
 };
-const ACCENT_KEYS = Object.keys(ACCENT_DEFAULTS);
 
-// Neutros editables por tema (un subconjunto representativo). Los defaults son
-// los valores base de index.css, así que "guardar sin tocar" no cambia nada.
-const NEUTRAL_KEYS = ["bgDark", "bgCard", "textPrimary"];
+// Neutros editables por tema. hex → color picker; overlays (alpha) → texto.
+const NEUTRAL_HEX_KEYS = [
+  "bgDark",
+  "bgCard",
+  "bgElevated",
+  "bgHover",
+  "textPrimary",
+  "textSecondary",
+  "textMuted",
+  "border",
+  "borderStrong",
+];
+const NEUTRAL_ALPHA_KEYS = ["overlaySoft", "overlayMedium", "overlayStrong"];
 const NEUTRAL_LABELS = {
   bgDark: "Fondo",
   bgCard: "Tarjeta",
+  bgElevated: "Elevado",
+  bgHover: "Hover",
   textPrimary: "Texto",
+  textSecondary: "Texto 2°",
+  textMuted: "Texto tenue",
+  border: "Borde",
+  borderStrong: "Borde fuerte",
+  overlaySoft: "Overlay suave",
+  overlayMedium: "Overlay medio",
+  overlayStrong: "Overlay fuerte",
 };
 const NEUTRAL_DEFAULTS_DARK = {
   bgDark: "#0a0d15",
   bgCard: "#151c28",
+  bgElevated: "#232a39",
+  bgHover: "#323a48",
   textPrimary: "#ffffff",
+  textSecondary: "#a8b4cc",
+  textMuted: "#8a8d90",
+  border: "#1e2a3d",
+  borderStrong: "#2a3a55",
+  overlaySoft: "rgba(255, 255, 255, 0.06)",
+  overlayMedium: "rgba(255, 255, 255, 0.12)",
+  overlayStrong: "rgba(255, 255, 255, 0.2)",
 };
 const NEUTRAL_DEFAULTS_LIGHT = {
   bgDark: "#f5f7fb",
   bgCard: "#ffffff",
+  bgElevated: "#eef1f7",
+  bgHover: "#e3e8f0",
   textPrimary: "#0a0d15",
+  textSecondary: "#4a5568",
+  textMuted: "#8a92a3",
+  border: "#d8dde7",
+  borderStrong: "#b9c3d4",
+  overlaySoft: "rgba(15, 23, 42, 0.04)",
+  overlayMedium: "rgba(15, 23, 42, 0.08)",
+  overlayStrong: "rgba(15, 23, 42, 0.16)",
 };
 
 function CommunityEditor({
@@ -94,7 +156,10 @@ function CommunityEditor({
       addToast({ type: "success", message: "Skin guardado" });
       onChanged?.();
     } catch (err) {
-      addToast({ type: "error", message: errMsg(err, "No se pudo guardar el skin") });
+      addToast({
+        type: "error",
+        message: errMsg(err, "No se pudo guardar el skin"),
+      });
     }
   };
 
@@ -111,7 +176,10 @@ function CommunityEditor({
       addToast({ type: "success", message: "Logo subido" });
       onChanged?.();
     } catch (err) {
-      addToast({ type: "error", message: errMsg(err, "No se pudo subir el logo") });
+      addToast({
+        type: "error",
+        message: errMsg(err, "No se pudo subir el logo"),
+      });
     }
   };
 
@@ -202,8 +270,11 @@ function CommunityEditor({
           </label>
           {subdomainEnabled && (
             <p className={styles.muted}>
-              Accesible en <strong>{community.slug}.{tenantDomain}</strong> — al
-              entrar por ahí el sitio se acota solo a esta comunidad.
+              Accesible en{" "}
+              <strong>
+                {community.slug}.{tenantDomain}
+              </strong>{" "}
+              — al entrar por ahí el sitio se acota solo a esta comunidad.
             </p>
           )}
         </div>
@@ -236,89 +307,157 @@ function CommunityEditor({
           </p>
         ) : (
           <>
-        {ACCENT_KEYS.map((k) => (
-          <label key={k} className={styles.colorField}>
+            <div className={styles.neutralsRow}>
+              <span className={styles.neutralsLabel}>Acentos</span>
+              {ACCENT_HEX_KEYS.map((k) => (
+                <label key={k} className={styles.colorField}>
+                  <input
+                    type="color"
+                    value={accents[k]}
+                    aria-label={`Color ${k}`}
+                    onChange={(e) =>
+                      setAccents((a) => ({ ...a, [k]: e.target.value }))
+                    }
+                  />
+                  {k}
+                </label>
+              ))}
+            </div>
+
+            <div className={styles.neutralsRow}>
+              <span className={styles.neutralsLabel}>
+                Acentos (transparencia)
+              </span>
+              {ACCENT_ALPHA_KEYS.map((k) => (
+                <label key={k} className={styles.colorField}>
+                  <input
+                    type="text"
+                    className={styles.tokenText}
+                    value={accents[k]}
+                    aria-label={`Color ${k}`}
+                    aria-invalid={
+                      !COLOR_RE.test(String(accents[k] ?? "").trim())
+                    }
+                    placeholder="rgba(…)"
+                    onChange={(e) =>
+                      setAccents((a) => ({ ...a, [k]: e.target.value }))
+                    }
+                  />
+                  {k}
+                </label>
+              ))}
+            </div>
+
+            <div className={styles.neutralsRow}>
+              <span className={styles.neutralsLabel}>Texto sobre primario</span>
+              <label className={styles.colorField}>
+                <input
+                  type="color"
+                  value={accents.onAmber}
+                  aria-label="Texto sobre botones primarios"
+                  onChange={(e) =>
+                    setAccents((a) => ({ ...a, onAmber: e.target.value }))
+                  }
+                />
+                texto en botones
+              </label>
+            </div>
+
+            <div className={styles.neutralsRow}>
+              <span className={styles.neutralsLabel}>Neutros (oscuro)</span>
+              {NEUTRAL_HEX_KEYS.map((k) => (
+                <label key={`d-${k}`} className={styles.colorField}>
+                  <input
+                    type="color"
+                    value={neutralsDark[k]}
+                    aria-label={`${NEUTRAL_LABELS[k]} oscuro`}
+                    onChange={(e) =>
+                      setNeutralsDark((n) => ({ ...n, [k]: e.target.value }))
+                    }
+                  />
+                  {NEUTRAL_LABELS[k]}
+                </label>
+              ))}
+              {NEUTRAL_ALPHA_KEYS.map((k) => (
+                <label key={`d-${k}`} className={styles.colorField}>
+                  <input
+                    type="text"
+                    className={styles.tokenText}
+                    value={neutralsDark[k]}
+                    aria-label={`${NEUTRAL_LABELS[k]} oscuro`}
+                    aria-invalid={
+                      !COLOR_RE.test(String(neutralsDark[k] ?? "").trim())
+                    }
+                    placeholder="rgba(…)"
+                    onChange={(e) =>
+                      setNeutralsDark((n) => ({ ...n, [k]: e.target.value }))
+                    }
+                  />
+                  {NEUTRAL_LABELS[k]}
+                </label>
+              ))}
+            </div>
+            <div className={styles.neutralsRow}>
+              <span className={styles.neutralsLabel}>Neutros (claro)</span>
+              {NEUTRAL_HEX_KEYS.map((k) => (
+                <label key={`l-${k}`} className={styles.colorField}>
+                  <input
+                    type="color"
+                    value={neutralsLight[k]}
+                    aria-label={`${NEUTRAL_LABELS[k]} claro`}
+                    onChange={(e) =>
+                      setNeutralsLight((n) => ({ ...n, [k]: e.target.value }))
+                    }
+                  />
+                  {NEUTRAL_LABELS[k]}
+                </label>
+              ))}
+              {NEUTRAL_ALPHA_KEYS.map((k) => (
+                <label key={`l-${k}`} className={styles.colorField}>
+                  <input
+                    type="text"
+                    className={styles.tokenText}
+                    value={neutralsLight[k]}
+                    aria-label={`${NEUTRAL_LABELS[k]} claro`}
+                    aria-invalid={
+                      !COLOR_RE.test(String(neutralsLight[k] ?? "").trim())
+                    }
+                    placeholder="rgba(…)"
+                    onChange={(e) =>
+                      setNeutralsLight((n) => ({ ...n, [k]: e.target.value }))
+                    }
+                  />
+                  {NEUTRAL_LABELS[k]}
+                </label>
+              ))}
+            </div>
+
             <input
-              type="color"
-              value={accents[k]}
-              aria-label={`Color ${k}`}
-              onChange={(e) =>
-                setAccents((a) => ({ ...a, [k]: e.target.value }))
-              }
+              className={styles.input}
+              placeholder="Nombre de marca (opcional)"
+              aria-label="Nombre de marca"
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
             />
-            {k}
-          </label>
-        ))}
-
-        <div className={styles.neutralsRow}>
-          <span className={styles.neutralsLabel}>Texto sobre primario</span>
-          <label className={styles.colorField}>
             <input
-              type="color"
-              value={accents.onAmber}
-              aria-label="Texto sobre botones primarios"
-              onChange={(e) =>
-                setAccents((a) => ({ ...a, onAmber: e.target.value }))
-              }
+              className={styles.input}
+              placeholder="Tagline (opcional)"
+              aria-label="Tagline"
+              value={tagline}
+              onChange={(e) => setTagline(e.target.value)}
             />
-            texto en botones
-          </label>
-        </div>
-
-        <div className={styles.neutralsRow}>
-          <span className={styles.neutralsLabel}>Neutros (oscuro)</span>
-          {NEUTRAL_KEYS.map((k) => (
-            <label key={`d-${k}`} className={styles.colorField}>
+            <button type="button" className={styles.btn} onClick={saveSkin}>
+              Guardar skin
+            </button>
+            <label className={styles.btn}>
+              Subir logo
               <input
-                type="color"
-                value={neutralsDark[k]}
-                aria-label={`${NEUTRAL_LABELS[k]} oscuro`}
-                onChange={(e) =>
-                  setNeutralsDark((n) => ({ ...n, [k]: e.target.value }))
-                }
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={uploadLogo}
               />
-              {NEUTRAL_LABELS[k]}
             </label>
-          ))}
-        </div>
-        <div className={styles.neutralsRow}>
-          <span className={styles.neutralsLabel}>Neutros (claro)</span>
-          {NEUTRAL_KEYS.map((k) => (
-            <label key={`l-${k}`} className={styles.colorField}>
-              <input
-                type="color"
-                value={neutralsLight[k]}
-                aria-label={`${NEUTRAL_LABELS[k]} claro`}
-                onChange={(e) =>
-                  setNeutralsLight((n) => ({ ...n, [k]: e.target.value }))
-                }
-              />
-              {NEUTRAL_LABELS[k]}
-            </label>
-          ))}
-        </div>
-
-        <input
-          className={styles.input}
-          placeholder="Nombre de marca (opcional)"
-          aria-label="Nombre de marca"
-          value={brandName}
-          onChange={(e) => setBrandName(e.target.value)}
-        />
-        <input
-          className={styles.input}
-          placeholder="Tagline (opcional)"
-          aria-label="Tagline"
-          value={tagline}
-          onChange={(e) => setTagline(e.target.value)}
-        />
-        <button type="button" className={styles.btn} onClick={saveSkin}>
-          Guardar skin
-        </button>
-        <label className={styles.btn}>
-          Subir logo
-          <input type="file" accept="image/*" hidden onChange={uploadLogo} />
-        </label>
           </>
         )}
       </div>
@@ -363,7 +502,12 @@ export default function CommunitiesAdmin() {
     try {
       await axios.post(API.comunidades.LIST, form);
       addToast({ type: "success", message: "Comunidad creada" });
-      setForm({ name: "", description: "", joinPolicy: "open", inviteCode: "" });
+      setForm({
+        name: "",
+        description: "",
+        joinPolicy: "open",
+        inviteCode: "",
+      });
       await load();
     } catch (err) {
       addToast({ type: "error", message: errMsg(err, "No se pudo crear") });

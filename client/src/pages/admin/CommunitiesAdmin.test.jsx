@@ -51,9 +51,12 @@ describe("<CommunitiesAdmin>", () => {
       ),
       http.post("/api/comunidades", async ({ request }) => {
         posted = await request.json();
-        return HttpResponse.json({ slug: "nueva", name: "Nueva" }, {
-          status: 201,
-        });
+        return HttpResponse.json(
+          { slug: "nueva", name: "Nueva" },
+          {
+            status: 201,
+          },
+        );
       }),
     );
     render(<CommunitiesAdmin />);
@@ -121,7 +124,9 @@ describe("<CommunitiesAdmin>", () => {
     fireEvent.click(
       screen.getByLabelText("Activar single-tenant en este subdominio"),
     );
-    await waitFor(() => expect(putBody).toMatchObject({ subdomainEnabled: true }));
+    await waitFor(() =>
+      expect(putBody).toMatchObject({ subdomainEnabled: true }),
+    );
   });
 
   it("edits the slug and includes it in the Guardar datos PUT", async () => {
@@ -295,12 +300,142 @@ describe("<CommunitiesAdmin>", () => {
     );
     render(<CommunitiesAdmin />);
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
-    fireEvent.change(
-      screen.getByLabelText("Texto sobre botones primarios"),
-      { target: { value: "#101010" } },
-    );
+    fireEvent.change(screen.getByLabelText("Texto sobre botones primarios"), {
+      target: { value: "#101010" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Guardar skin" }));
     await waitFor(() => expect(putBody?.accents?.onAmber).toBe("#101010"));
+  });
+
+  it("saves a secondary accent shade (amberLight) inside accents", async () => {
+    let putBody = null;
+    server.use(
+      http.get("/api/comunidades", () =>
+        HttpResponse.json({
+          comunidades: [
+            {
+              slug: "beta",
+              name: "Beta",
+              isBase: false,
+              memberCount: 1,
+              joinPolicy: "open",
+              sections: {},
+              skin: { accents: {} },
+            },
+          ],
+        }),
+      ),
+      http.put("/api/comunidades/beta/skin", async ({ request }) => {
+        putBody = await request.json();
+        return HttpResponse.json({ slug: "beta" });
+      }),
+    );
+    render(<CommunitiesAdmin />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    fireEvent.change(screen.getByLabelText("Color amberLight"), {
+      target: { value: "#00ffcc" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar skin" }));
+    await waitFor(() => expect(putBody?.accents?.amberLight).toBe("#00ffcc"));
+  });
+
+  it("saves an alpha accent token (amberGlow, rgba) via the text input", async () => {
+    let putBody = null;
+    server.use(
+      http.get("/api/comunidades", () =>
+        HttpResponse.json({
+          comunidades: [
+            {
+              slug: "beta",
+              name: "Beta",
+              isBase: false,
+              memberCount: 1,
+              joinPolicy: "open",
+              sections: {},
+              skin: { accents: {} },
+            },
+          ],
+        }),
+      ),
+      http.put("/api/comunidades/beta/skin", async ({ request }) => {
+        putBody = await request.json();
+        return HttpResponse.json({ slug: "beta" });
+      }),
+    );
+    render(<CommunitiesAdmin />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    fireEvent.change(screen.getByLabelText("Color amberGlow"), {
+      target: { value: "rgba(255, 0, 0, 0.2)" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar skin" }));
+    await waitFor(() =>
+      expect(putBody?.accents?.amberGlow).toBe("rgba(255, 0, 0, 0.2)"),
+    );
+  });
+
+  it("saves new neutral + overlay tokens per theme (bgElevated + overlaySoft dark)", async () => {
+    let putBody = null;
+    server.use(
+      http.get("/api/comunidades", () =>
+        HttpResponse.json({
+          comunidades: [
+            {
+              slug: "beta",
+              name: "Beta",
+              isBase: false,
+              memberCount: 1,
+              joinPolicy: "open",
+              sections: {},
+              skin: { accents: {} },
+            },
+          ],
+        }),
+      ),
+      http.put("/api/comunidades/beta/skin", async ({ request }) => {
+        putBody = await request.json();
+        return HttpResponse.json({ slug: "beta" });
+      }),
+    );
+    render(<CommunitiesAdmin />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    fireEvent.change(screen.getByLabelText("Elevado oscuro"), {
+      target: { value: "#1b2230" },
+    });
+    fireEvent.change(screen.getByLabelText("Overlay suave oscuro"), {
+      target: { value: "rgba(255, 255, 255, 0.1)" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar skin" }));
+    await waitFor(() =>
+      expect(putBody?.neutralsDark?.bgElevated).toBe("#1b2230"),
+    );
+    expect(putBody?.neutralsDark?.overlaySoft).toBe("rgba(255, 255, 255, 0.1)");
+  });
+
+  it("flags an invalid alpha token value (aria-invalid)", async () => {
+    server.use(
+      http.get("/api/comunidades", () =>
+        HttpResponse.json({
+          comunidades: [
+            {
+              slug: "beta",
+              name: "Beta",
+              isBase: false,
+              memberCount: 1,
+              joinPolicy: "open",
+              sections: {},
+              skin: { accents: {} },
+            },
+          ],
+        }),
+      ),
+    );
+    render(<CommunitiesAdmin />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    const glow = screen.getByLabelText("Color amberGlow");
+    // Default is valid rgba.
+    expect(glow).toHaveAttribute("aria-invalid", "false");
+    fireEvent.change(glow, { target: { value: "not a color" } });
+    expect(glow).toHaveAttribute("aria-invalid", "true");
   });
 
   it("hides skin editing for the base community (code-only)", async () => {
@@ -329,8 +464,6 @@ describe("<CommunitiesAdmin>", () => {
     expect(
       screen.queryByRole("button", { name: "Guardar skin" }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByLabelText("Nombre de marca"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Nombre de marca")).not.toBeInTheDocument();
   });
 });
