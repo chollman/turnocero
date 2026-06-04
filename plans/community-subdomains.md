@@ -52,6 +52,18 @@ El cliente detecta el subdominio desde `window.location.hostname` y lo manda en 
 4. **Client env**: `VITE_TENANT_DOMAIN=turnocero.com`. `VITE_API_URL` queda igual.
 5. **Activar una comunidad**: `/panel-admin` → Comunidades → Editar → "Activar single-tenant en este subdominio" (o `subdomainEnabled: true` en Mongo). Publicarla en `<slug>.turnocero.com`.
 
+## Deploy productivo (2026-06-04) — lecciones del primer subdominio
+
+> Dominio real: **`turnocero.app`** (no `.com`, que era placeholder). Primer tenant: `elclu.turnocero.app` (comunidad "El Clu"). Mergeado a master.
+
+- **DNS (Cloudflare):** CNAME `*` → `cname.vercel-dns.com` en **"DNS only"** (gris). El warning de "expone IP origen" es inofensivo (el target es Vercel, anycast público).
+- **Cert — subdominio PUNTUAL en Vercel, NO wildcard.** Un cert wildcard requiere desafío DNS-01, que Vercel solo automatiza si controla los nameservers; pero el DNS está en Cloudflare (y mover NS rompería el email de Resend + el `api` de Render). **Solución:** agregar cada `<slug>.turnocero.app` como dominio puntual en Vercel → valida por HTTP-01 vía el CNAME `*`, emite cert en minutos, sin tocar NS. Síntoma del wildcard mal configurado: `Invalid Configuration` + TLS handshake fallido (`SSL_ERROR_SYSCALL`).
+- **Env productivas:** Render `CORS_ORIGIN_SUFFIX=.turnocero.app` (+ `CORS_ORIGIN` con apex/www); Vercel `VITE_TENANT_DOMAIN=turnocero.app` (build-time → requiere redeploy).
+- **OAuth:** Google NO acepta wildcards en *Authorized JS origins* → agregar `https://<slug>.turnocero.app` por cada subdominio. Facebook sí cubre subdominios con el App Domain `turnocero.app` (una vez). FB Privacy/Data-Deletion URLs → `https://turnocero.app/privacidad`.
+- **Marca tenant:** login (`Auth.jsx`) + guest nav (`GuestSidebar.jsx`, `GuestNavbar.jsx`) muestran logo/nombre de la comunidad en modo tenant (commit 5558297). Borrado `AuthLogo.jsx` muerto (ce518f9).
+
+**Checklist por comunidad nueva:** (1) dominio puntual `<slug>.turnocero.app` en Vercel; (2) origin `https://<slug>.turnocero.app` en Google. DNS + backend ya lo cubren.
+
 ## Cómo probar en dev (sin DNS)
 
 - `npm run dev` (Mongo + back :4000 + front :3000).
