@@ -442,29 +442,34 @@ export default function Sidebar({ open = false, onClose }) {
         aria-hidden={onClose && !open ? "true" : undefined}
       >
         <div className={styles.logoRow}>
-          <Link to="/" className={styles.logo} aria-label={brand.name}>
-            <span className={styles.logoMark} aria-hidden="true">
+          <div className={styles.logo}>
+            <Link to="/" className={styles.logoMark} aria-label={brand.name}>
               <Logo
                 className={styles.logoMarkImg}
                 alt=""
                 srcLight={brand.logoLight}
                 srcDark={brand.logoDark}
               />
-            </span>
+            </Link>
             <span className={styles.logoText}>
-              <span className={styles.logoName}>{brand.name}</span>
+              <Link to="/" className={styles.logoName}>
+                {brand.name}
+              </Link>
               <span className={styles.logoSub}>
                 <Meeple />
                 {isTenant ? (
                   <>
-                    por <span className={styles.attribution}>TurnoCero</span>
+                    por{" "}
+                    <Link to="/colabora" className={styles.attribution}>
+                      TurnoCero
+                    </Link>
                   </>
                 ) : (
                   "board game meetups"
                 )}
               </span>
             </span>
-          </Link>
+          </div>
           <button
             className={`${styles.bellBtn} ${active === "notif" ? styles.bellBtnActive : ""}`}
             onClick={() => navigate("/notificaciones")}

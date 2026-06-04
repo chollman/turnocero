@@ -48,29 +48,34 @@ export default function Navbar({ menuOpen = false, onToggleMenu }) {
 
   return (
     <nav className={styles.nav}>
-      <Link to="/" className={styles.brand}>
-        <span className={styles.brandMark} aria-hidden="true">
+      <div className={styles.brand}>
+        <Link to="/" className={styles.brandMark} aria-label={brand.name}>
           <Logo
             className={styles.brandMarkImg}
             alt=""
             srcLight={brand.logoLight}
             srcDark={brand.logoDark}
           />
-        </span>
+        </Link>
         <span className={styles.brandText}>
-          <span className={styles.brandName}>{brand.name}</span>
+          <Link to="/" className={styles.brandName}>
+            {brand.name}
+          </Link>
           <span className={styles.brandSub}>
             <Meeple />
             {isTenant ? (
               <>
-                por <span className={styles.attribution}>TurnoCero</span>
+                por{" "}
+                <Link to="/colabora" className={styles.attribution}>
+                  TurnoCero
+                </Link>
               </>
             ) : (
               "board game meetups"
             )}
           </span>
         </span>
-      </Link>
+      </div>
 
       <div className={styles.navActions}>
         {dmsEnabled && (

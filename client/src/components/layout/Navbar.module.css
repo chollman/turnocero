@@ -116,6 +116,7 @@
   flex-shrink: 0;
   position: relative;
   display: block;
+  text-decoration: none;
 }
 
 .brandMarkImg {
@@ -139,6 +140,8 @@
   letter-spacing: -0.02em;
   color: var(--text-primary);
   line-height: 1.1;
+  text-decoration: none;
+  width: fit-content;
 }
 
 .brandSub {
@@ -162,6 +165,11 @@
   letter-spacing: 0;
   text-transform: none;
   color: #1888ef;
+  text-decoration: none;
+}
+
+.attribution:hover {
+  text-decoration: underline;
 }
 
 /* ─── Actions ─── */

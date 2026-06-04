@@ -76,11 +76,13 @@ describe("<Sidebar>", () => {
     expect(screen.getByText(/board game meetups/i)).toBeInTheDocument();
   });
 
-  it('shows "por TurnoCero" attribution in tenant mode instead of the tagline', () => {
+  it('shows "por TurnoCero" attribution (linking to /colabora) in tenant mode', () => {
     setup({ isTenant: true, brand: { name: "El Clu" } });
     expect(screen.queryByText(/board game meetups/i)).not.toBeInTheDocument();
     const attr = screen.getByText("TurnoCero");
     expect(attr.parentElement.textContent.toLowerCase()).toContain("por");
+    // "TurnoCero" es un link a /colabora (atribución → apoyar la plataforma).
+    expect(attr).toHaveAttribute("href", "/colabora");
   });
 
   it("shows the notifications bell with unread badge when count > 0", () => {

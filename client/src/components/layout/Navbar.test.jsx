@@ -58,10 +58,13 @@ beforeEach(() => {
 });
 
 describe("<Navbar>", () => {
-  it("renders the TurnoCero logo linking to /", () => {
+  it("renders the brand logo + name linking to /", () => {
     setup();
-    const logoLink = screen.getByRole("link", { name: /turnocero/i });
-    expect(logoLink).toHaveAttribute("href", "/");
+    // Ícono y nombre son links separados a "/" (el nombre se separó para que la
+    // atribución pueda ser su propio link sin anchors anidados).
+    const homeLinks = screen.getAllByRole("link", { name: /turnocero/i });
+    expect(homeLinks.length).toBeGreaterThan(0);
+    homeLinks.forEach((l) => expect(l).toHaveAttribute("href", "/"));
   });
 
   it('shows "board game meetups" tagline on the main site', () => {
@@ -69,7 +72,7 @@ describe("<Navbar>", () => {
     expect(screen.getByText(/board game meetups/i)).toBeInTheDocument();
   });
 
-  it('shows "por TurnoCero" attribution in tenant mode', () => {
+  it('shows "por TurnoCero" attribution (linking to /colabora) in tenant mode', () => {
     setup({
       isTenant: true,
       brand: { name: "El Clu", logoLight: "", logoDark: "" },
@@ -77,6 +80,7 @@ describe("<Navbar>", () => {
     expect(screen.queryByText(/board game meetups/i)).not.toBeInTheDocument();
     const attr = screen.getByText("TurnoCero");
     expect(attr.parentElement.textContent.toLowerCase()).toContain("por");
+    expect(attr).toHaveAttribute("href", "/colabora");
   });
 
   it("renders the hamburger button labeled 'Abrir menú' when closed", () => {

@@ -114,6 +114,7 @@
   box-shadow: 0 4px 14px var(--amber-glow);
   position: relative;
   display: block;
+  text-decoration: none;
 }
 
 .logoMark::after {
@@ -148,6 +149,8 @@
   letter-spacing: -0.035em;
   color: var(--text-primary);
   line-height: 1.05;
+  text-decoration: none;
+  width: fit-content;
 }
 
 .logoSub {
@@ -172,6 +175,11 @@
   letter-spacing: 0;
   text-transform: none;
   color: #1888ef;
+  text-decoration: none;
+}
+
+.attribution:hover {
+  text-decoration: underline;
 }
 
 /* Notification bell */
