@@ -51,7 +51,7 @@ describe("POST /api/auth/register", () => {
       password: "Password123",
     });
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/already in use/i);
+    expect(res.body.message).toMatch(/ya están en uso/i);
   });
 
   it("rejects a username that differs only in casing from an existing one", async () => {
@@ -64,7 +64,7 @@ describe("POST /api/auth/register", () => {
     });
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/username already in use/i);
+    expect(res.body.message).toMatch(/nombre de usuario ya está en uso/i);
     // No new account was created.
     expect(await User.countDocuments({ email: "different@test.local" })).toBe(0);
   });
