@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { formatTimeAgo } from "./time";
+import { formatTimeAgo, formatExactDateTime } from "./time";
 
 describe("formatTimeAgo", () => {
   const NOW = new Date("2026-05-18T12:00:00Z").getTime();
@@ -50,5 +50,61 @@ describe("formatTimeAgo", () => {
   it("handles ISO strings as input", () => {
     const iso = new Date(NOW - 5 * 60 * 1000).toISOString();
     expect(formatTimeAgo(iso)).toBeTruthy();
+  });
+});
+
+describe("formatExactDateTime", () => {
+  const NOW = new Date("2026-05-18T12:00:00Z").getTime();
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("mismo día → solo la hora (24h)", () => {
+    // Construido con componentes LOCALES para ser independiente del timezone.
+    const d = new Date(NOW);
+    d.setHours(14, 30, 0, 0);
+    expect(formatExactDateTime(d)).toBe("a las 14:30");
+  });
+
+  it("padea hora y minutos a 2 dígitos", () => {
+    const d = new Date(NOW);
+    d.setHours(9, 5, 0, 0);
+    expect(formatExactDateTime(d)).toBe("a las 09:05");
+  });
+
+  it("otro día (mismo año) → antepone la fecha D/M", () => {
+    const d = new Date(NOW);
+    d.setDate(d.getDate() - 3);
+    d.setHours(9, 5, 0, 0);
+    expect(formatExactDateTime(d)).toBe(
+      `el ${d.getDate()}/${d.getMonth() + 1} a las 09:05`,
+    );
+  });
+
+  it("otro año → incluye el año en la fecha", () => {
+    const d = new Date(NOW);
+    d.setFullYear(d.getFullYear() - 1);
+    d.setHours(8, 0, 0, 0);
+    expect(formatExactDateTime(d)).toBe(
+      `el ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} a las 08:00`,
+    );
+  });
+
+  it("acepta ISO strings", () => {
+    const d = new Date(NOW);
+    d.setHours(20, 15, 0, 0);
+    expect(formatExactDateTime(d.toISOString())).toBe("a las 20:15");
+  });
+
+  it("devuelve string vacío para null/undefined/inválido", () => {
+    expect(formatExactDateTime(null)).toBe("");
+    expect(formatExactDateTime(undefined)).toBe("");
+    expect(formatExactDateTime("not a date")).toBe("");
   });
 });

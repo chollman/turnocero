@@ -336,7 +336,7 @@ describe("<PartidasPanel>", () => {
     });
   });
 
-  it('renders the "Actualizado hace …" label from sync.lastProbedAt when canRefresh', async () => {
+  it('renders the "Actualizado …" label from sync.lastProbedAt when canRefresh', async () => {
     server.use(
       http.get("/api/bgg/partidas/:bggUsername", () =>
         HttpResponse.json({
@@ -353,7 +353,7 @@ describe("<PartidasPanel>", () => {
       ),
     );
     renderPanel();
-    expect(await screen.findByText(/actualizado hace/i)).toBeInTheDocument();
+    expect(await screen.findByText(/actualizado/i)).toBeInTheDocument();
   });
 
   it("hides the freshness label when canRefresh=false", async () => {
@@ -379,7 +379,7 @@ describe("<PartidasPanel>", () => {
         screen.getByText(/no tiene partidas registradas en bgg/i),
       ).toBeInTheDocument();
     });
-    expect(screen.queryByText(/actualizado hace/i)).toBeNull();
+    expect(screen.queryByText(/actualizado/i)).toBeNull();
   });
 
   it("reads the X-Refresh-Cooldown-Ms response header to drive the countdown", async () => {
