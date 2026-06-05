@@ -1,11 +1,13 @@
 const BggPlay = require("../../../../models/BggPlay");
 const BggCollection = require("../../../../models/BggCollection");
 const BggGame = require("../../../../models/BggGame");
+const Community = require("../../../../models/Community");
 const { createUser } = require("../../../helpers/auth");
 const { _resetForTests } = require("../../../../services/bgg/bggCache");
 const {
   resolveBggUsernamesToUsers,
   connectedMemberUsernames,
+  communityMemberUsernames,
   topCommunityGames,
   gameCommunityStats,
   gameOwners,
@@ -90,6 +92,49 @@ describe("connectedMemberUsernames", () => {
     await createUser({ bggUsername: "" }); // sin conectar
     const set = await connectedMemberUsernames();
     expect(set.sort()).toEqual(["alice", "bob"]);
+  });
+});
+
+describe("communityMemberUsernames", () => {
+  it("devuelve null sin comunidades en el scope", async () => {
+    expect(await communityMemberUsernames([])).toBeNull();
+    expect(await communityMemberUsernames(null)).toBeNull();
+  });
+
+  it("devuelve null si el scope incluye la base (= global)", async () => {
+    const base = await Community.getBase();
+    const beta = await Community.create({ name: "Beta", slug: "beta" });
+    expect(await communityMemberUsernames([base._id])).toBeNull();
+    expect(await communityMemberUsernames([base._id, beta._id])).toBeNull();
+  });
+
+  it("resuelve los bggUsernames (lowercase) de miembros conectados de la comunidad", async () => {
+    const beta = await Community.create({ name: "Beta", slug: "beta" });
+    const gamma = await Community.create({ name: "Gamma", slug: "gamma" });
+    await createUser({
+      bggUsername: "Alice", // case-preserved en User → lowercase en el output
+      communityMemberships: [{ community: beta._id, role: "member" }],
+    });
+    await createUser({
+      bggUsername: "BOB",
+      communityMemberships: [{ community: beta._id, role: "member" }],
+    });
+    await createUser({
+      bggUsername: "", // miembro de beta pero sin BGG → excluido
+      communityMemberships: [{ community: beta._id, role: "member" }],
+    });
+    await createUser({
+      bggUsername: "carol", // miembro de otra comunidad → excluido
+      communityMemberships: [{ community: gamma._id, role: "member" }],
+    });
+
+    const result = await communityMemberUsernames([beta._id]);
+    expect(result.sort()).toEqual(["alice", "bob"]);
+  });
+
+  it("devuelve [] (no global) para una comunidad real sin miembros conectados", async () => {
+    const empty = await Community.create({ name: "Empty", slug: "empty" });
+    expect(await communityMemberUsernames([empty._id])).toEqual([]);
   });
 });
 

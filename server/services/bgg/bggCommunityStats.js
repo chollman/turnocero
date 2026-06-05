@@ -33,6 +33,7 @@
 const BggPlay = require("../../models/BggPlay");
 const BggCollection = require("../../models/BggCollection");
 const User = require("../../models/User");
+const Community = require("../../models/Community");
 const { resolveGamesBatch } = require("./bggResolve");
 const { computePlayedCoPlayers } = require("./bggAggregations");
 
@@ -96,6 +97,40 @@ async function connectedMemberUsernames() {
   const docs = await User.find({ bggUsername: { $type: "string", $ne: "" } })
     .select("bggUsername")
     .lean();
+  return [
+    ...new Set(
+      docs.map((d) => (d.bggUsername || "").toLowerCase()).filter(Boolean),
+    ),
+  ];
+}
+
+// Allowlist de bggUsernames (lowercase, dedup) de los miembros con BGG
+// conectado de un set de comunidades — típicamente `req.viewingCommunities`.
+// Es lo que scopea el hub a la comunidad activa (fase 2): el caller la pasa
+// como `bggUsernames` a cualquiera de las aggregations.
+//
+// Devuelve `null` (= global, sin filtro) cuando el scope incluye la comunidad
+// base: TODOS pertenecen a la base, así que filtrar sería un no-op que solo
+// agregaría un `$in` gigante. El modo tenant / "ver solo una sub-comunidad"
+// (la base NUNCA es tenant) sí devuelven la lista acotada.
+//
+// Una comunidad real SIN miembros conectados devuelve `[]` (no `null`): las
+// funciones tratan `$in: []` como "comunidad sin jugadores" → hub vacío. NO
+// cae a global — eso filtraría de menos.
+async function communityMemberUsernames(communityIds = []) {
+  const ids = (communityIds || []).filter(Boolean);
+  if (!ids.length) return null;
+
+  const base = await Community.getBase();
+  if (ids.some((id) => String(id) === String(base._id))) return null;
+
+  const docs = await User.find({
+    "communityMemberships.community": { $in: ids },
+    bggUsername: { $type: "string", $ne: "" },
+  })
+    .select("bggUsername")
+    .lean();
+
   return [
     ...new Set(
       docs.map((d) => (d.bggUsername || "").toLowerCase()).filter(Boolean),
@@ -654,6 +689,7 @@ async function playerGameRank(
 module.exports = {
   resolveBggUsernamesToUsers,
   connectedMemberUsernames,
+  communityMemberUsernames,
   topCommunityGames,
   gameCommunityStats,
   gameOwners,

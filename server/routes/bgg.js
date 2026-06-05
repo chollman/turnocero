@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { protect, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
+const { resolveCommunities } = require("../middleware/resolveCommunities");
 const userRateLimit = require("../middleware/userRateLimit");
 const User = require("../models/User");
 const BggPlay = require("../models/BggPlay");
@@ -85,6 +86,7 @@ const {
 } = require("../services/bgg/bggMutations");
 const {
   connectedMemberUsernames,
+  communityMemberUsernames,
   topCommunityGames,
   gameCommunityStats,
   gameOwners,
@@ -109,14 +111,30 @@ function daysAgoStr(n) {
 }
 
 // ── Hub de comunidad (cross-user) ─────────────────────────────────────────
-// Todos read-only, optionalAuth, gateados por `bgwatch` (router.use arriba).
-// Global por ahora: sin filtro de comunidad. La fase 2 por-comunidad solo
-// tiene que computar `bggUsernames` de los miembros y pasarlo a cada función.
+// Todos read-only, gateados por `bgwatch` (router.use arriba). El scope por
+// comunidad (fase 2) se resuelve en `communityScope`: deriva
+// `req.viewingCommunities` (resolveCommunities) y de ahí la allowlist de
+// bggUsernames de esos miembros (`req.bggScope`). En global / viendo la base
+// queda `null` (sin filtro), preservando el comportamiento histórico.
+
+// Deriva `req.bggScope` (null = global | [usernames] = comunidad activa) a
+// partir de `req.viewingCommunities`. Corre después de resolveCommunities.
+async function attachBggScope(req, res, next) {
+  try {
+    req.bggScope = await communityMemberUsernames(req.viewingCommunities);
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Cadena reusable para los endpoints del hub que aceptan scope de comunidad.
+const communityScope = [optionalAuth, resolveCommunities, attachBggScope];
 
 // GET /api/bgg/comunidad/juegos?periodo=all|mes&limit=
 router.get(
   "/comunidad/juegos",
-  optionalAuth,
+  communityScope,
   asyncHandler(async (req, res) => {
     const periodo = req.query.periodo === "mes" ? "mes" : "all";
     const limit = Math.min(
@@ -124,7 +142,11 @@ router.get(
       Math.max(1, parseInt(req.query.limit, 10) || 12),
     );
     const sinceDate = periodo === "mes" ? daysAgoStr(30) : null;
-    const games = await topCommunityGames({ limit, sinceDate });
+    const games = await topCommunityGames({
+      limit,
+      sinceDate,
+      bggUsernames: req.bggScope,
+    });
     res.json({ periodo, games });
   }),
 );
@@ -132,15 +154,18 @@ router.get(
 // GET /api/bgg/comunidad/juego/:gameId — stats + dueños (solo miembros).
 router.get(
   "/comunidad/juego/:gameId",
-  optionalAuth,
+  communityScope,
   asyncHandler(async (req, res) => {
     const { gameId } = req.params;
     if (!/^\d+$/.test(gameId)) throw httpError(400, "gameId inválido");
-    const members = await connectedMemberUsernames();
+    // gameOwners SIEMPRE necesita una allowlist de miembros (ver su doc). En
+    // modo global (req.bggScope === null) usamos todos los miembros conectados;
+    // con scope de comunidad, ese subconjunto.
+    const ownerScope = req.bggScope || (await connectedMemberUsernames());
     const [game, stats, owners] = await Promise.all([
       resolveGame(gameId),
-      gameCommunityStats(gameId),
-      gameOwners(gameId, { bggUsernames: members }),
+      gameCommunityStats(gameId, { bggUsernames: req.bggScope }),
+      gameOwners(gameId, { bggUsernames: ownerScope }),
     ]);
     res.json({ game, stats, owners });
   }),
@@ -149,26 +174,33 @@ router.get(
 // GET /api/bgg/comunidad/jugadores?metric=plays|variedad|winrate|racha&periodo=
 router.get(
   "/comunidad/jugadores",
-  optionalAuth,
+  communityScope,
   asyncHandler(async (req, res) => {
     const metric = req.query.metric || "plays";
     const periodo = req.query.periodo === "mes" ? "mes" : "all";
     const sinceDate = periodo === "mes" ? daysAgoStr(30) : null;
+    const bggUsernames = req.bggScope;
 
     let players;
     if (metric === "winrate") {
-      players = await communityWinRates({ minPlays: 5 });
+      players = await communityWinRates({ minPlays: 5, bggUsernames });
     } else if (metric === "racha") {
-      players = await communityStreaks({});
+      players = await communityStreaks({ bggUsernames });
     } else {
       const m = metric === "variedad" ? "variedad" : "plays";
-      players = await communityPlayerLeaderboard({ metric: m, sinceDate });
+      players = await communityPlayerLeaderboard({
+        metric: m,
+        sinceDate,
+        bggUsernames,
+      });
     }
     res.json({ metric, periodo, players });
   }),
 );
 
 // GET /api/bgg/comunidad/companeros/:bggUsername
+// Sin scope de comunidad: los compañeros salen de las partidas propias del
+// usuario (su historia de juego), no del subconjunto de miembros activos.
 router.get(
   "/comunidad/companeros/:bggUsername",
   optionalAuth,
@@ -180,6 +212,7 @@ router.get(
 );
 
 // GET /api/bgg/comunidad/h2h/:userA/:userB
+// Sin scope: es estrictamente entre dos usuarios nombrados.
 router.get(
   "/comunidad/h2h/:userA/:userB",
   optionalAuth,
@@ -195,13 +228,17 @@ router.get(
 // GET /api/bgg/comunidad/actividad?page=&limit=
 router.get(
   "/comunidad/actividad",
-  optionalAuth,
+  communityScope,
   asyncHandler(async (req, res) => {
     const { page, limit } = parsePagination(req.query, {
       defaultLimit: 20,
       maxLimit: 40,
     });
-    const feed = await communityActivityFeed({ page, limit });
+    const feed = await communityActivityFeed({
+      page,
+      limit,
+      bggUsernames: req.bggScope,
+    });
     res.json(feed);
   }),
 );
@@ -209,10 +246,11 @@ router.get(
 // GET /api/bgg/comunidad/heatmap — partidas por día del último año.
 router.get(
   "/comunidad/heatmap",
-  optionalAuth,
+  communityScope,
   asyncHandler(async (req, res) => {
     const heatmap = await communityActivityHeatmap({
       sinceDate: daysAgoStr(365),
+      bggUsernames: req.bggScope,
     });
     res.json({ heatmap });
   }),
@@ -222,11 +260,13 @@ router.get(
 // ese juego dentro de la comunidad (insight personal en la vista per-game).
 router.get(
   "/comunidad/rank/:bggUsername/:gameId",
-  optionalAuth,
+  communityScope,
   asyncHandler(async (req, res) => {
     const { bggUsername, gameId } = req.params;
     if (!/^\d+$/.test(gameId)) throw httpError(400, "gameId inválido");
-    const rank = await playerGameRank(bggUsername.toLowerCase(), gameId);
+    const rank = await playerGameRank(bggUsername.toLowerCase(), gameId, {
+      bggUsernames: req.bggScope,
+    });
     res.json({ rank });
   }),
 );
