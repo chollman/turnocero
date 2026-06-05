@@ -49,7 +49,7 @@ const { BGG_API, fetchBgg, resolveGamesBatch } = require("./bggResolve");
 
 // Tunables — quedan acá para que tests puedan re-importarlos y assert
 // contra los mismos valores que produce el módulo.
-const PROBE_THROTTLE_MS = 5 * 60 * 1000; // 5 min entre background probes por user
+const PROBE_THROTTLE_MS = 5 * 60 * 1000; // legacy: throttle de background probes. Ya NO es el gate de /partidas (ahora unificado a AUTO_REFRESH_STALE_MS). triggerBackgroundProbe sigue disponible como primitiva.
 const FULL_RECONCILE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 días entre full reconciles periódicos
 const SYNC_MAX_PAGES = 200; // safety cap: ~6000 plays (BGG sirve 30/page)
 const RECONCILE_INTER_PAGE_MS = 500; // throttle inter-página en background
@@ -451,20 +451,31 @@ function decidePlaysSyncAction({
   now,
   viewerIsOwner,
 }) {
+  // Solo el dueño/admin dispara refrescos. Un no-dueño mirando el perfil NO
+  // gatilla nada: la frescura depende de las visitas del propio dueño, el botón
+  // manual (?refresh=1) y el reconcile periódico de 30 d.
+  if (!viewerIsOwner) return { sync: false, background: null };
+
   const probeAge = lastProbedAt
     ? now - new Date(lastProbedAt).getTime()
     : Infinity;
+
+  // Un único umbral: a lo sumo un refresco cada AUTO_REFRESH_STALE_MS (3 h).
+  // Debajo de eso se sirve de Mongo sin pegarle a BGG. (Antes había además un
+  // probe en background cada 5 min que reseteaba lastProbedAt y hacía que el
+  // gate de 3 h nunca se alcanzara — esa es la causa del "se actualiza más
+  // seguido que 3 h".)
+  if (probeAge <= AUTO_REFRESH_STALE_MS) {
+    return { sync: false, background: null };
+  }
+
+  // Datos viejos (>3 h): probe SINCRÓNICO → datos frescos en esta visita. Si
+  // además el reconcile completo está vencido (>30 d), se dispara en background
+  // (es pesado, nunca sincrónico — recorre todas las páginas).
   const reconcileOverdue =
     !lastFullSyncAt ||
     now - new Date(lastFullSyncAt).getTime() > FULL_RECONCILE_INTERVAL_MS;
-
-  if (viewerIsOwner && probeAge > AUTO_REFRESH_STALE_MS) {
-    return { sync: true, background: reconcileOverdue ? "reconcile" : null };
-  }
-  if (probeAge > PROBE_THROTTLE_MS) {
-    return { sync: false, background: reconcileOverdue ? "reconcile" : "probe" };
-  }
-  return { sync: false, background: null };
+  return { sync: true, background: reconcileOverdue ? "reconcile" : null };
 }
 
 module.exports = {
