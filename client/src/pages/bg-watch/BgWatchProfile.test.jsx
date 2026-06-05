@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
@@ -33,16 +33,33 @@ vi.mock("./useBggUserMap", () => ({ default: () => ({}) }));
 import BgWatchProfile from "./BgWatchProfile";
 import { useAuth } from "../../context/AuthContext";
 
-function renderProfile({ user = null, bggUsername = "someone" } = {}) {
+function renderProfile({
+  user = null,
+  bggUsername = "someone",
+  path = "",
+} = {}) {
   useAuth.mockReturnValue({ user });
   return render(
-    <MemoryRouter initialEntries={[`/bg-watch/${bggUsername}`]}>
+    <MemoryRouter initialEntries={[`/bg-watch/${bggUsername}${path}`]}>
       <Routes>
         <Route path="/bg-watch/:bggUsername" element={<BgWatchProfile />} />
+        <Route
+          path="/bg-watch/:bggUsername/partidas"
+          element={<BgWatchProfile />}
+        />
+        <Route
+          path="/bg-watch/:bggUsername/coleccion"
+          element={<BgWatchProfile />}
+        />
       </Routes>
     </MemoryRouter>,
   );
 }
+
+// La tab activa toggea el `display` del wrapper del panel — usamos eso para
+// saber cuál está visible (ambos paneles quedan montados).
+const panelVisible = (testid) =>
+  screen.getByTestId(testid).parentElement.style.display !== "none";
 
 beforeEach(() => {
   // Default MSW handlers for BGG endpoints used on mount.
@@ -69,22 +86,33 @@ describe("<BgWatchProfile>", () => {
     });
   });
 
-  it("renders Coleccion tab when clicked", async () => {
+  it("switches to Coleccion when the tab is clicked (updates the URL)", async () => {
     renderProfile();
     await screen.findByTestId("partidas-panel");
-    const tabs = screen.getAllByRole("button");
-    const coleccionTab = tabs.find((b) =>
-      /colecci[oó]n/i.test(b.textContent || ""),
-    );
-    if (coleccionTab) {
-      coleccionTab.click();
-      await waitFor(() => {
-        expect(
-          screen.queryByTestId("coleccion-panel") ||
-            screen.queryByTestId("partidas-panel"),
-        ).toBeTruthy();
-      });
-    }
+    expect(panelVisible("partidas-panel")).toBe(true);
+    expect(panelVisible("coleccion-panel")).toBe(false);
+
+    const coleccionTab = screen
+      .getAllByRole("button")
+      .find((b) => /colecci[oó]n/i.test(b.textContent || ""));
+    fireEvent.click(coleccionTab);
+
+    await waitFor(() => expect(panelVisible("coleccion-panel")).toBe(true));
+    expect(panelVisible("partidas-panel")).toBe(false);
+  });
+
+  it("lands directly on Coleccion via /bg-watch/:user/coleccion", async () => {
+    renderProfile({ bggUsername: "CarcaFan", path: "/coleccion" });
+    await screen.findByTestId("coleccion-panel");
+    expect(panelVisible("coleccion-panel")).toBe(true);
+    expect(panelVisible("partidas-panel")).toBe(false);
+  });
+
+  it("lands on Partidas via /bg-watch/:user/partidas", async () => {
+    renderProfile({ bggUsername: "CarcaFan", path: "/partidas" });
+    await screen.findByTestId("partidas-panel");
+    expect(panelVisible("partidas-panel")).toBe(true);
+    expect(panelVisible("coleccion-panel")).toBe(false);
   });
 
   it("passes canRefresh=true to panels when the logged-in user owns this bggUsername", async () => {
