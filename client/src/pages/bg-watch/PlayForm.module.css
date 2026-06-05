@@ -342,6 +342,35 @@
   background: var(--amber-10);
 }
 
+/* -- Botón "Usar última junta" -- */
+.lastJuntadaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  background: var(--amber-10);
+  border: 1px solid var(--amber-25);
+  border-radius: 10px;
+  color: var(--amber-light);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 14px;
+  cursor: pointer;
+  transition:
+    border-color var(--transition),
+    background var(--transition);
+}
+.lastJuntadaBtn:hover {
+  border-color: var(--amber);
+  background: var(--amber-15);
+}
+.lastJuntadaHint {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 /* -- Acciones de la lista de jugadores -- */
 .playerActions {
   display: flex;

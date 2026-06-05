@@ -36,6 +36,7 @@ function renderForm(props = {}) {
         onDelete={props.onDelete}
         keepGoing={props.keepGoing}
         onKeepGoingChange={props.onKeepGoingChange}
+        lastJuntada={props.lastJuntada}
       />
     </MemoryRouter>,
   );
@@ -285,5 +286,48 @@ describe("<PlayForm>", () => {
     fireEvent.change(dateInput, { target: { value: "2099-12-31" } });
     expect(screen.getByText(/no puede ser futura/i)).toBeInTheDocument();
     expect(submit).toBeDisabled();
+  });
+
+  it("'Usar última juntada' precarga jugadores + ubicación", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+      lastJuntada: {
+        location: "Club de Mesa",
+        players: [
+          { name: "Ana", username: "anabgg" },
+          { name: "Beto", username: "" },
+        ],
+      },
+    });
+    // Arranca solo con el dueño "Me".
+    expect(screen.getAllByPlaceholderText("Nombre")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: /usar última juntada/i }));
+    expect(
+      screen.getAllByPlaceholderText("Nombre").map((n) => n.value),
+    ).toEqual(["Ana", "Beto"]);
+    // La ubicación viajó al payload.
+    fireEvent.click(screen.getByRole("button", { name: /guardar en bgg/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const payload = onSubmit.mock.calls[0][0];
+    expect(payload.location).toBe("Club de Mesa");
+    expect(payload.players.map((p) => p.name)).toEqual(["Ana", "Beto"]);
+  });
+
+  it("no muestra 'Usar última juntada' en modo edición", () => {
+    renderForm({
+      editMode: true,
+      lockedGame: true,
+      initialValues: {
+        game: { id: "13", name: "Catán" },
+        players: [{ name: "X", username: "" }],
+      },
+      lastJuntada: { location: "Club", players: [{ name: "Ana", username: "anabgg" }] },
+    });
+    expect(
+      screen.queryByRole("button", { name: /usar última juntada/i }),
+    ).toBeNull();
   });
 });

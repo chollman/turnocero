@@ -1,6 +1,7 @@
 const BggPlay = require("../../../../models/BggPlay");
 const {
   computeGameStats,
+  computeLastJuntada,
   computePlayedGames,
   computePlayedGamesWithRecency,
   mergeUserGameList,
@@ -497,5 +498,63 @@ describe("computePlayedCoPlayers", () => {
     });
     const co = await computePlayedCoPlayers("alice");
     expect(co).toEqual([]);
+  });
+});
+
+describe("computeLastJuntada", () => {
+  it("devuelve null si el usuario no tiene partidas", async () => {
+    expect(await computeLastJuntada("nadie")).toBeNull();
+  });
+
+  it("devuelve el roster (sin score/win) + ubicación de la partida más reciente", async () => {
+    await makePlay({
+      date: "2026-01-01",
+      location: "Casa de Ana",
+      players: [
+        { name: "Alice", username: "alice" },
+        { name: "Bob", username: "bob" },
+      ],
+    });
+    await makePlay({
+      date: "2026-03-01",
+      location: "Club",
+      players: [
+        { name: "Alice", username: "alice", score: "9", win: true },
+        { name: "Carla", username: "carla" },
+      ],
+    });
+    const juntada = await computeLastJuntada("alice");
+    expect(juntada.location).toBe("Club");
+    expect(juntada.players).toEqual([
+      { name: "Alice", username: "alice" },
+      { name: "Carla", username: "carla" },
+    ]);
+  });
+
+  it("desempata por _id (insert más nuevo) con fechas iguales", async () => {
+    await makePlay({
+      date: "2026-05-01",
+      location: "Primera",
+      players: [{ name: "Alice", username: "alice" }],
+    });
+    await makePlay({
+      date: "2026-05-01",
+      location: "Segunda",
+      players: [{ name: "Zoe", username: "zoe" }],
+    });
+    const juntada = await computeLastJuntada("alice");
+    expect(juntada.location).toBe("Segunda");
+  });
+
+  it("excluye jugadores sin nombre ni username", async () => {
+    await makePlay({
+      date: "2026-04-01",
+      players: [
+        { name: "Alice", username: "alice" },
+        { name: "", username: "" },
+      ],
+    });
+    const juntada = await computeLastJuntada("alice");
+    expect(juntada.players).toEqual([{ name: "Alice", username: "alice" }]);
   });
 });

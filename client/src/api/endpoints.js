@@ -57,6 +57,8 @@ export const API = {
       `/api/bgg/mis-ubicaciones/${enc(bggUsername)}`,
     MIS_JUGADORES: (bggUsername) =>
       `/api/bgg/mis-jugadores/${enc(bggUsername)}`,
+    ULTIMA_JUNTADA: (bggUsername) =>
+      `/api/bgg/ultima-juntada/${enc(bggUsername)}`,
     JUGADO: (bggUsername, gameId) =>
       `/api/bgg/jugado/${enc(bggUsername)}/${enc(gameId)}`,
     SYNC: "/api/bgg/sync",

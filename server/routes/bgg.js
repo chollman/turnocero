@@ -29,6 +29,7 @@ const bggMutationLimiter = userRateLimit({
 });
 const {
   computeGameStats,
+  computeLastJuntada,
   computePlayedGames,
   computeTopPlayedGame,
   computePlayedLocations,
@@ -586,6 +587,18 @@ router.get(
       page,
       pages: Math.ceil(total / limit),
     });
+  }),
+);
+
+// GET /api/bgg/ultima-juntada/:bggUsername — roster (nombre + @BGG) + ubicación
+// de la partida más reciente del usuario, para el botón "Usar última juntada"
+// del form de carga. Devuelve { juntada: null } si no hay partidas.
+router.get(
+  "/ultima-juntada/:bggUsername",
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const juntada = await computeLastJuntada(lower);
+    res.json({ juntada });
   }),
 );
 
