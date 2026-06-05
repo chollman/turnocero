@@ -126,6 +126,9 @@ export default function BgWatchLanding() {
           de BoardGameGeek y registrá, editá y explorá todo lo que jugaste — sin
           salir del app.
         </p>
+        <Link to="/bg-watch/comunidad" className={styles.communityLink}>
+          Ver las estadísticas de la comunidad →
+        </Link>
       </header>
 
       <section className={styles.features}>

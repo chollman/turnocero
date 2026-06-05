@@ -16,6 +16,8 @@ vi.mock("./BgWatchGuestCTAs", () => ({
   GuestFooter: () => null,
 }));
 vi.mock("./useBggUserMap", () => ({ default: () => ({}) }));
+// Rank badge hace su propio fetch a /comunidad/rank: stub para aislar la vista.
+vi.mock("./ComunidadRankBadge", () => ({ default: () => null }));
 
 import BgWatchPerGameView from "./BgWatchPerGameView";
 import { useAuth } from "../../context/AuthContext";

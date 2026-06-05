@@ -29,6 +29,8 @@ vi.mock("./BgWatchGuestCTAs", () => ({
 }));
 // useBggUserMap (hook): returns an empty map.
 vi.mock("./useBggUserMap", () => ({ default: () => ({}) }));
+// Sección de comunidad (hace su propio fetch): stub para aislar el perfil.
+vi.mock("./ComunidadCompaneros", () => ({ default: () => null }));
 
 import BgWatchProfile from "./BgWatchProfile";
 import { useAuth } from "../../context/AuthContext";

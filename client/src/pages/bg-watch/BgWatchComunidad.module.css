@@ -1,0 +1,705 @@
+/* ─── Page shell ─── */
+.page {
+  min-height: calc(100vh - var(--navbar-h, 64px));
+  padding: var(--navbar-h) 0 var(--page-padding);
+}
+
+@media (min-width: 960px) {
+  .page {
+    padding-top: var(--page-padding);
+  }
+}
+
+.inner {
+  padding: 0 var(--page-padding) 0 var(--page-padding-left);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+@media (max-width: 959px) {
+  .inner {
+    padding: 0 var(--page-padding-mobile);
+  }
+}
+
+/* ─── Hero ─── */
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+}
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  line-height: 1;
+  margin: 0;
+}
+
+.heroSub {
+  font-size: 15px;
+  color: var(--text-secondary);
+  max-width: 60ch;
+  margin: 2px 0 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .heroTitle {
+    font-size: 26px;
+  }
+}
+
+/* ─── Tabs ─── */
+.tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition:
+    color var(--transition),
+    border-color var(--transition);
+}
+
+.tab:hover {
+  color: var(--text-secondary);
+}
+
+.tabActive {
+  color: var(--amber-light);
+  border-bottom-color: var(--amber);
+}
+
+.tabBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Pills (period / metric toggles) ─── */
+.periodToggle,
+.metricToggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.pill:hover {
+  border-color: var(--border-amber);
+  color: var(--text-primary);
+}
+
+.pillOn {
+  background: var(--amber-15);
+  border-color: var(--amber);
+  color: var(--amber-light);
+}
+
+/* ─── Game grid ─── */
+.gameGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.gameCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all var(--transition);
+}
+
+.gameCard:hover {
+  border-color: var(--border-amber);
+  transform: translateY(-2px);
+}
+
+.gameRank {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.gameThumb {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gameThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gameThumbFallback {
+  color: var(--text-muted);
+  font-size: 22px;
+}
+
+.gameInfo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gameName {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameMeta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── Leaderboard ─── */
+.leaderboard {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lbRow {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color var(--transition);
+}
+
+.lbRow:hover {
+  border-color: var(--border-amber);
+}
+
+.lbLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.lbRank {
+  flex-shrink: 0;
+  width: 24px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.lbDot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.lbName {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lbValue {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--amber-light);
+}
+
+/* ─── Activity feed ─── */
+.feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.feedRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  transition: background var(--transition);
+}
+
+.feedRow:hover {
+  background: var(--bg-hover);
+}
+
+.feedBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.feedText {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.feedText strong {
+  color: var(--text-primary);
+}
+
+.feedGameLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--amber);
+  cursor: pointer;
+}
+
+.feedGameLink:hover {
+  text-decoration: underline;
+}
+
+.feedMeta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.feedThumb {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+/* ─── Misc ─── */
+.loading {
+  padding: 16px 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.errorMsg {
+  color: var(--red);
+  font-size: 14px;
+}
+
+.sentinel {
+  height: 1px;
+}
+
+/* ─── Back button ─── */
+.backBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  align-self: flex-start;
+  transition: color var(--transition);
+}
+
+.backBtn:hover {
+  color: var(--amber-light);
+}
+
+/* ─── Game detail hero ─── */
+.detailHero {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.detailThumb {
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 32px;
+}
+
+.detailThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.detailInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+/* ─── Stat cards ─── */
+.statRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.statCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.statValue {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--amber-light);
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Section title ─── */
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 10px;
+}
+
+/* ─── Owners ─── */
+.ownerList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ownerChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px 5px 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  transition: border-color var(--transition);
+}
+
+.ownerChip:hover {
+  border-color: var(--border-amber);
+}
+
+.ownerNote {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ctaRow {
+  margin-top: 16px;
+}
+
+.ctaBtn {
+  display: inline-block;
+  background: var(--amber);
+  color: var(--on-amber);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 10px;
+  text-decoration: none;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
+}
+
+.ctaBtn:hover {
+  background: var(--amber-light);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+
+/* ─── Head-to-head ─── */
+.h2hBoard {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px 16px;
+}
+
+.h2hSide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.h2hDot {
+  width: 48px;
+  height: 48px;
+}
+
+.h2hName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.h2hName:hover {
+  color: var(--amber-light);
+}
+
+.h2hScore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.h2hWins {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--amber-light);
+  line-height: 1;
+  display: inline;
+}
+
+.h2hDash {
+  font-size: 28px;
+  color: var(--text-muted);
+  margin: 0 8px;
+}
+
+.h2hDraws {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.byGameList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.byGameRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.byGameName {
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.byGameScore {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.byGameTotal {
+  font-family: var(--font-body, inherit);
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── Heatmap ─── */
+.heatmap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 4px 0 8px;
+}
+
+.heatCell {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--green-15);
+}
+
+.heatCell[data-level="1"] {
+  background: var(--green-15);
+}
+.heatCell[data-level="2"] {
+  background: var(--green-25);
+}
+.heatCell[data-level="3"] {
+  background: var(--green-35);
+}
+.heatCell[data-level="4"] {
+  background: var(--green);
+}
+
+/* ─── Rank badge (insight personal en per-game) ─── */
+.rankBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 7px 14px;
+  background: var(--amber-10);
+  border: 1px solid var(--border-amber);
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rankBadge:hover {
+  background: var(--amber-15);
+}
+
+.rankBadgeNum {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--amber-light);
+}
+
+.rankBadgeMuted {
+  color: var(--text-muted);
+}
+
+/* ─── Compañeros (embebido en perfil) ─── */
+.companerosBox {
+  margin-top: 6px;
+}
+
+.companeroCount {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--amber-light);
+  margin-left: 2px;
+}
+
+@media (max-width: 600px) {
+  .detailHero {
+    flex-direction: column;
+  }
+  .h2hWins {
+    font-size: 30px;
+  }
+}

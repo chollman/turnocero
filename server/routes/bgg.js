@@ -83,8 +83,153 @@ const {
   verifyPlayOnBgg,
   upsertPlayFromBgg,
 } = require("../services/bgg/bggMutations");
+const {
+  connectedMemberUsernames,
+  topCommunityGames,
+  gameCommunityStats,
+  gameOwners,
+  communityPlayerLeaderboard,
+  communityWinRates,
+  communityStreaks,
+  topCoPlayers,
+  headToHead,
+  communityActivityFeed,
+  communityActivityHeatmap,
+  playerGameRank,
+} = require("../services/bgg/bggCommunityStats");
 
 router.use(requireSection("bgwatch"));
+
+// Fecha de corte (YYYY-MM-DD) `n` días atrás, para los filtros de período del
+// hub de comunidad ("en llamas" = últimos 30 días, heatmap = último año).
+function daysAgoStr(n) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+// ── Hub de comunidad (cross-user) ─────────────────────────────────────────
+// Todos read-only, optionalAuth, gateados por `bgwatch` (router.use arriba).
+// Global por ahora: sin filtro de comunidad. La fase 2 por-comunidad solo
+// tiene que computar `bggUsernames` de los miembros y pasarlo a cada función.
+
+// GET /api/bgg/comunidad/juegos?periodo=all|mes&limit=
+router.get(
+  "/comunidad/juegos",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const periodo = req.query.periodo === "mes" ? "mes" : "all";
+    const limit = Math.min(
+      48,
+      Math.max(1, parseInt(req.query.limit, 10) || 12),
+    );
+    const sinceDate = periodo === "mes" ? daysAgoStr(30) : null;
+    const games = await topCommunityGames({ limit, sinceDate });
+    res.json({ periodo, games });
+  }),
+);
+
+// GET /api/bgg/comunidad/juego/:gameId — stats + dueños (solo miembros).
+router.get(
+  "/comunidad/juego/:gameId",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const { gameId } = req.params;
+    if (!/^\d+$/.test(gameId)) throw httpError(400, "gameId inválido");
+    const members = await connectedMemberUsernames();
+    const [game, stats, owners] = await Promise.all([
+      resolveGame(gameId),
+      gameCommunityStats(gameId),
+      gameOwners(gameId, { bggUsernames: members }),
+    ]);
+    res.json({ game, stats, owners });
+  }),
+);
+
+// GET /api/bgg/comunidad/jugadores?metric=plays|variedad|winrate|racha&periodo=
+router.get(
+  "/comunidad/jugadores",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const metric = req.query.metric || "plays";
+    const periodo = req.query.periodo === "mes" ? "mes" : "all";
+    const sinceDate = periodo === "mes" ? daysAgoStr(30) : null;
+
+    let players;
+    if (metric === "winrate") {
+      players = await communityWinRates({ minPlays: 5 });
+    } else if (metric === "racha") {
+      players = await communityStreaks({});
+    } else {
+      const m = metric === "variedad" ? "variedad" : "plays";
+      players = await communityPlayerLeaderboard({ metric: m, sinceDate });
+    }
+    res.json({ metric, periodo, players });
+  }),
+);
+
+// GET /api/bgg/comunidad/companeros/:bggUsername
+router.get(
+  "/comunidad/companeros/:bggUsername",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const coPlayers = await topCoPlayers(lower, { limit: 12 });
+    res.json({ coPlayers });
+  }),
+);
+
+// GET /api/bgg/comunidad/h2h/:userA/:userB
+router.get(
+  "/comunidad/h2h/:userA/:userB",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const a = req.params.userA.toLowerCase();
+    const b = req.params.userB.toLowerCase();
+    if (a === b) throw httpError(400, "Elegí dos usuarios distintos");
+    const result = await headToHead(a, b);
+    res.json(result);
+  }),
+);
+
+// GET /api/bgg/comunidad/actividad?page=&limit=
+router.get(
+  "/comunidad/actividad",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const { page, limit } = parsePagination(req.query, {
+      defaultLimit: 20,
+      maxLimit: 40,
+    });
+    const feed = await communityActivityFeed({ page, limit });
+    res.json(feed);
+  }),
+);
+
+// GET /api/bgg/comunidad/heatmap — partidas por día del último año.
+router.get(
+  "/comunidad/heatmap",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const heatmap = await communityActivityHeatmap({
+      sinceDate: daysAgoStr(365),
+    });
+    res.json({ heatmap });
+  }),
+);
+
+// GET /api/bgg/comunidad/rank/:bggUsername/:gameId — posición del usuario en
+// ese juego dentro de la comunidad (insight personal en la vista per-game).
+router.get(
+  "/comunidad/rank/:bggUsername/:gameId",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const { bggUsername, gameId } = req.params;
+    if (!/^\d+$/.test(gameId)) throw httpError(400, "gameId inválido");
+    const rank = await playerGameRank(bggUsername.toLowerCase(), gameId);
+    res.json({ rank });
+  }),
+);
 
 // El sync engine (probe + reconcile + slot management) vive en
 // services/bgg/bggSyncEngine.js. Las mutations contra geekplay.php

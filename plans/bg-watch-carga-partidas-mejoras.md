@@ -31,33 +31,39 @@ Estas son las mejoras que quedaron sugeridas para encarar después.
 ## Pendientes
 
 ### 2. Reusar la última junta
+
 Precargar automáticamente jugadores + ubicación de la partida más reciente del
 usuario (un botón "Usar última junta" o prefill al abrir el form). Fuente: la
 última `BggPlay` por fecha; reusa el roster (nombre + @BGG) y `location`.
 
 ### 3. Score / posiciones más ricos
+
 - Autocalcular la posición a partir del score (mayor score = 1°; empates
   comparten posición), como ya hace el server para partidas de grupos.
 - Ordenar visualmente los jugadores por score.
 - Atajos +/- para cargar el puntaje más rápido.
 
 ### 4. Borrador local (localStorage)
+
 Guardar el form en progreso en `localStorage` (key tipo `turnocero_play_draft`)
 para no perder lo cargado si se sale sin querer; ofrecer "Retomar borrador" al
 volver. Limpiar al guardar/cancelar.
 
 ### 5. Validación de fecha + duración sugerida
+
 - No permitir fecha futura.
 - Sugerir la duración a partir del promedio histórico del juego
   (`computeGameStats(...).avgDuration` ya existe en
   [bggAggregations.js](../server/services/bgg/bggAggregations.js)).
 
 ### 6. Deep-link de carga desde otras vistas
+
 Botón "Cargar partida" directo desde un `PlayCard` o desde la colección
 (`ColeccionPanel`), navegando a `/bg-watch/:user/partidas/nueva?juego=<id>`.
 Hoy solo se entra desde el perfil y la vista por-juego.
 
 ### 7. Autodetección de "Nuevo" para invitados con @BGG
+
 Extender la detección actual (solo dueño) a los demás jugadores que tengan
 usuario BGG cargado, consultando `GET /api/bgg/jugado/:bggUsername/:gameId`
 por jugador (mejor en lote / con cuidado de rate limits y colecciones privadas;
@@ -67,10 +73,12 @@ best-effort, sigue siendo editable... aunque hoy "Nuevo" es read-only — ver no
 > extiende a invitados, definir si pasa a ser editable o sigue automático.
 
 ### 8. Preview enriquecido
+
 Mostrar avatares vinculados (vía `useBggUserMap`) en la `<PlayCard>` de la vista
 previa del form, no solo el nombre. Hoy el preview pasa `userMap={}`.
 
 ### Extras menores
+
 - Empty states de los pickers con el componente compartido `<EmptyState>`
   (hoy usan texto plano).
 - Al volver del form, respetar la tab/origen de donde se vino (parcialmente
