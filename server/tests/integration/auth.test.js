@@ -54,6 +54,35 @@ describe("POST /api/auth/register", () => {
     expect(res.body.message).toMatch(/already in use/i);
   });
 
+  it("rejects a username that differs only in casing from an existing one", async () => {
+    await createUser({ username: "Blackwatch", email: "bw@test.local" });
+
+    const res = await request(app).post("/api/auth/register").send({
+      username: "blackWatch",
+      email: "different@test.local",
+      password: "Password123",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/username already in use/i);
+    // No new account was created.
+    expect(await User.countDocuments({ email: "different@test.local" })).toBe(0);
+  });
+
+  it("still allows a genuinely new username (case-preserved)", async () => {
+    await createUser({ username: "Blackwatch", email: "bw2@test.local" });
+
+    const res = await request(app).post("/api/auth/register").send({
+      username: "Whitewatch",
+      email: "white@test.local",
+      password: "Password123",
+    });
+
+    expect(res.status).toBe(201);
+    const user = await User.findOne({ email: "white@test.local" });
+    expect(user.username).toBe("Whitewatch"); // casing kept as typed
+  });
+
   it("400s on missing fields", async () => {
     const res = await request(app)
       .post("/api/auth/register")

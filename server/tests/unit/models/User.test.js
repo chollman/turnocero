@@ -115,6 +115,48 @@ describe("User#comparePassword", () => {
   });
 });
 
+describe("User.findByUsernameCI", () => {
+  it("matches a username regardless of casing", async () => {
+    await User.create({
+      username: "Blackwatch",
+      email: "bw@test.local",
+      password: PRIMARY_PWD,
+      emailVerified: true,
+    });
+
+    expect(await User.findByUsernameCI("blackwatch")).not.toBeNull();
+    expect(await User.findByUsernameCI("BLACKWATCH")).not.toBeNull();
+    expect(await User.findByUsernameCI("blackWatch")).not.toBeNull();
+    // Exact casing still matches (case-insensitive includes the exact case).
+    expect(await User.findByUsernameCI("Blackwatch")).not.toBeNull();
+  });
+
+  it("trims the input and returns null for a non-existent username", async () => {
+    await User.create({
+      username: "Solo",
+      email: "solo@test.local",
+      password: PRIMARY_PWD,
+      emailVerified: true,
+    });
+
+    expect(await User.findByUsernameCI("  solo  ")).not.toBeNull();
+    expect(await User.findByUsernameCI("nobody")).toBeNull();
+    expect(await User.findByUsernameCI("")).toBeNull();
+  });
+
+  it("is accent-sensitive (strength 2 keeps accents distinct)", async () => {
+    await User.create({
+      username: "café",
+      email: "cafe@test.local",
+      password: PRIMARY_PWD,
+      emailVerified: true,
+    });
+
+    expect(await User.findByUsernameCI("CAFÉ")).not.toBeNull(); // case ignored
+    expect(await User.findByUsernameCI("cafe")).toBeNull(); // accent kept
+  });
+});
+
 describe("User#toJSON", () => {
   it("strips password and bggCredentials, exposes derived flags", async () => {
     const user = await User.create({
