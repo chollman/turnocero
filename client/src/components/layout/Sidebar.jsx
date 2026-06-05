@@ -7,9 +7,21 @@ import { useSectionEnabled } from "../../hooks/useSectionEnabled";
 import { useCommunity } from "../../context/CommunityContext";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { getActiveNavId } from "../../utils/routing";
+import { STORAGE_KEYS } from "../../utils/storageKeys";
 import Logo from "../shared/Logo";
 import CommunitySwitcher from "./CommunitySwitcher";
 import styles from "./Sidebar.module.css";
+
+// Estado inicial del colapso (solo escritorio): persistido en localStorage para
+// que la preferencia sobreviva recargas, igual que el tema.
+const getInitialCollapsed = () => {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem(STORAGE_KEYS.SIDEBAR_COLLAPSED) === "true";
+  } catch {
+    return false;
+  }
+};
 
 const ICONS = {
   feed: (
@@ -309,6 +321,26 @@ export default function Sidebar({ open = false, onClose }) {
   const navigate = useNavigate();
   const active = getActiveNavId(location.pathname);
   const [confirmingLogout, setConfirmingLogout] = useState(false);
+  // Colapso a "solo iconos" (escritorio). En mobile el sidebar es un drawer,
+  // así que el CSS del colapso vive bajo `@media (min-width: 960px)` y este
+  // estado no tiene efecto visible ahí.
+  const [collapsed, setCollapsed] = useState(getInitialCollapsed);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.SIDEBAR_COLLAPSED,
+        collapsed ? "true" : "false",
+      );
+    } catch {
+      /* ignore quota errors */
+    }
+  }, [collapsed]);
+
+  const toggleCollapsed = () => {
+    setCollapsed((c) => !c);
+    setConfirmingLogout(false);
+  };
 
   const display = getUserDisplay(user);
 
@@ -404,6 +436,7 @@ export default function Sidebar({ open = false, onClose }) {
         className={cls}
         style={{ "--i": i }}
         aria-current={isActive ? "page" : undefined}
+        title={collapsed ? item.label : undefined}
         onClick={onClose}
       >
         <span className={styles.navIcon}>{ICONS[item.id]}</span>
@@ -438,7 +471,9 @@ export default function Sidebar({ open = false, onClose }) {
         />
       )}
       <aside
-        className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}
+        className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""} ${
+          collapsed ? styles.sidebarCollapsed : ""
+        }`}
         aria-hidden={onClose && !open ? "true" : undefined}
       >
         <div className={styles.logoRow}>
@@ -497,7 +532,9 @@ export default function Sidebar({ open = false, onClose }) {
           </button>
         </div>
 
-        <CommunitySwitcher onNavigate={onClose} />
+        <div className={styles.switcherSlot}>
+          <CommunitySwitcher onNavigate={onClose} />
+        </div>
 
         <nav className={styles.nav}>
           {visibleSections.map((sec) => (
@@ -515,6 +552,30 @@ export default function Sidebar({ open = false, onClose }) {
         </nav>
 
         <div className={styles.sidebarFooter}>
+          <button
+            type="button"
+            className={styles.collapseToggle}
+            onClick={toggleCollapsed}
+            aria-label={
+              collapsed ? "Expandir barra lateral" : "Contraer barra lateral"
+            }
+            title={collapsed ? "Expandir" : "Contraer"}
+          >
+            <svg
+              className={styles.collapseIcon}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <polyline points="11 17 6 12 11 7" />
+              <polyline points="18 17 13 12 18 7" />
+            </svg>
+            <span className={styles.collapseLab}>Contraer</span>
+          </button>
           {confirmingLogout ? (
             <div className={styles.logoutConfirm}>
               <span className={styles.logoutConfirmLabel}>¿Cerrar sesión?</span>
@@ -534,7 +595,12 @@ export default function Sidebar({ open = false, onClose }) {
               </div>
             </div>
           ) : (
-            <Link to="/perfil" className={styles.userTicket} onClick={onClose}>
+            <Link
+              to="/perfil"
+              className={styles.userTicket}
+              onClick={onClose}
+              title={collapsed ? display.name || user?.username : undefined}
+            >
               <span className={styles.userAvatar} aria-hidden="true">
                 {(display.name || "?").charAt(0).toUpperCase()}
               </span>
