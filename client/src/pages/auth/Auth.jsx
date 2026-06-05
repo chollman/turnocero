@@ -428,7 +428,7 @@ export default function Auth({ mode }) {
                     type="text"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="tu@email.com"
+                    placeholder="usuario o tu@email.com"
                     autoComplete="username"
                     autoFocus
                   />

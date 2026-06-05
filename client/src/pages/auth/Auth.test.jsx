@@ -87,7 +87,9 @@ describe("<Auth> — tenant branding", () => {
 describe("<Auth> — login mode", () => {
   it("renders identifier + password fields and the submit button", () => {
     renderAuth("login");
-    expect(screen.getByPlaceholderText("tu@email.com")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("usuario o tu@email.com"),
+    ).toBeInTheDocument();
     expect(screen.getByPlaceholderText("••••••••")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /entrar/i })).toBeInTheDocument();
   });
@@ -96,7 +98,7 @@ describe("<Auth> — login mode", () => {
     const login = vi.fn().mockResolvedValue(undefined);
     renderAuth("login", { login });
 
-    fireEvent.change(screen.getByPlaceholderText("tu@email.com"), {
+    fireEvent.change(screen.getByPlaceholderText("usuario o tu@email.com"), {
       target: { value: "a@b.com" },
     });
     fireEvent.change(screen.getByPlaceholderText("••••••••"), {
@@ -119,7 +121,7 @@ describe("<Auth> — login mode", () => {
     });
     renderAuth("login", { login });
 
-    fireEvent.change(screen.getByPlaceholderText("tu@email.com"), {
+    fireEvent.change(screen.getByPlaceholderText("usuario o tu@email.com"), {
       target: { value: "unv@b.com" },
     });
     fireEvent.change(screen.getByPlaceholderText("••••••••"), {
@@ -143,7 +145,7 @@ describe("<Auth> — login mode", () => {
     });
     renderAuth("login", { login });
 
-    fireEvent.change(screen.getByPlaceholderText("tu@email.com"), {
+    fireEvent.change(screen.getByPlaceholderText("usuario o tu@email.com"), {
       target: { value: "x@y.com" },
     });
     fireEvent.change(screen.getByPlaceholderText("••••••••"), {

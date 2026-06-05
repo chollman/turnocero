@@ -130,20 +130,24 @@ describe("AuthContext", () => {
     });
   });
 
-  it("login stores token, sets header, and updates the user", async () => {
+  it("login posts the identifier, stores token, sets header, and updates the user", async () => {
+    let body;
     server.use(
-      http.post("/api/auth/login", () =>
-        HttpResponse.json({
+      http.post("/api/auth/login", async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({
           token: "tok",
           user: { _id: "u1", username: "alice", isAdmin: false },
-        }),
-      ),
+        });
+      }),
     );
     renderApp();
     await waitFor(() =>
       expect(screen.getByTestId("loading").textContent).toBe("false"),
     );
     await act(async () => screen.getByText("do-login").click());
+    // El primer arg de login() (email o username) viaja como `identifier`.
+    expect(body).toEqual({ identifier: "e@e", password: "pw" });
     expect(localStorage.getItem("token")).toBe("tok");
     expect(screen.getByTestId("user").textContent).toBe("alice");
   });
