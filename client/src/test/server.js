@@ -43,6 +43,9 @@ export const defaultHandlers = [
   http.get("/api/bgg/ultima-juntada/:user", () =>
     HttpResponse.json({ juntada: null }),
   ),
+  // Default vacío para el batch username→User (useBggUserMap) — lo dispara el
+  // preview de PlayForm y los feeds de partidas. Tests específicos overridean.
+  http.post("/api/users/by-bgg-usernames", () => HttpResponse.json([])),
   // YouTube tutoriales — TableDetail incluye TableTutorials, que dispara
   // este fetch al montar. Default vacío hace que la sección no renderice
   // y no contamine el DOM de tests que no la testean explícitamente.

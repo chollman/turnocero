@@ -7,6 +7,7 @@ import LocationPicker from "./LocationPicker";
 import PlayerPicker from "./PlayerPicker";
 import PlayCard from "./PlayCard";
 import PositionBadge from "./PositionBadge";
+import useBggUserMap from "./useBggUserMap";
 import { hasDisplayableScore } from "./playerScore";
 import {
   computePlayerPositions,
@@ -271,6 +272,9 @@ export default function PlayForm({
     incomplete: details.incomplete,
     players: buildPlayers(),
   };
+  // Avatares de los jugadores que son miembros de TurnoCero (por @BGG) en la
+  // vista previa. Refetchea solo cuando cambia el set de usernames (no por tecla).
+  const previewUserMap = useBggUserMap([previewPlay]);
 
   return (
     <div
@@ -682,7 +686,7 @@ export default function PlayForm({
         <aside className={styles.preview}>
           <div className={styles.previewLabel}>Vista previa</div>
           <div className={styles.previewCard}>
-            <PlayCard play={previewPlay} userMap={{}} />
+            <PlayCard play={previewPlay} userMap={previewUserMap} />
           </div>
           <p className={styles.previewNote}>Así se va a ver tu partida.</p>
         </aside>

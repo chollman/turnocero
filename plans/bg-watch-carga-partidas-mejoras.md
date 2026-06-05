@@ -40,6 +40,13 @@ Estas son las mejoras que quedaron sugeridas para encarar después.
       (`dateInvalid`) que gatea el submit y muestra error inline. La parte 5b
       (duración sugerida) sigue pendiente — necesita exponer `avgDuration` al
       cliente (no hay endpoint hoy).
+- [x] **6. Deep-link de carga** — "Cargar partida" en cada juego de
+      `ColeccionPanel` (Link al form con `?juego=`) + item "Cargar otra partida"
+      en el menú de `PlayCard` (feed del perfil), ambos solo para el dueño
+      (`canCreate`). +3 client.
+- [x] **8. Preview enriquecido** — el preview de `PlayForm` resuelve los
+      avatares de los jugadores miembros vía `useBggUserMap([previewPlay])`
+      (antes pasaba `userMap={}`). +1 client + default MSW handler.
 
 ## Pendientes
 
@@ -62,11 +69,7 @@ volver. Limpiar al guardar/cancelar.
   endpoint que lo exponga al cliente — el `JUGADO` actual solo devuelve
   `{ played, numPlays }`).
 
-### 6. Deep-link de carga desde otras vistas
-
-Botón "Cargar partida" directo desde un `PlayCard` o desde la colección
-(`ColeccionPanel`), navegando a `/bg-watch/:user/partidas/nueva?juego=<id>`.
-Hoy solo se entra desde el perfil y la vista por-juego.
+### 6. Deep-link de carga desde otras vistas — ✅ HECHO (ver Estado)
 
 ### 7. Autodetección de "Nuevo" para invitados con @BGG
 
@@ -78,10 +81,7 @@ best-effort, sigue siendo editable... aunque hoy "Nuevo" es read-only — ver no
 > Nota: "Nuevo" hoy es **read-only** y autodetectado solo para el dueño. Si se
 > extiende a invitados, definir si pasa a ser editable o sigue automático.
 
-### 8. Preview enriquecido
-
-Mostrar avatares vinculados (vía `useBggUserMap`) en la `<PlayCard>` de la vista
-previa del form, no solo el nombre. Hoy el preview pasa `userMap={}`.
+### 8. Preview enriquecido — ✅ HECHO (ver Estado)
 
 ### Extras menores
 

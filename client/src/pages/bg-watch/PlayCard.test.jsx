@@ -198,6 +198,24 @@ describe("<PlayCard>", () => {
     expect(onDelete).toHaveBeenCalled();
   });
 
+  it("muestra 'Cargar otra partida' y dispara onLogAnother", () => {
+    const onLogAnother = vi.fn();
+    render(
+      <MemoryRouter>
+        <PlayCard
+          play={makePlay()}
+          userMap={{}}
+          onLogAnother={onLogAnother}
+        />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Acciones" }));
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: /cargar otra partida/i }),
+    );
+    expect(onLogAnother).toHaveBeenCalled();
+  });
+
   it("closes the menu on Escape", () => {
     render(
       <MemoryRouter>
