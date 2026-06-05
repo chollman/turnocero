@@ -37,7 +37,7 @@ const authLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: "Too many attempts, please try again in 15 minutes" },
+  message: { message: "Demasiados intentos. Probá de nuevo en 15 minutos." },
 });
 
 // Stricter limiter for endpoints that trigger outbound email (resend, forgot).
@@ -46,7 +46,7 @@ const emailLimiter = rateLimit({
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: "Too many attempts, please try again in 15 minutes" },
+  message: { message: "Demasiados intentos. Probá de nuevo en 15 minutos." },
 });
 
 const VERIFICATION_CODE_TTL_MS = 15 * 60 * 1000;
@@ -75,7 +75,7 @@ function rethrowAsValidation(err) {
     throw httpError(400, messages[0]);
   }
   if (err.code === 11000) {
-    throw httpError(400, "Email or username already in use");
+    throw httpError(400, "El email o el nombre de usuario ya están en uso");
   }
   throw err;
 }
@@ -90,7 +90,7 @@ router.post(
     const { username, email, password, displayName, avatarColor } = req.body;
 
     if (!username || !email || !password) {
-      throw httpError(400, "All fields are required");
+      throw httpError(400, "Completá todos los campos");
     }
 
     // Username único ignorando mayúsculas/minúsculas: "Blackwatch" se guarda
@@ -99,7 +99,7 @@ router.post(
     // acá con la búsqueda case-insensitive. (El email ya es único por estar
     // normalizado a lowercase en el schema.)
     if (await User.findByUsernameCI(username)) {
-      throw httpError(400, "Username already in use");
+      throw httpError(400, "Ese nombre de usuario ya está en uso");
     }
 
     const code = generateCode();
@@ -175,16 +175,16 @@ router.post(
     const loginId = (identifier ?? email ?? "").trim();
 
     if (!loginId || !password) {
-      throw httpError(400, "Email or username and password are required");
+      throw httpError(400, "Ingresá tu email o usuario y la contraseña");
     }
 
     const user = await User.findOne({
       $or: [{ email: loginId.toLowerCase() }, { username: loginId }],
     });
-    if (!user) throw httpError(401, "Invalid credentials");
+    if (!user) throw httpError(401, "Usuario o contraseña incorrectos");
 
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) throw httpError(401, "Invalid credentials");
+    if (!isMatch) throw httpError(401, "Usuario o contraseña incorrectos");
 
     // Email not verified + banned son control flow, NO errores — necesitamos
     // mandar fields extra (code, email, message). El errorHandler solo
@@ -610,7 +610,7 @@ router.put(
       avatarColor,
     } = req.body;
     const user = await User.findById(req.user._id);
-    if (!user) throw httpError(404, "User not found");
+    if (!user) throw httpError(404, "Usuario no encontrado");
 
     if (displayName !== undefined) user.displayName = displayName;
     // Color de avatar (sólo aplica cuando no hay foto). "" lo limpia; un token
@@ -673,7 +673,7 @@ router.put(
   asyncHandler(async (req, res) => {
     if (!req.file) throw httpError(400, "Imagen requerida");
     const user = await User.findById(req.user._id);
-    if (!user) throw httpError(404, "User not found");
+    if (!user) throw httpError(404, "Usuario no encontrado");
 
     const result = await uploadToCloudinary(req.file.buffer, {
       folder: `turnocero/users/${user._id}`,
@@ -704,7 +704,7 @@ router.delete(
   protect,
   asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id);
-    if (!user) throw httpError(404, "User not found");
+    if (!user) throw httpError(404, "Usuario no encontrado");
     if (user.avatar?.publicId) {
       await cloudinary.uploader.destroy(user.avatar.publicId).catch(() => {});
     }
