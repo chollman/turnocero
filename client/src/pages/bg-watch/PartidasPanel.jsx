@@ -7,6 +7,7 @@ import PlayCardSkeleton from "./PlayCardSkeleton";
 import GameCardSkeleton from "./GameCardSkeleton";
 import Pagination from "./Pagination";
 import useBggUserMap from "./useBggUserMap";
+import { formatTimeAgo } from "../../utils/time";
 import styles from "./BgWatchProfile.module.css";
 
 const PLAYS_PAGE_SIZE = 10;
@@ -269,19 +270,26 @@ export default function PartidasPanel({
           </button>
         </div>
         {canRefresh && (
-          <button
-            type="button"
-            className={styles.refreshBtn}
-            onClick={() => {
-              if (loading || inCooldown) return;
-              forceRefreshRef.current = true;
-              setRefreshTick((t) => t + 1);
-            }}
-            disabled={loading || inCooldown}
-            aria-label="Actualizar partidas"
-          >
-            ↻ {inCooldown ? `Esperá ${cooldownRemaining}s` : "Actualizar"}
-          </button>
+          <>
+            {plays?.sync?.lastProbedAt && (
+              <span className={styles.lastSynced}>
+                Actualizado {formatTimeAgo(plays.sync.lastProbedAt)}
+              </span>
+            )}
+            <button
+              type="button"
+              className={styles.refreshBtn}
+              onClick={() => {
+                if (loading || inCooldown) return;
+                forceRefreshRef.current = true;
+                setRefreshTick((t) => t + 1);
+              }}
+              disabled={loading || inCooldown}
+              aria-label="Actualizar partidas"
+            >
+              ↻ {inCooldown ? `Esperá ${cooldownRemaining}s` : "Actualizar"}
+            </button>
+          </>
         )}
       </div>
 

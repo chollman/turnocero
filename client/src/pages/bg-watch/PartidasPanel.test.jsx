@@ -336,6 +336,52 @@ describe("<PartidasPanel>", () => {
     });
   });
 
+  it('renders the "Actualizado hace …" label from sync.lastProbedAt when canRefresh', async () => {
+    server.use(
+      http.get("/api/bgg/partidas/:bggUsername", () =>
+        HttpResponse.json({
+          plays: [],
+          page: 1,
+          total: 0,
+          totalPages: 1,
+          sync: {
+            lastProbedAt: new Date(
+              Date.now() - 2 * 60 * 60 * 1000,
+            ).toISOString(),
+          },
+        }),
+      ),
+    );
+    renderPanel();
+    expect(await screen.findByText(/actualizado hace/i)).toBeInTheDocument();
+  });
+
+  it("hides the freshness label when canRefresh=false", async () => {
+    server.use(
+      http.get("/api/bgg/partidas/:bggUsername", () =>
+        HttpResponse.json({
+          plays: [],
+          page: 1,
+          total: 0,
+          totalPages: 1,
+          sync: {
+            lastProbedAt: new Date(
+              Date.now() - 2 * 60 * 60 * 1000,
+            ).toISOString(),
+          },
+        }),
+      ),
+    );
+    renderPanel({ canRefresh: false });
+    // Wait for the load to settle (empty state renders), then assert no label.
+    await waitFor(() => {
+      expect(
+        screen.getByText(/no tiene partidas registradas en bgg/i),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/actualizado hace/i)).toBeNull();
+  });
+
   it("reads the X-Refresh-Cooldown-Ms response header to drive the countdown", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
