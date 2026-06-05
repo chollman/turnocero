@@ -6,6 +6,7 @@ describe("STORAGE_KEYS", () => {
     expect(STORAGE_KEYS.TOKEN).toBe("token");
     expect(STORAGE_KEYS.VIEW_AS_USER).toBe("viewAsUser");
     expect(STORAGE_KEYS.THEME).toBe("turnocero_theme");
+    expect(STORAGE_KEYS.SIDEBAR_COLLAPSED).toBe("turnocero_sidebar_collapsed");
     expect(STORAGE_KEYS.BANNED_MESSAGE).toBe("bannedMessage");
     expect(STORAGE_KEYS.FLASH_MESSAGE).toBe("flashMessage");
     expect(STORAGE_KEYS.PENDING_VERIFY_EMAIL).toBe(

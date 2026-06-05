@@ -9,6 +9,7 @@ export const STORAGE_KEYS = Object.freeze({
   TOKEN: "token",
   VIEW_AS_USER: "viewAsUser",
   THEME: "turnocero_theme",
+  SIDEBAR_COLLAPSED: "turnocero_sidebar_collapsed",
   // sessionStorage
   BANNED_MESSAGE: "bannedMessage",
   FLASH_MESSAGE: "flashMessage",
