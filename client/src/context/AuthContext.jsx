@@ -131,8 +131,10 @@ export const AuthProvider = ({ children }) => {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (email, password) => {
-    const { data } = await axios.post(API.auth.LOGIN, { email, password });
+  // `identifier` puede ser el email o el username del usuario — el server
+  // resuelve cualquiera de los dos (ver POST /api/auth/login).
+  const login = async (identifier, password) => {
+    const { data } = await axios.post(API.auth.LOGIN, { identifier, password });
     local.set(STORAGE_KEYS.TOKEN, data.token);
     setAuthHeader(data.token);
     setRealUser(data.user);

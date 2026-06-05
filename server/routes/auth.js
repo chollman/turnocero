@@ -154,22 +154,28 @@ router.post(
   }),
 );
 
-// POST /api/auth/login — public, rate-limited
+// POST /api/auth/login — public, rate-limited.
+// Acepta `identifier` (email O username) — el campo `email` se mantiene como
+// alias por compatibilidad. La búsqueda matchea email (guardado lowercase) o
+// username (case-preservado, match exacto) con un $or.
 router.post(
   "/login",
   authLimiter,
   asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+    const { identifier, email, password } = req.body;
+    const loginId = (identifier ?? email ?? "").trim();
 
-    if (!email || !password) {
-      throw httpError(400, "Email and password are required");
+    if (!loginId || !password) {
+      throw httpError(400, "Email or username and password are required");
     }
 
-    const user = await User.findOne({ email });
-    if (!user) throw httpError(401, "Invalid email or password");
+    const user = await User.findOne({
+      $or: [{ email: loginId.toLowerCase() }, { username: loginId }],
+    });
+    if (!user) throw httpError(401, "Invalid credentials");
 
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) throw httpError(401, "Invalid email or password");
+    if (!isMatch) throw httpError(401, "Invalid credentials");
 
     // Email not verified + banned son control flow, NO errores — necesitamos
     // mandar fields extra (code, email, message). El errorHandler solo
