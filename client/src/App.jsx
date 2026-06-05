@@ -636,6 +636,10 @@ function AppShell() {
   // chrome (en AppRoutes), así ambos siguen la misma `displayLocation`.
   const transition = usePageTransition();
   useVisualViewportVars();
+  // El FAB "Bancanos" y el AdminViewToggle comparten el spot bottom-left. El
+  // FAB reporta acá si está visible para que el toggle suba (stacked) mientras
+  // el FAB ocupa el spot y baje cuando se esconde (timer o ruta /colabora).
+  const [bancanosVisible, setBancanosVisible] = useState(false);
 
   // El health-check de boot (GET /api/site-config) detectó que el backend no
   // responde → tomamos toda la pantalla con el 500 ("se nos volcó el tablero").
@@ -664,8 +668,8 @@ function AppShell() {
       <ToastContainer />
       <ChatWindowManager />
       <ChatLauncher />
-      <ColaborarFab />
-      <AdminViewToggle />
+      <ColaborarFab onVisibilityChange={setBancanosVisible} />
+      <AdminViewToggle bancanosVisible={bancanosVisible} />
       <ViewAsUserBanner />
     </>
   );

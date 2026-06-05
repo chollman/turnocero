@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useSectionEnabled } from "../../hooks/useSectionEnabled";
 import styles from "./ColaborarFab.module.css";
@@ -18,9 +19,38 @@ const HeartIcon = () => (
   </svg>
 );
 
-export default function ColaborarFab() {
+export default function ColaborarFab({ onVisibilityChange }) {
   const isSectionEnabled = useSectionEnabled();
   const { pathname } = useLocation();
+  // El slide-in entra a 1s + 0.55s de animación; tras ~10s visibles el FAB se
+  // vuelve a esconder deslizándose fuera de pantalla. Se monta una sola vez en
+  // AppShell.
+  const [hidden, setHidden] = useState(false);
+  // `hiddenSettled` va atrás de `hidden` por la duración del slide-out, así el
+  // AdminViewToggle espera a que el FAB termine de salir antes de bajar.
+  const [hiddenSettled, setHiddenSettled] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setHidden(true), 11500);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!hidden) return undefined;
+    // Coincide con la animación slideOutLeft (0.45s) de ColaborarFab.module.css.
+    const t = setTimeout(() => setHiddenSettled(true), 450);
+    return () => clearTimeout(t);
+  }, [hidden]);
+
+  // Reportamos hacia arriba si el FAB sigue ocupando el spot bottom-left. En la
+  // ruta /colabora o sin sección baja inmediato (no hay animación); al esconderse
+  // por el timer esperamos a que termine el slide-out (hiddenSettled).
+  const visible =
+    isSectionEnabled("colabora") && pathname !== "/colabora" && !hiddenSettled;
+
+  useEffect(() => {
+    onVisibilityChange?.(visible);
+  }, [visible, onVisibilityChange]);
 
   if (!isSectionEnabled("colabora")) return null;
   if (pathname === "/colabora") return null;
@@ -28,8 +58,10 @@ export default function ColaborarFab() {
   return (
     <Link
       to="/colabora"
-      className={styles.fab}
+      className={`${styles.fab} ${hidden ? styles.hidden : ""}`}
       aria-label="Colaborar con TurnoCero"
+      aria-hidden={hidden || undefined}
+      tabIndex={hidden ? -1 : undefined}
     >
       <HeartIcon />
       <span>Bancanos</span>

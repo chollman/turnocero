@@ -30,6 +30,13 @@
   left: 16px;
 }
 
+/* Tras 10s visible, vuelve a deslizarse fuera de pantalla. `forwards` mantiene
+   el estado final (oculto) y `pointer-events: none` lo saca de interacción. */
+.fab.hidden {
+  animation: slideOutLeft 0.45s cubic-bezier(0.55, 0, 0.55, 0.2) forwards;
+  pointer-events: none;
+}
+
 .fab:hover {
   background: var(--amber-light);
   color: var(--on-amber);
@@ -56,6 +63,13 @@
   }
 }
 
+@keyframes slideOutLeft {
+  to {
+    transform: translateX(-150%);
+    opacity: 0;
+  }
+}
+
 @media (min-width: 960px) {
   .fab {
     bottom: 20px;
@@ -66,5 +80,11 @@
 @media (prefers-reduced-motion: reduce) {
   .fab {
     animation: none;
+  }
+  /* Sin animación de salida: se oculta directamente. */
+  .fab.hidden {
+    animation: none;
+    opacity: 0;
+    pointer-events: none;
   }
 }

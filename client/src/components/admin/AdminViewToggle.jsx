@@ -1,17 +1,16 @@
 import { useAuth } from "../../context/AuthContext";
-import { useSiteConfig } from "../../context/SiteConfigContext";
 import styles from "./AdminViewToggle.module.css";
 
-export default function AdminViewToggle() {
+export default function AdminViewToggle({ bancanosVisible = false }) {
   const { isActuallyAdmin, viewAsUser, setViewAsUser } = useAuth();
-  const { isSectionEnabled } = useSiteConfig();
 
   if (!isActuallyAdmin) return null;
 
   const label = viewAsUser ? "Volver a vista admin" : "Ver como usuario";
-  // El FAB "Bancanos" comparte spot bottom-left. Si está visible, subimos
-  // este toggle para que no se monten uno sobre otro.
-  const stacked = isSectionEnabled("colabora");
+  // El FAB "Bancanos" comparte spot bottom-left. Mientras está visible subimos
+  // este toggle para que no se monten uno sobre otro; cuando el FAB se esconde
+  // (timer o ruta /colabora) baja de nuevo al spot inferior.
+  const stacked = bancanosVisible;
 
   return (
     <button
