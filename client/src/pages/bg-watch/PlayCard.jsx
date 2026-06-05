@@ -49,6 +49,15 @@ function PlayerChip({ player, turnoceroUser }) {
           🏆
         </span>
       )}
+      {player.new && (
+        <span
+          className={styles.newIcon}
+          aria-label="Nuevo"
+          title="Primera vez que lo jugó"
+        >
+          ✨
+        </span>
+      )}
       {turnoceroUser && <Avatar user={turnoceroUser} size="xs" />}
       <span className={styles.playerName}>{name}</span>
       {hasDisplayableScore(player.score) && (

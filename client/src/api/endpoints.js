@@ -47,10 +47,18 @@ export const API = {
     COLECCION: (bggUsername) => `/api/bgg/coleccion/${enc(bggUsername)}`,
     PARTIDAS: (bggUsername) => `/api/bgg/partidas/${enc(bggUsername)}`,
     PARTIDA_DETAIL: (playId) => `/api/bgg/partidas/${enc(playId)}`,
+    PARTIDA: (bggUsername, playId) =>
+      `/api/bgg/partida/${enc(bggUsername)}/${enc(playId)}`,
     PARTIDAS_LIST: "/api/bgg/partidas",
     JUEGOS_JUGADOS: (bggUsername) =>
       `/api/bgg/juegos-jugados/${enc(bggUsername)}`,
     MIS_JUEGOS: (bggUsername) => `/api/bgg/mis-juegos/${enc(bggUsername)}`,
+    MIS_UBICACIONES: (bggUsername) =>
+      `/api/bgg/mis-ubicaciones/${enc(bggUsername)}`,
+    MIS_JUGADORES: (bggUsername) =>
+      `/api/bgg/mis-jugadores/${enc(bggUsername)}`,
+    JUGADO: (bggUsername, gameId) =>
+      `/api/bgg/jugado/${enc(bggUsername)}/${enc(gameId)}`,
     SYNC: "/api/bgg/sync",
     OG: (bggUsername) => `/api/bgg/og/${enc(bggUsername)}`,
   },
@@ -175,7 +183,8 @@ export const API = {
     DETAIL: (slug) => `/api/comunidades/${enc(slug)}`,
     JOIN: (slug) => `/api/comunidades/${enc(slug)}/join`,
     LEAVE: (slug) => `/api/comunidades/${enc(slug)}/leave`,
-    REASSIGN_TO_BASE: (slug) => `/api/comunidades/${enc(slug)}/reasignar-a-base`,
+    REASSIGN_TO_BASE: (slug) =>
+      `/api/comunidades/${enc(slug)}/reasignar-a-base`,
     SKIN: (slug) => `/api/comunidades/${enc(slug)}/skin`,
     LOGO: (slug) => `/api/comunidades/${enc(slug)}/logo`,
     SOLICITUDES: (slug) => `/api/comunidades/${enc(slug)}/solicitudes`,
@@ -229,6 +238,7 @@ export const API = {
     LIST: "/api/users",
     DETAIL: (id) => `/api/users/${enc(id)}`,
     BY_BGG_USERNAMES: "/api/users/by-bgg-usernames",
+    JUGADORES: "/api/users/jugadores",
   },
 
   // ── Admin DB explorer + user moderation ─────────────────────────────

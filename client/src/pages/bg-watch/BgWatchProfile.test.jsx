@@ -22,7 +22,6 @@ vi.mock("./ColeccionPanel", () => ({
   ),
 }));
 vi.mock("./PlayDetailModal", () => ({ default: () => null }));
-vi.mock("./CreatePlayModal", () => ({ default: () => null }));
 vi.mock("./BgWatchGuestCTAs", () => ({
   GuestBanner: () => null,
   GuestInlineCTA: () => null,

@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import BggGameSearch from "../../components/shared/BggGameSearch";
-import useDebouncedValue from "../../hooks/useDebouncedValue";
+import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
+import SearchRowSkeleton from "./SearchRowSkeleton";
 import styles from "./BgWatchProfile.module.css";
 
 function metaLine(g) {
@@ -37,7 +38,9 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
   const [q, setQ] = useState("");
   const [bggMode, setBggMode] = useState(!bggUsername);
 
-  const debouncedQ = useDebouncedValue(q, 300);
+  // Debounce + umbral mínimo de 3 caracteres (como el buscador de juegos de
+  // BGG): con 1-2 letras no refetchea, sigue mostrando la lista por defecto.
+  const searchTerm = useSearchTerm(q);
   const listRef = useRef(null);
   const abortRef = useRef(null);
   const reqIdRef = useRef(0);
@@ -55,10 +58,9 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
       if (append) setLoadingMore(true);
       else setLoading(true);
       setError(false);
-      const term = debouncedQ.trim();
       axios
         .get(API.bgg.MIS_JUEGOS(bggUsername), {
-          params: { page: pageToLoad, q: term || undefined },
+          params: { page: pageToLoad, q: searchTerm || undefined },
           signal: ac.signal,
         })
         .then(({ data }) => {
@@ -79,7 +81,7 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
           setLoadingMore(false);
         });
     },
-    [bggUsername, debouncedQ],
+    [bggUsername, searchTerm],
   );
 
   // Reset + primera página cuando cambia el usuario o el término de búsqueda.
@@ -92,7 +94,7 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
     setPage(1);
     setPages(1);
     fetchPage(1, false);
-  }, [bggUsername, debouncedQ, fetchPage]);
+  }, [bggUsername, searchTerm, fetchPage]);
 
   const onLoadMore = useCallback(() => {
     fetchPage(page + 1, true);
@@ -133,9 +135,7 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
         aria-label="Filtrar mis juegos"
       />
 
-      {loading && items.length === 0 && (
-        <p className={styles.dimText}>Cargando tus juegos…</p>
-      )}
+      {loading && items.length === 0 && <SearchRowSkeleton rows={4} />}
 
       {isEmpty && (
         <p className={styles.dimText}>

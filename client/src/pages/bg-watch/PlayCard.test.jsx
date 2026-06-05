@@ -115,6 +115,24 @@ describe("<PlayCard>", () => {
     expect(trophies).toHaveLength(1);
   });
 
+  it("renders the 'Nuevo' indicator for players who played it for the first time", () => {
+    renderCard({
+      play: {
+        players: [
+          {
+            name: "Alice",
+            username: "alice",
+            win: true,
+            new: true,
+            position: 1,
+          },
+          { name: "Bob", username: "bob", win: false, new: false, position: 2 },
+        ],
+      },
+    });
+    expect(screen.getAllByLabelText("Nuevo")).toHaveLength(1);
+  });
+
   it("renders location, duration tags", () => {
     renderCard();
     expect(screen.getByText(/Buenos Aires/)).toBeInTheDocument();

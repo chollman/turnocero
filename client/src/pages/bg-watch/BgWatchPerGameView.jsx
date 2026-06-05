@@ -7,7 +7,6 @@ import { API } from "../../api/endpoints";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import PlayCard from "./PlayCard";
 import PlayDetailModal from "./PlayDetailModal";
-import CreatePlayModal from "./CreatePlayModal";
 import Pagination from "./Pagination";
 import useBggUserMap from "./useBggUserMap";
 import { GuestBanner, GuestFooter } from "./BgWatchGuestCTAs";
@@ -48,8 +47,6 @@ export default function BgWatchPerGameView() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [openPlay, setOpenPlay] = useState(null);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editingPlay, setEditingPlay] = useState(null);
   const [deletingPlay, setDeletingPlay] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -209,7 +206,8 @@ export default function BgWatchPerGameView() {
               className={styles.eyebrow}
               style={{ textDecoration: "none" }}
             >
-              <Meeple />{bggUsername}
+              <Meeple />
+              {bggUsername}
             </Link>
             <h1 className={styles.heroTitle}>
               {game?.name || (gameError ? "Juego no encontrado" : "…")}
@@ -240,7 +238,11 @@ export default function BgWatchPerGameView() {
               <button
                 type="button"
                 className={styles.newPlayBtn}
-                onClick={() => setCreateOpen(true)}
+                onClick={() =>
+                  navigate(
+                    `/bg-watch/${bggUsername}/partidas/nueva?juego=${gameId}`,
+                  )
+                }
               >
                 + Nueva partida de este juego
               </button>
@@ -320,7 +322,15 @@ export default function BgWatchPerGameView() {
                 play={play}
                 userMap={userMap}
                 onClick={() => setOpenPlay(play)}
-                onEdit={canCreate ? () => setEditingPlay(play) : undefined}
+                onEdit={
+                  canCreate
+                    ? () =>
+                        navigate(
+                          `/bg-watch/${bggUsername}/partidas/${play.id}/editar`,
+                          { state: { play } },
+                        )
+                    : undefined
+                }
                 onDelete={canCreate ? () => setDeletingPlay(play) : undefined}
               />
             ))}
@@ -340,33 +350,6 @@ export default function BgWatchPerGameView() {
           play={openPlay}
           userMap={userMap}
           onClose={() => setOpenPlay(null)}
-        />
-      )}
-
-      {createOpen && (
-        <CreatePlayModal
-          user={user}
-          preselectedGame={
-            game
-              ? {
-                  id: game.id,
-                  name: game.name,
-                  thumbnail: game.thumbnail,
-                  year: game.year,
-                }
-              : null
-          }
-          onClose={() => setCreateOpen(false)}
-          onCreated={() => setRefreshKey((k) => k + 1)}
-        />
-      )}
-
-      {editingPlay && (
-        <CreatePlayModal
-          user={user}
-          editPlay={editingPlay}
-          onClose={() => setEditingPlay(null)}
-          onCreated={() => setRefreshKey((k) => k + 1)}
         />
       )}
 

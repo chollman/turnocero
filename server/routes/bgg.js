@@ -30,6 +30,9 @@ const {
   computeGameStats,
   computePlayedGames,
   computeTopPlayedGame,
+  computePlayedLocations,
+  computeGamePlayCount,
+  computePlayedCoPlayers,
 } = require("../services/bgg/bggAggregations");
 const { parsePagination } = require("../utils/paginate");
 const BggUserGame = require("../models/BggUserGame");
@@ -309,6 +312,142 @@ router.get(
       page,
       pages: Math.ceil(total / limit),
     });
+  }),
+);
+
+// GET /api/bgg/mis-ubicaciones/:bggUsername — selector paginado de ubicaciones
+// al cargar partidas. Deriva las ubicaciones distintas de las partidas del
+// usuario (computePlayedLocations) — siempre fresco, sin materializar. Soporta
+// ?page, ?limit y ?q (búsqueda por nombre accent/case-insensitive, substring).
+// Orden: más recientemente usada primero, luego más partidas, luego alfabético.
+router.get(
+  "/mis-ubicaciones/:bggUsername",
+  asyncHandler(async (req, res) => {
+    const { bggUsername } = req.params;
+    const lower = bggUsername.toLowerCase();
+
+    const { page, limit, skip } = parsePagination(req.query, {
+      defaultLimit: 20,
+      maxLimit: 50,
+    });
+
+    let items = await computePlayedLocations(lower);
+
+    const q = (req.query.q || "").trim();
+    if (q) {
+      const needle = normalizeForSearch(q);
+      items = items.filter((it) =>
+        normalizeForSearch(it.name).includes(needle),
+      );
+    }
+
+    items.sort((a, b) => {
+      const da = a.lastPlayedDate || "";
+      const db = b.lastPlayedDate || "";
+      if (da !== db) return db.localeCompare(da); // recencia desc
+      if (a.numPlays !== b.numPlays) return b.numPlays - a.numPlays;
+      return a.name.localeCompare(b.name);
+    });
+
+    const total = items.length;
+    res.json({
+      items: items.slice(skip, skip + limit),
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+    });
+  }),
+);
+
+// GET /api/bgg/mis-jugadores/:bggUsername — selector paginado de compañeros al
+// agregar un jugador. Deriva los compañeros distintos de las partidas del
+// usuario (computePlayedCoPlayers) — siempre fresco. Soporta ?page, ?limit y ?q
+// (busca por nombre o username, accent/case-insensitive). Orden: más reciente
+// primero, luego más partidas juntos, luego alfabético.
+router.get(
+  "/mis-jugadores/:bggUsername",
+  asyncHandler(async (req, res) => {
+    const { bggUsername } = req.params;
+    const lower = bggUsername.toLowerCase();
+
+    const { page, limit, skip } = parsePagination(req.query, {
+      defaultLimit: 20,
+      maxLimit: 50,
+    });
+
+    let items = await computePlayedCoPlayers(lower);
+
+    const q = (req.query.q || "").trim();
+    if (q) {
+      const needle = normalizeForSearch(q);
+      items = items.filter(
+        (it) =>
+          normalizeForSearch(it.name).includes(needle) ||
+          normalizeForSearch(it.username).includes(needle),
+      );
+    }
+
+    items.sort((a, b) => {
+      const da = a.lastPlayedDate || "";
+      const db = b.lastPlayedDate || "";
+      if (da !== db) return db.localeCompare(da); // recencia desc
+      if (a.numPlays !== b.numPlays) return b.numPlays - a.numPlays;
+      return a.name.localeCompare(b.name);
+    });
+
+    const total = items.length;
+    res.json({
+      items: items.slice(skip, skip + limit),
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+    });
+  }),
+);
+
+// GET /api/bgg/partida/:bggUsername/:playId — precarga una partida para editar
+// (singular `partida` para no chocar con `/partidas/:bggUsername`). Solo el
+// dueño (case-insensitive) o un admin. Devuelve la shape que consume el form.
+router.get(
+  "/partida/:bggUsername/:playId",
+  protect,
+  asyncHandler(async (req, res) => {
+    const { bggUsername, playId } = req.params;
+    const lower = bggUsername.toLowerCase();
+    const isOwner =
+      req.user.bggUsername && req.user.bggUsername.toLowerCase() === lower;
+    if (!isOwner && !req.user.isAdmin) {
+      throw httpError(403, "No podés editar partidas de otro usuario");
+    }
+    const play = await BggPlay.findOne({ bggUsername: lower, playId }).lean();
+    if (!play) throw httpError(404, "Partida no encontrada");
+    res.json({
+      id: play.playId,
+      gameId: play.gameId,
+      gameName: play.gameName,
+      gameThumbnail: play.gameThumbnail,
+      date: play.date,
+      duration: play.duration,
+      location: play.location,
+      quantity: play.quantity,
+      comments: play.comments,
+      incomplete: play.incomplete,
+      nowinstats: play.nowinstats,
+      players: play.players || [],
+    });
+  }),
+);
+
+// GET /api/bgg/jugado/:bggUsername/:gameId — ¿el usuario jugó este juego antes?
+// Alimenta la autodetección del flag "Nuevo" al cargar una partida (sugerencia
+// editable para el dueño). Devuelve { played, numPlays } desde BggPlay.
+router.get(
+  "/jugado/:bggUsername/:gameId",
+  asyncHandler(async (req, res) => {
+    const { bggUsername, gameId } = req.params;
+    const lower = bggUsername.toLowerCase();
+    const numPlays = await computeGamePlayCount(lower, gameId);
+    res.json({ played: numPlays > 0, numPlays });
   }),
 );
 

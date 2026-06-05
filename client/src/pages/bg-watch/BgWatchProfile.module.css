@@ -357,8 +357,8 @@
 
 .filterChipActive:hover {
   background: var(--amber-light);
-    box-shadow: 0 4px 22px var(--amber-glow);
-border-color: var(--amber-light);
+  box-shadow: 0 4px 22px var(--amber-glow);
+  border-color: var(--amber-light);
   color: var(--on-amber);
 }
 
@@ -756,6 +756,11 @@ border-color: var(--amber-light);
 }
 
 .winIcon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.newIcon {
   font-size: 11px;
   line-height: 1;
 }
@@ -1369,6 +1374,68 @@ border-color: var(--amber-light);
   text-decoration: underline;
 }
 
+/* LocationPicker — contenedor del combobox (input + dropdown anclado) */
+.locationField {
+  position: relative;
+}
+
+/* LocationPicker — panel que se despliega al cliquear el input */
+.locationDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+}
+
+/* LocationPicker — item de la lista actualmente seleccionado */
+.locationItemActive {
+  border-color: var(--amber);
+  background: var(--amber-10);
+}
+
+/* LocationPicker — botón "Usar «X»" para una ubicación nueva (no en la lista) */
+.locationCreateBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  background: var(--amber-10);
+  border: 1px dashed var(--amber);
+  border-radius: 8px;
+  color: var(--amber);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition);
+}
+
+.locationCreateBtn:hover {
+  background: var(--amber-15);
+}
+
+/* LocationPicker — etiqueta de la ubicación elegida arriba de la lista */
+.locationSelected {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 4px;
+}
+
+.locationSelected strong {
+  color: var(--text-primary);
+}
+
 /* Player edit rows */
 .playerEditList {
   display: flex;
@@ -1408,6 +1475,105 @@ border-color: var(--amber-light);
 .playerEditFields .modalInput {
   flex: 1;
   min-width: 120px;
+}
+
+/* Toggles de jugador (Ganó = trofeo, Nuevo = destellos). Inactivo neutro;
+   activo se rellena con su acento. */
+.iconToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.iconToggle:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+/* Ganó activo — amber */
+.iconToggleActive {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--on-amber);
+}
+
+.iconToggleActive:hover {
+  background: var(--amber-light);
+  border-color: var(--amber-light);
+  color: var(--on-amber);
+}
+
+/* PlayerPicker — fila de búsqueda (input + cancelar) */
+.playerPickerHead {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.playerPickerHead .modalInput {
+  flex: 1;
+}
+
+.playerPickerCancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.playerPickerCancel:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* @usuario BGG junto al nombre de un compañero en el selector */
+.coPlayerHandle {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Tags en items de usuarios de TurnoCero */
+.playerTagFriend,
+.playerTagNoBgg {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+.playerTagFriend {
+  background: var(--green-15);
+  color: var(--green);
+}
+
+.playerTagNoBgg {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
 }
 
 .playerEditRemove {

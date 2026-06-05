@@ -77,6 +77,13 @@ describe("<MyGamesPicker>", () => {
     expect(screen.getByText(/5 partidas/i)).toBeInTheDocument();
   });
 
+  it("muestra el skeleton mientras carga y lo oculta al llegar los datos", async () => {
+    render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
+    expect(screen.getByTestId("search-skeleton")).toBeInTheDocument();
+    await screen.findByText("Catán");
+    expect(screen.queryByTestId("search-skeleton")).toBeNull();
+  });
+
   it("'Ver más' trae la página 2 y la appendea", async () => {
     render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
     await screen.findByText("Catán");
@@ -97,6 +104,31 @@ describe("<MyGamesPicker>", () => {
       expect(screen.queryByText("Catán")).toBeNull();
     });
     expect(screen.getByText("Azul")).toBeInTheDocument();
+  });
+
+  it("no busca con menos de 3 caracteres; sí al llegar a 3", async () => {
+    let calls = 0;
+    let lastQ;
+    server.use(
+      http.get("/api/bgg/mis-juegos/:user", (ctx) => {
+        calls += 1;
+        lastQ = new URL(ctx.request.url).searchParams.get("q");
+        return misJuegosHandler(ctx);
+      }),
+    );
+    render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
+    await screen.findByText("Catán"); // carga inicial → 1 request
+    fireEvent.change(screen.getByPlaceholderText(/filtrá tus juegos/i), {
+      target: { value: "ca" },
+    });
+    await new Promise((r) => setTimeout(r, 400)); // pasa el debounce
+    expect(calls).toBe(1); // 2 chars → NO refetchea
+    expect(lastQ).toBeNull();
+    fireEvent.change(screen.getByPlaceholderText(/filtrá tus juegos/i), {
+      target: { value: "cat" },
+    });
+    await waitFor(() => expect(calls).toBe(2)); // 3 chars → busca
+    expect(lastQ).toBe("cat");
   });
 
   it("llama onPick con la shape normalizada al clickear un juego", async () => {
