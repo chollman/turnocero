@@ -306,6 +306,77 @@
   cursor: pointer;
 }
 
+/* -- Score con atajos +/- -- */
+.scoreCell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 130px;
+}
+
+.scoreStep {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    border-color var(--transition),
+    color var(--transition),
+    background var(--transition);
+}
+.scoreStep:hover {
+  border-color: var(--amber);
+  color: var(--amber-light);
+  background: var(--amber-10);
+}
+
+/* -- Acciones de la lista de jugadores -- */
+.playerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.sortByScoreBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition:
+    border-color var(--transition),
+    color var(--transition);
+}
+.sortByScoreBtn:hover {
+  border-color: var(--amber);
+  color: var(--amber-light);
+}
+
+/* -- Error de validación inline (ej. fecha futura) -- */
+.fieldError {
+  display: block;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--red);
+}
+
 /* -- Footer -- */
 .footer {
   display: flex;

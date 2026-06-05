@@ -215,4 +215,75 @@ describe("<PlayForm>", () => {
     });
     expect(screen.getByText("Algo falló")).toBeInTheDocument();
   });
+
+  it("deriva la posición del puntaje (mayor score = 1°)", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    // Agregar a Bob como 2º jugador.
+    fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
+    fireEvent.click((await screen.findByText("Bob")).closest("button"));
+    const scores = screen.getAllByPlaceholderText("Score");
+    fireEvent.change(scores[0], { target: { value: "5" } }); // Me (fila 0)
+    fireEvent.change(scores[1], { target: { value: "10" } }); // Bob (fila 1)
+    fireEvent.click(screen.getByRole("button", { name: /guardar en bgg/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const { players } = onSubmit.mock.calls[0][0];
+    expect(players.find((p) => p.name === "Bob").position).toBe(1);
+    expect(players.find((p) => p.name === "Me").position).toBe(2);
+  });
+
+  it("los atajos +/- cambian el puntaje", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    const score = screen.getByPlaceholderText("Score");
+    expect(score.value).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: /subir puntaje/i }));
+    expect(score.value).toBe("1");
+    fireEvent.click(screen.getByRole("button", { name: /subir puntaje/i }));
+    expect(score.value).toBe("2");
+    fireEvent.click(screen.getByRole("button", { name: /bajar puntaje/i }));
+    expect(score.value).toBe("1");
+  });
+
+  it("'Ordenar por puntaje' aparece con scores y reordena por score desc", async () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
+    fireEvent.click((await screen.findByText("Bob")).closest("button"));
+    // Sin scores el botón no se muestra.
+    expect(
+      screen.queryByRole("button", { name: /ordenar por puntaje/i }),
+    ).toBeNull();
+    const scores = screen.getAllByPlaceholderText("Score");
+    fireEvent.change(scores[0], { target: { value: "5" } }); // Me
+    fireEvent.change(scores[1], { target: { value: "10" } }); // Bob
+    fireEvent.click(
+      screen.getByRole("button", { name: /ordenar por puntaje/i }),
+    );
+    // Bob (10) pasa a la primera fila.
+    const names = screen.getAllByPlaceholderText("Nombre");
+    expect(names[0].value).toBe("Bob");
+    expect(names[1].value).toBe("Me");
+  });
+
+  it("una fecha futura muestra error y deshabilita el submit", () => {
+    const { container } = renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    const submit = screen.getByRole("button", { name: /guardar en bgg/i });
+    expect(submit).not.toBeDisabled();
+    const dateInput = container.querySelector('input[type="date"]');
+    fireEvent.change(dateInput, { target: { value: "2099-12-31" } });
+    expect(screen.getByText(/no puede ser futura/i)).toBeInTheDocument();
+    expect(submit).toBeDisabled();
+  });
 });

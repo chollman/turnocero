@@ -27,6 +27,15 @@ Estas son las mejoras que quedaron sugeridas para encarar después.
       que conserva jugadores + ubicación + fecha y remonta el form al guardar
       (solo al crear). Hecho en `PlayForm` (`keepGoing`/`onKeepGoingChange`) +
       `CreatePlay` (`carry` + `formKey`).
+- [x] **3. Score / posiciones más ricos** — helper puro
+      [`playerPositions.js`](../client/src/pages/bg-watch/playerPositions.js)
+      (`computePlayerPositions` con competition ranking 1,2,2,4 +
+      `sortPlayersByScoreDesc`); el badge de posición y el payload se derivan del
+      score, atajos +/- por fila y botón "Ordenar por puntaje". +12 unit +4 form.
+- [x] **5a. Fecha no futura** — `max` en el datepicker + validación en JS
+      (`dateInvalid`) que gatea el submit y muestra error inline. La parte 5b
+      (duración sugerida) sigue pendiente — necesita exponer `avgDuration` al
+      cliente (no hay endpoint hoy).
 
 ## Pendientes
 
@@ -36,12 +45,7 @@ Precargar automáticamente jugadores + ubicación de la partida más reciente de
 usuario (un botón "Usar última junta" o prefill al abrir el form). Fuente: la
 última `BggPlay` por fecha; reusa el roster (nombre + @BGG) y `location`.
 
-### 3. Score / posiciones más ricos
-
-- Autocalcular la posición a partir del score (mayor score = 1°; empates
-  comparten posición), como ya hace el server para partidas de grupos.
-- Ordenar visualmente los jugadores por score.
-- Atajos +/- para cargar el puntaje más rápido.
+### 3. Score / posiciones más ricos — ✅ HECHO (ver Estado)
 
 ### 4. Borrador local (localStorage)
 
@@ -51,10 +55,12 @@ volver. Limpiar al guardar/cancelar.
 
 ### 5. Validación de fecha + duración sugerida
 
-- No permitir fecha futura.
-- Sugerir la duración a partir del promedio histórico del juego
-  (`computeGameStats(...).avgDuration` ya existe en
-  [bggAggregations.js](../server/services/bgg/bggAggregations.js)).
+- ~~No permitir fecha futura.~~ ✅ HECHO (ver Estado).
+- **Pendiente (5b):** Sugerir la duración a partir del promedio histórico del
+  juego (`computeGameStats(...).avgDuration` ya existe en
+  [bggAggregations.js](../server/services/bgg/bggAggregations.js), pero falta un
+  endpoint que lo exponga al cliente — el `JUGADO` actual solo devuelve
+  `{ played, numPlays }`).
 
 ### 6. Deep-link de carga desde otras vistas
 
