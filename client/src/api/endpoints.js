@@ -61,6 +61,18 @@ export const API = {
       `/api/bgg/jugado/${enc(bggUsername)}/${enc(gameId)}`,
     SYNC: "/api/bgg/sync",
     OG: (bggUsername) => `/api/bgg/og/${enc(bggUsername)}`,
+    // ── Hub de comunidad (cross-user) ──────────────────────────────────
+    COMUNIDAD_JUEGOS: "/api/bgg/comunidad/juegos",
+    COMUNIDAD_JUEGO: (gameId) => `/api/bgg/comunidad/juego/${enc(gameId)}`,
+    COMUNIDAD_JUGADORES: "/api/bgg/comunidad/jugadores",
+    COMUNIDAD_COMPANEROS: (bggUsername) =>
+      `/api/bgg/comunidad/companeros/${enc(bggUsername)}`,
+    COMUNIDAD_H2H: (userA, userB) =>
+      `/api/bgg/comunidad/h2h/${enc(userA)}/${enc(userB)}`,
+    COMUNIDAD_ACTIVIDAD: "/api/bgg/comunidad/actividad",
+    COMUNIDAD_HEATMAP: "/api/bgg/comunidad/heatmap",
+    COMUNIDAD_RANK: (bggUsername, gameId) =>
+      `/api/bgg/comunidad/rank/${enc(bggUsername)}/${enc(gameId)}`,
   },
 
   // ── Tables ───────────────────────────────────────────────────────────

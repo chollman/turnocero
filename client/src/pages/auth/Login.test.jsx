@@ -39,7 +39,10 @@ describe("<Login>", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("button", { name: /entrar/i })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("tu@email.com")).toBeInTheDocument();
+    // El campo de login acepta usuario o email (login by username or email).
+    expect(
+      screen.getByPlaceholderText("usuario o tu@email.com"),
+    ).toBeInTheDocument();
     // The "Crear cuenta" toggle tab points to /register.
     const registerTab = screen
       .getAllByRole("tab")

@@ -1,6 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { useCallback, useState } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
@@ -9,6 +9,7 @@ import PartidasPanel from "./PartidasPanel";
 import ColeccionPanel from "./ColeccionPanel";
 import PlayDetailModal from "./PlayDetailModal";
 import StatsBar from "./StatsBar";
+import ComunidadCompaneros from "./ComunidadCompaneros";
 import useBggUserMap from "./useBggUserMap";
 import { GuestBanner, GuestInlineCTA, GuestFooter } from "./BgWatchGuestCTAs";
 import styles from "./BgWatchProfile.module.css";
@@ -91,14 +92,19 @@ export default function BgWatchProfile() {
             BG WATCH
           </div>
           <h1 className={styles.heroTitle}>{bggUsername}</h1>
-          <a
-            href={`https://boardgamegeek.com/user/${bggUsername}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.bggLink}
-          >
-            Ver en BoardGameGeek ↗
-          </a>
+          <div className={styles.heroLinks}>
+            <a
+              href={`https://boardgamegeek.com/user/${bggUsername}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.bggLink}
+            >
+              Ver en BoardGameGeek ↗
+            </a>
+            <Link to="/bg-watch/comunidad" className={styles.bggLink}>
+              Ver la comunidad →
+            </Link>
+          </div>
           {canCreate && (
             <button
               type="button"
@@ -113,6 +119,8 @@ export default function BgWatchProfile() {
         </div>
 
         <StatsBar collection={collection} playsMeta={playsMeta} />
+
+        <ComunidadCompaneros bggUsername={bggUsername} />
 
         {isGuest && <GuestInlineCTA />}
 

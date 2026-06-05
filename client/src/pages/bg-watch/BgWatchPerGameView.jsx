@@ -9,6 +9,7 @@ import PlayCard from "./PlayCard";
 import PlayDetailModal from "./PlayDetailModal";
 import Pagination from "./Pagination";
 import useBggUserMap from "./useBggUserMap";
+import ComunidadRankBadge from "./ComunidadRankBadge";
 import { GuestBanner, GuestFooter } from "./BgWatchGuestCTAs";
 import styles from "./BgWatchProfile.module.css";
 
@@ -286,6 +287,8 @@ export default function BgWatchPerGameView() {
             </div>
           </div>
         )}
+
+        <ComunidadRankBadge bggUsername={bggUsername} gameId={gameId} />
 
         {loading && (
           <div className={styles.stateCenter}>

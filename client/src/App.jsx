@@ -54,6 +54,9 @@ import CompartidaPost from "./pages/compartidas/CompartidaPost";
 import BgWatchProfile from "./pages/bg-watch/BgWatchProfile";
 import BgWatchPerGameView from "./pages/bg-watch/BgWatchPerGameView";
 import BgWatchLanding from "./pages/bg-watch/BgWatchLanding";
+import BgWatchComunidad from "./pages/bg-watch/BgWatchComunidad";
+import ComunidadJuegoDetail from "./pages/bg-watch/ComunidadJuegoDetail";
+import BgWatchH2H from "./pages/bg-watch/BgWatchH2H";
 import CreatePlay from "./pages/bg-watch/CreatePlay";
 import EditPlay from "./pages/bg-watch/EditPlay";
 import Messages from "./pages/messages/Messages";
@@ -491,6 +494,30 @@ export function AppRoutes({ transition }) {
               element={
                 <SectionGate section="bgwatch">
                   <BgWatchLanding />
+                </SectionGate>
+              }
+            />
+            <Route
+              path="/bg-watch/comunidad"
+              element={
+                <SectionGate section="bgwatch">
+                  <BgWatchComunidad />
+                </SectionGate>
+              }
+            />
+            <Route
+              path="/bg-watch/comunidad/juego/:gameId"
+              element={
+                <SectionGate section="bgwatch">
+                  <ComunidadJuegoDetail />
+                </SectionGate>
+              }
+            />
+            <Route
+              path="/bg-watch/comunidad/h2h/:userA/:userB"
+              element={
+                <SectionGate section="bgwatch">
+                  <BgWatchH2H />
                 </SectionGate>
               }
             />

@@ -73,6 +73,13 @@
   }
 }
 
+.heroLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 4px;
+}
+
 .bggLink {
   font-size: 13px;
   color: var(--amber);
