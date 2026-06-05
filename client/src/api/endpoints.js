@@ -50,6 +50,7 @@ export const API = {
     PARTIDAS_LIST: "/api/bgg/partidas",
     JUEGOS_JUGADOS: (bggUsername) =>
       `/api/bgg/juegos-jugados/${enc(bggUsername)}`,
+    MIS_JUEGOS: (bggUsername) => `/api/bgg/mis-juegos/${enc(bggUsername)}`,
     SYNC: "/api/bgg/sync",
     OG: (bggUsername) => `/api/bgg/og/${enc(bggUsername)}`,
   },

@@ -31,6 +31,7 @@
 
 const BggPlay = require("../../models/BggPlay");
 const BggCollection = require("../../models/BggCollection");
+const BggUserGame = require("../../models/BggUserGame");
 const User = require("../../models/User");
 const logger = require("../../utils/logger");
 const { computePlayHash } = require("../../utils/bggHash");
@@ -66,6 +67,14 @@ async function clearUserCache(bggUsername) {
   await Promise.all([
     BggCollection.deleteOne({ bggUsername: lower }),
     BggPlay.deleteMany({ bggUsername: lower }),
+    // El cache materializado "Mis juegos" deriva de las dos de arriba — wipe +
+    // marca sucia para que se reconstruya de cero en la próxima lectura.
+    BggUserGame.deleteMany({ bggUsername: lower }),
+    User.updateOne(
+      { bggUsername: lower },
+      { $set: { "bggSync.userGamesBuiltAt": null } },
+      { collation: { locale: "en", strength: 2 } },
+    ),
   ]);
 }
 
@@ -334,14 +343,18 @@ async function probe(bggUsername) {
 // case-insensitive via Mongo collation (memory: feedback-bgg-username-case).
 async function stampProbeOutcome(bggUsername, outcome) {
   try {
+    const $set = {
+      "bggSync.lastProbedAt": new Date(),
+      "bggSync.lastProbeOutcome": outcome,
+    };
+    // no_drift no cambió nada; edits_only/reconciled sí → invalidamos el cache
+    // materializado "Mis juegos" para que se reconstruya en la próxima lectura.
+    if (outcome === "edits_only" || outcome === "reconciled") {
+      $set["bggSync.userGamesBuiltAt"] = null;
+    }
     await User.updateOne(
       { bggUsername },
-      {
-        $set: {
-          "bggSync.lastProbedAt": new Date(),
-          "bggSync.lastProbeOutcome": outcome,
-        },
-      },
+      { $set },
       { collation: { locale: "en", strength: 2 } },
     );
   } catch (err) {
@@ -385,6 +398,9 @@ async function stampReconcileResult(bggUsername, result) {
           "bggSync.lastFullSyncCount": result.total,
           "bggSync.lastProbedAt": now,
           "bggSync.lastProbeOutcome": "reconciled",
+          // Un reconcile completo pudo cambiar partidas → invalidar el cache
+          // materializado "Mis juegos".
+          "bggSync.userGamesBuiltAt": null,
         },
       },
       { collation: { locale: "en", strength: 2 } },

@@ -1,6 +1,7 @@
 const request = require("supertest");
 const app = require("../../app");
 const BggPlay = require("../../models/BggPlay");
+const User = require("../../models/User");
 const { createAuthedUser, authHeader } = require("../helpers/auth");
 const bggRouter = require("../../routes/bgg");
 const { encrypt } = require("../../utils/encryption");
@@ -167,6 +168,11 @@ describe("BGG write endpoints — BGG-first verification", () => {
         players: [],
         hash: "x",
       });
+      // "Mis juegos" arranca fresca para verificar que el POST la invalida.
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { "bggSync.userGamesBuiltAt": new Date() } },
+      );
 
       fetchSpy = makeFetchMock({
         login: loginResponse(),
@@ -191,6 +197,10 @@ describe("BGG write endpoints — BGG-first verification", () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.playid).toBe("999");
+
+      // El POST exitoso invalida el cache materializado "Mis juegos".
+      const refreshed = await User.findById(user._id).lean();
+      expect(refreshed.bggSync.userGamesBuiltAt).toBeNull();
       expect(res.body.play).toMatchObject({
         id: "999",
         gameId: "174430",

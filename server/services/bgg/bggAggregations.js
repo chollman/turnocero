@@ -107,6 +107,97 @@ async function computePlayedGames(lowerBggUsername) {
   }));
 }
 
+// Como computePlayedGames pero agrega `lastPlayedDate` (max date) y toma
+// name/thumbnail de la partida MÁS RECIENTE (sort por date asc + $last).
+// Pensada para el selector "Mis juegos" al cargar una partida, que ordena
+// por recencia. NO reemplaza a computePlayedGames (esa alimenta la tab "Por
+// juego" con orden por numPlays — no la tocamos para no cambiar ese orden).
+async function computePlayedGamesWithRecency(lowerBggUsername) {
+  const agg = await BggPlay.aggregate([
+    { $match: { bggUsername: lowerBggUsername, gameId: { $ne: null } } },
+    { $sort: { date: 1 } },
+    {
+      $group: {
+        _id: "$gameId",
+        numPlays: { $sum: { $ifNull: ["$quantity", 1] } },
+        name: { $last: "$gameName" },
+        thumbnail: { $last: "$gameThumbnail" },
+        lastPlayedDate: { $max: "$date" },
+      },
+    },
+  ]);
+  return agg.map((row) => ({
+    id: row._id,
+    name: row.name || null,
+    thumbnail: row.thumbnail || null,
+    numPlays: row.numPlays,
+    lastPlayedDate: row.lastPlayedDate || null,
+  }));
+}
+
+// Une la lista de juegos JUGADOS (de BggPlay, ya con recencia) con la
+// LUDOTECA (colección BGG) en una sola lista per-user para el selector al
+// cargar partidas. Función PURA (sin I/O) → testeable sin Mongo.
+//
+//   - Dedup por gameId (normalizado a String).
+//   - `owned` true si el juego está en la colección.
+//   - `image`/`year` se completan desde la colección (BggPlay no los guarda).
+//   - Orden: lastPlayedDate desc (los nunca-jugados, sin fecha, van al fondo)
+//     → numPlays desc → nombre asc.
+//
+// `played`: salida de computePlayedGamesWithRecency.
+// `collectionGames`: salida de resolveCollection (puede ser []).
+function mergeUserGameList(played = [], collectionGames = []) {
+  const byId = new Map();
+
+  for (const g of played) {
+    const id = String(g.id);
+    byId.set(id, {
+      id,
+      name: g.name || null,
+      thumbnail: g.thumbnail || null,
+      image: null,
+      year: null,
+      numPlays: g.numPlays || 0,
+      lastPlayedDate: g.lastPlayedDate || null,
+      owned: false,
+    });
+  }
+
+  for (const c of collectionGames) {
+    const id = String(c.id);
+    const existing = byId.get(id);
+    if (existing) {
+      existing.owned = true;
+      existing.image = existing.image || c.image || null;
+      existing.thumbnail = existing.thumbnail || c.thumbnail || null;
+      existing.name = existing.name || c.name || null;
+      existing.year = existing.year || c.yearPublished || null;
+    } else {
+      byId.set(id, {
+        id,
+        name: c.name || null,
+        thumbnail: c.thumbnail || null,
+        image: c.image || null,
+        year: c.yearPublished || null,
+        numPlays: 0,
+        lastPlayedDate: null,
+        owned: true,
+      });
+    }
+  }
+
+  return [...byId.values()].sort((a, b) => {
+    const da = a.lastPlayedDate || "";
+    const db = b.lastPlayedDate || "";
+    if (da !== db) return db.localeCompare(da); // recencia desc (YYYY-MM-DD)
+    if ((b.numPlays || 0) !== (a.numPlays || 0)) {
+      return (b.numPlays || 0) - (a.numPlays || 0);
+    }
+    return (a.name || "").localeCompare(b.name || "", "es");
+  });
+}
+
 // El juego más jugado por el usuario. Mismo agg que computePlayedGames
 // pero con $limit: 1 — pensado para la stats card en /bg-watch/:user.
 // Devuelve null si el user no tiene plays con gameId.
@@ -137,5 +228,7 @@ async function computeTopPlayedGame(lowerBggUsername) {
 module.exports = {
   computeGameStats,
   computePlayedGames,
+  computePlayedGamesWithRecency,
+  mergeUserGameList,
   computeTopPlayedGame,
 };

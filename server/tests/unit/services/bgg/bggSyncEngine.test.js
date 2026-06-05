@@ -1,5 +1,6 @@
 const BggPlay = require("../../../../models/BggPlay");
 const BggCollection = require("../../../../models/BggCollection");
+const BggUserGame = require("../../../../models/BggUserGame");
 const BggGame = require("../../../../models/BggGame");
 const User = require("../../../../models/User");
 const {
@@ -207,6 +208,30 @@ describe("clearUserCache", () => {
     expect(await BggPlay.countDocuments({ bggUsername: "claudio" })).toBe(0);
     // No toca data de otros users.
     expect(await BggPlay.countDocuments({ bggUsername: "otro" })).toBe(1);
+  });
+
+  it("borra el cache materializado BggUserGame y marca userGamesBuiltAt null", async () => {
+    await User.create({
+      username: "claudio",
+      displayName: "Claudio",
+      email: "c@example.com",
+      password: "HashedPw123",
+      bggUsername: "claudio",
+      emailVerified: true,
+      bggSync: { userGamesBuiltAt: new Date() },
+    });
+    await BggUserGame.create({
+      bggUsername: "claudio",
+      gameId: "100",
+      name: "Catan",
+      searchName: "catan",
+    });
+
+    await clearUserCache("Claudio");
+
+    expect(await BggUserGame.countDocuments({ bggUsername: "claudio" })).toBe(0);
+    const u = await User.findOne({ bggUsername: "claudio" }).lean();
+    expect(u.bggSync.userGamesBuiltAt).toBeNull();
   });
 
   it("invalida entries L1 (coleccion, og, partidas)", async () => {

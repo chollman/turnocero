@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import ModalPortal from "../../components/shared/ModalPortal";
 import { API } from "../../api/endpoints";
+import MyGamesPicker from "./MyGamesPicker";
 import { hasDisplayableScore } from "./playerScore";
 import styles from "./BgWatchProfile.module.css";
 
@@ -11,91 +12,6 @@ function todayIso() {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-function GameSearch({ onPick }) {
-  const [q, setQ] = useState("");
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const timerRef = useRef(null);
-
-  useEffect(() => {
-    clearTimeout(timerRef.current);
-    if (q.trim().length < 3) {
-      setResults([]);
-      return undefined;
-    }
-    const ac = new AbortController();
-    timerRef.current = setTimeout(() => {
-      setLoading(true);
-      axios
-        .get(API.bgg.SEARCH, { params: { q: q.trim() }, signal: ac.signal })
-        .then(({ data }) => {
-          if (!ac.signal.aborted) setResults(data || []);
-        })
-        .catch((err) => {
-          if (!axios.isCancel(err)) setResults([]);
-        })
-        .finally(() => {
-          if (!ac.signal.aborted) setLoading(false);
-        });
-    }, 350);
-    return () => {
-      clearTimeout(timerRef.current);
-      ac.abort();
-    };
-  }, [q]);
-
-  return (
-    <div className={styles.modalSection}>
-      <input
-        type="text"
-        className={styles.modalInput}
-        placeholder="Buscá un juego en BGG (≥3 caracteres)…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        autoFocus
-      />
-      {loading && <p className={styles.dimText}>Buscando…</p>}
-      {!loading && q.length >= 3 && results.length === 0 && (
-        <p className={styles.dimText}>Sin resultados.</p>
-      )}
-      <ul className={styles.gameSearchList}>
-        {results.map((g) => (
-          <li key={g.id}>
-            <button
-              type="button"
-              className={styles.gameSearchItem}
-              onClick={() =>
-                onPick({
-                  id: g.id,
-                  name: g.name,
-                  thumbnail: g.thumbnail,
-                  year: g.year,
-                })
-              }
-            >
-              {g.thumbnail ? (
-                <img
-                  src={g.thumbnail}
-                  alt={g.name}
-                  className={styles.gameSearchThumb}
-                />
-              ) : (
-                <div className={styles.gameSearchThumbFallback}>🎲</div>
-              )}
-              <div className={styles.gameSearchInfo}>
-                <span className={styles.gameSearchName}>{g.name}</span>
-                {g.year && (
-                  <span className={styles.gameSearchYear}>{g.year}</span>
-                )}
-              </div>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
 
 function StepDetails({ details, setDetails }) {
@@ -477,7 +393,8 @@ export default function CreatePlayModal({
           )}
 
           {step === 1 && (
-            <GameSearch
+            <MyGamesPicker
+              bggUsername={user?.bggUsername}
               onPick={(g) => {
                 setGame(g);
                 setStep(2);
