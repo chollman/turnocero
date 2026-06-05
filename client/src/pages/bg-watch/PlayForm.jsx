@@ -525,7 +525,8 @@ export default function PlayForm({
                 checked={keepGoing}
                 onChange={(e) => onKeepGoingChange(e.target.checked)}
               />
-              Cargar otra partida después de ésta (conserva jugadores y ubicación)
+              Cargar otra partida después de ésta (conserva jugadores y
+              ubicación)
             </label>
           )}
 

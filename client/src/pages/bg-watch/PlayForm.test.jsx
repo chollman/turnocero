@@ -130,7 +130,9 @@ describe("<PlayForm>", () => {
       initialValues: { game: { id: "13", name: "Catán" } },
       onKeepGoingChange: vi.fn(),
     });
-    expect(screen.getByText(/cargar otra partida después/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/cargar otra partida después/i),
+    ).toBeInTheDocument();
   });
 
   it("togglear 'Cargar otra' llama onKeepGoingChange y cambia el CTA", () => {

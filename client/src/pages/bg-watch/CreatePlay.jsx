@@ -82,7 +82,10 @@ export default function CreatePlay() {
         });
         setFormKey((k) => k + 1);
         setSubmitting(false);
-        addToast({ type: "success", message: "Partida cargada. Cargá la próxima." });
+        addToast({
+          type: "success",
+          message: "Partida cargada. Cargá la próxima.",
+        });
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         addToast({ type: "success", message: "Partida cargada en BGG." });
