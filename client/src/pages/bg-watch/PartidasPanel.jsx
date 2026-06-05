@@ -7,7 +7,7 @@ import PlayCardSkeleton from "./PlayCardSkeleton";
 import GameCardSkeleton from "./GameCardSkeleton";
 import Pagination from "./Pagination";
 import useBggUserMap from "./useBggUserMap";
-import { formatTimeAgo } from "../../utils/time";
+import { formatExactDateTime } from "../../utils/time";
 import styles from "./BgWatchProfile.module.css";
 
 const PLAYS_PAGE_SIZE = 10;
@@ -273,7 +273,7 @@ export default function PartidasPanel({
           <>
             {plays?.sync?.lastProbedAt && (
               <span className={styles.lastSynced}>
-                Actualizado {formatTimeAgo(plays.sync.lastProbedAt)}
+                Actualizado {formatExactDateTime(plays.sync.lastProbedAt)}
               </span>
             )}
             <button

@@ -236,4 +236,47 @@ describe("<Sidebar>", () => {
       expect(onClose).toHaveBeenCalled();
     });
   });
+
+  describe("collapse toggle (desktop)", () => {
+    afterEach(() => {
+      localStorage.clear();
+    });
+
+    it("renders a collapse toggle button (expanded by default)", () => {
+      setup();
+      expect(
+        screen.getByRole("button", { name: /contraer barra lateral/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("toggling collapses the sidebar, flips the label, and persists the choice", () => {
+      setup();
+      fireEvent.click(
+        screen.getByRole("button", { name: /contraer barra lateral/i }),
+      );
+      // Label flips to "expand" and the choice is persisted.
+      expect(
+        screen.getByRole("button", { name: /expandir barra lateral/i }),
+      ).toBeInTheDocument();
+      expect(localStorage.getItem("turnocero_sidebar_collapsed")).toBe("true");
+    });
+
+    it("adds tooltips to nav items only while collapsed", () => {
+      setup();
+      const mesas = () => screen.getByRole("link", { name: /^mesas$/i });
+      expect(mesas()).not.toHaveAttribute("title");
+      fireEvent.click(
+        screen.getByRole("button", { name: /contraer barra lateral/i }),
+      );
+      expect(mesas()).toHaveAttribute("title", "Mesas");
+    });
+
+    it("initializes collapsed when persisted as such", () => {
+      localStorage.setItem("turnocero_sidebar_collapsed", "true");
+      setup();
+      expect(
+        screen.getByRole("button", { name: /expandir barra lateral/i }),
+      ).toBeInTheDocument();
+    });
+  });
 });

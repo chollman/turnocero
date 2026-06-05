@@ -51,7 +51,36 @@ describe("POST /api/auth/register", () => {
       password: "Password123",
     });
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/already in use/i);
+    expect(res.body.message).toMatch(/ya están en uso/i);
+  });
+
+  it("rejects a username that differs only in casing from an existing one", async () => {
+    await createUser({ username: "Blackwatch", email: "bw@test.local" });
+
+    const res = await request(app).post("/api/auth/register").send({
+      username: "blackWatch",
+      email: "different@test.local",
+      password: "Password123",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/nombre de usuario ya está en uso/i);
+    // No new account was created.
+    expect(await User.countDocuments({ email: "different@test.local" })).toBe(0);
+  });
+
+  it("still allows a genuinely new username (case-preserved)", async () => {
+    await createUser({ username: "Blackwatch", email: "bw2@test.local" });
+
+    const res = await request(app).post("/api/auth/register").send({
+      username: "Whitewatch",
+      email: "white@test.local",
+      password: "Password123",
+    });
+
+    expect(res.status).toBe(201);
+    const user = await User.findOne({ email: "white@test.local" });
+    expect(user.username).toBe("Whitewatch"); // casing kept as typed
   });
 
   it("400s on missing fields", async () => {
@@ -197,11 +226,50 @@ describe("POST /api/auth/login", () => {
     expect(decoded.id).toBe(user._id.toString());
   });
 
+  it("logs in by username via the `identifier` field", async () => {
+    const user = await createUser({
+      email: "byname@test.local",
+      username: "MesaMaster",
+    });
+
+    const res = await request(app).post("/api/auth/login").send({
+      identifier: "MesaMaster",
+      password: "Password123",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.token).toBeDefined();
+    expect(res.body.user._id).toBe(user._id.toString());
+  });
+
+  it("logs in by email via the `identifier` field (case-insensitive email)", async () => {
+    const user = await createUser({
+      email: "mixed@test.local",
+      username: "SomeUser",
+    });
+
+    const res = await request(app).post("/api/auth/login").send({
+      identifier: "Mixed@Test.Local",
+      password: "Password123",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.user._id).toBe(user._id.toString());
+  });
+
   it("returns 401 on wrong password", async () => {
     await createUser({ email: "log@test.local" });
     const res = await request(app).post("/api/auth/login").send({
       email: "log@test.local",
       password: "WrongPass1",
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 401 on unknown username", async () => {
+    const res = await request(app).post("/api/auth/login").send({
+      identifier: "ghost-user",
+      password: "Password123",
     });
     expect(res.status).toBe(401);
   });

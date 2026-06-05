@@ -170,4 +170,66 @@ describe("GET /api/bgg/partidas — auto-refresco sincrónico al entrar", () => 
     // Anónimo no es dueño → no dispara probe sincrónico.
     expect(fetchSpy).not.toHaveBeenCalled();
   });
+
+  it("dueño con probe de 1h (entre 5min y 3h) → NO pega a BGG (fix del update demasiado frecuente)", async () => {
+    const stamp = new Date(Date.now() - 1 * HOUR);
+    const { token } = await createAuthedUser({
+      bggUsername: "owner4",
+      bggSync: {
+        lastProbedAt: stamp,
+        lastFullSyncAt: new Date(Date.now() - 1 * DAY),
+      },
+    });
+    await BggPlay.create({
+      bggUsername: "owner4",
+      playId: "1",
+      gameId: "100",
+      date: "2026-01-01",
+      players: [],
+      hash: "h",
+    });
+
+    const res = await request(app)
+      .get("/api/bgg/partidas/owner4")
+      .set(authHeader(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    // <3h → nada. Antes 1h > 5min disparaba un background probe (la causa del
+    // "se actualiza más seguido que 3h").
+    expect(fetchSpy).not.toHaveBeenCalled();
+    // El stamp no se movió (no corrió ningún probe).
+    expect(new Date(res.body.sync.lastProbedAt).getTime()).toBe(stamp.getTime());
+  });
+
+  it("NO dueño autenticado en perfil viejo (>3h) → NO pega a BGG", async () => {
+    await createAuthedUser({
+      bggUsername: "owner5",
+      bggSync: {
+        lastProbedAt: new Date(Date.now() - 4 * HOUR),
+        lastFullSyncAt: new Date(Date.now() - 1 * DAY),
+      },
+    });
+    await BggPlay.create({
+      bggUsername: "owner5",
+      playId: "1",
+      gameId: "100",
+      date: "2026-01-01",
+      players: [],
+      hash: "h",
+    });
+    // Un usuario DISTINTO (no dueño, no admin) mira el perfil viejo.
+    const { token: otherToken } = await createAuthedUser({
+      bggUsername: "alguien-mas",
+    });
+
+    const res = await request(app)
+      .get("/api/bgg/partidas/owner5")
+      .set(authHeader(otherToken));
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    // No-dueño → no gatilla nada, aunque el perfil esté viejo.
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });
