@@ -343,7 +343,7 @@
 }
 
 /* -- Botón "Usar última junta" -- */
-.lastJuntaBtn {
+.lastJuntadaBtn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -361,11 +361,11 @@
     border-color var(--transition),
     background var(--transition);
 }
-.lastJuntaBtn:hover {
+.lastJuntadaBtn:hover {
   border-color: var(--amber);
   background: var(--amber-15);
 }
-.lastJuntaHint {
+.lastJuntadaHint {
   font-weight: 500;
   font-size: 12px;
   color: var(--text-muted);

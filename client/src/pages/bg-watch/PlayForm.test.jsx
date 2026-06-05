@@ -36,7 +36,7 @@ function renderForm(props = {}) {
         onDelete={props.onDelete}
         keepGoing={props.keepGoing}
         onKeepGoingChange={props.onKeepGoingChange}
-        lastJunta={props.lastJunta}
+        lastJuntada={props.lastJuntada}
       />
     </MemoryRouter>,
   );
@@ -288,13 +288,13 @@ describe("<PlayForm>", () => {
     expect(submit).toBeDisabled();
   });
 
-  it("'Usar última junta' precarga jugadores + ubicación", async () => {
+  it("'Usar última juntada' precarga jugadores + ubicación", async () => {
     const onSubmit = vi.fn();
     renderForm({
       initialValues: { game: { id: "13", name: "Catán" } },
       lockedGame: true,
       onSubmit,
-      lastJunta: {
+      lastJuntada: {
         location: "Club de Mesa",
         players: [
           { name: "Ana", username: "anabgg" },
@@ -304,7 +304,7 @@ describe("<PlayForm>", () => {
     });
     // Arranca solo con el dueño "Me".
     expect(screen.getAllByPlaceholderText("Nombre")).toHaveLength(1);
-    fireEvent.click(screen.getByRole("button", { name: /usar última junta/i }));
+    fireEvent.click(screen.getByRole("button", { name: /usar última juntada/i }));
     expect(
       screen.getAllByPlaceholderText("Nombre").map((n) => n.value),
     ).toEqual(["Ana", "Beto"]);
@@ -316,7 +316,7 @@ describe("<PlayForm>", () => {
     expect(payload.players.map((p) => p.name)).toEqual(["Ana", "Beto"]);
   });
 
-  it("no muestra 'Usar última junta' en modo edición", () => {
+  it("no muestra 'Usar última juntada' en modo edición", () => {
     renderForm({
       editMode: true,
       lockedGame: true,
@@ -324,10 +324,10 @@ describe("<PlayForm>", () => {
         game: { id: "13", name: "Catán" },
         players: [{ name: "X", username: "" }],
       },
-      lastJunta: { location: "Club", players: [{ name: "Ana", username: "anabgg" }] },
+      lastJuntada: { location: "Club", players: [{ name: "Ana", username: "anabgg" }] },
     });
     expect(
-      screen.queryByRole("button", { name: /usar última junta/i }),
+      screen.queryByRole("button", { name: /usar última juntada/i }),
     ).toBeNull();
   });
 });

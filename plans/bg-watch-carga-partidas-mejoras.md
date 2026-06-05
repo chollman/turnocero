@@ -27,9 +27,9 @@ Estas son las mejoras que quedaron sugeridas para encarar después.
       que conserva jugadores + ubicación + fecha y remonta el form al guardar
       (solo al crear). Hecho en `PlayForm` (`keepGoing`/`onKeepGoingChange`) +
       `CreatePlay` (`carry` + `formKey`).
-- [x] **2. Reusar la última junta** — botón "Usar última junta" en el form que
-      precarga el roster (nombre + @BGG) + ubicación de la partida más reciente.
-      Server: `computeLastJunta` + `GET /api/bgg/ultima-junta/:user`. Cliente:
+- [x] **2. Reusar la última juntada** — botón "Usar última juntada" en el form
+      que precarga el roster (nombre + @BGG) + ubicación de la partida más
+      reciente. Server: `computeLastJuntada` + `GET /api/bgg/ultima-juntada/:user`. Cliente:
       `CreatePlay` la trae al montar y la pasa a `PlayForm`. +7 server +3 client.
 - [x] **3. Score / posiciones más ricos** — helper puro
       [`playerPositions.js`](../client/src/pages/bg-watch/playerPositions.js)
@@ -43,7 +43,7 @@ Estas son las mejoras que quedaron sugeridas para encarar después.
 
 ## Pendientes
 
-### 2. Reusar la última junta — ✅ HECHO (ver Estado)
+### 2. Reusar la última juntada — ✅ HECHO (ver Estado)
 
 ### 3. Score / posiciones más ricos — ✅ HECHO (ver Estado)
 

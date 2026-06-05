@@ -326,14 +326,14 @@ async function computePlayedCoPlayers(lowerBggUsername) {
   }));
 }
 
-// La "última junta": el roster (nombre + @BGG) y la ubicación de la partida más
-// reciente del usuario. Alimenta el botón "Usar última junta" del form de carga
-// — precarga jugadores + ubicación sin volver a tipearlos. Orden por fecha desc,
-// desempate por _id desc (memory: feedback-mongo-latest-tiebreak — con fechas
-// string empatadas, el ObjectId monótono rompe el empate hacia el insert más
-// nuevo). Devuelve null si el usuario no tiene partidas. Excluye score/win/new:
-// es una junta NUEVA, solo importa quién y dónde.
-async function computeLastJunta(lowerBggUsername) {
+// La "última juntada": el roster (nombre + @BGG) y la ubicación de la partida
+// más reciente del usuario. Alimenta el botón "Usar última juntada" del form de
+// carga — precarga jugadores + ubicación sin volver a tipearlos. Orden por fecha
+// desc, desempate por _id desc (memory: feedback-mongo-latest-tiebreak — con
+// fechas string empatadas, el ObjectId monótono rompe el empate hacia el insert
+// más nuevo). Devuelve null si el usuario no tiene partidas. Excluye
+// score/win/new: es una juntada NUEVA, solo importa quién y dónde.
+async function computeLastJuntada(lowerBggUsername) {
   const doc = await BggPlay.findOne({ bggUsername: lowerBggUsername })
     .sort({ date: -1, _id: -1 })
     .lean();
@@ -356,7 +356,7 @@ async function computeLastJunta(lowerBggUsername) {
 
 module.exports = {
   computeGameStats,
-  computeLastJunta,
+  computeLastJuntada,
   computePlayedGames,
   computePlayedGamesWithRecency,
   mergeUserGameList,

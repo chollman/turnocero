@@ -23,13 +23,13 @@ vi.mock("./PlayForm", () => ({
     initialValues,
     keepGoing,
     onKeepGoingChange,
-    lastJunta,
+    lastJuntada,
   }) => (
     <div data-testid="play-form">
       <span data-testid="locked">{String(!!lockedGame)}</span>
       <span data-testid="game">{initialValues?.game?.name || ""}</span>
-      <span data-testid="last-junta">
-        {lastJunta ? lastJunta.players.map((p) => p.name).join(",") : ""}
+      <span data-testid="last-juntada">
+        {lastJuntada ? lastJuntada.players.map((p) => p.name).join(",") : ""}
       </span>
       <span data-testid="carry-players">
         {(initialValues?.players || []).map((p) => p.name).join(",")}
@@ -123,11 +123,11 @@ describe("<CreatePlay>", () => {
     expect(screen.getByTestId("locked")).toHaveTextContent("false");
   });
 
-  it("trae la última junta y se la pasa al form", async () => {
+  it("trae la última juntada y se la pasa al form", async () => {
     server.use(
-      http.get("/api/bgg/ultima-junta/:user", () =>
+      http.get("/api/bgg/ultima-juntada/:user", () =>
         HttpResponse.json({
-          junta: {
+          juntada: {
             location: "Club",
             players: [
               { name: "Me", username: "meBGG" },
@@ -139,7 +139,7 @@ describe("<CreatePlay>", () => {
     );
     renderAt("/bg-watch/meBGG/partidas/nueva");
     await waitFor(() =>
-      expect(screen.getByTestId("last-junta")).toHaveTextContent("Me,Bob"),
+      expect(screen.getByTestId("last-juntada")).toHaveTextContent("Me,Bob"),
     );
   });
 

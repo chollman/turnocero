@@ -77,7 +77,7 @@ export default function PlayForm({
   onDelete,
   keepGoing = false,
   onKeepGoingChange,
-  lastJunta = null,
+  lastJuntada = null,
 }) {
   const bggUsername = user?.bggUsername;
 
@@ -180,10 +180,10 @@ export default function PlayForm({
 
   const sortByScore = () => setPlayers((arr) => sortPlayersByScoreDesc(arr));
 
-  // "Usar última junta": reemplaza el roster + ubicación con los de la última
-  // partida del usuario (sin score/win — junta nueva). Solo al crear.
-  const applyLastJunta = () => {
-    const roster = lastJunta?.players || [];
+  // "Usar última juntada": reemplaza el roster + ubicación con los de la última
+  // partida del usuario (sin score/win — juntada nueva). Solo al crear.
+  const applyLastJuntada = () => {
+    const roster = lastJuntada?.players || [];
     if (!roster.length) return;
     setPlayers(
       roster.map((p) => ({
@@ -194,10 +194,10 @@ export default function PlayForm({
         new: false,
       })),
     );
-    if (lastJunta.location) updateDetail("location", lastJunta.location);
+    if (lastJuntada.location) updateDetail("location", lastJuntada.location);
   };
 
-  const showLastJunta = !editMode && (lastJunta?.players?.length || 0) > 0;
+  const showLastJuntada = !editMode && (lastJuntada?.players?.length || 0) > 0;
 
   // ── Derived ───────────────────────────────────────────────────────────
   const hasPlayers = players.some((p) => p.name.trim() || p.username.trim());
@@ -389,22 +389,22 @@ export default function PlayForm({
               el orden si no cargás puntajes).
             </p>
 
-            {showLastJunta && (
+            {showLastJuntada && (
               <button
                 type="button"
-                className={styles.lastJuntaBtn}
-                onClick={applyLastJunta}
+                className={styles.lastJuntadaBtn}
+                onClick={applyLastJuntada}
                 title={
-                  lastJunta.location
-                    ? `Jugadores y ubicación (${lastJunta.location}) de tu última partida`
+                  lastJuntada.location
+                    ? `Jugadores y ubicación (${lastJuntada.location}) de tu última partida`
                     : "Jugadores de tu última partida"
                 }
               >
-                ↺ Usar última junta
-                <span className={styles.lastJuntaHint}>
-                  {lastJunta.players.length}{" "}
-                  {lastJunta.players.length === 1 ? "jugador" : "jugadores"}
-                  {lastJunta.location ? ` · ${lastJunta.location}` : ""}
+                ↺ Usar última juntada
+                <span className={styles.lastJuntadaHint}>
+                  {lastJuntada.players.length}{" "}
+                  {lastJuntada.players.length === 1 ? "jugador" : "jugadores"}
+                  {lastJuntada.location ? ` · ${lastJuntada.location}` : ""}
                 </span>
               </button>
             )}

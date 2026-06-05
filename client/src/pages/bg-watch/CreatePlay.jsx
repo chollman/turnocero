@@ -30,8 +30,8 @@ export default function CreatePlay() {
   const [formKey, setFormKey] = useState(0);
   const [carry, setCarry] = useState(null);
   // Roster + ubicación de la última partida del usuario, para el botón
-  // "Usar última junta" del form. null = sin partidas previas (no se muestra).
-  const [lastJunta, setLastJunta] = useState(null);
+  // "Usar última juntada" del form. null = sin partidas previas (no se muestra).
+  const [lastJuntada, setLastJuntada] = useState(null);
 
   const isOwner =
     !!user?.bggUsername &&
@@ -61,14 +61,14 @@ export default function CreatePlay() {
     return () => ac.abort();
   }, [gameId]);
 
-  // Traer la última junta (roster + ubicación) para ofrecer precargarla. Solo
+  // Traer la última juntada (roster + ubicación) para ofrecer precargarla. Solo
   // si el usuario puede cargar partidas (dueño con BGG conectado).
   useEffect(() => {
     if (!canCreate) return undefined;
     const ac = new AbortController();
     axios
-      .get(API.bgg.ULTIMA_JUNTA(bggUsername), { signal: ac.signal })
-      .then(({ data }) => setLastJunta(data.junta || null))
+      .get(API.bgg.ULTIMA_JUNTADA(bggUsername), { signal: ac.signal })
+      .then(({ data }) => setLastJuntada(data.juntada || null))
       .catch(() => {});
     return () => ac.abort();
   }, [canCreate, bggUsername]);
@@ -85,7 +85,7 @@ export default function CreatePlay() {
       await axios.post(API.bgg.PARTIDAS_LIST, payload);
       if (keepGoing) {
         // Conservamos el roster (sin score/win/new), la ubicación y la fecha
-        // para la próxima partida de la misma junta. El juego se resetea (salvo
+        // para la próxima partida de la misma juntada. El juego se resetea (salvo
         // que esté fijado por ?juego, en cuyo caso se mantiene).
         setCarry({
           players: payload.players.map((p) => ({
@@ -140,7 +140,7 @@ export default function CreatePlay() {
       onCancel={goBack}
       keepGoing={keepGoing}
       onKeepGoingChange={setKeepGoing}
-      lastJunta={lastJunta}
+      lastJuntada={lastJuntada}
     />
   );
 }

@@ -1,7 +1,7 @@
 const BggPlay = require("../../../../models/BggPlay");
 const {
   computeGameStats,
-  computeLastJunta,
+  computeLastJuntada,
   computePlayedGames,
   computePlayedGamesWithRecency,
   mergeUserGameList,
@@ -501,9 +501,9 @@ describe("computePlayedCoPlayers", () => {
   });
 });
 
-describe("computeLastJunta", () => {
+describe("computeLastJuntada", () => {
   it("devuelve null si el usuario no tiene partidas", async () => {
-    expect(await computeLastJunta("nadie")).toBeNull();
+    expect(await computeLastJuntada("nadie")).toBeNull();
   });
 
   it("devuelve el roster (sin score/win) + ubicación de la partida más reciente", async () => {
@@ -523,9 +523,9 @@ describe("computeLastJunta", () => {
         { name: "Carla", username: "carla" },
       ],
     });
-    const junta = await computeLastJunta("alice");
-    expect(junta.location).toBe("Club");
-    expect(junta.players).toEqual([
+    const juntada = await computeLastJuntada("alice");
+    expect(juntada.location).toBe("Club");
+    expect(juntada.players).toEqual([
       { name: "Alice", username: "alice" },
       { name: "Carla", username: "carla" },
     ]);
@@ -542,8 +542,8 @@ describe("computeLastJunta", () => {
       location: "Segunda",
       players: [{ name: "Zoe", username: "zoe" }],
     });
-    const junta = await computeLastJunta("alice");
-    expect(junta.location).toBe("Segunda");
+    const juntada = await computeLastJuntada("alice");
+    expect(juntada.location).toBe("Segunda");
   });
 
   it("excluye jugadores sin nombre ni username", async () => {
@@ -554,7 +554,7 @@ describe("computeLastJunta", () => {
         { name: "", username: "" },
       ],
     });
-    const junta = await computeLastJunta("alice");
-    expect(junta.players).toEqual([{ name: "Alice", username: "alice" }]);
+    const juntada = await computeLastJuntada("alice");
+    expect(juntada.players).toEqual([{ name: "Alice", username: "alice" }]);
   });
 });

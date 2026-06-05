@@ -2,8 +2,8 @@ const request = require("supertest");
 const app = require("../../app");
 const BggPlay = require("../../models/BggPlay");
 
-// GET /api/bgg/ultima-junta/:user — roster + ubicación de la partida más
-// reciente del usuario, para el botón "Usar última junta" del form de carga.
+// GET /api/bgg/ultima-juntada/:user — roster + ubicación de la partida más
+// reciente del usuario, para el botón "Usar última juntada" del form de carga.
 
 function playDoc(overrides) {
   return {
@@ -19,11 +19,11 @@ function playDoc(overrides) {
   };
 }
 
-describe("GET /api/bgg/ultima-junta/:user", () => {
-  it("devuelve { junta: null } cuando no hay partidas", async () => {
-    const res = await request(app).get("/api/bgg/ultima-junta/nadie");
+describe("GET /api/bgg/ultima-juntada/:user", () => {
+  it("devuelve { juntada: null } cuando no hay partidas", async () => {
+    const res = await request(app).get("/api/bgg/ultima-juntada/nadie");
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ junta: null });
+    expect(res.body).toEqual({ juntada: null });
   });
 
   it("devuelve el roster + ubicación de la última partida", async () => {
@@ -47,10 +47,10 @@ describe("GET /api/bgg/ultima-junta/:user", () => {
         ],
       }),
     );
-    const res = await request(app).get("/api/bgg/ultima-junta/alice");
+    const res = await request(app).get("/api/bgg/ultima-juntada/alice");
     expect(res.status).toBe(200);
-    expect(res.body.junta.location).toBe("Club");
-    expect(res.body.junta.players).toEqual([
+    expect(res.body.juntada.location).toBe("Club");
+    expect(res.body.juntada.players).toEqual([
       { name: "Alice", username: "alice" },
       { name: "Carla", username: "carla" },
     ]);
@@ -58,8 +58,8 @@ describe("GET /api/bgg/ultima-junta/:user", () => {
 
   it("es case-insensitive en el username de la URL", async () => {
     await BggPlay.create(playDoc({ date: "2026-04-01", location: "Bar" }));
-    const res = await request(app).get("/api/bgg/ultima-junta/ALICE");
+    const res = await request(app).get("/api/bgg/ultima-juntada/ALICE");
     expect(res.status).toBe(200);
-    expect(res.body.junta.location).toBe("Bar");
+    expect(res.body.juntada.location).toBe("Bar");
   });
 });
