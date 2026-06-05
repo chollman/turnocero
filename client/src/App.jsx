@@ -503,6 +503,22 @@ export function AppRoutes({ transition }) {
               }
             />
             <Route
+              path="/bg-watch/:bggUsername/partidas"
+              element={
+                <SectionGate section="bgwatch">
+                  <BgWatchProfile />
+                </SectionGate>
+              }
+            />
+            <Route
+              path="/bg-watch/:bggUsername/coleccion"
+              element={
+                <SectionGate section="bgwatch">
+                  <BgWatchProfile />
+                </SectionGate>
+              }
+            />
+            <Route
               path="/bg-watch/:bggUsername/juego/:gameId"
               element={
                 <SectionGate section="bgwatch">

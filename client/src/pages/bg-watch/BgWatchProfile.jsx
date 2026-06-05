@@ -1,6 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { useCallback, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
@@ -16,9 +16,17 @@ import styles from "./BgWatchProfile.module.css";
 export default function BgWatchProfile() {
   const { bggUsername } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState("partidas");
+  // La tab activa se deriva de la URL para que /partidas y /coleccion sean
+  // deep-linkeables (caer directo en cada vista). Default = partidas.
+  const activeTab = location.pathname.endsWith("/coleccion")
+    ? "coleccion"
+    : "partidas";
+  const goToTab = (tab) =>
+    navigate(`/bg-watch/${bggUsername}/${tab}`, { replace: true });
+
   const [collection, setCollection] = useState(null);
   const [playsMeta, setPlaysMeta] = useState(null);
   const [openPlay, setOpenPlay] = useState(null);
@@ -111,7 +119,7 @@ export default function BgWatchProfile() {
         <div className={styles.tabs}>
           <button
             className={`${styles.tab} ${activeTab === "partidas" ? styles.tabActive : ""}`}
-            onClick={() => setActiveTab("partidas")}
+            onClick={() => goToTab("partidas")}
           >
             Partidas
             {playsMeta && (
@@ -120,7 +128,7 @@ export default function BgWatchProfile() {
           </button>
           <button
             className={`${styles.tab} ${activeTab === "coleccion" ? styles.tabActive : ""}`}
-            onClick={() => setActiveTab("coleccion")}
+            onClick={() => goToTab("coleccion")}
           >
             Colección
             {collection && (
