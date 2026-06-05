@@ -66,6 +66,46 @@
   }
 }
 
+/* ─── Cartelito de scope ─── */
+.scopeBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: var(--amber-10);
+  border: 1px solid var(--amber-25);
+}
+
+.scopeBanner[data-scope="scoped"] {
+  background: var(--green-10);
+  border-color: var(--green-25);
+}
+
+.scopeBanner svg {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  color: var(--amber-light);
+}
+
+.scopeBanner[data-scope="scoped"] svg {
+  color: var(--green);
+}
+
+.scopeText {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.scopeText strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
 /* ─── Tabs ─── */
 .tabs {
   display: flex;

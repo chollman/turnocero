@@ -1,5 +1,5 @@
 import Meeple from "../../components/shared/Meeple";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API } from "../../api/endpoints";
@@ -8,6 +8,7 @@ import EmptyState from "../../components/shared/EmptyState";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { useBrandName } from "../../hooks/useBrandName";
+import { CommunityContext } from "../../context/CommunityContext";
 import styles from "./BgWatchComunidad.module.css";
 
 const TABS = [
@@ -375,6 +376,71 @@ function ActividadTab() {
   );
 }
 
+// ─── Cartelito de scope ────────────────────────────────────────────────────
+function EyeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+// Aclara con qué comunidades estás mirando las stats. Como la base "TurnoCero"
+// ES toda la comunidad (todos pertenecen), tenerla en el "ver juntas" = scope
+// global; para acotar hay que dejar tildada solo una sub-comunidad. El hub se
+// remonta al cambiar el `viewing` (routesKey en App.jsx), así que esto refleja
+// la selección en vivo. Lee el contexto null-safe: si no hay provider (tests
+// presentacionales) o hay una sola comunidad / subdominio tenant, no se muestra.
+function ScopeBanner() {
+  const ctx = useContext(CommunityContext);
+  if (!ctx || !ctx.loaded) return null;
+
+  const {
+    effectiveViewing = [],
+    communityById,
+    memberships = [],
+    isTenant,
+  } = ctx;
+  if (isTenant || memberships.length <= 1) return null;
+
+  const selected = effectiveViewing
+    .map((id) => communityById?.get(id))
+    .filter(Boolean);
+  if (!selected.length) return null;
+
+  const includesBase = selected.some((c) => c.isBase);
+
+  return (
+    <div
+      className={styles.scopeBanner}
+      data-scope={includesBase ? "global" : "scoped"}
+    >
+      <EyeIcon />
+      {includesBase ? (
+        <p className={styles.scopeText}>
+          Estás viendo <strong>toda la comunidad</strong>. Para acotar las
+          estadísticas a una comunidad puntual, destildá <strong>TurnoCero</strong>{" "}
+          en el selector y dejá solo esa.
+        </p>
+      ) : (
+        <p className={styles.scopeText}>
+          Estás viendo las estadísticas de{" "}
+          <strong>{selected.map((c) => c.name).join(" + ")}</strong>.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── Hub ──────────────────────────────────────────────────────────────────
 export default function BgWatchComunidad() {
   const [tab, setTab] = useState("juegos");
@@ -394,6 +460,8 @@ export default function BgWatchComunidad() {
             {brandName}, a partir de las partidas que registran sus miembros.
           </p>
         </header>
+
+        <ScopeBanner />
 
         <nav className={styles.tabs} aria-label="Secciones">
           {TABS.map((t) => (

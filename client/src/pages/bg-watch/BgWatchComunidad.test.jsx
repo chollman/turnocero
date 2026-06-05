@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import { CommunityContext } from "../../context/CommunityContext";
 import BgWatchComunidad from "./BgWatchComunidad";
 
 const user = {
@@ -76,6 +77,35 @@ function renderHub() {
   );
 }
 
+const baseCommunity = { _id: "base", name: "TurnoCero", isBase: true };
+const betaCommunity = { _id: "beta", name: "Beta", isBase: false };
+
+// Valor del CommunityContext para los tests del cartelito de scope. Por defecto:
+// dos comunidades (base + Beta), viendo ambas → scope global.
+function communityValue(overrides = {}) {
+  return {
+    loaded: true,
+    isTenant: false,
+    memberships: [{ community: baseCommunity }, { community: betaCommunity }],
+    communityById: new Map([
+      ["base", baseCommunity],
+      ["beta", betaCommunity],
+    ]),
+    effectiveViewing: ["base", "beta"],
+    ...overrides,
+  };
+}
+
+function renderHubWithCommunity(value) {
+  return render(
+    <CommunityContext.Provider value={value}>
+      <MemoryRouter>
+        <BgWatchComunidad />
+      </MemoryRouter>
+    </CommunityContext.Provider>,
+  );
+}
+
 describe("<BgWatchComunidad>", () => {
   it("muestra el ranking de juegos en la tab Juegos por defecto", async () => {
     renderHub();
@@ -105,5 +135,47 @@ describe("<BgWatchComunidad>", () => {
     fireEvent.click(screen.getByRole("button", { name: "Actividad" }));
     await waitFor(() => expect(screen.getByText(/jugó/i)).toBeInTheDocument());
     expect(screen.getByText("Catan")).toBeInTheDocument();
+  });
+});
+
+describe("<BgWatchComunidad> — cartelito de scope", () => {
+  it("no se muestra sin CommunityProvider (lectura null-safe)", async () => {
+    const { container } = renderHub();
+    await screen.findByText("Catan");
+    expect(container.textContent).not.toMatch(/Estás viendo/i);
+  });
+
+  it("muestra scope global cuando el viewing incluye la base", async () => {
+    const { container } = renderHubWithCommunity(communityValue());
+    await screen.findByText("Catan");
+    expect(screen.getByText("toda la comunidad")).toBeInTheDocument();
+    // La pista para acotar (destildar TurnoCero) sigue presente.
+    expect(container.textContent).toMatch(/destildá/i);
+  });
+
+  it("muestra el scope acotado a la comunidad seleccionada", async () => {
+    renderHubWithCommunity(communityValue({ effectiveViewing: ["beta"] }));
+    await screen.findByText("Catan");
+    expect(screen.getByText("Beta")).toBeInTheDocument();
+    expect(screen.queryByText("toda la comunidad")).not.toBeInTheDocument();
+  });
+
+  it("no se muestra con una sola comunidad (nada que elegir)", async () => {
+    const { container } = renderHubWithCommunity(
+      communityValue({
+        memberships: [{ community: baseCommunity }],
+        effectiveViewing: ["base"],
+      }),
+    );
+    await screen.findByText("Catan");
+    expect(container.textContent).not.toMatch(/Estás viendo/i);
+  });
+
+  it("no se muestra en modo tenant (subdominio single-community)", async () => {
+    const { container } = renderHubWithCommunity(
+      communityValue({ isTenant: true }),
+    );
+    await screen.findByText("Catan");
+    expect(container.textContent).not.toMatch(/Estás viendo/i);
   });
 });
