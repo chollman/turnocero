@@ -142,6 +142,10 @@ const userSchema = new mongoose.Schema(
       // getManualRefreshRemainingMs / stampManualRefresh.
       lastManualRefreshPartidasAt: { type: Date, default: null },
       lastManualRefreshColeccionAt: { type: Date, default: null },
+      // Freshness del cache materializado BggUserGame (selector "Mis juegos").
+      // null = nunca construida / sucia → se reconstruye en la próxima lectura.
+      // Ver services/bgg/bggUserGames.js.
+      userGamesBuiltAt: { type: Date, default: null },
     },
     isAdmin: {
       type: Boolean,

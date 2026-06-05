@@ -31,6 +31,13 @@ const {
   computePlayedGames,
   computeTopPlayedGame,
 } = require("../services/bgg/bggAggregations");
+const { parsePagination } = require("../utils/paginate");
+const BggUserGame = require("../models/BggUserGame");
+const {
+  ensureFreshUserGames,
+  normalizeForSearch,
+  markUserGamesDirty,
+} = require("../services/bgg/bggUserGames");
 // `stripLeadingArticle` no se usa directamente acá pero vive en
 // bggSearch junto a scoreSearchMatch para que el ranking de búsqueda
 // quede en un solo módulo testeable.
@@ -259,6 +266,49 @@ router.get(
       });
       throw httpError(500, "No se pudieron computar los juegos jugados");
     }
+  }),
+);
+
+// GET /api/bgg/mis-juegos/:bggUsername — selector paginado al cargar partidas.
+// Sirve desde el cache materializado BggUserGame (ludoteca ∪ juegos jugados),
+// reconstruido lazy si está viejo/sucio. Soporta ?page, ?limit y ?q (búsqueda
+// por nombre accent/case-insensitive). Orden: más recientemente jugado primero.
+router.get(
+  "/mis-juegos/:bggUsername",
+  asyncHandler(async (req, res) => {
+    const { bggUsername } = req.params;
+    const lower = bggUsername.toLowerCase();
+    await ensureFreshUserGames(bggUsername);
+
+    const { page, limit, skip } = parsePagination(req.query, {
+      defaultLimit: 20,
+      maxLimit: 50,
+    });
+    const filter = { bggUsername: lower };
+    const q = (req.query.q || "").trim();
+    if (q) filter.searchName = new RegExp(escapeRegex(normalizeForSearch(q)));
+    const sort = { lastPlayedDate: -1, numPlays: -1, name: 1, gameId: 1 };
+
+    const [total, rows] = await Promise.all([
+      BggUserGame.countDocuments(filter),
+      BggUserGame.find(filter).sort(sort).skip(skip).limit(limit).lean(),
+    ]);
+
+    res.json({
+      items: rows.map((r) => ({
+        id: r.gameId,
+        name: r.name,
+        thumbnail: r.thumbnail,
+        image: r.image,
+        year: r.year,
+        numPlays: r.numPlays,
+        lastPlayedDate: r.lastPlayedDate,
+        owned: r.owned,
+      })),
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+    });
   }),
 );
 
@@ -715,6 +765,10 @@ router.post(
       }
     }
 
+    // Invalida el cache "Mis juegos" → la próxima apertura del selector lo
+    // reconstruye con el juego/partida recién agregado.
+    await markUserGamesDirty(user.bggUsername);
+
     res.json({
       success: true,
       playid: String(newPlayId),
@@ -787,6 +841,8 @@ router.delete(
       logger.warn("[bgg/DELETE] mirror to Mongo failed", { error: e.message });
     }
 
+    await markUserGamesDirty(user.bggUsername);
+
     res.json({ success: true });
   }),
 );
@@ -836,6 +892,8 @@ router.put(
         logger.warn("[bgg/PUT] mirror to Mongo failed", { error: e.message });
       }
     }
+
+    await markUserGamesDirty(user.bggUsername);
 
     res.json({ success: true, playid: playId, play: playToApi(verified) });
   }),

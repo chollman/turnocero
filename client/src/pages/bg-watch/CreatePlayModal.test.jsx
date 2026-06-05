@@ -33,6 +33,37 @@ function renderModal(props = {}) {
 
 beforeEach(() => {
   server.use(
+    // Lista propia del usuario (step 1 — MyGamesPicker), paginada.
+    http.get("/api/bgg/mis-juegos/:bggUsername", () =>
+      HttpResponse.json({
+        items: [
+          {
+            id: "13",
+            name: "Catán",
+            thumbnail: "https://cdn/catan.jpg",
+            image: null,
+            year: 1995,
+            numPlays: 5,
+            lastPlayedDate: "2026-05-01",
+            owned: true,
+          },
+          {
+            id: "99",
+            name: "Wingspan",
+            thumbnail: null,
+            image: null,
+            year: 2019,
+            numPlays: 2,
+            lastPlayedDate: "2026-04-01",
+            owned: false,
+          },
+        ],
+        total: 2,
+        page: 1,
+        pages: 1,
+      }),
+    ),
+    // Fallback online (toggle "Buscar en BGG").
     http.get("/api/bgg/search", () =>
       HttpResponse.json([
         {
@@ -91,33 +122,28 @@ describe("<CreatePlayModal>", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("searches games when query is ≥3 chars and renders results", async () => {
+  it("renders the user's own game list in step 1 (most-recently-played first)", async () => {
     renderModal();
-    const input = screen.getByPlaceholderText(/buscá un juego en bgg/i);
-    fireEvent.change(input, { target: { value: "Cat" } });
-    await waitFor(
-      () => {
-        expect(screen.getByText("Catán")).toBeInTheDocument();
-      },
-      { timeout: 2000 },
-    );
-    expect(screen.getByText("Carcassonne")).toBeInTheDocument();
+    expect(await screen.findByText("Catán")).toBeInTheDocument();
+    expect(screen.getByText("Wingspan")).toBeInTheDocument();
   });
 
-  it("picking a game advances to step 2 (datos)", async () => {
+  it("picking a game from the list advances to step 2 (datos)", async () => {
     renderModal();
-    const input = screen.getByPlaceholderText(/buscá un juego en bgg/i);
-    fireEvent.change(input, { target: { value: "Cat" } });
-    await waitFor(
-      () => {
-        expect(screen.getByText("Catán")).toBeInTheDocument();
-      },
-      { timeout: 2000 },
-    );
-    fireEvent.click(screen.getByText("Catán").closest("button"));
+    const item = await screen.findByText("Catán");
+    fireEvent.click(item.closest("button"));
     // Step 2 datos fields appear
     expect(screen.getByText("Fecha")).toBeInTheDocument();
     expect(screen.getByText("Duración (min)")).toBeInTheDocument();
+  });
+
+  it("falls back to BGG search via the toggle when the game isn't in the list", async () => {
+    renderModal();
+    await screen.findByText("Catán");
+    fireEvent.click(screen.getByRole("button", { name: /buscar en bgg/i }));
+    const input = screen.getByPlaceholderText(/buscá un juego en bgg/i);
+    fireEvent.change(input, { target: { value: "Carc" } });
+    expect(await screen.findByText("Carcassonne")).toBeInTheDocument();
   });
 
   it("does NOT submit when going forward; only on the final submit button", async () => {

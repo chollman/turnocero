@@ -2,6 +2,8 @@ const BggPlay = require("../../../../models/BggPlay");
 const {
   computeGameStats,
   computePlayedGames,
+  computePlayedGamesWithRecency,
+  mergeUserGameList,
   computeTopPlayedGame,
 } = require("../../../../services/bgg/bggAggregations");
 
@@ -140,6 +142,175 @@ describe("computePlayedGames", () => {
     await makePlay({ bggUsername: "bob", gameId: "100" });
     expect(await computePlayedGames("alice")).toHaveLength(1);
     expect(await computePlayedGames("bob")).toHaveLength(1);
+  });
+});
+
+describe("computePlayedGamesWithRecency", () => {
+  it("devuelve lista vacía si no hay plays", async () => {
+    expect(await computePlayedGamesWithRecency("alice")).toEqual([]);
+  });
+
+  it("lastPlayedDate = max date; numPlays = suma; name/thumbnail de la más reciente", async () => {
+    await makePlay({
+      gameId: "100",
+      date: "2026-01-01",
+      gameName: "Catan Viejo",
+      gameThumbnail: "old.jpg",
+      quantity: 2,
+    });
+    await makePlay({
+      gameId: "100",
+      date: "2026-03-15",
+      gameName: "Catan Nuevo",
+      gameThumbnail: "new.jpg",
+      quantity: 1,
+    });
+    const games = await computePlayedGamesWithRecency("alice");
+    expect(games).toHaveLength(1);
+    expect(games[0]).toEqual({
+      id: "100",
+      name: "Catan Nuevo",
+      thumbnail: "new.jpg",
+      numPlays: 3,
+      lastPlayedDate: "2026-03-15",
+    });
+  });
+
+  it("excluye plays sin gameId", async () => {
+    await makePlay({ gameId: "100" });
+    await makePlay({ gameId: null });
+    expect(await computePlayedGamesWithRecency("alice")).toHaveLength(1);
+  });
+});
+
+describe("mergeUserGameList (pura)", () => {
+  it("solo jugados → owned:false, normaliza forma", () => {
+    const out = mergeUserGameList(
+      [
+        {
+          id: "1",
+          name: "Catan",
+          thumbnail: "t1",
+          numPlays: 3,
+          lastPlayedDate: "2026-01-10",
+        },
+      ],
+      [],
+    );
+    expect(out).toEqual([
+      {
+        id: "1",
+        name: "Catan",
+        thumbnail: "t1",
+        image: null,
+        year: null,
+        numPlays: 3,
+        lastPlayedDate: "2026-01-10",
+        owned: false,
+      },
+    ]);
+  });
+
+  it("solo colección → owned:true, numPlays:0, image/year desde la colección", () => {
+    const out = mergeUserGameList(
+      [],
+      [
+        {
+          id: "9",
+          name: "Azul",
+          thumbnail: "t9",
+          image: "img9",
+          yearPublished: 2017,
+          numPlays: 4,
+        },
+      ],
+    );
+    expect(out).toEqual([
+      {
+        id: "9",
+        name: "Azul",
+        thumbnail: "t9",
+        image: "img9",
+        year: 2017,
+        numPlays: 0,
+        lastPlayedDate: null,
+        owned: true,
+      },
+    ]);
+  });
+
+  it("unión: juego jugado Y poseído queda owned:true, conserva numPlays/recencia y toma image/year de la colección", () => {
+    const out = mergeUserGameList(
+      [
+        {
+          id: "1",
+          name: "Catan",
+          thumbnail: "tPlay",
+          numPlays: 2,
+          lastPlayedDate: "2026-01-10",
+        },
+      ],
+      [
+        {
+          id: "1",
+          name: "Catan",
+          thumbnail: "tColl",
+          image: "img1",
+          yearPublished: 1995,
+          numPlays: 9,
+        },
+      ],
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      id: "1",
+      owned: true,
+      numPlays: 2,
+      lastPlayedDate: "2026-01-10",
+      image: "img1",
+      year: 1995,
+    });
+  });
+
+  it("ordena por lastPlayedDate desc; los nunca-jugados (colección) van al fondo", () => {
+    const out = mergeUserGameList(
+      [
+        { id: "1", name: "Aaa", numPlays: 2, lastPlayedDate: "2026-01-10" },
+        { id: "2", name: "Bbb", numPlays: 5, lastPlayedDate: "2026-03-01" },
+      ],
+      [{ id: "3", name: "Zzz", yearPublished: 2000 }],
+    );
+    expect(out.map((g) => g.id)).toEqual(["2", "1", "3"]);
+  });
+
+  it("desempata por numPlays desc cuando la fecha empata", () => {
+    const out = mergeUserGameList(
+      [
+        { id: "7", name: "G7", numPlays: 1, lastPlayedDate: "2026-02-02" },
+        { id: "8", name: "G8", numPlays: 9, lastPlayedDate: "2026-02-02" },
+      ],
+      [],
+    );
+    expect(out.map((g) => g.id)).toEqual(["8", "7"]);
+  });
+
+  it("nunca-jugados de la colección se ordenan por nombre asc", () => {
+    const out = mergeUserGameList(
+      [],
+      [
+        { id: "5", name: "Zelda" },
+        { id: "6", name: "Azul" },
+      ],
+    );
+    expect(out.map((g) => g.id)).toEqual(["6", "5"]);
+  });
+
+  it("sin colección → solo jugados", () => {
+    const out = mergeUserGameList([
+      { id: "1", name: "Catan", numPlays: 1, lastPlayedDate: "2026-01-01" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].owned).toBe(false);
   });
 });
 

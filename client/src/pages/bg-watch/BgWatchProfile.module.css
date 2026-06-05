@@ -1320,6 +1320,55 @@ border-color: var(--amber-light);
   color: var(--text-muted);
 }
 
+/* Meta line under a game name in "Mis juegos" (partidas / colección / año) */
+.gameSearchMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* "Ver más" / "Cargando más…" al final de la lista paginada de Mis juegos */
+.loadMoreBtn {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.loadMoreBtn:hover:not(:disabled) {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.loadMoreBtn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* Toggle "¿No lo encontrás? Buscar en BGG" / "Volver a mis juegos" */
+.bggFallbackToggle {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 4px 0;
+  background: none;
+  border: none;
+  color: var(--amber);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bggFallbackToggle:hover {
+  text-decoration: underline;
+}
+
 /* Player edit rows */
 .playerEditList {
   display: flex;

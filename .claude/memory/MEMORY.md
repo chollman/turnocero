@@ -23,7 +23,7 @@
 - [No worktrees](feedback_no_worktrees.md) — user doesn't want to work in `.claude/worktrees/`; work directly in `~/Projects/turnocero/` and use feature branches there
 - [Cyberpunk glitch effect](feedback_cyberpunk_glitch.md) — aesthetic para entradas impactantes (magenta+cyan RGB split, scanlines, beam, `steps(1)`); ver ChatWindow.module.css + gotchas en el archivo
 - [BGG cache pattern](feedback_bgg_cache_pattern.md) — toda integración con BGG usa memoria → Mongo → BGG con `?refresh=1` y botón cliente con cooldown 60s
-- [BGG sync engine (Phase 4)](feedback_bgg_sync_engine.md) — probe page-1 + reconcile dirigido + reconcile completo cada 30d + hash drift; reemplaza el wipe-and-refetch destructivo
+- [BGG sync engine (Phase 4)](feedback_bgg_sync_engine.md) — probe page-1 + reconcile dirigido + reconcile completo cada 30d + hash drift; reemplaza el wipe-and-refetch destructivo. Incluye refresco sincrónico al entrar (dueño/admin >3h via `decidePlaysSyncAction`) + cache materializado `BggUserGame` (selector "Mis juegos", auto-reconstruido con invariante de invalidación)
 - [Prefer BggPlay aggregations over collection](feedback_bgg_prefer_plays_aggregation.md) — toda vista derivada (top games, stats, listas) debe salir de aggregations sobre BggPlay; la colección omite plays unowned y rompe con perfiles privados
 - [BGG username case mismatch](feedback_bgg_username_case.md) — `User.bggUsername` case-preserved vs `BggPlay.bggUsername` lowercase; cross-model queries necesitan `collation strength: 2`
 - [withUserLock semantics](feedback_user_lock_semantics.md) — dedupe por key, no por work function; triggers de trabajos distintos deben ser mutuamente exclusivos en el caller

@@ -31,7 +31,12 @@ Cuando se trabaje en la sincronización de partidas BGG (o se extienda el patró
 **Estado en `User.bggSync`** ([server/models/User.js](server/models/User.js)):
 - `lastFullSyncAt` / `lastFullSyncCount` — cuándo y cuántas plays tras el último walk completo.
 - `lastProbedAt` / `lastProbeOutcome` — cuándo y resultado del último sondeo (incluye `'reconciled'`, no solo probes "puros").
+- `userGamesBuiltAt` — freshness del cache materializado `BggUserGame` (ver abajo).
 - Tanto el botón manual como `stampReconcileResult` setean los CUATRO campos a la vez, así un reconcile satisface ambos throttles.
+
+**Cache materializado `BggUserGame` (selector "Mis juegos", 2026-06)** — una fila por (bggUsername, gameId) con `{ name, thumbnail, image, year, numPlays, lastPlayedDate, owned, searchName }`. Es un **cache que se auto-reconstruye**, NO una fuente de verdad: lo deriva [server/services/bgg/bggUserGames.js](server/services/bgg/bggUserGames.js) desde `BggPlay` + `BggCollection` vía `mergeUserGameList`+`computePlayedGamesWithRecency` ([bggAggregations.js](server/services/bgg/bggAggregations.js)) y reconcilia con `bulkWrite` (upsert presentes + delete ausentes, sin wipe destructivo). Alimenta el endpoint paginado `GET /api/bgg/mis-juegos/:user?page&q` (orden por recencia; búsqueda por `searchName` normalizado NFD).
+- `ensureFreshUserGames` reconstruye **lazy al leer** si `userGamesBuiltAt` es null (sucio) o > 6h (TTL). `dedupeRebuild` (map privado, NO el `withUserLock` compartido) evita rebuilds concurrentes.
+- **INVARIANTE: cualquier code path que cambie las plays o la colección de un user debe invalidar.** Hoy lo hacen: handlers `POST/PUT/DELETE /partidas` → `markUserGamesDirty`; `stampProbeOutcome` (en `edits_only`/`reconciled`) y `stampReconcileResult` → setean `userGamesBuiltAt:null`; `clearUserCache` → `wipeUserGames`. Si agregás un nuevo trigger que muta BggPlay/BggCollection, agregá la invalidación o se queda stale hasta el TTL de 6h.
 
 **Why:** El wipe-and-refetch anterior (Phase 3) era destructivo (ventana de inconsistencia entre `deleteMany` y `insertMany`), no se ejecutaba automático (usuarios como H3rmit87 conectaban y nunca aparecían sus partidas), y costaba 60-200 requests por usuario sincronizado. La nueva estrategia colapsa el caso común a **1 request por visita** (probe con `no_drift`), reconcile dirigido cuesta típicamente 1-2 requests por edit detectado, y el reconcile completo solo corre 1 vez cada 30 días (~17 reconciles/día con 500 usuarios conectados = ~170 req/día a BGG, sostenible).
 
