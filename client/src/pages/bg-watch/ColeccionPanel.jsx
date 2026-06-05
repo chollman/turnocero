@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import Pagination from "./Pagination";
@@ -12,7 +13,7 @@ function StarRating({ value }) {
   return <span className={styles.rating}>{Number(value).toFixed(1)}</span>;
 }
 
-function GameCard({ game, index = 0 }) {
+function GameCard({ game, index = 0, logPlayHref = null }) {
   return (
     <div className={styles.gameCard} style={{ "--i": index }}>
       {game.image || game.thumbnail ? (
@@ -46,6 +47,11 @@ function GameCard({ game, index = 0 }) {
             </span>
           )}
         </div>
+        {logPlayHref && (
+          <Link to={logPlayHref} className={styles.gamePlayBtn}>
+            + Cargar partida
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -55,6 +61,7 @@ export default function ColeccionPanel({
   bggUsername,
   onLoaded,
   canRefresh = false,
+  canCreate = false,
 }) {
   const [collection, setCollection] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -182,7 +189,16 @@ export default function ColeccionPanel({
           </div>
           <div className={styles.gameGrid}>
             {slice.map((game, i) => (
-              <GameCard key={game.id} game={game} index={i} />
+              <GameCard
+                key={game.id}
+                game={game}
+                index={i}
+                logPlayHref={
+                  canCreate
+                    ? `/bg-watch/${bggUsername}/partidas/nueva?juego=${game.id}`
+                    : null
+                }
+              />
             ))}
           </div>
           <Pagination page={page} totalPages={totalPages} onPage={handlePage} />

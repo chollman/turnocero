@@ -84,7 +84,7 @@ function PlayerChip({ player, turnoceroUser }) {
   return <span className={classes}>{content}</span>;
 }
 
-function PlayCardMenu({ onEdit, onDelete }) {
+function PlayCardMenu({ onEdit, onDelete, onLogAnother }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -132,6 +132,16 @@ function PlayCardMenu({ onEdit, onDelete }) {
       </button>
       {open && (
         <div className={styles.playCardMenuPop} role="menu">
+          {onLogAnother && (
+            <button
+              type="button"
+              className={styles.playCardMenuItem}
+              role="menuitem"
+              onClick={(e) => handle(e, onLogAnother)}
+            >
+              Cargar otra partida
+            </button>
+          )}
           {onEdit && (
             <button
               type="button"
@@ -164,6 +174,7 @@ export default function PlayCard({
   onClick,
   onEdit,
   onDelete,
+  onLogAnother,
   index = 0,
 }) {
   const sortedPlayers = useMemo(() => {
@@ -225,8 +236,12 @@ export default function PlayCard({
             </span>
             <span className={styles.playDateAbs}>{formatDate(play.date)}</span>
           </span>
-          {(onEdit || onDelete) && (
-            <PlayCardMenu onEdit={onEdit} onDelete={onDelete} />
+          {(onEdit || onDelete || onLogAnother) && (
+            <PlayCardMenu
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onLogAnother={onLogAnother}
+            />
           )}
         </div>
 

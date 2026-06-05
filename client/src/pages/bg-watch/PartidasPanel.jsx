@@ -84,6 +84,7 @@ export default function PartidasPanel({
   onPlayClick,
   onPlayEdit,
   onPlayDelete,
+  onPlayLogAnother,
   onMetaChange,
   canRefresh = false,
 }) {
@@ -339,6 +340,9 @@ export default function PartidasPanel({
                   onClick={() => onPlayClick(play)}
                   onEdit={onPlayEdit ? () => onPlayEdit(play) : undefined}
                   onDelete={onPlayDelete ? () => onPlayDelete(play) : undefined}
+                  onLogAnother={
+                    onPlayLogAnother ? () => onPlayLogAnother(play) : undefined
+                  }
                 />
               ))}
               <Pagination

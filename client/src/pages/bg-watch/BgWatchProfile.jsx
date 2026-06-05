@@ -59,6 +59,14 @@ export default function BgWatchProfile() {
     [navigate, bggUsername],
   );
   const handlePlayDelete = useCallback((play) => setDeletingPlay(play), []);
+  // "Cargar otra" del mismo juego: deep-link al form prefijando el juego.
+  const handlePlayLogAnother = useCallback(
+    (play) =>
+      navigate(
+        `/bg-watch/${bggUsername}/partidas/nueva?juego=${play.gameId}`,
+      ),
+    [navigate, bggUsername],
+  );
 
   // Small separate userMap fetch for the open play's players (PartidasPanel keeps
   // its own map for the list). Cheap because it's at most ~10 usernames.
@@ -154,6 +162,7 @@ export default function BgWatchProfile() {
             onPlayClick={handlePlayClick}
             onPlayEdit={canCreate ? handlePlayEdit : undefined}
             onPlayDelete={canCreate ? handlePlayDelete : undefined}
+            onPlayLogAnother={canCreate ? handlePlayLogAnother : undefined}
             onMetaChange={handlePlaysMeta}
             canRefresh={canRefresh}
           />
@@ -163,6 +172,7 @@ export default function BgWatchProfile() {
             bggUsername={bggUsername}
             onLoaded={handleCollectionLoaded}
             canRefresh={canRefresh}
+            canCreate={canCreate}
           />
         </div>
 

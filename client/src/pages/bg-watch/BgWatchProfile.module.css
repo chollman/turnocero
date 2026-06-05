@@ -518,6 +518,30 @@
   margin-top: 4px;
 }
 
+/* Deep-link "Cargar partida" en cada juego de la colección (solo dueño). */
+.gamePlayBtn {
+  margin-top: auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid var(--amber-25);
+  border-radius: 8px;
+  background: var(--amber-10);
+  color: var(--amber-light);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    border-color var(--transition),
+    background var(--transition);
+}
+.gamePlayBtn:hover {
+  border-color: var(--amber);
+  background: var(--amber-15);
+}
+
 .ratingBlock {
   display: flex;
   flex-direction: column;

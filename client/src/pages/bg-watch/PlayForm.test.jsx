@@ -330,4 +330,27 @@ describe("<PlayForm>", () => {
       screen.queryByRole("button", { name: /usar última juntada/i }),
     ).toBeNull();
   });
+
+  it("el preview resuelve avatares de jugadores miembros (useBggUserMap)", async () => {
+    server.use(
+      http.post("/api/users/by-bgg-usernames", () =>
+        HttpResponse.json([
+          {
+            _id: "u9",
+            username: "meuser",
+            displayName: "Me User",
+            avatar: { url: "", publicId: "" },
+            bggUsername: "meBGG",
+          },
+        ]),
+      ),
+    );
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    // El jugador 1 ("Me", @meBGG) se resuelve a su user de TurnoCero en el
+    // preview → el Avatar (mockeado) muestra su username.
+    expect(await screen.findByTestId("avatar")).toHaveTextContent("meuser");
+  });
 });

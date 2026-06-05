@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse, delay } from "msw";
 import { server } from "../../test/server";
 
@@ -21,13 +22,16 @@ import ColeccionPanel from "./ColeccionPanel";
 
 function renderPanel(props = {}) {
   return render(
-    <ColeccionPanel
-      bggUsername={props.bggUsername ?? "CarcaFan"}
-      onLoaded={props.onLoaded}
-      // Default true so existing button-interaction tests can find it.
-      // New tests opt out with canRefresh={false}.
-      canRefresh={props.canRefresh ?? true}
-    />,
+    <MemoryRouter>
+      <ColeccionPanel
+        bggUsername={props.bggUsername ?? "CarcaFan"}
+        onLoaded={props.onLoaded}
+        // Default true so existing button-interaction tests can find it.
+        // New tests opt out with canRefresh={false}.
+        canRefresh={props.canRefresh ?? true}
+        canCreate={props.canCreate ?? false}
+      />
+    </MemoryRouter>,
   );
 }
 
@@ -90,6 +94,33 @@ describe("<ColeccionPanel>", () => {
       expect(screen.getByText("Catán")).toBeInTheDocument();
       expect(screen.getByText("Carcassonne")).toBeInTheDocument();
     });
+  });
+
+  it("con canCreate muestra 'Cargar partida' con el deep-link al form", async () => {
+    server.use(
+      http.get("/api/bgg/coleccion/:bggUsername", () =>
+        HttpResponse.json([makeGame({ id: 13, name: "Catán" })]),
+      ),
+    );
+    renderPanel({ canCreate: true, bggUsername: "CarcaFan" });
+    const link = await screen.findByRole("link", { name: /cargar partida/i });
+    expect(link).toHaveAttribute(
+      "href",
+      "/bg-watch/CarcaFan/partidas/nueva?juego=13",
+    );
+  });
+
+  it("sin canCreate no muestra 'Cargar partida'", async () => {
+    server.use(
+      http.get("/api/bgg/coleccion/:bggUsername", () =>
+        HttpResponse.json([makeGame()]),
+      ),
+    );
+    renderPanel({ canCreate: false });
+    await screen.findByText("Catán");
+    expect(
+      screen.queryByRole("link", { name: /cargar partida/i }),
+    ).toBeNull();
   });
 
   it("shows error message when API fails", async () => {
