@@ -27,12 +27,15 @@ function baseUsernameFrom(seed) {
 // si colisiona. Acotado a 30 chars. Reserva espacio para el sufijo al recortar.
 async function generateUniqueUsername(seed) {
   const base = baseUsernameFrom(seed);
-  if (!(await User.exists({ username: base }))) return base;
+  // Chequeo case-insensitive: el username generado es siempre lowercase, pero
+  // un "Blackwatch" ya existente (case-preservado) debe contar como tomado para
+  // no crear una colisión que la validación del registro sí prohíbe.
+  if (!(await User.findByUsernameCI(base))) return base;
 
   for (let i = 1; i < 10000; i++) {
     const suffix = String(i);
     const candidate = `${base.slice(0, 30 - suffix.length)}${suffix}`;
-    if (!(await User.exists({ username: candidate }))) return candidate;
+    if (!(await User.findByUsernameCI(candidate))) return candidate;
   }
   // Fallback prácticamente inalcanzable.
   return `${base.slice(0, 20)}${Date.now().toString(36)}`.slice(0, 30);

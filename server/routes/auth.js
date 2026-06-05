@@ -93,6 +93,15 @@ router.post(
       throw httpError(400, "All fields are required");
     }
 
+    // Username único ignorando mayúsculas/minúsculas: "Blackwatch" se guarda
+    // tal cual, pero un alta posterior de "blackWatch" (mismo nombre, otro
+    // casing) se rechaza. El índice unique es case-sensitive, así que validamos
+    // acá con la búsqueda case-insensitive. (El email ya es único por estar
+    // normalizado a lowercase en el schema.)
+    if (await User.findByUsernameCI(username)) {
+      throw httpError(400, "Username already in use");
+    }
+
     const code = generateCode();
     let user;
     try {

@@ -233,6 +233,19 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
+// Case-insensitive username lookup. Usernames are stored case-preserved (so
+// "Blackwatch" keeps its capitals) but must be unique ignoring case — a new
+// "blackWatch" can't be registered once "Blackwatch" exists. The default
+// unique index is case-sensitive, so we match with a collation (strength 2 =
+// ignore case, keep accents). Used as the guardrail at registration and OAuth
+// auto-naming. Returns the matching doc (truthy) or null.
+userSchema.statics.findByUsernameCI = function (username) {
+  return this.findOne({ username: String(username || "").trim() }).collation({
+    locale: "en",
+    strength: 2,
+  });
+};
+
 // Remove password and BGG credentials from JSON output; expose derived flags
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();

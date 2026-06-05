@@ -51,6 +51,17 @@ describe("oauthService.generateUniqueUsername", () => {
     });
     expect(await generateUniqueUsername("Pedro")).toBe("pedro2");
   });
+
+  it("treats a different-cased existing username as taken", async () => {
+    // A password account registered "Pedro" with capitals; the generated
+    // lowercase "pedro" would collide ignoring case, so we must suffix.
+    await User.create({
+      username: "Pedro",
+      email: "pedro@x.com",
+      password: "Password1",
+    });
+    expect(await generateUniqueUsername("Pedro")).toBe("pedro1");
+  });
 });
 
 describe("oauthService.findOrCreateOAuthUser", () => {
