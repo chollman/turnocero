@@ -72,7 +72,6 @@ const {
   reconcileFull,
   probe,
   stampProbeOutcome,
-  triggerBackgroundProbe,
   triggerBackgroundReconcile,
   decidePlaysSyncAction,
 } = require("../services/bgg/bggSyncEngine");
@@ -501,8 +500,8 @@ router.get(
 
     if (hasMongoData) {
       // Quién mira: el dueño del perfil (match case-insensitive de bggUsername)
-      // o un admin. Solo ellos disparan el refresco SINCRÓNICO al entrar; el
-      // resto cae al probe en background (no bloquea, frescura próxima visita).
+      // o un admin. Solo ellos disparan refrescos; un no-dueño no gatilla nada
+      // (la frescura depende de las visitas del dueño + manual + reconcile 30d).
       const viewerIsOwner =
         !!req.user &&
         (req.user.isAdmin ||
@@ -541,8 +540,8 @@ router.get(
           syncOutcome = "failed";
         }
       } else if (owner) {
-        // Decisión por antigüedad del último probe. El probe es owner-driven:
-        // no sincronizamos plays de terceros que un anónimo esté mirando.
+        // Decisión por antigüedad del último probe (solo corre para dueño/admin;
+        // para no-dueños devuelve nada). A lo sumo un refresco cada 3 h.
         const decision = decidePlaysSyncAction({
           lastProbedAt: owner.bggSync?.lastProbedAt,
           lastFullSyncAt: owner.bggSync?.lastFullSyncAt,
@@ -572,10 +571,6 @@ router.get(
           if (decision.background === "reconcile") {
             triggerBackgroundReconcile(bggUsername);
           }
-        } else if (decision.background === "reconcile") {
-          triggerBackgroundReconcile(bggUsername);
-        } else if (decision.background === "probe") {
-          triggerBackgroundProbe(bggUsername);
         }
       }
 

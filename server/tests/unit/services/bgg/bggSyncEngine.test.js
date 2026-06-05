@@ -112,7 +112,7 @@ describe("decidePlaysSyncAction", () => {
     ).toEqual({ sync: true, background: "reconcile" });
   });
 
-  it("NO dueño + probe viejo (>3h) → nunca sincrónico, cae a background probe", () => {
+  it("NO dueño + probe viejo (>3h) → nada (no gatilla refrescos ajenos)", () => {
     expect(
       decidePlaysSyncAction({
         lastProbedAt: ago(4 * HOUR),
@@ -120,10 +120,10 @@ describe("decidePlaysSyncAction", () => {
         now: NOW,
         viewerIsOwner: false,
       }),
-    ).toEqual({ sync: false, background: "probe" });
+    ).toEqual({ sync: false, background: null });
   });
 
-  it("NO dueño + probe viejo + reconcile vencido → background reconcile", () => {
+  it("NO dueño + reconcile vencido (>30d) → igual nada", () => {
     expect(
       decidePlaysSyncAction({
         lastProbedAt: ago(4 * HOUR),
@@ -131,10 +131,10 @@ describe("decidePlaysSyncAction", () => {
         now: NOW,
         viewerIsOwner: false,
       }),
-    ).toEqual({ sync: false, background: "reconcile" });
+    ).toEqual({ sync: false, background: null });
   });
 
-  it("dueño pero probe ni viejo ni reciente (5min < edad < 3h) → background, sin sincrónico", () => {
+  it("dueño + probe de 1h (<3h) → NADA (antes hacía background probe — éste es el fix)", () => {
     expect(
       decidePlaysSyncAction({
         lastProbedAt: ago(1 * HOUR),
@@ -142,10 +142,10 @@ describe("decidePlaysSyncAction", () => {
         now: NOW,
         viewerIsOwner: true,
       }),
-    ).toEqual({ sync: false, background: "probe" });
+    ).toEqual({ sync: false, background: null });
   });
 
-  it("probe reciente (<5min) → nada, se sirve de Mongo (incluso para el dueño)", () => {
+  it("dueño + probe reciente (<5min) → nada, se sirve de Mongo", () => {
     expect(
       decidePlaysSyncAction({
         lastProbedAt: ago(1 * MIN),
@@ -156,7 +156,7 @@ describe("decidePlaysSyncAction", () => {
     ).toEqual({ sync: false, background: null });
   });
 
-  it("lastProbedAt null (nunca probado) → tratado como viejo: dueño sincroniza", () => {
+  it("dueño + nunca probado → tratado como viejo: sincroniza + reconcile en background", () => {
     expect(
       decidePlaysSyncAction({
         lastProbedAt: null,
@@ -167,7 +167,7 @@ describe("decidePlaysSyncAction", () => {
     ).toEqual({ sync: true, background: "reconcile" });
   });
 
-  it("lastProbedAt null + NO dueño → background reconcile (no sincrónico)", () => {
+  it("NO dueño + nunca probado → nada", () => {
     expect(
       decidePlaysSyncAction({
         lastProbedAt: null,
@@ -175,7 +175,7 @@ describe("decidePlaysSyncAction", () => {
         now: NOW,
         viewerIsOwner: false,
       }),
-    ).toEqual({ sync: false, background: "reconcile" });
+    ).toEqual({ sync: false, background: null });
   });
 });
 

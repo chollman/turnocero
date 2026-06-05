@@ -1004,9 +1004,12 @@ describe("BGG persistent cache (memoria → Mongo → BGG)", () => {
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
-    it("GET without refresh with stale lastFullSyncAt (> 30 days) triggers a background reconcile", async () => {
-      const { user } = await createAuthedUser({ bggUsername: "stalefull" });
-      // probe is due (lastProbedAt also stale) AND lastFullSyncAt > 30 days ago.
+    it("dueño con lastFullSyncAt > 30 días: la visita (>3h) dispara el reconcile completo en background", async () => {
+      const { user, token } = await createAuthedUser({
+        bggUsername: "stalefull",
+      });
+      // Datos viejos (>3h) → probe sincrónico; lastFullSyncAt > 30d → además
+      // dispara el reconcile completo en background.
       const longAgo = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
       await User.updateOne(
         { _id: user._id },
@@ -1026,21 +1029,26 @@ describe("BGG persistent cache (memoria → Mongo → BGG)", () => {
         hash: "h",
       });
 
-      // The triggered reconcile walks BGG; mock one page + the thumbnail.
-      fetchSpy
-        .mockResolvedValueOnce(
-          ok(
-            playsXml(
-              [{ id: "1", date: "2026-01-01", gameName: "A", gameId: 13 }],
-              1,
-            ),
-          ),
-        )
-        .mockResolvedValueOnce(
-          ok(thingXml([{ id: 13, name: "A", thumbnail: "t.jpg" }])),
-        );
+      // Tanto el probe sincrónico como el reconcile en background pegan a BGG;
+      // ruteamos por URL para no depender del orden de consumo.
+      const playsResponse = ok(
+        playsXml(
+          [{ id: "1", date: "2026-01-01", gameName: "A", gameId: 13 }],
+          1,
+        ),
+      );
+      const thingResponse = ok(
+        thingXml([{ id: 13, name: "A", thumbnail: "t.jpg" }]),
+      );
+      fetchSpy.mockImplementation((url) => {
+        if (url.includes("/plays")) return Promise.resolve(playsResponse);
+        if (url.includes("/thing")) return Promise.resolve(thingResponse);
+        return Promise.reject(new Error(`unexpected url: ${url}`));
+      });
 
-      const res = await request(app).get("/api/bgg/partidas/stalefull");
+      const res = await request(app)
+        .get("/api/bgg/partidas/stalefull")
+        .set("Authorization", `Bearer ${token}`);
       expect(res.status).toBe(200);
 
       // The background reconcile fires after the response. Poll until it
