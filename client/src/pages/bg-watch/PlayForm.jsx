@@ -77,6 +77,7 @@ export default function PlayForm({
   onDelete,
   keepGoing = false,
   onKeepGoingChange,
+  lastJunta = null,
 }) {
   const bggUsername = user?.bggUsername;
 
@@ -178,6 +179,25 @@ export default function PlayForm({
     );
 
   const sortByScore = () => setPlayers((arr) => sortPlayersByScoreDesc(arr));
+
+  // "Usar última junta": reemplaza el roster + ubicación con los de la última
+  // partida del usuario (sin score/win — junta nueva). Solo al crear.
+  const applyLastJunta = () => {
+    const roster = lastJunta?.players || [];
+    if (!roster.length) return;
+    setPlayers(
+      roster.map((p) => ({
+        name: p.name || "",
+        username: p.username || "",
+        score: "",
+        win: false,
+        new: false,
+      })),
+    );
+    if (lastJunta.location) updateDetail("location", lastJunta.location);
+  };
+
+  const showLastJunta = !editMode && (lastJunta?.players?.length || 0) > 0;
 
   // ── Derived ───────────────────────────────────────────────────────────
   const hasPlayers = players.some((p) => p.name.trim() || p.username.trim());
@@ -365,8 +385,29 @@ export default function PlayForm({
               <span className={styles.sectionTitle}>Jugadores</span>
             </header>
             <p className={styles.sectionHelp}>
-              Agregá los jugadores. La posición se asigna por orden.
+              Agregá los jugadores. La posición se calcula por el puntaje (o por
+              el orden si no cargás puntajes).
             </p>
+
+            {showLastJunta && (
+              <button
+                type="button"
+                className={styles.lastJuntaBtn}
+                onClick={applyLastJunta}
+                title={
+                  lastJunta.location
+                    ? `Jugadores y ubicación (${lastJunta.location}) de tu última partida`
+                    : "Jugadores de tu última partida"
+                }
+              >
+                ↺ Usar última junta
+                <span className={styles.lastJuntaHint}>
+                  {lastJunta.players.length}{" "}
+                  {lastJunta.players.length === 1 ? "jugador" : "jugadores"}
+                  {lastJunta.location ? ` · ${lastJunta.location}` : ""}
+                </span>
+              </button>
+            )}
 
             <div className={bg.playerEditList}>
               {players.map((p, i) => (

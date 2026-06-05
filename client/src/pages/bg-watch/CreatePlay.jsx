@@ -29,6 +29,9 @@ export default function CreatePlay() {
   const [keepGoing, setKeepGoing] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [carry, setCarry] = useState(null);
+  // Roster + ubicación de la última partida del usuario, para el botón
+  // "Usar última junta" del form. null = sin partidas previas (no se muestra).
+  const [lastJunta, setLastJunta] = useState(null);
 
   const isOwner =
     !!user?.bggUsername &&
@@ -57,6 +60,18 @@ export default function CreatePlay() {
       .catch(() => {});
     return () => ac.abort();
   }, [gameId]);
+
+  // Traer la última junta (roster + ubicación) para ofrecer precargarla. Solo
+  // si el usuario puede cargar partidas (dueño con BGG conectado).
+  useEffect(() => {
+    if (!canCreate) return undefined;
+    const ac = new AbortController();
+    axios
+      .get(API.bgg.ULTIMA_JUNTA(bggUsername), { signal: ac.signal })
+      .then(({ data }) => setLastJunta(data.junta || null))
+      .catch(() => {});
+    return () => ac.abort();
+  }, [canCreate, bggUsername]);
 
   const goBack = () => {
     if (gameId) navigate(`/bg-watch/${bggUsername}/juego/${gameId}`);
@@ -125,6 +140,7 @@ export default function CreatePlay() {
       onCancel={goBack}
       keepGoing={keepGoing}
       onKeepGoingChange={setKeepGoing}
+      lastJunta={lastJunta}
     />
   );
 }

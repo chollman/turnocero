@@ -38,6 +38,11 @@ export const defaultHandlers = [
   // Default vacío para /api/eventos/mine — usado por CreateCompartidaForm.
   // Tests específicos pueden overridear con server.use(...).
   http.get("/api/eventos/mine", () => HttpResponse.json({ eventos: [] })),
+  // Default sin junta previa — CreatePlay lo fetchea al montar para el botón
+  // "Usar última junta". Tests específicos overridean con server.use(...).
+  http.get("/api/bgg/ultima-junta/:user", () =>
+    HttpResponse.json({ junta: null }),
+  ),
   // YouTube tutoriales — TableDetail incluye TableTutorials, que dispara
   // este fetch al montar. Default vacío hace que la sección no renderice
   // y no contamine el DOM de tests que no la testean explícitamente.

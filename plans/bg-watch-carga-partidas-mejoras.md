@@ -27,6 +27,10 @@ Estas son las mejoras que quedaron sugeridas para encarar después.
       que conserva jugadores + ubicación + fecha y remonta el form al guardar
       (solo al crear). Hecho en `PlayForm` (`keepGoing`/`onKeepGoingChange`) +
       `CreatePlay` (`carry` + `formKey`).
+- [x] **2. Reusar la última junta** — botón "Usar última junta" en el form que
+      precarga el roster (nombre + @BGG) + ubicación de la partida más reciente.
+      Server: `computeLastJunta` + `GET /api/bgg/ultima-junta/:user`. Cliente:
+      `CreatePlay` la trae al montar y la pasa a `PlayForm`. +7 server +3 client.
 - [x] **3. Score / posiciones más ricos** — helper puro
       [`playerPositions.js`](../client/src/pages/bg-watch/playerPositions.js)
       (`computePlayerPositions` con competition ranking 1,2,2,4 +
@@ -39,11 +43,7 @@ Estas son las mejoras que quedaron sugeridas para encarar después.
 
 ## Pendientes
 
-### 2. Reusar la última junta
-
-Precargar automáticamente jugadores + ubicación de la partida más reciente del
-usuario (un botón "Usar última junta" o prefill al abrir el form). Fuente: la
-última `BggPlay` por fecha; reusa el roster (nombre + @BGG) y `location`.
+### 2. Reusar la última junta — ✅ HECHO (ver Estado)
 
 ### 3. Score / posiciones más ricos — ✅ HECHO (ver Estado)
 
