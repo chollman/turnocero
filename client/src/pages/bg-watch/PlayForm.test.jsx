@@ -34,6 +34,8 @@ function renderForm(props = {}) {
         onSubmit={props.onSubmit || vi.fn()}
         onCancel={props.onCancel || vi.fn()}
         onDelete={props.onDelete}
+        keepGoing={props.keepGoing}
+        onKeepGoingChange={props.onKeepGoingChange}
       />
     </MemoryRouter>,
   );
@@ -115,6 +117,52 @@ describe("<PlayForm>", () => {
     const payload = onSubmit.mock.calls[0][0];
     expect(payload.objectid).toBe("13");
     expect(payload.players[0]).toMatchObject({ name: "Me", position: 1 });
+  });
+
+  it("muestra el check 'Cargar otra' sólo si onKeepGoingChange está presente", () => {
+    const { unmount } = renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+    });
+    // Sin onKeepGoingChange → no aparece.
+    expect(screen.queryByText(/cargar otra partida después/i)).toBeNull();
+    unmount();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      onKeepGoingChange: vi.fn(),
+    });
+    expect(screen.getByText(/cargar otra partida después/i)).toBeInTheDocument();
+  });
+
+  it("togglear 'Cargar otra' llama onKeepGoingChange y cambia el CTA", () => {
+    const onKeepGoingChange = vi.fn();
+    const { rerender } = renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      keepGoing: false,
+      onKeepGoingChange,
+    });
+    expect(
+      screen.getByRole("button", { name: /guardar en bgg/i }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("checkbox", { name: /cargar otra/i }));
+    expect(onKeepGoingChange).toHaveBeenCalledWith(true);
+    // Con keepGoing=true el CTA cambia.
+    rerender(
+      <MemoryRouter>
+        <PlayForm
+          user={makeUser()}
+          initialValues={{ game: { id: "13", name: "Catán" } }}
+          lockedGame
+          keepGoing
+          onKeepGoingChange={onKeepGoingChange}
+          onSubmit={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByRole("button", { name: /guardar y cargar otra/i }),
+    ).toBeInTheDocument();
   });
 
   it("autodetecta 'Nuevo' para el dueño si nunca jugó el juego", async () => {

@@ -23,6 +23,12 @@ export default function CreatePlay() {
   const [game, setGame] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
+  // Multi-partida rápida: al guardar con "cargar otra", conservamos el roster
+  // + ubicación + fecha y remontamos el form (cambiando `formKey`) para la
+  // próxima partida sin salir de la página.
+  const [keepGoing, setKeepGoing] = useState(false);
+  const [formKey, setFormKey] = useState(0);
+  const [carry, setCarry] = useState(null);
 
   const isOwner =
     !!user?.bggUsername &&
@@ -62,8 +68,26 @@ export default function CreatePlay() {
     setServerError("");
     try {
       await axios.post(API.bgg.PARTIDAS_LIST, payload);
-      addToast({ type: "success", message: "Partida cargada en BGG." });
-      goBack();
+      if (keepGoing) {
+        // Conservamos el roster (sin score/win/new), la ubicación y la fecha
+        // para la próxima partida de la misma junta. El juego se resetea (salvo
+        // que esté fijado por ?juego, en cuyo caso se mantiene).
+        setCarry({
+          players: payload.players.map((p) => ({
+            name: p.name,
+            username: p.username,
+          })),
+          location: payload.location,
+          playdate: payload.playdate,
+        });
+        setFormKey((k) => k + 1);
+        setSubmitting(false);
+        addToast({ type: "success", message: "Partida cargada. Cargá la próxima." });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        addToast({ type: "success", message: "Partida cargada en BGG." });
+        goBack();
+      }
     } catch (err) {
       const msg = getErrorMessage(err, "No se pudo cargar la partida.");
       setServerError(msg);
@@ -76,15 +100,28 @@ export default function CreatePlay() {
   // Si esperamos los datos del juego prefijado, no montamos el form todavía.
   if (gameId && !game) return null;
 
+  // El juego se conserva entre cargas sólo si vino fijado por ?juego.
+  const baseGame = game ? { game } : {};
+  const initialValues = carry
+    ? {
+        ...baseGame,
+        players: carry.players,
+        details: { playdate: carry.playdate, location: carry.location },
+      }
+    : baseGame;
+
   return (
     <PlayForm
+      key={formKey}
       user={user}
-      initialValues={game ? { game } : {}}
+      initialValues={initialValues}
       lockedGame={!!game}
       submitting={submitting}
       serverError={serverError}
       onSubmit={handleSubmit}
       onCancel={goBack}
+      keepGoing={keepGoing}
+      onKeepGoingChange={setKeepGoing}
     />
   );
 }

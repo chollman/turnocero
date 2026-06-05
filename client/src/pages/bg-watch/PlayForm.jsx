@@ -70,6 +70,8 @@ export default function PlayForm({
   onSubmit,
   onCancel,
   onDelete,
+  keepGoing = false,
+  onKeepGoingChange,
 }) {
   const bggUsername = user?.bggUsername;
 
@@ -514,6 +516,19 @@ export default function PlayForm({
 
           {serverError && <div className={styles.errorBox}>{serverError}</div>}
 
+          {/* Multi-partida rápida (solo al crear): al guardar, conserva
+              jugadores + ubicación + fecha y deja cargar la próxima. */}
+          {onKeepGoingChange && (
+            <label className={styles.keepGoing}>
+              <input
+                type="checkbox"
+                checked={keepGoing}
+                onChange={(e) => onKeepGoingChange(e.target.checked)}
+              />
+              Cargar otra partida después de ésta (conserva jugadores y ubicación)
+            </label>
+          )}
+
           <div className={styles.footer}>
             <button
               type="button"
@@ -532,7 +547,9 @@ export default function PlayForm({
                 ? "Guardando…"
                 : editMode
                   ? "Guardar cambios"
-                  : "Guardar en BGG"}
+                  : keepGoing
+                    ? "Guardar y cargar otra"
+                    : "Guardar en BGG"}
             </button>
           </div>
 

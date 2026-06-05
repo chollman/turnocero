@@ -16,11 +16,44 @@ vi.mock("../../context/NotificationContext", () => ({
 
 // PlayForm stub: expone onSubmit/onCancel + lo que recibió.
 vi.mock("./PlayForm", () => ({
-  default: ({ onSubmit, onCancel, lockedGame, initialValues }) => (
+  default: ({
+    onSubmit,
+    onCancel,
+    lockedGame,
+    initialValues,
+    keepGoing,
+    onKeepGoingChange,
+  }) => (
     <div data-testid="play-form">
       <span data-testid="locked">{String(!!lockedGame)}</span>
       <span data-testid="game">{initialValues?.game?.name || ""}</span>
-      <button onClick={() => onSubmit({ objectid: "13", players: [] })}>
+      <span data-testid="carry-players">
+        {(initialValues?.players || []).map((p) => p.name).join(",")}
+      </span>
+      <span data-testid="carry-loc">
+        {initialValues?.details?.location || ""}
+      </span>
+      {onKeepGoingChange && (
+        <input
+          type="checkbox"
+          aria-label="keep"
+          checked={!!keepGoing}
+          onChange={(e) => onKeepGoingChange(e.target.checked)}
+        />
+      )}
+      <button
+        onClick={() =>
+          onSubmit({
+            objectid: "13",
+            playdate: "2026-05-01",
+            location: "Casa",
+            players: [
+              { name: "Me", username: "meBGG" },
+              { name: "Bob", username: "bob" },
+            ],
+          })
+        }
+      >
         submit
       </button>
       <button onClick={onCancel}>cancel</button>
@@ -121,5 +154,26 @@ describe("<CreatePlay>", () => {
     expect(addToast).toHaveBeenCalledWith(
       expect.objectContaining({ type: "success" }),
     );
+  });
+
+  it("con 'cargar otra' guarda, se queda y conserva roster + ubicación", async () => {
+    let posts = 0;
+    server.use(
+      http.post("/api/bgg/partidas", () => {
+        posts += 1;
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    renderAt("/bg-watch/meBGG/partidas/nueva");
+    fireEvent.click(screen.getByLabelText("keep")); // marcar "cargar otra"
+    fireEvent.click(screen.getByRole("button", { name: "submit" }));
+    await waitFor(() => expect(posts).toBe(1));
+    // No navegó: sigue el form, y remontó con el roster + ubicación.
+    expect(screen.getByTestId("play-form")).toBeInTheDocument();
+    expect(screen.queryByTestId("echo")).toBeNull();
+    await waitFor(() =>
+      expect(screen.getByTestId("carry-players")).toHaveTextContent("Me,Bob"),
+    );
+    expect(screen.getByTestId("carry-loc")).toHaveTextContent("Casa");
   });
 });
