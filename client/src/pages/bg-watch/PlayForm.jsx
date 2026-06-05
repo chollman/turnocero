@@ -6,6 +6,7 @@ import MyGamesPicker from "./MyGamesPicker";
 import LocationPicker from "./LocationPicker";
 import PlayerPicker from "./PlayerPicker";
 import PlayCard from "./PlayCard";
+import PositionBadge from "./PositionBadge";
 import { hasDisplayableScore } from "./playerScore";
 import {
   computePlayerPositions,
@@ -370,12 +371,7 @@ export default function PlayForm({
             <div className={bg.playerEditList}>
               {players.map((p, i) => (
                 <div key={i} className={bg.playerEditRow}>
-                  <span
-                    className={bg.playerEditPos}
-                    title="Posición (según el puntaje)"
-                  >
-                    {positions[i]}
-                  </span>
+                  <PositionBadge position={positions[i]} />
                   <div className={bg.playerEditFields}>
                     <input
                       type="text"

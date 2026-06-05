@@ -369,6 +369,56 @@
   color: var(--amber-light);
 }
 
+/* -- Glitch cyberpunk del badge de posición (al cambiar el número) --
+   Paleta magenta #ff2a6d + cyan #05d9e8, steps(1) = saltos digitales, un frame
+   invertido para el "broken signal". Se dispara con data-glitch="on" sobre un
+   span remontado (PositionBadge), así reinicia en cada cambio. */
+.posBadge {
+  display: inline-block; /* el span necesita ser transformable para el skew */
+}
+.posBadge[data-glitch="on"] {
+  animation: posBadgeGlitch 0.5s steps(1, end);
+}
+
+@keyframes posBadgeGlitch {
+  0% {
+    transform: translate(0, 0) skewX(0deg);
+    filter: brightness(1.9) contrast(1.2);
+  }
+  15% {
+    transform: translate(-2px, 0) skewX(-10deg);
+    filter: drop-shadow(2px 0 0 #ff2a6d) drop-shadow(-2px 0 0 #05d9e8)
+      brightness(1.4);
+  }
+  30% {
+    transform: translate(2px, -1px) skewX(7deg);
+    filter: drop-shadow(-3px 0 0 #ff2a6d) drop-shadow(3px 0 0 #05d9e8);
+  }
+  45% {
+    transform: translate(-1px, 1px) skewX(0deg);
+    filter: invert(1) hue-rotate(180deg);
+  }
+  60% {
+    transform: translate(2px, 0) skewX(5deg);
+    filter: drop-shadow(2px 0 0 #ff2a6d) drop-shadow(-2px 0 0 #05d9e8)
+      saturate(1.5);
+  }
+  75% {
+    transform: translate(-1px, 0) skewX(-2deg);
+    filter: drop-shadow(1px 0 0 #ff2a6d) drop-shadow(-1px 0 0 #05d9e8);
+  }
+  100% {
+    transform: translate(0, 0) skewX(0deg);
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posBadge[data-glitch="on"] {
+    animation: none;
+  }
+}
+
 /* -- Error de validación inline (ej. fecha futura) -- */
 .fieldError {
   display: block;
