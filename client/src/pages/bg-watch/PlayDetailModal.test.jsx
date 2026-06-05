@@ -121,7 +121,7 @@ describe("<PlayDetailModal>", () => {
 
   it('shows the "nuevo" badge on new players', () => {
     renderModal();
-    expect(screen.getByText("nuevo")).toBeInTheDocument();
+    expect(screen.getByText(/nuevo/i)).toBeInTheDocument();
   });
 
   it("renders details section with location and duration", () => {

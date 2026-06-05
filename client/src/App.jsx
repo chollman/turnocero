@@ -54,6 +54,8 @@ import CompartidaPost from "./pages/compartidas/CompartidaPost";
 import BgWatchProfile from "./pages/bg-watch/BgWatchProfile";
 import BgWatchPerGameView from "./pages/bg-watch/BgWatchPerGameView";
 import BgWatchLanding from "./pages/bg-watch/BgWatchLanding";
+import CreatePlay from "./pages/bg-watch/CreatePlay";
+import EditPlay from "./pages/bg-watch/EditPlay";
 import Messages from "./pages/messages/Messages";
 import DirectChat from "./pages/messages/DirectChat";
 import AdminChat from "./pages/messages/AdminChat";
@@ -506,6 +508,26 @@ export function AppRoutes({ transition }) {
                 <SectionGate section="bgwatch">
                   <BgWatchPerGameView />
                 </SectionGate>
+              }
+            />
+            <Route
+              path="/bg-watch/:bggUsername/partidas/nueva"
+              element={
+                <PrivateRoute>
+                  <SectionGate section="bgwatch">
+                    <CreatePlay />
+                  </SectionGate>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/bg-watch/:bggUsername/partidas/:playId/editar"
+              element={
+                <PrivateRoute>
+                  <SectionGate section="bgwatch">
+                    <EditPlay />
+                  </SectionGate>
+                </PrivateRoute>
               }
             />
             <Route path="/perfil-bgg/*" element={<LegacyBggRedirect />} />

@@ -8,7 +8,6 @@ import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import PartidasPanel from "./PartidasPanel";
 import ColeccionPanel from "./ColeccionPanel";
 import PlayDetailModal from "./PlayDetailModal";
-import CreatePlayModal from "./CreatePlayModal";
 import StatsBar from "./StatsBar";
 import useBggUserMap from "./useBggUserMap";
 import { GuestBanner, GuestInlineCTA, GuestFooter } from "./BgWatchGuestCTAs";
@@ -23,8 +22,6 @@ export default function BgWatchProfile() {
   const [collection, setCollection] = useState(null);
   const [playsMeta, setPlaysMeta] = useState(null);
   const [openPlay, setOpenPlay] = useState(null);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editingPlay, setEditingPlay] = useState(null);
   const [deletingPlay, setDeletingPlay] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -45,9 +42,14 @@ export default function BgWatchProfile() {
   const handleCollectionLoaded = useCallback((data) => setCollection(data), []);
   const handlePlaysMeta = useCallback((meta) => setPlaysMeta(meta), []);
   const handlePlayClick = useCallback((play) => setOpenPlay(play), []);
-  const handlePlayEdit = useCallback((play) => setEditingPlay(play), []);
+  const handlePlayEdit = useCallback(
+    (play) =>
+      navigate(`/bg-watch/${bggUsername}/partidas/${play.id}/editar`, {
+        state: { play },
+      }),
+    [navigate, bggUsername],
+  );
   const handlePlayDelete = useCallback((play) => setDeletingPlay(play), []);
-  const handleCreated = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   // Small separate userMap fetch for the open play's players (PartidasPanel keeps
   // its own map for the list). Cheap because it's at most ~10 usernames.
@@ -76,7 +78,10 @@ export default function BgWatchProfile() {
         </button>
 
         <div className={styles.hero}>
-          <div className={styles.eyebrow}><Meeple />BG WATCH</div>
+          <div className={styles.eyebrow}>
+            <Meeple />
+            BG WATCH
+          </div>
           <h1 className={styles.heroTitle}>{bggUsername}</h1>
           <a
             href={`https://boardgamegeek.com/user/${bggUsername}`}
@@ -90,7 +95,9 @@ export default function BgWatchProfile() {
             <button
               type="button"
               className={styles.newPlayBtn}
-              onClick={() => setCreateOpen(true)}
+              onClick={() =>
+                navigate(`/bg-watch/${bggUsername}/partidas/nueva`)
+              }
             >
               + Nueva partida
             </button>
@@ -151,23 +158,6 @@ export default function BgWatchProfile() {
           play={openPlay}
           userMap={modalUserMap}
           onClose={() => setOpenPlay(null)}
-        />
-      )}
-
-      {createOpen && (
-        <CreatePlayModal
-          user={user}
-          onClose={() => setCreateOpen(false)}
-          onCreated={handleCreated}
-        />
-      )}
-
-      {editingPlay && (
-        <CreatePlayModal
-          user={user}
-          editPlay={editingPlay}
-          onClose={() => setEditingPlay(null)}
-          onCreated={handleCreated}
         />
       )}
 

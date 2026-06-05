@@ -167,7 +167,9 @@ export default function PlayDetailModal({ play, userMap, onClose }) {
                               )}
                               {displayName}
                               {p.new && (
-                                <span className={styles.newBadge}>nuevo</span>
+                                <span className={styles.newBadge}>
+                                  ✨ nuevo
+                                </span>
                               )}
                             </div>
                             {turnoceroUser ? (

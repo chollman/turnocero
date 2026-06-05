@@ -5,6 +5,9 @@ const {
   computePlayedGamesWithRecency,
   mergeUserGameList,
   computeTopPlayedGame,
+  computePlayedLocations,
+  computeGamePlayCount,
+  computePlayedCoPlayers,
 } = require("../../../../services/bgg/bggAggregations");
 
 async function makePlay(overrides = {}) {
@@ -336,5 +339,163 @@ describe("computeTopPlayedGame", () => {
   it("excluye plays sin gameId", async () => {
     await makePlay({ gameId: null });
     expect(await computeTopPlayedGame("alice")).toBeNull();
+  });
+});
+
+describe("computePlayedLocations", () => {
+  it("devuelve lista vacía si no hay plays", async () => {
+    expect(await computePlayedLocations("alice")).toEqual([]);
+  });
+
+  it("agrupa por ubicación con numPlays = suma de quantity y lastPlayedDate = max", async () => {
+    await makePlay({ location: "Casa", date: "2026-01-01", quantity: 2 });
+    await makePlay({ location: "Casa", date: "2026-03-10", quantity: 1 });
+    await makePlay({ location: "Club", date: "2026-02-05", quantity: 1 });
+    const locs = await computePlayedLocations("alice");
+    const casa = locs.find((l) => l.name === "Casa");
+    const club = locs.find((l) => l.name === "Club");
+    expect(casa).toEqual({
+      name: "Casa",
+      numPlays: 3,
+      lastPlayedDate: "2026-03-10",
+    });
+    expect(club).toEqual({
+      name: "Club",
+      numPlays: 1,
+      lastPlayedDate: "2026-02-05",
+    });
+  });
+
+  it("ignora plays sin ubicación (null, vacío o solo espacios)", async () => {
+    await makePlay({ location: "Casa" });
+    await makePlay({ location: null });
+    await makePlay({ location: "" });
+    await makePlay({ location: "   " });
+    const locs = await computePlayedLocations("alice");
+    expect(locs).toHaveLength(1);
+    expect(locs[0].name).toBe("Casa");
+  });
+
+  it("trimea la ubicación antes de agrupar", async () => {
+    await makePlay({ location: "Casa" });
+    await makePlay({ location: "  Casa  " });
+    const locs = await computePlayedLocations("alice");
+    expect(locs).toHaveLength(1);
+    expect(locs[0]).toMatchObject({ name: "Casa", numPlays: 2 });
+  });
+
+  it("default quantity es 1 si falta", async () => {
+    await makePlay({ location: "Casa", quantity: undefined });
+    const locs = await computePlayedLocations("alice");
+    expect(locs[0].numPlays).toBe(1);
+  });
+
+  it("filtra por bggUsername (lowercase)", async () => {
+    await makePlay({ bggUsername: "alice", location: "Casa" });
+    await makePlay({ bggUsername: "bob", location: "Oficina" });
+    expect(await computePlayedLocations("alice")).toHaveLength(1);
+    expect((await computePlayedLocations("alice"))[0].name).toBe("Casa");
+    expect((await computePlayedLocations("bob"))[0].name).toBe("Oficina");
+  });
+});
+
+describe("computeGamePlayCount", () => {
+  it("devuelve 0 cuando el usuario no jugó ese juego", async () => {
+    await makePlay({ gameId: "100" });
+    expect(await computeGamePlayCount("alice", "200")).toBe(0);
+  });
+
+  it("suma quantity de las partidas del juego", async () => {
+    await makePlay({ gameId: "100", quantity: 2 });
+    await makePlay({ gameId: "100", quantity: 3 });
+    await makePlay({ gameId: "200", quantity: 1 });
+    expect(await computeGamePlayCount("alice", "100")).toBe(5);
+  });
+
+  it("acepta gameId numérico o string", async () => {
+    await makePlay({ gameId: "100", quantity: 1 });
+    expect(await computeGamePlayCount("alice", 100)).toBe(1);
+  });
+
+  it("filtra por bggUsername", async () => {
+    await makePlay({ bggUsername: "alice", gameId: "100" });
+    await makePlay({ bggUsername: "bob", gameId: "100" });
+    expect(await computeGamePlayCount("alice", "100")).toBe(1);
+    expect(await computeGamePlayCount("bob", "100")).toBe(1);
+  });
+});
+
+describe("computePlayedCoPlayers", () => {
+  it("devuelve lista vacía si no hay plays", async () => {
+    expect(await computePlayedCoPlayers("alice")).toEqual([]);
+  });
+
+  it("agrupa compañeros distintos y excluye al dueño", async () => {
+    await makePlay({
+      date: "2026-01-01",
+      players: [
+        { name: "Alice", username: "alice", win: true },
+        { name: "Bob", username: "bob", win: false },
+      ],
+    });
+    await makePlay({
+      date: "2026-03-01",
+      players: [
+        { name: "Alice", username: "alice", win: false },
+        { name: "Bob", username: "bob", win: true },
+      ],
+    });
+    const co = await computePlayedCoPlayers("alice");
+    expect(co).toHaveLength(1); // alice excluida, bob colapsado
+    expect(co[0]).toEqual({
+      name: "Bob",
+      username: "bob",
+      numPlays: 2,
+      lastPlayedDate: "2026-03-01",
+    });
+  });
+
+  it("agrupa por nombre cuando el jugador no tiene username", async () => {
+    await makePlay({
+      players: [
+        { name: "Alice", username: "alice", win: true },
+        { name: "Tía Susana", username: "", win: false },
+      ],
+    });
+    await makePlay({
+      players: [
+        { name: "Alice", username: "alice", win: true },
+        { name: "Tía Susana", username: "", win: false },
+      ],
+    });
+    const co = await computePlayedCoPlayers("alice");
+    expect(co).toHaveLength(1);
+    expect(co[0]).toMatchObject({
+      name: "Tía Susana",
+      username: "",
+      numPlays: 2,
+    });
+  });
+
+  it("excluye al dueño de forma case-insensitive", async () => {
+    await makePlay({
+      players: [
+        { name: "Alice", username: "ALICE", win: true },
+        { name: "Bob", username: "bob", win: false },
+      ],
+    });
+    const co = await computePlayedCoPlayers("alice");
+    expect(co.map((c) => c.username)).toEqual(["bob"]);
+  });
+
+  it("ignora entradas sin nombre ni username", async () => {
+    await makePlay({
+      players: [
+        { name: "Alice", username: "alice" },
+        { name: "", username: "" },
+      ],
+    });
+    const co = await computePlayedCoPlayers("alice");
+    expect(co).toEqual([]);
   });
 });

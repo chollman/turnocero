@@ -5,11 +5,13 @@ const User = require("../models/User");
 const Table = require("../models/Table");
 const Compartida = require("../models/Compartida");
 const Community = require("../models/Community");
-const { optionalAuth } = require("../middleware/auth");
+const { optionalAuth, protect } = require("../middleware/auth");
 const { resolveCommunities } = require("../middleware/resolveCommunities");
 const validateObjectId = require("../middleware/validateObjectId");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
+const { parsePagination } = require("../utils/paginate");
+const { escapeRegex } = require("../utils/regex");
 const { isSameId } = require("../utils/idCompare");
 const { isSectionEnabled } = require("../utils/siteConfig");
 const communityService = require("../services/communityService");
@@ -174,6 +176,83 @@ router.get(
     }
 
     res.json(users);
+  }),
+);
+
+// GET /api/users/jugadores — buscador liviano de usuarios para vincular como
+// jugador al cargar una partida en BG Watch. Amigos primero, luego con BGG
+// conectado, luego el resto (alfabético). Excluye al propio usuario y baneados.
+// Solo los que tienen `bggUsername` se pueden vincular (el front fija
+// player.username = su bggUsername); el resto se ofrece como nombre suelto.
+router.get(
+  "/jugadores",
+  protect,
+  asyncHandler(async (req, res) => {
+    const { page, limit, skip } = parsePagination(req.query, {
+      defaultLimit: 15,
+      maxLimit: 30,
+    });
+    const friends = (req.user.friends || []).map(
+      (f) => new mongoose.Types.ObjectId(String(f)),
+    );
+
+    const match = {
+      isBanned: { $ne: true },
+      _id: { $ne: new mongoose.Types.ObjectId(String(req.user._id)) },
+    };
+    const q = (req.query.q || "").trim();
+    if (q) {
+      const regex = new RegExp(escapeRegex(q), "i");
+      match.$or = [
+        { username: regex },
+        { displayName: regex },
+        { nombre: regex },
+        { apellido: regex },
+      ];
+    }
+
+    const pipeline = [
+      { $match: match },
+      {
+        $addFields: {
+          isFriend: { $in: ["$_id", friends] },
+          hasBgg: {
+            $and: [
+              { $ne: ["$bggUsername", null] },
+              { $ne: ["$bggUsername", ""] },
+            ],
+          },
+        },
+      },
+      { $sort: { isFriend: -1, hasBgg: -1, displayName: 1, username: 1 } },
+      {
+        $facet: {
+          items: [
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $project: {
+                username: 1,
+                displayName: 1,
+                avatar: 1,
+                bggUsername: 1,
+                isFriend: 1,
+              },
+            },
+          ],
+          total: [{ $count: "n" }],
+        },
+      },
+    ];
+
+    const [result] = await User.aggregate(pipeline);
+    const total = result?.total?.[0]?.n || 0;
+    res.json({
+      items: result?.items || [],
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+    });
   }),
 );
 

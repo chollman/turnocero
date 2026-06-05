@@ -225,10 +225,114 @@ async function computeTopPlayedGame(lowerBggUsername) {
   };
 }
 
+// Ubicaciones distintas usadas por el usuario en sus partidas, con conteo y
+// recencia. Alimenta el selector paginado al cargar partidas (GET
+// /api/bgg/mis-ubicaciones). A diferencia de los juegos, las ubicaciones viven
+// enteras en BggPlay.location (strings), así que no hace falta materializar:
+// se derivan acá en cada lectura (cardinalidad chica por usuario).
+//
+// Agrupa por la ubicación cruda (tal cual la tipeó el usuario en BGG),
+// ignorando null/vacío/whitespace. El filtro por término, el orden final y la
+// paginación los hace el route (en memoria).
+async function computePlayedLocations(lowerBggUsername) {
+  const agg = await BggPlay.aggregate([
+    { $match: { bggUsername: lowerBggUsername } },
+    {
+      $project: {
+        location: { $trim: { input: { $ifNull: ["$location", ""] } } },
+        quantity: 1,
+        date: 1,
+      },
+    },
+    { $match: { location: { $ne: "" } } },
+    {
+      $group: {
+        _id: "$location",
+        numPlays: { $sum: { $ifNull: ["$quantity", 1] } },
+        lastPlayedDate: { $max: "$date" },
+      },
+    },
+  ]);
+  return agg.map((row) => ({
+    name: row._id,
+    numPlays: row.numPlays,
+    lastPlayedDate: row.lastPlayedDate || null,
+  }));
+}
+
+// Cantidad de partidas previas de un usuario para un juego (suma de quantity).
+// Alimenta la autodetección del flag "Nuevo" al cargar una partida: si el dueño
+// no jugó nunca ese juego (numPlays === 0), se sugiere marcarlo como nuevo.
+async function computeGamePlayCount(lowerBggUsername, gameId) {
+  const agg = await BggPlay.aggregate([
+    { $match: { bggUsername: lowerBggUsername, gameId: String(gameId) } },
+    {
+      $group: { _id: null, numPlays: { $sum: { $ifNull: ["$quantity", 1] } } },
+    },
+  ]);
+  return agg.length ? agg[0].numPlays : 0;
+}
+
+// Compañeros distintos con los que el usuario jugó (de los players de sus
+// partidas), con conteo y recencia. Alimenta el selector paginado al agregar un
+// jugador (GET /api/bgg/mis-jugadores). Identidad: username BGG (lowercase) si
+// existe, si no el nombre (lowercase) — así "Juan" sin usuario y "Juan @juanbgg"
+// no se mezclan por casualidad, pero el mismo @juanbgg colapsa siempre.
+// Excluye al propio dueño (ya es el jugador 1) e ignora entradas sin datos.
+async function computePlayedCoPlayers(lowerBggUsername) {
+  const agg = await BggPlay.aggregate([
+    { $match: { bggUsername: lowerBggUsername } },
+    { $unwind: "$players" },
+    {
+      $project: {
+        date: 1,
+        quantity: 1,
+        name: { $trim: { input: { $ifNull: ["$players.name", ""] } } },
+        username: { $trim: { input: { $ifNull: ["$players.username", ""] } } },
+      },
+    },
+    { $match: { $or: [{ name: { $ne: "" } }, { username: { $ne: "" } }] } },
+    // Excluir al dueño (su username BGG, case-insensitive).
+    {
+      $match: { $expr: { $ne: [{ $toLower: "$username" }, lowerBggUsername] } },
+    },
+    {
+      $addFields: {
+        key: {
+          $cond: [
+            { $ne: ["$username", ""] },
+            { $concat: ["u:", { $toLower: "$username" }] },
+            { $concat: ["n:", { $toLower: "$name" }] },
+          ],
+        },
+      },
+    },
+    { $sort: { date: 1 } },
+    {
+      $group: {
+        _id: "$key",
+        name: { $last: "$name" },
+        username: { $last: "$username" },
+        numPlays: { $sum: { $ifNull: ["$quantity", 1] } },
+        lastPlayedDate: { $max: "$date" },
+      },
+    },
+  ]);
+  return agg.map((r) => ({
+    name: r.name || r.username || "",
+    username: r.username || "",
+    numPlays: r.numPlays,
+    lastPlayedDate: r.lastPlayedDate || null,
+  }));
+}
+
 module.exports = {
   computeGameStats,
   computePlayedGames,
   computePlayedGamesWithRecency,
   mergeUserGameList,
   computeTopPlayedGame,
+  computePlayedLocations,
+  computeGamePlayCount,
+  computePlayedCoPlayers,
 };
