@@ -7,6 +7,10 @@ import LocationPicker from "./LocationPicker";
 import PlayerPicker from "./PlayerPicker";
 import PlayCard from "./PlayCard";
 import { hasDisplayableScore } from "./playerScore";
+import {
+  computePlayerPositions,
+  sortPlayersByScoreDesc,
+} from "./playerPositions";
 import bg from "./BgWatchProfile.module.css";
 import styles from "./PlayForm.module.css";
 
@@ -161,17 +165,55 @@ export default function PlayForm({
     ]);
   const updateDetail = (key, val) => setDetails((d) => ({ ...d, [key]: val }));
 
+  // Atajo +/-: incrementa el score numéricamente (base 0 si no es número).
+  const stepScore = (idx, delta) =>
+    setPlayers((arr) =>
+      arr.map((p, i) => {
+        if (i !== idx) return p;
+        const cur = Number(p.score);
+        const base = p.score.trim() !== "" && Number.isFinite(cur) ? cur : 0;
+        return { ...p, score: String(base + delta) };
+      }),
+    );
+
+  const sortByScore = () => setPlayers((arr) => sortPlayersByScoreDesc(arr));
+
   // ── Derived ───────────────────────────────────────────────────────────
   const hasPlayers = players.some((p) => p.name.trim() || p.username.trim());
+  // Posición derivada del puntaje (mayor = 1°, empates comparten). Sin scores
+  // numéricos cae al orden del array (comportamiento histórico).
+  const positions = computePlayerPositions(players);
+  const canSortByScore =
+    players.length > 1 && players.some((p) => hasDisplayableScore(p.score));
+  // La fecha no puede ser futura. Se valida en JS (no con HTML required) +
+  // gatea el submit; el `max` del input es solo para el datepicker.
+  const dateInvalid = !!details.playdate && details.playdate > todayIso();
+
   const stepDone = {
     juego: !!game,
     jugadores: hasPlayers,
-    extras: !!details.playdate,
+    extras: !!details.playdate && !dateInvalid,
   };
   const completedCount = Object.values(stepDone).filter(Boolean).length;
   const activeIdx = STEPS.findIndex((s) => !stepDone[s.key]);
   const activeStep = activeIdx === -1 ? STEPS.length - 1 : activeIdx;
-  const canSubmit = stepDone.juego && stepDone.jugadores && stepDone.extras;
+  const canSubmit =
+    stepDone.juego && stepDone.jugadores && stepDone.extras && !dateInvalid;
+
+  // Jugadores cargados → payload, con la posición derivada del score. Lo usan
+  // tanto el submit como la vista previa (una sola fuente).
+  const buildPlayers = () => {
+    const filtered = players.filter((p) => p.name.trim() || p.username.trim());
+    const pos = computePlayerPositions(filtered);
+    return filtered.map((p, i) => ({
+      name: p.name.trim(),
+      username: p.username.trim(),
+      position: pos[i],
+      score: p.score.trim(),
+      win: p.win,
+      new: p.new,
+    }));
+  };
 
   const goToStep = (key) =>
     sectionRefs[key].current?.scrollIntoView({
@@ -191,16 +233,7 @@ export default function PlayForm({
       comments: details.comments,
       incomplete: details.incomplete,
       nowinstats: details.nowinstats,
-      players: players
-        .filter((p) => p.name.trim() || p.username.trim())
-        .map((p, i) => ({
-          name: p.name.trim(),
-          username: p.username.trim(),
-          position: i + 1,
-          score: p.score.trim(),
-          win: p.win,
-          new: p.new,
-        })),
+      players: buildPlayers(),
     });
   };
 
@@ -215,16 +248,7 @@ export default function PlayForm({
     quantity: Number(details.quantity) || 1,
     comments: details.comments,
     incomplete: details.incomplete,
-    players: players
-      .filter((p) => p.name.trim() || p.username.trim())
-      .map((p, i) => ({
-        name: p.name.trim(),
-        username: p.username.trim(),
-        position: i + 1,
-        score: p.score.trim(),
-        win: p.win,
-        new: p.new,
-      })),
+    players: buildPlayers(),
   };
 
   return (
@@ -346,7 +370,12 @@ export default function PlayForm({
             <div className={bg.playerEditList}>
               {players.map((p, i) => (
                 <div key={i} className={bg.playerEditRow}>
-                  <span className={bg.playerEditPos}>{i + 1}</span>
+                  <span
+                    className={bg.playerEditPos}
+                    title="Posición (según el puntaje)"
+                  >
+                    {positions[i]}
+                  </span>
                   <div className={bg.playerEditFields}>
                     <input
                       type="text"
@@ -356,14 +385,36 @@ export default function PlayForm({
                       onChange={(e) => updatePlayer(i, "name", e.target.value)}
                       maxLength={100}
                     />
-                    <input
-                      type="text"
-                      className={bg.modalInputSmall}
-                      placeholder="Score"
-                      value={p.score}
-                      onChange={(e) => updatePlayer(i, "score", e.target.value)}
-                      maxLength={30}
-                    />
+                    <div className={styles.scoreCell}>
+                      <button
+                        type="button"
+                        className={styles.scoreStep}
+                        onClick={() => stepScore(i, -1)}
+                        aria-label="Bajar puntaje"
+                        tabIndex={-1}
+                      >
+                        −
+                      </button>
+                      <input
+                        type="text"
+                        className={bg.modalInputSmall}
+                        placeholder="Score"
+                        value={p.score}
+                        onChange={(e) =>
+                          updatePlayer(i, "score", e.target.value)
+                        }
+                        maxLength={30}
+                      />
+                      <button
+                        type="button"
+                        className={styles.scoreStep}
+                        onClick={() => stepScore(i, 1)}
+                        aria-label="Subir puntaje"
+                        tabIndex={-1}
+                      >
+                        +
+                      </button>
+                    </div>
                     <input
                       type="text"
                       className={bg.modalInputSmall}
@@ -422,13 +473,24 @@ export default function PlayForm({
                 onCancel={() => setAdding(false)}
               />
             ) : (
-              <button
-                type="button"
-                className={bg.btnGhost}
-                onClick={() => setAdding(true)}
-              >
-                + Agregar jugador
-              </button>
+              <div className={styles.playerActions}>
+                <button
+                  type="button"
+                  className={bg.btnGhost}
+                  onClick={() => setAdding(true)}
+                >
+                  + Agregar jugador
+                </button>
+                {canSortByScore && (
+                  <button
+                    type="button"
+                    className={styles.sortByScoreBtn}
+                    onClick={sortByScore}
+                  >
+                    ↓ Ordenar por puntaje
+                  </button>
+                )}
+              </div>
             )}
           </section>
 
@@ -449,8 +511,14 @@ export default function PlayForm({
                   type="date"
                   className={bg.modalInput}
                   value={details.playdate}
+                  max={todayIso()}
                   onChange={(e) => updateDetail("playdate", e.target.value)}
                 />
+                {dateInvalid && (
+                  <span className={styles.fieldError}>
+                    La fecha no puede ser futura.
+                  </span>
+                )}
               </div>
               <div className={bg.field}>
                 <label className={bg.fieldLabel}>Duración (min)</label>
