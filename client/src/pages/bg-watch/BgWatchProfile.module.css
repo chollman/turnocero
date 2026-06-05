@@ -390,6 +390,14 @@ border-color: var(--amber-light);
   cursor: wait;
 }
 
+/* "Actualizado hace X" junto al botón Actualizar */
+.lastSynced {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* ─── Game grid ─── */
 .gameGrid {
   display: grid;

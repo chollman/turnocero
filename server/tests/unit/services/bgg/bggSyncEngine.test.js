@@ -7,6 +7,7 @@ const {
   FULL_RECONCILE_INTERVAL_MS,
   SYNC_MAX_PAGES,
   RECONCILE_INTER_PAGE_MS,
+  AUTO_REFRESH_STALE_MS,
   clearUserCache,
   reconcileFull,
   probe,
@@ -14,6 +15,7 @@ const {
   stampReconcileResult,
   triggerBackgroundProbe,
   triggerBackgroundReconcile,
+  decidePlaysSyncAction,
 } = require("../../../../services/bgg/bggSyncEngine");
 const bggCache = require("../../../../services/bgg/bggCache");
 const bggSync = require("../../../../utils/bggSync");
@@ -73,6 +75,106 @@ describe("constantes", () => {
     expect(FULL_RECONCILE_INTERVAL_MS).toBe(30 * 24 * 60 * 60 * 1000);
     expect(SYNC_MAX_PAGES).toBe(200);
     expect(RECONCILE_INTER_PAGE_MS).toBe(500);
+    expect(AUTO_REFRESH_STALE_MS).toBe(3 * 60 * 60 * 1000);
+  });
+});
+
+// ── decidePlaysSyncAction ────────────────────────────────────────────
+
+describe("decidePlaysSyncAction", () => {
+  const NOW = 1_700_000_000_000;
+  const ago = (ms) => new Date(NOW - ms);
+  const MIN = 60 * 1000;
+  const HOUR = 60 * MIN;
+  const DAY = 24 * HOUR;
+  const recentFullSync = ago(DAY); // < 30d → reconcile NO vencido
+
+  it("dueño + probe viejo (>3h) + reconcile reciente → probe sincrónico, sin background", () => {
+    expect(
+      decidePlaysSyncAction({
+        lastProbedAt: ago(4 * HOUR),
+        lastFullSyncAt: recentFullSync,
+        now: NOW,
+        viewerIsOwner: true,
+      }),
+    ).toEqual({ sync: true, background: null });
+  });
+
+  it("dueño + probe viejo (>3h) + reconcile vencido (>30d) → sincrónico + reconcile en background", () => {
+    expect(
+      decidePlaysSyncAction({
+        lastProbedAt: ago(4 * HOUR),
+        lastFullSyncAt: ago(40 * DAY),
+        now: NOW,
+        viewerIsOwner: true,
+      }),
+    ).toEqual({ sync: true, background: "reconcile" });
+  });
+
+  it("NO dueño + probe viejo (>3h) → nunca sincrónico, cae a background probe", () => {
+    expect(
+      decidePlaysSyncAction({
+        lastProbedAt: ago(4 * HOUR),
+        lastFullSyncAt: recentFullSync,
+        now: NOW,
+        viewerIsOwner: false,
+      }),
+    ).toEqual({ sync: false, background: "probe" });
+  });
+
+  it("NO dueño + probe viejo + reconcile vencido → background reconcile", () => {
+    expect(
+      decidePlaysSyncAction({
+        lastProbedAt: ago(4 * HOUR),
+        lastFullSyncAt: ago(40 * DAY),
+        now: NOW,
+        viewerIsOwner: false,
+      }),
+    ).toEqual({ sync: false, background: "reconcile" });
+  });
+
+  it("dueño pero probe ni viejo ni reciente (5min < edad < 3h) → background, sin sincrónico", () => {
+    expect(
+      decidePlaysSyncAction({
+        lastProbedAt: ago(1 * HOUR),
+        lastFullSyncAt: recentFullSync,
+        now: NOW,
+        viewerIsOwner: true,
+      }),
+    ).toEqual({ sync: false, background: "probe" });
+  });
+
+  it("probe reciente (<5min) → nada, se sirve de Mongo (incluso para el dueño)", () => {
+    expect(
+      decidePlaysSyncAction({
+        lastProbedAt: ago(1 * MIN),
+        lastFullSyncAt: recentFullSync,
+        now: NOW,
+        viewerIsOwner: true,
+      }),
+    ).toEqual({ sync: false, background: null });
+  });
+
+  it("lastProbedAt null (nunca probado) → tratado como viejo: dueño sincroniza", () => {
+    expect(
+      decidePlaysSyncAction({
+        lastProbedAt: null,
+        lastFullSyncAt: null,
+        now: NOW,
+        viewerIsOwner: true,
+      }),
+    ).toEqual({ sync: true, background: "reconcile" });
+  });
+
+  it("lastProbedAt null + NO dueño → background reconcile (no sincrónico)", () => {
+    expect(
+      decidePlaysSyncAction({
+        lastProbedAt: null,
+        lastFullSyncAt: null,
+        now: NOW,
+        viewerIsOwner: false,
+      }),
+    ).toEqual({ sync: false, background: "reconcile" });
   });
 });
 

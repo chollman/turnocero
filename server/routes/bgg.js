@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { protect } = require("../middleware/auth");
+const { protect, optionalAuth } = require("../middleware/auth");
 const { requireSection } = require("../middleware/sectionGate");
 const userRateLimit = require("../middleware/userRateLimit");
 const User = require("../models/User");
@@ -58,14 +58,13 @@ const {
   resolveCollection,
 } = require("../services/bgg/bggResolve");
 const {
-  PROBE_THROTTLE_MS,
-  FULL_RECONCILE_INTERVAL_MS,
   clearUserCache,
   reconcileFull,
   probe,
   stampProbeOutcome,
   triggerBackgroundProbe,
   triggerBackgroundReconcile,
+  decidePlaysSyncAction,
 } = require("../services/bgg/bggSyncEngine");
 const {
   buildPlayForm,
@@ -265,6 +264,7 @@ router.get(
 
 router.get(
   "/partidas/:bggUsername",
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const { bggUsername } = req.params;
     const lower = bggUsername.toLowerCase();
@@ -311,6 +311,28 @@ router.get(
     const hasMongoData = await BggPlay.exists({ bggUsername: lower });
 
     if (hasMongoData) {
+      // Quién mira: el dueño del perfil (match case-insensitive de bggUsername)
+      // o un admin. Solo ellos disparan el refresco SINCRÓNICO al entrar; el
+      // resto cae al probe en background (no bloquea, frescura próxima visita).
+      const viewerIsOwner =
+        !!req.user &&
+        (req.user.isAdmin ||
+          (req.user.bggUsername &&
+            req.user.bggUsername.toLowerCase() === lower));
+
+      // Timing fields de bggSync — sirven tanto para decidir la acción de sync
+      // como para el bloque `sync` de la respuesta (label "Actualizado hace X").
+      // Collation strength 2 porque User.bggUsername es case-preserved.
+      const owner = await User.findOne({ bggUsername: lower })
+        .collation({ locale: "en", strength: 2 })
+        .select(
+          "bggSync.lastProbedAt bggSync.lastFullSyncAt bggSync.lastProbeOutcome",
+        )
+        .lean();
+
+      let syncRan = false;
+      let syncOutcome = null;
+
       if (forceRefresh) {
         // User explicitly asked for fresh data — run the probe synchronously
         // so the response reflects any changes from BGG.
@@ -319,48 +341,52 @@ router.get(
             probe(bggUsername),
           );
           await stampProbeOutcome(lower, result.outcome);
+          syncRan = true;
+          syncOutcome = result.outcome;
         } catch (e) {
           logger.warn("[bgg/partidas] sync probe failed", {
             bggUsername: lower,
             error: e.message || String(e),
           });
           await stampProbeOutcome(lower, "failed");
+          syncOutcome = "failed";
         }
-      } else {
-        // Background sync with 5-min probe throttle. Doesn't block the
-        // response. Skipped if no Turnocero User owns this BGG username —
-        // the probe is an owner-driven maintenance task; we don't sync
-        // plays for strangers an anonymous visitor happens to be looking
-        // at.
-        //
-        // When a probe is due, we pick the path based on lastFullSyncAt:
-        //   - If a full reconcile is overdue (> 30 days, or never ran),
-        //     trigger a full reconcile instead of the lightweight probe.
-        //     This covers the blind spot of edits to plays older than the
-        //     30 most recent (which the page-1 probe can't detect).
-        //   - Otherwise, trigger the cheap probe.
-        // The two are mutually exclusive so they never race on the per-
-        // user lock.
-        const u = await User.findOne({ bggUsername: lower })
-          .select("bggSync.lastProbedAt bggSync.lastFullSyncAt")
-          .lean();
-        if (u) {
-          const lastProbed = u.bggSync?.lastProbedAt;
-          const lastFullSync = u.bggSync?.lastFullSyncAt;
-          const probeDue =
-            !lastProbed ||
-            Date.now() - new Date(lastProbed).getTime() > PROBE_THROTTLE_MS;
-          if (probeDue) {
-            const reconcileOverdue =
-              !lastFullSync ||
-              Date.now() - new Date(lastFullSync).getTime() >
-                FULL_RECONCILE_INTERVAL_MS;
-            if (reconcileOverdue) {
-              triggerBackgroundReconcile(bggUsername);
-            } else {
-              triggerBackgroundProbe(bggUsername);
-            }
+      } else if (owner) {
+        // Decisión por antigüedad del último probe. El probe es owner-driven:
+        // no sincronizamos plays de terceros que un anónimo esté mirando.
+        const decision = decidePlaysSyncAction({
+          lastProbedAt: owner.bggSync?.lastProbedAt,
+          lastFullSyncAt: owner.bggSync?.lastFullSyncAt,
+          now: Date.now(),
+          viewerIsOwner,
+        });
+        if (decision.sync) {
+          // Dueño/admin con datos viejos (>3 h): probe SINCRÓNICO → datos
+          // frescos en esta misma respuesta.
+          try {
+            const result = await withUserLock(bggUsername, () =>
+              probe(bggUsername),
+            );
+            await stampProbeOutcome(lower, result.outcome);
+            syncRan = true;
+            syncOutcome = result.outcome;
+          } catch (e) {
+            logger.warn("[bgg/partidas] auto-sync probe failed", {
+              bggUsername: lower,
+              error: e.message || String(e),
+            });
+            await stampProbeOutcome(lower, "failed");
+            syncOutcome = "failed";
           }
+          // El reconcile completo (>30 d) es pesado: nunca sincrónico, siempre
+          // background, para no bloquear la carga de la página.
+          if (decision.background === "reconcile") {
+            triggerBackgroundReconcile(bggUsername);
+          }
+        } else if (decision.background === "reconcile") {
+          triggerBackgroundReconcile(bggUsername);
+        } else if (decision.background === "probe") {
+          triggerBackgroundProbe(bggUsername);
         }
       }
 
@@ -395,6 +421,17 @@ router.get(
         page: clientPage,
         pageSize: PAGE_SIZE,
         plays: docs.map(playToApi),
+      };
+      // Metadata de frescura para el cliente (label "Actualizado hace X"). Si
+      // corrió un probe sincrónico recién, lastProbedAt es ahora.
+      response.sync = {
+        lastProbedAt: syncRan
+          ? new Date()
+          : owner?.bggSync?.lastProbedAt || null,
+        lastFullSyncAt: owner?.bggSync?.lastFullSyncAt || null,
+        lastProbeOutcome: syncRan
+          ? syncOutcome
+          : owner?.bggSync?.lastProbeOutcome || null,
       };
       if (isUnfilteredFirstPage) response.topGame = topGame;
       if (gameId) response.gameStats = gameStats;

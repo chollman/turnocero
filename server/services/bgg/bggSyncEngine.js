@@ -52,6 +52,7 @@ const PROBE_THROTTLE_MS = 5 * 60 * 1000; // 5 min entre background probes por us
 const FULL_RECONCILE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 días entre full reconciles periódicos
 const SYNC_MAX_PAGES = 200; // safety cap: ~6000 plays (BGG sirve 30/page)
 const RECONCILE_INTER_PAGE_MS = 500; // throttle inter-página en background
+const AUTO_REFRESH_STALE_MS = 3 * 60 * 60 * 1000; // 3 h: refresco sincrónico al entrar (dueño/admin)
 
 // Orquesta la invalidación de cache L1 (in-memory) + L2 (Mongo persistente)
 // para un usuario. Se llama desde auth/bgg-connect cuando el usuario cambia
@@ -417,12 +418,46 @@ function triggerBackgroundReconcile(bggUsername) {
   return true;
 }
 
+// Decide qué acción de sync corresponde en un read de /partidas, según la
+// antigüedad del último probe y quién mira. Función pura (sin I/O) para poder
+// testear la tabla de verdad sin Mongo — el route handler ejecuta la acción.
+//
+//   - Dueño/admin viendo su propio perfil + último probe > 3 h → probe
+//     SINCRÓNICO esta request (datos frescos en la misma respuesta). Si además
+//     el reconcile completo está vencido (>30 d), se dispara en background
+//     (nunca sincrónico: recorre todas las páginas y bloquearía la carga).
+//   - Cualquier viewer + último probe > 5 min → background (no bloquea), igual
+//     que el comportamiento histórico.
+//   - Probe reciente (<5 min) → nada, se sirve de Mongo.
+function decidePlaysSyncAction({
+  lastProbedAt,
+  lastFullSyncAt,
+  now,
+  viewerIsOwner,
+}) {
+  const probeAge = lastProbedAt
+    ? now - new Date(lastProbedAt).getTime()
+    : Infinity;
+  const reconcileOverdue =
+    !lastFullSyncAt ||
+    now - new Date(lastFullSyncAt).getTime() > FULL_RECONCILE_INTERVAL_MS;
+
+  if (viewerIsOwner && probeAge > AUTO_REFRESH_STALE_MS) {
+    return { sync: true, background: reconcileOverdue ? "reconcile" : null };
+  }
+  if (probeAge > PROBE_THROTTLE_MS) {
+    return { sync: false, background: reconcileOverdue ? "reconcile" : "probe" };
+  }
+  return { sync: false, background: null };
+}
+
 module.exports = {
   // Tunables
   PROBE_THROTTLE_MS,
   FULL_RECONCILE_INTERVAL_MS,
   SYNC_MAX_PAGES,
   RECONCILE_INTER_PAGE_MS,
+  AUTO_REFRESH_STALE_MS,
   // Cache invalidation
   clearUserCache,
   // Core sync
@@ -435,4 +470,6 @@ module.exports = {
   // Background triggers
   triggerBackgroundProbe,
   triggerBackgroundReconcile,
+  // Decisión de sync para reads de /partidas (pura, testeable)
+  decidePlaysSyncAction,
 };
