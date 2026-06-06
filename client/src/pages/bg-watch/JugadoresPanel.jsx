@@ -511,77 +511,83 @@ function MergePlayerModal({ bggUsername, source, onClose }) {
 
   return (
     <>
-      <div className={styles.modalBackdrop} role="dialog" aria-modal="true">
-        <div className={styles.modalCard}>
-          <div className={styles.modalHeaderRow}>
-            <h3 className={styles.modalTitle}>Fusionar jugador</h3>
-            <button
-              type="button"
-              className={styles.modalClose}
-              onClick={() => onClose(false)}
-              aria-label="Cerrar"
-            >
-              ✕
-            </button>
-          </div>
+      {/* Mientras está abierta la confirmación ocultamos este modal: su backdrop
+          (z-index alto) taparía al ConfirmActionModal y no se podría confirmar. */}
+      {!target && (
+        <div className={styles.modalBackdrop} role="dialog" aria-modal="true">
+          <div className={styles.modalCard}>
+            <div className={styles.modalHeaderRow}>
+              <h3 className={styles.modalTitle}>Fusionar jugador</h3>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => onClose(false)}
+                aria-label="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
 
-          <p className={styles.sectionHelp}>
-            Elegí con qué jugador querés fusionar a{" "}
-            <strong>{source.name || source.username}</strong>. Las partidas de
-            ambos van a contar como una sola persona.
-          </p>
+            <p className={styles.sectionHelp}>
+              Elegí con qué jugador querés fusionar a{" "}
+              <strong>{source.name || source.username}</strong>. Las partidas de
+              ambos van a contar como una sola persona.
+            </p>
 
-          <input
-            type="text"
-            className={styles.modalInput}
-            placeholder="Buscar jugador destino…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            maxLength={100}
-            aria-label="Buscar jugador destino"
-          />
+            <input
+              type="text"
+              className={styles.modalInput}
+              placeholder="Buscar jugador destino…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              maxLength={100}
+              aria-label="Buscar jugador destino"
+            />
 
-          {loading && <SearchRowSkeleton rows={4} />}
+            {loading && <SearchRowSkeleton rows={4} />}
 
-          {!loading && items.length === 0 && (
-            <p className={styles.dimText}>No hay otros jugadores para fusionar.</p>
-          )}
+            {!loading && items.length === 0 && (
+              <p className={styles.dimText}>
+                No hay otros jugadores para fusionar.
+              </p>
+            )}
 
-          {!loading && items.length > 0 && (
-            <ul className={styles.gameSearchList}>
-              {items.map((row) => (
-                <li key={row.key}>
-                  <button
-                    type="button"
-                    className={styles.gameSearchItem}
-                    onClick={() => setTarget(row)}
-                  >
-                    <Avatar user={rowAvatarUser(row)} size="xs" />
-                    <div className={styles.gameSearchInfo}>
-                      <span className={styles.gameSearchName}>
-                        {row.name || row.username}
-                        {row.username && (
-                          <span className={styles.coPlayerHandle}>
-                            {" "}
-                            @{row.username}
+            {!loading && items.length > 0 && (
+              <ul className={styles.gameSearchList}>
+                {items.map((row) => (
+                  <li key={row.key}>
+                    <button
+                      type="button"
+                      className={styles.gameSearchItem}
+                      onClick={() => setTarget(row)}
+                    >
+                      <Avatar user={rowAvatarUser(row)} size="xs" />
+                      <div className={styles.gameSearchInfo}>
+                        <span className={styles.gameSearchName}>
+                          {row.name || row.username}
+                          {row.username && (
+                            <span className={styles.coPlayerHandle}>
+                              {" "}
+                              @{row.username}
+                            </span>
+                          )}
+                        </span>
+                        {playerMeta(row) && (
+                          <span className={styles.gameSearchMeta}>
+                            {playerMeta(row)}
                           </span>
                         )}
-                      </span>
-                      {playerMeta(row) && (
-                        <span className={styles.gameSearchMeta}>
-                          {playerMeta(row)}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-          {err && <p className={styles.editErr}>{err}</p>}
+            {err && <p className={styles.editErr}>{err}</p>}
+          </div>
         </div>
-      </div>
+      )}
 
       <ConfirmActionModal
         isOpen={!!target}
