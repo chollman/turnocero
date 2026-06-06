@@ -364,17 +364,20 @@ describe("<PlayForm>", () => {
     expect(names[1].value).toBe("Me");
   });
 
-  it("una fecha futura muestra error y deshabilita el submit", () => {
-    const { container } = renderForm({
-      initialValues: { game: { id: "13", name: "Catán" } },
+  it("una fecha futura (backstop) muestra error y deshabilita el submit", () => {
+    // El picker bloquea elegir futuro; este caso cubre un value futuro que
+    // llegue por initialValues / borrador restaurado.
+    renderForm({
+      initialValues: {
+        game: { id: "13", name: "Catán" },
+        details: { playdate: "2099-12-31" },
+      },
       lockedGame: true,
     });
-    const submit = screen.getByRole("button", { name: /guardar en bgg/i });
-    expect(submit).not.toBeDisabled();
-    const dateInput = container.querySelector('input[type="date"]');
-    fireEvent.change(dateInput, { target: { value: "2099-12-31" } });
     expect(screen.getByText(/no puede ser futura/i)).toBeInTheDocument();
-    expect(submit).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /guardar en bgg/i }),
+    ).toBeDisabled();
   });
 
   it("'Usar última juntada' precarga jugadores + ubicación", async () => {

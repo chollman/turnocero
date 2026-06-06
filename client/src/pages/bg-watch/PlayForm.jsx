@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Meeple from "../../components/shared/Meeple";
+import DateTimePicker from "../../components/shared/DateTimePicker";
 import { API } from "../../api/endpoints";
 import MyGamesPicker from "./MyGamesPicker";
 import LocationPicker from "./LocationPicker";
@@ -667,12 +668,12 @@ export default function PlayForm({
             <div className={bg.formGrid}>
               <div className={bg.field}>
                 <label className={bg.fieldLabel}>Fecha</label>
-                <input
-                  type="date"
-                  className={bg.modalInput}
+                <DateTimePicker
+                  dateOnly
+                  allowPast
+                  maxDate={todayIso()}
                   value={details.playdate}
-                  max={todayIso()}
-                  onChange={(e) => updateDetail("playdate", e.target.value)}
+                  onChange={(v) => updateDetail("playdate", v)}
                 />
                 {dateInvalid && (
                   <span className={styles.fieldError}>
