@@ -36,14 +36,23 @@ Estas son las mejoras que quedaron sugeridas para encarar después.
       (`computePlayerPositions` con competition ranking 1,2,2,4 +
       `sortPlayersByScoreDesc`); el badge de posición y el payload se derivan del
       score, atajos +/- por fila y botón "Ordenar por puntaje". +12 unit +4 form.
-- [x] **5a. Fecha no futura** — `max` en el datepicker + validación en JS
-      (`dateInvalid`) que gatea el submit y muestra error inline. La parte 5b
-      (duración sugerida) sigue pendiente — necesita exponer `avgDuration` al
-      cliente (no hay endpoint hoy).
+- [x] **4. Borrador local** — `usePlayDraft` persiste `{ game, details,
+      players }` en localStorage (key por usuario) en un form de creación EN
+      BLANCO; al volver ofrece un banner "Retomar / Descartar"; se limpia al
+      guardar/cancelar/descartar. +9 unit (hook) +5 form.
+- [x] **5. Fecha no futura + duración sugerida** — (5a) `max` + `dateInvalid`
+      gatea el submit con error inline. (5b) `JUGADO` ahora devuelve
+      `avgDuration` (promedio del juego del dueño); el form ofrece "Tu promedio:
+      X min · usar" cuando la duración está vacía.
 - [x] **6. Deep-link de carga** — "Cargar partida" en cada juego de
       `ColeccionPanel` (Link al form con `?juego=`) + item "Cargar otra partida"
       en el menú de `PlayCard` (feed del perfil), ambos solo para el dueño
       (`canCreate`). +3 client.
+- [x] **7. Autodetección "Nuevo" para invitados** — la detección se extendió a
+      TODOS los @BGG del roster (no solo el dueño). `JUGADO` agrega `known` (¿el
+      usuario tiene partidas sincronizadas?); se marca "Nuevo" solo con
+      conocimiento positivo (`known && !played`), así un invitado sin sync no se
+      marca por las dudas. Sigue automático + read-only. +server tests +client.
 - [x] **8. Preview enriquecido** — el preview de `PlayForm` resuelve los
       avatares de los jugadores miembros vía `useBggUserMap([previewPlay])`
       (antes pasaba `userMap={}`). +1 client + default MSW handler.
@@ -54,32 +63,17 @@ Estas son las mejoras que quedaron sugeridas para encarar después.
 
 ### 3. Score / posiciones más ricos — ✅ HECHO (ver Estado)
 
-### 4. Borrador local (localStorage)
+### 4. Borrador local (localStorage) — ✅ HECHO (ver Estado)
 
-Guardar el form en progreso en `localStorage` (key tipo `turnocero_play_draft`)
-para no perder lo cargado si se sale sin querer; ofrecer "Retomar borrador" al
-volver. Limpiar al guardar/cancelar.
-
-### 5. Validación de fecha + duración sugerida
-
-- ~~No permitir fecha futura.~~ ✅ HECHO (ver Estado).
-- **Pendiente (5b):** Sugerir la duración a partir del promedio histórico del
-  juego (`computeGameStats(...).avgDuration` ya existe en
-  [bggAggregations.js](../server/services/bgg/bggAggregations.js), pero falta un
-  endpoint que lo exponga al cliente — el `JUGADO` actual solo devuelve
-  `{ played, numPlays }`).
+### 5. Validación de fecha + duración sugerida — ✅ HECHO (ver Estado)
 
 ### 6. Deep-link de carga desde otras vistas — ✅ HECHO (ver Estado)
 
-### 7. Autodetección de "Nuevo" para invitados con @BGG
+### 7. Autodetección de "Nuevo" para invitados con @BGG — ✅ HECHO (ver Estado)
 
-Extender la detección actual (solo dueño) a los demás jugadores que tengan
-usuario BGG cargado, consultando `GET /api/bgg/jugado/:bggUsername/:gameId`
-por jugador (mejor en lote / con cuidado de rate limits y colecciones privadas;
-best-effort, sigue siendo editable... aunque hoy "Nuevo" es read-only — ver nota).
-
-> Nota: "Nuevo" hoy es **read-only** y autodetectado solo para el dueño. Si se
-> extiende a invitados, definir si pasa a ser editable o sigue automático.
+> Decisión tomada: "Nuevo" sigue **automático + read-only** (consistente con el
+> dueño). En vez de marcar a ciegas a invitados desconocidos, `JUGADO` agrega
+> `known` y solo se marca con conocimiento positivo (`known && !played`).
 
 ### 8. Preview enriquecido — ✅ HECHO (ver Estado)
 
