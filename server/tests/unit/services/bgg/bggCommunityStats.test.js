@@ -1,6 +1,7 @@
 const BggPlay = require("../../../../models/BggPlay");
 const BggCollection = require("../../../../models/BggCollection");
 const BggGame = require("../../../../models/BggGame");
+const BggPlayerOverlay = require("../../../../models/BggPlayerOverlay");
 const Community = require("../../../../models/Community");
 const { createUser } = require("../../../helpers/auth");
 const { _resetForTests } = require("../../../../services/bgg/bggCache");
@@ -369,6 +370,26 @@ describe("topCoPlayers", () => {
     expect(co[0].user.displayName).toBe("Bobby");
     // El invitado sin username queda con user null.
     expect(co.find((c) => c.name === "Invitado").user).toBeNull();
+  });
+
+  it("refleja las fusiones del overlay (cuenta dos compañeros como uno)", async () => {
+    // Dos identidades crudas distintas: "Juan" (sin username) y "Juancho".
+    await makePlay({ players: [{ name: "Juan" }] });
+    await makePlay({ players: [{ name: "Juan" }] });
+    await makePlay({ players: [{ name: "Juancho" }] });
+    // El overlay los fusiona en una sola identidad curada.
+    await BggPlayerOverlay.create({
+      ownerUsername: "alice",
+      rawKeys: ["n:juan", "n:juancho"],
+      nameOverride: "Juancito",
+    });
+
+    const co = await topCoPlayers("alice");
+    const juancito = co.filter((c) => c.name === "Juancito");
+    expect(juancito).toHaveLength(1);
+    expect(juancito[0].numPlays).toBe(3);
+    // Ya no aparecen como entradas separadas.
+    expect(co.some((c) => c.name === "Juancho")).toBe(false);
   });
 });
 

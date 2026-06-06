@@ -36,6 +36,27 @@ describe("<ComunidadCompaneros>", () => {
     expect(screen.getByText("Invitado").closest("a")).toBeNull();
   });
 
+  it("muestra el avatar curado del overlay para un compañero no-miembro", async () => {
+    server.use(
+      http.get("/api/bgg/comunidad/companeros/:user", () =>
+        HttpResponse.json({
+          coPlayers: [
+            {
+              name: "Juancito",
+              username: "",
+              numPlays: 5,
+              user: null,
+              avatar: { url: "http://x/a.webp", publicId: "p" },
+            },
+          ],
+        }),
+      ),
+    );
+    renderComp();
+    expect(await screen.findByText("Juancito")).toBeInTheDocument();
+    expect(document.querySelector('img[src="http://x/a.webp"]')).toBeTruthy();
+  });
+
   it("no renderiza nada si no hay compañeros", async () => {
     server.use(
       http.get("/api/bgg/comunidad/companeros/:user", () =>

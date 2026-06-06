@@ -37,6 +37,15 @@ export default function ComunidadCompaneros({ bggUsername }) {
             <>
               {c.user ? (
                 <Avatar user={c.user} size="xs" />
+              ) : c.avatar?.url ? (
+                <Avatar
+                  user={{
+                    _id: c.username || c.name,
+                    displayName: c.name,
+                    avatar: c.avatar,
+                  }}
+                  size="xs"
+                />
               ) : (
                 <span className={styles.lbDot} aria-hidden="true" />
               )}

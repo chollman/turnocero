@@ -36,6 +36,10 @@ const User = require("../../models/User");
 const Community = require("../../models/Community");
 const { resolveGamesBatch } = require("./bggResolve");
 const { computePlayedCoPlayers } = require("./bggAggregations");
+const {
+  loadOverlayIndex,
+  applyOverlayToCoPlayers,
+} = require("./bggPlayerOverlay");
 
 // Expresión $reduce reutilizable: dado un doc de BggPlay, resuelve si el
 // LOGGER (su propio bggUsername) ganó esa partida. Devuelve true/false si se
@@ -478,7 +482,12 @@ async function communityStreaks({ bggUsernames = null, limit = 20 } = {}) {
 // es miembro. Los no-miembros (o jugadores sin username BGG) quedan con
 // `user: null` y se muestran por nombre.
 async function topCoPlayers(lowerBggUsername, { limit = 12 } = {}) {
-  const all = await computePlayedCoPlayers(lowerBggUsername);
+  const raw = await computePlayedCoPlayers(lowerBggUsername);
+  // Aplicar el overlay de curación: nombres editados y compañeros fusionados
+  // se reflejan en "Con quién juega más" (mismo criterio que la lista de
+  // Jugadores y el selector mis-jugadores).
+  const overlayIndex = await loadOverlayIndex(lowerBggUsername);
+  const all = applyOverlayToCoPlayers(raw, overlayIndex);
   all.sort(
     (a, b) =>
       b.numPlays - a.numPlays ||
@@ -493,6 +502,7 @@ async function topCoPlayers(lowerBggUsername, { limit = 12 } = {}) {
     username: c.username,
     numPlays: c.numPlays,
     lastPlayedDate: c.lastPlayedDate,
+    avatar: c.avatar || null,
     user: c.username ? userMap.get(c.username.toLowerCase()) || null : null,
   }));
 }
