@@ -190,6 +190,33 @@ select {
   }
 }
 
+/* ── Espacio liberado por el sidebar al contraerse ──────────────────────────
+   El sidebar de escritorio mide 280px (expandido) y 76px (contraído) → libera
+   204px. `.appShell` es flex y `.appContent` es flex:1, así que ese ancho pasa
+   automáticamente al área de contenido; PERO las secciones con un `max-width`
+   a nivel de página (Mesas, Eventos, Compartidas, etc.) lo dejaban como gutter
+   vacío. Cada una de esas suma `var(--sidebar-freed)` a su cap para crecer
+   exactamente lo que el sidebar liberó, en lockstep con su animación de ancho.
+   `@property` permite que el calc() de cada cap transicione suavemente. */
+@property --sidebar-freed {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+:root {
+  --sidebar-freed: 0px;
+}
+
+@media (min-width: 960px) {
+  html {
+    transition: --sidebar-freed 0.22s ease;
+  }
+  html[data-sidebar-collapsed="true"] {
+    --sidebar-freed: 204px;
+  }
+}
+
 /* App shell — sidebar + content */
 .appShell {
   display: flex;

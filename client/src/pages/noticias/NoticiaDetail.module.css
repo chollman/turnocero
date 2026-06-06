@@ -10,7 +10,7 @@
 }
 
 .inner {
-  max-width: 780px;
+  max-width: calc(780px + var(--sidebar-freed));
   margin: 0 auto;
   padding: 0 var(--page-padding) 0 var(--page-padding-left);
   display: flex;

@@ -240,6 +240,7 @@ describe("<Sidebar>", () => {
   describe("collapse toggle (desktop)", () => {
     afterEach(() => {
       localStorage.clear();
+      document.documentElement.removeAttribute("data-sidebar-collapsed");
     });
 
     it("renders a collapse toggle button (expanded by default)", () => {
@@ -277,6 +278,45 @@ describe("<Sidebar>", () => {
       expect(
         screen.getByRole("button", { name: /expandir barra lateral/i }),
       ).toBeInTheDocument();
+    });
+
+    // Cada sección reclama el espacio liberado vía `html[data-sidebar-collapsed]`
+    // + la variable CSS `--sidebar-freed`. El Sidebar es la fuente de verdad del
+    // atributo (sólo se monta logueado), así que verificamos el reflejo.
+    it("reflects the collapse state onto <html> (data-sidebar-collapsed)", () => {
+      const root = document.documentElement;
+      setup();
+      // Expanded by default → no attribute (content keeps its base width).
+      expect(root.hasAttribute("data-sidebar-collapsed")).toBe(false);
+      fireEvent.click(
+        screen.getByRole("button", { name: /contraer barra lateral/i }),
+      );
+      expect(root.getAttribute("data-sidebar-collapsed")).toBe("true");
+      // Expanding again clears it.
+      fireEvent.click(
+        screen.getByRole("button", { name: /expandir barra lateral/i }),
+      );
+      expect(root.hasAttribute("data-sidebar-collapsed")).toBe(false);
+    });
+
+    it("sets the html attribute on mount when persisted collapsed", () => {
+      localStorage.setItem("turnocero_sidebar_collapsed", "true");
+      setup();
+      expect(
+        document.documentElement.getAttribute("data-sidebar-collapsed"),
+      ).toBe("true");
+    });
+
+    it("removes the html attribute on unmount (e.g. logout → GuestSidebar)", () => {
+      localStorage.setItem("turnocero_sidebar_collapsed", "true");
+      const { unmount } = setup();
+      expect(
+        document.documentElement.hasAttribute("data-sidebar-collapsed"),
+      ).toBe(true);
+      unmount();
+      expect(
+        document.documentElement.hasAttribute("data-sidebar-collapsed"),
+      ).toBe(false);
     });
   });
 });

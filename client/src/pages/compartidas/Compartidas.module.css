@@ -21,7 +21,7 @@
   grid-template-columns: 1fr 320px;
   gap: 0.75rem;
   align-items: start;
-  max-width: 1180px;
+  max-width: calc(1180px + var(--sidebar-freed));
 }
 
 .feedCol {

@@ -26,6 +26,19 @@
           var t = localStorage.getItem("turnocero_theme");
           if (t !== "dark" && t !== "light") t = "dark";
           document.documentElement.setAttribute("data-theme", t);
+          // Colapso del sidebar: reaplicar antes de hidratar para que el ancho
+          // del contenido no salte (narrow→wide) en el primer paint. Sólo aplica
+          // si hay sesión (el sidebar colapsable existe únicamente logueado; un
+          // invitado ve el GuestSidebar de ancho fijo).
+          if (
+            localStorage.getItem("token") &&
+            localStorage.getItem("turnocero_sidebar_collapsed") === "true"
+          ) {
+            document.documentElement.setAttribute(
+              "data-sidebar-collapsed",
+              "true",
+            );
+          }
           // Skin de comunidad: reaplicar antes de hidratar para evitar el flash
           // base→skin. CommunityContext persiste { slug, css } en localStorage.
           var s = localStorage.getItem("turnocero_skin");

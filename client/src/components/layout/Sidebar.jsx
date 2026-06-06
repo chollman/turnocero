@@ -337,6 +337,18 @@ export default function Sidebar({ open = false, onClose }) {
     }
   }, [collapsed]);
 
+  // Reflejar el colapso en <html> para que CADA sección pueda reclamar el
+  // espacio que el sidebar deja libre al contraerse (ver `--sidebar-freed` en
+  // index.css). El Sidebar sólo se monta para usuarios autenticados fuera de las
+  // auth pages, así que el atributo es la fuente de verdad: se limpia al
+  // desmontar (logout / pantalla de login / vista de invitado con GuestSidebar).
+  useEffect(() => {
+    const root = document.documentElement;
+    if (collapsed) root.setAttribute("data-sidebar-collapsed", "true");
+    else root.removeAttribute("data-sidebar-collapsed");
+    return () => root.removeAttribute("data-sidebar-collapsed");
+  }, [collapsed]);
+
   const toggleCollapsed = () => {
     setCollapsed((c) => !c);
     setConfirmingLogout(false);
