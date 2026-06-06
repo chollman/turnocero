@@ -205,6 +205,12 @@ describe("<JugadoresPanel>", () => {
     const pedro = await within(dialog).findByText("Pedro");
     fireEvent.click(pedro.closest("button"));
 
+    // Regresión: el modal de selección se oculta al abrir la confirmación,
+    // para que su backdrop no tape (z-index) al ConfirmActionModal.
+    await waitFor(() =>
+      expect(screen.queryByText("Fusionar jugador")).toBeNull(),
+    );
+
     // Confirmar en el ConfirmActionModal (scopeado por su título plural).
     const confirmTitle = await screen.findByText("Fusionar jugadores");
     fireEvent.click(
