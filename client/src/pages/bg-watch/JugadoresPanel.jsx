@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
 import EmptyState from "../../components/shared/EmptyState";
@@ -39,11 +38,6 @@ function rowAvatarUser(row) {
  * Montado solo para dueño/admin (gate en BgWatchProfile).
  */
 export default function JugadoresPanel({ bggUsername }) {
-  const { user } = useAuth();
-  const isOwner =
-    !!user?.bggUsername &&
-    user.bggUsername.toLowerCase() === (bggUsername || "").toLowerCase();
-
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -226,7 +220,6 @@ export default function JugadoresPanel({ bggUsername }) {
         <EditPlayerModal
           bggUsername={bggUsername}
           player={editing}
-          isOwner={isOwner}
           onClose={(changed) => {
             setEditing(null);
             if (changed) reload();
@@ -249,7 +242,7 @@ export default function JugadoresPanel({ bggUsername }) {
 }
 
 // ── Editar jugador (nombre / @BGG / avatar) ────────────────────────────────
-function EditPlayerModal({ bggUsername, player, isOwner, onClose }) {
+function EditPlayerModal({ bggUsername, player, onClose }) {
   const [name, setName] = useState(player.name || "");
   const [bgg, setBgg] = useState(player.username || "");
   const [avatar, setAvatar] = useState(player.avatar || null);
@@ -433,34 +426,33 @@ function EditPlayerModal({ bggUsername, player, isOwner, onClose }) {
           </div>
         </div>
 
-        {/* @BGG — solo el dueño puede reasignar (reescribe en BGG) */}
-        {isOwner && (
-          <div>
-            <label className={styles.fieldLabel}>Usuario de BoardGameGeek</label>
-            <div className={styles.editInlineRow}>
-              <input
-                type="text"
-                className={styles.modalInput}
-                placeholder="@usuario"
-                value={bgg}
-                onChange={(e) => setBgg(e.target.value)}
-                maxLength={50}
-              />
-              <button
-                type="button"
-                className={styles.btnPrimary}
-                onClick={reassignBgg}
-                disabled={busy === "bgg"}
-              >
-                {busy === "bgg" ? "Reasignando…" : "Reasignar"}
-              </button>
-            </div>
-            <p className={styles.dimText}>
-              Esto reescribe todas las partidas donde aparece este jugador en
-              BoardGameGeek. Puede tardar unos segundos.
-            </p>
+        {/* @BGG — vínculo local, no reescribe el histórico en BGG. */}
+        <div>
+          <label className={styles.fieldLabel}>Usuario de BoardGameGeek</label>
+          <div className={styles.editInlineRow}>
+            <input
+              type="text"
+              className={styles.modalInput}
+              placeholder="@usuario"
+              value={bgg}
+              onChange={(e) => setBgg(e.target.value)}
+              maxLength={50}
+            />
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              onClick={reassignBgg}
+              disabled={busy === "bgg"}
+            >
+              {busy === "bgg" ? "Vinculando…" : "Vincular"}
+            </button>
           </div>
-        )}
+          <p className={styles.dimText}>
+            Se aplica en TurnoCero a toda la historia de este jugador. No
+            modifica las partidas ya cargadas en BoardGameGeek; las nuevas que
+            cargues sí van a usar este usuario.
+          </p>
+        </div>
 
         {msg && <p className={styles.editOk}>{msg}</p>}
         {err && <p className={styles.editErr}>{err}</p>}

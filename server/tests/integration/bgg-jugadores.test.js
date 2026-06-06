@@ -207,23 +207,16 @@ describe("BGG jugadores — curación del roster", () => {
     });
   });
 
-  // ── PATCH bgg-username (write-back) ──────────────────────────────────
+  // ── PATCH bgg-username (overlay local, sin write-back) ───────────────
   describe("PATCH /api/bgg/jugadores/:bggUsername/bgg-username", () => {
-    it("rewrites every affected play on BGG and re-keys the overlay", async () => {
+    it("vincula el @BGG localmente sin tocar BGG y re-keya el overlay", async () => {
       const { token } = await createOwner();
       await seedPlay(100, [{ name: "Juan", username: "" }]);
       await seedPlay(200, [{ name: "Juan", username: "" }]);
-
-      const fetchSpy = makeFetchMock({
-        login: loginResponse(),
-        geekplay: geekplayResponse(),
-        plays: [
-          playsXmlResponse([{ id: 100, date: "2026-01-01", gameId: 174430 }]),
-          playsXmlResponse([{ id: 200, date: "2026-01-01", gameId: 174430 }]),
-        ],
-        thing: thingXmlResponse(),
+      // Si tocara BGG, este fetch tiraría — debe quedar sin usar.
+      global.fetch = vi.fn(() => {
+        throw new Error("no debería contactar BGG");
       });
-      global.fetch = fetchSpy;
 
       const res = await request(app)
         .patch("/api/bgg/jugadores/alice/bgg-username")
@@ -231,53 +224,38 @@ describe("BGG jugadores — curación del roster", () => {
         .send({ rawKeys: ["n:juan"], bggUsername: "juanbgg" });
 
       expect(res.status).toBe(200);
-      expect(res.body.rewritten).toBe(2);
-      expect(res.body.failed).toEqual([]);
+      expect(res.body.player.username).toBe("juanbgg");
+      expect(global.fetch).not.toHaveBeenCalled();
 
-      // geekplay called once per play, with the new username in the body.
-      const geekplayCalls = fetchSpy.mock.calls.filter((c) =>
-        String(c[0]).includes("/geekplay.php"),
-      );
-      expect(geekplayCalls).toHaveLength(2);
-      expect(String(geekplayCalls[0][1].body)).toContain(
-        "username%5D=juanbgg",
-      );
+      // Las partidas en Mongo (espejo de BGG) NO se modifican.
+      const plays = await BggPlay.find({ bggUsername: "alice" }).lean();
+      for (const p of plays) {
+        expect((p.players[0].username || "")).toBe("");
+      }
 
       const overlay = await BggPlayerOverlay.findOne({ ownerUsername: "alice" });
       expect(overlay.bggUsername).toBe("juanbgg");
       expect(overlay.rawKeys).toContain("u:juanbgg");
-      expect(overlay.rawKeys).not.toContain("n:juan");
+      // Conserva la key por-nombre para que el vínculo aplique al histórico.
+      expect(overlay.rawKeys).toContain("n:juan");
     });
 
-    it("reports partial failure when one play fails to verify", async () => {
+    it("se refleja al leer las partidas (sin reescribir el espejo)", async () => {
       const { token } = await createOwner();
-      await seedPlay(100, [{ name: "Juan", username: "" }]);
-      await seedPlay(200, [{ name: "Juan", username: "" }]);
-
-      global.fetch = makeFetchMock({
-        login: loginResponse(),
-        geekplay: geekplayResponse(),
-        // play 100 verifies; play 200 stays empty on both attempts.
-        plays: [
-          playsXmlResponse([{ id: 100, date: "2026-01-01", gameId: 174430 }]),
-          emptyPlaysResponse(),
-          emptyPlaysResponse(),
-        ],
-        thing: thingXmlResponse(),
-      });
-
-      const res = await request(app)
+      await seedPlay(1, [{ name: "Juan", username: "" }]);
+      await request(app)
         .patch("/api/bgg/jugadores/alice/bgg-username")
         .set(authHeader(token))
         .send({ rawKeys: ["n:juan"], bggUsername: "juanbgg" });
 
-      expect(res.status).toBe(200);
-      expect(res.body.rewritten).toBe(1);
-      expect(res.body.failed).toEqual(["200"]);
+      const list = await request(app).get("/api/bgg/partidas/alice");
+      const play = list.body.plays.find((p) => p.id === "1");
+      expect(play.players[0].username).toBe("juanbgg");
     });
 
-    it("403 for a non-owner (write-back needs the owner's BGG session)", async () => {
+    it("lo puede hacer un admin (no requiere sesión de BGG)", async () => {
       await createOwner();
+      await seedPlay(1, [{ name: "Juan", username: "" }]);
       const admin = await createAuthedUser({
         bggUsername: "adm",
         isAdmin: true,
@@ -285,6 +263,16 @@ describe("BGG jugadores — curación del roster", () => {
       const res = await request(app)
         .patch("/api/bgg/jugadores/alice/bgg-username")
         .set(authHeader(admin.token))
+        .send({ rawKeys: ["n:juan"], bggUsername: "juanbgg" });
+      expect(res.status).toBe(200);
+    });
+
+    it("403 para un no-dueño no-admin", async () => {
+      await createOwner();
+      const { token: other } = await createAuthedUser({ bggUsername: "zoe" });
+      const res = await request(app)
+        .patch("/api/bgg/jugadores/alice/bgg-username")
+        .set(authHeader(other))
         .send({ rawKeys: ["n:juan"], bggUsername: "juanbgg" });
       expect(res.status).toBe(403);
     });
