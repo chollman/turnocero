@@ -59,13 +59,16 @@ export default function BgWatchProfile() {
     [navigate, bggUsername],
   );
   const handlePlayDelete = useCallback((play) => setDeletingPlay(play), []);
-  // "Cargar otra" del mismo juego: deep-link al form prefijando el juego.
+  // "Cargar otra" del mismo juego: deep-link al form prefijando el juego, con
+  // `volver` a la tab actual (para no caer en la vista por-juego al volver).
   const handlePlayLogAnother = useCallback(
     (play) =>
       navigate(
-        `/bg-watch/${bggUsername}/partidas/nueva?juego=${play.gameId}`,
+        `/bg-watch/${bggUsername}/partidas/nueva?juego=${play.gameId}&volver=${encodeURIComponent(
+          location.pathname,
+        )}`,
       ),
-    [navigate, bggUsername],
+    [navigate, bggUsername, location.pathname],
   );
 
   // Small separate userMap fetch for the open play's players (PartidasPanel keeps
@@ -118,7 +121,11 @@ export default function BgWatchProfile() {
               type="button"
               className={styles.newPlayBtn}
               onClick={() =>
-                navigate(`/bg-watch/${bggUsername}/partidas/nueva`)
+                navigate(
+                  `/bg-watch/${bggUsername}/partidas/nueva?volver=${encodeURIComponent(
+                    location.pathname,
+                  )}`,
+                )
               }
             >
               + Nueva partida

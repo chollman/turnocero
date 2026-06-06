@@ -3,6 +3,7 @@ import axios from "axios";
 import { API } from "../../api/endpoints";
 import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
+import EmptyState from "../../components/shared/EmptyState";
 import SearchRowSkeleton from "./SearchRowSkeleton";
 import styles from "./BgWatchProfile.module.css";
 
@@ -183,10 +184,12 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
           {loading && items.length === 0 && <SearchRowSkeleton rows={4} />}
 
           {isEmpty && !term && (
-            <p className={styles.dimText}>
-              Todavía no usaste ninguna ubicación. Escribí una arriba para
-              agregarla.
-            </p>
+            <EmptyState
+              variant="filtered"
+              compact
+              title="Sin ubicaciones aún"
+              text="Escribí una arriba para agregarla."
+            />
           )}
 
           {(items.length > 0 || showCreate) && (

@@ -66,3 +66,17 @@ export function sortPlayersByScoreDesc(players = []) {
     .sort(cmp)
     .map((i) => players[i]);
 }
+
+// Marca `win=true` para el/los jugador/es con el puntaje numérico más alto (los
+// empates comparten la victoria) y `false` para el resto. Si NINGÚN jugador
+// tiene score numérico, devuelve el roster intacto (no pisa el toggle manual de
+// "Ganó"). NO muta el input.
+export function assignWinsByScore(players = []) {
+  const nums = players.map(numericScore);
+  const max = nums.reduce(
+    (m, n) => (n !== null && (m === null || n > m) ? n : m),
+    null,
+  );
+  if (max === null) return players;
+  return players.map((p, i) => ({ ...p, win: nums[i] === max }));
+}

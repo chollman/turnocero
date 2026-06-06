@@ -77,9 +77,12 @@ Estas son las mejoras que quedaron sugeridas para encarar después.
 
 ### 8. Preview enriquecido — ✅ HECHO (ver Estado)
 
-### Extras menores
+### Extras menores — ✅ HECHO
 
-- Empty states de los pickers con el componente compartido `<EmptyState>`
-  (hoy usan texto plano).
-- Al volver del form, respetar la tab/origen de donde se vino (parcialmente
-  hecho: vuelve a la vista por-juego si se entró con `?juego`).
+- [x] **Empty states de los pickers con `<EmptyState>`** — `MyGamesPicker`,
+  `LocationPicker` y `PlayerPicker` usan `<EmptyState variant="filtered" compact>`
+  en vez de `<p>` de texto plano (distingue "sin datos" vs "sin coincidencias").
+- [x] **Respetar la tab/origen al volver** — los deep-links pasan un param
+  `volver=<ruta>` (colección → tab colección; "cargar otra" / FAB → la tab
+  actual); `CreatePlay.goBack` lo usa (validado: solo rutas `/bg-watch/...`, si
+  no cae al fallback por-juego/perfil).

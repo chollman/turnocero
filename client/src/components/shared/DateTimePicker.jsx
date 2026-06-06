@@ -136,8 +136,25 @@ function formatMonthYear(d) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// ── Date-only helpers (modo `dateOnly`) ──────────────────────────────
+// "YYYY-MM-DD" → Date local a medianoche. `new Date("YYYY-MM-DD")` parsea en
+// UTC y puede correrse un día según la zona horaria; por eso parseamos los
+// componentes a mano.
+function parseDateOnly(str) {
+  if (!str) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+function toDateOnly(date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
 // ── Preview trigger format ───────────────────────────────────────────
-function formatTrigger(date) {
+function capFirst(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function formatDayPart(date) {
   const weekday = date
     .toLocaleDateString("es-AR", { weekday: "short" })
     .replace(".", "");
@@ -145,9 +162,10 @@ function formatTrigger(date) {
   const month = date
     .toLocaleDateString("es-AR", { month: "short" })
     .replace(".", "");
-  const hh = pad2(date.getHours());
-  const mm = pad2(date.getMinutes());
-  return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)} ${day} ${month.charAt(0).toUpperCase() + month.slice(1)} · ${hh}:${mm}`;
+  return `${capFirst(weekday)} ${day} ${capFirst(month)}`;
+}
+function formatTrigger(date) {
+  return `${formatDayPart(date)} · ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 }
 
 // ── Component ────────────────────────────────────────────────────────
@@ -178,13 +196,30 @@ export default function DateTimePicker({
   id,
   name,
   required = false,
+  // `dateOnly`: sin selector de hora; value/onChange usan "YYYY-MM-DD".
+  dateOnly = false,
+  // `allowPast`: permite elegir fechas pasadas (default false — el picker
+  // bloquea el pasado porque suele agendar eventos futuros).
+  allowPast = false,
+  // `maxDate`: Date o "YYYY-MM-DD" — bloquea fechas posteriores (ej. hoy, para
+  // que una partida no quede en el futuro).
+  maxDate = null,
 }) {
   const [open, setOpen] = useState(false);
   const [openUpward, setOpenUpward] = useState(false);
   const wrapperRef = useRef(null);
   const triggerRef = useRef(null);
 
-  const selectedDate = useMemo(() => parseLocalInputValue(value), [value]);
+  const selectedDate = useMemo(
+    () => (dateOnly ? parseDateOnly(value) : parseLocalInputValue(value)),
+    [value, dateOnly],
+  );
+  const maxDateObj = useMemo(() => {
+    if (!maxDate) return null;
+    const d = maxDate instanceof Date ? new Date(maxDate) : parseDateOnly(maxDate);
+    if (d) d.setHours(0, 0, 0, 0);
+    return d;
+  }, [maxDate]);
 
   // Mes visible en el calendar. Sincroniza con `value` cuando se elige uno nuevo.
   const [viewMonth, setViewMonth] = useState(() => {
@@ -227,6 +262,11 @@ export default function DateTimePicker({
   };
 
   const handleDayClick = (date) => {
+    if (dateOnly) {
+      onChange?.(toDateOnly(date));
+      setOpen(false);
+      return;
+    }
     setDateAndTime(date, currentHour, currentMinute);
   };
 
@@ -254,8 +294,12 @@ export default function DateTimePicker({
   };
 
   const triggerLabel = selectedDate
-    ? formatTrigger(selectedDate)
-    : "Elegí fecha y hora";
+    ? dateOnly
+      ? formatDayPart(selectedDate)
+      : formatTrigger(selectedDate)
+    : dateOnly
+      ? "Elegí fecha"
+      : "Elegí fecha y hora";
 
   return (
     <div className={styles.wrapper} ref={wrapperRef}>
@@ -290,7 +334,7 @@ export default function DateTimePicker({
         <div
           className={`${styles.popover} ${openUpward ? styles.popoverUp : ""}`}
           role="dialog"
-          aria-label="Seleccionar fecha y hora"
+          aria-label={dateOnly ? "Seleccionar fecha" : "Seleccionar fecha y hora"}
         >
           {/* Month nav */}
           <div className={styles.monthNav}>
@@ -330,6 +374,8 @@ export default function DateTimePicker({
               const isSelected = isSameDate(d.date, selectedDate);
               const isToday = isSameDate(d.date, today);
               const isPast = d.date < today;
+              const isAfterMax = !!maxDateObj && d.date > maxDateObj;
+              const isDisabled = (!allowPast && isPast) || isAfterMax;
               return (
                 <button
                   type="button"
@@ -340,11 +386,11 @@ export default function DateTimePicker({
                     d.isOtherMonth ? styles.otherMonth : "",
                     isSelected ? styles.daySelected : "",
                     isToday ? styles.dayToday : "",
-                    isPast ? styles.dayPast : "",
+                    isDisabled ? styles.dayPast : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
-                  disabled={isPast}
+                  disabled={isDisabled}
                   onClick={() => handleDayClick(d.date)}
                   aria-label={d.date.toLocaleDateString("es-AR", {
                     weekday: "long",
@@ -360,45 +406,48 @@ export default function DateTimePicker({
             })}
           </div>
 
-          {/* Time picker */}
-          <div className={styles.timeRow}>
-            <span className={styles.timeIcon} aria-hidden="true">
-              <ClockIcon />
-            </span>
-            <select
-              className={styles.timeSelect}
-              value={currentHour}
-              onChange={(e) => handleHourChange(Number(e.target.value))}
-              aria-label="Hora"
-            >
-              {Array.from({ length: 24 }, (_, h) => (
-                <option key={h} value={h}>
-                  {pad2(h)}
-                </option>
-              ))}
-            </select>
-            <span className={styles.timeSep}>:</span>
-            <select
-              className={styles.timeSelect}
-              value={currentMinute}
-              onChange={(e) => handleMinuteChange(Number(e.target.value))}
-              aria-label="Minutos"
-            >
-              {[0, 15, 30, 45].map((m) => (
-                <option key={m} value={m}>
-                  {pad2(m)}
-                </option>
-              ))}
-            </select>
-            <span className={styles.timeUnit}>hs</span>
-            <button
-              type="button"
-              className={styles.doneBtn}
-              onClick={() => setOpen(false)}
-            >
-              Listo
-            </button>
-          </div>
+          {/* Time picker — oculto en modo `dateOnly` (en ese modo elegir un día
+              ya emite el value y cierra el popover). */}
+          {!dateOnly && (
+            <div className={styles.timeRow}>
+              <span className={styles.timeIcon} aria-hidden="true">
+                <ClockIcon />
+              </span>
+              <select
+                className={styles.timeSelect}
+                value={currentHour}
+                onChange={(e) => handleHourChange(Number(e.target.value))}
+                aria-label="Hora"
+              >
+                {Array.from({ length: 24 }, (_, h) => (
+                  <option key={h} value={h}>
+                    {pad2(h)}
+                  </option>
+                ))}
+              </select>
+              <span className={styles.timeSep}>:</span>
+              <select
+                className={styles.timeSelect}
+                value={currentMinute}
+                onChange={(e) => handleMinuteChange(Number(e.target.value))}
+                aria-label="Minutos"
+              >
+                {[0, 15, 30, 45].map((m) => (
+                  <option key={m} value={m}>
+                    {pad2(m)}
+                  </option>
+                ))}
+              </select>
+              <span className={styles.timeUnit}>hs</span>
+              <button
+                type="button"
+                className={styles.doneBtn}
+                onClick={() => setOpen(false)}
+              >
+                Listo
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

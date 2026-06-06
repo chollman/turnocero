@@ -183,7 +183,7 @@ describe("<LocationPicker>", () => {
     render(<LocationPicker bggUsername="alice" onPick={vi.fn()} />);
     openDropdown();
     expect(
-      await screen.findByText(/todavía no usaste ninguna ubicación/i),
+      await screen.findByText(/sin ubicaciones aún/i),
     ).toBeInTheDocument();
   });
 });

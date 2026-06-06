@@ -16,6 +16,9 @@ export default function CreatePlay() {
   const { bggUsername } = useParams();
   const [searchParams] = useSearchParams();
   const gameId = searchParams.get("juego") || null;
+  // De dónde se entró al form, para volver ahí (tab/origen). Solo se acepta una
+  // ruta interna de BG Watch (evita redirects raros).
+  const volver = searchParams.get("volver");
   const navigate = useNavigate();
   const { user } = useAuth();
   const { addToast } = useNotifications();
@@ -74,7 +77,8 @@ export default function CreatePlay() {
   }, [canCreate, bggUsername]);
 
   const goBack = () => {
-    if (gameId) navigate(`/bg-watch/${bggUsername}/juego/${gameId}`);
+    if (volver && volver.startsWith("/bg-watch/")) navigate(volver);
+    else if (gameId) navigate(`/bg-watch/${bggUsername}/juego/${gameId}`);
     else navigate(`/bg-watch/${bggUsername}`);
   };
 

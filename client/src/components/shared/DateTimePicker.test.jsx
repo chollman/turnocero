@@ -222,3 +222,52 @@ describe("<DateTimePicker>", () => {
     expect(trigger.tagName).toBe("BUTTON");
   });
 });
+
+describe("<DateTimePicker> — modo dateOnly", () => {
+  it("muestra 'Elegí fecha' y oculta el selector de hora", () => {
+    render(<DateTimePicker dateOnly value="" onChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Elegí fecha" }));
+    expect(screen.queryByLabelText("Hora")).toBeNull();
+    expect(screen.queryByLabelText("Minutos")).toBeNull();
+  });
+
+  it("el label muestra solo la fecha (sin HH:MM)", () => {
+    render(<DateTimePicker dateOnly value="2026-06-13" onChange={() => {}} />);
+    const btn = screen.getByRole("button");
+    expect(btn).toHaveTextContent(/13/);
+    expect(btn).not.toHaveTextContent(/:/);
+  });
+
+  it("elegir un día emite 'YYYY-MM-DD' y cierra el popover", () => {
+    const onChange = vi.fn();
+    render(
+      <DateTimePicker
+        dateOnly
+        allowPast
+        value="2026-06-13"
+        onChange={onChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    fireEvent.click(screen.getByRole("gridcell", { name: /10 de junio/i }));
+    expect(onChange).toHaveBeenCalledWith("2026-06-10");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("maxDate deshabilita los días posteriores (no los anteriores)", () => {
+    render(
+      <DateTimePicker
+        dateOnly
+        allowPast
+        maxDate="2026-06-15"
+        value="2026-06-13"
+        onChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    expect(screen.getByRole("gridcell", { name: /20 de junio/i })).toBeDisabled();
+    expect(
+      screen.getByRole("gridcell", { name: /10 de junio/i }),
+    ).not.toBeDisabled();
+  });
+});

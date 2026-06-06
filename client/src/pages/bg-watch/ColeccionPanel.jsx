@@ -195,7 +195,9 @@ export default function ColeccionPanel({
                 index={i}
                 logPlayHref={
                   canCreate
-                    ? `/bg-watch/${bggUsername}/partidas/nueva?juego=${game.id}`
+                    ? `/bg-watch/${bggUsername}/partidas/nueva?juego=${game.id}&volver=${encodeURIComponent(
+                        `/bg-watch/${bggUsername}/coleccion`,
+                      )}`
                     : null
                 }
               />
