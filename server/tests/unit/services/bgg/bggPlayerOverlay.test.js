@@ -1,0 +1,145 @@
+const {
+  rawKeyFor,
+  sanitizeRawKeys,
+  applyOverlayToCoPlayers,
+  applyOverlayToPlayers,
+  overlayToRow,
+} = require("../../../../services/bgg/bggPlayerOverlay");
+
+// Build a minimal index { byKey } from a list of overlay-like objects.
+function indexOf(overlays) {
+  const byKey = new Map();
+  for (const o of overlays) {
+    for (const k of o.rawKeys) byKey.set(k, o);
+  }
+  return { byKey, overlays };
+}
+
+describe("bggPlayerOverlay — pure helpers", () => {
+  describe("rawKeyFor", () => {
+    it("keys by username (lowercased) when present", () => {
+      expect(rawKeyFor({ name: "Juan", username: "JuanBGG" })).toBe(
+        "u:juanbgg",
+      );
+    });
+    it("falls back to name (lowercased) without a username", () => {
+      expect(rawKeyFor({ name: "  Juan  ", username: "" })).toBe("n:juan");
+    });
+  });
+
+  describe("sanitizeRawKeys", () => {
+    it("keeps well-formed keys, lowercases and dedupes", () => {
+      expect(
+        sanitizeRawKeys(["U:Juan", "n:pedro", "n:pedro", "garbage", 42, null]),
+      ).toEqual(["u:juan", "n:pedro"]);
+    });
+    it("returns [] for non-arrays", () => {
+      expect(sanitizeRawKeys("nope")).toEqual([]);
+    });
+  });
+
+  describe("applyOverlayToCoPlayers", () => {
+    it("passes unclaimed rows through as singletons", () => {
+      const rows = [
+        { name: "Juan", username: "", numPlays: 3, lastPlayedDate: "2026-01-01" },
+      ];
+      const out = applyOverlayToCoPlayers(rows, indexOf([]));
+      expect(out).toHaveLength(1);
+      expect(out[0]).toMatchObject({
+        name: "Juan",
+        username: "",
+        numPlays: 3,
+        rawKeys: ["n:juan"],
+        overlayId: null,
+      });
+    });
+
+    it("folds rows claimed by one overlay into a single curated row", () => {
+      const overlay = {
+        _id: "ov1",
+        rawKeys: ["n:juan", "u:juanbgg"],
+        nameOverride: "Juancito",
+        bggUsername: "juanbgg",
+        avatar: { url: "http://img/a.webp", publicId: "p" },
+      };
+      const rows = [
+        { name: "Juan", username: "", numPlays: 2, lastPlayedDate: "2026-01-01" },
+        {
+          name: "Juan",
+          username: "juanbgg",
+          numPlays: 3,
+          lastPlayedDate: "2026-03-01",
+        },
+      ];
+      const out = applyOverlayToCoPlayers(rows, indexOf([overlay]));
+      expect(out).toHaveLength(1);
+      expect(out[0]).toMatchObject({
+        name: "Juancito",
+        username: "juanbgg",
+        numPlays: 5,
+        lastPlayedDate: "2026-03-01",
+        overlayId: "ov1",
+      });
+      expect(out[0].avatar).toEqual({ url: "http://img/a.webp", publicId: "p" });
+      expect(out[0].rawKeys).toEqual(["n:juan", "u:juanbgg"]);
+    });
+  });
+
+  describe("applyOverlayToPlayers", () => {
+    it("applies name/username/avatar overrides to matching players", () => {
+      const overlay = {
+        _id: "ov1",
+        rawKeys: ["n:juan"],
+        nameOverride: "Juancito",
+        bggUsername: "juanbgg",
+        avatar: { url: "http://img/a.webp", publicId: "p" },
+      };
+      const players = [
+        { name: "Juan", username: "", score: "10" },
+        { name: "Pedro", username: "", score: "5" },
+      ];
+      const out = applyOverlayToPlayers(players, indexOf([overlay]));
+      expect(out[0]).toMatchObject({
+        name: "Juancito",
+        username: "juanbgg",
+        score: "10",
+      });
+      expect(out[0].overlayAvatar).toEqual({
+        url: "http://img/a.webp",
+        publicId: "p",
+      });
+      // Unclaimed player untouched.
+      expect(out[1]).toMatchObject({ name: "Pedro", username: "" });
+      expect(out[1].overlayAvatar).toBeUndefined();
+    });
+  });
+
+  describe("overlayToRow", () => {
+    it("derives effective name/username and link flags", () => {
+      const overlay = {
+        _id: "ov1",
+        rawKeys: ["n:juan", "u:juanbgg"],
+        nameOverride: "Juancito",
+        bggUsername: "juanbgg",
+        avatar: { url: "", publicId: "" },
+      };
+      const row = overlayToRow(overlay, null);
+      expect(row).toMatchObject({
+        overlayId: "ov1",
+        name: "Juancito",
+        username: "juanbgg",
+        isLinked: false,
+        canEditNameAvatar: true,
+        avatar: null,
+      });
+    });
+
+    it("marks linked rows as not editable", () => {
+      const overlay = { _id: "ov2", rawKeys: ["u:juanbgg"], avatar: {} };
+      const row = overlayToRow(overlay, { _id: "u1", username: "juan" });
+      expect(row.isLinked).toBe(true);
+      expect(row.canEditNameAvatar).toBe(false);
+      expect(row.linkedUser).toMatchObject({ _id: "u1" });
+    });
+  });
+});

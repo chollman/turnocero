@@ -564,14 +564,17 @@ export default function PlayForm({
                 <div key={i} className={bg.playerEditRow}>
                   <PositionBadge position={positions[i]} />
                   <div className={bg.playerEditFields}>
-                    <input
-                      type="text"
-                      className={bg.modalInput}
-                      placeholder="Nombre"
-                      value={p.name}
-                      onChange={(e) => updatePlayer(i, "name", e.target.value)}
-                      maxLength={100}
-                    />
+                    {/* Identidad (nombre + @BGG) fija: se elige desde el picker.
+                        Para cambiarla se usa la pestaña "Jugadores" del perfil. */}
+                    <span className={bg.playerEditName}>
+                      {p.name || p.username}
+                      {p.username && (
+                        <span className={bg.playerEditHandle}>
+                          {" "}
+                          @{p.username}
+                        </span>
+                      )}
+                    </span>
                     <div className={styles.scoreCell}>
                       <button
                         type="button"
@@ -600,20 +603,6 @@ export default function PlayForm({
                         +
                       </button>
                     </div>
-                    <input
-                      type="text"
-                      className={bg.modalInputSmall}
-                      placeholder="@BGG (opcional)"
-                      value={p.username}
-                      onChange={(e) =>
-                        updatePlayer(
-                          i,
-                          "username",
-                          e.target.value.replace(/^@/, ""),
-                        )
-                      }
-                      maxLength={50}
-                    />
                     <button
                       type="button"
                       className={`${bg.iconToggle} ${p.win ? bg.iconToggleActive : ""}`}

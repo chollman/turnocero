@@ -57,6 +57,16 @@ export const API = {
       `/api/bgg/mis-ubicaciones/${enc(bggUsername)}`,
     MIS_JUGADORES: (bggUsername) =>
       `/api/bgg/mis-jugadores/${enc(bggUsername)}`,
+    // Curación del roster ("Jugadores" tab — dueño/admin)
+    JUGADORES: (bggUsername) => `/api/bgg/jugadores/${enc(bggUsername)}`,
+    JUGADOR_NOMBRE: (bggUsername) =>
+      `/api/bgg/jugadores/${enc(bggUsername)}/nombre`,
+    JUGADOR_BGG: (bggUsername) =>
+      `/api/bgg/jugadores/${enc(bggUsername)}/bgg-username`,
+    JUGADOR_AVATAR: (bggUsername) =>
+      `/api/bgg/jugadores/${enc(bggUsername)}/avatar`,
+    JUGADOR_MERGE: (bggUsername) =>
+      `/api/bgg/jugadores/${enc(bggUsername)}/merge`,
     ULTIMA_JUNTADA: (bggUsername) =>
       `/api/bgg/ultima-juntada/${enc(bggUsername)}`,
     JUGADO: (bggUsername, gameId) =>

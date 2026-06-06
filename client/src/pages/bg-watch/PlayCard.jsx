@@ -58,7 +58,20 @@ function PlayerChip({ player, turnoceroUser }) {
           ✨
         </span>
       )}
-      {turnoceroUser && <Avatar user={turnoceroUser} size="xs" />}
+      {turnoceroUser ? (
+        <Avatar user={turnoceroUser} size="xs" />
+      ) : (
+        player.overlayAvatar?.url && (
+          <Avatar
+            user={{
+              _id: player.username || player.name,
+              displayName: name,
+              avatar: player.overlayAvatar,
+            }}
+            size="xs"
+          />
+        )
+      )}
       <span className={styles.playerName}>{name}</span>
       {hasDisplayableScore(player.score) && (
         <span className={styles.playerScore}>{player.score}</span>

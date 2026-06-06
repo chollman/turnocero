@@ -13,6 +13,7 @@ const httpError = require("../utils/httpError");
 const { parsePagination } = require("../utils/paginate");
 const { escapeRegex } = require("../utils/regex");
 const { isSameId } = require("../utils/idCompare");
+const { resolveUsersByBggUsernames } = require("../services/userLookup");
 const { isSectionEnabled } = require("../utils/siteConfig");
 const communityService = require("../services/communityService");
 
@@ -263,37 +264,7 @@ router.post(
   "/by-bgg-usernames",
   asyncHandler(async (req, res) => {
     const raw = Array.isArray(req.body?.usernames) ? req.body.usernames : [];
-    const lowered = [
-      ...new Set(
-        raw
-          .filter((u) => typeof u === "string" && u.trim().length > 0)
-          .map((u) => u.trim().toLowerCase()),
-      ),
-    ].slice(0, 50);
-
-    if (lowered.length === 0) return res.json([]);
-
-    const users = await User.aggregate([
-      {
-        $match: {
-          bggUsername: { $exists: true, $nin: [null, ""] },
-          isBanned: { $ne: true },
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          username: 1,
-          displayName: 1,
-          avatar: 1,
-          bggUsername: 1,
-          _lower: { $toLower: "$bggUsername" },
-        },
-      },
-      { $match: { _lower: { $in: lowered } } },
-      { $project: { _lower: 0 } },
-    ]);
-
+    const users = await resolveUsersByBggUsernames(raw, { cap: 50 });
     res.json(users);
   }),
 );

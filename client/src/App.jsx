@@ -546,6 +546,14 @@ export function AppRoutes({ transition }) {
               }
             />
             <Route
+              path="/bg-watch/:bggUsername/jugadores"
+              element={
+                <SectionGate section="bgwatch">
+                  <BgWatchProfile />
+                </SectionGate>
+              }
+            />
+            <Route
               path="/bg-watch/:bggUsername/juego/:gameId"
               element={
                 <SectionGate section="bgwatch">
