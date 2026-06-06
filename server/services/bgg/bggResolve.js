@@ -88,7 +88,13 @@ async function resolveGame(gameId) {
   if (cached) return cached;
 
   const doc = await BggGame.findOne({ gameId: id }).lean();
-  if (doc) {
+  // Backfill lazy: los docs persistidos ANTES de agregar `playingTime` no
+  // tienen el campo (lean no aplica defaults → `undefined`). Como BggGame no
+  // tiene TTL (data inmutable), nunca se refrescarían — así que si falta el
+  // campo, tratamos el doc como stale y re-fetcheamos para poblar el tiempo de
+  // caja. Los docs nuevos sin tiempo declarado tienen `playingTime: null` (no
+  // undefined) y NO re-fetchean.
+  if (doc && doc.playingTime !== undefined) {
     const game = gameDocToObject(doc);
     setCached(`game:${id}`, game);
     return game;
