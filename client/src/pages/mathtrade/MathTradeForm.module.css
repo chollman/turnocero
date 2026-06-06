@@ -4,7 +4,7 @@
 }
 .inner {
   width: 100%;
-  max-width: 720px;
+  max-width: calc(720px + var(--sidebar-freed));
 }
 .back {
   color: var(--text-muted);

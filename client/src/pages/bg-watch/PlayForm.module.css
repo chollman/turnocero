@@ -8,7 +8,7 @@
 
 .page {
   position: relative;
-  max-width: 1200px;
+  max-width: calc(1200px + var(--sidebar-freed));
   margin: 0 auto;
   min-height: calc(100vh - var(--navbar-h, 64px));
   padding-inline: var(--page-padding-left) var(--page-padding);
