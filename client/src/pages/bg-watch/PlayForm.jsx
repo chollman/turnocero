@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Meeple from "../../components/shared/Meeple";
 import { API } from "../../api/endpoints";
@@ -8,6 +8,7 @@ import PlayerPicker from "./PlayerPicker";
 import PlayCard from "./PlayCard";
 import PositionBadge from "./PositionBadge";
 import useBggUserMap from "./useBggUserMap";
+import usePlayDraft, { isDraftMeaningful } from "./usePlayDraft";
 import { hasDisplayableScore } from "./playerScore";
 import {
   computePlayerPositions,
@@ -82,10 +83,20 @@ export default function PlayForm({
 }) {
   const bggUsername = user?.bggUsername;
 
+  // Borrador local (#4): habilitado solo en un form de creación EN BLANCO (sin
+  // ?juego ni roster heredado). El hook (load/save/clear) se declara acá arriba
+  // para poder limpiar el borrador al cancelar/guardar.
+  const draftEnabled =
+    !editMode && !initialValues.game && !initialValues.players?.length;
+  const { load: loadDraft, save: saveDraft, clear: clearDraft } = usePlayDraft(
+    bggUsername,
+  );
+
   // ── Exit animation (espejo de la entrada) ─────────────────────────────
   const [exiting, setExiting] = useState(false);
   const handleCancelClick = () => {
     if (submitting || exiting) return;
+    if (draftEnabled) clearDraft();
     setExiting(true);
   };
   const handlePageAnimationEnd = (e) => {
@@ -124,6 +135,8 @@ export default function PlayForm({
         ],
   );
   const [adding, setAdding] = useState(false);
+  // Duración promedio del dueño para el juego elegido (sugerencia, #5b).
+  const [suggestedDuration, setSuggestedDuration] = useState(null);
 
   const sectionRefs = {
     juego: useRef(null),
@@ -131,28 +144,99 @@ export default function PlayForm({
     extras: useRef(null),
   };
 
-  // ── Autodetección "Nuevo" para el dueño (solo al crear) ───────────────
-  const winDetectRef = useRef(0);
+  // Set estable de @BGG del roster (lowercase, dedup) — clave del effect de
+  // autodetección. Solo cambia cuando cambia el conjunto de usernames, no el
+  // flag `new` (así el setPlayers de abajo no re-dispara el effect → sin loop).
+  const usernamesKey = useMemo(
+    () =>
+      [
+        ...new Set(
+          players.map((p) => p.username.trim().toLowerCase()).filter(Boolean),
+        ),
+      ]
+        .sort()
+        .join(","),
+    [players],
+  );
+
+  // ── Autodetección "Nuevo" + duración sugerida (solo al crear) ─────────
+  // Consulta `jugado` (local, sin pegarle a BGG) para CADA @BGG del roster.
+  // Marca "Nuevo" solo con conocimiento positivo: `known && !played` (un
+  // invitado sin partidas sincronizadas — known:false — no se marca, porque no
+  // sabemos). La duración sugerida sale del promedio del dueño para ese juego.
+  const detectRef = useRef(0);
   useEffect(() => {
-    if (editMode || !game?.id || !user?.bggUsername) return;
-    const owner = user.bggUsername.toLowerCase();
-    const myId = ++winDetectRef.current;
+    if (editMode || !game?.id) return undefined;
+    const usernames = usernamesKey ? usernamesKey.split(",") : [];
+    if (!usernames.length) {
+      setSuggestedDuration(null);
+      return undefined;
+    }
+    const owner = (user?.bggUsername || "").toLowerCase();
+    const myId = ++detectRef.current;
     const ac = new AbortController();
-    axios
-      .get(API.bgg.JUGADO(user.bggUsername, game.id), { signal: ac.signal })
-      .then(({ data }) => {
-        if (myId !== winDetectRef.current) return;
-        setPlayers((arr) =>
-          arr.map((p, i) =>
-            i === 0 && (p.username || "").toLowerCase() === owner
-              ? { ...p, new: !data.played }
-              : p,
-          ),
-        );
-      })
-      .catch(() => {});
+    Promise.all(
+      usernames.map((u) =>
+        axios
+          .get(API.bgg.JUGADO(u, game.id), { signal: ac.signal })
+          .then(({ data }) => ({ u, ...data }))
+          .catch(() => null),
+      ),
+    ).then((results) => {
+      if (myId !== detectRef.current) return;
+      const map = new Map();
+      for (const r of results) if (r) map.set(r.u, r);
+      setPlayers((arr) =>
+        arr.map((p) => {
+          const key = p.username.trim().toLowerCase();
+          const r = key ? map.get(key) : null;
+          return r ? { ...p, new: !!r.known && !r.played } : p;
+        }),
+      );
+      const ownerRes = owner ? map.get(owner) : null;
+      setSuggestedDuration(ownerRes?.avgDuration || null);
+    });
     return () => ac.abort();
-  }, [game?.id, editMode, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.id, editMode, usernamesKey, user]);
+
+  // ── Borrador local (#4): persistencia + oferta de retomar ─────────────
+  // El hook y `draftEnabled` se declaran arriba (para limpiar al cancelar).
+  const [draftOffer, setDraftOffer] = useState(null);
+
+  // Al montar: ofrecer el borrador si tiene contenido (no auto-aplicar).
+  useEffect(() => {
+    if (!draftEnabled) return;
+    const d = loadDraft();
+    if (isDraftMeaningful(d)) setDraftOffer(d);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persistir el form en progreso. Salteamos el primer run para no pisar el
+  // borrador ofrecido antes de que el usuario decida (en un form en blanco no
+  // hay más renders hasta que interactúa, así que solo guarda cambios reales).
+  const skipPersistRef = useRef(true);
+  useEffect(() => {
+    if (!draftEnabled) return;
+    if (skipPersistRef.current) {
+      skipPersistRef.current = false;
+      return;
+    }
+    saveDraft({ game, details, players });
+  }, [draftEnabled, game, details, players, saveDraft]);
+
+  const restoreDraft = () => {
+    if (!draftOffer) return;
+    if (draftOffer.game) setGame(draftOffer.game);
+    if (draftOffer.details)
+      setDetails((d) => ({ ...d, ...draftOffer.details }));
+    if (draftOffer.players?.length) setPlayers(draftOffer.players);
+    setDraftOffer(null);
+  };
+  const discardDraft = () => {
+    clearDraft();
+    setDraftOffer(null);
+  };
 
   // ── Players helpers ───────────────────────────────────────────────────
   const updatePlayer = (idx, key, val) =>
@@ -246,6 +330,7 @@ export default function PlayForm({
   const handleFormSubmit = (e) => {
     e.preventDefault();
     if (!canSubmit || submitting) return;
+    if (draftEnabled) clearDraft();
     onSubmit?.({
       objectid: game.id,
       playdate: details.playdate,
@@ -314,6 +399,30 @@ export default function PlayForm({
           </span>
         </div>
       </header>
+
+      {draftOffer && (
+        <div className={styles.draftBanner} role="status">
+          <span className={styles.draftText}>
+            Tenés un borrador sin guardar de una partida.
+          </span>
+          <div className={styles.draftActions}>
+            <button
+              type="button"
+              className={styles.draftRestore}
+              onClick={restoreDraft}
+            >
+              Retomar
+            </button>
+            <button
+              type="button"
+              className={styles.draftDiscard}
+              onClick={discardDraft}
+            >
+              Descartar
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className={styles.layout}>
         <form className={styles.form} onSubmit={handleFormSubmit}>
@@ -571,6 +680,17 @@ export default function PlayForm({
                   onChange={(e) => updateDetail("length", e.target.value)}
                   placeholder="60"
                 />
+                {suggestedDuration && details.length === "" && (
+                  <button
+                    type="button"
+                    className={styles.durationSuggest}
+                    onClick={() =>
+                      updateDetail("length", String(suggestedDuration))
+                    }
+                  >
+                    Tu promedio: {suggestedDuration} min · usar
+                  </button>
+                )}
               </div>
               <div className={bg.field}>
                 <label className={bg.fieldLabel}>Cantidad</label>

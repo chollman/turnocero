@@ -43,6 +43,7 @@ function renderForm(props = {}) {
 }
 
 beforeEach(() => {
+  localStorage.clear(); // evita que un borrador (#4) contamine otros tests
   server.use(
     http.get("/api/bgg/mis-juegos/:user", () =>
       HttpResponse.json({
@@ -168,14 +169,83 @@ describe("<PlayForm>", () => {
     ).toBeInTheDocument();
   });
 
-  it("autodetecta 'Nuevo' para el dueño si nunca jugó el juego", async () => {
+  it("autodetecta 'Nuevo' para el dueño si nunca jugó el juego (known:true)", async () => {
     server.use(
       http.get("/api/bgg/jugado/:user/:gameId", () =>
-        HttpResponse.json({ played: false, numPlays: 0 }),
+        HttpResponse.json({ played: false, numPlays: 0, known: true }),
       ),
     );
     renderForm({ initialValues: { game: { id: "13", name: "Catán" } } });
     expect(await screen.findByText(/nuevo/i)).toBeInTheDocument();
+  });
+
+  it("autodetecta 'Nuevo' para un invitado conocido (known:true, !played)", async () => {
+    server.use(
+      http.get("/api/bgg/jugado/:user/:gameId", ({ params }) =>
+        // El dueño (meBGG) ya jugó; Bob es conocido y no jugó → Nuevo.
+        HttpResponse.json(
+          params.user.toLowerCase() === "bob"
+            ? { played: false, numPlays: 0, known: true }
+            : { played: true, numPlays: 3, known: true },
+        ),
+      ),
+    );
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
+    fireEvent.click((await screen.findByText("Bob")).closest("button"));
+    // Bob queda marcado "Nuevo"; el dueño no.
+    expect(await screen.findByText(/nuevo/i)).toBeInTheDocument();
+  });
+
+  it("NO marca 'Nuevo' a un invitado desconocido (known:false)", async () => {
+    server.use(
+      http.get("/api/bgg/jugado/:user/:gameId", ({ params }) =>
+        HttpResponse.json(
+          params.user.toLowerCase() === "bob"
+            ? { played: false, numPlays: 0, known: false }
+            : { played: true, numPlays: 3, known: true },
+        ),
+      ),
+    );
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
+    fireEvent.click((await screen.findByText("Bob")).closest("button"));
+    await waitFor(() =>
+      expect(screen.getByDisplayValue("Bob")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/nuevo/i)).toBeNull();
+  });
+
+  it("sugiere la duración promedio y la aplica al click (#5b)", async () => {
+    server.use(
+      http.get("/api/bgg/jugado/:user/:gameId", () =>
+        HttpResponse.json({
+          played: true,
+          numPlays: 4,
+          known: true,
+          avgDuration: 75,
+        }),
+      ),
+    );
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    const suggest = await screen.findByRole("button", {
+      name: /tu promedio: 75 min/i,
+    });
+    fireEvent.click(suggest);
+    expect(screen.getByDisplayValue("75")).toBeInTheDocument();
+    // Una vez cargada la duración, la sugerencia desaparece.
+    expect(
+      screen.queryByRole("button", { name: /tu promedio/i }),
+    ).toBeNull();
   });
 
   it("agregar jugador abre el picker y suma una fila", async () => {
@@ -352,5 +422,84 @@ describe("<PlayForm>", () => {
     // El jugador 1 ("Me", @meBGG) se resuelve a su user de TurnoCero en el
     // preview → el Avatar (mockeado) muestra su username.
     expect(await screen.findByTestId("avatar")).toHaveTextContent("meuser");
+  });
+
+  // ── Borrador local (#4) ───────────────────────────────────────────────
+  const DRAFT_KEY = "turnocero_play_draft:mebgg";
+
+  it("persiste el borrador al editar un form en blanco", async () => {
+    renderForm(); // create en blanco
+    fireEvent.change(
+      screen.getByPlaceholderText(/cómo estuvo la partida/i),
+      { target: { value: "Gran partida" } },
+    );
+    await waitFor(() => {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      expect(raw).toBeTruthy();
+      expect(JSON.parse(raw).details.comments).toBe("Gran partida");
+    });
+  });
+
+  it("ofrece retomar un borrador guardado y lo restaura", async () => {
+    localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        game: { id: "13", name: "Catán" },
+        details: { comments: "Borrador previo" },
+        players: [
+          { name: "Me", username: "meBGG", score: "", win: false, new: false },
+          { name: "Ana", username: "anabgg", score: "", win: false, new: false },
+        ],
+      }),
+    );
+    renderForm();
+    fireEvent.click(await screen.findByRole("button", { name: /retomar/i }));
+    expect(screen.getByDisplayValue("Ana")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Borrador previo")).toBeInTheDocument();
+    // El banner desaparece tras retomar.
+    expect(screen.queryByRole("button", { name: /retomar/i })).toBeNull();
+  });
+
+  it("'Descartar' limpia el borrador y oculta el banner", async () => {
+    localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({ game: { id: "13" }, details: {}, players: [] }),
+    );
+    renderForm();
+    fireEvent.click(await screen.findByRole("button", { name: /descartar/i }));
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    expect(screen.queryByRole("button", { name: /retomar/i })).toBeNull();
+  });
+
+  it("cancelar limpia el borrador", () => {
+    localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({ game: { id: "13" }, details: {}, players: [] }),
+    );
+    renderForm({ onCancel: vi.fn() });
+    fireEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it("no ofrece borrador con juego prefijado (?juego) ni en edición", () => {
+    localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({ game: { id: "99" }, details: {}, players: [] }),
+    );
+    const { unmount } = renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    expect(screen.queryByRole("button", { name: /retomar/i })).toBeNull();
+    unmount();
+    renderForm({
+      editMode: true,
+      lockedGame: true,
+      initialValues: {
+        game: { id: "13", name: "Catán" },
+        players: [{ name: "X", username: "" }],
+      },
+    });
+    expect(screen.queryByRole("button", { name: /retomar/i })).toBeNull();
   });
 });
