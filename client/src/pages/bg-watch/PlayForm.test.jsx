@@ -133,8 +133,39 @@ describe("<PlayForm>", () => {
 
   it("prefilla el jugador 1 con el usuario", () => {
     renderForm({ initialValues: { game: { id: "13", name: "Catán" } } });
-    expect(screen.getByDisplayValue("Me")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("meBGG")).toBeInTheDocument();
+    // El nombre ya no es input editable: se muestra como texto + handle @BGG.
+    expect(screen.queryByPlaceholderText("Nombre")).toBeNull();
+    expect(screen.getAllByText("Me").length).toBeGreaterThan(0);
+    expect(screen.getByText("@meBGG")).toBeInTheDocument();
+  });
+
+  it("el nombre del jugador es texto, no un input editable", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    expect(screen.queryByPlaceholderText("Nombre")).toBeNull();
+    expect(screen.getByText("@meBGG")).toBeInTheDocument();
+  });
+
+  it("no muestra el campo @BGG por jugador", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    expect(screen.queryByPlaceholderText(/@BGG/i)).toBeNull();
+  });
+
+  it("al guardar igual envía el username del jugador (elegido en el picker)", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /guardar en bgg/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0].players[0].username).toBe("meBGG");
   });
 
   it("submit arma el payload esperado", async () => {
@@ -247,7 +278,7 @@ describe("<PlayForm>", () => {
     fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
     fireEvent.click((await screen.findByText("Bob")).closest("button"));
     await waitFor(() =>
-      expect(screen.getByDisplayValue("Bob")).toBeInTheDocument(),
+      expect(screen.getAllByText("Bob").length).toBeGreaterThan(0),
     );
     expect(screen.queryByText(/nuevo/i)).toBeNull();
   });
@@ -296,11 +327,11 @@ describe("<PlayForm>", () => {
       initialValues: { game: { id: "13", name: "Catán" } },
       lockedGame: true,
     });
-    expect(screen.getAllByPlaceholderText("Nombre")).toHaveLength(1);
+    expect(screen.getAllByPlaceholderText("Score")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
     fireEvent.click((await screen.findByText("Bob")).closest("button"));
-    expect(screen.getAllByPlaceholderText("Nombre")).toHaveLength(2);
-    expect(screen.getByDisplayValue("Bob")).toBeInTheDocument();
+    expect(screen.getAllByPlaceholderText("Score")).toHaveLength(2);
+    expect(screen.getAllByText("Bob").length).toBeGreaterThan(0);
   });
 
   it("en modo edición muestra título y CTA de edición + danger zone", () => {
@@ -401,10 +432,10 @@ describe("<PlayForm>", () => {
     fireEvent.click(
       screen.getByRole("button", { name: /ordenar por puntaje/i }),
     );
-    // Bob (10) pasa a la primera fila.
-    const names = screen.getAllByPlaceholderText("Nombre");
-    expect(names[0].value).toBe("Bob");
-    expect(names[1].value).toBe("Me");
+    // Bob (10) pasa a la primera fila → su score queda primero.
+    const scoresAfter = screen.getAllByPlaceholderText("Score");
+    expect(scoresAfter[0].value).toBe("10");
+    expect(scoresAfter[1].value).toBe("5");
   });
 
   it("una fecha futura (backstop) muestra error y deshabilita el submit", () => {
@@ -438,11 +469,11 @@ describe("<PlayForm>", () => {
       },
     });
     // Arranca solo con el dueño "Me".
-    expect(screen.getAllByPlaceholderText("Nombre")).toHaveLength(1);
+    expect(screen.getAllByPlaceholderText("Score")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: /usar última juntada/i }));
-    expect(
-      screen.getAllByPlaceholderText("Nombre").map((n) => n.value),
-    ).toEqual(["Ana", "Beto"]);
+    expect(screen.getAllByPlaceholderText("Score")).toHaveLength(2);
+    expect(screen.getAllByText("Ana").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Beto").length).toBeGreaterThan(0);
     // La ubicación viajó al payload.
     fireEvent.click(screen.getByRole("button", { name: /guardar en bgg/i }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
@@ -519,7 +550,7 @@ describe("<PlayForm>", () => {
     );
     renderForm();
     fireEvent.click(await screen.findByRole("button", { name: /retomar/i }));
-    expect(screen.getByDisplayValue("Ana")).toBeInTheDocument();
+    expect(screen.getAllByText("Ana").length).toBeGreaterThan(0);
     expect(screen.getByDisplayValue("Borrador previo")).toBeInTheDocument();
     // El banner desaparece tras retomar.
     expect(screen.queryByRole("button", { name: /retomar/i })).toBeNull();

@@ -7,6 +7,7 @@ import { API } from "../../api/endpoints";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import PartidasPanel from "./PartidasPanel";
 import ColeccionPanel from "./ColeccionPanel";
+import JugadoresPanel from "./JugadoresPanel";
 import PlayDetailModal from "./PlayDetailModal";
 import StatsBar from "./StatsBar";
 import ComunidadCompaneros from "./ComunidadCompaneros";
@@ -24,7 +25,9 @@ export default function BgWatchProfile() {
   // deep-linkeables (caer directo en cada vista). Default = partidas.
   const activeTab = location.pathname.endsWith("/coleccion")
     ? "coleccion"
-    : "partidas";
+    : location.pathname.endsWith("/jugadores")
+      ? "jugadores"
+      : "partidas";
   const goToTab = (tab) =>
     navigate(`/bg-watch/${bggUsername}/${tab}`, { replace: true });
 
@@ -45,6 +48,9 @@ export default function BgWatchProfile() {
   // (no refresh button on other people's profiles). Cooldown is
   // server-enforced; admins respect it too.
   const canRefresh = isOwnProfile || !!user?.isAdmin;
+  // La pestaña "Jugadores" (curar nombres/avatares/fusiones) es solo del dueño
+  // o admin — no se muestra en perfiles ajenos.
+  const canManagePlayers = isOwnProfile || !!user?.isAdmin;
   const isGuest = !user;
 
   // Stable callbacks so panels don't refetch on every render
@@ -158,6 +164,14 @@ export default function BgWatchProfile() {
               <span className={styles.tabBadge}>{collection.length}</span>
             )}
           </button>
+          {canManagePlayers && (
+            <button
+              className={`${styles.tab} ${activeTab === "jugadores" ? styles.tabActive : ""}`}
+              onClick={() => goToTab("jugadores")}
+            >
+              Jugadores
+            </button>
+          )}
         </div>
 
         {/* Both panels mounted (preserve state when switching tabs) */}
@@ -182,6 +196,13 @@ export default function BgWatchProfile() {
             canCreate={canCreate}
           />
         </div>
+        {canManagePlayers && (
+          <div
+            style={{ display: activeTab === "jugadores" ? "block" : "none" }}
+          >
+            <JugadoresPanel bggUsername={bggUsername} />
+          </div>
+        )}
 
         {isGuest && <GuestFooter bggUsername={bggUsername} />}
       </div>

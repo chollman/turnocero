@@ -1508,6 +1508,79 @@
   min-width: 120px;
 }
 
+/* Nombre de jugador fijo (elegido desde el picker; ya no es editable inline). */
+.playerEditName {
+  flex: 1;
+  min-width: 120px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playerEditHandle {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* ─── Pestaña "Jugadores" (curación del roster) ─── */
+.sectionHelp {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.jugadorRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.jugadorRow .gameSearchInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.jugadorActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.editAvatarRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.editInlineRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.editInlineRow .modalInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.editOk {
+  color: var(--green);
+  font-size: 13px;
+  margin: 0;
+}
+
+.editErr {
+  color: var(--red);
+  font-size: 13px;
+  margin: 0;
+}
+
 /* Toggles de jugador (Ganó = trofeo, Nuevo = destellos). Inactivo neutro;
    activo se rellena con su acento. */
 .iconToggle {

@@ -8,7 +8,7 @@ const User = require("../models/User");
 const BggPlay = require("../models/BggPlay");
 const logger = require("../utils/logger");
 const { escapeRegex } = require("../utils/regex");
-const { withUserLock } = require("../utils/bggSync");
+const { withUserLock, sleep } = require("../utils/bggSync");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 
@@ -26,6 +26,13 @@ const bggMutationLimiter = userRateLimit({
   windowMs: 5 * 60 * 1000,
   max: 30, // 30 partidas creadas/editadas/borradas cada 5 min
   message: "Demasiadas operaciones sobre BGG, esperá un momento.",
+});
+// Reasignar el @BGG de un jugador reescribe TODAS sus partidas en BGG (varias
+// llamadas a geekplay con throttle interno). Límite bajo para no abusar de BGG.
+const bggBulkLimiter = userRateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 5,
+  message: "Demasiadas reasignaciones de jugadores, esperá unos minutos.",
 });
 const {
   computeGameStats,
@@ -84,6 +91,20 @@ const {
   verifyPlayOnBgg,
   upsertPlayFromBgg,
 } = require("../services/bgg/bggMutations");
+const BggPlayerOverlay = require("../models/BggPlayerOverlay");
+const { resolveUsersByBggUsernames } = require("../services/userLookup");
+const multer = require("../config/multer");
+const { uploadToCloudinary, cloudinary } = require("../config/cloudinary");
+const {
+  sanitizeRawKeys,
+  playDocToMutationBody,
+  loadOverlayIndex,
+  applyOverlayToCoPlayers,
+  applyOverlayToPlayers,
+  overlayToRow,
+  getOrCreateOverlay,
+  isLinkedToMember,
+} = require("../services/bgg/bggPlayerOverlay");
 const {
   connectedMemberUsernames,
   communityMemberUsernames,
@@ -560,7 +581,11 @@ router.get(
       maxLimit: 50,
     });
 
-    let items = await computePlayedCoPlayers(lower);
+    const rawCoPlayers = await computePlayedCoPlayers(lower);
+    // Aplicar el overlay de curación: nombres/avatares editados y duplicados
+    // fusionados se reflejan también en el selector del form de carga.
+    const overlayIndex = await loadOverlayIndex(lower);
+    let items = applyOverlayToCoPlayers(rawCoPlayers, overlayIndex);
 
     const q = (req.query.q || "").trim();
     if (q) {
@@ -577,7 +602,7 @@ router.get(
       const db = b.lastPlayedDate || "";
       if (da !== db) return db.localeCompare(da); // recencia desc
       if (a.numPlays !== b.numPlays) return b.numPlays - a.numPlays;
-      return a.name.localeCompare(b.name);
+      return (a.name || "").localeCompare(b.name || "");
     });
 
     const total = items.length;
@@ -807,11 +832,18 @@ router.get(
         gameId ? computeGameStats(lower, gameId) : Promise.resolve(undefined),
       ]);
 
+      // Reflejar el overlay de curación (nombre/avatar/fusión) en los jugadores
+      // de cada partida servida desde Mongo. Una sola lectura de overlays.
+      const overlayIndex = await loadOverlayIndex(lower);
       const response = {
         total,
         page: clientPage,
         pageSize: PAGE_SIZE,
-        plays: docs.map(playToApi),
+        plays: docs.map((d) => {
+          const api = playToApi(d);
+          api.players = applyOverlayToPlayers(api.players, overlayIndex);
+          return api;
+        }),
       };
       // Metadata de frescura para el cliente (label "Actualizado hace X"). Si
       // corrió un probe sincrónico recién, lastProbedAt es ahora.
@@ -1237,6 +1269,388 @@ router.put(
     await markUserGamesDirty(user.bggUsername);
 
     res.json({ success: true, playid: playId, play: playToApi(verified) });
+  }),
+);
+
+// ── Jugadores: curación del roster (overlay local + híbrido a BGG) ─────────
+// Pestaña "Jugadores" del perfil de BG Watch. Solo dueño/admin (salvo el
+// write-back de @BGG, que es solo dueño porque necesita su cookie de sesión).
+
+function ownerOrAdmin(req, lower) {
+  const isOwner =
+    req.user?.bggUsername && req.user.bggUsername.toLowerCase() === lower;
+  return { isOwner, allowed: isOwner || !!req.user?.isAdmin };
+}
+
+// GET /api/bgg/jugadores/:bggUsername — lista curada de jugadores de las
+// partidas del dueño, con estado de vínculo a TurnoCero. Paginada (?page,
+// ?limit, ?q). Mismo contrato que mis-jugadores + campos de curación.
+router.get(
+  "/jugadores/:bggUsername",
+  protect,
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const { allowed } = ownerOrAdmin(req, lower);
+    if (!allowed) {
+      throw httpError(403, "No podés ver los jugadores de otro usuario");
+    }
+
+    const { page, limit, skip } = parsePagination(req.query, {
+      defaultLimit: 20,
+      maxLimit: 50,
+    });
+
+    const rawCoPlayers = await computePlayedCoPlayers(lower);
+    const overlayIndex = await loadOverlayIndex(lower);
+    let items = applyOverlayToCoPlayers(rawCoPlayers, overlayIndex);
+
+    // Resolver vínculos a miembros de TurnoCero por username efectivo.
+    const linkedUsers = await resolveUsersByBggUsernames(
+      items.map((it) => it.username).filter(Boolean),
+      { cap: 500 },
+    );
+    const linkMap = new Map(
+      linkedUsers.map((u) => [u.bggUsername.toLowerCase(), u]),
+    );
+    items = items.map((it) => {
+      const linked = it.username
+        ? linkMap.get(it.username.toLowerCase()) || null
+        : null;
+      return {
+        ...it,
+        linkedUser: linked,
+        isLinked: !!linked,
+        canEditNameAvatar: !linked,
+      };
+    });
+
+    const q = (req.query.q || "").trim();
+    if (q) {
+      const needle = normalizeForSearch(q);
+      items = items.filter(
+        (it) =>
+          normalizeForSearch(it.name).includes(needle) ||
+          normalizeForSearch(it.username).includes(needle),
+      );
+    }
+
+    items.sort((a, b) => {
+      const da = a.lastPlayedDate || "";
+      const db = b.lastPlayedDate || "";
+      if (da !== db) return db.localeCompare(da);
+      if (a.numPlays !== b.numPlays) return b.numPlays - a.numPlays;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+
+    res.json({
+      items: items.slice(skip, skip + limit),
+      total: items.length,
+      page,
+      pages: Math.ceil(items.length / limit),
+    });
+  }),
+);
+
+// PATCH /api/bgg/jugadores/:bggUsername/nombre — override local del nombre.
+router.patch(
+  "/jugadores/:bggUsername/nombre",
+  protect,
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const { allowed } = ownerOrAdmin(req, lower);
+    if (!allowed) throw httpError(403, "No autorizado");
+
+    const rawKeys = sanitizeRawKeys(req.body.rawKeys);
+    const name = (req.body.name || "").trim();
+    if (!rawKeys.length) throw httpError(400, "Jugador inválido");
+    if (!name) throw httpError(400, "El nombre no puede estar vacío");
+    if (name.length > 100) throw httpError(400, "Nombre demasiado largo");
+
+    const overlay = await getOrCreateOverlay(lower, rawKeys);
+    if (await isLinkedToMember(overlay.rawKeys, overlay.bggUsername)) {
+      throw httpError(
+        409,
+        "Este jugador está vinculado a un usuario de TurnoCero; su nombre se toma de su perfil.",
+      );
+    }
+    overlay.nameOverride = name;
+    await overlay.save();
+    res.json({ player: overlayToRow(overlay, null) });
+  }),
+);
+
+// PATCH /api/bgg/jugadores/:bggUsername/bgg-username — híbrido: reescribe las
+// partidas afectadas en BGG y re-keya el overlay. Solo dueño (su cookie BGG).
+router.patch(
+  "/jugadores/:bggUsername/bgg-username",
+  protect,
+  bggBulkLimiter,
+  asyncHandler(async (req, res) => {
+    const user = req.user;
+    const lower = req.params.bggUsername.toLowerCase();
+    const isOwner =
+      user.bggUsername && user.bggUsername.toLowerCase() === lower;
+    if (!isOwner) {
+      throw httpError(
+        403,
+        "Solo el dueño puede reasignar el usuario BGG (requiere su sesión de BGG).",
+      );
+    }
+
+    const rawKeys = sanitizeRawKeys(req.body.rawKeys);
+    if (!rawKeys.length) throw httpError(400, "Jugador inválido");
+    const newHandle = (req.body.bggUsername || "").trim().replace(/^@/, "");
+    if (
+      !newHandle ||
+      newHandle.length > 50 ||
+      !/^[A-Za-z0-9_\- .]+$/.test(newHandle)
+    ) {
+      throw httpError(400, "Usuario de BGG inválido");
+    }
+    if (newHandle.toLowerCase() === lower) {
+      throw httpError(400, "Ese es tu propio usuario de BGG");
+    }
+
+    const usernameMatches = rawKeys
+      .filter((k) => k.startsWith("u:"))
+      .map((k) => k.slice(2));
+    const nameMatches = rawKeys
+      .filter((k) => k.startsWith("n:"))
+      .map((k) => k.slice(2));
+
+    const plays = await BggPlay.find({ bggUsername: lower }).lean();
+    const affected = plays.filter((play) =>
+      (play.players || []).some((p) => {
+        const u = (p.username || "").trim().toLowerCase();
+        if (u) return usernameMatches.includes(u);
+        const n = (p.name || "").trim().toLowerCase();
+        return nameMatches.includes(n);
+      }),
+    );
+
+    const { rewritten, failed } = await withUserLock(
+      user.bggUsername,
+      async () => {
+        const ok = [];
+        const ko = [];
+        for (const play of affected) {
+          const body = playDocToMutationBody(
+            play,
+            usernameMatches,
+            nameMatches,
+            newHandle,
+          );
+          try {
+            const form = buildPlayForm(body, play.playId);
+            await submitToGeekplay(user, form, "PUT");
+            const verified = await verifyPlayOnBgg(
+              user.bggUsername,
+              play.playId,
+              { gameId: play.gameId, playdate: play.date },
+            );
+            if (!verified) {
+              ko.push(play.playId);
+            } else {
+              await upsertPlayFromBgg(user.bggUsername, verified);
+              ok.push(play.playId);
+            }
+          } catch (e) {
+            logger.warn("[bgg/jugadores] rewrite failed", {
+              playId: play.playId,
+              error: e.message,
+            });
+            ko.push(play.playId);
+          }
+          await sleep(700);
+        }
+        return { rewritten: ok, failed: ko };
+      },
+    );
+
+    clearPartidasCache(user.bggUsername);
+    await markUserGamesDirty(user.bggUsername);
+
+    // Si había partidas para reescribir y NINGUNA se confirmó, no re-keyamos.
+    if (affected.length > 0 && rewritten.length === 0) {
+      throw httpError(
+        502,
+        "BGG no confirmó la reasignación. Intentá de nuevo.",
+      );
+    }
+
+    // Re-keyar el overlay: sacar las keys n: reescritas, agregar u:<newHandle>.
+    const newKey = `u:${newHandle.toLowerCase()}`;
+    let overlay = await getOrCreateOverlay(lower, rawKeys);
+    const keptKeys = overlay.rawKeys.filter(
+      (k) => k.startsWith("u:") || !nameMatches.includes(k.slice(2)),
+    );
+    overlay.rawKeys = [...new Set([...keptKeys, newKey])];
+    overlay.bggUsername = newHandle;
+    await overlay.save();
+
+    // Auto-merge si otro overlay ya reclama u:<newHandle> (el existente gana).
+    let merged = false;
+    const existing = await BggPlayerOverlay.findOne({
+      ownerUsername: lower,
+      _id: { $ne: overlay._id },
+      rawKeys: newKey,
+    });
+    if (existing) {
+      const set = new Set(existing.rawKeys);
+      for (const k of overlay.rawKeys) set.add(k);
+      existing.rawKeys = [...set];
+      if (!existing.bggUsername) existing.bggUsername = newHandle;
+      if (!existing.nameOverride && overlay.nameOverride) {
+        existing.nameOverride = overlay.nameOverride;
+      }
+      if (!existing.avatar?.url && overlay.avatar?.url) {
+        existing.avatar = overlay.avatar;
+      }
+      await existing.save();
+      await BggPlayerOverlay.deleteOne({ _id: overlay._id });
+      overlay = existing;
+      merged = true;
+    }
+
+    const linked = await resolveUsersByBggUsernames([newHandle], { cap: 1 });
+    res.json({
+      rewritten: rewritten.length,
+      failed,
+      merged,
+      player: overlayToRow(overlay, linked[0] || null),
+    });
+  }),
+);
+
+// PUT /api/bgg/jugadores/:bggUsername/avatar — avatar local (multipart).
+router.put(
+  "/jugadores/:bggUsername/avatar",
+  protect,
+  multer.single("avatar"),
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const { allowed } = ownerOrAdmin(req, lower);
+    if (!allowed) throw httpError(403, "No autorizado");
+    if (!req.file) throw httpError(400, "Imagen requerida");
+
+    let rawKeys;
+    try {
+      rawKeys = sanitizeRawKeys(JSON.parse(req.body.rawKeys || "[]"));
+    } catch {
+      rawKeys = [];
+    }
+    if (!rawKeys.length) throw httpError(400, "Jugador inválido");
+
+    const overlay = await getOrCreateOverlay(lower, rawKeys);
+    if (await isLinkedToMember(overlay.rawKeys, overlay.bggUsername)) {
+      throw httpError(
+        409,
+        "Este jugador está vinculado a un usuario de TurnoCero; usa su avatar de TurnoCero.",
+      );
+    }
+
+    const result = await uploadToCloudinary(req.file.buffer, {
+      folder: `turnocero/bgg-players/${req.user._id}`,
+      public_id: String(overlay._id),
+      overwrite: true,
+      format: "webp",
+      transformation: [
+        { width: 400, height: 400, crop: "fill", gravity: "face" },
+        { quality: "auto" },
+      ],
+    });
+    overlay.avatar = { url: result.secure_url, publicId: result.public_id };
+    await overlay.save();
+    res.json({ player: overlayToRow(overlay, null) });
+  }),
+);
+
+// DELETE /api/bgg/jugadores/:bggUsername/avatar — quitar avatar local.
+router.delete(
+  "/jugadores/:bggUsername/avatar",
+  protect,
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const { allowed } = ownerOrAdmin(req, lower);
+    if (!allowed) throw httpError(403, "No autorizado");
+    const rawKeys = sanitizeRawKeys(req.body.rawKeys);
+    if (!rawKeys.length) throw httpError(400, "Jugador inválido");
+
+    const overlay = await BggPlayerOverlay.findOne({
+      ownerUsername: lower,
+      rawKeys: { $in: rawKeys },
+    });
+    if (overlay?.avatar?.publicId) {
+      await cloudinary.uploader
+        .destroy(overlay.avatar.publicId)
+        .catch(() => {});
+    }
+    if (overlay) {
+      overlay.avatar = { url: "", publicId: "" };
+      await overlay.save();
+    }
+    res.json({ player: overlay ? overlayToRow(overlay, null) : null });
+  }),
+);
+
+// POST /api/bgg/jugadores/:bggUsername/merge — fusionar source dentro de target.
+router.post(
+  "/jugadores/:bggUsername/merge",
+  protect,
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const { allowed } = ownerOrAdmin(req, lower);
+    if (!allowed) throw httpError(403, "No autorizado");
+
+    const targetKeys = sanitizeRawKeys(req.body.targetRawKeys);
+    const sourceKeys = sanitizeRawKeys(req.body.sourceRawKeys);
+    if (!targetKeys.length || !sourceKeys.length) {
+      throw httpError(400, "Jugadores inválidos");
+    }
+    if (targetKeys.some((k) => sourceKeys.includes(k))) {
+      throw httpError(400, "No podés fusionar un jugador consigo mismo");
+    }
+
+    const target = await getOrCreateOverlay(lower, targetKeys);
+    const source = await BggPlayerOverlay.findOne({
+      ownerUsername: lower,
+      rawKeys: { $in: sourceKeys },
+    });
+
+    const set = new Set(target.rawKeys);
+    for (const k of sourceKeys) set.add(k);
+    if (source) for (const k of source.rawKeys) set.add(k);
+    target.rawKeys = [...set];
+    if (source) {
+      if (!target.nameOverride && source.nameOverride) {
+        target.nameOverride = source.nameOverride;
+      }
+      if (!target.bggUsername && source.bggUsername) {
+        target.bggUsername = source.bggUsername;
+      }
+      if (!target.avatar?.url && source.avatar?.url) {
+        target.avatar = source.avatar;
+      }
+    }
+    await target.save();
+    if (source && String(source._id) !== String(target._id)) {
+      await BggPlayerOverlay.deleteOne({ _id: source._id });
+    }
+
+    const linked = await isLinkedToMember(target.rawKeys, target.bggUsername)
+      ? (
+          await resolveUsersByBggUsernames(
+            [
+              target.bggUsername,
+              ...target.rawKeys
+                .filter((k) => k.startsWith("u:"))
+                .map((k) => k.slice(2)),
+            ].filter(Boolean),
+            { cap: 50 },
+          )
+        )[0]
+      : null;
+    res.json({ player: overlayToRow(target, linked || null) });
   }),
 );
 
