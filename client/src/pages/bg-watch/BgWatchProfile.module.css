@@ -1581,6 +1581,39 @@
   margin: 0;
 }
 
+/* Badge "sos vos" en una fila de jugador. */
+.playerTagSelf {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--purple-15);
+  color: var(--purple);
+}
+
+/* Opción destacada "Sos vos" en el modal de fusión. */
+.selfMergeBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px dashed var(--border-amber, var(--amber));
+  border-radius: 10px;
+  background: var(--amber-10);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.selfMergeBtn:hover {
+  background: var(--amber-15);
+}
+
 /* Toggles de jugador (Ganó = trofeo, Nuevo = destellos). Inactivo neutro;
    activo se rellena con su acento. */
 .iconToggle {

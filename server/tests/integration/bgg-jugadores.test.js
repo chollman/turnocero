@@ -373,6 +373,66 @@ describe("BGG jugadores — curación del roster", () => {
     });
   });
 
+  // ── "Sos vos" (isSelf) ───────────────────────────────────────────────
+  describe("POST /api/bgg/jugadores/:bggUsername/yo-mismo", () => {
+    it("marca un jugador como el dueño: lo lista con flag y lo excluye del picker", async () => {
+      const { token } = await createOwner();
+      await seedPlay(1, [
+        { name: "Ale", username: "" },
+        { name: "Ana", username: "" },
+      ]);
+
+      const res = await request(app)
+        .post("/api/bgg/jugadores/alice/yo-mismo")
+        .set(authHeader(token))
+        .send({ rawKeys: ["n:ale"], value: true });
+      expect(res.status).toBe(200);
+      expect(res.body.player.isSelf).toBe(true);
+
+      // La pestaña Jugadores lo muestra con el flag (para poder deshacer).
+      const list = await request(app)
+        .get("/api/bgg/jugadores/alice")
+        .set(authHeader(token));
+      const ale = list.body.items.find((i) => i.name === "Ale");
+      expect(ale.isSelf).toBe(true);
+
+      // El selector de carga (mis-jugadores) lo excluye.
+      const picker = await request(app).get("/api/bgg/mis-jugadores/alice");
+      expect(picker.body.items.some((i) => i.name === "Ale")).toBe(false);
+      expect(picker.body.items.some((i) => i.name === "Ana")).toBe(true);
+    });
+
+    it("desmarca con value:false", async () => {
+      const { token } = await createOwner();
+      await seedPlay(1, [{ name: "Ale", username: "" }]);
+      await BggPlayerOverlay.create({
+        ownerUsername: "alice",
+        rawKeys: ["n:ale"],
+        isSelf: true,
+      });
+
+      const res = await request(app)
+        .post("/api/bgg/jugadores/alice/yo-mismo")
+        .set(authHeader(token))
+        .send({ rawKeys: ["n:ale"], value: false });
+      expect(res.status).toBe(200);
+      expect(res.body.player.isSelf).toBe(false);
+
+      const picker = await request(app).get("/api/bgg/mis-jugadores/alice");
+      expect(picker.body.items.some((i) => i.name === "Ale")).toBe(true);
+    });
+
+    it("403 para un no-dueño no-admin", async () => {
+      await createOwner();
+      const { token: other } = await createAuthedUser({ bggUsername: "zoe" });
+      const res = await request(app)
+        .post("/api/bgg/jugadores/alice/yo-mismo")
+        .set(authHeader(other))
+        .send({ rawKeys: ["n:ale"], value: true });
+      expect(res.status).toBe(403);
+    });
+  });
+
   // ── Overlay reflected on read paths ──────────────────────────────────
   describe("overlay reflected on read paths", () => {
     it("mis-jugadores reflects a name override + merge", async () => {

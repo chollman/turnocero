@@ -226,6 +226,51 @@ describe("<JugadoresPanel>", () => {
     });
   });
 
+  it("marcar 'sos vos' desde el modal de fusión", async () => {
+    let body = null;
+    server.use(
+      http.post("/api/bgg/jugadores/:user/yo-mismo", async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ player: juan({ isSelf: true }) });
+      }),
+    );
+    renderPanel();
+    const mergeButtons = await screen.findAllByRole("button", {
+      name: /fusionar/i,
+    });
+    fireEvent.click(mergeButtons[0]);
+
+    // Elegir la opción especial "Sos vos" en el modal.
+    fireEvent.click(await screen.findByRole("button", { name: /sos vos/i }));
+    // Confirmar.
+    fireEvent.click(await screen.findByRole("button", { name: /sí, soy yo/i }));
+
+    await waitFor(() => expect(body).toBeTruthy());
+    expect(body).toEqual({ rawKeys: ["n:juan"], value: true });
+  });
+
+  it("una fila marcada como vos muestra el badge y permite deshacer", async () => {
+    let body = null;
+    server.use(
+      http.get("/api/bgg/jugadores/:user", () =>
+        listResponse([juan({ isSelf: true })]),
+      ),
+      http.post("/api/bgg/jugadores/:user/yo-mismo", async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ player: juan({ isSelf: false }) });
+      }),
+    );
+    renderPanel();
+    await screen.findByText("Juan");
+    expect(screen.getByText(/sos vos/i)).toBeInTheDocument();
+    // No se ofrece editar/fusionar para "vos".
+    expect(screen.queryByRole("button", { name: /^editar$/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /ya no soy yo/i }));
+    await waitFor(() => expect(body).toBeTruthy());
+    expect(body).toEqual({ rawKeys: ["n:juan"], value: false });
+  });
+
   it("muestra vacío cuando no hay jugadores", async () => {
     server.use(
       http.get("/api/bgg/jugadores/:user", () => listResponse([])),

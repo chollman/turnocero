@@ -67,6 +67,8 @@ export const API = {
       `/api/bgg/jugadores/${enc(bggUsername)}/avatar`,
     JUGADOR_MERGE: (bggUsername) =>
       `/api/bgg/jugadores/${enc(bggUsername)}/merge`,
+    JUGADOR_YO_MISMO: (bggUsername) =>
+      `/api/bgg/jugadores/${enc(bggUsername)}/yo-mismo`,
     ULTIMA_JUNTADA: (bggUsername) =>
       `/api/bgg/ultima-juntada/${enc(bggUsername)}`,
     JUGADO: (bggUsername, gameId) =>

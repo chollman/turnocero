@@ -30,6 +30,10 @@ const overlaySchema = new mongoose.Schema(
     rawKeys: { type: [String], default: [] },
     nameOverride: { type: String, default: null },
     bggUsername: { type: String, default: null },
+    // Marca que este jugador es en realidad el dueño del perfil (registrado con
+    // otro nombre). Local-only: lo excluye de los rankings de compañeros y lo
+    // muestra como el dueño en las partidas. No toca BGG.
+    isSelf: { type: Boolean, default: false },
     avatar: {
       url: { type: String, default: "" },
       publicId: { type: String, default: "" },

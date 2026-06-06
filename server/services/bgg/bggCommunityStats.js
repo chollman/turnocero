@@ -487,7 +487,7 @@ async function topCoPlayers(lowerBggUsername, { limit = 12 } = {}) {
   // se reflejan en "Con quién juega más" (mismo criterio que la lista de
   // Jugadores y el selector mis-jugadores).
   const overlayIndex = await loadOverlayIndex(lowerBggUsername);
-  const all = applyOverlayToCoPlayers(raw, overlayIndex);
+  const all = applyOverlayToCoPlayers(raw, overlayIndex, { excludeSelf: true });
   all.sort(
     (a, b) =>
       b.numPlays - a.numPlays ||

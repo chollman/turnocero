@@ -92,7 +92,11 @@ async function loadOverlayIndex(lowerOwner) {
 
 // Collapse computePlayedCoPlayers output through the overlay index: rows claimed
 // by the same overlay fold into one curated row; unclaimed rows pass through.
-function applyOverlayToCoPlayers(coPlayers, index) {
+// With `excludeSelf`, rows flagged as the profile owner (isSelf) are dropped —
+// used by the co-player rankings (mis-jugadores, topCoPlayers) where the owner
+// shouldn't appear. The curation list passes excludeSelf:false so it can show
+// them with a badge + an "undo" affordance.
+function applyOverlayToCoPlayers(coPlayers, index, { excludeSelf = false } = {}) {
   const groups = new Map();
   for (const cp of coPlayers) {
     const key = rawKeyFor(cp);
@@ -125,38 +129,43 @@ function applyOverlayToCoPlayers(coPlayers, index) {
       g._hasUsernameRow = true;
     }
   }
-  return [...groups.values()].map((g) => {
-    const overlay = g.overlay;
-    const effUsername = (
-      overlay?.bggUsername ||
-      g.username ||
-      ""
-    ).trim();
-    const effName =
-      (overlay?.nameOverride || g.name || effUsername || "").trim();
-    return {
-      key: overlay ? `o:${overlay._id}` : `k:${rawKeyFor(g)}`,
-      overlayId: overlay ? String(overlay._id) : null,
-      rawKeys: g.rawKeys,
-      name: effName,
-      username: effUsername,
-      numPlays: g.numPlays,
-      lastPlayedDate: g.lastPlayedDate,
-      avatar: overlay?.avatar?.url
-        ? { url: overlay.avatar.url, publicId: overlay.avatar.publicId }
-        : null,
-    };
-  });
+  return [...groups.values()]
+    .filter((g) => !(excludeSelf && g.overlay?.isSelf))
+    .map((g) => {
+      const overlay = g.overlay;
+      const effUsername = (overlay?.bggUsername || g.username || "").trim();
+      const effName =
+        (overlay?.nameOverride || g.name || effUsername || "").trim();
+      return {
+        key: overlay ? `o:${overlay._id}` : `k:${rawKeyFor(g)}`,
+        overlayId: overlay ? String(overlay._id) : null,
+        rawKeys: g.rawKeys,
+        name: effName,
+        username: effUsername,
+        numPlays: g.numPlays,
+        lastPlayedDate: g.lastPlayedDate,
+        isSelf: !!overlay?.isSelf,
+        avatar: overlay?.avatar?.url
+          ? { url: overlay.avatar.url, publicId: overlay.avatar.publicId }
+          : null,
+      };
+    });
 }
 
 // Apply curated name/username/avatar to a single play's players[] (playToApi
 // shape). Linked (TurnoCero member) players are still resolved client-side via
 // useBggUserMap, which takes precedence over these fields, so "TurnoCero wins".
-function applyOverlayToPlayers(players, index) {
+// A player flagged isSelf is shown as the profile owner: its username is set to
+// `ownerLower` so the client resolves it to the owner's TurnoCero profile.
+function applyOverlayToPlayers(players, index, { ownerLower = null } = {}) {
   return (players || []).map((p) => {
     const overlay = index.byKey.get(rawKeyFor(p));
     if (!overlay) return p;
     const next = { ...p };
+    if (overlay.isSelf && ownerLower) {
+      next.username = ownerLower;
+      return next;
+    }
     if (overlay.nameOverride) next.name = overlay.nameOverride;
     if (overlay.bggUsername) next.username = overlay.bggUsername;
     if (overlay.avatar?.url) next.overlayAvatar = overlay.avatar;
@@ -182,6 +191,7 @@ function overlayToRow(overlay, linkedUser) {
     avatar: overlay.avatar?.url
       ? { url: overlay.avatar.url, publicId: overlay.avatar.publicId }
       : null,
+    isSelf: !!overlay.isSelf,
     linkedUser: linkedUser || null,
     isLinked: !!linkedUser,
     canEditNameAvatar: !linkedUser,
