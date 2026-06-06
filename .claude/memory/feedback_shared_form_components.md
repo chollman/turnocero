@@ -46,6 +46,14 @@ Picker custom con popover propio — **NO usa el `<input type="datetime-local">`
 
 **Auto-posicionamiento up/down**: al abrir, mide `triggerRef.getBoundingClientRect()` y `window.innerHeight`. Si no entra abajo (`spaceBelow < POPOVER_HEIGHT_PX`) Y hay más espacio arriba, aplica clase `.popoverUp` (anclado al `bottom: calc(100% + 6px)`).
 
+**Modo `dateOnly` + restricciones de fecha (2026-06)**: props opt-in, backward-compatible (defaults preservan el comportamiento datetime de Mesas/Eventos/Torneos):
+
+- `dateOnly` — oculta la time row; `value`/`onChange` usan `"YYYY-MM-DD"` (parseado como fecha **LOCAL** para evitar el off-by-one de `new Date("YYYY-MM-DD")`, que parsea en UTC). Elegir un día emite y cierra el popover. Trigger: "Vie 13 Jun" / "Elegí fecha".
+- `allowPast` — por **default el picker BLOQUEA días pasados** (está pensado para agendar eventos futuros). Pasalo para permitir el pasado (ej. cargar una partida YA jugada en BG Watch).
+- `maxDate` (Date | "YYYY-MM-DD") — deshabilita días posteriores (ej. `hoy`, para que una partida no quede en el futuro).
+
+Combinación BG Watch (`PlayForm`): `dateOnly allowPast maxDate={hoy}`. Mantené la validación JS backstop (un value futuro puede llegar por borrador restaurado / initialValues).
+
 **Compatibilidad con forms**:
 
 - Trigger lleva el `id` principal (es labellable como `<button>`).

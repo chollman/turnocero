@@ -309,12 +309,15 @@ POST   /api/auth/bgg-connect                    — validate BGG password and st
 DELETE /api/auth/bgg-connection                 — remove stored BGG credentials
 
 GET    /api/bgg/search?q=                       — game name search (top 15, sorted by year)
-GET    /api/bgg/game/:id                        — game details (cached 30 min)
+GET    /api/bgg/game/:id                        — game details (cached 30 min; incl. playingTime/min/maxPlayTime = box time)
 GET    /api/bgg/coleccion/:bggUsername          — full collection with ratings + numPlays
 GET    /api/bgg/partidas/:bggUsername           — plays (?page, ?mindate, ?maxdate, ?id)
 POST   /api/bgg/partidas                        — log a play (auth + bggConnected)
 PUT    /api/bgg/partidas/:playId                — edit a play (auth + bggConnected)
 DELETE /api/bgg/partidas/:playId                — delete a play (auth + bggConnected)
+GET    /api/bgg/jugado/:bggUsername/:gameId     — { played, numPlays, known } ("Nuevo" autodetect; local)
+GET    /api/bgg/ultima-juntada/:bggUsername     — last play's roster + location (play-form prefill)
+GET    /api/bgg/mis-juegos|mis-ubicaciones|mis-jugadores/:bggUsername — paginated play-form pickers
 
 GET    /api/tables                              — paginated (?page, ?limit, ?search)
 GET    /api/tables/mine
@@ -647,6 +650,8 @@ User profile flow:
 - `/perfil` has a "Conexión con BoardGameGeek" section to connect/disconnect the BGG account. Endpoints: `POST /api/auth/bgg-connect`, `DELETE /api/auth/bgg-connection`.
 - `User.bggCredentials` (subdocument) is excluded from `toJSON`; only derived flags `bggConnected`, `bggInvalid`, `bggConnectedAt` are exposed to clients.
 - Changing `bggUsername` automatically clears stored credentials.
+
+**Carga/edición de partidas (`PlayForm`)** — full-page form at `/bg-watch/:user/partidas/nueva` (accepts `?juego=<id>` + `?volver=<ruta>`) and `/.../partidas/:playId/editar` ([PlayForm.jsx](client/src/pages/bg-watch/PlayForm.jsx) + `CreatePlay`/`EditPlay`). Plan (100% done): [plans/bg-watch-carga-partidas-mejoras.md](plans/bg-watch-carga-partidas-mejoras.md); see also the memory note `project_bg_watch_play_form`. Highlights: position derived from score (`playerPositions.js`, competition ranking + cyberpunk glitch on change); **win auto-assigned to the highest score** (`assignWinsByScore`); date via the shared `<DateTimePicker dateOnly allowPast maxDate={today}>`; **duration suggestion = BGG's box `playingTime`** (from `/game/:id`, lazily backfilled — NOT a real average); guest "Nuevo" autodetect only with positive knowledge (`known && !played`); local draft (`usePlayDraft`); "Usar última juntada" prefill; deep-links from collection/PlayCard. The "Cantidad" (BGG `quantity`) field was removed (still preserved on edit). Pickers (`MyGamesPicker`/`LocationPicker`/`PlayerPicker`) use `<EmptyState>`.
 
 ## Testing
 
