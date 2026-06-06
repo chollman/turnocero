@@ -8,7 +8,7 @@ const User = require("../models/User");
 const BggPlay = require("../models/BggPlay");
 const logger = require("../utils/logger");
 const { escapeRegex } = require("../utils/regex");
-const { withUserLock, sleep } = require("../utils/bggSync");
+const { withUserLock } = require("../utils/bggSync");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 
@@ -26,13 +26,6 @@ const bggMutationLimiter = userRateLimit({
   windowMs: 5 * 60 * 1000,
   max: 30, // 30 partidas creadas/editadas/borradas cada 5 min
   message: "Demasiadas operaciones sobre BGG, esperá un momento.",
-});
-// Reasignar el @BGG de un jugador reescribe TODAS sus partidas en BGG (varias
-// llamadas a geekplay con throttle interno). Límite bajo para no abusar de BGG.
-const bggBulkLimiter = userRateLimit({
-  windowMs: 5 * 60 * 1000,
-  max: 5,
-  message: "Demasiadas reasignaciones de jugadores, esperá unos minutos.",
 });
 const {
   computeGameStats,
@@ -97,7 +90,6 @@ const multer = require("../config/multer");
 const { uploadToCloudinary, cloudinary } = require("../config/cloudinary");
 const {
   sanitizeRawKeys,
-  playDocToMutationBody,
   loadOverlayIndex,
   applyOverlayToCoPlayers,
   applyOverlayToPlayers,
@@ -1385,23 +1377,18 @@ router.patch(
   }),
 );
 
-// PATCH /api/bgg/jugadores/:bggUsername/bgg-username — híbrido: reescribe las
-// partidas afectadas en BGG y re-keya el overlay. Solo dueño (su cookie BGG).
+// PATCH /api/bgg/jugadores/:bggUsername/bgg-username — vincula un jugador a un
+// usuario de BGG. Overlay LOCAL: NO reescribe las partidas ya cargadas en BGG
+// (sería carísimo en peticiones). Se aplica al leer en TurnoCero (toda la
+// historia se ve unificada) y, como el selector de carga ya muestra el @BGG
+// curado, las partidas nuevas lo llevan nativamente — "de ahí en adelante".
 router.patch(
   "/jugadores/:bggUsername/bgg-username",
   protect,
-  bggBulkLimiter,
   asyncHandler(async (req, res) => {
-    const user = req.user;
     const lower = req.params.bggUsername.toLowerCase();
-    const isOwner =
-      user.bggUsername && user.bggUsername.toLowerCase() === lower;
-    if (!isOwner) {
-      throw httpError(
-        403,
-        "Solo el dueño puede reasignar el usuario BGG (requiere su sesión de BGG).",
-      );
-    }
+    const { allowed } = ownerOrAdmin(req, lower);
+    if (!allowed) throw httpError(403, "No autorizado");
 
     const rawKeys = sanitizeRawKeys(req.body.rawKeys);
     if (!rawKeys.length) throw httpError(400, "Jugador inválido");
@@ -1417,80 +1404,12 @@ router.patch(
       throw httpError(400, "Ese es tu propio usuario de BGG");
     }
 
-    const usernameMatches = rawKeys
-      .filter((k) => k.startsWith("u:"))
-      .map((k) => k.slice(2));
-    const nameMatches = rawKeys
-      .filter((k) => k.startsWith("n:"))
-      .map((k) => k.slice(2));
-
-    const plays = await BggPlay.find({ bggUsername: lower }).lean();
-    const affected = plays.filter((play) =>
-      (play.players || []).some((p) => {
-        const u = (p.username || "").trim().toLowerCase();
-        if (u) return usernameMatches.includes(u);
-        const n = (p.name || "").trim().toLowerCase();
-        return nameMatches.includes(n);
-      }),
-    );
-
-    const { rewritten, failed } = await withUserLock(
-      user.bggUsername,
-      async () => {
-        const ok = [];
-        const ko = [];
-        for (const play of affected) {
-          const body = playDocToMutationBody(
-            play,
-            usernameMatches,
-            nameMatches,
-            newHandle,
-          );
-          try {
-            const form = buildPlayForm(body, play.playId);
-            await submitToGeekplay(user, form, "PUT");
-            const verified = await verifyPlayOnBgg(
-              user.bggUsername,
-              play.playId,
-              { gameId: play.gameId, playdate: play.date },
-            );
-            if (!verified) {
-              ko.push(play.playId);
-            } else {
-              await upsertPlayFromBgg(user.bggUsername, verified);
-              ok.push(play.playId);
-            }
-          } catch (e) {
-            logger.warn("[bgg/jugadores] rewrite failed", {
-              playId: play.playId,
-              error: e.message,
-            });
-            ko.push(play.playId);
-          }
-          await sleep(700);
-        }
-        return { rewritten: ok, failed: ko };
-      },
-    );
-
-    clearPartidasCache(user.bggUsername);
-    await markUserGamesDirty(user.bggUsername);
-
-    // Si había partidas para reescribir y NINGUNA se confirmó, no re-keyamos.
-    if (affected.length > 0 && rewritten.length === 0) {
-      throw httpError(
-        502,
-        "BGG no confirmó la reasignación. Intentá de nuevo.",
-      );
-    }
-
-    // Re-keyar el overlay: sacar las keys n: reescritas, agregar u:<newHandle>.
+    // El overlay CONSERVA sus keys (incl. las n: por-nombre) y SUMA u:<newHandle>.
+    // Así el vínculo aplica a toda la historia en TurnoCero (partidas viejas
+    // cargadas por nombre y nuevas cargadas ya con el @BGG), sin tocar BGG.
     const newKey = `u:${newHandle.toLowerCase()}`;
     let overlay = await getOrCreateOverlay(lower, rawKeys);
-    const keptKeys = overlay.rawKeys.filter(
-      (k) => k.startsWith("u:") || !nameMatches.includes(k.slice(2)),
-    );
-    overlay.rawKeys = [...new Set([...keptKeys, newKey])];
+    overlay.rawKeys = [...new Set([...overlay.rawKeys, newKey])];
     overlay.bggUsername = newHandle;
     await overlay.save();
 
@@ -1520,8 +1439,6 @@ router.patch(
 
     const linked = await resolveUsersByBggUsernames([newHandle], { cap: 1 });
     res.json({
-      rewritten: rewritten.length,
-      failed,
       merged,
       player: overlayToRow(overlay, linked[0] || null),
     });

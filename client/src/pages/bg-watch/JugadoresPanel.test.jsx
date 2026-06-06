@@ -101,7 +101,7 @@ describe("<JugadoresPanel>", () => {
     expect(await screen.findByText(/nombre guardado/i)).toBeInTheDocument();
   });
 
-  it("reasignar @BGG pega al endpoint y reescribe en BGG", async () => {
+  it("vincular @BGG pega al endpoint (overlay local, sin reescribir BGG)", async () => {
     let body = null;
     server.use(
       http.patch(
@@ -109,8 +109,6 @@ describe("<JugadoresPanel>", () => {
         async ({ request }) => {
           body = await request.json();
           return HttpResponse.json({
-            rewritten: 2,
-            failed: [],
             merged: false,
             player: juan({ username: "juanbgg" }),
           });
@@ -122,7 +120,7 @@ describe("<JugadoresPanel>", () => {
 
     const bggInput = await screen.findByPlaceholderText("@usuario");
     fireEvent.change(bggInput, { target: { value: "juanbgg" } });
-    fireEvent.click(screen.getByRole("button", { name: /reasignar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /vincular/i }));
 
     await waitFor(() => expect(body).toBeTruthy());
     expect(body).toEqual({ rawKeys: ["n:juan"], bggUsername: "juanbgg" });

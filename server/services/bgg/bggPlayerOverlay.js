@@ -42,42 +42,6 @@ function sanitizeRawKeys(input) {
   ];
 }
 
-// Does a BggPlay player subdoc match any of the given username/name keys?
-function matchesRawKey(player, usernameMatches, nameMatches) {
-  const u = (player.username || "").trim().toLowerCase();
-  if (u) return usernameMatches.includes(u);
-  const n = (player.name || "").trim().toLowerCase();
-  return nameMatches.includes(n);
-}
-
-// Build the mutation body for a BggPlay doc, reassigning the matched player's
-// username to `newHandle`. Preserves every other field / player so the PUT to
-// BGG doesn't wipe data.
-function playDocToMutationBody(play, usernameMatches, nameMatches, newHandle) {
-  return {
-    objectid: play.gameId,
-    playdate: play.date,
-    length: play.duration,
-    location: play.location,
-    quantity: play.quantity,
-    comments: play.comments,
-    incomplete: play.incomplete,
-    nowinstats: play.nowinstats,
-    players: (play.players || []).map((p) => ({
-      name: p.name,
-      username: matchesRawKey(p, usernameMatches, nameMatches)
-        ? newHandle
-        : p.username,
-      position: p.position,
-      color: p.color,
-      score: p.score,
-      new: p.new,
-      rating: p.rating,
-      win: p.win,
-    })),
-  };
-}
-
 // Load every overlay for an owner once and index by claimed raw key.
 async function loadOverlayIndex(lowerOwner) {
   const overlays = await BggPlayerOverlay.find({
@@ -242,8 +206,6 @@ module.exports = {
   firstUserKey,
   nameFromKeys,
   sanitizeRawKeys,
-  matchesRawKey,
-  playDocToMutationBody,
   loadOverlayIndex,
   applyOverlayToCoPlayers,
   applyOverlayToPlayers,
