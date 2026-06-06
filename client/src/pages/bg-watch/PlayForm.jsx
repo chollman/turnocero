@@ -112,6 +112,10 @@ export default function PlayForm({
     playdate: initialValues.details?.playdate || todayIso(),
     length: initialValues.details?.length ?? "",
     location: initialValues.details?.location || "",
+    // `quantity` (BGG: cuántas veces se jugó en una misma entrada) ya no tiene
+    // campo en el form — confundía y casi nunca se usa. Se conserva en el state
+    // solo para NO pisarlo al editar una partida que lo trae > 1 (las nuevas
+    // quedan en 1).
     quantity: initialValues.details?.quantity || 1,
     comments: initialValues.details?.comments || "",
     incomplete: !!initialValues.details?.incomplete,
@@ -722,17 +726,6 @@ export default function PlayForm({
                     Tiempo de caja: {suggestedDuration} min · usar
                   </button>
                 )}
-              </div>
-              <div className={bg.field}>
-                <label className={bg.fieldLabel}>Cantidad</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={99}
-                  className={bg.modalInput}
-                  value={details.quantity}
-                  onChange={(e) => updateDetail("quantity", e.target.value)}
-                />
               </div>
             </div>
             <div className={bg.field}>

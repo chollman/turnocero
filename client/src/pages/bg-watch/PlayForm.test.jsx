@@ -88,6 +88,31 @@ beforeEach(() => {
 });
 
 describe("<PlayForm>", () => {
+  it("ya no muestra el campo 'Cantidad'", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    expect(screen.queryByText("Cantidad")).toBeNull();
+  });
+
+  it("preserva quantity al editar aunque no haya campo (no lo pisa a 1)", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      editMode: true,
+      lockedGame: true,
+      initialValues: {
+        game: { id: "13", name: "Catán" },
+        details: { quantity: 3 },
+        players: [{ name: "Me", username: "meBGG" }],
+      },
+      onSubmit,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /guardar cambios/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0].quantity).toBe(3);
+  });
+
   it("renderiza las tres secciones", () => {
     renderForm();
     // "El juego" es el título de sección; "Jugadores"/"Extras" aparecen también
