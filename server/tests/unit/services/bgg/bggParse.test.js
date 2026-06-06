@@ -54,6 +54,9 @@ describe("parseGameItem", () => {
       yearpublished: { "@_value": "1995" },
       minplayers: { "@_value": "3" },
       maxplayers: { "@_value": "4" },
+      playingtime: { "@_value": "75" },
+      minplaytime: { "@_value": "60" },
+      maxplaytime: { "@_value": "90" },
     };
     expect(parseGameItem(item)).toEqual({
       id: 42,
@@ -63,6 +66,9 @@ describe("parseGameItem", () => {
       year: 1995,
       minPlayers: 3,
       maxPlayers: 4,
+      playingTime: 75,
+      minPlayTime: 60,
+      maxPlayTime: 90,
     });
   });
 
@@ -95,6 +101,9 @@ describe("parseGameItem", () => {
       year: null,
       minPlayers: null,
       maxPlayers: null,
+      playingTime: null,
+      minPlayTime: null,
+      maxPlayTime: null,
     });
   });
 
@@ -119,6 +128,9 @@ describe("gameDocToObject", () => {
       yearPublished: 1995,
       minPlayers: 3,
       maxPlayers: 4,
+      playingTime: 75,
+      minPlayTime: 60,
+      maxPlayTime: 90,
     };
     expect(gameDocToObject(doc)).toEqual({
       id: 42,
@@ -128,10 +140,13 @@ describe("gameDocToObject", () => {
       year: 1995,
       minPlayers: 3,
       maxPlayers: 4,
+      playingTime: 75,
+      minPlayTime: 60,
+      maxPlayTime: 90,
     });
   });
 
-  it("preserva nulls del doc", () => {
+  it("preserva nulls del doc (incl. campos de tiempo ausentes)", () => {
     const doc = {
       gameId: 1,
       name: "X",
@@ -144,6 +159,7 @@ describe("gameDocToObject", () => {
     const out = gameDocToObject(doc);
     expect(out.thumbnail).toBeNull();
     expect(out.year).toBeNull();
+    expect(out.playingTime).toBeNull();
   });
 });
 

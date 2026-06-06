@@ -50,6 +50,18 @@ function parseGameItem(item) {
     maxPlayers: item.maxplayers?.["@_value"]
       ? Number(item.maxplayers["@_value"])
       : null,
+    // Tiempo de juego DECLARADO por el editor (de la caja), en minutos. NO es
+    // un promedio real de partidas — alimenta la sugerencia de duración al
+    // cargar una partida.
+    playingTime: item.playingtime?.["@_value"]
+      ? Number(item.playingtime["@_value"])
+      : null,
+    minPlayTime: item.minplaytime?.["@_value"]
+      ? Number(item.minplaytime["@_value"])
+      : null,
+    maxPlayTime: item.maxplaytime?.["@_value"]
+      ? Number(item.maxplaytime["@_value"])
+      : null,
   };
 }
 
@@ -64,6 +76,9 @@ function gameDocToObject(doc) {
     year: doc.yearPublished,
     minPlayers: doc.minPlayers,
     maxPlayers: doc.maxPlayers,
+    playingTime: doc.playingTime ?? null,
+    minPlayTime: doc.minPlayTime ?? null,
+    maxPlayTime: doc.maxPlayTime ?? null,
   };
 }
 

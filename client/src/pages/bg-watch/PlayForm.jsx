@@ -161,20 +161,16 @@ export default function PlayForm({
     [players],
   );
 
-  // ── Autodetección "Nuevo" + duración sugerida (solo al crear) ─────────
+  // ── Autodetección "Nuevo" (solo al crear) ─────────────────────────────
   // Consulta `jugado` (local, sin pegarle a BGG) para CADA @BGG del roster.
   // Marca "Nuevo" solo con conocimiento positivo: `known && !played` (un
   // invitado sin partidas sincronizadas — known:false — no se marca, porque no
-  // sabemos). La duración sugerida sale del promedio del dueño para ese juego.
+  // sabemos).
   const detectRef = useRef(0);
   useEffect(() => {
     if (editMode || !game?.id) return undefined;
     const usernames = usernamesKey ? usernamesKey.split(",") : [];
-    if (!usernames.length) {
-      setSuggestedDuration(null);
-      return undefined;
-    }
-    const owner = (user?.bggUsername || "").toLowerCase();
+    if (!usernames.length) return undefined;
     const myId = ++detectRef.current;
     const ac = new AbortController();
     Promise.all(
@@ -195,12 +191,36 @@ export default function PlayForm({
           return r ? { ...p, new: !!r.known && !r.played } : p;
         }),
       );
-      const ownerRes = owner ? map.get(owner) : null;
-      setSuggestedDuration(ownerRes?.avgDuration || null);
     });
     return () => ac.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.id, editMode, usernamesKey, user]);
+
+  // ── Duración sugerida = tiempo de caja de BGG (playingtime) ────────────
+  // Lo trae el detalle del juego (/game/:id, cacheado en server). Si el objeto
+  // `game` ya lo tiene, se usa sin re-fetchear. Solo al crear.
+  useEffect(() => {
+    if (editMode || !game?.id) {
+      setSuggestedDuration(null);
+      return undefined;
+    }
+    // Si el `game` ya trae la key (vino del detalle, p.ej. ?juego), usarla sin
+    // re-fetchear — incluso si es null/0 (= sin tiempo declarado).
+    if (game.playingTime !== undefined) {
+      setSuggestedDuration(game.playingTime || null);
+      return undefined;
+    }
+    const ac = new AbortController();
+    axios
+      .get(API.bgg.GAME(game.id), { signal: ac.signal })
+      .then(({ data }) =>
+        setSuggestedDuration(
+          data.playingTime || data.maxPlayTime || data.minPlayTime || null,
+        ),
+      )
+      .catch(() => {});
+    return () => ac.abort();
+  }, [game?.id, game?.playingTime, editMode]);
 
   // ── Borrador local (#4): persistencia + oferta de retomar ─────────────
   // El hook y `draftEnabled` se declaran arriba (para limpiar al cancelar).
@@ -699,7 +719,7 @@ export default function PlayForm({
                       updateDetail("length", String(suggestedDuration))
                     }
                   >
-                    Tu promedio: {suggestedDuration} min · usar
+                    Tiempo de caja: {suggestedDuration} min · usar
                   </button>
                 )}
               </div>

@@ -41,9 +41,11 @@ Estas son las mejoras que quedaron sugeridas para encarar después.
       BLANCO; al volver ofrece un banner "Retomar / Descartar"; se limpia al
       guardar/cancelar/descartar. +9 unit (hook) +5 form.
 - [x] **5. Fecha no futura + duración sugerida** — (5a) `max` + `dateInvalid`
-      gatea el submit con error inline. (5b) `JUGADO` ahora devuelve
-      `avgDuration` (promedio del juego del dueño); el form ofrece "Tu promedio:
-      X min · usar" cuando la duración está vacía.
+      gatea el submit con error inline. (5b) la sugerencia usa el **tiempo de
+      caja de BGG** (`playingtime`, capturado en `BggGame` + expuesto en
+      `/game/:id`); el form ofrece "Tiempo de caja: X min · usar" cuando la
+      duración está vacía. (Antes usaba el promedio personal vía `avgDuration` en
+      `JUGADO`; se sacó — no era el promedio "del juego" sino el del dueño.)
 - [x] **6. Deep-link de carga** — "Cargar partida" en cada juego de
       `ColeccionPanel` (Link al form con `?juego=`) + item "Cargar otra partida"
       en el menú de `PlayCard` (feed del perfil), ambos solo para el dueño

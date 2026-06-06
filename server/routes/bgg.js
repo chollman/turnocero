@@ -636,29 +636,24 @@ router.get(
 );
 
 // GET /api/bgg/jugado/:bggUsername/:gameId — ¿el usuario jugó este juego antes?
-// Alimenta la autodetección del flag "Nuevo" al cargar una partida + sugerir la
-// duración. Todo desde BggPlay (local, sin pegarle a BGG). Devuelve:
+// Alimenta la autodetección del flag "Nuevo" al cargar una partida. Todo desde
+// BggPlay (local, sin pegarle a BGG). Devuelve:
 //   - played / numPlays: de ESTE juego.
-//   - avgDuration: promedio (min) de las partidas de este juego (null si no hay).
 //   - known: si el usuario tiene ALGUNA partida sincronizada. Sirve para no
 //     marcar "Nuevo" a invitados desconocidos (sin sync) por falta de datos:
 //     solo marcamos "Nuevo" cuando known && !played (conocimiento positivo).
+// (La sugerencia de duración salió de acá hacia el tiempo de caja de BGG, que
+// viene en /game/:id como `playingTime`.)
 router.get(
   "/jugado/:bggUsername/:gameId",
   asyncHandler(async (req, res) => {
     const { bggUsername, gameId } = req.params;
     const lower = bggUsername.toLowerCase();
-    const [numPlays, stats, known] = await Promise.all([
+    const [numPlays, known] = await Promise.all([
       computeGamePlayCount(lower, gameId),
-      computeGameStats(lower, gameId),
       BggPlay.exists({ bggUsername: lower }),
     ]);
-    res.json({
-      played: numPlays > 0,
-      numPlays,
-      avgDuration: stats.avgDuration,
-      known: !!known,
-    });
+    res.json({ played: numPlays > 0, numPlays, known: !!known });
   }),
 );
 
