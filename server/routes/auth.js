@@ -37,6 +37,12 @@ const authLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  // Solo contamos requests FALLIDAS (status >= 400). Un login/registro/verificación
+  // exitoso no debe consumir el cupo anti-fuerza-bruta: si no, un usuario legítimo
+  // (varias pestañas, IP compartida por NAT/móvil, revalidaciones) se bloquea a sí
+  // mismo aunque ingrese bien la contraseña. Con esto el tope es de 10 intentos
+  // *fallidos* por IP / 15 min — que es lo que realmente queremos frenar.
+  skipSuccessfulRequests: true,
   message: { message: "Demasiados intentos. Probá de nuevo en 15 minutos." },
 });
 
