@@ -83,6 +83,23 @@ describe("bggPlayerOverlay — pure helpers", () => {
       expect(out[0].avatar).toEqual({ url: "http://img/a.webp", publicId: "p" });
       expect(out[0].rawKeys).toEqual(["n:juan", "u:juanbgg"]);
     });
+
+    it("excludeSelf drops rows flagged as the owner, but keeps them otherwise", () => {
+      const overlay = { _id: "s1", rawKeys: ["n:yo"], isSelf: true };
+      const rows = [
+        { name: "Yo", username: "", numPlays: 4, lastPlayedDate: "2026-01-01" },
+        { name: "Ana", username: "", numPlays: 1, lastPlayedDate: "2026-02-01" },
+      ];
+      const idx = indexOf([overlay]);
+      // Sin excludeSelf, la fila "self" aparece con su flag.
+      const all = applyOverlayToCoPlayers(rows, idx);
+      const self = all.find((r) => r.name === "Yo");
+      expect(self.isSelf).toBe(true);
+      // Con excludeSelf, desaparece.
+      const filtered = applyOverlayToCoPlayers(rows, idx, { excludeSelf: true });
+      expect(filtered.some((r) => r.name === "Yo")).toBe(false);
+      expect(filtered.some((r) => r.name === "Ana")).toBe(true);
+    });
   });
 
   describe("applyOverlayToPlayers", () => {
@@ -108,6 +125,15 @@ describe("bggPlayerOverlay — pure helpers", () => {
         url: "http://img/a.webp",
         publicId: "p",
       });
+      // isSelf: el jugador se muestra como el dueño (username = ownerLower).
+      const selfOverlay = { _id: "s1", rawKeys: ["n:yo"], isSelf: true };
+      const selfOut = applyOverlayToPlayers(
+        [{ name: "Yo", username: "" }],
+        indexOf([selfOverlay]),
+        { ownerLower: "alice" },
+      );
+      expect(selfOut[0].username).toBe("alice");
+
       // Unclaimed player untouched.
       expect(out[1]).toMatchObject({ name: "Pedro", username: "" });
       expect(out[1].overlayAvatar).toBeUndefined();

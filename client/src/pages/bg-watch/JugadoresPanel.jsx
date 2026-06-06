@@ -89,6 +89,19 @@ export default function JugadoresPanel({ bggUsername }) {
 
   const reload = () => fetchPage(page);
 
+  // Marcar / desmarcar a un jugador como el propio dueño del perfil.
+  const setSelf = async (row, value) => {
+    try {
+      await axios.post(API.bgg.JUGADOR_YO_MISMO(bggUsername), {
+        rawKeys: row.rawKeys,
+        value,
+      });
+      reload();
+    } catch (e) {
+      alert(e?.response?.data?.message || "No se pudo actualizar el jugador.");
+    }
+  };
+
   const isEmpty = !loading && !error && items.length === 0;
 
   return (
@@ -150,32 +163,48 @@ export default function JugadoresPanel({ bggUsername }) {
                         miembro TurnoCero
                       </span>
                     )}
+                    {row.isSelf && (
+                      <span className={styles.playerTagSelf}>sos vos</span>
+                    )}
                   </span>
                   {meta && (
                     <span className={styles.gameSearchMeta}>{meta}</span>
                   )}
                 </div>
                 <div className={styles.jugadorActions}>
-                  <button
-                    type="button"
-                    className={styles.btnGhost}
-                    onClick={() => setEditing(row)}
-                    disabled={row.isLinked}
-                    title={
-                      row.isLinked
-                        ? "Vinculado a un usuario de TurnoCero (no editable)"
-                        : "Editar jugador"
-                    }
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.btnGhost}
-                    onClick={() => setMerging(row)}
-                  >
-                    Fusionar
-                  </button>
+                  {row.isSelf ? (
+                    <button
+                      type="button"
+                      className={styles.btnGhost}
+                      onClick={() => setSelf(row, false)}
+                      title="Dejar de marcar a este jugador como vos"
+                    >
+                      Ya no soy yo
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className={styles.btnGhost}
+                        onClick={() => setEditing(row)}
+                        disabled={row.isLinked}
+                        title={
+                          row.isLinked
+                            ? "Vinculado a un usuario de TurnoCero (no editable)"
+                            : "Editar jugador"
+                        }
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.btnGhost}
+                        onClick={() => setMerging(row)}
+                      >
+                        Fusionar
+                      </button>
+                    </>
+                  )}
                 </div>
               </li>
             );
@@ -498,10 +527,18 @@ function MergePlayerModal({ bggUsername, source, onClose }) {
     setMerging(true);
     setErr("");
     try {
-      await axios.post(API.bgg.JUGADOR_MERGE(bggUsername), {
-        sourceRawKeys: source.rawKeys,
-        targetRawKeys: target.rawKeys,
-      });
+      if (target.__self) {
+        // "Sos vos": marca al jugador como el dueño del perfil (overlay local).
+        await axios.post(API.bgg.JUGADOR_YO_MISMO(bggUsername), {
+          rawKeys: source.rawKeys,
+          value: true,
+        });
+      } else {
+        await axios.post(API.bgg.JUGADOR_MERGE(bggUsername), {
+          sourceRawKeys: source.rawKeys,
+          targetRawKeys: target.rawKeys,
+        });
+      }
       onClose(true);
     } catch (e) {
       setErr(e?.response?.data?.message || "No se pudo fusionar.");
@@ -543,6 +580,18 @@ function MergePlayerModal({ bggUsername, source, onClose }) {
               maxLength={100}
               aria-label="Buscar jugador destino"
             />
+
+            {/* Opción especial: este jugador sos vos (el dueño del perfil). */}
+            <button
+              type="button"
+              className={styles.selfMergeBtn}
+              onClick={() => setTarget({ __self: true })}
+            >
+              👤 Sos vos (<strong>@{bggUsername}</strong>)
+              <span className={styles.gameSearchMeta}>
+                Marcar a este jugador como vos mismo
+              </span>
+            </button>
 
             {loading && <SearchRowSkeleton rows={4} />}
 
@@ -591,13 +640,15 @@ function MergePlayerModal({ bggUsername, source, onClose }) {
 
       <ConfirmActionModal
         isOpen={!!target}
-        title="Fusionar jugadores"
+        title={target?.__self ? "Sos vos" : "Fusionar jugadores"}
         message={
-          target
-            ? `¿Fusionar "${source.name || source.username}" dentro de "${target.name || target.username}"? Esta acción no se puede deshacer fácilmente.`
-            : ""
+          target?.__self
+            ? `¿Marcar a "${source.name || source.username}" como vos mismo (@${bggUsername})? Sus partidas van a contar como tuyas y dejará de aparecer como compañero.`
+            : target
+              ? `¿Fusionar "${source.name || source.username}" dentro de "${target.name || target.username}"? Esta acción no se puede deshacer fácilmente.`
+              : ""
         }
-        confirmLabel="Fusionar"
+        confirmLabel={target?.__self ? "Sí, soy yo" : "Fusionar"}
         cancelLabel="Cancelar"
         loading={merging}
         onConfirm={doMerge}

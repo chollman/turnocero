@@ -585,7 +585,11 @@ router.get(
     // Aplicar el overlay de curación: nombres/avatares editados y duplicados
     // fusionados se reflejan también en el selector del form de carga.
     const overlayIndex = await loadOverlayIndex(lower);
-    let items = applyOverlayToCoPlayers(rawCoPlayers, overlayIndex);
+    // Los jugadores marcados "sos vos" (isSelf) no deben aparecer como
+    // compañeros en el selector de carga de partidas.
+    let items = applyOverlayToCoPlayers(rawCoPlayers, overlayIndex, {
+      excludeSelf: true,
+    });
 
     const q = (req.query.q || "").trim();
     if (q) {
@@ -841,7 +845,9 @@ router.get(
         pageSize: PAGE_SIZE,
         plays: docs.map((d) => {
           const api = playToApi(d);
-          api.players = applyOverlayToPlayers(api.players, overlayIndex);
+          api.players = applyOverlayToPlayers(api.players, overlayIndex, {
+            ownerLower: lower,
+          });
           return api;
         }),
       };
@@ -1651,6 +1657,29 @@ router.post(
         )[0]
       : null;
     res.json({ player: overlayToRow(target, linked || null) });
+  }),
+);
+
+// POST /api/bgg/jugadores/:bggUsername/yo-mismo — marca (o desmarca) a un
+// jugador como el propio dueño del perfil (registrado con otro nombre). Overlay
+// local: lo saca de los rankings de compañeros y lo muestra como el dueño en
+// las partidas. No toca BGG.
+router.post(
+  "/jugadores/:bggUsername/yo-mismo",
+  protect,
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const { allowed } = ownerOrAdmin(req, lower);
+    if (!allowed) throw httpError(403, "No autorizado");
+
+    const rawKeys = sanitizeRawKeys(req.body.rawKeys);
+    if (!rawKeys.length) throw httpError(400, "Jugador inválido");
+    const value = req.body.value !== false; // default: marcar
+
+    const overlay = await getOrCreateOverlay(lower, rawKeys);
+    overlay.isSelf = value;
+    await overlay.save();
+    res.json({ player: overlayToRow(overlay, null) });
   }),
 );
 
