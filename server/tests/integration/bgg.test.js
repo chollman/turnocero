@@ -19,6 +19,9 @@ function thingXml(games) {
       <yearpublished value="${g.year || 0}"/>
       <minplayers value="${g.minPlayers || 0}"/>
       <maxplayers value="${g.maxPlayers || 0}"/>
+      <playingtime value="${g.playingTime || 0}"/>
+      <minplaytime value="${g.minPlayTime || 0}"/>
+      <maxplaytime value="${g.maxPlayTime || 0}"/>
     </item>
   `,
     )
@@ -134,6 +137,54 @@ describe("BGG persistent cache (memoria → Mongo → BGG)", () => {
         thumbnail: "t2",
       });
       expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("captura el tiempo de caja (playingTime) de BGG y lo persiste", async () => {
+      fetchSpy.mockResolvedValueOnce(
+        ok(
+          thingXml([
+            {
+              id: 1003,
+              name: "Catan",
+              year: 1995,
+              minPlayers: 3,
+              maxPlayers: 4,
+              playingTime: 75,
+              minPlayTime: 60,
+              maxPlayTime: 90,
+            },
+          ]),
+        ),
+      );
+      const res = await request(app).get("/api/bgg/game/1003");
+      expect(res.body).toMatchObject({
+        id: 1003,
+        playingTime: 75,
+        minPlayTime: 60,
+        maxPlayTime: 90,
+      });
+      const persisted = await BggGame.findOne({ gameId: 1003 }).lean();
+      expect(persisted.playingTime).toBe(75);
+    });
+
+    it("backfill: un doc viejo sin playingTime se re-fetchea para poblarlo", async () => {
+      // Insert RAW (sin defaults de schema) → simula un doc anterior al campo.
+      await BggGame.collection.insertOne({
+        gameId: 1004,
+        name: "Viejo",
+        thumbnail: "t",
+        image: "i",
+        yearPublished: 2010,
+      });
+      fetchSpy.mockResolvedValueOnce(
+        ok(thingXml([{ id: 1004, name: "Viejo", year: 2010, playingTime: 45 }])),
+      );
+      const res = await request(app).get("/api/bgg/game/1004");
+      expect(res.body.playingTime).toBe(45);
+      // Re-fetcheó pese a estar en Mongo (le faltaba el campo nuevo).
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const persisted = await BggGame.findOne({ gameId: 1004 }).lean();
+      expect(persisted.playingTime).toBe(45);
     });
 
     it("404 when BGG returns no item for an unknown id", async () => {

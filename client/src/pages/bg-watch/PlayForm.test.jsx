@@ -77,12 +77,42 @@ beforeEach(() => {
       HttpResponse.json({ items: [], total: 0, page: 1, pages: 0 }),
     ),
     http.get("/api/bgg/jugado/:user/:gameId", () =>
-      HttpResponse.json({ played: true, numPlays: 3 }),
+      HttpResponse.json({ played: true, numPlays: 3, known: true }),
+    ),
+    // Detalle del juego — alimenta la sugerencia de duración (tiempo de caja).
+    // Default sin playingTime → sin sugerencia (tests específicos overridean).
+    http.get("/api/bgg/game/:id", ({ params }) =>
+      HttpResponse.json({ id: Number(params.id), playingTime: null }),
     ),
   );
 });
 
 describe("<PlayForm>", () => {
+  it("ya no muestra el campo 'Cantidad'", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    expect(screen.queryByText("Cantidad")).toBeNull();
+  });
+
+  it("preserva quantity al editar aunque no haya campo (no lo pisa a 1)", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      editMode: true,
+      lockedGame: true,
+      initialValues: {
+        game: { id: "13", name: "Catán" },
+        details: { quantity: 3 },
+        players: [{ name: "Me", username: "meBGG" }],
+      },
+      onSubmit,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /guardar cambios/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0].quantity).toBe(3);
+  });
+
   it("renderiza las tres secciones", () => {
     renderForm();
     // "El juego" es el título de sección; "Jugadores"/"Extras" aparecen también
@@ -222,15 +252,10 @@ describe("<PlayForm>", () => {
     expect(screen.queryByText(/nuevo/i)).toBeNull();
   });
 
-  it("sugiere la duración promedio y la aplica al click (#5b)", async () => {
+  it("sugiere el tiempo de caja de BGG y lo aplica al click", async () => {
     server.use(
-      http.get("/api/bgg/jugado/:user/:gameId", () =>
-        HttpResponse.json({
-          played: true,
-          numPlays: 4,
-          known: true,
-          avgDuration: 75,
-        }),
+      http.get("/api/bgg/game/:id", ({ params }) =>
+        HttpResponse.json({ id: Number(params.id), playingTime: 75 }),
       ),
     );
     renderForm({
@@ -238,14 +263,32 @@ describe("<PlayForm>", () => {
       lockedGame: true,
     });
     const suggest = await screen.findByRole("button", {
-      name: /tu promedio: 75 min/i,
+      name: /tiempo de caja: 75 min/i,
     });
     fireEvent.click(suggest);
     expect(screen.getByDisplayValue("75")).toBeInTheDocument();
     // Una vez cargada la duración, la sugerencia desaparece.
     expect(
-      screen.queryByRole("button", { name: /tu promedio/i }),
+      screen.queryByRole("button", { name: /tiempo de caja/i }),
     ).toBeNull();
+  });
+
+  it("usa game.playingTime sin re-fetchear el detalle si ya viene", async () => {
+    let fetched = false;
+    server.use(
+      http.get("/api/bgg/game/:id", ({ params }) => {
+        fetched = true;
+        return HttpResponse.json({ id: Number(params.id), playingTime: 99 });
+      }),
+    );
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán", playingTime: 45 } },
+      lockedGame: true,
+    });
+    expect(
+      await screen.findByRole("button", { name: /tiempo de caja: 45 min/i }),
+    ).toBeInTheDocument();
+    expect(fetched).toBe(false);
   });
 
   it("agregar jugador abre el picker y suma una fila", async () => {

@@ -58,6 +58,7 @@ export default function CreatePlay() {
           name: data.name,
           thumbnail: data.thumbnail,
           year: data.year,
+          playingTime: data.playingTime ?? null,
         });
       })
       .catch(() => {});

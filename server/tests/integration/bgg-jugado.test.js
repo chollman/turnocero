@@ -24,36 +24,19 @@ describe("GET /api/bgg/jugado/:user/:gameId", () => {
     await BggPlay.create(playDoc({ gameId: "100" }));
     const res = await request(app).get("/api/bgg/jugado/alice/200");
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({
-      played: false,
-      numPlays: 0,
-      avgDuration: null,
-      known: true,
-    });
+    expect(res.body).toEqual({ played: false, numPlays: 0, known: true });
   });
 
   it("known:false cuando el usuario no tiene ninguna partida sincronizada", async () => {
     const res = await request(app).get("/api/bgg/jugado/fantasma/100");
-    expect(res.body).toEqual({
-      played: false,
-      numPlays: 0,
-      avgDuration: null,
-      known: false,
-    });
+    expect(res.body).toEqual({ played: false, numPlays: 0, known: false });
   });
 
   it("played:true con numPlays = suma de quantity", async () => {
     await BggPlay.create(playDoc({ gameId: "100", quantity: 2 }));
     await BggPlay.create(playDoc({ gameId: "100", quantity: 1 }));
     const res = await request(app).get("/api/bgg/jugado/alice/100");
-    expect(res.body).toMatchObject({ played: true, numPlays: 3, known: true });
-  });
-
-  it("avgDuration es el promedio (min) de las partidas de ese juego", async () => {
-    await BggPlay.create(playDoc({ gameId: "100", duration: 60 }));
-    await BggPlay.create(playDoc({ gameId: "100", duration: 90 }));
-    const res = await request(app).get("/api/bgg/jugado/alice/100");
-    expect(res.body.avgDuration).toBe(75);
+    expect(res.body).toEqual({ played: true, numPlays: 3, known: true });
   });
 
   it("es case-insensitive en el username", async () => {
