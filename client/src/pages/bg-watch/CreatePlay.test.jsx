@@ -81,6 +81,7 @@ function renderAt(entry) {
           element={<CreatePlay />}
         />
         <Route path="/bg-watch/:bggUsername" element={<Echo />} />
+        <Route path="/bg-watch/:bggUsername/coleccion" element={<Echo />} />
         <Route path="/bg-watch/:bggUsername/juego/:gameId" element={<Echo />} />
       </Routes>
     </MemoryRouter>,
@@ -159,6 +160,36 @@ describe("<CreatePlay>", () => {
       expect(screen.getByTestId("game")).toHaveTextContent("Catán"),
     );
     expect(screen.getByTestId("locked")).toHaveTextContent("true");
+  });
+
+  it("vuelve a la tab de origen (?volver) al guardar", async () => {
+    server.use(
+      http.post("/api/bgg/partidas", () => HttpResponse.json({ ok: true })),
+    );
+    renderAt(
+      `/bg-watch/meBGG/partidas/nueva?volver=${encodeURIComponent(
+        "/bg-watch/meBGG/coleccion",
+      )}`,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "submit" }));
+    await waitFor(() =>
+      expect(screen.getByTestId("echo")).toHaveTextContent(
+        "/bg-watch/meBGG/coleccion",
+      ),
+    );
+  });
+
+  it("ignora un ?volver externo (solo rutas de BG Watch)", async () => {
+    renderAt(
+      `/bg-watch/meBGG/partidas/nueva?volver=${encodeURIComponent(
+        "https://evil.example",
+      )}`,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "cancel" }));
+    // Cae al fallback (perfil), no al destino externo.
+    await waitFor(() =>
+      expect(screen.getByTestId("echo")).toHaveTextContent("/bg-watch/meBGG"),
+    );
   });
 
   it("submit hace POST y navega al perfil", async () => {

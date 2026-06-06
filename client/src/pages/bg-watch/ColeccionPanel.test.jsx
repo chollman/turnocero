@@ -106,7 +106,9 @@ describe("<ColeccionPanel>", () => {
     const link = await screen.findByRole("link", { name: /cargar partida/i });
     expect(link).toHaveAttribute(
       "href",
-      "/bg-watch/CarcaFan/partidas/nueva?juego=13",
+      `/bg-watch/CarcaFan/partidas/nueva?juego=13&volver=${encodeURIComponent(
+        "/bg-watch/CarcaFan/coleccion",
+      )}`,
     );
   });
 

@@ -168,7 +168,7 @@ describe("<MyGamesPicker>", () => {
     );
     render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
     expect(
-      await screen.findByText(/todavía no tenés juegos/i),
+      await screen.findByText(/tu lista está vacía/i),
     ).toBeInTheDocument();
   });
 

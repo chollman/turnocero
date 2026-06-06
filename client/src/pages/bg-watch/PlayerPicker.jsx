@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
+import EmptyState from "../../components/shared/EmptyState";
 import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 import SearchRowSkeleton from "./SearchRowSkeleton";
@@ -175,13 +176,22 @@ export default function PlayerPicker({
       {loading && items.length === 0 && <SearchRowSkeleton rows={4} />}
 
       {isEmpty && (
-        <p className={styles.dimText}>
-          {mode === "coplayers"
-            ? term
-              ? "Ningún compañero coincide. Usá el botón de abajo para agregarlo."
-              : "Todavía no tenés compañeros registrados. Escribí un nombre o buscá en TurnoCero."
-            : "Ningún usuario coincide."}
-        </p>
+        <EmptyState
+          variant="filtered"
+          compact
+          title={
+            mode === "coplayers" && !term
+              ? "Sin compañeros aún"
+              : "Sin coincidencias"
+          }
+          text={
+            mode === "coplayers"
+              ? term
+                ? "Ningún compañero coincide. Usá el botón de abajo para agregarlo."
+                : "Escribí un nombre o buscá en TurnoCero."
+              : "Ningún usuario coincide."
+          }
+        />
       )}
 
       {(visible.length > 0 || showCreate) && (

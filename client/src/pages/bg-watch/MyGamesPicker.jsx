@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import BggGameSearch from "../../components/shared/BggGameSearch";
+import EmptyState from "../../components/shared/EmptyState";
 import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 import SearchRowSkeleton from "./SearchRowSkeleton";
@@ -138,11 +139,16 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
       {loading && items.length === 0 && <SearchRowSkeleton rows={4} />}
 
       {isEmpty && (
-        <p className={styles.dimText}>
-          {q.trim()
-            ? "Ningún juego coincide con el filtro."
-            : "Todavía no tenés juegos en tu lista. Buscá uno en BGG abajo."}
-        </p>
+        <EmptyState
+          variant="filtered"
+          compact
+          title={q.trim() ? "Sin coincidencias" : "Tu lista está vacía"}
+          text={
+            q.trim()
+              ? "Ningún juego coincide con el filtro."
+              : "Buscá un juego en BGG abajo para agregarlo."
+          }
+        />
       )}
 
       {items.length > 0 && (
