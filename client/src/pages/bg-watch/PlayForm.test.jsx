@@ -307,6 +307,25 @@ describe("<PlayForm>", () => {
     expect(players.find((p) => p.name === "Me").position).toBe(2);
   });
 
+  it("autoasigna 'Ganó' al puntaje más alto (#1)", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
+    fireEvent.click((await screen.findByText("Bob")).closest("button"));
+    const scores = screen.getAllByPlaceholderText("Score");
+    fireEvent.change(scores[0], { target: { value: "5" } }); // Me
+    fireEvent.change(scores[1], { target: { value: "10" } }); // Bob (más alto)
+    fireEvent.click(screen.getByRole("button", { name: /guardar en bgg/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const { players } = onSubmit.mock.calls[0][0];
+    expect(players.find((p) => p.name === "Bob").win).toBe(true);
+    expect(players.find((p) => p.name === "Me").win).toBe(false);
+  });
+
   it("los atajos +/- cambian el puntaje", () => {
     renderForm({
       initialValues: { game: { id: "13", name: "Catán" } },

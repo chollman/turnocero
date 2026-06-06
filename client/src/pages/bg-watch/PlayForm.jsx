@@ -13,6 +13,7 @@ import { hasDisplayableScore } from "./playerScore";
 import {
   computePlayerPositions,
   sortPlayersByScoreDesc,
+  assignWinsByScore,
 } from "./playerPositions";
 import bg from "./BgWatchProfile.module.css";
 import styles from "./PlayForm.module.css";
@@ -252,15 +253,26 @@ export default function PlayForm({
     ]);
   const updateDetail = (key, val) => setDetails((d) => ({ ...d, [key]: val }));
 
-  // Atajo +/-: incrementa el score numéricamente (base 0 si no es número).
+  // Cambiar un score reasigna "Ganó" al/los puntaje/s más alto/s (autoasignar).
+  const updateScore = (idx, val) =>
+    setPlayers((arr) =>
+      assignWinsByScore(
+        arr.map((p, i) => (i === idx ? { ...p, score: val } : p)),
+      ),
+    );
+
+  // Atajo +/-: incrementa el score numéricamente (base 0 si no es número) y
+  // reasigna el ganador.
   const stepScore = (idx, delta) =>
     setPlayers((arr) =>
-      arr.map((p, i) => {
-        if (i !== idx) return p;
-        const cur = Number(p.score);
-        const base = p.score.trim() !== "" && Number.isFinite(cur) ? cur : 0;
-        return { ...p, score: String(base + delta) };
-      }),
+      assignWinsByScore(
+        arr.map((p, i) => {
+          if (i !== idx) return p;
+          const cur = Number(p.score);
+          const base = p.score.trim() !== "" && Number.isFinite(cur) ? cur : 0;
+          return { ...p, score: String(base + delta) };
+        }),
+      ),
     );
 
   const sortByScore = () => setPlayers((arr) => sortPlayersByScoreDesc(arr));
@@ -550,9 +562,7 @@ export default function PlayForm({
                         className={bg.modalInputSmall}
                         placeholder="Score"
                         value={p.score}
-                        onChange={(e) =>
-                          updatePlayer(i, "score", e.target.value)
-                        }
+                        onChange={(e) => updateScore(i, e.target.value)}
                         maxLength={30}
                       />
                       <button

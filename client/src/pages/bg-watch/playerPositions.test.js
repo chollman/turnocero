@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   computePlayerPositions,
   sortPlayersByScoreDesc,
+  assignWinsByScore,
 } from "./playerPositions";
 
 const P = (score) => ({ name: "x", score });
@@ -80,5 +81,42 @@ describe("sortPlayersByScoreDesc", () => {
     const snapshot = JSON.stringify(players);
     sortPlayersByScoreDesc(players);
     expect(JSON.stringify(players)).toBe(snapshot);
+  });
+});
+
+describe("assignWinsByScore", () => {
+  const PW = (score, win = false) => ({ name: "x", score, win });
+
+  it("sin scores numéricos no toca win (deja el toggle manual)", () => {
+    const players = [PW("", true), PW("", false)];
+    const out = assignWinsByScore(players);
+    expect(out.map((p) => p.win)).toEqual([true, false]);
+  });
+
+  it("marca win al puntaje más alto y desmarca el resto", () => {
+    const out = assignWinsByScore([PW("5", true), PW("10"), PW("7", true)]);
+    expect(out.map((p) => p.win)).toEqual([false, true, false]);
+  });
+
+  it("los empates en el máximo comparten la victoria", () => {
+    const out = assignWinsByScore([PW("8"), PW("8"), PW("3")]);
+    expect(out.map((p) => p.win)).toEqual([true, true, false]);
+  });
+
+  it("soporta decimales y negativos", () => {
+    const out = assignWinsByScore([PW("-1"), PW("0.5"), PW("0")]);
+    expect(out.map((p) => p.win)).toEqual([false, true, false]);
+  });
+
+  it("ignora scores no numéricos ('null'/vacío) al buscar el máximo", () => {
+    const out = assignWinsByScore([PW("null"), PW("4"), PW("")]);
+    expect(out.map((p) => p.win)).toEqual([false, true, false]);
+  });
+
+  it("no muta el input", () => {
+    const players = [PW("3"), PW("9")];
+    const snap = JSON.stringify(players);
+    assignWinsByScore(players);
+    expect(JSON.stringify(players)).toBe(snap);
   });
 });
