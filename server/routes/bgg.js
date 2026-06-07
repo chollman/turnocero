@@ -1537,13 +1537,10 @@ router.patch(
     if (!name) throw httpError(400, "El nombre no puede estar vacío");
     if (name.length > 100) throw httpError(400, "Nombre demasiado largo");
 
+    // Override LOCAL: aplica también a jugadores vinculados a un miembro de
+    // TurnoCero — el override gana sobre la identidad del perfil, pero solo en
+    // la vista de BG Watch del dueño (el cliente avisa con un disclaimer).
     const overlay = await getOrCreateOverlay(lower, rawKeys);
-    if (await isLinkedToMember(overlay.rawKeys, overlay.bggUsername)) {
-      throw httpError(
-        409,
-        "Este jugador está vinculado a un usuario de TurnoCero; su nombre se toma de su perfil.",
-      );
-    }
     overlay.nameOverride = name;
     await overlay.save();
     await invalidateOwnerDerived(lower);
@@ -1639,13 +1636,9 @@ router.put(
     }
     if (!rawKeys.length) throw httpError(400, "Jugador inválido");
 
+    // Override LOCAL: aplica también a vinculados (gana sobre su avatar de
+    // TurnoCero, solo en la vista de BG Watch del dueño — el cliente avisa).
     const overlay = await getOrCreateOverlay(lower, rawKeys);
-    if (await isLinkedToMember(overlay.rawKeys, overlay.bggUsername)) {
-      throw httpError(
-        409,
-        "Este jugador está vinculado a un usuario de TurnoCero; usa su avatar de TurnoCero.",
-      );
-    }
 
     const result = await uploadToCloudinary(req.file.buffer, {
       folder: `turnocero/bgg-players/${req.user._id}`,

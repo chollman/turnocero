@@ -165,6 +165,30 @@ describe("<PlayCard>", () => {
     expect(link).toHaveAttribute("href", "/usuarios/u1");
   });
 
+  it("un override local (overlayName) gana sobre el nombre del miembro de TurnoCero", () => {
+    renderCard({
+      play: {
+        players: [
+          {
+            name: "Alias",
+            overlayName: "Alias",
+            username: "alice",
+            win: true,
+            position: 1,
+          },
+        ],
+      },
+      userMap: {
+        alice: { _id: "u1", username: "alice", displayName: "Alice T" },
+      },
+    });
+    // Muestra el override, no el displayName de TurnoCero, pero sigue linkeando
+    // al perfil del miembro.
+    const link = screen.getByRole("link", { name: /alias/i });
+    expect(link).toHaveAttribute("href", "/usuarios/u1");
+    expect(screen.queryByText("Alice T")).toBeNull();
+  });
+
   it("calls onClick when card is clicked (when interactive)", () => {
     const onClick = vi.fn();
     render(

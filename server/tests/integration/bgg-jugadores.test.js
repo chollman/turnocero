@@ -194,7 +194,7 @@ describe("BGG jugadores — curación del roster", () => {
       expect(overlay.nameOverride).toBe("Juancito");
     });
 
-    it("409 when the player is linked to a TurnoCero member", async () => {
+    it("permite override de nombre para un vinculado (gana sobre TurnoCero)", async () => {
       const { token } = await createOwner();
       await createAuthedUser({ bggUsername: "bob" });
       await seedPlay(1, [{ name: "Bob", username: "bob" }]);
@@ -204,7 +204,29 @@ describe("BGG jugadores — curación del roster", () => {
         .set(authHeader(token))
         .send({ rawKeys: ["u:bob"], name: "Bobby" });
 
-      expect(res.status).toBe(409);
+      expect(res.status).toBe(200);
+      expect(res.body.player.name).toBe("Bobby");
+      const overlay = await BggPlayerOverlay.findOne({
+        ownerUsername: "alice",
+        rawKeys: "u:bob",
+      });
+      expect(overlay.nameOverride).toBe("Bobby");
+    });
+
+    it("el override de un vinculado se refleja como overlayName al leer partidas", async () => {
+      const { token } = await createOwner();
+      await createAuthedUser({ bggUsername: "bob" });
+      await seedPlay(1, [{ name: "Bob", username: "bob" }]);
+      await request(app)
+        .patch("/api/bgg/jugadores/alice/nombre")
+        .set(authHeader(token))
+        .send({ rawKeys: ["u:bob"], name: "Bobby" });
+
+      const list = await request(app).get("/api/bgg/partidas/alice");
+      const play = list.body.plays.find((p) => p.id === "1");
+      const bob = play.players.find((p) => p.username === "bob");
+      expect(bob.overlayName).toBe("Bobby");
+      expect(bob.name).toBe("Bobby");
     });
   });
 
@@ -298,7 +320,7 @@ describe("BGG jugadores — curación del roster", () => {
       expect(res.body.player.avatar.url).toBeTruthy();
     });
 
-    it("PUT 409 when linked to a TurnoCero member", async () => {
+    it("PUT permite avatar para un vinculado (gana sobre TurnoCero)", async () => {
       const { token } = await createOwner();
       await createAuthedUser({ bggUsername: "bob" });
       await seedPlay(1, [{ name: "Bob", username: "bob" }]);
@@ -309,7 +331,8 @@ describe("BGG jugadores — curación del roster", () => {
         .field("rawKeys", JSON.stringify(["u:bob"]))
         .attach("avatar", Buffer.from([1, 2, 3, 4]), "a.png");
 
-      expect(res.status).toBe(409);
+      expect(res.status).toBe(200);
+      expect(res.body.player.avatar.url).toBeTruthy();
     });
 
     it("DELETE clears the avatar and destroys the asset", async () => {

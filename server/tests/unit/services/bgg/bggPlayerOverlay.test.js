@@ -122,6 +122,9 @@ describe("bggPlayerOverlay — pure helpers", () => {
         name: "Juancito",
         username: "juanbgg",
         score: "10",
+        // Señal explícita de override para que el cliente lo prefiera sobre el
+        // perfil de un miembro vinculado de TurnoCero.
+        overlayName: "Juancito",
       });
       expect(out[0].overlayAvatar).toEqual({
         url: "http://img/a.webp",
@@ -139,6 +142,7 @@ describe("bggPlayerOverlay — pure helpers", () => {
       // Unclaimed player untouched.
       expect(out[1]).toMatchObject({ name: "Pedro", username: "" });
       expect(out[1].overlayAvatar).toBeUndefined();
+      expect(out[1].overlayName).toBeUndefined();
     });
   });
 

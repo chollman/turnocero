@@ -20,10 +20,19 @@ function playerMeta(p) {
   return parts.join(" · ");
 }
 
-// Construye un "user" para <Avatar> a partir de una fila curada: si está
-// vinculada usa el usuario de TurnoCero (gana su avatar), si no el overlay.
+// Construye un "user" para <Avatar> a partir de una fila curada. Un avatar de
+// override local gana sobre el del miembro de TurnoCero (override curado); si no
+// hay override, cae al usuario de TurnoCero vinculado y luego al overlay base.
 function rowAvatarUser(row) {
-  if (row.linkedUser) return row.linkedUser;
+  if (row.avatar?.url) {
+    return {
+      _id: row.key,
+      displayName: row.name,
+      username: row.username,
+      avatar: row.avatar,
+    };
+  }
+  if (row.linkedUser) return { ...row.linkedUser, displayName: row.name };
   return {
     _id: row.key,
     displayName: row.name,
@@ -199,10 +208,9 @@ export default function JugadoresPanel({ bggUsername }) {
                         type="button"
                         className={styles.btnGhost}
                         onClick={() => setEditing(row)}
-                        disabled={row.isLinked}
                         title={
                           row.isLinked
-                            ? "Vinculado a un usuario de TurnoCero (no editable)"
+                            ? "Editar (reemplaza su identidad de TurnoCero en tu vista)"
                             : "Editar jugador"
                         }
                       >
@@ -385,6 +393,14 @@ function EditPlayerModal({ bggUsername, player, onClose }) {
             ✕
           </button>
         </div>
+
+        {player.isLinked && (
+          <p className={styles.linkedDisclaimer}>
+            Este jugador es miembro de TurnoCero. El nombre y la foto que pongas
+            acá <strong>reemplazan los de su perfil</strong>, pero solo en tu
+            vista de BG Watch (no cambian su perfil ni lo que ven los demás).
+          </p>
+        )}
 
         {/* Avatar */}
         <div className={styles.editAvatarRow}>

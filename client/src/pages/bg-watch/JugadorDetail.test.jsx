@@ -100,22 +100,22 @@ beforeEach(() => {
 });
 
 describe("<JugadorDetail>", () => {
-  it("muestra header y stats al ingresar, con el H2H detrás de un botón", async () => {
+  it("al ingresar solo muestra header y partidas; H2H/stats/por-juego detrás de un botón", async () => {
     renderDetail();
     expect((await screen.findAllByText("Bob")).length).toBeGreaterThan(0);
-    // El marcador H2H NO aparece al entrar.
+    // Ni el marcador H2H, ni las stats, ni "por juego" aparecen al entrar.
     expect(screen.queryByText("–")).toBeNull();
-    // Stat: total de partidas juntas (valor único).
-    expect(screen.getByText("6")).toBeInTheDocument();
-    // Por juego.
-    expect(screen.getByText("Catan")).toBeInTheDocument();
-    // Botón para revelar el H2H.
+    expect(screen.queryByText("6")).toBeNull();
+    expect(screen.queryByText("Catan")).toBeNull();
+    // Las partidas sí.
+    expect(screen.getByTestId("playcard")).toBeInTheDocument();
+    // Botón para revelar.
     expect(
       screen.getByRole("button", { name: /ver mano a mano/i }),
     ).toBeInTheDocument();
   });
 
-  it("revela el marcador H2H al clickear el botón", async () => {
+  it("revela el marcador H2H, las stats y por-juego al clickear el botón", async () => {
     renderDetail();
     fireEvent.click(
       await screen.findByRole("button", { name: /ver mano a mano/i }),
@@ -125,6 +125,9 @@ describe("<JugadorDetail>", () => {
     expect(within(score).getByText("3")).toBeInTheDocument();
     expect(within(score).getByText("2")).toBeInTheDocument();
     expect(screen.getByText(/1 sin decidir/)).toBeInTheDocument();
+    // Stats + por juego ahora visibles.
+    expect(screen.getByText("6")).toBeInTheDocument();
+    expect(screen.getByText("Catan")).toBeInTheDocument();
     // El botón ya no está.
     expect(
       screen.queryByRole("button", { name: /ver mano a mano/i }),

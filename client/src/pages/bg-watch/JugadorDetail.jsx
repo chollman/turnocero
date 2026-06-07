@@ -185,29 +185,92 @@ export default function JugadorDetail() {
           </p>
         ) : (
           <>
-            {/* Head-to-head: dueño vs jugador. No se muestra al entrar; se
-                revela al clickear el botón. */}
+            {/* Mano a mano + estadísticas + por juego. No se muestran al
+                entrar; se revelan al clickear el botón. */}
             {showH2h ? (
-              <div className={comu.h2hBoard}>
-                <div className={comu.h2hSide}>
-                  <Avatar user={ownerAvatarUser} size="lg" />
-                  <span className={comu.h2hName}>{ownerName}</span>
+              <>
+                <div className={comu.h2hBoard}>
+                  <div className={comu.h2hSide}>
+                    <Avatar user={ownerAvatarUser} size="lg" />
+                    <span className={comu.h2hName}>{ownerName}</span>
+                  </div>
+                  <div className={comu.h2hScore}>
+                    <span className={comu.h2hWins}>{h2h.ownerWins}</span>
+                    <span className={comu.h2hDash}>–</span>
+                    <span className={comu.h2hWins}>{h2h.playerWins}</span>
+                    {h2h.draws > 0 && (
+                      <span className={comu.h2hDraws}>
+                        {h2h.draws} sin decidir
+                      </span>
+                    )}
+                  </div>
+                  <div className={comu.h2hSide}>
+                    <Avatar user={playerAvatarUser(player)} size="lg" />
+                    <span className={comu.h2hName}>{playerName}</span>
+                  </div>
                 </div>
-                <div className={comu.h2hScore}>
-                  <span className={comu.h2hWins}>{h2h.ownerWins}</span>
-                  <span className={comu.h2hDash}>–</span>
-                  <span className={comu.h2hWins}>{h2h.playerWins}</span>
-                  {h2h.draws > 0 && (
-                    <span className={comu.h2hDraws}>
-                      {h2h.draws} sin decidir
+
+                {/* Stats */}
+                <div className={styles.statsGrid}>
+                  <div className={styles.statCard}>
+                    <span className={styles.statValue}>{total}</span>
+                    <span className={styles.statLabel}>
+                      partida{total === 1 ? "" : "s"} juntas
                     </span>
+                  </div>
+                  <div className={styles.statCard}>
+                    <span className={styles.statValue}>
+                      {playerWinRate == null ? "—" : `${playerWinRate}%`}
+                    </span>
+                    <span className={styles.statLabel}>
+                      victorias del jugador
+                    </span>
+                  </div>
+                  {stats.firstPlayedDate && (
+                    <div className={styles.statCard}>
+                      <span className={styles.statValueSm}>
+                        {stats.firstPlayedDate}
+                      </span>
+                      <span className={styles.statLabel}>primera juntada</span>
+                    </div>
+                  )}
+                  {stats.lastPlayedDate && (
+                    <div className={styles.statCard}>
+                      <span className={styles.statValueSm}>
+                        {stats.lastPlayedDate}
+                      </span>
+                      <span className={styles.statLabel}>última juntada</span>
+                    </div>
                   )}
                 </div>
-                <div className={comu.h2hSide}>
-                  <Avatar user={playerAvatarUser(player)} size="lg" />
-                  <span className={comu.h2hName}>{playerName}</span>
-                </div>
-              </div>
+
+                {/* Por juego */}
+                {stats.byGame?.length > 0 && (
+                  <section>
+                    <h2 className={comu.sectionTitle}>Por juego</h2>
+                    <ul className={comu.byGameList}>
+                      {stats.byGame.map((g) => (
+                        <li
+                          key={g.gameId || g.name || "?"}
+                          className={comu.byGameRow}
+                        >
+                          <span className={comu.byGameName}>
+                            {g.name || `Juego ${g.gameId}`}
+                          </span>
+                          <span className={comu.byGameScore}>
+                            {g.ownerWins} – {g.playerWins}
+                            <span className={comu.byGameTotal}>
+                              {" "}
+                              ({g.total}{" "}
+                              {g.total === 1 ? "partida" : "partidas"})
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+              </>
             ) : (
               <div className={styles.h2hReveal}>
                 <button
@@ -215,67 +278,9 @@ export default function JugadorDetail() {
                   className={styles.h2hRevealBtn}
                   onClick={() => setShowH2h(true)}
                 >
-                  Ver mano a mano
+                  Ver mano a mano y estadísticas
                 </button>
               </div>
-            )}
-
-            {/* Stats */}
-            <div className={styles.statsGrid}>
-              <div className={styles.statCard}>
-                <span className={styles.statValue}>{total}</span>
-                <span className={styles.statLabel}>
-                  partida{total === 1 ? "" : "s"} juntas
-                </span>
-              </div>
-              <div className={styles.statCard}>
-                <span className={styles.statValue}>
-                  {playerWinRate == null ? "—" : `${playerWinRate}%`}
-                </span>
-                <span className={styles.statLabel}>victorias del jugador</span>
-              </div>
-              {stats.firstPlayedDate && (
-                <div className={styles.statCard}>
-                  <span className={styles.statValueSm}>
-                    {stats.firstPlayedDate}
-                  </span>
-                  <span className={styles.statLabel}>primera juntada</span>
-                </div>
-              )}
-              {stats.lastPlayedDate && (
-                <div className={styles.statCard}>
-                  <span className={styles.statValueSm}>
-                    {stats.lastPlayedDate}
-                  </span>
-                  <span className={styles.statLabel}>última juntada</span>
-                </div>
-              )}
-            </div>
-
-            {/* Por juego */}
-            {stats.byGame?.length > 0 && (
-              <section>
-                <h2 className={comu.sectionTitle}>Por juego</h2>
-                <ul className={comu.byGameList}>
-                  {stats.byGame.map((g) => (
-                    <li
-                      key={g.gameId || g.name || "?"}
-                      className={comu.byGameRow}
-                    >
-                      <span className={comu.byGameName}>
-                        {g.name || `Juego ${g.gameId}`}
-                      </span>
-                      <span className={comu.byGameScore}>
-                        {g.ownerWins} – {g.playerWins}
-                        <span className={comu.byGameTotal}>
-                          {" "}
-                          ({g.total} {g.total === 1 ? "partida" : "partidas"})
-                        </span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
             )}
 
             {/* Partidas */}

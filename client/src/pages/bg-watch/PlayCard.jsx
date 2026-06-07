@@ -38,9 +38,13 @@ function relativeDate(iso) {
 }
 
 function PlayerChip({ player, turnoceroUser }) {
-  const name = turnoceroUser
-    ? turnoceroUser.displayName || turnoceroUser.username
-    : player.name || player.username || "Anónimo";
+  // Un override local de curación (overlayName / overlayAvatar) gana sobre el
+  // perfil del miembro de TurnoCero — solo en la vista de BG Watch del dueño.
+  const name = player.overlayName
+    ? player.overlayName
+    : turnoceroUser
+      ? turnoceroUser.displayName || turnoceroUser.username
+      : player.name || player.username || "Anónimo";
 
   const content = (
     <>
@@ -58,19 +62,17 @@ function PlayerChip({ player, turnoceroUser }) {
           ✨
         </span>
       )}
-      {turnoceroUser ? (
-        <Avatar user={turnoceroUser} size="xs" />
+      {player.overlayAvatar?.url ? (
+        <Avatar
+          user={{
+            _id: player.username || player.name,
+            displayName: name,
+            avatar: player.overlayAvatar,
+          }}
+          size="xs"
+        />
       ) : (
-        player.overlayAvatar?.url && (
-          <Avatar
-            user={{
-              _id: player.username || player.name,
-              displayName: name,
-              avatar: player.overlayAvatar,
-            }}
-            size="xs"
-          />
-        )
+        turnoceroUser && <Avatar user={turnoceroUser} size="xs" />
       )}
       <span className={styles.playerName}>{name}</span>
       {hasDisplayableScore(player.score) && (

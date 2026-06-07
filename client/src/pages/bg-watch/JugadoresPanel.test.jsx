@@ -156,7 +156,7 @@ describe("<JugadoresPanel>", () => {
     expect(await screen.findByText(/avatar actualizado/i)).toBeInTheDocument();
   });
 
-  it("una fila vinculada deshabilita 'Editar' y no muestra @BGG", async () => {
+  it("una fila vinculada permite editar y muestra un disclaimer", async () => {
     server.use(
       http.get("/api/bgg/jugadores/:user", () =>
         listResponse([
@@ -173,7 +173,12 @@ describe("<JugadoresPanel>", () => {
     renderPanel();
     await screen.findByText("Bob");
     expect(screen.getByText(/miembro turnocero/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /editar/i })).toBeDisabled();
+    const editBtn = screen.getByRole("button", { name: /editar/i });
+    expect(editBtn).not.toBeDisabled();
+    fireEvent.click(editBtn);
+    expect(
+      await screen.findByText(/reemplazan los de su perfil/i),
+    ).toBeInTheDocument();
   });
 
   it("fusionar elige un destino y confirma", async () => {

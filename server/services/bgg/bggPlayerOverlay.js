@@ -139,10 +139,12 @@ function applyOverlayToCoPlayers(coPlayers, index, { excludeSelf = false } = {})
 }
 
 // Apply curated name/username/avatar to a single play's players[] (playToApi
-// shape). Linked (TurnoCero member) players are still resolved client-side via
-// useBggUserMap, which takes precedence over these fields, so "TurnoCero wins".
-// A player flagged isSelf is shown as the profile owner: its username is set to
-// `ownerLower` so the client resolves it to the owner's TurnoCero profile.
+// shape). For LINKED (TurnoCero member) players, the client resolves the member
+// via useBggUserMap; an explicit override (`overlayName` / `overlayAvatar`)
+// takes precedence over the member's profile in the owner's BG Watch view, so
+// we surface those as distinct fields the client can prefer. A player flagged
+// isSelf is shown as the profile owner: its username is set to `ownerLower` so
+// the client resolves it to the owner's TurnoCero profile.
 function applyOverlayToPlayers(players, index, { ownerLower = null } = {}) {
   return (players || []).map((p) => {
     const overlay = index.byKey.get(rawKeyFor(p));
@@ -152,7 +154,10 @@ function applyOverlayToPlayers(players, index, { ownerLower = null } = {}) {
       next.username = ownerLower;
       return next;
     }
-    if (overlay.nameOverride) next.name = overlay.nameOverride;
+    if (overlay.nameOverride) {
+      next.name = overlay.nameOverride;
+      next.overlayName = overlay.nameOverride;
+    }
     if (overlay.bggUsername) next.username = overlay.bggUsername;
     if (overlay.avatar?.url) next.overlayAvatar = overlay.avatar;
     return next;
