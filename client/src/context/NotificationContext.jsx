@@ -29,6 +29,7 @@ import { useCompartidaNotificationListeners } from "./notificationListeners/useC
 import { useNoticiaNotificationListeners } from "./notificationListeners/useNoticiaNotificationListeners";
 import { useEventoNotificationListeners } from "./notificationListeners/useEventoNotificationListeners";
 import { useCommunityNotificationListeners } from "./notificationListeners/useCommunityNotificationListeners";
+import { useBggNotificationListeners } from "./notificationListeners/useBggNotificationListeners";
 import { useSiteConfigSocketListener } from "./notificationListeners/useSiteConfigSocketListener";
 
 const NotificationContext = createContext(null);
@@ -165,6 +166,12 @@ export function NotificationProvider({ children }) {
     setNotifications,
     setToasts,
     reloadCommunity,
+  });
+  useBggNotificationListeners({
+    socket,
+    gated,
+    setNotifications,
+    setToasts,
   });
   useSiteConfigSocketListener({ socket, applyServerConfig });
 

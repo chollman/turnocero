@@ -10,8 +10,9 @@ vi.mock("../../context/AuthContext", () => ({
   useAuth: () => ({ user: mockUser }),
 }));
 const addToast = vi.fn();
+const dismiss = vi.fn();
 vi.mock("../../context/NotificationContext", () => ({
-  useNotifications: () => ({ addToast }),
+  useNotifications: () => ({ addToast, dismiss }),
 }));
 
 // PlayForm stub: expone onSubmit/onCancel + lo que recibió.
@@ -88,8 +89,23 @@ function renderAt(entry) {
   );
 }
 
+function renderWithState(entry, state) {
+  return render(
+    <MemoryRouter initialEntries={[{ pathname: entry, state }]}>
+      <Routes>
+        <Route
+          path="/bg-watch/:bggUsername/partidas/nueva"
+          element={<CreatePlay />}
+        />
+        <Route path="/bg-watch/:bggUsername" element={<Echo />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
 beforeEach(() => {
   addToast.mockClear();
+  dismiss.mockClear();
   mockUser = {
     _id: "me",
     username: "me",
@@ -230,5 +246,36 @@ describe("<CreatePlay>", () => {
       expect(screen.getByTestId("carry-players")).toHaveTextContent("Me,Bob"),
     );
     expect(screen.getByTestId("carry-loc")).toHaveTextContent("Casa");
+  });
+
+  it("precarga el form desde location.state.prefill (partida compartida)", () => {
+    renderWithState("/bg-watch/meBGG/partidas/nueva", {
+      prefill: {
+        game: { id: "13", name: "Catán" },
+        details: { location: "Club" },
+        players: [{ name: "Ana", username: "ana" }],
+      },
+    });
+    expect(screen.getByTestId("game")).toHaveTextContent("Catán");
+    expect(screen.getByTestId("carry-players")).toHaveTextContent("Ana");
+    expect(screen.getByTestId("carry-loc")).toHaveTextContent("Club");
+  });
+
+  it("manda sharedFromNotifId en el POST y descarta la notif al guardar", async () => {
+    let body = null;
+    server.use(
+      http.post("/api/bgg/partidas", async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    renderWithState("/bg-watch/meBGG/partidas/nueva", {
+      prefill: { game: { id: "13", name: "Catán" }, players: [] },
+      sharedFromNotifId: "notif123",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "submit" }));
+    await waitFor(() => expect(body).not.toBeNull());
+    expect(body.sharedFromNotifId).toBe("notif123");
+    await waitFor(() => expect(dismiss).toHaveBeenCalledWith("notif123"));
   });
 });

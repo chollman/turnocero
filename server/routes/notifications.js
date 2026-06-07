@@ -16,6 +16,9 @@ const PERSONAL_TYPES = [
   "friend_request",
   "friend_accepted",
   "admin_chat",
+  // BG Watch: persona-a-persona, no pertenecen a ninguna comunidad.
+  "bgg_play_shared",
+  "bgg_play_accepted",
 ];
 
 // GET /api/notifications — own notifications, newest first

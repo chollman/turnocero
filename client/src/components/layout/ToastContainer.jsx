@@ -40,6 +40,8 @@ const DURATION = {
   community_join_request: 6000,
   community_join_accepted: 6000,
   community_join_rejected: 5500,
+  bgg_play_shared: 7000,
+  bgg_play_accepted: 6000,
   // Toasts disparados manualmente desde el client (sin backend event).
   error: 5000,
   success: 5000,
@@ -120,6 +122,11 @@ function ToastItem({ toast, onDismiss }) {
       );
     } else if (toast.type === "bgwatch_connected") {
       navigate(`/bg-watch/${encodeURIComponent(toast.bggUsername)}`);
+    } else if (
+      toast.type === "bgg_play_shared" ||
+      toast.type === "bgg_play_accepted"
+    ) {
+      navigate("/notificaciones");
     } else if (toast.type === "error" || toast.type === "success") {
       // Toasts manuales del client: el click solo los descarta, no navega.
     } else {
@@ -135,7 +142,11 @@ function ToastItem({ toast, onDismiss }) {
   };
 
   const icon =
-    toast.type === "join_accepted"
+    toast.type === "bgg_play_shared"
+      ? "🎲"
+      : toast.type === "bgg_play_accepted"
+        ? "🙏"
+        : toast.type === "join_accepted"
       ? "✅"
       : toast.type === "join_request"
         ? "🔔"
@@ -225,7 +236,11 @@ function ToastItem({ toast, onDismiss }) {
                                                                             : "🎲";
 
   const title =
-    toast.type === "join_accepted"
+    toast.type === "bgg_play_shared"
+      ? `${toast.fromUsername || "Alguien"} te incluyó en una partida`
+      : toast.type === "bgg_play_accepted"
+        ? `${toast.fromUsername || "Alguien"} cargó tu partida`
+        : toast.type === "join_accepted"
       ? "¡Fuiste aceptado!"
       : toast.type === "player_joined"
         ? "¡Nuevo jugador!"
@@ -315,7 +330,11 @@ function ToastItem({ toast, onDismiss }) {
                                                                       : toast.tableName;
 
   const body =
-    toast.type === "chat"
+    toast.type === "bgg_play_shared"
+      ? `Cargó ${toast.gameName ? `“${toast.gameName}”` : "una partida"} — revisala`
+      : toast.type === "bgg_play_accepted"
+        ? "¡Gracias por compartirla!"
+        : toast.type === "chat"
       ? `${toast.senderUsername}: ${toast.messagePreview}${toast.messagePreview?.length >= 60 ? "…" : ""}`
       : toast.type === "join_request"
         ? `${toast.requesterUsername} quiere unirse`

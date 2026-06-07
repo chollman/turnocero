@@ -100,6 +100,9 @@ const TYPE_TO_SECTION = {
   community_join_accepted: "comunidades",
   community_join_rejected: "comunidades",
   community_content_removed: "comunidades",
+  // BG Watch
+  bgg_play_shared: "bgwatch",
+  bgg_play_accepted: "bgwatch",
 };
 
 /**
@@ -135,6 +138,9 @@ async function saveNotification(recipientId, type, fields) {
     if (fields.eventoId) filter.eventoId = fields.eventoId;
     if (fields.mathtradeId) filter.mathtradeId = fields.mathtradeId;
     if (fields.communityId) filter.communityId = fields.communityId;
+    // Solo los tipos de BG Watch (bgg_play_*) setean playId. Entra en la clave
+    // de upsert para que cada partida sea una notif distinta.
+    if (fields.playId) filter.playId = fields.playId;
 
     if (AGGREGATING.has(type)) {
       // `actor` no se persiste como campo plano — alimenta el array `actors`.

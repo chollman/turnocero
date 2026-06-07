@@ -91,6 +91,7 @@ const toastDedupKey = (t) => {
   if (t.compartidaId) return `${t.type}:c:${t.compartidaId}`;
   if (t.eventoId) return `${t.type}:e:${t.eventoId}`;
   if (t.communityId) return `${t.type}:cm:${t.communityId}`;
+  if (t.playId) return `${t.type}:p:${t.playId}`;
   if (t.fromUserId) return `${t.type}:u:${t.fromUserId}`;
   return t.type;
 };
@@ -132,6 +133,8 @@ export const EVENT_SECTION = {
   "evento:notification": "eventos",
   "community:join-request": "comunidades",
   "community:join-resolved": "comunidades",
+  "bgg:play-shared": "bgwatch",
+  "bgg:play-accepted": "bgwatch",
 };
 
 // Eventos de socket PERSONALES (persona-a-persona): no pertenecen a ninguna
@@ -143,6 +146,10 @@ export const PERSONAL_EVENTS = new Set([
   "friend:request",
   "friend:accepted",
   "dm:message",
+  // BG Watch: persona-a-persona, no pertenecen a ninguna comunidad → no se
+  // filtran por comunidad en modo tenant (subdominio).
+  "bgg:play-shared",
+  "bgg:play-accepted",
 ]);
 
 // ── Helpers internos para reducers ────────────────────────────────────
@@ -917,6 +924,76 @@ export function applyCommunityJoinResolvedNotif({
     pushToast(prev, { type, communityId: payload.communityId, ...extra }),
   );
   onResolved?.();
+}
+
+// ── BG Watch — partida compartida ────────────────────────────────────
+
+// Un co-jugador recibe una partida que el autor cargó (con él en el roster).
+// No-aggregating, keyed por `playId` (cada partida = su propia notif). El
+// snapshot embebido viaja en el payload → la tarjeta se pinta sin refetch.
+export function applyBggPlaySharedNotif({
+  setNotifications,
+  setToasts,
+  payload,
+}) {
+  setNotifications((prev) =>
+    replaceResource({
+      prev,
+      type: "bgg_play_shared",
+      resourceField: "playId",
+      resourceId: payload.playId,
+      timestamp: payload.timestamp || new Date().toISOString(),
+      notifId: payload.notifId,
+      count: 1,
+      extra: {
+        fromUserId: payload.fromUserId,
+        fromUsername: payload.fromUsername,
+        gameName: payload.gameName,
+        playSnapshot: payload.playSnapshot,
+      },
+    }),
+  );
+  setToasts((prev) =>
+    pushToast(prev, {
+      type: "bgg_play_shared",
+      playId: payload.playId,
+      fromUsername: payload.fromUsername,
+      gameName: payload.gameName,
+    }),
+  );
+}
+
+// Al autor: un co-jugador cargó la partida que compartió (agradecimiento).
+export function applyBggPlayAcceptedNotif({
+  setNotifications,
+  setToasts,
+  payload,
+}) {
+  setNotifications((prev) =>
+    replaceResource({
+      prev,
+      type: "bgg_play_accepted",
+      resourceField: "playId",
+      resourceId: payload.playId,
+      timestamp: payload.timestamp || new Date().toISOString(),
+      notifId: payload.notifId,
+      count: 1,
+      extra: {
+        fromUserId: payload.fromUserId,
+        fromUsername: payload.fromUsername,
+        gameName: payload.gameName,
+      },
+    }),
+  );
+  setToasts((prev) =>
+    pushToast(prev, {
+      type: "bgg_play_accepted",
+      playId: payload.playId,
+      fromUserId: payload.fromUserId,
+      fromUsername: payload.fromUsername,
+      gameName: payload.gameName,
+    }),
+  );
 }
 
 // ── markRead helpers ─────────────────────────────────────────────────

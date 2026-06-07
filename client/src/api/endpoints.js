@@ -50,6 +50,9 @@ export const API = {
     PARTIDA: (bggUsername, playId) =>
       `/api/bgg/partida/${enc(bggUsername)}/${enc(playId)}`,
     PARTIDAS_LIST: "/api/bgg/partidas",
+    // "Cargar como aparece" una partida compartida (desde la notif del co-jugador)
+    PARTIDA_COMPARTIDA: (notifId) =>
+      `/api/bgg/partidas/compartida/${enc(notifId)}`,
     JUEGOS_JUGADOS: (bggUsername) =>
       `/api/bgg/juegos-jugados/${enc(bggUsername)}`,
     MIS_JUEGOS: (bggUsername) => `/api/bgg/mis-juegos/${enc(bggUsername)}`,

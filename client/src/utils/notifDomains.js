@@ -46,6 +46,9 @@ export const TYPE_DOMAIN = {
   community_join_accepted: "comunidad",
   community_join_rejected: "comunidad",
   community_content_removed: "comunidad",
+  // BG Watch — partida compartida
+  bgg_play_shared: "bgwatch",
+  bgg_play_accepted: "bgwatch",
   // Admin chat
   admin_chat: "admin",
 };
@@ -62,6 +65,7 @@ export const DOMAIN_META = {
   compartida: { label: "Compartidas", colorVar: "--red", icon: "Heart" },
   mathtrade: { label: "Math Trade", colorVar: "--green", icon: "Swap" },
   comunidad: { label: "Comunidades", colorVar: "--purple", icon: "Community" },
+  bgwatch: { label: "BG Watch", colorVar: "--green", icon: "Dice" },
   admin: { label: "Admin", colorVar: "--text-muted", icon: "Megaphone" },
 };
 
@@ -431,6 +435,22 @@ export function getNotifMeta(n) {
         body: `Se removió una publicación tuya en ${n.communityName || "la comunidad"}`,
         cta: "Ver comunidad",
       };
+    case "bgg_play_shared": {
+      const game = n.gameName ? `“${n.gameName}”` : "una partida";
+      return {
+        title: `${n.fromUsername || "Alguien"} te incluyó en una partida`,
+        body: `Cargó ${game} con vos. Cargala en tu cuenta de BGG.`,
+        cta: "Ver partida",
+      };
+    }
+    case "bgg_play_accepted": {
+      const game = n.gameName ? `“${n.gameName}”` : "la partida";
+      return {
+        title: `${n.fromUsername || "Alguien"} cargó tu partida`,
+        body: `Registró ${game} en su cuenta. ¡Gracias por compartirla!`,
+        cta: "Ver perfil",
+      };
+    }
     default:
       return {
         title: "Notificación nueva",

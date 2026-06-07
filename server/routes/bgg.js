@@ -81,7 +81,13 @@ const {
   submitToGeekplay,
   verifyPlayOnBgg,
   upsertPlayFromBgg,
+  createPlay,
 } = require("../services/bgg/bggMutations");
+const {
+  notifyPlayParticipants,
+  acknowledgeSharedPlay,
+} = require("../services/bgg/bggPlayShare");
+const Notification = require("../models/Notification");
 const BggPlayerOverlay = require("../models/BggPlayerOverlay");
 const { resolveUsersByBggUsernames } = require("../services/userLookup");
 const multer = require("../config/multer");
@@ -1097,61 +1103,93 @@ router.post(
   bggMutationLimiter,
   asyncHandler(async (req, res) => {
     const user = req.user;
-    if (!user.bggUsername) {
-      throw httpError(400, "Configurá tu username de BGG en el perfil");
-    }
-    const validationError = validatePlayBody(req.body);
-    if (validationError) throw httpError(400, validationError);
+    // El flujo BGG-first (validar → geekplay → verify → mirror → invalidar)
+    // vive en `createPlay`, compartido con el endpoint "cargar como aparece".
+    const { playid, verified } = await createPlay(user, req.body);
 
-    const form = buildPlayForm(req.body, null);
-    let payload;
-    try {
-      payload = await submitToGeekplay(user, form, "POST");
-    } catch (e) {
-      throw httpError(e.status || 500, e.message);
+    // Si la carga viene de aceptar una partida compartida "con correcciones"
+    // (`sharedFromNotifId`), agradecemos al autor original y cerramos su notif,
+    // y NO re-notificamos a los participantes (evita cadenas A→B→A). Si es una
+    // carga común, notificamos a los co-jugadores que sean usuarios de TurnoCero.
+    if (req.body.sharedFromNotifId) {
+      await acknowledgeSharedPlay({
+        req,
+        recipient: user,
+        notifId: req.body.sharedFromNotifId,
+      });
+    } else {
+      await notifyPlayParticipants({
+        req,
+        author: user,
+        body: req.body,
+        playId: playid,
+      });
     }
-
-    const newPlayId = payload.playid || payload.numplays || null;
-    if (!newPlayId) {
-      logger.warn("[bgg/POST] geekplay returned no playid", { payload });
-      throw httpError(
-        502,
-        "BGG no devolvió un ID de partida. La partida no se guardó.",
-      );
-    }
-
-    const verified = await verifyPlayOnBgg(user.bggUsername, newPlayId, {
-      gameId: req.body.objectid,
-      playdate: req.body.playdate,
-    });
-    if (!verified) {
-      throw httpError(
-        502,
-        "BGG no confirmó la partida después de guardarla. Intentá de nuevo.",
-      );
-    }
-
-    // Only mirror to Mongo if this user is already in Mongo-served mode
-    // (i.e. has done a full sync). Otherwise the GET fallback to BGG will
-    // pick up the new play on its next call.
-    const lower = user.bggUsername.toLowerCase();
-    if (await BggPlay.exists({ bggUsername: lower })) {
-      try {
-        await upsertPlayFromBgg(user.bggUsername, verified);
-      } catch (e) {
-        logger.warn("[bgg/POST] mirror to Mongo failed", { error: e.message });
-      }
-    }
-
-    // Invalida los caches derivados del log (L1 de partidas + selector "Mis
-    // juegos") por una costura única → ningún disparador se olvida de invalidar.
-    await invalidateOwnerDerived(user.bggUsername);
 
     res.json({
       success: true,
-      playid: String(newPlayId),
+      playid,
       play: playToApi(verified),
     });
+  }),
+);
+
+// POST /api/bgg/partidas/compartida/:notifId — "cargar como aparece": carga en
+// la cuenta del destinatario la partida de una notif `bgg_play_shared`, tal
+// cual el snapshot, y agradece al autor. El snapshot es la fuente (no datos del
+// cliente) → el destinatario no puede manipular lo que se carga.
+router.post(
+  "/partidas/compartida/:notifId",
+  protect,
+  bggMutationLimiter,
+  asyncHandler(async (req, res) => {
+    const user = req.user;
+    if (!user.bggUsername) {
+      throw httpError(400, "Configurá tu username de BGG en el perfil");
+    }
+    const creds = user.bggCredentials;
+    if (!(creds && creds.encryptedPassword)) {
+      throw httpError(400, "Conectá tu cuenta de BGG para cargar la partida");
+    }
+    const { notifId } = req.params;
+    if (!/^[a-fA-F0-9]{24}$/.test(String(notifId))) {
+      throw httpError(400, "Notificación inválida");
+    }
+    const notif = await Notification.findOne({
+      _id: notifId,
+      recipient: user._id,
+      type: "bgg_play_shared",
+    });
+    if (!notif || !notif.playSnapshot) {
+      throw httpError(404, "La partida compartida ya no está disponible");
+    }
+
+    const snap = notif.playSnapshot;
+    const body = {
+      objectid: snap.gameId,
+      playdate: snap.date,
+      length: snap.duration,
+      location: snap.location,
+      quantity: snap.quantity,
+      comments: snap.comments,
+      incomplete: snap.incomplete,
+      nowinstats: snap.nowinstats,
+      players: (snap.players || []).map((p) => ({
+        name: p.name,
+        username: p.username,
+        position: p.position,
+        color: p.color,
+        score: p.score,
+        win: p.win,
+        new: p.new,
+        rating: p.rating,
+      })),
+    };
+
+    const { playid } = await createPlay(user, body);
+    await acknowledgeSharedPlay({ req, recipient: user, notifId });
+
+    res.json({ success: true, playid });
   }),
 );
 

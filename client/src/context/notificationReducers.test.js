@@ -25,6 +25,8 @@ import {
   applyEventoNotif,
   applyCommunityJoinRequestNotif,
   applyCommunityJoinResolvedNotif,
+  applyBggPlaySharedNotif,
+  applyBggPlayAcceptedNotif,
   markReadByPredicate,
   EVENT_SECTION,
   EVENTO_TYPE_MAP,
@@ -519,6 +521,79 @@ describe("applyCommunityJoinResolvedNotif", () => {
   });
 });
 
+describe("applyBggPlaySharedNotif", () => {
+  const payload = {
+    notifId: "n1",
+    playId: "999",
+    fromUserId: "u-alice",
+    fromUsername: "alice",
+    gameName: "Catán",
+    playSnapshot: {
+      gameId: "13",
+      players: [{ name: "Alice", score: "42", win: true }],
+    },
+    timestamp: "2026-06-06T10:00:00Z",
+  };
+
+  it("agrega la notif keyed por playId con el snapshot embebido", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyBggPlaySharedNotif({ setNotifications: setN, setToasts: setT, payload });
+    const n = setN.state()[0];
+    expect(n).toMatchObject({
+      type: "bgg_play_shared",
+      playId: "999",
+      fromUserId: "u-alice",
+      fromUsername: "alice",
+      gameName: "Catán",
+      count: 1,
+      read: false,
+    });
+    expect(n.playSnapshot.players).toHaveLength(1);
+    expect(setT.state()[0].type).toBe("bgg_play_shared");
+  });
+
+  it("reemplaza por playId (no duplica la misma partida)", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyBggPlaySharedNotif({ setNotifications: setN, setToasts: setT, payload });
+    applyBggPlaySharedNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: { ...payload, notifId: "n1b" },
+    });
+    const shared = setN.state().filter((n) => n.type === "bgg_play_shared");
+    expect(shared).toHaveLength(1);
+    expect(shared[0].notifId).toBe("n1b");
+  });
+});
+
+describe("applyBggPlayAcceptedNotif", () => {
+  it("agrega el agradecimiento al autor", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyBggPlayAcceptedNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: {
+        notifId: "n2",
+        playId: "999",
+        fromUserId: "u-bob",
+        fromUsername: "bob",
+        gameName: "Catán",
+        timestamp: "2026-06-06T11:00:00Z",
+      },
+    });
+    expect(setN.state()[0]).toMatchObject({
+      type: "bgg_play_accepted",
+      playId: "999",
+      fromUserId: "u-bob",
+      count: 1,
+    });
+    expect(setT.state()[0].type).toBe("bgg_play_accepted");
+  });
+});
+
 describe("applyTableCancelledNotif", () => {
   it("agrega notif table_cancelled", () => {
     const setN = makeSetterSpy([]);
@@ -858,6 +933,8 @@ describe("EVENT_SECTION", () => {
     expect(EVENT_SECTION["friend:request"]).toBe("amigos");
     expect(EVENT_SECTION["dm:message"]).toBe("dms");
     expect(EVENT_SECTION["evento:notification"]).toBe("eventos");
+    expect(EVENT_SECTION["bgg:play-shared"]).toBe("bgwatch");
+    expect(EVENT_SECTION["bgg:play-accepted"]).toBe("bgwatch");
   });
 });
 

@@ -44,6 +44,9 @@ const NOTIFICATION_TYPES = [
   "community_join_accepted", // al solicitante
   "community_join_rejected", // al solicitante
   "community_content_removed", // al autor cuando un subadmin baja su contenido
+  // BG Watch — partida compartida
+  "bgg_play_shared", // a un co-jugador usuario de TurnoCero cuando el autor carga una partida
+  "bgg_play_accepted", // al autor cuando un co-jugador carga la partida que compartió
 ];
 
 const notificationSchema = new mongoose.Schema(
@@ -120,6 +123,50 @@ const notificationSchema = new mongoose.Schema(
     communityId: { type: String, default: null },
     communityName: { type: String, default: "" },
     communitySlug: { type: String, default: "" },
+    // BG Watch — partida compartida (bgg_play_shared / bgg_play_accepted).
+    // `playId` es el id de la partida original en BGG: entra en la clave de
+    // upsert para que cada partida sea una notif distinta (sin él, varias
+    // partidas del mismo autor al mismo destinatario se pisarían).
+    playId: { type: String, default: null },
+    // `gameName` (declarado arriba para eventos) se reusa para el nombre del
+    // juego de la partida compartida.
+    // Snapshot embebido de la partida — la tarjeta de la bandeja es
+    // autosuficiente (no refetch) y sobrevive aunque el autor edite/borre la
+    // partida en BGG. Solo se popula en `bgg_play_shared`.
+    playSnapshot: {
+      type: {
+        _id: false,
+        playId: String,
+        gameId: String,
+        gameName: String,
+        gameThumbnail: String,
+        gameImage: String,
+        date: String,
+        duration: { type: Number, default: null },
+        location: String,
+        comments: String,
+        incomplete: Boolean,
+        nowinstats: Boolean,
+        quantity: Number,
+        players: {
+          type: [
+            {
+              _id: false,
+              name: String,
+              username: String,
+              position: mongoose.Schema.Types.Mixed,
+              color: String,
+              score: mongoose.Schema.Types.Mixed,
+              win: Boolean,
+              new: Boolean,
+              rating: { type: Number, default: null },
+            },
+          ],
+          default: [],
+        },
+      },
+      default: null,
+    },
     // Comunidad a la que pertenece el CONTENIDO de esta notificación (mesa,
     // evento, torneo, compartida, etc.). Distinto de `communityId`, que es el
     // SUJETO de las notifs `community_*`. Lo usa el scoping por subdominio
@@ -140,6 +187,7 @@ notificationSchema.index({ recipient: 1, type: 1, compartidaId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, eventoId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, mathtradeId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, communityId: 1 });
+notificationSchema.index({ recipient: 1, type: 1, playId: 1 });
 // Scoping por subdominio (tenant): listar las notifs de una comunidad puntual.
 notificationSchema.index({ recipient: 1, community: 1, updatedAt: -1 });
 // Auto-purge old notifications (90 days since last update). Lightweight retention policy.

@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -20,8 +25,14 @@ export default function CreatePlay() {
   // ruta interna de BG Watch (evita redirects raros).
   const volver = searchParams.get("volver");
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
-  const { addToast } = useNotifications();
+  const { addToast, dismiss } = useNotifications();
+  // Prefill desde una notif de "partida compartida" (botón "cargar con
+  // correcciones"). `sharedFromNotifId` viaja al POST para agradecer al autor
+  // y cerrar su notif en el server.
+  const prefill = location.state?.prefill || null;
+  const sharedFromNotifId = location.state?.sharedFromNotifId || null;
 
   const [game, setGame] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -87,7 +98,13 @@ export default function CreatePlay() {
     setSubmitting(true);
     setServerError("");
     try {
-      await axios.post(API.bgg.PARTIDAS_LIST, payload);
+      await axios.post(API.bgg.PARTIDAS_LIST, {
+        ...payload,
+        ...(sharedFromNotifId ? { sharedFromNotifId } : {}),
+      });
+      // Si vino de aceptar una partida compartida, sacamos la notif de la
+      // bandeja (el server también la borra al agradecer al autor).
+      if (sharedFromNotifId) dismiss(sharedFromNotifId);
       if (keepGoing) {
         // Conservamos el roster (sin score/win/new), la ubicación y la fecha
         // para la próxima partida de la misma juntada. El juego se resetea (salvo
@@ -125,13 +142,14 @@ export default function CreatePlay() {
 
   // El juego se conserva entre cargas sólo si vino fijado por ?juego.
   const baseGame = game ? { game } : {};
+  // Prioridad: multi-partida (carry) > prefill de partida compartida > base.
   const initialValues = carry
     ? {
         ...baseGame,
         players: carry.players,
         details: { playdate: carry.playdate, location: carry.location },
       }
-    : baseGame;
+    : prefill || baseGame;
 
   return (
     <PlayForm

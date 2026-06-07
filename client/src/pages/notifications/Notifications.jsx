@@ -15,6 +15,7 @@ import EmptyState from "../../components/shared/EmptyState";
 import { ArtNotif, ArtSearch } from "../../components/shared/EmptyArt";
 import NotifRow from "./NotifRow";
 import ResolvedRow from "./ResolvedRow";
+import SharedPlayNotifCard from "./SharedPlayNotifCard";
 import SidePanel from "./SidePanel";
 import NotifIcon from "./NotifIcons";
 import styles from "./Notifications.module.css";
@@ -25,6 +26,7 @@ const DOMAIN_FILTERS = [
   { value: "torneo", label: "Torneos" },
   { value: "amigo", label: "Amigos" },
   { value: "compartida", label: "Compartidas" },
+  { value: "bgwatch", label: "BG Watch" },
   { value: "admin", label: "Admin" },
 ];
 
@@ -328,13 +330,19 @@ export default function Notifications() {
                       <ul className={styles.list}>
                         {buckets[bucket.key].map((n) => {
                           const id = notifId(n);
-                          return resolved[id] ? (
-                            <ResolvedRow
-                              key={id}
-                              notif={n}
-                              action={resolved[id]}
-                            />
-                          ) : (
+                          if (resolved[id]) {
+                            return (
+                              <ResolvedRow
+                                key={id}
+                                notif={n}
+                                action={resolved[id]}
+                              />
+                            );
+                          }
+                          if (n.type === "bgg_play_shared") {
+                            return <SharedPlayNotifCard key={id} notif={n} />;
+                          }
+                          return (
                             <NotifRow
                               key={id}
                               notif={n}

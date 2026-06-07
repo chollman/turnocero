@@ -23,11 +23,13 @@
 
 const BggPlay = require("../../models/BggPlay");
 const logger = require("../../utils/logger");
+const httpError = require("../../utils/httpError");
 const { computePlayHash } = require("../../utils/bggHash");
 const { sleep } = require("../../utils/bggSync");
 const { getSessionCookie, clearSession } = require("../../utils/bggAuth");
 const { parsePlaysXml } = require("./bggParse");
 const { BGG_API, fetchBgg, resolveGame } = require("./bggResolve");
+const { invalidateOwnerDerived } = require("./bggInvalidate");
 
 const BGG_GEEKPLAY = "https://boardgamegeek.com/geekplay.php";
 
@@ -250,6 +252,62 @@ async function upsertPlayFromBgg(bggUsername, parsedPlay) {
   return doc;
 }
 
+// Flujo completo de CREAR una partida (BGG-first): valida → arma form →
+// submit a geekplay → confirma con verifyPlayOnBgg → espeja a Mongo (si el
+// user ya sincronizó) → invalida los caches derivados. Devuelve
+// `{ playid, verified }`. Lanza httpError en cada fallo (igual que el handler
+// inline previo). Lo comparten `POST /partidas` y `POST /partidas/compartida`.
+async function createPlay(user, body) {
+  if (!user.bggUsername) {
+    throw httpError(400, "Configurá tu username de BGG en el perfil");
+  }
+  const validationError = validatePlayBody(body);
+  if (validationError) throw httpError(400, validationError);
+
+  const form = buildPlayForm(body, null);
+  let payload;
+  try {
+    payload = await submitToGeekplay(user, form, "POST");
+  } catch (e) {
+    throw httpError(e.status || 500, e.message);
+  }
+
+  const newPlayId = payload.playid || payload.numplays || null;
+  if (!newPlayId) {
+    logger.warn("[bgg/createPlay] geekplay returned no playid", { payload });
+    throw httpError(
+      502,
+      "BGG no devolvió un ID de partida. La partida no se guardó.",
+    );
+  }
+
+  const verified = await verifyPlayOnBgg(user.bggUsername, newPlayId, {
+    gameId: body.objectid,
+    playdate: body.playdate,
+  });
+  if (!verified) {
+    throw httpError(
+      502,
+      "BGG no confirmó la partida después de guardarla. Intentá de nuevo.",
+    );
+  }
+
+  const lower = user.bggUsername.toLowerCase();
+  if (await BggPlay.exists({ bggUsername: lower })) {
+    try {
+      await upsertPlayFromBgg(user.bggUsername, verified);
+    } catch (e) {
+      logger.warn("[bgg/createPlay] mirror to Mongo failed", {
+        error: e.message,
+      });
+    }
+  }
+
+  await invalidateOwnerDerived(user.bggUsername);
+
+  return { playid: String(newPlayId), verified };
+}
+
 module.exports = {
   BGG_GEEKPLAY,
   buildPlayForm,
@@ -257,4 +315,5 @@ module.exports = {
   submitToGeekplay,
   verifyPlayOnBgg,
   upsertPlayFromBgg,
+  createPlay,
 };

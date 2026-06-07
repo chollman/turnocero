@@ -25,6 +25,12 @@ describe("notifDomains", () => {
       expect(getDomain("???")).toBe("mesa");
     });
 
+    it("maps BG Watch shared-play types to the bgwatch domain", () => {
+      expect(getDomain("bgg_play_shared")).toBe("bgwatch");
+      expect(getDomain("bgg_play_accepted")).toBe("bgwatch");
+      expect(getDomainMeta("bgg_play_shared").label).toBe("BG Watch");
+    });
+
     it("returns brand colorVar + icon per domain", () => {
       expect(getDomainMeta("chat").colorVar).toBe("--amber");
       expect(getDomainMeta("compartida_like").colorVar).toBe("--red");
@@ -178,6 +184,23 @@ describe("notifDomains", () => {
       expect(
         getNotifMeta({ type: "community_join_rejected" }).title,
       ).toMatch(/rechazada/i);
+    });
+
+    it("BG Watch copy: shared (incluye autor + juego) y accepted (gracias)", () => {
+      const shared = getNotifMeta({
+        type: "bgg_play_shared",
+        fromUsername: "ana",
+        gameName: "Catán",
+      });
+      expect(shared.title).toMatch(/ana/i);
+      expect(shared.body).toMatch(/Catán/);
+      expect(shared.cta).toBeTruthy();
+      const accepted = getNotifMeta({
+        type: "bgg_play_accepted",
+        fromUsername: "bob",
+        gameName: "Catán",
+      });
+      expect(accepted.title).toMatch(/bob cargó tu partida/i);
     });
   });
 
