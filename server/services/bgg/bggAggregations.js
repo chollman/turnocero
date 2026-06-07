@@ -15,6 +15,7 @@
 // User.bggUsername case-preserved debe normalizar antes.
 
 const BggPlay = require("../../models/BggPlay");
+const { rawKeyFor } = require("./bggPlayerOverlay");
 
 // Stats globales de un usuario para un juego específico: wins, rated
 // (cantidad de partidas que el user marcó como propias), avgDuration,
@@ -387,8 +388,98 @@ async function computeLastJuntada(lowerBggUsername) {
   };
 }
 
+// Stats del dueño del perfil vs UN co-jugador, derivadas SOLO del log de
+// partidas del dueño (a diferencia del headToHead de comunidad, que cruza los
+// logs de dos miembros y exige usernames BGG en ambos). Así funciona igual para
+// miembros vinculados y para jugadores cargados solo por nombre — alimenta el
+// detalle de jugador en la pestaña "Jugadores".
+//
+// `rawKeys`: claves de identidad del co-jugador (formato `u:<user>` / `n:<name>`,
+// mismo que rawKeyFor / computePlayedCoPlayers). Puede traer varias si el
+// jugador está fusionado (overlay). `selfKeys`: claves que resuelven al dueño
+// (loadSelfKeys) — así las victorias del dueño bajo un alias "sos vos" cuentan,
+// consistente con computeGameStats. El default reproduce el caso sin curación.
+//
+// Cuenta SESIONES (cada doc = 1), igual que headToHead. Devuelve
+// `{ stats, matchedPlays }`: matchedPlays son los docs lean crudos ordenados
+// (date desc, playId desc) para que el route pagine + aplique overlay al render.
+async function computeCoPlayerStats(
+  lowerBggUsername,
+  rawKeys,
+  { selfKeys = [`u:${lowerBggUsername}`] } = {},
+) {
+  const coSet = new Set(rawKeys || []);
+  const selfSet = new Set(selfKeys || []);
+
+  const allPlays = await BggPlay.find({
+    bggUsername: lowerBggUsername,
+  }).lean();
+
+  const matchedPlays = allPlays
+    .filter((p) => (p.players || []).some((pl) => coSet.has(rawKeyFor(pl))))
+    .sort((a, b) => {
+      if (a.date !== b.date) return (b.date || "").localeCompare(a.date || "");
+      return String(b.playId || "").localeCompare(String(a.playId || ""));
+    });
+
+  let ownerWins = 0;
+  let playerWins = 0;
+  let draws = 0;
+  let firstPlayedDate = null;
+  let lastPlayedDate = null;
+  const byGame = new Map();
+
+  for (const p of matchedPlays) {
+    const players = p.players || [];
+    const ownerWin = players.some(
+      (pl) => selfSet.has(rawKeyFor(pl)) && pl.win === true,
+    );
+    const playerWin = players.some(
+      (pl) => coSet.has(rawKeyFor(pl)) && pl.win === true,
+    );
+    const ownerOnly = ownerWin && !playerWin;
+    const playerOnly = playerWin && !ownerWin;
+    if (ownerOnly) ownerWins += 1;
+    else if (playerOnly) playerWins += 1;
+    else draws += 1;
+
+    if (p.date) {
+      if (!firstPlayedDate || p.date < firstPlayedDate) firstPlayedDate = p.date;
+      if (!lastPlayedDate || p.date > lastPlayedDate) lastPlayedDate = p.date;
+    }
+
+    const gid = p.gameId || "?";
+    const g = byGame.get(gid) || {
+      gameId: p.gameId || null,
+      name: p.gameName || null,
+      thumbnail: p.gameThumbnail || null,
+      total: 0,
+      ownerWins: 0,
+      playerWins: 0,
+    };
+    g.total += 1;
+    if (ownerOnly) g.ownerWins += 1;
+    else if (playerOnly) g.playerWins += 1;
+    byGame.set(gid, g);
+  }
+
+  return {
+    stats: {
+      total: matchedPlays.length,
+      ownerWins,
+      playerWins,
+      draws,
+      firstPlayedDate,
+      lastPlayedDate,
+      byGame: [...byGame.values()].sort((a, b) => b.total - a.total),
+    },
+    matchedPlays,
+  };
+}
+
 module.exports = {
   computeGameStats,
+  computeCoPlayerStats,
   computeLastJuntada,
   computePlayedGames,
   computePlayedGamesWithRecency,

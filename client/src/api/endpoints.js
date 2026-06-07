@@ -62,6 +62,9 @@ export const API = {
       `/api/bgg/mis-jugadores/${enc(bggUsername)}`,
     // Curación del roster ("Jugadores" tab — dueño/admin)
     JUGADORES: (bggUsername) => `/api/bgg/jugadores/${enc(bggUsername)}`,
+    // Detalle de un co-jugador (partidas + H2H + stats vs el dueño)
+    JUGADOR_DETALLE: (bggUsername, key) =>
+      `/api/bgg/jugadores/${enc(bggUsername)}/${enc(key)}`,
     JUGADOR_NOMBRE: (bggUsername) =>
       `/api/bgg/jugadores/${enc(bggUsername)}/nombre`,
     JUGADOR_BGG: (bggUsername) =>

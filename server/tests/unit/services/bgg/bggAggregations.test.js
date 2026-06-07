@@ -1,6 +1,7 @@
 const BggPlay = require("../../../../models/BggPlay");
 const {
   computeGameStats,
+  computeCoPlayerStats,
   computeLastJuntada,
   computePlayedGames,
   computePlayedGamesWithRecency,
@@ -604,5 +605,146 @@ describe("computeLastJuntada", () => {
     });
     const juntada = await computeLastJuntada("alice");
     expect(juntada.players).toEqual([{ name: "Alice", username: "alice" }]);
+  });
+});
+
+describe("computeCoPlayerStats", () => {
+  it("devuelve ceros cuando no hay partidas con ese jugador", async () => {
+    const { stats, matchedPlays } = await computeCoPlayerStats("alice", [
+      "u:nadie",
+    ]);
+    expect(matchedPlays).toEqual([]);
+    expect(stats).toMatchObject({
+      total: 0,
+      ownerWins: 0,
+      playerWins: 0,
+      draws: 0,
+      byGame: [],
+    });
+  });
+
+  it("tabula victorias del dueño vs el co-jugador (por username)", async () => {
+    await makePlay({
+      date: "2026-01-01",
+      players: [
+        { username: "alice", win: true },
+        { username: "bob", win: false },
+      ],
+    });
+    await makePlay({
+      date: "2026-01-02",
+      players: [
+        { username: "alice", win: false },
+        { username: "bob", win: true },
+      ],
+    });
+    await makePlay({
+      date: "2026-01-03",
+      players: [
+        { username: "alice", win: false },
+        { username: "bob", win: false },
+      ],
+    });
+    const { stats } = await computeCoPlayerStats("alice", ["u:bob"]);
+    expect(stats.total).toBe(3);
+    expect(stats.ownerWins).toBe(1);
+    expect(stats.playerWins).toBe(1);
+    expect(stats.draws).toBe(1);
+    expect(stats.firstPlayedDate).toBe("2026-01-01");
+    expect(stats.lastPlayedDate).toBe("2026-01-03");
+  });
+
+  it("no incluye partidas donde el co-jugador no aparece", async () => {
+    await makePlay({
+      date: "2026-02-01",
+      players: [{ username: "alice", win: true }],
+    });
+    await makePlay({
+      date: "2026-02-02",
+      players: [
+        { username: "alice", win: true },
+        { username: "bob", win: false },
+      ],
+    });
+    const { stats, matchedPlays } = await computeCoPlayerStats("alice", [
+      "u:bob",
+    ]);
+    expect(stats.total).toBe(1);
+    expect(matchedPlays).toHaveLength(1);
+  });
+
+  it("funciona para jugadores cargados solo por nombre (sin username)", async () => {
+    await makePlay({
+      date: "2026-03-01",
+      players: [
+        { username: "alice", win: false },
+        { name: "Tía Marta", username: "" },
+      ],
+    });
+    const { stats } = await computeCoPlayerStats("alice", ["n:tía marta"]);
+    expect(stats.total).toBe(1);
+  });
+
+  it("desglosa por juego (ownerWins/playerWins/total)", async () => {
+    await makePlay({
+      gameId: "100",
+      gameName: "Catan",
+      date: "2026-04-01",
+      players: [
+        { username: "alice", win: true },
+        { username: "bob", win: false },
+      ],
+    });
+    await makePlay({
+      gameId: "200",
+      gameName: "Carcassonne",
+      date: "2026-04-02",
+      players: [
+        { username: "alice", win: false },
+        { username: "bob", win: true },
+      ],
+    });
+    const { stats } = await computeCoPlayerStats("alice", ["u:bob"]);
+    const byId = Object.fromEntries(stats.byGame.map((g) => [g.gameId, g]));
+    expect(byId["100"]).toMatchObject({ total: 1, ownerWins: 1, playerWins: 0 });
+    expect(byId["200"]).toMatchObject({ total: 1, ownerWins: 0, playerWins: 1 });
+  });
+
+  it("cuenta victorias del dueño bajo un alias 'sos vos' vía selfKeys", async () => {
+    await makePlay({
+      date: "2026-05-01",
+      players: [
+        { name: "Ali", username: "" },
+        { username: "bob", win: false },
+      ],
+    });
+    // "Ali" (n:ali) es el dueño; gana porque bob no ganó.
+    const { stats } = await computeCoPlayerStats("alice", ["u:bob"], {
+      selfKeys: ["u:alice", "n:ali"],
+    });
+    expect(stats.total).toBe(1);
+    expect(stats.ownerWins).toBe(0); // nadie marcó win=true
+    expect(stats.draws).toBe(1);
+  });
+
+  it("matchedPlays viene ordenado por fecha desc", async () => {
+    await makePlay({
+      date: "2026-06-01",
+      players: [{ username: "alice" }, { username: "bob" }],
+    });
+    await makePlay({
+      date: "2026-06-03",
+      players: [{ username: "alice" }, { username: "bob" }],
+    });
+    await makePlay({
+      date: "2026-06-02",
+      players: [{ username: "alice" }, { username: "bob" }],
+    });
+    const { matchedPlays } = await computeCoPlayerStats("alice", ["u:bob"]);
+    expect(matchedPlays.map((p) => p.date)).toEqual([
+      "2026-06-03",
+      "2026-06-02",
+      "2026-06-01",
+    ]);
   });
 });
