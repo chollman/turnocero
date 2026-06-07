@@ -1541,6 +1541,27 @@
   padding: 10px 12px;
 }
 
+/* Área clickeable de la fila (avatar + nombre) → abre el detalle del jugador.
+   Los botones de acción quedan fuera para no disparar la navegación. */
+.jugadorRowMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: opacity var(--transition);
+}
+
+.jugadorRowMain:hover .gameSearchName {
+  color: var(--amber);
+}
+
 .jugadorRow .gameSearchInfo {
   flex: 1;
   min-width: 0;

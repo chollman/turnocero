@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
@@ -48,8 +49,16 @@ export default function JugadoresPanel({ bggUsername }) {
   const [editing, setEditing] = useState(null);
   const [merging, setMerging] = useState(null);
 
+  const navigate = useNavigate();
   const searchTerm = useSearchTerm(q);
   const reqIdRef = useRef(0);
+
+  const openDetail = (row) =>
+    navigate(
+      `/bg-watch/${encodeURIComponent(bggUsername)}/jugador/${encodeURIComponent(
+        row.key,
+      )}`,
+    );
 
   const fetchPage = useCallback(
     (pageToLoad) => {
@@ -120,7 +129,9 @@ export default function JugadoresPanel({ bggUsername }) {
       {loading && items.length === 0 && <SearchRowSkeleton rows={5} />}
 
       {error && (
-        <p className={styles.dimText}>No se pudo cargar la lista de jugadores.</p>
+        <p className={styles.dimText}>
+          No se pudo cargar la lista de jugadores.
+        </p>
       )}
 
       {isEmpty && (
@@ -142,29 +153,36 @@ export default function JugadoresPanel({ bggUsername }) {
             const meta = playerMeta(row);
             return (
               <li key={row.key} className={styles.jugadorRow}>
-                <Avatar user={rowAvatarUser(row)} size="sm" />
-                <div className={styles.gameSearchInfo}>
-                  <span className={styles.gameSearchName}>
-                    {row.name || row.username || "Sin nombre"}
-                    {row.username && (
-                      <span className={styles.coPlayerHandle}>
-                        {" "}
-                        @{row.username}
-                      </span>
+                <button
+                  type="button"
+                  className={styles.jugadorRowMain}
+                  onClick={() => openDetail(row)}
+                  title="Ver partidas y estadísticas con este jugador"
+                >
+                  <Avatar user={rowAvatarUser(row)} size="sm" />
+                  <div className={styles.gameSearchInfo}>
+                    <span className={styles.gameSearchName}>
+                      {row.name || row.username || "Sin nombre"}
+                      {row.username && (
+                        <span className={styles.coPlayerHandle}>
+                          {" "}
+                          @{row.username}
+                        </span>
+                      )}
+                      {row.isLinked && (
+                        <span className={styles.playerTagFriend}>
+                          miembro TurnoCero
+                        </span>
+                      )}
+                      {row.isSelf && (
+                        <span className={styles.playerTagSelf}>sos vos</span>
+                      )}
+                    </span>
+                    {meta && (
+                      <span className={styles.gameSearchMeta}>{meta}</span>
                     )}
-                    {row.isLinked && (
-                      <span className={styles.playerTagFriend}>
-                        miembro TurnoCero
-                      </span>
-                    )}
-                    {row.isSelf && (
-                      <span className={styles.playerTagSelf}>sos vos</span>
-                    )}
-                  </span>
-                  {meta && (
-                    <span className={styles.gameSearchMeta}>{meta}</span>
-                  )}
-                </div>
+                  </div>
+                </button>
                 <div className={styles.jugadorActions}>
                   {row.isSelf ? (
                     <button
@@ -207,7 +225,11 @@ export default function JugadoresPanel({ bggUsername }) {
       )}
 
       {pages > 1 && (
-        <Pagination page={page} totalPages={pages} onPage={(p) => fetchPage(p)} />
+        <Pagination
+          page={page}
+          totalPages={pages}
+          onPage={(p) => fetchPage(p)}
+        />
       )}
 
       {total > 0 && (

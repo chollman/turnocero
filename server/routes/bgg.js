@@ -29,6 +29,7 @@ const bggMutationLimiter = userRateLimit({
 });
 const {
   computeGameStats,
+  computeCoPlayerStats,
   computeLastJuntada,
   computePlayedGames,
   computeTopPlayedGame,
@@ -101,6 +102,9 @@ const {
   overlayToRow,
   getOrCreateOverlay,
   isLinkedToMember,
+  rawKeyFor,
+  firstUserKey,
+  nameFromKeys,
 } = require("../services/bgg/bggPlayerOverlay");
 const { invalidateOwnerDerived } = require("../services/bgg/bggInvalidate");
 const {
@@ -1388,6 +1392,132 @@ router.get(
       total: items.length,
       page,
       pages: Math.ceil(items.length / limit),
+    });
+  }),
+);
+
+// GET /api/bgg/jugadores/:bggUsername/:playerKey — detalle de un co-jugador:
+// partidas compartidas (paginadas), head-to-head vs el dueño y stats. Owner/admin.
+// `playerKey` es la `key` que devuelve la lista (`o:<overlayId>` o `k:<rawKey>`);
+// también acepta una rawKey directa (`u:`/`n:`). Express ya decodifica el param.
+router.get(
+  "/jugadores/:bggUsername/:playerKey",
+  protect,
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const { allowed } = ownerOrAdmin(req, lower);
+    if (!allowed) {
+      throw httpError(403, "No podés ver los jugadores de otro usuario");
+    }
+
+    const { page, limit, skip } = parsePagination(req.query, {
+      defaultLimit: 10,
+      maxLimit: 30,
+    });
+
+    const overlayIndex = await loadOverlayIndex(lower);
+
+    // Resolver playerKey → rawKeys (+ overlay si existe).
+    const rawParam = req.params.playerKey || "";
+    let overlay = null;
+    let rawKeys = [];
+    if (rawParam.startsWith("o:")) {
+      overlay = await BggPlayerOverlay.findOne({
+        _id: rawParam.slice(2),
+        ownerUsername: lower,
+      }).lean();
+      if (!overlay) throw httpError(404, "Jugador no encontrado");
+      rawKeys = overlay.rawKeys || [];
+    } else {
+      // "k:<rawKey>" (de la lista) o "u:"/"n:" directo.
+      const bare = rawParam.startsWith("k:") ? rawParam.slice(2) : rawParam;
+      const keys = sanitizeRawKeys([bare]);
+      if (!keys.length) throw httpError(400, "Jugador inválido");
+      // Si la clave está reclamada por un overlay (fusión), expandir a TODAS sus
+      // identidades para no perder partidas cargadas bajo otros alias.
+      const claimed = overlayIndex.byKey.get(keys[0]);
+      if (claimed) {
+        overlay = claimed;
+        rawKeys = claimed.rawKeys || keys;
+      } else {
+        rawKeys = keys;
+      }
+    }
+    if (!rawKeys.length) throw httpError(404, "Jugador no encontrado");
+
+    const selfKeys = await loadSelfKeys(lower);
+    const { stats, matchedPlays } = await computeCoPlayerStats(lower, rawKeys, {
+      selfKeys,
+    });
+
+    // Header del jugador: nombre/username/avatar efectivos. Con overlay usamos
+    // overlayToRow; sin overlay derivamos de la aparición más reciente (los
+    // matchedPlays ya vienen date desc).
+    let username;
+    let name = "";
+    let avatar = null;
+    let isSelf = false;
+    if (overlay) {
+      const row = overlayToRow(overlay, null);
+      username = row.username;
+      name = row.name;
+      avatar = row.avatar;
+      isSelf = row.isSelf;
+    } else {
+      username = firstUserKey(rawKeys) || "";
+      for (const p of matchedPlays) {
+        const pl = (p.players || []).find((x) => rawKeys.includes(rawKeyFor(x)));
+        if (pl) {
+          name = (pl.name || "").trim();
+          if (!username) username = (pl.username || "").trim();
+          break;
+        }
+      }
+      if (!name) name = username || nameFromKeys(rawKeys);
+    }
+
+    // Vínculo a un miembro de TurnoCero (por username efectivo).
+    let linkedUser = null;
+    if (username) {
+      const linked = await resolveUsersByBggUsernames([username], { cap: 1 });
+      linkedUser = linked[0] || null;
+    }
+
+    // Partidas paginadas, con la curación (overlay) reflejada en los players.
+    const plays = matchedPlays.slice(skip, skip + limit).map((d) => {
+      const api = playToApi(d);
+      api.players = applyOverlayToPlayers(api.players, overlayIndex, {
+        ownerLower: lower,
+      });
+      return api;
+    });
+
+    res.json({
+      player: {
+        key: overlay ? `o:${overlay._id}` : `k:${rawKeys[0]}`,
+        rawKeys,
+        name,
+        username,
+        avatar,
+        isSelf,
+        isLinked: !!linkedUser,
+        linkedUser,
+      },
+      h2h: {
+        ownerWins: stats.ownerWins,
+        playerWins: stats.playerWins,
+        draws: stats.draws,
+      },
+      stats: {
+        total: stats.total,
+        firstPlayedDate: stats.firstPlayedDate,
+        lastPlayedDate: stats.lastPlayedDate,
+        byGame: stats.byGame,
+      },
+      plays,
+      page,
+      total: stats.total,
+      pageSize: limit,
     });
   }),
 );

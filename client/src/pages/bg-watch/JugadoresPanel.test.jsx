@@ -6,7 +6,12 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import {
+  MemoryRouter,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
 
@@ -267,6 +272,32 @@ describe("<JugadoresPanel>", () => {
     fireEvent.click(screen.getByRole("button", { name: /ya no soy yo/i }));
     await waitFor(() => expect(body).toBeTruthy());
     expect(body).toEqual({ rawKeys: ["n:juan"], value: false });
+  });
+
+  it("clic en una fila navega al detalle del jugador", async () => {
+    function LocationProbe() {
+      const loc = useLocation();
+      return <div data-testid="loc">{loc.pathname}</div>;
+    }
+    render(
+      <MemoryRouter initialEntries={["/bg-watch/alice/jugadores"]}>
+        <Routes>
+          <Route
+            path="/bg-watch/alice/jugadores"
+            element={<JugadoresPanel bggUsername="alice" />}
+          />
+          <Route
+            path="/bg-watch/:u/jugador/:key"
+            element={<LocationProbe />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const rowBtn = await screen.findByRole("button", { name: /Juan/ });
+    fireEvent.click(rowBtn);
+    const loc = await screen.findByTestId("loc");
+    expect(loc).toHaveTextContent("/bg-watch/alice/jugador/");
+    expect(loc.textContent).toContain("juan");
   });
 
   it("muestra vacío cuando no hay jugadores", async () => {
