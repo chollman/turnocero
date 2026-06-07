@@ -32,9 +32,14 @@ describe("withLease", () => {
       return "first";
     });
 
-    // Esperar un tick para que el primer call haya hecho el findOneAndUpdate.
-    await new Promise((r) => {
-      setImmediate(r);
+    // Esperar a que el PRIMER call haya PERSISTIDO el lease antes de competir.
+    // Un solo `setImmediate` no alcanza: el findOneAndUpdate es un round-trip a
+    // Mongo que bajo carga tarda más que un tick del event loop, y el segundo
+    // call corría antes de que el lease existiera (flaky → ambos lo agarraban).
+    // Polleamos hasta verlo persistido.
+    await vi.waitFor(async () => {
+      const doc = await CronLease.findOne({ name: "contended" });
+      expect(doc).not.toBeNull();
     });
 
     const secondResult = await withLease("contended", async () => "second");
