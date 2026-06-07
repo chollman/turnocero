@@ -116,6 +116,38 @@ describe("<PlayerPicker>", () => {
     expect(screen.getAllByTestId("avatar")).toHaveLength(1);
   });
 
+  it("muestra el avatar curado (overlay) del compañero aunque no sea miembro", async () => {
+    server.use(
+      http.get("/api/bgg/mis-jugadores/:user", () =>
+        HttpResponse.json({
+          items: [
+            {
+              key: "o:1",
+              name: "Tía Susana",
+              username: "",
+              numPlays: 3,
+              avatar: { url: "https://x/susana.webp", publicId: "susana" },
+            },
+          ],
+          total: 1,
+          page: 1,
+          pages: 1,
+        }),
+      ),
+    );
+    render(
+      <PlayerPicker
+        bggUsername="me"
+        existing={[]}
+        onPick={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    await screen.findByText("Tía Susana");
+    // El avatar del overlay se renderiza aunque no haya match en TurnoCero.
+    expect(screen.getByTestId("avatar")).toBeInTheDocument();
+  });
+
   it("muestra el skeleton mientras carga y lo oculta al llegar los datos", async () => {
     render(
       <PlayerPicker

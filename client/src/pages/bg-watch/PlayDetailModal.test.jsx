@@ -178,4 +178,44 @@ describe("<PlayDetailModal>", () => {
       "https://boardgamegeek.com/user/alice",
     );
   });
+
+  it("muestra el avatar curado (overlayAvatar) aunque no sea miembro", () => {
+    renderModal({
+      userMap: {},
+      play: {
+        players: [
+          {
+            name: "Tía Susana",
+            username: "",
+            score: "5",
+            position: 1,
+            overlayAvatar: { url: "https://x/susana.webp", publicId: "s" },
+          },
+        ],
+      },
+    });
+    // Sin match en TurnoCero, el avatar del overlay igual se renderiza.
+    expect(screen.getAllByTestId("avatar")).toHaveLength(1);
+  });
+
+  it("overlayName gana sobre el nombre del miembro", () => {
+    renderModal({
+      userMap: {
+        alice: { _id: "u1", username: "alice", displayName: "Alice T" },
+      },
+      play: {
+        players: [
+          {
+            name: "Alice",
+            username: "alice",
+            score: "10",
+            position: 1,
+            overlayName: "La Capa",
+          },
+        ],
+      },
+    });
+    expect(screen.getByText("La Capa")).toBeInTheDocument();
+    expect(screen.queryByText("Alice T")).toBeNull();
+  });
 });

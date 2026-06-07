@@ -261,6 +261,16 @@ export default function PlayerPicker({
             visibleCoPlayers.map((p) => {
               const meta = coPlayerMeta(p);
               const tcUser = p.username ? userMap[norm(p.username)] : null;
+              // Precedencia: avatar curado (overlay, editado en "Jugadores") →
+              // miembro de TurnoCero vinculado por BGG → 👤.
+              const avatarUser = p.avatar?.url
+                ? {
+                    _id: p.key || `n:${p.name}`,
+                    displayName: p.name,
+                    username: p.username,
+                    avatar: p.avatar,
+                  }
+                : tcUser;
               return (
                 <li key={p.username ? `u:${p.username}` : `n:${p.name}`}>
                   <button
@@ -270,8 +280,8 @@ export default function PlayerPicker({
                       onPick({ name: p.name, username: p.username })
                     }
                   >
-                    {tcUser ? (
-                      <Avatar user={tcUser} size="xs" />
+                    {avatarUser ? (
+                      <Avatar user={avatarUser} size="xs" />
                     ) : (
                       <span className={styles.gameSearchThumbFallback}>👤</span>
                     )}

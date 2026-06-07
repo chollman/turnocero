@@ -149,9 +149,13 @@ export default function PlayDetailModal({ play, userMap, onClose }) {
                       const turnoceroUser = p.username
                         ? userMap?.[p.username.toLowerCase()]
                         : null;
-                      const displayName = turnoceroUser
-                        ? turnoceroUser.displayName || turnoceroUser.username
-                        : p.name || "Anónimo";
+                      // Un override de curación (overlayName / overlayAvatar)
+                      // gana sobre el perfil del miembro — igual que PlayCard.
+                      const displayName = p.overlayName
+                        ? p.overlayName
+                        : turnoceroUser
+                          ? turnoceroUser.displayName || turnoceroUser.username
+                          : p.name || "Anónimo";
                       return (
                         <tr
                           key={`${p.username || p.name || "anon"}-${i}`}
@@ -162,8 +166,19 @@ export default function PlayDetailModal({ play, userMap, onClose }) {
                           </td>
                           <td>
                             <div className={styles.playerCellName}>
-                              {turnoceroUser && (
-                                <Avatar user={turnoceroUser} size="xs" />
+                              {p.overlayAvatar?.url ? (
+                                <Avatar
+                                  user={{
+                                    _id: p.username || p.name,
+                                    displayName,
+                                    avatar: p.overlayAvatar,
+                                  }}
+                                  size="xs"
+                                />
+                              ) : (
+                                turnoceroUser && (
+                                  <Avatar user={turnoceroUser} size="xs" />
+                                )
                               )}
                               {displayName}
                               {p.new && (
