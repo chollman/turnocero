@@ -32,6 +32,7 @@
 
 const BggPlay = require("../../models/BggPlay");
 const BggCollection = require("../../models/BggCollection");
+const BggPlayerOverlay = require("../../models/BggPlayerOverlay");
 const User = require("../../models/User");
 const Community = require("../../models/Community");
 const { resolveGamesBatch } = require("./bggResolve");
@@ -39,27 +40,100 @@ const { computePlayedCoPlayers } = require("./bggAggregations");
 const {
   loadOverlayIndex,
   applyOverlayToCoPlayers,
+  applyOverlayToPlayers,
 } = require("./bggPlayerOverlay");
 
-// Expresión $reduce reutilizable: dado un doc de BggPlay, resuelve si el
-// LOGGER (su propio bggUsername) ganó esa partida. Devuelve true/false si se
-// encontró a sí mismo en `players`, o null si no aparece. Usada por
-// gameCommunityStats y communityWinRates.
+// Nombre de la colección de overlays para el $lookup (Mongoose lo pluraliza).
+const OVERLAY_COLLECTION = BggPlayerOverlay.collection.name;
+
+// Stages que anexan `selfKeys` a cada doc de BggPlay: la clave propia del
+// logger (`u:<bggUsername>`) MÁS las rawKeys de sus overlays marcados isSelf
+// ("sos vos"). Así el win del logger se puede resolver aunque se haya cargado a
+// sí mismo bajo un alias — mismo criterio que computeGameStats per-user. El
+// $lookup va por `ownerUsername` (indexado) e isSelf; para la enorme mayoría de
+// loggers no hay overlay isSelf → selfKeys queda en `[u:<logger>]` y el
+// comportamiento es idéntico al previo. (Costo: un lookup por play; aceptable a
+// esta escala — los win-rates son la única vista que lo paga.)
+const SELF_KEYS_STAGES = [
+  {
+    $lookup: {
+      from: OVERLAY_COLLECTION,
+      let: { owner: "$bggUsername" },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                { $eq: ["$ownerUsername", "$$owner"] },
+                { $eq: ["$isSelf", true] },
+              ],
+            },
+          },
+        },
+        { $project: { _id: 0, rawKeys: 1 } },
+      ],
+      as: "_selfOverlays",
+    },
+  },
+  {
+    $addFields: {
+      selfKeys: {
+        $concatArrays: [
+          [{ $concat: ["u:", "$bggUsername"] }],
+          {
+            $reduce: {
+              input: "$_selfOverlays",
+              initialValue: [],
+              in: {
+                $concatArrays: ["$$value", { $ifNull: ["$$this.rawKeys", []] }],
+              },
+            },
+          },
+        ],
+      },
+    },
+  },
+];
+
+// $reduce reutilizable: ¿el LOGGER ganó esta partida? Resuelve la clave de
+// identidad de cada player (`u:<username>` / `n:<name>`, trim + toLower, mismo
+// formato que rawKeyFor) y la testea contra `selfKeys`. Devuelve true/false si
+// el logger (o un alias suyo isSelf) figura en `players`, o null si no aparece.
+// Requiere que el doc ya tenga el campo `selfKeys` (ver SELF_KEYS_STAGES). Usada
+// por gameCommunityStats y communityWinRates.
 const OWNER_WIN_REDUCE = {
   $reduce: {
     input: { $ifNull: ["$players", []] },
     initialValue: null,
     in: {
-      $cond: [
-        {
-          $eq: [
-            { $toLower: { $ifNull: ["$$this.username", ""] } },
-            "$bggUsername",
+      $let: {
+        vars: {
+          u: {
+            $toLower: { $trim: { input: { $ifNull: ["$$this.username", ""] } } },
+          },
+          n: {
+            $toLower: { $trim: { input: { $ifNull: ["$$this.name", ""] } } },
+          },
+        },
+        in: {
+          $cond: [
+            {
+              $in: [
+                {
+                  $cond: [
+                    { $ne: ["$$u", ""] },
+                    { $concat: ["u:", "$$u"] },
+                    { $concat: ["n:", "$$n"] },
+                  ],
+                },
+                { $ifNull: ["$selfKeys", []] },
+              ],
+            },
+            { $eq: ["$$this.win", true] },
+            "$$value",
           ],
         },
-        { $eq: ["$$this.win", true] },
-        "$$value",
-      ],
+      },
     },
   },
 };
@@ -208,6 +282,8 @@ async function gameCommunityStats(gameId, { bggUsernames = null } = {}) {
 
   const facet = await BggPlay.aggregate([
     { $match: match },
+    // Anexa selfKeys para que ownerWin honre los alias "sos vos" del logger.
+    ...SELF_KEYS_STAGES,
     {
       $facet: {
         summary: [
@@ -216,6 +292,7 @@ async function gameCommunityStats(gameId, { bggUsernames = null } = {}) {
               bggUsername: 1,
               quantity: { $ifNull: ["$quantity", 1] },
               duration: 1,
+              selfKeys: 1,
               // win del logger en esta play (null si no se encontró a sí mismo).
               ownerWin: OWNER_WIN_REDUCE,
             },
@@ -381,7 +458,9 @@ async function communityWinRates({
 
   const agg = await BggPlay.aggregate([
     { $match: match },
-    { $project: { bggUsername: 1, ownerWin: OWNER_WIN_REDUCE } },
+    // Anexa selfKeys para que ownerWin honre los alias "sos vos" del logger.
+    ...SELF_KEYS_STAGES,
+    { $project: { bggUsername: 1, selfKeys: 1, ownerWin: OWNER_WIN_REDUCE } },
     { $match: { ownerWin: { $ne: null } } },
     {
       $group: {
@@ -513,28 +592,36 @@ async function topCoPlayers(lowerBggUsername, { limit = 12 } = {}) {
 // fecha|juego|jugadores, y talla victorias de cada uno + desglose por juego.
 // CAVEAT: una sesión logueada SOLO por un tercero no aparece — el récord sale
 // de los logs propios de A/B, que es la fuente canónica.
+//
+// CURACIÓN: el matcheo es POST-overlay. Antes filtrábamos por username crudo en
+// Mongo, lo que descartaba apariciones que la curación recupera —un alias propio
+// marcado "sos vos", o un compañero logueado por nombre y luego linkeado a un
+// @BGG. Por eso traemos todas las partidas de A+B y normalizamos los `players`
+// de cada una con el overlay de SU logger (loadOverlayIndex(logger) +
+// applyOverlayToPlayers con ownerLower=logger) ANTES de filtrar y tallar. El
+// dedup de sesión compartida sigue siendo aproximado (cada uno la cura distinto).
 async function headToHead(lowerA, lowerB) {
-  const plays = await BggPlay.aggregate([
-    { $match: { bggUsername: { $in: [lowerA, lowerB] } } },
-    {
-      $addFields: {
-        unames: {
-          $map: {
-            input: { $ifNull: ["$players", []] },
-            as: "p",
-            in: { $toLower: { $ifNull: ["$$p.username", ""] } },
-          },
-        },
-      },
-    },
-    {
-      $match: {
-        $expr: {
-          $and: [{ $in: [lowerA, "$unames"] }, { $in: [lowerB, "$unames"] }],
-        },
-      },
-    },
-  ]);
+  const rawPlays = await BggPlay.find({
+    bggUsername: { $in: [lowerA, lowerB] },
+  }).lean();
+
+  // Overlay de cada logger (solo A y B). Normaliza los usernames de sus players.
+  const indexes = {
+    [lowerA]: await loadOverlayIndex(lowerA),
+    [lowerB]: await loadOverlayIndex(lowerB),
+  };
+
+  const plays = [];
+  for (const play of rawPlays) {
+    const idx = indexes[play.bggUsername] || { byKey: new Map() };
+    const players = applyOverlayToPlayers(play.players || [], idx, {
+      ownerLower: play.bggUsername,
+    });
+    const unames = players.map((p) => (p.username || "").toLowerCase());
+    if (unames.includes(lowerA) && unames.includes(lowerB)) {
+      plays.push({ ...play, players, unames });
+    }
+  }
 
   const seen = new Map();
   for (const play of plays) {
@@ -608,8 +695,29 @@ async function communityActivityFeed({
     .limit(safeLimit)
     .lean();
 
-  // Resolver en un solo batch: el logger de cada play + los players con
-  // username BGG.
+  // Normalizar los players de cada play con el overlay de SU logger, así el feed
+  // muestra los nombres curados / fusiones y resuelve a miembro los compañeros
+  // logueados por nombre y luego linkeados a un @BGG. Una carga de overlay por
+  // logger distinto de la página (acotado: ≤ limit loggers).
+  const loggers = [
+    ...new Set(
+      docs.map((d) => (d.bggUsername || "").toLowerCase()).filter(Boolean),
+    ),
+  ];
+  const idxByLogger = new Map();
+  await Promise.all(
+    loggers.map(async (l) => idxByLogger.set(l, await loadOverlayIndex(l))),
+  );
+  for (const d of docs) {
+    const lower = (d.bggUsername || "").toLowerCase();
+    const idx = idxByLogger.get(lower) || { byKey: new Map() };
+    d.players = applyOverlayToPlayers(d.players || [], idx, {
+      ownerLower: lower,
+    });
+  }
+
+  // Resolver en un solo batch: el logger de cada play + los players (ya curados)
+  // con username BGG.
   const usernames = new Set();
   for (const d of docs) {
     if (d.bggUsername) usernames.add(d.bggUsername.toLowerCase());

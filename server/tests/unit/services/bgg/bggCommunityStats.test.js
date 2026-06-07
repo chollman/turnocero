@@ -229,6 +229,31 @@ describe("gameCommunityStats", () => {
     expect(stats.avgScore).toBeNull(); // "abc" no es numérico
     expect(stats.avgDuration).toBeNull();
   });
+
+  it("el winRate honra el 'sos vos' del logger", async () => {
+    // alice se cargó como "AleAlias" (sin username): gana 1, pierde 1.
+    await makePlay({
+      bggUsername: "alice",
+      gameId: "100",
+      players: [{ name: "AleAlias", username: "", win: true }],
+    });
+    await makePlay({
+      bggUsername: "alice",
+      gameId: "100",
+      players: [{ name: "AleAlias", username: "", win: false }],
+    });
+    // Sin overlay: alice no figura por username → winRate null.
+    expect((await gameCommunityStats("100")).winRate).toBeNull();
+    await BggPlayerOverlay.create({
+      ownerUsername: "alice",
+      rawKeys: ["n:alealias"],
+      isSelf: true,
+    });
+    const stats = await gameCommunityStats("100");
+    expect(stats.decided).toBe(2);
+    expect(stats.wins).toBe(1);
+    expect(stats.winRate).toBe(0.5);
+  });
 });
 
 describe("gameOwners", () => {
@@ -312,6 +337,34 @@ describe("communityWinRates", () => {
     expect(rates[0].wins).toBe(2);
     expect(rates[0].decided).toBe(3);
     expect(rates[0].winRate).toBeCloseTo(2 / 3);
+  });
+
+  it("honra el 'sos vos' del logger (alias propio cuenta como decidida/victoria)", async () => {
+    // alice logueó 3 partidas figurando como "AleAlias" (sin username): 2 wins.
+    await makePlay({
+      bggUsername: "alice",
+      players: [{ name: "AleAlias", username: "", win: true }],
+    });
+    await makePlay({
+      bggUsername: "alice",
+      players: [{ name: "AleAlias", username: "", win: true }],
+    });
+    await makePlay({
+      bggUsername: "alice",
+      players: [{ name: "AleAlias", username: "", win: false }],
+    });
+    // Sin overlay: no figura por username → 0 decididas → fuera del leaderboard.
+    expect(await communityWinRates({ minPlays: 3 })).toHaveLength(0);
+    // Marcada como ella misma → las 3 cuentan.
+    await BggPlayerOverlay.create({
+      ownerUsername: "alice",
+      rawKeys: ["n:alealias"],
+      isSelf: true,
+    });
+    const rates = await communityWinRates({ minPlays: 3 });
+    expect(rates).toHaveLength(1);
+    expect(rates[0].decided).toBe(3);
+    expect(rates[0].wins).toBe(2);
   });
 });
 
@@ -428,6 +481,59 @@ describe("headToHead", () => {
     expect(h2h.userA.user.displayName).toBe("Alicia");
     expect(h2h.byGame).toHaveLength(2);
   });
+
+  it("cuenta una sesión donde A figura bajo un alias marcado 'sos vos'", async () => {
+    await createUser({ bggUsername: "alice", displayName: "Alicia" });
+    await createUser({ bggUsername: "bob", displayName: "Bobby" });
+    // alice se cargó a sí misma como "AleAlias" (sin username) y ganó.
+    await makePlay({
+      bggUsername: "alice",
+      gameId: "100",
+      date: "2026-02-01",
+      players: [
+        { name: "AleAlias", username: "", win: true },
+        { username: "bob", win: false },
+      ],
+    });
+    // Sin overlay no entra: alice no figura por su username.
+    expect((await headToHead("alice", "bob")).total).toBe(0);
+    // Marcada como ella misma → entra y cuenta su victoria.
+    await BggPlayerOverlay.create({
+      ownerUsername: "alice",
+      rawKeys: ["n:alealias"],
+      isSelf: true,
+    });
+    const h2h = await headToHead("alice", "bob");
+    expect(h2h.total).toBe(1);
+    expect(h2h.aWins).toBe(1);
+    expect(h2h.bWins).toBe(0);
+  });
+
+  it("cuenta un compañero logueado por nombre y luego linkeado a un @BGG", async () => {
+    await createUser({ bggUsername: "alice" });
+    await createUser({ bggUsername: "bob", displayName: "Bobby" });
+    // alice logueó a bob por NOMBRE ("Rober"), sin username, y bob ganó.
+    await makePlay({
+      bggUsername: "alice",
+      gameId: "100",
+      date: "2026-02-01",
+      players: [
+        { username: "alice", win: false },
+        { name: "Rober", username: "", win: true },
+      ],
+    });
+    expect((await headToHead("alice", "bob")).total).toBe(0);
+    // Linkeado a @bob en el overlay de alice → la partida cuenta.
+    await BggPlayerOverlay.create({
+      ownerUsername: "alice",
+      rawKeys: ["n:rober"],
+      bggUsername: "bob",
+    });
+    const h2h = await headToHead("alice", "bob");
+    expect(h2h.total).toBe(1);
+    expect(h2h.bWins).toBe(1);
+    expect(h2h.aWins).toBe(0);
+  });
 });
 
 describe("communityActivityFeed", () => {
@@ -445,6 +551,34 @@ describe("communityActivityFeed", () => {
     expect(feed.items[0].date).toBe("2026-03-05");
     expect(feed.items[1].date).toBe("2026-03-03");
     expect(feed.items[0].logger.displayName).toBe("Alicia");
+  });
+
+  it("refleja la curación: nombre override + link a miembro del co-player", async () => {
+    await createUser({ bggUsername: "alice", displayName: "Alicia" });
+    await createUser({ bggUsername: "bob", displayName: "Bobby" });
+    // alice logueó a un compañero por nombre "Rober".
+    await makePlay({
+      bggUsername: "alice",
+      date: "2026-03-01",
+      players: [
+        { username: "alice", win: true },
+        { name: "Rober", username: "", win: false },
+      ],
+    });
+    // Curado: nombre "Roberto" + linkeado a @bob (miembro).
+    await BggPlayerOverlay.create({
+      ownerUsername: "alice",
+      rawKeys: ["n:rober"],
+      nameOverride: "Roberto",
+      bggUsername: "bob",
+    });
+
+    const feed = await communityActivityFeed({ page: 1, limit: 10 });
+    expect(feed.items).toHaveLength(1);
+    const rober = feed.items[0].players.find((p) => p.username === "bob");
+    expect(rober).toBeTruthy();
+    expect(rober.name).toBe("Roberto");
+    expect(rober.user.displayName).toBe("Bobby");
   });
 });
 
