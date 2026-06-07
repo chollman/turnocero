@@ -1,0 +1,852 @@
+/* ==========================================================================
+   BG Watch · Reimagined — "personal play almanac / stats journal"
+   ========================================================================== */
+
+@import url('tc-design.css');
+
+/* ── Landing hero ── */
+.landingHero {
+  position: relative;
+  background:
+    radial-gradient(700px circle at 80% -10%, rgba(180, 140, 255, 0.18), transparent 55%),
+    radial-gradient(500px circle at 0% 100%, var(--accent-glow), transparent 55%),
+    linear-gradient(180deg, var(--bg-paper), var(--bg-dark));
+  border: 1px solid var(--border-strong);
+  border-radius: 22px;
+  padding: 48px 40px;
+  margin-bottom: 32px;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 40px;
+  align-items: center;
+  overflow: hidden;
+}
+
+.landingHero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+
+.landingBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--purple-10);
+  border: 1px solid var(--purple-25);
+  color: var(--purple);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.landingTitle {
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 5.5vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  color: var(--text-primary);
+  margin: 0 0 18px;
+  text-wrap: balance;
+  position: relative;
+}
+
+.landingTitle em {
+  font-style: normal;
+  font-family: var(--font-script);
+  font-weight: 600;
+  color: var(--purple);
+  font-size: 1.15em;
+  letter-spacing: -0.02em;
+}
+
+.landingLead {
+  font-size: 18px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0 0 28px;
+  max-width: 540px;
+}
+
+.landingCtas {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.landingMockStats {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.landingMockCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  transition: transform var(--t);
+}
+.landingMockCard.tilt1 { transform: rotate(-2deg); }
+.landingMockCard.tilt2 { transform: rotate(1.5deg); margin-left: 20px; }
+.landingMockCard.tilt3 { transform: rotate(-1deg); }
+
+.landingMockTitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--purple);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.landingMockBig {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.045em;
+  line-height: 0.9;
+}
+
+.landingMockMeta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ── Player header (profile) ── */
+.playerHeader {
+  position: relative;
+  background:
+    radial-gradient(700px circle at 90% -20%, var(--accent-glow), transparent 55%),
+    linear-gradient(180deg, var(--bg-paper), var(--bg-dark));
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  padding: 28px;
+  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 22px;
+  align-items: center;
+  overflow: hidden;
+}
+
+.playerHeader::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0);
+  background-size: 18px 18px;
+  pointer-events: none;
+}
+
+.playerAvatar {
+  position: relative;
+  z-index: 1;
+}
+
+.playerInfo {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.playerKicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--accent-light);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.playerName {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  line-height: 1;
+  margin: 0;
+}
+
+.playerBgg {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.playerBggLink {
+  color: var(--accent-light);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.playerActions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Stats bar (big numerals) ── */
+.statsBar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+
+.bigStat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px 24px;
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+
+.bigStat:last-child { border-right: none; }
+
+.bigStat .lbl {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.bigStat .val {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: var(--text-primary);
+  line-height: 0.9;
+}
+
+.bigStat.accent .val { color: var(--accent-light); }
+.bigStat.purple .val { color: var(--purple); }
+.bigStat.gold .val { color: var(--gold); }
+
+.bigStat .sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.bigStat.large .val { font-size: 1.4rem; line-height: 1.1; }
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 22px;
+}
+
+.tab {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 8px 14px;
+  border-radius: 7px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all var(--t);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.tab:hover { color: var(--text-primary); }
+.tabActive { background: var(--bg-elevated); color: var(--accent-light); }
+.tab .badge { background: var(--bg-elevated); color: var(--text-muted); padding: 1px 6px; border-radius: 4px; font-size: 9px; }
+.tabActive .badge { background: var(--accent-glow); color: var(--accent-light); }
+
+/* ==========================================================================
+   PARTIDAS view (plays log)
+   ========================================================================== */
+.partidasLayout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 28px;
+  align-items: start;
+}
+
+.playsList { min-width: 0; }
+.playsSideCol { display: flex; flex-direction: column; gap: 14px; }
+
+/* Play card */
+.play {
+  display: grid;
+  grid-template-columns: 88px 60px 1fr auto;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--t);
+}
+
+.play:hover { background: rgba(24, 136, 239, 0.02); }
+.play:hover .playGame { color: var(--accent-light); }
+
+.playDate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 6px;
+  width: 78px;
+  flex-shrink: 0;
+}
+
+.playDateDay {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  color: var(--text-primary);
+}
+
+.playDateMonth {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  color: var(--accent-light);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.playDateYear {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.playGameThumb {
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.4rem;
+  color: #fff;
+  letter-spacing: -0.04em;
+  flex-shrink: 0;
+}
+
+.playInfo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+.playGame {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  transition: color var(--t);
+}
+
+.playMeta {
+  display: flex;
+  gap: 4px 12px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.playMetaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.playMetaItem.win { color: var(--green); }
+
+.playMetaItem svg { color: var(--text-faint); }
+.playMetaItem.win svg { color: var(--green); }
+
+.playPlayers {
+  display: flex;
+  margin-top: 4px;
+}
+
+.playPlayers .avatar {
+  margin-left: -6px;
+  border: 2px solid var(--bg-dark);
+}
+.playPlayers .avatar:first-child { margin-left: 0; }
+
+.playMore {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.playRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.playOutcome {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+
+.playOutcome.win  { color: var(--green); border-color: var(--green-25); background: var(--green-10); }
+.playOutcome.loss { color: var(--text-muted); border-color: var(--border); }
+
+.playScore {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.playScore .vs { color: var(--text-muted); margin: 0 4px; font-size: 0.85em; }
+
+/* Side widgets */
+.sideWidget {
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.sideWidgetLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+/* Heatmap calendar */
+.heatmap {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  gap: 3px;
+  margin-top: 8px;
+}
+
+.heatmapCell {
+  aspect-ratio: 1;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+}
+
+.heatmapCell.l1 { background: rgba(24, 136, 239, 0.18); }
+.heatmapCell.l2 { background: rgba(24, 136, 239, 0.4); }
+.heatmapCell.l3 { background: rgba(24, 136, 239, 0.7); }
+.heatmapCell.l4 { background: var(--accent-light); }
+
+.heatmapLegend {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  margin-top: 8px;
+}
+
+.heatmapScale { display: inline-flex; gap: 3px; align-items: center; }
+.heatmapScale .heatmapCell { width: 10px; height: 10px; }
+
+/* Top games mini ranking */
+.miniRankList { display: flex; flex-direction: column; gap: 8px; }
+
+.miniRank {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.miniRankNum {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: center;
+}
+.miniRankNum.top { color: var(--gold); }
+
+.miniRankInfo { min-width: 0; }
+.miniRankName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.miniRankBar {
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  margin-top: 3px;
+  overflow: hidden;
+}
+.miniRankBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+}
+.miniRankBarFill.gold { background: linear-gradient(90deg, #c89d00, var(--gold)); }
+.miniRankCount {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   COLECCION (game grid)
+   ========================================================================== */
+.coleccionControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.coleccionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.gameCard {
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: all var(--t);
+}
+
+.gameCard:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-2px);
+}
+
+.gameCardThumb {
+  aspect-ratio: 1;
+  background:
+    repeating-linear-gradient(135deg,
+      rgba(24, 136, 239, 0.06) 0,
+      rgba(24, 136, 239, 0.06) 8px,
+      transparent 8px,
+      transparent 16px),
+    linear-gradient(135deg, #16203a, #0a0d15);
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.gameCardCount {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.gameCardCount.zero { color: var(--text-muted); background: rgba(0,0,0,0.4); }
+
+.gameCardBody {
+  padding: 10px 12px 12px;
+}
+
+.gameCardName {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gameCardYear {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   PLAY DETAIL (modal-ish, but here as full screen)
+   ========================================================================== */
+.playDetailHero {
+  position: relative;
+  background:
+    radial-gradient(700px circle at 80% -20%, var(--accent-glow), transparent 55%),
+    linear-gradient(180deg, var(--bg-paper), var(--bg-dark));
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  padding: 32px;
+  margin-bottom: 28px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 28px;
+  align-items: center;
+  overflow: hidden;
+}
+
+.playDetailThumb {
+  width: 120px;
+  height: 120px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2.6rem;
+  color: #fff;
+  letter-spacing: -0.04em;
+  box-shadow: 0 12px 32px var(--accent-glow);
+}
+
+.playDetailInfo { min-width: 0; }
+
+.playDetailGame {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  margin: 6px 0 12px;
+  line-height: 1;
+}
+
+.playDetailDate {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.playDetailScore {
+  text-align: right;
+}
+
+.playDetailScoreLbl {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.playDetailScoreVal {
+  font-family: var(--font-display);
+  font-size: 3.4rem;
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+  color: var(--text-primary);
+}
+
+.playDetailScoreVal .vs { color: var(--text-muted); margin: 0 8px; font-size: 0.5em; vertical-align: middle; }
+
+/* Players table */
+.playersTable {
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+
+.playersHead {
+  display: grid;
+  grid-template-columns: 36px 1fr 70px 80px;
+  gap: 14px;
+  padding: 12px 18px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.playersHead > div:nth-child(n+3) { text-align: center; }
+
+.playersRow {
+  display: grid;
+  grid-template-columns: 36px 1fr 70px 80px;
+  gap: 14px;
+  padding: 14px 18px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+}
+
+.playersRow:last-child { border-bottom: none; }
+.playersRow:hover { background: var(--bg-elevated); }
+
+.playersRow .rank {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-muted);
+}
+
+.playersRow .rank.gold { color: var(--gold); }
+.playersRow .rank.silver { color: #c0c8d8; }
+.playersRow .rank.bronze { color: #cd7f32; }
+
+.playersRow .player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.playersRow .nm {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playersRow .score {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.playersRow .outcome { text-align: center; }
+
+/* Notes section */
+.playNotes {
+  padding: 20px;
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.playNotesHead {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.playNotesBody {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 880px) {
+  .landingHero { grid-template-columns: 1fr; }
+  .landingMockStats { display: none; }
+  .playerHeader { grid-template-columns: auto 1fr; }
+  .playerActions { grid-column: 1 / -1; }
+  .statsBar { grid-template-columns: repeat(2, 1fr); }
+  .bigStat { border-right-width: 0; border-bottom: 1px solid var(--border); }
+  .bigStat:nth-child(odd) { border-right: 1px solid var(--border); }
+  .bigStat:nth-last-child(-n+2) { border-bottom: none; }
+  .partidasLayout { grid-template-columns: 1fr; }
+  .play { grid-template-columns: 88px 60px 1fr; }
+  .playRight { grid-column: 1 / -1; flex-direction: row; justify-content: flex-end; align-items: center; }
+  .playDetailHero { grid-template-columns: auto 1fr; gap: 18px; padding: 22px; }
+  .playDetailScore { grid-column: 1 / -1; text-align: left; }
+}
+
+@media (max-width: 580px) {
+  .page { padding: 20px 16px 80px; }
+  .play { grid-template-columns: 70px 1fr; gap: 12px; }
+  .playGameThumb { display: none; }
+  .playersHead, .playersRow { grid-template-columns: 28px 1fr 60px 60px; padding: 10px 12px; }
+}
