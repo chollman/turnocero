@@ -22,12 +22,23 @@ const BggPlay = require("../../models/BggPlay");
 //
 // Notas técnicas:
 // - $reduce nos da un "owner found?" sentinel (`null` si ningún player
-//   matchea bggUsername). $arrayElemAt con array vacío supuestamente
+//   matchea al dueño). $arrayElemAt con array vacío supuestamente
 //   devuelve null también, pero su interacción con $ne/$eq downstream
 //   resultó frágil — $reduce es explícito.
-// - El match de username dentro del array de `players` es case-
-//   insensitive via $toLower (BGG mismo devuelve cases inconsistentes).
-async function computeGameStats(lowerBggUsername, gameId) {
+// - Identidad del dueño: en vez de comparar solo `username === bggUsername`,
+//   se computa la clave de identidad del player (`u:<username>` si hay
+//   username, si no `n:<name>` — mismo formato que rawKeyFor /
+//   computePlayedCoPlayers) y se testea contra `selfKeys`. Así las partidas
+//   que el dueño cargó bajo un alias marcado "sos vos" (isSelf) cuentan en su
+//   win-rate. `selfKeys` lo provee el caller vía loadSelfKeys; el default
+//   `[u:<bggUsername>]` reproduce exactamente el comportamiento previo (sin
+//   curación). Trim + toLower mirroran rawKeyFor para no des-matchear por
+//   espacios/case.
+async function computeGameStats(
+  lowerBggUsername,
+  gameId,
+  { selfKeys = [`u:${lowerBggUsername}`] } = {},
+) {
   const agg = await BggPlay.aggregate([
     { $match: { bggUsername: lowerBggUsername, gameId: String(gameId) } },
     {
@@ -39,16 +50,38 @@ async function computeGameStats(lowerBggUsername, gameId) {
             input: { $ifNull: ["$players", []] },
             initialValue: null,
             in: {
-              $cond: [
-                {
-                  $eq: [
-                    { $toLower: { $ifNull: ["$$this.username", ""] } },
-                    lowerBggUsername,
+              $let: {
+                vars: {
+                  u: {
+                    $toLower: {
+                      $trim: { input: { $ifNull: ["$$this.username", ""] } },
+                    },
+                  },
+                  n: {
+                    $toLower: {
+                      $trim: { input: { $ifNull: ["$$this.name", ""] } },
+                    },
+                  },
+                },
+                in: {
+                  $cond: [
+                    {
+                      $in: [
+                        {
+                          $cond: [
+                            { $ne: ["$$u", ""] },
+                            { $concat: ["u:", "$$u"] },
+                            { $concat: ["n:", "$$n"] },
+                          ],
+                        },
+                        selfKeys,
+                      ],
+                    },
+                    { win: { $eq: ["$$this.win", true] } },
+                    "$$value",
                   ],
                 },
-                { win: { $eq: ["$$this.win", true] } },
-                "$$value",
-              ],
+              },
             },
           },
         },

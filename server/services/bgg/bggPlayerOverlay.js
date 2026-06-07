@@ -54,6 +54,28 @@ async function loadOverlayIndex(lowerOwner) {
   return { byKey, overlays };
 }
 
+// El set de claves de identidad (rawKeys "u:"/"n:") que resuelven al DUEÑO del
+// perfil: toda key reclamada por un overlay marcado isSelf ("sos vos"), más la
+// propia key del dueño (`u:<lowerOwner>`). Lo consume computeGameStats para que
+// las victorias/partidas que el dueño cargó bajo un alias cuenten en su propio
+// win-rate (hoy se las pierde por matchear solo el username crudo). SIEMPRE
+// incluye `u:<lowerOwner>` → sin overlays isSelf el resultado equivale al
+// comportamiento base. Mismo formato de clave que rawKeyFor /
+// computePlayedCoPlayers.
+async function loadSelfKeys(lowerOwner) {
+  const keys = new Set([`u:${lowerOwner}`]);
+  const overlays = await BggPlayerOverlay.find({
+    ownerUsername: lowerOwner,
+    isSelf: true,
+  })
+    .select("rawKeys")
+    .lean();
+  for (const o of overlays) {
+    for (const k of o.rawKeys || []) keys.add(k);
+  }
+  return [...keys];
+}
+
 // Collapse computePlayedCoPlayers output through the overlay index: rows claimed
 // by the same overlay fold into one curated row; unclaimed rows pass through.
 // With `excludeSelf`, rows flagged as the profile owner (isSelf) are dropped —
@@ -207,6 +229,7 @@ module.exports = {
   nameFromKeys,
   sanitizeRawKeys,
   loadOverlayIndex,
+  loadSelfKeys,
   applyOverlayToCoPlayers,
   applyOverlayToPlayers,
   overlayToRow,

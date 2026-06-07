@@ -4,7 +4,9 @@ const {
   applyOverlayToCoPlayers,
   applyOverlayToPlayers,
   overlayToRow,
+  loadSelfKeys,
 } = require("../../../../services/bgg/bggPlayerOverlay");
+const BggPlayerOverlay = require("../../../../models/BggPlayerOverlay");
 
 // Build a minimal index { byKey } from a list of overlay-like objects.
 function indexOf(overlays) {
@@ -167,5 +169,40 @@ describe("bggPlayerOverlay — pure helpers", () => {
       expect(row.canEditNameAvatar).toBe(false);
       expect(row.linkedUser).toMatchObject({ _id: "u1" });
     });
+  });
+});
+
+// DB-backed: loadSelfKeys resuelve qué claves de identidad cuentan como "el
+// dueño" (base + las reclamadas por overlays isSelf). Lo consume computeGameStats.
+describe("bggPlayerOverlay — loadSelfKeys (DB)", () => {
+  it("sin overlays isSelf devuelve solo la clave base del dueño", async () => {
+    expect(await loadSelfKeys("alice")).toEqual(["u:alice"]);
+  });
+
+  it("suma los rawKeys de cada overlay isSelf + la base; ignora los no-self", async () => {
+    await BggPlayerOverlay.create({
+      ownerUsername: "alice",
+      rawKeys: ["n:juancho", "u:cuentavieja"],
+      isSelf: true,
+    });
+    // Un overlay NO marcado isSelf no aporta claves.
+    await BggPlayerOverlay.create({
+      ownerUsername: "alice",
+      rawKeys: ["n:bob"],
+      isSelf: false,
+    });
+    const keys = await loadSelfKeys("alice");
+    expect([...keys].sort()).toEqual(
+      ["n:juancho", "u:alice", "u:cuentavieja"].sort(),
+    );
+  });
+
+  it("no mezcla overlays isSelf de otro dueño", async () => {
+    await BggPlayerOverlay.create({
+      ownerUsername: "zoe",
+      rawKeys: ["n:otro"],
+      isSelf: true,
+    });
+    expect(await loadSelfKeys("alice")).toEqual(["u:alice"]);
   });
 });

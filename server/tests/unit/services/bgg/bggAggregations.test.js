@@ -102,6 +102,54 @@ describe("computeGameStats", () => {
     const stats = await computeGameStats("alice", "100");
     expect(stats.rated).toBe(1);
   });
+
+  // selfKeys: el dueño puede figurar bajo un alias (sin username o con otra
+  // cuenta) marcado "sos vos". Con la clave del alias en selfKeys, esas
+  // partidas cuentan en su win-rate. Sin selfKeys, el default reproduce el
+  // comportamiento previo (solo matchea su propio username).
+  describe("selfKeys (curación 'sos vos')", () => {
+    it("default: un alias sin username NO cuenta como el dueño", async () => {
+      await makePlay({ players: [{ name: "Juancho", username: "", win: true }] });
+      const stats = await computeGameStats("alice", "100");
+      expect(stats).toMatchObject({ wins: 0, rated: 0 });
+    });
+
+    it("incluye wins + rated de un alias por-nombre marcado isSelf", async () => {
+      // El dueño se cargó como "Juancho" (sin username) y ganó.
+      await makePlay({
+        players: [{ name: "Juancho", username: "", win: true }],
+      });
+      // Otra donde figura con su username real y perdió.
+      await makePlay({
+        players: [{ name: "Alice", username: "alice", win: false }],
+      });
+      const stats = await computeGameStats("alice", "100", {
+        selfKeys: ["u:alice", "n:juancho"],
+      });
+      expect(stats.rated).toBe(2);
+      expect(stats.wins).toBe(1);
+    });
+
+    it("incluye un alias por-username extra (cuenta vieja) case-insensitive", async () => {
+      await makePlay({
+        players: [{ name: "Old", username: "CuentaVieja", win: true }],
+      });
+      const stats = await computeGameStats("alice", "100", {
+        selfKeys: ["u:alice", "u:cuentavieja"],
+      });
+      expect(stats).toMatchObject({ wins: 1, rated: 1 });
+    });
+
+    it("trimea username/name antes de matchear las claves", async () => {
+      await makePlay({
+        players: [{ name: "  Juancho  ", username: "", win: true }],
+      });
+      const stats = await computeGameStats("alice", "100", {
+        selfKeys: ["u:alice", "n:juancho"],
+      });
+      expect(stats).toMatchObject({ wins: 1, rated: 1 });
+    });
+  });
 });
 
 describe("computePlayedGames", () => {

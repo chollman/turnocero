@@ -2,6 +2,7 @@ const request = require("supertest");
 const app = require("../../app");
 const BggPlay = require("../../models/BggPlay");
 const BggPlayerOverlay = require("../../models/BggPlayerOverlay");
+const User = require("../../models/User");
 const { createAuthedUser, authHeader } = require("../helpers/auth");
 const { encrypt } = require("../../utils/encryption");
 
@@ -465,6 +466,97 @@ describe("BGG jugadores — curación del roster", () => {
       expect(res.status).toBe(200);
       const play = res.body.plays.find((p) => p.id === "1");
       expect(play.players[0].name).toBe("Juancito");
+    });
+  });
+
+  // ── gameStats refleja "sos vos" (isSelf) end-to-end ──────────────────
+  describe("gameStats refleja 'sos vos' en GET /partidas?id=", () => {
+    it("las victorias bajo un alias marcado isSelf cuentan en el win-rate del dueño", async () => {
+      const { token } = await createOwner();
+      // El dueño se cargó como "Juancho" (sin username) y ganó esa partida.
+      await seedPlay(1, [{ name: "Juancho", username: "", win: true }]);
+      // Defensivo: ningún probe corre para viewer anónimo, pero mockeamos fetch.
+      global.fetch = makeFetchMock({
+        plays: emptyPlaysResponse(),
+        thing: thingXmlResponse(),
+        login: loginResponse(),
+        geekplay: geekplayResponse(),
+      });
+
+      // Antes de marcar: el dueño no figura por username → no cuenta.
+      const before = await request(app).get(
+        "/api/bgg/partidas/alice?id=174430",
+      );
+      expect(before.status).toBe(200);
+      expect(before.body.gameStats).toMatchObject({ wins: 0, rated: 0 });
+
+      // Marca "sos vos" sobre el alias por-nombre.
+      const mark = await request(app)
+        .post("/api/bgg/jugadores/alice/yo-mismo")
+        .set(authHeader(token))
+        .send({ rawKeys: ["n:juancho"], value: true });
+      expect(mark.status).toBe(200);
+
+      // Ahora la victoria del alias cuenta como del dueño.
+      const after = await request(app).get("/api/bgg/partidas/alice?id=174430");
+      expect(after.status).toBe(200);
+      expect(after.body.gameStats).toMatchObject({ wins: 1, rated: 1 });
+    });
+  });
+
+  // ── Invalidación: la curación marca "Mis juegos" sucio ───────────────
+  describe("invalidación del cache derivado tras curar jugadores", () => {
+    async function buildSelectorCache(userId) {
+      // Simula un selector "Mis juegos" ya construido (builtAt no-null).
+      await User.updateOne(
+        { _id: userId },
+        { $set: { "bggSync.userGamesBuiltAt": new Date() } },
+      );
+    }
+
+    it("yo-mismo marca userGamesBuiltAt = null", async () => {
+      const { user, token } = await createOwner();
+      await buildSelectorCache(user._id);
+      await seedPlay(1, [{ name: "Ale", username: "" }]);
+
+      await request(app)
+        .post("/api/bgg/jugadores/alice/yo-mismo")
+        .set(authHeader(token))
+        .send({ rawKeys: ["n:ale"], value: true });
+
+      const fresh = await User.findById(user._id).lean();
+      expect(fresh.bggSync.userGamesBuiltAt).toBeNull();
+    });
+
+    it("merge marca userGamesBuiltAt = null", async () => {
+      const { user, token } = await createOwner();
+      await buildSelectorCache(user._id);
+      await seedPlay(1, [
+        { name: "Juan", username: "" },
+        { name: "Juancho", username: "" },
+      ]);
+
+      await request(app)
+        .post("/api/bgg/jugadores/alice/merge")
+        .set(authHeader(token))
+        .send({ targetRawKeys: ["n:juan"], sourceRawKeys: ["n:juancho"] });
+
+      const fresh = await User.findById(user._id).lean();
+      expect(fresh.bggSync.userGamesBuiltAt).toBeNull();
+    });
+
+    it("el override de nombre marca userGamesBuiltAt = null", async () => {
+      const { user, token } = await createOwner();
+      await buildSelectorCache(user._id);
+      await seedPlay(1, [{ name: "Juan", username: "" }]);
+
+      await request(app)
+        .patch("/api/bgg/jugadores/alice/nombre")
+        .set(authHeader(token))
+        .send({ rawKeys: ["n:juan"], name: "Juancito" });
+
+      const fresh = await User.findById(user._id).lean();
+      expect(fresh.bggSync.userGamesBuiltAt).toBeNull();
     });
   });
 });

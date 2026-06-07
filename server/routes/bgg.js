@@ -41,7 +41,6 @@ const BggUserGame = require("../models/BggUserGame");
 const {
   ensureFreshUserGames,
   normalizeForSearch,
-  markUserGamesDirty,
 } = require("../services/bgg/bggUserGames");
 // `stripLeadingArticle` no se usa directamente acá pero vive en
 // bggSearch junto a scoreSearchMatch para que el ranking de búsqueda
@@ -51,7 +50,6 @@ const {
   cache,
   getCached,
   setCached,
-  clearPartidasCache,
 } = require("../services/bgg/bggCache");
 const {
   getManualRefreshRemainingMs,
@@ -91,12 +89,14 @@ const { uploadToCloudinary, cloudinary } = require("../config/cloudinary");
 const {
   sanitizeRawKeys,
   loadOverlayIndex,
+  loadSelfKeys,
   applyOverlayToCoPlayers,
   applyOverlayToPlayers,
   overlayToRow,
   getOrCreateOverlay,
   isLinkedToMember,
 } = require("../services/bgg/bggPlayerOverlay");
+const { invalidateOwnerDerived } = require("../services/bgg/bggInvalidate");
 const {
   connectedMemberUsernames,
   communityMemberUsernames,
@@ -824,8 +824,15 @@ router.get(
           ? computeTopPlayedGame(lower)
           : Promise.resolve(undefined),
         // Per-game stats over the full history — only when filtered by gameId
-        // (the /bg-watch/:user/juego/:gameId view).
-        gameId ? computeGameStats(lower, gameId) : Promise.resolve(undefined),
+        // (the /bg-watch/:user/juego/:gameId view). selfKeys hace que las
+        // victorias/partidas cargadas bajo un alias marcado "sos vos" cuenten
+        // en el win-rate del dueño (consistente con el roster curado que se
+        // muestra en las mismas tarjetas).
+        gameId
+          ? loadSelfKeys(lower).then((selfKeys) =>
+              computeGameStats(lower, gameId, { selfKeys }),
+            )
+          : Promise.resolve(undefined),
       ]);
 
       // Reflejar el overlay de curación (nombre/avatar/fusión) en los jugadores
@@ -1063,8 +1070,10 @@ router.post(
     user.bggSync.lastProbeOutcome = "reconciled";
     await user.save();
 
-    // Drop the in-memory plays cache so subsequent reads come from Mongo
-    clearPartidasCache(user.bggUsername);
+    // Invalida los caches derivados del log (L1 + selector "Mis juegos"): un
+    // full reconcile puede haber insertado/borrado partidas → el selector debe
+    // reconstruirse, no solo dropear el cache L1.
+    await invalidateOwnerDerived(user.bggUsername);
 
     res.json({
       success: true,
@@ -1122,8 +1131,6 @@ router.post(
       );
     }
 
-    clearPartidasCache(user.bggUsername);
-
     // Only mirror to Mongo if this user is already in Mongo-served mode
     // (i.e. has done a full sync). Otherwise the GET fallback to BGG will
     // pick up the new play on its next call.
@@ -1136,9 +1143,9 @@ router.post(
       }
     }
 
-    // Invalida el cache "Mis juegos" → la próxima apertura del selector lo
-    // reconstruye con el juego/partida recién agregado.
-    await markUserGamesDirty(user.bggUsername);
+    // Invalida los caches derivados del log (L1 de partidas + selector "Mis
+    // juegos") por una costura única → ningún disparador se olvida de invalidar.
+    await invalidateOwnerDerived(user.bggUsername);
 
     res.json({
       success: true,
@@ -1202,7 +1209,6 @@ router.delete(
       );
     }
 
-    clearPartidasCache(user.bggUsername);
     try {
       await BggPlay.deleteOne({
         bggUsername: user.bggUsername.toLowerCase(),
@@ -1212,7 +1218,7 @@ router.delete(
       logger.warn("[bgg/DELETE] mirror to Mongo failed", { error: e.message });
     }
 
-    await markUserGamesDirty(user.bggUsername);
+    await invalidateOwnerDerived(user.bggUsername);
 
     res.json({ success: true });
   }),
@@ -1254,7 +1260,6 @@ router.put(
       );
     }
 
-    clearPartidasCache(user.bggUsername);
     const lower = user.bggUsername.toLowerCase();
     if (await BggPlay.exists({ bggUsername: lower })) {
       try {
@@ -1264,7 +1269,7 @@ router.put(
       }
     }
 
-    await markUserGamesDirty(user.bggUsername);
+    await invalidateOwnerDerived(user.bggUsername);
 
     res.json({ success: true, playid: playId, play: playToApi(verified) });
   }),
@@ -1373,6 +1378,7 @@ router.patch(
     }
     overlay.nameOverride = name;
     await overlay.save();
+    await invalidateOwnerDerived(lower);
     res.json({ player: overlayToRow(overlay, null) });
   }),
 );
@@ -1438,6 +1444,7 @@ router.patch(
     }
 
     const linked = await resolveUsersByBggUsernames([newHandle], { cap: 1 });
+    await invalidateOwnerDerived(lower);
     res.json({
       merged,
       player: overlayToRow(overlay, linked[0] || null),
@@ -1484,6 +1491,7 @@ router.put(
     });
     overlay.avatar = { url: result.secure_url, publicId: result.public_id };
     await overlay.save();
+    await invalidateOwnerDerived(lower);
     res.json({ player: overlayToRow(overlay, null) });
   }),
 );
@@ -1512,6 +1520,7 @@ router.delete(
       overlay.avatar = { url: "", publicId: "" };
       await overlay.save();
     }
+    await invalidateOwnerDerived(lower);
     res.json({ player: overlay ? overlayToRow(overlay, null) : null });
   }),
 );
@@ -1573,6 +1582,7 @@ router.post(
           )
         )[0]
       : null;
+    await invalidateOwnerDerived(lower);
     res.json({ player: overlayToRow(target, linked || null) });
   }),
 );
@@ -1596,6 +1606,7 @@ router.post(
     const overlay = await getOrCreateOverlay(lower, rawKeys);
     overlay.isSelf = value;
     await overlay.save();
+    await invalidateOwnerDerived(lower);
     res.json({ player: overlayToRow(overlay, null) });
   }),
 );
