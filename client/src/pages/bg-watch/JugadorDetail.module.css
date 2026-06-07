@@ -63,6 +63,30 @@
   margin-top: 2px;
 }
 
+/* Botón que revela el marcador head-to-head (no se muestra al entrar). */
+.h2hReveal {
+  display: flex;
+  justify-content: center;
+  margin: 24px 0;
+}
+
+.h2hRevealBtn {
+  padding: 12px 24px;
+  background: var(--amber-10);
+  border: 1px dashed var(--border-amber, var(--amber));
+  border-radius: 12px;
+  color: var(--amber);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.h2hRevealBtn:hover {
+  background: var(--amber-20);
+}
+
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
