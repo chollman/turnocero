@@ -13,8 +13,9 @@ import { formatTimeAgo } from "../../utils/time";
 import styles from "./SharedPlayNotifCard.module.css";
 
 // Tarjeta rica para `bgg_play_shared`: muestra el detalle amigable de la
-// partida que un co-jugador cargó (juego, jugadores con scores, ubicación,
-// fecha) y dos acciones — "cargar como aparece" (con confirmación) y "cargar
+// partida que un co-jugador cargó (juego, jugadores con scores, fecha — la
+// ubicación NO se comparte) y dos acciones — "cargar como aparece" (con
+// confirmación) y "cargar
 // con correcciones" (lleva al PlayForm precargado). Si el destinatario no tiene
 // BGG conectado, ofrece conectar en vez de los botones de carga.
 export default function SharedPlayNotifCard({ notif }) {
@@ -61,9 +62,10 @@ export default function SharedPlayNotifCard({ notif }) {
     );
   };
 
+  // La ubicación no se incluye en la notif: es un dato privado de quien cargó
+  // la partida.
   const meta = [
     snap.date,
-    snap.location,
     snap.duration ? `${snap.duration} min` : null,
   ].filter(Boolean);
 
@@ -120,7 +122,11 @@ export default function SharedPlayNotifCard({ notif }) {
               className={`${styles.player} ${p.win ? styles.winner : ""}`}
             >
               <span className={styles.pName}>
-                {p.win && <span className={styles.crown} aria-hidden>🏆</span>}
+                {p.win && (
+                  <span className={styles.crown} aria-hidden>
+                    🏆
+                  </span>
+                )}
                 {p.name || p.username || "Jugador"}
               </span>
               {p.score != null && p.score !== "" && (
@@ -166,9 +172,8 @@ export default function SharedPlayNotifCard({ notif }) {
       >
         <h3 className={styles.confirmTitle}>¿Cargar esta partida?</h3>
         <p className={styles.confirmText}>
-          Se va a registrar{" "}
-          <strong>{snap.gameName || "la partida"}</strong> en tu cuenta de BGG
-          con {players.length}{" "}
+          Se va a registrar <strong>{snap.gameName || "la partida"}</strong> en
+          tu cuenta de BGG con {players.length}{" "}
           {players.length === 1 ? "jugador" : "jugadores"}, tal como aparece.
         </p>
         <div className={styles.confirmActions}>

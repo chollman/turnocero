@@ -139,6 +139,8 @@ describe("BGG partida compartida", () => {
     expect(notifs[0].playId).toBe("999");
     expect(notifs[0].gameName).toBe("Gloomhaven");
     expect(notifs[0].playSnapshot.players).toHaveLength(3);
+    // La ubicación NO se comparte aunque la partida tenía una ("Sala").
+    expect(notifs[0].playSnapshot.location).toBeUndefined();
   });
 
   it("(b) POST /partidas/compartida/:notifId carga la partida, agradece y borra la notif", async () => {
@@ -184,6 +186,14 @@ describe("BGG partida compartida", () => {
       .set(authHeader(bob.token));
     expect(res.status).toBe(200);
     expect(res.body.playid).toBe("888");
+
+    // La ubicación del snapshot ("Sala") NO se carga en BGG (campo omitido).
+    const geekplayCall = global.fetch.mock.calls.find((c) =>
+      String(c[0]).includes("/geekplay.php"),
+    );
+    expect(geekplayCall).toBeTruthy();
+    expect(String(geekplayCall[1]?.body || "")).not.toContain("location");
+    expect(String(geekplayCall[1]?.body || "")).not.toContain("Sala");
 
     // La notif original se borró.
     expect(await Notification.findById(shared._id)).toBeNull();

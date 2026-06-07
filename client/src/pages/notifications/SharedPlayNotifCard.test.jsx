@@ -83,15 +83,15 @@ beforeEach(() => {
 });
 
 describe("<SharedPlayNotifCard>", () => {
-  it("muestra juego, jugadores con scores y ubicación", () => {
+  it("muestra juego y jugadores con scores, pero NO la ubicación", () => {
     renderCard();
     expect(screen.getByText("Catán")).toBeInTheDocument();
     expect(screen.getByText("Alice")).toBeInTheDocument();
     expect(screen.getByText("42")).toBeInTheDocument();
     expect(screen.getByText("Bob")).toBeInTheDocument();
     expect(screen.getByText("30")).toBeInTheDocument();
-    // Ubicación + fecha en el meta del juego.
-    expect(screen.getByText(/Club/)).toBeInTheDocument();
+    // La ubicación es un dato privado del autor: no se muestra en la notif.
+    expect(screen.queryByText(/Club/)).toBeNull();
   });
 
   it("conectado: muestra los dos botones de carga", () => {
@@ -108,7 +108,9 @@ describe("<SharedPlayNotifCard>", () => {
     mockUser = { ...mockUser, bggConnected: false };
     renderCard();
     expect(screen.queryByRole("button", { name: /como aparece/i })).toBeNull();
-    const link = screen.getByRole("link", { name: /conectá tu cuenta de bgg/i });
+    const link = screen.getByRole("link", {
+      name: /conectá tu cuenta de bgg/i,
+    });
     expect(link).toHaveAttribute("href", "/perfil");
   });
 

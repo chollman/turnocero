@@ -47,9 +47,10 @@ describe("bggPlayShare", () => {
         gameImage: "i.jpg",
         date: "2026-06-06",
         duration: 90,
-        location: "Casa de Claudio",
         quantity: 1,
       });
+      // La ubicación es privada del autor: nunca se incluye en el snapshot.
+      expect(snap.location).toBeUndefined();
       expect(snap.players).toHaveLength(3);
       expect(snap.players[0]).toMatchObject({
         name: "Alice",

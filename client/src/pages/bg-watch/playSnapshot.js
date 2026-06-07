@@ -14,7 +14,9 @@ export function snapshotToInitialValues(snapshot) {
     details: {
       playdate: snap.date || "",
       length: snap.duration != null ? String(snap.duration) : "",
-      location: snap.location || "",
+      // La ubicación no se replica de una partida compartida (dato privado del
+      // autor); el co-jugador la completa a mano si quiere.
+      location: "",
       quantity: snap.quantity || 1,
       comments: snap.comments || "",
       incomplete: !!snap.incomplete,

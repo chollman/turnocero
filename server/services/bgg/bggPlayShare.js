@@ -30,7 +30,8 @@ function buildSnapshot(body, game, playId) {
       body.length != null && body.length !== ""
         ? Number(body.length) || null
         : null,
-    location: body.location || "",
+    // La ubicación NO se comparte: es un dato privado de quien cargó la partida
+    // y no debe replicarse en la notif ni en la carga del co-jugador.
     comments: body.comments || "",
     incomplete: !!body.incomplete,
     nowinstats: !!body.nowinstats,
@@ -43,7 +44,8 @@ function buildSnapshot(body, game, playId) {
       score: p.score ?? "",
       win: !!p.win,
       new: !!p.new,
-      rating: p.rating != null && Number(p.rating) > 0 ? Number(p.rating) : null,
+      rating:
+        p.rating != null && Number(p.rating) > 0 ? Number(p.rating) : null,
     })),
   };
 }

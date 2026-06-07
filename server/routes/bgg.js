@@ -1166,7 +1166,9 @@ router.post(
       objectid: snap.gameId,
       playdate: snap.date,
       length: snap.duration,
-      location: snap.location,
+      // La ubicación no se replica de una partida compartida (puede venir en
+      // snapshots viejos; la ignoramos a propósito).
+      location: "",
       quantity: snap.quantity,
       comments: snap.comments,
       incomplete: snap.incomplete,

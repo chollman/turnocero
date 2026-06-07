@@ -24,7 +24,8 @@ describe("snapshotToInitialValues", () => {
     expect(iv.details).toMatchObject({
       playdate: "2026-05-20",
       length: "90",
-      location: "Club",
+      // La ubicación no se replica de una partida compartida.
+      location: "",
       quantity: 1,
       comments: "linda",
       incomplete: false,
