@@ -1573,6 +1573,17 @@
   flex-wrap: wrap;
 }
 
+/* Pin de ubicación (las ubicaciones no tienen avatar como los jugadores). */
+.ubicacionPin {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border-radius: 999px;
+  color: var(--amber);
+  background: var(--amber-10);
+}
+
 .editAvatarRow {
   display: flex;
   align-items: center;

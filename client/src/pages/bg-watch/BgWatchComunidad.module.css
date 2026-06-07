@@ -722,19 +722,6 @@
   color: var(--text-muted);
 }
 
-/* ─── Compañeros (embebido en perfil) ─── */
-.companerosBox {
-  margin-top: 6px;
-}
-
-.companeroCount {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--amber-light);
-  margin-left: 2px;
-}
-
 @media (max-width: 600px) {
   .detailHero {
     flex-direction: column;

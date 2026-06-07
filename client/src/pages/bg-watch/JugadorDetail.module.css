@@ -63,6 +63,27 @@
   margin-top: 2px;
 }
 
+/* Botón "Editar jugador" del header (abre el modal de curación). */
+.editPlayerBtn {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.editPlayerBtn:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
 /* Botón que revela el marcador head-to-head (no se muestra al entrar). */
 .h2hReveal {
   display: flex;

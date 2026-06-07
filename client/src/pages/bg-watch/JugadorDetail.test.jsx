@@ -35,6 +35,16 @@ vi.mock("./PlayDetailModal", () => ({
     </div>
   ),
 }));
+// Modal de curación: stub que expone los tres desenlaces de onClose.
+vi.mock("./PlayerEditModals", () => ({
+  EditPlayerModal: ({ onClose }) => (
+    <div data-testid="edit-modal">
+      <button onClick={() => onClose("updated")}>stub-updated</button>
+      <button onClick={() => onClose("merged")}>stub-merged</button>
+      <button onClick={() => onClose(false)}>stub-close</button>
+    </div>
+  ),
+}));
 
 import JugadorDetail from "./JugadorDetail";
 
@@ -88,6 +98,10 @@ function renderDetail(key = "k:u:bob") {
         <Route
           path="/bg-watch/:bggUsername/partidas"
           element={<div data-testid="partidas-page">partidas</div>}
+        />
+        <Route
+          path="/bg-watch/:bggUsername/jugadores"
+          element={<div data-testid="jugadores-page">jugadores</div>}
         />
       </Routes>
     </MemoryRouter>,
@@ -213,5 +227,53 @@ describe("<JugadorDetail>", () => {
     expect(
       await screen.findByText(/no se pudo cargar el jugador/i),
     ).toBeInTheDocument();
+  });
+
+  it("muestra 'Editar jugador' y abre el modal de curación", async () => {
+    renderDetail();
+    const editBtn = await screen.findByRole("button", {
+      name: /editar jugador/i,
+    });
+    fireEvent.click(editBtn);
+    expect(screen.getByTestId("edit-modal")).toBeInTheDocument();
+  });
+
+  it("no ofrece editar si el jugador está marcado como vos", async () => {
+    server.use(
+      http.get("/api/bgg/jugadores/:user/:key", () =>
+        detailResponse({ player: { isSelf: true } }),
+      ),
+    );
+    renderDetail();
+    await screen.findAllByText("Bob");
+    expect(
+      screen.queryByRole("button", { name: /editar jugador/i }),
+    ).toBeNull();
+  });
+
+  it("al fusionar (merged) vuelve a la lista de jugadores", async () => {
+    renderDetail();
+    fireEvent.click(
+      await screen.findByRole("button", { name: /editar jugador/i }),
+    );
+    fireEvent.click(screen.getByText("stub-merged"));
+    expect(await screen.findByTestId("jugadores-page")).toBeInTheDocument();
+  });
+
+  it("al actualizar (updated) refresca el detalle", async () => {
+    let calls = 0;
+    server.use(
+      http.get("/api/bgg/jugadores/:user/:key", () => {
+        calls += 1;
+        return detailResponse();
+      }),
+    );
+    renderDetail();
+    fireEvent.click(
+      await screen.findByRole("button", { name: /editar jugador/i }),
+    );
+    const before = calls;
+    fireEvent.click(screen.getByText("stub-updated"));
+    await waitFor(() => expect(calls).toBeGreaterThan(before));
   });
 });

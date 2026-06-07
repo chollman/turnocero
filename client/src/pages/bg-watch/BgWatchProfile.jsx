@@ -8,9 +8,9 @@ import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import PartidasPanel from "./PartidasPanel";
 import ColeccionPanel from "./ColeccionPanel";
 import JugadoresPanel from "./JugadoresPanel";
+import UbicacionesPanel from "./UbicacionesPanel";
 import PlayDetailModal from "./PlayDetailModal";
 import StatsBar from "./StatsBar";
-import ComunidadCompaneros from "./ComunidadCompaneros";
 import useBggUserMap from "./useBggUserMap";
 import { GuestBanner, GuestInlineCTA, GuestFooter } from "./BgWatchGuestCTAs";
 import styles from "./BgWatchProfile.module.css";
@@ -27,12 +27,16 @@ export default function BgWatchProfile() {
     ? "coleccion"
     : location.pathname.endsWith("/jugadores")
       ? "jugadores"
-      : "partidas";
+      : location.pathname.endsWith("/ubicaciones")
+        ? "ubicaciones"
+        : "partidas";
   const goToTab = (tab) =>
     navigate(`/bg-watch/${bggUsername}/${tab}`, { replace: true });
 
   const [collection, setCollection] = useState(null);
   const [playsMeta, setPlaysMeta] = useState(null);
+  const [playersTotal, setPlayersTotal] = useState(null);
+  const [locationsTotal, setLocationsTotal] = useState(null);
   const [openPlay, setOpenPlay] = useState(null);
   const [deletingPlay, setDeletingPlay] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -56,6 +60,11 @@ export default function BgWatchProfile() {
   // Stable callbacks so panels don't refetch on every render
   const handleCollectionLoaded = useCallback((data) => setCollection(data), []);
   const handlePlaysMeta = useCallback((meta) => setPlaysMeta(meta), []);
+  const handlePlayersTotal = useCallback((total) => setPlayersTotal(total), []);
+  const handleLocationsTotal = useCallback(
+    (total) => setLocationsTotal(total),
+    [],
+  );
   const handlePlayClick = useCallback((play) => setOpenPlay(play), []);
   const handlePlayEdit = useCallback(
     (play) =>
@@ -141,8 +150,6 @@ export default function BgWatchProfile() {
 
         <StatsBar collection={collection} playsMeta={playsMeta} />
 
-        <ComunidadCompaneros bggUsername={bggUsername} />
-
         {isGuest && <GuestInlineCTA />}
 
         <div className={styles.tabs}>
@@ -170,6 +177,20 @@ export default function BgWatchProfile() {
               onClick={() => goToTab("jugadores")}
             >
               Jugadores
+              {playersTotal != null && (
+                <span className={styles.tabBadge}>{playersTotal}</span>
+              )}
+            </button>
+          )}
+          {canManagePlayers && (
+            <button
+              className={`${styles.tab} ${activeTab === "ubicaciones" ? styles.tabActive : ""}`}
+              onClick={() => goToTab("ubicaciones")}
+            >
+              Ubicaciones
+              {locationsTotal != null && (
+                <span className={styles.tabBadge}>{locationsTotal}</span>
+              )}
             </button>
           )}
         </div>
@@ -200,7 +221,20 @@ export default function BgWatchProfile() {
           <div
             style={{ display: activeTab === "jugadores" ? "block" : "none" }}
           >
-            <JugadoresPanel bggUsername={bggUsername} />
+            <JugadoresPanel
+              bggUsername={bggUsername}
+              onTotalChange={handlePlayersTotal}
+            />
+          </div>
+        )}
+        {canManagePlayers && (
+          <div
+            style={{ display: activeTab === "ubicaciones" ? "block" : "none" }}
+          >
+            <UbicacionesPanel
+              bggUsername={bggUsername}
+              onTotalChange={handleLocationsTotal}
+            />
           </div>
         )}
 

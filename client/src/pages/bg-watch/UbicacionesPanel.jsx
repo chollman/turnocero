@@ -2,21 +2,38 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API } from "../../api/endpoints";
-import Avatar from "../../components/shared/Avatar";
 import EmptyState from "../../components/shared/EmptyState";
 import useSearchTerm from "../../hooks/useSearchTerm";
 import Pagination from "./Pagination";
 import SearchRowSkeleton from "./SearchRowSkeleton";
-import { rowAvatarUser, playerMeta } from "./PlayerEditModals";
+import { locationMeta } from "./LocationEditModals";
 import styles from "./BgWatchProfile.module.css";
 
+// Icono de pin (las ubicaciones no tienen avatar como los jugadores).
+function PinIcon() {
+  return (
+    <svg
+      className={styles.ubicacionPin}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
 /**
- * Pestaña "Jugadores": lista el roster de jugadores de las partidas del dueño.
- * La curación (editar nombre / @BGG / avatar / fusionar) vive ahora dentro de
- * la vista de detalle del jugador; acá solo se listan y se puede deshacer el
- * "sos vos". Montado solo para dueño/admin (gate en BgWatchProfile).
+ * Pestaña "Ubicaciones": lista las ubicaciones de las partidas del dueño. La
+ * curación (renombrar / fusionar) vive dentro de la vista de detalle. Montada
+ * solo para dueño/admin (gate en BgWatchProfile).
  */
-export default function JugadoresPanel({ bggUsername, onTotalChange }) {
+export default function UbicacionesPanel({ bggUsername, onTotalChange }) {
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -31,7 +48,7 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
 
   const openDetail = (row) =>
     navigate(
-      `/bg-watch/${encodeURIComponent(bggUsername)}/jugador/${encodeURIComponent(
+      `/bg-watch/${encodeURIComponent(bggUsername)}/ubicacion/${encodeURIComponent(
         row.key,
       )}`,
     );
@@ -42,7 +59,7 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
       setLoading(true);
       setError(false);
       axios
-        .get(API.bgg.JUGADORES(bggUsername), {
+        .get(API.bgg.UBICACIONES(bggUsername), {
           params: { page: pageToLoad, q: searchTerm || undefined },
         })
         .then(({ data }) => {
@@ -52,8 +69,7 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
           setPages(data.pages || 1);
           setTotal(data.total || 0);
           // Reportar el total al padre solo sin búsqueda activa, para que el
-          // badge de la tab refleje el total real (no el filtrado) — igual que
-          // PartidasPanel con su meta.
+          // badge de la tab refleje el total real (no el filtrado).
           if (!searchTerm && onTotalChange) onTotalChange(data.total || 0);
         })
         .catch(() => {
@@ -70,40 +86,24 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
     fetchPage(1);
   }, [searchTerm, fetchPage]);
 
-  const reload = () => fetchPage(page);
-
-  // Marcar / desmarcar a un jugador como el propio dueño del perfil.
-  const setSelf = async (row, value) => {
-    try {
-      await axios.post(API.bgg.JUGADOR_YO_MISMO(bggUsername), {
-        rawKeys: row.rawKeys,
-        value,
-      });
-      reload();
-    } catch (e) {
-      alert(e?.response?.data?.message || "No se pudo actualizar el jugador.");
-    }
-  };
-
   const isEmpty = !loading && !error && items.length === 0;
 
   return (
     <div className={styles.modalSection}>
       <p className={styles.sectionHelp}>
-        Estos son los jugadores de tus partidas. Tocá uno para ver su detalle y
-        editarlo (corregir el nombre, fijar su usuario de BoardGameGeek o
-        fusionar duplicados).
+        Estas son las ubicaciones de tus partidas. Tocá una para ver su detalle
+        y editarla (corregir el nombre o fusionar duplicadas).
       </p>
 
       <div className={styles.playerPickerHead}>
         <input
           type="text"
           className={styles.modalInput}
-          placeholder="Buscar jugador…"
+          placeholder="Buscar ubicación…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           maxLength={100}
-          aria-label="Buscar jugador"
+          aria-label="Buscar ubicación"
         />
       </div>
 
@@ -111,7 +111,7 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
 
       {error && (
         <p className={styles.dimText}>
-          No se pudo cargar la lista de jugadores.
+          No se pudo cargar la lista de ubicaciones.
         </p>
       )}
 
@@ -119,11 +119,11 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
         <EmptyState
           variant="filtered"
           compact
-          title={q ? "Sin coincidencias" : "Sin jugadores aún"}
+          title={q ? "Sin coincidencias" : "Sin ubicaciones aún"}
           text={
             q
-              ? "Ningún jugador coincide con tu búsqueda."
-              : "Cuando cargues partidas con otros jugadores van a aparecer acá."
+              ? "Ninguna ubicación coincide con tu búsqueda."
+              : "Cuando cargues partidas con una ubicación van a aparecer acá."
           }
         />
       )}
@@ -131,51 +131,25 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
       {items.length > 0 && (
         <ul className={styles.gameSearchList}>
           {items.map((row) => {
-            const meta = playerMeta(row);
+            const meta = locationMeta(row);
             return (
               <li key={row.key} className={styles.jugadorRow}>
                 <button
                   type="button"
                   className={styles.jugadorRowMain}
                   onClick={() => openDetail(row)}
-                  title="Ver partidas y estadísticas con este jugador"
+                  title="Ver partidas y estadísticas de esta ubicación"
                 >
-                  <Avatar user={rowAvatarUser(row)} size="sm" />
+                  <PinIcon />
                   <div className={styles.gameSearchInfo}>
                     <span className={styles.gameSearchName}>
-                      {row.name || row.username || "Sin nombre"}
-                      {row.username && (
-                        <span className={styles.coPlayerHandle}>
-                          {" "}
-                          @{row.username}
-                        </span>
-                      )}
-                      {row.isLinked && (
-                        <span className={styles.playerTagFriend}>
-                          miembro TurnoCero
-                        </span>
-                      )}
-                      {row.isSelf && (
-                        <span className={styles.playerTagSelf}>sos vos</span>
-                      )}
+                      {row.name || "Sin nombre"}
                     </span>
                     {meta && (
                       <span className={styles.gameSearchMeta}>{meta}</span>
                     )}
                   </div>
                 </button>
-                {row.isSelf && (
-                  <div className={styles.jugadorActions}>
-                    <button
-                      type="button"
-                      className={styles.btnGhost}
-                      onClick={() => setSelf(row, false)}
-                      title="Dejar de marcar a este jugador como vos"
-                    >
-                      Ya no soy yo
-                    </button>
-                  </div>
-                )}
               </li>
             );
           })}
@@ -192,7 +166,7 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
 
       {total > 0 && (
         <p className={styles.dimText}>
-          {total} jugador{total === 1 ? "" : "es"}
+          {total} ubicaci{total === 1 ? "ón" : "ones"}
         </p>
       )}
     </div>

@@ -79,10 +79,14 @@ async function loadSelfKeys(lowerOwner) {
 // Collapse computePlayedCoPlayers output through the overlay index: rows claimed
 // by the same overlay fold into one curated row; unclaimed rows pass through.
 // With `excludeSelf`, rows flagged as the profile owner (isSelf) are dropped —
-// used by the co-player rankings (mis-jugadores, topCoPlayers) where the owner
+// used by the co-player rankings (mis-jugadores) where the owner
 // shouldn't appear. The curation list passes excludeSelf:false so it can show
 // them with a badge + an "undo" affordance.
-function applyOverlayToCoPlayers(coPlayers, index, { excludeSelf = false } = {}) {
+function applyOverlayToCoPlayers(
+  coPlayers,
+  index,
+  { excludeSelf = false } = {},
+) {
   const groups = new Map();
   for (const cp of coPlayers) {
     const key = rawKeyFor(cp);
@@ -120,8 +124,12 @@ function applyOverlayToCoPlayers(coPlayers, index, { excludeSelf = false } = {})
     .map((g) => {
       const overlay = g.overlay;
       const effUsername = (overlay?.bggUsername || g.username || "").trim();
-      const effName =
-        (overlay?.nameOverride || g.name || effUsername || "").trim();
+      const effName = (
+        overlay?.nameOverride ||
+        g.name ||
+        effUsername ||
+        ""
+      ).trim();
       return {
         key: overlay ? `o:${overlay._id}` : `k:${rawKeyFor(g)}`,
         overlayId: overlay ? String(overlay._id) : null,

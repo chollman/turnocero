@@ -34,6 +34,8 @@ const {
   computePlayedGames,
   computeTopPlayedGame,
   computePlayedLocations,
+  computeLocationRoster,
+  computeLocationStats,
   computeGamePlayCount,
   computePlayedCoPlayers,
 } = require("../services/bgg/bggAggregations");
@@ -47,11 +49,7 @@ const {
 // bggSearch junto a scoreSearchMatch para que el ranking de búsqueda
 // quede en un solo módulo testeable.
 const { scoreSearchMatch } = require("../services/bgg/bggSearch");
-const {
-  cache,
-  getCached,
-  setCached,
-} = require("../services/bgg/bggCache");
+const { cache, getCached, setCached } = require("../services/bgg/bggCache");
 const {
   getManualRefreshRemainingMs,
   stampManualRefresh,
@@ -108,6 +106,15 @@ const {
 } = require("../services/bgg/bggPlayerOverlay");
 const { invalidateOwnerDerived } = require("../services/bgg/bggInvalidate");
 const {
+  sanitizeLocationKeys,
+  loadLocationOverlayIndex,
+  applyOverlayToLocations,
+  overlayToLocationRow,
+  getOrCreateLocationOverlay,
+  nameFromKey: locationNameFromKey,
+} = require("../services/bgg/bggLocationOverlay");
+const BggLocationOverlay = require("../models/BggLocationOverlay");
+const {
   connectedMemberUsernames,
   communityMemberUsernames,
   topCommunityGames,
@@ -116,7 +123,6 @@ const {
   communityPlayerLeaderboard,
   communityWinRates,
   communityStreaks,
-  topCoPlayers,
   headToHead,
   communityActivityFeed,
   communityActivityHeatmap,
@@ -218,19 +224,6 @@ router.get(
       });
     }
     res.json({ metric, periodo, players });
-  }),
-);
-
-// GET /api/bgg/comunidad/companeros/:bggUsername
-// Sin scope de comunidad: los compañeros salen de las partidas propias del
-// usuario (su historia de juego), no del subconjunto de miembros activos.
-router.get(
-  "/comunidad/companeros/:bggUsername",
-  optionalAuth,
-  asyncHandler(async (req, res) => {
-    const lower = req.params.bggUsername.toLowerCase();
-    const coPlayers = await topCoPlayers(lower, { limit: 12 });
-    res.json({ coPlayers });
   }),
 );
 
@@ -1466,7 +1459,9 @@ router.get(
     } else {
       username = firstUserKey(rawKeys) || "";
       for (const p of matchedPlays) {
-        const pl = (p.players || []).find((x) => rawKeys.includes(rawKeyFor(x)));
+        const pl = (p.players || []).find((x) =>
+          rawKeys.includes(rawKeyFor(x)),
+        );
         if (pl) {
           name = (pl.name || "").trim();
           if (!username) username = (pl.username || "").trim();
@@ -1730,7 +1725,7 @@ router.post(
       await BggPlayerOverlay.deleteOne({ _id: source._id });
     }
 
-    const linked = await isLinkedToMember(target.rawKeys, target.bggUsername)
+    const linked = (await isLinkedToMember(target.rawKeys, target.bggUsername))
       ? (
           await resolveUsersByBggUsernames(
             [
@@ -1769,6 +1764,202 @@ router.post(
     await overlay.save();
     await invalidateOwnerDerived(lower);
     res.json({ player: overlayToRow(overlay, null) });
+  }),
+);
+
+// ── Ubicaciones: curación de las ubicaciones de las partidas ────────────────
+// Pestaña "Ubicaciones" del perfil de BG Watch. Solo dueño/admin. Las
+// ubicaciones son strings libres en BggPlay.location; el overlay (local) sólo
+// guarda un nombre curado y fusiona grafías duplicadas. No toca BGG.
+
+// GET /api/bgg/ubicaciones/:bggUsername — lista curada de ubicaciones de las
+// partidas del dueño. Paginada (?page, ?limit, ?q). Mismo contrato de orden que
+// mis-ubicaciones (recencia desc → más partidas → alfabético).
+router.get(
+  "/ubicaciones/:bggUsername",
+  protect,
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const { allowed } = ownerOrAdmin(req, lower);
+    if (!allowed) {
+      throw httpError(403, "No podés ver las ubicaciones de otro usuario");
+    }
+
+    const { page, limit, skip } = parsePagination(req.query, {
+      defaultLimit: 20,
+      maxLimit: 50,
+    });
+
+    const roster = await computeLocationRoster(lower);
+    const overlayIndex = await loadLocationOverlayIndex(lower);
+    let items = applyOverlayToLocations(roster, overlayIndex);
+
+    const q = (req.query.q || "").trim();
+    if (q) {
+      const needle = normalizeForSearch(q);
+      items = items.filter((it) =>
+        normalizeForSearch(it.name).includes(needle),
+      );
+    }
+
+    items.sort((a, b) => {
+      const da = a.lastPlayedDate || "";
+      const db = b.lastPlayedDate || "";
+      if (da !== db) return db.localeCompare(da);
+      if (a.numPlays !== b.numPlays) return b.numPlays - a.numPlays;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+
+    res.json({
+      items: items.slice(skip, skip + limit),
+      total: items.length,
+      page,
+      pages: Math.ceil(items.length / limit),
+    });
+  }),
+);
+
+// GET /api/bgg/ubicaciones/:bggUsername/:locationKey — detalle de una ubicación:
+// stats (partidas, juegos únicos, primera/última fecha, por juego) + las
+// partidas paginadas. locationKey: `o:<overlayId>`, `k:l:<lower>` o `l:<lower>`.
+router.get(
+  "/ubicaciones/:bggUsername/:locationKey",
+  protect,
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const { allowed } = ownerOrAdmin(req, lower);
+    if (!allowed) {
+      throw httpError(403, "No podés ver las ubicaciones de otro usuario");
+    }
+
+    const { page, limit, skip } = parsePagination(req.query, {
+      defaultLimit: 10,
+      maxLimit: 30,
+    });
+
+    const overlayIndex = await loadLocationOverlayIndex(lower);
+
+    // Resolver locationKey → rawKeys (+ overlay si existe).
+    const rawParam = req.params.locationKey || "";
+    let overlay = null;
+    let rawKeys = [];
+    if (rawParam.startsWith("o:")) {
+      overlay = await BggLocationOverlay.findOne({
+        _id: rawParam.slice(2),
+        ownerUsername: lower,
+      }).lean();
+      if (!overlay) throw httpError(404, "Ubicación no encontrada");
+      rawKeys = overlay.rawKeys || [];
+    } else {
+      const bare = rawParam.startsWith("k:") ? rawParam.slice(2) : rawParam;
+      const keys = sanitizeLocationKeys([bare]);
+      if (!keys.length) throw httpError(400, "Ubicación inválida");
+      // Si la clave está reclamada por un overlay (fusión), expandir a TODAS sus
+      // grafías para no perder partidas cargadas bajo otra grafía.
+      const claimed = overlayIndex.byKey.get(keys[0]);
+      if (claimed) {
+        overlay = claimed;
+        rawKeys = claimed.rawKeys || keys;
+      } else {
+        rawKeys = keys;
+      }
+    }
+    if (!rawKeys.length) throw httpError(404, "Ubicación no encontrada");
+
+    const { stats, matchedPlays } = await computeLocationStats(lower, rawKeys);
+
+    // Nombre efectivo: override del overlay, si no la grafía más reciente.
+    let name = overlay?.nameOverride || "";
+    if (!name) {
+      name = (matchedPlays[0]?.location || "").trim();
+    }
+    if (!name) name = locationNameFromKey(rawKeys[0]);
+
+    // Las partidas salen crudas: el overlay de ubicaciones cura el nombre del
+    // lugar, no a los jugadores de cada partida.
+    const plays = matchedPlays.slice(skip, skip + limit).map(playToApi);
+
+    res.json({
+      location: {
+        key: overlay ? `o:${overlay._id}` : `k:${rawKeys[0]}`,
+        rawKeys,
+        name,
+      },
+      stats: {
+        total: stats.total,
+        uniqueGames: stats.uniqueGames,
+        firstPlayedDate: stats.firstPlayedDate,
+        lastPlayedDate: stats.lastPlayedDate,
+        byGame: stats.byGame,
+      },
+      plays,
+      page,
+      total: stats.total,
+      pageSize: limit,
+    });
+  }),
+);
+
+// PATCH /api/bgg/ubicaciones/:bggUsername/nombre — override local del nombre.
+router.patch(
+  "/ubicaciones/:bggUsername/nombre",
+  protect,
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const { allowed } = ownerOrAdmin(req, lower);
+    if (!allowed) throw httpError(403, "No autorizado");
+
+    const rawKeys = sanitizeLocationKeys(req.body.rawKeys);
+    const name = (req.body.name || "").trim();
+    if (!rawKeys.length) throw httpError(400, "Ubicación inválida");
+    if (!name) throw httpError(400, "El nombre no puede estar vacío");
+    if (name.length > 100) throw httpError(400, "Nombre demasiado largo");
+
+    const overlay = await getOrCreateLocationOverlay(lower, rawKeys);
+    overlay.nameOverride = name;
+    await overlay.save();
+    res.json({ location: overlayToLocationRow(overlay) });
+  }),
+);
+
+// POST /api/bgg/ubicaciones/:bggUsername/merge — fusionar source dentro de
+// target (consolida grafías duplicadas en una sola ubicación curada).
+router.post(
+  "/ubicaciones/:bggUsername/merge",
+  protect,
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const { allowed } = ownerOrAdmin(req, lower);
+    if (!allowed) throw httpError(403, "No autorizado");
+
+    const targetKeys = sanitizeLocationKeys(req.body.targetRawKeys);
+    const sourceKeys = sanitizeLocationKeys(req.body.sourceRawKeys);
+    if (!targetKeys.length || !sourceKeys.length) {
+      throw httpError(400, "Ubicaciones inválidas");
+    }
+    if (targetKeys.some((k) => sourceKeys.includes(k))) {
+      throw httpError(400, "No podés fusionar una ubicación consigo misma");
+    }
+
+    const target = await getOrCreateLocationOverlay(lower, targetKeys);
+    const source = await BggLocationOverlay.findOne({
+      ownerUsername: lower,
+      rawKeys: { $in: sourceKeys },
+    });
+
+    const set = new Set(target.rawKeys);
+    for (const k of sourceKeys) set.add(k);
+    if (source) for (const k of source.rawKeys) set.add(k);
+    target.rawKeys = [...set];
+    if (source && !target.nameOverride && source.nameOverride) {
+      target.nameOverride = source.nameOverride;
+    }
+    await target.save();
+    if (source && String(source._id) !== String(target._id)) {
+      await BggLocationOverlay.deleteOne({ _id: source._id });
+    }
+
+    res.json({ location: overlayToLocationRow(target) });
   }),
 );
 

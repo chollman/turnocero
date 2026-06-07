@@ -116,25 +116,6 @@ describe("GET /api/bgg/comunidad/jugadores", () => {
   });
 });
 
-describe("GET /api/bgg/comunidad/companeros/:bggUsername", () => {
-  it("lista compañeros del usuario", async () => {
-    await createUser({ bggUsername: "bob", displayName: "Bobby" });
-    await BggPlay.create(
-      play({
-        bggUsername: "alice",
-        players: [
-          { username: "alice", win: true },
-          { username: "bob", win: false },
-        ],
-      }),
-    );
-    const res = await request(app).get("/api/bgg/comunidad/companeros/alice");
-    expect(res.status).toBe(200);
-    expect(res.body.coPlayers[0].username).toBe("bob");
-    expect(res.body.coPlayers[0].user.displayName).toBe("Bobby");
-  });
-});
-
 describe("GET /api/bgg/comunidad/h2h/:a/:b", () => {
   it("talla el head-to-head", async () => {
     await createUser({ bggUsername: "alice", displayName: "Alicia" });

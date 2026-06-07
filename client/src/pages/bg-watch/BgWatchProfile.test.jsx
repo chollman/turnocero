@@ -21,6 +21,20 @@ vi.mock("./ColeccionPanel", () => ({
     />
   ),
 }));
+// Mimics the real panel reporting its unfiltered total up to the parent. The
+// report is queued out of render (microtask) so it doesn't setState mid-render.
+vi.mock("./JugadoresPanel", () => ({
+  default: ({ onTotalChange }) => {
+    if (onTotalChange) Promise.resolve().then(() => onTotalChange(5));
+    return <div data-testid="jugadores-panel" />;
+  },
+}));
+vi.mock("./UbicacionesPanel", () => ({
+  default: ({ onTotalChange }) => {
+    if (onTotalChange) Promise.resolve().then(() => onTotalChange(8));
+    return <div data-testid="ubicaciones-panel" />;
+  },
+}));
 vi.mock("./PlayDetailModal", () => ({ default: () => null }));
 vi.mock("./BgWatchGuestCTAs", () => ({
   GuestBanner: () => null,
@@ -29,8 +43,6 @@ vi.mock("./BgWatchGuestCTAs", () => ({
 }));
 // useBggUserMap (hook): returns an empty map.
 vi.mock("./useBggUserMap", () => ({ default: () => ({}) }));
-// Sección de comunidad (hace su propio fetch): stub para aislar el perfil.
-vi.mock("./ComunidadCompaneros", () => ({ default: () => null }));
 
 import BgWatchProfile from "./BgWatchProfile";
 import { useAuth } from "../../context/AuthContext";
@@ -177,6 +189,30 @@ describe("<BgWatchProfile>", () => {
     renderProfile({ user: null, bggUsername: "CarcaFan" });
     const panel = await screen.findByTestId("partidas-panel");
     expect(panel.dataset.canRefresh).toBe("false");
+  });
+
+  it("shows the player count badge on the Jugadores tab (owner/admin)", async () => {
+    renderProfile({
+      user: { bggUsername: "CarcaFan", isAdmin: false },
+      bggUsername: "CarcaFan",
+    });
+    const jugadoresTab = (await screen.findAllByRole("button")).find((b) =>
+      /jugadores/i.test(b.textContent || ""),
+    );
+    expect(jugadoresTab).toBeTruthy();
+    await waitFor(() => expect(jugadoresTab.textContent).toMatch(/5/));
+  });
+
+  it("shows the location count badge on the Ubicaciones tab (owner/admin)", async () => {
+    renderProfile({
+      user: { bggUsername: "CarcaFan", isAdmin: false },
+      bggUsername: "CarcaFan",
+    });
+    const ubicacionesTab = (await screen.findAllByRole("button")).find((b) =>
+      /ubicaciones/i.test(b.textContent || ""),
+    );
+    expect(ubicacionesTab).toBeTruthy();
+    await waitFor(() => expect(ubicacionesTab.textContent).toMatch(/8/));
   });
 
   it("renders StatsBar with all four metric labels", async () => {

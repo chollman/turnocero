@@ -65,6 +65,23 @@ beforeEach(() => {
         pages: 1,
       }),
     ),
+    http.post("/api/users/by-bgg-usernames", async ({ request }) => {
+      const { usernames } = await request.json();
+      const set = new Set((usernames || []).map((u) => u.toLowerCase()));
+      // Bob (bobbgg) es miembro de TurnoCero con avatar; el resto no.
+      const all = [
+        {
+          _id: "tc-bob",
+          username: "bobtc",
+          displayName: "Bob",
+          bggUsername: "bobbgg",
+          avatar: { url: "https://x/bob.webp", publicId: "bob" },
+        },
+      ];
+      return HttpResponse.json(
+        all.filter((u) => set.has(u.bggUsername.toLowerCase())),
+      );
+    }),
   );
 });
 
@@ -81,6 +98,22 @@ describe("<PlayerPicker>", () => {
     expect(await screen.findByText("Bob")).toBeInTheDocument();
     expect(screen.getByText("Tía Susana")).toBeInTheDocument();
     expect(screen.getByText(/5 partidas/i)).toBeInTheDocument();
+  });
+
+  it("muestra el avatar del compañero que es miembro de TurnoCero (por BGG)", async () => {
+    render(
+      <PlayerPicker
+        bggUsername="me"
+        existing={[]}
+        onPick={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    // Bob (bobbgg) está vinculado a un usuario de TurnoCero → avatar.
+    const avatar = await screen.findByTestId("avatar");
+    expect(avatar).toHaveTextContent("bobtc");
+    // Tía Susana no tiene BGG → no resuelve avatar (sigue el fallback 👤).
+    expect(screen.getAllByTestId("avatar")).toHaveLength(1);
   });
 
   it("muestra el skeleton mientras carga y lo oculta al llegar los datos", async () => {

@@ -58,6 +58,7 @@ import BgWatchComunidad from "./pages/bg-watch/BgWatchComunidad";
 import ComunidadJuegoDetail from "./pages/bg-watch/ComunidadJuegoDetail";
 import BgWatchH2H from "./pages/bg-watch/BgWatchH2H";
 import JugadorDetail from "./pages/bg-watch/JugadorDetail";
+import UbicacionDetail from "./pages/bg-watch/UbicacionDetail";
 import CreatePlay from "./pages/bg-watch/CreatePlay";
 import EditPlay from "./pages/bg-watch/EditPlay";
 import Messages from "./pages/messages/Messages";
@@ -559,6 +560,22 @@ export function AppRoutes({ transition }) {
               element={
                 <SectionGate section="bgwatch">
                   <JugadorDetail />
+                </SectionGate>
+              }
+            />
+            <Route
+              path="/bg-watch/:bggUsername/ubicaciones"
+              element={
+                <SectionGate section="bgwatch">
+                  <BgWatchProfile />
+                </SectionGate>
+              }
+            />
+            <Route
+              path="/bg-watch/:bggUsername/ubicacion/:locationKey"
+              element={
+                <SectionGate section="bgwatch">
+                  <UbicacionDetail />
                 </SectionGate>
               }
             />

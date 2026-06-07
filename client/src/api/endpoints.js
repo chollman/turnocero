@@ -75,6 +75,15 @@ export const API = {
       `/api/bgg/jugadores/${enc(bggUsername)}/merge`,
     JUGADOR_YO_MISMO: (bggUsername) =>
       `/api/bgg/jugadores/${enc(bggUsername)}/yo-mismo`,
+    // Curación de ubicaciones ("Ubicaciones" tab — dueño/admin)
+    UBICACIONES: (bggUsername) => `/api/bgg/ubicaciones/${enc(bggUsername)}`,
+    // Detalle de una ubicación (partidas + stats)
+    UBICACION_DETALLE: (bggUsername, key) =>
+      `/api/bgg/ubicaciones/${enc(bggUsername)}/${enc(key)}`,
+    UBICACION_NOMBRE: (bggUsername) =>
+      `/api/bgg/ubicaciones/${enc(bggUsername)}/nombre`,
+    UBICACION_MERGE: (bggUsername) =>
+      `/api/bgg/ubicaciones/${enc(bggUsername)}/merge`,
     ULTIMA_JUNTADA: (bggUsername) =>
       `/api/bgg/ultima-juntada/${enc(bggUsername)}`,
     JUGADO: (bggUsername, gameId) =>
@@ -85,8 +94,6 @@ export const API = {
     COMUNIDAD_JUEGOS: "/api/bgg/comunidad/juegos",
     COMUNIDAD_JUEGO: (gameId) => `/api/bgg/comunidad/juego/${enc(gameId)}`,
     COMUNIDAD_JUGADORES: "/api/bgg/comunidad/jugadores",
-    COMUNIDAD_COMPANEROS: (bggUsername) =>
-      `/api/bgg/comunidad/companeros/${enc(bggUsername)}`,
     COMUNIDAD_H2H: (userA, userB) =>
       `/api/bgg/comunidad/h2h/${enc(userA)}/${enc(userB)}`,
     COMUNIDAD_ACTIVIDAD: "/api/bgg/comunidad/actividad",

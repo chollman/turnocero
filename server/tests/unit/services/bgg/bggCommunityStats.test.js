@@ -16,7 +16,6 @@ const {
   communityWinRates,
   longestWeekStreak,
   communityStreaks,
-  topCoPlayers,
   headToHead,
   communityActivityFeed,
   communityActivityHeatmap,
@@ -396,53 +395,6 @@ describe("communityStreaks", () => {
     const streaks = await communityStreaks();
     expect(streaks[0].bggUsername).toBe("alice");
     expect(streaks[0].weekStreak).toBe(2);
-  });
-});
-
-describe("topCoPlayers", () => {
-  it("lista compañeros por cantidad de partidas y resuelve miembros", async () => {
-    await createUser({ bggUsername: "bob", displayName: "Bobby" });
-    await makePlay({
-      bggUsername: "alice",
-      players: [
-        { username: "alice", win: true },
-        { username: "bob", win: false },
-      ],
-    });
-    await makePlay({
-      bggUsername: "alice",
-      players: [
-        { username: "alice", win: true },
-        { username: "bob", win: false },
-        { name: "Invitado" },
-      ],
-    });
-    const co = await topCoPlayers("alice");
-    expect(co[0].username).toBe("bob");
-    expect(co[0].numPlays).toBe(2);
-    expect(co[0].user.displayName).toBe("Bobby");
-    // El invitado sin username queda con user null.
-    expect(co.find((c) => c.name === "Invitado").user).toBeNull();
-  });
-
-  it("refleja las fusiones del overlay (cuenta dos compañeros como uno)", async () => {
-    // Dos identidades crudas distintas: "Juan" (sin username) y "Juancho".
-    await makePlay({ players: [{ name: "Juan" }] });
-    await makePlay({ players: [{ name: "Juan" }] });
-    await makePlay({ players: [{ name: "Juancho" }] });
-    // El overlay los fusiona en una sola identidad curada.
-    await BggPlayerOverlay.create({
-      ownerUsername: "alice",
-      rawKeys: ["n:juan", "n:juancho"],
-      nameOverride: "Juancito",
-    });
-
-    const co = await topCoPlayers("alice");
-    const juancito = co.filter((c) => c.name === "Juancito");
-    expect(juancito).toHaveLength(1);
-    expect(juancito[0].numPlays).toBe(3);
-    // Ya no aparecen como entradas separadas.
-    expect(co.some((c) => c.name === "Juancho")).toBe(false);
   });
 });
 

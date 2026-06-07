@@ -54,6 +54,54 @@ export default function PlayerPicker({
   const abortRef = useRef(null);
   const reqIdRef = useRef(0);
 
+  // Mapa bggUsernameLower → usuario de TurnoCero, para mostrarle el avatar a los
+  // compañeros que además son miembros (vinculados por su BGG username). Se va
+  // acumulando a medida que aparecen nuevos usernames (paginación / búsqueda);
+  // requestedRef evita refetchear los ya consultados.
+  const [userMap, setUserMap] = useState({});
+  const requestedRef = useRef(new Set());
+
+  useEffect(() => {
+    if (mode !== "coplayers") return undefined;
+    const toFetch = [];
+    for (const p of items) {
+      const u = (p.username || "").trim().toLowerCase();
+      if (u && !requestedRef.current.has(u)) {
+        requestedRef.current.add(u);
+        toFetch.push(u);
+      }
+    }
+    if (toFetch.length === 0) return undefined;
+    let cancelled = false;
+    const chunks = [];
+    for (let i = 0; i < toFetch.length; i += 50) {
+      chunks.push(toFetch.slice(i, i + 50));
+    }
+    Promise.all(
+      chunks.map((c) =>
+        axios
+          .post(API.users.BY_BGG_USERNAMES, { usernames: c })
+          .then((r) => r.data)
+          .catch(() => []),
+      ),
+    ).then((results) => {
+      if (cancelled) return;
+      const merged = {};
+      for (const arr of results) {
+        if (!Array.isArray(arr)) continue;
+        for (const u of arr) {
+          if (u.bggUsername) merged[u.bggUsername.toLowerCase()] = u;
+        }
+      }
+      if (Object.keys(merged).length) {
+        setUserMap((prev) => ({ ...prev, ...merged }));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [items, mode]);
+
   const fetchPage = useCallback(
     (pageToLoad, append) => {
       if (mode === "coplayers" && !bggUsername) return;
@@ -212,6 +260,7 @@ export default function PlayerPicker({
           {mode === "coplayers" &&
             visibleCoPlayers.map((p) => {
               const meta = coPlayerMeta(p);
+              const tcUser = p.username ? userMap[norm(p.username)] : null;
               return (
                 <li key={p.username ? `u:${p.username}` : `n:${p.name}`}>
                   <button
@@ -221,7 +270,11 @@ export default function PlayerPicker({
                       onPick({ name: p.name, username: p.username })
                     }
                   >
-                    <span className={styles.gameSearchThumbFallback}>👤</span>
+                    {tcUser ? (
+                      <Avatar user={tcUser} size="xs" />
+                    ) : (
+                      <span className={styles.gameSearchThumbFallback}>👤</span>
+                    )}
                     <div className={styles.gameSearchInfo}>
                       <span className={styles.gameSearchName}>
                         {p.name}

@@ -39,7 +39,6 @@ const { resolveGamesBatch } = require("./bggResolve");
 const { computePlayedCoPlayers } = require("./bggAggregations");
 const {
   loadOverlayIndex,
-  applyOverlayToCoPlayers,
   applyOverlayToPlayers,
 } = require("./bggPlayerOverlay");
 
@@ -109,7 +108,9 @@ const OWNER_WIN_REDUCE = {
       $let: {
         vars: {
           u: {
-            $toLower: { $trim: { input: { $ifNull: ["$$this.username", ""] } } },
+            $toLower: {
+              $trim: { input: { $ifNull: ["$$this.username", ""] } },
+            },
           },
           n: {
             $toLower: { $trim: { input: { $ifNull: ["$$this.name", ""] } } },
@@ -555,37 +556,6 @@ async function communityStreaks({ bggUsernames = null, limit = 20 } = {}) {
 
 // ── Fase 3: Grafo social / Head-to-head ───────────────────────────────────
 
-// Top compañeros de un usuario (con quién jugó más). Reusa la aggregation
-// per-user computePlayedCoPlayers (que ya deduplica por username/nombre y
-// excluye al dueño) y enriquece con el User de TurnoCero cuando el compañero
-// es miembro. Los no-miembros (o jugadores sin username BGG) quedan con
-// `user: null` y se muestran por nombre.
-async function topCoPlayers(lowerBggUsername, { limit = 12 } = {}) {
-  const raw = await computePlayedCoPlayers(lowerBggUsername);
-  // Aplicar el overlay de curación: nombres editados y compañeros fusionados
-  // se reflejan en "Con quién juega más" (mismo criterio que la lista de
-  // Jugadores y el selector mis-jugadores).
-  const overlayIndex = await loadOverlayIndex(lowerBggUsername);
-  const all = applyOverlayToCoPlayers(raw, overlayIndex, { excludeSelf: true });
-  all.sort(
-    (a, b) =>
-      b.numPlays - a.numPlays ||
-      (b.lastPlayedDate || "").localeCompare(a.lastPlayedDate || ""),
-  );
-  const top = all.slice(0, Math.max(1, limit));
-  const userMap = await resolveBggUsernamesToUsers(
-    top.map((c) => (c.username || "").toLowerCase()).filter(Boolean),
-  );
-  return top.map((c) => ({
-    name: c.name,
-    username: c.username,
-    numPlays: c.numPlays,
-    lastPlayedDate: c.lastPlayedDate,
-    avatar: c.avatar || null,
-    user: c.username ? userMap.get(c.username.toLowerCase()) || null : null,
-  }));
-}
-
 // Head-to-head entre dos miembros. Toma las partidas logueadas por A o por B
 // donde AMBOS figuran en `players` (case-insensitive), deduplica la sesión
 // compartida (cada uno la loguea por separado con distinto playId) por firma
@@ -815,7 +785,6 @@ module.exports = {
   communityWinRates,
   longestWeekStreak,
   communityStreaks,
-  topCoPlayers,
   headToHead,
   communityActivityFeed,
   communityActivityHeatmap,

@@ -8,6 +8,8 @@ const {
   mergeUserGameList,
   computeTopPlayedGame,
   computePlayedLocations,
+  computeLocationRoster,
+  computeLocationStats,
   computeGamePlayCount,
   computePlayedCoPlayers,
 } = require("../../../../services/bgg/bggAggregations");
@@ -110,7 +112,9 @@ describe("computeGameStats", () => {
   // comportamiento previo (solo matchea su propio username).
   describe("selfKeys (curación 'sos vos')", () => {
     it("default: un alias sin username NO cuenta como el dueño", async () => {
-      await makePlay({ players: [{ name: "Juancho", username: "", win: true }] });
+      await makePlay({
+        players: [{ name: "Juancho", username: "", win: true }],
+      });
       const stats = await computeGameStats("alice", "100");
       expect(stats).toMatchObject({ wins: 0, rated: 0 });
     });
@@ -449,6 +453,84 @@ describe("computePlayedLocations", () => {
   });
 });
 
+describe("computeLocationRoster", () => {
+  it("devuelve una key l:<lower> y agrupa case-insensitive", async () => {
+    await makePlay({ location: "Casa", date: "2026-01-01", quantity: 1 });
+    await makePlay({ location: "casa", date: "2026-03-10", quantity: 2 });
+    await makePlay({ location: "Club", date: "2026-02-05", quantity: 1 });
+    const roster = await computeLocationRoster("alice");
+    const casa = roster.find((l) => l.key === "l:casa");
+    expect(casa).toMatchObject({
+      key: "l:casa",
+      numPlays: 3, // 1 + 2 (ambas grafías colapsan)
+      lastPlayedDate: "2026-03-10",
+    });
+    // El nombre representativo es la grafía más reciente.
+    expect(casa.name).toBe("casa");
+    expect(roster.find((l) => l.key === "l:club")).toMatchObject({
+      key: "l:club",
+      numPlays: 1,
+    });
+  });
+
+  it("ignora ubicaciones vacías", async () => {
+    await makePlay({ location: "Casa" });
+    await makePlay({ location: null });
+    await makePlay({ location: "  " });
+    const roster = await computeLocationRoster("alice");
+    expect(roster).toHaveLength(1);
+    expect(roster[0].key).toBe("l:casa");
+  });
+});
+
+describe("computeLocationStats", () => {
+  it("talla partidas, juegos únicos, fechas y por-juego de una ubicación", async () => {
+    await makePlay({
+      location: "Casa",
+      gameId: "100",
+      gameName: "Catan",
+      date: "2026-01-01",
+    });
+    await makePlay({
+      location: "casa",
+      gameId: "100",
+      gameName: "Catan",
+      date: "2026-03-01",
+    });
+    await makePlay({
+      location: "Casa",
+      gameId: "200",
+      gameName: "Carcassonne",
+      date: "2026-02-01",
+    });
+    // Otra ubicación → no cuenta.
+    await makePlay({ location: "Club", gameId: "100", date: "2026-04-01" });
+
+    const { stats, matchedPlays } = await computeLocationStats("alice", [
+      "l:casa",
+    ]);
+    expect(stats.total).toBe(3);
+    expect(stats.uniqueGames).toBe(2);
+    expect(stats.firstPlayedDate).toBe("2026-01-01");
+    expect(stats.lastPlayedDate).toBe("2026-03-01");
+    // byGame ordenado por total desc (Catan 2, Carcassonne 1).
+    expect(stats.byGame[0]).toMatchObject({ gameId: "100", total: 2 });
+    expect(stats.byGame[1]).toMatchObject({ gameId: "200", total: 1 });
+    // matchedPlays ordenado por fecha desc.
+    expect(matchedPlays[0].date).toBe("2026-03-01");
+  });
+
+  it("devuelve ceros cuando la ubicación no tiene partidas", async () => {
+    const { stats, matchedPlays } = await computeLocationStats("alice", [
+      "l:inexistente",
+    ]);
+    expect(stats.total).toBe(0);
+    expect(stats.uniqueGames).toBe(0);
+    expect(stats.byGame).toEqual([]);
+    expect(matchedPlays).toEqual([]);
+  });
+});
+
 describe("computeGamePlayCount", () => {
   it("devuelve 0 cuando el usuario no jugó ese juego", async () => {
     await makePlay({ gameId: "100" });
@@ -706,8 +788,16 @@ describe("computeCoPlayerStats", () => {
     });
     const { stats } = await computeCoPlayerStats("alice", ["u:bob"]);
     const byId = Object.fromEntries(stats.byGame.map((g) => [g.gameId, g]));
-    expect(byId["100"]).toMatchObject({ total: 1, ownerWins: 1, playerWins: 0 });
-    expect(byId["200"]).toMatchObject({ total: 1, ownerWins: 0, playerWins: 1 });
+    expect(byId["100"]).toMatchObject({
+      total: 1,
+      ownerWins: 1,
+      playerWins: 0,
+    });
+    expect(byId["200"]).toMatchObject({
+      total: 1,
+      ownerWins: 0,
+      playerWins: 1,
+    });
   });
 
   it("cuenta victorias del dueño bajo un alias 'sos vos' vía selfKeys", async () => {

@@ -294,6 +294,100 @@ async function computePlayedLocations(lowerBggUsername) {
   }));
 }
 
+// Igual que computePlayedLocations pero agrupando case-insensitive y devolviendo
+// una `key` estable (`l:<lower>`) por ubicación — la base de la curación
+// (pestaña "Ubicaciones"). El nombre representativo es la grafía de la partida
+// más reciente (mismo criterio de `$last` tras ordenar por fecha que los
+// compañeros). Las dos grafías "Casa"/"casa" colapsan a una sola key.
+async function computeLocationRoster(lowerBggUsername) {
+  const agg = await BggPlay.aggregate([
+    { $match: { bggUsername: lowerBggUsername } },
+    {
+      $project: {
+        location: { $trim: { input: { $ifNull: ["$location", ""] } } },
+        quantity: 1,
+        date: 1,
+      },
+    },
+    { $match: { location: { $ne: "" } } },
+    { $addFields: { key: { $concat: ["l:", { $toLower: "$location" }] } } },
+    { $sort: { date: 1 } },
+    {
+      $group: {
+        _id: "$key",
+        name: { $last: "$location" },
+        numPlays: { $sum: { $ifNull: ["$quantity", 1] } },
+        lastPlayedDate: { $max: "$date" },
+      },
+    },
+  ]);
+  return agg.map((r) => ({
+    key: r._id, // l:<lower>
+    name: r.name,
+    numPlays: r.numPlays,
+    lastPlayedDate: r.lastPlayedDate || null,
+  }));
+}
+
+// Stats del dueño en UNA ubicación (o varias fusionadas), derivadas de su log de
+// partidas. Alimenta el detalle de la pestaña "Ubicaciones". `rawKeys`: claves de
+// ubicación (`l:<lower>`, puede traer varias si está fusionada). Cuenta SESIONES
+// (cada doc = 1). Devuelve `{ stats, matchedPlays }`: matchedPlays son los docs
+// lean crudos ordenados (date desc, playId desc) para que el route pagine.
+async function computeLocationStats(lowerBggUsername, rawKeys) {
+  const set = new Set(rawKeys || []);
+  const keyForPlay = (p) => `l:${(p.location || "").trim().toLowerCase()}`;
+
+  const allPlays = await BggPlay.find({
+    bggUsername: lowerBggUsername,
+  }).lean();
+
+  const matchedPlays = allPlays
+    .filter((p) => (p.location || "").trim() && set.has(keyForPlay(p)))
+    .sort((a, b) => {
+      if (a.date !== b.date) return (b.date || "").localeCompare(a.date || "");
+      return String(b.playId || "").localeCompare(String(a.playId || ""));
+    });
+
+  let total = 0;
+  let firstPlayedDate = null;
+  let lastPlayedDate = null;
+  const byGame = new Map();
+  const games = new Set();
+
+  for (const p of matchedPlays) {
+    total += 1;
+    if (p.gameId) games.add(String(p.gameId));
+
+    if (p.date) {
+      if (!firstPlayedDate || p.date < firstPlayedDate)
+        firstPlayedDate = p.date;
+      if (!lastPlayedDate || p.date > lastPlayedDate) lastPlayedDate = p.date;
+    }
+
+    const gid = p.gameId || "?";
+    const g = byGame.get(gid) || {
+      gameId: p.gameId || null,
+      name: p.gameName || null,
+      thumbnail: p.gameThumbnail || null,
+      total: 0,
+    };
+    g.total += 1;
+    byGame.set(gid, g);
+  }
+
+  return {
+    stats: {
+      total,
+      uniqueGames: games.size,
+      firstPlayedDate,
+      lastPlayedDate,
+      byGame: [...byGame.values()].sort((a, b) => b.total - a.total),
+    },
+    matchedPlays,
+  };
+}
+
 // Cantidad de partidas previas de un usuario para un juego (suma de quantity).
 // Alimenta la autodetección del flag "Nuevo" al cargar una partida: si el dueño
 // no jugó nunca ese juego (numPlays === 0), se sugiere marcarlo como nuevo.
@@ -444,7 +538,8 @@ async function computeCoPlayerStats(
     else draws += 1;
 
     if (p.date) {
-      if (!firstPlayedDate || p.date < firstPlayedDate) firstPlayedDate = p.date;
+      if (!firstPlayedDate || p.date < firstPlayedDate)
+        firstPlayedDate = p.date;
       if (!lastPlayedDate || p.date > lastPlayedDate) lastPlayedDate = p.date;
     }
 
@@ -486,6 +581,8 @@ module.exports = {
   mergeUserGameList,
   computeTopPlayedGame,
   computePlayedLocations,
+  computeLocationRoster,
+  computeLocationStats,
   computeGamePlayCount,
   computePlayedCoPlayers,
 };

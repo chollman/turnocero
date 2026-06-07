@@ -10,6 +10,7 @@ import PlayCard from "./PlayCard";
 import PlayCardSkeleton from "./PlayCardSkeleton";
 import PlayDetailModal from "./PlayDetailModal";
 import Pagination from "./Pagination";
+import { EditPlayerModal } from "./PlayerEditModals";
 import useBggUserMap from "./useBggUserMap";
 import comu from "./BgWatchComunidad.module.css";
 import styles from "./JugadorDetail.module.css";
@@ -52,6 +53,8 @@ export default function JugadorDetail() {
   const [page, setPage] = useState(1);
   const [openPlay, setOpenPlay] = useState(null);
   const [showH2h, setShowH2h] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!canView) return undefined;
@@ -67,7 +70,19 @@ export default function JugadorDetail() {
         if (!axios.isCancel(err)) setError(true);
       });
     return () => ac.abort();
-  }, [bggUsername, playerKey, page, canView]);
+  }, [bggUsername, playerKey, page, canView, refreshKey]);
+
+  // Desenlace del modal de edición: "merged" cambió la identidad (el jugador ya
+  // no existe como tal) → volvemos a la lista; "updated" cambió nombre/avatar/
+  // @BGG → refrescamos el detalle en su lugar.
+  const handleEditClose = (result) => {
+    setEditing(false);
+    if (result === "merged") {
+      navigate(`/bg-watch/${bggUsername}/jugadores`);
+    } else if (result === "updated") {
+      setRefreshKey((k) => k + 1);
+    }
+  };
 
   // Reiniciar la página (y ocultar el H2H) al cambiar de jugador.
   useEffect(() => {
@@ -176,6 +191,15 @@ export default function JugadorDetail() {
                 </Link>
               )}
             </div>
+            {!player.isSelf && (
+              <button
+                type="button"
+                className={styles.editPlayerBtn}
+                onClick={() => setEditing(true)}
+              >
+                Editar jugador
+              </button>
+            )}
           </div>
         </header>
 
@@ -321,6 +345,14 @@ export default function JugadorDetail() {
           play={openPlay}
           userMap={userMap}
           onClose={() => setOpenPlay(null)}
+        />
+      )}
+
+      {editing && (
+        <EditPlayerModal
+          bggUsername={bggUsername}
+          player={player}
+          onClose={handleEditClose}
         />
       )}
     </div>
