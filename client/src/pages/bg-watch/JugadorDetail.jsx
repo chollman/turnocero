@@ -51,6 +51,7 @@ export default function JugadorDetail() {
   const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
   const [openPlay, setOpenPlay] = useState(null);
+  const [showH2h, setShowH2h] = useState(false);
 
   useEffect(() => {
     if (!canView) return undefined;
@@ -68,10 +69,11 @@ export default function JugadorDetail() {
     return () => ac.abort();
   }, [bggUsername, playerKey, page, canView]);
 
-  // Reiniciar la página al cambiar de jugador.
+  // Reiniciar la página (y ocultar el H2H) al cambiar de jugador.
   useEffect(() => {
     setPage(1);
     setData(null);
+    setShowH2h(false);
   }, [playerKey]);
 
   const userMap = useBggUserMap(data?.plays);
@@ -183,25 +185,40 @@ export default function JugadorDetail() {
           </p>
         ) : (
           <>
-            {/* Head-to-head: dueño vs jugador */}
-            <div className={comu.h2hBoard}>
-              <div className={comu.h2hSide}>
-                <Avatar user={ownerAvatarUser} size="lg" />
-                <span className={comu.h2hName}>{ownerName}</span>
+            {/* Head-to-head: dueño vs jugador. No se muestra al entrar; se
+                revela al clickear el botón. */}
+            {showH2h ? (
+              <div className={comu.h2hBoard}>
+                <div className={comu.h2hSide}>
+                  <Avatar user={ownerAvatarUser} size="lg" />
+                  <span className={comu.h2hName}>{ownerName}</span>
+                </div>
+                <div className={comu.h2hScore}>
+                  <span className={comu.h2hWins}>{h2h.ownerWins}</span>
+                  <span className={comu.h2hDash}>–</span>
+                  <span className={comu.h2hWins}>{h2h.playerWins}</span>
+                  {h2h.draws > 0 && (
+                    <span className={comu.h2hDraws}>
+                      {h2h.draws} sin decidir
+                    </span>
+                  )}
+                </div>
+                <div className={comu.h2hSide}>
+                  <Avatar user={playerAvatarUser(player)} size="lg" />
+                  <span className={comu.h2hName}>{playerName}</span>
+                </div>
               </div>
-              <div className={comu.h2hScore}>
-                <span className={comu.h2hWins}>{h2h.ownerWins}</span>
-                <span className={comu.h2hDash}>–</span>
-                <span className={comu.h2hWins}>{h2h.playerWins}</span>
-                {h2h.draws > 0 && (
-                  <span className={comu.h2hDraws}>{h2h.draws} sin decidir</span>
-                )}
+            ) : (
+              <div className={styles.h2hReveal}>
+                <button
+                  type="button"
+                  className={styles.h2hRevealBtn}
+                  onClick={() => setShowH2h(true)}
+                >
+                  Ver mano a mano
+                </button>
               </div>
-              <div className={comu.h2hSide}>
-                <Avatar user={playerAvatarUser(player)} size="lg" />
-                <span className={comu.h2hName}>{playerName}</span>
-              </div>
-            </div>
+            )}
 
             {/* Stats */}
             <div className={styles.statsGrid}>
