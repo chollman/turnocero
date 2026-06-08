@@ -227,7 +227,10 @@
   display: none;
 }
 
-@media (max-width: 959px) {
+/* Breakpoint must match CompartidasSidebar's hide rule (940px). At ≥941px the
+   sidebar already shows the BG Watch widget; if this slot kicked in earlier it
+   would render the widget twice in the 941–959px window. */
+@media (max-width: 940px) {
   .mobileWidgetSlot {
     display: block;
   }
