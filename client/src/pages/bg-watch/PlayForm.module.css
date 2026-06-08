@@ -324,6 +324,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  max-width: 100%;
+  min-width: 0;
   padding: 5px 6px 5px 11px;
   background: var(--amber-10);
   border: 1px solid var(--amber-25);
@@ -331,6 +333,8 @@
   color: var(--text-primary);
   font-size: 12.5px;
   font-weight: 600;
+  /* Nombres largos de expansión no deben desbordar el viewport en mobile. */
+  overflow-wrap: anywhere;
 }
 .extraChipVariant {
   background: var(--purple-10);
@@ -1411,12 +1415,27 @@
   }
   .scoreControls {
     grid-column: 1 / -1;
-    justify-content: flex-end;
+    /* El puntaje crece para ocupar todo el ancho disponible de la fila. */
+    justify-content: stretch;
+  }
+  .scoreCell {
+    flex: 1;
+    min-width: 0;
+  }
+  .scoreInput {
+    flex: 1;
+    width: auto;
+    min-width: 0;
   }
   .scoreRemove {
     position: absolute;
     top: 8px;
     right: 8px;
+  }
+  /* En mobile el quitar va absoluto y los controles son full-width, así que el
+     espaciador de la fila "Vos" no hace falta (evita una celda vacía). */
+  .scoreRemovePlaceholder {
+    display: none;
   }
   .scoreRow {
     position: relative;
@@ -1424,6 +1443,38 @@
   .section {
     padding: 16px 14px;
   }
+
+  /* Fila superior de jugadores: "Usar última juntada" y "Jugué en solitario"
+     se apilan, cada uno a ancho completo. */
+  .playersTopRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .playersTopRow .btnGhost {
+    width: 100%;
+    justify-content: center;
+  }
+  .playersTopRow .soloPlay {
+    width: 100%;
+    margin-left: 0;
+    justify-content: center;
+  }
+
+  /* Acciones de jugadores: "Agregar jugador" + "Jugador anónimo" reparten la
+     fila al 50%; "Ordenar por puntaje" baja a su propia fila a ancho completo. */
+  .playerActions .btnGhost:not(.pushRight),
+  .playerActions .addGuestBtn {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+  }
+  .playerActions .pushRight {
+    flex: 1 1 100%;
+    width: 100%;
+    margin-left: 0;
+    justify-content: center;
+  }
+
   .footer {
     flex-wrap: wrap;
     gap: 10px;
