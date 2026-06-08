@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-warning-comments
 /**
  * Seed + migración de la comunidad base "TurnoCero".
  *

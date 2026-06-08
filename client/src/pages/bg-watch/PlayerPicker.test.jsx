@@ -197,7 +197,9 @@ describe("<PlayerPicker>", () => {
         target: { value: "bo" },
       },
     );
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => {
+      setTimeout(r, 400);
+    });
     expect(calls).toBe(1); // 2 chars → NO refetchea
     expect(lastQ).toBeNull();
     fireEvent.change(

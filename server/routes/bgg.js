@@ -1915,7 +1915,7 @@ router.get(
     // Resolver locationKey → rawKeys (+ overlay si existe).
     const rawParam = req.params.locationKey || "";
     let overlay = null;
-    let rawKeys = [];
+    let rawKeys;
     if (rawParam.startsWith("o:")) {
       overlay = await BggLocationOverlay.findOne({
         _id: rawParam.slice(2),

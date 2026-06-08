@@ -13,7 +13,6 @@ const {
 const { createCompartida } = require("../helpers/factories");
 
 // Subdominio single-tenant: cuando llega el header X-Community-Slug de una
-// eslint-disable-next-line no-warning-comments
 // comunidad con subdomainEnabled, TODO el contenido se acota a esa comunidad —
 // como si las demás no existieran. Ver middleware resolveTenant/resolveCommunities.
 describe("Tenant scoping — X-Community-Slug header", () => {
@@ -209,7 +208,6 @@ describe("Tenant scoping — GET /api/notifications", () => {
       .set(authHeader(token))
       .set("X-Community-Slug", "plain")
       .expect(200);
-    // eslint-disable-next-line no-warning-comments
     // Sin tenant válido → comportamiento normal: ve todo.
     expect(tableIdsOf(res)).toEqual(
       expect.arrayContaining(["t-tenant", "t-base", "t-plain"]),

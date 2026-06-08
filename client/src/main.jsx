@@ -9,7 +9,6 @@ import "./index.css";
 axios.defaults.baseURL = import.meta.env.VITE_API_URL || "";
 
 // Subdominio de comunidad (single-tenant): si entramos por `<slug>.turnocero.com`
-// eslint-disable-next-line no-warning-comments
 // mandamos el slug en cada request para que el server acote todo a esa comunidad.
 const tenant = detectTenant();
 if (tenant) axios.defaults.headers.common["X-Community-Slug"] = tenant.slug;

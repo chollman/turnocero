@@ -1,6 +1,5 @@
 const request = require("supertest");
 const app = require("../../app");
-const BggPlay = require("../../models/BggPlay");
 const BggGame = require("../../models/BggGame");
 const Notification = require("../../models/Notification");
 const { createAuthedUser, authHeader } = require("../helpers/auth");

@@ -36,7 +36,6 @@ const BggPlayerOverlay = require("../../models/BggPlayerOverlay");
 const User = require("../../models/User");
 const Community = require("../../models/Community");
 const { resolveGamesBatch } = require("./bggResolve");
-const { computePlayedCoPlayers } = require("./bggAggregations");
 const {
   loadOverlayIndex,
   applyOverlayToPlayers,

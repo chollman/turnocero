@@ -330,7 +330,6 @@ export default function Auth({ mode }) {
     <div className={styles.stage}>
       {/* ── Left · form ── */}
       <div className={styles.formPane}>
-        {/* eslint-disable-next-line no-warning-comments */}
         {/* Marca — arriba de todo */}
         <div className={styles.brand}>
           <Logo

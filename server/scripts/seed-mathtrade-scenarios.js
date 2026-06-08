@@ -118,7 +118,6 @@ async function clean() {
 (async () => {
   await mongoose.connect(process.env.MONGODB_URI);
 
-  // eslint-disable-next-line no-warning-comments
   // El user de prueba pasa a admin para poder ver TODO (drafts + sección).
   const me = await User.findOneAndUpdate(
     { email: TEST_EMAIL },

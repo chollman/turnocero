@@ -6,7 +6,6 @@ const mongoose = require("mongoose");
 // scopea a una comunidad vía el campo `community` (plugin `communityScoped`).
 // Un usuario integra varias comunidades, elige un subconjunto a "ver juntas"
 // y una sola cuyo skin se aplica. Existe SIEMPRE una comunidad base "TurnoCero"
-// eslint-disable-next-line no-warning-comments
 // (`isBase: true`) que hereda todo el contenido histórico. Ver plan completo.
 
 const JOIN_POLICIES = ["open", "approval", "code"];
@@ -77,7 +76,6 @@ const communitySchema = new mongoose.Schema(
       trim: true,
       maxlength: [60, "El nombre no puede superar 60 caracteres"],
     },
-    // eslint-disable-next-line no-warning-comments
     // URL-safe, derivado del nombre en la creación (todo junto). Alimenta el
     // selector CSS `data-community`, el localStorage del skin, las URLs y el
     // subdominio. NO cambia al renombrar; se edita explícitamente por el admin
@@ -95,7 +93,6 @@ const communitySchema = new mongoose.Schema(
     // usuarios pertenecen a ella; hereda el contenido histórico.
     isBase: { type: Boolean, default: false, index: true },
     // Opt-in: si true, la comunidad es accesible como tenant single-community en
-    // eslint-disable-next-line no-warning-comments
     // su propio subdominio `<slug>.turnocero.com`. Al entrar por ahí, todo el
     // sitio se acota a esta comunidad (ver middleware resolveTenant). La base
     // NUNCA es tenant (es el sitio principal multi-comunidad).
@@ -137,7 +134,6 @@ const communitySchema = new mongoose.Schema(
 // colecciones se limpian) vía `__resetBaseCache()` desde tests/setup.js.
 let baseCache = null;
 
-// eslint-disable-next-line no-warning-comments
 // Normaliza un texto a slug "todo junto": minúsculas, sin acentos, sin espacios
 // ni símbolos (solo a-z0-9), cap 50. Reusado por generateSlug (derivar del
 // nombre) y por la edición manual del slug en el admin. Puede devolver "".
@@ -149,7 +145,6 @@ function normalizeSlug(value) {
       // ANTES de descartar lo no-alfanumérico.
       .replace(/\p{Diacritic}/gu, "")
       .toLowerCase()
-      // eslint-disable-next-line no-warning-comments
       // Descartar TODO lo que no sea a-z0-9 (espacios, guiones, símbolos) →
       // queda en una sola palabra.
       .replace(/[^a-z0-9]+/g, "")
@@ -163,7 +158,6 @@ function normalizeSlug(value) {
 communitySchema.statics.generateSlug = async function generateSlug(name) {
   const base = normalizeSlug(name) || "comunidad";
   if (!(await this.exists({ slug: base }))) return base;
-  // eslint-disable-next-line no-warning-comments
   // Desambiguar duplicados con un número al final (sin separador, "todo junto").
   for (let i = 1; i < 10000; i++) {
     const suffix = `${i}`;

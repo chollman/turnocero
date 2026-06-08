@@ -98,7 +98,6 @@ async function resolveCreateCommunity(user, requested, tenant = null) {
   return defaultCommunityFor(user);
 }
 
-// eslint-disable-next-line no-warning-comments
 // Garantiza membership base + skin base. Idempotente. Se llama en TODO alta de
 // usuario (registro password + OAuth). Muta y persiste el doc.
 async function ensureBaseMembership(user) {
