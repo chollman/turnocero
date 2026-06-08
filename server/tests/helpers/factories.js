@@ -15,7 +15,6 @@ function normalizeLocationForFactory(loc) {
 }
 
 // Comunidad por defecto para el contenido de los tests = la base. Sin esto, el
-// eslint-disable-next-line no-warning-comments
 // read-scoping (Fase 1) filtraría todo el contenido de factory (community null).
 // Un test puede pasar `community` en overrides para scopear a otra comunidad.
 async function defaultCommunity(override) {

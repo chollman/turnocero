@@ -1,7 +1,6 @@
 // ── Registro único de modelos scopeados por comunidad ───────────────────
 //
 // Fuente única de verdad de TODOS los modelos que llevan el campo `community`
-// eslint-disable-next-line no-warning-comments
 // (vía el plugin `communityScoped`). Lo consumen los lugares que iteran "todo
 // el contenido scopeado":
 //   - el seed/backfill (`scripts/seed-base-community.js`)
@@ -9,7 +8,6 @@
 //   - el test-guardrail (`tests/integration/communityScoping.test.js`)
 //
 // Agregar un tipo de contenido scopeado nuevo = UNA línea acá (+ aplicar el
-// eslint-disable-next-line no-warning-comments
 // plugin en su modelo). Todo lo transversal lo levanta solo. Ver plan §7.1.
 
 const Table = require("../models/Table");

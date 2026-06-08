@@ -1,5 +1,4 @@
 // Detección del "tenant" (subdominio de comunidad). Cuando la app se sirve en
-// eslint-disable-next-line no-warning-comments
 // `<slug>.turnocero.com`, todo el sitio se acota a esa comunidad. Esta util
 // extrae el slug del host (o de un override de dev) para que:
 //   - main.jsx mande el header `X-Community-Slug` en cada request, y

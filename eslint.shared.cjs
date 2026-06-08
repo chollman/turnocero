@@ -31,8 +31,11 @@ module.exports = {
   "no-lonely-if": "warn",
   "no-else-return": "warn",
   "dot-notation": "warn",
+  // `location: "start"` only flags markers at the start of a comment
+  // (`// TODO: ...`), not the Spanish word "todo" ("all") that appears
+  // throughout the codebase's comments.
   "no-warning-comments": [
     "warn",
-    { terms: ["todo", "fixme", "xxx", "hack"], location: "anywhere" },
+    { terms: ["todo", "fixme", "xxx", "hack"], location: "start" },
   ],
 };

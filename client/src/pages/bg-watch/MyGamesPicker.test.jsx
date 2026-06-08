@@ -123,7 +123,9 @@ describe("<MyGamesPicker>", () => {
     fireEvent.change(screen.getByPlaceholderText(/filtrá tus juegos/i), {
       target: { value: "ca" },
     });
-    await new Promise((r) => setTimeout(r, 400)); // pasa el debounce
+    await new Promise((r) => {
+      setTimeout(r, 400); // pasa el debounce
+    });
     expect(calls).toBe(1); // 2 chars → NO refetchea
     expect(lastQ).toBeNull();
     fireEvent.change(screen.getByPlaceholderText(/filtrá tus juegos/i), {

@@ -106,7 +106,9 @@ describe("<LocationPicker>", () => {
     fireEvent.change(screen.getByPlaceholderText(PLACEHOLDER), {
       target: { value: "ca" },
     });
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => {
+      setTimeout(r, 400);
+    });
     expect(calls).toBe(1); // 2 chars → NO refetchea
     expect(lastQ).toBeNull();
     fireEvent.change(screen.getByPlaceholderText(PLACEHOLDER), {
@@ -182,8 +184,6 @@ describe("<LocationPicker>", () => {
     );
     render(<LocationPicker bggUsername="alice" onPick={vi.fn()} />);
     openDropdown();
-    expect(
-      await screen.findByText(/sin ubicaciones aún/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/sin ubicaciones aún/i)).toBeInTheDocument();
   });
 });

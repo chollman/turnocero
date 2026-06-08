@@ -1,6 +1,5 @@
 // Ilustración flat-lay de juego de mesa que oficia de fondo del panel derecho
 // (showcase) en las pantallas de auth. Cero imágenes externas: cartas en
-// eslint-disable-next-line no-warning-comments
 // abanico, dados, meeples, hexágonos y tiles, todo SVG inline.
 //
 // Es una superficie inmersiva "forzada-oscura" (como /utilidades): ignora el
