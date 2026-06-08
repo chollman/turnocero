@@ -6,6 +6,9 @@
    ============================================================ */
 
 .page {
+  /* Altura única de controles (botones + inputs de texto) — coincide con el
+     DateTimePicker compartido para que toda la fila quede pareja. */
+  --ctl-h: 42px;
   position: relative;
   max-width: calc(1200px + var(--sidebar-freed));
   margin: 0 auto;
@@ -309,23 +312,6 @@
   color: var(--text-muted);
   margin-top: 2px;
 }
-.gameChange {
-  background: transparent;
-  border: 1px solid var(--border-strong);
-  color: var(--text-secondary);
-  padding: 7px 12px;
-  border-radius: 8px;
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 600;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: all var(--transition);
-}
-.gameChange:hover {
-  border-color: var(--amber);
-  color: var(--amber-light);
-}
 
 /* -- Expansiones jugadas + variante/tablero (sección del juego) -- */
 .gameExtrasChips {
@@ -375,9 +361,6 @@
   align-items: center;
   margin-top: 12px;
 }
-.gameExtrasRight {
-  margin-left: auto;
-}
 
 /* -- Fields -- */
 .fieldRow {
@@ -403,10 +386,11 @@
   text-transform: uppercase;
 }
 .input {
+  height: var(--ctl-h);
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 9px;
-  padding: 11px 13px;
+  padding: 0 13px;
   color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 14px;
@@ -617,22 +601,6 @@
   background: var(--green-10);
   color: var(--green);
 }
-.addTeamBtn {
-  background: transparent;
-  border: 1px dashed var(--border-strong);
-  border-radius: 10px;
-  padding: 8px 14px;
-  color: var(--amber-light);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: all var(--transition);
-}
-.addTeamBtn:hover {
-  border-color: var(--amber);
-  background: var(--amber-10);
-}
 /* Selector de equipo por jugador (en la fila) */
 .teamPick {
   display: inline-flex;
@@ -666,28 +634,7 @@
   color: var(--on-amber);
 }
 
-/* -- "Usar última juntada" -- */
-.lastJuntadaBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  align-self: flex-start;
-  background: var(--amber-10);
-  border: 1px solid var(--amber-25);
-  border-radius: 10px;
-  color: var(--amber-light);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 9px 14px;
-  margin-bottom: 12px;
-  cursor: pointer;
-  transition: all var(--transition);
-}
-.lastJuntadaBtn:hover {
-  border-color: var(--amber);
-  background: var(--amber-15);
-}
+/* "Usar última juntada" usa .btnGhost; el hint va más tenue. */
 .lastJuntadaHint {
   font-weight: 500;
   font-size: 12px;
@@ -801,8 +748,8 @@
 }
 .scoreStep {
   flex: 0 0 auto;
-  width: 28px;
-  height: 34px;
+  width: 32px;
+  height: var(--ctl-h);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -824,7 +771,7 @@
 }
 .scoreInput {
   width: 70px;
-  height: 34px;
+  height: var(--ctl-h);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -843,8 +790,8 @@
   box-shadow: 0 0 0 3px var(--amber-glow);
 }
 .winToggle {
-  width: 34px;
-  height: 34px;
+  width: var(--ctl-h);
+  height: var(--ctl-h);
   display: grid;
   place-items: center;
   border: 1px solid var(--border);
@@ -880,6 +827,12 @@
   border-radius: 7px;
   cursor: pointer;
   transition: all var(--transition);
+}
+/* Reserva el ancho del botón quitar en la fila de "Vos" (que no lo tiene), para
+   alinear sus controles con las demás filas. */
+.scoreRemovePlaceholder {
+  width: 28px;
+  flex-shrink: 0;
 }
 .scoreRemove:hover {
   color: var(--red);
@@ -924,30 +877,17 @@
   box-shadow: var(--shadow-md);
   padding: 10px 12px;
 }
-.addBtn {
-  background: none;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 14px;
-  cursor: pointer;
-  transition: all var(--transition);
-}
-.addBtn:hover {
-  border-color: var(--amber);
-  color: var(--amber-light);
-}
+/* Pill punteado para "agregar ad-hoc" (handoff .addPlayerGuest) — único estilo
+   de botón distinto del .btnGhost/.btnPrimary. */
 .addGuestBtn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  height: var(--ctl-h);
   background: transparent;
   border: 1px dashed var(--border-strong);
   border-radius: 999px;
-  padding: 8px 14px;
+  padding: 0 14px;
   color: var(--amber-light);
   font-family: var(--font-mono);
   font-size: 11px;
@@ -959,27 +899,9 @@
   border-color: var(--amber);
   background: var(--amber-10);
 }
-.sortBtn {
-  margin-left: auto;
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: all var(--transition);
-}
-.sortBtn:hover {
-  border-color: var(--amber);
-  color: var(--amber-light);
-}
 
-/* Fila superior de jugadores: "Usar última juntada" (izq) + "Jugué en
-   solitario" (der). Cada uno aparece según su condición; el solo se empuja a
-   la derecha aunque esté solo. */
+/* Fila superior de jugadores: "Usar última juntada" (izq, .btnGhost) + "Jugué
+   en solitario" (der); el solo se empuja a la derecha aunque esté solo. */
 .playersTopRow {
   display: flex;
   align-items: center;
@@ -987,16 +909,8 @@
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
-.playersTopRow .lastJuntadaBtn,
 .playersTopRow .soloPlay {
-  min-height: 40px;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-.playersTopRow .lastJuntadaBtn {
-  margin-bottom: 0;
-}
-.playersTopRow .soloPlay {
+  min-height: var(--ctl-h);
   margin: 0;
   margin-left: auto;
 }
@@ -1062,16 +976,25 @@
   display: flex;
   gap: 10px;
 }
+/* ============================================================
+   Botones homologados (estilo del handoff: .btn / .btn.ghost).
+   `.btnGhost` = toda acción secundaria; `.btnPrimary` = acción primaria.
+   Las únicas otras variantes son `.addGuestBtn` (pill punteado para
+   "agregar ad-hoc") y `.quick` (chips de fecha/duración).
+   ============================================================ */
 .btnGhost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--ctl-h);
   background: transparent;
   border: 1px solid var(--border-strong);
-  color: var(--text-secondary);
-  padding: 12px 20px;
-  border-radius: 10px;
+  color: var(--text-primary);
+  padding: 0 16px;
+  border-radius: 8px;
   font-family: var(--font-display);
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-weight: 700;
   cursor: pointer;
   transition: all var(--transition);
 }
@@ -1080,32 +1003,41 @@
   color: var(--amber-light);
 }
 .btnGhost:disabled {
-  opacity: 0.5;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border-color: var(--border);
   cursor: not-allowed;
 }
 .btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--ctl-h);
   background: var(--amber);
   color: var(--on-amber);
   border: none;
-  padding: 12px 22px;
-  border-radius: 10px;
+  padding: 0 16px;
+  border-radius: 8px;
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.03em;
   cursor: pointer;
-  box-shadow: 0 4px 16px var(--amber-glow);
+  box-shadow: 0 4px 14px var(--amber-glow);
   transition: all var(--transition);
 }
 .btnPrimary:hover:not(:disabled) {
   background: var(--amber-light);
-  color: var(--on-amber);
   box-shadow: 0 4px 22px var(--amber-glow);
 }
 .btnPrimary:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+  background: var(--bg-card);
+  color: var(--text-muted);
   box-shadow: none;
+  cursor: not-allowed;
+}
+/* Empuja un botón a la derecha de su fila (Ordenar, Variante/tablero). */
+.pushRight {
+  margin-left: auto;
 }
 
 .errorBox {

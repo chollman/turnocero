@@ -368,6 +368,23 @@ describe("<PlayForm>", () => {
     expect(screen.getAllByText("Bob").length).toBeGreaterThan(0);
   });
 
+  it("no permite quitar a 'Vos' (el usuario), sí al resto", async () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    // Sólo el dueño → nadie tiene botón de quitar.
+    expect(
+      screen.queryByRole("button", { name: /quitar jugador/i }),
+    ).toBeNull();
+    // Con un 2º jugador, sólo ese tiene quitar (el dueño "vos" no).
+    fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
+    fireEvent.click((await screen.findByText("Bob")).closest("button"));
+    expect(
+      screen.getAllByRole("button", { name: /quitar jugador/i }),
+    ).toHaveLength(1);
+  });
+
   it("el picker queda abierto tras elegir un jugador (agregar varios)", async () => {
     renderForm({
       initialValues: { game: { id: "13", name: "Catán" } },

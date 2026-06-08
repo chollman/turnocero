@@ -735,7 +735,7 @@ export default function PlayForm({
                   {!lockedGame && (
                     <button
                       type="button"
-                      className={styles.gameChange}
+                      className={styles.btnGhost}
                       onClick={() => {
                         setGame(null);
                         setExpansions([]);
@@ -784,7 +784,7 @@ export default function PlayForm({
                 <div className={styles.gameExtrasActions} ref={gameExtrasRef}>
                   <button
                     type="button"
-                    className={styles.addBtn}
+                    className={styles.btnGhost}
                     onClick={() =>
                       setGamePicker((p) => (p === "exp" ? null : "exp"))
                     }
@@ -794,7 +794,7 @@ export default function PlayForm({
                   </button>
                   <button
                     type="button"
-                    className={`${styles.addBtn} ${styles.gameExtrasRight}`}
+                    className={`${styles.btnGhost} ${styles.pushRight}`}
                     onClick={() =>
                       setGamePicker((p) => (p === "variant" ? null : "variant"))
                     }
@@ -910,7 +910,7 @@ export default function PlayForm({
                   {numTeams > 2 && (
                     <button
                       type="button"
-                      className={styles.addTeamBtn}
+                      className={styles.btnGhost}
                       onClick={removeTeam}
                     >
                       − Equipo
@@ -932,7 +932,7 @@ export default function PlayForm({
                   {numTeams < TEAM_IDS.length && (
                     <button
                       type="button"
-                      className={styles.addTeamBtn}
+                      className={styles.btnGhost}
                       onClick={addTeam}
                     >
                       + Equipo
@@ -947,7 +947,7 @@ export default function PlayForm({
                 {showLastJuntada && (
                   <button
                     type="button"
-                    className={styles.lastJuntadaBtn}
+                    className={styles.btnGhost}
                     onClick={applyLastJuntada}
                     title={
                       lastJuntada.location
@@ -1119,16 +1119,25 @@ export default function PlayForm({
                       </div>
                     )}
 
-                    {players.length > 1 && (
-                      <button
-                        type="button"
-                        className={styles.scoreRemove}
-                        onClick={() => removePlayer(i)}
-                        aria-label="Quitar jugador"
-                      >
-                        ✕
-                      </button>
-                    )}
+                    {/* No se puede quitar a "Vos" (el usuario): siempre juega.
+                        En su lugar va un espaciador del mismo ancho para que los
+                        controles queden alineados con las otras filas. */}
+                    {players.length > 1 &&
+                      (i === youIndex ? (
+                        <span
+                          className={styles.scoreRemovePlaceholder}
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.scoreRemove}
+                          onClick={() => removePlayer(i)}
+                          aria-label="Quitar jugador"
+                        >
+                          ✕
+                        </button>
+                      ))}
                   </div>
                 );
               })}
@@ -1140,7 +1149,7 @@ export default function PlayForm({
               <div className={styles.playerActions}>
                 <button
                   type="button"
-                  className={styles.addBtn}
+                  className={styles.btnGhost}
                   onClick={() => setAdding((a) => !a)}
                   aria-expanded={adding}
                 >
@@ -1156,7 +1165,7 @@ export default function PlayForm({
                 {canSortByScore && (
                   <button
                     type="button"
-                    className={styles.sortBtn}
+                    className={`${styles.btnGhost} ${styles.pushRight}`}
                     onClick={sortByScore}
                   >
                     ↓ Ordenar por puntaje

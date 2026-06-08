@@ -1185,10 +1185,11 @@
 /* Inputs / textarea inside modal */
 .modalInput {
   width: 100%;
+  height: var(--ctl-h, 42px);
   background: var(--bg-dark, var(--bg-elevated));
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 9px 12px;
+  padding: 0 12px;
   font-size: 13px;
   color: var(--text-primary);
   font-family: inherit;
@@ -1848,8 +1849,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: var(--ctl-h, 42px);
+  height: var(--ctl-h, 42px);
   flex-shrink: 0;
   background: none;
   border: 1px solid var(--border);
