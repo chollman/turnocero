@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import PosterCard from "./PosterCard";
 
@@ -102,11 +102,13 @@ describe("<PosterCard>", () => {
         registrationCount: { total: 8, pending: 1, confirmed: 4 },
       },
     });
-    // active = 5 (pending + confirmed). The meta block has the cupo text;
-    // it should contain "5" and never "8".
+    // active = 5 (pending + confirmed). The cupo span should show 5, never the
+    // raw total (8). Scope to the meta block (not the date chip, which also has
+    // a "5"), but query the count span directly so the time-relative countdown
+    // text ("en N días") doesn't leak digits into the assertion.
     const meta = container.querySelector('[class*="meta"]');
-    expect(meta.textContent).toContain("5");
-    expect(meta.textContent).not.toContain("8");
+    expect(within(meta).getByText("5")).toBeInTheDocument();
+    expect(within(meta).queryByText("8")).not.toBeInTheDocument();
   });
 
   it("renders location.texto when location is a subdocument", () => {
