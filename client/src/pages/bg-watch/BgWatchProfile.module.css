@@ -1424,7 +1424,10 @@
   overflow-y: auto;
   /* Margen a la derecha para que el scrollbar no se superponga a los cards. */
   padding: 2px 8px 2px 2px;
-  scrollbar-width: thin;
+  /* NO declarar scrollbar-width acá: alcanza con el ::-webkit-scrollbar global
+     (index.css), igual que el resto de pickers (.gameSearchList no lo declara).
+     Setear scrollbar-width: thin desactivaba ese custom en Chrome y caía al
+     scrollbar del sistema operativo. */
 }
 .gameRow {
   display: flex;
