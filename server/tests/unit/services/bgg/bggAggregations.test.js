@@ -630,6 +630,30 @@ describe("computePlayedCoPlayers", () => {
     const co = await computePlayedCoPlayers("alice");
     expect(co).toEqual([]);
   });
+
+  it("excluye asientos 'Jugador anónimo N' (no se trackean como compañeros)", async () => {
+    await makePlay({
+      players: [
+        { name: "Alice", username: "alice", win: true },
+        { name: "Jugador anónimo 1", username: "", win: false },
+        { name: "Jugador anónimo 2", username: "", win: false },
+        { name: "Bob", username: "bob", win: false },
+      ],
+    });
+    const co = await computePlayedCoPlayers("alice");
+    expect(co.map((c) => c.name)).toEqual(["Bob"]);
+  });
+
+  it("NO excluye a un usuario BGG real que se llame parecido (tiene username)", async () => {
+    await makePlay({
+      players: [
+        { name: "Alice", username: "alice" },
+        { name: "Jugador anónimo", username: "anon_real" },
+      ],
+    });
+    const co = await computePlayedCoPlayers("alice");
+    expect(co.map((c) => c.username)).toEqual(["anon_real"]);
+  });
 });
 
 describe("computeLastJuntada", () => {
@@ -683,6 +707,18 @@ describe("computeLastJuntada", () => {
       players: [
         { name: "Alice", username: "alice" },
         { name: "", username: "" },
+      ],
+    });
+    const juntada = await computeLastJuntada("alice");
+    expect(juntada.players).toEqual([{ name: "Alice", username: "alice" }]);
+  });
+
+  it("no precarga asientos anónimos en la última juntada", async () => {
+    await makePlay({
+      date: "2026-04-02",
+      players: [
+        { name: "Alice", username: "alice" },
+        { name: "Jugador anónimo 1", username: "" },
       ],
     });
     const juntada = await computeLastJuntada("alice");

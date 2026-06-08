@@ -44,6 +44,9 @@ export const API = {
   bgg: {
     SEARCH: "/api/bgg/search",
     GAME: (id) => `/api/bgg/game/${enc(id)}`,
+    GAME_EXPANSIONES: (id) => `/api/bgg/game/${enc(id)}/expansiones`,
+    VARIANTES: (bggUsername, gameId) =>
+      `/api/bgg/variantes/${enc(bggUsername)}/${enc(gameId)}`,
     COLECCION: (bggUsername) => `/api/bgg/coleccion/${enc(bggUsername)}`,
     PARTIDAS: (bggUsername) => `/api/bgg/partidas/${enc(bggUsername)}`,
     PARTIDA_DETAIL: (playId) => `/api/bgg/partidas/${enc(playId)}`,

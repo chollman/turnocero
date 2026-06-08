@@ -63,6 +63,7 @@ const {
   BGG_API,
   fetchBgg,
   resolveGame,
+  resolveGameExpansions,
   resolveGamesBatch,
   resolveCollection,
 } = require("../services/bgg/bggResolve");
@@ -114,6 +115,7 @@ const {
   nameFromKey: locationNameFromKey,
 } = require("../services/bgg/bggLocationOverlay");
 const BggLocationOverlay = require("../models/BggLocationOverlay");
+const BggGameVariant = require("../models/BggGameVariant");
 const {
   connectedMemberUsernames,
   communityMemberUsernames,
@@ -390,6 +392,43 @@ router.get(
       if (err.status === 404) throw httpError(404, "Juego no encontrado");
       throw httpError(502, "No se pudo conectar con BGG");
     }
+  }),
+);
+
+// GET /api/bgg/game/:id/expansiones — expansiones del juego (para el picker
+// "Expansiones jugadas"). Devuelve [{ id, name }].
+router.get(
+  "/game/:id/expansiones",
+  asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (!id || id <= 0) throw httpError(400, "Invalid game ID");
+    try {
+      const items = await resolveGameExpansions(id);
+      res.json({ items });
+    } catch (err) {
+      if (err.status === 404) {
+        res.json({ items: [] });
+        return;
+      }
+      throw httpError(502, "No se pudo conectar con BGG");
+    }
+  }),
+);
+
+// GET /api/bgg/variantes/:bggUsername/:gameId — variantes/tableros que el
+// usuario ya cargó para ese juego (autocompletado del picker). Texto libre
+// persistido en BggGameVariant.
+router.get(
+  "/variantes/:bggUsername/:gameId",
+  asyncHandler(async (req, res) => {
+    const lower = String(req.params.bggUsername || "").toLowerCase();
+    const gameId = String(req.params.gameId || "");
+    const items = await BggGameVariant.find({ bggUsername: lower, gameId })
+      .sort({ lastUsedAt: -1 })
+      .limit(50)
+      .select("name -_id")
+      .lean();
+    res.json({ items: items.map((v) => v.name) });
   }),
 );
 
@@ -1094,6 +1133,26 @@ router.post(
 // submit to geekplay.php, then verify the play exists on BGG by fetching
 // it back, then mirror to Mongo using BGG's canonical representation.
 // If any step fails the response is 502 and Mongo is left untouched.
+// Persiste (upsert) la variante/tablero usada en una partida, para ofrecerla en
+// próximas partidas del mismo juego. Texto libre; falla en silencio.
+async function upsertGameVariant(bggUsername, gameId, name) {
+  const variant = String(name || "").trim();
+  if (!bggUsername || !gameId || !variant) return;
+  try {
+    await BggGameVariant.updateOne(
+      {
+        bggUsername: String(bggUsername).toLowerCase(),
+        gameId: String(gameId),
+        name: variant,
+      },
+      { $set: { lastUsedAt: new Date() } },
+      { upsert: true },
+    );
+  } catch (e) {
+    logger.warn("[bgg] upsert game variant failed", { error: e.message });
+  }
+}
+
 router.post(
   "/partidas",
   protect,
@@ -1103,6 +1162,13 @@ router.post(
     // El flujo BGG-first (validar → geekplay → verify → mirror → invalidar)
     // vive en `createPlay`, compartido con el endpoint "cargar como aparece".
     const { playid, verified } = await createPlay(user, req.body);
+
+    // Persistir la variante/tablero (texto libre) para autocompletado futuro.
+    await upsertGameVariant(
+      user.bggUsername,
+      req.body.objectid,
+      req.body.variant,
+    );
 
     // Si la carga viene de aceptar una partida compartida "con correcciones"
     // (`sharedFromNotifId`), agradecemos al autor original y cerramos su notif,
@@ -1307,6 +1373,11 @@ router.put(
     }
 
     await invalidateOwnerDerived(user.bggUsername);
+    await upsertGameVariant(
+      user.bggUsername,
+      req.body.objectid,
+      req.body.variant,
+    );
 
     res.json({ success: true, playid: playId, play: playToApi(verified) });
   }),

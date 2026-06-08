@@ -196,9 +196,28 @@ function playToApi(p) {
   };
 }
 
+// Expansiones de un juego desde el XML del thing: los `link` con
+// type="boardgameexpansion" salientes (no inbound = no son "este item es
+// expansión de X"). Devuelve [{ id, name }].
+function parseGameExpansions(item) {
+  if (!item) return [];
+  const raw = item.link
+    ? Array.isArray(item.link)
+      ? item.link
+      : [item.link]
+    : [];
+  return raw
+    .filter(
+      (l) => l["@_type"] === "boardgameexpansion" && l["@_inbound"] !== "true",
+    )
+    .map((l) => ({ id: Number(l["@_id"]), name: l["@_value"] || "" }))
+    .filter((e) => Number.isFinite(e.id) && e.id > 0 && e.name);
+}
+
 module.exports = {
   parser,
   parseGameItem,
+  parseGameExpansions,
   gameDocToObject,
   parseCollectionXml,
   parsePlay,

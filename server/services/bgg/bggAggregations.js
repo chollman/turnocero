@@ -16,6 +16,7 @@
 
 const BggPlay = require("../../models/BggPlay");
 const { rawKeyFor } = require("./bggPlayerOverlay");
+const { isAnonymousName, ANON_MONGO_REGEX } = require("./anonymousPlayer");
 
 // Stats globales de un usuario para un juego específico: wins, rated
 // (cantidad de partidas que el user marcó como propias), avgDuration,
@@ -424,6 +425,27 @@ async function computePlayedCoPlayers(lowerBggUsername) {
     {
       $match: { $expr: { $ne: [{ $toLower: "$username" }, lowerBggUsername] } },
     },
+    // Excluir "Jugador anónimo N": son asientos ad-hoc que no se trackean como
+    // compañeros (ver services/bgg/anonymousPlayer.js). Sólo aplican a entradas
+    // sin username (un usuario BGG real con ese nombre no se filtra).
+    {
+      $match: {
+        $expr: {
+          $not: {
+            $and: [
+              { $eq: ["$username", ""] },
+              {
+                $regexMatch: {
+                  input: "$name",
+                  regex: ANON_MONGO_REGEX,
+                  options: "i",
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
     {
       $addFields: {
         key: {
@@ -472,7 +494,10 @@ async function computeLastJuntada(lowerBggUsername) {
       name: (p.name || "").trim(),
       username: (p.username || "").trim(),
     }))
-    .filter((p) => p.name || p.username);
+    .filter((p) => p.name || p.username)
+    // No precargar asientos anónimos en "usar última juntada": son ad-hoc de
+    // esa partida, no del roster recurrente.
+    .filter((p) => p.username || !isAnonymousName(p.name));
 
   return {
     location: (doc.location || "").trim(),

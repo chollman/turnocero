@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Meeple from "../../components/shared/Meeple";
+import Avatar from "../../components/shared/Avatar";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import { API } from "../../api/endpoints";
 import MyGamesPicker from "./MyGamesPicker";
 import LocationPicker from "./LocationPicker";
 import PlayerPicker from "./PlayerPicker";
-import PlayCard from "./PlayCard";
-import PositionBadge from "./PositionBadge";
+import ExpansionsPicker from "./ExpansionsPicker";
+import VariantPicker from "./VariantPicker";
+import { composeComments, parseComments } from "./playComments";
+import Scorecard, { gameInitials } from "./Scorecard";
 import useBggUserMap from "./useBggUserMap";
 import usePlayDraft, { isDraftMeaningful } from "./usePlayDraft";
 import { hasDisplayableScore } from "./playerScore";
@@ -16,15 +19,15 @@ import {
   sortPlayersByScoreDesc,
   assignWinsByScore,
 } from "./playerPositions";
-import bg from "./BgWatchProfile.module.css";
+import { makeAnonName, isAnonName } from "./anonymousPlayer";
 import styles from "./PlayForm.module.css";
 
 // Trofeo inline (sin libs de iconos — convención del repo). Hereda currentColor.
 function TrophyIcon() {
   return (
     <svg
-      width="18"
-      height="18"
+      width="16"
+      height="16"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -38,36 +41,105 @@ function TrophyIcon() {
     </svg>
   );
 }
+function CrownIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M3 7l4 4 5-6 5 6 4-4-2 12H5L3 7z" />
+    </svg>
+  );
+}
+function CheckIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
 
 function todayIso() {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function yesterdayIso() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-const STEPS = [
-  { key: "juego", label: "Juego" },
-  { key: "jugadores", label: "Jugadores" },
-  { key: "extras", label: "Extras" },
-];
+// Avatar de una fila de jugador: fantasma para anónimos, miembro de TurnoCero
+// (por @BGG) si está vinculado, si no iniciales.
+function PlayerAvatar({ player, userMap }) {
+  if (player.anonymous)
+    return (
+      <span className={styles.ghostAvatar} aria-hidden="true">
+        👤
+      </span>
+    );
+  const tc = player.username ? userMap[player.username.toLowerCase()] : null;
+  return (
+    <Avatar
+      user={
+        tc || {
+          _id: player.username || player.name || "p",
+          displayName: player.name || player.username,
+          username: player.username,
+        }
+      }
+      size="sm"
+    />
+  );
+}
+
+// Equipos (modo "Equipos"). En BGG el equipo se guarda en el campo Color/Team
+// del jugador; lo serializamos como "Equipo A/B/C/D" y lo parseamos de vuelta.
+const TEAM_IDS = ["A", "B", "C", "D"];
+function teamFromColor(color) {
+  const m = /^equipo\s+([A-D])$/i.exec(String(color || "").trim());
+  return m ? m[1].toUpperCase() : "";
+}
+
+// Marca anonymous a partir del nombre reservado (al hidratar edición / carry) y
+// recupera el equipo desde el color guardado.
+function hydratePlayer(p) {
+  return {
+    name: p.name || "",
+    username: p.username || "",
+    score: hasDisplayableScore(p.score) ? String(p.score) : "",
+    win: !!p.win,
+    new: !!p.new,
+    anonymous: !p.username && isAnonName(p.name),
+    team: teamFromColor(p.color),
+  };
+}
+
+const DURATION_PRESETS = [30, 60, 90, 120];
 
 /**
- * Form de cargar / editar partida como página única con secciones (Juego /
- * Jugadores / Extras), estilo creador de mesas (MesaForm). NO se acopla a la
- * API — sólo expone onSubmit(payload) / onCancel() / onDelete().
+ * Form de cargar / editar partida — estética "scoresheet" (handoff
+ * design_handoff_bgwatch_create): 4 secciones numeradas + scorecard en vivo.
+ * NO se acopla a la API — expone onSubmit(payload, { keepGoing }) / onCancel /
+ * onDelete.
  *
  * Props:
- *   user           usuario autenticado (jugador 1 por defecto + bggUsername).
- *   initialValues  { game, details, players } (para editar / juego prefijado).
- *   editMode       boolean → título/copys de edición, no autodetecta "Nuevo".
- *   lockedGame     boolean → juego read-only (edición o venido por ?juego).
- *   submitting     boolean.
- *   serverError    string.
- *   onSubmit       (payload) => Promise<void>
- *   onCancel       () => void
- *   onDelete       () => void (sólo edición → danger zone)
+ *   user, initialValues { game, details, players }, editMode, lockedGame,
+ *   submitting, serverError, onSubmit, onCancel, onDelete (edición),
+ *   allowMultiSave (muestra "Guardar y cargar otra"), lastJuntada.
  */
 export default function PlayForm({
   user,
@@ -79,22 +151,20 @@ export default function PlayForm({
   onSubmit,
   onCancel,
   onDelete,
-  keepGoing = false,
-  onKeepGoingChange,
+  allowMultiSave = false,
   lastJuntada = null,
 }) {
   const bggUsername = user?.bggUsername;
 
-  // Borrador local (#4): habilitado solo en un form de creación EN BLANCO (sin
-  // ?juego ni roster heredado). El hook (load/save/clear) se declara acá arriba
-  // para poder limpiar el borrador al cancelar/guardar.
   const draftEnabled =
     !editMode && !initialValues.game && !initialValues.players?.length;
-  const { load: loadDraft, save: saveDraft, clear: clearDraft } = usePlayDraft(
-    bggUsername,
-  );
+  const {
+    load: loadDraft,
+    save: saveDraft,
+    clear: clearDraft,
+  } = usePlayDraft(bggUsername);
 
-  // ── Exit animation (espejo de la entrada) ─────────────────────────────
+  // ── Exit animation ──────────────────────────────────────────────────
   const [exiting, setExiting] = useState(false);
   const handleCancelClick = () => {
     if (submitting || exiting) return;
@@ -106,30 +176,32 @@ export default function PlayForm({
     if (e.animationName.includes("playFormExit") && exiting) onCancel?.();
   };
 
-  // ── State ─────────────────────────────────────────────────────────────
+  // ── State ───────────────────────────────────────────────────────────
   const [game, setGame] = useState(initialValues.game || null);
+  // El `comments` que llega trae bloques (expansiones/variante) + firma; lo
+  // separamos para mostrar SÓLO las notas del usuario y reconstruir los chips.
+  const parsedComments = parseComments(initialValues.details?.comments || "");
   const [details, setDetails] = useState(() => ({
     playdate: initialValues.details?.playdate || todayIso(),
     length: initialValues.details?.length ?? "",
     location: initialValues.details?.location || "",
-    // `quantity` (BGG: cuántas veces se jugó en una misma entrada) ya no tiene
-    // campo en el form — confundía y casi nunca se usa. Se conserva en el state
-    // solo para NO pisarlo al editar una partida que lo trae > 1 (las nuevas
-    // quedan en 1).
     quantity: initialValues.details?.quantity || 1,
-    comments: initialValues.details?.comments || "",
+    comments: parsedComments.notes,
     incomplete: !!initialValues.details?.incomplete,
     nowinstats: !!initialValues.details?.nowinstats,
   }));
+  // Expansiones jugadas + variante/tablero (van dentro de `comments` a BGG).
+  const [expansions, setExpansions] = useState(parsedComments.expansions);
+  const [variant, setVariant] = useState(parsedComments.variant);
+  // ¿El comentario original ya tenía la firma? Para preservarla al editar
+  // (la firma se AGREGA sólo en partidas nuevas, pero no se borra si ya estaba).
+  const hadSignature = parsedComments.signed;
+  // Picker abierto en la sección del juego: null | "exp" | "variant".
+  const [gamePicker, setGamePicker] = useState(null);
+  const gameExtrasRef = useRef(null);
   const [players, setPlayers] = useState(() =>
     initialValues.players && initialValues.players.length > 0
-      ? initialValues.players.map((p) => ({
-          name: p.name || "",
-          username: p.username || "",
-          score: hasDisplayableScore(p.score) ? String(p.score) : "",
-          win: !!p.win,
-          new: !!p.new,
-        }))
+      ? initialValues.players.map(hydratePlayer)
       : [
           {
             name: user?.displayName || user?.nombre || user?.username || "",
@@ -137,22 +209,86 @@ export default function PlayForm({
             score: "",
             win: false,
             new: false,
+            anonymous: false,
+            team: "",
           },
         ],
   );
+
+  // Al editar, inferir el modo: "equipos" si todos traen color "Equipo X";
+  // "coop" en el caso "Ganamos" (≥2 jug, sin puntajes y todos ganadores); si
+  // no, versus.
+  const initPlayers = initialValues.players || [];
+  const initTeams = initPlayers.map((p) => teamFromColor(p.color));
+  const isTeamsPlay =
+    editMode && initPlayers.length >= 2 && initTeams.every(Boolean);
+  const [mode, setMode] = useState(() => {
+    if (!editMode) return "versus";
+    if (isTeamsPlay) return "equipos";
+    if (
+      initPlayers.length >= 2 &&
+      initPlayers.every((p) => !hasDisplayableScore(p.score)) &&
+      initPlayers.every((p) => p.win)
+    )
+      return "coop";
+    return "versus";
+  });
+  const [coopWin, setCoopWin] = useState(true);
+  // Modo equipos: cuántos equipos hay (2–4) y cuál ganó.
+  const [numTeams, setNumTeams] = useState(() =>
+    isTeamsPlay ? Math.min(4, Math.max(2, new Set(initTeams).size)) : 2,
+  );
+  const [winningTeam, setWinningTeam] = useState(() => {
+    if (!isTeamsPlay) return null;
+    const w = initPlayers.find((p) => p.win);
+    return w ? teamFromColor(w.color) : null;
+  });
+
+  // "Jugué en solitario": el paso de jugadores NO se completa con sólo "vos" a
+  // menos que se tilde esto. Default true si venimos con 1 solo jugador
+  // (edición / carry de una partida en solitario ya cargada).
+  const [soloPlay, setSoloPlay] = useState(() => {
+    const meaningful = (initialValues.players || []).filter(
+      (p) => (p.name || "").trim() || (p.username || "").trim(),
+    );
+    return meaningful.length === 1;
+  });
+
   const [adding, setAdding] = useState(false);
-  // Duración promedio del dueño para el juego elegido (sugerencia, #5b).
   const [suggestedDuration, setSuggestedDuration] = useState(null);
+  // Cierra el popover del picker al clickear fuera del área (trigger + popover).
+  const addAreaRef = useRef(null);
+  useEffect(() => {
+    if (!adding) return undefined;
+    const onDown = (e) => {
+      if (addAreaRef.current && !addAreaRef.current.contains(e.target)) {
+        setAdding(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [adding]);
 
-  const sectionRefs = {
-    juego: useRef(null),
-    jugadores: useRef(null),
-    extras: useRef(null),
-  };
+  // Cierra el popover de expansiones/variante al clickear fuera de su área.
+  useEffect(() => {
+    if (!gamePicker) return undefined;
+    const onDown = (e) => {
+      if (gameExtrasRef.current && !gameExtrasRef.current.contains(e.target)) {
+        setGamePicker(null);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [gamePicker]);
 
-  // Set estable de @BGG del roster (lowercase, dedup) — clave del effect de
-  // autodetección. Solo cambia cuando cambia el conjunto de usernames, no el
-  // flag `new` (así el setPlayers de abajo no re-dispara el effect → sin loop).
+  const toggleExpansion = (exp) =>
+    setExpansions((arr) =>
+      arr.some((e) => e.id === exp.id)
+        ? arr.filter((e) => e.id !== exp.id)
+        : [...arr, { id: exp.id, name: exp.name }],
+    );
+
+  // ── @BGG del roster (para autodetección "Nuevo") ────────────────────
   const usernamesKey = useMemo(
     () =>
       [
@@ -165,11 +301,7 @@ export default function PlayForm({
     [players],
   );
 
-  // ── Autodetección "Nuevo" (solo al crear) ─────────────────────────────
-  // Consulta `jugado` (local, sin pegarle a BGG) para CADA @BGG del roster.
-  // Marca "Nuevo" solo con conocimiento positivo: `known && !played` (un
-  // invitado sin partidas sincronizadas — known:false — no se marca, porque no
-  // sabemos).
+  // ── Autodetección "Nuevo" (solo al crear) ───────────────────────────
   const detectRef = useRef(0);
   useEffect(() => {
     if (editMode || !game?.id) return undefined;
@@ -197,19 +329,14 @@ export default function PlayForm({
       );
     });
     return () => ac.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.id, editMode, usernamesKey, user]);
 
-  // ── Duración sugerida = tiempo de caja de BGG (playingtime) ────────────
-  // Lo trae el detalle del juego (/game/:id, cacheado en server). Si el objeto
-  // `game` ya lo tiene, se usa sin re-fetchear. Solo al crear.
+  // ── Duración sugerida = tiempo de caja de BGG (playingtime) ──────────
   useEffect(() => {
     if (editMode || !game?.id) {
       setSuggestedDuration(null);
       return undefined;
     }
-    // Si el `game` ya trae la key (vino del detalle, p.ej. ?juego), usarla sin
-    // re-fetchear — incluso si es null/0 (= sin tiempo declarado).
     if (game.playingTime !== undefined) {
       setSuggestedDuration(game.playingTime || null);
       return undefined;
@@ -226,11 +353,8 @@ export default function PlayForm({
     return () => ac.abort();
   }, [game?.id, game?.playingTime, editMode]);
 
-  // ── Borrador local (#4): persistencia + oferta de retomar ─────────────
-  // El hook y `draftEnabled` se declaran arriba (para limpiar al cancelar).
+  // ── Borrador local ──────────────────────────────────────────────────
   const [draftOffer, setDraftOffer] = useState(null);
-
-  // Al montar: ofrecer el borrador si tiene contenido (no auto-aplicar).
   useEffect(() => {
     if (!draftEnabled) return;
     const d = loadDraft();
@@ -238,9 +362,6 @@ export default function PlayForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persistir el form en progreso. Salteamos el primer run para no pisar el
-  // borrador ofrecido antes de que el usuario decida (en un form en blanco no
-  // hay más renders hasta que interactúa, así que solo guarda cambios reales).
   const skipPersistRef = useRef(true);
   useEffect(() => {
     if (!draftEnabled) return;
@@ -256,7 +377,8 @@ export default function PlayForm({
     if (draftOffer.game) setGame(draftOffer.game);
     if (draftOffer.details)
       setDetails((d) => ({ ...d, ...draftOffer.details }));
-    if (draftOffer.players?.length) setPlayers(draftOffer.players);
+    if (draftOffer.players?.length)
+      setPlayers(draftOffer.players.map(hydratePlayer));
     setDraftOffer(null);
   };
   const discardDraft = () => {
@@ -264,33 +386,90 @@ export default function PlayForm({
     setDraftOffer(null);
   };
 
-  // ── Players helpers ───────────────────────────────────────────────────
+  // ── Players helpers ─────────────────────────────────────────────────
+  // Renumera los asientos anónimos 1..k de forma contigua (los nombres llevan
+  // la semántica que el server filtra de "mis compañeros").
+  const renumberAnon = (arr) => {
+    let n = 0;
+    return arr.map((p) =>
+      p.anonymous ? { ...p, name: makeAnonName(++n) } : p,
+    );
+  };
   const updatePlayer = (idx, key, val) =>
     setPlayers((arr) =>
       arr.map((p, i) => (i === idx ? { ...p, [key]: val } : p)),
     );
   const removePlayer = (idx) =>
-    setPlayers((arr) => arr.filter((_, i) => i !== idx));
+    setPlayers((arr) => renumberAnon(arr.filter((_, i) => i !== idx)));
   const addPlayer = ({ name = "", username = "" } = {}) =>
     setPlayers((arr) => [
       ...arr,
-      { name, username, score: "", win: false, new: false },
+      {
+        name,
+        username,
+        score: "",
+        win: false,
+        new: false,
+        anonymous: false,
+        team: "",
+      },
     ]);
+  const addAnonymous = () =>
+    setPlayers((arr) =>
+      renumberAnon([
+        ...arr,
+        {
+          name: "",
+          username: "",
+          score: "",
+          win: false,
+          new: false,
+          anonymous: true,
+          team: "",
+        },
+      ]),
+    );
   const updateDetail = (key, val) => setDetails((d) => ({ ...d, [key]: val }));
 
-  // Cambiar un score reasigna "Ganó" al/los puntaje/s más alto/s (autoasignar).
+  // ── Equipos ─────────────────────────────────────────────────────────
+  const activeTeams = TEAM_IDS.slice(0, numTeams);
+  // Cambiar a "equipos" auto-asigna A/B alternado a quienes no tengan equipo.
+  const selectMode = (m) => {
+    if (m === "equipos") {
+      setPlayers((arr) => {
+        let auto = 0;
+        return arr.map((p) =>
+          p.team ? p : { ...p, team: TEAM_IDS[auto++ % 2] },
+        );
+      });
+    }
+    setMode(m);
+  };
+  const setPlayerTeam = (idx, team) =>
+    setPlayers((arr) => arr.map((p, i) => (i === idx ? { ...p, team } : p)));
+  const addTeam = () => setNumTeams((n) => Math.min(TEAM_IDS.length, n + 1));
+  // Quitar el último equipo: reasigna sus jugadores al equipo A y limpia el
+  // ganador si era ese equipo.
+  const removeTeam = () => {
+    if (numTeams <= 2) return;
+    const removed = TEAM_IDS[numTeams - 1];
+    setPlayers((arr) =>
+      arr.map((p) => (p.team === removed ? { ...p, team: "A" } : p)),
+    );
+    if (winningTeam === removed) setWinningTeam(null);
+    setNumTeams((n) => Math.max(2, n - 1));
+  };
+
+  // En equipos el puntaje NO reasigna el ganador (gana el equipo, no el score).
+  const applyWins = (arr) =>
+    mode === "equipos" ? arr : assignWinsByScore(arr);
   const updateScore = (idx, val) =>
     setPlayers((arr) =>
-      assignWinsByScore(
-        arr.map((p, i) => (i === idx ? { ...p, score: val } : p)),
-      ),
+      applyWins(arr.map((p, i) => (i === idx ? { ...p, score: val } : p))),
     );
-
-  // Atajo +/-: incrementa el score numéricamente (base 0 si no es número) y
-  // reasigna el ganador.
   const stepScore = (idx, delta) =>
     setPlayers((arr) =>
-      assignWinsByScore(
+      applyWins(
         arr.map((p, i) => {
           if (i !== idx) return p;
           const cur = Number(p.score);
@@ -299,11 +478,8 @@ export default function PlayForm({
         }),
       ),
     );
-
   const sortByScore = () => setPlayers((arr) => sortPlayersByScoreDesc(arr));
 
-  // "Usar última juntada": reemplaza el roster + ubicación con los de la última
-  // partida del usuario (sin score/win — juntada nueva). Solo al crear.
   const applyLastJuntada = () => {
     const roster = lastJuntada?.players || [];
     if (!roster.length) return;
@@ -314,89 +490,164 @@ export default function PlayForm({
         score: "",
         win: false,
         new: false,
+        anonymous: false,
+        team: "",
       })),
     );
     if (lastJuntada.location) updateDetail("location", lastJuntada.location);
   };
-
   const showLastJuntada = !editMode && (lastJuntada?.players?.length || 0) > 0;
 
-  // ── Derived ───────────────────────────────────────────────────────────
-  const hasPlayers = players.some((p) => p.name.trim() || p.username.trim());
-  // Posición derivada del puntaje (mayor = 1°, empates comparten). Sin scores
-  // numéricos cae al orden del array (comportamiento histórico).
+  // ── Derived ─────────────────────────────────────────────────────────
+  const meaningfulCount = players.filter(
+    (p) => p.name.trim() || p.username.trim(),
+  ).length;
+  // El paso de jugadores NO se da por completo con sólo "vos": pide un segundo
+  // jugador, o que se tilde "Jugué en solitario".
+  const jugadoresDone =
+    meaningfulCount >= 2 || (meaningfulCount === 1 && soloPlay);
   const positions = computePlayerPositions(players);
+  // Ordenar por puntaje aplica donde hay puntajes individuales (versus y
+  // equipos); en cooperativo no hay scores.
   const canSortByScore =
-    players.length > 1 && players.some((p) => hasDisplayableScore(p.score));
-  // La fecha no puede ser futura. Se valida en JS (no con HTML required) +
-  // gatea el submit; el `max` del input es solo para el datepicker.
+    mode !== "coop" &&
+    players.length > 1 &&
+    players.some((p) => hasDisplayableScore(p.score));
   const dateInvalid = !!details.playdate && details.playdate > todayIso();
+
+  // Identidad del dueño ("vos") por @BGG; -1 si no está en el roster.
+  const youIndex = useMemo(() => {
+    const lo = (bggUsername || "").toLowerCase();
+    if (!lo) return -1;
+    return players.findIndex(
+      (p) => p.username && p.username.trim().toLowerCase() === lo,
+    );
+  }, [players, bggUsername]);
+
+  // Líder único (corona): sólo en versus, con al menos un score numérico y una
+  // sola posición 1.
+  const anyNumeric = players.some(
+    (p) =>
+      hasDisplayableScore(p.score) &&
+      Number.isFinite(Number(String(p.score).trim())),
+  );
+  const leaderIndex = useMemo(() => {
+    if (mode !== "versus" || !anyNumeric) return -1;
+    const firsts = positions
+      .map((pos, i) => (pos === 1 ? i : -1))
+      .filter((i) => i >= 0);
+    return firsts.length === 1 ? firsts[0] : -1;
+  }, [mode, anyNumeric, positions]);
+
+  // ¿Ganó este jugador? coop = todos; equipos = los del equipo ganador; versus
+  // = su flag (autoasignado por score).
+  const playerWins = (p) => {
+    if (mode === "coop") return coopWin;
+    if (mode === "equipos") return !!winningTeam && p.team === winningTeam;
+    return p.win;
+  };
+
+  const hasResult =
+    mode === "coop"
+      ? true
+      : mode === "equipos"
+        ? !!winningTeam
+        : leaderIndex >= 0;
+  const youWin =
+    mode === "coop"
+      ? coopWin
+      : mode === "equipos"
+        ? youIndex >= 0 && players[youIndex]?.team === winningTeam
+        : leaderIndex >= 0 && leaderIndex === youIndex;
 
   const stepDone = {
     juego: !!game,
-    jugadores: hasPlayers,
-    extras: !!details.playdate && !dateInvalid,
+    cuando: !!details.playdate && !dateInvalid,
+    jugadores: jugadoresDone,
   };
-  const completedCount = Object.values(stepDone).filter(Boolean).length;
-  const activeIdx = STEPS.findIndex((s) => !stepDone[s.key]);
-  const activeStep = activeIdx === -1 ? STEPS.length - 1 : activeIdx;
+  const doneCount = Object.values(stepDone).filter(Boolean).length;
   const canSubmit =
-    stepDone.juego && stepDone.jugadores && stepDone.extras && !dateInvalid;
+    stepDone.juego && stepDone.jugadores && !!details.playdate && !dateInvalid;
 
-  // Jugadores cargados → payload, con la posición derivada del score. Lo usan
-  // tanto el submit como la vista previa (una sola fuente).
   const buildPlayers = () => {
     const filtered = players.filter((p) => p.name.trim() || p.username.trim());
     const pos = computePlayerPositions(filtered);
-    return filtered.map((p, i) => ({
-      name: p.name.trim(),
-      username: p.username.trim(),
-      position: pos[i],
-      score: p.score.trim(),
-      win: p.win,
-      new: p.new,
-    }));
+    return filtered.map((p, i) => {
+      if (mode === "equipos") {
+        const win = !!winningTeam && p.team === winningTeam;
+        return {
+          name: p.name.trim(),
+          username: p.username.trim(),
+          position: pos[i],
+          score: p.score.trim(),
+          color: p.team ? `Equipo ${p.team}` : "",
+          win,
+          new: p.new,
+        };
+      }
+      return {
+        name: p.name.trim(),
+        username: p.username.trim(),
+        position: mode === "coop" ? i + 1 : pos[i],
+        score: mode === "coop" ? "" : p.score.trim(),
+        win: mode === "coop" ? coopWin : p.win,
+        new: p.new,
+      };
+    });
   };
 
-  const goToStep = (key) =>
-    sectionRefs[key].current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
+  const submit = (keepGoing) => {
     if (!canSubmit || submitting) return;
     if (draftEnabled) clearDraft();
-    onSubmit?.({
-      objectid: game.id,
-      playdate: details.playdate,
-      length: details.length === "" ? null : Number(details.length),
-      location: details.location,
-      quantity: Number(details.quantity) || 1,
-      comments: details.comments,
-      incomplete: details.incomplete,
-      nowinstats: details.nowinstats,
-      players: buildPlayers(),
+    // Comentario final = notas del usuario + bloques (expansiones/variante) +
+    // firma. La firma se agrega sólo al crear, o si la partida ya la tenía.
+    const composedComments = composeComments({
+      notes: details.comments,
+      expansions,
+      variant,
+      sign: !editMode || hadSignature,
     });
+    onSubmit?.(
+      {
+        objectid: game.id,
+        playdate: details.playdate,
+        length: details.length === "" ? null : Number(details.length),
+        location: details.location,
+        quantity: Number(details.quantity) || 1,
+        comments: composedComments,
+        // `variant` (texto libre) se persiste server-side para autocompletar
+        // futuras partidas del juego; no se manda a BGG (ya va en comments).
+        variant,
+        incomplete: details.incomplete,
+        nowinstats: details.nowinstats,
+        players: buildPlayers(),
+      },
+      { keepGoing: !!keepGoing },
+    );
+  };
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    submit(false);
   };
 
-  // ── Preview play object (en vivo) ─────────────────────────────────────
-  const previewPlay = {
-    id: "preview",
-    gameName: game?.name || "Elegí un juego",
-    gameThumbnail: game?.thumbnail || null,
-    date: details.playdate,
-    location: details.location,
-    duration: details.length === "" ? null : Number(details.length),
-    quantity: Number(details.quantity) || 1,
-    comments: details.comments,
-    incomplete: details.incomplete,
-    players: buildPlayers(),
-  };
-  // Avatares de los jugadores que son miembros de TurnoCero (por @BGG) en la
-  // vista previa. Refetchea solo cuando cambia el set de usernames (no por tecla).
-  const previewUserMap = useBggUserMap([previewPlay]);
+  // ── Scorecard rows + member avatars ─────────────────────────────────
+  const userMap = useBggUserMap([{ players }]);
+  const scorecardRows = players.map((p, i) => {
+    const win = playerWins(p);
+    return {
+      key: `${i}-${p.username || p.name || "anon"}`,
+      name: p.name || p.username || "Jugador",
+      username: p.username,
+      anonymous: p.anonymous,
+      score: p.score,
+      win,
+      new: p.new,
+      team: p.team,
+      position: positions[i],
+      you: i === youIndex,
+      leader: mode === "equipos" ? win : i === leaderIndex,
+    };
+  });
 
   return (
     <div
@@ -409,31 +660,22 @@ export default function PlayForm({
         onClick={handleCancelClick}
         disabled={submitting}
       >
-        ← Volver
+        ← Cancelar y volver
       </button>
 
-      <header className={styles.hero}>
-        <div className={styles.heroLeft}>
-          <p className={styles.heroEyebrow}>
-            <Meeple />
-            BG WATCH
-          </p>
-          <h1 className={styles.heroTitle}>
-            {editMode ? "Editar partida" : "Cargar partida"}
+      <header className={styles.head}>
+        <div>
+          <div className={styles.kicker}>
+            <Meeple /> BG WATCH · {editMode ? "editar" : "nueva entrada"}
+          </div>
+          <h1 className={styles.title}>
+            {editMode ? "Editá la " : "Anotá la "}
+            <em>partida.</em>
           </h1>
-          <p className={styles.heroSub}>
-            {editMode
-              ? "Modificá los datos de tu partida. Se guardan también en BoardGameGeek."
-              : "Registrá una partida en tu cuenta de BoardGameGeek: el juego, quiénes jugaron y los detalles."}
-          </p>
         </div>
-        <div className={styles.heroRight}>
-          <span className={styles.heroProgressLabel}>
-            Paso {activeStep + 1} de {STEPS.length}
-          </span>
-          <span className={styles.heroProgressValue}>
-            {completedCount}/{STEPS.length}
-          </span>
+        <div className={styles.progress}>
+          <span className={styles.progressVal}>{doneCount}/3</span>
+          <span className={styles.progressLbl}>secciones listas</span>
         </div>
       </header>
 
@@ -463,224 +705,491 @@ export default function PlayForm({
 
       <div className={styles.layout}>
         <form className={styles.form} onSubmit={handleFormSubmit}>
-          {/* Stepper */}
-          <nav className={styles.steps} aria-label="Progreso">
-            {STEPS.map((s, i) => {
-              const done = stepDone[s.key] && i !== activeStep;
-              const active = i === activeStep;
-              return (
-                <button
-                  key={s.key}
-                  type="button"
-                  onClick={() => goToStep(s.key)}
-                  className={`${styles.step} ${active ? styles.stepActive : ""} ${done ? styles.stepDone : ""}`}
-                >
-                  <span className={styles.stepDot}>{i + 1}</span>
-                  <span className={styles.stepLabel}>{s.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Paso 1: Juego */}
-          <section className={styles.section} ref={sectionRefs.juego}>
-            <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}>
-                <Meeple />
-                Paso 1
+          {/* 1 · Juego */}
+          <section className={styles.section}>
+            <div className={styles.sectionHead}>
+              <span
+                className={`${styles.sectionNum} ${stepDone.juego ? styles.sectionNumDone : ""}`}
+              >
+                {stepDone.juego ? <CheckIcon /> : "1"}
               </span>
-              <span className={styles.sectionTitle}>El juego</span>
-            </header>
+              <span className={styles.sectionTitle}>¿Qué jugaron?</span>
+            </div>
 
-            {game && (
-              <div className={bg.gamePicked}>
-                {game.thumbnail ? (
-                  <img src={game.thumbnail} alt={game.name} />
-                ) : (
-                  <span className={bg.playThumbFallback}>🎲</span>
-                )}
-                <div>
-                  <div className={bg.gamePickedName}>{game.name}</div>
-                  {game.year && (
-                    <div className={bg.gamePickedYear}>{game.year}</div>
+            {game ? (
+              <>
+                <div className={styles.gameSelected}>
+                  <div className={styles.gameThumb}>
+                    {game.thumbnail ? (
+                      <img src={game.thumbnail} alt={game.name} />
+                    ) : (
+                      gameInitials(game.name)
+                    )}
+                  </div>
+                  <div className={styles.gameInfo}>
+                    <div className={styles.gameName}>{game.name}</div>
+                    {game.year && (
+                      <div className={styles.gameMeta}>{game.year}</div>
+                    )}
+                  </div>
+                  {!lockedGame && (
+                    <button
+                      type="button"
+                      className={styles.gameChange}
+                      onClick={() => {
+                        setGame(null);
+                        setExpansions([]);
+                        setVariant("");
+                        setGamePicker(null);
+                      }}
+                    >
+                      Cambiar
+                    </button>
                   )}
                 </div>
-                {!lockedGame && (
+
+                {/* Chips de expansiones + variante elegidas */}
+                {(expansions.length > 0 || variant) && (
+                  <div className={styles.gameExtrasChips}>
+                    {expansions.map((e) => (
+                      <span key={e.id} className={styles.extraChip}>
+                        {e.name}
+                        <button
+                          type="button"
+                          onClick={() => toggleExpansion(e)}
+                          aria-label={`Quitar ${e.name}`}
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                    {variant && (
+                      <span
+                        className={`${styles.extraChip} ${styles.extraChipVariant}`}
+                      >
+                        🎲 {variant}
+                        <button
+                          type="button"
+                          onClick={() => setVariant("")}
+                          aria-label="Quitar variante"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Botones: expansiones (izq) + variante/tablero (der) */}
+                <div className={styles.gameExtrasActions} ref={gameExtrasRef}>
                   <button
                     type="button"
-                    className={bg.gamePickedChange}
-                    onClick={() => setGame(null)}
+                    className={styles.addBtn}
+                    onClick={() =>
+                      setGamePicker((p) => (p === "exp" ? null : "exp"))
+                    }
+                    aria-expanded={gamePicker === "exp"}
                   >
-                    Cambiar
+                    + Expansiones jugadas
                   </button>
+                  <button
+                    type="button"
+                    className={`${styles.addBtn} ${styles.gameExtrasRight}`}
+                    onClick={() =>
+                      setGamePicker((p) => (p === "variant" ? null : "variant"))
+                    }
+                    aria-expanded={gamePicker === "variant"}
+                  >
+                    + Variante/tablero
+                  </button>
+                  {gamePicker === "exp" && (
+                    <div className={styles.playerPickerPop}>
+                      <ExpansionsPicker
+                        gameId={game.id}
+                        selected={expansions}
+                        onToggle={toggleExpansion}
+                        onClose={() => setGamePicker(null)}
+                      />
+                    </div>
+                  )}
+                  {gamePicker === "variant" && (
+                    <div className={styles.playerPickerPop}>
+                      <VariantPicker
+                        bggUsername={bggUsername}
+                        gameId={game.id}
+                        value={variant}
+                        onPick={(v) => setVariant(v)}
+                        onClose={() => setGamePicker(null)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              !lockedGame && (
+                <MyGamesPicker
+                  bggUsername={bggUsername}
+                  onPick={(g) => {
+                    setGame(g);
+                    setExpansions([]);
+                    setVariant("");
+                  }}
+                />
+              )
+            )}
+          </section>
+
+          {/* 2 · Quiénes jugaron */}
+          <section className={styles.section}>
+            <div className={styles.sectionHead}>
+              <span
+                className={`${styles.sectionNum} ${stepDone.jugadores ? styles.sectionNumDone : ""}`}
+              >
+                {stepDone.jugadores ? <CheckIcon /> : "2"}
+              </span>
+              <span className={styles.sectionTitle}>¿Quiénes jugaron?</span>
+              <span className={styles.sectionHint}>
+                {players.length} jugador{players.length === 1 ? "" : "es"}
+              </span>
+            </div>
+
+            <div className={styles.modeToggle}>
+              <button
+                type="button"
+                className={`${styles.mode} ${mode === "versus" ? styles.modeActive : ""}`}
+                onClick={() => selectMode("versus")}
+              >
+                <span className={styles.modeT}>Competitiva</span>
+                <span className={styles.modeD}>Cada uno con su puntaje</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.mode} ${mode === "coop" ? styles.modeActive : ""}`}
+                onClick={() => selectMode("coop")}
+              >
+                <span className={styles.modeT}>Cooperativa</span>
+                <span className={styles.modeD}>Ganan o pierden juntos</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.mode} ${mode === "equipos" ? styles.modeActive : ""}`}
+                onClick={() => selectMode("equipos")}
+              >
+                <span className={styles.modeT}>Equipos</span>
+                <span className={styles.modeD}>Gana un equipo</span>
+              </button>
+            </div>
+
+            {mode === "coop" && (
+              <div className={styles.coopOutcome}>
+                <button
+                  type="button"
+                  className={`${styles.coopBtn} ${styles.coopWin} ${coopWin ? styles.coopBtnActive : ""}`}
+                  onClick={() => setCoopWin(true)}
+                >
+                  <TrophyIcon />
+                  <span>Ganamos</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.coopBtn} ${styles.coopLoss} ${!coopWin ? styles.coopBtnActive : ""}`}
+                  onClick={() => setCoopWin(false)}
+                >
+                  <span className={styles.coopX}>✕</span>
+                  <span>Perdimos</span>
+                </button>
+              </div>
+            )}
+
+            {mode === "equipos" && (
+              <div className={styles.teamResult}>
+                <span className={styles.teamResultLabel}>
+                  ¿Qué equipo ganó?
+                </span>
+                <div className={styles.teamResultBtns}>
+                  {numTeams > 2 && (
+                    <button
+                      type="button"
+                      className={styles.addTeamBtn}
+                      onClick={removeTeam}
+                    >
+                      − Equipo
+                    </button>
+                  )}
+                  {activeTeams.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      className={`${styles.teamWinBtn} ${winningTeam === t ? styles.teamWinBtnActive : ""}`}
+                      onClick={() =>
+                        setWinningTeam(winningTeam === t ? null : t)
+                      }
+                      aria-pressed={winningTeam === t}
+                    >
+                      Equipo {t}
+                    </button>
+                  ))}
+                  {numTeams < TEAM_IDS.length && (
+                    <button
+                      type="button"
+                      className={styles.addTeamBtn}
+                      onClick={addTeam}
+                    >
+                      + Equipo
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {(showLastJuntada || meaningfulCount === 1) && (
+              <div className={styles.playersTopRow}>
+                {showLastJuntada && (
+                  <button
+                    type="button"
+                    className={styles.lastJuntadaBtn}
+                    onClick={applyLastJuntada}
+                    title={
+                      lastJuntada.location
+                        ? `Jugadores y ubicación (${lastJuntada.location}) de tu última partida`
+                        : "Jugadores de tu última partida"
+                    }
+                  >
+                    ↺ Usar última juntada
+                    <span className={styles.lastJuntadaHint}>
+                      {lastJuntada.players.length}{" "}
+                      {lastJuntada.players.length === 1
+                        ? "jugador"
+                        : "jugadores"}
+                      {lastJuntada.location ? ` · ${lastJuntada.location}` : ""}
+                    </span>
+                  </button>
+                )}
+                {meaningfulCount === 1 && (
+                  <label className={styles.soloPlay}>
+                    <input
+                      type="checkbox"
+                      checked={soloPlay}
+                      onChange={(e) => setSoloPlay(e.target.checked)}
+                    />
+                    Jugué en solitario
+                  </label>
                 )}
               </div>
             )}
 
-            {!game && !lockedGame && (
-              <MyGamesPicker
-                bggUsername={bggUsername}
-                onPick={(g) => setGame(g)}
-              />
-            )}
-          </section>
-
-          {/* Paso 2: Jugadores */}
-          <section className={styles.section} ref={sectionRefs.jugadores}>
-            <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}>
-                <Meeple />
-                Paso 2
-              </span>
-              <span className={styles.sectionTitle}>Jugadores</span>
-            </header>
-            <p className={styles.sectionHelp}>
-              Agregá los jugadores. La posición se calcula por el puntaje (o por
-              el orden si no cargás puntajes).
-            </p>
-
-            {showLastJuntada && (
-              <button
-                type="button"
-                className={styles.lastJuntadaBtn}
-                onClick={applyLastJuntada}
-                title={
-                  lastJuntada.location
-                    ? `Jugadores y ubicación (${lastJuntada.location}) de tu última partida`
-                    : "Jugadores de tu última partida"
-                }
-              >
-                ↺ Usar última juntada
-                <span className={styles.lastJuntadaHint}>
-                  {lastJuntada.players.length}{" "}
-                  {lastJuntada.players.length === 1 ? "jugador" : "jugadores"}
-                  {lastJuntada.location ? ` · ${lastJuntada.location}` : ""}
-                </span>
-              </button>
-            )}
-
-            <div className={bg.playerEditList}>
-              {players.map((p, i) => (
-                <div key={i} className={bg.playerEditRow}>
-                  <PositionBadge position={positions[i]} />
-                  <div className={bg.playerEditFields}>
-                    {/* Identidad (nombre + @BGG) fija: se elige desde el picker.
-                        Para cambiarla se usa la pestaña "Jugadores" del perfil. */}
-                    <span className={bg.playerEditName}>
-                      {p.name || p.username}
-                      {p.username && (
-                        <span className={bg.playerEditHandle}>
-                          {" "}
+            <div className={styles.scoreList}>
+              {players.map((p, i) => {
+                const win = playerWins(p);
+                const isLeader =
+                  i === leaderIndex || (mode === "equipos" && win);
+                return (
+                  <div
+                    key={i}
+                    className={`${styles.scoreRow} ${isLeader ? styles.scoreRowLeader : ""} ${i === youIndex ? styles.scoreRowYou : ""}`}
+                  >
+                    <span className={styles.scoreRank}>
+                      {mode === "versus" ? `#${positions[i]}` : "·"}
+                    </span>
+                    <PlayerAvatar player={p} userMap={userMap} />
+                    <div className={styles.scorePlayer}>
+                      <span className={styles.scorePlayerName}>
+                        {p.name || p.username}
+                      </span>
+                      {!p.anonymous && p.username && (
+                        <span className={styles.scorePlayerHandle}>
                           @{p.username}
                         </span>
                       )}
-                    </span>
-                    <div className={styles.scoreCell}>
-                      <button
-                        type="button"
-                        className={styles.scoreStep}
-                        onClick={() => stepScore(i, -1)}
-                        aria-label="Bajar puntaje"
-                        tabIndex={-1}
-                      >
-                        −
-                      </button>
-                      <input
-                        type="text"
-                        className={bg.modalInputSmall}
-                        placeholder="Score"
-                        value={p.score}
-                        onChange={(e) => updateScore(i, e.target.value)}
-                        maxLength={30}
-                      />
-                      <button
-                        type="button"
-                        className={styles.scoreStep}
-                        onClick={() => stepScore(i, 1)}
-                        aria-label="Subir puntaje"
-                        tabIndex={-1}
-                      >
-                        +
-                      </button>
+                      {p.anonymous && (
+                        <span className={styles.anonTag}>anónimo</span>
+                      )}
+                      {i === youIndex && (
+                        <span className={styles.youPill}>vos</span>
+                      )}
+                      {isLeader && (
+                        <span className={styles.scoreCrown}>
+                          <CrownIcon />
+                        </span>
+                      )}
+                      {p.new && (
+                        <span
+                          className={styles.newBadge}
+                          title="Primera vez que lo juega (autodetectado)"
+                        >
+                          ✨ Nuevo
+                        </span>
+                      )}
                     </div>
-                    <button
-                      type="button"
-                      className={`${bg.iconToggle} ${p.win ? bg.iconToggleActive : ""}`}
-                      onClick={() => updatePlayer(i, "win", !p.win)}
-                      aria-label="Ganó"
-                      aria-pressed={p.win}
-                      title="Ganó"
-                    >
-                      <TrophyIcon />
-                    </button>
-                    {p.new && (
-                      <span
-                        className={bg.newBadge}
-                        title="Primera vez que lo juega (autodetectado)"
+
+                    {mode === "versus" ? (
+                      <div className={styles.scoreControls}>
+                        <div className={styles.scoreCell}>
+                          <button
+                            type="button"
+                            className={styles.scoreStep}
+                            onClick={() => stepScore(i, -1)}
+                            aria-label="Bajar puntaje"
+                            tabIndex={-1}
+                          >
+                            −
+                          </button>
+                          <input
+                            type="text"
+                            className={styles.scoreInput}
+                            placeholder="—"
+                            aria-label={`Puntaje de ${p.name || p.username || "jugador"}`}
+                            value={p.score}
+                            onChange={(e) => updateScore(i, e.target.value)}
+                            maxLength={30}
+                            inputMode="numeric"
+                          />
+                          <button
+                            type="button"
+                            className={styles.scoreStep}
+                            onClick={() => stepScore(i, 1)}
+                            aria-label="Subir puntaje"
+                            tabIndex={-1}
+                          >
+                            +
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          className={`${styles.winToggle} ${p.win ? styles.winToggleActive : ""}`}
+                          onClick={() => updatePlayer(i, "win", !p.win)}
+                          aria-label="Ganó"
+                          aria-pressed={p.win}
+                          title="Ganó"
+                        >
+                          <TrophyIcon />
+                        </button>
+                      </div>
+                    ) : mode === "coop" ? (
+                      <span className={styles.teamTag}>Equipo</span>
+                    ) : (
+                      <div className={styles.scoreControls}>
+                        <div className={styles.scoreCell}>
+                          <button
+                            type="button"
+                            className={styles.scoreStep}
+                            onClick={() => stepScore(i, -1)}
+                            aria-label="Bajar puntaje"
+                            tabIndex={-1}
+                          >
+                            −
+                          </button>
+                          <input
+                            type="text"
+                            className={styles.scoreInput}
+                            placeholder="—"
+                            aria-label={`Puntaje de ${p.name || p.username || "jugador"}`}
+                            value={p.score}
+                            onChange={(e) => updateScore(i, e.target.value)}
+                            maxLength={30}
+                            inputMode="numeric"
+                          />
+                          <button
+                            type="button"
+                            className={styles.scoreStep}
+                            onClick={() => stepScore(i, 1)}
+                            aria-label="Subir puntaje"
+                            tabIndex={-1}
+                          >
+                            +
+                          </button>
+                        </div>
+                        <div
+                          className={styles.teamPick}
+                          role="group"
+                          aria-label={`Equipo de ${p.name || p.username || "jugador"}`}
+                        >
+                          {activeTeams.map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              className={`${styles.teamBtn} ${p.team === t ? styles.teamBtnActive : ""}`}
+                              onClick={() => setPlayerTeam(i, t)}
+                              aria-pressed={p.team === t}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {players.length > 1 && (
+                      <button
+                        type="button"
+                        className={styles.scoreRemove}
+                        onClick={() => removePlayer(i)}
+                        aria-label="Quitar jugador"
                       >
-                        ✨ Nuevo
-                      </span>
+                        ✕
+                      </button>
                     )}
                   </div>
-                  {players.length > 1 && (
-                    <button
-                      type="button"
-                      className={bg.playerEditRemove}
-                      onClick={() => removePlayer(i)}
-                      aria-label="Eliminar jugador"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            {adding ? (
-              <PlayerPicker
-                bggUsername={bggUsername}
-                existing={players}
-                onPick={(pl) => {
-                  addPlayer(pl);
-                  setAdding(false);
-                }}
-                onCancel={() => setAdding(false)}
-              />
-            ) : (
+            {/* El picker se DESPLIEGA como popover (no empuja el contenido),
+                igual que el de ubicación. */}
+            <div className={styles.addPlayerArea} ref={addAreaRef}>
               <div className={styles.playerActions}>
                 <button
                   type="button"
-                  className={bg.btnGhost}
-                  onClick={() => setAdding(true)}
+                  className={styles.addBtn}
+                  onClick={() => setAdding((a) => !a)}
+                  aria-expanded={adding}
                 >
                   + Agregar jugador
+                </button>
+                <button
+                  type="button"
+                  className={styles.addGuestBtn}
+                  onClick={addAnonymous}
+                >
+                  + Jugador anónimo
                 </button>
                 {canSortByScore && (
                   <button
                     type="button"
-                    className={styles.sortByScoreBtn}
+                    className={styles.sortBtn}
                     onClick={sortByScore}
                   >
                     ↓ Ordenar por puntaje
                   </button>
                 )}
               </div>
-            )}
+              {adding && (
+                <div className={styles.playerPickerPop}>
+                  <PlayerPicker
+                    bggUsername={bggUsername}
+                    existing={players}
+                    onPick={(pl) => addPlayer(pl)}
+                    onCancel={() => setAdding(false)}
+                  />
+                </div>
+              )}
+            </div>
           </section>
 
-          {/* Paso 3: Extras */}
-          <section className={styles.section} ref={sectionRefs.extras}>
-            <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}>
-                <Meeple />
-                Paso 3
+          {/* 3 · Cuándo y dónde */}
+          <section className={styles.section}>
+            <div className={styles.sectionHead}>
+              <span
+                className={`${styles.sectionNum} ${stepDone.cuando ? styles.sectionNumDone : ""}`}
+              >
+                {stepDone.cuando ? <CheckIcon /> : "3"}
               </span>
-              <span className={styles.sectionTitle}>Extras</span>
-            </header>
+              <span className={styles.sectionTitle}>¿Cuándo y dónde?</span>
+            </div>
 
-            <div className={bg.formGrid}>
-              <div className={bg.field}>
-                <label className={bg.fieldLabel}>Fecha</label>
+            <div className={styles.fieldRow}>
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Fecha</label>
                 <DateTimePicker
                   dateOnly
                   allowPast
@@ -688,22 +1197,50 @@ export default function PlayForm({
                   value={details.playdate}
                   onChange={(v) => updateDetail("playdate", v)}
                 />
+                <div className={styles.quickRow}>
+                  <button
+                    type="button"
+                    className={`${styles.quick} ${details.playdate === todayIso() ? styles.quickActive : ""}`}
+                    onClick={() => updateDetail("playdate", todayIso())}
+                  >
+                    Hoy
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.quick} ${details.playdate === yesterdayIso() ? styles.quickActive : ""}`}
+                    onClick={() => updateDetail("playdate", yesterdayIso())}
+                  >
+                    Ayer
+                  </button>
+                </div>
                 {dateInvalid && (
                   <span className={styles.fieldError}>
                     La fecha no puede ser futura.
                   </span>
                 )}
               </div>
-              <div className={bg.field}>
-                <label className={bg.fieldLabel}>Duración (min)</label>
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Duración (min)</label>
                 <input
                   type="number"
                   min={0}
-                  className={bg.modalInput}
+                  className={styles.input}
                   value={details.length}
                   onChange={(e) => updateDetail("length", e.target.value)}
                   placeholder="60"
                 />
+                <div className={styles.quickRow}>
+                  {DURATION_PRESETS.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      className={`${styles.quick} ${Number(details.length) === m ? styles.quickActive : ""}`}
+                      onClick={() => updateDetail("length", String(m))}
+                    >
+                      {m}min
+                    </button>
+                  ))}
+                </div>
                 {suggestedDuration && details.length === "" && (
                   <button
                     type="button"
@@ -717,27 +1254,18 @@ export default function PlayForm({
                 )}
               </div>
             </div>
-            <div className={bg.field}>
-              <label className={bg.fieldLabel}>Ubicación</label>
+
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Dónde se jugó</label>
               <LocationPicker
                 bggUsername={bggUsername}
                 value={details.location}
                 onPick={(loc) => updateDetail("location", loc)}
               />
             </div>
-            <div className={bg.field}>
-              <label className={bg.fieldLabel}>Comentarios</label>
-              <textarea
-                className={bg.modalTextarea}
-                value={details.comments}
-                onChange={(e) => updateDetail("comments", e.target.value)}
-                maxLength={1000}
-                rows={3}
-                placeholder="Cómo estuvo la partida, momentos memorables, etc."
-              />
-            </div>
-            <div className={bg.checkboxRow}>
-              <label className={bg.checkboxLabel}>
+
+            <div className={styles.checkboxRow}>
+              <label className={styles.checkboxLabel}>
                 <input
                   type="checkbox"
                   checked={details.incomplete}
@@ -745,7 +1273,7 @@ export default function PlayForm({
                 />
                 Incompleta (no se terminó)
               </label>
-              <label className={bg.checkboxLabel}>
+              <label className={styles.checkboxLabel}>
                 <input
                   type="checkbox"
                   checked={details.nowinstats}
@@ -756,21 +1284,28 @@ export default function PlayForm({
             </div>
           </section>
 
-          {serverError && <div className={styles.errorBox}>{serverError}</div>}
+          {/* 4 · Notas */}
+          <section className={styles.section}>
+            <div className={styles.sectionHead}>
+              <span
+                className={`${styles.sectionNum} ${styles.sectionNumOptional}`}
+              >
+                4
+              </span>
+              <span className={styles.sectionTitle}>Notas</span>
+              <span className={styles.sectionHint}>opcional</span>
+            </div>
+            <textarea
+              className={styles.notes}
+              value={details.comments}
+              onChange={(e) => updateDetail("comments", e.target.value)}
+              maxLength={1000}
+              rows={3}
+              placeholder="Ese combo de la ronda 4, la jugada que definió todo, la revancha pendiente…"
+            />
+          </section>
 
-          {/* Multi-partida rápida (solo al crear): al guardar, conserva
-              jugadores + ubicación + fecha y deja cargar la próxima. */}
-          {onKeepGoingChange && (
-            <label className={styles.keepGoing}>
-              <input
-                type="checkbox"
-                checked={keepGoing}
-                onChange={(e) => onKeepGoingChange(e.target.checked)}
-              />
-              Cargar otra partida después de ésta (conserva jugadores y
-              ubicación)
-            </label>
-          )}
+          {serverError && <div className={styles.errorBox}>{serverError}</div>}
 
           <div className={styles.footer}>
             <button
@@ -781,19 +1316,29 @@ export default function PlayForm({
             >
               Cancelar
             </button>
-            <button
-              type="submit"
-              className={styles.btnPrimary}
-              disabled={!canSubmit || submitting}
-            >
-              {submitting
-                ? "Guardando…"
-                : editMode
-                  ? "Guardar cambios"
-                  : keepGoing
-                    ? "Guardar y cargar otra"
-                    : "Guardar en BGG"}
-            </button>
+            <div className={styles.footerRight}>
+              {allowMultiSave && !editMode && (
+                <button
+                  type="button"
+                  className={styles.btnGhost}
+                  onClick={() => submit(true)}
+                  disabled={!canSubmit || submitting}
+                >
+                  Guardar y cargar otra
+                </button>
+              )}
+              <button
+                type="submit"
+                className={styles.btnPrimary}
+                disabled={!canSubmit || submitting}
+              >
+                {submitting
+                  ? "Guardando…"
+                  : editMode
+                    ? "Guardar cambios"
+                    : "Guardar partida"}
+              </button>
+            </div>
           </div>
 
           {editMode && onDelete && (
@@ -817,11 +1362,22 @@ export default function PlayForm({
         </form>
 
         <aside className={styles.preview}>
-          <div className={styles.previewLabel}>Vista previa</div>
-          <div className={styles.previewCard}>
-            <PlayCard play={previewPlay} userMap={previewUserMap} />
-          </div>
-          <p className={styles.previewNote}>Así se va a ver tu partida.</p>
+          <div className={styles.previewLabel}>◆ Tu entrada · en vivo</div>
+          <Scorecard
+            game={game}
+            date={details.playdate}
+            location={details.location}
+            duration={details.length === "" ? null : Number(details.length)}
+            mode={mode}
+            hasResult={hasResult}
+            youWin={youWin}
+            rows={scorecardRows}
+            notes={details.comments}
+            userMap={userMap}
+          />
+          <p className={styles.previewNote}>
+            Se guarda en tu almanaque al confirmar.
+          </p>
         </aside>
       </div>
     </div>

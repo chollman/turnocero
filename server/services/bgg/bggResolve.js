@@ -22,6 +22,7 @@ const { getCached, setCached, CACHE_TTL } = require("./bggCache");
 const {
   parser,
   parseGameItem,
+  parseGameExpansions,
   gameDocToObject,
   parseCollectionXml,
 } = require("./bggParse");
@@ -218,11 +219,45 @@ async function resolveCollection(bggUsername, opts = {}) {
   return games;
 }
 
+// Expansiones de un juego (para el picker "Expansiones jugadas"). BggGame no
+// las persiste, así que se fetchea el thing y se cachea en L1 (data inmutable).
+async function resolveGameExpansions(gameId) {
+  const id = Number(gameId);
+  if (!Number.isFinite(id) || id <= 0) return [];
+
+  const cacheKey = `expansions:${id}`;
+  const cached = getCached(cacheKey, GAME_CACHE_TTL);
+  if (cached) return cached;
+
+  const xml = await fetchBgg(`${BGG_API}/thing?id=${id}&type=boardgame`);
+  const parsed = parser.parse(xml);
+  const item = parsed?.items?.item;
+  const expansions = item ? parseGameExpansions(item) : [];
+
+  // Enriquecer con thumbnail (el <link> sólo trae id+name): cada expansión es
+  // un thing de BGG → se resuelve en batch (memoria → Mongo → BGG).
+  if (expansions.length) {
+    try {
+      const map = await resolveGamesBatch(expansions.map((e) => e.id));
+      for (const e of expansions) {
+        const g = map.get(e.id);
+        e.thumbnail = g?.thumbnail || null;
+      }
+    } catch (_) {
+      // Sin thumbnails si el batch falla — el picker cae al fallback.
+    }
+  }
+
+  setCached(cacheKey, expansions);
+  return expansions;
+}
+
 module.exports = {
   BGG_API,
   fetchBgg,
   persistGame,
   resolveGame,
+  resolveGameExpansions,
   resolveGamesBatch,
   resolveCollection,
 };

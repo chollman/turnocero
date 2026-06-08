@@ -109,11 +109,16 @@ describe("<PlayerPicker>", () => {
         onCancel={vi.fn()}
       />,
     );
-    // Bob (bobbgg) está vinculado a un usuario de TurnoCero → avatar.
-    const avatar = await screen.findByTestId("avatar");
-    expect(avatar).toHaveTextContent("bobtc");
-    // Tía Susana no tiene BGG → no resuelve avatar (sigue el fallback 👤).
-    expect(screen.getAllByTestId("avatar")).toHaveLength(1);
+    // Bob (bobbgg) está vinculado a un usuario de TurnoCero → su avatar resuelve
+    // al miembro (bobtc) cuando llega el userMap.
+    await waitFor(() =>
+      expect(
+        screen.getAllByTestId("avatar").some((a) => a.textContent === "bobtc"),
+      ).toBe(true),
+    );
+    // Tía Susana (sin BGG) ahora también usa <Avatar> (iniciales), no 👤.
+    expect(screen.getAllByTestId("avatar")).toHaveLength(2);
+    expect(screen.queryByText("👤")).toBeNull();
   });
 
   it("muestra el avatar curado (overlay) del compañero aunque no sea miembro", async () => {

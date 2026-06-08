@@ -28,6 +28,7 @@
   --text-primary: #ffffff;
   --text-secondary: #a8b4cc;
   --text-muted: #8a8d90;
+  --text-faint: #353d52;
 
   --border: #1e2a3d;
   --border-strong: #2a3a55;
@@ -37,6 +38,7 @@
   --green: #00d984;
   --orange: #f5a623;
   --purple: #b48cff;
+  --gold: #ffd700;
 
   /* Accent helpers (opacity variants of brand colors — same in both themes) */
   --amber-05: color-mix(in srgb, var(--amber) 05%, transparent);
@@ -66,9 +68,12 @@
   --orange-80: color-mix(in srgb, var(--orange) 80%, transparent);
   --purple-10: color-mix(in srgb, var(--purple) 10%, transparent);
   --purple-15: color-mix(in srgb, var(--purple) 15%, transparent);
+  --purple-25: color-mix(in srgb, var(--purple) 25%, transparent);
   --purple-30: color-mix(in srgb, var(--purple) 30%, transparent);
   --purple-40: color-mix(in srgb, var(--purple) 40%, transparent);
   --purple-70: color-mix(in srgb, var(--purple) 70%, transparent);
+  --gold-10: color-mix(in srgb, var(--gold) 10%, transparent);
+  --gold-25: color-mix(in srgb, var(--gold) 25%, transparent);
 
   /* Surface helpers (theme-dependent overlays — overridden in light) */
   --overlay-soft: rgba(255, 255, 255, 0.06);
@@ -81,6 +86,7 @@
   --font-body: "Archivo", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --font-script: "Caveat", cursive;
+  --font-serif: "Lora", Georgia, serif;
 
   /* Shadows */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
@@ -102,6 +108,7 @@
   --text-primary: #0a0d15;
   --text-secondary: #4a5568;
   --text-muted: #8a92a3;
+  --text-faint: #aab2c4;
 
   --border: #d8dde7;
   --border-strong: #b9c3d4;

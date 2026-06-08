@@ -1,9 +1,8 @@
 /* ============================================================
-   PlayForm · página de cargar / editar partida (BG Watch)
-   Shell calcado de MesaForm.module.css (page / hero / layout /
-   steps / section / footer / preview / dangerZone) con los tokens
-   del proyecto. Los widgets internos (player rows, pickers, toggles)
-   reusan BgWatchProfile.module.css.
+   PlayForm · cargar / editar partida (BG Watch)
+   Estética "scoresheet / libreta de puntajes" (handoff
+   design_handoff_bgwatch_create). Mapeado a los tokens del
+   proyecto (--accent del handoff = --amber del app) → theme-aware.
    ============================================================ */
 
 .page {
@@ -55,7 +54,6 @@
     padding-top: 1.5rem;
   }
 }
-
 @media (max-width: 959px) {
   .page {
     padding-inline: var(--page-padding-mobile);
@@ -76,237 +74,86 @@
   text-transform: uppercase;
   cursor: pointer;
   padding: 0;
-  margin: 0 0 20px;
+  margin: 0 0 24px;
   transition: color var(--transition);
 }
 .backBtn:hover:not(:disabled) {
   color: var(--amber-light);
 }
 
-/* -- Hero -- */
-.hero {
+/* -- Header -- */
+.head {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 24px;
+  gap: 20px;
   align-items: end;
-  padding-bottom: 1rem;
+  padding-bottom: 22px;
+  margin-bottom: 26px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 0.75rem;
-  min-width: 0;
 }
-.heroLeft {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.heroEyebrow {
+.kicker {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.18em;
-  color: var(--amber-light);
+  letter-spacing: 0.15em;
+  color: var(--purple);
   text-transform: uppercase;
-  margin: 0;
+  margin-bottom: 8px;
 }
-.heroTitle {
+.title {
   font-family: var(--font-display);
-  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  font-size: clamp(1.9rem, 4vw, 2.7rem);
   font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 0.95;
-  margin: 8px 0;
-  color: var(--text-primary);
-  text-wrap: balance;
-  overflow-wrap: anywhere;
-}
-.heroSub {
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-  max-width: 540px;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
   margin: 0;
-  line-height: 1.5;
+  color: var(--text-primary);
 }
-.heroRight {
+.title em {
+  font-style: normal;
+  font-family: var(--font-script);
+  font-weight: 600;
+  color: var(--purple);
+  font-size: 1.12em;
+}
+.progress {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   gap: 4px;
-  text-align: right;
+  align-items: flex-end;
 }
-.heroProgressLabel {
+.progressVal {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--purple);
+}
+.progressLbl {
   font-family: var(--font-mono);
   font-size: 10px;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   color: var(--text-muted);
   text-transform: uppercase;
 }
-.heroProgressValue {
-  font-family: var(--font-display);
-  font-size: 2.2rem;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  color: var(--amber-light);
-}
 
-/* -- Layout: form + preview -- */
+/* -- Layout -- */
 .layout {
   display: grid;
   grid-template-columns: 1fr 340px;
-  gap: 0.75rem;
+  gap: 32px;
   align-items: start;
 }
 .form {
-  display: flex;
-  flex-direction: column;
   min-width: 0;
-}
-
-/* -- Stepper -- */
-.steps {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  margin-bottom: 0.75rem;
-  position: relative;
-  padding: 0 4px;
-}
-.steps::before {
-  content: "";
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  top: 14px;
-  height: 1px;
-  background: var(--border);
-  z-index: 0;
-}
-.step {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  position: relative;
-  z-index: 1;
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
-  text-align: center;
-  transition: transform var(--transition);
-}
-.step:hover .stepDot {
-  transform: scale(1.08);
-}
-.step:focus-visible {
-  outline: none;
-}
-.step:focus-visible .stepDot {
-  box-shadow: 0 0 0 4px var(--amber-glow);
-}
-.stepDot {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--bg-elevated);
-  border: 1.5px solid var(--border);
-  color: var(--text-muted);
-  display: grid;
-  place-items: center;
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  transition: all var(--transition);
-}
-.stepActive .stepDot {
-  background: var(--amber);
-  border-color: var(--amber);
-  color: var(--on-amber);
-  box-shadow: 0 0 0 4px var(--amber-glow);
-}
-.stepDone .stepDot {
-  background: var(--green);
-  border-color: var(--green);
-  color: #001712;
-}
-.stepLabel {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-.stepActive .stepLabel {
-  color: var(--amber-light);
-}
-.stepDone .stepLabel {
-  color: var(--green);
+  gap: 18px;
 }
 
-/* -- Section card -- */
-.section {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 22px 24px;
-  margin-bottom: 0.75rem;
-  scroll-margin-top: 1.5rem;
-}
-.sectionHead {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 18px;
-  padding-bottom: 12px;
-  border-bottom: 1px dashed var(--border);
-}
-.sectionLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  color: var(--amber-light);
-  text-transform: uppercase;
-}
-.sectionTitle {
-  font-family: var(--font-display);
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  color: var(--text-primary);
-}
-.sectionHelp {
-  color: var(--text-secondary);
-  font-size: 13px;
-  margin: -8px 0 18px 0;
-  line-height: 1.45;
-}
-
-/* -- Multi-partida rápida (checkbox sobre el footer) -- */
-.keepGoing {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  user-select: none;
-  margin-bottom: 12px;
-}
-.keepGoing input {
-  accent-color: var(--amber);
-  cursor: pointer;
-}
-
-/* -- Banner "Retomar borrador" (#4) -- */
+/* -- Draft banner -- */
 .draftBanner {
   display: flex;
   align-items: center;
@@ -353,166 +200,262 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    border-color var(--transition),
-    color var(--transition);
+  transition: all var(--transition);
 }
 .draftDiscard:hover {
   border-color: var(--text-muted);
   color: var(--text-primary);
 }
 
-/* -- Score con atajos +/- -- */
-.scoreCell {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex: 1;
-  min-width: 130px;
-}
-
-.scoreStep {
-  flex: 0 0 auto;
-  width: 30px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* -- Section card (scoresheet panel) -- */
+.section {
+  background: var(--bg-paper);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  user-select: none;
-  transition:
-    border-color var(--transition),
-    color var(--transition),
-    background var(--transition);
+  border-radius: 16px;
+  padding: 22px 24px;
+  position: relative;
 }
-.scoreStep:hover {
-  border-color: var(--amber);
-  color: var(--amber-light);
-  background: var(--amber-10);
-}
-
-/* -- Botón "Usar última junta" -- */
-.lastJuntadaBtn {
-  display: inline-flex;
+.sectionHead {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  align-self: flex-start;
-  background: var(--amber-10);
-  border: 1px solid var(--amber-25);
-  border-radius: 10px;
-  color: var(--amber-light);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 9px 14px;
-  cursor: pointer;
-  transition:
-    border-color var(--transition),
-    background var(--transition);
+  gap: 12px;
+  margin-bottom: 18px;
 }
-.lastJuntadaBtn:hover {
-  border-color: var(--amber);
-  background: var(--amber-15);
-}
-.lastJuntadaHint {
-  font-weight: 500;
+.sectionNum {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--purple-10);
+  border: 1px solid var(--purple-25);
+  color: var(--purple);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
   font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.sectionNumDone {
+  background: var(--green);
+  border-color: var(--green);
+  color: #001712;
+}
+.sectionNumOptional {
+  background: var(--bg-elevated);
+  border-color: var(--border);
   color: var(--text-muted);
 }
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  flex: 1;
+}
+.sectionHint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
 
-/* -- Acciones de la lista de jugadores -- */
-.playerActions {
+/* -- Game picker (selected state) -- */
+.gameSelected {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--amber-40);
+  border-radius: 12px;
+}
+.gameThumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--amber), var(--amber-dark));
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: #fff;
+  letter-spacing: -0.04em;
+  flex-shrink: 0;
+}
+.gameThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gameInfo {
+  flex: 1;
+  min-width: 0;
+}
+.gameName {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+.gameMeta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.gameChange {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.gameChange:hover {
+  border-color: var(--amber);
+  color: var(--amber-light);
+}
+
+/* -- Expansiones jugadas + variante/tablero (sección del juego) -- */
+.gameExtrasChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.extraChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 11px;
+  background: var(--amber-10);
+  border: 1px solid var(--amber-25);
+  border-radius: 999px;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.extraChipVariant {
+  background: var(--purple-10);
+  border-color: var(--purple-25);
+}
+.extraChip button {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.extraChip button:hover {
+  background: var(--red-10);
+  color: var(--red);
+}
+.gameExtrasActions {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+  margin-top: 12px;
+}
+.gameExtrasRight {
+  margin-left: auto;
 }
 
-.sortByScoreBtn {
-  background: none;
+/* -- Fields -- */
+.fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+.fieldRow .field {
+  margin-bottom: 0;
+}
+.fieldLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.input {
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition:
-    border-color var(--transition),
-    color var(--transition);
+  border-radius: 9px;
+  padding: 11px 13px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  transition: all var(--transition);
 }
-.sortByScoreBtn:hover {
+.input:focus {
   border-color: var(--amber);
-  color: var(--amber-light);
+  box-shadow: 0 0 0 3px var(--amber-glow);
+}
+.input::placeholder {
+  color: var(--text-muted);
 }
 
-/* -- Glitch cyberpunk del badge de posición (al cambiar el número) --
-   Paleta magenta #ff2a6d + cyan #05d9e8, steps(1) = saltos digitales, un frame
-   invertido para el "broken signal". Se dispara con data-glitch="on" sobre un
-   span remontado (PositionBadge), así reinicia en cada cambio. */
-.posBadge {
-  display: inline-block; /* el span necesita ser transformable para el skew */
+/* Quick chips (date / duration) */
+.quickRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
 }
-.posBadge[data-glitch="on"] {
-  animation: posBadgeGlitch 0.5s steps(1, end);
+.quick {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all var(--transition);
 }
-
-@keyframes posBadgeGlitch {
-  0% {
-    transform: translate(0, 0) skewX(0deg);
-    filter: brightness(1.9) contrast(1.2);
-  }
-  15% {
-    transform: translate(-2px, 0) skewX(-10deg);
-    filter: drop-shadow(2px 0 0 #ff2a6d) drop-shadow(-2px 0 0 #05d9e8)
-      brightness(1.4);
-  }
-  30% {
-    transform: translate(2px, -1px) skewX(7deg);
-    filter: drop-shadow(-3px 0 0 #ff2a6d) drop-shadow(3px 0 0 #05d9e8);
-  }
-  45% {
-    transform: translate(-1px, 1px) skewX(0deg);
-    filter: invert(1) hue-rotate(180deg);
-  }
-  60% {
-    transform: translate(2px, 0) skewX(5deg);
-    filter: drop-shadow(2px 0 0 #ff2a6d) drop-shadow(-2px 0 0 #05d9e8)
-      saturate(1.5);
-  }
-  75% {
-    transform: translate(-1px, 0) skewX(-2deg);
-    filter: drop-shadow(1px 0 0 #ff2a6d) drop-shadow(-1px 0 0 #05d9e8);
-  }
-  100% {
-    transform: translate(0, 0) skewX(0deg);
-    filter: none;
-  }
+.quick:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+.quickActive {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--on-amber);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .posBadge[data-glitch="on"] {
-    animation: none;
-  }
-}
-
-/* -- Error de validación inline (ej. fecha futura) -- */
 .fieldError {
   display: block;
   margin-top: 6px;
   font-size: 12.5px;
   color: var(--red);
 }
-
-/* -- Sugerencia de duración (promedio histórico) -- */
 .durationSuggest {
   display: inline-block;
   margin-top: 6px;
@@ -530,20 +473,600 @@
   text-decoration: underline;
 }
 
+.checkboxRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.checkboxLabel input {
+  accent-color: var(--amber);
+  cursor: pointer;
+}
+
+/* -- Mode toggle -- */
+.modeToggle {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 4px;
+  margin-bottom: 16px;
+}
+.mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  border: none;
+  padding: 10px 6px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.modeT {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.modeD {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.modeActive {
+  background: var(--bg-elevated);
+  color: var(--amber-light);
+}
+.modeActive .modeD {
+  color: var(--text-secondary);
+}
+
+/* -- Coop outcome -- */
+.coopOutcome {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.coopBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.coopX {
+  font-size: 24px;
+  line-height: 1;
+}
+.coopWin.coopBtnActive {
+  border-color: var(--green);
+  background: var(--green-10);
+  color: var(--green);
+}
+.coopLoss.coopBtnActive {
+  border-color: var(--red);
+  background: var(--red-10);
+  color: var(--red);
+}
+
+/* -- Modo equipos -- */
+/* Selector "¿Qué equipo ganó?" */
+.teamResult {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.teamResultLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.teamResultBtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.teamWinBtn {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 14px;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.teamWinBtn:hover {
+  border-color: var(--amber-40);
+  color: var(--text-primary);
+}
+.teamWinBtnActive {
+  border-color: var(--green);
+  background: var(--green-10);
+  color: var(--green);
+}
+.addTeamBtn {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  padding: 8px 14px;
+  color: var(--amber-light);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.addTeamBtn:hover {
+  border-color: var(--amber);
+  background: var(--amber-10);
+}
+/* Selector de equipo por jugador (en la fila) */
+.teamPick {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 3px;
+}
+.teamBtn {
+  min-width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.teamBtn:hover {
+  color: var(--text-primary);
+}
+.teamBtnActive {
+  background: var(--amber);
+  color: var(--on-amber);
+}
+
+/* -- "Usar última juntada" -- */
+.lastJuntadaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  background: var(--amber-10);
+  border: 1px solid var(--amber-25);
+  border-radius: 10px;
+  color: var(--amber-light);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.lastJuntadaBtn:hover {
+  border-color: var(--amber);
+  background: var(--amber-15);
+}
+.lastJuntadaHint {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* -- Player scoring rows -- */
+.scoreList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.scoreRow {
+  display: grid;
+  grid-template-columns: 28px auto 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  transition: all var(--transition);
+}
+.scoreRowLeader {
+  border-color: var(--gold);
+  background: linear-gradient(90deg, var(--gold-10), transparent 60%);
+}
+.scoreRowYou {
+  box-shadow: inset 3px 0 0 var(--amber);
+}
+/* Si "vos" además es el ganador (borde dorado), no duplicar con el borde
+   izquierdo azul: gana el dorado. */
+.scoreRowLeader.scoreRowYou {
+  box-shadow: none;
+}
+.scoreRank {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-muted);
+  text-align: center;
+}
+.scoreRowLeader .scoreRank {
+  color: var(--gold);
+}
+.scorePlayer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.scorePlayerName {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+.scorePlayerHandle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.anonTag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.youPill {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--amber-light);
+  text-transform: uppercase;
+  border: 1px solid var(--amber-40);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.scoreCrown {
+  color: var(--gold);
+  display: inline-flex;
+}
+.newBadge {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: var(--purple);
+  white-space: nowrap;
+}
+
+.scoreControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.scoreCell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.scoreStep {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition);
+}
+.scoreStep:hover {
+  border-color: var(--amber);
+  color: var(--amber-light);
+  background: var(--amber-10);
+}
+.scoreInput {
+  width: 70px;
+  height: 34px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 10px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+  outline: none;
+  transition: all var(--transition);
+}
+.scoreInput:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px var(--amber-glow);
+}
+.winToggle {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.winToggle:hover {
+  color: var(--gold);
+  border-color: var(--gold-25);
+}
+.winToggleActive {
+  color: var(--gold);
+  border-color: var(--gold);
+  background: var(--gold-10);
+}
+.teamTag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.scoreRemove {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.scoreRemove:hover {
+  color: var(--red);
+  background: var(--red-10);
+}
+
+/* ghost avatar (jugador anónimo) */
+.ghostAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* -- Add players -- */
+/* Área que ancla el popover del picker (se despliega sin empujar contenido,
+   igual que el selector de ubicación). */
+.addPlayerArea {
+  position: relative;
+  margin-top: 12px;
+}
+.playerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.playerPickerPop {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  padding: 10px 12px;
+}
+.addBtn {
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.addBtn:hover {
+  border-color: var(--amber);
+  color: var(--amber-light);
+}
+.addGuestBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: 999px;
+  padding: 8px 14px;
+  color: var(--amber-light);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.addGuestBtn:hover {
+  border-color: var(--amber);
+  background: var(--amber-10);
+}
+.sortBtn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.sortBtn:hover {
+  border-color: var(--amber);
+  color: var(--amber-light);
+}
+
+/* Fila superior de jugadores: "Usar última juntada" (izq) + "Jugué en
+   solitario" (der). Cada uno aparece según su condición; el solo se empuja a
+   la derecha aunque esté solo. */
+.playersTopRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.playersTopRow .lastJuntadaBtn,
+.playersTopRow .soloPlay {
+  min-height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.playersTopRow .lastJuntadaBtn {
+  margin-bottom: 0;
+}
+.playersTopRow .soloPlay {
+  margin: 0;
+  margin-left: auto;
+}
+
+/* "Jugué en solitario" — habilita completar el paso con sólo "vos" */
+.soloPlay {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition);
+}
+.soloPlay:hover {
+  border-color: var(--amber-40);
+  color: var(--text-primary);
+}
+.soloPlay input {
+  accent-color: var(--amber);
+  cursor: pointer;
+}
+
+/* -- Notas -- */
+.notes {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 11px 13px;
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.5;
+  outline: none;
+  resize: vertical;
+  min-height: 80px;
+  transition: all var(--transition);
+}
+.notes:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px var(--amber-glow);
+}
+.notes::placeholder {
+  color: var(--text-muted);
+}
+
 /* -- Footer -- */
 .footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 14px;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+.footerRight {
+  display: flex;
+  gap: 10px;
 }
 .btnGhost {
   background: transparent;
   border: 1px solid var(--border-strong);
   color: var(--text-secondary);
-  padding: 12px 22px;
+  padding: 12px 20px;
   border-radius: 10px;
   font-family: var(--font-display);
   font-size: 13px;
@@ -553,7 +1076,7 @@
   transition: all var(--transition);
 }
 .btnGhost:hover:not(:disabled) {
-  border-color: var(--border-amber);
+  border-color: var(--amber);
   color: var(--amber-light);
 }
 .btnGhost:disabled {
@@ -585,14 +1108,12 @@
   box-shadow: none;
 }
 
-/* -- Error box -- */
 .errorBox {
   background: var(--red-10);
   border: 1px solid var(--red-25);
   color: var(--red);
   padding: 10px 14px;
   border-radius: 8px;
-  margin-bottom: 14px;
   font-size: 13px;
   font-family: var(--font-mono);
   letter-spacing: 0.04em;
@@ -600,7 +1121,7 @@
 
 /* -- Danger zone (edit) -- */
 .dangerZone {
-  margin-top: 24px;
+  margin-top: 8px;
   padding: 20px 22px;
   background: var(--red-10);
   border: 1px dashed var(--red-25);
@@ -651,7 +1172,9 @@
   cursor: not-allowed;
 }
 
-/* -- Live preview -- */
+/* ============================================================
+   Live scorecard (preview, right column)
+   ============================================================ */
 .preview {
   position: sticky;
   top: calc(var(--navbar-h, 64px) + 1.5rem);
@@ -667,19 +1190,15 @@
   gap: 8px;
   font-family: var(--font-mono);
   font-size: 10px;
-  letter-spacing: 0.18em;
-  color: var(--amber-light);
+  letter-spacing: 0.16em;
+  color: var(--purple);
   text-transform: uppercase;
 }
 .previewLabel::before {
   content: "";
   width: 20px;
   height: 1px;
-  background: var(--amber-light);
-}
-.previewCard {
-  pointer-events: none;
-  filter: saturate(0.95);
+  background: var(--purple);
 }
 .previewNote {
   font-family: var(--font-mono);
@@ -687,58 +1206,298 @@
   color: var(--text-muted);
   letter-spacing: 0.04em;
   text-align: center;
-  padding: 6px 10px;
+  padding: 4px;
   margin: 0;
 }
 
+.scorecard {
+  background:
+    radial-gradient(
+      600px circle at 50% -30%,
+      var(--purple-10),
+      transparent 60%
+    ),
+    linear-gradient(180deg, var(--bg-card), var(--bg-paper));
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+}
+.scorecardTop {
+  padding: 18px 20px 16px;
+  border-bottom: 1px dashed var(--border-strong);
+}
+.scorecardKicker {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  color: var(--purple);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.scorecardGameRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.scorecardThumb {
+  width: 46px;
+  height: 46px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--amber), var(--amber-dark));
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: #fff;
+  letter-spacing: -0.04em;
+  flex-shrink: 0;
+}
+.scorecardThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.scorecardThumbEmpty {
+  background: var(--bg-elevated);
+  color: var(--text-faint);
+}
+.scorecardGameName {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+.scorecardGameNameEmpty {
+  color: var(--text-faint);
+  font-style: italic;
+  font-weight: 600;
+}
+.scorecardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.scorecardMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.scorecardMeta svg {
+  color: var(--text-faint);
+}
+
+.scorecardBody {
+  padding: 14px 20px 18px;
+}
+.scorecardBanner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-bottom: 14px;
+}
+.scorecardBanner_win {
+  background: var(--green-10);
+  border: 1px solid var(--green-25);
+  color: var(--green);
+}
+.scorecardBanner_loss {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.scorecardBanner_empty {
+  background: var(--bg-elevated);
+  border: 1px dashed var(--border);
+  color: var(--text-faint);
+}
+.scorecardPlayers {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.scorecardPlayer {
+  display: grid;
+  grid-template-columns: 18px auto 1fr auto;
+  gap: 9px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.scorecardPlayer:last-child {
+  border-bottom: none;
+}
+.scorecardPr {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  display: inline-flex;
+  justify-content: center;
+}
+.scorecardPlayerLead .scorecardPr {
+  color: var(--gold);
+}
+.scorecardNm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scorecardPlayerYou .scorecardNm {
+  color: var(--amber-light);
+}
+.scorecardCrown {
+  color: var(--gold);
+  display: inline-flex;
+}
+.scorecardSc {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+.scorecardPlayerLead .scorecardSc {
+  color: var(--gold);
+}
+.scorecardEmpty {
+  text-align: center;
+  padding: 20px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+}
+.scorecardNotes {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* ============================================================
+   PositionBadge glitch (componente aún usado en otras vistas)
+   ============================================================ */
+.posBadge {
+  display: inline-block;
+}
+.posBadge[data-glitch="on"] {
+  animation: posBadgeGlitch 0.5s steps(1, end);
+}
+@keyframes posBadgeGlitch {
+  0% {
+    transform: translate(0, 0) skewX(0deg);
+    filter: brightness(1.9) contrast(1.2);
+  }
+  15% {
+    transform: translate(-2px, 0) skewX(-10deg);
+    filter: drop-shadow(2px 0 0 #ff2a6d) drop-shadow(-2px 0 0 #05d9e8)
+      brightness(1.4);
+  }
+  30% {
+    transform: translate(2px, -1px) skewX(7deg);
+    filter: drop-shadow(-3px 0 0 #ff2a6d) drop-shadow(3px 0 0 #05d9e8);
+  }
+  45% {
+    transform: translate(-1px, 1px) skewX(0deg);
+    filter: invert(1) hue-rotate(180deg);
+  }
+  60% {
+    transform: translate(2px, 0) skewX(5deg);
+    filter: drop-shadow(2px 0 0 #ff2a6d) drop-shadow(-2px 0 0 #05d9e8)
+      saturate(1.5);
+  }
+  75% {
+    transform: translate(-1px, 0) skewX(-2deg);
+    filter: drop-shadow(1px 0 0 #ff2a6d) drop-shadow(-1px 0 0 #05d9e8);
+  }
+  100% {
+    transform: translate(0, 0) skewX(0deg);
+    filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .posBadge[data-glitch="on"] {
+    animation: none;
+  }
+}
+
 /* -- Mobile -- */
-@media (max-width: 980px) {
-  .hero {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .heroRight {
-    align-items: flex-start;
-    text-align: left;
-  }
+@media (max-width: 880px) {
   .layout {
     grid-template-columns: 1fr;
     gap: 24px;
   }
   .preview {
     position: static;
+    order: -1;
+  }
+  .head {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .progress {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+  }
+}
+@media (max-width: 580px) {
+  .fieldRow {
+    grid-template-columns: 1fr;
+  }
+  .scoreRow {
+    grid-template-columns: 24px auto 1fr;
+    gap: 8px;
+  }
+  .scoreControls {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+  .scoreRemove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+  .scoreRow {
+    position: relative;
   }
   .section {
-    padding: 14px 14px;
-  }
-  .sectionHead {
-    margin-bottom: 14px;
-    padding-bottom: 10px;
-  }
-  .stepDot {
-    width: 24px;
-    height: 24px;
-    font-size: 11px;
-  }
-  .steps::before {
-    left: 18px;
-    right: 18px;
-    top: 12px;
-  }
-  .stepLabel {
-    font-size: 9px;
-    letter-spacing: 0.06em;
+    padding: 16px 14px;
   }
   .footer {
     flex-wrap: wrap;
     gap: 10px;
   }
-  .btnGhost,
-  .btnPrimary {
-    padding: 10px 14px;
-    font-size: 12.5px;
-  }
-  .dangerZone {
-    padding: 14px 16px;
+  .footerRight {
+    flex: 1;
+    justify-content: flex-end;
   }
 }

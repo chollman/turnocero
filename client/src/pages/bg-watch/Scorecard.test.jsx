@@ -1,0 +1,135 @@
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+
+vi.mock("../../components/shared/Avatar", () => ({
+  default: ({ user }) => <div data-testid="avatar">{user?.username || ""}</div>,
+}));
+
+import Scorecard, { gameInitials } from "./Scorecard";
+
+function row(over = {}) {
+  return {
+    key: over.key || over.name || "k",
+    name: "Jugador",
+    username: "",
+    anonymous: false,
+    score: "",
+    win: false,
+    new: false,
+    position: 1,
+    you: false,
+    leader: false,
+    ...over,
+  };
+}
+
+describe("gameInitials", () => {
+  it("toma iniciales de 2 palabras o 2 letras", () => {
+    expect(gameInitials("Terraforming Mars")).toBe("TM");
+    expect(gameInitials("Catan")).toBe("CA");
+    expect(gameInitials("")).toBe("?");
+  });
+});
+
+describe("<Scorecard>", () => {
+  it("muestra placeholder sin juego", () => {
+    render(<Scorecard rows={[]} />);
+    expect(screen.getByText("Elegí un juego")).toBeInTheDocument();
+    expect(screen.getByText("Sin jugadores todavía")).toBeInTheDocument();
+  });
+
+  it("muestra el nombre del juego elegido", () => {
+    render(<Scorecard game={{ name: "Wingspan" }} rows={[]} />);
+    expect(screen.getByText("Wingspan")).toBeInTheDocument();
+  });
+
+  it("banner vacío cuando no hay resultado (versus)", () => {
+    render(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        hasResult={false}
+        rows={[row({ name: "Ana" })]}
+      />,
+    );
+    expect(screen.getByText(/cargá los puntajes/i)).toBeInTheDocument();
+  });
+
+  it("banner de victoria cuando ganás (versus)", () => {
+    render(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        hasResult
+        youWin
+        rows={[row({ name: "Vos", you: true, leader: true, score: "10" })]}
+      />,
+    );
+    expect(screen.getByText(/¡ganaste!/i)).toBeInTheDocument();
+  });
+
+  it("banner de derrota cuando perdés (versus)", () => {
+    render(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        hasResult
+        youWin={false}
+        rows={[row({ name: "Vos", you: true, score: "3" })]}
+      />,
+    );
+    expect(screen.getByText(/perdiste/i)).toBeInTheDocument();
+  });
+
+  it("ordena las filas por posición (rank) en versus", () => {
+    render(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        hasResult
+        rows={[
+          row({ key: "a", name: "Ana", position: 2, score: "5" }),
+          row({
+            key: "b",
+            name: "Beto",
+            position: 1,
+            score: "9",
+            leader: true,
+          }),
+        ]}
+      />,
+    );
+    const names = screen.getAllByText(/Ana|Beto/).map((n) => n.textContent);
+    expect(names[0]).toMatch(/Beto/);
+    expect(names[1]).toMatch(/Ana/);
+  });
+
+  it("en coop muestra el banner de equipo", () => {
+    render(
+      <Scorecard
+        game={{ name: "Pandemic" }}
+        mode="coop"
+        hasResult
+        youWin
+        rows={[
+          row({ name: "Vos", win: true }),
+          row({ key: "b", name: "Ana", win: true }),
+        ]}
+      />,
+    );
+    expect(screen.getByText(/¡ganaron!/i)).toBeInTheDocument();
+  });
+
+  it("el anónimo se muestra con avatar fantasma (sin <Avatar>)", () => {
+    render(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        rows={[row({ name: "Jugador anónimo 1", anonymous: true })]}
+      />,
+    );
+    expect(screen.getByText("Jugador anónimo 1")).toBeInTheDocument();
+    expect(screen.queryByTestId("avatar")).toBeNull();
+    expect(screen.getByText("👤")).toBeInTheDocument();
+  });
+});

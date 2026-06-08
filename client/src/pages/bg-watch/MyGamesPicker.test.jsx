@@ -74,7 +74,8 @@ describe("<MyGamesPicker>", () => {
     expect(screen.getByText("Azul")).toBeInTheDocument();
     // Wingspan está en la página 2 → no debería estar todavía.
     expect(screen.queryByText("Wingspan")).toBeNull();
-    expect(screen.getByText(/5 partidas/i)).toBeInTheDocument();
+    // Badge de partidas en el tile (Catán = 5×).
+    expect(screen.getByText("5×")).toBeInTheDocument();
   });
 
   it("muestra el skeleton mientras carga y lo oculta al llegar los datos", async () => {
@@ -91,7 +92,8 @@ describe("<MyGamesPicker>", () => {
     expect(await screen.findByText("Wingspan")).toBeInTheDocument();
     // Las de la página 1 siguen presentes (append, no replace).
     expect(screen.getByText("Catán")).toBeInTheDocument();
-    expect(screen.getByText(/en tu colección/i)).toBeInTheDocument();
+    // Wingspan tiene 0 partidas → badge "nuevo".
+    expect(screen.getByText("nuevo")).toBeInTheDocument();
   });
 
   it("la búsqueda refetchea server-side (debounced) con ?q", async () => {
@@ -167,9 +169,7 @@ describe("<MyGamesPicker>", () => {
       ),
     );
     render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
-    expect(
-      await screen.findByText(/tu lista está vacía/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/tu lista está vacía/i)).toBeInTheDocument();
   });
 
   it("sin bggUsername va directo a la búsqueda en BGG", async () => {

@@ -1290,8 +1290,9 @@
 /* Game search dropdown list */
 .gameSearchList {
   list-style: none;
-  padding: 0;
   margin: 0;
+  /* Margen a la derecha para que el scrollbar no quede pegado a las filas. */
+  padding: 0 6px 0 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1345,6 +1346,30 @@
   min-width: 0;
 }
 
+/* Item de expansión seleccionable (multi-select del picker de expansiones) */
+.expCheck {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+.expSelected {
+  border-color: var(--amber);
+  background: var(--amber-10);
+}
+.expSelected .expCheck {
+  border-color: var(--amber);
+  background: var(--amber);
+  color: var(--on-amber);
+}
+
 .gameSearchName {
   font-size: 13px;
   font-weight: 600;
@@ -1387,22 +1412,136 @@
   cursor: wait;
 }
 
-/* Toggle "¿No lo encontrás? Buscar en BGG" / "Volver a mis juegos" */
-.bggFallbackToggle {
-  align-self: flex-start;
-  margin-top: 8px;
-  padding: 4px 0;
-  background: none;
-  border: none;
-  color: var(--amber);
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
+/* -- Lista del game picker (scoresheet, handoff reimaginado) --
+   Formato lista para que el thumbnail no se estire (se usa la imagen high-res
+   `image` reducida a un cuadradito nítido). */
+.gameList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 2px;
+  scrollbar-width: thin;
+}
+.gameRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 11px;
   cursor: pointer;
+  text-align: left;
+  transition: all var(--transition);
+}
+.gameRow:hover {
+  border-color: var(--amber-40);
+  background: var(--amber-05);
+}
+.gameRowThumb {
+  width: 46px;
+  height: 46px;
+  border-radius: 9px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: var(--amber-light);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      var(--amber-05) 0,
+      var(--amber-05) 7px,
+      transparent 7px,
+      transparent 14px
+    ),
+    linear-gradient(135deg, var(--bg-elevated), var(--bg-dark));
+}
+.gameRowThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gameRowTwoLetter {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+}
+.gameRowBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gameRowName {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gameRowMeta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.gameRowBadge {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.gameRowBadgePlays {
+  background: var(--amber-10);
+  color: var(--amber-light);
+  border: 1px solid var(--amber-25);
+}
+.gameRowBadgeNew {
+  background: var(--purple-10);
+  color: var(--purple);
+  border: 1px solid var(--purple-25);
+}
+.gameRowMore {
+  margin-top: 2px;
+}
+
+/* Toggle "¿No lo encontrás? Buscar en BGG" / "Volver a mis juegos".
+   Pill punteado al tono del "+ Jugador anónimo" del scoresheet (handoff). */
+.bggFallbackToggle {
+  align-self: center;
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: 999px;
+  color: var(--amber-light);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
 }
 
 .bggFallbackToggle:hover {
-  text-decoration: underline;
+  border-color: var(--amber);
+  background: var(--amber-10);
+  color: var(--amber-light);
 }
 
 /* LocationPicker — contenedor del combobox (input + dropdown anclado) */
@@ -1411,19 +1550,20 @@
 }
 
 /* LocationPicker — panel que se despliega al cliquear el input */
+/* Mismo look & feel que el popover del picker de jugadores (.playerPickerPop). */
 .locationDropdown {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 8px);
   left: 0;
   right: 0;
   z-index: 30;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px;
+  gap: 8px;
+  padding: 10px 12px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   box-shadow: var(--shadow-md);
 }
 

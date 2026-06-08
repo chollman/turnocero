@@ -34,12 +34,30 @@ function renderForm(props = {}) {
         onSubmit={props.onSubmit || vi.fn()}
         onCancel={props.onCancel || vi.fn()}
         onDelete={props.onDelete}
-        keepGoing={props.keepGoing}
-        onKeepGoingChange={props.onKeepGoingChange}
+        allowMultiSave={props.allowMultiSave}
         lastJuntada={props.lastJuntada}
       />
     </MemoryRouter>,
   );
+}
+
+const scoreInputs = () => screen.queryAllByLabelText(/^puntaje de/i);
+// Con sólo "vos", el paso de jugadores requiere tildar "Jugué en solitario".
+const checkSolo = () =>
+  fireEvent.click(screen.getByLabelText(/jugué en solitario/i));
+// El picker queda abierto tras elegir (permite agregar varios); se cierra con
+// su ✕ (aria-label "Cancelar", distinto del "Cancelar" del footer).
+const closePicker = () => {
+  const x = screen
+    .getAllByRole("button", { name: /^cancelar$/i })
+    .find((b) => b.textContent === "✕");
+  fireEvent.click(x);
+};
+
+function isoOffset(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 beforeEach(() => {
@@ -76,13 +94,23 @@ beforeEach(() => {
     http.get("/api/users/jugadores", () =>
       HttpResponse.json({ items: [], total: 0, page: 1, pages: 0 }),
     ),
+    http.post("/api/users/by-bgg-usernames", () => HttpResponse.json([])),
     http.get("/api/bgg/jugado/:user/:gameId", () =>
       HttpResponse.json({ played: true, numPlays: 3, known: true }),
     ),
-    // Detalle del juego — alimenta la sugerencia de duración (tiempo de caja).
-    // Default sin playingTime → sin sugerencia (tests específicos overridean).
     http.get("/api/bgg/game/:id", ({ params }) =>
       HttpResponse.json({ id: Number(params.id), playingTime: null }),
+    ),
+    http.get("/api/bgg/game/:id/expansiones", () =>
+      HttpResponse.json({
+        items: [
+          { id: 300580, name: "Wingspan: Oceania" },
+          { id: 266524, name: "European Expansion" },
+        ],
+      }),
+    ),
+    http.get("/api/bgg/variantes/:user/:gameId", () =>
+      HttpResponse.json({ items: ["Escenario 1", "Mapa Norte"] }),
     ),
   );
 });
@@ -113,13 +141,19 @@ describe("<PlayForm>", () => {
     expect(onSubmit.mock.calls[0][0].quantity).toBe(3);
   });
 
-  it("renderiza las tres secciones", () => {
+  it("renderiza las cuatro secciones del scoresheet", () => {
     renderForm();
-    // "El juego" es el título de sección; "Jugadores"/"Extras" aparecen también
-    // en el stepper, por eso van con getAllByText.
-    expect(screen.getByText("El juego")).toBeInTheDocument();
-    expect(screen.getAllByText("Jugadores").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Extras").length).toBeGreaterThan(0);
+    expect(screen.getByText("¿Qué jugaron?")).toBeInTheDocument();
+    expect(screen.getByText("¿Cuándo y dónde?")).toBeInTheDocument();
+    expect(screen.getByText("¿Quiénes jugaron?")).toBeInTheDocument();
+    expect(screen.getByText("Notas")).toBeInTheDocument();
+  });
+
+  it("el título usa la voz del handoff (crear)", () => {
+    renderForm();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      /anotá la partida/i,
+    );
   });
 
   it("con lockedGame muestra el juego sin el selector", () => {
@@ -131,24 +165,14 @@ describe("<PlayForm>", () => {
     expect(screen.queryByPlaceholderText(/filtrá tus juegos/i)).toBeNull();
   });
 
-  it("prefilla el jugador 1 con el usuario", () => {
+  it("prefilla el jugador 1 con el usuario (texto + handle @BGG, no input)", () => {
     renderForm({ initialValues: { game: { id: "13", name: "Catán" } } });
-    // El nombre ya no es input editable: se muestra como texto + handle @BGG.
     expect(screen.queryByPlaceholderText("Nombre")).toBeNull();
     expect(screen.getAllByText("Me").length).toBeGreaterThan(0);
     expect(screen.getByText("@meBGG")).toBeInTheDocument();
   });
 
-  it("el nombre del jugador es texto, no un input editable", () => {
-    renderForm({
-      initialValues: { game: { id: "13", name: "Catán" } },
-      lockedGame: true,
-    });
-    expect(screen.queryByPlaceholderText("Nombre")).toBeNull();
-    expect(screen.getByText("@meBGG")).toBeInTheDocument();
-  });
-
-  it("no muestra el campo @BGG por jugador", () => {
+  it("no muestra el campo @BGG editable por jugador", () => {
     renderForm({
       initialValues: { game: { id: "13", name: "Catán" } },
       lockedGame: true,
@@ -156,14 +180,15 @@ describe("<PlayForm>", () => {
     expect(screen.queryByPlaceholderText(/@BGG/i)).toBeNull();
   });
 
-  it("al guardar igual envía el username del jugador (elegido en el picker)", async () => {
+  it("al guardar envía el username del jugador (elegido en el picker)", async () => {
     const onSubmit = vi.fn();
     renderForm({
       initialValues: { game: { id: "13", name: "Catán" } },
       lockedGame: true,
       onSubmit,
     });
-    fireEvent.click(screen.getByRole("button", { name: /guardar en bgg/i }));
+    checkSolo();
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     expect(onSubmit.mock.calls[0][0].players[0].username).toBe("meBGG");
   });
@@ -175,61 +200,65 @@ describe("<PlayForm>", () => {
       lockedGame: true,
       onSubmit,
     });
-    fireEvent.click(screen.getByRole("button", { name: /guardar en bgg/i }));
+    checkSolo();
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     const payload = onSubmit.mock.calls[0][0];
     expect(payload.objectid).toBe("13");
     expect(payload.players[0]).toMatchObject({ name: "Me", position: 1 });
   });
 
-  it("muestra el check 'Cargar otra' sólo si onKeepGoingChange está presente", () => {
+  // ── Multi-partida ("Guardar y cargar otra") ───────────────────────────
+  it("muestra 'Guardar y cargar otra' sólo con allowMultiSave (no en edición)", () => {
     const { unmount } = renderForm({
       initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
     });
-    // Sin onKeepGoingChange → no aparece.
-    expect(screen.queryByText(/cargar otra partida después/i)).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /guardar y cargar otra/i }),
+    ).toBeNull();
     unmount();
     renderForm({
       initialValues: { game: { id: "13", name: "Catán" } },
-      onKeepGoingChange: vi.fn(),
-    });
-    expect(
-      screen.getByText(/cargar otra partida después/i),
-    ).toBeInTheDocument();
-  });
-
-  it("togglear 'Cargar otra' llama onKeepGoingChange y cambia el CTA", () => {
-    const onKeepGoingChange = vi.fn();
-    const { rerender } = renderForm({
-      initialValues: { game: { id: "13", name: "Catán" } },
       lockedGame: true,
-      keepGoing: false,
-      onKeepGoingChange,
+      allowMultiSave: true,
     });
-    expect(
-      screen.getByRole("button", { name: /guardar en bgg/i }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("checkbox", { name: /cargar otra/i }));
-    expect(onKeepGoingChange).toHaveBeenCalledWith(true);
-    // Con keepGoing=true el CTA cambia.
-    rerender(
-      <MemoryRouter>
-        <PlayForm
-          user={makeUser()}
-          initialValues={{ game: { id: "13", name: "Catán" } }}
-          lockedGame
-          keepGoing
-          onKeepGoingChange={onKeepGoingChange}
-          onSubmit={vi.fn()}
-          onCancel={vi.fn()}
-        />
-      </MemoryRouter>,
-    );
     expect(
       screen.getByRole("button", { name: /guardar y cargar otra/i }),
     ).toBeInTheDocument();
   });
 
+  it("'Guardar y cargar otra' llama onSubmit con keepGoing:true", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      allowMultiSave: true,
+      onSubmit,
+    });
+    checkSolo();
+    fireEvent.click(
+      screen.getByRole("button", { name: /guardar y cargar otra/i }),
+    );
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][1]).toEqual({ keepGoing: true });
+  });
+
+  it("'Guardar partida' llama onSubmit con keepGoing:false", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      allowMultiSave: true,
+      onSubmit,
+    });
+    checkSolo();
+    fireEvent.click(screen.getByRole("button", { name: /^guardar partida$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][1]).toEqual({ keepGoing: false });
+  });
+
+  // ── Autodetección "Nuevo" ─────────────────────────────────────────────
   it("autodetecta 'Nuevo' para el dueño si nunca jugó el juego (known:true)", async () => {
     server.use(
       http.get("/api/bgg/jugado/:user/:gameId", () =>
@@ -243,7 +272,6 @@ describe("<PlayForm>", () => {
   it("autodetecta 'Nuevo' para un invitado conocido (known:true, !played)", async () => {
     server.use(
       http.get("/api/bgg/jugado/:user/:gameId", ({ params }) =>
-        // El dueño (meBGG) ya jugó; Bob es conocido y no jugó → Nuevo.
         HttpResponse.json(
           params.user.toLowerCase() === "bob"
             ? { played: false, numPlays: 0, known: true }
@@ -257,7 +285,6 @@ describe("<PlayForm>", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
     fireEvent.click((await screen.findByText("Bob")).closest("button"));
-    // Bob queda marcado "Nuevo"; el dueño no.
     expect(await screen.findByText(/nuevo/i)).toBeInTheDocument();
   });
 
@@ -283,6 +310,7 @@ describe("<PlayForm>", () => {
     expect(screen.queryByText(/nuevo/i)).toBeNull();
   });
 
+  // ── Duración ──────────────────────────────────────────────────────────
   it("sugiere el tiempo de caja de BGG y lo aplica al click", async () => {
     server.use(
       http.get("/api/bgg/game/:id", ({ params }) =>
@@ -298,67 +326,75 @@ describe("<PlayForm>", () => {
     });
     fireEvent.click(suggest);
     expect(screen.getByDisplayValue("75")).toBeInTheDocument();
-    // Una vez cargada la duración, la sugerencia desaparece.
     expect(
       screen.queryByRole("button", { name: /tiempo de caja/i }),
     ).toBeNull();
   });
 
-  it("usa game.playingTime sin re-fetchear el detalle si ya viene", async () => {
-    let fetched = false;
-    server.use(
-      http.get("/api/bgg/game/:id", ({ params }) => {
-        fetched = true;
-        return HttpResponse.json({ id: Number(params.id), playingTime: 99 });
-      }),
-    );
+  it("los presets de duración cargan el valor", () => {
     renderForm({
-      initialValues: { game: { id: "13", name: "Catán", playingTime: 45 } },
+      initialValues: { game: { id: "13", name: "Catán" } },
       lockedGame: true,
     });
-    expect(
-      await screen.findByRole("button", { name: /tiempo de caja: 45 min/i }),
-    ).toBeInTheDocument();
-    expect(fetched).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: /^60min$/i }));
+    expect(screen.getByRole("spinbutton")).toHaveValue(60);
   });
 
+  // ── Fecha ─────────────────────────────────────────────────────────────
+  it("el chip 'Ayer' carga la fecha de ayer en el payload", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^ayer$/i }));
+    checkSolo();
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0].playdate).toBe(isoOffset(-1));
+  });
+
+  // ── Picker / scoring ──────────────────────────────────────────────────
   it("agregar jugador abre el picker y suma una fila", async () => {
     renderForm({
       initialValues: { game: { id: "13", name: "Catán" } },
       lockedGame: true,
     });
-    expect(screen.getAllByPlaceholderText("Score")).toHaveLength(1);
+    expect(scoreInputs()).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
     fireEvent.click((await screen.findByText("Bob")).closest("button"));
-    expect(screen.getAllByPlaceholderText("Score")).toHaveLength(2);
+    expect(scoreInputs()).toHaveLength(2);
     expect(screen.getAllByText("Bob").length).toBeGreaterThan(0);
   });
 
-  it("en modo edición muestra título y CTA de edición + danger zone", () => {
-    const onDelete = vi.fn();
-    renderForm({
-      editMode: true,
-      lockedGame: true,
-      initialValues: {
-        game: { id: "13", name: "Catán" },
-        players: [{ name: "X", username: "", win: false, new: false }],
-      },
-      onDelete,
-    });
-    expect(screen.getByText("Editar partida")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /guardar cambios/i }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /eliminar partida/i }));
-    expect(onDelete).toHaveBeenCalled();
-  });
-
-  it("muestra el serverError", () => {
+  it("el picker queda abierto tras elegir un jugador (agregar varios)", async () => {
     renderForm({
       initialValues: { game: { id: "13", name: "Catán" } },
-      serverError: "Algo falló",
+      lockedGame: true,
     });
-    expect(screen.getByText("Algo falló")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
+    fireEvent.click((await screen.findByText("Bob")).closest("button"));
+    // Sigue abierto: el buscador del picker permanece; se cierra con su ✕.
+    expect(screen.getByPlaceholderText(/buscá o escribí/i)).toBeInTheDocument();
+    closePicker();
+    expect(screen.queryByPlaceholderText(/buscá o escribí/i)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /agregar jugador/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("el picker se cierra al clickear fuera", async () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
+    await screen.findByText("Bob");
+    expect(screen.getByPlaceholderText(/buscá o escribí/i)).toBeInTheDocument();
+    // mousedown fuera del picker (el título de la sección) → se cierra.
+    fireEvent.mouseDown(screen.getByText("¿Quiénes jugaron?"));
+    expect(screen.queryByPlaceholderText(/buscá o escribí/i)).toBeNull();
   });
 
   it("deriva la posición del puntaje (mayor score = 1°)", async () => {
@@ -368,13 +404,12 @@ describe("<PlayForm>", () => {
       lockedGame: true,
       onSubmit,
     });
-    // Agregar a Bob como 2º jugador.
     fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
     fireEvent.click((await screen.findByText("Bob")).closest("button"));
-    const scores = screen.getAllByPlaceholderText("Score");
-    fireEvent.change(scores[0], { target: { value: "5" } }); // Me (fila 0)
-    fireEvent.change(scores[1], { target: { value: "10" } }); // Bob (fila 1)
-    fireEvent.click(screen.getByRole("button", { name: /guardar en bgg/i }));
+    const scores = scoreInputs();
+    fireEvent.change(scores[0], { target: { value: "5" } });
+    fireEvent.change(scores[1], { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     const { players } = onSubmit.mock.calls[0][0];
     expect(players.find((p) => p.name === "Bob").position).toBe(1);
@@ -390,10 +425,10 @@ describe("<PlayForm>", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
     fireEvent.click((await screen.findByText("Bob")).closest("button"));
-    const scores = screen.getAllByPlaceholderText("Score");
-    fireEvent.change(scores[0], { target: { value: "5" } }); // Me
-    fireEvent.change(scores[1], { target: { value: "10" } }); // Bob (más alto)
-    fireEvent.click(screen.getByRole("button", { name: /guardar en bgg/i }));
+    const scores = scoreInputs();
+    fireEvent.change(scores[0], { target: { value: "5" } });
+    fireEvent.change(scores[1], { target: { value: "10" } });
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     const { players } = onSubmit.mock.calls[0][0];
     expect(players.find((p) => p.name === "Bob").win).toBe(true);
@@ -405,7 +440,7 @@ describe("<PlayForm>", () => {
       initialValues: { game: { id: "13", name: "Catán" } },
       lockedGame: true,
     });
-    const score = screen.getByPlaceholderText("Score");
+    const [score] = scoreInputs();
     expect(score.value).toBe("");
     fireEvent.click(screen.getByRole("button", { name: /subir puntaje/i }));
     expect(score.value).toBe("1");
@@ -422,25 +457,334 @@ describe("<PlayForm>", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
     fireEvent.click((await screen.findByText("Bob")).closest("button"));
-    // Sin scores el botón no se muestra.
+    closePicker();
     expect(
       screen.queryByRole("button", { name: /ordenar por puntaje/i }),
     ).toBeNull();
-    const scores = screen.getAllByPlaceholderText("Score");
-    fireEvent.change(scores[0], { target: { value: "5" } }); // Me
-    fireEvent.change(scores[1], { target: { value: "10" } }); // Bob
+    const scores = scoreInputs();
+    fireEvent.change(scores[0], { target: { value: "5" } });
+    fireEvent.change(scores[1], { target: { value: "10" } });
     fireEvent.click(
       screen.getByRole("button", { name: /ordenar por puntaje/i }),
     );
-    // Bob (10) pasa a la primera fila → su score queda primero.
-    const scoresAfter = screen.getAllByPlaceholderText("Score");
+    const scoresAfter = scoreInputs();
     expect(scoresAfter[0].value).toBe("10");
     expect(scoresAfter[1].value).toBe("5");
   });
 
+  // ── Jugador anónimo ───────────────────────────────────────────────────
+  it("'+ Jugador anónimo' agrega asientos numerados, sin @handle", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    const anonBtn = screen.getByRole("button", { name: /jugador anónimo/i });
+    fireEvent.click(anonBtn);
+    // Aparece en la fila del form y en el scorecard en vivo.
+    expect(screen.getAllByText("Jugador anónimo 1").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("anónimo").length).toBeGreaterThan(0);
+    fireEvent.click(anonBtn);
+    expect(screen.getAllByText("Jugador anónimo 2").length).toBeGreaterThan(0);
+    // No tiene handle @ (sólo el dueño @meBGG).
+    expect(screen.queryByText("@")).toBeNull();
+  });
+
+  it("el anónimo viaja al payload con name reservado y username vacío", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /jugador anónimo/i }));
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const anon = onSubmit.mock.calls[0][0].players.find((p) =>
+      /jugador anónimo/i.test(p.name),
+    );
+    expect(anon).toMatchObject({ name: "Jugador anónimo 1", username: "" });
+  });
+
+  it("al quitar un anónimo, renumera los restantes", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    const anonBtn = screen.getByRole("button", { name: /jugador anónimo/i });
+    fireEvent.click(anonBtn);
+    fireEvent.click(anonBtn);
+    expect(screen.getAllByText("Jugador anónimo 2").length).toBeGreaterThan(0);
+    // Quitar el primer anónimo (fila 1; la 0 es el dueño) → el segundo pasa a 1.
+    const removeBtns = screen.getAllByRole("button", {
+      name: /quitar jugador/i,
+    });
+    fireEvent.click(removeBtns[1]);
+    expect(screen.getAllByText("Jugador anónimo 1").length).toBeGreaterThan(0);
+    expect(screen.queryAllByText("Jugador anónimo 2")).toHaveLength(0);
+  });
+
+  // ── Modo cooperativo ──────────────────────────────────────────────────
+  it("en cooperativa se ocultan los puntajes y se elige Ganamos/Perdimos", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    expect(scoreInputs()).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: /cooperativa/i }));
+    expect(scoreInputs()).toHaveLength(0);
+    expect(
+      screen.getByRole("button", { name: /ganamos/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /perdimos/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("coop 'Ganamos' marca win en todos y manda score vacío", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /cooperativa/i }));
+    checkSolo();
+    // "Ganamos" es el default activo; submit directo.
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const { players } = onSubmit.mock.calls[0][0];
+    expect(players.every((p) => p.win === true)).toBe(true);
+    expect(players.every((p) => p.score === "")).toBe(true);
+  });
+
+  it("coop 'Perdimos' deja win en false para todos", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /cooperativa/i }));
+    checkSolo();
+    fireEvent.click(screen.getByRole("button", { name: /perdimos/i }));
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const { players } = onSubmit.mock.calls[0][0];
+    expect(players.every((p) => p.win === false)).toBe(true);
+  });
+
+  // ── Modo equipos ──────────────────────────────────────────────────────
+  async function renderTeams(onSubmit) {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
+    fireEvent.click((await screen.findByText("Bob")).closest("button"));
+    closePicker();
+    fireEvent.click(screen.getByRole("button", { name: /equipos/i }));
+  }
+
+  it("en equipos hay puntaje por jugador y aparece '¿Qué equipo ganó?'", async () => {
+    await renderTeams(vi.fn());
+    expect(scoreInputs()).toHaveLength(2);
+    expect(screen.getByText(/¿qué equipo ganó\?/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^equipo a$/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("en equipos el puntaje NO reasigna el ganador (gana el equipo)", async () => {
+    const onSubmit = vi.fn();
+    await renderTeams(onSubmit);
+    // Bob (equipo B) tiene el score más alto, pero gana el equipo A.
+    const scores = scoreInputs();
+    fireEvent.change(scores[0], { target: { value: "10" } }); // Me (A)
+    fireEvent.change(scores[1], { target: { value: "99" } }); // Bob (B)
+    fireEvent.click(screen.getByRole("button", { name: /^equipo a$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const { players } = onSubmit.mock.calls[0][0];
+    const me = players.find((p) => p.name === "Me");
+    const bob = players.find((p) => p.name === "Bob");
+    expect(me.score).toBe("10");
+    expect(bob.score).toBe("99");
+    expect(me.win).toBe(true); // ganó por equipo, no por score
+    expect(bob.win).toBe(false);
+  });
+
+  it("asigna A/B y manda color por equipo + win al equipo ganador", async () => {
+    const onSubmit = vi.fn();
+    await renderTeams(onSubmit);
+    fireEvent.click(screen.getByRole("button", { name: /^equipo a$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const { players } = onSubmit.mock.calls[0][0];
+    const me = players.find((p) => p.name === "Me");
+    const bob = players.find((p) => p.name === "Bob");
+    expect(me.color).toBe("Equipo A");
+    expect(bob.color).toBe("Equipo B");
+    expect(me.win).toBe(true); // su equipo (A) ganó
+    expect(bob.win).toBe(false);
+  });
+
+  it("en equipos también aparece 'Ordenar por puntaje' al cargar scores", async () => {
+    await renderTeams(vi.fn());
+    expect(
+      screen.queryByRole("button", { name: /ordenar por puntaje/i }),
+    ).toBeNull();
+    const scores = scoreInputs();
+    fireEvent.change(scores[0], { target: { value: "5" } });
+    fireEvent.change(scores[1], { target: { value: "10" } });
+    expect(
+      screen.getByRole("button", { name: /ordenar por puntaje/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("'+ Equipo' habilita un tercer equipo (C)", async () => {
+    await renderTeams(vi.fn());
+    expect(screen.queryByRole("button", { name: /^equipo c$/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /\+ equipo/i }));
+    expect(
+      screen.getByRole("button", { name: /^equipo c$/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("'− Equipo' reduce la cantidad de equipos (no aparece con 2)", async () => {
+    await renderTeams(vi.fn());
+    // Con 2 equipos no hay botón de quitar.
+    expect(screen.queryByRole("button", { name: /−\s*equipo/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /\+ equipo/i })); // → 3
+    expect(
+      screen.getByRole("button", { name: /^equipo c$/i }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /−\s*equipo/i })); // → 2
+    expect(screen.queryByRole("button", { name: /^equipo c$/i })).toBeNull();
+  });
+
+  it("al editar una partida por equipos, abre en modo equipos", () => {
+    renderForm({
+      editMode: true,
+      lockedGame: true,
+      initialValues: {
+        game: { id: "13", name: "Catán" },
+        players: [
+          { name: "Me", username: "meBGG", color: "Equipo A", win: true },
+          { name: "Bob", username: "bob", color: "Equipo B", win: false },
+        ],
+      },
+    });
+    expect(screen.getByText(/¿qué equipo ganó\?/i)).toBeInTheDocument();
+    // El equipo ganador (A) queda preseleccionado.
+    expect(screen.getByRole("button", { name: /^equipo a$/i })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: /^equipo b$/i })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  // ── "Jugué en solitario" ──────────────────────────────────────────────
+  it("con sólo 'vos' el paso de jugadores no se completa y el submit queda off", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    expect(screen.getByLabelText(/jugué en solitario/i)).not.toBeChecked();
+    expect(
+      screen.getByRole("button", { name: /guardar partida/i }),
+    ).toBeDisabled();
+  });
+
+  it("tildar 'Jugué en solitario' completa el paso y habilita guardar", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    checkSolo();
+    expect(
+      screen.getByRole("button", { name: /guardar partida/i }),
+    ).toBeEnabled();
+  });
+
+  it("agregar un segundo jugador completa el paso (y oculta el check solo)", async () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
+    fireEvent.click((await screen.findByText("Bob")).closest("button"));
+    expect(screen.queryByLabelText(/jugué en solitario/i)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /guardar partida/i }),
+    ).toBeEnabled();
+  });
+
+  it("al editar una partida en solitario, el paso ya está completo", () => {
+    renderForm({
+      editMode: true,
+      lockedGame: true,
+      initialValues: {
+        game: { id: "13", name: "Catán" },
+        players: [{ name: "Me", username: "meBGG", win: true }],
+      },
+    });
+    expect(screen.getByLabelText(/jugué en solitario/i)).toBeChecked();
+    expect(
+      screen.getByRole("button", { name: /guardar cambios/i }),
+    ).toBeEnabled();
+  });
+
+  // ── Edición / errores ─────────────────────────────────────────────────
+  it("en edición muestra título y CTA de edición + danger zone", () => {
+    const onDelete = vi.fn();
+    renderForm({
+      editMode: true,
+      lockedGame: true,
+      initialValues: {
+        game: { id: "13", name: "Catán" },
+        players: [{ name: "X", username: "", win: false, new: false }],
+      },
+      onDelete,
+    });
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      /editá la partida/i,
+    );
+    expect(
+      screen.getByRole("button", { name: /guardar cambios/i }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /eliminar partida/i }));
+    expect(onDelete).toHaveBeenCalled();
+  });
+
+  it("al editar, detecta el asiento anónimo por el nombre reservado", () => {
+    renderForm({
+      editMode: true,
+      lockedGame: true,
+      initialValues: {
+        game: { id: "13", name: "Catán" },
+        players: [
+          { name: "X", username: "xbgg" },
+          { name: "Jugador anónimo 1", username: "" },
+        ],
+      },
+    });
+    expect(screen.getAllByText("Jugador anónimo 1").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("anónimo").length).toBeGreaterThan(0);
+  });
+
+  it("muestra el serverError", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      serverError: "Algo falló",
+    });
+    expect(screen.getByText("Algo falló")).toBeInTheDocument();
+  });
+
   it("una fecha futura (backstop) muestra error y deshabilita el submit", () => {
-    // El picker bloquea elegir futuro; este caso cubre un value futuro que
-    // llegue por initialValues / borrador restaurado.
     renderForm({
       initialValues: {
         game: { id: "13", name: "Catán" },
@@ -450,7 +794,7 @@ describe("<PlayForm>", () => {
     });
     expect(screen.getByText(/no puede ser futura/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /guardar en bgg/i }),
+      screen.getByRole("button", { name: /guardar partida/i }),
     ).toBeDisabled();
   });
 
@@ -468,14 +812,14 @@ describe("<PlayForm>", () => {
         ],
       },
     });
-    // Arranca solo con el dueño "Me".
-    expect(screen.getAllByPlaceholderText("Score")).toHaveLength(1);
-    fireEvent.click(screen.getByRole("button", { name: /usar última juntada/i }));
-    expect(screen.getAllByPlaceholderText("Score")).toHaveLength(2);
+    expect(scoreInputs()).toHaveLength(1);
+    fireEvent.click(
+      screen.getByRole("button", { name: /usar última juntada/i }),
+    );
+    expect(scoreInputs()).toHaveLength(2);
     expect(screen.getAllByText("Ana").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Beto").length).toBeGreaterThan(0);
-    // La ubicación viajó al payload.
-    fireEvent.click(screen.getByRole("button", { name: /guardar en bgg/i }));
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     const payload = onSubmit.mock.calls[0][0];
     expect(payload.location).toBe("Club de Mesa");
@@ -490,7 +834,10 @@ describe("<PlayForm>", () => {
         game: { id: "13", name: "Catán" },
         players: [{ name: "X", username: "" }],
       },
-      lastJuntada: { location: "Club", players: [{ name: "Ana", username: "anabgg" }] },
+      lastJuntada: {
+        location: "Club",
+        players: [{ name: "Ana", username: "anabgg" }],
+      },
     });
     expect(
       screen.queryByRole("button", { name: /usar última juntada/i }),
@@ -515,20 +862,110 @@ describe("<PlayForm>", () => {
       initialValues: { game: { id: "13", name: "Catán" } },
       lockedGame: true,
     });
-    // El jugador 1 ("Me", @meBGG) se resuelve a su user de TurnoCero en el
-    // preview → el Avatar (mockeado) muestra su username.
-    expect(await screen.findByTestId("avatar")).toHaveTextContent("meuser");
+    const avatars = await screen.findAllByTestId("avatar");
+    await waitFor(() =>
+      expect(avatars.some((a) => a.textContent === "meuser")).toBe(true),
+    );
+  });
+
+  // ── Expansiones / variante / firma ────────────────────────────────────
+  it("agregar una expansión la muestra como chip y la manda en comments", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Wingspan" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    checkSolo();
+    fireEvent.click(
+      screen.getByRole("button", { name: /expansiones jugadas/i }),
+    );
+    fireEvent.click(await screen.findByText("Wingspan: Oceania"));
+    // Chip visible.
+    expect(screen.getAllByText("Wingspan: Oceania").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const { comments } = onSubmit.mock.calls[0][0];
+    expect(comments).toContain("Played with expansions:");
+    expect(comments).toContain("[thing=300580]Wingspan: Oceania[/thing]");
+  });
+
+  it("elegir variante la manda en comments + variant en el payload", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Wingspan" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    checkSolo();
+    fireEvent.click(screen.getByRole("button", { name: /variante\/tablero/i }));
+    fireEvent.click(await screen.findByText("Mapa Norte"));
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const payload = onSubmit.mock.calls[0][0];
+    expect(payload.comments).toContain("Variante/Tablero: Mapa Norte");
+    expect(payload.variant).toBe("Mapa Norte");
+  });
+
+  it("agrega la firma @turnocero0 al crear, no al editar", async () => {
+    const onCreate = vi.fn();
+    const { unmount } = renderForm({
+      initialValues: { game: { id: "13", name: "Wingspan" } },
+      lockedGame: true,
+      onSubmit: onCreate,
+    });
+    checkSolo();
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onCreate).toHaveBeenCalled());
+    expect(onCreate.mock.calls[0][0].comments).toContain("@turnocero0");
+    unmount();
+
+    const onEdit = vi.fn();
+    renderForm({
+      editMode: true,
+      lockedGame: true,
+      initialValues: {
+        game: { id: "13", name: "Wingspan" },
+        players: [{ name: "Me", username: "meBGG" }],
+        details: { comments: "Comentario sin firma" },
+      },
+      onSubmit: onEdit,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /guardar cambios/i }));
+    await waitFor(() => expect(onEdit).toHaveBeenCalled());
+    expect(onEdit.mock.calls[0][0].comments).not.toContain("@turnocero0");
+  });
+
+  it("al editar separa notas / expansiones / variante del comentario", () => {
+    renderForm({
+      editMode: true,
+      lockedGame: true,
+      initialValues: {
+        game: { id: "13", name: "Wingspan" },
+        players: [{ name: "Me", username: "meBGG" }],
+        details: {
+          comments:
+            "Mis notas\n\nPlayed with expansions:\n- [thing=300580]Wingspan: Oceania[/thing]\n\nVariante/Tablero: Mapa Norte\n\n@turnocero0",
+        },
+      },
+    });
+    // El textarea muestra sólo las notas.
+    expect(screen.getByDisplayValue("Mis notas")).toBeInTheDocument();
+    // La expansión y la variante aparecen como chips.
+    expect(screen.getByText("Wingspan: Oceania")).toBeInTheDocument();
+    expect(screen.getByText(/Mapa Norte/)).toBeInTheDocument();
+    // La firma no se ve.
+    expect(screen.queryByText(/@turnocero0/)).toBeNull();
   });
 
   // ── Borrador local (#4) ───────────────────────────────────────────────
   const DRAFT_KEY = "turnocero_play_draft:mebgg";
 
   it("persiste el borrador al editar un form en blanco", async () => {
-    renderForm(); // create en blanco
-    fireEvent.change(
-      screen.getByPlaceholderText(/cómo estuvo la partida/i),
-      { target: { value: "Gran partida" } },
-    );
+    renderForm();
+    fireEvent.change(screen.getByPlaceholderText(/combo de la ronda/i), {
+      target: { value: "Gran partida" },
+    });
     await waitFor(() => {
       const raw = localStorage.getItem(DRAFT_KEY);
       expect(raw).toBeTruthy();
@@ -544,7 +981,13 @@ describe("<PlayForm>", () => {
         details: { comments: "Borrador previo" },
         players: [
           { name: "Me", username: "meBGG", score: "", win: false, new: false },
-          { name: "Ana", username: "anabgg", score: "", win: false, new: false },
+          {
+            name: "Ana",
+            username: "anabgg",
+            score: "",
+            win: false,
+            new: false,
+          },
         ],
       }),
     );
@@ -552,7 +995,6 @@ describe("<PlayForm>", () => {
     fireEvent.click(await screen.findByRole("button", { name: /retomar/i }));
     expect(screen.getAllByText("Ana").length).toBeGreaterThan(0);
     expect(screen.getByDisplayValue("Borrador previo")).toBeInTheDocument();
-    // El banner desaparece tras retomar.
     expect(screen.queryByRole("button", { name: /retomar/i })).toBeNull();
   });
 

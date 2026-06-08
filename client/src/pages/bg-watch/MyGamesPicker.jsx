@@ -6,18 +6,8 @@ import EmptyState from "../../components/shared/EmptyState";
 import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 import SearchRowSkeleton from "./SearchRowSkeleton";
+import { gameInitials } from "./Scorecard";
 import styles from "./BgWatchProfile.module.css";
-
-function metaLine(g) {
-  const parts = [];
-  if (g.numPlays > 0) {
-    parts.push(`${g.numPlays} partida${g.numPlays === 1 ? "" : "s"}`);
-  } else if (g.owned) {
-    parts.push("En tu colección");
-  }
-  if (g.year) parts.push(String(g.year));
-  return parts.join(" · ");
-}
 
 /**
  * Selector de juego al cargar una partida. Sirve la lista propia del usuario
@@ -152,46 +142,48 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
       )}
 
       {items.length > 0 && (
-        <ul className={styles.gameSearchList} ref={listRef}>
+        <div className={styles.gameList} ref={listRef}>
           {items.map((g) => {
-            const meta = metaLine(g);
+            // High-res primero (`image`); el thumb se ve nítido al reducirse.
+            const src = g.image || g.thumbnail;
             return (
-              <li key={g.id}>
-                <button
-                  type="button"
-                  className={styles.gameSearchItem}
-                  onClick={() =>
-                    onPick({
-                      id: g.id,
-                      name: g.name,
-                      thumbnail: g.thumbnail,
-                      image: g.image,
-                      year: g.year,
-                    })
-                  }
-                >
-                  {g.thumbnail ? (
-                    <img
-                      src={g.thumbnail}
-                      alt={g.name}
-                      className={styles.gameSearchThumb}
-                      loading="lazy"
-                    />
+              <button
+                key={g.id}
+                type="button"
+                className={styles.gameRow}
+                onClick={() =>
+                  onPick({
+                    id: g.id,
+                    name: g.name,
+                    thumbnail: g.thumbnail,
+                    image: g.image,
+                    year: g.year,
+                  })
+                }
+              >
+                <div className={styles.gameRowThumb}>
+                  {src ? (
+                    <img src={src} alt={g.name} loading="lazy" />
                   ) : (
-                    <div className={styles.gameSearchThumbFallback}>🎲</div>
+                    <span className={styles.gameRowTwoLetter}>
+                      {gameInitials(g.name)}
+                    </span>
                   )}
-                  <div className={styles.gameSearchInfo}>
-                    <span className={styles.gameSearchName}>{g.name}</span>
-                    {meta && (
-                      <span className={styles.gameSearchMeta}>{meta}</span>
-                    )}
-                  </div>
-                </button>
-              </li>
+                </div>
+                <div className={styles.gameRowBody}>
+                  <div className={styles.gameRowName}>{g.name}</div>
+                  {g.year && <div className={styles.gameRowMeta}>{g.year}</div>}
+                </div>
+                <span
+                  className={`${styles.gameRowBadge} ${g.numPlays > 0 ? styles.gameRowBadgePlays : styles.gameRowBadgeNew}`}
+                >
+                  {g.numPlays > 0 ? `${g.numPlays}×` : "nuevo"}
+                </span>
+              </button>
             );
           })}
           {page < pages && (
-            <li ref={sentinelRef}>
+            <div className={styles.gameRowMore} ref={sentinelRef}>
               <button
                 type="button"
                 className={styles.loadMoreBtn}
@@ -200,9 +192,9 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
               >
                 {loadingMore ? "Cargando más…" : "Ver más"}
               </button>
-            </li>
+            </div>
           )}
-        </ul>
+        </div>
       )}
 
       <button

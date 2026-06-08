@@ -37,10 +37,9 @@ export default function CreatePlay() {
   const [game, setGame] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
-  // Multi-partida rápida: al guardar con "cargar otra", conservamos el roster
-  // + ubicación + fecha y remontamos el form (cambiando `formKey`) para la
+  // Multi-partida rápida: al guardar con "Guardar y cargar otra", conservamos el
+  // roster + ubicación + fecha y remontamos el form (cambiando `formKey`) para la
   // próxima partida sin salir de la página.
-  const [keepGoing, setKeepGoing] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [carry, setCarry] = useState(null);
   // Roster + ubicación de la última partida del usuario, para el botón
@@ -94,7 +93,7 @@ export default function CreatePlay() {
     else navigate(`/bg-watch/${bggUsername}`);
   };
 
-  const handleSubmit = async (payload) => {
+  const handleSubmit = async (payload, { keepGoing = false } = {}) => {
     setSubmitting(true);
     setServerError("");
     try {
@@ -161,8 +160,7 @@ export default function CreatePlay() {
       serverError={serverError}
       onSubmit={handleSubmit}
       onCancel={goBack}
-      keepGoing={keepGoing}
-      onKeepGoingChange={setKeepGoing}
+      allowMultiSave
       lastJuntada={lastJuntada}
     />
   );

@@ -1,12 +1,51 @@
 const {
   parser,
   parseGameItem,
+  parseGameExpansions,
   gameDocToObject,
   parseCollectionXml,
   parsePlay,
   parsePlaysXml,
   playToApi,
 } = require("../../../../services/bgg/bggParse");
+
+describe("parseGameExpansions", () => {
+  const itemFrom = (xml) => parser.parse(xml).items.item;
+
+  it("extrae los links boardgameexpansion salientes", () => {
+    const item = itemFrom(
+      '<items><item id="13">' +
+        '<link type="boardgamecategory" id="1" value="Cat"/>' +
+        '<link type="boardgameexpansion" id="300580" value="Oceania"/>' +
+        '<link type="boardgameexpansion" id="266524" value="Europe"/>' +
+        "</item></items>",
+    );
+    expect(parseGameExpansions(item)).toEqual([
+      { id: 300580, name: "Oceania" },
+      { id: 266524, name: "Europe" },
+    ]);
+  });
+
+  it("ignora los inbound (este item ES expansión de X)", () => {
+    const item = itemFrom(
+      '<items><item id="13">' +
+        '<link type="boardgameexpansion" id="1" value="Base" inbound="true"/>' +
+        '<link type="boardgameexpansion" id="2" value="Real Exp"/>' +
+        "</item></items>",
+    );
+    expect(parseGameExpansions(item)).toEqual([{ id: 2, name: "Real Exp" }]);
+  });
+
+  it("maneja un solo link (no-array) y sin links", () => {
+    const one = itemFrom(
+      '<items><item id="13"><link type="boardgameexpansion" id="5" value="Solo Exp"/></item></items>',
+    );
+    expect(parseGameExpansions(one)).toEqual([{ id: 5, name: "Solo Exp" }]);
+    const none = itemFrom('<items><item id="13"/></items>');
+    expect(parseGameExpansions(none)).toEqual([]);
+    expect(parseGameExpansions(null)).toEqual([]);
+  });
+});
 
 // ── parser XML config ────────────────────────────────────────────────
 
@@ -19,9 +58,7 @@ describe("parser (XMLParser config)", () => {
     const xml =
       '<items><item id="1"><name type="primary" value="It&#039;s a Wonderful World"/></item></items>';
     const parsed = parser.parse(xml);
-    expect(parsed.items.item.name["@_value"]).toBe(
-      "It's a Wonderful World",
-    );
+    expect(parsed.items.item.name["@_value"]).toBe("It's a Wonderful World");
   });
 
   it("decodifica entidades numéricas hex (&#x27;) también", () => {

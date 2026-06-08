@@ -15,55 +15,50 @@ vi.mock("../../context/NotificationContext", () => ({
   useNotifications: () => ({ addToast, dismiss }),
 }));
 
-// PlayForm stub: expone onSubmit/onCancel + lo que recibió.
+// PlayForm stub: expone onSubmit/onCancel + lo que recibió. El onSubmit ahora
+// recibe (payload, { keepGoing }); el stub ofrece dos botones para cada caso.
 vi.mock("./PlayForm", () => ({
   default: ({
     onSubmit,
     onCancel,
     lockedGame,
     initialValues,
-    keepGoing,
-    onKeepGoingChange,
+    allowMultiSave,
     lastJuntada,
-  }) => (
-    <div data-testid="play-form">
-      <span data-testid="locked">{String(!!lockedGame)}</span>
-      <span data-testid="game">{initialValues?.game?.name || ""}</span>
-      <span data-testid="last-juntada">
-        {lastJuntada ? lastJuntada.players.map((p) => p.name).join(",") : ""}
-      </span>
-      <span data-testid="carry-players">
-        {(initialValues?.players || []).map((p) => p.name).join(",")}
-      </span>
-      <span data-testid="carry-loc">
-        {initialValues?.details?.location || ""}
-      </span>
-      {onKeepGoingChange && (
-        <input
-          type="checkbox"
-          aria-label="keep"
-          checked={!!keepGoing}
-          onChange={(e) => onKeepGoingChange(e.target.checked)}
-        />
-      )}
-      <button
-        onClick={() =>
-          onSubmit({
-            objectid: "13",
-            playdate: "2026-05-01",
-            location: "Casa",
-            players: [
-              { name: "Me", username: "meBGG" },
-              { name: "Bob", username: "bob" },
-            ],
-          })
-        }
-      >
-        submit
-      </button>
-      <button onClick={onCancel}>cancel</button>
-    </div>
-  ),
+  }) => {
+    const payload = {
+      objectid: "13",
+      playdate: "2026-05-01",
+      location: "Casa",
+      players: [
+        { name: "Me", username: "meBGG" },
+        { name: "Bob", username: "bob" },
+      ],
+    };
+    return (
+      <div data-testid="play-form">
+        <span data-testid="locked">{String(!!lockedGame)}</span>
+        <span data-testid="multi">{String(!!allowMultiSave)}</span>
+        <span data-testid="game">{initialValues?.game?.name || ""}</span>
+        <span data-testid="last-juntada">
+          {lastJuntada ? lastJuntada.players.map((p) => p.name).join(",") : ""}
+        </span>
+        <span data-testid="carry-players">
+          {(initialValues?.players || []).map((p) => p.name).join(",")}
+        </span>
+        <span data-testid="carry-loc">
+          {initialValues?.details?.location || ""}
+        </span>
+        <button onClick={() => onSubmit(payload, { keepGoing: false })}>
+          submit
+        </button>
+        <button onClick={() => onSubmit(payload, { keepGoing: true })}>
+          submit-keep
+        </button>
+        <button onClick={onCancel}>cancel</button>
+      </div>
+    );
+  },
 }));
 
 import CreatePlay from "./CreatePlay";
@@ -236,8 +231,7 @@ describe("<CreatePlay>", () => {
       }),
     );
     renderAt("/bg-watch/meBGG/partidas/nueva");
-    fireEvent.click(screen.getByLabelText("keep")); // marcar "cargar otra"
-    fireEvent.click(screen.getByRole("button", { name: "submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "submit-keep" }));
     await waitFor(() => expect(posts).toBe(1));
     // No navegó: sigue el form, y remontó con el roster + ubicación.
     expect(screen.getByTestId("play-form")).toBeInTheDocument();
