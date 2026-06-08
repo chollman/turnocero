@@ -1422,7 +1422,8 @@
   gap: 6px;
   max-height: 340px;
   overflow-y: auto;
-  padding: 2px;
+  /* Margen a la derecha para que el scrollbar no se superponga a los cards. */
+  padding: 2px 8px 2px 2px;
   scrollbar-width: thin;
 }
 .gameRow {

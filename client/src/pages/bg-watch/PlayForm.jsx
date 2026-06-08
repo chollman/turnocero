@@ -1258,7 +1258,7 @@ export default function PlayForm({
                       updateDetail("length", String(suggestedDuration))
                     }
                   >
-                    Tiempo de caja: {suggestedDuration} min · usar
+                    Usar tiempo de caja: {suggestedDuration} min
                   </button>
                 )}
               </div>
