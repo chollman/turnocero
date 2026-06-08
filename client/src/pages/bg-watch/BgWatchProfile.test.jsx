@@ -146,6 +146,56 @@ describe("<BgWatchProfile>", () => {
     );
   });
 
+  it("muestra el aviso de sesión caducada cuando el dueño tiene bggInvalid", async () => {
+    renderProfile({
+      user: {
+        bggUsername: "CarcaFan",
+        bggConnected: true,
+        bggInvalid: true,
+      },
+      bggUsername: "CarcaFan",
+    });
+    expect(
+      await screen.findByText(/tu sesión con boardgamegeek caducó/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /reconectar/i })).toHaveAttribute(
+      "href",
+      "/perfil",
+    );
+  });
+
+  it("NO muestra el aviso cuando la sesión del dueño es válida", async () => {
+    renderProfile({
+      user: {
+        bggUsername: "CarcaFan",
+        bggConnected: true,
+        bggInvalid: false,
+      },
+      bggUsername: "CarcaFan",
+    });
+    await screen.findByTestId("partidas-panel");
+    expect(
+      screen.queryByText(/tu sesión con boardgamegeek caducó/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("NO muestra el aviso en el perfil de otra persona, aunque tenga sesión caducada", async () => {
+    // bggInvalid es un flag del propio user logueado; en un perfil ajeno el
+    // aviso nunca debe aparecer (no es su sesión la que hay que reconectar).
+    renderProfile({
+      user: {
+        bggUsername: "SomeoneElse",
+        bggConnected: true,
+        bggInvalid: true,
+      },
+      bggUsername: "CarcaFan",
+    });
+    await screen.findByTestId("partidas-panel");
+    expect(
+      screen.queryByText(/tu sesión con boardgamegeek caducó/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("passes canRefresh=false when the logged-in user does NOT own this bggUsername and is not admin", async () => {
     renderProfile({
       user: { bggUsername: "SomeoneElse", isAdmin: false },

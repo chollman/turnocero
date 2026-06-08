@@ -57,6 +57,55 @@ describe("GET /api/users — infra compartida (sin ?community)", () => {
       .expect(200);
     expect(res.body.some((u) => u.username === "carcassonne_fan")).toBe(true);
   });
+
+  it("expone bggConnected/bggInvalid sin filtrar el password cifrado", async () => {
+    await createUser({
+      username: "connected_player",
+      bggUsername: "ConnPlayer",
+      bggCredentials: {
+        encryptedPassword: "enc:supersecret",
+        connectedAt: new Date(),
+      },
+    });
+    await createUser({ username: "username_only", bggUsername: "JustName" });
+    const { token } = await createAuthedUser();
+
+    const res = await request(app)
+      .get("/api/users")
+      .set(authHeader(token))
+      .expect(200);
+
+    const connected = res.body.find((u) => u.username === "connected_player");
+    const onlyName = res.body.find((u) => u.username === "username_only");
+
+    // El que tiene password guardado → conectado; el que solo seteó el
+    // username → NO conectado (puede ver su perfil, no cargar partidas).
+    expect(connected.bggConnected).toBe(true);
+    expect(connected.bggInvalid).toBe(false);
+    expect(onlyName.bggConnected).toBe(false);
+
+    // Nunca se filtra el subdoc de credenciales ni el password cifrado.
+    expect(connected.bggCredentials).toBeUndefined();
+    expect(JSON.stringify(res.body)).not.toContain("supersecret");
+  });
+
+  it("bggInvalid=true cuando las credenciales caducaron", async () => {
+    await createUser({
+      username: "invalid_creds",
+      bggUsername: "InvName",
+      bggCredentials: { encryptedPassword: "enc:x", invalid: true },
+    });
+    const { token } = await createAuthedUser();
+
+    const res = await request(app)
+      .get("/api/users")
+      .set(authHeader(token))
+      .expect(200);
+
+    const u = res.body.find((x) => x.username === "invalid_creds");
+    expect(u.bggConnected).toBe(true);
+    expect(u.bggInvalid).toBe(true);
+  });
 });
 
 describe("GET /api/users — conteos de actividad scopeados por comunidad", () => {

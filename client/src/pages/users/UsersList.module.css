@@ -510,6 +510,31 @@
   flex-shrink: 0;
 }
 
+/* Status chip (no es link): el usuario conectó su cuenta de BGG con password,
+   así que puede CARGAR partidas — distinto de solo tener `bggUsername`, que
+   alcanza para VER su perfil (ese es `.bgWatchChip`). */
+.bggConnectedChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--green-10);
+  border: 1px solid var(--green-30);
+  color: var(--green);
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bggConnectedChipIcon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
 /* Stats */
 .cardStats {
   display: flex;

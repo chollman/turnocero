@@ -143,6 +143,36 @@ describe("<UsersList>", () => {
     expect(screen.getByRole("link", { name: "BG Watch" })).toBeInTheDocument();
   });
 
+  it("muestra el chip 'Conectado' solo para usuarios con bggConnected y válido", async () => {
+    setup({
+      currentUser: { _id: "me", isAdmin: false, bggUsername: "me_bgg" },
+      users: [
+        makeUserCard({
+          username: "connected",
+          bggUsername: "c_bgg",
+          bggConnected: true,
+        }),
+        makeUserCard({
+          username: "onlyname",
+          bggUsername: "o_bgg",
+          bggConnected: false,
+        }),
+        makeUserCard({
+          username: "expired",
+          bggUsername: "e_bgg",
+          bggConnected: true,
+          bggInvalid: true,
+        }),
+      ],
+    });
+    await screen.findByText("@connected");
+    // Aparece exactamente una vez: solo el conectado y válido.
+    expect(screen.getAllByText("Conectado")).toHaveLength(1);
+    // El que solo tiene username y el que está caducado igual muestran el
+    // chip de "BG Watch" (link al perfil), porque ese solo pide bggUsername.
+    expect(screen.getAllByRole("link", { name: "BG Watch" })).toHaveLength(3);
+  });
+
   it("shows BG Watch banner when logged-in user has no bggUsername", async () => {
     setup({
       currentUser: { _id: "me", isAdmin: false },

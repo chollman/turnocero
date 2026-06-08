@@ -144,6 +144,26 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
               BG Watch
             </Link>
           )}
+          {user.bggConnected && !user.bggInvalid && (
+            <span
+              className={styles.bggConnectedChip}
+              title={`@${user.username} conectó su cuenta de BGG — puede cargar partidas`}
+            >
+              <svg
+                className={styles.bggConnectedChipIcon}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              Conectado
+            </span>
+          )}
         </div>
       </div>
       <div className={styles.cardStats}>

@@ -80,9 +80,14 @@ router.get(
       ];
     }
 
+    // `bggCredentials.*` se trae solo para derivar los flags `bggConnected` /
+    // `bggInvalid` abajo; el subdoc (incl. el password cifrado) se borra antes
+    // de responder — nunca se filtra al cliente.
+    const credFields =
+      "bggCredentials.encryptedPassword bggCredentials.invalid";
     const selectFields = isAdmin
-      ? "username displayName nombre apellido avatar telegram celular bggUsername direccion createdAt isAdmin isBanned bannedAt bannedReason"
-      : "username displayName nombre apellido avatar telegram celular bggUsername direccion createdAt";
+      ? `username displayName nombre apellido avatar telegram celular bggUsername ${credFields} direccion createdAt isAdmin isBanned bannedAt bannedReason`
+      : `username displayName nombre apellido avatar telegram celular bggUsername ${credFields} direccion createdAt`;
 
     let users = await User.find(query).select(selectFields).lean();
 
@@ -150,12 +155,21 @@ router.get(
       users = users.filter((u) => activeIds.has(u._id.toString()));
     }
 
-    users = users.map((u) => ({
-      ...u,
-      tablesHosted: hostedMap[u._id.toString()] || 0,
-      tablesAsPlayer: playerMap[u._id.toString()] || 0,
-      compartidas: compartidaMap[u._id.toString()] || 0,
-    }));
+    users = users.map((u) => {
+      // Flags derivados (igual que User.toJSON, que `.lean()` no ejecuta).
+      const creds = u.bggCredentials;
+      const bggConnected = !!(creds && creds.encryptedPassword);
+      const bggInvalid = !!(creds && creds.invalid);
+      delete u.bggCredentials; // No filtrar el password cifrado.
+      return {
+        ...u,
+        bggConnected,
+        bggInvalid,
+        tablesHosted: hostedMap[u._id.toString()] || 0,
+        tablesAsPlayer: playerMap[u._id.toString()] || 0,
+        compartidas: compartidaMap[u._id.toString()] || 0,
+      };
+    });
 
     if (sortBy === "activity") {
       users.sort(

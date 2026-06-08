@@ -13,6 +13,7 @@ import PlayDetailModal from "./PlayDetailModal";
 import StatsBar from "./StatsBar";
 import useBggUserMap from "./useBggUserMap";
 import { GuestBanner, GuestInlineCTA, GuestFooter } from "./BgWatchGuestCTAs";
+import BgWatchSessionNotice from "./BgWatchSessionNotice";
 import styles from "./BgWatchProfile.module.css";
 
 export default function BgWatchProfile() {
@@ -46,6 +47,11 @@ export default function BgWatchProfile() {
     !!user?.bggUsername &&
     user.bggUsername.toLowerCase() === (bggUsername || "").toLowerCase();
   const canCreate = isOwnProfile && user?.bggConnected && !user?.bggInvalid;
+  // El dueño está conectado pero su sesión BGG caducó (cambió el pass en
+  // BGG.com → 401 → `invalid: true`). El password sigue guardado, pero ya no
+  // sirve: no puede cargar partidas hasta reconectar. Le avisamos y guiamos.
+  const sessionExpired =
+    isOwnProfile && user?.bggConnected && !!user?.bggInvalid;
   // Manual "Actualizar" button visibility — owner or admin only. Uses the
   // EFFECTIVE user.isAdmin (modified by AdminViewToggle), not isActuallyAdmin,
   // so admins previewing "Ver como usuario" see what a regular user sees
@@ -147,6 +153,8 @@ export default function BgWatchProfile() {
             </button>
           )}
         </div>
+
+        {sessionExpired && <BgWatchSessionNotice />}
 
         <StatsBar collection={collection} playsMeta={playsMeta} />
 
