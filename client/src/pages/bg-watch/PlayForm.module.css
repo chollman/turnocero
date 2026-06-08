@@ -107,10 +107,11 @@
 }
 .title {
   font-family: var(--font-display);
-  font-size: clamp(1.9rem, 4vw, 2.7rem);
+  /* Mismo tamaño que el hero editorial del resto de secciones (Eventos, etc.). */
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
   font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 0.98;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
   margin: 0;
   color: var(--text-primary);
 }
@@ -119,7 +120,14 @@
   font-family: var(--font-script);
   font-weight: 600;
   color: var(--purple);
-  font-size: 1.12em;
+  font-size: 1.15em;
+}
+.sub {
+  margin: 10px 0 0;
+  max-width: 560px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 .progress {
   display: flex;

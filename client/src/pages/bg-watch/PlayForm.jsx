@@ -3,6 +3,7 @@ import axios from "axios";
 import Meeple from "../../components/shared/Meeple";
 import Avatar from "../../components/shared/Avatar";
 import DateTimePicker from "../../components/shared/DateTimePicker";
+import InfoTooltip from "../../components/shared/InfoTooltip";
 import { API } from "../../api/endpoints";
 import MyGamesPicker from "./MyGamesPicker";
 import LocationPicker from "./LocationPicker";
@@ -698,6 +699,11 @@ export default function PlayForm({
             {editMode ? "Editá la " : "Anotá la "}
             <em>partida.</em>
           </h1>
+          <p className={styles.sub}>
+            {editMode
+              ? "Cambiá lo que haga falta. Se actualiza también en BoardGameGeek."
+              : "Cargá quién jugó, los puntajes y dónde. Queda en tu almanaque de BG Watch y en BoardGameGeek."}
+          </p>
         </div>
         <div className={styles.progress}>
           <span className={styles.progressVal}>{doneCount}/3</span>
@@ -739,7 +745,14 @@ export default function PlayForm({
               >
                 {stepDone.juego ? <CheckIcon /> : "1"}
               </span>
-              <span className={styles.sectionTitle}>¿Qué jugaron?</span>
+              <span className={styles.sectionTitle}>
+                ¿Qué jugaron?
+                <InfoTooltip placement="bottom" label="Ayuda: ¿Qué jugaron?">
+                  Elegí el juego de la partida — buscalo en tu lista o en BGG.
+                  Después podés sumar las <strong>expansiones</strong> jugadas o
+                  una <strong>variante/tablero</strong>.
+                </InfoTooltip>
+              </span>
             </div>
 
             {game ? (
@@ -873,7 +886,16 @@ export default function PlayForm({
               >
                 {stepDone.jugadores ? <CheckIcon /> : "2"}
               </span>
-              <span className={styles.sectionTitle}>¿Quiénes jugaron?</span>
+              <span className={styles.sectionTitle}>
+                ¿Quiénes jugaron?
+                <InfoTooltip placement="bottom" label="Ayuda: ¿Quiénes jugaron?">
+                  Sumá a los jugadores (compañeros, usuarios de TurnoCero o
+                  anónimos) y cargá sus <strong>puntajes</strong>. Arriba elegís
+                  el modo: <strong>competitiva</strong>,{" "}
+                  <strong>cooperativa</strong> o <strong>equipos</strong>. Si
+                  jugaste solo/a, marcá la opción de partida en solitario.
+                </InfoTooltip>
+              </span>
               <span className={styles.sectionHint}>
                 {players.length} jugador{players.length === 1 ? "" : "es"}
               </span>
@@ -1174,7 +1196,15 @@ export default function PlayForm({
               >
                 {stepDone.cuando ? <CheckIcon /> : "3"}
               </span>
-              <span className={styles.sectionTitle}>¿Cuándo y dónde?</span>
+              <span className={styles.sectionTitle}>
+                ¿Cuándo y dónde?
+                <InfoTooltip placement="bottom" label="Ayuda: ¿Cuándo y dónde?">
+                  Poné la <strong>fecha</strong> (no puede ser futura) y, si
+                  querés, la <strong>duración</strong> y el{" "}
+                  <strong>lugar</strong>. También podés marcar si quedó
+                  incompleta o si no debe contar para las estadísticas.
+                </InfoTooltip>
+              </span>
             </div>
 
             <div className={styles.fieldRow}>
@@ -1282,7 +1312,14 @@ export default function PlayForm({
               >
                 4
               </span>
-              <span className={styles.sectionTitle}>Notas</span>
+              <span className={styles.sectionTitle}>
+                Notas
+                <InfoTooltip placement="bottom" label="Ayuda: Notas">
+                  Un comentario libre de la partida: la jugada que la definió, la
+                  revancha pendiente, lo que quieras. Es{" "}
+                  <strong>opcional</strong>.
+                </InfoTooltip>
+              </span>
               <span className={styles.sectionHint}>opcional</span>
             </div>
             <textarea

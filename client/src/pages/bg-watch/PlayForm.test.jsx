@@ -141,6 +141,20 @@ describe("<PlayForm>", () => {
     expect(onSubmit.mock.calls[0][0].quantity).toBe(3);
   });
 
+  it("cada paso tiene un info con tooltip que explica qué hacer", async () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    const helps = screen.getAllByRole("button", { name: /^ayuda:/i });
+    expect(helps).toHaveLength(4);
+    // Abrir el del primer paso muestra su explicación.
+    fireEvent.click(helps[0]);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      /elegí el juego/i,
+    );
+  });
+
   it("renderiza las cuatro secciones del scoresheet", () => {
     renderForm();
     expect(screen.getByText("¿Qué jugaron?")).toBeInTheDocument();
@@ -154,6 +168,25 @@ describe("<PlayForm>", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       /anotá la partida/i,
     );
+  });
+
+  it("el header tiene subtítulo (hero editorial, como el resto de secciones)", () => {
+    const { unmount } = renderForm();
+    expect(
+      screen.getByText(/queda en tu almanaque de bg watch/i),
+    ).toBeInTheDocument();
+    unmount();
+    renderForm({
+      editMode: true,
+      lockedGame: true,
+      initialValues: {
+        game: { id: "13", name: "Catán" },
+        players: [{ name: "Me", username: "meBGG" }],
+      },
+    });
+    expect(
+      screen.getByText(/se actualiza también en boardgamegeek/i),
+    ).toBeInTheDocument();
   });
 
   it("con lockedGame muestra el juego sin el selector", () => {
