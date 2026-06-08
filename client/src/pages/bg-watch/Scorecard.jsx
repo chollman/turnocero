@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import Avatar from "../../components/shared/Avatar";
+import Meeple from "../../components/shared/Meeple";
 import { hasDisplayableScore } from "./playerScore";
 import styles from "./PlayForm.module.css";
 
@@ -165,7 +166,9 @@ export default function Scorecard({
   return (
     <div className={styles.scorecard}>
       <div className={styles.scorecardTop}>
-        <div className={styles.scorecardKicker}>◆ BG Watch · partida</div>
+        <div className={styles.scorecardKicker}>
+          <Meeple /> BG Watch · partida
+        </div>
         <div className={styles.scorecardGameRow}>
           <div
             className={`${styles.scorecardThumb} ${!game ? styles.scorecardThumbEmpty : ""}`}

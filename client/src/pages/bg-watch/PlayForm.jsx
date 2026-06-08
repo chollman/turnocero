@@ -20,6 +20,7 @@ import {
   assignWinsByScore,
 } from "./playerPositions";
 import { makeAnonName, isAnonName } from "./anonymousPlayer";
+import useClickOutside from "../../hooks/useClickOutside";
 import styles from "./PlayForm.module.css";
 
 // Trofeo inline (sin libs de iconos — convención del repo). Hereda currentColor.
@@ -103,6 +104,43 @@ function PlayerAvatar({ player, userMap }) {
       }
       size="sm"
     />
+  );
+}
+
+// Celda de puntaje (stepper − / input / +). Compartida por los modos versus y
+// equipos para no duplicar el markup ni los aria-labels.
+function ScoreCell({ value, onChange, onStep, label }) {
+  return (
+    <div className={styles.scoreCell}>
+      <button
+        type="button"
+        className={styles.scoreStep}
+        onClick={() => onStep(-1)}
+        aria-label="Bajar puntaje"
+        tabIndex={-1}
+      >
+        −
+      </button>
+      <input
+        type="text"
+        className={styles.scoreInput}
+        placeholder="—"
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        maxLength={30}
+        inputMode="numeric"
+      />
+      <button
+        type="button"
+        className={styles.scoreStep}
+        onClick={() => onStep(1)}
+        aria-label="Subir puntaje"
+        tabIndex={-1}
+      >
+        +
+      </button>
+    </div>
   );
 }
 
@@ -234,6 +272,12 @@ export default function PlayForm({
     return "versus";
   });
   const [coopWin, setCoopWin] = useState(true);
+  // ¿El usuario tomó control manual de quién ganó? Mientras sea false (default
+  // al crear), cargar un puntaje autoasigna el ganador al score más alto. En
+  // cuanto toca el toggle de "Ganó" (o al editar una partida ya cargada) pasa a
+  // true y los cambios de puntaje dejan de pisar la elección — clave para juegos
+  // donde NO gana el mayor puntaje.
+  const [winsManual, setWinsManual] = useState(editMode);
   // Modo equipos: cuántos equipos hay (2–4) y cuál ganó.
   const [numTeams, setNumTeams] = useState(() =>
     isTeamsPlay ? Math.min(4, Math.max(2, new Set(initTeams).size)) : 2,
@@ -256,30 +300,11 @@ export default function PlayForm({
 
   const [adding, setAdding] = useState(false);
   const [suggestedDuration, setSuggestedDuration] = useState(null);
-  // Cierra el popover del picker al clickear fuera del área (trigger + popover).
+  // Cierra el popover del picker de jugador / el de expansiones-variante al
+  // clickear fuera de su área (trigger + popover).
   const addAreaRef = useRef(null);
-  useEffect(() => {
-    if (!adding) return undefined;
-    const onDown = (e) => {
-      if (addAreaRef.current && !addAreaRef.current.contains(e.target)) {
-        setAdding(false);
-      }
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [adding]);
-
-  // Cierra el popover de expansiones/variante al clickear fuera de su área.
-  useEffect(() => {
-    if (!gamePicker) return undefined;
-    const onDown = (e) => {
-      if (gameExtrasRef.current && !gameExtrasRef.current.contains(e.target)) {
-        setGamePicker(null);
-      }
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [gamePicker]);
+  useClickOutside(addAreaRef, () => setAdding(false), adding);
+  useClickOutside(gameExtrasRef, () => setGamePicker(null), !!gamePicker);
 
   const toggleExpansion = (exp) =>
     setExpansions((arr) =>
@@ -329,7 +354,7 @@ export default function PlayForm({
       );
     });
     return () => ac.abort();
-  }, [game?.id, editMode, usernamesKey, user]);
+  }, [game?.id, editMode, usernamesKey]);
 
   // ── Duración sugerida = tiempo de caja de BGG (playingtime) ──────────
   useEffect(() => {
@@ -461,8 +486,9 @@ export default function PlayForm({
   };
 
   // En equipos el puntaje NO reasigna el ganador (gana el equipo, no el score).
+  // Tampoco si el usuario ya eligió ganador a mano (winsManual).
   const applyWins = (arr) =>
-    mode === "equipos" ? arr : assignWinsByScore(arr);
+    mode === "equipos" || winsManual ? arr : assignWinsByScore(arr);
   const updateScore = (idx, val) =>
     setPlayers((arr) =>
       applyWins(arr.map((p, i) => (i === idx ? { ...p, score: val } : p))),
@@ -1024,40 +1050,19 @@ export default function PlayForm({
 
                     {mode === "versus" ? (
                       <div className={styles.scoreControls}>
-                        <div className={styles.scoreCell}>
-                          <button
-                            type="button"
-                            className={styles.scoreStep}
-                            onClick={() => stepScore(i, -1)}
-                            aria-label="Bajar puntaje"
-                            tabIndex={-1}
-                          >
-                            −
-                          </button>
-                          <input
-                            type="text"
-                            className={styles.scoreInput}
-                            placeholder="—"
-                            aria-label={`Puntaje de ${p.name || p.username || "jugador"}`}
-                            value={p.score}
-                            onChange={(e) => updateScore(i, e.target.value)}
-                            maxLength={30}
-                            inputMode="numeric"
-                          />
-                          <button
-                            type="button"
-                            className={styles.scoreStep}
-                            onClick={() => stepScore(i, 1)}
-                            aria-label="Subir puntaje"
-                            tabIndex={-1}
-                          >
-                            +
-                          </button>
-                        </div>
+                        <ScoreCell
+                          value={p.score}
+                          onChange={(v) => updateScore(i, v)}
+                          onStep={(d) => stepScore(i, d)}
+                          label={`Puntaje de ${p.name || p.username || "jugador"}`}
+                        />
                         <button
                           type="button"
                           className={`${styles.winToggle} ${p.win ? styles.winToggleActive : ""}`}
-                          onClick={() => updatePlayer(i, "win", !p.win)}
+                          onClick={() => {
+                            setWinsManual(true);
+                            updatePlayer(i, "win", !p.win);
+                          }}
                           aria-label="Ganó"
                           aria-pressed={p.win}
                           title="Ganó"
@@ -1069,36 +1074,12 @@ export default function PlayForm({
                       <span className={styles.teamTag}>Equipo</span>
                     ) : (
                       <div className={styles.scoreControls}>
-                        <div className={styles.scoreCell}>
-                          <button
-                            type="button"
-                            className={styles.scoreStep}
-                            onClick={() => stepScore(i, -1)}
-                            aria-label="Bajar puntaje"
-                            tabIndex={-1}
-                          >
-                            −
-                          </button>
-                          <input
-                            type="text"
-                            className={styles.scoreInput}
-                            placeholder="—"
-                            aria-label={`Puntaje de ${p.name || p.username || "jugador"}`}
-                            value={p.score}
-                            onChange={(e) => updateScore(i, e.target.value)}
-                            maxLength={30}
-                            inputMode="numeric"
-                          />
-                          <button
-                            type="button"
-                            className={styles.scoreStep}
-                            onClick={() => stepScore(i, 1)}
-                            aria-label="Subir puntaje"
-                            tabIndex={-1}
-                          >
-                            +
-                          </button>
-                        </div>
+                        <ScoreCell
+                          value={p.score}
+                          onChange={(v) => updateScore(i, v)}
+                          onStep={(d) => stepScore(i, d)}
+                          label={`Puntaje de ${p.name || p.username || "jugador"}`}
+                        />
                         <div
                           className={styles.teamPick}
                           role="group"
@@ -1371,7 +1352,9 @@ export default function PlayForm({
         </form>
 
         <aside className={styles.preview}>
-          <div className={styles.previewLabel}>◆ Tu entrada · en vivo</div>
+          <div className={styles.previewLabel}>
+            <Meeple /> Tu entrada · en vivo
+          </div>
           <Scorecard
             game={game}
             date={details.playdate}

@@ -224,6 +224,26 @@ describe("validatePlayBody", () => {
       "Lista de jugadores inválida",
     );
   });
+
+  it("rechaza fechas futuras (el server es la autoridad)", () => {
+    expect(validatePlayBody({ ...ok, playdate: "2099-12-31" })).toBe(
+      "La fecha no puede ser futura",
+    );
+  });
+
+  it("acepta la fecha de hoy", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    expect(validatePlayBody({ ...ok, playdate: today })).toBeNull();
+  });
+
+  it("rechaza rosters demasiado grandes (>50 jugadores)", () => {
+    const players = Array.from({ length: 51 }, (_, i) => ({ name: `J${i}` }));
+    expect(validatePlayBody({ ...ok, players })).toBe(
+      "Demasiados jugadores en la partida",
+    );
+    const ok50 = Array.from({ length: 50 }, (_, i) => ({ name: `J${i}` }));
+    expect(validatePlayBody({ ...ok, players: ok50 })).toBeNull();
+  });
 });
 
 // ── upsertPlayFromBgg ────────────────────────────────────────────────

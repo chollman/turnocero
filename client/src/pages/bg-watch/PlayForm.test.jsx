@@ -452,6 +452,37 @@ describe("<PlayForm>", () => {
     expect(players.find((p) => p.name === "Me").win).toBe(false);
   });
 
+  it("respeta el ganador elegido a mano al editar un puntaje después (#2)", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
+    fireEvent.click((await screen.findByText("Bob")).closest("button"));
+    closePicker();
+    let scores = scoreInputs();
+    fireEvent.change(scores[0], { target: { value: "5" } }); // Me
+    fireEvent.change(scores[1], { target: { value: "10" } }); // Bob → auto-gana
+
+    // Tomamos control manual: Bob deja de ganar, Me gana (juego donde no gana
+    // el mayor puntaje).
+    const trophies = screen.getAllByRole("button", { name: /^ganó$/i });
+    fireEvent.click(trophies[1]); // Bob off
+    fireEvent.click(trophies[0]); // Me on
+
+    // Editar un puntaje ya NO debe reasignar el ganador al score más alto.
+    scores = scoreInputs();
+    fireEvent.change(scores[1], { target: { value: "20" } }); // Bob ahora 20
+
+    fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const { players } = onSubmit.mock.calls[0][0];
+    expect(players.find((p) => p.name === "Me").win).toBe(true);
+    expect(players.find((p) => p.name === "Bob").win).toBe(false);
+  });
+
   it("los atajos +/- cambian el puntaje", () => {
     renderForm({
       initialValues: { game: { id: "13", name: "Catán" } },

@@ -665,6 +665,46 @@ router.get(
   }),
 );
 
+// Cuántas páginas de plays (100 c/u) escanear en BGG cuando un usuario sin
+// espejo en Mongo abre una partida para editar por deep-link/refresh. Lo común
+// es editar una partida reciente, que está en las primeras páginas (orden
+// fecha desc), así que un cap acotado cubre el caso normal sin barrer todo.
+const PARTIDA_BGG_SCAN_PAGES = 10;
+
+// Busca una partida puntual directamente en BGG (fallback cuando no hay espejo
+// en Mongo). El XML API no filtra por play id, así que escaneamos páginas hasta
+// encontrarla o agotar el cap/total. Devuelve la play parseada (con thumbnail
+// resuelto best-effort) o null.
+async function findPlayOnBgg(bggUsername, playId) {
+  const wanted = String(playId);
+  for (let page = 1; page <= PARTIDA_BGG_SCAN_PAGES; page++) {
+    let xml;
+    try {
+      xml = await fetchBgg(
+        `${BGG_API}/plays?username=${encodeURIComponent(bggUsername)}&page=${page}`,
+      );
+    } catch {
+      return null;
+    }
+    const parsed = parsePlaysXml(xml);
+    if (!parsed || parsed.plays.length === 0) return null;
+    const match = parsed.plays.find((p) => p.playId === wanted);
+    if (match) {
+      if (match.gameId) {
+        try {
+          const game = await resolveGame(match.gameId);
+          match.gameThumbnail = game?.thumbnail || null;
+        } catch {
+          /* thumbnail opcional */
+        }
+      }
+      return match;
+    }
+    if (parsed.total && page * 100 >= parsed.total) return null;
+  }
+  return null;
+}
+
 // GET /api/bgg/partida/:bggUsername/:playId — precarga una partida para editar
 // (singular `partida` para no chocar con `/partidas/:bggUsername`). Solo el
 // dueño (case-insensitive) o un admin. Devuelve la shape que consume el form.
@@ -680,21 +720,15 @@ router.get(
       throw httpError(403, "No podés editar partidas de otro usuario");
     }
     const play = await BggPlay.findOne({ bggUsername: lower, playId }).lean();
-    if (!play) throw httpError(404, "Partida no encontrada");
-    res.json({
-      id: play.playId,
-      gameId: play.gameId,
-      gameName: play.gameName,
-      gameThumbnail: play.gameThumbnail,
-      date: play.date,
-      duration: play.duration,
-      location: play.location,
-      quantity: play.quantity,
-      comments: play.comments,
-      incomplete: play.incomplete,
-      nowinstats: play.nowinstats,
-      players: play.players || [],
-    });
+    if (play) return res.json(playToApi(play));
+
+    // Sin espejo en Mongo (el usuario nunca corrió sync): la creamos sin
+    // espejar, así que findOne falla. Antes esto era un 404 al refrescar/abrir
+    // por deep-link el form de edición. Buscamos la partida directo en BGG; la
+    // lista del perfil dispara el reconcile que autosana futuras visitas.
+    const fromBgg = await findPlayOnBgg(bggUsername, playId);
+    if (!fromBgg) throw httpError(404, "Partida no encontrada");
+    res.json(playToApi(fromBgg));
   }),
 );
 

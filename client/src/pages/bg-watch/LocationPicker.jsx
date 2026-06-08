@@ -3,6 +3,7 @@ import axios from "axios";
 import { API } from "../../api/endpoints";
 import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
+import useClickOutside from "../../hooks/useClickOutside";
 import EmptyState from "../../components/shared/EmptyState";
 import SearchRowSkeleton from "./SearchRowSkeleton";
 import styles from "./BgWatchProfile.module.css";
@@ -99,16 +100,7 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
   }, [bggUsername, searchTerm, open, fetchPage]);
 
   // Cerrar al clickear fuera del campo.
-  useEffect(() => {
-    if (!open) return;
-    const onDocMouseDown = (e) => {
-      if (fieldRef.current && !fieldRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDocMouseDown);
-    return () => document.removeEventListener("mousedown", onDocMouseDown);
-  }, [open]);
+  useClickOutside(fieldRef, () => setOpen(false), open);
 
   const onLoadMore = useCallback(() => {
     fetchPage(page + 1, true);

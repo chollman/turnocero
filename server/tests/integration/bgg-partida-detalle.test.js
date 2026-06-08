@@ -26,7 +26,26 @@ function playDoc(overrides) {
   };
 }
 
+// XML de /plays para el fallback a BGG (usuario sin espejo en Mongo).
+function playsXml(plays, total) {
+  const content = plays
+    .map(
+      (p) => `
+    <play id="${p.id}" date="${p.date}" quantity="1" length="90" incomplete="0" nowinstats="0" location="Casa">
+      <item name="${p.gameName}" objecttype="thing" objectid="${p.gameId}"/>
+      <players><player username="alice" name="Alice" startposition="1" score="42" win="1" new="0"/></players>
+    </play>`,
+    )
+    .join("");
+  return `<?xml version="1.0"?><plays username="alice" userid="1" total="${total ?? plays.length}" page="1">${content}</plays>`;
+}
+
 describe("GET /api/bgg/partida/:bggUsername/:playId", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete global.fetch;
+  });
+
   it("401 sin autenticación", async () => {
     const res = await request(app).get("/api/bgg/partida/alice/play-1");
     expect(res.status).toBe(401);
@@ -76,9 +95,65 @@ describe("GET /api/bgg/partida/:bggUsername/:playId", () => {
 
   it("404 si la partida no existe", async () => {
     const { token } = await createAuthedUser({ bggUsername: "alice" });
+    // Sin espejo en Mongo cae a BGG; mockeamos plays vacío → 404.
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      text: async () => playsXml([], 0),
+    }));
     const res = await request(app)
       .get("/api/bgg/partida/alice/nope")
       .set(authHeader(token));
     expect(res.status).toBe(404);
+  });
+
+  // ── Fallback a BGG cuando el usuario nunca sincronizó (#3) ──────────────
+  it("sin espejo en Mongo, busca la partida en BGG (refresh/deep-link)", async () => {
+    const { token } = await createAuthedUser({ bggUsername: "alice" });
+    // NO se crea ningún BggPlay → entra al fallback.
+    global.fetch = vi.fn(async (url) => {
+      const u = String(url);
+      if (u.includes("/plays")) {
+        return {
+          ok: true,
+          status: 200,
+          text: async () =>
+            playsXml([
+              { id: "p1", date: "2026-03-01", gameId: "100", gameName: "Catan" },
+            ]),
+        };
+      }
+      if (u.includes("/thing")) {
+        return { ok: true, status: 200, text: async () => "<items></items>" };
+      }
+      throw new Error(`unmocked fetch: ${u}`);
+    });
+
+    const res = await request(app)
+      .get("/api/bgg/partida/alice/p1")
+      .set(authHeader(token));
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      id: "p1",
+      gameId: "100",
+      gameName: "Catan",
+      date: "2026-03-01",
+      location: "Casa",
+    });
+    expect(res.body.players[0]).toMatchObject({ username: "alice", win: true });
+  });
+
+  it("con espejo en Mongo NO le pega a BGG (sirve local)", async () => {
+    const { token } = await createAuthedUser({ bggUsername: "alice" });
+    await BggPlay.create(playDoc());
+    const fetchSpy = vi.fn(async () => {
+      throw new Error("no debería pegarle a BGG");
+    });
+    global.fetch = fetchSpy;
+    const res = await request(app)
+      .get("/api/bgg/partida/alice/play-1")
+      .set(authHeader(token));
+    expect(res.status).toBe(200);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

@@ -10,33 +10,56 @@ export const SIGNATURE = "@turnocero0";
 const EXP_HEADER = "Played with expansions:";
 const VARIANT_LABEL = "Variante/Tablero:";
 
+// Tope del campo `comments` de una partida (el server además recorta a este
+// mismo valor como red de seguridad — ver buildPlayForm).
+export const MAX_COMMENT_LENGTH = 1000;
+
 function escapeRe(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 // Arma el comentario final para BGG. Orden: notas, expansiones, variante, firma.
+//
+// Los bloques estructurados (expansiones/variante/firma) van DESPUÉS de las
+// notas y tienen prioridad sobre ellas: si el total excede MAX_COMMENT_LENGTH,
+// se recortan las notas — nunca la firma ni los bloques. Antes el server
+// cortaba el string entero a 1000 y, como la firma va al final, una nota larga
+// la dejaba afuera (rompía la detección "creada en TurnoCero" y se perdían las
+// expansiones).
 export function composeComments({
   notes = "",
   expansions = [],
   variant = "",
   sign = false,
 } = {}) {
-  const parts = [];
-  const n = String(notes || "").trim();
-  if (n) parts.push(n);
+  const blocks = [];
 
   const exp = (expansions || []).filter((e) => e && e.id && e.name);
   if (exp.length) {
     const lines = exp.map((e) => `- [thing=${e.id}]${e.name}[/thing]`);
-    parts.push([EXP_HEADER, ...lines].join("\n"));
+    blocks.push([EXP_HEADER, ...lines].join("\n"));
   }
 
   const v = String(variant || "").trim();
-  if (v) parts.push(`${VARIANT_LABEL} ${v}`);
+  if (v) blocks.push(`${VARIANT_LABEL} ${v}`);
 
-  if (sign) parts.push(SIGNATURE);
+  if (sign) blocks.push(SIGNATURE);
 
-  return parts.join("\n\n");
+  const suffix = blocks.join("\n\n");
+  let n = String(notes || "").trim();
+
+  if (suffix) {
+    // Reservar lugar para el suffix (+ separador "\n\n"). Si no entra ni el
+    // suffix solo, devolverlo igual (el server lo recorta como último recurso).
+    const budget = MAX_COMMENT_LENGTH - suffix.length - 2;
+    if (budget <= 0) return suffix;
+    if (n.length > budget) n = n.slice(0, budget).trimEnd();
+    return n ? `${n}\n\n${suffix}` : suffix;
+  }
+
+  // Sin bloques: sólo notas, acotadas al tope.
+  if (n.length > MAX_COMMENT_LENGTH) n = n.slice(0, MAX_COMMENT_LENGTH).trimEnd();
+  return n;
 }
 
 // Separa un comentario crudo de BGG en { notes, expansions, variant, signed }.

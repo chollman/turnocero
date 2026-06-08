@@ -88,6 +88,10 @@ function buildPlayForm(body, playId = null) {
   return form;
 }
 
+// Tope defensivo de jugadores por partida (el server es la autoridad; el
+// cliente nunca arma rosters tan grandes).
+const MAX_PLAYERS = 50;
+
 // Valida el body de POST/PUT /partidas antes de armar el form. Devuelve
 // un string con el error en castellano si algo está mal, null si está OK.
 function validatePlayBody(body) {
@@ -97,8 +101,18 @@ function validatePlayBody(body) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.playdate || ""))) {
     return "Fecha inválida (formato YYYY-MM-DD)";
   }
+  // La fecha no puede ser futura. El cliente ya lo bloquea, pero el server es
+  // la autoridad. +1 día de gracia para tolerar la zona horaria del cliente.
+  const tomorrow = new Date();
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  if (String(body.playdate) > tomorrow.toISOString().slice(0, 10)) {
+    return "La fecha no puede ser futura";
+  }
   if (!Array.isArray(body.players)) {
     return "Lista de jugadores inválida";
+  }
+  if (body.players.length > MAX_PLAYERS) {
+    return "Demasiados jugadores en la partida";
   }
   return null;
 }
