@@ -1,0 +1,8 @@
+/* Layout propio de JuntadaFields. Las clases de cada campo (privacidad, juegos,
+   título, texto, fotos) se reutilizan de CreateCompartidaForm.module.css para
+   que se vea idéntico a una juntada; acá solo va el apilado/gap del bloque. */
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

@@ -1,0 +1,204 @@
+import { useRef } from "react";
+import BggGameSearch from "../../components/shared/BggGameSearch";
+// Reusamos las clases del form de compartidas para que la sección "Compartí esta
+// partida" se vea idéntica a una juntada. El layout/gap propio va en el módulo local.
+import shared from "./CreateCompartidaForm.module.css";
+import styles from "./JuntadaFields.module.css";
+
+const PRIVACY_OPTIONS = [
+  { value: "public", label: "Público" },
+  { value: "friends", label: "Amigos" },
+  { value: "private", label: "Solo yo" },
+];
+const MAX_GAMES = 12;
+const MAX_IMAGES = 3;
+
+/**
+ * Campos de una juntada (controlado): visibilidad, juegos, título, texto y fotos.
+ * Es la parte reutilizable del form de Compartidas tipo "juntada", para embeberla
+ * tanto en la página de Compartidas como en el form de carga de partidas de BG Watch.
+ *
+ * Props:
+ * - value: { privacy, games:[{id,name,thumbnail,image,year}], title, body, images:[{file,preview}] }
+ * - onChange(next): recibe el value completo actualizado.
+ * - disabled: deshabilita todos los controles (mientras se envía).
+ *
+ * Las fotos viven como `{ file, preview }` con `preview` = objectURL para el
+ * thumbnail; se crean al agregar y se revocan al quitar. El consumidor debe
+ * revocar las que queden tras un submit exitoso.
+ */
+export default function JuntadaFields({ value, onChange, disabled = false }) {
+  const { privacy, games, title, body, images } = value;
+  const fileInputRef = useRef(null);
+  const set = (patch) => onChange({ ...value, ...patch });
+
+  const addGame = (g) => {
+    if (games.length >= MAX_GAMES) return;
+    if (games.some((x) => x.id === g.id)) return; // dedupe
+    set({ games: [...games, g] });
+  };
+  const removeGame = (id) => set({ games: games.filter((x) => x.id !== id) });
+
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = MAX_IMAGES - images.length;
+    const toAdd = files.slice(0, remaining).map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    if (toAdd.length) set({ images: [...images, ...toAdd] });
+    e.target.value = "";
+  };
+  const removeImage = (idx) => {
+    URL.revokeObjectURL(images[idx].preview);
+    set({ images: images.filter((_, i) => i !== idx) });
+  };
+
+  return (
+    <div className={styles.fields}>
+      {/* Visibilidad */}
+      <div className={shared.privacyRow}>
+        <span className={shared.privacyLabel}>Visibilidad:</span>
+        {PRIVACY_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            className={`${shared.privacyBtn} ${privacy === opt.value ? shared.privacyBtnActive : ""}`}
+            onClick={() => set({ privacy: opt.value })}
+            disabled={disabled}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Juegos (0..N, opcional) */}
+      <div className={shared.gameField}>
+        <span className={shared.fieldLabel}>
+          Juegos{" "}
+          <span className={shared.opt}>· opcional, podés agregar varios</span>
+        </span>
+
+        {games.length > 0 && (
+          <div className={shared.gameChips}>
+            {games.map((g) => (
+              <div key={g.id} className={shared.gameChip}>
+                {g.thumbnail || g.image ? (
+                  <img
+                    src={g.thumbnail || g.image}
+                    alt={g.name}
+                    className={shared.gameChipImg}
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className={shared.gameChipImg} aria-hidden="true">
+                    🎲
+                  </span>
+                )}
+                <div className={shared.gameChipInfo}>
+                  <span className={shared.gameChipName}>{g.name}</span>
+                  {g.year && (
+                    <span className={shared.gameChipYear}>{g.year}</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className={shared.linkChipRemove}
+                  onClick={() => removeGame(g.id)}
+                  disabled={disabled}
+                  aria-label={`Quitar ${g.name}`}
+                  title="Quitar juego"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {games.length < MAX_GAMES && (
+          <BggGameSearch
+            onPick={addGame}
+            autoFocus={false}
+            clearOnPick
+            placeholder="Agregá un juego (≥3 caracteres)…"
+          />
+        )}
+      </div>
+
+      {/* Título */}
+      <input
+        className={shared.titleInput}
+        placeholder="Título (opcional)"
+        value={title}
+        onChange={(e) => set({ title: e.target.value })}
+        maxLength={100}
+        disabled={disabled}
+      />
+
+      {/* Texto */}
+      <textarea
+        className={shared.bodyInput}
+        placeholder="Contá cómo salió, qué jugaron, anécdotas…"
+        value={body}
+        onChange={(e) => set({ body: e.target.value })}
+        rows={4}
+        maxLength={2000}
+        disabled={disabled}
+      />
+
+      {/* Fotos (máx 3) */}
+      {images.length > 0 && (
+        <div className={shared.previews}>
+          {images.map((img, i) => (
+            <div key={i} className={shared.previewWrap}>
+              <img src={img.preview} alt="" className={shared.preview} />
+              <button
+                type="button"
+                className={shared.removeImg}
+                onClick={() => removeImage(i)}
+                aria-label="Quitar foto"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className={shared.controls}>
+        <button
+          type="button"
+          className={shared.photoBtn}
+          onClick={() => fileInputRef.current?.click()}
+          disabled={images.length >= MAX_IMAGES || disabled}
+          title={images.length >= MAX_IMAGES ? "Máximo 3 fotos" : "Agregar foto"}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+          <span>Foto {images.length > 0 ? `(${images.length}/3)` : ""}</span>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          multiple
+          className={shared.fileInput}
+          onChange={handleImageSelect}
+        />
+      </div>
+    </div>
+  );
+}

@@ -55,11 +55,40 @@ vi.mock("./PlayForm", () => ({
         <button onClick={() => onSubmit(payload, { keepGoing: true })}>
           submit-keep
         </button>
+        <button
+          onClick={() => onSubmit(payload, { keepGoing: false, share: SHARE })}
+        >
+          submit-share
+        </button>
+        <button
+          onClick={() => onSubmit(payload, { keepGoing: true, share: SHARE })}
+        >
+          submit-keep-share
+        </button>
         <button onClick={onCancel}>cancel</button>
       </div>
     );
   },
 }));
+
+// Bloque "Compartí esta partida" que el form pasaría en onSubmit cuando la
+// sección 5 está activada con contenido. Sin fotos para no lidiar con FormData.
+const SHARE = {
+  privacy: "public",
+  community: "",
+  title: "Linda noche",
+  body: "ganamos",
+  games: [{ id: "13", name: "Catán" }],
+  images: [],
+  playResult: {
+    mode: "versus",
+    game: { name: "Catán", thumbnail: "" },
+    gameId: 13,
+    date: "2026-06-08",
+    duration: 60,
+    players: [{ name: "Me", username: "meBGG", score: "85", win: true, position: 1 }],
+  },
+};
 
 import CreatePlay from "./CreatePlay";
 
@@ -105,9 +134,17 @@ function renderWithState(entry, state) {
   );
 }
 
+const clipboardWrite = vi.fn().mockResolvedValue(undefined);
+
 beforeEach(() => {
   addToast.mockClear();
   dismiss.mockClear();
+  clipboardWrite.mockClear();
+  Object.defineProperty(navigator, "clipboard", {
+    value: { writeText: clipboardWrite },
+    configurable: true,
+    writable: true,
+  });
   mockUser = {
     _id: "me",
     username: "me",
@@ -316,5 +353,128 @@ describe("<CreatePlay>", () => {
     await waitFor(() => expect(body).not.toBeNull());
     expect(body.sharedFromNotifId).toBe("notif123");
     await waitFor(() => expect(dismiss).toHaveBeenCalledWith("notif123"));
+  });
+
+  // ── Sección 5: "Compartí esta partida" ──────────────────────────────
+  it("submit normal (sin share) NO postea a compartidas", async () => {
+    let compartidas = 0;
+    server.use(
+      http.post("/api/bgg/partidas", () => HttpResponse.json({ ok: true })),
+      http.post("/api/compartidas", () => {
+        compartidas += 1;
+        return HttpResponse.json({ _id: "j", images: [] });
+      }),
+    );
+    renderAt("/bg-watch/meBGG/partidas/nueva");
+    fireEvent.click(screen.getByRole("button", { name: "submit" }));
+    await waitFor(() =>
+      expect(screen.getByTestId("echo")).toHaveTextContent("/bg-watch/meBGG"),
+    );
+    expect(compartidas).toBe(0);
+    expect(clipboardWrite).not.toHaveBeenCalled();
+  });
+
+  it("con share: guarda la partida, crea la juntada y copia el deeplink", async () => {
+    let comBody = null;
+    server.use(
+      http.post("/api/bgg/partidas", () => HttpResponse.json({ ok: true })),
+      http.post("/api/compartidas", async ({ request }) => {
+        comBody = await request.json();
+        return HttpResponse.json({ _id: "j1", images: [] });
+      }),
+    );
+    renderAt("/bg-watch/meBGG/partidas/nueva");
+    fireEvent.click(screen.getByRole("button", { name: "submit-share" }));
+    await waitFor(() => expect(comBody).not.toBeNull());
+    expect(comBody.category).toBe("juntada");
+    expect(comBody.body).toBe("ganamos");
+    expect(comBody.boardGames.map((g) => g.bggId)).toEqual(["13"]);
+    // El snapshot de resultados viaja en el POST.
+    expect(comBody.playResult?.players?.[0]?.name).toBe("Me");
+    // Copió el deeplink de la juntada recién creada.
+    await waitFor(() => expect(clipboardWrite).toHaveBeenCalled());
+    expect(clipboardWrite.mock.calls[0][0]).toContain("/compartidas/j1");
+    // Navegó al perfil y mostró un toast de éxito mencionando el link.
+    await waitFor(() =>
+      expect(screen.getByTestId("echo")).toHaveTextContent("/bg-watch/meBGG"),
+    );
+    expect(addToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "success",
+        message: expect.stringMatching(/link de la juntada copiado/i),
+      }),
+    );
+  });
+
+  it("si la juntada falla, la partida queda guardada (navega) + toast de error, sin copiar", async () => {
+    server.use(
+      http.post("/api/bgg/partidas", () => HttpResponse.json({ ok: true })),
+      http.post("/api/compartidas", () =>
+        HttpResponse.json({ message: "boom" }, { status: 500 }),
+      ),
+    );
+    renderAt("/bg-watch/meBGG/partidas/nueva");
+    fireEvent.click(screen.getByRole("button", { name: "submit-share" }));
+    // La partida NO se revierte: navega igual al perfil.
+    await waitFor(() =>
+      expect(screen.getByTestId("echo")).toHaveTextContent("/bg-watch/meBGG"),
+    );
+    expect(clipboardWrite).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "error",
+        message: expect.stringMatching(/no se pudo crear la compartida/i),
+      }),
+    );
+  });
+
+  it("con 'cargar otra' + share: crea la juntada una vez, copia y se queda en el form", async () => {
+    let partidas = 0;
+    let compartidas = 0;
+    server.use(
+      http.post("/api/bgg/partidas", () => {
+        partidas += 1;
+        return HttpResponse.json({ ok: true });
+      }),
+      http.post("/api/compartidas", () => {
+        compartidas += 1;
+        return HttpResponse.json({ _id: "j2", images: [] });
+      }),
+    );
+    renderAt("/bg-watch/meBGG/partidas/nueva");
+    fireEvent.click(screen.getByRole("button", { name: "submit-keep-share" }));
+    await waitFor(() => expect(compartidas).toBe(1));
+    expect(partidas).toBe(1);
+    await waitFor(() => expect(clipboardWrite).toHaveBeenCalled());
+    // No navegó: el form sigue (remontado) y conserva el roster.
+    expect(screen.getByTestId("play-form")).toBeInTheDocument();
+    expect(screen.queryByTestId("echo")).toBeNull();
+    await waitFor(() =>
+      expect(screen.getByTestId("carry-players")).toHaveTextContent("Me,Bob"),
+    );
+  });
+
+  it("si falla la partida, NO intenta la juntada", async () => {
+    let compartidas = 0;
+    server.use(
+      http.post("/api/bgg/partidas", () =>
+        HttpResponse.json({ message: "no" }, { status: 500 }),
+      ),
+      http.post("/api/compartidas", () => {
+        compartidas += 1;
+        return HttpResponse.json({ _id: "j", images: [] });
+      }),
+    );
+    renderAt("/bg-watch/meBGG/partidas/nueva");
+    fireEvent.click(screen.getByRole("button", { name: "submit-share" }));
+    await waitFor(() =>
+      expect(addToast).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "error" }),
+      ),
+    );
+    expect(compartidas).toBe(0);
+    expect(clipboardWrite).not.toHaveBeenCalled();
+    // No navegó (sigue el form).
+    expect(screen.getByTestId("play-form")).toBeInTheDocument();
   });
 });

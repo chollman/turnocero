@@ -528,6 +528,102 @@ describe("Compartidas — reseñas vs juntadas", () => {
     ]);
   });
 
+  // ── playResult (widget de resultados de juntada compartida) ──────────
+  const PLAY_RESULT = {
+    mode: "versus",
+    game: { name: "FAKE", thumbnail: "x" },
+    gameId: 13,
+    date: "2026-06-08",
+    duration: 60,
+    players: [
+      { name: "Martín", username: "martin", score: 85, win: true, position: 1, team: "Z" },
+      { name: "Bob", username: "bob", score: 72, win: false, position: 2 },
+    ],
+  };
+
+  it("POST juntada con playResult: lo persiste, coerciona y re-resuelve el thumbnail", async () => {
+    const { token } = await createAuthedUser();
+    await seedGame();
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ body: "ganamos", playResult: PLAY_RESULT });
+    expect(res.status).toBe(201);
+    const pr = res.body.playResult;
+    expect(pr).toBeTruthy();
+    expect(pr.mode).toBe("versus");
+    expect(pr.players).toHaveLength(2);
+    expect(pr.players[0].score).toBe("85"); // number → string
+    expect(pr.players[0].team).toBe(""); // "Z" inválido → ""
+    // thumbnail re-resuelto del bggId (ignora el "x" del cliente).
+    expect(pr.game.thumbnail).toBe("https://img/thumb.jpg");
+  });
+
+  it("juntada solo-scorecard (sin título/texto/foto) → 201 (el widget cuenta como contenido)", async () => {
+    const { token } = await createAuthedUser();
+    await seedGame();
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ playResult: PLAY_RESULT });
+    expect(res.status).toBe(201);
+    expect(res.body.playResult).toBeTruthy();
+  });
+
+  it("playResult: recorta jugadores de más y clampea el mode inválido", async () => {
+    const { token } = await createAuthedUser();
+    const players = Array.from({ length: 30 }, (_, i) => ({
+      name: `P${i}`,
+      win: false,
+    }));
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ body: "x", playResult: { mode: "bogus", players } });
+    expect(res.status).toBe(201);
+    expect(res.body.playResult.players.length).toBe(24);
+    expect(res.body.playResult.mode).toBe("versus");
+  });
+
+  it("la reseña nulea el playResult", async () => {
+    const { token } = await createAuthedUser();
+    await seedGame();
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        category: "resena",
+        boardGame: { bggId: 13 },
+        rating: 8,
+        body: "<p>buena</p>",
+        playResult: PLAY_RESULT,
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.playResult).toBeNull();
+  });
+
+  it("juntada sin playResult → null (legacy/normal)", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ body: "sin widget" });
+    expect(res.status).toBe(201);
+    expect(res.body.playResult).toBeNull();
+  });
+
+  it("GET detalle devuelve el playResult", async () => {
+    const { token } = await createAuthedUser();
+    await seedGame();
+    const created = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ body: "ganamos", playResult: PLAY_RESULT });
+    const res = await request(app).get(`/api/compartidas/${created.body._id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.playResult?.players?.[0]?.name).toBe("Martín");
+  });
+
   it("PUT reseña edita rating, body y juego", async () => {
     const { user, token } = await createAuthedUser();
     await seedGame();

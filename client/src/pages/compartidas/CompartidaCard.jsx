@@ -15,6 +15,8 @@ import { getLocationDisplay } from "../../utils/location";
 import { buildCompartidaShare } from "../../utils/share";
 import CompartidaComments from "./CompartidaComments";
 import { useCompartidaLike } from "./useCompartidaLike";
+import Scorecard from "../bg-watch/Scorecard";
+import { playResultToScorecardProps } from "../bg-watch/playResultToScorecard";
 import styles from "./CompartidaCard.module.css";
 
 // Returns a fully formed label (incl. its own "hace"/"el" prefix), so callers
@@ -336,6 +338,11 @@ export default function CompartidaCard({
   const privacyLabel = PRIVACY_LABELS[post.privacy];
   const imageCount = post.images.length;
   const imageGridClass = styles[`photoGrid${Math.min(imageCount, 4)}`];
+  // Widget de resultados (juntada compartida desde el flujo de carga de partida).
+  // Render-only; null en compartidas viejas / reseñas (sin `playResult`).
+  const scProps = post.playResult
+    ? playResultToScorecardProps(post.playResult)
+    : null;
   const share = buildCompartidaShare(
     post,
     typeof window !== "undefined" ? window.location.origin : "",
@@ -669,6 +676,12 @@ export default function CompartidaCard({
                 </div>
               )}
 
+              {scProps && (
+                <div className={styles.playResult}>
+                  <Scorecard {...scProps} />
+                </div>
+              )}
+
               <div className={styles.broadsideMeta}>
                 <button
                   type="button"
@@ -951,6 +964,13 @@ export default function CompartidaCard({
               </span>
             </span>
           ))}
+        </div>
+      )}
+
+      {/* ── Resultados de la partida (juntada compartida) ── */}
+      {!editing && scProps && (
+        <div className={styles.playResult}>
+          <Scorecard {...scProps} />
         </div>
       )}
 

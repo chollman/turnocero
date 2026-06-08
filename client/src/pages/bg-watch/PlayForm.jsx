@@ -22,6 +22,9 @@ import {
 } from "./playerPositions";
 import { makeAnonName, isAnonName } from "./anonymousPlayer";
 import useClickOutside from "../../hooks/useClickOutside";
+import CommunitySelect from "../../components/shared/CommunitySelect";
+import JuntadaFields from "../compartidas/JuntadaFields";
+import { buildPlayResult } from "./buildPlayResult";
 import styles from "./PlayForm.module.css";
 
 // Trofeo inline (sin libs de iconos — convención del repo). Hereda currentColor.
@@ -235,6 +238,24 @@ export default function PlayForm({
   // ¿El comentario original ya tenía la firma? Para preservarla al editar
   // (la firma se AGREGA sólo en partidas nuevas, pero no se borra si ya estaba).
   const hadSignature = parsedComments.signed;
+
+  // ── Sección 5: "Compartí esta partida" (opcional, solo al crear) ──────
+  // Crea, además de la partida, una juntada en Compartidas (mismo form que una
+  // juntada normal) y copia el deeplink. `community` la maneja CommunitySelect
+  // pero vive en el mismo objeto; JuntadaFields la deja intacta al hacer onChange.
+  const [shareEnabled, setShareEnabled] = useState(false);
+  const [shareValue, setShareValue] = useState({
+    privacy: "public",
+    community: "",
+    games: [],
+    title: "",
+    body: "",
+    images: [],
+  });
+  // Pre-cargar el juego recién registrado en la juntada, una sola vez al activar
+  // la sección (quitable). Si el juego se elige después, el efecto re-corre.
+  const shareSeededRef = useRef(false);
+
   // Picker abierto en la sección del juego: null | "exp" | "variant".
   const [gamePicker, setGamePicker] = useState(null);
   const gameExtrasRef = useRef(null);
@@ -397,6 +418,7 @@ export default function PlayForm({
     }
     saveDraft({ game, details, players });
   }, [draftEnabled, game, details, players, saveDraft]);
+
 
   const restoreDraft = () => {
     if (!draftOffer) return;
@@ -623,42 +645,9 @@ export default function PlayForm({
     });
   };
 
-  const submit = (keepGoing) => {
-    if (!canSubmit || submitting) return;
-    if (draftEnabled) clearDraft();
-    // Comentario final = notas del usuario + bloques (expansiones/variante) +
-    // firma. La firma se agrega sólo al crear, o si la partida ya la tenía.
-    const composedComments = composeComments({
-      notes: details.comments,
-      expansions,
-      variant,
-      sign: !editMode || hadSignature,
-    });
-    onSubmit?.(
-      {
-        objectid: game.id,
-        playdate: details.playdate,
-        length: details.length === "" ? null : Number(details.length),
-        location: details.location,
-        quantity: Number(details.quantity) || 1,
-        comments: composedComments,
-        // `variant` (texto libre) se persiste server-side para autocompletar
-        // futuras partidas del juego; no se manda a BGG (ya va en comments).
-        variant,
-        incomplete: details.incomplete,
-        nowinstats: details.nowinstats,
-        players: buildPlayers(),
-      },
-      { keepGoing: !!keepGoing },
-    );
-  };
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
-    submit(false);
-  };
-
-  // ── Scorecard rows + member avatars ─────────────────────────────────
-  const userMap = useBggUserMap([{ players }]);
+  // Filas del scorecard — alimentan tanto el preview en vivo como el snapshot
+  // de resultados (`playResult`) que se embebe en la juntada compartida. Se
+  // derivan acá arriba para que `submit` pueda armar el playResult.
   const scorecardRows = players.map((p, i) => {
     const win = playerWins(p);
     return {
@@ -675,6 +664,80 @@ export default function PlayForm({
       leader: mode === "equipos" ? win : i === leaderIndex,
     };
   });
+
+  // Al abrir la sección 5 (una sola vez), pre-cargar el juego de la partida en
+  // la juntada — solo si el usuario no agregó juegos. No persiste en el borrador.
+  useEffect(() => {
+    if (editMode || !shareEnabled || shareSeededRef.current || !game) return;
+    shareSeededRef.current = true;
+    const seededGame = {
+      id: game.id,
+      name: game.name,
+      thumbnail: game.thumbnail,
+      image: game.image,
+      year: game.year,
+    };
+    setShareValue((v) => (v.games.length ? v : { ...v, games: [seededGame] }));
+  }, [editMode, shareEnabled, game]);
+
+  const submit = (keepGoing) => {
+    if (!canSubmit || submitting) return;
+    if (draftEnabled) clearDraft();
+    // Comentario final = notas del usuario + bloques (expansiones/variante) +
+    // firma. La firma se agrega sólo al crear, o si la partida ya la tenía.
+    const composedComments = composeComments({
+      notes: details.comments,
+      expansions,
+      variant,
+      sign: !editMode || hadSignature,
+    });
+    // Sección 5 (solo al crear): snapshot de resultados para el widget de la
+    // juntada (mismo dato que el preview en vivo). Cuenta como "contenido": abrir
+    // la sección con un juego ya alcanza para compartir, aunque no haya texto/foto.
+    const playResult = buildPlayResult({ scorecardRows, mode, game, details });
+    const hasShareContent =
+      shareValue.title.trim() ||
+      shareValue.body.trim() ||
+      shareValue.images.length > 0 ||
+      !!playResult;
+    const share =
+      !editMode && shareEnabled && hasShareContent
+        ? {
+            privacy: shareValue.privacy,
+            community: shareValue.community,
+            title: shareValue.title,
+            body: shareValue.body,
+            games: shareValue.games,
+            images: shareValue.images,
+            playResult,
+          }
+        : null;
+
+    onSubmit?.(
+      {
+        objectid: game.id,
+        playdate: details.playdate,
+        length: details.length === "" ? null : Number(details.length),
+        location: details.location,
+        quantity: Number(details.quantity) || 1,
+        comments: composedComments,
+        // `variant` (texto libre) se persiste server-side para autocompletar
+        // futuras partidas del juego; no se manda a BGG (ya va en comments).
+        variant,
+        incomplete: details.incomplete,
+        nowinstats: details.nowinstats,
+        players: buildPlayers(),
+      },
+      { keepGoing: !!keepGoing, share },
+    );
+  };
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    submit(false);
+  };
+
+  // Avatares de co-jugadores que son miembros de TurnoCero (para el preview).
+  const userMap = useBggUserMap([{ players }]);
 
   return (
     <div
@@ -1331,6 +1394,73 @@ export default function PlayForm({
               placeholder="Ese combo de la ronda 4, la jugada que definió todo, la revancha pendiente…"
             />
           </section>
+
+          {/* 5 · Compartí esta partida (opcional, solo al crear) — la tarjeta
+              entera es clicable y se despliega con un slide. */}
+          {!editMode && (
+            <section
+              className={`${styles.section} ${styles.shareSection} ${
+                shareEnabled ? styles.shareSectionOpen : ""
+              }`}
+            >
+              <button
+                type="button"
+                className={styles.shareHead}
+                onClick={() => setShareEnabled((v) => !v)}
+                aria-expanded={shareEnabled}
+              >
+                <span
+                  className={`${styles.sectionNum} ${styles.sectionNumOptional}`}
+                >
+                  5
+                </span>
+                <span className={styles.shareHeadText}>
+                  <span className={styles.shareHeadTitle}>
+                    Compartí esta partida
+                  </span>
+                  <span className={styles.shareHeadSub}>
+                    Publicá una juntada con fotos y copiá el link para tus grupos
+                    de WhatsApp o Telegram.
+                  </span>
+                </span>
+                <span className={styles.sectionHint}>opcional</span>
+                <svg
+                  className={styles.shareChevron}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              <div
+                className={`${styles.shareCollapse} ${
+                  shareEnabled ? styles.shareCollapseOpen : ""
+                }`}
+              >
+                <div className={styles.shareCollapseInner}>
+                  <div className={styles.shareBody}>
+                    <CommunitySelect
+                      value={shareValue.community}
+                      onChange={(c) =>
+                        setShareValue((v) => ({ ...v, community: c }))
+                      }
+                    />
+                    <JuntadaFields
+                      value={shareValue}
+                      onChange={setShareValue}
+                      disabled={submitting}
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
 
           {serverError && <div className={styles.errorBox}>{serverError}</div>}
 

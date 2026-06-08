@@ -92,6 +92,62 @@ const resolveBoardGameList = async (input) => {
   return out;
 };
 
+// Sanitiza el snapshot de resultados (`playResult`) de una juntada compartida
+// desde BG Watch. Es data render-only del propio autor (sus jugadores/scores):
+// se coerciona y acota, NO se re-resuelve contra BGG (salvo el thumbnail del
+// juego, igual que boardGames). Devuelve null si no hay jugadores.
+const MAX_SNAPSHOT_PLAYERS = 24;
+const PLAY_MODES = ["versus", "coop", "equipos"];
+const clampStr = (v, max) => String(v ?? "").slice(0, max);
+const numOrNull = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+const sanitizePlayResult = async (input) => {
+  if (!input || typeof input !== "object") return null;
+  const players = Array.isArray(input.players) ? input.players : [];
+  if (players.length === 0) return null;
+
+  const gameId = numOrNull(input.gameId);
+  let game = {
+    name: clampStr(input.game?.name, 120),
+    thumbnail: clampStr(input.game?.thumbnail, 500),
+  };
+  // Re-resolver el arte del juego desde el bggId (best-effort; nunca 400).
+  if (gameId && gameId > 0) {
+    try {
+      const resolved = await resolveGame(gameId);
+      if (resolved) {
+        game = {
+          name: resolved.name || game.name,
+          thumbnail: resolved.thumbnail || game.thumbnail,
+        };
+      }
+    } catch {
+      /* ignore — usamos lo que mandó el cliente */
+    }
+  }
+
+  return {
+    mode: PLAY_MODES.includes(input.mode) ? input.mode : "versus",
+    game,
+    gameId,
+    date: clampStr(input.date, 10),
+    duration: numOrNull(input.duration),
+    players: players.slice(0, MAX_SNAPSHOT_PLAYERS).map((p) => ({
+      name: clampStr(p?.name, 100),
+      username: clampStr(p?.username, 50),
+      anonymous: !!p?.anonymous,
+      score: clampStr(p?.score, 30),
+      win: !!p?.win,
+      new: !!p?.new,
+      team: /^[A-D]$/.test(String(p?.team || "")) ? String(p.team) : "",
+      position: numOrNull(p?.position),
+    })),
+  };
+};
+
 // ── Build a { compartidaId → commentCount } map for a set of docs ────────────
 const commentCountMap = async (docs) => {
   const ids = docs.map((j) => j._id);
@@ -331,9 +387,17 @@ router.post(
       );
     }
 
+    // Snapshot de resultados (solo juntadas; el cliente lo arma del scorecard).
+    const playResultSnapshot =
+      category === "juntada"
+        ? await sanitizePlayResult(req.body.playResult)
+        : null;
+
     const hasBody =
       category === "resena" ? stripHtml(finalBody).length > 0 : !!finalBody;
-    if (!title?.trim() && !hasBody) {
+    // El widget de resultados cuenta como contenido: una juntada con solo el
+    // scorecard (sin título/texto/foto) es válida.
+    if (!title?.trim() && !hasBody && !playResultSnapshot) {
       throw httpError(400, "La compartida necesita al menos un título o texto");
     }
 
@@ -388,6 +452,7 @@ router.post(
       boardGame: boardGameSnapshot,
       boardGames: boardGameList,
       rating: finalRating,
+      playResult: playResultSnapshot,
       linkedTable: linkedTable || null,
       linkedEvento: linkedEvento || null,
       privacy: privacy || "public",

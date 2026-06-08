@@ -8,6 +8,25 @@ vi.mock("../../components/shared/Avatar", () => ({
   default: ({ user }) => <div data-testid="avatar">{user?.username || ""}</div>,
 }));
 
+// Sección 5 ("Compartí esta partida"): CommunitySelect usa CommunityContext y
+// BggGameSearch debouncea/fetchea; los stubeamos (el form de partida usa
+// MyGamesPicker para su propio juego, así que esto solo afecta la sección 5).
+vi.mock("../../components/shared/CommunitySelect", () => ({
+  default: () => null,
+}));
+vi.mock("../../components/shared/BggGameSearch", () => ({
+  default: ({ onPick }) => (
+    <button
+      type="button"
+      onClick={() =>
+        onPick({ id: 7, name: "Azul", thumbnail: "a.jpg", year: 2017 })
+      }
+    >
+      mock-pick-share-game
+    </button>
+  ),
+}));
+
 import PlayForm from "./PlayForm";
 
 function makeUser(overrides = {}) {
@@ -147,6 +166,7 @@ describe("<PlayForm>", () => {
       lockedGame: true,
     });
     const helps = screen.getAllByRole("button", { name: /^ayuda:/i });
+    // 4 pasos del scoresheet (la sección 5 es una tarjeta clicable sin tooltip).
     expect(helps).toHaveLength(4);
     // Abrir el del primer paso muestra su explicación.
     fireEvent.click(helps[0]);
@@ -274,7 +294,7 @@ describe("<PlayForm>", () => {
       screen.getByRole("button", { name: /guardar y cargar otra/i }),
     );
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
-    expect(onSubmit.mock.calls[0][1]).toEqual({ keepGoing: true });
+    expect(onSubmit.mock.calls[0][1]).toEqual({ keepGoing: true, share: null });
   });
 
   it("'Guardar partida' llama onSubmit con keepGoing:false", async () => {
@@ -288,7 +308,93 @@ describe("<PlayForm>", () => {
     checkSolo();
     fireEvent.click(screen.getByRole("button", { name: /^guardar partida$/i }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
-    expect(onSubmit.mock.calls[0][1]).toEqual({ keepGoing: false });
+    expect(onSubmit.mock.calls[0][1]).toEqual({
+      keepGoing: false,
+      share: null,
+    });
+  });
+
+  // ── Sección 5: "Compartí esta partida" (tarjeta clicable) ───────────
+  const openShare = () =>
+    fireEvent.click(screen.getByRole("button", { name: /compartí esta partida/i }));
+
+  it("la sección 5 no aparece en modo edición", () => {
+    renderForm({
+      editMode: true,
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    expect(screen.queryByText(/compartí esta partida/i)).not.toBeInTheDocument();
+  });
+
+  it("con la sección 5 colapsada (sin abrir), onSubmit recibe share: null", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    checkSolo();
+    fireEvent.click(screen.getByRole("button", { name: /^guardar partida$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][1].share).toBeNull();
+  });
+
+  it("al abrir la sección 5 se pre-carga el juego (el cuerpo NO se pre-puebla)", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    checkSolo();
+    openShare();
+    // El juego de la partida se pre-carga en la juntada (chip removible).
+    expect(
+      screen.getByRole("button", { name: /quitar catán/i }),
+    ).toBeInTheDocument();
+    // El cuerpo arranca vacío (los resultados van en el widget, no en el texto).
+    expect(
+      screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i).value,
+    ).toBe("");
+  });
+
+  it("con la sección 5 abierta, onSubmit recibe share con playResult (aunque no haya texto)", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    checkSolo();
+    openShare();
+    fireEvent.click(screen.getByRole("button", { name: /^guardar partida$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    const share = onSubmit.mock.calls[0][1].share;
+    expect(share).toBeTruthy();
+    expect(share.body).toBe(""); // ya no se pre-puebla
+    expect(share.games.map((g) => g.id)).toEqual(["13"]);
+    // El snapshot de resultados se arma del scorecard (incluye al dueño).
+    expect(share.playResult).toBeTruthy();
+    expect(
+      share.playResult.players.some((p) => /me/i.test(p.name || p.username)),
+    ).toBe(true);
+  });
+
+  it("el cuerpo escrito por el usuario se respeta en el share", async () => {
+    const onSubmit = vi.fn();
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      onSubmit,
+    });
+    checkSolo();
+    openShare();
+    fireEvent.change(
+      screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i),
+      { target: { value: "Gané por un pelo" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^guardar partida$/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][1].share.body).toBe("Gané por un pelo");
   });
 
   // ── Autodetección "Nuevo" ─────────────────────────────────────────────

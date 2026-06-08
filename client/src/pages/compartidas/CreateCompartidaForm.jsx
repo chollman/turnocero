@@ -9,6 +9,7 @@ import GameTile from "../../components/shared/GameTile";
 import BggGameSearch from "../../components/shared/BggGameSearch";
 import RichTextEditor from "../../components/shared/RichTextEditor";
 import { getLocationDisplay } from "../../utils/location";
+import { createJuntada, toGamePayload } from "./createJuntada";
 import styles from "./CreateCompartidaForm.module.css";
 
 const PRIVACY_OPTIONS = [
@@ -19,14 +20,6 @@ const PRIVACY_OPTIONS = [
 
 const REVIEW_BODY_MAX = 20000;
 const MAX_JUNTADA_GAMES = 12;
-
-const toGamePayload = (g) => ({
-  bggId: g.id,
-  name: g.name,
-  thumbnail: g.thumbnail,
-  image: g.image,
-  year: g.year,
-});
 
 // Texto plano a partir del body (para chequear contenido real: un editor
 // vacío produce "<p></p>").
@@ -204,44 +197,26 @@ export default function CreateCompartidaForm({
     setError("");
     setLoading(true);
     submittingRef.current = true;
-    let createdId = null;
     try {
-      const { data: created } = await axios.post(API.compartidas.LIST, {
-        category,
-        community: community || undefined,
-        title: title.trim(),
-        body: isResena ? body : body.trim(),
-        rating: isResena ? rating : undefined,
-        boardGame: isResena && games[0] ? toGamePayload(games[0]) : undefined,
-        boardGames: !isResena ? games.map(toGamePayload) : undefined,
-        privacy,
-        linkedTable: linkedTableId || undefined,
-        linkedEvento: linkedEventoId || undefined,
+      const finalPost = await createJuntada({
+        payload: {
+          category,
+          community: community || undefined,
+          title: title.trim(),
+          body: isResena ? body : body.trim(),
+          rating: isResena ? rating : undefined,
+          boardGame:
+            isResena && games[0] ? toGamePayload(games[0]) : undefined,
+          boardGames: !isResena ? games.map(toGamePayload) : undefined,
+          privacy,
+          linkedTable: linkedTableId || undefined,
+          linkedEvento: linkedEventoId || undefined,
+        },
+        files: images,
       });
-      createdId = created._id;
-
-      let finalPost = created;
-      for (const img of images) {
-        const fd = new FormData();
-        fd.append("image", img.file);
-        const { data: updatedImages } = await axios.post(
-          API.compartidas.IMAGES(created._id),
-          fd,
-          { headers: { "Content-Type": "multipart/form-data" } },
-        );
-        finalPost = { ...finalPost, images: updatedImages };
-      }
-
       images.forEach((img) => URL.revokeObjectURL(img.preview));
       onCreated?.(finalPost);
     } catch (err) {
-      if (createdId) {
-        try {
-          await axios.delete(API.compartidas.DETAIL(createdId));
-        } catch {
-          /* ignore */
-        }
-      }
       setError(
         err.response?.data?.message || "Error al publicar la compartida",
       );

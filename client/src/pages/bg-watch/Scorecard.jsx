@@ -123,11 +123,38 @@ const ico = {
   ),
 };
 
+// Banner neutral para el modo público (juntada compartida): muestra al/los
+// ganador/es en vez de "¡Ganaste!/Perdiste" (que es relativo al que mira).
+// Devuelve { label, state } con state ∈ "win" | "loss" | "empty".
+export function deriveWinnerLabel(rows, mode) {
+  const winners = rows.filter((r) => r.win);
+  if (mode === "coop") {
+    return winners.length
+      ? { label: "¡Ganaron!", state: "win" }
+      : { label: "Perdieron", state: "loss" };
+  }
+  if (mode === "equipos") {
+    const team = winners[0]?.team;
+    return team
+      ? { label: `Ganó el Equipo ${team}`, state: "win" }
+      : { label: "Sin resultado", state: "empty" };
+  }
+  // versus
+  if (winners.length === 1) {
+    return { label: `Ganó ${winners[0].name}`, state: "win" };
+  }
+  if (winners.length > 1) return { label: "Empate", state: "win" };
+  return { label: "Sin resultado", state: "empty" };
+}
+
 /**
  * Scorecard en vivo del form de cargar partida — estilo ticket/scoresheet del
  * handoff. Presentacional: recibe filas ya construidas (con `position`, `you`,
  * `leader`) y los flags de resultado; no calcula ranking. Reusa <Avatar> +
  * `userMap` para mostrar el avatar de los co-jugadores que son miembros.
+ *
+ * `publicView` (juntada compartida): banner por ganador, sin "(vos)" ni el
+ * highlight del jugador propio — el post lo ve cualquiera, no hay "vos".
  */
 export default function Scorecard({
   game,
@@ -140,6 +167,7 @@ export default function Scorecard({
   rows = [],
   notes = "",
   userMap = {},
+  publicView = false,
 }) {
   const initials = game ? gameInitials(game.name) : null;
 
@@ -152,16 +180,25 @@ export default function Scorecard({
     });
   }, [rows, mode]);
 
-  const bannerLabel = hasResult
-    ? mode === "coop"
-      ? youWin
-        ? "¡Ganaron!"
-        : "Perdieron"
+  const winner = publicView ? deriveWinnerLabel(displayRows, mode) : null;
+  const bannerLabel = publicView
+    ? winner.label
+    : hasResult
+      ? mode === "coop"
+        ? youWin
+          ? "¡Ganaron!"
+          : "Perdieron"
+        : youWin
+          ? "¡Ganaste!"
+          : "Perdiste"
+      : "Cargá los puntajes para ver el resultado";
+  const bannerState = publicView
+    ? winner.state
+    : !hasResult
+      ? "empty"
       : youWin
-        ? "¡Ganaste!"
-        : "Perdiste"
-    : "Cargá los puntajes para ver el resultado";
-  const bannerState = !hasResult ? "empty" : youWin ? "win" : "loss";
+        ? "win"
+        : "loss";
 
   return (
     <div className={styles.scorecard}>
@@ -223,7 +260,7 @@ export default function Scorecard({
               return (
                 <div
                   key={p.key}
-                  className={`${styles.scorecardPlayer} ${p.leader ? styles.scorecardPlayerLead : ""} ${p.you ? styles.scorecardPlayerYou : ""}`}
+                  className={`${styles.scorecardPlayer} ${p.leader ? styles.scorecardPlayerLead : ""} ${!publicView && p.you ? styles.scorecardPlayerYou : ""}`}
                 >
                   <span className={styles.scorecardPr}>
                     {mode === "coop"
@@ -252,7 +289,7 @@ export default function Scorecard({
                   )}
                   <span className={styles.scorecardNm}>
                     {p.name}
-                    {p.you ? " (vos)" : ""}
+                    {!publicView && p.you ? " (vos)" : ""}
                     {p.leader && (
                       <span className={styles.scorecardCrown}>{ico.crown}</span>
                     )}

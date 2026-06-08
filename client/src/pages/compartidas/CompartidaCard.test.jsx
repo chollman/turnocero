@@ -72,6 +72,43 @@ describe("<CompartidaCard>", () => {
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 
+  // ── Widget de resultados (juntada compartida) ────────────────────────
+  const PLAY_RESULT = {
+    mode: "versus",
+    game: { name: "Catán", thumbnail: "" },
+    date: "2026-06-08",
+    duration: 60,
+    players: [
+      { name: "Martín", username: "martin", score: "85", win: true, position: 1 },
+      { name: "Bob", username: "bob", score: "72", win: false, position: 2 },
+    ],
+  };
+
+  it("renderiza el widget de resultados cuando hay playResult", () => {
+    renderCard(makePost({ playResult: PLAY_RESULT }));
+    expect(document.querySelector(".playResult")).toBeInTheDocument();
+    // Banner neutral (ganador), no '¡Ganaste!'.
+    expect(screen.getByText(/ganó martín/i)).toBeInTheDocument();
+    expect(screen.getByText("Bob")).toBeInTheDocument();
+  });
+
+  it("el widget coexiste con las fotos de la juntada", () => {
+    renderCard(
+      makePost({
+        playResult: PLAY_RESULT,
+        images: [{ _id: "i1", url: "p.jpg", publicId: "p" }],
+      }),
+    );
+    expect(document.querySelector(".playResult")).toBeInTheDocument();
+    expect(document.querySelector(".photos")).toBeInTheDocument();
+  });
+
+  it("compartidas sin playResult (legacy/reseña) no muestran el widget", () => {
+    renderCard(makePost());
+    expect(document.querySelector(".playResult")).not.toBeInTheDocument();
+    expect(screen.queryByText(/ganó/i)).not.toBeInTheDocument();
+  });
+
   it("clicking like as logged user makes an API call", async () => {
     let likeCalled = false;
     server.use(

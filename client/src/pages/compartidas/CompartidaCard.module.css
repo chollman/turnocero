@@ -496,6 +496,16 @@
   text-decoration: underline;
 }
 
+/* ── Resultados de la partida (widget Scorecard de juntada compartida) ── */
+.playResult {
+  padding: 6px 18px 10px;
+  display: grid;
+  place-items: center;
+}
+.playResult > * {
+  width: min(340px, 100%);
+}
+
 /* ── Photos (polaroid grid) ─────────────────────────────────────── */
 .photos {
   padding: 6px 18px 14px;

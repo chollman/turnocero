@@ -10,6 +10,8 @@ import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { API } from "../../api/endpoints";
 import { getErrorMessage } from "../../utils/getErrorMessage";
+import { createJuntada, toGamePayload } from "../compartidas/createJuntada";
+import { buildCompartidaShare } from "../../utils/share";
 import PlayForm from "./PlayForm";
 
 /**
@@ -116,45 +118,111 @@ export default function CreatePlay() {
     else navigate(`/bg-watch/${bggUsername}`);
   };
 
-  const handleSubmit = async (payload, { keepGoing = false } = {}) => {
+  // Crea la juntada de la sección 5 (si vino) y copia su deeplink al
+  // portapapeles. AISLADO del guardado de la partida: cualquier fallo acá no
+  // revierte la partida (ya guardada) — solo se reporta con un toast no
+  // bloqueante. Devuelve { ok, url } | { error: true } | null (sin share).
+  const runShare = async (share) => {
+    if (!share) return null;
+    try {
+      const finalPost = await createJuntada({
+        payload: {
+          category: "juntada",
+          community: share.community || undefined,
+          title: share.title.trim(),
+          body: share.body.trim(),
+          boardGames: share.games.map(toGamePayload),
+          privacy: share.privacy,
+          playResult: share.playResult || undefined,
+        },
+        files: share.images,
+      });
+      share.images.forEach(
+        (img) => img.preview && URL.revokeObjectURL(img.preview),
+      );
+      const { url } = buildCompartidaShare(finalPost, window.location.origin);
+      try {
+        // Es una acción del usuario (click en Guardar), así que el navegador
+        // permite el copy. Si el contexto es inseguro o se deniega, no rompe:
+        // la juntada igual se creó.
+        await navigator.clipboard?.writeText(url);
+      } catch {
+        /* clipboard no disponible — la juntada igual existe */
+      }
+      return { ok: true, url };
+    } catch {
+      return { error: true };
+    }
+  };
+
+  const handleSubmit = async (payload, { keepGoing = false, share = null } = {}) => {
     setSubmitting(true);
     setServerError("");
+
+    // 1. Guardar la partida (paso propio). Si falla, NO se intenta la juntada.
     try {
       await axios.post(API.bgg.PARTIDAS_LIST, {
         ...payload,
         ...(sharedFromNotifId ? { sharedFromNotifId } : {}),
       });
-      // Si vino de aceptar una partida compartida, sacamos la notif de la
-      // bandeja (el server también la borra al agradecer al autor).
-      if (sharedFromNotifId) dismiss(sharedFromNotifId);
-      if (keepGoing) {
-        // Conservamos el roster (sin score/win/new), la ubicación y la fecha
-        // para la próxima partida de la misma juntada. El juego se resetea (salvo
-        // que esté fijado por ?juego, en cuyo caso se mantiene).
-        setCarry({
-          players: payload.players.map((p) => ({
-            name: p.name,
-            username: p.username,
-          })),
-          location: payload.location,
-          playdate: payload.playdate,
-        });
-        setFormKey((k) => k + 1);
-        setSubmitting(false);
-        addToast({
-          type: "success",
-          message: "Partida cargada. Cargá la próxima.",
-        });
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } else {
-        addToast({ type: "success", message: "Partida cargada en BGG." });
-        goBack();
-      }
     } catch (err) {
       const msg = getErrorMessage(err, "No se pudo cargar la partida.");
       setServerError(msg);
       addToast({ type: "error", message: msg });
       setSubmitting(false);
+      return;
+    }
+
+    // Partida OK desde acá. Si vino de aceptar una partida compartida, sacamos
+    // la notif de la bandeja (el server también la borra al agradecer al autor).
+    if (sharedFromNotifId) dismiss(sharedFromNotifId);
+
+    // 2. Sección 5 opcional: crear la juntada + copiar el deeplink (aislado).
+    const shareResult = await runShare(share);
+
+    // 3. Toasts + navegación según keepGoing.
+    if (keepGoing) {
+      // Conservamos el roster (sin score/win/new), la ubicación y la fecha
+      // para la próxima partida de la misma juntada. El juego se resetea (salvo
+      // que esté fijado por ?juego, en cuyo caso se mantiene). La sección 5 NO
+      // se conserva: cada juntada es de una partida puntual.
+      setCarry({
+        players: payload.players.map((p) => ({
+          name: p.name,
+          username: p.username,
+        })),
+        location: payload.location,
+        playdate: payload.playdate,
+      });
+      setFormKey((k) => k + 1);
+      setSubmitting(false);
+      addToast({
+        type: "success",
+        message: shareResult?.ok
+          ? "Partida cargada. Link de la juntada copiado. Cargá la próxima."
+          : "Partida cargada. Cargá la próxima.",
+      });
+      if (shareResult?.error) {
+        addToast({
+          type: "error",
+          message: "La partida se guardó, pero no se pudo crear la compartida.",
+        });
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      addToast({
+        type: "success",
+        message: shareResult?.ok
+          ? "Partida cargada. Link de la juntada copiado para compartir."
+          : "Partida cargada en BGG.",
+      });
+      if (shareResult?.error) {
+        addToast({
+          type: "error",
+          message: "La partida se guardó, pero no se pudo crear la compartida.",
+        });
+      }
+      goBack();
     }
   };
 

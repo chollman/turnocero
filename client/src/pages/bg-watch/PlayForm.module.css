@@ -488,6 +488,81 @@
   cursor: pointer;
 }
 
+/* -- Sección 5: compartir como juntada (tarjeta clicable + slide) -- */
+/* La sección entera es la tarjeta: el header es un botón full-width y el cuerpo
+   se despliega con un slide de altura automática (grid-template-rows 0fr→1fr). */
+.shareSection {
+  padding: 0;
+  overflow: hidden;
+}
+.shareHead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  transition: background var(--transition);
+}
+.shareHead:hover {
+  background: var(--bg-hover);
+}
+.shareHeadText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.shareHeadTitle {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+.shareHeadSub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+.shareChevron {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform var(--transition);
+}
+.shareSectionOpen .shareChevron {
+  transform: rotate(180deg);
+  color: var(--amber);
+}
+/* Slide de altura automática: el wrapper anima las filas del grid; el inner
+   recorta el overflow para que el contenido aparezca/desaparezca suave. */
+.shareCollapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+.shareCollapseOpen {
+  grid-template-rows: 1fr;
+}
+.shareCollapseInner {
+  overflow: hidden;
+  min-height: 0;
+}
+.shareBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 22px 20px;
+}
+
 /* -- Mode toggle -- */
 .modeToggle {
   display: grid;

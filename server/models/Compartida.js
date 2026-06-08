@@ -20,6 +20,43 @@ const boardGameSnapshotSchema = new mongoose.Schema(
   { _id: false },
 );
 
+// Snapshot de resultados de la partida — solo en juntadas creadas desde el flujo
+// "Compartí esta partida" de BG Watch. Render-only: lo consume el <Scorecard>
+// (publicView) en el feed/detalle. Auto-contenido (no necesita lookups). La
+// ubicación se omite a propósito (privacidad, como el snapshot de bggPlayShare).
+const playResultPlayerSchema = new mongoose.Schema(
+  {
+    name: { type: String, default: "" },
+    username: { type: String, default: "" },
+    anonymous: { type: Boolean, default: false },
+    score: { type: String, default: "" },
+    win: { type: Boolean, default: false },
+    new: { type: Boolean, default: false },
+    team: { type: String, default: "" },
+    position: { type: Number, default: null },
+  },
+  { _id: false },
+);
+
+const playResultSnapshotSchema = new mongoose.Schema(
+  {
+    mode: {
+      type: String,
+      enum: ["versus", "coop", "equipos"],
+      default: "versus",
+    },
+    game: {
+      name: { type: String, default: "" },
+      thumbnail: { type: String, default: "" },
+    },
+    gameId: { type: Number, default: null },
+    date: { type: String, default: "" },
+    duration: { type: Number, default: null },
+    players: { type: [playResultPlayerSchema], default: [] },
+  },
+  { _id: false },
+);
+
 const compartidaSchema = new mongoose.Schema(
   {
     author: {
@@ -73,6 +110,11 @@ const compartidaSchema = new mongoose.Schema(
       max: 10,
       default: null,
     },
+    // Snapshot de resultados de la partida (juntada compartida); null si no aplica.
+    playResult: {
+      type: playResultSnapshotSchema,
+      default: null,
+    },
     images: [
       {
         url: { type: String, required: true },
@@ -119,6 +161,8 @@ compartidaSchema.pre("validate", function enforceCategoryShape(next) {
     ) {
       return next(new Error("La reseña necesita una puntuación de 1 a 10"));
     }
+    // La reseña no lleva widget de partida.
+    this.playResult = null;
   } else {
     // Juntada nunca lleva rating.
     this.rating = null;

@@ -5,7 +5,7 @@ vi.mock("../../components/shared/Avatar", () => ({
   default: ({ user }) => <div data-testid="avatar">{user?.username || ""}</div>,
 }));
 
-import Scorecard, { gameInitials } from "./Scorecard";
+import Scorecard, { gameInitials, deriveWinnerLabel } from "./Scorecard";
 
 function row(over = {}) {
   return {
@@ -131,5 +131,93 @@ describe("<Scorecard>", () => {
     expect(screen.getByText("Jugador anónimo 1")).toBeInTheDocument();
     expect(screen.queryByTestId("avatar")).toBeNull();
     expect(screen.getByText("👤")).toBeInTheDocument();
+  });
+
+  // ── publicView (juntada compartida) ──────────────────────────────────
+  it("publicView versus: banner muestra al ganador, no '¡Ganaste!'", () => {
+    render(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        publicView
+        rows={[
+          row({ name: "Beto", position: 1, score: "9", win: true, leader: true }),
+          row({ key: "a", name: "Ana", position: 2, score: "5" }),
+        ]}
+      />,
+    );
+    expect(screen.getByText(/ganó beto/i)).toBeInTheDocument();
+    expect(screen.queryByText(/¡ganaste!/i)).not.toBeInTheDocument();
+  });
+
+  it("publicView suprime '(vos)' y el highlight propio", () => {
+    render(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        publicView
+        rows={[row({ name: "Beto", you: true, score: "9", win: true })]}
+      />,
+    );
+    expect(screen.queryByText(/\(vos\)/)).not.toBeInTheDocument();
+  });
+
+  it("publicView coop: '¡Ganaron!' / 'Perdieron' según los win", () => {
+    const { rerender } = render(
+      <Scorecard
+        game={{ name: "Pandemic" }}
+        mode="coop"
+        publicView
+        rows={[row({ name: "Ana", win: true })]}
+      />,
+    );
+    expect(screen.getByText(/¡ganaron!/i)).toBeInTheDocument();
+    rerender(
+      <Scorecard
+        game={{ name: "Pandemic" }}
+        mode="coop"
+        publicView
+        rows={[row({ name: "Ana", win: false })]}
+      />,
+    );
+    expect(screen.getByText(/perdieron/i)).toBeInTheDocument();
+  });
+});
+
+describe("deriveWinnerLabel", () => {
+  const r = (over) => ({ name: "P", win: false, team: "", ...over });
+  it("coop", () => {
+    expect(deriveWinnerLabel([r({ win: true })], "coop")).toEqual({
+      label: "¡Ganaron!",
+      state: "win",
+    });
+    expect(deriveWinnerLabel([r()], "coop")).toEqual({
+      label: "Perdieron",
+      state: "loss",
+    });
+  });
+  it("equipos", () => {
+    expect(
+      deriveWinnerLabel([r({ win: true, team: "A" }), r({ name: "Q" })], "equipos"),
+    ).toEqual({ label: "Ganó el Equipo A", state: "win" });
+    expect(deriveWinnerLabel([r()], "equipos")).toEqual({
+      label: "Sin resultado",
+      state: "empty",
+    });
+  });
+  it("versus: único ganador / empate / sin resultado", () => {
+    expect(
+      deriveWinnerLabel([r({ name: "Beto", win: true }), r({ name: "Ana" })], "versus"),
+    ).toEqual({ label: "Ganó Beto", state: "win" });
+    expect(
+      deriveWinnerLabel(
+        [r({ name: "Beto", win: true }), r({ name: "Ana", win: true })],
+        "versus",
+      ),
+    ).toEqual({ label: "Empate", state: "win" });
+    expect(deriveWinnerLabel([r()], "versus")).toEqual({
+      label: "Sin resultado",
+      state: "empty",
+    });
   });
 });
