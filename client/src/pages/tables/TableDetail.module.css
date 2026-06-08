@@ -16,7 +16,7 @@
   padding-block: var(--navbar-h, 0) 5rem;
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .page {
     padding-top: 1.5rem;
   }
@@ -25,7 +25,7 @@
 /* En mobile el Sidebar (≥960px) desaparece — la asimetría
    page-padding-left/page-padding ya no se justifica. Mismo patrón que
    Dashboard + Eventos + el .container global. */
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .page {
     padding-inline: var(--page-padding-mobile);
   }
@@ -1262,7 +1262,7 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   letter-spacing: 0.02em;
 }
-@media (max-width: 600px) {
+@media (--phone) {
   .lightboxNav {
     width: 44px;
     height: 44px;

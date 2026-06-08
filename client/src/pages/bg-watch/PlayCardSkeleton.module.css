@@ -89,7 +89,7 @@
   border-radius: 6px;
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .thumb {
     width: 56px;
     height: 56px;

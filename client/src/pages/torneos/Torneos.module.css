@@ -3,7 +3,7 @@
   padding: var(--navbar-h) 0 var(--page-padding);
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .page {
     padding-top: var(--page-padding);
   }
@@ -16,7 +16,7 @@
   gap: 24px;
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .inner {
     padding: 0 var(--page-padding-mobile);
   }
@@ -150,7 +150,7 @@
   align-items: stretch;
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .feed {
     grid-template-columns: 1fr;
   }
@@ -516,7 +516,7 @@
   gap: 10px;
 }
 
-@media (max-width: 480px) {
+@media (--compact) {
   .formatOptions {
     grid-template-columns: 1fr;
   }
@@ -730,7 +730,7 @@
 }
 
 /* ── Mobile header ── */
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .header {
     flex-direction: column;
     align-items: flex-start;

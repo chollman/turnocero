@@ -3,7 +3,7 @@
   padding: var(--navbar-h) 0 var(--page-padding);
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .page {
     padding-top: var(--page-padding);
   }
@@ -71,7 +71,7 @@
   color: var(--bg-dark);
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .page {
     padding-bottom: var(--page-padding-mobile);
   }

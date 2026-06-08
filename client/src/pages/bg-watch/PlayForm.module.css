@@ -52,12 +52,12 @@
   }
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .page {
     padding-top: 1.5rem;
   }
 }
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .page {
     padding-inline: var(--page-padding-mobile);
   }
@@ -1394,7 +1394,7 @@
 }
 
 /* -- Mobile -- */
-@media (max-width: 880px) {
+@media (--tablet) {
   .layout {
     grid-template-columns: 1fr;
     gap: 24px;

@@ -191,7 +191,7 @@ select {
   --navbar-h: 70px;
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   :root {
     --navbar-h: 0px;
   }
@@ -215,7 +215,7 @@ select {
   --sidebar-freed: 0px;
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   html {
     transition: --sidebar-freed 0.22s ease;
   }
@@ -237,7 +237,7 @@ select {
   display: none;
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .appFrame {
     display: block;
     position: fixed;
@@ -265,7 +265,7 @@ select {
   min-width: 0;
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .appContent {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -277,7 +277,7 @@ select {
   padding: 0 var(--page-padding) 0 var(--page-padding-left);
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .container {
     padding: 0 var(--page-padding-mobile);
   }

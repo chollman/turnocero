@@ -44,7 +44,7 @@
   color: var(--amber-light);
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .roundSelector {
     display: flex;
   }
@@ -59,7 +59,7 @@
   scrollbar-width: thin;
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .bracket {
     gap: 0;
     overflow-x: visible;
@@ -111,7 +111,7 @@
   padding: 280px 0;
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .roundMatches,
   .roundMatches[data-round="2"],
   .roundMatches[data-round="3"],
@@ -259,7 +259,7 @@
 }
 
 /* ── Connectors (desktop only) ── */
-@media (min-width: 960px) {
+@media (--desktop) {
   .round + .round .match::before {
     content: "";
     position: absolute;

@@ -3,13 +3,13 @@
   min-height: calc(100vh - 64px);
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .page {
     padding-top: var(--page-padding);
   }
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .page {
     padding-bottom: var(--page-padding-mobile);
   }
@@ -25,7 +25,7 @@
   padding: 0 var(--page-padding) 0 var(--page-padding-left);
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .inner {
     padding: 0 var(--page-padding-mobile);
   }

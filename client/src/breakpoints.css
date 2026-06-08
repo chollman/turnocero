@@ -1,0 +1,54 @@
+/* ============================================================================
+   Breakpoints canónicos — FUENTE ÚNICA para toda la app.
+
+   Por qué este archivo existe
+   ---------------------------
+   Las CSS custom properties (`var(--x)`) NO funcionan dentro de `@media`
+   (`@media (max-width: var(--bp))` es inválido y falla en silencio). Para
+   tener breakpoints reutilizables de verdad usamos `@custom-media` (CSS Media
+   Queries Level 5), resuelto en build por `postcss-custom-media`. Las
+   definiciones de acá se inyectan en cada CSS Module vía
+   `@csstools/postcss-global-data` (ver postcss.config.js), así que cualquier
+   `*.module.css` puede escribir `@media (--below-desktop) { … }` sin importar
+   nada.
+
+   Cómo usarlos
+   ------------
+     @media (--below-desktop) { … }   ✅
+     @media (max-width: 959px) { … }  ❌  (drift — usá el token)
+
+   La escala
+   ---------
+   `--desktop` / `--below-desktop` (960/959) son el quiebre ESTRUCTURAL del
+   shell: sidebar de escritorio ⟷ drawer mobile. Es el más importante y el que
+   más componentes comparten — TODO lo que dependa de "hay sidebar o no" debe
+   moverse en este punto y en ninguno cercano. (El bug de Compartidas fue
+   justamente un 940 desalineado contra el 959 del resto: un widget se
+   renderizaba dos veces en la franja 941–959px.)
+
+   Tokens estructurales (compartidos — no inventar valores cercanos):
+   ============================================================================ */
+
+/* Escritorio: shell con sidebar fijo. Complemento exacto de --below-desktop. */
+@custom-media --desktop (min-width: 960px);
+
+/* Mobile/tablet angosto: el sidebar pasa a drawer, los layouts a 1 columna. */
+@custom-media --below-desktop (max-width: 959px);
+
+/* Tablet / contenido ancho: forms y grillas anchas reflowan a 1 columna. */
+@custom-media --tablet (max-width: 880px);
+
+/* Teléfono: cards y grillas colapsan a una sola columna. */
+@custom-media --phone (max-width: 600px);
+
+/* Compacto: teléfonos chicos; se apilan/ocultan controles secundarios. */
+@custom-media --compact (max-width: 480px);
+
+/* ----------------------------------------------------------------------------
+   Valores one-off (un solo componente que reflowa a su ancho natural — modales,
+   una card puntual, un grid específico) pueden quedar como literal, PERO snapeá
+   al token más cercano de la escala de arriba si encaja. No agregues literales
+   en la franja ±20px de 960 o 600 (980, 940, 540, 620…): esos son el patrón de
+   drift que esto viene a matar — usá el token. `npm run lint:breakpoints` lo
+   chequea.
+   ---------------------------------------------------------------------------- */

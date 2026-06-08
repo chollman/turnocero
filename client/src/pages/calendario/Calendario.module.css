@@ -4,7 +4,7 @@
   padding: var(--page-padding) var(--page-padding) 5rem var(--page-padding-left);
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .page {
     padding-top: var(--navbar-h, 0);
     padding-right: var(--page-padding-mobile);
@@ -270,7 +270,7 @@
   align-items: start;
 }
 
-@media (max-width: 880px) {
+@media (--tablet) {
   .monthLayout {
     grid-template-columns: 1fr;
   }

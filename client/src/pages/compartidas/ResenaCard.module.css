@@ -581,7 +581,7 @@
   font-size: 14px;
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .gameName {
     font-size: 1.1rem;
   }

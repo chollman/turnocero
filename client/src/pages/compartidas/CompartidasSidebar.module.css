@@ -9,7 +9,7 @@
   gap: 18px;
 }
 
-@media (max-width: 940px) {
+@media (--below-desktop) {
   .sidebar {
     display: none;
   }

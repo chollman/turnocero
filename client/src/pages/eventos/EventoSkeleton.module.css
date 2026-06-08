@@ -171,7 +171,7 @@
   border-radius: 7px;
 }
 
-@media (max-width: 880px) {
+@media (--tablet) {
   .row {
     grid-template-columns: 1fr;
     gap: 14px;

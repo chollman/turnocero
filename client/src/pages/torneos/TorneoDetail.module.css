@@ -3,7 +3,7 @@
   padding: var(--navbar-h) 0 var(--page-padding);
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .page {
     padding-top: var(--page-padding);
   }
@@ -16,7 +16,7 @@
   gap: 18px;
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .inner {
     padding: 0 var(--page-padding-mobile);
   }
@@ -53,7 +53,7 @@
   border: 1px solid var(--border);
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .banner {
     height: 180px;
   }
@@ -103,7 +103,7 @@
   line-height: 1.1;
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .titleHeading {
     font-size: 26px;
   }
@@ -724,7 +724,7 @@
   border-radius: 4px;
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .matchRow {
     grid-template-columns: 1fr;
     gap: 4px;
@@ -865,7 +865,7 @@
   background: var(--red-10);
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .regItem {
     grid-template-columns: 1fr auto;
   }
@@ -1232,7 +1232,7 @@
   gap: 16px;
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .groupGrid {
     grid-template-columns: 1fr;
   }

@@ -4,7 +4,7 @@
     var(--page-padding-left);
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .page {
     padding-top: var(--navbar-h);
     padding-right: var(--page-padding-mobile);

@@ -13,7 +13,7 @@
 }
 
 /* Desktop: hidden — Sidebar handles navigation */
-@media (min-width: 960px) {
+@media (--desktop) {
   .nav {
     display: none;
   }
@@ -22,7 +22,7 @@
 /* Mobile: fixed bar so content scrolls beneath. Anchored to the visual viewport
    (--vv-* vars in App.jsx) so it stays glued to the visible top during pinch-zoom.
    Inverse scale keeps the bar at its original physical size — only content zooms. */
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .nav {
     position: fixed;
     top: var(--vv-top, 0px);

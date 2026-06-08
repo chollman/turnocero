@@ -16,13 +16,13 @@
   padding-block: var(--navbar-h, 0) 5rem;
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .page {
     padding-top: 1.5rem;
   }
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .page {
     padding-inline: var(--page-padding-mobile);
   }

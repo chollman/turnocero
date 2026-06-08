@@ -79,7 +79,7 @@
   }
 }
 
-@media (max-width: 940px) {
+@media (--below-desktop) {
   .cardFeatured {
     padding: 22px;
     overflow: visible;
@@ -109,7 +109,7 @@
   box-shadow: 0 6px 20px var(--amber-40);
 }
 
-@media (max-width: 940px) {
+@media (--below-desktop) {
   .featuredBadge {
     top: -6px;
   }
@@ -1249,7 +1249,7 @@
   white-space: nowrap;
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .reactionLabel {
     display: none;
   }
@@ -1927,7 +1927,7 @@
 }
 
 /* ── Mobile tweaks (≤ 600 px) ─────────────────────────── */
-@media (max-width: 600px) {
+@media (--phone) {
   .header {
     padding: 14px 14px 10px;
   }
@@ -2014,7 +2014,7 @@
 
 /* Override mobile DESPUÉS de la regla base (el orden importa: misma
    especificidad → gana la última). Iguala el padding de contentWrap. */
-@media (max-width: 600px) {
+@media (--phone) {
   .gameTags {
     padding: 0 14px 6px;
   }

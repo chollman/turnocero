@@ -80,7 +80,7 @@
   transform: translateX(2px);
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .banner {
     padding: 10px 16px;
   }
@@ -173,7 +173,7 @@
   transform: translateX(3px);
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .inline {
     padding: 16px 18px;
   }
@@ -250,7 +250,7 @@
   transform: translateX(2px);
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .footerCta {
     width: 100%;
     justify-content: center;

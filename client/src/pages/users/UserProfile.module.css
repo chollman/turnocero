@@ -3,7 +3,7 @@
   padding: var(--navbar-h) 0 var(--page-padding);
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .page {
     padding-top: var(--page-padding);
   }
@@ -192,7 +192,7 @@
   color: var(--text-primary);
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .bgWatchBanner {
     padding: 12px 14px;
     gap: 10px;
@@ -546,7 +546,7 @@
   margin-bottom: 12px;
 }
 
-@media (max-width: 480px) {
+@media (--compact) {
   .avatarRow {
     flex-direction: column;
     align-items: center;
@@ -655,7 +655,7 @@
 }
 
 /* ─── Mobile ─── */
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .page {
     padding-bottom: var(--page-padding-mobile);
   }
@@ -675,7 +675,7 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .twoCol {
     grid-template-columns: 1fr;
   }

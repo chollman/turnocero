@@ -296,7 +296,7 @@
   flex: 0 0 auto;
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .actions {
     flex-direction: column;
   }

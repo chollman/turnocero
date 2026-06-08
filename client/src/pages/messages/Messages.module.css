@@ -4,13 +4,13 @@
     var(--page-padding-left);
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .page {
     padding-top: var(--page-padding);
   }
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .page {
     padding-right: var(--page-padding-mobile);
     padding-bottom: var(--page-padding-mobile);

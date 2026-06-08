@@ -568,6 +568,19 @@ Shadows using `rgba(0,0,0,X)` are theme-agnostic and may stay as literals. `--sh
 
 Forced-dark "tool" screens (`/utilidades/dado`, `/utilidades/temporizador`, `/utilidades/selector-de-dedos`) and the auth `.showcase*` blocks intentionally hardcode a dark mood and ignore the active theme — keep that convention for similar immersive surfaces. For runtime-read colors in JSX/SVG (e.g. Leaflet markers), read via `getComputedStyle(document.documentElement).getPropertyValue('--amber')` inside a `useEffect([theme])` so the color refreshes on toggle — see `buildMarkerIcon` in [UserProfile.jsx](client/src/pages/users/UserProfile.jsx).
 
+#### Breakpoints (responsive)
+
+Media-query breakpoints are a **single canonical scale** in [client/src/breakpoints.css](client/src/breakpoints.css), exposed as `@custom-media` tokens (CSS vars do NOT work inside `@media`). Resolved at build by `postcss-custom-media` + `@csstools/postcss-global-data` (see [client/postcss.config.js](client/postcss.config.js)), which injects the defs into every `*.module.css` — so any module can write `@media (--below-desktop) { … }` with no import.
+
+| Token | Resolves to | Meaning |
+|---|---|---|
+| `--desktop` / `--below-desktop` | `min-width: 960px` / `max-width: 959px` | The structural quiebre: desktop sidebar ⟷ mobile drawer. **The dominant one** — anything that depends on "is there a sidebar" must move here, never at a nearby value. |
+| `--tablet` | `max-width: 880px` | Wide content / forms reflow to one column. |
+| `--phone` | `max-width: 600px` | Cards/grids collapse to a single column. |
+| `--compact` | `max-width: 480px` | Small phones; stack/hide secondary controls. |
+
+**Always use the token, never a raw px for these transitions.** A near-but-different literal (e.g. `940` vs `959`) is exactly what caused a widget to render twice in the 941–959px gap on Compartidas. One-off component widths (a single card/modal reflowing at its natural width) may stay literal but should snap to the nearest token. `npm run lint:breakpoints` ([scripts/check-breakpoints.mjs](client/scripts/check-breakpoints.mjs)) fails CI on a reserved value used as a literal or any width in the 941–958px drift gap — run it pre-commit.
+
 ## Environment Setup
 
 Copy `server/.env.example` to `server/.env`:

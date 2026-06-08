@@ -8,7 +8,7 @@
 }
 
 /* Desktop: hidden — GuestSidebar handles navigation */
-@media (min-width: 960px) {
+@media (--desktop) {
   .nav {
     display: none;
   }
@@ -17,7 +17,7 @@
 /* Mobile: fixed bar — logo left, actions right. Anchored to the visual viewport
    so it stays glued to the visible top during pinch-zoom. Inverse scale keeps the
    bar at its original physical size — only content zooms. */
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .nav {
     position: fixed;
     top: var(--vv-top, 0px);

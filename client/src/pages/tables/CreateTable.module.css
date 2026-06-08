@@ -3,7 +3,7 @@
   padding: var(--navbar-h) 0 var(--page-padding);
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .page {
     padding-top: var(--page-padding);
   }
@@ -693,7 +693,7 @@
 }
 
 /* ─── Mobile ─── */
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .page {
     padding-bottom: var(--page-padding-mobile);
   }
@@ -717,7 +717,7 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .input {
     font-size: 16px;
   }

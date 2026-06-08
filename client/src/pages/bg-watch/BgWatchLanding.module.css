@@ -5,7 +5,7 @@
   width: 100%;
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .page {
     padding-top: var(--navbar-h);
     padding-right: var(--page-padding-mobile);
@@ -79,7 +79,7 @@
   text-decoration: underline;
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .heroTitle {
     font-size: 30px;
   }

@@ -216,7 +216,7 @@
   text-align: right;
 }
 
-@media (max-width: 880px) {
+@media (--tablet) {
   .popover {
     right: auto;
     left: 0;

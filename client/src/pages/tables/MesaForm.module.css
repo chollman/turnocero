@@ -61,7 +61,7 @@
   }
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .page {
     padding-top: 1.5rem;
   }
@@ -69,7 +69,7 @@
 
 /* En mobile el Sidebar (≥960px) desaparece — paddings simétricos via
    `--page-padding-mobile`, igual que en Dashboard / TableDetail / Eventos. */
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .page {
     padding-inline: var(--page-padding-mobile);
   }

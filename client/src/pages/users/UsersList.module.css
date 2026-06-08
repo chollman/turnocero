@@ -10,7 +10,7 @@
   margin-top: 8px;
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .page {
     padding-top: var(--navbar-h);
     padding-right: var(--page-padding-mobile);
@@ -150,7 +150,7 @@
   white-space: nowrap;
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .bgWatchBanner {
     padding: 12px 14px;
     gap: 10px;

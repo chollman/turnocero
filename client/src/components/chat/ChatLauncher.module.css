@@ -247,7 +247,7 @@
   text-overflow: ellipsis;
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .fab,
   .panel {
     display: none;

@@ -7,7 +7,7 @@
   padding-block: var(--navbar-h, 0) 5rem;
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .page {
     padding-top: 2rem;
   }
@@ -401,7 +401,7 @@
   cursor: not-allowed;
 }
 
-@media (max-width: 880px) {
+@media (--tablet) {
   .page {
     padding-inline: var(--page-padding-mobile);
     padding-block-end: var(--page-padding-mobile);

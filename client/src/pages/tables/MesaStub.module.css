@@ -177,7 +177,7 @@
    no tiene media query propia porque siempre vivió en una columna sticky
    de 360px; en mobile esa restricción desaparece pero el padding antes
    no se ajustaba, dejando rows + CTA con apenas espacio interior. */
-@media (max-width: 600px) {
+@media (--phone) {
   .top {
     padding: 18px 16px 14px;
   }

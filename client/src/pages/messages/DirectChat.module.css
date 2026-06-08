@@ -5,7 +5,7 @@
   margin: var(--navbar-h) 0 0;
 }
 
-@media (min-width: 960px) {
+@media (--desktop) {
   .page {
     height: calc(100vh - 48px);
     margin-top: 0;

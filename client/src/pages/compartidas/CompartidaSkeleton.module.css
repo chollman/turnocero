@@ -111,7 +111,7 @@
   margin-left: auto;
 }
 
-@media (max-width: 600px) {
+@media (--phone) {
   .header {
     padding: 12px 12px 0;
   }

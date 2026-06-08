@@ -33,7 +33,7 @@
   bottom: 84px;
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .fab {
     /* Was 76px to clear the old BottomNav pill — now sits with the same
        16px gutter as desktop, plus the iOS home-indicator safe area. */

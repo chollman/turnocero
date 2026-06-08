@@ -32,7 +32,7 @@
    The Navbar (z-index 250) sits above this drawer and acts as the visual
    header, so the drawer's own .logoRow is hidden below and the content
    starts under the navbar (52px). */
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .sidebar {
     position: fixed;
     inset: 0 0 0 auto;
@@ -66,7 +66,7 @@
   display: none;
 }
 
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .backdrop {
     display: block;
     position: fixed;
@@ -683,7 +683,7 @@
 
 /* On mobile the sidebar is a full slide-in drawer — collapsing it makes no
    sense, so the toggle is hidden below the desktop breakpoint. */
-@media (max-width: 959px) {
+@media (--below-desktop) {
   .collapseToggle {
     display: none;
   }
@@ -693,7 +693,7 @@
    The mobile media query overrides the sidebar width (drawer), so every collapse
    rule is scoped to ≥960px. Because .appShell is flex and .appContent is flex:1,
    shrinking the aside auto-expands the content — no JS layout work needed. */
-@media (min-width: 960px) {
+@media (--desktop) {
   .sidebarCollapsed {
     width: 76px;
   }
