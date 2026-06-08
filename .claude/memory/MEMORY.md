@@ -16,6 +16,7 @@
 - [FAB positioning post-BottomNav](feedback_fab_positioning.md) — every mobile FAB sits at `bottom: calc(16px + env(safe-area-inset-bottom, 0px))`. The 56-76px offset that existed to clear the BottomNav pill is dead — don't reintroduce it.
 - [Deleted user UI convention](feedback_deleted_user.md) — null populated user refs render as "Usuario eliminado" via UserRef/getUserDisplay; never access user.username directly
 - [VSCode ESLint setup](reference_vscode_eslint.md) — per-machine `.vscode/settings.json` pointing ESLint extension at `./client` (flat config lives there, not at repo root)
+- [ESLint setup, convenciones y gotchas](feedback_eslint_lint_setup.md) — `eslint.shared.cjs` con `no-warning-comments` en `location: "start"` (NO "anywhere") porque "todo" español = "all" disparaba falsos positivos; no agregar disables para taparlos. Reglas comunes (`no-useless-assignment`, `no-promise-executor-return` envolver setTimeout en bloque, importar globals de vitest). Gotcha: el Bash tool es zsh → no hace word-split de `$VAR` sin comillar
 - [Plans folder location](feedback_plans_location.md) — Plans go in the project's `plans/` folder, not `~/.claude/plans/`
 - [Admin "view as user" mode](feedback_admin_view_as_user.md) — admin-only features must respect the `viewAsUser` toggle (filter/hide privileged data client-side)
 - [Panel admin toggles](feedback_panel_admin_toggles.md) — every new section or cross-cutting feature must be plumbed through `/panel-admin` (SECTION_KEYS, requireSection, SectionGate, SECTION_META)
