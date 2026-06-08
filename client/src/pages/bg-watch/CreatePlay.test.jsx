@@ -68,6 +68,13 @@ function Echo() {
   return <div data-testid="echo">{loc.pathname + loc.search}</div>;
 }
 
+// Probe persistente (sibling de Routes) para observar la URL tras un redirect
+// que cae de nuevo en una ruta que renderiza CreatePlay (no un Echo).
+function LocationProbe() {
+  const loc = useLocation();
+  return <div data-testid="path">{loc.pathname + loc.search}</div>;
+}
+
 function renderAt(entry) {
   return render(
     <MemoryRouter initialEntries={[entry]}>
@@ -112,11 +119,49 @@ beforeEach(() => {
 });
 
 describe("<CreatePlay>", () => {
-  it("redirige al perfil si no es el dueño", async () => {
+  it("no-dueño con cuenta propia: redirige a SU carga (el link no depende del username)", async () => {
     mockUser = { ...mockUser, bggUsername: "otro" };
-    renderAt("/bg-watch/meBGG/partidas/nueva");
+    render(
+      <MemoryRouter
+        initialEntries={[
+          "/bg-watch/meBGG/partidas/nueva?volver=%2Fbg-watch%2FmeBGG%2Fcoleccion",
+        ]}
+      >
+        <LocationProbe />
+        <Routes>
+          <Route
+            path="/bg-watch/:bggUsername/partidas/nueva"
+            element={<CreatePlay />}
+          />
+          <Route path="/bg-watch/:bggUsername" element={<Echo />} />
+        </Routes>
+      </MemoryRouter>,
+    );
     await waitFor(() =>
-      expect(screen.getByTestId("echo")).toHaveTextContent("/bg-watch/meBGG"),
+      expect(screen.getByTestId("path")).toHaveTextContent(
+        "/bg-watch/otro/partidas/nueva",
+      ),
+    );
+    // conserva el ?volver al redirigir
+    expect(screen.getByTestId("path")).toHaveTextContent("volver=");
+  });
+
+  it("sin cuenta de BGG redirige al hub", async () => {
+    mockUser = { ...mockUser, bggUsername: "" };
+    render(
+      <MemoryRouter initialEntries={["/bg-watch/meBGG/partidas/nueva"]}>
+        <LocationProbe />
+        <Routes>
+          <Route
+            path="/bg-watch/:bggUsername/partidas/nueva"
+            element={<CreatePlay />}
+          />
+          <Route path="/bg-watch" element={<Echo />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("path").textContent).toBe("/bg-watch"),
     );
     expect(screen.queryByTestId("play-form")).toBeNull();
   });

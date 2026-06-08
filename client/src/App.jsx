@@ -60,6 +60,7 @@ import BgWatchH2H from "./pages/bg-watch/BgWatchH2H";
 import JugadorDetail from "./pages/bg-watch/JugadorDetail";
 import UbicacionDetail from "./pages/bg-watch/UbicacionDetail";
 import CreatePlay from "./pages/bg-watch/CreatePlay";
+import CreatePlayRedirect from "./pages/bg-watch/CreatePlayRedirect";
 import EditPlay from "./pages/bg-watch/EditPlay";
 import Messages from "./pages/messages/Messages";
 import DirectChat from "./pages/messages/DirectChat";
@@ -585,6 +586,19 @@ export function AppRoutes({ transition }) {
                 <SectionGate section="bgwatch">
                   <BgWatchPerGameView />
                 </SectionGate>
+              }
+            />
+            {/* Entrada SIN username: resuelve al usuario logueado y redirige a
+                su propia carga. Link compartible — sirve para quien lo reciba.
+                Ruta estática: gana en specificity a /bg-watch/:bggUsername/... */}
+            <Route
+              path="/bg-watch/partidas/nueva"
+              element={
+                <PrivateRoute>
+                  <SectionGate section="bgwatch">
+                    <CreatePlayRedirect />
+                  </SectionGate>
+                </PrivateRoute>
               }
             />
             <Route

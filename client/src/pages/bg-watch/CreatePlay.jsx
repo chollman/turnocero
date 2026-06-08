@@ -52,9 +52,32 @@ export default function CreatePlay() {
   const canCreate = isOwner && user?.bggConnected && !user?.bggInvalid;
 
   // Guard: si no es el dueño con BGG conectado, no puede cargar partidas acá.
+  // El link de carga no debería depender del username: si quien lo abre tiene
+  // SU propia cuenta de BGG (y el link es de otro usuario), lo mandamos a SU
+  // página de carga conservando ?juego/?volver y el state (prefill de partida
+  // compartida). Si es el dueño pero sin BGG conectado → a su perfil (a
+  // reconectar); sin cuenta de BGG → al hub.
   useEffect(() => {
-    if (!canCreate) navigate(`/bg-watch/${bggUsername}`, { replace: true });
-  }, [canCreate, bggUsername, navigate]);
+    if (canCreate) return;
+    if (user?.bggUsername && !isOwner) {
+      navigate(
+        `/bg-watch/${user.bggUsername}/partidas/nueva${location.search}`,
+        { replace: true, state: location.state },
+      );
+      return;
+    }
+    navigate(user?.bggUsername ? `/bg-watch/${bggUsername}` : "/bg-watch", {
+      replace: true,
+    });
+  }, [
+    canCreate,
+    isOwner,
+    user,
+    bggUsername,
+    navigate,
+    location.search,
+    location.state,
+  ]);
 
   // Si vino con ?juego, traer los datos del juego para prefijarlo (locked).
   useEffect(() => {
