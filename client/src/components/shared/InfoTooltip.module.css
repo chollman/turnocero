@@ -4,10 +4,14 @@
   align-items: center;
   margin-left: 6px;
   vertical-align: middle;
-  /* Pequeño shift hacia abajo para alinear visualmente con la mid-line del
+  /* Pequeño shift hacia arriba para alinear visualmente con la mid-line del
      texto del label (los labels usan font-mono y la baseline cae un poco
-     debajo del centro óptico del círculo del ícono). */
-  transform: translateY(-1px);
+     debajo del centro óptico del círculo del ícono). Usamos `top` (no
+     `transform`): un transform crea un stacking context que atrapaba el
+     z-index:100 del tooltip dentro del wrapper, dejándolo POR DEBAJO de
+     elementos posteriores en el DOM (p.ej. el picker de fecha en PlayForm).
+     Con `top` el wrapper no es stacking context y el tooltip vuelve a ganar. */
+  top: -1px;
 }
 
 .trigger {
