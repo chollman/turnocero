@@ -1,6 +1,6 @@
 ---
 name: project-bg-watch-play-form
-description: "BG Watch carga/edición de partidas (PlayForm) — feature set completo + decisiones de diseño (date picker date-only, sugerencia de duración por tiempo de caja BGG, auto-ganador por score, borrador local, deep-links, etc.). Plan 100% cerrado y mergeado a master."
+description: "BG Watch carga/edición de partidas (PlayForm) — feature set completo + decisiones de diseño (date picker date-only, sugerencia de duración por tiempo de caja BGG, auto-ganador por score, borrador local, deep-links, etc.). Plan 100% cerrado y mergeado a master + review hardening 2026-06-08 (winsManual, budget de comments, validación server, fallback de edición a BGG)."
 metadata:
   node_type: memory
   type: project
@@ -28,7 +28,7 @@ Plan **100% cerrado y mergeado a master** (2026-06). El detalle ítem por ítem 
 - **Multi-partida rápida** — check "cargar otra" conserva roster+ubicación+fecha y remonta (`keepGoing`/`carry`).
 - **Usar última juntada** — botón que precarga roster (nombre+@BGG) + ubicación de la última partida. Server: `computeLastJuntada` + `GET /api/bgg/ultima-juntada/:user`.
 - **Score → posición** — `playerPositions.js#computePlayerPositions` (competition ranking 1,2,2,4); el badge y el payload derivan del score; atajos +/- por fila y botón "Ordenar por puntaje". El badge hace un **glitch cyberpunk al cambiar** (`PositionBadge`, ver [[feedback-cyberpunk-glitch]]).
-- **Auto-ganador** — al cambiar un score, `assignWinsByScore` mueve el trofeo al/los puntaje/s más alto/s (empates comparten); sin scores numéricos no toca el toggle manual.
+- **Auto-ganador** — al cambiar un score, `assignWinsByScore` mueve el trofeo al/los puntaje/s más alto/s (empates comparten); sin scores numéricos no toca el toggle manual. **Override manual (flag `winsManual`, fix review 2026-06-08):** apenas el usuario toca el toggle "Ganó" a mano —o al **editar** una partida ya cargada (default `winsManual=editMode`)— los cambios de score dejan de pisar la elección. Antes cualquier edición de puntaje reasignaba el ganador al mayor score, rompiendo juegos donde no gana el más alto.
 - **Fecha** — usa el `<DateTimePicker dateOnly allowPast maxDate={hoy}>` compartido (NO `<input type=date>`). No futuro (gate + error backstop). Ver [[feedback-shared-form-components]].
 - **Duración sugerida** — el **tiempo de caja de BGG** (`playingTime` de `/game/:id`, capturado en `BggGame` + backfill lazy; ver [[feedback-bgg-cache-pattern]]). Label "Tiempo de caja: X min · usar". **NO** es un promedio real (BGG no lo expone). Antes usaba el promedio personal (`avgDuration` en `JUGADO`) — se sacó.
 - **Autodetección "Nuevo"** — para TODOS los @BGG del roster (no solo el dueño). `GET /api/bgg/jugado` devuelve `known` (¿el user tiene plays sincronizadas?) → se marca solo con **`known && !played`** (conocimiento positivo; no se marca a invitados desconocidos por las dudas). Automático + read-only.
@@ -36,6 +36,20 @@ Plan **100% cerrado y mergeado a master** (2026-06). El detalle ítem por ítem 
 - **Deep-links de carga** — "Cargar partida" por juego en `ColeccionPanel` + "Cargar otra" en el menú de `PlayCard` (solo dueño). El form vuelve a la tab/origen vía `?volver` (validado a rutas `/bg-watch/...`).
 - **Preview enriquecido** — `useBggUserMap([previewPlay])` resuelve avatares de los jugadores que son miembros de TurnoCero.
 - **Pickers** — empty states con `<EmptyState variant="filtered" compact>` (no texto plano).
+
+## Review hardening (2026-06-08, rama `fix/bg-watch-play-form-review`)
+
+Code review del creador de partidas → fixes (todos con tests):
+
+- **Comments no pierden la firma** — `composeComments` (`playComments.js`) ahora **presupuesta las notas**: los bloques (expansiones/variante) y la firma `@turnocero0` van al final con prioridad; si el total excede `MAX_COMMENT_LENGTH` (1000, export nuevo) se recortan las **notas**, no la firma/bloques. Antes una nota larga empujaba la firma fuera del `slice(0,1000)` del server (`buildPlayForm`) → se rompía la detección "creada en TurnoCero" y se perdían expansiones. El slice del server quedó como red de seguridad.
+- **`winsManual`** — ver bullet "Auto-ganador" arriba.
+- **Validación server** — `validatePlayBody` (`bggMutations.js`) rechaza **fecha futura** (+1 día de gracia por TZ) y **roster >50** (`MAX_PLAYERS`). El cliente ya lo bloqueaba; el server es la autoridad.
+- **Editar por refresh/deep-link sin sync** — `GET /api/bgg/partida/:user/:playId` cae a **buscar la partida en BGG** (`findPlayOnBgg`, escaneo acotado a `PARTIDA_BGG_SCAN_PAGES=10` páginas, orden fecha desc) cuando el usuario no tiene espejo en Mongo (`createPlay` no espeja a usuarios sin `BggPlay` previos). Antes 404eaba. La lista del perfil sigue disparando el reconcile que autosana. Respuesta unificada vía `playToApi`.
+- **Hook compartido `useClickOutside`** (`client/src/hooks/`) — reemplaza los 2 effects duplicados de PlayForm (picker jugador / expansiones-variante) y el dropdown de `LocationPicker`. El callback se guarda en un ref actualizado en effect (no en render → respeta `react-hooks/refs`).
+- **`<ScoreCell>`** — componente extraído en `PlayForm.jsx` para dedup del stepper −/input/+ entre modos versus y equipos (mismos aria-labels).
+- **Nits** — sacada la dep `user` del effect de autodetección "Nuevo"; `◆` → `<Meeple/>` en preview (`PlayForm`) y kicker (`Scorecard`).
+
+**NO se tocó** (con criterio): `window.confirm` del borrar (es la convención del repo, 15+ usos; el `<Modal>` es para overlays full-screen); fragilidad del round-trip de comentarios (un fix robusto cambiaría el formato del campo `comments` y rompería partidas ya guardadas; además el contenido round-tripea, no se pierde); spam de notif de partida compartida (decisión de producto: restringir a amigos/comunidad — queda abierto).
 
 ## Decisiones que se repreguntan
 
@@ -48,6 +62,7 @@ Plan **100% cerrado y mergeado a master** (2026-06). El detalle ítem por ítem 
 - `GET /api/bgg/ultima-juntada/:user` → `{ juntada: { players:[{name,username}], location, date, gameName } | null }`.
 - `GET /api/bgg/jugado/:user/:gameId` → `{ played, numPlays, known }` (se quitó `avgDuration`).
 - `GET /api/bgg/game/:id` → ahora incluye `playingTime` / `minPlayTime` / `maxPlayTime` (tiempo de caja).
+- `GET /api/bgg/partida/:user/:playId` → precarga para editar; sirve del espejo Mongo o, si no hay, **cae a BGG** (`findPlayOnBgg`) en vez de 404 (fix review 2026-06-08).
 
 ## Hub de comunidad — pendiente (no del PlayForm, pero del mismo dominio)
 
