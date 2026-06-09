@@ -4,6 +4,7 @@ const multer = require("../config/multer");
 const { cloudinary, uploadToCloudinary } = require("../config/cloudinary");
 const Compartida = require("../models/Compartida");
 const CompartidaComment = require("../models/CompartidaComment");
+const User = require("../models/User");
 const Table = require("../models/Table");
 const Evento = require("../models/Evento");
 const Community = require("../models/Community");
@@ -40,7 +41,12 @@ const populateCompartida = (query) =>
       "linkedTable",
       "boardGame date maxPlayers players host status location bggThumbnail",
     )
-    .populate("linkedEvento", "title eventDate location image status");
+    .populate("linkedEvento", "title eventDate location image status")
+    // Identidad EN VIVO de los jugadores del scorecard que son usuarios de
+    // TurnoCero — nombre/avatar se resuelven desde el perfil actual. Select
+    // acotado a campos públicos (el feed serializa vía toObject, no toJSON, así
+    // que la proyección es la que garantiza que no se filtre nada sensible).
+    .populate("playResult.players.userId", "username displayName avatar");
 
 // ── Privacy filter helper ──────────────────────────────────────────────────
 const visibilityFilter = (user) => {
@@ -129,22 +135,52 @@ const sanitizePlayResult = async (input) => {
     }
   }
 
+  const capped = players.slice(0, MAX_SNAPSHOT_PLAYERS);
+
+  // Vincular cada jugador a su cuenta de TurnoCero por @BGG. Lo derivamos
+  // server-side (no se confía en un userId del cliente — sería spoofeable), un
+  // único query batcheado por la lista de @BGG. Match case-insensitive porque
+  // `bggUsername` se guarda con la capitalización original.
+  const handles = [
+    ...new Set(
+      capped
+        .filter((p) => !p?.anonymous && p?.username)
+        .map((p) => String(p.username).trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ];
+  const userIdByHandle = new Map();
+  if (handles.length) {
+    const users = await User.find({ bggUsername: { $in: handles } })
+      .collation({ locale: "en", strength: 2 })
+      .select("_id bggUsername");
+    for (const u of users)
+      if (u.bggUsername) userIdByHandle.set(u.bggUsername.toLowerCase(), u._id);
+  }
+
   return {
     mode: PLAY_MODES.includes(input.mode) ? input.mode : "versus",
     game,
     gameId,
     date: clampStr(input.date, 10),
     duration: numOrNull(input.duration),
-    players: players.slice(0, MAX_SNAPSHOT_PLAYERS).map((p) => ({
-      name: clampStr(p?.name, 100),
-      username: clampStr(p?.username, 50),
-      anonymous: !!p?.anonymous,
-      score: clampStr(p?.score, 30),
-      win: !!p?.win,
-      new: !!p?.new,
-      team: /^[A-D]$/.test(String(p?.team || "")) ? String(p.team) : "",
-      position: numOrNull(p?.position),
-    })),
+    players: capped.map((p) => {
+      const handle =
+        !p?.anonymous && p?.username
+          ? String(p.username).trim().toLowerCase()
+          : "";
+      return {
+        name: clampStr(p?.name, 100),
+        username: clampStr(p?.username, 50),
+        userId: handle ? userIdByHandle.get(handle) || null : null,
+        anonymous: !!p?.anonymous,
+        score: clampStr(p?.score, 30),
+        win: !!p?.win,
+        new: !!p?.new,
+        team: /^[A-D]$/.test(String(p?.team || "")) ? String(p.team) : "",
+        position: numOrNull(p?.position),
+      };
+    }),
   };
 };
 

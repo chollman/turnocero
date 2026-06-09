@@ -624,6 +624,93 @@ describe("Compartidas — reseñas vs juntadas", () => {
     expect(res.body.playResult?.players?.[0]?.name).toBe("Martín");
   });
 
+  // ── playResult: vínculo de jugador → cuenta de TurnoCero (userId) ──────
+  it("vincula el jugador a su userId por @BGG y lo devuelve poblado (nombre/avatar)", async () => {
+    const { token } = await createAuthedUser();
+    await seedGame();
+    // Cuenta de TurnoCero cuyo @BGG matchea (case-insensitive) al jugador.
+    const member = await createUser({
+      bggUsername: "Martin", // PLAY_RESULT usa "martin"
+      displayName: "Martín Pérez",
+    });
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ body: "ganamos", playResult: PLAY_RESULT });
+    expect(res.status).toBe(201);
+    const players = res.body.playResult.players;
+    // [0] = "martin" → poblado con la cuenta de TurnoCero.
+    expect(players[0].userId).toMatchObject({
+      _id: member._id.toString(),
+      displayName: "Martín Pérez",
+    });
+    // Solo campos públicos — nada sensible se filtra en el populate.
+    expect(players[0].userId.password).toBeUndefined();
+    expect(players[0].userId.email).toBeUndefined();
+    // [1] = "bob" → sin cuenta → userId null.
+    expect(players[1].userId).toBeNull();
+  });
+
+  it("no confía en un userId mandado por el cliente — lo deriva del @BGG", async () => {
+    const { token } = await createAuthedUser();
+    await seedGame();
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        body: "x",
+        playResult: {
+          ...PLAY_RESULT,
+          // El cliente intenta inyectar un userId arbitrario; sin cuenta TC con
+          // ese @BGG, el server lo ignora y deja null.
+          players: [
+            { name: "Spoof", username: "nadie", userId: "ffffffffffffffffffffffff" },
+          ],
+        },
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.playResult.players[0].userId).toBeNull();
+  });
+
+  it("no vincula a jugadores anónimos aunque coincida un @BGG", async () => {
+    const { token } = await createAuthedUser();
+    await seedGame();
+    await createUser({ bggUsername: "martin", displayName: "Martín Pérez" });
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        body: "x",
+        playResult: {
+          ...PLAY_RESULT,
+          players: [{ name: "Anónimo", username: "martin", anonymous: true }],
+        },
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.playResult.players[0].userId).toBeNull();
+  });
+
+  it("GET detalle puebla el userId del jugador con el perfil ACTUAL (no congela el nombre)", async () => {
+    const { token } = await createAuthedUser();
+    await seedGame();
+    const member = await createUser({
+      bggUsername: "martin",
+      displayName: "Nombre Viejo",
+    });
+    const created = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ body: "ganamos", playResult: PLAY_RESULT });
+    // El miembro cambia su displayName DESPUÉS de crear la juntada.
+    await User.findByIdAndUpdate(member._id, { displayName: "Nombre Nuevo" });
+    const res = await request(app).get(`/api/compartidas/${created.body._id}`);
+    expect(res.status).toBe(200);
+    // El populate trae el nombre vigente, no el del momento de la creación.
+    expect(res.body.playResult.players[0].userId.displayName).toBe(
+      "Nombre Nuevo",
+    );
+  });
+
   it("PUT reseña edita rating, body y juego", async () => {
     const { user, token } = await createAuthedUser();
     await seedGame();

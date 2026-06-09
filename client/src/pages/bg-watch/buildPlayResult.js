@@ -3,6 +3,11 @@
 // MISMOS datos que el preview en vivo (`scorecardRows`), así el widget guardado
 // es idéntico al preview.
 //
+// Guarda `name`/`username` como snapshot. La IDENTIDAD del jugador (nombre +
+// avatar de TurnoCero) NO se congela acá: el server vincula cada @BGG a su
+// `userId` y el scorecard la resuelve en vivo al renderizar — ver
+// `playResultToScorecard` + `routes/compartidas.js#sanitizePlayResult`.
+//
 // Descarta lo viewer-relativo (`you`/`leader`/`key`, que se recomputan al
 // renderizar para cada visitante) y la ubicación (privacidad — igual que el
 // snapshot del flujo de notif en bggPlayShare). Devuelve `null` si no hay juego

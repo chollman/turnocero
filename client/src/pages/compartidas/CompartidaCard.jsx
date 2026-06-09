@@ -702,7 +702,7 @@ export default function CompartidaCard({
 
               {scProps && (
                 <div className={styles.playResult}>
-                  <Scorecard {...scProps} />
+                  <Scorecard {...scProps} bgwatchEnabled={bgwatchEnabled} />
                 </div>
               )}
 
@@ -1000,7 +1000,7 @@ export default function CompartidaCard({
         <div className={mediaGridClass}>
           {showScorecard && (
             <div className={styles.mediaScorecard}>
-              <Scorecard {...scProps} />
+              <Scorecard {...scProps} bgwatchEnabled={bgwatchEnabled} />
             </div>
           )}
           {post.images.map((img, i) => (

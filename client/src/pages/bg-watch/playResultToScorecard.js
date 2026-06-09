@@ -1,9 +1,16 @@
 import { hasDisplayableScore } from "./playerScore";
+import { getUserDisplay } from "../../utils/userDisplay";
 
 // Convierte el snapshot `playResult` guardado en una juntada (ver buildPlayResult)
 // en los props del <Scorecard> en modo público. Recomputa lo viewer-relativo:
 // `you` siempre false (un post lo ve cualquiera) y `leader` con la misma regla
-// que PlayForm. `userMap: {}` ⇒ avatares por iniciales (sin fetch por tarjeta).
+// que PlayForm.
+//
+// Identidad EN VIVO: cada jugador que es usuario de TurnoCero trae su `userId`
+// poblado por el server (`{ _id, username, displayName, avatar }`). Para esos se
+// usa el nombre + avatar ACTUAL del perfil (no el snapshot), así editar el perfil
+// se refleja en juntadas viejas. Se arma un `userMap` (clave = @BGG en minúscula,
+// la misma que mira el <Scorecard>) con esos usuarios; el resto cae a iniciales.
 export function playResultToScorecardProps(playResult) {
   if (!playResult) return null;
   const mode = playResult.mode || "versus";
@@ -24,19 +31,35 @@ export function playResultToScorecardProps(playResult) {
       ? firstPlace[0]
       : -1;
 
-  const rows = players.map((p, i) => ({
-    key: `${i}-${p.username || p.name || "anon"}`,
-    name: p.name || p.username || "Jugador",
-    username: p.username,
-    anonymous: !!p.anonymous,
-    score: p.score,
-    win: !!p.win,
-    new: !!p.new,
-    team: p.team || "",
-    position: p.position,
-    you: false,
-    leader: mode === "equipos" ? !!p.win : i === leaderIdx,
-  }));
+  const userMap = {};
+  const rows = players.map((p, i) => {
+    // `userId` poblado (objeto con `_id`) ⇒ usuario de TurnoCero vigente.
+    const tcUser =
+      p.userId && typeof p.userId === "object" && p.userId._id
+        ? p.userId
+        : null;
+    if (tcUser && p.username) userMap[p.username.toLowerCase()] = tcUser;
+    return {
+      key: `${i}-${p.username || p.name || "anon"}`,
+      name: tcUser ? getUserDisplay(tcUser).name : p.name || p.username || "Jugador",
+      username: p.username,
+      anonymous: !!p.anonymous,
+      // Link al perfil público de TurnoCero (solo si es usuario) y a su BG Watch
+      // (cualquier jugador con @BGG). El <Scorecard> los renderiza en publicView.
+      profileHref: tcUser ? `/usuarios/${tcUser._id}` : null,
+      bgwatchHref:
+        !p.anonymous && p.username
+          ? `/bg-watch/${encodeURIComponent(p.username)}`
+          : null,
+      score: p.score,
+      win: !!p.win,
+      new: !!p.new,
+      team: p.team || "",
+      position: p.position,
+      you: false,
+      leader: mode === "equipos" ? !!p.win : i === leaderIdx,
+    };
+  });
 
   return {
     game: playResult.game || null,
@@ -50,7 +73,7 @@ export function playResultToScorecardProps(playResult) {
     youWin: false,
     rows,
     notes: "",
-    userMap: {},
+    userMap,
     publicView: true,
   };
 }

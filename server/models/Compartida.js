@@ -21,13 +21,25 @@ const boardGameSnapshotSchema = new mongoose.Schema(
 );
 
 // Snapshot de resultados de la partida — solo en juntadas creadas desde el flujo
-// "Compartí esta partida" de BG Watch. Render-only: lo consume el <Scorecard>
-// (publicView) en el feed/detalle. Auto-contenido (no necesita lookups). La
-// ubicación se omite a propósito (privacidad, como el snapshot de bggPlayShare).
+// "Compartí esta partida" de BG Watch. Lo consume el <Scorecard> (publicView) en
+// el feed/detalle. La ubicación se omite a propósito (privacidad, como el
+// snapshot de bggPlayShare).
+//
+// `userId` referencia a la cuenta de TurnoCero del jugador (cuando su @BGG
+// matchea un usuario). Es la ÚNICA fuente de verdad de su identidad: el nombre y
+// el avatar del scorecard se resuelven en vivo desde ese usuario (populate), así
+// editar el perfil se refleja en juntadas viejas. `name`/`username` quedan como
+// snapshot/fallback (jugadores anónimos, no-miembros, o cuentas borradas). El
+// `userId` lo deriva el server desde el @BGG — no se confía en el cliente.
 const playResultPlayerSchema = new mongoose.Schema(
   {
     name: { type: String, default: "" },
     username: { type: String, default: "" },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     anonymous: { type: Boolean, default: false },
     score: { type: String, default: "" },
     win: { type: Boolean, default: false },

@@ -1,11 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 
 vi.mock("../../components/shared/Avatar", () => ({
   default: ({ user }) => <div data-testid="avatar">{user?.username || ""}</div>,
 }));
 
 import Scorecard, { gameInitials, deriveWinnerLabel } from "./Scorecard";
+
+const inRouter = (ui) => render(ui, { wrapper: MemoryRouter });
 
 function row(over = {}) {
   return {
@@ -160,6 +163,67 @@ describe("<Scorecard>", () => {
       />,
     );
     expect(screen.queryByText(/\(vos\)/)).not.toBeInTheDocument();
+  });
+
+  it("publicView: el nombre linkea al perfil público cuando hay profileHref", () => {
+    inRouter(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        publicView
+        rows={[
+          row({
+            name: "Martín",
+            username: "martin",
+            score: "9",
+            profileHref: "/usuarios/u1",
+            bgwatchHref: "/bg-watch/martin",
+          }),
+        ]}
+      />,
+    );
+    const nameLink = screen.getByRole("link", { name: "Martín" });
+    expect(nameLink).toHaveAttribute("href", "/usuarios/u1");
+  });
+
+  it("publicView: link a BG Watch solo si bgwatchEnabled", () => {
+    const { rerender } = inRouter(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        publicView
+        bgwatchEnabled={false}
+        rows={[row({ name: "Mika", username: "Mica_ki", bgwatchHref: "/bg-watch/Mica_ki" })]}
+      />,
+    );
+    // Sección deshabilitada → sin link de BG Watch.
+    expect(screen.queryByRole("link", { name: /BG Watch/i })).toBeNull();
+
+    rerender(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        publicView
+        bgwatchEnabled
+        rows={[row({ name: "Mika", username: "Mica_ki", bgwatchHref: "/bg-watch/Mica_ki" })]}
+      />,
+    );
+    const bgw = screen.getByRole("link", { name: /Ver BG Watch de Mika/i });
+    expect(bgw).toHaveAttribute("href", "/bg-watch/Mica_ki");
+  });
+
+  it("publicView: sin profileHref el nombre es texto plano (no link)", () => {
+    inRouter(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        publicView
+        bgwatchEnabled
+        rows={[row({ name: "Lean BG", username: "" })]}
+      />,
+    );
+    expect(screen.queryByRole("link", { name: "Lean BG" })).toBeNull();
+    expect(screen.getByText("Lean BG")).toBeInTheDocument();
   });
 
   it("publicView coop: '¡Ganaron!' / 'Perdieron' según los win", () => {

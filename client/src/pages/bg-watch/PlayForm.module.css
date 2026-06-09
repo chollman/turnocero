@@ -1388,6 +1388,42 @@
 .scorecardPlayerYou .scorecardNm {
   color: var(--amber-light);
 }
+/* Nombre como link al perfil público de TurnoCero (publicView). */
+.scorecardNmLink {
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scorecardNmLink:hover {
+  color: var(--amber-light);
+  text-decoration: underline;
+}
+/* Ícono-link a BG Watch del jugador (espeja .authorBgWatchLink, más chico). */
+.scorecardBgw {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--amber-15);
+  color: var(--amber-light);
+  border: 1px solid var(--border-amber);
+  flex-shrink: 0;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+.scorecardBgw:hover {
+  background: var(--amber-25);
+  color: var(--amber);
+}
+.scorecardBgw svg {
+  width: 10px;
+  height: 10px;
+}
 .scorecardCrown {
   color: var(--gold);
   display: inline-flex;

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import Avatar from "../../components/shared/Avatar";
 import Meeple from "../../components/shared/Meeple";
 import { hasDisplayableScore } from "./playerScore";
@@ -121,6 +122,25 @@ const ico = {
       <path d="M3 7l4 4 5-6 5 6 4-4-2 12H5L3 7z" />
     </svg>
   ),
+  // Dado/grilla — mismo glifo que el link de BG Watch del autor en CompartidaCard.
+  bgwatch: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2.5" />
+      <circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  ),
 };
 
 // Banner neutral para el modo público (juntada compartida): muestra al/los
@@ -154,7 +174,10 @@ export function deriveWinnerLabel(rows, mode) {
  * `userMap` para mostrar el avatar de los co-jugadores que son miembros.
  *
  * `publicView` (juntada compartida): banner por ganador, sin "(vos)" ni el
- * highlight del jugador propio — el post lo ve cualquiera, no hay "vos".
+ * highlight del jugador propio — el post lo ve cualquiera, no hay "vos". En ese
+ * modo las filas pueden traer `profileHref` (perfil público de TurnoCero) y
+ * `bgwatchHref` (BG Watch); el nombre se vuelve link y aparece un ícono de BG
+ * Watch (este último solo si `bgwatchEnabled`, que lo gatea el caller).
  */
 export default function Scorecard({
   game,
@@ -168,8 +191,10 @@ export default function Scorecard({
   notes = "",
   userMap = {},
   publicView = false,
+  bgwatchEnabled = false,
 }) {
   const initials = game ? gameInitials(game.name) : null;
+  const stopProp = (e) => e.stopPropagation();
 
   const displayRows = useMemo(() => {
     if (mode === "coop") return rows;
@@ -288,10 +313,31 @@ export default function Scorecard({
                     />
                   )}
                   <span className={styles.scorecardNm}>
-                    {p.name}
+                    {p.profileHref ? (
+                      <Link
+                        to={p.profileHref}
+                        className={styles.scorecardNmLink}
+                        onClick={stopProp}
+                      >
+                        {p.name}
+                      </Link>
+                    ) : (
+                      p.name
+                    )}
                     {!publicView && p.you ? " (vos)" : ""}
                     {p.leader && (
                       <span className={styles.scorecardCrown}>{ico.crown}</span>
+                    )}
+                    {bgwatchEnabled && p.bgwatchHref && (
+                      <Link
+                        to={p.bgwatchHref}
+                        className={styles.scorecardBgw}
+                        onClick={stopProp}
+                        title={`Ver BG Watch de @${p.username}`}
+                        aria-label={`Ver BG Watch de ${p.name}`}
+                      >
+                        {ico.bgwatch}
+                      </Link>
                     )}
                   </span>
                   <span className={styles.scorecardSc}>
