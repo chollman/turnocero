@@ -1,6 +1,6 @@
 ---
 name: feedback-shared-form-components
-description: 'Catalog of shared form components extracted from EventoForm — `<InfoTooltip>`, `<DateTimePicker>`, status chips (radiogroup); conventions for height/radius/placeholder; "validate only in handleSubmit, never HTML required" rule'
+description: 'Catalog of shared form components extracted from EventoForm — `<InfoTooltip>`, `<DateTimePicker>`, `<PasswordInput>` (eye toggle), status chips (radiogroup); BGG error mappers (utils/bggErrors.js); conventions for height/radius/placeholder; "validate only in handleSubmit, never HTML required" rule'
 metadata:
   node_type: memory
   type: feedback
@@ -76,6 +76,23 @@ vi.mock("../../components/shared/DateTimePicker", () => ({
   ),
 }));
 ```
+
+## `<PasswordInput>` (`components/shared/PasswordInput.jsx`)
+
+Input de contraseña con el típico **ojito** de mostrar/ocultar (SVG inline Eye/EyeOff, sin libs). Toggle interno (`useState show`), el botón es `<button type="button" tabIndex={-1}>` (fuera del orden de Tab) con `aria-label` "Mostrar/Ocultar contraseña". Vive en `components/shared/` desde 2026-06 (antes estaba en `pages/auth/`, se movió al reusarse en `/perfil` para la conexión BGG).
+
+**Props**: `id, name, value, onChange, onKeyDown, placeholder, required, minLength, className, autoComplete`. Pasale `className={styles.input}` del form propio — el wrap se posiciona solo (relative + el botón absolute a la derecha; agrega `paddingRight` al input para no tapar el texto). `onKeyDown` está forwardeado (ej. Enter→submit en el form de BGG).
+
+**Usado en**: Login/Register/ResetPassword (auth) + UserProfile (password de BGG). Para cualquier campo de contraseña nuevo usá este, NO un `<input type="password">` pelado.
+
+## Mensajes de error de BGG (`utils/bggErrors.js`)
+
+Para los endpoints de BGG de `/perfil` NO mostrar el `message` crudo del server (es escueto: "Credenciales BGG inválidas"). Usar los mappers status-aware:
+
+- `bggConnectErrorMessage(err, { brandName })` — connect: 401 = password incorrecta (la confusión común con la password del sitio; brand-aware por tenant), 502/503/504 = BGG caído (no es tu password), 400 pass-through.
+- `bggSyncErrorMessage(err)` — sync/"Reconciliar": 404 = usuario BGG inexistente, 502/503/504 = falló a mitad (tranquiliza: lo ya sincronizado se conserva), 400/429 pass-through.
+
+Distinto del genérico [`getErrorMessage`](feedback_errors_as_toasts.md) (que solo extrae `{message}`): acá el valor es traducir el **status** a copy accionable. Para otros flujos con causas distinguibles por status, seguí el mismo patrón.
 
 ## Status chips (radiogroup pattern)
 
