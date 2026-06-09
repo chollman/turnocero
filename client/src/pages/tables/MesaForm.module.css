@@ -75,27 +75,6 @@
   }
 }
 
-/* -- Back button — calcado de EventoDetail.module.css `.back` --- */
-.backBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  text-decoration: none;
-  cursor: pointer;
-  padding: 0;
-  margin: 0 0 20px;
-  transition: color var(--transition);
-}
-.backBtn:hover:not(:disabled) {
-  color: var(--amber-light);
-}
 
 /* -- Editorial hero — calcado de Eventos --------------------- */
 .hero {

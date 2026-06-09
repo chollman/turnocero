@@ -11,26 +11,10 @@ import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import TableCard from "../dashboard/TableCard";
 import CommunitySelect from "../../components/shared/CommunitySelect";
+import BackButton from "../../components/shared/BackButton";
 import styles from "./MesaForm.module.css";
 
 // ── Icons ────────────────────────────────────────────────────────────
-
-const ArrowLeftIcon = ({ size = 12 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <line x1="19" y1="12" x2="5" y2="12" />
-    <polyline points="12 19 5 12 12 5" />
-  </svg>
-);
 
 const CheckIcon = ({ size = 12 }) => (
   <svg
@@ -563,14 +547,12 @@ export default function MesaForm({
       className={`${styles.page} ${exiting ? styles.pageExit : ""}`}
       onAnimationEnd={handlePageAnimationEnd}
     >
-      <button
-        type="button"
-        className={styles.backBtn}
+      <BackButton
         onClick={handleCancelClick}
         disabled={submitting || exiting}
       >
-        <ArrowLeftIcon /> {editMode ? "Cancelar edición" : "Cancelar y volver"}
-      </button>
+        {editMode ? "Cancelar edición" : "Cancelar y volver"}
+      </BackButton>
 
       <header className={styles.hero}>
         <div className={styles.heroLeft}>

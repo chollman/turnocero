@@ -13,24 +13,6 @@
   }
 }
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  text-decoration: none;
-  margin-bottom: 20px;
-  transition: color var(--transition);
-}
-
-.back:hover {
-  color: var(--amber-light);
-}
-
 .layout {
   display: grid;
   grid-template-columns: 1fr 340px;
@@ -567,7 +549,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   gap: 12px;
 }
 

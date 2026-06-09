@@ -6,6 +6,7 @@ import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import { toLocalInputValue, fromLocalInputValue } from "../../utils/eventoDate";
 import DateTimePicker from "../../components/shared/DateTimePicker";
+import BackButton from "../../components/shared/BackButton";
 import ImageDropzone from "./components/ImageDropzone";
 import styles from "./Torneos.module.css";
 
@@ -120,9 +121,9 @@ export default function EditTorneo() {
       </Helmet>
       <div className={styles.inner}>
         <div className={styles.formHeader}>
-          <Link to={`/torneos/${id}`} className={styles.backLink}>
-            ← Volver al torneo
-          </Link>
+          <BackButton to={`/torneos/${id}`} flush>
+            Volver al torneo
+          </BackButton>
           <h1 className={styles.title}>Editar torneo</h1>
         </div>
 

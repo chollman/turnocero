@@ -7,6 +7,7 @@ import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
+import BackButton from "../../components/shared/BackButton";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { getStatusMeta, getModeLabel } from "./mathtradeStatus";
@@ -177,9 +178,7 @@ export default function MathTradeDetail() {
         <title>{`${trade.title} – Math Trade – ${brandName}`}</title>
       </Helmet>
       <div className={styles.inner}>
-        <Link to="/math-trade" className={styles.back}>
-          ← Math Trade
-        </Link>
+        <BackButton to="/math-trade">Math Trade</BackButton>
 
         <div className={styles.hero}>
           {trade.image?.url && (

@@ -7,6 +7,7 @@ import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { API } from "../../api/endpoints";
 import GameTile from "../../components/shared/GameTile";
+import BackButton from "../../components/shared/BackButton";
 import Avatar from "../../components/shared/Avatar";
 import ProfileSkeleton from "./ProfileSkeleton";
 import BgWatchUserCard from "./BgWatchUserCard";
@@ -88,7 +89,7 @@ export default function UserProfilePublic() {
   // no servía: sobrevive al reload y daba falsos positivos.
   const canGoBack = (window.history.state?.idx ?? 0) > 0;
   const goBack = () => (canGoBack ? navigate(-1) : navigate("/comunidades"));
-  const backLabel = canGoBack ? "← Volver" : "← Comunidades";
+  const backLabel = canGoBack ? "Volver" : "Comunidades";
   const { user: currentUser, refreshUser } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
   const { notifyFriendAdded } = useNotifications();
@@ -161,9 +162,9 @@ export default function UserProfilePublic() {
       <div className={styles.page}>
         <div className={styles.stateCenter}>
           <p>{error || "Usuario no encontrado"}</p>
-          <button className={styles.backBtn} onClick={goBack}>
-            {canGoBack ? "← Volver" : "← Volver a jugadores"}
-          </button>
+          <BackButton onClick={goBack} flush>
+            {canGoBack ? "Volver" : "Volver a jugadores"}
+          </BackButton>
         </div>
       </div>
     );
@@ -195,9 +196,9 @@ export default function UserProfilePublic() {
 
       <div className={styles.inner}>
         {/* Back button */}
-        <button className={styles.backBtn} onClick={goBack}>
+        <BackButton onClick={goBack} flush>
           {backLabel}
-        </button>
+        </BackButton>
 
         {/* Hero row: avatar + name + actions */}
         <div className={styles.heroRow}>

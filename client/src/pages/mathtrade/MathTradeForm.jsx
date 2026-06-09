@@ -8,6 +8,7 @@ import { useBrandName } from "../../hooks/useBrandName";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import InfoTooltip from "../../components/shared/InfoTooltip";
+import BackButton from "../../components/shared/BackButton";
 import ImageDropzone from "../torneos/components/ImageDropzone";
 import styles from "./MathTradeForm.module.css";
 
@@ -82,9 +83,7 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
         </title>
       </Helmet>
       <div className={styles.inner}>
-        <Link to="/math-trade" className={styles.back}>
-          ← Volver a Math Trade
-        </Link>
+        <BackButton to="/math-trade">Volver a Math Trade</BackButton>
         <h1 className={styles.title}>
           {mode === "create" ? "Nuevo intercambio" : "Editar intercambio"}
         </h1>

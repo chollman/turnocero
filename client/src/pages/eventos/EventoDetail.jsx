@@ -21,7 +21,8 @@ import EventoForm from "./EventoForm";
 import EventoLudoteca from "./EventoLudoteca";
 import EventoMesas from "./EventoMesas";
 import useEventoSocket from "./useEventoSocket";
-import { ArrowLeftIcon, ImageIcon } from "./EventoIcons";
+import { ImageIcon } from "./EventoIcons";
+import BackButton from "../../components/shared/BackButton";
 import styles from "./EventoDetail.module.css";
 
 const STATUS_EYEBROW = {
@@ -609,9 +610,9 @@ export default function EventoDetail() {
       />
 
       <div className={styles.headerRow}>
-        <Link to="/eventos" className={styles.back}>
-          <ArrowLeftIcon size={11} /> Volver a eventos
-        </Link>
+        <BackButton to="/eventos" flush>
+          Volver a eventos
+        </BackButton>
         {(evento.status !== "draft" && evento.status !== "cancelled") ||
         canCompartirExperiencia ? (
           <div className={styles.headerActions}>

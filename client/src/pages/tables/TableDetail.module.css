@@ -59,28 +59,6 @@
   padding: 0;
 }
 
-/* -- Back button — calcado de EventoDetail.module.css `.back` --- */
-.backBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  text-decoration: none;
-  cursor: pointer;
-  padding: 0;
-  margin: 0 0 20px;
-  transition: color var(--transition);
-}
-.backBtn:hover {
-  color: var(--amber-light);
-}
-
 /* -- Detail layout (banner + main + sticky aside) ----------- */
 /* Grid de áreas: el banner vive arriba del main (misma columna 1fr),
    y el aside cubre las dos filas a la derecha. En mobile la media query

@@ -6,14 +6,6 @@
   width: 100%;
   max-width: calc(720px + var(--sidebar-freed));
 }
-.back {
-  color: var(--text-muted);
-  text-decoration: none;
-  font-size: 0.85rem;
-}
-.back:hover {
-  color: var(--text-secondary);
-}
 .title {
   font-size: clamp(1.6rem, 3.5vw, 2.2rem);
   margin: 10px 0 24px;

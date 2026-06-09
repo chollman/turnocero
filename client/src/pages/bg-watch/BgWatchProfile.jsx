@@ -6,6 +6,7 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
+import BackButton from "../../components/shared/BackButton";
 import PartidasPanel from "./PartidasPanel";
 import ColeccionPanel from "./ColeccionPanel";
 import JugadoresPanel from "./JugadoresPanel";
@@ -115,9 +116,9 @@ export default function BgWatchProfile() {
     <div className={styles.page}>
       {isGuest && <GuestBanner bggUsername={bggUsername} />}
       <div className={styles.inner}>
-        <button className={styles.backBtn} onClick={() => navigate(-1)}>
-          ← Volver
-        </button>
+        <BackButton onClick={() => navigate(-1)} flush>
+          Volver
+        </BackButton>
 
         <div className={styles.hero}>
           <div className={styles.heroAvatar}>

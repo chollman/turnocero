@@ -23,24 +23,6 @@
   }
 }
 
-/* ─── Back button ─── */
-.backBtn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 0;
-  align-self: flex-start;
-  transition: color var(--transition);
-}
-
-.backBtn:hover {
-  color: var(--amber-light);
-}
-
 /* ─── Hero ─── */
 .hero {
   position: relative;
