@@ -36,6 +36,12 @@ const FacebookIcon = () => (
   </svg>
 );
 
+// TODO: Volver a mostrar el botón de Facebook cuando Meta apruebe la app.
+// Mientras tanto queda oculto. Para reactivarlo poné este flag en true — toda
+// la lógica de Facebook (useFacebookSdk, handleFacebook, FacebookIcon) sigue
+// intacta, sólo está gateada por este flag.
+const FACEBOOK_ENABLED = false;
+
 // El botón de Google va en su propio componente porque `useGoogleLogin` es un
 // hook y NO se puede llamar condicionalmente. Si `VITE_GOOGLE_CLIENT_ID` no
 // está configurado, `GoogleOAuthProvider` no inicializa y el hook tira al
@@ -90,6 +96,7 @@ export default function OAuthButtons({ onError }) {
   const [busy, setBusy] = useState(false);
 
   const googleEnabled = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const facebookEnabled = FACEBOOK_ENABLED && facebook.enabled;
 
   const handleFacebook = async () => {
     setBusy(true);
@@ -107,7 +114,7 @@ export default function OAuthButtons({ onError }) {
     }
   };
 
-  if (!googleEnabled && !facebook.enabled) return null;
+  if (!googleEnabled && !facebookEnabled) return null;
 
   return (
     <div className={styles.oauthSection}>
@@ -117,7 +124,7 @@ export default function OAuthButtons({ onError }) {
         <GoogleButton busy={busy} setBusy={setBusy} onError={onError} />
       )}
 
-      {facebook.enabled && (
+      {facebookEnabled && (
         <button
           type="button"
           className={styles.oauthBtn}
