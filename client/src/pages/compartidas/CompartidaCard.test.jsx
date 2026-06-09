@@ -84,29 +84,83 @@ describe("<CompartidaCard>", () => {
     ],
   };
 
+  // Helpers de la grilla combinada scorecard + fotos.
+  const photoUrls = (n) =>
+    Array.from({ length: n }, (_, i) => ({
+      _id: `i${i + 1}`,
+      url: `https://cdn/${i + 1}.jpg`,
+    }));
+  const mediaGrid = () => document.querySelector(".mediaGrid");
+
   it("renderiza el widget de resultados cuando hay playResult", () => {
     renderCard(makePost({ playResult: PLAY_RESULT }));
-    expect(document.querySelector(".playResult")).toBeInTheDocument();
+    expect(document.querySelector(".mediaScorecard")).toBeInTheDocument();
     // Banner neutral (ganador), no '¡Ganaste!'.
     expect(screen.getByText(/ganó martín/i)).toBeInTheDocument();
     expect(screen.getByText("Bob")).toBeInTheDocument();
   });
 
-  it("el widget coexiste con las fotos de la juntada", () => {
+  it("el widget coexiste con las fotos de la juntada en una sola grilla", () => {
     renderCard(
       makePost({
         playResult: PLAY_RESULT,
         images: [{ _id: "i1", url: "p.jpg", publicId: "p" }],
       }),
     );
-    expect(document.querySelector(".playResult")).toBeInTheDocument();
-    expect(document.querySelector(".photos")).toBeInTheDocument();
+    const grid = mediaGrid();
+    expect(grid).toBeInTheDocument();
+    // Scorecard + foto viven en el mismo contenedor.
+    expect(grid.querySelector(".mediaScorecard")).toBeInTheDocument();
+    expect(grid.querySelectorAll("button.photoBtn").length).toBe(1);
   });
 
   it("compartidas sin playResult (legacy/reseña) no muestran el widget", () => {
     renderCard(makePost());
-    expect(document.querySelector(".playResult")).not.toBeInTheDocument();
+    expect(document.querySelector(".mediaScorecard")).not.toBeInTheDocument();
     expect(screen.queryByText(/ganó/i)).not.toBeInTheDocument();
+  });
+
+  // ── Layout de la grilla scorecard + fotos (paridad de tiles) ──────────
+  it("scorecard + 3 fotos: scorecard primero y grilla par (no centra la última)", () => {
+    renderCard(makePost({ playResult: PLAY_RESULT, images: photoUrls(3) }));
+    const grid = mediaGrid();
+    // El scorecard es la primera tile; lo siguen las 3 fotos → 4 tiles (par).
+    expect(grid.firstChild).toHaveClass("mediaScorecard");
+    expect(grid.querySelectorAll("button.photoBtn").length).toBe(3);
+    expect(grid.classList.contains("mediaGridOdd")).toBe(false);
+    expect(grid.classList.contains("mediaGridSingle")).toBe(false);
+  });
+
+  it("scorecard + 2 fotos: cantidad impar de tiles → la última se centra", () => {
+    renderCard(makePost({ playResult: PLAY_RESULT, images: photoUrls(2) }));
+    // scorecard + 2 fotos = 3 tiles (impar).
+    expect(mediaGrid().classList.contains("mediaGridOdd")).toBe(true);
+  });
+
+  it("scorecard solo (sin fotos): grilla de una sola tile, centrada", () => {
+    renderCard(makePost({ playResult: PLAY_RESULT }));
+    const grid = mediaGrid();
+    expect(grid.classList.contains("mediaGridSingle")).toBe(true);
+    expect(grid.querySelectorAll("button.photoBtn").length).toBe(0);
+  });
+
+  it("sin scorecard + 3 fotos: cantidad impar → la última se centra", () => {
+    renderCard(makePost({ images: photoUrls(3) }));
+    const grid = mediaGrid();
+    expect(grid.querySelector(".mediaScorecard")).toBeNull();
+    expect(grid.classList.contains("mediaGridOdd")).toBe(true);
+  });
+
+  it("sin scorecard + 2 fotos: 2 por fila (ni centrada ni columna única)", () => {
+    renderCard(makePost({ images: photoUrls(2) }));
+    const grid = mediaGrid();
+    expect(grid.classList.contains("mediaGridOdd")).toBe(false);
+    expect(grid.classList.contains("mediaGridSingle")).toBe(false);
+  });
+
+  it("sin scorecard + 1 foto: una sola tile centrada (mediaGridSingle)", () => {
+    renderCard(makePost({ images: photoUrls(1) }));
+    expect(mediaGrid().classList.contains("mediaGridSingle")).toBe(true);
   });
 
   it("clicking like as logged user makes an API call", async () => {

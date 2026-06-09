@@ -54,6 +54,18 @@ export function NotificationProvider({ children }) {
     sectionCheckRef.current = isSectionEnabled;
   }, [isSectionEnabled]);
 
+  // ¿Hay sesión activa? Las mutaciones de notificaciones (markRead*, clearAll,
+  // dismiss) pegan endpoints `protect`. Un visitante ANÓNIMO que entra por un
+  // deeplink público (compartida/mesa/evento/torneo) dispara `setActive*` →
+  // markRead* en el mount del detalle; sin este guard ese PATCH/DELETE devuelve
+  // 401 y el interceptor global de AuthContext lo patea a /login — un público
+  // no debería loguearse para ver contenido público. En un ref (no state) para
+  // no recrear los callbacks useCallback([]) en cada cambio de sesión.
+  const authedRef = useRef(false);
+  useEffect(() => {
+    authedRef.current = !!user;
+  }, [user]);
+
   // Id de la comunidad del subdominio (modo tenant), o null en el sitio normal.
   // En un ref para que `gated` no se recree (y los listeners no re-attacheen).
   const tenantIdRef = useRef(null);
@@ -185,42 +197,48 @@ export function NotificationProvider({ children }) {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.tableId === tableId),
     );
-    axios.patch(API.notifications.READ, { tableId }).catch(() => {});
+    if (authedRef.current)
+      axios.patch(API.notifications.READ, { tableId }).catch(() => {});
   }, []);
 
   const markReadFriend = useCallback((fromUserId) => {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.fromUserId === fromUserId),
     );
-    axios.patch(API.notifications.READ, { fromUserId }).catch(() => {});
+    if (authedRef.current)
+      axios.patch(API.notifications.READ, { fromUserId }).catch(() => {});
   }, []);
 
   const markReadTorneo = useCallback((torneoId) => {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.torneoId === torneoId),
     );
-    axios.patch(API.notifications.READ, { torneoId }).catch(() => {});
+    if (authedRef.current)
+      axios.patch(API.notifications.READ, { torneoId }).catch(() => {});
   }, []);
 
   const markReadCompartida = useCallback((compartidaId) => {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.compartidaId === compartidaId),
     );
-    axios.patch(API.notifications.READ, { compartidaId }).catch(() => {});
+    if (authedRef.current)
+      axios.patch(API.notifications.READ, { compartidaId }).catch(() => {});
   }, []);
 
   const markReadEvento = useCallback((eventoId) => {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.eventoId === eventoId),
     );
-    axios.patch(API.notifications.READ, { eventoId }).catch(() => {});
+    if (authedRef.current)
+      axios.patch(API.notifications.READ, { eventoId }).catch(() => {});
   }, []);
 
   const markReadCommunity = useCallback((communityId) => {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.communityId === communityId),
     );
-    axios.patch(API.notifications.READ, { communityId }).catch(() => {});
+    if (authedRef.current)
+      axios.patch(API.notifications.READ, { communityId }).catch(() => {});
   }, []);
 
   const markReadDm = useCallback((fromUserId) => {
@@ -236,19 +254,19 @@ export function NotificationProvider({ children }) {
     setNotifications((prev) =>
       markReadByPredicate(prev, (n) => n.type === "admin_chat"),
     );
-    axios.patch(API.adminChat.READ).catch(() => {});
+    if (authedRef.current) axios.patch(API.adminChat.READ).catch(() => {});
   }, []);
 
   const clearAll = useCallback(() => {
     setNotifications([]);
-    axios.delete(API.notifications.CLEAR).catch(() => {});
+    if (authedRef.current) axios.delete(API.notifications.CLEAR).catch(() => {});
   }, []);
 
   // Descartar una notif puntual (botón X de cada fila). Optimista: la saca
   // del listado y dispara el DELETE; si el server falla, la restaura y avisa
   // por toast (feedback_errors_as_toasts).
   const dismiss = useCallback((notifId) => {
-    if (!notifId) return;
+    if (!notifId || !authedRef.current) return;
     let removed = null;
     setNotifications((prev) => {
       const match = (n) => (n.notifId || n._id) === notifId;
@@ -268,7 +286,8 @@ export function NotificationProvider({ children }) {
 
   const markAllRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    axios.patch(API.notifications.READ, {}).catch(() => {});
+    if (authedRef.current)
+      axios.patch(API.notifications.READ, {}).catch(() => {});
   }, []);
 
   const loadOlder = useCallback(async () => {
