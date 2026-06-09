@@ -4,6 +4,8 @@ import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
+import { useShortLink } from "../../hooks/useShortLink";
+import { getShortUrl } from "../../utils/shortlink";
 import { API } from "../../api/endpoints";
 import styles from "./NoticiaDetail.module.css";
 
@@ -37,6 +39,9 @@ export default function NoticiaDetail() {
   const [notFound, setNotFound] = useState(false);
   const [lightbox, setLightbox] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Short link transparente: eager porque es una página de detalle (un solo
+  // recurso) → los enlaces ya llevan el corto al primer click.
+  const { shortUrl } = useShortLink({ type: "noticia", ref: id, eager: true });
 
   useEffect(() => {
     const ac = new AbortController();
@@ -56,8 +61,14 @@ export default function NoticiaDetail() {
     return () => ac.abort();
   }, [id]);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(SHARE_URL(id));
+  const handleCopy = async () => {
+    const u =
+      (await getShortUrl({
+        type: "noticia",
+        ref: id,
+        origin: window.location.origin,
+      })) || SHARE_URL(id);
+    navigator.clipboard.writeText(u);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -106,12 +117,14 @@ export default function NoticiaDetail() {
 
   if (!noticia) return null;
 
-  const url = SHARE_URL(id);
+  const url = SHARE_URL(id); // canónico — para og:url
+  // Los botones de compartir usan el short link cuando resolvió; cae al canónico.
+  const shareUrl = shortUrl || url;
   const shareTitle = noticia.title || "TurnoCero — Noticias";
   const shareDesc =
     noticia.body?.slice(0, 200) ||
     "Novedades y eventos de la comunidad TurnoCero.";
-  const waText = encodeURIComponent(`${shareTitle}\n${url}`);
+  const waText = encodeURIComponent(`${shareTitle}\n${shareUrl}`);
   const tgText = encodeURIComponent(shareTitle);
   const twText = encodeURIComponent(shareTitle);
 
@@ -226,7 +239,7 @@ export default function NoticiaDetail() {
                 {/* Telegram */}
                 <a
                   className={styles.shareBtn}
-                  href={`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${tgText}`}
+                  href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${tgText}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Compartir en Telegram"
@@ -245,7 +258,7 @@ export default function NoticiaDetail() {
                 {/* Twitter / X */}
                 <a
                   className={styles.shareBtn}
-                  href={`https://twitter.com/intent/tweet?text=${twText}&url=${encodeURIComponent(url)}`}
+                  href={`https://twitter.com/intent/tweet?text=${twText}&url=${encodeURIComponent(shareUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Compartir en X"

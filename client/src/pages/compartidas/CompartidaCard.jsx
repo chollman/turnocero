@@ -13,6 +13,8 @@ import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { getLocationDisplay } from "../../utils/location";
 import { buildCompartidaShare } from "../../utils/share";
+import { useShortLink } from "../../hooks/useShortLink";
+import { getShortUrl } from "../../utils/shortlink";
 import CompartidaComments from "./CompartidaComments";
 import { useCompartidaLike } from "./useCompartidaLike";
 import Scorecard from "../bg-watch/Scorecard";
@@ -357,9 +359,17 @@ export default function CompartidaCard({
   ]
     .filter(Boolean)
     .join(" ");
+  // Short link transparente: hasta que resuelve se usa el deeplink largo; el
+  // `prime` se dispara al interactuar con el grupo de compartir (ver abajo),
+  // así no minteamos un código por cada tarjeta del feed al montar.
+  const { shortUrl, prime: primeShort } = useShortLink({
+    type: "compartida",
+    ref: post._id,
+  });
   const share = buildCompartidaShare(
     post,
     typeof window !== "undefined" ? window.location.origin : "",
+    shortUrl || undefined,
   );
   const pullQuote = featured
     ? post.body.slice(0, 180) + (post.body.length > 180 ? "…" : "")
@@ -1087,7 +1097,12 @@ export default function CompartidaCard({
             </button>
           </div>
 
-          <div className={styles.shareGroup}>
+          <div
+            className={styles.shareGroup}
+            onPointerEnter={primeShort}
+            onPointerDown={primeShort}
+            onFocusCapture={primeShort}
+          >
             {/* WhatsApp */}
             <a
               className={styles.shareBtn}
@@ -1118,8 +1133,14 @@ export default function CompartidaCard({
             {/* Copy link */}
             <button
               className={`${styles.shareBtn} ${copied ? styles.shareBtnCopied : ""}`}
-              onClick={() => {
-                navigator.clipboard.writeText(share.url);
+              onClick={async () => {
+                const u =
+                  (await getShortUrl({
+                    type: "compartida",
+                    ref: post._id,
+                    origin: window.location.origin,
+                  })) || share.url;
+                navigator.clipboard.writeText(u);
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}

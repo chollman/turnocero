@@ -15,6 +15,7 @@ import { getUserDisplay } from "../../utils/userDisplay";
 import { dateParts, formatFee } from "../../utils/eventoDate";
 import { formatDistanceKm } from "../../utils/distance";
 import { getLocationDisplay } from "../../utils/location";
+import { getShortUrl } from "../../utils/shortlink";
 import TicketStub from "./TicketStub";
 import EventoForm from "./EventoForm";
 import EventoLudoteca from "./EventoLudoteca";
@@ -407,8 +408,15 @@ export default function EventoDetail() {
   async function handleShare() {
     // Web Share API es asíncrona y solo está disponible en contextos seguros
     // (https + permisos del navegador). Caemos al clipboard si no está
-    // disponible o el user cancela.
-    const url = `${window.location.origin}/eventos/${id}`;
+    // disponible o el user cancela. Usamos el short link cuando resuelve; si no,
+    // el deeplink largo (que siempre funciona).
+    const longUrl = `${window.location.origin}/eventos/${id}`;
+    const url =
+      (await getShortUrl({
+        type: "evento",
+        ref: id,
+        origin: window.location.origin,
+      })) || longUrl;
     const shareData = {
       title: `${evento.title} – ${brandName}`,
       text: evento.description

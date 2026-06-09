@@ -382,6 +382,10 @@ describe("<CreatePlay>", () => {
         comBody = await request.json();
         return HttpResponse.json({ _id: "j1", images: [] });
       }),
+      // El share copia el SHORT link de la juntada (get-or-create).
+      http.post("/api/shortlinks", () =>
+        HttpResponse.json({ code: "Jun7ad", path: "/x" }, { status: 201 }),
+      ),
     );
     renderAt("/bg-watch/meBGG/partidas/nueva");
     fireEvent.click(screen.getByRole("button", { name: "submit-share" }));
@@ -391,9 +395,9 @@ describe("<CreatePlay>", () => {
     expect(comBody.boardGames.map((g) => g.bggId)).toEqual(["13"]);
     // El snapshot de resultados viaja en el POST.
     expect(comBody.playResult?.players?.[0]?.name).toBe("Me");
-    // Copió el deeplink de la juntada recién creada.
+    // Copió el short link de la juntada recién creada.
     await waitFor(() => expect(clipboardWrite).toHaveBeenCalled());
-    expect(clipboardWrite.mock.calls[0][0]).toContain("/compartidas/j1");
+    expect(clipboardWrite.mock.calls[0][0]).toContain("/s/Jun7ad");
     // Navegó al perfil y mostró un toast de éxito mencionando el link.
     await waitFor(() =>
       expect(screen.getByTestId("echo")).toHaveTextContent("/bg-watch/meBGG"),

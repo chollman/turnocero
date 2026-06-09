@@ -49,4 +49,18 @@ describe("buildCompartidaShare", () => {
     const { url } = buildCompartidaShare({ _id: "rel" });
     expect(url).toBe("/compartidas/rel");
   });
+
+  it("overrideUrl (short link) reemplaza el deeplink en url y whatsappText", () => {
+    const short = "https://turnocero.app/s/Ab3xK9";
+    const { url, whatsappText, caption } = buildCompartidaShare(
+      { _id: "abc123", title: "T", body: "B" },
+      ORIGIN,
+      short,
+    );
+    expect(url).toBe(short);
+    expect(whatsappText).toContain(short);
+    expect(whatsappText).not.toContain("/compartidas/abc123");
+    // El caption sigue sin la url (cualquiera).
+    expect(caption).not.toContain(short);
+  });
 });

@@ -74,6 +74,7 @@ import Terminos from "./pages/legal/Terminos";
 import Privacidad from "./pages/legal/Privacidad";
 import NotFound from "./pages/error/NotFound";
 import ServerError from "./pages/error/ServerError";
+import ShortLinkRedirect from "./pages/shortlink/ShortLinkRedirect";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ColaborarFab from "./components/colabora/ColaborarFab";
 import Navbar from "./components/layout/Navbar";
@@ -692,6 +693,8 @@ export function AppRoutes({ transition }) {
             />
             <Route path="/terminos" element={<Terminos />} />
             <Route path="/privacidad" element={<Privacidad />} />
+            {/* Short links de deeplinks compartibles — público, sin gating. */}
+            <Route path="/s/:code" element={<ShortLinkRedirect />} />
             <Route path="*" element={<NotFound />} />
           </PageTransition>
         </div>

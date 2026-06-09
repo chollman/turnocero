@@ -106,6 +106,32 @@ router.post(
   }),
 );
 
+// ── GET /api/noticias/:id/og — public OG data for crawlers (no auth) ───────
+// Espeja /api/compartidas/:id/og: responde 404 con body vacío (no { message })
+// para crawlers — OG es defensivo, no info-leak. El body de noticias es texto
+// plano (no HTML), así que se recorta directo.
+router.get(
+  "/:id/og",
+  asyncHandler(async (req, res) => {
+    try {
+      const noticia = await Noticia.findById(req.params.id)
+        .populate("author", "username displayName")
+        .select("title body image author");
+      if (!noticia) return res.status(404).json({});
+      res.json({
+        title: noticia.title || null,
+        body: (noticia.body || "").slice(0, 160) || null,
+        image: noticia.image?.url || null,
+        author: noticia.author
+          ? noticia.author.displayName || noticia.author.username
+          : null,
+      });
+    } catch {
+      res.status(500).json({});
+    }
+  }),
+);
+
 // GET /api/noticias/:id — public
 router.get(
   "/:id",

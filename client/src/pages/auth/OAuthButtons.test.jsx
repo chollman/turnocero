@@ -53,29 +53,24 @@ afterEach(() => {
 });
 
 describe("OAuthButtons", () => {
-  it("renders the divider and both provider buttons", () => {
+  it("renders the divider and the Google button", () => {
     renderButtons();
     expect(screen.getByText("o continuá con")).toBeInTheDocument();
     expect(screen.getByText("Continuar con Google")).toBeInTheDocument();
-    expect(screen.getByText("Continuar con Facebook")).toBeInTheDocument();
   });
 
-  it("hides the Facebook button when the SDK is not enabled", () => {
-    renderButtons({ fb: { enabled: false, ready: false } });
+  // El botón de Facebook está oculto detrás del flag FACEBOOK_ENABLED (false)
+  // hasta que Meta apruebe la app — ver el TODO en OAuthButtons.jsx. Cuando se
+  // reactive (flag → true), restaurar las pruebas de interacción de Facebook
+  // del historial de git.
+  it("keeps the Facebook button hidden even when the SDK is enabled", () => {
+    renderButtons({ fb: { enabled: true, ready: true } });
     expect(screen.queryByText("Continuar con Facebook")).toBeNull();
   });
 
-  it("hides the Google button when VITE_GOOGLE_CLIENT_ID is not configured", () => {
+  it("renders nothing when Google is not configured (Facebook is hidden)", () => {
     vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "");
-    renderButtons();
-    expect(screen.queryByText("Continuar con Google")).toBeNull();
-    // Facebook still enabled → the section (divider) is still shown.
-    expect(screen.getByText("o continuá con")).toBeInTheDocument();
-  });
-
-  it("renders nothing when no provider is configured", () => {
-    vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "");
-    const { container } = renderButtons({ fb: { enabled: false, ready: false } });
+    const { container } = renderButtons({ fb: { enabled: true, ready: true } });
     expect(container).toBeEmptyDOMElement();
     expect(screen.queryByText("o continuá con")).toBeNull();
   });
@@ -99,36 +94,5 @@ describe("OAuthButtons", () => {
     fireEvent.click(screen.getByText("Continuar con Google"));
     await waitFor(() => expect(onError).toHaveBeenCalled());
     expect(navigateMock).not.toHaveBeenCalled();
-  });
-
-  it("calls oauthLogin('facebook', { accessToken }) on Facebook success", async () => {
-    const oauthLogin = vi.fn().mockResolvedValue({});
-    const fbLogin = vi.fn().mockResolvedValue("fb-access");
-    renderButtons({ oauthLogin, fb: { login: fbLogin } });
-    fireEvent.click(screen.getByText("Continuar con Facebook"));
-    await waitFor(() =>
-      expect(oauthLogin).toHaveBeenCalledWith("facebook", {
-        accessToken: "fb-access",
-      }),
-    );
-    expect(navigateMock).toHaveBeenCalledWith("/");
-  });
-
-  it("does not report an error when the user cancels the Facebook popup", async () => {
-    const onError = vi.fn();
-    const fbLogin = vi
-      .fn()
-      .mockRejectedValue(new Error("Login con Facebook cancelado"));
-    renderButtons({ onError, fb: { login: fbLogin } });
-    fireEvent.click(screen.getByText("Continuar con Facebook"));
-    await waitFor(() => expect(fbLogin).toHaveBeenCalled());
-    expect(onError).not.toHaveBeenCalled();
-  });
-
-  it("disables the Facebook button until the SDK is ready", () => {
-    renderButtons({ fb: { ready: false } });
-    expect(
-      screen.getByText("Continuar con Facebook").closest("button"),
-    ).toBeDisabled();
   });
 });

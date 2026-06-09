@@ -24,8 +24,11 @@ function plainBody(body) {
     .trim();
 }
 
-export function buildCompartidaShare(post, origin = "") {
-  const url = `${origin}/compartidas/${post._id}`;
+// `overrideUrl` (opcional): un short link ya resuelto. Si viene, reemplaza al
+// deeplink largo en `url` y en `whatsappText` — los call sites pasan
+// `shortUrl || undefined`, así sin short link cae al canónico.
+export function buildCompartidaShare(post, origin = "", overrideUrl) {
+  const url = overrideUrl || `${origin}/compartidas/${post._id}`;
   const parts = [];
   if (post.title) parts.push(`*${post.title}*`);
   const body = plainBody(post.body);

@@ -37,6 +37,7 @@ app.use("/api/bgg", require("./routes/bgg"));
 app.use("/api/dm", require("./routes/dm"));
 app.use("/api/admin-chat", require("./routes/adminChat"));
 app.use("/api/site-config", require("./routes/siteConfig"));
+app.use("/api/shortlinks", require("./routes/shortlinks"));
 app.use("/api/geocode", require("./routes/geocode"));
 app.use("/api/youtube", require("./routes/youtube"));
 app.use("/api/ideas", require("./routes/ideas"));

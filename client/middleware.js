@@ -227,42 +227,109 @@ async function handleBgWatch(url, bggUsername, apiUrl, brand = DEFAULT_BRAND) {
   });
 }
 
+async function handleNoticia(url, id, apiUrl, brand = DEFAULT_BRAND) {
+  const canonicalUrl = `${url.origin}/noticias/${id}`;
+  const apiRes = await fetch(`${apiUrl}/api/noticias/${id}/og`);
+  if (!apiRes.ok) return null;
+  const data = await apiRes.json();
+
+  const title = data.title
+    ? `${data.title} – ${brand.name} 🎲`
+    : `Noticia de ${brand.name} 🎲`;
+  const desc =
+    data.body ||
+    `Novedades de ${brand.name}, la comunidad de juegos de mesa.`;
+  const hasImage = Boolean(data.image);
+  const image = hasImage
+    ? data.image.replace("/upload/", "/upload/w_1200,h_630,c_fill,g_auto/")
+    : `${url.origin}/og-default.png`;
+
+  return ogHtml({
+    title,
+    desc,
+    image,
+    imageIsLarge: true,
+    canonicalUrl,
+    siteName: brand.name,
+  });
+}
+
+// Sirve el OG de un recurso para un crawler, despachando por tipo. Reusado por
+// los deep-links directos y por los short links (que resuelven a {type, ref}).
+async function ogForResource(type, url, ref, apiUrl, brand) {
+  if (type === "compartida") return handleCompartida(url, ref, apiUrl, brand);
+  if (type === "evento") return handleEvento(url, ref, apiUrl, brand);
+  if (type === "noticia") return handleNoticia(url, ref, apiUrl, brand);
+  if (type === "bgwatch") return handleBgWatch(url, ref, apiUrl, brand);
+  return null;
+}
+
 export default async function middleware(request) {
   const url = new URL(request.url);
 
+  const shortMatch = url.pathname.match(/^\/s\/([A-Za-z0-9]+)$/);
   const compartidaMatch = url.pathname.match(/^\/compartidas\/([a-f\d]{24})$/i);
   const eventoMatch = url.pathname.match(/^\/eventos\/([a-f\d]{24})$/i);
+  const noticiaMatch = url.pathname.match(/^\/noticias\/([a-f\d]{24})$/i);
   const bgWatchMatch = url.pathname.match(/^\/bg-watch\/([^/]+)$/i);
   const tenantSlug = detectTenantSlug(url.hostname);
   const isRoot = url.pathname === "/" || url.pathname === "";
-  // Sólo actuamos en deep-links O en la raíz de un subdominio de comunidad.
+  // Sólo actuamos en short links, deep-links O en la raíz de un subdominio.
   if (
+    !shortMatch &&
     !compartidaMatch &&
     !eventoMatch &&
+    !noticiaMatch &&
     !bgWatchMatch &&
     !(tenantSlug && isRoot)
   )
     return;
 
-  const ua = request.headers.get("user-agent") || "";
-  if (!CRAWLER.test(ua)) return;
-
   const apiUrl = process.env.VITE_API_URL;
   if (!apiUrl) return;
 
-  try {
-    // En un subdominio de comunidad, la marca del preview es la de esa
-    // comunidad (nombre/logo/tagline) en vez del genérico de TurnoCero.
-    let brand = DEFAULT_BRAND;
-    if (tenantSlug) {
-      brand = (await resolveTenantBrand(tenantSlug, apiUrl)) || DEFAULT_BRAND;
-    }
+  const ua = request.headers.get("user-agent") || "";
+  const isCrawler = CRAWLER.test(ua);
 
+  // En un subdominio de comunidad, la marca del preview es la de esa comunidad
+  // (nombre/logo/tagline) en vez del genérico de TurnoCero.
+  async function brandFor() {
+    if (!tenantSlug) return DEFAULT_BRAND;
+    return (await resolveTenantBrand(tenantSlug, apiUrl)) || DEFAULT_BRAND;
+  }
+
+  // Short link: resolvemos el destino. Humano → 302 al canónico; crawler →
+  // servimos el OG del recurso apuntado (sin salto de redirect — más confiable
+  // para WhatsApp). Un /s/ que no resuelve cae al SPA (que muestra NotFound).
+  if (shortMatch) {
+    try {
+      const res = await fetch(`${apiUrl}/api/shortlinks/${shortMatch[1]}`);
+      if (!res.ok) return;
+      const { type, ref, path } = await res.json();
+      if (!path) return;
+      if (!isCrawler) return Response.redirect(`${url.origin}${path}`, 302);
+      const html = await ogForResource(type, url, ref, apiUrl, await brandFor());
+      if (!html) return;
+      return new Response(html, {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    } catch {
+      return;
+    }
+  }
+
+  // Deep-links directos: sólo OG para crawlers (humanos caen al SPA).
+  if (!isCrawler) return;
+
+  try {
+    const brand = await brandFor();
     let html = null;
     if (compartidaMatch) {
       html = await handleCompartida(url, compartidaMatch[1], apiUrl, brand);
     } else if (eventoMatch) {
       html = await handleEvento(url, eventoMatch[1], apiUrl, brand);
+    } else if (noticiaMatch) {
+      html = await handleNoticia(url, noticiaMatch[1], apiUrl, brand);
     } else if (bgWatchMatch) {
       html = await handleBgWatch(
         url,
@@ -286,6 +353,14 @@ export default async function middleware(request) {
 
 export const config = {
   // "/" cubre la vidriera de los subdominios de comunidad; el handler igual sale
-  // temprano para no-crawlers y para el apex (sin tenant).
-  matcher: ["/", "/compartidas/:id*", "/eventos/:id*", "/bg-watch/:username*"],
+  // temprano para no-crawlers y para el apex (sin tenant). "/s/:code" actúa para
+  // humanos también (302 al canónico).
+  matcher: [
+    "/",
+    "/s/:code*",
+    "/compartidas/:id*",
+    "/eventos/:id*",
+    "/noticias/:id*",
+    "/bg-watch/:username*",
+  ],
 };

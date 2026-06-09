@@ -14,6 +14,8 @@ import RichTextEditor from "../../components/shared/RichTextEditor";
 import BggGameSearch from "../../components/shared/BggGameSearch";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { buildCompartidaShare } from "../../utils/share";
+import { useShortLink } from "../../hooks/useShortLink";
+import { getShortUrl } from "../../utils/shortlink";
 import CompartidaComments from "./CompartidaComments";
 import { useCompartidaLike } from "./useCompartidaLike";
 import styles from "./ResenaCard.module.css";
@@ -217,9 +219,15 @@ export default function ResenaCard({
   const game = post.boardGame;
   const cover = game?.image || game?.thumbnail || "";
   const privacyLabel = PRIVACY_LABELS[post.privacy];
+  // Short link transparente (ver CompartidaCard): perezoso, primed al interactuar.
+  const { shortUrl, prime: primeShort } = useShortLink({
+    type: "compartida",
+    ref: post._id,
+  });
   const share = buildCompartidaShare(
     post,
     typeof window !== "undefined" ? window.location.origin : "",
+    shortUrl || undefined,
   );
 
   const lightboxPortal =
@@ -594,7 +602,12 @@ export default function ResenaCard({
             </button>
           </div>
 
-          <div className={styles.shareGroup}>
+          <div
+            className={styles.shareGroup}
+            onPointerEnter={primeShort}
+            onPointerDown={primeShort}
+            onFocusCapture={primeShort}
+          >
             <a
               className={styles.shareBtn}
               href={`https://api.whatsapp.com/send?text=${encodeURIComponent(share.whatsappText)}`}
@@ -622,8 +635,14 @@ export default function ResenaCard({
             <button
               type="button"
               className={`${styles.shareBtn} ${copied ? styles.shareBtnCopied : ""}`}
-              onClick={() => {
-                navigator.clipboard.writeText(share.url);
+              onClick={async () => {
+                const u =
+                  (await getShortUrl({
+                    type: "compartida",
+                    ref: post._id,
+                    origin: window.location.origin,
+                  })) || share.url;
+                navigator.clipboard.writeText(u);
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}

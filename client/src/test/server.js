@@ -23,6 +23,12 @@ export const defaultHandlers = [
     }),
   ),
   http.get("/api/notifications", () => HttpResponse.json([])),
+  // Default para el get-or-create de short links — lo disparan los controles de
+  // compartir (eager en páginas de detalle, primed en feeds). Tests específicos
+  // overridean con server.use(...).
+  http.post("/api/shortlinks", () =>
+    HttpResponse.json({ code: "Ab3xK9", path: "/x" }, { status: 201 }),
+  ),
   // Default vacío para /api/ideas — usado por PanelAdmin > IdeasSection.
   // Tests que mockean PanelAdmin completo no llegan acá, pero si el panel
   // se renderiza con todos sus children, evitamos el unhandled-request warn.
