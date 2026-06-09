@@ -103,8 +103,14 @@ describe("API builders — paths con params", () => {
     );
   });
 
-  it("noticias.DETAIL", () => {
+  it("noticias.DETAIL y OG", () => {
     expect(API.noticias.DETAIL("n1")).toBe("/api/noticias/n1");
+    expect(API.noticias.OG("n1")).toBe("/api/noticias/n1/og");
+  });
+
+  it("shortlinks paths", () => {
+    expect(API.shortlinks.CREATE).toBe("/api/shortlinks");
+    expect(API.shortlinks.RESOLVE("Ab3xK9")).toBe("/api/shortlinks/Ab3xK9");
   });
 });
 

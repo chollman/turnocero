@@ -152,6 +152,13 @@ export const API = {
   noticias: {
     LIST: "/api/noticias",
     DETAIL: (id) => `/api/noticias/${enc(id)}`,
+    OG: (id) => `/api/noticias/${enc(id)}/og`,
+  },
+
+  // ── Short links (deeplinks compartibles) ─────────────────────────────
+  shortlinks: {
+    CREATE: "/api/shortlinks",
+    RESOLVE: (code) => `/api/shortlinks/${enc(code)}`,
   },
 
   // ── Torneos ──────────────────────────────────────────────────────────

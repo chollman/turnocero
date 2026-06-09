@@ -12,6 +12,7 @@ import { API } from "../../api/endpoints";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { createJuntada, toGamePayload } from "../compartidas/createJuntada";
 import { buildCompartidaShare } from "../../utils/share";
+import { getShortUrl } from "../../utils/shortlink";
 import PlayForm from "./PlayForm";
 
 /**
@@ -140,7 +141,18 @@ export default function CreatePlay() {
       share.images.forEach(
         (img) => img.preview && URL.revokeObjectURL(img.preview),
       );
-      const { url } = buildCompartidaShare(finalPost, window.location.origin);
+      const { url: longUrl } = buildCompartidaShare(
+        finalPost,
+        window.location.origin,
+      );
+      // Preferimos el short link (más lindo para WhatsApp/Telegram); si no
+      // resuelve, copiamos el deeplink largo (la juntada igual existe).
+      const url =
+        (await getShortUrl({
+          type: "compartida",
+          ref: finalPost._id,
+          origin: window.location.origin,
+        })) || longUrl;
       try {
         // Es una acción del usuario (click en Guardar), así que el navegador
         // permite el copy. Si el contexto es inseguro o se deniega, no rompe:

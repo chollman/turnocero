@@ -933,18 +933,25 @@ describe("<CompartidaCard>", () => {
     expect(wa).toContain("%F0%9F%8E%B2");
   });
 
-  it("copiar enlace escribe solo la url (sin caption ni emoji)", () => {
+  it("copiar enlace escribe el short link (sin caption ni emoji)", async () => {
+    // El copy resuelve el short link (get-or-create) y copia ESE url.
+    server.use(
+      http.post("/api/shortlinks", () =>
+        HttpResponse.json({ code: "Sh0rt1", path: "/x" }, { status: 201 }),
+      ),
+    );
     const writeText = vi.fn();
     const original = navigator.clipboard;
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText },
       configurable: true,
     });
-    renderCard(makePost({ title: "Épica", body: "Texto largo" }));
+    // id único para no chocar con la caché module-level de otros tests del file.
+    renderCard(makePost({ _id: "cCopy", title: "Épica", body: "Texto largo" }));
     fireEvent.click(screen.getByTitle(/copiar enlace/i));
-    expect(writeText).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
     const copied = writeText.mock.calls[0][0];
-    expect(copied).toMatch(/\/compartidas\/c1$/);
+    expect(copied).toMatch(/\/s\/Sh0rt1$/);
     expect(copied).not.toContain("🎲");
     Object.defineProperty(navigator, "clipboard", {
       value: original,

@@ -2,6 +2,7 @@ const request = require("supertest");
 const app = require("../../app");
 const Community = require("../../models/Community");
 const { createUser, createAuthedUser, authHeader } = require("../helpers/auth");
+const { createNoticia } = require("../helpers/factories");
 
 // El toast `noticia:published` se emite DIRIGIDO a los miembros de la comunidad
 // de la noticia (antes era un `io.emit` global que rociaba a todos los usuarios,
@@ -71,5 +72,34 @@ describe("POST /api/noticias — noticia:published emit targeting", () => {
       .expect(201);
 
     expect(eventsOf("noticia:published")).toHaveLength(0);
+  });
+});
+
+describe("GET /api/noticias/:id/og — OG data for crawlers", () => {
+  it("returns the OG fields for an existing noticia (no auth)", async () => {
+    const author = await createUser({ displayName: "Redacción" });
+    const noticia = await createNoticia(author, {
+      title: "Gran novedad",
+      body: "Cuerpo de la noticia con texto plano.",
+      image: { url: "https://cdn/x.jpg", publicId: "x" },
+    });
+
+    const res = await request(app)
+      .get(`/api/noticias/${noticia._id}/og`)
+      .expect(200);
+
+    expect(res.body).toEqual({
+      title: "Gran novedad",
+      body: "Cuerpo de la noticia con texto plano.",
+      image: "https://cdn/x.jpg",
+      author: "Redacción",
+    });
+  });
+
+  it("404s with an empty body for an unknown id", async () => {
+    const res = await request(app)
+      .get("/api/noticias/64b2f0000000000000000000/og")
+      .expect(404);
+    expect(res.body).toEqual({});
   });
 });

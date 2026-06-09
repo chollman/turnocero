@@ -172,7 +172,13 @@ describe("<EventoDetail>", () => {
     expect(await screen.findByLabelText(/título/i)).toBeInTheDocument();
   });
 
-  it("F5 — botón Compartir usa navigator.share cuando está disponible", async () => {
+  it("F5 — botón Compartir usa navigator.share con el short link", async () => {
+    // El share resuelve el short link (get-or-create) antes de compartir.
+    server.use(
+      http.post("/api/shortlinks", () =>
+        HttpResponse.json({ code: "Ev3nt0", path: "/x" }, { status: 201 }),
+      ),
+    );
     const shareMock = vi.fn().mockResolvedValue(undefined);
     const canShareMock = vi.fn().mockReturnValue(true);
     const originalShare = navigator.share;
@@ -188,7 +194,7 @@ describe("<EventoDetail>", () => {
       await waitFor(() => expect(shareMock).toHaveBeenCalled());
       const call = shareMock.mock.calls[0][0];
       expect(call.title).toMatch(/Mi Evento/);
-      expect(call.url).toMatch(/\/eventos\/e1/);
+      expect(call.url).toMatch(/\/s\/Ev3nt0$/);
     } finally {
       navigator.share = originalShare;
       navigator.canShare = originalCanShare;
@@ -196,6 +202,11 @@ describe("<EventoDetail>", () => {
   });
 
   it("F5 — sin navigator.share, cae a clipboard + toast", async () => {
+    server.use(
+      http.post("/api/shortlinks", () =>
+        HttpResponse.json({ code: "Ev3nt0", path: "/x" }, { status: 201 }),
+      ),
+    );
     const writeText = vi.fn().mockResolvedValue(undefined);
     const originalShare = navigator.share;
     const originalClipboard = navigator.clipboard;
@@ -225,7 +236,7 @@ describe("<EventoDetail>", () => {
         screen.getByRole("button", { name: /compartir evento/i }),
       );
       await waitFor(() => expect(writeText).toHaveBeenCalled());
-      expect(writeText.mock.calls[0][0]).toMatch(/\/eventos\/e1/);
+      expect(writeText.mock.calls[0][0]).toMatch(/\/s\/Ev3nt0$/);
       expect(addToast).toHaveBeenCalled();
     } finally {
       navigator.share = originalShare;
