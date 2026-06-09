@@ -16,6 +16,11 @@ import AvatarColorPicker from "../../components/shared/AvatarColorPicker";
 import { hashToBrandColor } from "../../utils/hash";
 import { getInitials } from "../../utils/initials";
 import { getUserDisplay } from "../../utils/userDisplay";
+import {
+  bggConnectErrorMessage,
+  bggSyncErrorMessage,
+} from "../../utils/bggErrors";
+import PasswordInput from "../../components/shared/PasswordInput";
 import AddressMap from "../../components/shared/AddressMap";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
 import styles from "./UserProfile.module.css";
@@ -246,9 +251,7 @@ export default function UserProfile() {
         bggUsername: user.bggUsername,
       });
     } catch (err) {
-      setBggError(
-        err.response?.data?.message || "No se pudo conectar con BGG.",
-      );
+      setBggError(bggConnectErrorMessage(err, { brandName }));
     } finally {
       setBggBusy(false);
     }
@@ -270,9 +273,7 @@ export default function UserProfile() {
         : " (sin cambios)";
       setSyncSuccess(`Reconciliadas ${data.total} partidas${detail}`);
     } catch (err) {
-      setSyncError(
-        err.response?.data?.message || "No se pudo sincronizar con BGG.",
-      );
+      setSyncError(bggSyncErrorMessage(err));
     } finally {
       setSyncBusy(false);
     }
@@ -890,8 +891,7 @@ export default function UserProfile() {
                           <label className={styles.label}>
                             Password de BGG para @{user.bggUsername}
                           </label>
-                          <input
-                            type="password"
+                          <PasswordInput
                             className={styles.input}
                             value={bggPassword}
                             onChange={(e) => setBggPassword(e.target.value)}

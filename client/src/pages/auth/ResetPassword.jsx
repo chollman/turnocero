@@ -2,7 +2,7 @@ import Meeple from "../../components/shared/Meeple";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import PasswordInput from "./PasswordInput";
+import PasswordInput from "../../components/shared/PasswordInput";
 import GameTile from "../../components/shared/GameTile";
 import Logo from "../../components/shared/Logo";
 import styles from "./Auth.module.css";

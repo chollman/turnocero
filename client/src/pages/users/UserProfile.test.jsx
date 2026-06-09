@@ -476,17 +476,22 @@ describe("UserProfile — Reconciliar todo con BGG", () => {
     expect(screen.getByText(/✓ reconciliado/i)).toBeInTheDocument();
   });
 
-  it("shows API error when sync fails", async () => {
+  it("shows a clear, reassuring error when sync fails (502 → enriched message)", async () => {
     server.use(
       http.post("/api/bgg/sync", () =>
-        HttpResponse.json({ message: "BGG offline" }, { status: 502 }),
+        HttpResponse.json({ message: "ECONNRESET" }, { status: 502 }),
       ),
     );
     setup({ user: connectedUser });
     fireEvent.click(
       screen.getByRole("button", { name: /reconciliar todo con bgg/i }),
     );
-    expect(await screen.findByText("BGG offline")).toBeInTheDocument();
+    // The terse server message is replaced with an actionable one that also
+    // reassures the user that already-synced plays are kept.
+    expect(
+      await screen.findByText(/BGG no respondió o falló a mitad de la sincronización/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/se conserva/i)).toBeInTheDocument();
   });
 });
 
