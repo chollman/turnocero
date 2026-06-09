@@ -1,4 +1,5 @@
 import Meeple from "../../components/shared/Meeple";
+import BackButton from "../../components/shared/BackButton";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
@@ -398,13 +399,9 @@ export default function TableDetail() {
         <div className={styles.inner}>
           <p style={{ fontSize: "2rem" }}>🔒</p>
           <p style={{ color: "var(--text-secondary)" }}>{accessError}</p>
-          <button
-            className={styles.backBtn}
-            onClick={goBack}
-            disabled={exiting}
-          >
-            ← Volver al listado
-          </button>
+          <BackButton onClick={goBack} disabled={exiting}>
+            Volver al listado
+          </BackButton>
         </div>
       </div>
     );
@@ -477,14 +474,9 @@ export default function TableDetail() {
         onAnimationEnd={handlePageAnimationEnd}
       >
         <div className={styles.inner}>
-          <button
-            type="button"
-            className={styles.backBtn}
-            onClick={goBack}
-            disabled={exiting}
-          >
-            ← Volver al listado
-          </button>
+          <BackButton onClick={goBack} disabled={exiting}>
+            Volver al listado
+          </BackButton>
 
           {showAdminBanner && (
             <div className={styles.adminBanner}>

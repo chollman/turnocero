@@ -48,4 +48,29 @@ describe("<PasswordInput>", () => {
     const inputs = document.querySelectorAll("input");
     expect(inputs[0].type).toBe("password");
   });
+
+  it("forwards onKeyDown (e.g. Enter to submit)", () => {
+    const onKeyDown = vi.fn();
+    render(
+      <PasswordInput
+        name="pass"
+        value="secret"
+        onChange={vi.fn()}
+        onKeyDown={onKeyDown}
+        placeholder="Contraseña"
+      />,
+    );
+    fireEvent.keyDown(screen.getByPlaceholderText("Contraseña"), {
+      key: "Enter",
+    });
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
+    expect(onKeyDown.mock.calls[0][0].key).toBe("Enter");
+  });
+
+  it("the toggle button is not reached by Tab (tabIndex -1) and is type=button", () => {
+    render(<PasswordInput name="pass" value="" onChange={vi.fn()} />);
+    const toggle = screen.getByRole("button", { name: /mostrar contraseña/i });
+    expect(toggle).toHaveAttribute("tabindex", "-1");
+    expect(toggle).toHaveAttribute("type", "button");
+  });
 });

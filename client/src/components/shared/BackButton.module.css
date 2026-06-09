@@ -1,0 +1,41 @@
+/* Botón "volver" estándar de toda la web — calcado del de Mesas/TableDetail.
+   Ver components/shared/BackButton.jsx. */
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  /* Achica al contenido (no se estira en columnas flex) pero respeta el
+     alineado del padre — centrado en tarjetas de error, izquierda en el flujo
+     normal. Mejor que `align-self: flex-start`, que forzaría izquierda siempre. */
+  width: fit-content;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0 0 20px;
+  transition: color var(--transition);
+}
+
+.backBtn:hover:not(:disabled) {
+  color: var(--amber-light);
+}
+
+.backBtn:disabled {
+  cursor: default;
+}
+
+/* Sin margen inferior — para back buttons embebidos en un contenedor que ya
+   aporta la separación (fila flex con acciones, columna con `gap`). */
+.backBtn.flush {
+  margin-bottom: 0;
+}
+
+.arrow {
+  line-height: 1;
+}

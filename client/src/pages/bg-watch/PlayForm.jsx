@@ -4,6 +4,7 @@ import Meeple from "../../components/shared/Meeple";
 import Avatar from "../../components/shared/Avatar";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import InfoTooltip from "../../components/shared/InfoTooltip";
+import BackButton from "../../components/shared/BackButton";
 import { API } from "../../api/endpoints";
 import MyGamesPicker from "./MyGamesPicker";
 import LocationPicker from "./LocationPicker";
@@ -744,14 +745,9 @@ export default function PlayForm({
       className={`${styles.page} ${exiting ? styles.pageExit : ""}`}
       onAnimationEnd={handlePageAnimationEnd}
     >
-      <button
-        type="button"
-        className={styles.backBtn}
-        onClick={handleCancelClick}
-        disabled={submitting}
-      >
-        ← Cancelar y volver
-      </button>
+      <BackButton onClick={handleCancelClick} disabled={submitting}>
+        Cancelar y volver
+      </BackButton>
 
       <header className={styles.head}>
         <div>

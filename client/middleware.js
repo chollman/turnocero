@@ -254,6 +254,53 @@ async function handleNoticia(url, id, apiUrl, brand = DEFAULT_BRAND) {
   });
 }
 
+async function handleMesa(url, id, apiUrl, brand = DEFAULT_BRAND) {
+  const canonicalUrl = `${url.origin}/mesas/${id}`;
+  const apiRes = await fetch(`${apiUrl}/api/tables/${id}/og`);
+  if (!apiRes.ok) return null;
+  const data = await apiRes.json();
+
+  const title = data.boardGame
+    ? `${data.boardGame} – Mesa en ${brand.name} 🎲`
+    : `Mesa en ${brand.name} 🎲`;
+
+  const descParts = [];
+  if (data.date) {
+    try {
+      const d = new Date(data.date);
+      descParts.push(
+        d.toLocaleDateString("es-AR", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }
+  if (data.location) descParts.push(data.location);
+  if (data.host) descParts.push(`organiza ${data.host}`);
+  const desc = descParts.length
+    ? descParts.join(" · ")
+    : `Sumate a esta mesa en ${brand.name}, la comunidad de juegos de mesa.`;
+
+  // La imagen del juego viene de BGG (≈cuadrada, no 1.91:1) y NO está en
+  // Cloudinary, así que no la podemos recortar a 1200×630. Igual que BG Watch:
+  // card chica (summary) con la tapa del juego; sin imagen, og-default grande.
+  const hasImage = Boolean(data.image);
+  const image = hasImage ? data.image : `${url.origin}/og-default.png`;
+
+  return ogHtml({
+    title,
+    desc,
+    image,
+    imageIsLarge: !hasImage,
+    canonicalUrl,
+    siteName: brand.name,
+  });
+}
+
 // Sirve el OG de un recurso para un crawler, despachando por tipo. Reusado por
 // los deep-links directos y por los short links (que resuelven a {type, ref}).
 async function ogForResource(type, url, ref, apiUrl, brand) {
@@ -271,6 +318,7 @@ export default async function middleware(request) {
   const compartidaMatch = url.pathname.match(/^\/compartidas\/([a-f\d]{24})$/i);
   const eventoMatch = url.pathname.match(/^\/eventos\/([a-f\d]{24})$/i);
   const noticiaMatch = url.pathname.match(/^\/noticias\/([a-f\d]{24})$/i);
+  const mesaMatch = url.pathname.match(/^\/mesas\/([a-f\d]{24})$/i);
   const bgWatchMatch = url.pathname.match(/^\/bg-watch\/([^/]+)$/i);
   const tenantSlug = detectTenantSlug(url.hostname);
   const isRoot = url.pathname === "/" || url.pathname === "";
@@ -280,6 +328,7 @@ export default async function middleware(request) {
     !compartidaMatch &&
     !eventoMatch &&
     !noticiaMatch &&
+    !mesaMatch &&
     !bgWatchMatch &&
     !(tenantSlug && isRoot)
   )
@@ -330,6 +379,8 @@ export default async function middleware(request) {
       html = await handleEvento(url, eventoMatch[1], apiUrl, brand);
     } else if (noticiaMatch) {
       html = await handleNoticia(url, noticiaMatch[1], apiUrl, brand);
+    } else if (mesaMatch) {
+      html = await handleMesa(url, mesaMatch[1], apiUrl, brand);
     } else if (bgWatchMatch) {
       html = await handleBgWatch(
         url,
@@ -361,6 +412,7 @@ export const config = {
     "/compartidas/:id*",
     "/eventos/:id*",
     "/noticias/:id*",
+    "/mesas/:id*",
     "/bg-watch/:username*",
   ],
 };

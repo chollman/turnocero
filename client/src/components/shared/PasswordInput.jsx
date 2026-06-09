@@ -40,6 +40,7 @@ export default function PasswordInput({
   name,
   value,
   onChange,
+  onKeyDown,
   placeholder,
   required,
   minLength,
@@ -55,6 +56,7 @@ export default function PasswordInput({
         name={name}
         value={value}
         onChange={onChange}
+        onKeyDown={onKeyDown}
         className={className}
         placeholder={placeholder}
         required={required}

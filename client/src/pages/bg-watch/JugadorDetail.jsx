@@ -5,6 +5,7 @@ import { API } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
 import Avatar from "../../components/shared/Avatar";
 import Meeple from "../../components/shared/Meeple";
+import BackButton from "../../components/shared/BackButton";
 import { getUserDisplay } from "../../utils/userDisplay";
 import PlayCard from "./PlayCard";
 import PlayCardSkeleton from "./PlayCardSkeleton";
@@ -102,13 +103,9 @@ export default function JugadorDetail() {
     return (
       <div className={comu.page}>
         <div className={comu.inner}>
-          <button
-            type="button"
-            className={comu.backBtn}
-            onClick={() => navigate(-1)}
-          >
-            ← Volver
-          </button>
+          <BackButton onClick={() => navigate(-1)} flush>
+            Volver
+          </BackButton>
           <p className={comu.errorMsg}>No se pudo cargar el jugador.</p>
         </div>
       </div>
@@ -144,13 +141,9 @@ export default function JugadorDetail() {
   return (
     <div className={comu.page}>
       <div className={comu.inner}>
-        <button
-          type="button"
-          className={comu.backBtn}
-          onClick={() => navigate(-1)}
-        >
-          ← Volver
-        </button>
+        <BackButton onClick={() => navigate(-1)} flush>
+          Volver
+        </BackButton>
 
         <header className={styles.playerHeader}>
           <Avatar user={playerAvatarUser(player)} size="xl" />

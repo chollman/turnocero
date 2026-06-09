@@ -9,6 +9,7 @@ import CompartidaCard from "./CompartidaCard";
 import ResenaCard from "./ResenaCard";
 import CompartidasSidebar from "./CompartidasSidebar";
 import CompartidaSkeleton from "./CompartidaSkeleton";
+import BackButton from "../../components/shared/BackButton";
 import styles from "./CompartidaPost.module.css";
 
 // Texto plano a partir del body HTML de una reseña (para meta/description).
@@ -110,12 +111,9 @@ export default function CompartidaPost() {
 
       <div className={styles.layout}>
         <div className={styles.feedCol}>
-          <button
-            className={styles.backBtn}
-            onClick={() => navigate("/compartidas")}
-          >
-            ← Volver al feed
-          </button>
+          <BackButton to="/compartidas" flush>
+            Volver al feed
+          </BackButton>
 
           {loading && <CompartidaSkeleton />}
 

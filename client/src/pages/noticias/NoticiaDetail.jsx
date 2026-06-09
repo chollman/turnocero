@@ -7,6 +7,7 @@ import { useBrandName } from "../../hooks/useBrandName";
 import { useShortLink } from "../../hooks/useShortLink";
 import { getShortUrl } from "../../utils/shortlink";
 import { API } from "../../api/endpoints";
+import BackButton from "../../components/shared/BackButton";
 import styles from "./NoticiaDetail.module.css";
 
 function timeAgo(date) {
@@ -108,9 +109,9 @@ export default function NoticiaDetail() {
       <div className={styles.page}>
         <div className={styles.notFound}>
           <p className={styles.notFoundTitle}>Noticia no encontrada</p>
-          <Link to="/noticias" className={styles.backLink}>
-            ← Volver a Noticias
-          </Link>
+          <BackButton to="/noticias" flush>
+            Volver a Noticias
+          </BackButton>
         </div>
       </div>
     );
@@ -150,9 +151,9 @@ export default function NoticiaDetail() {
 
       <div className={styles.inner}>
         {/* ── Back nav ── */}
-        <Link to="/noticias" className={styles.backLink}>
-          ← Noticias
-        </Link>
+        <BackButton to="/noticias" flush>
+          Noticias
+        </BackButton>
 
         <article className={styles.card}>
           {/* ── Image ── */}

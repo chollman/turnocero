@@ -6,6 +6,7 @@ import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import { fromLocalInputValue } from "../../utils/eventoDate";
 import DateTimePicker from "../../components/shared/DateTimePicker";
+import BackButton from "../../components/shared/BackButton";
 import ImageDropzone from "./components/ImageDropzone";
 import styles from "./Torneos.module.css";
 
@@ -73,9 +74,9 @@ export default function CreateTorneo() {
       </Helmet>
       <div className={styles.inner}>
         <div className={styles.formHeader}>
-          <Link to="/torneos" className={styles.backLink}>
-            ← Volver a torneos
-          </Link>
+          <BackButton to="/torneos" flush>
+            Volver a torneos
+          </BackButton>
           <h1 className={styles.title}>Crear torneo</h1>
           <p className={styles.sub}>
             Configurá los datos básicos. Vas a poder abrir inscripciones y armar

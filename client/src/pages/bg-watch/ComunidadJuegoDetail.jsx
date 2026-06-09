@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
+import BackButton from "../../components/shared/BackButton";
 import { getUserDisplay } from "../../utils/userDisplay";
 import styles from "./BgWatchComunidad.module.css";
 
@@ -57,13 +58,9 @@ export default function ComunidadJuegoDetail() {
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
-        <button
-          type="button"
-          className={styles.backBtn}
-          onClick={() => navigate(-1)}
-        >
-          ← Volver
-        </button>
+        <BackButton onClick={() => navigate(-1)} flush>
+          Volver
+        </BackButton>
 
         <div className={styles.detailHero}>
           <div className={styles.detailThumb}>

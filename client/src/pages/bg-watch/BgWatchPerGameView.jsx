@@ -5,6 +5,7 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
+import BackButton from "../../components/shared/BackButton";
 import PlayCard from "./PlayCard";
 import PlayDetailModal from "./PlayDetailModal";
 import Pagination from "./Pagination";
@@ -185,9 +186,9 @@ export default function BgWatchPerGameView() {
     <div className={styles.page}>
       {isGuest && <GuestBanner bggUsername={bggUsername} />}
       <div className={styles.inner}>
-        <button className={styles.backBtn} onClick={() => navigate(-1)}>
-          ← Volver
-        </button>
+        <BackButton onClick={() => navigate(-1)} flush>
+          Volver
+        </BackButton>
 
         <div className={styles.gameHero}>
           <div className={styles.gameHeroImage}>

@@ -4,6 +4,7 @@ import axios from "axios";
 import { API } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
 import Meeple from "../../components/shared/Meeple";
+import BackButton from "../../components/shared/BackButton";
 import PlayCard from "./PlayCard";
 import PlayCardSkeleton from "./PlayCardSkeleton";
 import PlayDetailModal from "./PlayDetailModal";
@@ -82,13 +83,9 @@ export default function UbicacionDetail() {
     return (
       <div className={comu.page}>
         <div className={comu.inner}>
-          <button
-            type="button"
-            className={comu.backBtn}
-            onClick={() => navigate(-1)}
-          >
-            ← Volver
-          </button>
+          <BackButton onClick={() => navigate(-1)} flush>
+            Volver
+          </BackButton>
           <p className={comu.errorMsg}>No se pudo cargar la ubicación.</p>
         </div>
       </div>
@@ -112,13 +109,9 @@ export default function UbicacionDetail() {
   return (
     <div className={comu.page}>
       <div className={comu.inner}>
-        <button
-          type="button"
-          className={comu.backBtn}
-          onClick={() => navigate(-1)}
-        >
-          ← Volver
-        </button>
+        <BackButton onClick={() => navigate(-1)} flush>
+          Volver
+        </BackButton>
 
         <header className={styles.playerHeader}>
           <div className={styles.playerHeaderInfo}>

@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useCommunity } from "../../context/CommunityContext";
 import Meeple from "../../components/shared/Meeple";
+import BackButton from "../../components/shared/BackButton";
 import UsersList from "../users/UsersList";
 import styles from "./ComunidadDetail.module.css";
 
@@ -72,9 +73,7 @@ export default function ComunidadDetail() {
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
-        <Link to="/comunidades" className={styles.back}>
-          ← Mis Comunidades
-        </Link>
+        <BackButton to="/comunidades">Mis Comunidades</BackButton>
         <div className={styles.eyebrow}>
           <Meeple /> COMUNIDAD
         </div>

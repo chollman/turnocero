@@ -4,6 +4,7 @@ import axios from "axios";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
 import Meeple from "../../components/shared/Meeple";
+import BackButton from "../../components/shared/BackButton";
 import { getUserDisplay } from "../../utils/userDisplay";
 import styles from "./BgWatchComunidad.module.css";
 
@@ -73,13 +74,9 @@ export default function BgWatchH2H() {
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
-        <button
-          type="button"
-          className={styles.backBtn}
-          onClick={() => navigate(-1)}
-        >
-          ← Volver
-        </button>
+        <BackButton onClick={() => navigate(-1)} flush>
+          Volver
+        </BackButton>
 
         <header className={styles.hero}>
           <div className={styles.eyebrow}>

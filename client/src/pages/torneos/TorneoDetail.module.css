@@ -28,20 +28,6 @@
   padding: 40px 0;
 }
 
-.backLink {
-  align-self: flex-start;
-  font-size: 13px;
-  color: var(--text-muted);
-  text-decoration: none;
-  font-family: var(--font-display);
-  font-weight: 700;
-  transition: color var(--transition);
-}
-
-.backLink:hover {
-  color: var(--amber-light);
-}
-
 /* ── Banner ── */
 .banner {
   position: relative;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
@@ -18,6 +18,7 @@ import RecordResultModal from "./components/RecordResultModal";
 import SeedReorderModal from "./components/SeedReorderModal";
 import AddParticipantModal from "./components/AddParticipantModal";
 import GroupsView from "./components/GroupsView";
+import BackButton from "../../components/shared/BackButton";
 import styles from "./TorneoDetail.module.css";
 
 const STATUS_META = {
@@ -144,9 +145,9 @@ export default function TorneoDetail() {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
-          <Link to="/torneos" className={styles.backLink}>
-            ← Volver a torneos
-          </Link>
+          <BackButton to="/torneos" flush>
+            Volver a torneos
+          </BackButton>
           <p className={styles.loadingMsg}>Torneo no encontrado.</p>
         </div>
       </div>
@@ -165,9 +166,9 @@ export default function TorneoDetail() {
       </Helmet>
 
       <div className={styles.inner}>
-        <Link to="/torneos" className={styles.backLink}>
-          ← Volver a torneos
-        </Link>
+        <BackButton to="/torneos" flush>
+          Volver a torneos
+        </BackButton>
 
         {torneo.image?.url ? (
           <div className={styles.banner}>
