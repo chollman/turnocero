@@ -1009,6 +1009,54 @@ describe("NotificationContext", () => {
     expect(screen.getByTestId("unread").textContent).toBe("0");
   });
 
+  // ── Regresión: deeplink público no patea al login a un anónimo ────────
+  // Bug: en un deeplink público (compartida/mesa/evento/torneo) el detalle
+  // llama setActive*/markRead* en el mount. Esos PATCH/DELETE son `protect`
+  // → 401 → interceptor global de AuthContext → redirect a /login. Un
+  // visitante anónimo no tiene notificaciones, así que NO debe pegar esos
+  // endpoints en absoluto.
+  it("regresión: un anónimo NO pega endpoints protegidos al marcar leído", async () => {
+    let readHits = 0;
+    let clearHits = 0;
+    server.use(
+      http.patch("/api/notifications/read", () => {
+        readHits++;
+        return HttpResponse.json({ ok: true });
+      }),
+      http.delete("/api/notifications", () => {
+        clearHits++;
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    useAuthMock.mockReturnValue({ user: null, refreshUser: vi.fn() });
+    renderApp();
+
+    act(() => screen.getByText("active-c1").click()); // setActiveCompartida
+    act(() => screen.getByText("mark-comp-c1").click()); // markReadCompartida
+    act(() => screen.getByText("mark-read-t1").click()); // markRead (mesa)
+    act(() => screen.getByText("mark-all-read").click()); // markAllRead
+    act(() => screen.getByText("clear-all").click()); // clearAll
+
+    // Esperar a cualquier request en vuelo antes de afirmar que no hubo ninguno.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(readHits).toBe(0);
+    expect(clearHits).toBe(0);
+  });
+
+  it("un usuario autenticado SÍ sincroniza /api/notifications/read al marcar leído", async () => {
+    let readHits = 0;
+    server.use(
+      http.patch("/api/notifications/read", () => {
+        readHits++;
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    // user autenticado (default del beforeEach)
+    renderApp();
+    act(() => screen.getByText("mark-comp-c1").click());
+    await waitFor(() => expect(readHits).toBeGreaterThan(0));
+  });
+
   it("addDmListener receives dm events and cleanup unregisters it", () => {
     const listener = vi.fn();
     function DmProbe() {
