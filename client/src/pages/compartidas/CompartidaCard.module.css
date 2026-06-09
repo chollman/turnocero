@@ -512,61 +512,67 @@
   position: relative;
 }
 
-.photoGrid1 {
-  display: grid;
-  place-items: center;
-  padding-top: 12px;
-  padding-bottom: 22px;
-}
-
-.photoGrid1 .photoBtn {
-  width: min(360px, 100%);
-}
-.photoGrid1 .polaroid {
-  width: 100%;
-  transform: rotate(-1.5deg);
-}
-
-.photoGrid2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-  padding-top: 16px;
-  padding-bottom: 18px;
-  place-items: center;
-}
-
-.photoGrid2 .photoBtn:nth-child(1) .polaroid {
-  transform: rotate(-2.5deg);
-}
-.photoGrid2 .photoBtn:nth-child(2) .polaroid {
-  transform: rotate(1.8deg);
-}
-
-.photoGrid3,
-.photoGrid4 {
+/* ── Media (scorecard + fotos) combinada ──────────────────────────
+   El scorecard de una juntada compartida y sus fotos comparten una sola
+   grilla de 2 columnas: el scorecard es la primera tile y las fotos lo
+   siguen. Con cantidad IMPAR de tiles la última se centra a ancho
+   completo; con UNA sola tile (scorecard solo, o foto única) va centrada
+   en columna única — y la foto única queda apaisada y grande. */
+.mediaGrid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 14px 12px;
-  padding-top: 18px;
-  padding-bottom: 18px;
   place-items: center;
+  padding: 14px 18px 18px;
 }
 
-.photoGrid3 .photoBtn:nth-child(1) .polaroid,
-.photoGrid4 .photoBtn:nth-child(1) .polaroid {
+.mediaGrid .polaroid {
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Rotaciones decorativas por foto, independientes de si el scorecard ocupa
+   la primera tile: el scorecard es un <div> y las fotos son <button>, así
+   que :nth-of-type cuenta sólo entre los <button>. */
+.mediaGrid .photoBtn:nth-of-type(1) .polaroid {
   transform: rotate(-3deg);
 }
-.photoGrid3 .photoBtn:nth-child(2) .polaroid,
-.photoGrid4 .photoBtn:nth-child(2) .polaroid {
+.mediaGrid .photoBtn:nth-of-type(2) .polaroid {
   transform: rotate(2deg);
 }
-.photoGrid3 .photoBtn:nth-child(3) .polaroid,
-.photoGrid4 .photoBtn:nth-child(3) .polaroid {
+.mediaGrid .photoBtn:nth-of-type(3) .polaroid {
   transform: rotate(1deg);
 }
-.photoGrid4 .photoBtn:nth-child(4) .polaroid {
+.mediaGrid .photoBtn:nth-of-type(4) .polaroid {
   transform: rotate(-1.5deg);
+}
+
+.mediaScorecard {
+  width: min(340px, 100%);
+}
+
+/* En grilla multi-tile las fotos son cuadradas; la apaisada se reserva para
+   la foto única (.mediaGridSingle). */
+.mediaGrid:not(.mediaGridSingle) .polaroidPhoto {
+  aspect-ratio: 1;
+}
+
+/* Una sola tile: scorecard solo o foto única, centrada en columna completa. */
+.mediaGridSingle {
+  grid-template-columns: 1fr;
+}
+.mediaGridSingle .photoBtn {
+  width: min(360px, 100%);
+}
+
+/* Cantidad impar de tiles (> 1): la última ocupa el ancho completo y se
+   centra al mismo tamaño que media fila. */
+.mediaGridOdd > *:last-child {
+  grid-column: 1 / -1;
+  width: calc(50% - 6px);
+  justify-self: center;
 }
 
 .photoBtn {
@@ -578,15 +584,6 @@
   display: block;
   width: 100%;
   transition: transform var(--transition);
-}
-
-.photoGrid1 .polaroid,
-.photoGrid2 .polaroid,
-.photoGrid3 .polaroid,
-.photoGrid4 .polaroid {
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
 }
 
 .photoBtn:hover .polaroid {
@@ -1947,6 +1944,23 @@
   .photos {
     padding: 6px 14px 12px;
     gap: 10px;
+  }
+  .mediaGrid {
+    padding: 6px 14px 12px;
+    gap: 10px;
+  }
+  /* El scorecard no entra cómodo a media columna en pantallas chicas: cuando
+     hay scorecard, la grilla pasa a una sola columna (scorecard + fotos
+     apiladas a ancho completo) y la última foto centrada vuelve a lo normal. */
+  .mediaGrid:has(.mediaScorecard) {
+    grid-template-columns: 1fr;
+  }
+  .mediaGrid:has(.mediaScorecard) .mediaScorecard {
+    width: 100%;
+  }
+  .mediaGridOdd:has(.mediaScorecard) > *:last-child {
+    grid-column: auto;
+    width: 100%;
   }
   .mesaTicket {
     margin: 0 14px 12px;

@@ -337,12 +337,26 @@ export default function CompartidaCard({
   const authorName = authorInfo.name;
   const privacyLabel = PRIVACY_LABELS[post.privacy];
   const imageCount = post.images.length;
-  const imageGridClass = styles[`photoGrid${Math.min(imageCount, 4)}`];
   // Widget de resultados (juntada compartida desde el flujo de carga de partida).
   // Render-only; null en compartidas viejas / reseñas (sin `playResult`).
   const scProps = post.playResult
     ? playResultToScorecardProps(post.playResult)
     : null;
+  // Grilla combinada scorecard + fotos del layout normal: el scorecard (si
+  // existe) es la primera tile y las fotos lo siguen, 2 por fila. Con cantidad
+  // IMPAR de tiles la última se centra ocupando el ancho completo; con UNA sola
+  // tile (scorecard solo, o una única foto) va centrada en columna única.
+  const showScorecard = !editing && !!scProps;
+  const mediaTiles = (showScorecard ? 1 : 0) + imageCount;
+  const mediaSingle = mediaTiles === 1;
+  const mediaOdd = mediaTiles > 1 && mediaTiles % 2 === 1;
+  const mediaGridClass = [
+    styles.mediaGrid,
+    mediaSingle && styles.mediaGridSingle,
+    mediaOdd && styles.mediaGridOdd,
+  ]
+    .filter(Boolean)
+    .join(" ");
   const share = buildCompartidaShare(
     post,
     typeof window !== "undefined" ? window.location.origin : "",
@@ -967,18 +981,18 @@ export default function CompartidaCard({
         </div>
       )}
 
-      {/* ── Resultados de la partida (juntada compartida) ── */}
-      {!editing && scProps && (
-        <div className={styles.playResult}>
-          <Scorecard {...scProps} />
-        </div>
-      )}
-
-      {/* ── Photos (polaroid grid) ── */}
-      {imageCount > 0 && (
-        <div
-          className={`${styles.photos} ${imageGridClass} ${featured ? styles.photosFeatured : ""}`}
-        >
+      {/* ── Resultados de la partida + fotos (juntada compartida) ──
+          Grilla combinada: el scorecard (si existe) es la primera tile y las
+          fotos lo siguen, 2 por fila. Con cantidad impar de tiles la última se
+          centra; con una sola tile va centrada en columna única. El scorecard
+          se oculta en modo edición (las fotos siguen visibles). */}
+      {(showScorecard || imageCount > 0) && (
+        <div className={mediaGridClass}>
+          {showScorecard && (
+            <div className={styles.mediaScorecard}>
+              <Scorecard {...scProps} />
+            </div>
+          )}
           {post.images.map((img, i) => (
             <button
               key={img._id || i}
@@ -990,7 +1004,6 @@ export default function CompartidaCard({
                 index={i}
                 count={imageCount}
                 withTape={i === 0 || imageCount > 1}
-                caption={i === 0 && featured ? "el momento exacto" : null}
               />
             </button>
           ))}
