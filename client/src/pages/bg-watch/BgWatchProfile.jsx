@@ -1,4 +1,5 @@
 import Meeple from "../../components/shared/Meeple";
+import Avatar from "../../components/shared/Avatar";
 import { useCallback, useState } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
@@ -119,38 +120,52 @@ export default function BgWatchProfile() {
         </button>
 
         <div className={styles.hero}>
-          <div className={styles.eyebrow}>
-            <Meeple />
-            BG WATCH
+          <div className={styles.heroAvatar}>
+            <Avatar
+              user={
+                isOwnProfile && user
+                  ? user
+                  : { _id: bggUsername, username: bggUsername }
+              }
+              size="xl"
+            />
           </div>
-          <h1 className={styles.heroTitle}>{bggUsername}</h1>
-          <div className={styles.heroLinks}>
-            <a
-              href={`https://boardgamegeek.com/user/${bggUsername}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.bggLink}
-            >
-              Ver en BoardGameGeek ↗
-            </a>
-            <Link to="/bg-watch/comunidad" className={styles.bggLink}>
-              Ver la comunidad →
-            </Link>
+          <div className={styles.heroMain}>
+            <div className={styles.eyebrow}>
+              <Meeple />
+              BG WATCH · {isOwnProfile ? "tu perfil" : "perfil público"}
+            </div>
+            <h1 className={styles.heroTitle}>{bggUsername}</h1>
+            <div className={styles.heroLinks}>
+              <a
+                href={`https://boardgamegeek.com/user/${bggUsername}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.bggLink}
+              >
+                Ver en BoardGameGeek ↗
+              </a>
+              <Link to="/bg-watch/comunidad" className={styles.bggLink}>
+                Ver la comunidad →
+              </Link>
+            </div>
           </div>
           {canCreate && (
-            <button
-              type="button"
-              className={styles.newPlayBtn}
-              onClick={() =>
-                navigate(
-                  `/bg-watch/${bggUsername}/partidas/nueva?volver=${encodeURIComponent(
-                    location.pathname,
-                  )}`,
-                )
-              }
-            >
-              + Nueva partida
-            </button>
+            <div className={styles.heroActions}>
+              <button
+                type="button"
+                className={styles.newPlayBtn}
+                onClick={() =>
+                  navigate(
+                    `/bg-watch/${bggUsername}/partidas/nueva?volver=${encodeURIComponent(
+                      location.pathname,
+                    )}`,
+                  )
+                }
+              >
+                + Nueva partida
+              </button>
+            </div>
           )}
         </div>
 

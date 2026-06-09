@@ -117,6 +117,144 @@ async function computeGameStats(
   };
 }
 
+// Stats GLOBALES del usuario (todos los juegos), para el sidebar del perfil
+// (widget Win rate + numerales). Mismo patrón de identidad que computeGameStats
+// (ownerMatch $reduce + selfKeys overlay, para que las victorias bajo un alias
+// "sos vos" cuenten), pero SIN filtrar por gameId. Una sola aggregation.
+//
+// IMPORTANTE: deriva del LOG COMPLETO de partidas, no de la página visible —
+// el win-rate y los totales son correctos sin importar la paginación/filtro de
+// la lista. No "arreglar" esto para usar el page-sample.
+//
+// Devuelve { totalWins, totalRated, totalPlays, uniqueGames, avgDuration,
+// firstDate, lastDate }. winRate se deriva en el cliente (null si totalRated 0).
+async function computeOverallStats(
+  lowerBggUsername,
+  { selfKeys = [`u:${lowerBggUsername}`] } = {},
+) {
+  const agg = await BggPlay.aggregate([
+    { $match: { bggUsername: lowerBggUsername } },
+    {
+      $project: {
+        duration: 1,
+        date: 1,
+        gameId: 1,
+        quantity: 1,
+        ownerMatch: {
+          $reduce: {
+            input: { $ifNull: ["$players", []] },
+            initialValue: null,
+            in: {
+              $let: {
+                vars: {
+                  u: {
+                    $toLower: {
+                      $trim: { input: { $ifNull: ["$$this.username", ""] } },
+                    },
+                  },
+                  n: {
+                    $toLower: {
+                      $trim: { input: { $ifNull: ["$$this.name", ""] } },
+                    },
+                  },
+                },
+                in: {
+                  $cond: [
+                    {
+                      $in: [
+                        {
+                          $cond: [
+                            { $ne: ["$$u", ""] },
+                            { $concat: ["u:", "$$u"] },
+                            { $concat: ["n:", "$$n"] },
+                          ],
+                        },
+                        selfKeys,
+                      ],
+                    },
+                    { win: { $eq: ["$$this.win", true] } },
+                    "$$value",
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalPlays: { $sum: { $ifNull: ["$quantity", 1] } },
+        rated: { $sum: { $cond: [{ $ne: ["$ownerMatch", null] }, 1, 0] } },
+        wins: { $sum: { $cond: [{ $eq: ["$ownerMatch.win", true] }, 1, 0] } },
+        avgDuration: {
+          $avg: { $cond: [{ $gt: ["$duration", 0] }, "$duration", null] },
+        },
+        firstDate: { $min: "$date" },
+        lastDate: { $max: "$date" },
+        gameIds: { $addToSet: "$gameId" },
+      },
+    },
+    {
+      $project: {
+        totalPlays: 1,
+        rated: 1,
+        wins: 1,
+        avgDuration: 1,
+        firstDate: 1,
+        lastDate: 1,
+        // $setDifference saca el null del set de gameIds (plays sin juego).
+        uniqueGames: { $size: { $setDifference: ["$gameIds", [null]] } },
+      },
+    },
+  ]);
+  if (!agg.length) {
+    return {
+      totalWins: 0,
+      totalRated: 0,
+      totalPlays: 0,
+      uniqueGames: 0,
+      avgDuration: null,
+      firstDate: null,
+      lastDate: null,
+    };
+  }
+  const row = agg[0];
+  return {
+    totalWins: row.wins || 0,
+    totalRated: row.rated || 0,
+    totalPlays: row.totalPlays || 0,
+    uniqueGames: row.uniqueGames || 0,
+    avgDuration: row.avgDuration != null ? Math.round(row.avgDuration) : null,
+    firstDate: row.firstDate || null,
+    lastDate: row.lastDate || null,
+  };
+}
+
+// Actividad diaria del usuario para el heatmap del calendario en el sidebar del
+// perfil. Espeja communityActivityHeatmap (bggCommunityStats.js) pero per-user:
+// agrupa BggPlay por `date` (YYYY-MM-DD) sumando `quantity`. `sinceDate` acota la
+// ventana (el route pasa ~13 semanas atrás). Devuelve [{ date, count }] asc.
+async function computeActivityHeatmap(
+  lowerBggUsername,
+  { sinceDate = null } = {},
+) {
+  const match = { bggUsername: lowerBggUsername, date: { $ne: null } };
+  if (sinceDate) match.date.$gte = sinceDate;
+  const agg = await BggPlay.aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: "$date",
+        count: { $sum: { $ifNull: ["$quantity", 1] } },
+      },
+    },
+    { $sort: { _id: 1 } },
+  ]);
+  return agg.map((row) => ({ date: row._id, count: row.count }));
+}
+
 // Lista per-game con `numPlays` (sumando `quantity` de cada play),
 // ordenada desc. Powers la tab "Por juego" del PartidasPanel —
 // reemplaza la lista derivada de `BggCollection` que era buggy
@@ -599,6 +737,8 @@ async function computeCoPlayerStats(
 
 module.exports = {
   computeGameStats,
+  computeOverallStats,
+  computeActivityHeatmap,
   computeCoPlayerStats,
   computeLastJuntada,
   computePlayedGames,

@@ -58,6 +58,8 @@ export const API = {
       `/api/bgg/partidas/compartida/${enc(notifId)}`,
     JUEGOS_JUGADOS: (bggUsername) =>
       `/api/bgg/juegos-jugados/${enc(bggUsername)}`,
+    // Agregados para el sidebar del perfil (heatmap de actividad + win-rate)
+    RESUMEN: (bggUsername) => `/api/bgg/resumen/${enc(bggUsername)}`,
     MIS_JUEGOS: (bggUsername) => `/api/bgg/mis-juegos/${enc(bggUsername)}`,
     MIS_UBICACIONES: (bggUsername) =>
       `/api/bgg/mis-ubicaciones/${enc(bggUsername)}`,

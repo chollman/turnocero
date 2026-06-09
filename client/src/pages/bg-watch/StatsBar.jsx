@@ -31,7 +31,7 @@ export default function StatsBar({ collection, playsMeta }) {
 
   return (
     <div className={styles.statsBar}>
-      <div className={styles.statCard}>
+      <div className={`${styles.statCard} ${styles.statAccent}`}>
         <span className={styles.statLabel}>Partidas</span>
         <span className={styles.statValue}>
           {totalPartidas !== null ? totalPartidas : "—"}
@@ -43,7 +43,7 @@ export default function StatsBar({ collection, playsMeta }) {
           {juegosUnicos !== null ? juegosUnicos : "—"}
         </span>
       </div>
-      <div className={styles.statCard}>
+      <div className={`${styles.statCard} ${styles.statPurple}`}>
         <span className={styles.statLabel}>Más jugado</span>
         <span className={styles.statValueSm} title={topGame?.name || ""}>
           {topGame ? topGame.name : "—"}
@@ -52,7 +52,7 @@ export default function StatsBar({ collection, playsMeta }) {
           <span className={styles.statHint}>{topGame.numPlays}× partidas</span>
         )}
       </div>
-      <div className={styles.statCard}>
+      <div className={`${styles.statCard} ${styles.statGold}`}>
         <span className={styles.statLabel}>Última partida</span>
         <span className={styles.statValueSm}>
           {ultimaPartida ? formatDate(ultimaPartida) : "—"}

@@ -43,18 +43,81 @@
 
 /* ─── Hero ─── */
 .hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 22px;
+  background:
+    radial-gradient(
+      640px circle at 92% -30%,
+      var(--purple-glow),
+      transparent 55%
+    ),
+    linear-gradient(180deg, var(--bg-card), var(--bg-dark));
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 26px 28px;
+  overflow: hidden;
+}
+
+/* Textura dot-grid sutil (theme-aware vía overlay token). */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    var(--overlay-soft) 1px,
+    transparent 0
+  );
+  background-size: 18px 18px;
+  pointer-events: none;
+}
+
+.heroAvatar {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.heroMain {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
+.heroActions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.15em;
-  color: var(--amber-light);
+  color: var(--purple-light);
   text-transform: uppercase;
+}
+
+@media (--phone) {
+  .hero {
+    grid-template-columns: auto 1fr;
+    padding: 20px;
+  }
+  .heroActions {
+    grid-column: 1 / -1;
+  }
 }
 
 .heroTitle {
@@ -82,7 +145,7 @@
 
 .bggLink {
   font-size: 13px;
-  color: var(--amber);
+  color: var(--purple-light);
   text-decoration: none;
   font-weight: 600;
   margin-top: 4px;
@@ -156,23 +219,40 @@
   }
 }
 
-/* ─── Stats bar ─── */
+/* ─── Stats bar (barra única redondeada con celdas + divisores internos) ─── */
 .statsBar {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
 }
 
 .statCard {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 18px 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  padding: 18px 18px;
+  border-right: 1px solid var(--border);
   min-height: 86px;
   justify-content: center;
+}
+
+.statCard:last-child {
+  border-right: none;
+}
+
+/* Acentos de sección (theme-aware vía tokens). */
+.statAccent .statValue {
+  color: var(--purple-light);
+}
+.statPurple .statValueSm {
+  color: var(--purple);
+}
+.statGold .statValueSm {
+  color: var(--gold);
 }
 
 .statLabel {
@@ -209,19 +289,28 @@
 
 .statHint {
   font-size: 11px;
-  color: var(--amber);
+  color: var(--purple-light);
   font-weight: 600;
 }
 
 @media (--phone) {
   .statsBar {
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
   }
 
   .statCard {
-    padding: 14px 10px;
+    padding: 14px 12px;
     min-height: 76px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* En 2 columnas: la 2ª de cada fila no lleva borde derecho y la última
+     fila no lleva borde inferior. */
+  .statCard:nth-child(even) {
+    border-right: none;
+  }
+  .statCard:nth-last-child(-n + 2) {
+    border-bottom: none;
   }
 
   .statValue {
@@ -233,30 +322,38 @@
   }
 }
 
-/* ─── Tabs ─── */
+/* ─── Tabs (toolbar tipo pill) ─── */
 .tabs {
   display: flex;
   gap: 4px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  align-self: flex-start;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .tab {
-  background: none;
+  background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
-  padding: 10px 18px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
+  padding: 8px 14px;
+  border-radius: 7px;
+  font-family: "Manrope", var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
   cursor: pointer;
-  margin-bottom: -1px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  white-space: nowrap;
   transition:
     color 0.15s,
-    border-color 0.15s;
+    background 0.15s;
 }
 
 .tab:hover {
@@ -264,17 +361,22 @@
 }
 
 .tabActive {
-  color: var(--amber);
-  border-bottom-color: var(--amber);
+  background: var(--bg-elevated);
+  color: var(--purple-light);
 }
 
 .tabBadge {
   background: var(--bg-elevated);
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   padding: 1px 6px;
-  border-radius: 8px;
+  border-radius: 6px;
+}
+
+.tabActive .tabBadge {
+  background: var(--purple-15);
+  color: var(--purple-light);
 }
 
 /* ─── Tab content ─── */
@@ -436,7 +538,34 @@
 }
 
 .gameCard:hover {
-  border-color: var(--amber);
+  border-color: var(--purple);
+  transform: translateY(-2px);
+}
+
+/* Wrapper posicionado para el badge de conteo sobre el thumb. */
+.gameThumbWrap {
+  position: relative;
+}
+
+.gameCardCount {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: "Manrope", var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.gameCardCountZero {
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.45);
 }
 
 .gameThumbnail {
@@ -444,6 +573,7 @@
   aspect-ratio: 1;
   object-fit: cover;
   background: var(--bg-elevated);
+  display: block;
 }
 
 .gameThumbnailPlaceholder {
@@ -610,8 +740,13 @@
 
 .playCardInteractive:hover,
 .playCardInteractive:focus-visible {
-  border-color: var(--amber);
+  border-color: var(--purple);
   outline: none;
+}
+
+.playCardInteractive:hover .playGameName,
+.playCardInteractive:focus-visible .playGameName {
+  color: var(--purple-light);
 }
 
 .playThumb {
@@ -620,7 +755,11 @@
   height: 72px;
   border-radius: 8px;
   overflow: hidden;
-  background: var(--bg-elevated);
+  background: linear-gradient(
+    135deg,
+    var(--purple-dark),
+    color-mix(in srgb, var(--purple-dark) 50%, var(--bg-elevated))
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -635,7 +774,38 @@
 
 .playThumbFallback {
   font-size: 28px;
-  opacity: 0.6;
+  opacity: 0.85;
+}
+
+/* En teléfonos el thumb se oculta para dar más ancho al cuerpo de la card. */
+@media (--phone) {
+  .playThumb {
+    display: none;
+  }
+}
+
+/* Pill de resultado del dueño (✦ Ganaste / ○ Perdiste). */
+.playOutcome {
+  font-family: "Manrope", var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.playOutcomeWin {
+  color: var(--green);
+  border-color: var(--green-25);
+  background: var(--green-10);
+}
+
+.playOutcomeLoss {
+  color: var(--text-muted);
+  border-color: var(--border);
 }
 
 .playBody {
@@ -682,7 +852,7 @@
   font-family: "Manrope", var(--font-display);
   font-size: 11px;
   font-weight: 700;
-  color: var(--amber);
+  color: var(--purple-light);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -1951,9 +2121,22 @@
 
 /* Modal hero (thumb + name + date) */
 .modalHero {
+  position: relative;
   display: flex;
   gap: 16px;
   align-items: flex-start;
+  background:
+    radial-gradient(
+      520px circle at 85% -40%,
+      var(--purple-glow),
+      transparent 55%
+    ),
+    var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 4px;
+  overflow: hidden;
 }
 
 .modalHeroThumb {
@@ -1962,10 +2145,15 @@
   height: 96px;
   border-radius: 10px;
   overflow: hidden;
-  background: var(--bg-elevated);
+  background: linear-gradient(
+    135deg,
+    var(--purple-dark),
+    color-mix(in srgb, var(--purple-dark) 50%, var(--bg-card))
+  );
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 8px 24px var(--purple-glow);
 }
 
 .modalHeroThumb img {
@@ -2069,8 +2257,23 @@
 }
 
 .playerRowWinner td {
-  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  background: color-mix(in srgb, var(--purple) 9%, transparent);
   color: var(--text-primary);
+}
+
+/* Medallas por posición ordenada (1º/2º/3º). */
+.rankCell {
+  font-family: "Manrope", var(--font-display);
+  font-weight: 800;
+}
+.rankGold {
+  color: var(--gold);
+}
+.rankSilver {
+  color: #c0c8d8;
+}
+.rankBronze {
+  color: #cd7f32;
 }
 
 .colNumeric {
@@ -2186,13 +2389,16 @@
 
 /* Comment body */
 .commentBody {
-  font-size: 14px;
-  color: var(--text-primary);
-  line-height: 1.55;
+  font-family: var(--font-serif, Georgia, serif);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.6;
   margin: 0;
   white-space: pre-wrap;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--purple);
   border-radius: 8px;
   padding: 12px 14px;
 }
@@ -2282,5 +2488,219 @@
 
   .detailsGrid dt {
     margin-top: 6px;
+  }
+}
+
+/* ─── Sidebar widgets (tab Partidas, modo lista) ─── */
+/* Layout de 2 columnas: lista + columna de widgets. El sidebar solo se monta
+   en modo lista (la vista por-juego va full width). Púrpura = acento de la
+   sección BG Watch (theme-aware vía tokens). */
+.partidasLayout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 28px;
+  align-items: start;
+}
+
+.playsMain {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.playsSideCol {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: sticky;
+  top: calc(var(--navbar-h, 64px) + 12px);
+}
+
+.sideWidget {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.sideWidgetLabel {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+/* Heatmap de actividad */
+.heatmap {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.heatmapCell {
+  aspect-ratio: 1;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+}
+
+.heatmapCell.l1 {
+  background: color-mix(in srgb, var(--purple) 25%, var(--bg-elevated));
+}
+.heatmapCell.l2 {
+  background: color-mix(in srgb, var(--purple) 50%, var(--bg-elevated));
+}
+.heatmapCell.l3 {
+  background: color-mix(in srgb, var(--purple) 75%, var(--bg-elevated));
+}
+.heatmapCell.l4 {
+  background: var(--purple);
+}
+
+.heatmapLegend {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9.5px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  margin-top: 10px;
+}
+
+.heatmapScale {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+.heatmapScale .heatmapCell {
+  width: 10px;
+  height: 10px;
+  aspect-ratio: auto;
+}
+
+/* Top de la colección (mini-ranking) */
+.miniRankList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.miniRank {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.miniRank:hover .miniRankName {
+  color: var(--purple-light);
+}
+
+.miniRankNum {
+  font-family: "Manrope", var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-align: center;
+}
+.miniRankNumTop {
+  color: var(--gold);
+}
+
+.miniRankInfo {
+  min-width: 0;
+}
+
+.miniRankName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--transition);
+}
+
+.miniRankBar {
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.miniRankBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--purple-dark), var(--purple));
+}
+.miniRankBarFillGold {
+  background: linear-gradient(90deg, #c89d00, var(--gold));
+}
+
+.miniRankCount {
+  font-family: "Manrope", var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Win rate */
+.winRateRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.winRateValue {
+  font-family: "Manrope", var(--font-display);
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--green);
+  line-height: 0.9;
+}
+
+.winRateMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.winRateBar {
+  margin-top: 12px;
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.winRateBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), #00ad6a);
+}
+
+.winRateEmpty {
+  font-family: "Manrope", var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+/* La columna de widgets se apila debajo de la lista en pantallas angostas. */
+@media (--tablet) {
+  .partidasLayout {
+    grid-template-columns: 1fr;
+  }
+  .playsSideCol {
+    position: static;
   }
 }

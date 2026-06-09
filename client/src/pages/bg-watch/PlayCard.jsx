@@ -186,12 +186,25 @@ function PlayCardMenu({ onEdit, onDelete, onLogAnother }) {
 export default function PlayCard({
   play,
   userMap,
+  bggUsername,
   onClick,
   onEdit,
   onDelete,
   onLogAnother,
   index = 0,
 }) {
+  // Resultado del dueño del perfil: buscamos su asiento por username. Solo
+  // mostramos el pill cuando lo encontramos (en partidas ajenas o sin match no
+  // hay "ganaste/perdiste" que afirmar).
+  const ownerSeat = useMemo(() => {
+    if (!bggUsername || !play.players) return null;
+    const lower = bggUsername.toLowerCase();
+    return (
+      play.players.find((p) => (p.username || "").toLowerCase() === lower) ||
+      null
+    );
+  }, [play.players, bggUsername]);
+
   const sortedPlayers = useMemo(() => {
     if (!play.players || play.players.length === 0) return [];
     return [...play.players].sort((a, b) => {
@@ -246,6 +259,13 @@ export default function PlayCard({
         <div className={styles.playTopRow}>
           <span className={styles.playGameName}>{play.gameName || "—"}</span>
           <span className={styles.playDateBlock}>
+            {ownerSeat && (
+              <span
+                className={`${styles.playOutcome} ${ownerSeat.win ? styles.playOutcomeWin : styles.playOutcomeLoss}`}
+              >
+                {ownerSeat.win ? "✦ Ganaste" : "○ Perdiste"}
+              </span>
+            )}
             <span className={styles.playDateRelative}>
               {relativeDate(play.date)}
             </span>

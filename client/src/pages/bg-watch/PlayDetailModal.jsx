@@ -161,7 +161,17 @@ export default function PlayDetailModal({ play, userMap, onClose }) {
                           key={`${p.username || p.name || "anon"}-${i}`}
                           className={p.win ? styles.playerRowWinner : ""}
                         >
-                          <td className={styles.colCenter}>
+                          <td
+                            className={`${styles.colCenter} ${styles.rankCell} ${
+                              i === 0
+                                ? styles.rankGold
+                                : i === 1
+                                  ? styles.rankSilver
+                                  : i === 2
+                                    ? styles.rankBronze
+                                    : ""
+                            }`}
+                          >
                             {p.position || "—"}
                           </td>
                           <td>
