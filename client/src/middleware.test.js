@@ -125,4 +125,39 @@ describe("middleware — OG", () => {
     const res = await middleware(makeReq("https://turnocero.app/"));
     expect(res).toBeUndefined();
   });
+
+  it("mesa: usa la imagen del juego como card chica (summary)", async () => {
+    const id = "c".repeat(24);
+    stubFetch({
+      [`/api/tables/${id}/og`]: {
+        boardGame: "Wingspan",
+        image: "https://cf.geekdo-images.com/wingspan.jpg",
+        host: "ana",
+      },
+    });
+    const res = await middleware(makeReq(`https://turnocero.app/mesas/${id}`));
+    const html = await res.text();
+    expect(html).toContain("Wingspan – Mesa en TurnoCero 🎲");
+    expect(html).toContain("https://cf.geekdo-images.com/wingspan.jpg");
+    expect(html).toContain('twitter:card"            content="summary"');
+    expect(html).toContain("organiza ana");
+  });
+
+  it("mesa sin imagen de juego: cae al og-default (card grande)", async () => {
+    const id = "d".repeat(24);
+    stubFetch({
+      [`/api/tables/${id}/og`]: { boardGame: "Catan", image: null },
+    });
+    const res = await middleware(makeReq(`https://turnocero.app/mesas/${id}`));
+    const html = await res.text();
+    expect(html).toContain("/og-default.png");
+    expect(html).toContain('twitter:card"            content="summary_large_image"');
+  });
+
+  it("mesa privada/inexistente (404 del API): cae al shell (undefined)", async () => {
+    const id = "e".repeat(24);
+    stubFetch({}); // sin ruta → fetch ok:false → handleMesa devuelve null
+    const res = await middleware(makeReq(`https://turnocero.app/mesas/${id}`));
+    expect(res).toBeUndefined();
+  });
 });

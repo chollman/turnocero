@@ -973,6 +973,68 @@ describe("DELETE /api/tables/:id (cancel)", () => {
   });
 });
 
+describe("GET /api/tables/:id/og (OG metadata for crawlers)", () => {
+  it("public table → returns game image + metadata (no auth)", async () => {
+    const host = await createUser({ displayName: "Ana" });
+    const table = await createTable(host, {
+      boardGame: "Wingspan",
+      bggImage: "https://cf.geekdo-images.com/wingspan-high.jpg",
+      bggThumbnail: "https://cf.geekdo-images.com/wingspan-thumb.jpg",
+      maxPlayers: 4,
+    });
+    const res = await request(app).get(`/api/tables/${table._id}/og`);
+    expect(res.status).toBe(200);
+    expect(res.body.boardGame).toBe("Wingspan");
+    // Prefiere la imagen de alta resolución sobre el thumbnail.
+    expect(res.body.image).toBe("https://cf.geekdo-images.com/wingspan-high.jpg");
+    expect(res.body.host).toBe("Ana");
+    expect(res.body.seats).toBe(5); // maxPlayers + host
+  });
+
+  it("falls back to bggThumbnail when there is no bggImage", async () => {
+    const host = await createUser();
+    const table = await createTable(host, {
+      bggImage: null,
+      bggThumbnail: "https://cf.geekdo-images.com/thumb.jpg",
+    });
+    const res = await request(app).get(`/api/tables/${table._id}/og`);
+    expect(res.status).toBe(200);
+    expect(res.body.image).toBe("https://cf.geekdo-images.com/thumb.jpg");
+  });
+
+  it("private table → 404 with empty body", async () => {
+    const host = await createUser();
+    const table = await createTable(host, { privacy: "private" });
+    const res = await request(app).get(`/api/tables/${table._id}/og`);
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({});
+  });
+
+  it("friends table → 404 with empty body", async () => {
+    const host = await createUser();
+    const table = await createTable(host, { privacy: "friends" });
+    const res = await request(app).get(`/api/tables/${table._id}/og`);
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({});
+  });
+
+  it("cancelled table → 404 with empty body", async () => {
+    const host = await createUser();
+    const table = await createTable(host, { status: "cancelled" });
+    const res = await request(app).get(`/api/tables/${table._id}/og`);
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({});
+  });
+
+  it("nonexistent table → 404 with empty body", async () => {
+    const res = await request(app).get(
+      `/api/tables/${"a".repeat(24)}/og`,
+    );
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({});
+  });
+});
+
 // Mesa "finalizada" (date pasada) → freeze para todos menos admin. Chat,
 // comments, fotos y ratings siguen abiertos (otras suites los cubren).
 describe("Past mesa freeze (date < now)", () => {

@@ -570,6 +570,48 @@ router.post(
 // GET /api/tables/:id — public para mesas públicas; auth requerido para
 // privadas; las `friends` solo son accesibles a host, players o amigos del
 // host (404 al resto, para no revelar existencia — ver tablePrivacy.js).
+// ── GET /api/tables/:id/og — public OG data for crawlers (no auth) ─────────
+// Espeja /api/compartidas/:id/og: responde 404 con body vacío (no { message })
+// para crawlers. Solo mesas públicas no canceladas — las privadas/amigos son
+// "ocultas" y no se comparten (ver gating de privacy 2026-05). La `image` es la
+// del juego (bggImage de alta resolución, fallback al thumbnail), para que el
+// preview muestre la tapa del juego en vez del og-default.
+router.get(
+  "/:id/og",
+  asyncHandler(async (req, res) => {
+    try {
+      const table = await Table.findById(req.params.id)
+        .populate("host", "username displayName")
+        .select(
+          "boardGame bggImage bggThumbnail privacy status date location host maxPlayers players",
+        );
+      if (
+        !table ||
+        table.privacy !== "public" ||
+        table.status === "cancelled"
+      ) {
+        return res.status(404).json({});
+      }
+      res.json({
+        boardGame: table.boardGame || null,
+        image: table.bggImage || table.bggThumbnail || null,
+        date: table.date,
+        location:
+          typeof table.location === "string"
+            ? table.location
+            : table.location?.texto || null,
+        host: table.host
+          ? table.host.displayName || table.host.username
+          : null,
+        seats: table.maxPlayers + 1,
+        players: (table.players?.length || 0) + 1,
+      });
+    } catch {
+      res.status(500).json({});
+    }
+  }),
+);
+
 router.get(
   "/:id",
   optionalAuth,
