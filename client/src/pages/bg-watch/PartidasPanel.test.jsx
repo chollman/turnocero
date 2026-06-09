@@ -21,6 +21,23 @@ vi.mock("./Pagination", () => ({
   default: () => <div data-testid="pagination" />,
 }));
 vi.mock("./useBggUserMap", () => ({ default: () => ({}) }));
+// Sidebar widgets — stubbed so we only assert mount/unmount per view mode here
+// (each widget has its own test). They expose the data they received.
+vi.mock("./widgets/Heatmap", () => ({
+  default: ({ heatmap }) => (
+    <div data-testid="heatmap" data-len={String((heatmap || []).length)} />
+  ),
+}));
+vi.mock("./widgets/TopCollectionWidget", () => ({
+  default: ({ games }) => (
+    <div data-testid="top-collection" data-len={String((games || []).length)} />
+  ),
+}));
+vi.mock("./widgets/WinRateWidget", () => ({
+  default: ({ wins, rated }) => (
+    <div data-testid="win-rate" data-wins={String(wins)} data-rated={String(rated)} />
+  ),
+}));
 
 import PartidasPanel from "./PartidasPanel";
 
@@ -51,6 +68,20 @@ beforeEach(() => {
     ),
     http.get("/api/bgg/juegos-jugados/:bggUsername", () =>
       HttpResponse.json([]),
+    ),
+    http.get("/api/bgg/resumen/:bggUsername", () =>
+      HttpResponse.json({
+        overallStats: {
+          totalWins: 0,
+          totalRated: 0,
+          totalPlays: 0,
+          uniqueGames: 0,
+          avgDuration: null,
+          firstDate: null,
+          lastDate: null,
+        },
+        heatmap: [],
+      }),
     ),
   );
 });
@@ -277,6 +308,47 @@ describe("<PartidasPanel>", () => {
       expect(onMetaChange).toHaveBeenCalled();
     });
     expect(onMetaChange.mock.calls[0][0].topGame).toBeNull();
+  });
+
+  it("renders the sidebar widgets in list mode", async () => {
+    renderPanel();
+    await waitFor(() => {
+      expect(screen.getByTestId("heatmap")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("top-collection")).toBeInTheDocument();
+    expect(screen.getByTestId("win-rate")).toBeInTheDocument();
+  });
+
+  it("hides the sidebar widgets in 'Por juego' mode", async () => {
+    renderPanel({ collection: [{ id: 13, name: "Catán", numPlays: 5 }] });
+    await screen.findByTestId("heatmap");
+    fireEvent.click(screen.getByRole("button", { name: "Por juego" }));
+    expect(screen.queryByTestId("heatmap")).toBeNull();
+    expect(screen.queryByTestId("win-rate")).toBeNull();
+  });
+
+  it("feeds win-rate from the /resumen aggregation, not the page sample", async () => {
+    server.use(
+      http.get("/api/bgg/resumen/:bggUsername", () =>
+        HttpResponse.json({
+          overallStats: {
+            totalWins: 8,
+            totalRated: 20,
+            totalPlays: 25,
+            uniqueGames: 12,
+            avgDuration: 75,
+            firstDate: "2025-01-01",
+            lastDate: "2026-06-01",
+          },
+          heatmap: [{ date: "2026-06-01", count: 3 }],
+        }),
+      ),
+    );
+    renderPanel();
+    const winRate = await screen.findByTestId("win-rate");
+    expect(winRate.dataset.wins).toBe("8");
+    expect(winRate.dataset.rated).toBe("20");
+    expect(screen.getByTestId("heatmap").dataset.len).toBe("1");
   });
 
   it("clicking a filter chip changes its active class", async () => {

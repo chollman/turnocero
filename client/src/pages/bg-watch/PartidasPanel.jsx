@@ -6,6 +6,9 @@ import PlayCard from "./PlayCard";
 import PlayCardSkeleton from "./PlayCardSkeleton";
 import GameCardSkeleton from "./GameCardSkeleton";
 import Pagination from "./Pagination";
+import Heatmap from "./widgets/Heatmap";
+import TopCollectionWidget from "./widgets/TopCollectionWidget";
+import WinRateWidget from "./widgets/WinRateWidget";
 import useBggUserMap from "./useBggUserMap";
 import { formatExactDateTime } from "../../utils/time";
 import styles from "./BgWatchProfile.module.css";
@@ -105,6 +108,12 @@ export default function PartidasPanel({
   const [gamesPage, setGamesPage] = useState(1);
   const [playedGamesFromServer, setPlayedGamesFromServer] = useState(null);
 
+  // ── Sidebar (modo lista) ── resumen agregado para heatmap + win-rate. Se
+  // trae UNA vez por perfil (no por página/filtro): win-rate y heatmap salen
+  // de la agregación COMPLETA del log, así que NO se deben recomputar del
+  // page-sample. refetch solo en cambio de usuario o "Actualizar".
+  const [resumen, setResumen] = useState(null);
+
   const cooldownRemaining = Math.max(
     0,
     Math.ceil((cooldownUntil - now) / 1000),
@@ -184,6 +193,24 @@ export default function PartidasPanel({
       })
       .catch(() => {
         if (!cancelled) setPlayedGamesFromServer([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bggUsername, refreshTick]);
+
+  // Resumen para el sidebar (heatmap + win-rate). Independiente de
+  // página/filtro: derivado del log completo. Falla en silencio (sidebar
+  // degradado, no rompe la lista).
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get(API.bgg.RESUMEN(bggUsername))
+      .then(({ data }) => {
+        if (!cancelled) setResumen(data);
+      })
+      .catch(() => {
+        if (!cancelled) setResumen(null);
       });
     return () => {
       cancelled = true;
@@ -295,7 +322,8 @@ export default function PartidasPanel({
       </div>
 
       {viewMode === "list" && (
-        <>
+        <div className={styles.partidasLayout}>
+          <div className={styles.playsMain}>
           {loading && (
             <div className={styles.playsList}>
               {[0, 1, 2, 3, 4].map((i) => (
@@ -337,6 +365,7 @@ export default function PartidasPanel({
                   play={play}
                   index={i}
                   userMap={userMap}
+                  bggUsername={bggUsername}
                   onClick={() => onPlayClick(play)}
                   onEdit={onPlayEdit ? () => onPlayEdit(play) : undefined}
                   onDelete={onPlayDelete ? () => onPlayDelete(play) : undefined}
@@ -352,7 +381,20 @@ export default function PartidasPanel({
               />
             </div>
           )}
-        </>
+          </div>
+
+          <aside className={styles.playsSideCol}>
+            <Heatmap heatmap={resumen?.heatmap} />
+            <TopCollectionWidget
+              games={playedGames || []}
+              bggUsername={bggUsername}
+            />
+            <WinRateWidget
+              wins={resumen?.overallStats?.totalWins || 0}
+              rated={resumen?.overallStats?.totalRated || 0}
+            />
+          </aside>
+        </div>
       )}
 
       {viewMode === "byGame" && (

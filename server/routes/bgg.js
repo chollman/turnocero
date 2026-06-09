@@ -29,6 +29,8 @@ const bggMutationLimiter = userRateLimit({
 });
 const {
   computeGameStats,
+  computeOverallStats,
+  computeActivityHeatmap,
   computeCoPlayerStats,
   computeLastJuntada,
   computePlayedGames,
@@ -509,6 +511,27 @@ router.get(
       });
       throw httpError(500, "No se pudieron computar los juegos jugados");
     }
+  }),
+);
+
+// GET /api/bgg/resumen/:bggUsername — agregados para el sidebar del perfil de
+// BG Watch (widgets de heatmap de actividad + win-rate). Se computa UNA vez por
+// perfil (independiente de la paginación/filtro de la lista de partidas), por
+// eso no se cuelga de /partidas. Derivado del log COMPLETO de BggPlay, así que
+// win-rate y totales son correctos sin importar qué página se ve. Público
+// (optionalAuth), igual que el resto de las lecturas de BG Watch.
+router.get(
+  "/resumen/:bggUsername",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const lower = req.params.bggUsername.toLowerCase();
+    const selfKeys = await loadSelfKeys(lower);
+    const [overallStats, heatmap] = await Promise.all([
+      computeOverallStats(lower, { selfKeys }),
+      // ~13 semanas atrás (la grilla del heatmap muestra 13 columnas).
+      computeActivityHeatmap(lower, { sinceDate: daysAgoStr(91) }),
+    ]);
+    res.json({ overallStats, heatmap });
   }),
 );
 

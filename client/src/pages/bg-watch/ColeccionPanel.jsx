@@ -16,16 +16,23 @@ function StarRating({ value }) {
 function GameCard({ game, index = 0, logPlayHref = null }) {
   return (
     <div className={styles.gameCard} style={{ "--i": index }}>
-      {game.image || game.thumbnail ? (
-        <img
-          src={game.image || game.thumbnail}
-          alt={game.name}
-          className={styles.gameThumbnail}
-          loading="lazy"
-        />
-      ) : (
-        <div className={styles.gameThumbnailPlaceholder}>🎲</div>
-      )}
+      <div className={styles.gameThumbWrap}>
+        {game.image || game.thumbnail ? (
+          <img
+            src={game.image || game.thumbnail}
+            alt={game.name}
+            className={styles.gameThumbnail}
+            loading="lazy"
+          />
+        ) : (
+          <div className={styles.gameThumbnailPlaceholder}>🎲</div>
+        )}
+        <span
+          className={`${styles.gameCardCount} ${(game.numPlays || 0) === 0 ? styles.gameCardCountZero : ""}`}
+        >
+          {(game.numPlays || 0) === 0 ? "Sin jugar" : `${game.numPlays}×`}
+        </span>
+      </div>
       <div className={styles.gameInfo}>
         <div className={styles.gameName}>{game.name}</div>
         {game.yearPublished && (

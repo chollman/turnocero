@@ -38,6 +38,11 @@
   --green: #00d984;
   --orange: #f5a623;
   --purple: #b48cff;
+  /* Púrpura = acento de sección de BG Watch. Brand-stable: NO se overridea en
+     [data-theme="light"] (igual que --amber-light/-dark/-glow). */
+  --purple-light: #c9a9ff;
+  --purple-dark: #8f63e6;
+  --purple-glow: color-mix(in srgb, var(--purple) 22%, transparent);
   --gold: #ffd700;
 
   /* Accent helpers (opacity variants of brand colors — same in both themes) */

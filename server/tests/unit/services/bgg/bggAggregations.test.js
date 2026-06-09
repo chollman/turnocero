@@ -1,6 +1,8 @@
 const BggPlay = require("../../../../models/BggPlay");
 const {
   computeGameStats,
+  computeOverallStats,
+  computeActivityHeatmap,
   computeCoPlayerStats,
   computeLastJuntada,
   computePlayedGames,
@@ -154,6 +156,141 @@ describe("computeGameStats", () => {
       });
       expect(stats).toMatchObject({ wins: 1, rated: 1 });
     });
+  });
+});
+
+describe("computeOverallStats", () => {
+  it("devuelve la forma de ceros cuando no hay plays", async () => {
+    const stats = await computeOverallStats("alice");
+    expect(stats).toEqual({
+      totalWins: 0,
+      totalRated: 0,
+      totalPlays: 0,
+      uniqueGames: 0,
+      avgDuration: null,
+      firstDate: null,
+      lastDate: null,
+    });
+  });
+
+  it("totalWins/totalRated solo cuentan plays con el dueño (case-insensitive)", async () => {
+    await makePlay({
+      players: [
+        { username: "Alice", win: true },
+        { username: "bob", win: false },
+      ],
+    });
+    await makePlay({
+      players: [
+        { username: "ALICE", win: false },
+        { username: "bob", win: true },
+      ],
+    });
+    // Play sin alice — no cuenta como rated.
+    await makePlay({ players: [{ username: "bob", win: true }] });
+    const stats = await computeOverallStats("alice");
+    expect(stats.totalRated).toBe(2);
+    expect(stats.totalWins).toBe(1);
+  });
+
+  it("totalPlays suma quantity de TODAS las plays (con o sin el dueño)", async () => {
+    await makePlay({ quantity: 2, players: [{ username: "alice", win: true }] });
+    await makePlay({ quantity: 3, players: [{ username: "bob", win: true }] });
+    const stats = await computeOverallStats("alice");
+    expect(stats.totalPlays).toBe(5);
+    expect(stats.totalRated).toBe(1);
+  });
+
+  it("agrega a través de varios juegos (no filtra por gameId)", async () => {
+    await makePlay({ gameId: "100", players: [{ username: "alice", win: true }] });
+    await makePlay({ gameId: "200", players: [{ username: "alice", win: false }] });
+    const stats = await computeOverallStats("alice");
+    expect(stats.totalRated).toBe(2);
+    expect(stats.uniqueGames).toBe(2);
+  });
+
+  it("selfKeys: un alias 'sos vos' suma a wins + rated", async () => {
+    // El dueño jugó bajo el nombre "Ali" (sin username) y ganó.
+    await makePlay({ players: [{ name: "Ali", username: "", win: true }] });
+    // Otra con su username real, perdió.
+    await makePlay({ players: [{ name: "Alice", username: "alice", win: false }] });
+    const stats = await computeOverallStats("alice", {
+      selfKeys: ["u:alice", "n:ali"],
+    });
+    expect(stats.totalRated).toBe(2);
+    expect(stats.totalWins).toBe(1);
+  });
+
+  it("avgDuration ignora duration=0", async () => {
+    await makePlay({ duration: 60, players: [{ username: "alice", win: true }] });
+    await makePlay({ duration: 90, players: [{ username: "alice", win: true }] });
+    await makePlay({ duration: 0, players: [{ username: "alice", win: true }] });
+    const stats = await computeOverallStats("alice");
+    expect(stats.avgDuration).toBe(75);
+  });
+
+  it("uniqueGames cuenta gameId distintos y excluye null", async () => {
+    await makePlay({ gameId: "100" });
+    await makePlay({ gameId: "100" });
+    await makePlay({ gameId: "200" });
+    await makePlay({ gameId: null });
+    const stats = await computeOverallStats("alice");
+    expect(stats.uniqueGames).toBe(2);
+  });
+
+  it("firstDate/lastDate son el min/max de las fechas", async () => {
+    await makePlay({ date: "2026-01-01" });
+    await makePlay({ date: "2026-03-15" });
+    await makePlay({ date: "2025-12-01" });
+    const stats = await computeOverallStats("alice");
+    expect(stats.firstDate).toBe("2025-12-01");
+    expect(stats.lastDate).toBe("2026-03-15");
+  });
+
+  it("filtra por bggUsername", async () => {
+    await makePlay({ bggUsername: "alice", players: [{ username: "alice" }] });
+    await makePlay({ bggUsername: "bob", players: [{ username: "bob" }] });
+    expect((await computeOverallStats("alice")).totalPlays).toBe(1);
+    expect((await computeOverallStats("bob")).totalPlays).toBe(1);
+  });
+});
+
+describe("computeActivityHeatmap", () => {
+  it("devuelve lista vacía si no hay plays", async () => {
+    expect(await computeActivityHeatmap("alice")).toEqual([]);
+  });
+
+  it("agrupa por fecha sumando quantity, ordenado asc", async () => {
+    await makePlay({ date: "2026-01-10", quantity: 2 });
+    await makePlay({ date: "2026-01-10", quantity: 1 });
+    await makePlay({ date: "2026-01-05", quantity: 1 });
+    const heatmap = await computeActivityHeatmap("alice");
+    expect(heatmap).toEqual([
+      { date: "2026-01-05", count: 1 },
+      { date: "2026-01-10", count: 3 },
+    ]);
+  });
+
+  it("default quantity es 1 si falta", async () => {
+    await makePlay({ date: "2026-02-01", quantity: undefined });
+    const heatmap = await computeActivityHeatmap("alice");
+    expect(heatmap[0]).toEqual({ date: "2026-02-01", count: 1 });
+  });
+
+  it("sinceDate filtra fechas anteriores a la ventana", async () => {
+    await makePlay({ date: "2026-01-01" });
+    await makePlay({ date: "2026-03-01" });
+    const heatmap = await computeActivityHeatmap("alice", {
+      sinceDate: "2026-02-01",
+    });
+    expect(heatmap).toEqual([{ date: "2026-03-01", count: 1 }]);
+  });
+
+  it("filtra por bggUsername", async () => {
+    await makePlay({ bggUsername: "alice", date: "2026-01-01" });
+    await makePlay({ bggUsername: "bob", date: "2026-01-01" });
+    expect(await computeActivityHeatmap("alice")).toHaveLength(1);
+    expect(await computeActivityHeatmap("bob")).toHaveLength(1);
   });
 });
 
