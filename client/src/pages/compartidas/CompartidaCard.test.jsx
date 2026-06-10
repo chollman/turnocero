@@ -79,7 +79,13 @@ describe("<CompartidaCard>", () => {
     date: "2026-06-08",
     duration: 60,
     players: [
-      { name: "Martín", username: "martin", score: "85", win: true, position: 1 },
+      {
+        name: "Martín",
+        username: "martin",
+        score: "85",
+        win: true,
+        position: 1,
+      },
       { name: "Bob", username: "bob", score: "72", win: false, position: 2 },
     ],
   };
@@ -470,6 +476,44 @@ describe("<CompartidaCard>", () => {
     // hero polaroid + thumbnail strip → the extra photos are reachable
     expect(srcs).toContain("https://cdn/2.jpg");
     expect(srcs).toContain("https://cdn/3.jpg");
+  });
+
+  it("featured con scorecard: apila la foto grande arriba y la galería debajo", () => {
+    useAuth.mockReturnValue({ user: null });
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+    const { container } = render(
+      <MemoryRouter>
+        <CompartidaCard
+          post={makePost({ playResult: PLAY_RESULT, images: photoUrls(3) })}
+          featured
+          onDeleted={vi.fn()}
+          onUpdated={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    // Con scorecard a la izquierda, la columna de fotos se apila (stacked).
+    expect(
+      container.querySelector(".photosFeaturedStacked"),
+    ).toBeInTheDocument();
+  });
+
+  it("featured sin scorecard: la galería NO se apila (tira al costado)", () => {
+    useAuth.mockReturnValue({ user: null });
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+    const { container } = render(
+      <MemoryRouter>
+        <CompartidaCard
+          post={makePost({ images: photoUrls(3) })}
+          featured
+          onDeleted={vi.fn()}
+          onUpdated={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    expect(container.querySelector(".photosFeatured")).toBeInTheDocument();
+    expect(
+      container.querySelector(".photosFeaturedStacked"),
+    ).not.toBeInTheDocument();
   });
 
   // -----------------------------------------------------------------------

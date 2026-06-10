@@ -627,6 +627,172 @@ export default function CompartidaCard({
   // footer reactions/share row, and inline comments — clicking the card
   // navigates to the full post for the rest.
   if (featured && !editing) {
+    // ── Shared featured pieces ──
+    // Composed in two arrangements depending on whether the compartida carries
+    // a scorecard. With a scorecard the header (eyebrow + title + subtitle) is
+    // lifted to full width, then the games band, then a scorecard | photos
+    // grid — so the games sit below the title/subtitle and above both the
+    // scorecard and the photos. Without a scorecard the classic broadside is
+    // kept (text left, photo right).
+    const featuredEyebrow = (
+      <div className={styles.broadsideEyebrow}>
+        <ProfileLink
+          to={authorProfilePath}
+          className={styles.avatarLink}
+          label={`Ver perfil de ${authorName}`}
+        >
+          <Avatar user={post.author} size="xs" />
+        </ProfileLink>
+        <span>
+          Por{" "}
+          <ProfileLink to={authorProfilePath} className={styles.authorNameLink}>
+            <strong>{authorName}</strong>
+          </ProfileLink>{" "}
+          · {timeAgo(post.createdAt)}
+        </span>
+        {!authorInfo.isDeleted && (
+          <AuthorBgWatchLink author={post.author} enabled={bgwatchEnabled} />
+        )}
+      </div>
+    );
+
+    const featuredTitle = post.title ? (
+      <h2 className={styles.title}>{post.title}</h2>
+    ) : null;
+    const featuredSubtitle = post.body ? (
+      <p className={styles.pullQuote}>{pullQuote}</p>
+    ) : null;
+
+    const featuredGameTags =
+      post.boardGames?.length > 0 ? (
+        <div className={`${styles.gameTags} ${styles.gameTagsFeatured}`}>
+          {post.boardGames.map((g) => (
+            <span key={g.bggId} className={styles.gameTag}>
+              {g.thumbnail || g.image ? (
+                <img
+                  src={g.thumbnail || g.image}
+                  alt=""
+                  loading="lazy"
+                  className={styles.gameTagImg}
+                />
+              ) : (
+                <span className={styles.gameTagImg} aria-hidden="true">
+                  🎲
+                </span>
+              )}
+              <span className={styles.gameTagInfo}>
+                <span className={styles.gameTagName}>{g.name}</span>
+                {g.year && <span className={styles.gameTagYear}>{g.year}</span>}
+              </span>
+            </span>
+          ))}
+        </div>
+      ) : null;
+
+    const featuredScorecard = scProps ? (
+      <div className={styles.playResult}>
+        <Scorecard {...scProps} bgwatchEnabled={bgwatchEnabled} />
+      </div>
+    ) : null;
+
+    const featuredMeta = (
+      <div className={styles.broadsideMeta}>
+        <button
+          type="button"
+          className={`${styles.broadsideStat} ${liked ? styles.broadsideStatLiked : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleLike();
+          }}
+          aria-label={liked ? "Quitar me gusta" : "Me gusta"}
+        >
+          <span
+            className={`${styles.likeHeart} ${heartPopping ? styles.likeHeartPop : ""}`}
+          >
+            {liked ? (
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            ) : (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            )}
+          </span>
+          {likeCount}
+        </button>
+        <button
+          type="button"
+          className={`${styles.broadsideStat} ${showComments ? styles.broadsideStatActive : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleComments();
+          }}
+          aria-label={showComments ? "Ocultar comentarios" : "Ver comentarios"}
+          aria-expanded={showComments}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          {commentCount}
+        </button>
+      </div>
+    );
+
+    const featuredPhotos = (
+      <div
+        className={`${styles.photos} ${styles.photosFeatured} ${
+          showScorecard ? styles.photosFeaturedStacked : ""
+        }`}
+      >
+        <button
+          type="button"
+          className={styles.photoBtn}
+          onClick={() => post.images[0]?.url && setLightboxIndex(0)}
+          disabled={!post.images[0]?.url}
+        >
+          <Polaroid
+            image={post.images[0] || null}
+            index={0}
+            count={1}
+            withTape
+            caption="el momento exacto"
+          />
+        </button>
+        {imageCount > 1 && (
+          <div className={styles.featuredThumbs}>
+            {post.images.slice(1).map((img, i) => (
+              <button
+                key={img._id || i}
+                type="button"
+                className={styles.featuredThumb}
+                onClick={() => img.url && setLightboxIndex(i + 1)}
+                aria-label={`Ver foto ${i + 2}`}
+              >
+                <img src={img.url} alt="" loading="lazy" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+
     return (
       <>
         <LoginPromptModal
@@ -642,167 +808,37 @@ export default function CompartidaCard({
             <Meeple />
             Compartida del día
           </div>
-          <div className={styles.broadsideGrid}>
-            <div className={styles.broadsideMain}>
-              <div className={styles.broadsideEyebrow}>
-                <ProfileLink
-                  to={authorProfilePath}
-                  className={styles.avatarLink}
-                  label={`Ver perfil de ${authorName}`}
-                >
-                  <Avatar user={post.author} size="xs" />
-                </ProfileLink>
-                <span>
-                  Por{" "}
-                  <ProfileLink
-                    to={authorProfilePath}
-                    className={styles.authorNameLink}
-                  >
-                    <strong>{authorName}</strong>
-                  </ProfileLink>{" "}
-                  · {timeAgo(post.createdAt)}
-                </span>
-                {!authorInfo.isDeleted && (
-                  <AuthorBgWatchLink
-                    author={post.author}
-                    enabled={bgwatchEnabled}
-                  />
-                )}
+
+          {showScorecard ? (
+            <>
+              <div className={styles.broadsideHeader}>
+                {featuredEyebrow}
+                {featuredTitle}
+                {featuredSubtitle}
               </div>
 
-              {post.title && <h2 className={styles.title}>{post.title}</h2>}
-              {post.body && <p className={styles.pullQuote}>{pullQuote}</p>}
+              {featuredGameTags}
 
-              {post.boardGames?.length > 0 && (
-                <div className={styles.gameTags}>
-                  {post.boardGames.map((g) => (
-                    <span key={g.bggId} className={styles.gameTag}>
-                      {g.thumbnail || g.image ? (
-                        <img
-                          src={g.thumbnail || g.image}
-                          alt=""
-                          loading="lazy"
-                          className={styles.gameTagImg}
-                        />
-                      ) : (
-                        <span className={styles.gameTagImg} aria-hidden="true">
-                          🎲
-                        </span>
-                      )}
-                      <span className={styles.gameTagInfo}>
-                        <span className={styles.gameTagName}>{g.name}</span>
-                        {g.year && (
-                          <span className={styles.gameTagYear}>{g.year}</span>
-                        )}
-                      </span>
-                    </span>
-                  ))}
+              <div className={styles.broadsideGrid}>
+                <div className={styles.broadsideMain}>
+                  {featuredScorecard}
+                  {featuredMeta}
                 </div>
-              )}
-
-              {scProps && (
-                <div className={styles.playResult}>
-                  <Scorecard {...scProps} bgwatchEnabled={bgwatchEnabled} />
-                </div>
-              )}
-
-              <div className={styles.broadsideMeta}>
-                <button
-                  type="button"
-                  className={`${styles.broadsideStat} ${liked ? styles.broadsideStatLiked : ""}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLike();
-                  }}
-                  aria-label={liked ? "Quitar me gusta" : "Me gusta"}
-                >
-                  <span
-                    className={`${styles.likeHeart} ${heartPopping ? styles.likeHeartPop : ""}`}
-                  >
-                    {liked ? (
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                      </svg>
-                    ) : (
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                      </svg>
-                    )}
-                  </span>
-                  {likeCount}
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.broadsideStat} ${showComments ? styles.broadsideStatActive : ""}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleComments();
-                  }}
-                  aria-label={
-                    showComments ? "Ocultar comentarios" : "Ver comentarios"
-                  }
-                  aria-expanded={showComments}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                  {commentCount}
-                </button>
+                {featuredPhotos}
               </div>
+            </>
+          ) : (
+            <div className={styles.broadsideGrid}>
+              <div className={styles.broadsideMain}>
+                {featuredEyebrow}
+                {featuredTitle}
+                {featuredSubtitle}
+                {featuredGameTags}
+                {featuredMeta}
+              </div>
+              {featuredPhotos}
             </div>
-
-            <div className={`${styles.photos} ${styles.photosFeatured}`}>
-              <button
-                type="button"
-                className={styles.photoBtn}
-                onClick={() => post.images[0]?.url && setLightboxIndex(0)}
-                disabled={!post.images[0]?.url}
-              >
-                <Polaroid
-                  image={post.images[0] || null}
-                  index={0}
-                  count={1}
-                  withTape
-                  caption="el momento exacto"
-                />
-              </button>
-              {imageCount > 1 && (
-                <div className={styles.featuredThumbs}>
-                  {post.images.slice(1).map((img, i) => (
-                    <button
-                      key={img._id || i}
-                      type="button"
-                      className={styles.featuredThumb}
-                      onClick={() => img.url && setLightboxIndex(i + 1)}
-                      aria-label={`Ver foto ${i + 2}`}
-                    >
-                      <img src={img.url} alt="" loading="lazy" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          )}
 
           {featuredLinkedTickets}
 
