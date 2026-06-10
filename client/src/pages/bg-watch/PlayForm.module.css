@@ -1408,6 +1408,14 @@
   color: var(--gold);
   display: inline-flex;
 }
+/* "Nuevo" (✨): primera vez que el jugador juega el juego (autodetectado).
+   Espeja el ✨ de PlayCard y el badge del listado del form. */
+.scorecardNew {
+  display: inline-flex;
+  font-size: 11px;
+  line-height: 1;
+  flex-shrink: 0;
+}
 .scorecardSc {
   font-family: var(--font-display);
   font-size: 1rem;

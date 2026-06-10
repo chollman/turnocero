@@ -328,6 +328,15 @@ export default function Scorecard({
                     {p.leader && (
                       <span className={styles.scorecardCrown}>{ico.crown}</span>
                     )}
+                    {p.new && (
+                      <span
+                        className={styles.scorecardNew}
+                        title="Primera vez que lo juega"
+                        aria-label="Nuevo"
+                      >
+                        ✨
+                      </span>
+                    )}
                     {bgwatchEnabled && p.bgwatchHref && (
                       <Link
                         to={p.bgwatchHref}

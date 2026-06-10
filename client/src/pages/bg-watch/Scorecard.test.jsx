@@ -123,6 +123,61 @@ describe("<Scorecard>", () => {
     expect(screen.getByText(/¡ganaron!/i)).toBeInTheDocument();
   });
 
+  // ── Flag "Nuevo" (✨) ─────────────────────────────────────────────────
+  it("muestra ✨ Nuevo para el jugador con new:true", () => {
+    render(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        hasResult
+        rows={[row({ name: "Ana", new: true })]}
+      />,
+    );
+    expect(screen.getByLabelText("Nuevo")).toBeInTheDocument();
+  });
+
+  it("muestra ✨ Nuevo también en el ganador (líder + new)", () => {
+    render(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        hasResult
+        youWin
+        rows={[
+          row({ name: "Vos", you: true, leader: true, score: "10", new: true }),
+        ]}
+      />,
+    );
+    // El ganador lleva la corona Y el ✨ Nuevo (son independientes).
+    expect(screen.getByLabelText("Nuevo")).toBeInTheDocument();
+  });
+
+  it("no muestra ✨ Nuevo cuando new:false", () => {
+    render(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        hasResult
+        rows={[row({ name: "Ana", leader: true, score: "9" })]}
+      />,
+    );
+    expect(screen.queryByLabelText("Nuevo")).toBeNull();
+  });
+
+  it("publicView: el ganador con new:true muestra ✨ Nuevo", () => {
+    render(
+      <Scorecard
+        game={{ name: "X" }}
+        mode="versus"
+        publicView
+        rows={[
+          row({ name: "Beto", position: 1, score: "9", win: true, leader: true, new: true }),
+        ]}
+      />,
+    );
+    expect(screen.getByLabelText("Nuevo")).toBeInTheDocument();
+  });
+
   it("el anónimo se muestra con avatar fantasma (sin <Avatar>)", () => {
     render(
       <Scorecard
