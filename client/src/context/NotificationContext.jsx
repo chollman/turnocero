@@ -18,6 +18,7 @@ import {
   mergeNotifs,
   pushToast,
   markReadByPredicate,
+  markPlayLoadedById,
 } from "./notificationReducers";
 import { useNotificationSocket } from "./notificationListeners/useNotificationSocket";
 import { useTableNotificationListeners } from "./notificationListeners/useTableNotificationListeners";
@@ -290,6 +291,15 @@ export function NotificationProvider({ children }) {
       axios.patch(API.notifications.READ, {}).catch(() => {});
   }, []);
 
+  // Tras cargar una partida compartida (como aparece / con correcciones) el
+  // server ya marcó la notif `bgg_play_shared` como leída + cargada (no la
+  // borra). Reflejamos ese estado localmente: la tarjeta pierde los botones y
+  // queda como una notif común. Solo-cliente: el server ya persistió el cambio.
+  const markSharedPlayLoaded = useCallback((notifId) => {
+    if (!notifId) return;
+    setNotifications((prev) => markPlayLoadedById(prev, notifId));
+  }, []);
+
   const loadOlder = useCallback(async () => {
     const oldest = notifications.reduce((min, n) => {
       const t = new Date(n.updatedAt || n.timestamp || 0).getTime();
@@ -417,6 +427,7 @@ export function NotificationProvider({ children }) {
       loadOlder,
       clearAll,
       dismiss,
+      markSharedPlayLoaded,
       setActiveTable,
       setActiveTorneo,
       setActiveCompartida,
@@ -446,6 +457,7 @@ export function NotificationProvider({ children }) {
       loadOlder,
       clearAll,
       dismiss,
+      markSharedPlayLoaded,
       setActiveTable,
       setActiveTorneo,
       setActiveCompartida,

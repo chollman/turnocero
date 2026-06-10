@@ -229,6 +229,20 @@
   background: var(--amber-15);
 }
 
+/* Estado tras cargar la partida: la tarjeta deja de ser accionable y muestra
+   una confirmación discreta (no botones). Queda como notif común hasta limpiar. */
+.loadedStatus {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--green-10);
+  color: var(--green);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
 /* ── Confirm modal ── */
 .backdrop {
   position: fixed;

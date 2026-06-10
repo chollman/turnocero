@@ -10,9 +10,9 @@ vi.mock("../../context/AuthContext", () => ({
   useAuth: () => ({ user: mockUser }),
 }));
 const addToast = vi.fn();
-const dismiss = vi.fn();
+const markSharedPlayLoaded = vi.fn();
 vi.mock("../../context/NotificationContext", () => ({
-  useNotifications: () => ({ addToast, dismiss }),
+  useNotifications: () => ({ addToast, markSharedPlayLoaded }),
 }));
 
 // PlayForm stub: expone onSubmit/onCancel + lo que recibió. El onSubmit ahora
@@ -138,7 +138,7 @@ const clipboardWrite = vi.fn().mockResolvedValue(undefined);
 
 beforeEach(() => {
   addToast.mockClear();
-  dismiss.mockClear();
+  markSharedPlayLoaded.mockClear();
   clipboardWrite.mockClear();
   Object.defineProperty(navigator, "clipboard", {
     value: { writeText: clipboardWrite },
@@ -337,7 +337,7 @@ describe("<CreatePlay>", () => {
     expect(screen.getByTestId("carry-loc")).toHaveTextContent("Club");
   });
 
-  it("manda sharedFromNotifId en el POST y descarta la notif al guardar", async () => {
+  it("manda sharedFromNotifId en el POST y marca la notif como cargada al guardar", async () => {
     let body = null;
     server.use(
       http.post("/api/bgg/partidas", async ({ request }) => {
@@ -352,7 +352,9 @@ describe("<CreatePlay>", () => {
     fireEvent.click(screen.getByRole("button", { name: "submit" }));
     await waitFor(() => expect(body).not.toBeNull());
     expect(body.sharedFromNotifId).toBe("notif123");
-    await waitFor(() => expect(dismiss).toHaveBeenCalledWith("notif123"));
+    await waitFor(() =>
+      expect(markSharedPlayLoaded).toHaveBeenCalledWith("notif123"),
+    );
   });
 
   // ── Sección 5: "Compartí esta partida" ──────────────────────────────

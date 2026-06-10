@@ -128,6 +128,11 @@ const notificationSchema = new mongoose.Schema(
     // upsert para que cada partida sea una notif distinta (sin él, varias
     // partidas del mismo autor al mismo destinatario se pisarían).
     playId: { type: String, default: null },
+    // Marca que el destinatario YA cargó la partida compartida (como aparece o
+    // con correcciones). Al cargarla la notif NO se borra: pasa a leída y sin
+    // botones de acción, quedando como una notif común hasta que el usuario la
+    // limpie. Solo aplica a `bgg_play_shared`.
+    playLoaded: { type: Boolean, default: false },
     // `gameName` (declarado arriba para eventos) se reusa para el nombre del
     // juego de la partida compartida.
     // Snapshot embebido de la partida — la tarjeta de la bandeja es

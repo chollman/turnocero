@@ -30,7 +30,7 @@ export default function CreatePlay() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { addToast, dismiss } = useNotifications();
+  const { addToast, markSharedPlayLoaded } = useNotifications();
   // Prefill desde una notif de "partida compartida" (botón "cargar con
   // correcciones"). `sharedFromNotifId` viaja al POST para agradecer al autor
   // y cerrar su notif en el server.
@@ -185,9 +185,10 @@ export default function CreatePlay() {
       return;
     }
 
-    // Partida OK desde acá. Si vino de aceptar una partida compartida, sacamos
-    // la notif de la bandeja (el server también la borra al agradecer al autor).
-    if (sharedFromNotifId) dismiss(sharedFromNotifId);
+    // Partida OK desde acá. Si vino de aceptar una partida compartida, marcamos
+    // su notif como cargada (el server ya la dejó leída al agradecer al autor):
+    // pierde los botones pero queda en la bandeja hasta que el usuario la limpie.
+    if (sharedFromNotifId) markSharedPlayLoaded(sharedFromNotifId);
 
     // 2. Sección 5 opcional: crear la juntada + copiar el deeplink (aislado).
     const shareResult = await runShare(share);

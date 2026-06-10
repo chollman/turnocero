@@ -133,7 +133,7 @@ describe("bggPlayShare", () => {
   });
 
   describe("acknowledgeSharedPlay", () => {
-    it("thanks the author and deletes the original shared notif", async () => {
+    it("thanks the author and marks the shared notif as loaded (does not delete it)", async () => {
       const alice = await createUser({ bggUsername: "alice" });
       const bob = await createUser({
         username: "bob_tc",
@@ -158,8 +158,13 @@ describe("bggPlayShare", () => {
       });
 
       expect(result).toBeTruthy();
-      // La notif original (a Bob) se borró.
-      expect(await Notification.findById(shared._id)).toBeNull();
+      // La notif original (a Bob) NO se borra: queda como notif común, leída y
+      // marcada como cargada (sin botones de acción en la tarjeta).
+      const after = await Notification.findById(shared._id).lean();
+      expect(after).toBeTruthy();
+      expect(after.read).toBe(true);
+      expect(after.playLoaded).toBe(true);
+      expect(after.count).toBe(0);
       // Alice recibe el agradecimiento.
       const thanks = await Notification.findOne({
         type: "bgg_play_accepted",
@@ -172,6 +177,31 @@ describe("bggPlayShare", () => {
         "bgg:play-accepted",
         expect.objectContaining({ playId: "999" }),
       );
+    });
+
+    it("is idempotent: a second call on an already-loaded notif does not re-thank", async () => {
+      const alice = await createUser({ bggUsername: "alice" });
+      const bob = await createUser({ bggUsername: "bob" });
+      const shared = await Notification.create({
+        recipient: bob._id,
+        type: "bgg_play_shared",
+        fromUserId: String(alice._id),
+        playId: "999",
+        playSnapshot: { playId: "999", gameId: "13", players: [] },
+      });
+      const { req } = makeReq();
+
+      await acknowledgeSharedPlay({ req, recipient: bob, notifId: shared._id });
+      // Segunda carga (POST stale): no-op, no se genera otro agradecimiento.
+      const second = await acknowledgeSharedPlay({
+        req,
+        recipient: bob,
+        notifId: shared._id,
+      });
+      expect(second).toBeNull();
+      expect(
+        await Notification.countDocuments({ type: "bgg_play_accepted" }),
+      ).toBe(1);
     });
 
     it("is a no-op for an invalid notifId", async () => {

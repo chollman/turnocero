@@ -1420,10 +1420,13 @@ router.post(
     if (!/^[a-fA-F0-9]{24}$/.test(String(notifId))) {
       throw httpError(400, "Notificación inválida");
     }
+    // `playLoaded: { $ne: true }` evita recargar dos veces la misma partida en
+    // BGG si llega un POST stale (la tarjeta ya esconde el botón al cargarla).
     const notif = await Notification.findOne({
       _id: notifId,
       recipient: user._id,
       type: "bgg_play_shared",
+      playLoaded: { $ne: true },
     });
     if (!notif || !notif.playSnapshot) {
       throw httpError(404, "La partida compartida ya no está disponible");

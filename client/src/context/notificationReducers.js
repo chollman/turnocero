@@ -1008,6 +1008,18 @@ export function markReadByPredicate(notifications, predicate) {
   return notifications.map((n) => (predicate(n) ? resetRead(n) : n));
 }
 
+// Marca una notif puntual (por id) como cargada: leída, count 0 y `playLoaded`,
+// para que la tarjeta de partida compartida (`bgg_play_shared`) deje de mostrar
+// los botones de carga y quede como una notif común. A diferencia de `dismiss`,
+// NO la saca de la bandeja: sigue ahí hasta que el usuario la limpie.
+export function markPlayLoadedById(notifications, id) {
+  return notifications.map((n) =>
+    (n.notifId || n._id) === id
+      ? { ...n, read: true, count: 0, playLoaded: true }
+      : n,
+  );
+}
+
 // Para evitar callers re-importando findExisting que ya no es público,
 // lo dejamos exportable por si algún test lo necesita.
 export { findExisting };

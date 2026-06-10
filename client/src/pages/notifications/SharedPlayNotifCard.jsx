@@ -20,7 +20,7 @@ import styles from "./SharedPlayNotifCard.module.css";
 // BGG conectado, ofrece conectar en vez de los botones de carga.
 export default function SharedPlayNotifCard({ notif }) {
   const { user } = useAuth();
-  const { dismiss, addToast } = useNotifications();
+  const { dismiss, markSharedPlayLoaded, addToast } = useNotifications();
   const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -39,7 +39,11 @@ export default function SharedPlayNotifCard({ notif }) {
     try {
       await axios.post(API.bgg.PARTIDA_COMPARTIDA(notifId));
       addToast({ type: "success", message: "¡Partida cargada en BGG!" });
-      dismiss(notifId);
+      // No se descarta: el server la marcó como leída + cargada. La tarjeta
+      // pierde los botones y queda como una notif común hasta que la limpien.
+      markSharedPlayLoaded(notifId);
+      setConfirmOpen(false);
+      setSubmitting(false);
     } catch (err) {
       addToast({
         type: "error",
@@ -137,7 +141,12 @@ export default function SharedPlayNotifCard({ notif }) {
         </ul>
       )}
 
-      {connected ? (
+      {notif.playLoaded ? (
+        <div className={styles.loadedStatus}>
+          <NotifIcon name="Check" size={15} />
+          Cargaste esta partida en tu cuenta de BGG
+        </div>
+      ) : connected ? (
         <div className={styles.actions}>
           <button
             type="button"

@@ -9,9 +9,10 @@ vi.mock("../../context/AuthContext", () => ({
   useAuth: () => ({ user: mockUser }),
 }));
 const dismiss = vi.fn();
+const markSharedPlayLoaded = vi.fn();
 const addToast = vi.fn();
 vi.mock("../../context/NotificationContext", () => ({
-  useNotifications: () => ({ dismiss, addToast }),
+  useNotifications: () => ({ dismiss, markSharedPlayLoaded, addToast }),
 }));
 
 import SharedPlayNotifCard from "./SharedPlayNotifCard";
@@ -72,6 +73,7 @@ function renderCard(notif = baseNotif) {
 
 beforeEach(() => {
   dismiss.mockClear();
+  markSharedPlayLoaded.mockClear();
   addToast.mockClear();
   mockUser = {
     _id: "me",
@@ -114,7 +116,7 @@ describe("<SharedPlayNotifCard>", () => {
     expect(link).toHaveAttribute("href", "/perfil");
   });
 
-  it("'como aparece' confirma, postea y descarta la notif", async () => {
+  it("'como aparece' confirma, postea y marca la notif como cargada (no la descarta)", async () => {
     let posted = false;
     server.use(
       http.post("/api/bgg/partidas/compartida/:id", ({ params }) => {
@@ -128,13 +130,17 @@ describe("<SharedPlayNotifCard>", () => {
     const confirm = await screen.findByRole("button", { name: /sí, cargar/i });
     fireEvent.click(confirm);
     await waitFor(() => expect(posted).toBe(true));
-    await waitFor(() => expect(dismiss).toHaveBeenCalledWith("n1"));
+    // Se marca como cargada (queda en la bandeja), NO se descarta.
+    await waitFor(() =>
+      expect(markSharedPlayLoaded).toHaveBeenCalledWith("n1"),
+    );
+    expect(dismiss).not.toHaveBeenCalled();
     expect(addToast).toHaveBeenCalledWith(
       expect.objectContaining({ type: "success" }),
     );
   });
 
-  it("error al cargar como aparece → toast de error, no descarta", async () => {
+  it("error al cargar como aparece → toast de error, no marca como cargada", async () => {
     server.use(
       http.post("/api/bgg/partidas/compartida/:id", () =>
         HttpResponse.json({ message: "boom" }, { status: 502 }),
@@ -148,7 +154,23 @@ describe("<SharedPlayNotifCard>", () => {
         expect.objectContaining({ type: "error" }),
       ),
     );
+    expect(markSharedPlayLoaded).not.toHaveBeenCalled();
     expect(dismiss).not.toHaveBeenCalled();
+  });
+
+  it("una notif ya cargada (playLoaded): sin botones de carga, muestra confirmación", () => {
+    renderCard({ ...baseNotif, read: true, playLoaded: true });
+    expect(screen.queryByRole("button", { name: /como aparece/i })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /con correcciones/i }),
+    ).toBeNull();
+    expect(screen.getByText(/cargaste esta partida/i)).toBeInTheDocument();
+    // Sigue en la bandeja: el juego y los jugadores se muestran igual.
+    expect(screen.getByText("Catán")).toBeInTheDocument();
+    // La X para descartar sigue disponible.
+    expect(
+      screen.getByRole("button", { name: /descartar/i }),
+    ).toBeInTheDocument();
   });
 
   it("'con correcciones' navega al form con prefill + sharedFromNotifId", async () => {

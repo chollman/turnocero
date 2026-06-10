@@ -28,6 +28,7 @@ import {
   applyBggPlaySharedNotif,
   applyBggPlayAcceptedNotif,
   markReadByPredicate,
+  markPlayLoadedById,
   EVENT_SECTION,
   EVENTO_TYPE_MAP,
 } from "./notificationReducers";
@@ -922,6 +923,38 @@ describe("markReadByPredicate", () => {
       read: true,
     });
     expect(out[1]).toEqual(prev[1]); // no se toca
+  });
+});
+
+describe("markPlayLoadedById", () => {
+  it("marca la notif por id como leída + count 0 + playLoaded, sin tocar las demás", () => {
+    const prev = [
+      { notifId: "n1", type: "bgg_play_shared", count: 1, read: false },
+      { notifId: "n2", type: "bgg_play_shared", count: 1, read: false },
+    ];
+    const out = markPlayLoadedById(prev, "n1");
+    expect(out[0]).toEqual({
+      notifId: "n1",
+      type: "bgg_play_shared",
+      count: 0,
+      read: true,
+      playLoaded: true,
+    });
+    expect(out[1]).toEqual(prev[1]); // intacta
+  });
+
+  it("matchea también por _id (sin notifId) y no la saca del listado", () => {
+    const prev = [{ _id: "x9", type: "bgg_play_shared", read: false }];
+    const out = markPlayLoadedById(prev, "x9");
+    expect(out).toHaveLength(1);
+    expect(out[0].playLoaded).toBe(true);
+    expect(out[0].read).toBe(true);
+  });
+
+  it("no cambia nada si ningún id matchea", () => {
+    const prev = [{ notifId: "n1", read: false }];
+    const out = markPlayLoadedById(prev, "zzz");
+    expect(out[0]).toEqual(prev[0]);
   });
 });
 

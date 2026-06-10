@@ -88,15 +88,19 @@ async function notifyPlayParticipants({ req, author, body, playId }) {
 }
 
 // Cuando un destinatario carga la partida compartida (como aparece o con
-// correcciones), agradece al autor y borra la notif original (idempotente:
-// no-op si ya se resolvió / el notifId es inválido). Devuelve la notif
-// consumida o null.
+// correcciones), agradece al autor y marca la notif original como cargada. NO
+// la borra: pasa a leída + `playLoaded`, así la tarjeta pierde los botones de
+// acción y queda como una notif común hasta que el usuario la limpie.
+// Idempotente: el filtro `playLoaded: { $ne: true }` evita re-agradecer si la
+// partida ya se cargó (o si el notifId es inválido / no es del destinatario).
+// Devuelve la notif consumida o null.
 async function acknowledgeSharedPlay({ req, recipient, notifId }) {
   if (!notifId || !mongoose.isValidObjectId(notifId)) return null;
   const notif = await Notification.findOne({
     _id: notifId,
     recipient: recipient._id,
     type: "bgg_play_shared",
+    playLoaded: { $ne: true },
   });
   if (!notif) return null;
 
@@ -114,7 +118,12 @@ async function acknowledgeSharedPlay({ req, recipient, notifId }) {
     {},
   ).catch(() => {});
 
-  await Notification.deleteOne({ _id: notif._id });
+  // Marcada como cargada + leída (count: 0 sigue el contrato de markRead). La
+  // notif sobrevive en la bandeja del destinatario hasta que la descarte.
+  await Notification.updateOne(
+    { _id: notif._id },
+    { $set: { read: true, count: 0, playLoaded: true } },
+  );
   return notif;
 }
 

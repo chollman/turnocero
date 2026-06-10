@@ -142,7 +142,7 @@ describe("BGG partida compartida", () => {
     expect(notifs[0].playSnapshot.location).toBeUndefined();
   });
 
-  it("(b) POST /partidas/compartida/:notifId carga la partida, agradece y borra la notif", async () => {
+  it("(b) POST /partidas/compartida/:notifId carga la partida, agradece y marca la notif como cargada", async () => {
     const alice = await makeConnectedUser({ bggUsername: "alice" });
     const bob = await makeConnectedUser({
       username: "bob_tc",
@@ -194,8 +194,11 @@ describe("BGG partida compartida", () => {
     expect(String(geekplayCall[1]?.body || "")).not.toContain("location");
     expect(String(geekplayCall[1]?.body || "")).not.toContain("Sala");
 
-    // La notif original se borró.
-    expect(await Notification.findById(shared._id)).toBeNull();
+    // La notif original NO se borra: queda como notif común, leída y cargada.
+    const after = await Notification.findById(shared._id).lean();
+    expect(after).toBeTruthy();
+    expect(after.read).toBe(true);
+    expect(after.playLoaded).toBe(true);
     // Alice recibe el agradecimiento.
     const thanks = await Notification.findOne({
       type: "bgg_play_accepted",
@@ -203,13 +206,14 @@ describe("BGG partida compartida", () => {
     expect(thanks).toBeTruthy();
     expect(String(thanks.recipient)).toBe(String(alice.user._id));
     expect(thanks.fromUserId).toBe(String(bob.user._id));
-    // Aceptar NO genera nuevas notifs bgg_play_shared (sin cadenas).
+    // Aceptar NO genera nuevas notifs bgg_play_shared (sin cadenas): la única
+    // que existe es la original (de Bob), ahora cargada.
     expect(await Notification.countDocuments({ type: "bgg_play_shared" })).toBe(
-      0,
+      1,
     );
   });
 
-  it("(c) POST /partidas con sharedFromNotifId agradece, borra y NO notifica participantes", async () => {
+  it("(c) POST /partidas con sharedFromNotifId agradece, marca como cargada y NO notifica participantes", async () => {
     const alice = await makeConnectedUser({ bggUsername: "alice" });
     const bob = await makeConnectedUser({ bggUsername: "bob" });
     const shared = await Notification.create({
@@ -237,14 +241,22 @@ describe("BGG partida compartida", () => {
       .send({ ...bodyWithBob(), sharedFromNotifId: String(shared._id) });
     expect(res.status).toBe(200);
 
-    expect(await Notification.findById(shared._id)).toBeNull();
+    // La notif original (de Bob) NO se borra: queda leída y cargada.
+    const after = await Notification.findById(shared._id).lean();
+    expect(after).toBeTruthy();
+    expect(after.read).toBe(true);
+    expect(after.playLoaded).toBe(true);
     expect(
       await Notification.countDocuments({ type: "bgg_play_accepted" }),
     ).toBe(1);
-    // Clave: la rama de aceptación NO re-notifica a los participantes.
-    expect(await Notification.countDocuments({ type: "bgg_play_shared" })).toBe(
-      0,
-    );
+    // Clave: la rama de aceptación NO re-notifica a los participantes — Alice
+    // (co-jugadora en la carga corregida) no recibe una bgg_play_shared.
+    expect(
+      await Notification.countDocuments({
+        type: "bgg_play_shared",
+        recipient: alice.user._id,
+      }),
+    ).toBe(0);
   });
 
   it("(d) POST /partidas/compartida devuelve 400 si el destinatario no tiene BGG conectado", async () => {
