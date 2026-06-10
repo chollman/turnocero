@@ -735,6 +735,117 @@ async function computeCoPlayerStats(
   };
 }
 
+// Partidas del dueño con EXACTAMENTE el mismo grupo de jugadores que una
+// partida dada (roster idéntico como conjunto, sin importar orden ni asientos
+// vacíos). La identidad de cada integrante es su clave canónica: si la rawKey
+// (`u:`/`n:`, ver rawKeyFor) está reclamada por un overlay (fusión/alias de
+// curación), identifica el overlay (`o:<id>`) — así una partida donde el mismo
+// humano aparece bajo un alias fusionado matchea igual. Sin overlayIndex cae a
+// la rawKey pura.
+//
+// Devuelve null si la partida no existe. `matchedPlays` INCLUYE la partida de
+// referencia (orden date desc, playId desc — memory: feedback-mongo-latest-
+// tiebreak no aplica acá porque playId desc ya desempata): los totales leen
+// mejor incluyéndola ("jugaron juntos N veces"); el caller decide si la
+// excluye del listado.
+async function computeGroupStats(
+  lowerBggUsername,
+  playId,
+  { overlayIndex = null } = {},
+) {
+  const target = await BggPlay.findOne({
+    bggUsername: lowerBggUsername,
+    playId: String(playId),
+  }).lean();
+  if (!target) return null;
+
+  const canonicalKey = (pl) => {
+    const key = rawKeyFor(pl);
+    const overlay = overlayIndex?.byKey?.get(key);
+    return overlay ? `o:${overlay._id}` : `k:${key}`;
+  };
+  const rosterOf = (play) => {
+    const set = new Set();
+    for (const pl of play.players || []) {
+      if (!(pl.name || "").trim() && !(pl.username || "").trim()) continue;
+      set.add(canonicalKey(pl));
+    }
+    return set;
+  };
+
+  const targetRoster = rosterOf(target);
+  const allPlays = await BggPlay.find({ bggUsername: lowerBggUsername }).lean();
+  const matchedPlays = allPlays
+    .filter((p) => {
+      const roster = rosterOf(p);
+      if (roster.size !== targetRoster.size) return false;
+      for (const k of roster) if (!targetRoster.has(k)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (a.date !== b.date) return (b.date || "").localeCompare(a.date || "");
+      return String(b.playId || "").localeCompare(String(a.playId || ""));
+    });
+
+  // Victorias por integrante + juegos jugados por el grupo. Cuenta SESIONES
+  // (cada doc = 1), igual que computeCoPlayerStats.
+  const winsByKey = new Map([...targetRoster].map((k) => [k, 0]));
+  let firstPlayedDate = null;
+  let lastPlayedDate = null;
+  const byGame = new Map();
+  for (const p of matchedPlays) {
+    const winnerKeys = new Set(
+      (p.players || []).filter((pl) => pl.win === true).map(canonicalKey),
+    );
+    for (const k of winnerKeys) {
+      if (winsByKey.has(k)) winsByKey.set(k, winsByKey.get(k) + 1);
+    }
+    if (p.date) {
+      if (!firstPlayedDate || p.date < firstPlayedDate)
+        firstPlayedDate = p.date;
+      if (!lastPlayedDate || p.date > lastPlayedDate) lastPlayedDate = p.date;
+    }
+    const gid = p.gameId || "?";
+    const g = byGame.get(gid) || {
+      gameId: p.gameId || null,
+      name: p.gameName || null,
+      thumbnail: p.gameThumbnail || null,
+      total: 0,
+    };
+    g.total += 1;
+    byGame.set(gid, g);
+  }
+
+  // Roster con victorias: una fila por integrante, representada por su asiento
+  // en la partida de referencia (el route le aplica el overlay para que los
+  // nombres curados ganen, igual que en los players de cada play).
+  const seen = new Set();
+  const roster = [];
+  for (const pl of target.players || []) {
+    const key = canonicalKey(pl);
+    if (!winsByKey.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    roster.push({
+      key,
+      name: (pl.name || "").trim(),
+      username: (pl.username || "").trim(),
+      wins: winsByKey.get(key),
+    });
+  }
+  roster.sort((a, b) => b.wins - a.wins);
+
+  return {
+    stats: {
+      total: matchedPlays.length,
+      firstPlayedDate,
+      lastPlayedDate,
+      byGame: [...byGame.values()].sort((a, b) => b.total - a.total),
+    },
+    roster,
+    matchedPlays,
+  };
+}
+
 module.exports = {
   computeGameStats,
   computeOverallStats,
@@ -750,4 +861,5 @@ module.exports = {
   computeLocationStats,
   computeGamePlayCount,
   computePlayedCoPlayers,
+  computeGroupStats,
 };

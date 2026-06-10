@@ -9,7 +9,6 @@ vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("./PlayCard", () => ({
   default: ({ play }) => <div data-testid="play-card">{play.id}</div>,
 }));
-vi.mock("./PlayDetailModal", () => ({ default: () => null }));
 vi.mock("./Pagination", () => ({ default: () => null }));
 vi.mock("./BgWatchGuestCTAs", () => ({
   GuestBanner: () => null,

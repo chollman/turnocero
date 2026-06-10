@@ -27,14 +27,6 @@ vi.mock("./PlayCard", () => ({
     </button>
   ),
 }));
-vi.mock("./PlayDetailModal", () => ({
-  default: ({ play, onClose }) => (
-    <div data-testid="play-modal">
-      {play.gameName}
-      <button onClick={onClose}>cerrar</button>
-    </div>
-  ),
-}));
 // Modal de curación: stub que expone los tres desenlaces de onClose.
 vi.mock("./PlayerEditModals", () => ({
   EditPlayerModal: ({ onClose }) => (
@@ -103,6 +95,10 @@ function renderDetail(key = "k:u:bob") {
           path="/bg-watch/:bggUsername/jugadores"
           element={<div data-testid="jugadores-page">jugadores</div>}
         />
+        <Route
+          path="/bg-watch/:bggUsername/partidas/:playId"
+          element={<div data-testid="play-detail-page">detalle</div>}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -148,11 +144,11 @@ describe("<JugadorDetail>", () => {
     ).toBeNull();
   });
 
-  it("lista las partidas y abre el modal al clickear una", async () => {
+  it("lista las partidas y navega al detalle al clickear una", async () => {
     renderDetail();
     const card = await screen.findByTestId("playcard");
     fireEvent.click(card);
-    expect(await screen.findByTestId("play-modal")).toBeInTheDocument();
+    expect(await screen.findByTestId("play-detail-page")).toBeInTheDocument();
   });
 
   it("muestra el link al H2H de comunidad solo si el jugador está vinculado", async () => {

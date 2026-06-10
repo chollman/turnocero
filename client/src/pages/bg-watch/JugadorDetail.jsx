@@ -9,7 +9,6 @@ import BackButton from "../../components/shared/BackButton";
 import { getUserDisplay } from "../../utils/userDisplay";
 import PlayCard from "./PlayCard";
 import PlayCardSkeleton from "./PlayCardSkeleton";
-import PlayDetailModal from "./PlayDetailModal";
 import Pagination from "./Pagination";
 import { EditPlayerModal } from "./PlayerEditModals";
 import useBggUserMap from "./useBggUserMap";
@@ -52,7 +51,6 @@ export default function JugadorDetail() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
-  const [openPlay, setOpenPlay] = useState(null);
   const [showH2h, setShowH2h] = useState(false);
   const [editing, setEditing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -314,7 +312,11 @@ export default function JugadorDetail() {
                         play={play}
                         index={i}
                         userMap={userMap}
-                        onClick={() => setOpenPlay(play)}
+                        onClick={() =>
+                          navigate(
+                            `/bg-watch/${bggUsername}/partidas/${play.id}`,
+                          )
+                        }
                       />
                     ))}
                     <Pagination
@@ -332,14 +334,6 @@ export default function JugadorDetail() {
           </>
         )}
       </div>
-
-      {openPlay && (
-        <PlayDetailModal
-          play={openPlay}
-          userMap={userMap}
-          onClose={() => setOpenPlay(null)}
-        />
-      )}
 
       {editing && (
         <EditPlayerModal

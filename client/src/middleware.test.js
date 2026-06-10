@@ -68,7 +68,7 @@ describe("middleware — OG", () => {
   it("ignora requests que no son de crawlers", async () => {
     const res = await middleware(
       makeReq(
-        `https://turnocero.app/compartidas/${  "a".repeat(24)}`,
+        `https://turnocero.app/compartidas/${"a".repeat(24)}`,
         "Mozilla/5.0",
       ),
     );
@@ -151,7 +151,9 @@ describe("middleware — OG", () => {
     const res = await middleware(makeReq(`https://turnocero.app/mesas/${id}`));
     const html = await res.text();
     expect(html).toContain("/og-default.png");
-    expect(html).toContain('twitter:card"            content="summary_large_image"');
+    expect(html).toContain(
+      'twitter:card"            content="summary_large_image"',
+    );
   });
 
   it("mesa privada/inexistente (404 del API): cae al shell (undefined)", async () => {
@@ -159,5 +161,77 @@ describe("middleware — OG", () => {
     stubFetch({}); // sin ruta → fetch ok:false → handleMesa devuelve null
     const res = await middleware(makeReq(`https://turnocero.app/mesas/${id}`));
     expect(res).toBeUndefined();
+  });
+
+  it("partida: usa la tapa del juego como card chica (summary)", async () => {
+    stubFetch({
+      "/api/bgg/partida/claudio/123/og": {
+        gameName: "Brass: Birmingham",
+        image: "https://cf.geekdo-images.com/brass.jpg",
+        date: "2026-06-01",
+        location: "Casa de Cami",
+        playerNames: ["Claudio", "Cami"],
+        playersCount: 2,
+        displayName: "Claudio",
+      },
+    });
+    const res = await middleware(
+      makeReq("https://turnocero.app/bg-watch/claudio/partidas/123"),
+    );
+    const html = await res.text();
+    expect(html).toContain("Partida de Brass: Birmingham – TurnoCero 🎲");
+    expect(html).toContain("https://cf.geekdo-images.com/brass.jpg");
+    expect(html).toContain('twitter:card"            content="summary"');
+    expect(html).toContain("Casa de Cami");
+    expect(html).toContain("jugaron Claudio, Cami");
+    expect(html).toContain(
+      "https://turnocero.app/bg-watch/claudio/partidas/123",
+    );
+  });
+
+  it("partida sin imagen: cae al og-default (card grande)", async () => {
+    stubFetch({
+      "/api/bgg/partida/claudio/456/og": {
+        gameName: "Catan",
+        image: null,
+        playersCount: 3,
+        playerNames: [],
+        displayName: "Claudio",
+      },
+    });
+    const res = await middleware(
+      makeReq("https://turnocero.app/bg-watch/claudio/partidas/456"),
+    );
+    const html = await res.text();
+    expect(html).toContain("/og-default.png");
+    expect(html).toContain(
+      'twitter:card"            content="summary_large_image"',
+    );
+    expect(html).toContain("3 jugadores");
+  });
+
+  it("partida no espejada (404 del API): cae al shell (undefined)", async () => {
+    stubFetch({});
+    const res = await middleware(
+      makeReq("https://turnocero.app/bg-watch/claudio/partidas/789"),
+    );
+    expect(res).toBeUndefined();
+  });
+
+  it("el perfil de BG Watch (sin /partidas) sigue usando su propio handler", async () => {
+    stubFetch({
+      "/api/bgg/og/claudio": {
+        displayName: "Claudio",
+        bggUsername: "claudio",
+        partidas: 10,
+        juegos: 5,
+        topGame: null,
+      },
+    });
+    const res = await middleware(
+      makeReq("https://turnocero.app/bg-watch/claudio"),
+    );
+    const html = await res.text();
+    expect(html).toContain("BG Watch de Claudio – TurnoCero 🎲");
   });
 });

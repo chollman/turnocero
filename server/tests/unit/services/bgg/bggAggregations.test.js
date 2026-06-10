@@ -14,6 +14,7 @@ const {
   computeLocationStats,
   computeGamePlayCount,
   computePlayedCoPlayers,
+  computeGroupStats,
 } = require("../../../../services/bgg/bggAggregations");
 
 async function makePlay(overrides = {}) {
@@ -194,7 +195,10 @@ describe("computeOverallStats", () => {
   });
 
   it("totalPlays suma quantity de TODAS las plays (con o sin el dueño)", async () => {
-    await makePlay({ quantity: 2, players: [{ username: "alice", win: true }] });
+    await makePlay({
+      quantity: 2,
+      players: [{ username: "alice", win: true }],
+    });
     await makePlay({ quantity: 3, players: [{ username: "bob", win: true }] });
     const stats = await computeOverallStats("alice");
     expect(stats.totalPlays).toBe(5);
@@ -202,8 +206,14 @@ describe("computeOverallStats", () => {
   });
 
   it("agrega a través de varios juegos (no filtra por gameId)", async () => {
-    await makePlay({ gameId: "100", players: [{ username: "alice", win: true }] });
-    await makePlay({ gameId: "200", players: [{ username: "alice", win: false }] });
+    await makePlay({
+      gameId: "100",
+      players: [{ username: "alice", win: true }],
+    });
+    await makePlay({
+      gameId: "200",
+      players: [{ username: "alice", win: false }],
+    });
     const stats = await computeOverallStats("alice");
     expect(stats.totalRated).toBe(2);
     expect(stats.uniqueGames).toBe(2);
@@ -213,7 +223,9 @@ describe("computeOverallStats", () => {
     // El dueño jugó bajo el nombre "Ali" (sin username) y ganó.
     await makePlay({ players: [{ name: "Ali", username: "", win: true }] });
     // Otra con su username real, perdió.
-    await makePlay({ players: [{ name: "Alice", username: "alice", win: false }] });
+    await makePlay({
+      players: [{ name: "Alice", username: "alice", win: false }],
+    });
     const stats = await computeOverallStats("alice", {
       selfKeys: ["u:alice", "n:ali"],
     });
@@ -222,9 +234,18 @@ describe("computeOverallStats", () => {
   });
 
   it("avgDuration ignora duration=0", async () => {
-    await makePlay({ duration: 60, players: [{ username: "alice", win: true }] });
-    await makePlay({ duration: 90, players: [{ username: "alice", win: true }] });
-    await makePlay({ duration: 0, players: [{ username: "alice", win: true }] });
+    await makePlay({
+      duration: 60,
+      players: [{ username: "alice", win: true }],
+    });
+    await makePlay({
+      duration: 90,
+      players: [{ username: "alice", win: true }],
+    });
+    await makePlay({
+      duration: 0,
+      players: [{ username: "alice", win: true }],
+    });
     const stats = await computeOverallStats("alice");
     expect(stats.avgDuration).toBe(75);
   });
@@ -1009,5 +1030,171 @@ describe("computeCoPlayerStats", () => {
       "2026-06-02",
       "2026-06-01",
     ]);
+  });
+});
+
+describe("computeGroupStats", () => {
+  it("devuelve null si la partida no existe", async () => {
+    expect(await computeGroupStats("alice", "nope")).toBeNull();
+  });
+
+  it("matchea solo partidas con EXACTAMENTE el mismo roster (como conjunto)", async () => {
+    const target = await makePlay({
+      playId: "t1",
+      date: "2026-06-01",
+      players: [
+        { username: "alice", win: true },
+        { username: "bob", win: false },
+        { name: "Caro", win: false },
+      ],
+    });
+    // Mismo grupo, otro orden → matchea.
+    await makePlay({
+      date: "2026-06-02",
+      players: [
+        { name: "Caro", win: true },
+        { username: "bob", win: false },
+        { username: "alice", win: false },
+      ],
+    });
+    // Subconjunto (falta Caro) → NO matchea.
+    await makePlay({
+      date: "2026-06-03",
+      players: [{ username: "alice", win: true }, { username: "bob" }],
+    });
+    // Superconjunto (uno extra) → NO matchea.
+    await makePlay({
+      date: "2026-06-04",
+      players: [
+        { username: "alice" },
+        { username: "bob" },
+        { name: "Caro" },
+        { name: "Dani", win: true },
+      ],
+    });
+
+    const { stats, matchedPlays } = await computeGroupStats("alice", "t1");
+    expect(stats.total).toBe(2);
+    expect(matchedPlays.map((p) => p.date)).toEqual([
+      "2026-06-02",
+      "2026-06-01",
+    ]);
+    expect(matchedPlays.some((p) => p.playId === target.playId)).toBe(true);
+  });
+
+  it("la identidad es username (case-insensitive) o nombre; asientos vacíos no cuentan", async () => {
+    await makePlay({
+      playId: "t1",
+      players: [
+        { username: "Alice", win: true },
+        { name: "  Caro " },
+        { name: "" }, // asiento vacío — ignorado
+      ],
+    });
+    await makePlay({
+      date: "2026-02-01",
+      players: [{ username: "ALICE" }, { name: "caro", win: true }],
+    });
+    const { stats } = await computeGroupStats("alice", "t1");
+    expect(stats.total).toBe(2);
+  });
+
+  it("cuenta victorias por integrante y arma byGame + fechas", async () => {
+    await makePlay({
+      playId: "t1",
+      date: "2026-03-01",
+      gameId: "100",
+      gameName: "Catan",
+      players: [
+        { username: "alice", win: true },
+        { username: "bob", win: false },
+      ],
+    });
+    await makePlay({
+      date: "2026-03-05",
+      gameId: "200",
+      gameName: "Wingspan",
+      gameThumbnail: "t200",
+      players: [
+        { username: "alice", win: false },
+        { username: "bob", win: true },
+      ],
+    });
+    await makePlay({
+      date: "2026-03-09",
+      gameId: "200",
+      gameName: "Wingspan",
+      players: [
+        { username: "alice", win: false },
+        { username: "bob", win: true },
+      ],
+    });
+
+    const { stats, roster } = await computeGroupStats("alice", "t1");
+    expect(stats.total).toBe(3);
+    expect(stats.firstPlayedDate).toBe("2026-03-01");
+    expect(stats.lastPlayedDate).toBe("2026-03-09");
+    // byGame ordenado por total desc.
+    expect(stats.byGame.map((g) => [g.gameId, g.total])).toEqual([
+      ["200", 2],
+      ["100", 1],
+    ]);
+    // Roster ordenado por victorias desc.
+    expect(roster.map((r) => [r.username, r.wins])).toEqual([
+      ["bob", 2],
+      ["alice", 1],
+    ]);
+  });
+
+  it("con overlayIndex, los alias fusionados cuentan como el mismo integrante", async () => {
+    // "Roberto" (sin username) y "bob" son la misma persona, fusionados.
+    const overlayId = "65fa1bdeadbeefdeadbeef01";
+    const overlayIndex = {
+      byKey: new Map([
+        ["u:bob", { _id: overlayId }],
+        ["n:roberto", { _id: overlayId }],
+      ]),
+    };
+    await makePlay({
+      playId: "t1",
+      date: "2026-04-01",
+      players: [
+        { username: "alice", win: false },
+        { username: "bob", win: true },
+      ],
+    });
+    await makePlay({
+      date: "2026-04-02",
+      players: [
+        { username: "alice", win: true },
+        { name: "Roberto", win: false },
+      ],
+    });
+
+    const { stats, roster } = await computeGroupStats("alice", "t1", {
+      overlayIndex,
+    });
+    expect(stats.total).toBe(2);
+    const bob = roster.find((r) => r.username === "bob");
+    expect(bob.wins).toBe(1);
+    expect(bob.key).toBe(`o:${overlayId}`);
+  });
+
+  it("una partida en solitario matchea solo otras en solitario", async () => {
+    await makePlay({
+      playId: "t1",
+      date: "2026-05-01",
+      players: [{ username: "alice", win: true }],
+    });
+    await makePlay({
+      date: "2026-05-02",
+      players: [{ username: "alice", win: false }],
+    });
+    await makePlay({
+      date: "2026-05-03",
+      players: [{ username: "alice" }, { username: "bob", win: true }],
+    });
+    const { stats } = await computeGroupStats("alice", "t1");
+    expect(stats.total).toBe(2);
   });
 });

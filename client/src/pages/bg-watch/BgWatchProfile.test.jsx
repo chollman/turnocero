@@ -35,7 +35,6 @@ vi.mock("./UbicacionesPanel", () => ({
     return <div data-testid="ubicaciones-panel" />;
   },
 }));
-vi.mock("./PlayDetailModal", () => ({ default: () => null }));
 vi.mock("./BgWatchGuestCTAs", () => ({
   GuestBanner: () => null,
   GuestInlineCTA: () => null,

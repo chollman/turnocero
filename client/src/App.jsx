@@ -62,6 +62,7 @@ import UbicacionDetail from "./pages/bg-watch/UbicacionDetail";
 import CreatePlay from "./pages/bg-watch/CreatePlay";
 import CreatePlayRedirect from "./pages/bg-watch/CreatePlayRedirect";
 import EditPlay from "./pages/bg-watch/EditPlay";
+import PlayDetail from "./pages/bg-watch/PlayDetail";
 import Messages from "./pages/messages/Messages";
 import DirectChat from "./pages/messages/DirectChat";
 import AdminChat from "./pages/messages/AdminChat";
@@ -610,6 +611,16 @@ export function AppRoutes({ transition }) {
                     <CreatePlay />
                   </SectionGate>
                 </PrivateRoute>
+              }
+            />
+            {/* Detalle público de una partida (compartible por short link).
+                "nueva" gana por specificity (segmento estático > :playId). */}
+            <Route
+              path="/bg-watch/:bggUsername/partidas/:playId"
+              element={
+                <SectionGate section="bgwatch">
+                  <PlayDetail />
+                </SectionGate>
               }
             />
             <Route

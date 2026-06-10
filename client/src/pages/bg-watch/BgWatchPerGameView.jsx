@@ -7,7 +7,6 @@ import { API } from "../../api/endpoints";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import BackButton from "../../components/shared/BackButton";
 import PlayCard from "./PlayCard";
-import PlayDetailModal from "./PlayDetailModal";
 import Pagination from "./Pagination";
 import useBggUserMap from "./useBggUserMap";
 import ComunidadRankBadge from "./ComunidadRankBadge";
@@ -48,7 +47,6 @@ export default function BgWatchPerGameView() {
   const [page, setPage] = useState(1);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const [openPlay, setOpenPlay] = useState(null);
   const [deletingPlay, setDeletingPlay] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -117,8 +115,6 @@ export default function BgWatchPerGameView() {
   }, [bggUsername, gameId, page, refreshKey]);
 
   // Map of bggUsernameLower → TurnoCero user for players on the current page.
-  // Same map is used both for the PlayCards in the list and for PlayDetailModal,
-  // since the open play's players are always a subset.
   const userMap = useBggUserMap(plays?.plays);
 
   // Prefer server-aggregated stats over the full history (computed from
@@ -325,7 +321,9 @@ export default function BgWatchPerGameView() {
                 key={play.id}
                 play={play}
                 userMap={userMap}
-                onClick={() => setOpenPlay(play)}
+                onClick={() =>
+                  navigate(`/bg-watch/${bggUsername}/partidas/${play.id}`)
+                }
                 onEdit={
                   canCreate
                     ? () =>
@@ -348,14 +346,6 @@ export default function BgWatchPerGameView() {
 
         {isGuest && <GuestFooter bggUsername={bggUsername} />}
       </div>
-
-      {openPlay && (
-        <PlayDetailModal
-          play={openPlay}
-          userMap={userMap}
-          onClose={() => setOpenPlay(null)}
-        />
-      )}
 
       <ConfirmActionModal
         isOpen={!!deletingPlay}

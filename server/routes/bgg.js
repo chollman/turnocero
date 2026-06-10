@@ -40,6 +40,7 @@ const {
   computeLocationStats,
   computeGamePlayCount,
   computePlayedCoPlayers,
+  computeGroupStats,
 } = require("../services/bgg/bggAggregations");
 const { parsePagination } = require("../utils/paginate");
 const BggUserGame = require("../models/BggUserGame");
@@ -752,6 +753,150 @@ router.get(
     const fromBgg = await findPlayOnBgg(bggUsername, playId);
     if (!fromBgg) throw httpError(404, "Partida no encontrada");
     res.json(playToApi(fromBgg));
+  }),
+);
+
+// GET /api/bgg/partida/:bggUsername/:playId/detalle — detalle PÚBLICO de una
+// partida (página /bg-watch/:user/partidas/:playId, compartible por short
+// link). Misma data que ya expone el listado público de /partidas, con el
+// overlay de curación aplicado, más los datos del juego (imagen grande para
+// el hero). El preload de edición (sin overlay — el form escribe los valores
+// crudos de vuelta a BGG — y owner-only) es la ruta hermana sin sufijo.
+router.get(
+  "/partida/:bggUsername/:playId/detalle",
+  asyncHandler(async (req, res) => {
+    const { bggUsername, playId } = req.params;
+    const lower = bggUsername.toLowerCase();
+    let doc = await BggPlay.findOne({ bggUsername: lower, playId }).lean();
+    if (!doc) {
+      // Sin espejo en Mongo (usuario que nunca sincronizó): fallback directo
+      // a BGG, igual que el preload de edición.
+      doc = await findPlayOnBgg(bggUsername, playId);
+      if (!doc) throw httpError(404, "Partida no encontrada");
+    }
+
+    const overlayIndex = await loadOverlayIndex(lower);
+    const play = playToApi(doc);
+    play.players = applyOverlayToPlayers(play.players, overlayIndex, {
+      ownerLower: lower,
+    });
+
+    let game = null;
+    if (doc.gameId) {
+      try {
+        game = await resolveGame(doc.gameId);
+      } catch {
+        // El hero cae al gameThumbnail de la play.
+      }
+    }
+    res.json({ play, game });
+  }),
+);
+
+// GET /api/bgg/partida/:bggUsername/:playId/og — OG metadata pública para los
+// previews sociales de /bg-watch/:user/partidas/:playId. La imagen es la tapa
+// del juego (BggGame.image en alta; fallback thumbnail). Cache 30 min. Solo
+// sirve partidas espejadas en Mongo — sin espejo, el crawler cae al OG default
+// del SPA (no escaneamos BGG por un preview).
+router.get(
+  "/partida/:bggUsername/:playId/og",
+  asyncHandler(async (req, res) => {
+    const { bggUsername, playId } = req.params;
+    const lower = bggUsername.toLowerCase();
+    const cacheKey = `og:partida:${lower}:${playId}`;
+    const cached = getCached(cacheKey, 30 * 60 * 1000);
+    if (cached) return res.json(cached);
+
+    // OG: try/catch interno con body vacío en 404/500 (contrato de crawlers,
+    // igual que /og/:bggUsername).
+    try {
+      const doc = await BggPlay.findOne({ bggUsername: lower, playId }).lean();
+      if (!doc) return res.status(404).json({});
+
+      const userDoc = await User.findOne({
+        bggUsername: new RegExp(`^${escapeRegex(bggUsername)}$`, "i"),
+      })
+        .select("username displayName")
+        .lean();
+      const displayName =
+        userDoc?.displayName || userDoc?.username || bggUsername;
+
+      let image = doc.gameThumbnail || null;
+      if (doc.gameId) {
+        try {
+          const game = await resolveGame(doc.gameId);
+          image = game?.image || game?.thumbnail || image;
+        } catch {
+          // Swallow — partial data es mejor que 500 para crawlers.
+        }
+      }
+
+      const overlayIndex = await loadOverlayIndex(lower);
+      const players = applyOverlayToPlayers(doc.players || [], overlayIndex, {
+        ownerLower: lower,
+      });
+      const playerNames = players
+        .map((p) => (p.name || p.username || "").trim())
+        .filter(Boolean);
+
+      const data = {
+        gameName: doc.gameName || null,
+        image,
+        date: doc.date || null,
+        location: doc.location || null,
+        duration: doc.duration || null,
+        playersCount: players.length,
+        playerNames: playerNames.slice(0, 6),
+        displayName,
+        bggUsername,
+      };
+      setCached(cacheKey, data);
+      res.json(data);
+    } catch {
+      res.status(500).json({});
+    }
+  }),
+);
+
+// GET /api/bgg/partida/:bggUsername/:playId/grupo — partidas del dueño con
+// EXACTAMENTE el mismo grupo de jugadores que esta, más stats (victorias por
+// integrante, juegos del grupo, primera/última fecha). Público: deriva del
+// mismo log que ya es público en /partidas. Paginado (?page).
+router.get(
+  "/partida/:bggUsername/:playId/grupo",
+  asyncHandler(async (req, res) => {
+    const { bggUsername, playId } = req.params;
+    const lower = bggUsername.toLowerCase();
+    const { page, limit, skip } = parsePagination(req.query, {
+      defaultLimit: 10,
+      maxLimit: 30,
+    });
+
+    const overlayIndex = await loadOverlayIndex(lower);
+    const result = await computeGroupStats(lower, playId, { overlayIndex });
+    if (!result) throw httpError(404, "Partida no encontrada");
+
+    const { stats, roster, matchedPlays } = result;
+    const plays = matchedPlays.slice(skip, skip + limit).map((d) => {
+      const api = playToApi(d);
+      api.players = applyOverlayToPlayers(api.players, overlayIndex, {
+        ownerLower: lower,
+      });
+      return api;
+    });
+
+    res.json({
+      // Mismo overlay que los players de cada play: nombres/avatares curados
+      // ganan, y un alias "sos vos" resuelve al username del dueño.
+      roster: applyOverlayToPlayers(roster, overlayIndex, {
+        ownerLower: lower,
+      }),
+      stats,
+      plays,
+      page,
+      total: stats.total,
+      pageSize: limit,
+    });
   }),
 );
 

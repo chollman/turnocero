@@ -617,6 +617,20 @@
   width: 200px;
 }
 
+/* Con scorecard a la izquierda la columna derecha tiene más alto disponible:
+   apilamos la foto grande arriba y la tira de miniaturas en fila debajo (en
+   lugar de la tira vertical al costado del hero). */
+.photosFeaturedStacked:has(.featuredThumbs) {
+  flex-direction: column;
+}
+.photosFeaturedStacked:has(.featuredThumbs) .photoBtn {
+  width: 260px;
+}
+.photosFeaturedStacked .featuredThumbs {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
 /* Extra photos of a featured compartida (beyond the hero polaroid) — a
    clickable thumbnail strip so the rest of the gallery stays accessible. */
 .featuredThumbs {
@@ -1062,6 +1076,15 @@
      the tall polaroid column. Keeps short descriptions from leaving a big
      empty gap between the quote and the stats row. */
   justify-content: center;
+  min-width: 0;
+}
+
+/* Full-width header used in the scorecard arrangement of the featured card:
+   eyebrow + title + subtitle span the whole card, above the games band and the
+   scorecard | photos grid. */
+.broadsideHeader {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
 
@@ -1990,6 +2013,19 @@
 .broadsideMain .gameTags {
   padding-left: 0;
   padding-right: 0;
+}
+
+/* En la compartida del día los juegos jugados ocupan TODO el ancho de la card
+   (banda ARRIBA de la grilla broadside —por encima del scorecard y las fotos—,
+   no la columna izquierda). Cada tag crece para llenar la fila → con un solo
+   juego ocupa el ancho completo. */
+.gameTagsFeatured {
+  padding-left: 0;
+  padding-right: 0;
+  margin: 4px 0 18px;
+}
+.gameTagsFeatured .gameTag {
+  flex: 1 1 240px;
 }
 
 .gameTag {

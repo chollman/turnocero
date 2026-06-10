@@ -13,10 +13,34 @@ describe("shortlinkService.pathFor", () => {
     expect(shortlinkService.pathFor("bgwatch", "claudio")).toBe(
       "/bg-watch/claudio",
     );
+    expect(shortlinkService.pathFor("partida", "claudio/1234")).toBe(
+      "/bg-watch/claudio/partidas/1234",
+    );
   });
 
   it("returns null for an unknown type", () => {
     expect(shortlinkService.pathFor("bogus", "abc")).toBeNull();
+  });
+
+  it("returns null for a malformed partida ref", () => {
+    expect(shortlinkService.pathFor("partida", "claudio")).toBeNull();
+  });
+});
+
+describe("shortlinkService.assertShareable (partida)", () => {
+  it("accepts '<bggUsername>/<playId>' format", async () => {
+    await expect(
+      shortlinkService.assertShareable("partida", "claudio/1234"),
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects refs without playId or with non-numeric playId", async () => {
+    await expect(
+      shortlinkService.assertShareable("partida", "claudio"),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      shortlinkService.assertShareable("partida", "claudio/abc"),
+    ).rejects.toMatchObject({ status: 400 });
   });
 });
 

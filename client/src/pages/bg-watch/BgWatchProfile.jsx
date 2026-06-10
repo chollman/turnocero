@@ -11,9 +11,7 @@ import PartidasPanel from "./PartidasPanel";
 import ColeccionPanel from "./ColeccionPanel";
 import JugadoresPanel from "./JugadoresPanel";
 import UbicacionesPanel from "./UbicacionesPanel";
-import PlayDetailModal from "./PlayDetailModal";
 import StatsBar from "./StatsBar";
-import useBggUserMap from "./useBggUserMap";
 import { GuestBanner, GuestInlineCTA, GuestFooter } from "./BgWatchGuestCTAs";
 import BgWatchSessionNotice from "./BgWatchSessionNotice";
 import styles from "./BgWatchProfile.module.css";
@@ -40,7 +38,6 @@ export default function BgWatchProfile() {
   const [playsMeta, setPlaysMeta] = useState(null);
   const [playersTotal, setPlayersTotal] = useState(null);
   const [locationsTotal, setLocationsTotal] = useState(null);
-  const [openPlay, setOpenPlay] = useState(null);
   const [deletingPlay, setDeletingPlay] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -73,7 +70,11 @@ export default function BgWatchProfile() {
     (total) => setLocationsTotal(total),
     [],
   );
-  const handlePlayClick = useCallback((play) => setOpenPlay(play), []);
+  // El detalle ahora es una página con ruta propia (compartible por short link).
+  const handlePlayClick = useCallback(
+    (play) => navigate(`/bg-watch/${bggUsername}/partidas/${play.id}`),
+    [navigate, bggUsername],
+  );
   const handlePlayEdit = useCallback(
     (play) =>
       navigate(`/bg-watch/${bggUsername}/partidas/${play.id}/editar`, {
@@ -93,10 +94,6 @@ export default function BgWatchProfile() {
       ),
     [navigate, bggUsername, location.pathname],
   );
-
-  // Small separate userMap fetch for the open play's players (PartidasPanel keeps
-  // its own map for the list). Cheap because it's at most ~10 usernames.
-  const modalUserMap = useBggUserMap(openPlay ? [openPlay] : null);
 
   const confirmDelete = async () => {
     if (!deletingPlay) return;
@@ -264,14 +261,6 @@ export default function BgWatchProfile() {
 
         {isGuest && <GuestFooter bggUsername={bggUsername} />}
       </div>
-
-      {openPlay && (
-        <PlayDetailModal
-          play={openPlay}
-          userMap={modalUserMap}
-          onClose={() => setOpenPlay(null)}
-        />
-      )}
 
       <ConfirmActionModal
         isOpen={!!deletingPlay}

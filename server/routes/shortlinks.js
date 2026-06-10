@@ -20,8 +20,12 @@ const createLimiter = rateLimit({
   message: { message: "Demasiados pedidos, esperá un momento." },
 });
 
+// Tipos cuyo ref NO es un ObjectId (recursos derivados de BGG, sin documento
+// propio): bgwatch usa el bggUsername; partida usa "<bggUsername>/<playId>".
+const NON_OBJECTID_TYPES = new Set(["bgwatch", "partida"]);
+
 // POST /api/shortlinks — get-or-create un short link para un recurso compartible.
-// Body: { type: 'compartida'|'evento'|'noticia'|'bgwatch', ref }.
+// Body: { type: 'compartida'|'evento'|'noticia'|'bgwatch'|'partida', ref }.
 router.post(
   "/",
   createLimiter,
@@ -29,11 +33,13 @@ router.post(
   asyncHandler(async (req, res) => {
     const { type, ref } = req.body || {};
 
-    if (!shortlinkService.pathFor(type, "x"))
+    // "x/1" satisface también el formato compuesto de partida — solo valida
+    // que el TIPO exista; el formato real del ref lo valida assertShareable.
+    if (!shortlinkService.pathFor(type, "x/1"))
       throw httpError(400, "Tipo de recurso inválido");
 
-    // Los recursos con documento usan ObjectId; bgwatch usa el bggUsername.
-    if (type !== "bgwatch" && !mongoose.Types.ObjectId.isValid(ref))
+    // Los recursos con documento usan ObjectId.
+    if (!NON_OBJECTID_TYPES.has(type) && !mongoose.Types.ObjectId.isValid(ref))
       throw httpError(400, "Recurso inválido");
 
     const link = await shortlinkService.getOrCreate({

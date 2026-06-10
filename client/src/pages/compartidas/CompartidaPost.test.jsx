@@ -79,12 +79,12 @@ describe("<CompartidaPost>", () => {
     expect(screen.getByText("Mi reseña pro")).toBeInTheDocument();
   });
 
-  it('shows the "Volver al feed" button', async () => {
+  it('shows the "Volver al feed" link', async () => {
     setupPost(makePost());
     renderPage();
     expect(
-      screen.getByRole("button", { name: /volver al feed/i }),
-    ).toBeInTheDocument();
+      screen.getByRole("link", { name: /volver al feed/i }),
+    ).toHaveAttribute("href", "/compartidas");
   });
 
   it("shows 404 error when post does not exist", async () => {

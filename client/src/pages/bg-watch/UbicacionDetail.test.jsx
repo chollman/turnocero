@@ -15,14 +15,6 @@ vi.mock("./PlayCard", () => ({
     </button>
   ),
 }));
-vi.mock("./PlayDetailModal", () => ({
-  default: ({ play, onClose }) => (
-    <div data-testid="play-modal">
-      {play.gameName}
-      <button onClick={onClose}>cerrar</button>
-    </div>
-  ),
-}));
 // Modal de curación: stub que expone los desenlaces de onClose.
 vi.mock("./LocationEditModals", () => ({
   EditLocationModal: ({ onClose }) => (
@@ -77,6 +69,10 @@ function renderDetail(key = "k:l:casa") {
           path="/bg-watch/:bggUsername/ubicaciones"
           element={<div data-testid="ubicaciones-page">ubicaciones</div>}
         />
+        <Route
+          path="/bg-watch/:bggUsername/partidas/:playId"
+          element={<div data-testid="play-detail-page">detalle</div>}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -99,10 +95,10 @@ describe("<UbicacionDetail>", () => {
     expect(screen.getByTestId("playcard")).toBeInTheDocument();
   });
 
-  it("abre el modal de partida al clickear una", async () => {
+  it("navega al detalle de partida al clickear una", async () => {
     renderDetail();
     fireEvent.click(await screen.findByTestId("playcard"));
-    expect(await screen.findByTestId("play-modal")).toBeInTheDocument();
+    expect(await screen.findByTestId("play-detail-page")).toBeInTheDocument();
   });
 
   it("muestra estado vacío cuando no hay partidas en la ubicación", async () => {

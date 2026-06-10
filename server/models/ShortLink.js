@@ -3,15 +3,16 @@ const crypto = require("crypto");
 
 // Short link: un puntero global y opaco hacia un recurso compartible. El
 // código (p.ej. "Ab3xK9") resuelve a un path canónico (`/compartidas/<id>`,
-// `/eventos/<id>`, `/noticias/<id>`, `/bg-watch/<usuario>`) que el visitante
-// alcanza por `/s/<code>`.
+// `/eventos/<id>`, `/noticias/<id>`, `/bg-watch/<usuario>`,
+// `/bg-watch/<usuario>/partidas/<playId>`) que el visitante alcanza por
+// `/s/<code>`.
 //
 // NO usa el plugin `communityScoped`: un short link es un puntero global, la
 // visibilidad la gobierna el recurso apuntado. El origin (incluido el
 // subdominio de comunidad) lo preserva el cliente al armar `<origin>/s/<code>`,
 // y el redirect es a un path relativo.
 
-const TYPES = ["compartida", "evento", "noticia", "bgwatch"];
+const TYPES = ["compartida", "evento", "noticia", "bgwatch", "partida"];
 
 // 62 símbolos URL-safe sin ambigüedad de separadores. El sesgo de módulo
 // (256 % 62) es despreciable para la longitud/cardinalidad que usamos.
@@ -39,7 +40,8 @@ const shortLinkSchema = new mongoose.Schema(
       required: true,
       enum: TYPES,
     },
-    // ObjectId hex (compartida/evento/noticia) o bggUsername (bgwatch).
+    // ObjectId hex (compartida/evento/noticia), bggUsername (bgwatch) o
+    // "<bggUsername>/<playId>" (partida).
     ref: {
       type: String,
       required: true,
