@@ -540,6 +540,102 @@ async function computeGamePlayCount(lowerBggUsername, gameId) {
   return agg.length ? agg[0].numPlays : 0;
 }
 
+// Identidad de un jugador del roster para matchear contra el log del dueño:
+// username BGG (lowercase) si existe, si no el nombre (lowercase). Espeja la
+// regla de computePlayedCoPlayers. Devuelve null si no hay ni nombre ni user.
+function rosterPlayerKey(p) {
+  const u = (p?.username || "").trim().toLowerCase();
+  if (u) return `u:${u}`;
+  const n = (p?.name || "").trim().toLowerCase();
+  return n ? `n:${n}` : null;
+}
+
+// Autodetección "Nuevo" para TODO el roster de una partida que se está cargando.
+// Por cada jugador decide si es su primera vez con el juego, con dos señales:
+//
+//  1. Jugador SINCRONIZADO en TurnoCero (tiene BggPlay propios) — incluido el
+//     dueño: usa SU propio historial (numPlays de ese juego === 0). Preciso.
+//  2. Jugador NO sincronizado (un invitado/co-jugador del que no tenemos log
+//     propio): si el dueño tiene partidas sincronizadas, se marca nuevo cuando
+//     NUNCA apareció en una partida del dueño de ESE juego (primera vez que el
+//     dueño lo anota jugándolo). Si el dueño no sincronizó nada, no hay con qué
+//     juzgar → false (no inventamos falsos positivos).
+//
+// Los asientos anónimos ("Jugador anónimo N") nunca se marcan: no son una
+// identidad trackeable. Devuelve un mapa { primaryKey → bool } donde primaryKey
+// es `u:<username>` o `n:<name>` (lowercase), la misma clave que arma el cliente
+// para cada fila del roster.
+async function computeNewFlags(lowerOwner, gameId, players = []) {
+  const list = Array.isArray(players) ? players : [];
+  const flags = {};
+  if (!list.length) return flags;
+  const gid = String(gameId);
+
+  // ¿El dueño tiene partidas sincronizadas? Gatea la heurística por invitado.
+  const ownerHasPlays = !!(await BggPlay.exists({ bggUsername: lowerOwner }));
+
+  // Usernames del roster que tienen sync propio (rama 1) + su conteo del juego.
+  const usernames = [
+    ...new Set(
+      list.map((p) => (p.username || "").trim().toLowerCase()).filter(Boolean),
+    ),
+  ];
+  const syncedUsernames = usernames.length
+    ? await BggPlay.distinct("bggUsername", {
+        bggUsername: { $in: usernames },
+      })
+    : [];
+  const syncedSet = new Set(syncedUsernames);
+  const ownCounts = new Map();
+  await Promise.all(
+    [...syncedSet].map(async (u) => {
+      ownCounts.set(u, await computeGamePlayCount(u, gid));
+    }),
+  );
+
+  // Identidades ya vistas en partidas del dueño de ESTE juego (rama 2). Una sola
+  // lectura; guardamos las claves `u:` y `n:` de cada co-jugador.
+  const seen = new Set();
+  if (ownerHasPlays) {
+    const ownerGamePlays = await BggPlay.find(
+      { bggUsername: lowerOwner, gameId: gid },
+      { "players.name": 1, "players.username": 1 },
+    ).lean();
+    for (const play of ownerGamePlays) {
+      for (const pl of play.players || []) {
+        const u = (pl.username || "").trim().toLowerCase();
+        const n = (pl.name || "").trim().toLowerCase();
+        if (u) seen.add(`u:${u}`);
+        if (n) seen.add(`n:${n}`);
+      }
+    }
+  }
+
+  for (const p of list) {
+    const key = rosterPlayerKey(p);
+    if (!key) continue;
+    if (isAnonymousName(p.name)) {
+      flags[key] = false;
+      continue;
+    }
+    const u = (p.username || "").trim().toLowerCase();
+    const n = (p.name || "").trim().toLowerCase();
+    // 1) Sincronizado en TurnoCero → su propio historial del juego.
+    if (u && syncedSet.has(u)) {
+      flags[key] = (ownCounts.get(u) || 0) === 0;
+      continue;
+    }
+    // 2) No sincronizado → primera aparición en el log del dueño de ese juego.
+    if (!ownerHasPlays) {
+      flags[key] = false;
+      continue;
+    }
+    const wasSeen = (u && seen.has(`u:${u}`)) || (n && seen.has(`n:${n}`));
+    flags[key] = !wasSeen;
+  }
+  return flags;
+}
+
 // Compañeros distintos con los que el usuario jugó (de los players de sus
 // partidas), con conteo y recencia. Alimenta el selector paginado al agregar un
 // jugador (GET /api/bgg/mis-jugadores). Identidad: username BGG (lowercase) si
@@ -860,6 +956,8 @@ module.exports = {
   computeLocationRoster,
   computeLocationStats,
   computeGamePlayCount,
+  computeNewFlags,
+  rosterPlayerKey,
   computePlayedCoPlayers,
   computeGroupStats,
 };

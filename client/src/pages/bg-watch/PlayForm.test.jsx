@@ -117,6 +117,10 @@ beforeEach(() => {
     http.get("/api/bgg/jugado/:user/:gameId", () =>
       HttpResponse.json({ played: true, numPlays: 3, known: true }),
     ),
+    // Autodetección "Nuevo" batch — por defecto nadie es nuevo.
+    http.post("/api/bgg/nuevos/:user/:gameId", () =>
+      HttpResponse.json({ flags: {} }),
+    ),
     http.get("/api/bgg/game/:id", ({ params }) =>
       HttpResponse.json({ id: Number(params.id), playingTime: null }),
     ),
@@ -398,24 +402,20 @@ describe("<PlayForm>", () => {
   });
 
   // ── Autodetección "Nuevo" ─────────────────────────────────────────────
-  it("autodetecta 'Nuevo' para el dueño si nunca jugó el juego (known:true)", async () => {
+  it("autodetecta 'Nuevo' para el dueño si nunca jugó el juego", async () => {
     server.use(
-      http.get("/api/bgg/jugado/:user/:gameId", () =>
-        HttpResponse.json({ played: false, numPlays: 0, known: true }),
+      http.post("/api/bgg/nuevos/:user/:gameId", () =>
+        HttpResponse.json({ flags: { "u:mebgg": true } }),
       ),
     );
     renderForm({ initialValues: { game: { id: "13", name: "Catán" } } });
     expect(await screen.findByText(/nuevo/i)).toBeInTheDocument();
   });
 
-  it("autodetecta 'Nuevo' para un invitado conocido (known:true, !played)", async () => {
+  it("autodetecta 'Nuevo' para un invitado que el server marca nuevo", async () => {
     server.use(
-      http.get("/api/bgg/jugado/:user/:gameId", ({ params }) =>
-        HttpResponse.json(
-          params.user.toLowerCase() === "bob"
-            ? { played: false, numPlays: 0, known: true }
-            : { played: true, numPlays: 3, known: true },
-        ),
+      http.post("/api/bgg/nuevos/:user/:gameId", () =>
+        HttpResponse.json({ flags: { "u:bob": true, "u:mebgg": false } }),
       ),
     );
     renderForm({
@@ -427,14 +427,10 @@ describe("<PlayForm>", () => {
     expect(await screen.findByText(/nuevo/i)).toBeInTheDocument();
   });
 
-  it("NO marca 'Nuevo' a un invitado desconocido (known:false)", async () => {
+  it("NO marca 'Nuevo' cuando el server no lo flaggea", async () => {
     server.use(
-      http.get("/api/bgg/jugado/:user/:gameId", ({ params }) =>
-        HttpResponse.json(
-          params.user.toLowerCase() === "bob"
-            ? { played: false, numPlays: 0, known: false }
-            : { played: true, numPlays: 3, known: true },
-        ),
+      http.post("/api/bgg/nuevos/:user/:gameId", () =>
+        HttpResponse.json({ flags: { "u:bob": false, "u:mebgg": false } }),
       ),
     );
     renderForm({
@@ -447,6 +443,41 @@ describe("<PlayForm>", () => {
       expect(screen.getAllByText("Bob").length).toBeGreaterThan(0),
     );
     expect(screen.queryByText(/nuevo/i)).toBeNull();
+  });
+
+  it("marca 'Nuevo' a un invitado SIN @BGG (sin sync), matcheado por nombre", async () => {
+    // El caso "Nico del Dot": co-jugador sin username, el server lo marca nuevo
+    // por su clave de nombre. El cliente la deriva igual (`n:<nombre>`).
+    let received = null;
+    server.use(
+      http.get("/api/bgg/mis-jugadores/:user", () =>
+        HttpResponse.json({
+          items: [
+            { name: "Nico del Dot", username: "", numPlays: 0, lastPlayedDate: null },
+          ],
+          total: 1,
+          page: 1,
+          pages: 1,
+        }),
+      ),
+      http.post("/api/bgg/nuevos/:user/:gameId", async ({ request }) => {
+        received = await request.json();
+        return HttpResponse.json({ flags: { "n:nico del dot": true } });
+      }),
+    );
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
+    fireEvent.click((await screen.findByText("Nico del Dot")).closest("button"));
+    expect(await screen.findByText(/nuevo/i)).toBeInTheDocument();
+    // El roster enviado al server incluye al invitado con su nombre.
+    await waitFor(() =>
+      expect(
+        received?.players?.some((p) => p.name === "Nico del Dot"),
+      ).toBe(true),
+    );
   });
 
   // ── Duración ──────────────────────────────────────────────────────────

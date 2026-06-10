@@ -99,6 +99,9 @@ export const API = {
       `/api/bgg/ultima-juntada/${enc(bggUsername)}`,
     JUGADO: (bggUsername, gameId) =>
       `/api/bgg/jugado/${enc(bggUsername)}/${enc(gameId)}`,
+    // Autodetección "Nuevo" batch (todo el roster, incluye invitados sin sync)
+    NUEVOS: (bggUsername, gameId) =>
+      `/api/bgg/nuevos/${enc(bggUsername)}/${enc(gameId)}`,
     SYNC: "/api/bgg/sync",
     OG: (bggUsername) => `/api/bgg/og/${enc(bggUsername)}`,
     // ── Hub de comunidad (cross-user) ──────────────────────────────────

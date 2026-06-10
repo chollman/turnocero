@@ -13,6 +13,7 @@ const {
   computeLocationRoster,
   computeLocationStats,
   computeGamePlayCount,
+  computeNewFlags,
   computePlayedCoPlayers,
   computeGroupStats,
 } = require("../../../../services/bgg/bggAggregations");
@@ -712,6 +713,94 @@ describe("computeGamePlayCount", () => {
     await makePlay({ bggUsername: "bob", gameId: "100" });
     expect(await computeGamePlayCount("alice", "100")).toBe(1);
     expect(await computeGamePlayCount("bob", "100")).toBe(1);
+  });
+});
+
+describe("computeNewFlags", () => {
+  it("devuelve {} con roster vacío", async () => {
+    expect(await computeNewFlags("alice", "100", [])).toEqual({});
+  });
+
+  it("dueño sincronizado sin partidas del juego → nuevo", async () => {
+    await makePlay({ gameId: "200" }); // tiene historial, pero de otro juego
+    const flags = await computeNewFlags("alice", "100", [
+      { name: "Alice", username: "alice" },
+    ]);
+    expect(flags["u:alice"]).toBe(true);
+  });
+
+  it("dueño sincronizado que ya jugó el juego → no nuevo", async () => {
+    await makePlay({ gameId: "100" });
+    const flags = await computeNewFlags("alice", "100", [
+      { name: "Alice", username: "alice" },
+    ]);
+    expect(flags["u:alice"]).toBe(false);
+  });
+
+  it("invitado sin sync, primera vez que el dueño lo anota en ese juego → nuevo", async () => {
+    // El dueño tiene partidas (de otro juego) pero Nico nunca apareció en 100.
+    await makePlay({
+      gameId: "200",
+      players: [{ username: "alice", win: true }],
+    });
+    const flags = await computeNewFlags("alice", "100", [
+      { name: "Nico del Dot", username: "" },
+    ]);
+    expect(flags["n:nico del dot"]).toBe(true);
+  });
+
+  it("invitado sin sync que YA apareció en una partida del dueño de ese juego → no nuevo", async () => {
+    await makePlay({
+      gameId: "100",
+      players: [
+        { username: "alice", win: false },
+        { name: "Nico del Dot", username: "" },
+      ],
+    });
+    const flags = await computeNewFlags("alice", "100", [
+      { name: "Nico del Dot", username: "" },
+    ]);
+    expect(flags["n:nico del dot"]).toBe(false);
+  });
+
+  it("matchea al invitado por nombre case-insensitive", async () => {
+    await makePlay({
+      gameId: "100",
+      players: [{ name: "NICO DEL DOT", username: "" }],
+    });
+    const flags = await computeNewFlags("alice", "100", [
+      { name: "nico del dot", username: "" },
+    ]);
+    expect(flags["n:nico del dot"]).toBe(false);
+  });
+
+  it("dueño SIN partidas sincronizadas → no marca invitados (sin falsos positivos)", async () => {
+    const flags = await computeNewFlags("alice", "100", [
+      { name: "Nico del Dot", username: "" },
+    ]);
+    expect(flags["n:nico del dot"]).toBe(false);
+  });
+
+  it("nunca marca asientos anónimos", async () => {
+    await makePlay({ gameId: "200" });
+    const flags = await computeNewFlags("alice", "100", [
+      { name: "Jugador anónimo 1", username: "" },
+    ]);
+    expect(flags["n:jugador anónimo 1"]).toBe(false);
+  });
+
+  it("co-jugador sincronizado usa su propio historial, no el del dueño", async () => {
+    // Bob jugó el 100 (su propio log lo prueba), aunque sea su 1ª con alice.
+    await makePlay({
+      bggUsername: "bob",
+      gameId: "100",
+      players: [{ username: "bob", win: true }],
+    });
+    await makePlay({ bggUsername: "alice", gameId: "200" });
+    const flags = await computeNewFlags("alice", "100", [
+      { name: "Bob", username: "bob" },
+    ]);
+    expect(flags["u:bob"]).toBe(false);
   });
 });
 

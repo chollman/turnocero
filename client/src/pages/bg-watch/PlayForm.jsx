@@ -171,6 +171,16 @@ function hydratePlayer(p) {
   };
 }
 
+// Identidad de una fila del roster para la autodetección "Nuevo": @BGG
+// (lowercase) si existe, si no el nombre (lowercase). DEBE coincidir con
+// `rosterPlayerKey` del server (bggAggregations) — es la clave del mapa `flags`.
+function rosterPlayerKey(p) {
+  const u = (p?.username || "").trim().toLowerCase();
+  if (u) return `u:${u}`;
+  const n = (p?.name || "").trim().toLowerCase();
+  return n ? `n:${n}` : null;
+}
+
 const DURATION_PRESETS = [30, 60, 90, 120];
 
 /**
@@ -336,48 +346,67 @@ export default function PlayForm({
         : [...arr, { id: exp.id, name: exp.name }],
     );
 
-  // ── @BGG del roster (para autodetección "Nuevo") ────────────────────
-  const usernamesKey = useMemo(
+  // ── Identidad del roster (para autodetección "Nuevo") ───────────────
+  // Cambia al agregar/quitar/elegir jugadores (no al editar puntajes/ganador),
+  // así el efecto re-corre sólo cuando hace falta. Excluye anónimos (no son una
+  // identidad trackeable y nunca se marcan "Nuevo").
+  const rosterKey = useMemo(
     () =>
       [
         ...new Set(
-          players.map((p) => p.username.trim().toLowerCase()).filter(Boolean),
+          players
+            .filter((p) => !p.anonymous)
+            .map(rosterPlayerKey)
+            .filter(Boolean),
         ),
       ]
         .sort()
         .join(","),
     [players],
   );
+  // Roster (nombre+@BGG, sin anónimos) que se manda a la autodetección. Se
+  // recomputa sólo cuando cambia `rosterKey` (alta/baja/elección de jugador),
+  // no al editar puntajes/ganador — `rosterKey` ya captura ese subconjunto.
+  const detectRoster = useMemo(
+    () =>
+      players
+        .filter((p) => !p.anonymous && (p.name.trim() || p.username.trim()))
+        .map((p) => ({ name: p.name.trim(), username: p.username.trim() })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rosterKey],
+  );
 
   // ── Autodetección "Nuevo" (solo al crear) ───────────────────────────
+  // Manda TODO el roster al server, que decide por jugador: los sincronizados
+  // en TurnoCero (incluido el dueño) por su propio historial; los invitados NO
+  // sincronizados se marcan nuevos la primera vez que el dueño los anota jugando
+  // ese juego. Ver server `computeNewFlags`.
   const detectRef = useRef(0);
   useEffect(() => {
-    if (editMode || !game?.id) return undefined;
-    const usernames = usernamesKey ? usernamesKey.split(",") : [];
-    if (!usernames.length) return undefined;
+    if (editMode || !game?.id || !bggUsername || !detectRoster.length)
+      return undefined;
     const myId = ++detectRef.current;
     const ac = new AbortController();
-    Promise.all(
-      usernames.map((u) =>
-        axios
-          .get(API.bgg.JUGADO(u, game.id), { signal: ac.signal })
-          .then(({ data }) => ({ u, ...data }))
-          .catch(() => null),
-      ),
-    ).then((results) => {
-      if (myId !== detectRef.current) return;
-      const map = new Map();
-      for (const r of results) if (r) map.set(r.u, r);
-      setPlayers((arr) =>
-        arr.map((p) => {
-          const key = p.username.trim().toLowerCase();
-          const r = key ? map.get(key) : null;
-          return r ? { ...p, new: !!r.known && !r.played } : p;
-        }),
-      );
-    });
+    axios
+      .post(
+        API.bgg.NUEVOS(bggUsername, game.id),
+        { players: detectRoster },
+        { signal: ac.signal },
+      )
+      .then(({ data }) => {
+        if (myId !== detectRef.current) return;
+        const flags = data?.flags || {};
+        setPlayers((arr) =>
+          arr.map((p) => {
+            if (p.anonymous) return p;
+            const key = rosterPlayerKey(p);
+            return key && key in flags ? { ...p, new: flags[key] } : p;
+          }),
+        );
+      })
+      .catch(() => {});
     return () => ac.abort();
-  }, [game?.id, editMode, usernamesKey]);
+  }, [game?.id, editMode, bggUsername, detectRoster]);
 
   // ── Duración sugerida = tiempo de caja de BGG (playingtime) ──────────
   useEffect(() => {

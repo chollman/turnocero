@@ -39,6 +39,7 @@ const {
   computeLocationRoster,
   computeLocationStats,
   computeGamePlayCount,
+  computeNewFlags,
   computePlayedCoPlayers,
   computeGroupStats,
 } = require("../services/bgg/bggAggregations");
@@ -919,6 +920,24 @@ router.get(
       BggPlay.exists({ bggUsername: lower }),
     ]);
     res.json({ played: numPlays > 0, numPlays, known: !!known });
+  }),
+);
+
+// POST /api/bgg/nuevos/:bggUsername/:gameId — autodetección "Nuevo" para todo
+// el roster (body: { players: [{ name, username }] }). Versión batch de /jugado
+// que además cubre invitados NO sincronizados: a un co-jugador sin sync lo marca
+// nuevo cuando es la primera vez que el dueño lo anota jugando ese juego (ver
+// computeNewFlags). Devuelve { flags: { "<u:username|n:name>": bool } }.
+router.post(
+  "/nuevos/:bggUsername/:gameId",
+  asyncHandler(async (req, res) => {
+    const { bggUsername, gameId } = req.params;
+    const lower = bggUsername.toLowerCase();
+    const players = Array.isArray(req.body?.players)
+      ? req.body.players.slice(0, 50)
+      : [];
+    const flags = await computeNewFlags(lower, gameId, players);
+    res.json({ flags });
   }),
 );
 
