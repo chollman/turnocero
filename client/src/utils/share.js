@@ -37,3 +37,19 @@ export function buildCompartidaShare(post, origin = "", overrideUrl) {
   const whatsappText = caption ? `${caption}\n🎲 ${url}` : `🎲 ${url}`;
   return { url, caption, whatsappText };
 }
+
+// Compartir una partida de BG Watch (página /bg-watch/:user/partidas/:playId).
+// Mismo contrato que buildCompartidaShare: caption SIN url, whatsappText con
+// la url exactamente una vez.
+export function buildPartidaShare(play, bggUsername, origin = "", overrideUrl) {
+  const url =
+    overrideUrl ||
+    `${origin}/bg-watch/${encodeURIComponent(bggUsername)}/partidas/${play.id}`;
+  const parts = [];
+  if (play.gameName) parts.push(`*Partida de ${play.gameName}*`);
+  const meta = [play.date, play.location].filter(Boolean).join(" · ");
+  if (meta) parts.push(meta);
+  const caption = parts.join("\n");
+  const whatsappText = caption ? `${caption}\n🎲 ${url}` : `🎲 ${url}`;
+  return { url, caption, whatsappText };
+}

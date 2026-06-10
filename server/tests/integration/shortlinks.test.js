@@ -74,7 +74,10 @@ describe("POST /api/shortlinks — get-or-create", () => {
   it("404s when the compartida does not exist", async () => {
     await request(app)
       .post("/api/shortlinks")
-      .send({ type: "compartida", ref: new mongoose.Types.ObjectId().toString() })
+      .send({
+        type: "compartida",
+        ref: new mongoose.Types.ObjectId().toString(),
+      })
       .expect(404);
   });
 
@@ -122,6 +125,21 @@ describe("POST /api/shortlinks — get-or-create", () => {
       .send({ type: "bgwatch", ref: "claudioBGG" })
       .expect(201);
     expect(res.body.path).toBe("/bg-watch/claudioBGG");
+  });
+
+  it("creates a short link for a partida (ref '<user>/<playId>')", async () => {
+    const res = await request(app)
+      .post("/api/shortlinks")
+      .send({ type: "partida", ref: "claudioBGG/12345" })
+      .expect(201);
+    expect(res.body.path).toBe("/bg-watch/claudioBGG/partidas/12345");
+  });
+
+  it("400s on a malformed partida ref", async () => {
+    await request(app)
+      .post("/api/shortlinks")
+      .send({ type: "partida", ref: "soloUsuario" })
+      .expect(400);
   });
 });
 

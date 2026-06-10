@@ -22,6 +22,12 @@ function pathFor(type, ref) {
       return `/noticias/${ref}`;
     case "bgwatch":
       return `/bg-watch/${ref}`;
+    case "partida": {
+      // ref = "<bggUsername>/<playId>" (ver assertShareable).
+      const [user, playId] = String(ref).split("/");
+      if (!user || !playId) return null;
+      return `/bg-watch/${user}/partidas/${playId}`;
+    }
     default:
       return null;
   }
@@ -51,6 +57,14 @@ async function assertShareable(type, ref) {
   if (type === "bgwatch") {
     if (!ref || ref.length > 120)
       throw httpError(400, "Usuario de BGG inválido");
+    return;
+  }
+  if (type === "partida") {
+    // "<bggUsername>/<playId>" — igual que bgwatch, no hay documento propio
+    // (las partidas pueden vivir solo en BGG, sin espejo en Mongo) → solo se
+    // valida formato. La página destino resuelve/404ea por su cuenta.
+    if (!ref || ref.length > 120 || !/^[^/]+\/\d+$/.test(ref))
+      throw httpError(400, "Partida inválida");
     return;
   }
   throw httpError(400, "Tipo de recurso inválido");

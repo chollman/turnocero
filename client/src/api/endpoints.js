@@ -52,6 +52,12 @@ export const API = {
     PARTIDA_DETAIL: (playId) => `/api/bgg/partidas/${enc(playId)}`,
     PARTIDA: (bggUsername, playId) =>
       `/api/bgg/partida/${enc(bggUsername)}/${enc(playId)}`,
+    // Detalle público de una partida (página /bg-watch/:user/partidas/:playId)
+    PARTIDA_DETALLE: (bggUsername, playId) =>
+      `/api/bgg/partida/${enc(bggUsername)}/${enc(playId)}/detalle`,
+    // Partidas con el mismo grupo de jugadores + stats
+    PARTIDA_GRUPO: (bggUsername, playId) =>
+      `/api/bgg/partida/${enc(bggUsername)}/${enc(playId)}/grupo`,
     PARTIDAS_LIST: "/api/bgg/partidas",
     // "Cargar como aparece" una partida compartida (desde la notif del co-jugador)
     PARTIDA_COMPARTIDA: (notifId) =>

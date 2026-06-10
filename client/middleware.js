@@ -227,6 +227,68 @@ async function handleBgWatch(url, bggUsername, apiUrl, brand = DEFAULT_BRAND) {
   });
 }
 
+// Detalle de una partida de BG Watch. La imagen es la tapa del juego, que
+// viene de BGG (≈cuadrada, no 1.91:1) y no es recortable en Cloudinary →
+// card chica (summary) con tapa; sin imagen, og-default grande (misma
+// convención que mesas y el perfil BG Watch).
+async function handlePartida(
+  url,
+  bggUsername,
+  playId,
+  apiUrl,
+  brand = DEFAULT_BRAND,
+) {
+  const canonicalUrl = `${url.origin}/bg-watch/${bggUsername}/partidas/${playId}`;
+  const apiRes = await fetch(
+    `${apiUrl}/api/bgg/partida/${encodeURIComponent(bggUsername)}/${encodeURIComponent(playId)}/og`,
+  );
+  if (!apiRes.ok) return null;
+  const data = await apiRes.json();
+
+  const title = data.gameName
+    ? `Partida de ${data.gameName} – ${brand.name} 🎲`
+    : `Partida de ${data.displayName} – ${brand.name} 🎲`;
+
+  const descParts = [];
+  if (data.date) {
+    try {
+      const [y, m, d] = data.date.split("-");
+      descParts.push(
+        new Date(y, m - 1, d).toLocaleDateString("es-AR", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }
+  if (data.location) descParts.push(data.location);
+  if (data.playerNames?.length) {
+    descParts.push(`jugaron ${data.playerNames.join(", ")}`);
+  } else if (data.playersCount) {
+    descParts.push(
+      `${data.playersCount} ${data.playersCount === 1 ? "jugador" : "jugadores"}`,
+    );
+  }
+  const desc = descParts.length
+    ? descParts.join(" · ")
+    : `Mirá esta partida registrada en ${brand.name}.`;
+
+  const hasImage = Boolean(data.image);
+  const image = hasImage ? data.image : `${url.origin}/og-default.png`;
+
+  return ogHtml({
+    title,
+    desc,
+    image,
+    imageIsLarge: !hasImage,
+    canonicalUrl,
+    siteName: brand.name,
+  });
+}
+
 async function handleNoticia(url, id, apiUrl, brand = DEFAULT_BRAND) {
   const canonicalUrl = `${url.origin}/noticias/${id}`;
   const apiRes = await fetch(`${apiUrl}/api/noticias/${id}/og`);
@@ -237,8 +299,7 @@ async function handleNoticia(url, id, apiUrl, brand = DEFAULT_BRAND) {
     ? `${data.title} – ${brand.name} 🎲`
     : `Noticia de ${brand.name} 🎲`;
   const desc =
-    data.body ||
-    `Novedades de ${brand.name}, la comunidad de juegos de mesa.`;
+    data.body || `Novedades de ${brand.name}, la comunidad de juegos de mesa.`;
   const hasImage = Boolean(data.image);
   const image = hasImage
     ? data.image.replace("/upload/", "/upload/w_1200,h_630,c_fill,g_auto/")
@@ -308,6 +369,12 @@ async function ogForResource(type, url, ref, apiUrl, brand) {
   if (type === "evento") return handleEvento(url, ref, apiUrl, brand);
   if (type === "noticia") return handleNoticia(url, ref, apiUrl, brand);
   if (type === "bgwatch") return handleBgWatch(url, ref, apiUrl, brand);
+  if (type === "partida") {
+    // ref = "<bggUsername>/<playId>" (ver shortlinkService.pathFor).
+    const [user, playId] = String(ref).split("/");
+    if (!user || !playId) return null;
+    return handlePartida(url, user, playId, apiUrl, brand);
+  }
   return null;
 }
 
@@ -319,6 +386,9 @@ export default async function middleware(request) {
   const eventoMatch = url.pathname.match(/^\/eventos\/([a-f\d]{24})$/i);
   const noticiaMatch = url.pathname.match(/^\/noticias\/([a-f\d]{24})$/i);
   const mesaMatch = url.pathname.match(/^\/mesas\/([a-f\d]{24})$/i);
+  const partidaMatch = url.pathname.match(
+    /^\/bg-watch\/([^/]+)\/partidas\/(\d+)$/i,
+  );
   const bgWatchMatch = url.pathname.match(/^\/bg-watch\/([^/]+)$/i);
   const tenantSlug = detectTenantSlug(url.hostname);
   const isRoot = url.pathname === "/" || url.pathname === "";
@@ -329,6 +399,7 @@ export default async function middleware(request) {
     !eventoMatch &&
     !noticiaMatch &&
     !mesaMatch &&
+    !partidaMatch &&
     !bgWatchMatch &&
     !(tenantSlug && isRoot)
   )
@@ -357,7 +428,13 @@ export default async function middleware(request) {
       const { type, ref, path } = await res.json();
       if (!path) return;
       if (!isCrawler) return Response.redirect(`${url.origin}${path}`, 302);
-      const html = await ogForResource(type, url, ref, apiUrl, await brandFor());
+      const html = await ogForResource(
+        type,
+        url,
+        ref,
+        apiUrl,
+        await brandFor(),
+      );
       if (!html) return;
       return new Response(html, {
         headers: { "content-type": "text/html; charset=utf-8" },
@@ -381,6 +458,14 @@ export default async function middleware(request) {
       html = await handleNoticia(url, noticiaMatch[1], apiUrl, brand);
     } else if (mesaMatch) {
       html = await handleMesa(url, mesaMatch[1], apiUrl, brand);
+    } else if (partidaMatch) {
+      html = await handlePartida(
+        url,
+        decodeURIComponent(partidaMatch[1]),
+        partidaMatch[2],
+        apiUrl,
+        brand,
+      );
     } else if (bgWatchMatch) {
       html = await handleBgWatch(
         url,

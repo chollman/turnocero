@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildCompartidaShare } from "./share";
+import { buildCompartidaShare, buildPartidaShare } from "./share";
 
 const ORIGIN = "https://turnocero.app";
 
@@ -62,5 +62,59 @@ describe("buildCompartidaShare", () => {
     expect(whatsappText).not.toContain("/compartidas/abc123");
     // El caption sigue sin la url (cualquiera).
     expect(caption).not.toContain(short);
+  });
+});
+
+describe("buildPartidaShare", () => {
+  const PLAY = {
+    id: "12345",
+    gameName: "Brass: Birmingham",
+    date: "2026-06-01",
+    location: "Casa de Cami",
+  };
+
+  it("builds the deeplink from origin + bggUsername + playId", () => {
+    const { url } = buildPartidaShare(PLAY, "claudio", ORIGIN);
+    expect(url).toBe(`${ORIGIN}/bg-watch/claudio/partidas/12345`);
+  });
+
+  it("caption lleva juego + fecha/lugar y NUNCA la url", () => {
+    const { caption, url } = buildPartidaShare(PLAY, "claudio", ORIGIN);
+    expect(caption).toContain("*Partida de Brass: Birmingham*");
+    expect(caption).toContain("2026-06-01 · Casa de Cami");
+    expect(caption).not.toContain(url);
+  });
+
+  it("whatsappText incluye la url exactamente una vez", () => {
+    const { whatsappText, url } = buildPartidaShare(PLAY, "claudio", ORIGIN);
+    expect(whatsappText.split(url).length - 1).toBe(1);
+  });
+
+  it("sin gameName ni meta: whatsappText es solo la url", () => {
+    const { caption, whatsappText, url } = buildPartidaShare(
+      { id: "9" },
+      "claudio",
+      ORIGIN,
+    );
+    expect(caption).toBe("");
+    expect(whatsappText).toBe(`🎲 ${url}`);
+  });
+
+  it("overrideUrl (short link) reemplaza el deeplink", () => {
+    const short = "https://turnocero.app/s/Zz1234x";
+    const { url, whatsappText } = buildPartidaShare(
+      PLAY,
+      "claudio",
+      ORIGIN,
+      short,
+    );
+    expect(url).toBe(short);
+    expect(whatsappText).toContain(short);
+    expect(whatsappText).not.toContain("/bg-watch/claudio/partidas/12345");
+  });
+
+  it("encodea el bggUsername en el path", () => {
+    const { url } = buildPartidaShare(PLAY, "user name", ORIGIN);
+    expect(url).toBe(`${ORIGIN}/bg-watch/user%20name/partidas/12345`);
   });
 });

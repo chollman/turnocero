@@ -7,7 +7,6 @@ import Meeple from "../../components/shared/Meeple";
 import BackButton from "../../components/shared/BackButton";
 import PlayCard from "./PlayCard";
 import PlayCardSkeleton from "./PlayCardSkeleton";
-import PlayDetailModal from "./PlayDetailModal";
 import Pagination from "./Pagination";
 import useBggUserMap from "./useBggUserMap";
 import { EditLocationModal } from "./LocationEditModals";
@@ -36,7 +35,6 @@ export default function UbicacionDetail() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
-  const [openPlay, setOpenPlay] = useState(null);
   const [editing, setEditing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -202,7 +200,11 @@ export default function UbicacionDetail() {
                         play={play}
                         index={i}
                         userMap={userMap}
-                        onClick={() => setOpenPlay(play)}
+                        onClick={() =>
+                          navigate(
+                            `/bg-watch/${bggUsername}/partidas/${play.id}`,
+                          )
+                        }
                       />
                     ))}
                     <Pagination
@@ -220,14 +222,6 @@ export default function UbicacionDetail() {
           </>
         )}
       </div>
-
-      {openPlay && (
-        <PlayDetailModal
-          play={openPlay}
-          userMap={userMap}
-          onClose={() => setOpenPlay(null)}
-        />
-      )}
 
       {editing && (
         <EditLocationModal

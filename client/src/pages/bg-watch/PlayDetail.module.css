@@ -1,0 +1,639 @@
+/* Detalle de partida de BG Watch — diseño del handoff "BG Watch Reimagined"
+   (PlayDetailScreen): hero con tapa del juego + pills de meta, tabla de
+   resultados con medallas y notas en serif. Acento púrpura de sección, como
+   el resto de BG Watch. */
+
+/* ─── Page shell (mismo patrón que BgWatchProfile) ─── */
+.page {
+  min-height: calc(100vh - var(--navbar-h, 64px));
+  padding: var(--navbar-h) 0 var(--page-padding);
+}
+
+@media (--desktop) {
+  .page {
+    padding-top: var(--page-padding);
+  }
+}
+
+.inner {
+  padding: 0 var(--page-padding) 0 var(--page-padding-left);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+@media (--below-desktop) {
+  .inner {
+    padding: 0 var(--page-padding-mobile);
+  }
+}
+
+/* ─── Hero ─── */
+.hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 28px;
+  align-items: center;
+  background:
+    radial-gradient(
+      700px circle at 80% -20%,
+      var(--purple-glow),
+      transparent 55%
+    ),
+    linear-gradient(180deg, var(--bg-card), var(--bg-dark));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 32px;
+  overflow: hidden;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Textura dot-grid sutil (theme-aware vía overlay token). */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    var(--overlay-soft) 1px,
+    transparent 0
+  );
+  background-size: 18px 18px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.heroThumb {
+  width: 120px;
+  height: 120px;
+  border-radius: 18px;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 12px 32px var(--purple-glow);
+}
+
+.heroThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.heroThumbFallback {
+  width: 120px;
+  height: 120px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--purple-light), var(--purple));
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2.6rem;
+  color: var(--on-amber);
+  letter-spacing: -0.04em;
+  box-shadow: 0 12px 32px var(--purple-glow);
+}
+
+.heroInfo {
+  min-width: 0;
+}
+
+/* Flujo inline (no flex): con ids largos el kicker tiene que quebrar como
+   texto, no reordenar items. */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--purple-light);
+  text-transform: uppercase;
+  line-height: 1.6;
+}
+
+.kicker svg {
+  vertical-align: -0.15em;
+  margin-right: 4px;
+}
+
+.kicker .heroLink {
+  font-size: inherit;
+}
+
+.gameTitle {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  margin: 6px 0 12px;
+  line-height: 1;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.pillWarn {
+  color: var(--orange);
+  border-color: var(--orange-30);
+  background: var(--orange-10);
+}
+
+.pillMuted {
+  color: var(--text-muted);
+}
+
+.heroLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.heroLink {
+  font-size: 13px;
+  color: var(--purple-light);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.heroLink:hover {
+  text-decoration: underline;
+}
+
+.score {
+  text-align: right;
+}
+
+.scoreLbl {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.scoreVal {
+  font-family: var(--font-display);
+  font-size: 3.4rem;
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+  color: var(--text-primary);
+}
+
+.scoreWin {
+  color: var(--green);
+}
+
+/* Compartir + acciones de dueño, al pie del hero. */
+.heroFooter {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.shareRow,
+.ownerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shareLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+
+.shareBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.shareBtn:hover {
+  border-color: var(--purple);
+  color: var(--purple-light);
+}
+
+.shareBtnCopied {
+  border-color: var(--green-30);
+  color: var(--green);
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.actionBtn:hover {
+  border-color: var(--purple);
+  color: var(--purple-light);
+}
+
+.actionBtnDanger:hover {
+  border-color: var(--red-30);
+  color: var(--red);
+}
+
+/* ─── Separador de sección ─── */
+.ruleLine {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.ruleLine span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ruleLine::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ─── Tabla de resultados ─── */
+.playersTable {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.playersHead {
+  display: grid;
+  grid-template-columns: 36px 1fr 90px 70px 90px;
+  gap: 14px;
+  padding: 12px 18px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.playersHead > div:nth-child(n + 3) {
+  text-align: center;
+}
+
+.playersRow {
+  display: grid;
+  grid-template-columns: 36px 1fr 90px 70px 90px;
+  gap: 14px;
+  padding: 14px 18px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition);
+}
+
+.playersRow:last-child {
+  border-bottom: none;
+}
+
+.playersRow:hover {
+  background: var(--bg-hover);
+}
+
+.rowWinner {
+  background: var(--purple-10);
+}
+
+.rank {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-muted);
+}
+
+.rankGold {
+  color: var(--gold);
+}
+
+.rankSilver {
+  color: #c0c8d8;
+}
+
+.rankBronze {
+  color: #cd7f32;
+}
+
+.player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.playerNames {
+  min-width: 0;
+}
+
+.playerName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.playerName > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playerMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  min-width: 0;
+}
+
+.playerMeta:empty {
+  display: none;
+}
+
+.playerUsername {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playerRating {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+a.playerUsername:hover {
+  color: var(--purple-light);
+}
+
+.newBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--amber);
+  padding: 1px 5px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.colorChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.colorDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.scoreCell {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.outcomeCell {
+  text-align: center;
+}
+
+.outcomeWin {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--green-25);
+  color: var(--green);
+  background: var(--green-10);
+  white-space: nowrap;
+}
+
+.dimText {
+  color: var(--text-muted);
+}
+
+/* ─── Notas ─── */
+.notes {
+  padding: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.notesHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.notesBody {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ─── Estados de carga / error ─── */
+.stateCenter {
+  display: grid;
+  place-items: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.skeletonHero {
+  height: 200px;
+  border-radius: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeletonTable {
+  height: 220px;
+  border-radius: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeletonHero::after,
+.skeletonTable::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--overlay-soft),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeletonHero::after,
+  .skeletonTable::after {
+    animation: none;
+  }
+}
+
+/* ─── Responsive ─── */
+@media (--tablet) {
+  .hero {
+    grid-template-columns: auto 1fr;
+    gap: 18px;
+    padding: 22px;
+  }
+  .score {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}
+
+@media (--phone) {
+  .heroThumb,
+  .heroThumbFallback {
+    width: 84px;
+    height: 84px;
+    border-radius: 14px;
+  }
+  .heroThumbFallback {
+    font-size: 1.8rem;
+  }
+  /* Sin columnas de color/rating en pantallas chicas. */
+  .playersHead,
+  .playersRow {
+    grid-template-columns: 28px 1fr 56px 70px;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .colorCol {
+    display: none;
+  }
+  .scoreCell {
+    font-size: 1.1rem;
+  }
+}
