@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Meeple from "../../components/shared/Meeple";
-import Avatar from "../../components/shared/Avatar";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import InfoTooltip from "../../components/shared/InfoTooltip";
 import BackButton from "../../components/shared/BackButton";
@@ -26,173 +25,18 @@ import useClickOutside from "../../hooks/useClickOutside";
 import CommunitySelect from "../../components/shared/CommunitySelect";
 import JuntadaFields from "../compartidas/JuntadaFields";
 import { buildPlayResult } from "./buildPlayResult";
+import ScoreRow from "./ScoreRow";
+import {
+  TrophyIcon,
+  CheckIcon,
+  TrashIcon,
+  UserPlusIcon,
+  SaveAnotherIcon,
+  SortDescIcon,
+  BoxTimeIcon,
+  PlusIcon,
+} from "./playFormIcons";
 import styles from "./PlayForm.module.css";
-
-// Trofeo inline (sin libs de iconos — convención del repo). Hereda currentColor.
-function TrophyIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z" />
-      <path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3" />
-    </svg>
-  );
-}
-function CrownIcon() {
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d="M3 7l4 4 5-6 5 6 4-4-2 12H5L3 7z" />
-    </svg>
-  );
-}
-function CheckIcon() {
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
-function TrashIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
-    </svg>
-  );
-}
-function UserPlusIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <circle cx="9" cy="7" r="3.5" />
-      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
-      <line x1="19" y1="8" x2="19" y2="14" />
-      <line x1="16" y1="11" x2="22" y2="11" />
-    </svg>
-  );
-}
-// "Guardar y cargar otra": dos hojas apiladas con un + (copy-plus).
-function SaveAnotherIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="9" y="9" width="13" height="13" rx="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-      <line x1="15.5" y1="12.5" x2="15.5" y2="18.5" />
-      <line x1="12.5" y1="15.5" x2="18.5" y2="15.5" />
-    </svg>
-  );
-}
-function SortDescIcon() {
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <line x1="4" y1="6" x2="14" y2="6" />
-      <line x1="4" y1="12" x2="11" y2="12" />
-      <line x1="4" y1="18" x2="8" y2="18" />
-      <line x1="19" y1="6" x2="19" y2="20" />
-      <polyline points="16 17 19 20 22 17" />
-    </svg>
-  );
-}
-// "Usar tiempo de caja": relojito (la duración sugerida por BGG es el tiempo
-// que la caja del juego declara).
-function BoxTimeIcon() {
-  return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <polyline points="12 7 12 12 16 14" />
-    </svg>
-  );
-}
-function PlusIcon() {
-  return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
 
 function todayIso() {
   const d = new Date();
@@ -202,67 +46,6 @@ function yesterdayIso() {
   const d = new Date();
   d.setDate(d.getDate() - 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-// Avatar de una fila de jugador: fantasma para anónimos, miembro de TurnoCero
-// (por @BGG) si está vinculado, si no iniciales.
-function PlayerAvatar({ player, userMap }) {
-  if (player.anonymous)
-    return (
-      <span className={styles.ghostAvatar} aria-hidden="true">
-        👤
-      </span>
-    );
-  const tc = player.username ? userMap[player.username.toLowerCase()] : null;
-  return (
-    <Avatar
-      user={
-        tc || {
-          _id: player.username || player.name || "p",
-          displayName: player.name || player.username,
-          username: player.username,
-        }
-      }
-      size="sm"
-    />
-  );
-}
-
-// Celda de puntaje (stepper − / input / +). Compartida por los modos versus y
-// equipos para no duplicar el markup ni los aria-labels.
-function ScoreCell({ value, onChange, onStep, label }) {
-  return (
-    <div className={styles.scoreCell}>
-      <button
-        type="button"
-        className={styles.scoreStep}
-        onClick={() => onStep(-1)}
-        aria-label="Bajar puntaje"
-        tabIndex={-1}
-      >
-        −
-      </button>
-      <input
-        type="text"
-        className={styles.scoreInput}
-        placeholder="—"
-        aria-label={label}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        maxLength={30}
-        inputMode="numeric"
-      />
-      <button
-        type="button"
-        className={styles.scoreStep}
-        onClick={() => onStep(1)}
-        aria-label="Subir puntaje"
-        tabIndex={-1}
-      >
-        +
-      </button>
-    </div>
-  );
 }
 
 // Equipos (modo "Equipos"). En BGG el equipo se guarda en el campo Color/Team
@@ -1289,127 +1072,29 @@ export default function PlayForm({
             )}
 
             <div className={styles.scoreList}>
-              {players.map((p, i) => {
-                const win = playerWins(p);
-                const isLeader =
-                  i === leaderIndex || (mode === "equipos" && win);
-                return (
-                  <div
-                    key={i}
-                    className={`${styles.scoreRow} ${isLeader ? styles.scoreRowLeader : ""} ${i === youIndex ? styles.scoreRowYou : ""}`}
-                  >
-                    <span className={styles.scoreRank}>
-                      {mode === "versus"
-                        ? hasDisplayableScore(p.score)
-                          ? `#${positions[i]}`
-                          : "—"
-                        : "·"}
-                    </span>
-                    <PlayerAvatar player={p} userMap={userMap} />
-                    <div className={styles.scorePlayer}>
-                      <span className={styles.scorePlayerName}>
-                        {p.name || p.username}
-                      </span>
-                      {!p.anonymous && p.username && (
-                        <span className={styles.scorePlayerHandle}>
-                          @{p.username}
-                        </span>
-                      )}
-                      {p.anonymous && (
-                        <span className={styles.anonTag}>anónimo</span>
-                      )}
-                      {i === youIndex && (
-                        <span className={styles.youPill}>vos</span>
-                      )}
-                      {isLeader && (
-                        <span className={styles.scoreCrown}>
-                          <CrownIcon />
-                        </span>
-                      )}
-                      {p.new && (
-                        <span
-                          className={styles.newBadge}
-                          title="Primera vez que lo juega (autodetectado)"
-                        >
-                          ✨ Nuevo
-                        </span>
-                      )}
-                    </div>
-
-                    {mode === "versus" ? (
-                      <div className={styles.scoreControls}>
-                        <ScoreCell
-                          value={p.score}
-                          onChange={(v) => updateScore(i, v)}
-                          onStep={(d) => stepScore(i, d)}
-                          label={`Puntaje de ${p.name || p.username || "jugador"}`}
-                        />
-                        <button
-                          type="button"
-                          className={`${styles.winToggle} ${p.win ? styles.winToggleActive : ""}`}
-                          onClick={() => {
-                            setWinsManual(true);
-                            updatePlayer(i, "win", !p.win);
-                          }}
-                          aria-label="Ganó"
-                          aria-pressed={p.win}
-                          title="Ganó"
-                        >
-                          <TrophyIcon />
-                        </button>
-                      </div>
-                    ) : mode === "coop" ? (
-                      <span className={styles.teamTag}>Equipo</span>
-                    ) : (
-                      <div className={styles.scoreControls}>
-                        <ScoreCell
-                          value={p.score}
-                          onChange={(v) => updateScore(i, v)}
-                          onStep={(d) => stepScore(i, d)}
-                          label={`Puntaje de ${p.name || p.username || "jugador"}`}
-                        />
-                        <div
-                          className={styles.teamPick}
-                          role="group"
-                          aria-label={`Equipo de ${p.name || p.username || "jugador"}`}
-                        >
-                          {activeTeams.map((t) => (
-                            <button
-                              key={t}
-                              type="button"
-                              className={`${styles.teamBtn} ${styles[`teamBtn${t}`]} ${p.team === t ? styles.teamBtnActive : ""}`}
-                              onClick={() => setPlayerTeam(i, t)}
-                              aria-pressed={p.team === t}
-                            >
-                              {t}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* No se puede quitar a "Vos" (el usuario): siempre juega.
-                        En su lugar va un espaciador del mismo ancho para que los
-                        controles queden alineados con las otras filas. */}
-                    {players.length > 1 &&
-                      (i === youIndex ? (
-                        <span
-                          className={styles.scoreRemovePlaceholder}
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          className={styles.scoreRemove}
-                          onClick={() => removePlayer(i)}
-                          aria-label="Quitar jugador"
-                        >
-                          ✕
-                        </button>
-                      ))}
-                  </div>
-                );
-              })}
+              {players.map((p, i) => (
+                <ScoreRow
+                  key={i}
+                  player={p}
+                  mode={mode}
+                  position={positions[i]}
+                  leader={
+                    i === leaderIndex || (mode === "equipos" && playerWins(p))
+                  }
+                  isYou={i === youIndex}
+                  userMap={userMap}
+                  activeTeams={activeTeams}
+                  canRemove={players.length > 1}
+                  onScore={(v) => updateScore(i, v)}
+                  onStep={(d) => stepScore(i, d)}
+                  onTeam={(t) => setPlayerTeam(i, t)}
+                  onToggleWin={() => {
+                    setWinsManual(true);
+                    updatePlayer(i, "win", !p.win);
+                  }}
+                  onRemove={() => removePlayer(i)}
+                />
+              ))}
             </div>
 
             {/* El picker se DESPLIEGA como popover (no empuja el contenido),

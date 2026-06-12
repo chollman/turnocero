@@ -5,6 +5,7 @@ import BggGameSearch from "../../components/shared/BggGameSearch";
 import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 import DiceLoader from "../../components/shared/DiceLoader";
+import PickerEmptyRow from "./PickerEmptyRow";
 import { gameInitials } from "./Scorecard";
 import styles from "./BgWatchProfile.module.css";
 
@@ -134,11 +135,11 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
           tanto filtrando sin resultados como con la lista vacía de arranque.
           El CTA a BGG ya vive en el botón de abajo. */}
       {isEmpty && (
-        <div className={styles.pickerNoMatch} role="status">
+        <PickerEmptyRow>
           {q.trim()
             ? `Ningún juego coincide con «${q.trim()}»`
             : "Tu lista está vacía — buscá un juego en BGG abajo"}
-        </div>
+        </PickerEmptyRow>
       )}
 
       {items.length > 0 && (

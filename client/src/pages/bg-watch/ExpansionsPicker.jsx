@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import DiceLoader from "../../components/shared/DiceLoader";
+import PickerEmptyRow from "./PickerEmptyRow";
 import styles from "./BgWatchProfile.module.css";
 
 /**
@@ -80,11 +81,11 @@ export default function ExpansionsPicker({
       {/* Estado vacío como una sola fila compacta (mismo alto que el loader),
           tanto filtrando sin resultados como sin expansiones listadas. */}
       {isEmpty && (
-        <div className={styles.pickerNoMatch} role="status">
+        <PickerEmptyRow>
           {term
             ? `Ninguna expansión coincide con «${term}»`
             : "Este juego no tiene expansiones listadas en BGG"}
-        </div>
+        </PickerEmptyRow>
       )}
 
       {visible.length > 0 && (
