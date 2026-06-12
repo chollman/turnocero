@@ -900,7 +900,7 @@ export default function PlayForm({
           </div>
           <h1 className={styles.title}>
             {editMode ? "Editá la " : "Anotá la "}
-            <em>partida.</em>
+            <em>partida</em>.
           </h1>
           <p className={styles.sub}>
             {editMode
