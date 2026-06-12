@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BG Watch · Mobile — Turnocero</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@600;700&family=Lora:ital@1&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --bg-dark: #0a0d15;
+    --bg-card: #151c28;
+    --bg-paper: #18202f;
+    --bg-elevated: #1d2532;
+    --bg-deep: #050810;
+    --accent: #1888ef;
+    --accent-light: #00aeff;
+    --accent-dark: #0076d1;
+    --accent-glow: rgba(24, 136, 239, 0.18);
+    --text: #ffffff;
+    --text-secondary: #a8b4cc;
+    --text-muted: #5a6178;
+    --text-faint: #353d52;
+    --border: #1e2a3d;
+    --border-strong: #2a3a55;
+    --border-accent: rgba(24, 136, 239, 0.4);
+    --red: #f31d77;
+    --green: #00d984;
+    --orange: #f5a623;
+    --purple: #b48cff;
+    --gold: #ffd700;
+    --green-10: rgba(0,217,132,0.1);
+    --green-25: rgba(0,217,132,0.25);
+    --purple-10: rgba(180,140,255,0.1);
+    --purple-25: rgba(180,140,255,0.3);
+    --gold-10: rgba(255,215,0,0.1);
+    --gold-25: rgba(255,215,0,0.3);
+    --t: 0.2s ease;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background:
+      radial-gradient(900px circle at 85% -10%, rgba(180,140,255,0.05), transparent 50%),
+      radial-gradient(700px circle at 0% 100%, rgba(24,136,239,0.04), transparent 55%),
+      #060810;
+    color: var(--text);
+    font-family: 'Archivo', sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+
+  /* ──── Stage ──── */
+  .stage { min-height: 100vh; padding: 48px 24px 80px; display: flex; flex-direction: column; align-items: center; gap: 36px; }
+  .stageHeader { max-width: 760px; width: 100%; text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .stageEyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.18em;
+    color: var(--purple); text-transform: uppercase;
+  }
+  .stageEyebrow::before, .stageEyebrow::after { content: ''; width: 26px; height: 1px; background: var(--purple); }
+  .stageTitle { font-family: 'Poppins', sans-serif; font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: -0.04em; line-height: 1.12; margin: 4px 0; }
+  .stageTitle em { font-family: 'Caveat', cursive; font-style: normal; font-weight: 600; color: var(--purple); font-size: 1.15em; letter-spacing: -0.02em; }
+  .stageSub { color: var(--text-secondary); font-size: 14px; line-height: 1.55; max-width: 580px; }
+
+  /* ─── Phones ─── */
+  .phones { display: flex; gap: 36px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .phoneWrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .phoneLabel { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: var(--text-muted); text-transform: uppercase; }
+  .phoneLabel strong { color: var(--purple); font-weight: 600; }
+  .phone {
+    width: 390px; height: 820px; background: #000; border-radius: 56px; padding: 12px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5), inset 0 0 0 1.5px #1a1a1a, inset 0 0 0 3px #000;
+    position: relative;
+  }
+  .screen { width: 100%; height: 100%; background: var(--bg-dark); border-radius: 44px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+  .statusBar { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px 0; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600; color: #fff; flex-shrink: 0; }
+  .statusBar svg { display: block; }
+  .island { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); width: 110px; height: 33px; background: #000; border-radius: 24px; z-index: 10; }
+
+  /* ─── Navbar ─── */
+  .navbar {
+    display: flex; align-items: center; gap: 8px; padding: 16px 18px 12px; flex-shrink: 0;
+    border-bottom: 1px solid var(--border); background: var(--bg-card); position: relative; z-index: 2;
+  }
+  .brand { display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0; }
+  .brandMark {
+    width: 38px; height: 38px; background: var(--bg-dark); border: 1.5px solid var(--purple); border-radius: 11px;
+    display: flex; align-items: center; justify-content: center; gap: 2.5px; flex-shrink: 0; box-shadow: 0 3px 12px rgba(180,140,255,0.18);
+  }
+  .brandMark .t { position: relative; width: 13px; height: 17px; }
+  .brandMark .t .arm { position: absolute; top: 0; left: 0; width: 13px; height: 2.5px; background: #fff; border-radius: 1px; }
+  .brandMark .t .stem { position: absolute; top: 0; left: 5.5px; width: 3px; height: 17px; background: #fff; border-radius: 1px; }
+  .brandMark .ring { width: 14px; height: 14px; border: 2.5px solid var(--purple); border-radius: 50%; position: relative; box-sizing: border-box; }
+  .brandMark .ring::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 3px; height: 3px; background: #fff; border-radius: 50%; }
+  .brandText { display: flex; flex-direction: column; min-width: 0; }
+  .brandName { font-family: 'Poppins', sans-serif; font-size: 15px; font-weight: 800; letter-spacing: -0.035em; color: var(--text); line-height: 1.05; }
+  .brandSub { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; letter-spacing: 0.16em; color: var(--text-muted); text-transform: uppercase; margin-top: 1px; }
+  .navActions { display: flex; gap: 6px; flex-shrink: 0; }
+  .iconBtn {
+    width: 36px; height: 36px; background: transparent; border: 1px solid var(--border); border-radius: 9px;
+    display: grid; place-items: center; color: var(--text-secondary); position: relative; transition: all var(--t);
+  }
+  .iconBtn:hover { color: var(--purple); border-color: var(--purple-25); background: var(--purple-10); }
+  .iconBtn svg { width: 16px; height: 16px; }
+  .backBtn {
+    width: 36px; height: 36px; background: transparent; border: 1px solid var(--border); border-radius: 9px;
+    display: grid; place-items: center; color: var(--text); flex-shrink: 0; transition: all var(--t);
+  }
+  .backBtn:hover { border-color: var(--purple-25); color: var(--purple); }
+  .backBtn svg { width: 16px; height: 16px; }
+
+  /* ─── Content ─── */
+  .content { flex: 1; overflow-y: auto; padding: 16px 14px 30px; display: flex; flex-direction: column; gap: 14px; }
+  .content::-webkit-scrollbar { display: none; }
+
+  /* ═══════════ PERFIL ═══════════ */
+  .profileTop { display: flex; align-items: center; gap: 13px; }
+  .profileAv {
+    width: 58px; height: 58px; border-radius: 16px; display: grid; place-items: center;
+    font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 24px; color: #fff; flex-shrink: 0;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+  }
+  .profileMeta { min-width: 0; flex: 1; }
+  .profileKicker { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.14em; color: var(--purple); text-transform: uppercase; }
+  .profileName { font-family: 'Poppins', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.05; margin: 2px 0; }
+  .profileBgg { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 5px; }
+  .profileBgg a { color: var(--accent-light); }
+  .profileEdit {
+    width: 36px; height: 36px; flex-shrink: 0; background: transparent; border: 1px solid var(--border-strong);
+    border-radius: 10px; color: var(--text-secondary); display: grid; place-items: center;
+  }
+  .profileEdit svg { width: 15px; height: 15px; }
+
+  /* Stat tiles 2x2 */
+  .statGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .statTile { background: var(--bg-paper); border: 1px solid var(--border); border-radius: 13px; padding: 12px 13px; display: flex; flex-direction: column; gap: 2px; position: relative; overflow: hidden; }
+  .statTile.accent { border-color: var(--border-accent); }
+  .statTile.purple { border-color: var(--purple-25); }
+  .statTile.gold { border-color: var(--gold-25); }
+  .statTileLbl { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.1em; color: var(--text-muted); text-transform: uppercase; }
+  .statTileVal { font-family: 'Poppins', sans-serif; font-size: 1.7rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+  .statTile.accent .statTileVal { color: var(--accent-light); }
+  .statTile.purple .statTileVal { font-size: 1.05rem; color: var(--purple); }
+  .statTile.gold .statTileVal { font-size: 1.05rem; color: var(--gold); }
+  .statTileSub { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--text-muted); margin-top: 1px; }
+  .statTileSub.up { color: var(--green); }
+
+  /* Segmented tabs */
+  .segTabs { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 11px; padding: 4px; }
+  .segTab { background: transparent; border: none; color: var(--text-secondary); padding: 9px; border-radius: 7px; font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all var(--t); }
+  .segTab .badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; background: var(--bg-elevated); border: 1px solid var(--border); padding: 1px 6px; border-radius: 999px; color: var(--text-muted); }
+  .segTab.active { background: var(--bg-elevated); color: var(--purple); }
+  .segTab.active .badge { background: var(--purple-10); border-color: var(--purple-25); color: var(--purple); }
+
+  /* Filter chips */
+  .filterChips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0; scrollbar-width: none; }
+  .filterChips::-webkit-scrollbar { display: none; }
+  .filterChip {
+    background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px;
+    border-radius: 999px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.04em;
+    white-space: nowrap; font-weight: 500; transition: all var(--t);
+  }
+  .filterChip.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+
+  /* Heatmap widget */
+  .heatWidget { background: var(--bg-paper); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+  .widgetLbl { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--purple); text-transform: uppercase; margin-bottom: 11px; }
+  .heatmap { display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; }
+  .heatCell { aspect-ratio: 1; border-radius: 2.5px; background: var(--bg-elevated); }
+  .heatCell.l1 { background: rgba(180,140,255,0.3); }
+  .heatCell.l2 { background: rgba(180,140,255,0.55); }
+  .heatCell.l3 { background: var(--purple); }
+  .heatLegend { display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 9px; font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-muted); }
+  .heatScale { display: flex; gap: 3px; }
+  .heatScale .heatCell { width: 11px; height: 11px; aspect-ratio: auto; }
+
+  /* Win rate widget */
+  .wrWidget { background: var(--bg-paper); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+  .wrRow { display: flex; align-items: baseline; gap: 8px; }
+  .wrVal { font-family: 'Poppins', sans-serif; font-size: 2.2rem; font-weight: 800; color: var(--green); letter-spacing: -0.04em; line-height: 1; }
+  .wrSub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); }
+  .wrBar { margin-top: 11px; height: 6px; background: var(--bg-elevated); border-radius: 999px; overflow: hidden; }
+  .wrBarFill { height: 100%; background: linear-gradient(90deg, #00ad6a, var(--green)); }
+
+  /* Play card */
+  .play {
+    display: grid; grid-template-columns: 46px 42px 1fr auto; gap: 11px; align-items: center;
+    background: var(--bg-paper); border: 1px solid var(--border); border-radius: 13px; padding: 11px 12px;
+  }
+  .playDate { display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .playDateDay { font-family: 'Poppins', sans-serif; font-size: 1.4rem; font-weight: 800; letter-spacing: -0.04em; line-height: 0.9; }
+  .playDateMonth { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; letter-spacing: 0.1em; color: var(--purple); text-transform: uppercase; margin-top: 2px; }
+  .playThumb {
+    width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff;
+    font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: -0.04em;
+  }
+  .playInfo { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .playGame { font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .playMeta { display: flex; gap: 9px; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--text-muted); }
+  .playMeta span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+  .playMeta svg { width: 9px; height: 9px; }
+  .playRight { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .playOutcome { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  .playOutcome.win { color: var(--green); }
+  .playOutcome.loss { color: var(--text-muted); }
+  .playScore { font-family: 'Poppins', sans-serif; font-size: 1.2rem; font-weight: 800; letter-spacing: -0.04em; }
+  .playScore .vs { color: var(--text-faint); margin: 0 3px; font-weight: 500; }
+  .playWinner { display: flex; align-items: center; gap: 5px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+  .playWinner .wAv { width: 17px; height: 17px; border-radius: 999px; display: grid; place-items: center; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 8px; color: #fff; flex-shrink: 0; }
+  .playWinner strong { color: var(--text-secondary); font-weight: 600; }
+  .playWinner .crown { color: var(--gold); display: inline-flex; }
+  .playWinner .crown svg { width: 10px; height: 10px; }
+  .playWinner .twoAv { display: inline-flex; }
+  .playWinner .twoAv .wAv + .wAv { margin-left: -6px; box-shadow: 0 0 0 1.5px var(--bg-paper); }
+
+  .secLabel { display: flex; align-items: baseline; gap: 10px; margin-top: 4px; }
+  .secLabel .l { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: var(--text-muted); text-transform: uppercase; }
+  .secLabel .rule { flex: 1; height: 1px; background: var(--border); }
+
+  /* ═══════════ COLECCIÓN ═══════════ */
+  .collGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .gameCard { background: var(--bg-paper); border: 1px solid var(--border); border-radius: 13px; overflow: hidden; }
+  .gameThumb {
+    aspect-ratio: 4/3; position: relative; display: grid; place-items: center; color: var(--accent-light);
+    background:
+      repeating-linear-gradient(135deg, rgba(24,136,239,0.06) 0, rgba(24,136,239,0.06) 8px, transparent 8px, transparent 16px),
+      linear-gradient(135deg, #16203a, #0a0d15);
+  }
+  .gameThumb .twoL { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 1.5rem; color: rgba(255,255,255,0.85); letter-spacing: -0.04em; }
+  .gameCount { position: absolute; bottom: 6px; right: 6px; background: rgba(0,0,0,0.65); color: #fff; padding: 2px 7px; border-radius: 5px; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; }
+  .gameCount.zero { color: var(--text-muted); }
+  .gameBody { padding: 9px 11px 11px; }
+  .gameName { font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gameYear { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+
+  /* Mini rank (top collection) */
+  .miniRankList { display: flex; flex-direction: column; gap: 9px; }
+  .miniRank { display: grid; grid-template-columns: 20px 1fr auto; gap: 9px; align-items: center; }
+  .miniRankNum { font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 800; color: var(--text-muted); text-align: center; }
+  .miniRankNum.top { color: var(--gold); }
+  .miniRankInfo { min-width: 0; }
+  .miniRankName { font-family: 'Poppins', sans-serif; font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .miniRankBar { height: 5px; background: var(--bg-elevated); border-radius: 999px; overflow: hidden; margin-top: 4px; }
+  .miniRankBarFill { height: 100%; background: var(--accent); }
+  .miniRankBarFill.gold { background: var(--gold); }
+  .miniRankCount { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); }
+
+  /* ═══════════ DETALLE ═══════════ */
+  .detailContent { flex: 1; overflow-y: auto; padding: 16px 14px 40px; display: flex; flex-direction: column; gap: 16px; }
+  .detailContent::-webkit-scrollbar { display: none; }
+  .detailHero { display: flex; align-items: center; gap: 13px; }
+  .detailThumb {
+    width: 64px; height: 64px; border-radius: 16px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff;
+    font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.04em; flex-shrink: 0;
+    box-shadow: 0 6px 18px var(--accent-glow);
+  }
+  .detailHeroInfo { min-width: 0; flex: 1; }
+  .detailKicker { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: var(--accent-light); text-transform: uppercase; }
+  .detailGame { font-family: 'Poppins', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.05; margin: 3px 0; }
+  .detailScoreBig { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+  .detailScoreLbl { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; letter-spacing: 0.1em; color: var(--text-muted); text-transform: uppercase; }
+  .detailScoreVal { font-family: 'Poppins', sans-serif; font-size: 2.4rem; font-weight: 800; letter-spacing: -0.05em; line-height: 0.9; color: var(--green); }
+
+  .pillRow { display: flex; flex-wrap: wrap; gap: 6px; }
+  .statusPill {
+    display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: 999px; font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--text-secondary); letter-spacing: 0.02em;
+  }
+  .statusPill svg { width: 11px; height: 11px; color: var(--text-muted); }
+
+  /* Players table */
+  .resultBanner {
+    display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; border-radius: 11px;
+    font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
+    background: var(--green-10); border: 1px solid var(--green-25); color: var(--green);
+  }
+  .resultBanner svg { width: 15px; height: 15px; }
+  .playersTable { background: var(--bg-paper); border: 1px solid var(--border); border-radius: 13px; overflow: hidden; }
+  .ptRow { display: grid; grid-template-columns: 30px 1fr auto auto; gap: 10px; align-items: center; padding: 11px 13px; border-bottom: 1px solid var(--border); }
+  .ptRow:last-child { border-bottom: none; }
+  .ptRow.lead { background: linear-gradient(90deg, var(--gold-10), transparent 70%); }
+  .ptRank { font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 800; color: var(--text-muted); text-align: center; letter-spacing: -0.03em; }
+  .ptRank.gold { color: var(--gold); } .ptRank.silver { color: #c0c6d4; } .ptRank.bronze { color: #cd7f47; }
+  .ptPlayer { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .ptAv { width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 10px; color: #fff; flex-shrink: 0; }
+  .ptName { font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ptName .you { color: var(--accent-light); }
+  .ptScore { font-family: 'Poppins', sans-serif; font-size: 1.05rem; font-weight: 800; letter-spacing: -0.03em; }
+  .ptRow.lead .ptScore { color: var(--gold); }
+  .ptCrown { color: var(--gold); display: inline-flex; }
+  .ptCrown svg { width: 14px; height: 14px; }
+
+  .notesBox { background: var(--bg-paper); border: 1px dashed var(--border-strong); border-radius: 13px; padding: 14px; }
+  .notesHead { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--purple); text-transform: uppercase; margin-bottom: 8px; }
+  .notesBody { font-family: 'Lora', serif; font-style: italic; font-size: 14.5px; line-height: 1.55; color: var(--text-secondary); }
+
+  /* ═══════════ REGISTRAR ═══════════ */
+  .cpHead { display: flex; flex-direction: column; gap: 4px; padding-bottom: 4px; }
+  .cpKicker { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: var(--purple); text-transform: uppercase; display: inline-flex; align-items: center; gap: 7px; }
+  .cpTitle { font-family: 'Poppins', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+  .cpTitle em { font-family: 'Caveat', cursive; font-style: normal; font-weight: 600; color: var(--purple); font-size: 1.12em; }
+
+  /* Stepper progress */
+  .cpSteps { display: flex; gap: 6px; }
+  .cpStepDot { flex: 1; height: 4px; border-radius: 999px; background: var(--bg-elevated); }
+  .cpStepDot.done { background: var(--green); }
+  .cpStepDot.active { background: var(--purple); }
+
+  .cpCard { background: var(--bg-paper); border: 1px solid var(--border); border-radius: 14px; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+  .cpCardHead { display: flex; align-items: center; gap: 10px; }
+  .cpNum { width: 24px; height: 24px; border-radius: 7px; background: var(--purple-10); border: 1px solid var(--purple-25); color: var(--purple); display: grid; place-items: center; font-family: 'Poppins', sans-serif; font-size: 11px; font-weight: 800; flex-shrink: 0; }
+  .cpNum.done { background: var(--green); border-color: var(--green); color: #001712; }
+  .cpNum svg { width: 12px; height: 12px; }
+  .cpCardTitle { font-family: 'Poppins', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: -0.02em; flex: 1; }
+  .cpCardHint { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.06em; color: var(--text-muted); text-transform: uppercase; }
+
+  /* Selected game */
+  .cpGameSel { display: flex; align-items: center; gap: 11px; padding: 10px; background: var(--bg-card); border: 1px solid var(--border-accent); border-radius: 11px; }
+  .cpGameThumb { width: 46px; height: 46px; border-radius: 11px; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); display: grid; place-items: center; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 1.05rem; color: #fff; letter-spacing: -0.04em; flex-shrink: 0; }
+  .cpGameInfo { flex: 1; min-width: 0; }
+  .cpGameName { font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: -0.02em; }
+  .cpGameMetaTxt { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+  .cpChange { background: transparent; border: 1px solid var(--border-strong); color: var(--text-secondary); padding: 6px 11px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+
+  .cpFieldRow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cpField { display: flex; flex-direction: column; gap: 6px; }
+  .cpLabel { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: 0.12em; color: var(--text-muted); text-transform: uppercase; }
+  .cpInput { background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; color: var(--text); font-family: inherit; font-size: 14px; outline: none; }
+  .cpInput::placeholder { color: var(--text-muted); }
+  .cpQuickRow { display: flex; gap: 5px; flex-wrap: wrap; }
+  .cpQuick { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-secondary); padding: 5px 10px; border-radius: 999px; font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+  .cpQuick.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+
+  /* Mode toggle */
+  .cpMode { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+  .cpModeBtn { background: transparent; border: none; color: var(--text-secondary); padding: 9px 6px; border-radius: 7px; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  .cpModeBtn .mt { font-family: 'Poppins', sans-serif; font-size: 12.5px; font-weight: 700; }
+  .cpModeBtn .md { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; color: var(--text-muted); }
+  .cpModeBtn.active { background: var(--bg-elevated); color: var(--purple); }
+  .cpMode.three { grid-template-columns: 1fr 1fr 1fr; }
+  .cpMode.three .cpModeBtn { padding: 9px 4px; }
+  .cpMode.three .mt { font-size: 11.5px; }
+  /* Teams */
+  .teamPicker { display: inline-flex; gap: 2px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 7px; padding: 2px; flex-shrink: 0; }
+  .teamPick { width: 24px; height: 22px; border: none; background: transparent; border-radius: 5px; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 11px; color: var(--text-muted); }
+  .teamPick.a.on { background: var(--accent); color: #fff; }
+  .teamPick.b.on { background: var(--orange); color: #1a1208; }
+  .teamWinRow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .teamWinBtn { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 12px; border-radius: 11px; border: 1.5px solid var(--border); background: var(--bg-card); color: var(--text-secondary); font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 700; }
+  .teamWinBtn .dot { width: 12px; height: 12px; border-radius: 4px; }
+  .teamWinBtn.a .dot { background: var(--accent); } .teamWinBtn.b .dot { background: var(--orange); }
+  .teamWinBtn.a.on { border-color: var(--accent); background: var(--accent-glow); color: var(--accent-light); }
+  .teamWinBtn.b.on { border-color: var(--orange); background: rgba(245,166,35,0.12); color: var(--orange); }
+
+  /* Score rows */
+  .scoreRow { display: grid; grid-template-columns: 24px 28px 1fr 64px; gap: 9px; align-items: center; padding: 9px 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 11px; }
+  .scoreRow.leader { border-color: var(--gold-25); background: linear-gradient(90deg, var(--gold-10), transparent 60%); }
+  .scoreRow.you { box-shadow: inset 3px 0 0 var(--accent); }
+  .scoreRank { font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 800; color: var(--text-muted); text-align: center; letter-spacing: -0.03em; }
+  .scoreRow.leader .scoreRank { color: var(--gold); }
+  .scoreAv { width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 11px; color: #fff; }
+  .scorePlayer { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .scorePlayerName { font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .scoreYouPill { font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: 0.08em; color: var(--accent-light); text-transform: uppercase; border: 1px solid var(--border-accent); border-radius: 4px; padding: 1px 4px; flex-shrink: 0; }
+  .scoreCrown { color: var(--gold); display: inline-flex; flex-shrink: 0; }
+  .scoreCrown svg { width: 12px; height: 12px; }
+  .scoreInput { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 7px; color: var(--text); font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 700; text-align: center; outline: none; letter-spacing: -0.02em; }
+
+  /* Score stepper + win toggle (competitiva) */
+  .scoreRow.versus { grid-template-columns: 22px 28px 1fr auto; }
+  .scoreRow.versus, .scoreRow.teams, .scoreRow.coop { gap: 7px; padding: 9px 9px; }
+  .cpScoreCtrl { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  .cpScoreCell { display: inline-flex; align-items: stretch; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .cpStepBtn { width: 19px; border: none; background: transparent; color: var(--text-muted); font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 700; line-height: 1; }
+  .cpScoreCell input { width: 34px; background: transparent; border: none; color: var(--text); font-family: 'Poppins', sans-serif; font-size: 0.9rem; font-weight: 700; text-align: center; outline: none; letter-spacing: -0.02em; padding: 0; }
+  .cpWin { width: 28px; height: 30px; flex-shrink: 0; background: transparent; border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text-faint); display: grid; place-items: center; }
+  .cpWin svg { width: 13px; height: 13px; }
+  .cpWin.on { color: var(--gold); border-color: var(--gold); background: var(--gold-10); }
+  .scorePlayerHandle { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--text-muted); }
+  .newBadgeM { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 600; color: var(--purple); background: var(--purple-10); border: 1px solid var(--purple-25); border-radius: 4px; padding: 1px 5px; white-space: nowrap; flex-shrink: 0; }
+  .ghostAvM { width: 28px; height: 28px; border-radius: 999px; background: var(--bg-elevated); border: 1px dashed var(--border-strong); display: grid; place-items: center; font-size: 13px; }
+  .anonTagM { font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: 0.06em; color: var(--text-muted); text-transform: uppercase; border: 1px solid var(--border); border-radius: 4px; padding: 1px 4px; flex-shrink: 0; }
+
+  /* Expansion chips */
+  .cpExpRow { display: flex; flex-wrap: wrap; gap: 5px; }
+  .cpExpChip { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); padding: 5px 10px; border-radius: 999px; font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+  .cpExpChip.on { background: var(--accent-glow); border-color: var(--border-accent); color: var(--accent-light); }
+  .cpExpSel { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-glow); border: 1px solid var(--border-accent); color: var(--accent-light); padding: 3px 9px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+
+  /* Checkboxes */
+  .cpChecks { display: flex; flex-direction: column; gap: 9px; }
+  .cpCheckM { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--text-secondary); }
+  .cpCheckBox { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--border-strong); background: var(--bg-card); display: grid; place-items: center; flex-shrink: 0; }
+  .cpCheckBox.on { background: var(--accent); border-color: var(--accent); }
+  .cpCheckBox svg { width: 11px; height: 11px; color: #fff; }
+
+  /* Solo play + última juntada — pills compartidas */
+  .cpHelperRow { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cpHelperPill { display: inline-flex; align-items: center; gap: 8px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 10px; padding: 8px 12px; color: var(--text-secondary); font-family: 'Poppins', sans-serif; font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; }
+  .cpHelperPill.on { border-color: var(--accent); color: var(--text); }
+  .cpHelperPill .hpCheck { width: 17px; height: 17px; border-radius: 5px; flex-shrink: 0; border: 1.5px solid var(--border-strong); background: var(--bg-card); display: grid; place-items: center; color: #fff; }
+  .cpHelperPill.on .hpCheck { background: var(--accent); border-color: var(--accent); }
+  .cpHelperPill .hpIcon { color: var(--accent-light); font-size: 14px; line-height: 1; }
+  .cpHelperPill .hpHint { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 400; color: var(--text-muted); padding-left: 7px; border-left: 1px solid var(--border); }
+
+  /* Share teaser */
+  .cpShareCard { background: var(--bg-paper); border: 1px solid var(--border); border-radius: 14px; padding: 14px 15px; display: flex; align-items: center; gap: 12px; }
+  .cpShareCard .cpNum { background: var(--bg-elevated); border-color: var(--border); color: var(--text-muted); }
+  .cpShareInfo { flex: 1; min-width: 0; }
+  .cpShareTitle { font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: -0.02em; }
+  .cpShareSub { font-size: 11px; color: var(--text-muted); line-height: 1.35; margin-top: 2px; }
+  .cpShareToggle { width: 42px; height: 24px; border-radius: 999px; background: var(--bg-elevated); border: 1px solid var(--border); position: relative; flex-shrink: 0; }
+  .cpShareToggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 999px; background: var(--text-muted); transition: all var(--t); }
+  .cpShareToggle.on { background: var(--purple-10); border-color: var(--purple-25); }
+  .cpShareToggle.on::after { left: 20px; background: var(--purple); }
+
+  /* Share body */
+  .cpShareBody { display: flex; flex-direction: column; gap: 12px; background: var(--bg-paper); border: 1px solid var(--purple-25); border-top: none; border-radius: 0 0 14px 14px; padding: 14px 15px; margin-top: -14px; }
+  .cpShareDrop { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 18px; border: 2px dashed var(--border-strong); border-radius: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .cpShareNote { display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--green); letter-spacing: 0.02em; }
+  .cpShareCard.open { border-color: var(--purple-25); border-bottom: none; border-radius: 14px 14px 0 0; }
+
+  /* Player / expansion picker popover */
+  .cpPickerPop {
+    position: absolute; left: 0; right: 0; bottom: calc(100% - 2px); top: auto; z-index: 30;
+    background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 13px;
+    box-shadow: 0 -12px 40px rgba(0,0,0,0.5); padding: 8px; max-height: 260px; overflow-y: auto;
+  }
+  .cpPickerPop::-webkit-scrollbar { width: 0; }
+  .cpPickerSearch { width: 100%; background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px; padding: 9px 11px; color: var(--text); font-family: inherit; font-size: 13px; outline: none; margin-bottom: 6px; }
+  .cpPickerSearch::placeholder { color: var(--text-muted); }
+  .cpPickerItem { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: none; background: transparent; border-radius: 9px; color: var(--text); text-align: left; transition: background var(--t); }
+  .cpPickerItem:hover { background: var(--bg-card); }
+  .cpPickerItem:disabled { opacity: 0.4; }
+  .cpPickerItem .av { width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 11px; color: #fff; flex-shrink: 0; }
+  .cpPickerItem .nm { flex: 1; font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
+  .cpPickerItem .hd { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); }
+  .cpPickerItem .nb { font-family: 'JetBrains Mono', monospace; font-size: 8px; color: var(--purple); background: var(--purple-10); border: 1px solid var(--purple-25); border-radius: 4px; padding: 1px 5px; }
+  .cpPickerSection { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.12em; color: var(--text-muted); text-transform: uppercase; padding: 8px 10px 4px; }
+  .cpVariantRow { display: flex; gap: 6px; padding: 4px; }
+  .cpVariantRow input { flex: 1; background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px; padding: 9px 11px; color: var(--text); font-family: inherit; font-size: 13px; outline: none; }
+  .cpVariantRow button { background: var(--accent); color: #fff; border: none; border-radius: 9px; padding: 0 14px; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 13px; }
+
+  /* Result selectors (coop / teams) inside Quiénes */
+  .teamWinRow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .coopOutcomeM { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .coopBtnM { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px; border-radius: 11px; border: 1.5px solid var(--border); background: var(--bg-card); color: var(--text-secondary); }
+  .coopBtnM svg { width: 22px; height: 22px; }
+  .coopBtnM .t { font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 700; }
+  .coopBtnM.win.on { border-color: var(--green); background: var(--green-10); color: var(--green); }
+  .coopBtnM.loss.on { border-color: var(--red); background: var(--red-10); color: var(--red); }
+  .teamAddRow { display: flex; gap: 6px; margin-bottom: 10px; }
+  .teamAddBtn { background: transparent; border: 1px solid var(--border-strong); color: var(--text-secondary); border-radius: 8px; padding: 5px 11px; font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+  .scoreRow.teams { grid-template-columns: 22px 28px 1fr auto; }
+  .scoreRow.coop { grid-template-columns: 28px 28px 1fr auto; }
+  .cpEndCell { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .teamTagM { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.04em; color: var(--text-muted); }
+  .teamPicker3 { display: inline-flex; gap: 2px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 7px; padding: 2px; }
+  .teamPicker3 .teamPick { width: 24px; height: 22px; }
+  .teamPick.c.on { background: var(--green); color: #001712; }
+  .teamPick.d.on { background: var(--purple); color: #1a0a30; }
+
+  .addPlayers { display: flex; flex-wrap: wrap; gap: 6px; }
+  .addChip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 999px; padding: 3px 11px 3px 3px; color: var(--text-secondary); font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 600; }
+  .addChip .av { width: 22px; height: 22px; border-radius: 999px; display: grid; place-items: center; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 9px; color: #fff; }
+  .addGuest { display: inline-flex; align-items: center; gap: 5px; background: transparent; border: 1px dashed var(--border-strong); border-radius: 999px; padding: 5px 12px; color: var(--accent-light); font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+
+  /* Sticky save bar */
+  .cpSaveBar { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 14px 16px; background: linear-gradient(180deg, rgba(21,28,40,0), var(--bg-card) 35%); border-top: 1px solid var(--border); z-index: 15; display: flex; gap: 10px; }
+  .cpSaveBar .ghost { flex-shrink: 0; width: 46px; background: transparent; border: 1px solid var(--border-strong); border-radius: 11px; color: var(--text-secondary); display: grid; place-items: center; }
+  .cpSaveBtn { flex: 1; background: var(--purple); color: #1a0a30; border: none; border-radius: 11px; padding: 13px; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 7px; box-shadow: 0 6px 18px rgba(180,140,255,0.25); }
+  .cpSaveBtn svg { width: 14px; height: 14px; }
+
+  /* ─── BottomNav ─── */
+  .bottomnav {
+    position: absolute; left: 12px; right: 12px; bottom: 12px;
+    background: rgba(21, 28, 40, 0.94); backdrop-filter: blur(20px); border: 1px solid var(--border-strong);
+    border-radius: 22px; padding: 8px 6px; display: flex; align-items: center; gap: 4px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,0,0,0.5); z-index: 20;
+  }
+  .bnArrow { width: 26px; height: 44px; background: transparent; border: none; color: var(--text-muted); display: grid; place-items: center; flex-shrink: 0; }
+  .bnArrow svg { width: 16px; height: 16px; }
+  .bnItems { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+  .bnItem { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 4px 5px; border-radius: 14px; color: var(--text-muted); position: relative; text-align: center; }
+  .bnIcon { width: 30px; height: 30px; display: grid; place-items: center; color: inherit; position: relative; }
+  .bnIcon svg { width: 22px; height: 22px; }
+  .bnLabel { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: 0.04em; font-weight: 600; line-height: 1; text-transform: uppercase; white-space: nowrap; }
+  .bnItem.active { background: var(--purple-10); color: var(--purple); }
+  .bnItem.active::after { content: ''; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%); width: 18px; height: 2px; background: var(--purple); border-radius: 1px; }
+  .bnPager { position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; }
+  .bnPager .dot { width: 5px; height: 5px; background: var(--text-faint); border-radius: 50%; }
+  .bnPager .dot.active { background: var(--purple); width: 14px; border-radius: 3px; }
+  .homeIndicator { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 140px; height: 4px; background: rgba(255,255,255,0.4); border-radius: 2px; z-index: 25; }
+
+  /* FAB */
+  .fab { position: absolute; right: 16px; bottom: 26px; width: 52px; height: 52px; border-radius: 16px; background: var(--purple); color: #1a0a30; border: none; display: grid; place-items: center; box-shadow: 0 12px 32px rgba(180,140,255,0.3), 0 4px 12px rgba(0,0,0,0.4); z-index: 18; }
+  .fab svg { width: 22px; height: 22px; }
+
+  .footnote { max-width: 760px; padding: 18px 22px; background: var(--bg-paper); border: 1px dashed var(--border); border-radius: 12px; color: var(--text-secondary); font-size: 13.5px; line-height: 1.6; text-align: center; }
+  .footnote strong { color: var(--text); }
+
+  @media (max-width: 1720px) { .phones { gap: 18px; } .phone { transform: scale(0.9); transform-origin: top center; margin-bottom: -80px; } }
+  @media (max-width: 920px) { .phone { transform: scale(0.82); margin-bottom: -150px; } }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="stageHeader">
+    <span class="stageEyebrow">BG Watch · mobile</span>
+    <h1 class="stageTitle">El <em>almanaque</em> en el bolsillo.</h1>
+    <p class="stageSub">
+      Versión mobile de BG Watch: perfil con stats y heatmap, colección sincronizada de BGG,
+      detalle de partida con tabla de resultados, y el registrador de partidas como scoresheet.
+    </p>
+  </div>
+
+  <div class="phones">
+
+    <!-- ═══════════ PHONE 1 · PERFIL ═══════════ -->
+    <div class="phoneWrap">
+      <span class="phoneLabel">◆ Perfil · <strong>stats + partidas</strong></span>
+      <div class="phone">
+        <div class="screen">
+          <div class="island"></div>
+          <div class="statusBar">
+            <span>9:41</span>
+            <div><svg width="17" height="11" viewBox="0 0 17 11"><rect x="1" y="1" width="14" height="9" rx="2" stroke="#fff" stroke-opacity="0.4" fill="none"/><rect x="3" y="3" width="11" height="5" rx="0.5" fill="#fff"/></svg></div>
+          </div>
+
+          <div class="navbar">
+            <a class="brand" href="#">
+              <div class="brandMark"><div class="t"><div class="arm"></div><div class="stem"></div></div><div class="ring"></div></div>
+              <div class="brandText"><span class="brandName">BG Watch</span><span class="brandSub">◆ tu almanaque</span></div>
+            </a>
+            <div class="navActions">
+              <button class="iconBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
+              <button class="iconBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+            </div>
+          </div>
+
+          <div class="content">
+            <!-- Profile top -->
+            <div class="profileTop">
+              <div class="profileAv" style="background: var(--accent)">V</div>
+              <div class="profileMeta">
+                <div class="profileKicker">◆ Tu perfil</div>
+                <div class="profileName">Vos</div>
+                <div class="profileBgg">@vos en BGG · <a href="#">ver ↗</a></div>
+              </div>
+              <button class="profileEdit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            </div>
+
+            <!-- Stat tiles -->
+            <div class="statGrid">
+              <div class="statTile accent">
+                <span class="statTileLbl">Partidas</span>
+                <span class="statTileVal">100</span>
+                <span class="statTileSub up">↑ 12 este mes</span>
+              </div>
+              <div class="statTile">
+                <span class="statTileLbl">Juegos únicos</span>
+                <span class="statTileVal">38</span>
+                <span class="statTileSub">de 87 en colección</span>
+              </div>
+              <div class="statTile purple">
+                <span class="statTileLbl">Más jugado</span>
+                <span class="statTileVal">Wingspan</span>
+                <span class="statTileSub">14× partidas</span>
+              </div>
+              <div class="statTile gold">
+                <span class="statTileLbl">Win rate</span>
+                <span class="statTileVal" style="color: var(--green)">64%</span>
+                <span class="statTileSub">en 31 medidas</span>
+              </div>
+            </div>
+
+            <!-- Segmented -->
+            <div class="segTabs">
+              <button class="segTab active">Partidas <span class="badge">100</span></button>
+              <button class="segTab">Colección <span class="badge">87</span></button>
+            </div>
+
+            <!-- Filter chips -->
+            <div class="filterChips">
+              <button class="filterChip active">Todas · 100</button>
+              <button class="filterChip">Este año · 47</button>
+              <button class="filterChip">Este mes · 12</button>
+              <button class="filterChip">7 días · 3</button>
+            </div>
+
+            <!-- Heatmap -->
+            <div class="heatWidget">
+              <div class="widgetLbl">◆ Calendario · últimas 13 semanas</div>
+              <div class="heatmap" id="heatmap"></div>
+              <div class="heatLegend">
+                <span>Menos</span>
+                <div class="heatScale">
+                  <div class="heatCell"></div><div class="heatCell l1"></div><div class="heatCell l2"></div><div class="heatCell l3"></div>
+                </div>
+                <span>Más</span>
+              </div>
+            </div>
+
+            <div class="secLabel"><span class="l">Partidas recientes</span><span class="rule"></span></div>
+
+            <!-- Plays -->
+            <div class="play">
+              <div class="playDate"><span class="playDateDay">18</span><span class="playDateMonth">May</span></div>
+              <div class="playThumb">WS</div>
+              <div class="playInfo">
+                <span class="playGame">Wingspan</span>
+                <div class="playMeta">
+                  <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Casa de Cami</span>
+                  <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> 4 jug.</span>
+                </div>
+                <div class="playWinner"><span class="crown"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 7l4 12h12l4-12-6 4-4-9-4 9-6-4z"/></svg></span> <span class="wAv" style="background: var(--accent)">V</span> <span>Ganó <strong>Vos</strong></span></div>
+              </div>
+              <div class="playRight"><span class="playOutcome win">✦ 1º de 4</span><span class="playScore">92</span></div>
+            </div>
+
+            <div class="play">
+              <div class="playDate"><span class="playDateDay">15</span><span class="playDateMonth">May</span></div>
+              <div class="playThumb" style="background: linear-gradient(135deg, #b48cff, #7a4dff)">BB</div>
+              <div class="playInfo">
+                <span class="playGame">Brass: Birmingham</span>
+                <div class="playMeta">
+                  <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Club Estrategia</span>
+                  <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> 4 jug.</span>
+                </div>
+                <div class="playWinner"><span class="crown"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 7l4 12h12l4-12-6 4-4-9-4 9-6-4z"/></svg></span> <span class="wAv" style="background: #1888ef">T</span> <span>Ganó <strong>Tomás K.</strong></span></div>
+              </div>
+              <div class="playRight"><span class="playOutcome loss">○ 4º de 4</span><span class="playScore">138</span></div>
+            </div>
+
+            <div class="play">
+              <div class="playDate"><span class="playDateDay">12</span><span class="playDateMonth">May</span></div>
+              <div class="playThumb" style="background: linear-gradient(135deg, #00d984, #00a565)">SK</div>
+              <div class="playInfo">
+                <span class="playGame">Sky Team</span>
+                <div class="playMeta">
+                  <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Casa</span>
+                  <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> coop · 2</span>
+                </div>
+                <div class="playWinner"><span class="crown"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 7l4 12h12l4-12-6 4-4-9-4 9-6-4z"/></svg></span> <span class="twoAv"><span class="wAv" style="background: var(--accent)">V</span><span class="wAv" style="background: #00aeff">V</span></span> <span>Ganaron <strong>en equipo</strong></span></div>
+              </div>
+              <div class="playRight"><span class="playOutcome win">✦ Coop ✓</span><span class="playScore">7</span></div>
+            </div>
+          </div>
+
+          <button class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+
+          <div class="homeIndicator"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PHONE 2 · COLECCIÓN ═══════════ -->
+    <div class="phoneWrap">
+      <span class="phoneLabel">◆ Colección · <strong>grid + top</strong></span>
+      <div class="phone">
+        <div class="screen">
+          <div class="island"></div>
+          <div class="statusBar">
+            <span>9:41</span>
+            <div><svg width="17" height="11" viewBox="0 0 17 11"><rect x="1" y="1" width="14" height="9" rx="2" stroke="#fff" stroke-opacity="0.4" fill="none"/><rect x="3" y="3" width="11" height="5" rx="0.5" fill="#fff"/></svg></div>
+          </div>
+
+          <div class="navbar">
+            <a class="brand" href="#">
+              <div class="brandMark"><div class="t"><div class="arm"></div><div class="stem"></div></div><div class="ring"></div></div>
+              <div class="brandText"><span class="brandName">BG Watch</span><span class="brandSub">◆ tu almanaque</span></div>
+            </a>
+            <div class="navActions">
+              <button class="iconBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
+            </div>
+          </div>
+
+          <div class="content">
+            <div class="profileTop">
+              <div class="profileAv" style="background: var(--accent)">V</div>
+              <div class="profileMeta">
+                <div class="profileKicker">◆ Tu perfil</div>
+                <div class="profileName">Vos</div>
+                <div class="profileBgg">87 juegos · 38 jugados</div>
+              </div>
+            </div>
+
+            <div class="segTabs">
+              <button class="segTab">Partidas <span class="badge">100</span></button>
+              <button class="segTab active">Colección <span class="badge">87</span></button>
+            </div>
+
+            <!-- Top collection -->
+            <div class="heatWidget">
+              <div class="widgetLbl">◆ Top de la colección</div>
+              <div class="miniRankList">
+                <div class="miniRank"><span class="miniRankNum top">1</span><div class="miniRankInfo"><div class="miniRankName">Wingspan</div><div class="miniRankBar"><div class="miniRankBarFill gold" style="width:100%"></div></div></div><span class="miniRankCount">14×</span></div>
+                <div class="miniRank"><span class="miniRankNum">2</span><div class="miniRankInfo"><div class="miniRankName">Brass: Birmingham</div><div class="miniRankBar"><div class="miniRankBarFill" style="width:79%"></div></div></div><span class="miniRankCount">11×</span></div>
+                <div class="miniRank"><span class="miniRankNum">3</span><div class="miniRankInfo"><div class="miniRankName">Catán</div><div class="miniRankBar"><div class="miniRankBarFill" style="width:64%"></div></div></div><span class="miniRankCount">9×</span></div>
+              </div>
+            </div>
+
+            <div class="filterChips">
+              <button class="filterChip">Todos · 87</button>
+              <button class="filterChip active">Jugados · 38</button>
+              <button class="filterChip">Sin jugar · 49</button>
+            </div>
+
+            <!-- Game grid -->
+            <div class="collGrid">
+              <div class="gameCard"><div class="gameThumb"><span class="twoL">WS</span><span class="gameCount">14×</span></div><div class="gameBody"><div class="gameName">Wingspan</div><div class="gameYear">2019</div></div></div>
+              <div class="gameCard"><div class="gameThumb"><span class="twoL">BB</span><span class="gameCount">11×</span></div><div class="gameBody"><div class="gameName">Brass: Birmingham</div><div class="gameYear">2018</div></div></div>
+              <div class="gameCard"><div class="gameThumb"><span class="twoL">CT</span><span class="gameCount">9×</span></div><div class="gameBody"><div class="gameName">Catán</div><div class="gameYear">1995</div></div></div>
+              <div class="gameCard"><div class="gameThumb"><span class="twoL">SI</span><span class="gameCount">7×</span></div><div class="gameBody"><div class="gameName">Spirit Island</div><div class="gameYear">2017</div></div></div>
+              <div class="gameCard"><div class="gameThumb"><span class="twoL">AN</span><span class="gameCount">6×</span></div><div class="gameBody"><div class="gameName">Ark Nova</div><div class="gameYear">2021</div></div></div>
+              <div class="gameCard"><div class="gameThumb"><span class="twoL">SK</span><span class="gameCount">5×</span></div><div class="gameBody"><div class="gameName">Sky Team</div><div class="gameYear">2023</div></div></div>
+            </div>
+          </div>
+          <div class="homeIndicator"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PHONE 3 · DETALLE ═══════════ -->
+    <div class="phoneWrap">
+      <span class="phoneLabel">◆ Detalle · <strong>resultados de la partida</strong></span>
+      <div class="phone">
+        <div class="screen">
+          <div class="island"></div>
+          <div class="statusBar">
+            <span>9:41</span>
+            <div><svg width="17" height="11" viewBox="0 0 17 11"><rect x="1" y="1" width="14" height="9" rx="2" stroke="#fff" stroke-opacity="0.4" fill="none"/><rect x="3" y="3" width="11" height="5" rx="0.5" fill="#fff"/></svg></div>
+          </div>
+
+          <div class="navbar">
+            <button class="backBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+            <div class="brandText" style="flex:1; min-width:0;"><span class="brandName" style="font-size:13px;">Detalle de partida</span><span class="brandSub">◆ bg watch</span></div>
+            <div class="navActions">
+              <button class="iconBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+              <button class="iconBtn"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>
+            </div>
+          </div>
+
+          <div class="detailContent">
+            <div class="detailHero">
+              <div class="detailThumb">WS</div>
+              <div class="detailHeroInfo">
+                <div class="detailKicker">◆ Partida #1</div>
+                <h1 class="detailGame">Wingspan</h1>
+              </div>
+              <div class="detailScoreBig"><span class="detailScoreLbl">Tu puntaje</span><span class="detailScoreVal">92</span></div>
+            </div>
+
+            <div class="pillRow">
+              <span class="statusPill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Lun 18 May 2026</span>
+              <span class="statusPill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Casa de Cami</span>
+              <span class="statusPill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 95 min</span>
+              <span class="statusPill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> 4 jugadores</span>
+            </div>
+
+            <div class="resultBanner"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 7l4 12h12l4-12-6 4-4-9-4 9-6-4z"/></svg> ¡Ganaste!</div>
+
+            <div class="secLabel"><span class="l">Resultados</span><span class="rule"></span></div>
+            <div class="playersTable">
+              <div class="ptRow lead">
+                <span class="ptRank gold">#1</span>
+                <div class="ptPlayer"><span class="ptAv" style="background: var(--accent)">V</span><span class="ptName"><span class="you">Vos</span></span><span class="scoreCrown ptCrown"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 7l4 12h12l4-12-6 4-4-9-4 9-6-4z"/></svg></span></div>
+                <span class="ptScore">92</span>
+                <span class="playOutcome win">✦ Ganó</span>
+              </div>
+              <div class="ptRow">
+                <span class="ptRank silver">#2</span>
+                <div class="ptPlayer"><span class="ptAv" style="background: var(--orange)">C</span><span class="ptName">Cami Rossi</span></div>
+                <span class="ptScore">76</span>
+                <span class="playOutcome loss">—</span>
+              </div>
+              <div class="ptRow">
+                <span class="ptRank bronze">#3</span>
+                <div class="ptPlayer"><span class="ptAv" style="background: var(--purple)">P</span><span class="ptName">Pancho M.</span></div>
+                <span class="ptScore">68</span>
+                <span class="playOutcome loss">—</span>
+              </div>
+              <div class="ptRow">
+                <span class="ptRank">#4</span>
+                <div class="ptPlayer"><span class="ptAv" style="background: var(--accent-light)">V</span><span class="ptName">Vale P.</span></div>
+                <span class="ptScore">61</span>
+                <span class="playOutcome loss">—</span>
+              </div>
+            </div>
+
+            <div class="notesBox">
+              <div class="notesHead">◆ Tus notas</div>
+              <p class="notesBody">"Combo de aves de pradera + ronda 4 con +2 cada turno fue brutal. Cami casi me alcanza por bonus de fin."</p>
+            </div>
+          </div>
+          <div class="homeIndicator"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ PHONE 4 · REGISTRAR ═══════════ -->
+    <div class="phoneWrap">
+      <span class="phoneLabel">◆ Registrar · <strong>scoresheet</strong></span>
+      <div class="phone">
+        <div class="screen">
+          <div class="island"></div>
+          <div class="statusBar">
+            <span>9:41</span>
+            <div><svg width="17" height="11" viewBox="0 0 17 11"><rect x="1" y="1" width="14" height="9" rx="2" stroke="#fff" stroke-opacity="0.4" fill="none"/><rect x="3" y="3" width="11" height="5" rx="0.5" fill="#fff"/></svg></div>
+          </div>
+
+          <div class="navbar">
+            <button class="backBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+            <div class="brandText" style="flex:1; min-width:0;"><span class="brandName" style="font-size:13px;">Nueva partida</span><span class="brandSub">◆ anotá la jugada</span></div>
+          </div>
+
+          <div class="content" style="padding-bottom: 90px;">
+            <div class="cpHead">
+              <div class="cpKicker"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="16" cy="16" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg> BG Watch · nueva entrada</div>
+              <div class="cpTitle">Anotá la <em>partida.</em></div>
+            </div>
+            <div class="cpSteps"><div class="cpStepDot done"></div><div class="cpStepDot done"></div><div class="cpStepDot done"></div></div>
+
+            <!-- 1 Juego -->
+            <div class="cpCard">
+              <div class="cpCardHead"><span class="cpNum done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="cpCardTitle">¿Qué jugaron?</span><span class="cpCardHint">de tu colección</span></div>
+              <div class="cpGameSel">
+                <div class="cpGameThumb">WS</div>
+                <div class="cpGameInfo"><div class="cpGameName">Wingspan</div><div class="cpGameMetaTxt">2019 · 14× jugado</div></div>
+                <button class="cpChange">Cambiar</button>
+              </div>
+              <div class="cpExpRow" id="cpExpRow"></div>
+            </div>
+
+            <!-- 2 Quiénes -->
+            <div class="cpCard">
+              <div class="cpCardHead"><span class="cpNum done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="cpCardTitle">¿Quiénes jugaron?</span><span class="cpCardHint" id="cpJugCount">3 jug.</span></div>
+              <div class="cpMode three" id="cpModeBtns">
+                <button class="cpModeBtn active" data-mode="versus"><span class="mt">Competitiva</span><span class="md">con puntaje</span></button>
+                <button class="cpModeBtn" data-mode="coop"><span class="mt">Cooperativa</span><span class="md">juntos</span></button>
+                <button class="cpModeBtn" data-mode="teams"><span class="mt">Equipos</span><span class="md">bandos</span></button>
+              </div>
+
+              <div id="cpResult"></div>
+              <div id="cpLastJuntada" style="margin-bottom: 12px;"></div>
+              <div id="cpPlayerRows"></div>
+
+              <div style="position: relative;">
+                <div class="cpLabel" style="margin-bottom:8px;">Agregar jugadores</div>
+                <div class="addPlayers">
+                  <button class="addGuest" id="cpAddPlayer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="7" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg> Agregar jugador</button>
+                  <button class="addGuest" id="cpAddAnon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Anónimo</button>
+                </div>
+                <div class="cpPickerPop" id="cpPlayerPicker" hidden></div>
+              </div>
+            </div>
+
+            <!-- 3 Cuándo -->
+            <div class="cpCard">
+              <div class="cpCardHead"><span class="cpNum done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="cpCardTitle">¿Cuándo y dónde?</span></div>
+              <div class="cpFieldRow">
+                <div class="cpField"><span class="cpLabel">Fecha</span><div class="cpInput" style="display:flex;align-items:center;color:var(--text)">Hoy · 18 May</div><div class="cpQuickRow"><span class="cpQuick active">Hoy</span><span class="cpQuick">Ayer</span></div></div>
+                <div class="cpField"><span class="cpLabel">Duración</span><div class="cpInput" style="display:flex;align-items:center;color:var(--text)">95 min</div><div class="cpQuickRow"><span class="cpQuick">60</span><span class="cpQuick active">90</span><span class="cpQuick">120</span></div></div>
+              </div>
+              <div class="cpField"><span class="cpLabel">Dónde</span><div class="cpInput" style="display:flex;align-items:center;color:var(--text)">Casa de Cami</div></div>
+              <div class="cpChecks">
+                <label class="cpCheckM" id="cpChk1"><span class="cpCheckBox"></span> Incompleta (no se terminó)</label>
+                <label class="cpCheckM" id="cpChk2"><span class="cpCheckBox"></span> No contar para estadísticas</label>
+              </div>
+            </div>
+
+            <!-- 4 Notas -->
+            <div class="cpCard">
+              <div class="cpCardHead"><span class="cpNum" style="background:var(--bg-elevated);border-color:var(--border);color:var(--text-muted)">4</span><span class="cpCardTitle">Notas</span><span class="cpCardHint">opcional</span></div>
+              <div class="cpInput" style="min-height:64px;align-items:flex-start;color:var(--text-muted);font-style:italic;font-family:'Lora',serif;line-height:1.5;display:flex">Ese combo de la ronda 4 con +2 cada turno fue brutal…</div>
+            </div>
+
+            <!-- 5 Compartir -->
+            <div class="cpShareCard" id="cpShareCard">
+              <span class="cpNum">5</span>
+              <div class="cpShareInfo">
+                <div class="cpShareTitle">Compartí esta partida</div>
+                <div class="cpShareSub">Publicá una juntada con fotos y copiá el link para tus grupos.</div>
+              </div>
+              <span class="cpShareToggle" id="cpShareToggle"></span>
+            </div>
+            <div class="cpShareBody" id="cpShareBody" hidden>
+              <div class="cpField"><span class="cpLabel">Privacidad</span><div class="cpQuickRow"><span class="cpQuick active">Pública</span><span class="cpQuick">Comunidad</span><span class="cpQuick">Privada</span></div></div>
+              <div class="cpField"><span class="cpLabel">Título</span><div class="cpInput" style="color:var(--text-muted)">18 dados, ni un triple…</div></div>
+              <div class="cpField"><span class="cpLabel">Contá cómo estuvo</span><div class="cpInput" style="min-height:54px;color:var(--text-muted);display:flex;align-items:flex-start">La crónica de la partida para tus amigos…</div></div>
+              <div class="cpShareDrop"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Arrastrá fotos de la partida</div>
+              <div class="cpShareNote"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Se adjunta el scorecard de resultados automáticamente.</div>
+            </div>
+          </div>
+
+          <!-- Sticky save -->
+          <div class="cpSaveBar">
+            <button class="ghost"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button>
+            <button class="cpSaveBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Guardar partida</button>
+          </div>
+          <div class="homeIndicator"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footnote">
+    <strong>BG Watch · Mobile</strong> — Las cuatro pantallas del almanaque adaptadas a 390×820:
+    perfil con stats en tiles + heatmap, colección sincronizada de BGG, detalle con tabla de
+    resultados, y el registrador como scoresheet. Reutiliza los tokens y el Navbar superior
+    de la familia mobile de Turnocero, con púrpura como acento de la sección.
+  </div>
+</div>
+
+<script>
+  // Heatmap fill — deterministic pattern (13 weeks × 7 days)
+  (function(){
+    const hm = document.getElementById('heatmap');
+    if (!hm) return;
+    for (let i = 0; i < 13 * 7; i++) {
+      const r = (i * 17) % 10;
+      let lvl = 0;
+      if (r >= 5 && r < 8) lvl = 1;
+      else if (r === 8) lvl = 2;
+      else if (r === 9) lvl = 3;
+      const c = document.createElement('div');
+      c.className = 'heatCell' + (lvl ? ' l' + lvl : '');
+      hm.appendChild(c);
+    }
+  })();
+
+  // ── Phone 4 · interactive play creator ──
+  (function(){
+    const trophySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
+    const crownSvg = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 7l4 12h12l4-12-6 4-4-9-4 9-6-4z"/></svg>';
+    const xSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+    const ROSTER = [
+      { handle: 'camir', name: 'Cami R.', initial: 'C', color: '#f5a623' },
+      { handle: 'panchom', name: 'Pancho M.', initial: 'P', color: '#b48cff' },
+      { handle: 'valep', name: 'Vale P.', initial: 'V', color: '#00aeff' },
+      { handle: 'tomik', name: 'Tomás K.', initial: 'T', color: '#1888ef' },
+      { handle: 'luci', name: 'Lucía D.', initial: 'L', color: '#f31d77', isNew: true },
+      { handle: 'joaco', name: 'Joaco R.', initial: 'J', color: '#00d984', isNew: true },
+    ];
+    const ALL_EXP = ['Europa', 'Oceanía', 'Asia'];
+
+    const state = {
+      mode: 'versus',
+      solo: false,
+      coopWin: true,
+      teamWin: 'A',
+      numTeams: 2,
+      expansions: ['Europa'],
+      variant: '',
+      players: [
+        { handle: 'vos', name: 'Vos', initial: 'V', color: '#1888ef', you: true, score: '92', win: true, team: 'A' },
+        { handle: 'camir', name: 'Cami R.', initial: 'C', color: '#f5a623', score: '76', win: false, team: 'B' },
+        { handle: 'anon1', name: 'Anónimo 1', initial: '?', color: '#5a6178', anon: true, score: '61', win: false, team: 'B' },
+      ],
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const TEAM_IDS = ['A','B','C','D'];
+    const teamClass = { A:'a', B:'b', C:'c', D:'d' };
+
+    function ranking() {
+      const withN = state.players.map((p,i) => ({ i, n: p.score === '' ? null : Number(p.score) }));
+      const scored = withN.filter(x => x.n !== null).sort((a,b) => b.n - a.n);
+      const rank = {};
+      let r = 0, last = null;
+      scored.forEach((x, idx) => { if (x.n !== last) { r = idx+1; last = x.n; } rank[x.i] = r; });
+      return rank;
+    }
+    function winnerIdx() {
+      const r = ranking();
+      const ones = Object.keys(r).filter(k => r[k] === 1);
+      return ones.length === 1 ? Number(ones[0]) : -1;
+    }
+
+    function avatar(p, cls) {
+      if (p.anon) return '<span class="ghostAvM">👤</span>';
+      return '<span class="' + (cls||'scoreAv') + '" style="background:' + p.color + '">' + p.initial + '</span>';
+    }
+
+    function renderExp() {
+      const row = $('cpExpRow'); if (!row) return;
+      let h = '';
+      state.expansions.forEach(e => { h += '<span class="cpExpSel" data-exp="'+e+'">'+e+' '+xSvg+'</span>'; });
+      h += '<button class="cpExpChip" id="cpAddExp">+ Expansión</button>';
+      h += state.variant
+        ? '<span class="cpExpSel" data-variant="1" style="background:var(--purple-10);border-color:var(--purple-25);color:var(--purple)">🎲 '+state.variant+' '+xSvg+'</span>'
+        : '<button class="cpExpChip" id="cpAddVariant">+ Variante</button>';
+      row.innerHTML = h;
+      row.querySelectorAll('.cpExpSel[data-exp]').forEach(el => el.onclick = () => { state.expansions = state.expansions.filter(x => x !== el.dataset.exp); renderExp(); });
+      const dv = row.querySelector('.cpExpSel[data-variant]'); if (dv) dv.onclick = () => { state.variant = ''; renderExp(); };
+      const ae = $('cpAddExp'); if (ae) ae.onclick = (e) => { e.stopPropagation(); openExpPicker(); };
+      const av = $('cpAddVariant'); if (av) av.onclick = (e) => { e.stopPropagation(); openVariantPicker(); };
+    }
+
+    function renderResult() {
+      const box = $('cpResult'); if (!box) return;
+      if (state.mode === 'coop') {
+        box.innerHTML =
+          '<div class="coopOutcomeM">' +
+          '<button class="coopBtnM win '+(state.coopWin?'on':'')+'" data-c="1">'+trophySvg+'<span class="t">Ganamos</span></button>' +
+          '<button class="coopBtnM loss '+(!state.coopWin?'on':'')+'" data-c="0">'+xSvg+'<span class="t">Perdimos</span></button></div>';
+        box.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { state.coopWin = b.dataset.c === '1'; render(); });
+      } else if (state.mode === 'teams') {
+        const teams = TEAM_IDS.slice(0, state.numTeams);
+        let h = '<div class="teamAddRow">';
+        if (state.numTeams > 2) h += '<button class="teamAddBtn" data-team-rm="1">− Equipo</button>';
+        if (state.numTeams < 4) h += '<button class="teamAddBtn" data-team-add="1">+ Equipo</button>';
+        h += '</div><div class="teamWinRow" style="grid-template-columns:repeat('+Math.min(state.numTeams,2)+',1fr)">';
+        teams.forEach(t => { h += '<button class="teamWinBtn '+teamClass[t]+' '+(state.teamWin===t?'on':'')+'" data-tw="'+t+'"><span class="dot"></span> Ganó Eq. '+t+'</button>'; });
+        h += '</div>';
+        box.innerHTML = h;
+        box.querySelectorAll('[data-tw]').forEach(b => b.onclick = () => { state.teamWin = b.dataset.tw; render(); });
+        const rm = box.querySelector('[data-team-rm]'); if (rm) rm.onclick = () => { state.numTeams--; state.players.forEach(p => { if (p.team === TEAM_IDS[state.numTeams]) p.team = 'A'; }); render(); };
+        const ad = box.querySelector('[data-team-add]'); if (ad) ad.onclick = () => { state.numTeams++; render(); };
+      } else { box.innerHTML = ''; }
+    }
+
+    function renderPlayers() {
+      const box = $('cpPlayerRows'); if (!box) return;
+      const rank = ranking();
+      const win = winnerIdx();
+      const teams = TEAM_IDS.slice(0, state.numTeams);
+      let h = '';
+      state.players.forEach((p, i) => {
+        const isLeader = state.mode === 'versus' ? (i === win) : state.mode === 'teams' ? (p.team === state.teamWin) : false;
+        const cls = 'scoreRow ' + state.mode + (isLeader ? ' leader' : '') + (p.you ? ' you' : '');
+        let rankCell, ctrl;
+        if (state.mode === 'versus') {
+          rankCell = '#' + (rank[i] || '—');
+          ctrl = '<div class="cpScoreCtrl"><div class="cpScoreCell"><button class="cpStepBtn" data-step="-1" data-i="'+i+'">−</button><input data-score="'+i+'" value="'+p.score+'" /><button class="cpStepBtn" data-step="1" data-i="'+i+'">+</button></div>' +
+                 '<button class="cpWin '+(i===win?'on':'')+'" data-win="'+i+'">'+trophySvg+'</button></div>';
+        } else if (state.mode === 'teams') {
+          rankCell = isLeader ? '<span style="color:var(--gold)">'+crownSvg.replace('viewBox','width="13" height="13" viewBox')+'</span>' : '·';
+          let tp = '<div class="teamPicker3">';
+          teams.forEach(t => { tp += '<button class="teamPick '+teamClass[t]+' '+(p.team===t?'on':'')+'" data-team="'+t+'" data-i="'+i+'">'+t+'</button>'; });
+          tp += '</div>';
+          ctrl = '<div class="cpScoreCtrl"><div class="cpScoreCell"><button class="cpStepBtn" data-step="-1" data-i="'+i+'">−</button><input data-score="'+i+'" value="'+p.score+'" /><button class="cpStepBtn" data-step="1" data-i="'+i+'">+</button></div>'+tp+'</div>';
+        } else {
+          rankCell = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>';
+          ctrl = '<span class="teamTagM">equipo</span>';
+        }
+        const meta = p.you ? '<span class="scoreYouPill">vos</span>' : p.anon ? '<span class="anonTagM">anón</span>' : (p.handle ? '<span class="scorePlayerHandle">@'+p.handle+'</span>' : '');
+        const crown = (state.mode==='versus' && i===win) ? '<span class="scoreCrown">'+crownSvg+'</span>' : '';
+        const nb = p.isNew ? '<span class="newBadgeM">✨ Nuevo</span>' : '';
+        const rm = p.you ? '' : '<button class="scoreRemove" data-rm="'+i+'">'+xSvg+'</button>';
+        h += '<div class="'+cls+'"><span class="scoreRank">'+rankCell+'</span>'+avatar(p)+
+             '<div class="scorePlayer"><span class="scorePlayerName">'+p.name+'</span>'+meta+crown+nb+'</div>'+
+             '<div class="cpEndCell">'+ctrl+rm+'</div></div>';
+      });
+      box.innerHTML = h;
+      box.querySelectorAll('[data-score]').forEach(inp => inp.oninput = () => { state.players[+inp.dataset.score].score = inp.value.replace(/[^\d-]/g,''); renderPlayers(); });
+      box.querySelectorAll('[data-step]').forEach(b => b.onclick = () => { const i=+b.dataset.i, d=+b.dataset.step; const cur=Number(state.players[i].score); state.players[i].score = String((Number.isFinite(cur)?cur:0)+d); renderPlayers(); });
+      box.querySelectorAll('[data-win]').forEach(b => b.onclick = () => { const i=+b.dataset.win; state.players.forEach((p,j)=>p.win=(j===i)); renderPlayers(); });
+      box.querySelectorAll('[data-team]').forEach(b => b.onclick = () => { state.players[+b.dataset.i].team = b.dataset.team; render(); });
+      box.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { state.players.splice(+b.dataset.rm,1); render(); });
+      $('cpJugCount').textContent = state.players.length + ' jug.';
+    }
+
+    function openPlayerPicker() {
+      const pop = $('cpPlayerPicker');
+      const present = new Set(state.players.map(p => p.handle));
+      let h = '<input class="cpPickerSearch" placeholder="Buscar compañero o usuario…" /><div class="cpPickerSection">Compañeros frecuentes</div>';
+      ROSTER.forEach(p => {
+        const dis = present.has(p.handle);
+        h += '<button class="cpPickerItem" data-add="'+p.handle+'" '+(dis?'disabled':'')+'>' +
+             '<span class="av" style="background:'+p.color+'">'+p.initial+'</span><span class="nm">'+p.name+'</span>' +
+             '<span class="hd">@'+p.handle+'</span>'+(p.isNew?'<span class="nb">✨</span>':'')+'</button>';
+      });
+      pop.innerHTML = h;
+      pop.hidden = false;
+      pop.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
+        const p = ROSTER.find(r => r.handle === b.dataset.add);
+        state.players.push({ ...p, score: '', win: false, team: 'B' });
+        pop.hidden = true; render();
+      });
+    }
+    function openExpPicker() {
+      const pop = $('cpPlayerPicker');
+      let h = '<div class="cpPickerSection">Expansiones jugadas</div>';
+      ALL_EXP.forEach(e => {
+        const on = state.expansions.includes(e);
+        h += '<button class="cpPickerItem" data-exp="'+e+'"><span class="nm">'+e+'</span>' + (on ? '<span class="hd" style="color:var(--accent-light)">✓ agregada</span>' : '<span class="hd">+ agregar</span>') + '</button>';
+      });
+      pop.innerHTML = h; pop.hidden = false;
+      pop.querySelectorAll('[data-exp]').forEach(b => b.onclick = () => {
+        const e = b.dataset.exp;
+        state.expansions = state.expansions.includes(e) ? state.expansions.filter(x=>x!==e) : [...state.expansions, e];
+        renderExp(); openExpPicker();
+      });
+    }
+    function openVariantPicker() {
+      const pop = $('cpPlayerPicker');
+      pop.innerHTML = '<div class="cpPickerSection">Variante o tablero</div>' +
+        '<div class="cpVariantRow"><input id="cpVarInput" placeholder="Lado B, mapa avanzado…" /><button id="cpVarAdd">OK</button></div>' +
+        '<button class="cpPickerItem" data-v="Lado oscuro"><span class="nm">Lado oscuro</span><span class="hd">sugerida</span></button>' +
+        '<button class="cpPickerItem" data-v="Mapa avanzado"><span class="nm">Mapa avanzado</span><span class="hd">sugerida</span></button>';
+      pop.hidden = false;
+      $('cpVarAdd').onclick = () => { const v = $('cpVarInput').value.trim(); if (v) { state.variant = v; renderExp(); pop.hidden = true; } };
+      pop.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { state.variant = b.dataset.v; renderExp(); pop.hidden = true; });
+    }
+
+    function renderLastJuntada() {
+      const box = $('cpLastJuntada'); if (!box) return;
+      const only = state.players.length === 1;
+      if (!only) { box.innerHTML = ''; return; }
+      box.innerHTML =
+        '<div class="cpHelperRow">' +
+          '<button class="cpHelperPill ' + (state.solo ? 'on' : '') + '" id="cpSoloBtn">' +
+            '<span class="hpCheck">' + (state.solo ? '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : '') + '</span>' +
+            '<span class="hpText">Jugué en solitario</span>' +
+          '</button>' +
+          '<button class="cpHelperPill action" id="cpLJBtn">' +
+            '<span class="hpIcon">↺</span><span class="hpText">Usar última juntada</span>' +
+            '<span class="hpHint">3 jug. · Casa de Cami</span>' +
+          '</button>' +
+        '</div>';
+      $('cpSoloBtn').onclick = () => { state.solo = !state.solo; renderLastJuntada(); };
+      $('cpLJBtn').onclick = () => {
+        const lj = [
+          { handle: 'camir', name: 'Cami R.', initial: 'C', color: '#f5a623' },
+          { handle: 'panchom', name: 'Pancho M.', initial: 'P', color: '#b48cff' },
+          { handle: 'valep', name: 'Vale P.', initial: 'V', color: '#00aeff' },
+        ];
+        lj.forEach(p => state.players.push({ ...p, score: '', win: false, team: 'B' }));
+        render();
+      };
+    }
+
+    function render() { renderResult(); renderLastJuntada(); renderPlayers(); }
+
+    function init() {
+      const modeBtns = $('cpModeBtns'); if (!modeBtns) return;
+      modeBtns.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
+        state.mode = b.dataset.mode;
+        modeBtns.querySelectorAll('.cpModeBtn').forEach(x => x.classList.toggle('active', x === b));
+        if (state.mode === 'teams') state.players.forEach((p,i) => { if (!p.team) p.team = TEAM_IDS[i % 2]; });
+        $('cpPlayerPicker').hidden = true;
+        render();
+      });
+      $('cpAddPlayer').onclick = (e) => { e.stopPropagation(); const pop = $('cpPlayerPicker'); pop.hidden ? openPlayerPicker() : (pop.hidden = true); };
+      $('cpAddAnon').onclick = () => { const n = state.players.filter(p=>p.anon).length+1; state.players.push({ handle:'anon'+Date.now(), name:'Anónimo '+n, initial:'?', color:'#5a6178', anon:true, score:'', win:false, team:'B' }); render(); };
+      // share toggle
+      const st = $('cpShareToggle'), sb = $('cpShareBody'), sc = $('cpShareCard');
+      $('cpShareCard').onclick = () => { const on = sb.hidden; sb.hidden = !on; st.classList.toggle('on', on); sc.classList.toggle('open', on); };
+      // checkboxes
+      [['cpChk1'],['cpChk2']].forEach(([id]) => { const el = $(id); el.onclick = () => el.querySelector('.cpCheckBox').classList.toggle('on'); });
+      // close picker on outside tap
+      document.addEventListener('click', (e) => { const pop = $('cpPlayerPicker'); if (pop && !pop.hidden && !pop.contains(e.target) && e.target.id !== 'cpAddPlayer') pop.hidden = true; });
+      renderExp(); render();
+    }
+    init();
+  })();
+</script>
+
+</body>
+</html>
