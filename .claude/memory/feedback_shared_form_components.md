@@ -131,3 +131,5 @@ Reemplazo de `<select>` por chips clickeables para enums cortos (≤6 opciones).
 
 - [feedback_google_maps_setup.md](feedback_google_maps_setup.md) — Google Maps + Places + Geocoding.
 - [feedback_debounce_inputs.md](feedback_debounce_inputs.md) — `useDebouncedValue` para inputs → API.
+
+- `<DiceLoader text hint>` (`components/shared/DiceLoader.jsx`): loader animado de buscadores dropdown — ver `feedback_dice_search_loader.md`.

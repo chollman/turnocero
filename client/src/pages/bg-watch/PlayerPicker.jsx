@@ -2,10 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
-import EmptyState from "../../components/shared/EmptyState";
 import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
-import SearchRowSkeleton from "./SearchRowSkeleton";
+import DiceLoader from "../../components/shared/DiceLoader";
 import styles from "./BgWatchProfile.module.css";
 
 function coPlayerMeta(p) {
@@ -192,7 +191,6 @@ export default function PlayerPicker({
     mode === "coplayers" &&
     visibleCoPlayers.some((p) => norm(p.name) === norm(term));
   const showCreate = mode === "coplayers" && term && !exactInList;
-  const isEmpty = !loading && visible.length === 0;
 
   return (
     <div className={styles.modalSection}>
@@ -220,27 +218,6 @@ export default function PlayerPicker({
           ✕
         </button>
       </div>
-
-      {loading && items.length === 0 && <SearchRowSkeleton rows={4} />}
-
-      {isEmpty && (
-        <EmptyState
-          variant="filtered"
-          compact
-          title={
-            mode === "coplayers" && !term
-              ? "Sin compañeros aún"
-              : "Sin coincidencias"
-          }
-          text={
-            mode === "coplayers"
-              ? term
-                ? "Ningún compañero coincide. Usá el botón de abajo para agregarlo."
-                : "Escribí un nombre o buscá en TurnoCero."
-              : "Ningún usuario coincide."
-          }
-        />
-      )}
 
       {(visible.length > 0 || showCreate) && (
         <ul className={styles.gameSearchList} ref={listRef}>
@@ -351,6 +328,12 @@ export default function PlayerPicker({
             </li>
           )}
         </ul>
+      )}
+
+      {/* El loader va DEBAJO del "Usar «…»" (que vive dentro de la lista),
+          para no tapar ese atajo mientras se busca. */}
+      {loading && items.length === 0 && (
+        <DiceLoader text="Buscando jugadores" />
       )}
 
       <button

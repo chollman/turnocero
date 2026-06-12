@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { API } from "../../api/endpoints";
-import EmptyState from "../../components/shared/EmptyState";
-import SearchRowSkeleton from "./SearchRowSkeleton";
+import DiceLoader from "../../components/shared/DiceLoader";
 import styles from "./BgWatchProfile.module.css";
 
 /**
@@ -71,19 +70,21 @@ export default function ExpansionsPicker({
         </button>
       </div>
 
-      {loading && <SearchRowSkeleton rows={4} />}
-
-      {isEmpty && (
-        <EmptyState
-          variant="filtered"
-          compact
-          title={term ? "Sin coincidencias" : "Sin expansiones"}
-          text={
-            term
-              ? "Ninguna expansión coincide."
-              : "Este juego no tiene expansiones listadas en BGG."
-          }
+      {loading && (
+        <DiceLoader
+          text="Buscando las expansiones en BGG"
+          hint="puede tardar unos segundos"
         />
+      )}
+
+      {/* Estado vacío como una sola fila compacta (mismo alto que el loader),
+          tanto filtrando sin resultados como sin expansiones listadas. */}
+      {isEmpty && (
+        <div className={styles.pickerNoMatch} role="status">
+          {term
+            ? `Ninguna expansión coincide con «${term}»`
+            : "Este juego no tiene expansiones listadas en BGG"}
+        </div>
       )}
 
       {visible.length > 0 && (

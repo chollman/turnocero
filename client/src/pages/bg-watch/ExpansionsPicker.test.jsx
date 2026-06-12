@@ -90,6 +90,24 @@ describe("<ExpansionsPicker>", () => {
     expect(screen.getByText("Europe")).toBeInTheDocument();
   });
 
+  it("filtrando sin coincidencias muestra una fila compacta con el término", async () => {
+    render(
+      <ExpansionsPicker
+        gameId="13"
+        selected={[]}
+        onToggle={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    await screen.findByText("Oceania");
+    fireEvent.change(screen.getByPlaceholderText(/buscá una expansión/i), {
+      target: { value: "zzz" },
+    });
+    expect(
+      await screen.findByText(/ninguna expansión coincide con «zzz»/i),
+    ).toBeInTheDocument();
+  });
+
   it("estado vacío si el juego no tiene expansiones", async () => {
     server.use(
       http.get("/api/bgg/game/:id/expansiones", () =>

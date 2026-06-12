@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import { API } from "../../api/endpoints";
+import DiceLoader from "./DiceLoader";
 import styles from "./BggGameSearch.module.css";
 
 /**
@@ -90,7 +91,9 @@ export default function BggGameSearch({
         autoFocus={autoFocus}
         aria-label="Buscar juego en BoardGameGeek"
       />
-      {loading && <p className={styles.dim}>Buscando…</p>}
+      {loading && (
+        <DiceLoader text="Buscando en BGG" hint="puede tardar unos segundos" />
+      )}
       {showEmpty && <p className={styles.dim}>Sin resultados.</p>}
       {results.length > 0 && (
         <ul className={styles.list} role="listbox">

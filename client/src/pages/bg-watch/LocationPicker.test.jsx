@@ -50,12 +50,12 @@ describe("<LocationPicker>", () => {
     expect(await screen.findByText("Casa")).toBeInTheDocument();
   });
 
-  it("muestra el skeleton mientras carga y lo oculta al llegar los datos", async () => {
+  it("muestra el loader (dado) mientras carga y lo oculta al llegar los datos", async () => {
     render(<LocationPicker bggUsername="alice" onPick={vi.fn()} />);
     openDropdown();
-    expect(screen.getByTestId("search-skeleton")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/buscando ubicaciones/i);
     await screen.findByText("Casa");
-    expect(screen.queryByTestId("search-skeleton")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("al desplegar muestra la primera página (no toda la lista)", async () => {

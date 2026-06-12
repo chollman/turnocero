@@ -77,6 +77,122 @@ function CheckIcon() {
     </svg>
   );
 }
+function TrashIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+    </svg>
+  );
+}
+function UserPlusIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <circle cx="9" cy="7" r="3.5" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+      <line x1="19" y1="8" x2="19" y2="14" />
+      <line x1="16" y1="11" x2="22" y2="11" />
+    </svg>
+  );
+}
+// "Guardar y cargar otra": dos hojas apiladas con un + (copy-plus).
+function SaveAnotherIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+      <line x1="15.5" y1="12.5" x2="15.5" y2="18.5" />
+      <line x1="12.5" y1="15.5" x2="18.5" y2="15.5" />
+    </svg>
+  );
+}
+function SortDescIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="4" y1="6" x2="14" y2="6" />
+      <line x1="4" y1="12" x2="11" y2="12" />
+      <line x1="4" y1="18" x2="8" y2="18" />
+      <line x1="19" y1="6" x2="19" y2="20" />
+      <polyline points="16 17 19 20 22 17" />
+    </svg>
+  );
+}
+// "Usar tiempo de caja": relojito (la duración sugerida por BGG es el tiempo
+// que la caja del juego declara).
+function BoxTimeIcon() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 16 14" />
+    </svg>
+  );
+}
+function PlusIcon() {
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
 
 function todayIso() {
   const d = new Date();
@@ -449,7 +565,6 @@ export default function PlayForm({
     saveDraft({ game, details, players });
   }, [draftEnabled, game, details, players, saveDraft]);
 
-
   const restoreDraft = () => {
     if (!draftOffer) return;
     if (draftOffer.game) setGame(draftOffer.game);
@@ -799,6 +914,32 @@ export default function PlayForm({
         </div>
       </header>
 
+      {/* Stepper de 3 puntos (mobile) — espeja el progreso N/3 del header,
+          que en pantallas chicas se oculta (handoff phone 4). */}
+      <div
+        className={styles.stepsDots}
+        role="img"
+        aria-label={`${doneCount} de 3 secciones listas`}
+      >
+        {[stepDone.juego, stepDone.jugadores, stepDone.cuando].map(
+          (done, i, arr) => {
+            const activeIdx = arr.findIndex((d) => !d);
+            return (
+              <span
+                key={i}
+                className={`${styles.stepDot} ${
+                  done
+                    ? styles.stepDotDone
+                    : i === activeIdx
+                      ? styles.stepDotActive
+                      : ""
+                }`}
+              />
+            );
+          },
+        )}
+      </div>
+
       {draftOffer && (
         <div className={styles.draftBanner} role="status">
           <span className={styles.draftText}>
@@ -841,6 +982,9 @@ export default function PlayForm({
                   una <strong>variante/tablero</strong>.
                 </InfoTooltip>
               </span>
+              {game && game.numPlays != null && (
+                <span className={styles.sectionHint}>de tu colección</span>
+              )}
             </div>
 
             {game ? (
@@ -855,8 +999,15 @@ export default function PlayForm({
                   </div>
                   <div className={styles.gameInfo}>
                     <div className={styles.gameName}>{game.name}</div>
-                    {game.year && (
-                      <div className={styles.gameMeta}>{game.year}</div>
+                    {(game.year || game.numPlays > 0) && (
+                      <div className={styles.gameMeta}>
+                        {[
+                          game.year,
+                          game.numPlays > 0 ? `${game.numPlays}× jugado` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </div>
                     )}
                   </div>
                   {!lockedGame && (
@@ -917,7 +1068,7 @@ export default function PlayForm({
                     }
                     aria-expanded={gamePicker === "exp"}
                   >
-                    + Expansiones jugadas
+                    + Expansión jugada
                   </button>
                   <button
                     type="button"
@@ -976,7 +1127,10 @@ export default function PlayForm({
               </span>
               <span className={styles.sectionTitle}>
                 ¿Quiénes jugaron?
-                <InfoTooltip placement="bottom" label="Ayuda: ¿Quiénes jugaron?">
+                <InfoTooltip
+                  placement="bottom"
+                  label="Ayuda: ¿Quiénes jugaron?"
+                >
                   Sumá a los jugadores (compañeros, usuarios de TurnoCero o
                   anónimos) y cargá sus <strong>puntajes</strong>. Arriba elegís
                   el modo: <strong>competitiva</strong>,{" "}
@@ -996,7 +1150,12 @@ export default function PlayForm({
                 onClick={() => selectMode("versus")}
               >
                 <span className={styles.modeT}>Competitiva</span>
-                <span className={styles.modeD}>Cada uno con su puntaje</span>
+                <span className={styles.modeD}>
+                  <span className={styles.modeDLong}>
+                    Cada uno con su puntaje
+                  </span>
+                  <span className={styles.modeDShort}>Con puntaje</span>
+                </span>
               </button>
               <button
                 type="button"
@@ -1004,7 +1163,12 @@ export default function PlayForm({
                 onClick={() => selectMode("coop")}
               >
                 <span className={styles.modeT}>Cooperativa</span>
-                <span className={styles.modeD}>Ganan o pierden juntos</span>
+                <span className={styles.modeD}>
+                  <span className={styles.modeDLong}>
+                    Ganan o pierden juntos
+                  </span>
+                  <span className={styles.modeDShort}>Juntos</span>
+                </span>
               </button>
               <button
                 type="button"
@@ -1012,7 +1176,10 @@ export default function PlayForm({
                 onClick={() => selectMode("equipos")}
               >
                 <span className={styles.modeT}>Equipos</span>
-                <span className={styles.modeD}>Gana un equipo</span>
+                <span className={styles.modeD}>
+                  <span className={styles.modeDLong}>Gana un equipo</span>
+                  <span className={styles.modeDShort}>Bandos</span>
+                </span>
               </button>
             </div>
 
@@ -1046,7 +1213,7 @@ export default function PlayForm({
                   {numTeams > 2 && (
                     <button
                       type="button"
-                      className={styles.btnGhost}
+                      className={`${styles.btnGhost} ${styles.btnSmall}`}
                       onClick={removeTeam}
                     >
                       − Equipo
@@ -1056,19 +1223,20 @@ export default function PlayForm({
                     <button
                       key={t}
                       type="button"
-                      className={`${styles.teamWinBtn} ${winningTeam === t ? styles.teamWinBtnActive : ""}`}
+                      className={`${styles.teamWinBtn} ${styles[`teamWin${t}`]} ${winningTeam === t ? styles.teamWinBtnActive : ""}`}
                       onClick={() =>
                         setWinningTeam(winningTeam === t ? null : t)
                       }
                       aria-pressed={winningTeam === t}
                     >
+                      <span className={styles.teamDot} aria-hidden="true" />
                       Equipo {t}
                     </button>
                   ))}
                   {numTeams < TEAM_IDS.length && (
                     <button
                       type="button"
-                      className={styles.btnGhost}
+                      className={`${styles.btnGhost} ${styles.btnSmall}`}
                       onClick={addTeam}
                     >
                       + Equipo
@@ -1078,12 +1246,28 @@ export default function PlayForm({
               </div>
             )}
 
-            {(showLastJuntada || meaningfulCount === 1) && (
-              <div className={styles.playersTopRow}>
+            {/* Helper-pills (handoff v2): con UN solo jugador, "Jugué en
+                solitario" y "Usar última juntada" comparten estilo, lado a
+                lado. Ambas desaparecen al sumar un segundo jugador. */}
+            {meaningfulCount === 1 && (
+              <div className={styles.helperRow}>
+                <label
+                  className={`${styles.helperPill} ${soloPlay ? styles.helperPillOn : ""}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={soloPlay}
+                    onChange={(e) => setSoloPlay(e.target.checked)}
+                  />
+                  <span className={styles.hpCheck} aria-hidden="true">
+                    {soloPlay && <CheckIcon />}
+                  </span>
+                  <span className={styles.hpText}>Jugué en solitario</span>
+                </label>
                 {showLastJuntada && (
                   <button
                     type="button"
-                    className={styles.btnGhost}
+                    className={`${styles.helperPill} ${styles.helperPillRight}`}
                     onClick={applyLastJuntada}
                     title={
                       lastJuntada.location
@@ -1091,25 +1275,15 @@ export default function PlayForm({
                         : "Jugadores de tu última partida"
                     }
                   >
-                    ↺ Usar última juntada
-                    <span className={styles.lastJuntadaHint}>
-                      {lastJuntada.players.length}{" "}
-                      {lastJuntada.players.length === 1
-                        ? "jugador"
-                        : "jugadores"}
+                    <span className={styles.hpIcon} aria-hidden="true">
+                      ↺
+                    </span>
+                    <span className={styles.hpText}>Usar última juntada</span>
+                    <span className={styles.hpHint}>
+                      {lastJuntada.players.length} jug.
                       {lastJuntada.location ? ` · ${lastJuntada.location}` : ""}
                     </span>
                   </button>
-                )}
-                {meaningfulCount === 1 && (
-                  <label className={styles.soloPlay}>
-                    <input
-                      type="checkbox"
-                      checked={soloPlay}
-                      onChange={(e) => setSoloPlay(e.target.checked)}
-                    />
-                    Jugué en solitario
-                  </label>
                 )}
               </div>
             )}
@@ -1125,7 +1299,11 @@ export default function PlayForm({
                     className={`${styles.scoreRow} ${isLeader ? styles.scoreRowLeader : ""} ${i === youIndex ? styles.scoreRowYou : ""}`}
                   >
                     <span className={styles.scoreRank}>
-                      {mode === "versus" ? `#${positions[i]}` : "·"}
+                      {mode === "versus"
+                        ? hasDisplayableScore(p.score)
+                          ? `#${positions[i]}`
+                          : "—"
+                        : "·"}
                     </span>
                     <PlayerAvatar player={p} userMap={userMap} />
                     <div className={styles.scorePlayer}>
@@ -1199,7 +1377,7 @@ export default function PlayForm({
                             <button
                               key={t}
                               type="button"
-                              className={`${styles.teamBtn} ${p.team === t ? styles.teamBtnActive : ""}`}
+                              className={`${styles.teamBtn} ${styles[`teamBtn${t}`]} ${p.team === t ? styles.teamBtnActive : ""}`}
                               onClick={() => setPlayerTeam(i, t)}
                               aria-pressed={p.team === t}
                             >
@@ -1237,29 +1415,34 @@ export default function PlayForm({
             {/* El picker se DESPLIEGA como popover (no empuja el contenido),
                 igual que el de ubicación. */}
             <div className={styles.addPlayerArea} ref={addAreaRef}>
+              <div className={styles.addPlayerLabel}>Agregar jugadores</div>
               <div className={styles.playerActions}>
                 <button
                   type="button"
-                  className={styles.btnGhost}
+                  className={styles.addGuestBtn}
                   onClick={() => setAdding((a) => !a)}
                   aria-expanded={adding}
                 >
-                  + Agregar jugador
+                  <UserPlusIcon /> Agregar jugador
                 </button>
                 <button
                   type="button"
                   className={styles.addGuestBtn}
                   onClick={addAnonymous}
                 >
-                  + Jugador anónimo
+                  <PlusIcon /> Anónimo
                 </button>
                 {canSortByScore && (
                   <button
                     type="button"
-                    className={`${styles.btnGhost} ${styles.pushRight}`}
+                    className={`${styles.btnGhost} ${styles.btnSmall} ${styles.pushRight}`}
                     onClick={sortByScore}
+                    aria-label="Ordenar por puntaje"
+                    title="Ordenar por puntaje"
                   >
-                    ↓ Ordenar por puntaje
+                    <SortDescIcon />
+                    {/* En mobile queda solo el ícono (texto oculto por CSS). */}
+                    <span className={styles.sortText}>Ordenar por puntaje</span>
                   </button>
                 )}
               </div>
@@ -1329,37 +1512,43 @@ export default function PlayForm({
               </div>
               <div className={styles.field}>
                 <label className={styles.fieldLabel}>Duración (min)</label>
-                <input
-                  type="number"
-                  min={0}
-                  className={styles.input}
-                  value={details.length}
-                  onChange={(e) => updateDetail("length", e.target.value)}
-                  placeholder="60"
-                />
+                <div className={styles.durationWrap}>
+                  <input
+                    type="number"
+                    min={0}
+                    className={styles.input}
+                    value={details.length}
+                    onChange={(e) => updateDetail("length", e.target.value)}
+                    placeholder="60"
+                  />
+                  {/* Sugerencia "tiempo de caja" como ícono DENTRO del input
+                      (no agranda el alto del campo). */}
+                  {suggestedDuration && details.length === "" && (
+                    <button
+                      type="button"
+                      className={styles.durationSuggest}
+                      onClick={() =>
+                        updateDetail("length", String(suggestedDuration))
+                      }
+                      aria-label={`Usar tiempo de caja: ${suggestedDuration} min`}
+                      title={`Usar tiempo de caja: ${suggestedDuration} min`}
+                    >
+                      <BoxTimeIcon />
+                    </button>
+                  )}
+                </div>
                 <div className={styles.quickRow}>
                   {DURATION_PRESETS.map((m) => (
                     <button
                       key={m}
                       type="button"
-                      className={`${styles.quick} ${Number(details.length) === m ? styles.quickActive : ""}`}
+                      className={`${styles.quick} ${Number(details.length) === m ? styles.quickActive : ""} ${m === 120 ? styles.quickXl : ""}`}
                       onClick={() => updateDetail("length", String(m))}
                     >
                       {m}min
                     </button>
                   ))}
                 </div>
-                {suggestedDuration && details.length === "" && (
-                  <button
-                    type="button"
-                    className={styles.durationSuggest}
-                    onClick={() =>
-                      updateDetail("length", String(suggestedDuration))
-                    }
-                  >
-                    Usar tiempo de caja: {suggestedDuration} min
-                  </button>
-                )}
               </div>
             </div>
 
@@ -1403,8 +1592,8 @@ export default function PlayForm({
               <span className={styles.sectionTitle}>
                 Notas
                 <InfoTooltip placement="bottom" label="Ayuda: Notas">
-                  Un comentario libre de la partida: la jugada que la definió, la
-                  revancha pendiente, lo que quieras. Es{" "}
+                  Un comentario libre de la partida: la jugada que la definió,
+                  la revancha pendiente, lo que quieras. Es{" "}
                   <strong>opcional</strong>.
                 </InfoTooltip>
               </span>
@@ -1444,8 +1633,8 @@ export default function PlayForm({
                     Compartí esta partida
                   </span>
                   <span className={styles.shareHeadSub}>
-                    Publicá una juntada con fotos y copiá el link para tus grupos
-                    de WhatsApp o Telegram.
+                    Publicá una juntada con fotos y copiá el link para tus
+                    grupos de WhatsApp o Telegram.
                   </span>
                 </span>
                 <span className={styles.sectionHint}>opcional</span>
@@ -1461,6 +1650,12 @@ export default function PlayForm({
                 >
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
+                {/* En mobile el chevron se reemplaza por un switch (handoff
+                    phone 4); es decorativo — el botón entero togglea. */}
+                <span
+                  className={`${styles.shareToggle} ${shareEnabled ? styles.shareToggleOn : ""}`}
+                  aria-hidden="true"
+                />
               </button>
 
               <div
@@ -1489,24 +1684,38 @@ export default function PlayForm({
 
           {serverError && <div className={styles.errorBox}>{serverError}</div>}
 
+          {/* En mobile este footer se vuelve la save bar sticky del handoff
+              (fixed abajo, "Cancelar" como botón cuadrado con ícono). */}
           <div className={styles.footer}>
             <button
               type="button"
               className={styles.btnGhost}
               onClick={handleCancelClick}
               disabled={submitting}
+              aria-label="Cancelar"
             >
-              Cancelar
+              <span className={styles.cancelIcon}>
+                <TrashIcon />
+              </span>
+              <span className={styles.cancelText}>Cancelar</span>
             </button>
             <div className={styles.footerRight}>
               {allowMultiSave && !editMode && (
                 <button
                   type="button"
-                  className={styles.btnGhost}
+                  className={`${styles.btnGhost} ${styles.multiSaveBtn}`}
                   onClick={() => submit(true)}
                   disabled={!canSubmit || submitting}
+                  aria-label="Guardar y cargar otra"
+                  title="Guardar y cargar otra"
                 >
-                  Guardar y cargar otra
+                  {/* En mobile queda solo el ícono (texto oculto por CSS). */}
+                  <span className={styles.multiSaveIcon}>
+                    <SaveAnotherIcon />
+                  </span>
+                  <span className={styles.multiSaveText}>
+                    Guardar y cargar otra
+                  </span>
                 </button>
               )}
               <button
@@ -1514,6 +1723,7 @@ export default function PlayForm({
                 className={styles.btnPrimary}
                 disabled={!canSubmit || submitting}
               >
+                {!submitting && <CheckIcon />}
                 {submitting
                   ? "Guardando…"
                   : editMode
@@ -1546,6 +1756,16 @@ export default function PlayForm({
         <aside className={styles.preview}>
           <div className={styles.previewLabel}>
             <Meeple /> Tu entrada · en vivo
+            {/* En mobile la preview queda ARRIBA del form y puede parecer
+                interactiva — el ⓘ aclara que es solo la vista previa. En
+                desktop (columna lateral) se oculta por CSS. */}
+            <span className={styles.previewInfo}>
+              <InfoTooltip placement="bottom" label="Ayuda: Vista previa">
+                Esta tarjeta es solo la <strong>vista previa</strong> de tu
+                partida: se va armando sola con lo que cargás en el formulario
+                de abajo. Acá no hay nada para tocar.
+              </InfoTooltip>
+            </span>
           </div>
           <Scorecard
             game={game}

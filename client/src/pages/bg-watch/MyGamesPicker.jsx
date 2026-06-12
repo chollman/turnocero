@@ -2,10 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import BggGameSearch from "../../components/shared/BggGameSearch";
-import EmptyState from "../../components/shared/EmptyState";
 import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
-import SearchRowSkeleton from "./SearchRowSkeleton";
+import DiceLoader from "../../components/shared/DiceLoader";
 import { gameInitials } from "./Scorecard";
 import styles from "./BgWatchProfile.module.css";
 
@@ -17,7 +16,8 @@ import styles from "./BgWatchProfile.module.css";
  *
  * Props:
  *   bggUsername — usuario dueño de la lista.
- *   onPick({ id, name, thumbnail, image, year }) — misma shape que BggGameSearch.
+ *   onPick({ id, name, thumbnail, image, year, numPlays }) — misma shape que
+ *   BggGameSearch + numPlays (sólo acá: marca que el juego es de la colección).
  */
 export default function MyGamesPicker({ bggUsername, onPick }) {
   const [items, setItems] = useState([]);
@@ -126,19 +126,19 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
         aria-label="Filtrar mis juegos"
       />
 
-      {loading && items.length === 0 && <SearchRowSkeleton rows={4} />}
+      {loading && items.length === 0 && (
+        <DiceLoader text="Buscando tus juegos" />
+      )}
 
+      {/* Estado vacío como una sola fila compacta (mismo alto que el loader),
+          tanto filtrando sin resultados como con la lista vacía de arranque.
+          El CTA a BGG ya vive en el botón de abajo. */}
       {isEmpty && (
-        <EmptyState
-          variant="filtered"
-          compact
-          title={q.trim() ? "Sin coincidencias" : "Tu lista está vacía"}
-          text={
-            q.trim()
-              ? "Ningún juego coincide con el filtro."
-              : "Buscá un juego en BGG abajo para agregarlo."
-          }
-        />
+        <div className={styles.pickerNoMatch} role="status">
+          {q.trim()
+            ? `Ningún juego coincide con «${q.trim()}»`
+            : "Tu lista está vacía — buscá un juego en BGG abajo"}
+        </div>
       )}
 
       {items.length > 0 && (
@@ -158,6 +158,7 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
                     thumbnail: g.thumbnail,
                     image: g.image,
                     year: g.year,
+                    numPlays: g.numPlays,
                   })
                 }
               >

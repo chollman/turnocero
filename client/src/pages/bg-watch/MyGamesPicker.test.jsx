@@ -78,11 +78,13 @@ describe("<MyGamesPicker>", () => {
     expect(screen.getByText("5×")).toBeInTheDocument();
   });
 
-  it("muestra el skeleton mientras carga y lo oculta al llegar los datos", async () => {
+  it("muestra el loader (dado) mientras carga y lo oculta al llegar los datos", async () => {
     render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
-    expect(screen.getByTestId("search-skeleton")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /buscando tus juegos/i,
+    );
     await screen.findByText("Catán");
-    expect(screen.queryByTestId("search-skeleton")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("'Ver más' trae la página 2 y la appendea", async () => {
@@ -146,6 +148,7 @@ describe("<MyGamesPicker>", () => {
       thumbnail: "https://cdn/catan.jpg",
       image: null,
       year: 1995,
+      numPlays: 5,
     });
   });
 
@@ -172,6 +175,19 @@ describe("<MyGamesPicker>", () => {
     );
     render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
     expect(await screen.findByText(/tu lista está vacía/i)).toBeInTheDocument();
+  });
+
+  it("filtrando sin coincidencias muestra una fila compacta (no el EmptyState)", async () => {
+    render(<MyGamesPicker bggUsername="alice" onPick={vi.fn()} />);
+    await screen.findByText("Catán");
+    fireEvent.change(screen.getByPlaceholderText(/filtrá tus juegos/i), {
+      target: { value: "zzz" },
+    });
+    expect(
+      await screen.findByText(/ningún juego coincide con «zzz»/i),
+    ).toBeInTheDocument();
+    // No es el bloque grande del EmptyState ("Tu lista está vacía").
+    expect(screen.queryByText(/tu lista está vacía/i)).toBeNull();
   });
 
   it("sin bggUsername va directo a la búsqueda en BGG", async () => {

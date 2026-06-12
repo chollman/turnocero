@@ -153,7 +153,7 @@ describe("<PlayerPicker>", () => {
     expect(screen.getByTestId("avatar")).toBeInTheDocument();
   });
 
-  it("muestra el skeleton mientras carga y lo oculta al llegar los datos", async () => {
+  it("muestra el loader (dado) mientras carga y lo oculta al llegar los datos", async () => {
     render(
       <PlayerPicker
         bggUsername="me"
@@ -162,9 +162,9 @@ describe("<PlayerPicker>", () => {
         onCancel={vi.fn()}
       />,
     );
-    expect(screen.getByTestId("search-skeleton")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/buscando jugadores/i);
     await screen.findByText("Bob");
-    expect(screen.queryByTestId("search-skeleton")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("no busca con menos de 3 caracteres; sí al llegar a 3", async () => {
@@ -248,6 +248,48 @@ describe("<PlayerPicker>", () => {
     });
     fireEvent.click(createBtn);
     expect(onPick).toHaveBeenCalledWith({ name: "Pedro", username: "" });
+  });
+
+  it("sin compañeros (lista vacía, sin búsqueda) tampoco muestra empty state", async () => {
+    server.use(
+      http.get("/api/bgg/mis-jugadores/:user", () =>
+        HttpResponse.json({ items: [], total: 0, page: 1, pages: 1 }),
+      ),
+    );
+    render(
+      <PlayerPicker
+        bggUsername="me"
+        existing={[]}
+        onPick={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    // Esperar a que termine la carga (desaparece el loader).
+    await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+    expect(screen.queryByText(/sin compañeros/i)).toBeNull();
+    // Queda el camino de salida: buscar un usuario de TurnoCero.
+    expect(
+      screen.getByRole("button", { name: /buscar un usuario de turnocero/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("buscando sin coincidencias NO muestra el empty state (queda 'Usar «…»')", async () => {
+    render(
+      <PlayerPicker
+        bggUsername="me"
+        existing={[]}
+        onPick={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    await screen.findByText("Bob");
+    fireEvent.change(
+      screen.getByPlaceholderText(/buscá o escribí un jugador/i),
+      { target: { value: "Zacarías" } },
+    );
+    await screen.findByRole("button", { name: /usar «zacarías»/i });
+    expect(screen.queryByText(/sin coincidencias/i)).toBeNull();
+    expect(screen.queryByText(/ningún compañero coincide/i)).toBeNull();
   });
 
   it("excluye compañeros ya agregados", async () => {

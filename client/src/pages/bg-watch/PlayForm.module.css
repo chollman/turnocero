@@ -15,7 +15,10 @@
   min-height: calc(100vh - var(--navbar-h, 64px));
   padding-inline: var(--page-padding-left) var(--page-padding);
   padding-block: var(--navbar-h, 0) 5rem;
-  animation: playFormEnter 0.26s cubic-bezier(0.22, 0.7, 0.3, 1) both;
+  /* SIN fill forwards: un fill `both` deja un transform identidad aplicado
+     para siempre (interpolación de `none`), que crea containing block y
+     rompe el `position: fixed` de la save bar mobile. */
+  animation: playFormEnter 0.26s cubic-bezier(0.22, 0.7, 0.3, 1);
 }
 
 @keyframes playFormEnter {
@@ -24,7 +27,9 @@
     opacity: 0;
   }
   100% {
-    transform: translateY(0);
+    /* `none` (no translateY(0)): un transform persistente crea containing
+       block y rompe el `position: fixed` de la save bar mobile. */
+    transform: none;
     opacity: 1;
   }
 }
@@ -62,7 +67,6 @@
     padding-inline: var(--page-padding-mobile);
   }
 }
-
 
 /* -- Header -- */
 .head {
@@ -128,6 +132,24 @@
   letter-spacing: 0.12em;
   color: var(--text-muted);
   text-transform: uppercase;
+}
+/* Stepper de 3 puntos — sólo mobile (reemplaza el "N/3 secciones listas"). */
+.stepsDots {
+  display: none;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.stepDot {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+}
+.stepDotDone {
+  background: var(--green);
+}
+.stepDotActive {
+  background: var(--purple);
 }
 
 /* -- Layout -- */
@@ -432,21 +454,39 @@
   font-size: 12.5px;
   color: var(--red);
 }
+/* El input de duración aloja el botón "tiempo de caja" superpuesto a la
+   derecha (no agranda el alto: es absolute dentro del wrap). */
+.durationWrap {
+  position: relative;
+  display: flex;
+}
+.durationWrap .input {
+  flex: 1;
+  width: 100%;
+  /* deja lugar al ícono para que el número no quede tapado */
+  padding-right: 40px;
+}
 .durationSuggest {
-  display: inline-block;
-  margin-top: 6px;
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
   padding: 0;
-  background: none;
-  border: none;
+  background: var(--amber-10);
+  border: 1px solid var(--amber-25);
+  border-radius: 7px;
   color: var(--amber-light);
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
   cursor: pointer;
-  text-align: left;
+  transition: all var(--transition);
 }
 .durationSuggest:hover {
-  text-decoration: underline;
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--on-amber);
 }
 
 .checkboxRow {
@@ -522,6 +562,41 @@
   transform: rotate(180deg);
   color: var(--amber);
 }
+.shareSectionOpen {
+  border-color: var(--purple-25);
+}
+/* Switch del handoff mobile — decorativo (el header entero togglea); en
+   desktop se oculta y queda el chevron. */
+.shareToggle {
+  display: none;
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  transition: all var(--transition);
+}
+.shareToggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--text-muted);
+  transition: all var(--transition);
+}
+.shareToggleOn {
+  background: var(--purple-10);
+  border-color: var(--purple-25);
+}
+.shareToggleOn::after {
+  left: 20px;
+  background: var(--purple);
+}
 /* Slide de altura automática: el wrapper anima las filas del grid; el inner
    recorta el overflow para que el contenido aparezca/desaparezca suave. */
 .shareCollapse {
@@ -578,6 +653,10 @@
   font-size: 9.5px;
   letter-spacing: 0.04em;
   color: var(--text-muted);
+}
+/* Descripción larga en desktop, corta en mobile (handoff phone 4). */
+.modeDShort {
+  display: none;
 }
 .modeActive {
   background: var(--bg-elevated);
@@ -647,6 +726,10 @@
   gap: 8px;
 }
 .teamWinBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
   background: var(--bg-card);
   border: 1.5px solid var(--border);
   border-radius: 10px;
@@ -663,10 +746,45 @@
   border-color: var(--amber-40);
   color: var(--text-primary);
 }
-.teamWinBtnActive {
+/* Dot de color por equipo (handoff v2): A=amber, B=orange, C=green, D=purple. */
+.teamDot {
+  width: 13px;
+  height: 13px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: var(--border-strong);
+}
+.teamWinA .teamDot {
+  background: var(--amber);
+}
+.teamWinB .teamDot {
+  background: var(--orange);
+}
+.teamWinC .teamDot {
+  background: var(--green);
+}
+.teamWinD .teamDot {
+  background: var(--purple);
+}
+.teamWinA.teamWinBtnActive {
+  border-color: var(--amber);
+  background: var(--amber-10);
+  color: var(--amber-light);
+}
+.teamWinB.teamWinBtnActive {
+  border-color: var(--orange);
+  background: var(--orange-10);
+  color: var(--orange);
+}
+.teamWinC.teamWinBtnActive {
   border-color: var(--green);
   background: var(--green-10);
   color: var(--green);
+}
+.teamWinD.teamWinBtnActive {
+  border-color: var(--purple);
+  background: var(--purple-10);
+  color: var(--purple);
 }
 /* Selector de equipo por jugador (en la fila) */
 .teamPick {
@@ -696,16 +814,99 @@
 .teamBtn:hover {
   color: var(--text-primary);
 }
-.teamBtnActive {
+/* Activo con el color del equipo (mismo mapa que los dots). */
+.teamBtnA.teamBtnActive {
   background: var(--amber);
   color: var(--on-amber);
 }
+.teamBtnB.teamBtnActive {
+  background: var(--orange);
+  color: var(--on-amber);
+}
+.teamBtnC.teamBtnActive {
+  background: var(--green);
+  color: var(--on-amber);
+}
+.teamBtnD.teamBtnActive {
+  background: var(--purple);
+  color: var(--on-amber);
+}
 
-/* "Usar última juntada" usa .btnGhost; el hint va más tenue. */
-.lastJuntadaHint {
-  font-weight: 500;
-  font-size: 12px;
+/* Helper-pills compartidas: "Jugué en solitario" + "Usar última juntada"
+   (handoff v2 .cpHelperRow / .cpHelperPill). Mismo estilo, lado a lado. */
+.helperRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.helperPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 8px 13px;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition);
+}
+.helperPill:hover {
+  border-color: var(--amber);
+  color: var(--text-primary);
+}
+.helperPill input {
+  display: none;
+}
+.helperPillOn {
+  border-color: var(--amber);
+  color: var(--text-primary);
+}
+/* "Usar última juntada" se alinea a la derecha de la fila (desktop y mobile);
+   margin-left:auto la empuja aunque sea la única pill visible. */
+.helperPillRight {
+  margin-left: auto;
+}
+/* Checkbox custom: se llena de acento + check al activar. */
+.hpCheck {
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border-strong);
+  background: var(--bg-card);
+  display: grid;
+  place-items: center;
+  color: var(--on-amber);
+  transition: all var(--transition);
+}
+.hpCheck svg {
+  width: 11px;
+  height: 11px;
+}
+.helperPillOn .hpCheck {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+.hpIcon {
+  color: var(--amber-light);
+  font-size: 20px;
+  line-height: 1;
+}
+.hpHint {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 400;
   color: var(--text-muted);
+  letter-spacing: 0.02em;
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
 }
 
 /* -- Player scoring rows -- */
@@ -795,11 +996,17 @@
   color: var(--gold);
   display: inline-flex;
 }
+/* Chip "✨ Nuevo" con fondo (handoff .newBadge). */
 .newBadge {
   font-family: var(--font-mono);
   font-size: 9.5px;
+  font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--purple);
+  background: var(--purple-10);
+  border: 1px solid var(--purple-25);
+  border-radius: 4px;
+  padding: 1px 6px;
   white-space: nowrap;
 }
 
@@ -808,22 +1015,31 @@
   align-items: center;
   gap: 8px;
 }
+/* Celda unificada del stepper (handoff v2): − input + dentro de un solo
+   contenedor con borde; el focus ilumina la celda entera. */
 .scoreCell {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+  transition: all var(--transition);
+}
+.scoreCell:focus-within {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px var(--amber-glow);
 }
 .scoreStep {
   flex: 0 0 auto;
-  width: 32px;
-  height: var(--ctl-h);
+  width: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
   line-height: 1;
@@ -832,39 +1048,33 @@
   transition: all var(--transition);
 }
 .scoreStep:hover {
-  border-color: var(--amber);
   color: var(--amber-light);
-  background: var(--amber-10);
+  background: var(--bg-card);
 }
 .scoreInput {
-  width: 70px;
-  height: var(--ctl-h);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0 10px;
+  width: 58px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 8px 4px;
   color: var(--text-primary);
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   text-align: center;
   outline: none;
-  transition: all var(--transition);
-}
-.scoreInput:focus {
-  border-color: var(--amber);
-  box-shadow: 0 0 0 3px var(--amber-glow);
 }
 .winToggle {
-  width: var(--ctl-h);
-  height: var(--ctl-h);
+  width: 38px;
+  height: 36px;
+  flex-shrink: 0;
   display: grid;
   place-items: center;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-elevated);
-  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-faint);
   cursor: pointer;
   transition: all var(--transition);
 }
@@ -926,10 +1136,18 @@
   position: relative;
   margin-top: 12px;
 }
+.addPlayerLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
 .playerActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 .playerPickerPop {
@@ -950,11 +1168,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: var(--ctl-h);
   background: transparent;
   border: 1px dashed var(--border-strong);
   border-radius: 999px;
-  padding: 0 14px;
+  padding: 6px 13px;
   color: var(--amber-light);
   font-family: var(--font-mono);
   font-size: 11px;
@@ -965,45 +1182,6 @@
 .addGuestBtn:hover {
   border-color: var(--amber);
   background: var(--amber-10);
-}
-
-/* Fila superior de jugadores: "Usar última juntada" (izq, .btnGhost) + "Jugué
-   en solitario" (der); el solo se empuja a la derecha aunque esté solo. */
-.playersTopRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-.playersTopRow .soloPlay {
-  min-height: var(--ctl-h);
-  margin: 0;
-  margin-left: auto;
-}
-
-/* "Jugué en solitario" — habilita completar el paso con sólo "vos" */
-.soloPlay {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 13px;
-  border: 1px dashed var(--border-strong);
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-  user-select: none;
-  transition: all var(--transition);
-}
-.soloPlay:hover {
-  border-color: var(--amber-40);
-  color: var(--text-primary);
-}
-.soloPlay input {
-  accent-color: var(--amber);
-  cursor: pointer;
 }
 
 /* -- Notas -- */
@@ -1042,6 +1220,16 @@
 .footerRight {
   display: flex;
   gap: 10px;
+}
+/* "Cancelar": texto en desktop, ícono (tacho) en la save bar mobile. */
+.cancelIcon {
+  display: none;
+  line-height: 0;
+}
+/* "Guardar y cargar otra": ídem — texto en desktop, ícono en mobile. */
+.multiSaveIcon {
+  display: none;
+  line-height: 0;
 }
 /* ============================================================
    Botones homologados (estilo del handoff: .btn / .btn.ghost).
@@ -1101,6 +1289,12 @@
   color: var(--text-muted);
   box-shadow: none;
   cursor: not-allowed;
+}
+/* Variante chica del ghost (handoff .btn.ghost.small): Ordenar, ± Equipo. */
+.btnSmall {
+  height: auto;
+  padding: 7px 12px;
+  font-size: 12px;
 }
 /* Empuja un botón a la derecha de su fila (Ordenar, Variante/tablero). */
 .pushRight {
@@ -1198,6 +1392,12 @@
   width: 20px;
   height: 1px;
   background: var(--purple);
+}
+/* ⓘ "es solo la vista previa" — solo cuando la preview va arriba del form
+   (mobile/tablet); en la columna lateral de desktop no hace falta. */
+.previewInfo {
+  display: none;
+  line-height: 0;
 }
 .previewNote {
   font-family: var(--font-mono);
@@ -1502,6 +1702,9 @@
     position: static;
     order: -1;
   }
+  .previewInfo {
+    display: inline-flex;
+  }
   .head {
     grid-template-columns: 1fr;
     gap: 10px;
@@ -1512,82 +1715,380 @@
     gap: 8px;
   }
 }
-@media (max-width: 580px) {
-  .fieldRow {
-    grid-template-columns: 1fr;
+@media (--phone) {
+  /* La save bar fija abajo necesita aire al final de la página. */
+  .page {
+    padding-bottom: 8rem;
   }
-  .scoreRow {
-    grid-template-columns: 24px auto 1fr;
+
+  /* Header compacto (handoff phone 4): kicker 10px + título 24px + stepper de
+     puntos; sin subtítulo, sin "N/3" y sin divisor. */
+  .head {
+    padding-bottom: 0;
+    margin-bottom: 12px;
+    border-bottom: none;
+    gap: 4px;
+  }
+  .kicker {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    gap: 7px;
+    margin-bottom: 4px;
+  }
+  .title {
+    font-size: 24px;
+    line-height: 1;
+  }
+  .sub {
+    display: none;
+  }
+  .progress {
+    display: none;
+  }
+  .stepsDots {
+    display: flex;
+    margin-bottom: 14px;
+  }
+
+  /* Cards apiladas con el ritmo del handoff: gap 14, padding 15, radius 14. */
+  .layout {
+    gap: 14px;
+  }
+  .form {
+    gap: 14px;
+  }
+  .section {
+    padding: 15px;
+    border-radius: 14px;
+  }
+  /* La sección 5 NO lleva el padding de card: su header ya tiene el propio
+     (sin esto, el `.section` de arriba — posterior en el archivo — pisa el
+     `padding: 0` base de .shareSection y queda doble padding). */
+  .shareSection {
+    padding: 0;
+  }
+  .sectionHead {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .sectionNum {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    font-size: 11px;
+  }
+  .sectionNum svg {
+    width: 12px;
+    height: 12px;
+  }
+  .sectionTitle {
+    font-size: 15px;
+    letter-spacing: -0.02em;
+  }
+  .sectionHint {
+    font-size: 9px;
+  }
+
+  /* Juego elegido (cpGameSel del handoff). */
+  .gameSelected {
+    gap: 11px;
+    padding: 10px;
+    border-radius: 11px;
+  }
+  .gameThumb {
+    width: 46px;
+    height: 46px;
+    border-radius: 11px;
+    font-size: 1.05rem;
+  }
+  .gameName {
+    font-size: 14px;
+  }
+  .gameMeta {
+    font-size: 10px;
+  }
+  /* "Cambiar" y "+ Expansión / + Variante" compactos (cpChange / cpExpChip). */
+  .gameSelected .btnGhost,
+  .gameExtrasActions .btnGhost {
+    height: auto;
+    padding: 6px 11px;
+    font-size: 11px;
+  }
+
+  /* Toggle de modo (cpMode.three). */
+  .modeToggle {
+    gap: 3px;
+    border-radius: 10px;
+    padding: 3px;
+    margin-bottom: 12px;
+  }
+  .mode {
+    padding: 9px 4px;
+    gap: 1px;
+  }
+  .modeT {
+    font-size: 11.5px;
+  }
+  .modeD {
+    font-size: 8.5px;
+  }
+  .modeDLong {
+    display: none;
+  }
+  .modeDShort {
+    display: inline;
+  }
+
+  /* Resultado coop / equipos (coopBtnM / teamWinBtn / teamAddBtn). */
+  .coopOutcome {
     gap: 8px;
+    margin-bottom: 10px;
+  }
+  .coopBtn {
+    gap: 4px;
+    padding: 14px;
+    border-radius: 11px;
+    font-size: 13px;
+  }
+  .teamResult {
+    margin-bottom: 10px;
+  }
+  .teamWinBtn {
+    gap: 7px;
+    padding: 12px;
+    border-radius: 11px;
+  }
+  .teamDot {
+    width: 12px;
+    height: 12px;
+  }
+  .btnSmall {
+    padding: 5px 11px;
+    font-size: 10px;
+    border-radius: 8px;
+  }
+
+  /* Helper-pills (cpHelperPill). */
+  .helperPill {
+    padding: 8px 12px;
+    font-size: 12.5px;
+  }
+  .hpIcon {
+    font-size: 18px;
+  }
+  /* En mobile la pill "Usar última juntada" no muestra el subtítulo de
+     jugadores/ubicación: queda sólo "↺ Usar última juntada". */
+  .hpHint {
+    display: none;
+  }
+
+  /* Filas de jugador en una sola línea, controles compactos (handoff phone 4). */
+  .scoreRow {
+    grid-template-columns: 22px 28px minmax(0, 1fr) auto auto;
+    gap: 7px;
+    padding: 9px;
+  }
+  .scoreRank {
+    font-size: 1rem;
+  }
+  .scorePlayer {
+    gap: 6px;
+  }
+  .scorePlayerName {
+    font-size: 13px;
+    max-width: none;
+  }
+  .scorePlayerHandle {
+    font-size: 9.5px;
+  }
+  .youPill {
+    font-size: 8px;
+    padding: 1px 4px;
+  }
+  .anonTag {
+    font-size: 8px;
+    padding: 1px 4px;
+  }
+  .newBadge {
+    font-size: 8px;
+    padding: 1px 5px;
   }
   .scoreControls {
-    grid-column: 1 / -1;
-    /* El puntaje crece para ocupar todo el ancho disponible de la fila. */
-    justify-content: stretch;
+    gap: 5px;
   }
-  .scoreCell {
-    flex: 1;
-    min-width: 0;
+  .scoreStep {
+    width: 19px;
+    font-size: 14px;
   }
   .scoreInput {
-    flex: 1;
-    width: auto;
-    min-width: 0;
+    width: 34px;
+    font-size: 0.9rem;
+    padding: 6px 0;
+  }
+  .winToggle {
+    width: 28px;
+    height: 30px;
+  }
+  .winToggle svg {
+    width: 13px;
+    height: 13px;
+  }
+  .teamPick {
+    gap: 2px;
+    padding: 2px;
+    border-radius: 7px;
+  }
+  .teamBtn {
+    min-width: 24px;
+    height: 22px;
+    font-size: 11px;
   }
   .scoreRemove {
-    position: absolute;
-    top: 8px;
-    right: 8px;
+    width: 24px;
+    height: 24px;
   }
-  /* En mobile el quitar va absoluto y los controles son full-width, así que el
-     espaciador de la fila "Vos" no hace falta (evita una celda vacía). */
+  /* La fila de "Vos" no reserva el hueco del quitar en mobile (handoff). */
   .scoreRemovePlaceholder {
     display: none;
   }
-  .scoreRow {
-    position: relative;
+
+  /* "Agregar jugador" / "Anónimo" (addGuest del handoff). */
+  .addGuestBtn {
+    padding: 5px 12px;
+    font-size: 10.5px;
   }
-  .section {
-    padding: 16px 14px;
+  /* "Ordenar por puntaje" → solo el ícono (el aria-label conserva el nombre). */
+  .sortText {
+    display: none;
   }
 
-  /* Fila superior de jugadores: "Usar última juntada" y "Jugué en solitario"
-     se apilan, cada uno a ancho completo. */
-  .playersTopRow {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .playersTopRow .btnGhost {
-    width: 100%;
-    justify-content: center;
-  }
-  .playersTopRow .soloPlay {
-    width: 100%;
-    margin-left: 0;
-    justify-content: center;
-  }
-
-  /* Acciones de jugadores: "Agregar jugador" + "Jugador anónimo" reparten la
-     fila al 50%; "Ordenar por puntaje" baja a su propia fila a ancho completo. */
-  .playerActions .btnGhost:not(.pushRight),
-  .playerActions .addGuestBtn {
-    flex: 1 1 0;
-    min-width: 0;
-    justify-content: center;
-  }
-  .playerActions .pushRight {
-    flex: 1 1 100%;
-    width: 100%;
-    margin-left: 0;
-    justify-content: center;
-  }
-
-  .footer {
-    flex-wrap: wrap;
+  /* Campos (cpField / cpLabel / cpQuick): Fecha y Duración quedan lado a
+     lado, como en el handoff. */
+  .fieldRow {
     gap: 10px;
+  }
+  .field {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .fieldLabel {
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+  }
+  .quickRow {
+    gap: 5px;
+  }
+  .quick {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+  /* El preset de 120min no entra cómodo en 3 columnas: en mobile se oculta. */
+  .quickXl {
+    display: none;
+  }
+
+  /* Checkboxes apilados (cpChecks). */
+  .checkboxRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 9px;
+  }
+  .checkboxLabel {
+    font-size: 12.5px;
+  }
+
+  /* Notas (cpInput serif del handoff). */
+  .notes {
+    min-height: 64px;
+    font-size: 14.5px;
+  }
+
+  /* Sección 5 (cpShareCard): switch en vez de chevron + paddings compactos. */
+  .shareChevron {
+    display: none;
+  }
+  .shareToggle {
+    display: inline-block;
+  }
+  .shareHead {
+    padding: 14px 15px;
+  }
+  /* El mock mobile no muestra el "OPCIONAL" en esta card (num + texto +
+     switch); lo ocultamos para que respire como el handoff. */
+  .shareHead .sectionHint {
+    display: none;
+  }
+  .shareHeadTitle {
+    font-size: 14px;
+  }
+  .shareHeadSub {
+    font-size: 11px;
+  }
+  .shareBody {
+    padding: 4px 15px 14px;
+  }
+
+  /* Footer → save bar sticky (handoff phone 4): cancelar cuadrado con ícono
+     + guardar a lo ancho. */
+  .footer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 120;
+    margin: 0;
+    padding: 12px 14px calc(16px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(180deg, transparent, var(--bg-card) 35%);
+    border-top: 1px solid var(--border);
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .footer > .btnGhost {
+    width: 46px;
+    height: 46px;
+    padding: 0;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 11px;
+  }
+  .cancelIcon {
+    display: block;
+  }
+  .cancelText {
+    display: none;
   }
   .footerRight {
     flex: 1;
-    justify-content: flex-end;
+    gap: 8px;
+  }
+  .footerRight .btnGhost {
+    flex: 1;
+    min-width: 0;
+    padding: 0 10px;
+    justify-content: center;
+    height: 46px;
+    border-radius: 11px;
+    font-size: 12px;
+  }
+  /* "Guardar y cargar otra" → botón cuadrado solo-ícono (como Cancelar). */
+  .footerRight .multiSaveBtn {
+    flex: 0 0 46px;
+    width: 46px;
+    padding: 0;
+  }
+  .multiSaveIcon {
+    display: block;
+  }
+  .multiSaveText {
+    display: none;
+  }
+  .btnPrimary {
+    flex: 1.4;
+    justify-content: center;
+    height: 46px;
+    border-radius: 11px;
+    font-size: 14px;
+    padding: 0 12px;
+    white-space: nowrap;
   }
 }

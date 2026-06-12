@@ -5,7 +5,7 @@ import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 import useClickOutside from "../../hooks/useClickOutside";
 import EmptyState from "../../components/shared/EmptyState";
-import SearchRowSkeleton from "./SearchRowSkeleton";
+import DiceLoader from "../../components/shared/DiceLoader";
 import styles from "./BgWatchProfile.module.css";
 
 function metaLine(loc) {
@@ -173,8 +173,6 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
 
       {open && (
         <div className={styles.locationDropdown}>
-          {loading && items.length === 0 && <SearchRowSkeleton rows={4} />}
-
           {isEmpty && !term && (
             <EmptyState
               variant="filtered"
@@ -234,6 +232,12 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
                 </li>
               )}
             </ul>
+          )}
+
+          {/* El loader va DEBAJO del "Usar «…»" (dentro de la lista), para no
+              tapar ese atajo mientras se busca. */}
+          {loading && items.length === 0 && (
+            <DiceLoader text="Buscando ubicaciones" />
           )}
 
           {error && (

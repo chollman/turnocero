@@ -49,6 +49,15 @@ export default function InfoTooltip({
 }) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef(null);
+  // En touch, UN tap dispara mouseenter → focus → click (emulados): el
+  // enter/focus abrían y el click togleaba → cerraba, y hacía falta un segundo
+  // tap. Sellamos el instante del open "suave" (hover/focus) y el click del
+  // MISMO gesto no togglea.
+  const softOpenedAtRef = useRef(0);
+  const openSoft = () => {
+    if (!open) softOpenedAtRef.current = Date.now();
+    setOpen(true);
+  };
 
   // Cerrar al clickear afuera (caso mobile: se abrió por tap).
   useEffect(() => {
@@ -80,7 +89,7 @@ export default function InfoTooltip({
     <span
       ref={wrapperRef}
       className={styles.wrapper}
-      onMouseEnter={() => setOpen(true)}
+      onMouseEnter={openSoft}
       onMouseLeave={() => setOpen(false)}
     >
       <button
@@ -90,10 +99,13 @@ export default function InfoTooltip({
         aria-expanded={open}
         onClick={(e) => {
           e.preventDefault();
-          // Toggle por click — útil para touch devices y como acción explícita.
+          // Toggle por click — útil para touch devices y como acción
+          // explícita. Si este mismo gesto acaba de abrirlo (tap → enter/focus
+          // emulados hace <500ms), no volver a togglear.
+          if (Date.now() - softOpenedAtRef.current < 500) return;
           setOpen((prev) => !prev);
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={openSoft}
         onBlur={() => setOpen(false)}
       >
         <InfoIcon />

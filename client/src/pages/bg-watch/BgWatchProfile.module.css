@@ -2412,6 +2412,27 @@
   color: var(--text-muted);
 }
 
+/* "Sin coincidencias" del filtro de juegos: una fila compacta (como un item
+   más de la lista), no el bloque grande del EmptyState. */
+.pickerNoMatch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+.pickerNoMatch::before {
+  content: "🔍";
+  font-size: 14px;
+  opacity: 0.7;
+}
+
 /* Details grid (dt/dd pairs) */
 .detailsGrid {
   display: grid;

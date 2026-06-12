@@ -34,6 +34,18 @@ describe("<InfoTooltip>", () => {
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
 
+  it("un solo tap touch (mouseenter+focus+click emulados) abre y queda abierto", () => {
+    // En touch, UN tap dispara esta secuencia; el click del mismo gesto no
+    // debe togglear (antes cerraba y hacía falta un segundo tap).
+    render(<InfoTooltip>Ayuda</InfoTooltip>);
+    const trigger = screen.getByRole("button", { name: /más información/i });
+
+    fireEvent.mouseEnter(trigger.parentElement);
+    fireEvent.focus(trigger);
+    fireEvent.click(trigger);
+    expect(screen.getByRole("tooltip")).toBeInTheDocument();
+  });
+
   it("opens on focus and closes on blur (keyboard navigation)", () => {
     render(<InfoTooltip>Ayuda</InfoTooltip>);
     const trigger = screen.getByRole("button", { name: /más información/i });

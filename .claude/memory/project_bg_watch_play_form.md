@@ -94,3 +94,20 @@ Quinta sección **opcional** del `PlayForm` (después de Notas, solo al crear, g
 ## Hub de comunidad — pendiente (no del PlayForm, pero del mismo dominio)
 
 Del doc `docs/bg-watch-community-stats.md`, quedan fuera de alcance: comparador H2H libre (selector arbitrario en el hub), recomendaciones de juegos + gamificación, y cache de las aggregations (+ índice por `date` del feed). El scoping por comunidad (fase 2) ya está hecho.
+
+## Rediseño v2 (handoff `design_handoff_bgwatch_create_v2`, 2026-06-12)
+
+Aplicado a `PlayForm.jsx`/`PlayForm.module.css` (desktop + mobile). Deltas implementados:
+
+- **Helper-pills compartidas** (`.helperRow`/`.helperPill`): "Jugué en solitario" (checkbox custom `.hpCheck` que se llena de acento) + "Usar última juntada" (↺ + hint `N jug. · lugar` con border-left), lado a lado, **solo cuando hay 1 jugador** (antes "última juntada" se mostraba siempre).
+- **Stepper de puntaje unificado**: `.scoreCell` es UNA celda (− input +) con borde único + `:focus-within`; win-toggle 38×36 transparente.
+- **Equipos**: dots de color por equipo (A=amber, B=orange, C=green, D=purple) en "¿Qué equipo ganó?" y mismo mapa en el selector A/B/C/D por jugador; "± Equipo" como `.btnSmall`.
+- **Rank versus** muestra `—` sin puntaje (antes `#1` para todos).
+- **Mobile (`--phone`, reemplazó el media 580px)**: stepper de 3 puntos (`role="img"` "N de 3 secciones listas") en vez del "N/3" (oculto, junto al `.sub`); **save bar sticky** = el mismo `.footer` con `position: fixed` (Cancelar = cuadrado con tacho vía `.cancelIcon`/`.cancelText`); pickers (`.playerPickerPop`) abren hacia abajo (pedido del usuario 2026-06-12: como los demás pickers; se descartó el anti-clip hacia arriba del handoff); sección 5 con **switch** (`.shareToggle`, decorativo) en vez de chevron; filas de jugador en una sola línea con stepper compacto; descripciones cortas de modo (`.modeDShort`: "con puntaje/juntos/bandos").
+- `MyGamesPicker.onPick` ahora pasa `numPlays` → meta del juego elegido "1995 · 5× jugado" + hint "de tu colección" (solo si vino de la colección; vía BGG search no hay numPlays ni hint). Botones: "+ Expansión jugada" (antes plural), "Anónimo" (antes "+ Jugador anónimo"), "Agregar jugador" como pill punteada con ícono.
+
+**Gotcha clave (containing block):** la animación de entrada de `.page` tenía `fill: both` y dejaba un transform identidad aplicado para siempre (interpolar `transform: none` produce matriz identidad, no `none`) → el `position: fixed` de la save bar quedaba relativo a `.page`. Fix: animación SIN fill forwards (el estado natural ya es `transform: none`). Mismo gotcha familia que `feedback_modal_portal_required`.
+
+El botón primario sigue **amber** (mapeo `--accent` handoff → `--amber` app + patrón CTA), aunque el mock mobile lo pintaba púrpura.
+
+- Ajuste posterior (2026-06-12): métricas mobile alineadas 1:1 al phone 4 del handoff (cards padding 15/radius 14/gap 14, header sin divisor con título 24px, sectionTitle 15px, num 24px, modo 11.5/8.5px con subtítulos capitalizados "Con puntaje/Juntos/Bandos", fecha+duración en 2 columnas, checkboxes apilados, chips/pills compactas, save bar font 14 con nowrap); ⓘ en la vista previa (solo ≤--tablet, donde queda arriba del form) aclarando que no es interactiva; `.newBadge` ahora es chip con fondo purple-10 + borde (handoff).

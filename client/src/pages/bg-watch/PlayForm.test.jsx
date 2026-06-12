@@ -170,8 +170,9 @@ describe("<PlayForm>", () => {
       lockedGame: true,
     });
     const helps = screen.getAllByRole("button", { name: /^ayuda:/i });
-    // 4 pasos del scoresheet (la sección 5 es una tarjeta clicable sin tooltip).
-    expect(helps).toHaveLength(4);
+    // 4 pasos del scoresheet (la sección 5 es una tarjeta clicable sin tooltip)
+    // + 1 en la vista previa (visible solo en mobile, donde queda arriba).
+    expect(helps).toHaveLength(5);
     // Abrir el del primer paso muestra su explicación.
     fireEvent.click(helps[0]);
     expect(await screen.findByRole("tooltip")).toHaveTextContent(
@@ -185,6 +186,41 @@ describe("<PlayForm>", () => {
     expect(screen.getByText("¿Cuándo y dónde?")).toBeInTheDocument();
     expect(screen.getByText("¿Quiénes jugaron?")).toBeInTheDocument();
     expect(screen.getByText("Notas")).toBeInTheDocument();
+  });
+
+  it("la vista previa tiene un ⓘ que aclara que no es interactiva (mobile)", async () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /ayuda: vista previa/i }),
+    );
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      /es solo la vista previa/i,
+    );
+  });
+
+  it("el stepper de puntos (mobile) refleja el progreso", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+    });
+    // Juego ✓ + fecha ✓; falta el paso de jugadores → 2 de 3.
+    expect(
+      screen.getByRole("img", { name: /2 de 3 secciones listas/i }),
+    ).toBeInTheDocument();
+    checkSolo();
+    expect(
+      screen.getByRole("img", { name: /3 de 3 secciones listas/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("al elegir de la colección muestra año + N× jugado y 'de tu colección'", async () => {
+    renderForm();
+    fireEvent.click((await screen.findByText("Catán")).closest("button"));
+    expect(screen.getByText("1995 · 5× jugado")).toBeInTheDocument();
+    expect(screen.getByText("de tu colección")).toBeInTheDocument();
   });
 
   it("el título usa la voz del handoff (crear)", () => {
@@ -320,7 +356,9 @@ describe("<PlayForm>", () => {
 
   // ── Sección 5: "Compartí esta partida" (tarjeta clicable) ───────────
   const openShare = () =>
-    fireEvent.click(screen.getByRole("button", { name: /compartí esta partida/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /compartí esta partida/i }),
+    );
 
   it("la sección 5 no aparece en modo edición", () => {
     renderForm({
@@ -328,7 +366,9 @@ describe("<PlayForm>", () => {
       initialValues: { game: { id: "13", name: "Catán" } },
       lockedGame: true,
     });
-    expect(screen.queryByText(/compartí esta partida/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/compartí esta partida/i),
+    ).not.toBeInTheDocument();
   });
 
   it("con la sección 5 colapsada (sin abrir), onSubmit recibe share: null", async () => {
@@ -453,7 +493,12 @@ describe("<PlayForm>", () => {
       http.get("/api/bgg/mis-jugadores/:user", () =>
         HttpResponse.json({
           items: [
-            { name: "Nico del Dot", username: "", numPlays: 0, lastPlayedDate: null },
+            {
+              name: "Nico del Dot",
+              username: "",
+              numPlays: 0,
+              lastPlayedDate: null,
+            },
           ],
           total: 1,
           page: 1,
@@ -470,13 +515,15 @@ describe("<PlayForm>", () => {
       lockedGame: true,
     });
     fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
-    fireEvent.click((await screen.findByText("Nico del Dot")).closest("button"));
+    fireEvent.click(
+      (await screen.findByText("Nico del Dot")).closest("button"),
+    );
     expect(await screen.findByText(/nuevo/i)).toBeInTheDocument();
     // El roster enviado al server incluye al invitado con su nombre.
     await waitFor(() =>
-      expect(
-        received?.players?.some((p) => p.name === "Nico del Dot"),
-      ).toBe(true),
+      expect(received?.players?.some((p) => p.name === "Nico del Dot")).toBe(
+        true,
+      ),
     );
   });
 
@@ -691,12 +738,12 @@ describe("<PlayForm>", () => {
   });
 
   // ── Jugador anónimo ───────────────────────────────────────────────────
-  it("'+ Jugador anónimo' agrega asientos numerados, sin @handle", () => {
+  it("'Anónimo' agrega asientos numerados, sin @handle", () => {
     renderForm({
       initialValues: { game: { id: "13", name: "Catán" } },
       lockedGame: true,
     });
-    const anonBtn = screen.getByRole("button", { name: /jugador anónimo/i });
+    const anonBtn = screen.getByRole("button", { name: /^anónimo$/i });
     fireEvent.click(anonBtn);
     // Aparece en la fila del form y en el scorecard en vivo.
     expect(screen.getAllByText("Jugador anónimo 1").length).toBeGreaterThan(0);
@@ -714,7 +761,7 @@ describe("<PlayForm>", () => {
       lockedGame: true,
       onSubmit,
     });
-    fireEvent.click(screen.getByRole("button", { name: /jugador anónimo/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^anónimo$/i }));
     fireEvent.click(screen.getByRole("button", { name: /guardar partida/i }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     const anon = onSubmit.mock.calls[0][0].players.find((p) =>
@@ -728,7 +775,7 @@ describe("<PlayForm>", () => {
       initialValues: { game: { id: "13", name: "Catán" } },
       lockedGame: true,
     });
-    const anonBtn = screen.getByRole("button", { name: /jugador anónimo/i });
+    const anonBtn = screen.getByRole("button", { name: /^anónimo$/i });
     fireEvent.click(anonBtn);
     fireEvent.click(anonBtn);
     expect(screen.getAllByText("Jugador anónimo 2").length).toBeGreaterThan(0);
@@ -1044,6 +1091,41 @@ describe("<PlayForm>", () => {
     expect(payload.players.map((p) => p.name)).toEqual(["Ana", "Beto"]);
   });
 
+  it("las helper-pills (solo + última juntada) desaparecen con un 2º jugador", async () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      lastJuntada: {
+        location: "Club de Mesa",
+        players: [{ name: "Ana", username: "anabgg" }],
+      },
+    });
+    expect(
+      screen.getByRole("button", { name: /usar última juntada/i }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /agregar jugador/i }));
+    fireEvent.click((await screen.findByText("Bob")).closest("button"));
+    expect(
+      screen.queryByRole("button", { name: /usar última juntada/i }),
+    ).toBeNull();
+    expect(screen.queryByLabelText(/jugué en solitario/i)).toBeNull();
+  });
+
+  it("la pill 'Usar última juntada' muestra el hint compacto (N jug. · lugar)", () => {
+    renderForm({
+      initialValues: { game: { id: "13", name: "Catán" } },
+      lockedGame: true,
+      lastJuntada: {
+        location: "Club de Mesa",
+        players: [
+          { name: "Ana", username: "anabgg" },
+          { name: "Beto", username: "" },
+        ],
+      },
+    });
+    expect(screen.getByText("2 jug. · Club de Mesa")).toBeInTheDocument();
+  });
+
   it("no muestra 'Usar última juntada' en modo edición", () => {
     renderForm({
       editMode: true,
@@ -1095,9 +1177,7 @@ describe("<PlayForm>", () => {
       onSubmit,
     });
     checkSolo();
-    fireEvent.click(
-      screen.getByRole("button", { name: /expansiones jugadas/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /expansión jugada/i }));
     fireEvent.click(await screen.findByText("Wingspan: Oceania"));
     // Chip visible.
     expect(screen.getAllByText("Wingspan: Oceania").length).toBeGreaterThan(0);
