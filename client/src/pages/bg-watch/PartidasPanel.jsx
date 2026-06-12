@@ -315,7 +315,12 @@ export default function PartidasPanel({
               disabled={loading || inCooldown}
               aria-label="Actualizar partidas"
             >
-              ↻ {inCooldown ? `Esperá ${cooldownRemaining}s` : "Actualizar"}
+              ↻{" "}
+              <span
+                className={`${styles.refreshLabel} ${inCooldown ? styles.refreshLabelCooldown : ""}`}
+              >
+                {inCooldown ? `Esperá ${cooldownRemaining}s` : "Actualizar"}
+              </span>
             </button>
           </>
         )}
@@ -324,63 +329,67 @@ export default function PartidasPanel({
       {viewMode === "list" && (
         <div className={styles.partidasLayout}>
           <div className={styles.playsMain}>
-          {loading && (
-            <div className={styles.playsList}>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <PlayCardSkeleton key={i} />
-              ))}
-            </div>
-          )}
-
-          {error && (
-            <div className={styles.stateCenter}>
-              <p className={styles.errorText}>{error}</p>
-            </div>
-          )}
-
-          {!loading && !error && plays && plays.plays.length === 0 && (
-            <div className={styles.stateCenter}>
-              <p>
-                {filter === "all"
-                  ? "Este usuario no tiene partidas registradas en BGG."
-                  : "No hay partidas en el período seleccionado."}
-              </p>
-            </div>
-          )}
-
-          {!loading && plays && plays.plays.length > 0 && (
-            <div className={styles.playsList}>
-              <div className={styles.playsHeader}>
-                <span className={styles.playsTotal}>
-                  {plays.total} partida{plays.total === 1 ? "" : "s"}
-                  {filter !== "all" && " en el período"}
-                </span>
-                <span className={styles.paginationInfo}>
-                  página {page} de {totalPages}
-                </span>
+            {loading && (
+              <div className={styles.playsList}>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <PlayCardSkeleton key={i} />
+                ))}
               </div>
-              {plays.plays.map((play, i) => (
-                <PlayCard
-                  key={play.id}
-                  play={play}
-                  index={i}
-                  userMap={userMap}
-                  bggUsername={bggUsername}
-                  onClick={() => onPlayClick(play)}
-                  onEdit={onPlayEdit ? () => onPlayEdit(play) : undefined}
-                  onDelete={onPlayDelete ? () => onPlayDelete(play) : undefined}
-                  onLogAnother={
-                    onPlayLogAnother ? () => onPlayLogAnother(play) : undefined
-                  }
+            )}
+
+            {error && (
+              <div className={styles.stateCenter}>
+                <p className={styles.errorText}>{error}</p>
+              </div>
+            )}
+
+            {!loading && !error && plays && plays.plays.length === 0 && (
+              <div className={styles.stateCenter}>
+                <p>
+                  {filter === "all"
+                    ? "Este usuario no tiene partidas registradas en BGG."
+                    : "No hay partidas en el período seleccionado."}
+                </p>
+              </div>
+            )}
+
+            {!loading && plays && plays.plays.length > 0 && (
+              <div className={styles.playsList}>
+                <div className={styles.playsHeader}>
+                  <span className={styles.playsTotal}>
+                    {plays.total} partida{plays.total === 1 ? "" : "s"}
+                    {filter !== "all" && " en el período"}
+                  </span>
+                  <span className={styles.paginationInfo}>
+                    página {page} de {totalPages}
+                  </span>
+                </div>
+                {plays.plays.map((play, i) => (
+                  <PlayCard
+                    key={play.id}
+                    play={play}
+                    index={i}
+                    userMap={userMap}
+                    bggUsername={bggUsername}
+                    onClick={() => onPlayClick(play)}
+                    onEdit={onPlayEdit ? () => onPlayEdit(play) : undefined}
+                    onDelete={
+                      onPlayDelete ? () => onPlayDelete(play) : undefined
+                    }
+                    onLogAnother={
+                      onPlayLogAnother
+                        ? () => onPlayLogAnother(play)
+                        : undefined
+                    }
+                  />
+                ))}
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPage={handlePage}
                 />
-              ))}
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                onPage={handlePage}
-              />
-            </div>
-          )}
+              </div>
+            )}
           </div>
 
           <aside className={styles.playsSideCol}>

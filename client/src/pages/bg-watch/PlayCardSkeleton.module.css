@@ -91,10 +91,15 @@
 
 @media (--phone) {
   .thumb {
-    width: 56px;
-    height: 56px;
+    width: 46px;
+    height: 46px;
   }
   .gameName {
     width: 60%;
+  }
+  /* En mobile la card real muestra podio (líneas de texto), no chips. */
+  .chip {
+    height: 14px;
+    border-radius: 4px;
   }
 }

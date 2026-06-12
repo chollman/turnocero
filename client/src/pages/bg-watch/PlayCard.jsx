@@ -37,14 +37,18 @@ function relativeDate(iso) {
   return `Hace ${yr} ${yr === 1 ? "año" : "años"}`;
 }
 
-function PlayerChip({ player, turnoceroUser }) {
-  // Un override local de curación (overlayName / overlayAvatar) gana sobre el
-  // perfil del miembro de TurnoCero — solo en la vista de BG Watch del dueño.
-  const name = player.overlayName
+// Un override local de curación (overlayName / overlayAvatar) gana sobre el
+// perfil del miembro de TurnoCero — solo en la vista de BG Watch del dueño.
+function resolvePlayerName(player, turnoceroUser) {
+  return player.overlayName
     ? player.overlayName
     : turnoceroUser
       ? turnoceroUser.displayName || turnoceroUser.username
       : player.name || player.username || "Anónimo";
+}
+
+function PlayerChip({ player, turnoceroUser }) {
+  const name = resolvePlayerName(player, turnoceroUser);
 
   const content = (
     <>
@@ -217,6 +221,19 @@ export default function PlayCard({
     });
   }, [play.players]);
 
+  // Podio compacto (solo --phone, vía CSS): ganadores destacados + el resto
+  // en una línea de texto. Los chips completos quedan para desktop.
+  const winners = useMemo(
+    () => sortedPlayers.filter((p) => p.win),
+    [sortedPlayers],
+  );
+  const rest = useMemo(
+    () => sortedPlayers.filter((p) => !p.win),
+    [sortedPlayers],
+  );
+  const restVisible = rest.slice(0, winners.length > 0 ? 3 : 4);
+  const restHidden = rest.length - restVisible.length;
+
   const truncatedComment = play.comments
     ? play.comments.length > 80
       ? `${play.comments.slice(0, 80)}…`
@@ -227,7 +244,7 @@ export default function PlayCard({
 
   return (
     <div
-      className={`${styles.playCard} ${interactive ? styles.playCardInteractive : ""}`}
+      className={`${styles.playCard} ${interactive ? styles.playCardInteractive : ""} ${ownerSeat?.win ? styles.playCardWin : ""}`}
       style={{ "--i": index }}
       onClick={interactive ? onClick : undefined}
       role={interactive ? "button" : undefined}
@@ -291,6 +308,86 @@ export default function PlayCard({
                 }
               />
             ))}
+          </div>
+        )}
+
+        {sortedPlayers.length > 0 && (
+          <div className={styles.playPodium}>
+            {winners.length > 0 && (
+              <div className={styles.podiumWinners}>
+                <span className={styles.winIcon} aria-hidden="true">
+                  🏆
+                </span>
+                {winners.map((p, i) => {
+                  const tcUser = p.username
+                    ? userMap?.[p.username.toLowerCase()]
+                    : null;
+                  return (
+                    <span
+                      key={`${p.username || p.name || "anon"}-${i}`}
+                      className={styles.podiumWinner}
+                    >
+                      {p.overlayAvatar?.url ? (
+                        <Avatar
+                          user={{
+                            _id: p.username || p.name,
+                            displayName: resolvePlayerName(p, tcUser),
+                            avatar: p.overlayAvatar,
+                          }}
+                          size="xs"
+                        />
+                      ) : (
+                        tcUser && <Avatar user={tcUser} size="xs" />
+                      )}
+                      <span className={styles.podiumWinnerName}>
+                        {p.new && (
+                          <span className={styles.newIcon} aria-hidden="true">
+                            ✨
+                          </span>
+                        )}
+                        {resolvePlayerName(p, tcUser)}
+                      </span>
+                      {hasDisplayableScore(p.score) && (
+                        <span className={styles.podiumWinnerScore}>
+                          {p.score}
+                        </span>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {restVisible.length > 0 && (
+              <div className={styles.podiumRest}>
+                {restVisible.map((p, i) => {
+                  const tcUser = p.username
+                    ? userMap?.[p.username.toLowerCase()]
+                    : null;
+                  return (
+                    <span
+                      key={`${p.username || p.name || "anon"}-${i}`}
+                      className={styles.podiumRestItem}
+                    >
+                      {p.new && (
+                        <span className={styles.newIcon} aria-hidden="true">
+                          ✨
+                        </span>
+                      )}
+                      {resolvePlayerName(p, tcUser)}
+                      {hasDisplayableScore(p.score) && (
+                        <span className={styles.podiumRestScore}>
+                          {" "}
+                          {p.score}
+                        </span>
+                      )}
+                    </span>
+                  );
+                })}
+                {restHidden > 0 && (
+                  <span className={styles.podiumMore}>+{restHidden}</span>
+                )}
+              </div>
+            )}
           </div>
         )}
 

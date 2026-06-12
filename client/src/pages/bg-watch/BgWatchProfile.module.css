@@ -759,12 +759,8 @@
   opacity: 0.85;
 }
 
-/* En teléfonos el thumb se oculta para dar más ancho al cuerpo de la card. */
-@media (--phone) {
-  .playThumb {
-    display: none;
-  }
-}
+/* En teléfonos el thumb se achica (ver bloque mobile al final) pero se
+   mantiene visible: es el ancla de escaneo de la lista. */
 
 /* Pill de resultado del dueño (✦ Ganaste / ○ Perdiste). */
 .playOutcome {
@@ -848,6 +844,81 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+/* ─── Podio compacto (mobile) ───
+   Reemplaza la nube de chips en --phone: línea protagonista con el/los
+   ganadores + el resto como texto plano. Oculto en desktop. */
+.playPodium {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.podiumWinners {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.podiumWinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Co-op / empates: separador entre ganadores múltiples. */
+.podiumWinner + .podiumWinner::before {
+  content: "·";
+  color: var(--text-muted);
+  margin-right: 5px;
+}
+
+.podiumWinnerName {
+  font-weight: 700;
+}
+
+.podiumWinnerScore {
+  font-family: "Manrope", var(--font-display);
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.podiumRest {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Alinea el resto con el nombre del ganador (despeja el trofeo). */
+.podiumWinners + .podiumRest {
+  padding-left: 22px;
+}
+
+.podiumRestItem + .podiumRestItem::before {
+  content: "· ";
+  color: var(--text-muted);
+}
+
+.podiumRestScore {
+  font-family: "Manrope", var(--font-display);
+  font-weight: 600;
+}
+
+.podiumMore {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 7px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 4px;
 }
 
 /* ─── Play card menu (kebab) ─── */
@@ -2392,29 +2463,150 @@
     gap: 10px;
   }
 
+  /* Toolbar en dos filas: filtros con scroll horizontal arriba; toggle
+     full-width + refresh compacto abajo; "Actualizado" como caption. */
+  .panelToolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .filterBar {
+    grid-column: 1 / -1;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .filterBar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filterChip {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .viewToggle {
+    display: flex;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .viewToggleBtn {
+    flex: 1;
+    text-align: center;
+    padding: 7px 0;
+  }
+
+  .refreshBtn {
+    justify-content: center;
+  }
+
+  /* Sin cooldown el botón queda solo con el ícono ↻ (el aria-label cubre
+     accesibilidad); el contador "Esperá Xs" sí se muestra. */
+  .refreshLabel {
+    display: none;
+  }
+
+  .refreshLabelCooldown {
+    display: inline;
+  }
+
+  .lastSynced {
+    grid-column: 1 / -1;
+    order: 5;
+    text-align: right;
+    white-space: normal;
+  }
+
+  /* Card de partida: vuelve el thumb (chico), una sola línea de fecha,
+     resultado como texto + acento verde al borde, podio en vez de chips. */
   .playCard {
     padding: 12px;
     gap: 10px;
+    box-shadow: inset 3px 0 0 0 transparent;
+  }
+
+  .playCardWin {
+    box-shadow: inset 3px 0 0 0 var(--green);
   }
 
   .playThumb {
-    width: 56px;
-    height: 56px;
+    width: 46px;
+    height: 46px;
+  }
+
+  .playThumbFallback {
+    font-size: 20px;
   }
 
   .playGameName {
-    font-size: 15px;
+    font-size: 16px;
   }
 
   .playTopRow {
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px 8px;
   }
 
+  /* La línea de meta (fecha · resultado) baja debajo del título, en fila. */
   .playDateBlock {
     flex-direction: row;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .playDateAbs {
+    display: none;
+  }
+
+  /* El pill "Ganaste/Perdiste" pasa a texto plano después de la fecha. */
+  .playOutcome {
+    order: 2;
+    border: none;
+    background: none;
+    padding: 0;
+  }
+
+  .playOutcomeLoss {
+    color: var(--text-muted);
+  }
+
+  .playOutcome::before {
+    content: "· ";
+    color: var(--text-muted);
+  }
+
+  .playPodium {
+    display: flex;
+  }
+
+  .playPlayers {
+    display: none;
+  }
+
+  /* Tags sin cajas: texto plano muted; el comentario en su propia línea. */
+  .playTags {
+    gap: 4px 12px;
+  }
+
+  .playTag {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 12px;
+  }
+
+  .playTagWarn {
+    color: var(--red);
+  }
+
+  .playTagComment {
+    flex-basis: 100%;
+    padding: 0;
   }
 
   .modalCard {

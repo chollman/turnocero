@@ -55,11 +55,13 @@ describe("<PlayCard>", () => {
   });
 
   it("renders all players with scores", () => {
+    // Cada jugador aparece dos veces en el DOM: chips (desktop) + podio
+    // (mobile); la visibilidad la resuelve CSS según el breakpoint.
     renderCard();
-    expect(screen.getByText("Alice")).toBeInTheDocument();
-    expect(screen.getByText("Bob")).toBeInTheDocument();
-    expect(screen.getByText("10")).toBeInTheDocument();
-    expect(screen.getByText("7")).toBeInTheDocument();
+    expect(screen.getAllByText("Alice")).toHaveLength(2);
+    expect(screen.getAllByText("Bob")).toHaveLength(2);
+    expect(screen.getAllByText("10")).toHaveLength(2);
+    expect(screen.getAllByText("7")).toHaveLength(2);
   });
 
   it('omits score entirely when a player has no score (null / empty / "null")', () => {
@@ -90,9 +92,9 @@ describe("<PlayCard>", () => {
         ],
       },
     });
-    expect(screen.getByText("NoScore")).toBeInTheDocument();
-    expect(screen.getByText("EmptyScore")).toBeInTheDocument();
-    expect(screen.getByText("PoisonedScore")).toBeInTheDocument();
+    expect(screen.getAllByText("NoScore").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("EmptyScore").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("PoisonedScore").length).toBeGreaterThan(0);
     // No "null" text should be rendered anywhere (data-poisoning guard).
     expect(screen.queryByText("null")).toBeNull();
     expect(screen.queryByText(/^null$/i)).toBeNull();
@@ -106,7 +108,7 @@ describe("<PlayCard>", () => {
         ],
       },
     });
-    expect(screen.getByText("0")).toBeInTheDocument();
+    expect(screen.getAllByText("0").length).toBeGreaterThan(0);
   });
 
   it("renders the win trophy icon for the winner", () => {
@@ -226,11 +228,7 @@ describe("<PlayCard>", () => {
     const onLogAnother = vi.fn();
     render(
       <MemoryRouter>
-        <PlayCard
-          play={makePlay()}
-          userMap={{}}
-          onLogAnother={onLogAnother}
-        />
+        <PlayCard play={makePlay()} userMap={{}} onLogAnother={onLogAnother} />
       </MemoryRouter>,
     );
     fireEvent.click(screen.getByRole("button", { name: "Acciones" }));
@@ -285,5 +283,88 @@ describe("<PlayCard>", () => {
     const names = screen.getAllByText(/Loser|Winner/);
     expect(names[0].textContent).toBe("Winner");
     expect(names[1].textContent).toBe("Loser");
+  });
+
+  describe("podio mobile", () => {
+    it("destaca al ganador con su score y lista el resto como texto", () => {
+      const { container } = renderCard();
+      const podium = container.querySelector(".playPodium");
+      expect(podium).not.toBeNull();
+      const winners = podium.querySelector(".podiumWinners");
+      expect(winners.textContent).toContain("Alice");
+      expect(winners.textContent).toContain("10");
+      const rest = podium.querySelector(".podiumRest");
+      expect(rest.textContent).toContain("Bob");
+      expect(rest.textContent).toContain("7");
+    });
+
+    it("colapsa los jugadores que exceden el cupo en una pastilla +N", () => {
+      const players = [
+        { name: "Win", username: "w", score: "20", win: true, position: 1 },
+        ...["P2", "P3", "P4", "P5", "P6"].map((name, i) => ({
+          name,
+          username: name.toLowerCase(),
+          score: String(10 - i),
+          win: false,
+          position: i + 2,
+        })),
+      ];
+      const { container } = renderCard({ play: { players } });
+      // 5 perdedores, 3 visibles → +2
+      expect(screen.getByText("+2")).toBeInTheDocument();
+      const rest = container.querySelector(".podiumRest");
+      expect(rest.textContent).toContain("P2");
+      expect(rest.textContent).toContain("P4");
+      expect(rest.textContent).not.toContain("P5");
+    });
+
+    it("sin ganadores muestra hasta 4 jugadores antes del +N", () => {
+      const players = ["A1", "A2", "A3", "A4", "A5"].map((name, i) => ({
+        name,
+        username: name.toLowerCase(),
+        score: null,
+        win: false,
+        position: i + 1,
+      }));
+      const { container } = renderCard({ play: { players } });
+      expect(container.querySelector(".podiumWinners")).toBeNull();
+      const rest = container.querySelector(".podiumRest");
+      expect(rest.textContent).toContain("A4");
+      expect(screen.getByText("+1")).toBeInTheDocument();
+    });
+
+    it("resuelve el nombre del podio con overlayName y displayName de TurnoCero", () => {
+      renderCard({
+        play: {
+          players: [
+            {
+              name: "Alias",
+              overlayName: "Alias",
+              username: "alice",
+              win: true,
+              position: 1,
+            },
+          ],
+        },
+        userMap: {
+          alice: { _id: "u1", username: "alice", displayName: "Alice T" },
+        },
+      });
+      // Override gana en chips Y en podio.
+      expect(screen.queryByText("Alice T")).toBeNull();
+      expect(screen.getAllByText("Alias").length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("acento de victoria del dueño", () => {
+    it("marca la card con playCardWin cuando el dueño del perfil ganó", () => {
+      const { container } = renderCard({ bggUsername: "alice" });
+      expect(container.firstChild.className).toContain("playCardWin");
+    });
+
+    it("no marca la card cuando el dueño perdió o no jugó", () => {
+      const { container } = renderCard({ bggUsername: "bob" });
+      expect(container.firstChild.className).not.toContain("playCardWin");
+    });
   });
 });

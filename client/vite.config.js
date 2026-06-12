@@ -57,7 +57,9 @@ export default defineConfig({
     }),
   ],
   server: {
-    port: 3000,
+    // PORT permite levantar una instancia paralela (ej. preview tooling)
+    // sin pisar el dev server de la 3000.
+    port: Number(process.env.PORT) || 3000,
     // Google Identity Services abre un popup y devuelve el resultado vía
     // window.postMessage al opener. Con COOP `same-origin` (default de
     // muchos browsers/proxies) se corta esa relación y el login se bloquea
