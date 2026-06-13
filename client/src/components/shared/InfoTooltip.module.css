@@ -42,11 +42,14 @@
 
 .tooltip {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  /* `left` lo setea JS en px (relativo al wrapper): centra sobre el ícono pero
+     clampeado al viewport. Se usa `left` REAL y no `transform` porque un
+     transform mueve sólo el render y la caja de layout sin desplazar generaba
+     scroll horizontal (ensanchaba el viewport en mobile). */
+  left: 0;
   z-index: 100;
   width: max-content;
-  max-width: 280px;
+  max-width: min(280px, calc(100vw - 32px));
   padding: 10px 12px;
   background: var(--bg-elevated);
   color: var(--text-secondary);
@@ -86,17 +89,10 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(2px);
+    transform: translateY(2px);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-/* En pantallas chicas: que no se salga del viewport */
-@media (--compact) {
-  .tooltip {
-    max-width: min(280px, calc(100vw - 32px));
+    transform: translateY(0);
   }
 }

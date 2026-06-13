@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from "./InfoTooltip.module.css";
 
 // Ícono "i" outlined, estilo Feather — matchea PinIcon/LockIcon/EyeIcon del codebase.
@@ -49,6 +49,36 @@ export default function InfoTooltip({
 }) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef(null);
+  const tooltipRef = useRef(null);
+  // Posición horizontal (px, relativa al wrapper) calculada al abrir, para
+  // centrar el tooltip sobre el ícono PERO clampeado al viewport con margen.
+  // Se setea con `left` REAL (no transform): un transform mueve sólo el render
+  // y la caja de layout sin desplazar seguía generando scroll horizontal en la
+  // página (ensanchaba el viewport en mobile). `null` = aún sin medir → oculto.
+  const [leftPx, setLeftPx] = useState(null);
+  useLayoutEffect(() => {
+    if (!open) {
+      setLeftPx(null);
+      return;
+    }
+    const el = tooltipRef.current;
+    const wrap = wrapperRef.current;
+    if (!el || !wrap) return;
+    const wrapRect = wrap.getBoundingClientRect();
+    const width = el.offsetWidth;
+    const margin = 16;
+    const vw = document.documentElement.clientWidth;
+    const triggerCenter = wrapRect.left + wrapRect.width / 2;
+    // viewport-left deseado (centrado sobre el ícono), clampeado a [margin,
+    // vw - margin - width]; si el tooltip es más ancho que el hueco, gana el
+    // borde izquierdo.
+    const maxLeft = Math.max(margin, vw - margin - width);
+    const desired = Math.min(
+      Math.max(triggerCenter - width / 2, margin),
+      maxLeft,
+    );
+    setLeftPx(desired - wrapRect.left); // px relativo al wrapper
+  }, [open, children]);
   // En touch, UN tap dispara mouseenter → focus → click (emulados): el
   // enter/focus abrían y el click togleaba → cerraba, y hacía falta un segundo
   // tap. Sellamos el instante del open "suave" (hover/focus) y el click del
@@ -112,8 +142,12 @@ export default function InfoTooltip({
       </button>
       {open && (
         <span
+          ref={tooltipRef}
           className={`${styles.tooltip} ${placement === "bottom" ? styles.tooltipBottom : styles.tooltipTop}`}
           role="tooltip"
+          style={
+            leftPx == null ? { visibility: "hidden" } : { left: `${leftPx}px` }
+          }
         >
           {children}
         </span>

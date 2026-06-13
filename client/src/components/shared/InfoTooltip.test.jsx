@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import InfoTooltip from "./InfoTooltip";
 
@@ -112,5 +112,49 @@ describe("<InfoTooltip>", () => {
     fireEvent.click(screen.getByRole("button"));
     const tip = screen.getByRole("tooltip");
     expect(tip.className).toMatch(/Top/);
+  });
+
+  it("clampea el left del tooltip al viewport (mobile, sin desbordar a la derecha)", () => {
+    const realClientWidth = Object.getOwnPropertyDescriptor(
+      Element.prototype,
+      "clientWidth",
+    );
+    Object.defineProperty(document.documentElement, "clientWidth", {
+      configurable: true,
+      get: () => 375,
+    });
+    // wrapper cerca del borde derecho (centro ~360); tooltip de 280px.
+    const rectSpy = vi
+      .spyOn(Element.prototype, "getBoundingClientRect")
+      .mockReturnValue({
+        left: 348,
+        right: 372,
+        top: 0,
+        bottom: 24,
+        width: 24,
+        height: 24,
+      });
+    const widthSpy = vi
+      .spyOn(HTMLElement.prototype, "offsetWidth", "get")
+      .mockReturnValue(280);
+
+    render(<InfoTooltip>Texto largo del tooltip</InfoTooltip>);
+    fireEvent.click(screen.getByRole("button"));
+    const tip = screen.getByRole("tooltip");
+
+    // viewport-left deseado = clamp(360 - 140, 16, 375 - 16 - 280=79) = 79.
+    // left relativo al wrapper (wrapRect.left=348) = 79 - 348 = -269px.
+    expect(tip.style.left).toBe("-269px");
+    // y queda visible (medido, no oculto).
+    expect(tip.style.visibility).not.toBe("hidden");
+
+    rectSpy.mockRestore();
+    widthSpy.mockRestore();
+    if (realClientWidth)
+      Object.defineProperty(
+        document.documentElement,
+        "clientWidth",
+        realClientWidth,
+      );
   });
 });
