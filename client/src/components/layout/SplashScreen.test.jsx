@@ -17,30 +17,30 @@ afterEach(() => {
 });
 
 describe("<SplashScreen>", () => {
-  it("renders the logo, title and subtitle when visible", () => {
+  it("renders the animated T0 mark, wordmark and loader copy when visible", () => {
     render(<SplashScreen visible={true} />);
-    expect(screen.getByText("TurnoCero")).toBeInTheDocument();
-    // El logo es la imagen SVG (alt = nombre de marca), no un emoji. El splash
-    // es aria-hidden, así que se consulta por el atributo alt directamente.
-    expect(screen.getByAltText("TurnoCero")).toBeInTheDocument();
-    expect(screen.getByText("Organizá tu mesa")).toBeInTheDocument();
+    // Default brand → inline animated T0 mark (role=img, aria-label).
+    expect(screen.getByLabelText("TurnoCero")).toBeInTheDocument();
+    // Wordmark splits TurnoCero into "Turno" + accented "Cero".
+    expect(screen.getByText("Cero")).toBeInTheDocument();
+    expect(screen.getByText(/board game meetups/i)).toBeInTheDocument();
+    expect(screen.getByText("Preparando tu mesa")).toBeInTheDocument();
   });
 
-  it("shows the community brand name in tenant mode", () => {
+  it("shows the community brand name and does not split it when not TurnoCero", () => {
     brandNameMock.mockReturnValue("El Clu");
     render(<SplashScreen visible={true} />);
     expect(screen.getByText("El Clu")).toBeInTheDocument();
-    expect(screen.queryByText("TurnoCero")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cero")).not.toBeInTheDocument();
   });
 
-  it("renders 15 decorative pieces", () => {
+  it("renders the three dice pips", () => {
     const { container } = render(<SplashScreen visible={true} />);
-    // Each piece is a <span class*=piece>, content text matches one of the symbols.
-    // Count by looking at direct children spans inside the splash.
     const root = container.querySelector('div[aria-hidden="true"]');
     expect(root).toBeTruthy();
-    const pieces = root.querySelectorAll(":scope > span");
-    expect(pieces.length).toBe(15);
+    // Three pulsing dice pips inside the loader's pip trio container.
+    const pips = root.querySelectorAll('[class*="pips"] > span');
+    expect(pips.length).toBe(3);
   });
 
   it("keeps rendering after visible=false until the fade-out timer completes (700ms)", () => {
