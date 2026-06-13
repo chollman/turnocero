@@ -80,7 +80,7 @@ function rosterPlayerKey(p) {
   return n ? `n:${n}` : null;
 }
 
-const DURATION_PRESETS = [30, 60, 90, 120];
+const DURATION_PRESETS = [30, 90, 120];
 
 /**
  * Form de cargar / editar partida — estética "scoresheet" (handoff

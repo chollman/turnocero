@@ -553,8 +553,8 @@ describe("<PlayForm>", () => {
       initialValues: { game: { id: "13", name: "Catán" } },
       lockedGame: true,
     });
-    fireEvent.click(screen.getByRole("button", { name: /^60min$/i }));
-    expect(screen.getByRole("spinbutton")).toHaveValue(60);
+    fireEvent.click(screen.getByRole("button", { name: /^90min$/i }));
+    expect(screen.getByRole("spinbutton")).toHaveValue(90);
   });
 
   // ── Fecha ─────────────────────────────────────────────────────────────
