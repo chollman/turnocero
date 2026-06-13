@@ -864,6 +864,10 @@
 .helperPill input {
   display: none;
 }
+/* Texto de las pills: largo en desktop, corto en mobile (ver --phone). */
+.hpTextShort {
+  display: none;
+}
 .helperPillOn {
   border-color: var(--amber);
   color: var(--text-primary);
@@ -1880,6 +1884,13 @@
      jugadores/ubicación: queda sólo "↺ Usar última juntada". */
   .hpHint {
     display: none;
+  }
+  /* Etiquetas compactas en mobile: "Solitario" / "Usar última". */
+  .hpTextFull {
+    display: none;
+  }
+  .hpTextShort {
+    display: inline;
   }
 
   /* Filas de jugador en una sola línea, controles compactos (handoff phone 4). */
