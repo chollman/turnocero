@@ -47,6 +47,57 @@ function dateRangeFor(filterId) {
   return {};
 }
 
+// Íconos del handoff "BG Watch Mobile" (.playsBar): toggle lista/juego + sync.
+function ViewListIcon() {
+  return (
+    <svg
+      className={styles.viewToggleIcon}
+      viewBox="0 0 15 15"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <rect x="1" y="2" width="13" height="2" rx="1" />
+      <rect x="1" y="6.5" width="13" height="2" rx="1" />
+      <rect x="1" y="11" width="13" height="2" rx="1" />
+    </svg>
+  );
+}
+
+function ViewGridIcon() {
+  return (
+    <svg
+      className={styles.viewToggleIcon}
+      viewBox="0 0 15 15"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <rect x="1" y="1" width="5.5" height="5.5" rx="1" />
+      <rect x="8.5" y="1" width="5.5" height="5.5" rx="1" />
+      <rect x="1" y="8.5" width="5.5" height="5.5" rx="1" />
+      <rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1" />
+    </svg>
+  );
+}
+
+function SyncIcon() {
+  return (
+    <svg
+      className={styles.refreshIcon}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  );
+}
+
 function GameWithPlaysCard({ game, bggUsername, index = 0 }) {
   return (
     <Link
@@ -279,6 +330,17 @@ export default function PartidasPanel({
             ))}
           </div>
         )}
+        {/* Título "Partidas · N" — sólo mobile (en desktop lo da el playsHeader
+            de la lista). Diseño .playsBar del handoff "BG Watch Mobile". */}
+        <div className={styles.playsBarTitle}>
+          <span className={styles.playsBarLabel}>
+            Partidas
+            {plays?.total != null && (
+              <span className={styles.playsBarCount}> · {plays.total}</span>
+            )}
+          </span>
+          <span className={styles.playsBarRule} />
+        </div>
         <div className={styles.viewToggle}>
           <button
             type="button"
@@ -286,15 +348,18 @@ export default function PartidasPanel({
             onClick={() => setViewMode("list")}
             aria-pressed={viewMode === "list"}
           >
-            Lista
+            <ViewListIcon /> Lista
           </button>
           <button
             type="button"
             className={`${styles.viewToggleBtn} ${viewMode === "byGame" ? styles.viewToggleBtnActive : ""}`}
             onClick={() => setViewMode("byGame")}
             aria-pressed={viewMode === "byGame"}
+            aria-label="Por juego"
           >
-            Por juego
+            <ViewGridIcon />
+            <span className={styles.viewToggleFull}>Por juego</span>
+            <span className={styles.viewToggleShort}>Juego</span>
           </button>
         </div>
         {canRefresh && (
@@ -306,7 +371,7 @@ export default function PartidasPanel({
             )}
             <button
               type="button"
-              className={styles.refreshBtn}
+              className={`${styles.refreshBtn} ${loading ? styles.refreshBtnSpinning : ""}`}
               onClick={() => {
                 if (loading || inCooldown) return;
                 forceRefreshRef.current = true;
@@ -315,7 +380,7 @@ export default function PartidasPanel({
               disabled={loading || inCooldown}
               aria-label="Actualizar partidas"
             >
-              ↻{" "}
+              <SyncIcon />
               <span
                 className={`${styles.refreshLabel} ${inCooldown ? styles.refreshLabelCooldown : ""}`}
               >

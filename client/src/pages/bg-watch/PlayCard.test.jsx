@@ -3,7 +3,11 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("../../components/shared/Avatar", () => ({
-  default: ({ user }) => <div data-testid="avatar">{user?.username || ""}</div>,
+  default: ({ user, className }) => (
+    <div data-testid="avatar" className={className || ""}>
+      {user?.username || ""}
+    </div>
+  ),
 }));
 
 import PlayCard from "./PlayCard";
@@ -55,13 +59,19 @@ describe("<PlayCard>", () => {
   });
 
   it("renders all players with scores", () => {
-    // Cada jugador aparece dos veces en el DOM: chips (desktop) + podio
-    // (mobile); la visibilidad la resuelve CSS según el breakpoint.
+    // Desktop: chips de todos los jugadores. Mobile: sólo la línea de ganador
+    // + la columna derecha (puntaje). La visibilidad la resuelve CSS según el
+    // breakpoint; en el DOM conviven ambas estructuras.
     renderCard();
-    expect(screen.getAllByText("Alice")).toHaveLength(2);
-    expect(screen.getAllByText("Bob")).toHaveLength(2);
+    // Nombres: sólo en los chips de desktop (la línea mobile son avatares, sin
+    // texto de nombre).
+    expect(screen.getAllByText("Alice")).toHaveLength(1);
+    expect(screen.getAllByText("Bob")).toHaveLength(1);
+    // Score de Alice: chip + columna derecha (cae al puntaje del ganador
+    // cuando no hay asiento del dueño).
     expect(screen.getAllByText("10")).toHaveLength(2);
-    expect(screen.getAllByText("7")).toHaveLength(2);
+    // Score de Bob: sólo el chip.
+    expect(screen.getAllByText("7")).toHaveLength(1);
   });
 
   it('omits score entirely when a player has no score (null / empty / "null")', () => {
@@ -137,7 +147,8 @@ describe("<PlayCard>", () => {
 
   it("renders location, duration tags", () => {
     renderCard();
-    expect(screen.getByText(/Buenos Aires/)).toBeInTheDocument();
+    // La ubicación aparece en los tags (desktop) y en la meta (mobile).
+    expect(screen.getAllByText(/Buenos Aires/).length).toBeGreaterThan(0);
     expect(screen.getByText(/90 min/)).toBeInTheDocument();
   });
 
@@ -148,6 +159,7 @@ describe("<PlayCard>", () => {
 
   it("renders Incompleta tag when incomplete", () => {
     renderCard({ play: { incomplete: true } });
+    // "Incompleta" vive en los tags (desktop); la meta mobile no lo muestra.
     expect(screen.getByText(/incompleta/i)).toBeInTheDocument();
   });
 
@@ -285,55 +297,147 @@ describe("<PlayCard>", () => {
     expect(names[1].textContent).toBe("Loser");
   });
 
-  describe("podio mobile", () => {
-    it("destaca al ganador con su score y lista el resto como texto", () => {
+  describe("vista mobile (línea de ganador + meta + columna derecha)", () => {
+    it("muestra la fecha como badge día/mes", () => {
+      const { container } = renderCard({ play: { date: "2026-05-18" } });
+      const badge = container.querySelector(".playDateBadge");
+      expect(badge).not.toBeNull();
+      expect(badge.textContent).toContain("18");
+      expect(badge.textContent.toLowerCase()).toContain("may");
+    });
+
+    it("muestra la meta compacta con lugar y cantidad de jugadores", () => {
       const { container } = renderCard();
-      const podium = container.querySelector(".playPodium");
-      expect(podium).not.toBeNull();
-      const winners = podium.querySelector(".podiumWinners");
-      expect(winners.textContent).toContain("Alice");
-      expect(winners.textContent).toContain("10");
-      const rest = podium.querySelector(".podiumRest");
-      expect(rest.textContent).toContain("Bob");
-      expect(rest.textContent).toContain("7");
+      const meta = container.querySelector(".playMeta");
+      expect(meta).not.toBeNull();
+      expect(meta.textContent).toContain("Buenos Aires");
+      expect(meta.textContent).toContain("2 jug.");
     });
 
-    it("colapsa los jugadores que exceden el cupo en una pastilla +N", () => {
-      const players = [
-        { name: "Win", username: "w", score: "20", win: true, position: 1 },
-        ...["P2", "P3", "P4", "P5", "P6"].map((name, i) => ({
-          name,
-          username: name.toLowerCase(),
-          score: String(10 - i),
-          win: false,
-          position: i + 2,
-        })),
-      ];
-      const { container } = renderCard({ play: { players } });
-      // 5 perdedores, 3 visibles → +2
-      expect(screen.getByText("+2")).toBeInTheDocument();
-      const rest = container.querySelector(".podiumRest");
-      expect(rest.textContent).toContain("P2");
-      expect(rest.textContent).toContain("P4");
-      expect(rest.textContent).not.toContain("P5");
+    it("la línea de ganador no lleva texto 'Ganó' (sólo corona + avatares)", () => {
+      const { container } = renderCard();
+      const line = container.querySelector(".playWinnerLine");
+      expect(line).not.toBeNull();
+      expect(line.textContent).not.toContain("Ganó");
+      expect(line.querySelector(".playWinnerText")).toBeNull();
+      expect(line.querySelector(".playWinnerCrown")).not.toBeNull();
     });
 
-    it("sin ganadores muestra hasta 4 jugadores antes del +N", () => {
-      const players = ["A1", "A2", "A3", "A4", "A5"].map((name, i) => ({
-        name,
-        username: name.toLowerCase(),
-        score: null,
-        win: false,
-        position: i + 1,
-      }));
-      const { container } = renderCard({ play: { players } });
-      expect(container.querySelector(".podiumWinners")).toBeNull();
-      const rest = container.querySelector(".podiumRest");
-      expect(rest.textContent).toContain("A4");
-      expect(screen.getByText("+1")).toBeInTheDocument();
+    it("muestra todos los avatares del roster, con el ganador primero y separado del resto", () => {
+      const { container } = renderCard({
+        play: {
+          players: [
+            { name: "Loser", username: "lo", win: false, position: 2 },
+            { name: "Winner", username: "wi", win: true, position: 1 },
+          ],
+        },
+      });
+      const items = container
+        .querySelector(".playWinnerAvatars")
+        .querySelectorAll("[data-testid='avatar']");
+      expect(items).toHaveLength(2);
+      // Ganador primero (pegado a la corona).
+      expect(items[0].textContent).toBe("wi");
+      expect(items[0].className).not.toContain("rosterSplit");
+      // El primer no-ganador abre el gap de separación; nadie queda atenuado.
+      expect(items[1].textContent).toBe("lo");
+      expect(items[1].className).toContain("rosterSplit");
+      expect(container.querySelector(".winnerAvatarMuted")).toBeNull();
     });
 
-    it("resuelve el nombre del podio con overlayName y displayName de TurnoCero", () => {
+    it("en victoria colectiva la línea de ganador no lleva texto (solo corona + avatares)", () => {
+      const { container } = renderCard({
+        play: {
+          players: [
+            { name: "Ana", username: "ana", win: true, position: 1 },
+            { name: "Beto", username: "beto", win: true, position: 1 },
+          ],
+        },
+      });
+      const line = container.querySelector(".playWinnerLine");
+      expect(line).not.toBeNull();
+      // No "Ganó/Ganaron" ni nombres al lado del avatar — eso va a la derecha.
+      expect(line.querySelector(".playWinnerText")).toBeNull();
+      expect(line.textContent).not.toContain("Ganaron");
+    });
+
+    it("en victoria colectiva la columna derecha muestra 'Ganaron en equipo' en vez del puesto", () => {
+      const { container } = renderCard({
+        play: {
+          players: ["A", "B", "C"].map((n) => ({
+            name: n,
+            username: n.toLowerCase(),
+            win: true,
+            position: 1,
+          })),
+        },
+        bggUsername: "a",
+      });
+      const right = container.querySelector(".playRight");
+      expect(right).not.toBeNull();
+      expect(right.textContent).toContain("Ganaron en equipo");
+      // Reemplaza el puesto: no hay pastilla "Nº de N".
+      expect(right.querySelector(".playRankPill")).toBeNull();
+      expect(right.querySelector(".playTeamResultWin")).not.toBeNull();
+    });
+
+    it("en derrota de equipo (dueño fuera de los ganadores) la derecha dice 'Perdieron'", () => {
+      const { container } = renderCard({
+        play: {
+          players: [
+            { name: "Ana", username: "ana", win: true, position: 1 },
+            { name: "Beto", username: "beto", win: true, position: 1 },
+            { name: "Vos", username: "vos", win: false, position: 3 },
+          ],
+        },
+        bggUsername: "vos",
+      });
+      const right = container.querySelector(".playRight");
+      expect(right.textContent).toContain("Perdieron");
+      expect(right.querySelector(".playTeamResultLoss")).not.toBeNull();
+      expect(right.querySelector(".playRankPill")).toBeNull();
+    });
+
+    it("la columna derecha muestra el puesto del dueño sobre el total + su puntaje", () => {
+      const { container } = renderCard({
+        play: {
+          players: [
+            {
+              name: "Alice",
+              username: "alice",
+              score: "10",
+              win: true,
+              position: 1,
+            },
+            {
+              name: "Vos",
+              username: "vos",
+              score: "8",
+              win: false,
+              position: 2,
+            },
+          ],
+        },
+        bggUsername: "vos",
+      });
+      const right = container.querySelector(".playRight");
+      expect(right).not.toBeNull();
+      expect(right.textContent).toContain("2º de 2");
+      expect(right.textContent).toContain("8");
+      // Perdió → pastilla muted, no la verde de victoria.
+      expect(right.querySelector(".playRankPillLoss")).not.toBeNull();
+      expect(right.querySelector(".playRankPillWin")).toBeNull();
+    });
+
+    it("sin asiento del dueño no muestra pastilla de puesto pero cae al puntaje del ganador", () => {
+      const { container } = renderCard();
+      const right = container.querySelector(".playRight");
+      expect(right).not.toBeNull();
+      expect(right.querySelector(".playRankPill")).toBeNull();
+      expect(right.textContent).toContain("10");
+    });
+
+    it("resuelve el nombre del ganador con overlayName por sobre el de TurnoCero", () => {
       renderCard({
         play: {
           players: [
@@ -350,9 +454,55 @@ describe("<PlayCard>", () => {
           alice: { _id: "u1", username: "alice", displayName: "Alice T" },
         },
       });
-      // Override gana en chips Y en podio.
+      // El override gana sobre el displayName de TurnoCero en el chip (la
+      // línea mobile ya no muestra nombres, sólo avatares).
       expect(screen.queryByText("Alice T")).toBeNull();
       expect(screen.getAllByText("Alias").length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("chip de resultado del dueño (desktop)", () => {
+    it("partida individual: dice Ganaste / Perdiste", () => {
+      const win = renderCard({ bggUsername: "alice" });
+      expect(win.container.querySelector(".playOutcome").textContent).toContain(
+        "Ganaste",
+      );
+      win.unmount();
+      const loss = renderCard({ bggUsername: "bob" });
+      expect(
+        loss.container.querySelector(".playOutcome").textContent,
+      ).toContain("Perdiste");
+    });
+
+    it("partida por equipos: el chip dice lo mismo que mobile (Ganaron en equipo / Perdieron)", () => {
+      const win = renderCard({
+        play: {
+          players: [
+            { name: "Vos", username: "vos", win: true, position: 1 },
+            { name: "Ana", username: "ana", win: true, position: 1 },
+            { name: "Riv", username: "riv", win: false, position: 3 },
+          ],
+        },
+        bggUsername: "vos",
+      });
+      const winChip = win.container.querySelector(".playOutcome");
+      expect(winChip.textContent).toContain("Ganaron en equipo");
+      expect(winChip.className).toContain("playOutcomeWin");
+      win.unmount();
+
+      const loss = renderCard({
+        play: {
+          players: [
+            { name: "Ana", username: "ana", win: true, position: 1 },
+            { name: "Beto", username: "beto", win: true, position: 1 },
+            { name: "Vos", username: "vos", win: false, position: 3 },
+          ],
+        },
+        bggUsername: "vos",
+      });
+      const lossChip = loss.container.querySelector(".playOutcome");
+      expect(lossChip.textContent).toContain("Perdieron");
+      expect(lossChip.className).toContain("playOutcomeLoss");
     });
   });
 

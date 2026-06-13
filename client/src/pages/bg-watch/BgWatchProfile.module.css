@@ -361,6 +361,127 @@
   color: var(--purple-light);
 }
 
+/* ─── Tabs como dropdown (solo --phone) ───
+   Mismo lenguaje visual que las tabs (card + acento púrpura + badge mono); en
+   desktop queda oculto y manda la fila de tabs. */
+.tabSelect {
+  display: none;
+  position: relative;
+}
+
+.tabSelectBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 14px;
+  cursor: pointer;
+  color: var(--purple-light);
+  transition: border-color 0.15s;
+}
+
+.tabSelectBtn:hover {
+  border-color: var(--purple-25);
+}
+
+.tabSelectCurrent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Manrope", var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tabSelectCurrent .tabBadge {
+  background: var(--purple-15);
+  color: var(--purple-light);
+}
+
+.tabSelectChevron {
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.tabSelectChevronOpen {
+  transform: rotate(180deg);
+}
+
+.tabSelectPop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tabSelectItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-family: "Manrope", var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  text-align: left;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.tabSelectItem:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.tabSelectItemActive {
+  background: var(--bg-elevated);
+  color: var(--purple-light);
+}
+
+.tabSelectItemActive .tabBadge {
+  background: var(--purple-15);
+  color: var(--purple-light);
+}
+
+@media (--phone) {
+  .tabs {
+    display: none;
+  }
+
+  .tabSelect {
+    display: block;
+  }
+}
+
 /* ─── Tab content ─── */
 .tabContent {
   min-height: 200px;
@@ -422,13 +543,17 @@
   gap: 6px;
 }
 
+/* Chips de fecha — acento púrpura de la sección + mono, como el resto de la
+   página (handoff "BG Watch Mobile" .filterChip). */
 .filterChip {
-  background: var(--bg-card);
+  background: transparent;
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
   padding: 6px 12px;
   border-radius: 999px;
   cursor: pointer;
@@ -436,20 +561,19 @@
 }
 
 .filterChip:hover {
-  border-color: var(--text-muted);
+  border-color: var(--purple-25);
   color: var(--text-primary);
 }
 
 .filterChipActive {
-  background: var(--amber);
-  border-color: var(--amber);
+  background: var(--purple);
+  border-color: var(--purple);
   color: var(--on-amber);
 }
 
 .filterChipActive:hover {
-  background: var(--amber-light);
-  box-shadow: 0 4px 22px var(--amber-glow);
-  border-color: var(--amber-light);
+  background: var(--purple-light);
+  border-color: var(--purple-light);
   color: var(--on-amber);
 }
 
@@ -487,6 +611,57 @@
   color: var(--text-muted);
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* ─── playsBar (mobile): "Partidas · N" + toggle + sync en una fila ───
+   Handoff "BG Watch Mobile" (.playsBar). En desktop el título lo da el
+   playsHeader de la lista, así que estos elementos quedan ocultos. */
+.playsBarTitle {
+  display: none;
+}
+
+.playsBarLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.playsBarCount {
+  color: var(--purple);
+}
+
+.playsBarRule {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Iconos del toggle y la etiqueta corta "Juego": sólo en mobile. */
+.viewToggleIcon {
+  display: none;
+}
+
+.viewToggleShort {
+  display: none;
+}
+
+.refreshIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.refreshBtnSpinning .refreshIcon {
+  animation: bgwatchSync 0.9s linear infinite;
+}
+
+@keyframes bgwatchSync {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ─── Game grid ─── */
@@ -846,79 +1021,162 @@
   gap: 6px;
 }
 
-/* ─── Podio compacto (mobile) ───
-   Reemplaza la nube de chips en --phone: línea protagonista con el/los
-   ganadores + el resto como texto plano. Oculto en desktop. */
-.playPodium {
+/* ─── Elementos exclusivos de mobile (--phone) ───
+   El badge de fecha, la meta compacta, la línea de ganador y la columna
+   derecha (puesto + puntaje) reemplazan en teléfonos a los chips + la fecha
+   del topRow. Acá quedan ocultos; el bloque @media (--phone) del final los
+   muestra y arma la grilla de la card. Ver handoff "BG Watch Mobile". */
+.playDateBadge,
+.playMeta,
+.playWinnerLine,
+.playRight {
   display: none;
-  flex-direction: column;
-  gap: 4px;
 }
 
-.podiumWinners {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  font-size: 13px;
+.playDateBadgeDay {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
   color: var(--text-primary);
 }
 
-.podiumWinner {
+.playDateBadgeMonth {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--purple);
+  margin-top: 2px;
+}
+
+/* Meta: fila mono con ícono + texto (lugar · jugadores). Handoff .playMeta. */
+.playMeta {
+  gap: 9px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-muted);
+}
+
+.playMetaItem {
   display: inline-flex;
   align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.metaIcon {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+}
+
+/* Línea de ganador: corona gold + avatar(es) + "Ganó X". Handoff .playWinner. */
+.playWinnerLine {
   gap: 5px;
-}
-
-/* Co-op / empates: separador entre ganadores múltiples. */
-.podiumWinner + .podiumWinner::before {
-  content: "·";
+  font-family: var(--font-mono);
+  font-size: 10px;
   color: var(--text-muted);
-  margin-right: 5px;
 }
 
-.podiumWinnerName {
-  font-weight: 700;
+.playWinnerCrown {
+  display: inline-flex;
+  color: var(--gold);
+  line-height: 1;
+  flex-shrink: 0;
 }
 
-.podiumWinnerScore {
-  font-family: "Manrope", var(--font-display);
-  font-weight: 700;
-  color: var(--amber);
+.winnerCrownIcon {
+  width: 10px;
+  height: 10px;
 }
 
-.podiumRest {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 2px 4px;
-  font-size: 12px;
+.playWinnerAvatars {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+/* Avatares chiquitos del ganador, al tamaño del handoff (.wAv 17px). El
+   <Avatar size="xs"> compartido mide 24px; lo achicamos acá (gana al
+   .avatar.size_xs por !important) para no comerle ancho al texto "Ganó X". */
+.playWinnerAvatars > * {
+  width: 18px !important;
+  height: 18px !important;
+  font-size: 8px !important;
+}
+
+.playWinnerAvatars > * + * {
+  margin-left: -6px;
+  box-shadow: 0 0 0 1.5px var(--bg-card);
+  border-radius: 999px;
+}
+
+/* Separa el bloque de ganadores (pegados a la corona) del resto del roster:
+   el primer no-ganador abre un gap en vez del solape -6px. Gana al
+   `.playWinnerAvatars > * + *` por especificidad. */
+.playWinnerAvatars > .rosterSplit {
+  margin-left: 8px;
+}
+
+.playWinnerText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playWinnerText strong {
   color: var(--text-secondary);
-}
-
-/* Alinea el resto con el nombre del ganador (despeja el trofeo). */
-.podiumWinners + .podiumRest {
-  padding-left: 22px;
-}
-
-.podiumRestItem + .podiumRestItem::before {
-  content: "· ";
-  color: var(--text-muted);
-}
-
-.podiumRestScore {
-  font-family: "Manrope", var(--font-display);
   font-weight: 600;
 }
 
-.podiumMore {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0 7px;
-  font-size: 11px;
+.playRankPill {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.playRankPillWin {
+  color: var(--green);
+}
+
+.playRankPillLoss {
   color: var(--text-muted);
-  margin-left: 4px;
+}
+
+/* Resultado de equipo en la columna derecha (reemplaza el puesto en victorias
+   colectivas). Envuelve a 2 líneas a la derecha sin ensanchar la card. */
+.playTeamResult {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: right;
+  line-height: 1.25;
+  max-width: 54px;
+}
+
+.playTeamResultWin {
+  color: var(--green);
+}
+
+.playTeamResultLoss {
+  color: var(--text-muted);
+}
+
+.playRightScore {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
 }
 
 /* ─── Play card menu (kebab) ─── */
@@ -2486,14 +2744,20 @@
 
   /* Toolbar en dos filas: filtros con scroll horizontal arriba; toggle
      full-width + refresh compacto abajo; "Actualizado" como caption. */
+  /* Toolbar = playsBar del handoff: título · toggle · sync en una fila.
+     filterBar arriba (fila propia); lastSynced abajo. */
   .panelToolbar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
     gap: 8px;
   }
 
+  /* Los chips de fecha bajan DEBAJO de la fila título·toggle·sync (order 4,
+     entre la playsBar y "Actualizado hace X"). */
   .filterBar {
     grid-column: 1 / -1;
+    order: 4;
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
@@ -2508,24 +2772,62 @@
     flex-shrink: 0;
   }
 
-  .viewToggle {
+  .playsBarTitle {
     display: flex;
-    width: 100%;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    order: 1;
+  }
+
+  /* Toggle compacto (no full-width): rect redondeado + iconos + "Juego". */
+  .viewToggle {
+    width: auto;
     margin-left: 0;
+    border-radius: 9px;
+    order: 2;
   }
 
   .viewToggleBtn {
-    flex: 1;
-    text-align: center;
-    padding: 7px 0;
+    flex: initial;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 9px;
+    border-radius: 6px;
+    font-size: 11.5px;
   }
 
+  .viewToggleBtnActive {
+    color: var(--purple);
+  }
+
+  .viewToggleIcon {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+  }
+
+  .viewToggleFull {
+    display: none;
+  }
+
+  .viewToggleShort {
+    display: inline;
+  }
+
+  /* Sync: botón cuadrado icon-only (34×34); el contador "Esperá Xs" lo
+     ensancha sólo durante el cooldown. */
   .refreshBtn {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 7px;
+    border-radius: 9px;
+    background: transparent;
     justify-content: center;
+    order: 3;
   }
 
-  /* Sin cooldown el botón queda solo con el ícono ↻ (el aria-label cubre
-     accesibilidad); el contador "Esperá Xs" sí se muestra. */
   .refreshLabel {
     display: none;
   }
@@ -2541,11 +2843,21 @@
     white-space: normal;
   }
 
-  /* Card de partida: vuelve el thumb (chico), una sola línea de fecha,
-     resultado como texto + acento verde al borde, podio en vez de chips. */
+  /* El total ya está en el título de la playsBar; evitamos duplicarlo. */
+  .playsHeader {
+    display: none;
+  }
+
+  /* Card de partida (rediseño mobile): grilla de 4 columnas —
+     fecha · thumb · info · puesto+puntaje. Medidas del handoff
+     "BG Watch Mobile" (.play). */
   .playCard {
-    padding: 12px;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: 46px 42px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 11px;
+    padding: 11px 12px;
+    border-radius: 13px;
     box-shadow: inset 3px 0 0 0 transparent;
   }
 
@@ -2553,81 +2865,67 @@
     box-shadow: inset 3px 0 0 0 var(--green);
   }
 
+  .playDateBadge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
   .playThumb {
-    width: 46px;
-    height: 46px;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
   }
 
   .playThumbFallback {
     font-size: 20px;
   }
 
+  /* El thumb y la fecha ya son columnas; el cuerpo (.playInfo del handoff) se
+     queda con nombre + meta + ganador, apretado a gap 3px. */
+  .playBody {
+    gap: 3px;
+  }
+
   .playGameName {
-    font-size: 16px;
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    white-space: nowrap;
+    -webkit-line-clamp: initial;
+    line-clamp: initial;
   }
 
-  .playTopRow {
-    flex-wrap: wrap;
-    gap: 4px 8px;
-  }
-
-  /* La línea de meta (fecha · resultado) baja debajo del título, en fila. */
-  .playDateBlock {
-    flex-direction: row;
-    align-items: center;
-    gap: 5px;
-    flex-basis: 100%;
-    order: 3;
-  }
-
-  .playDateAbs {
+  /* La fecha/resultado del topRow (desktop), los chips de jugadores, los tags
+     y el menú kebab se reemplazan por el badge, la meta, la línea de ganador y
+     la columna derecha — la card mobile no lleva ⋯ (handoff). */
+  .playDateBlock,
+  .playPlayers,
+  .playTags,
+  .playCardMenu {
     display: none;
   }
 
-  /* El pill "Ganaste/Perdiste" pasa a texto plano después de la fecha. */
-  .playOutcome {
-    order: 2;
-    border: none;
-    background: none;
-    padding: 0;
-  }
-
-  .playOutcomeLoss {
-    color: var(--text-muted);
-  }
-
-  .playOutcome::before {
-    content: "· ";
-    color: var(--text-muted);
-  }
-
-  .playPodium {
+  .playMeta {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
   }
 
-  .playPlayers {
-    display: none;
+  .playWinnerLine {
+    display: flex;
+    align-items: center;
   }
 
-  /* Tags sin cajas: texto plano muted; el comentario en su propia línea. */
-  .playTags {
-    gap: 4px 12px;
-  }
-
-  .playTag {
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: 12px;
-  }
-
-  .playTagWarn {
-    color: var(--red);
-  }
-
-  .playTagComment {
-    flex-basis: 100%;
-    padding: 0;
+  .playRight {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    text-align: right;
   }
 
   .modalCard {

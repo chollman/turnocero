@@ -37,6 +37,66 @@ function relativeDate(iso) {
   return `Hace ${yr} ${yr === 1 ? "año" : "años"}`;
 }
 
+// Día + mes abreviado (capitalizado) para el badge de fecha mobile: "18" / "May".
+function dateParts(iso) {
+  if (!iso) return { day: "", month: "" };
+  const [y, m, d] = iso.split("-");
+  const date = new Date(y, m - 1, d);
+  const day = String(date.getDate());
+  const monthRaw = date
+    .toLocaleDateString("es-AR", { month: "short" })
+    .replace(".", "");
+  const month = monthRaw.charAt(0).toUpperCase() + monthRaw.slice(1);
+  return { day, month };
+}
+
+// Íconos inline del handoff "BG Watch Mobile" (sin libs de íconos). currentColor
+// hereda el color del contenedor.
+function PinIcon() {
+  return (
+    <svg
+      className={styles.metaIcon}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function PeopleIcon() {
+  return (
+    <svg
+      className={styles.metaIcon}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function CrownIcon() {
+  return (
+    <svg
+      className={styles.winnerCrownIcon}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M2 7l4 12h12l4-12-6 4-4-9-4 9-6-4z" />
+    </svg>
+  );
+}
+
 // Un override local de curación (overlayName / overlayAvatar) gana sobre el
 // perfil del miembro de TurnoCero — solo en la vista de BG Watch del dueño.
 function resolvePlayerName(player, turnoceroUser) {
@@ -221,18 +281,46 @@ export default function PlayCard({
     });
   }, [play.players]);
 
-  // Podio compacto (solo --phone, vía CSS): ganadores destacados + el resto
-  // en una línea de texto. Los chips completos quedan para desktop.
+  // Línea de ganador (solo --phone, vía CSS): corona + avatar(es) + "Ganó X".
+  // Los chips de todos los jugadores quedan para desktop.
   const winners = useMemo(
     () => sortedPlayers.filter((p) => p.win),
     [sortedPlayers],
   );
-  const rest = useMemo(
-    () => sortedPlayers.filter((p) => !p.win),
-    [sortedPlayers],
-  );
-  const restVisible = rest.slice(0, winners.length > 0 ? 3 : 4);
-  const restHidden = rest.length - restVisible.length;
+
+  const totalPlayers = play.players?.length || 0;
+
+  // Victoria colectiva (equipos / cooperativa): más de un ganador. En ese caso
+  // el "puesto" individual no tiene sentido, así que la columna derecha muestra
+  // el resultado del equipo en vez de la posición.
+  const isCollective = winners.length > 1;
+  const teamWin = ownerSeat ? !!ownerSeat.win : true;
+  const teamLabel = isCollective
+    ? teamWin
+      ? "Ganaron en equipo"
+      : "Perdieron"
+    : null;
+
+  // Columna derecha (mobile): puesto del dueño sobre el total + su puntaje.
+  // En perfiles ajenos (sin asiento del dueño) caemos al puntaje del ganador,
+  // sin pastilla de puesto.
+  const ownerPos = ownerSeat?.position ? Number(ownerSeat.position) : null;
+  const rankLabel = ownerSeat
+    ? ownerPos
+      ? `${ownerPos}º de ${totalPlayers}`
+      : ownerSeat.win
+        ? "Ganaste"
+        : "Perdiste"
+    : null;
+  const rightScore = ownerSeat
+    ? hasDisplayableScore(ownerSeat.score)
+      ? ownerSeat.score
+      : null
+    : winners[0] && hasDisplayableScore(winners[0].score)
+      ? winners[0].score
+      : null;
+
+  const { day: dateDay, month: dateMonth } = dateParts(play.date);
 
   const truncatedComment = play.comments
     ? play.comments.length > 80
@@ -260,6 +348,11 @@ export default function PlayCard({
           : undefined
       }
     >
+      <div className={styles.playDateBadge} aria-hidden="true">
+        <span className={styles.playDateBadgeDay}>{dateDay}</span>
+        <span className={styles.playDateBadgeMonth}>{dateMonth}</span>
+      </div>
+
       <div className={styles.playThumb}>
         {play.gameThumbnail ? (
           <img
@@ -280,7 +373,14 @@ export default function PlayCard({
               <span
                 className={`${styles.playOutcome} ${ownerSeat.win ? styles.playOutcomeWin : styles.playOutcomeLoss}`}
               >
-                {ownerSeat.win ? "✦ Ganaste" : "○ Perdiste"}
+                {ownerSeat.win ? "✦ " : "○ "}
+                {/* En partidas por equipos/coop el resultado es del equipo,
+                    como en mobile ("Ganaron en equipo" / "Perdieron"). */}
+                {isCollective
+                  ? teamLabel
+                  : ownerSeat.win
+                    ? "Ganaste"
+                    : "Perdiste"}
               </span>
             )}
             <span className={styles.playDateRelative}>
@@ -311,83 +411,63 @@ export default function PlayCard({
           </div>
         )}
 
+        {/* Meta compacta (solo --phone): lugar + cantidad de jugadores. */}
+        <div className={styles.playMeta}>
+          {play.location && (
+            <span className={styles.playMetaItem}>
+              <PinIcon />
+              {play.location}
+            </span>
+          )}
+          {totalPlayers > 0 && (
+            <span className={styles.playMetaItem}>
+              <PeopleIcon />
+              {totalPlayers} jug.
+            </span>
+          )}
+        </div>
+
+        {/* Roster (solo --phone): corona + TODOS los avatares, con el/los
+            ganador(es) primero (pegados a la corona) y separados del resto por
+            un pequeño gap. El resultado va a la columna derecha. */}
         {sortedPlayers.length > 0 && (
-          <div className={styles.playPodium}>
+          <div className={styles.playWinnerLine}>
             {winners.length > 0 && (
-              <div className={styles.podiumWinners}>
-                <span className={styles.winIcon} aria-hidden="true">
-                  🏆
-                </span>
-                {winners.map((p, i) => {
-                  const tcUser = p.username
-                    ? userMap?.[p.username.toLowerCase()]
-                    : null;
-                  return (
-                    <span
-                      key={`${p.username || p.name || "anon"}-${i}`}
-                      className={styles.podiumWinner}
-                    >
-                      {p.overlayAvatar?.url ? (
-                        <Avatar
-                          user={{
-                            _id: p.username || p.name,
-                            displayName: resolvePlayerName(p, tcUser),
-                            avatar: p.overlayAvatar,
-                          }}
-                          size="xs"
-                        />
-                      ) : (
-                        tcUser && <Avatar user={tcUser} size="xs" />
-                      )}
-                      <span className={styles.podiumWinnerName}>
-                        {p.new && (
-                          <span className={styles.newIcon} aria-hidden="true">
-                            ✨
-                          </span>
-                        )}
-                        {resolvePlayerName(p, tcUser)}
-                      </span>
-                      {hasDisplayableScore(p.score) && (
-                        <span className={styles.podiumWinnerScore}>
-                          {p.score}
-                        </span>
-                      )}
-                    </span>
-                  );
-                })}
-              </div>
+              <span className={styles.playWinnerCrown}>
+                <CrownIcon />
+              </span>
             )}
-            {restVisible.length > 0 && (
-              <div className={styles.podiumRest}>
-                {restVisible.map((p, i) => {
-                  const tcUser = p.username
-                    ? userMap?.[p.username.toLowerCase()]
-                    : null;
-                  return (
-                    <span
-                      key={`${p.username || p.name || "anon"}-${i}`}
-                      className={styles.podiumRestItem}
-                    >
-                      {p.new && (
-                        <span className={styles.newIcon} aria-hidden="true">
-                          ✨
-                        </span>
-                      )}
-                      {resolvePlayerName(p, tcUser)}
-                      {hasDisplayableScore(p.score) && (
-                        <span className={styles.podiumRestScore}>
-                          {" "}
-                          {p.score}
-                        </span>
-                      )}
-                    </span>
-                  );
-                })}
-                {restHidden > 0 && (
-                  <span className={styles.podiumMore}>+{restHidden}</span>
-                )}
-              </div>
-            )}
+            <span className={styles.playWinnerAvatars}>
+              {sortedPlayers.map((p, i) => {
+                const tcUser = p.username
+                  ? userMap?.[p.username.toLowerCase()]
+                  : null;
+                const name = resolvePlayerName(p, tcUser);
+                const avUser = p.overlayAvatar?.url
+                  ? {
+                      _id: p.username || p.name,
+                      displayName: name,
+                      avatar: p.overlayAvatar,
+                    }
+                  : tcUser || {
+                      _id: p.username || p.name || name,
+                      username: p.username,
+                      displayName: name,
+                    };
+                // El primer no-ganador abre un gap respecto del bloque de
+                // ganadores (separa al/los ganador(es) del resto).
+                const splitFromWinners =
+                  winners.length > 0 && !p.win && i === winners.length;
+                return (
+                  <Avatar
+                    key={`${p.username || p.name || "anon"}-${i}`}
+                    user={avUser}
+                    size="xs"
+                    className={splitFromWinners ? styles.rosterSplit : ""}
+                  />
+                );
+              })}
+            </span>
           </div>
         )}
 
@@ -420,6 +500,32 @@ export default function PlayCard({
           )}
         </div>
       </div>
+
+      {/* Columna derecha (solo --phone): resultado + puntaje. En victorias
+          colectivas el puesto individual se reemplaza por el resultado del
+          equipo ("Ganaron en equipo" / "Perdieron"). */}
+      {(teamLabel || rankLabel || rightScore != null) && (
+        <div className={styles.playRight}>
+          {isCollective
+            ? teamLabel && (
+                <span
+                  className={`${styles.playTeamResult} ${teamWin ? styles.playTeamResultWin : styles.playTeamResultLoss}`}
+                >
+                  {teamLabel}
+                </span>
+              )
+            : rankLabel && (
+                <span
+                  className={`${styles.playRankPill} ${ownerSeat?.win ? styles.playRankPillWin : styles.playRankPillLoss}`}
+                >
+                  {ownerSeat?.win ? "✦" : "○"} {rankLabel}
+                </span>
+              )}
+          {rightScore != null && (
+            <span className={styles.playRightScore}>{rightScore}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

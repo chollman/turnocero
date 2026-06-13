@@ -35,7 +35,11 @@ vi.mock("./widgets/TopCollectionWidget", () => ({
 }));
 vi.mock("./widgets/WinRateWidget", () => ({
   default: ({ wins, rated }) => (
-    <div data-testid="win-rate" data-wins={String(wins)} data-rated={String(rated)} />
+    <div
+      data-testid="win-rate"
+      data-wins={String(wins)}
+      data-rated={String(rated)}
+    />
   ),
 }));
 
@@ -541,7 +545,8 @@ describe("<PartidasPanel>", () => {
     });
     await waitFor(() => {
       expect(btn).not.toBeDisabled();
-      expect(btn.textContent).toMatch(/^↻ actualizar$/i);
+      // El ícono ahora es un SVG (sin glifo ↻); el texto es sólo la etiqueta.
+      expect(btn.textContent).toMatch(/^actualizar$/i);
     });
   });
 });

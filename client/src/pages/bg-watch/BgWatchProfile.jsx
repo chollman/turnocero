@@ -8,6 +8,7 @@ import { API } from "../../api/endpoints";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import BackButton from "../../components/shared/BackButton";
 import PartidasPanel from "./PartidasPanel";
+import BgWatchTabSelect from "./BgWatchTabSelect";
 import ColeccionPanel from "./ColeccionPanel";
 import JugadoresPanel from "./JugadoresPanel";
 import UbicacionesPanel from "./UbicacionesPanel";
@@ -95,6 +96,26 @@ export default function BgWatchProfile() {
     [navigate, bggUsername, location.pathname],
   );
 
+  // Tabs de sección. `badge` se muestra sólo cuando hay dato (null = oculto).
+  const tabItems = [
+    {
+      id: "partidas",
+      label: "Partidas",
+      badge: playsMeta ? playsMeta.total : null,
+    },
+    {
+      id: "coleccion",
+      label: "Colección",
+      badge: collection ? collection.length : null,
+    },
+    ...(canManagePlayers
+      ? [{ id: "jugadores", label: "Jugadores", badge: playersTotal }]
+      : []),
+    ...(canManagePlayers
+      ? [{ id: "ubicaciones", label: "Ubicaciones", badge: locationsTotal }]
+      : []),
+  ];
+
   const confirmDelete = async () => {
     if (!deletingPlay) return;
     setDeleting(true);
@@ -173,48 +194,27 @@ export default function BgWatchProfile() {
 
         {isGuest && <GuestInlineCTA />}
 
+        {/* Misma lista para la fila de tabs (desktop) y el dropdown (mobile);
+            la visibilidad la resuelve el CSS (.tabs vs .tabSelect en --phone). */}
         <div className={styles.tabs}>
-          <button
-            className={`${styles.tab} ${activeTab === "partidas" ? styles.tabActive : ""}`}
-            onClick={() => goToTab("partidas")}
-          >
-            Partidas
-            {playsMeta && (
-              <span className={styles.tabBadge}>{playsMeta.total}</span>
-            )}
-          </button>
-          <button
-            className={`${styles.tab} ${activeTab === "coleccion" ? styles.tabActive : ""}`}
-            onClick={() => goToTab("coleccion")}
-          >
-            Colección
-            {collection && (
-              <span className={styles.tabBadge}>{collection.length}</span>
-            )}
-          </button>
-          {canManagePlayers && (
+          {tabItems.map((t) => (
             <button
-              className={`${styles.tab} ${activeTab === "jugadores" ? styles.tabActive : ""}`}
-              onClick={() => goToTab("jugadores")}
+              key={t.id}
+              className={`${styles.tab} ${activeTab === t.id ? styles.tabActive : ""}`}
+              onClick={() => goToTab(t.id)}
             >
-              Jugadores
-              {playersTotal != null && (
-                <span className={styles.tabBadge}>{playersTotal}</span>
+              {t.label}
+              {t.badge != null && (
+                <span className={styles.tabBadge}>{t.badge}</span>
               )}
             </button>
-          )}
-          {canManagePlayers && (
-            <button
-              className={`${styles.tab} ${activeTab === "ubicaciones" ? styles.tabActive : ""}`}
-              onClick={() => goToTab("ubicaciones")}
-            >
-              Ubicaciones
-              {locationsTotal != null && (
-                <span className={styles.tabBadge}>{locationsTotal}</span>
-              )}
-            </button>
-          )}
+          ))}
         </div>
+        <BgWatchTabSelect
+          tabs={tabItems}
+          activeId={activeTab}
+          onSelect={goToTab}
+        />
 
         {/* Both panels mounted (preserve state when switching tabs) */}
         <div style={{ display: activeTab === "partidas" ? "block" : "none" }}>
