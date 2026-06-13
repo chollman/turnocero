@@ -1045,7 +1045,10 @@ export default function PlayForm({
                   <span className={styles.hpCheck} aria-hidden="true">
                     {soloPlay && <CheckIcon />}
                   </span>
-                  <span className={styles.hpText}>Jugué en solitario</span>
+                  <span className={styles.hpText}>
+                    <span className={styles.hpTextFull}>Jugué en solitario</span>
+                    <span className={styles.hpTextShort}>Solitario</span>
+                  </span>
                 </label>
                 {showLastJuntada && (
                   <button
@@ -1061,7 +1064,10 @@ export default function PlayForm({
                     <span className={styles.hpIcon} aria-hidden="true">
                       ↺
                     </span>
-                    <span className={styles.hpText}>Usar última juntada</span>
+                    <span className={styles.hpText}>
+                      <span className={styles.hpTextFull}>Usar última juntada</span>
+                      <span className={styles.hpTextShort}>Usar última</span>
+                    </span>
                     <span className={styles.hpHint}>
                       {lastJuntada.players.length} jug.
                       {lastJuntada.location ? ` · ${lastJuntada.location}` : ""}
