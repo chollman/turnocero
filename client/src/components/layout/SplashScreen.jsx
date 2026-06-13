@@ -4,136 +4,91 @@ import { useBrandName } from "../../hooks/useBrandName";
 import Logo from "../shared/Logo";
 import styles from "./SplashScreen.module.css";
 
-const PIECES = [
-  {
-    symbol: "⚅",
-    left: "4%",
-    size: "9rem",
-    duration: "5s",
-    delay: "0s",
-    opacity: 0.45,
-  },
-  {
-    symbol: "♟",
-    left: "12%",
-    size: "7rem",
-    duration: "6.5s",
-    delay: "-1.2s",
-    opacity: 0.38,
-  },
-  {
-    symbol: "♞",
-    left: "22%",
-    size: "11rem",
-    duration: "4.8s",
-    delay: "-2.4s",
-    opacity: 0.35,
-  },
-  {
-    symbol: "♠",
-    left: "32%",
-    size: "6.5rem",
-    duration: "7s",
-    delay: "-0.6s",
-    opacity: 0.42,
-  },
-  {
-    symbol: "⚂",
-    left: "42%",
-    size: "8.5rem",
-    duration: "5.5s",
-    delay: "-3.1s",
-    opacity: 0.4,
-  },
-  {
-    symbol: "♛",
-    left: "52%",
-    size: "12rem",
-    duration: "6s",
-    delay: "-1.8s",
-    opacity: 0.33,
-  },
-  {
-    symbol: "♦",
-    left: "62%",
-    size: "6rem",
-    duration: "4.5s",
-    delay: "-0.9s",
-    opacity: 0.44,
-  },
-  {
-    symbol: "♜",
-    left: "71%",
-    size: "10rem",
-    duration: "7.5s",
-    delay: "-2.7s",
-    opacity: 0.37,
-  },
-  {
-    symbol: "⚀",
-    left: "80%",
-    size: "8rem",
-    duration: "5.2s",
-    delay: "-3.8s",
-    opacity: 0.42,
-  },
-  {
-    symbol: "♣",
-    left: "89%",
-    size: "7.5rem",
-    duration: "6.8s",
-    delay: "-1.5s",
-    opacity: 0.38,
-  },
-  {
-    symbol: "⚄",
-    left: "8%",
-    size: "10.5rem",
-    duration: "8s",
-    delay: "-4.5s",
-    opacity: 0.3,
-  },
-  {
-    symbol: "♥",
-    left: "47%",
-    size: "7rem",
-    duration: "4.2s",
-    delay: "-2s",
-    opacity: 0.4,
-  },
-  {
-    symbol: "♞",
-    left: "66%",
-    size: "6.5rem",
-    duration: "5.8s",
-    delay: "-0.4s",
-    opacity: 0.35,
-  },
-  {
-    symbol: "⚃",
-    left: "28%",
-    size: "11.5rem",
-    duration: "6.3s",
-    delay: "-3.3s",
-    opacity: 0.32,
-  },
-  {
-    symbol: "♛",
-    left: "93%",
-    size: "9.5rem",
-    duration: "5.6s",
-    delay: "-1.9s",
-    opacity: 0.36,
-  },
-];
+// El logo T0 oficial dibujado como SVG inline para poder animarlo pieza por
+// pieza (la T se traza, el cero cierra el anillo). El estado base ES el logo ya
+// armado: en reduced-motion (o en cualquier render congelado) se ve completo,
+// nunca en blanco. Las animaciones viven detrás de
+// `@media (prefers-reduced-motion: no-preference)` en el CSS module.
+function MarkT0() {
+  return (
+    <svg
+      className={styles.mark}
+      viewBox="0 0 1024 1024"
+      role="img"
+      aria-label="TurnoCero"
+    >
+      <rect
+        className={styles.chip}
+        x="6"
+        y="6"
+        width="1012"
+        height="1012"
+        rx="229"
+        ry="229"
+        fill="#0b1018"
+        stroke="#00aeff"
+        strokeWidth="9"
+      />
+      <rect
+        className={styles.arm}
+        x="93"
+        y="282"
+        width="370"
+        height="74"
+        rx="6"
+        ry="6"
+        fill="#ffffff"
+      />
+      <rect
+        className={styles.stem}
+        x="237"
+        y="282"
+        width="83"
+        height="460"
+        rx="6"
+        ry="6"
+        fill="#ffffff"
+      />
+      <circle
+        className={styles.ring}
+        cx="721"
+        cy="512"
+        r="176.5"
+        fill="none"
+        stroke="#00aeff"
+        strokeWidth="67"
+        strokeLinecap="round"
+      />
+      <circle className={styles.dot} cx="721" cy="512" r="42" fill="#ffffff" />
+    </svg>
+  );
+}
+
+// Si la comunidad-skin/tenant activa define un logo propio, mostramos ESE logo
+// (no tiene sentido animar la T0 de TurnoCero para otra marca). "TurnoCero"
+// también se parte en Turno + Cero (acento cyan) en el wordmark.
+function Wordmark({ brandName }) {
+  if (brandName === "TurnoCero") {
+    return (
+      <span className={styles.wordmarkName}>
+        Turno<em>Cero</em>
+      </span>
+    );
+  }
+  return <span className={styles.wordmarkName}>{brandName}</span>;
+}
 
 export default function SplashScreen({ visible }) {
   const [shouldRender, setShouldRender] = useState(true);
   const [hiding, setHiding] = useState(false);
   const brandName = useBrandName();
-  // Logo de la comunidad-skin/tenant activa (null-safe, igual que useBrandName):
-  // si no hay CommunityProvider o no es tenant, cae a los assets de TurnoCero.
-  const brand = useContext(CommunityContext)?.brand;
+  // Logo + tagline de la comunidad-skin/tenant activa (null-safe, igual que
+  // useBrandName): si no hay CommunityProvider o no es tenant, cae a la marca
+  // TurnoCero (logo T0 animado + "board game meetups").
+  const community = useContext(CommunityContext);
+  const brand = community?.brand;
+  const isTenant = community?.isTenant;
+  const hasCustomLogo = Boolean(brand?.logoLight || brand?.logoDark);
 
   useEffect(() => {
     if (!visible) {
@@ -150,38 +105,48 @@ export default function SplashScreen({ visible }) {
       className={`${styles.splash} ${hiding ? styles.hiding : ""}`}
       aria-hidden="true"
     >
-      {PIECES.map((p, i) => (
-        <span
-          key={i}
-          className={styles.piece}
-          style={{
-            left: p.left,
-            fontSize: p.size,
-            animationDuration: p.duration,
-            animationDelay: p.delay,
-            opacity: p.opacity,
-          }}
-        >
-          {p.symbol}
-        </span>
-      ))}
+      {/* motivo de marca: rombos tenues + dot-grid detrás del logo */}
+      <div className={styles.bgFx}>
+        <span className={`${styles.diamond} ${styles.d2}`} />
+        <span className={`${styles.diamond} ${styles.d1}`} />
+        <span className={styles.grid} />
+      </div>
+
       <div className={styles.content}>
-        <div className={styles.logo}>
-          <span className={styles.logoHalo} aria-hidden="true" />
-          <Logo
-            className={styles.logoMark}
-            alt={brandName}
-            srcLight={brand?.logoLight}
-            srcDark={brand?.logoDark}
-          />
+        <div className={styles.markGlow}>
+          {hasCustomLogo ? (
+            <Logo
+              className={styles.customLogo}
+              alt={brandName}
+              srcLight={brand?.logoLight}
+              srcDark={brand?.logoDark}
+            />
+          ) : (
+            <MarkT0 />
+          )}
         </div>
-        <h1 className={styles.title}>{brandName}</h1>
-        <p className={styles.subtitle}>Organizá tu mesa</p>
-        <div className={styles.dots}>
-          <span />
-          <span />
-          <span />
+
+        <div className={styles.wordmark}>
+          <Wordmark brandName={brandName} />
+          <span className={styles.wordmarkSub}>
+            <span className={styles.subDot}>◆</span>
+            {isTenant ? "por TurnoCero" : "board game meetups"}
+          </span>
         </div>
+      </div>
+
+      <div className={styles.loader}>
+        <div className={styles.loaderTrack}>
+          <div className={styles.loaderFill} />
+        </div>
+        <span className={styles.loaderText}>
+          Preparando tu mesa
+          <span className={styles.pips}>
+            <span className={styles.pip} />
+            <span className={styles.pip} />
+            <span className={styles.pip} />
+          </span>
+        </span>
       </div>
     </div>
   );

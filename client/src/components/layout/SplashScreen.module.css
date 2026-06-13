@@ -1,12 +1,32 @@
+/* Splash de TurnoCero — pantalla de carga. Superficie inmersiva forced-dark
+   (ignora data-theme, igual que /utilidades y los .showcase de auth): el logo
+   T0 se arma pieza por pieza sobre un fondo radial oscuro con el motivo de
+   marca (rombos + dot-grid) y una barra de carga continua. */
 .splash {
+  /* tokens locales → forced-dark, self-contained */
+  --sp-bg-dark: #0a0d15;
+  --sp-bg-deep: #050810;
+  --sp-accent: #1888ef;
+  --sp-accent-light: #00aeff;
+  --sp-accent-glow: rgba(0, 174, 255, 0.22);
+  --sp-text: #ffffff;
+  --sp-text-muted: #5a6178;
+  --sp-border-strong: #2a3a55;
+
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: var(--bg-dark);
+  overflow: hidden;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  background: radial-gradient(
+    720px circle at 50% 38%,
+    #0f1a2e 0%,
+    var(--sp-bg-dark) 46%,
+    var(--sp-bg-deep) 100%
+  );
   transition:
     opacity 0.65s ease,
     transform 0.65s ease;
@@ -18,180 +38,382 @@
   pointer-events: none;
 }
 
-.piece {
+/* ── motivo de marca: rombos + dot-grid ── */
+.bgFx {
   position: absolute;
-  top: -15%;
-  color: var(--amber);
-  user-select: none;
-  animation: splashFall linear infinite;
-  will-change: transform;
-  text-shadow: 0 0 24px rgba(24, 136, 239, 0.65);
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
-@keyframes splashFall {
-  0% {
-    transform: translateY(0) rotate(0deg);
-  }
-  100% {
-    transform: translateY(calc(100vh + 20%)) rotate(360deg);
-  }
+.grid {
+  position: absolute;
+  inset: -10%;
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.05) 1px,
+    transparent 1px
+  );
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(circle at 50% 40%, #000 0%, transparent 62%);
+  mask-image: radial-gradient(circle at 50% 40%, #000 0%, transparent 62%);
+  opacity: 0.5;
 }
 
+.diamond {
+  position: absolute;
+  left: 50%;
+  border: 1px solid rgba(24, 136, 239, 0.16);
+  transform: rotate(45deg);
+  border-radius: 8px;
+}
+
+.d1 {
+  width: 320px;
+  height: 320px;
+  top: 22%;
+  margin-left: -160px;
+}
+
+.d2 {
+  width: 470px;
+  height: 470px;
+  top: 14%;
+  margin-left: -235px;
+  border-color: rgba(24, 136, 239, 0.09);
+}
+
+/* ── contenido del splash ── */
 .content {
   position: relative;
   z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  text-align: center;
-  background: var(--overlay-medium);
-  padding: 2.5rem 3.5rem;
-  border-radius: 1.5rem;
-  border: 1px solid var(--border-amber);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 0 60px rgba(24, 136, 239, 0.15);
+  gap: 30px;
+  margin-top: -40px;
 }
 
-.logo {
+.markGlow {
   position: relative;
-  width: 7rem;
-  height: 7rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Entrada (overshoot) + flotación continua, combinadas. */
-  animation:
-    logoIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both,
-    logoFloat 4s ease-in-out 0.9s infinite;
+  width: 132px;
+  height: 132px;
+  display: grid;
+  place-items: center;
 }
 
-.logoMark {
-  width: 100%;
-  height: 100%;
-  display: block;
-  border-radius: 1.5rem;
-  filter: drop-shadow(0 0 22px rgba(24, 136, 239, 0.8));
-}
-
-/* Halo giratorio detrás del logo. */
-.logoHalo {
+.markGlow::after {
+  content: "";
   position: absolute;
-  inset: -22%;
+  inset: -34px;
   border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    var(--amber) 0deg,
-    transparent 90deg,
-    transparent 270deg,
-    var(--amber) 360deg
+  background: radial-gradient(
+    circle,
+    var(--sp-accent-glow),
+    transparent 68%
   );
-  opacity: 0.35;
-  filter: blur(14px);
-  animation: logoSpin 6s linear infinite;
-  pointer-events: none;
+  opacity: 0.45;
+  z-index: -1;
 }
 
-@keyframes logoIn {
-  0% {
+.mark,
+.customLogo {
+  width: 132px;
+  height: 132px;
+  display: block;
+}
+
+.customLogo {
+  border-radius: 30px;
+  object-fit: contain;
+}
+
+/* piezas del SVG (targets de animación) */
+.arm,
+.stem {
+  transform-box: fill-box;
+}
+
+.arm {
+  transform-origin: left center;
+}
+
+.stem {
+  transform-origin: center top;
+}
+
+.ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: rotate(-90deg);
+  stroke-dasharray: 1109;
+  stroke-dashoffset: 0;
+}
+
+.dot {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* ── wordmark ── */
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+
+.wordmarkName {
+  font-family: var(--font-display);
+  font-size: 33px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: var(--sp-text);
+  line-height: 0.9;
+}
+
+.wordmarkName em {
+  font-style: normal;
+  color: var(--sp-accent-light);
+}
+
+.wordmarkSub {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.34em;
+  color: var(--sp-text-muted);
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subDot {
+  color: var(--sp-accent-light);
+}
+
+/* ── barra de carga ── */
+.loader {
+  position: absolute;
+  bottom: clamp(64px, 12vh, 120px);
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loaderTrack {
+  width: 168px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  position: relative;
+}
+
+.loaderFill {
+  position: absolute;
+  top: 0;
+  left: -45%;
+  height: 100%;
+  width: 42%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--sp-accent),
+    var(--sp-accent-light)
+  );
+}
+
+.loaderText {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  color: var(--sp-text-muted);
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.pips {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.pip {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--sp-border-strong);
+}
+
+/* ════════ ANIMACIÓN (solo si el sistema permite movimiento) ════════ */
+@media (prefers-reduced-motion: no-preference) {
+  .chip {
+    animation: chipIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .markGlow::after {
+    animation: glowPulse 4.2s ease-in-out 1.2s infinite;
+  }
+  .arm {
+    animation: growX 0.42s cubic-bezier(0.3, 0.9, 0.3, 1) 0.34s both;
+  }
+  .stem {
+    animation: growY 0.5s cubic-bezier(0.3, 0.9, 0.3, 1) 0.52s both;
+  }
+  .ring {
+    animation: drawRing 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.62s both;
+  }
+  .dot {
+    animation: dotPop 0.42s cubic-bezier(0.2, 1.5, 0.4, 1) 1.2s both;
+  }
+  .customLogo {
+    animation: chipIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .wordmarkName {
+    animation: riseIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 1.28s both;
+  }
+  .wordmarkSub {
+    animation: riseIn 0.6s ease 1.46s both;
+  }
+  .loader {
+    animation: fadeIn 0.6s ease 1.66s both;
+  }
+  .loaderFill {
+    animation: indeterminate 1.4s cubic-bezier(0.5, 0, 0.3, 1) 1.9s infinite;
+  }
+  .pip {
+    animation: pipPulse 1.4s ease-in-out infinite;
+  }
+  .pip:nth-child(2) {
+    animation-delay: 0.18s;
+  }
+  .pip:nth-child(3) {
+    animation-delay: 0.36s;
+  }
+  .content {
+    animation: breathe 4.5s ease-in-out 1.7s infinite;
+  }
+}
+
+@keyframes chipIn {
+  from {
     opacity: 0;
-    transform: scale(0.45) rotate(-25deg);
+    transform: scale(0.72);
   }
-  100% {
+  to {
     opacity: 1;
-    transform: scale(1) rotate(0deg);
+    transform: scale(1);
   }
 }
-
-@keyframes logoFloat {
+@keyframes growX {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes growY {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes drawRing {
+  from {
+    stroke-dashoffset: 1109;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes dotPop {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+@keyframes breathe {
   0%,
   100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-8px);
+    transform: translateY(-5px);
   }
 }
-
-@keyframes logoSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .logo {
-    animation: logoIn 0.6s ease both;
-  }
-  .logoHalo {
-    animation: none;
-  }
-}
-
-.title {
-  font-family: var(--font-display);
-  font-size: 2.6rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: 0.04em;
-  text-shadow: 0 0 28px rgba(24, 136, 239, 0.55);
-  margin: 0;
-}
-
-.subtitle {
-  font-family: var(--font-body);
-  color: var(--text-secondary);
-  font-size: 1rem;
-  letter-spacing: 0.03em;
-}
-
-.dots {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
-}
-
-.dots span {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--amber);
-  animation: bounce 1.3s ease-in-out infinite;
-  opacity: 0.4;
-}
-
-.dots span:nth-child(2) {
-  animation-delay: 0.22s;
-}
-.dots span:nth-child(3) {
-  animation-delay: 0.44s;
-}
-
-@keyframes bounce {
+@keyframes pipPulse {
   0%,
-  80%,
   100% {
-    transform: translateY(0);
-    opacity: 0.4;
+    background: var(--sp-border-strong);
+    transform: scale(1);
   }
-  40% {
-    transform: translateY(-9px);
-    opacity: 1;
+  50% {
+    background: var(--sp-accent-light);
+    transform: scale(1.25);
+  }
+}
+@keyframes indeterminate {
+  0% {
+    left: -45%;
+    width: 42%;
+  }
+  55% {
+    width: 58%;
+  }
+  100% {
+    left: 100%;
+    width: 42%;
   }
 }
 
 @media (--compact) {
-  .piece {
-    font-size: 3.5rem !important;
-  }
   .content {
-    padding: 2rem 2rem;
+    margin-top: -20px;
   }
-  .title {
-    font-size: 2rem;
+  .markGlow,
+  .mark,
+  .customLogo {
+    width: 108px;
+    height: 108px;
   }
-  .logo {
-    width: 5.5rem;
-    height: 5.5rem;
+  .wordmarkName {
+    font-size: 28px;
   }
 }
