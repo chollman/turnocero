@@ -20,7 +20,9 @@ describe("<SplashScreen>", () => {
   it("renders the logo, title and subtitle when visible", () => {
     render(<SplashScreen visible={true} />);
     expect(screen.getByText("TurnoCero")).toBeInTheDocument();
-    expect(screen.getByText("🎲")).toBeInTheDocument();
+    // El logo es la imagen SVG (alt = nombre de marca), no un emoji. El splash
+    // es aria-hidden, así que se consulta por el atributo alt directamente.
+    expect(screen.getByAltText("TurnoCero")).toBeInTheDocument();
     expect(screen.getByText("Organizá tu mesa")).toBeInTheDocument();
   });
 

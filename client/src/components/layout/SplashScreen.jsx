@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { CommunityContext } from "../../context/CommunityContext";
 import { useBrandName } from "../../hooks/useBrandName";
+import Logo from "../shared/Logo";
 import styles from "./SplashScreen.module.css";
 
 const PIECES = [
@@ -129,6 +131,9 @@ export default function SplashScreen({ visible }) {
   const [shouldRender, setShouldRender] = useState(true);
   const [hiding, setHiding] = useState(false);
   const brandName = useBrandName();
+  // Logo de la comunidad-skin/tenant activa (null-safe, igual que useBrandName):
+  // si no hay CommunityProvider o no es tenant, cae a los assets de TurnoCero.
+  const brand = useContext(CommunityContext)?.brand;
 
   useEffect(() => {
     if (!visible) {
@@ -161,7 +166,15 @@ export default function SplashScreen({ visible }) {
         </span>
       ))}
       <div className={styles.content}>
-        <div className={styles.logo}>🎲</div>
+        <div className={styles.logo}>
+          <span className={styles.logoHalo} aria-hidden="true" />
+          <Logo
+            className={styles.logoMark}
+            alt={brandName}
+            srcLight={brand?.logoLight}
+            srcDark={brand?.logoDark}
+          />
+        </div>
         <h1 className={styles.title}>{brandName}</h1>
         <p className={styles.subtitle}>Organizá tu mesa</p>
         <div className={styles.dots}>
