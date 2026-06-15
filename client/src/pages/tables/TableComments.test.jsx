@@ -291,4 +291,65 @@ describe("<TableComments>", () => {
       expect(screen.getByText("Comentario muy largo")).toBeInTheDocument();
     });
   });
+
+  describe("likes de comentarios", () => {
+    const likeable = [
+      {
+        _id: "c1",
+        content: "comentario likeable",
+        author: otherUser,
+        createdAt: new Date().toISOString(),
+        likeCount: 1,
+        liked: false,
+      },
+    ];
+
+    it("togglea el like (POST al endpoint de mesa)", async () => {
+      setupComments(likeable);
+      let posted = false;
+      server.use(
+        http.post("/api/tables/:id/comments/:commentId/like", () => {
+          posted = true;
+          return HttpResponse.json({ likes: 2, liked: true });
+        }),
+      );
+      renderTableComments();
+      await screen.findByText("comentario likeable");
+      fireEvent.click(screen.getByRole("button", { name: /^me gusta$/i }));
+      await waitFor(() => expect(posted).toBe(true));
+      expect(
+        screen.getByRole("button", { name: /quitar me gusta/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("click en el número abre el modal de likers", async () => {
+      setupComments(likeable);
+      server.use(
+        http.get("/api/tables/:id/comments/:commentId/likes", () =>
+          HttpResponse.json({
+            users: [{ _id: "u9", username: "fanmesa", avatar: {} }],
+          }),
+        ),
+      );
+      renderTableComments();
+      await screen.findByText("comentario likeable");
+      fireEvent.click(
+        screen.getByRole("button", { name: /ver a quién le gustó/i }),
+      );
+      expect(await screen.findByText("fanmesa")).toBeInTheDocument();
+    });
+
+    it("en mesa no pública (canPost=false) el like queda deshabilitado", async () => {
+      setupComments(likeable);
+      renderTableComments({ canPost: false });
+      await screen.findByText("comentario likeable");
+      expect(
+        screen.getByRole("button", { name: /^me gusta$/i }),
+      ).toBeDisabled();
+      // El número no es clickeable (no abre likers).
+      expect(
+        screen.queryByRole("button", { name: /ver a quién le gustó/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
 });

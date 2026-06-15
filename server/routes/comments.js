@@ -10,6 +10,7 @@ const { emitNotificationReq } = require("../utils/emitNotification");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { isSameId } = require("../utils/idCompare");
+const serializeComment = require("../utils/serializeComment");
 const { assertCanComment } = require("../utils/tablePrivacy");
 
 router.use(requireSection("mesas"));
@@ -39,20 +40,21 @@ router.get(
       .populate("author", "username displayName avatar")
       .sort({ createdAt: 1, _id: 1 });
 
+    const uid = req.user?._id;
     const byParent = new Map(); // parentId → [replies]
     const topLevel = [];
     for (const c of all) {
       if (c.parent) {
         const k = c.parent.toString();
         if (!byParent.has(k)) byParent.set(k, []);
-        byParent.get(k).push(c.toObject());
+        byParent.get(k).push(serializeComment(c, uid));
       } else {
         topLevel.push(c);
       }
     }
 
     const comments = topLevel.map((c) => ({
-      ...c.toObject(),
+      ...serializeComment(c, uid),
       replies: byParent.get(c._id.toString()) || [],
     }));
 
@@ -149,7 +151,7 @@ router.post(
       ),
     );
 
-    res.status(201).json(comment);
+    res.status(201).json(serializeComment(comment, req.user._id));
   }),
 );
 
@@ -181,7 +183,7 @@ router.put(
     await comment.save();
     await comment.populate("author", "username displayName avatar");
 
-    res.json(comment);
+    res.json(serializeComment(comment, req.user._id));
   }),
 );
 
@@ -213,6 +215,71 @@ router.delete(
       });
     }
     res.json({ message: "Comment deleted" });
+  }),
+);
+
+// POST /api/tables/:id/comments/:commentId/like — toggle like de comentario
+router.post(
+  "/:commentId/like",
+  protect,
+  asyncHandler(async (req, res) => {
+    const table = await Table.findById(req.params.id);
+    if (!table) throw httpError(404, "Table not found");
+    // Likes deshabilitados donde los comentarios lo están (mesas no públicas).
+    assertCanComment(table);
+
+    const comment = await Comment.findById(req.params.commentId);
+    if (!comment || !isSameId(comment.table, table._id)) {
+      throw httpError(404, "Comment not found");
+    }
+
+    const uid = req.user._id;
+    const idx = comment.likes.findIndex((l) => isSameId(l, uid));
+    const adding = idx === -1;
+    if (adding) comment.likes.push(uid);
+    else comment.likes.splice(idx, 1);
+    await comment.save();
+
+    if (adding && !isSameId(comment.author, uid)) {
+      await emitNotificationReq(
+        req,
+        comment.author,
+        "comment_like",
+        {
+          tableId: table._id.toString(),
+          tableName: table.boardGame,
+          commentId: comment._id.toString(),
+          lastSenderUsername: req.user.username,
+          actor: {
+            userId: req.user._id.toString(),
+            username: req.user.username,
+          },
+        },
+        "table:comment-like",
+        { fromUsername: req.user.username },
+      ).catch(() => {});
+    }
+
+    res.json({ likes: comment.likes.length, liked: adding });
+  }),
+);
+
+// GET /api/tables/:id/comments/:commentId/likes — quién likeó el comentario
+router.get(
+  "/:commentId/likes",
+  protect,
+  asyncHandler(async (req, res) => {
+    const table = await Table.findById(req.params.id).select("privacy");
+    if (!table) throw httpError(404, "Table not found");
+    assertCanComment(table);
+
+    const comment = await Comment.findById(req.params.commentId)
+      .select("table likes")
+      .populate("likes", "username displayName avatar");
+    if (!comment || !isSameId(comment.table, table._id)) {
+      throw httpError(404, "Comment not found");
+    }
+    res.json({ users: [...comment.likes].reverse() });
   }),
 );
 

@@ -21,6 +21,7 @@ const { emitNotificationReq } = require("../utils/emitNotification");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { isSameId } = require("../utils/idCompare");
+const serializeComment = require("../utils/serializeComment");
 const { assertLinkable } = require("../utils/tablePrivacy");
 const { sanitizeCompartidaHtml, stripHtml } = require("../utils/sanitizeHtml");
 const { escapeRegex } = require("../utils/regex");
@@ -58,6 +59,19 @@ const visibilityFilter = (user) => {
       { author: user._id },
     ],
   };
+};
+
+// Chequeo de visibilidad por-documento (espejo de `visibilityFilter`, pero
+// para un doc ya cargado). Usado por el toggle de like de comentario y los
+// endpoints "¿quién likeó?".
+const isCompartidaVisible = (compartida, user) => {
+  if (compartida.privacy === "public") return true;
+  if (!user) return false;
+  if (isSameId(compartida.author, user._id)) return true;
+  return (
+    compartida.privacy === "friends" &&
+    (user.friends || []).some((f) => isSameId(f, compartida.author))
+  );
 };
 
 // ── Resolve a board-game snapshot from a client-sent { bggId } ───────────────
@@ -251,7 +265,11 @@ router.get(
         ? Promise.resolve([])
         : Compartida.aggregate([
             {
-              $match: { ...visibility, ...scope, createdAt: { $gte: since24h } },
+              $match: {
+                ...visibility,
+                ...scope,
+                createdAt: { $gte: since24h },
+              },
             },
             {
               $lookup: {
@@ -633,7 +651,8 @@ router.delete(
 
     // Si lo bajó un moderador (no el autor), avisamos al autor.
     if (moderatedByOther && communityId) {
-      const community = await Community.findById(communityId).select("name slug");
+      const community =
+        await Community.findById(communityId).select("name slug");
       await emitNotificationReq(
         req,
         authorId,
@@ -661,12 +680,7 @@ router.post(
 
     // Enforce visibility
     const uid = req.user._id;
-    const isVisible =
-      compartida.privacy === "public" ||
-      isSameId(compartida.author, uid) ||
-      (compartida.privacy === "friends" &&
-        req.user.friends.some((f) => isSameId(f, compartida.author)));
-    if (!isVisible) {
+    if (!isCompartidaVisible(compartida, req.user)) {
       throw httpError(403, "No tenés acceso a esta compartida");
     }
 
@@ -699,6 +713,26 @@ router.post(
     }
 
     res.json({ likes: compartida.likes.length, liked: adding });
+  }),
+);
+
+// ── GET /api/compartidas/:id/likes — lista de quién likeó el post ───────────
+// Devuelve los users poblados (más reciente primero). Respeta visibilidad.
+router.get(
+  "/:id/likes",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const compartida = await Compartida.findById(req.params.id).populate(
+      "likes",
+      "username displayName avatar",
+    );
+    if (!compartida) throw httpError(404, "Compartida no encontrada");
+    if (!isCompartidaVisible(compartida, req.user)) {
+      throw httpError(403, "No tenés acceso a esta compartida");
+    }
+    // El array se llena por orden de like (push); lo invertimos para mostrar
+    // el like más reciente primero.
+    res.json({ users: [...compartida.likes].reverse() });
   }),
 );
 
@@ -811,15 +845,16 @@ router.get(
           .populate("author", "username avatar displayName")
           .sort({ createdAt: 1, _id: 1 })
       : [];
+    const uid = req.user?._id;
     const byParent = new Map();
     for (const r of replies) {
       const k = r.parent.toString();
       if (!byParent.has(k)) byParent.set(k, []);
-      byParent.get(k).push(r.toObject());
+      byParent.get(k).push(serializeComment(r, uid));
     }
 
     const comments = topLevel.map((c) => ({
-      ...c.toObject(),
+      ...serializeComment(c, uid),
       replies: byParent.get(c._id.toString()) || [],
     }));
 
@@ -898,7 +933,7 @@ router.post(
     }
     await Promise.all([...recipients.values()].map(notifyComment));
 
-    res.status(201).json(comment);
+    res.status(201).json(serializeComment(comment, req.user._id));
   }),
 );
 
@@ -923,7 +958,7 @@ router.put(
     await comment.save();
     await comment.populate("author", "username avatar displayName");
 
-    res.json(comment);
+    res.json(serializeComment(comment, req.user._id));
   }),
 );
 
@@ -955,6 +990,77 @@ router.delete(
       });
     }
     res.json({ message: "Comentario eliminado" });
+  }),
+);
+
+// ── POST /api/compartidas/:id/comments/:cid/like — toggle like de comentario ─
+router.post(
+  "/:id/comments/:cid/like",
+  protect,
+  asyncHandler(async (req, res) => {
+    const compartida = await Compartida.findById(req.params.id).select(
+      "author privacy title",
+    );
+    if (!compartida) throw httpError(404, "Compartida no encontrada");
+    if (!isCompartidaVisible(compartida, req.user)) {
+      throw httpError(403, "No tenés acceso a esta compartida");
+    }
+
+    const comment = await CompartidaComment.findById(req.params.cid);
+    if (!comment || !isSameId(comment.compartida, compartida._id)) {
+      throw httpError(404, "Comentario no encontrado");
+    }
+
+    const uid = req.user._id;
+    const idx = comment.likes.findIndex((l) => isSameId(l, uid));
+    const adding = idx === -1;
+    if (adding) comment.likes.push(uid);
+    else comment.likes.splice(idx, 1);
+    await comment.save();
+
+    if (adding && !isSameId(comment.author, uid)) {
+      await emitNotificationReq(
+        req,
+        comment.author,
+        "compartida_comment_like",
+        {
+          compartidaId: compartida._id.toString(),
+          compartidaTitle: compartida.title || "",
+          commentId: comment._id.toString(),
+          lastSenderUsername: req.user.username,
+          actor: {
+            userId: req.user._id.toString(),
+            username: req.user.username,
+          },
+        },
+        "compartida:comment-like",
+        { fromUsername: req.user.username },
+      ).catch(() => {});
+    }
+
+    res.json({ likes: comment.likes.length, liked: adding });
+  }),
+);
+
+// ── GET /api/compartidas/:id/comments/:cid/likes — quién likeó el comentario ─
+router.get(
+  "/:id/comments/:cid/likes",
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    const compartida = await Compartida.findById(req.params.id).select(
+      "author privacy",
+    );
+    if (!compartida) throw httpError(404, "Compartida no encontrada");
+    if (!isCompartidaVisible(compartida, req.user)) {
+      throw httpError(403, "No tenés acceso a esta compartida");
+    }
+    const comment = await CompartidaComment.findById(req.params.cid)
+      .select("compartida likes")
+      .populate("likes", "username displayName avatar");
+    if (!comment || !isSameId(comment.compartida, compartida._id)) {
+      throw httpError(404, "Comentario no encontrado");
+    }
+    res.json({ users: [...comment.likes].reverse() });
   }),
 );
 

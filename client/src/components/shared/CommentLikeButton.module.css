@@ -1,0 +1,92 @@
+/* Botón de like de comentario. Pensado para vivir dentro de la fila de
+   acciones de un comentario (`.commentActions`), así que matchea el look de
+   `.commentActionBtn`: mono, chico, muted. */
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.heartBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--transition);
+}
+
+.heartBtn:hover:not(:disabled) {
+  color: var(--red);
+}
+
+.heartBtn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.liked {
+  color: var(--red);
+}
+
+.heart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+.heart svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pop {
+  animation: commentHeartPop 0.35s ease;
+}
+
+@keyframes commentHeartPop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.4);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* El número de likes — clickeable abre el modal de likers. */
+.countBtn,
+.count {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 0;
+}
+
+.countBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition:
+    color var(--transition),
+    text-decoration-color var(--transition);
+}
+
+.countBtn:hover {
+  color: var(--text-secondary);
+  text-decoration-color: currentColor;
+}

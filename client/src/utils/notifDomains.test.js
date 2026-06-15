@@ -16,6 +16,8 @@ describe("notifDomains", () => {
       expect(getDomain("chat")).toBe("mesa");
       expect(getDomain("friend_request")).toBe("amigo");
       expect(getDomain("compartida_like")).toBe("compartida");
+      expect(getDomain("compartida_comment_like")).toBe("compartida");
+      expect(getDomain("comment_like")).toBe("mesa");
       expect(getDomain("tournament_started")).toBe("torneo");
       expect(getDomain("evento_confirmed")).toBe("evento");
       expect(getDomain("admin_chat")).toBe("admin");
@@ -58,6 +60,12 @@ describe("notifDomains", () => {
       expect(getCountBadge({ type: "chat", count: 1 })).toBeNull();
       expect(getCountBadge({ type: "join_accepted", count: 5 })).toBeNull();
     });
+    it("los likes de comentario son agregables (count badge)", () => {
+      expect(getCountBadge({ type: "compartida_comment_like", count: 3 })).toBe(
+        3,
+      );
+      expect(getCountBadge({ type: "comment_like", count: 2 })).toBe(2);
+    });
   });
 
   describe("notifBucket", () => {
@@ -96,6 +104,13 @@ describe("notifDomains", () => {
         "/usuarios/u9",
       );
       expect(notifLink({ type: "chat", tableId: "tb1" })).toBe("/mesas/tb1");
+      // Likes de comentario: deep-link al recurso contenedor.
+      expect(
+        notifLink({ type: "compartida_comment_like", compartidaId: "c1" }),
+      ).toBe("/compartidas/c1");
+      expect(notifLink({ type: "comment_like", tableId: "tb1" })).toBe(
+        "/mesas/tb1",
+      );
     });
   });
 
@@ -149,6 +164,37 @@ describe("notifDomains", () => {
       expect(meta.title).toMatch(/cami y 7 más/i);
     });
 
+    it("compartida_comment_like: copy de like de comentario (singular/plural)", () => {
+      const single = getNotifMeta({
+        type: "compartida_comment_like",
+        count: 1,
+        lastSenderUsername: "ana",
+        compartidaTitle: "Mi noche",
+      });
+      expect(single.title).toMatch(/a ana le gustó tu comentario/i);
+      expect(single.body).toMatch(/«Mi noche»/);
+      expect(single.cta).toBe("Ver compartida");
+
+      const many = getNotifMeta({
+        type: "compartida_comment_like",
+        count: 5,
+        lastSenderUsername: "ana",
+      });
+      expect(many.title).toMatch(/ana y 4 más/i);
+    });
+
+    it("comment_like: copy de like de comentario de mesa", () => {
+      const meta = getNotifMeta({
+        type: "comment_like",
+        count: 1,
+        lastSenderUsername: "beto",
+        tableName: "Catan",
+      });
+      expect(meta.title).toMatch(/a beto le gustó tu comentario/i);
+      expect(meta.body).toMatch(/en la mesa de Catan/i);
+      expect(meta.cta).toBe("Ver mesa");
+    });
+
     it("returns a cta for navigable types and null where destructive", () => {
       expect(getNotifMeta({ type: "evento_confirmed" }).cta).toBeTruthy();
       expect(getNotifMeta({ type: "table_cancelled" }).cta).toBeNull();
@@ -181,9 +227,9 @@ describe("notifDomains", () => {
           communityName: "Rosario Juega",
         }).body,
       ).toMatch(/ya sos parte de Rosario Juega/i);
-      expect(
-        getNotifMeta({ type: "community_join_rejected" }).title,
-      ).toMatch(/rechazada/i);
+      expect(getNotifMeta({ type: "community_join_rejected" }).title).toMatch(
+        /rechazada/i,
+      );
     });
 
     it("BG Watch copy: shared (incluye autor + juego) y accepted (gracias)", () => {
@@ -212,9 +258,9 @@ describe("notifDomains", () => {
     });
 
     it("join_request shows a count badge when aggregated", () => {
-      expect(
-        getCountBadge({ type: "community_join_request", count: 3 }),
-      ).toBe(3);
+      expect(getCountBadge({ type: "community_join_request", count: 3 })).toBe(
+        3,
+      );
       expect(
         getCountBadge({ type: "community_join_accepted", count: 5 }),
       ).toBeNull();

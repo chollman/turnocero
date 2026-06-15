@@ -129,6 +129,8 @@ export const EVENT_SECTION = {
   "torneo:finished": "torneos",
   "compartida:comment": "compartidas",
   "compartida:like": "compartidas",
+  "compartida:comment-like": "compartidas",
+  "table:comment-like": "mesas",
   "noticia:published": "noticias",
   "evento:notification": "eventos",
   "community:join-request": "comunidades",
@@ -770,6 +772,75 @@ export function applyCompartidaLikeNotif({
       type: "compartida_like",
       compartidaId: payload.compartidaId,
       compartidaTitle: payload.compartidaTitle,
+      fromUsername: payload.fromUsername,
+    }),
+  );
+}
+
+// Like de un comentario/respuesta en una compartida. AGGREGATING por
+// comentario (resourceField commentId) — varios users likeando el MISMO
+// comentario colapsan en una notif con count. El compartidaId viaja en el
+// extra para el deep-link (notifLink) y el target (notifTarget).
+export function applyCompartidaCommentLikeNotif({
+  setNotifications,
+  setToasts,
+  payload,
+}) {
+  setNotifications((prev) =>
+    upsertAggregating({
+      prev,
+      type: "compartida_comment_like",
+      resourceField: "commentId",
+      resourceId: payload.commentId,
+      notifId: payload.notifId,
+      count: payload.count,
+      timestamp: payload.timestamp,
+      actors: payload.actors,
+      extra: {
+        compartidaId: payload.compartidaId,
+        compartidaTitle: payload.compartidaTitle,
+        lastSenderUsername: payload.fromUsername,
+      },
+    }),
+  );
+  setToasts((prev) =>
+    pushToast(prev, {
+      type: "compartida_comment_like",
+      compartidaId: payload.compartidaId,
+      compartidaTitle: payload.compartidaTitle,
+      fromUsername: payload.fromUsername,
+    }),
+  );
+}
+
+// Like de un comentario/respuesta en una mesa. AGGREGATING por comentario.
+export function applyCommentLikeNotif({
+  setNotifications,
+  setToasts,
+  payload,
+}) {
+  setNotifications((prev) =>
+    upsertAggregating({
+      prev,
+      type: "comment_like",
+      resourceField: "commentId",
+      resourceId: payload.commentId,
+      notifId: payload.notifId,
+      count: payload.count,
+      timestamp: payload.timestamp,
+      actors: payload.actors,
+      extra: {
+        tableId: payload.tableId,
+        tableName: payload.tableName,
+        lastSenderUsername: payload.fromUsername,
+      },
+    }),
+  );
+  setToasts((prev) =>
+    pushToast(prev, {
+      type: "comment_like",
+      tableId: payload.tableId,
+      tableName: payload.tableName,
       fromUsername: payload.fromUsername,
     }),
   );

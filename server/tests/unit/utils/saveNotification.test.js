@@ -363,3 +363,65 @@ describe("saveNotification — community resolution (tenant scoping)", () => {
     expect(n.community).toBe(communityId.toString());
   });
 });
+
+describe("saveNotification — like de comentario agrega por commentId", () => {
+  beforeEach(enableAllSections);
+
+  it("dos users likeando el MISMO comentario → una notif con count=2", async () => {
+    const recipient = await createUser();
+    const commentId = new mongoose.Types.ObjectId().toString();
+    const compartidaId = new mongoose.Types.ObjectId().toString();
+    const fields = (actor) => ({
+      compartidaId,
+      compartidaTitle: "Mi compartida",
+      commentId,
+      lastSenderUsername: actor.username,
+      actor,
+    });
+
+    await saveNotification(
+      recipient._id,
+      "compartida_comment_like",
+      fields({
+        userId: "a",
+        username: "ana",
+      }),
+    );
+    const second = await saveNotification(
+      recipient._id,
+      "compartida_comment_like",
+      fields({ userId: "b", username: "beto" }),
+    );
+
+    expect(second.count).toBe(2);
+    const docs = await Notification.find({
+      recipient: recipient._id,
+      type: "compartida_comment_like",
+    });
+    expect(docs).toHaveLength(1);
+    expect(docs[0].commentId).toBe(commentId);
+    // El actor más reciente queda primero.
+    expect(docs[0].actors[0].username).toBe("beto");
+  });
+
+  it("likes en comentarios distintos → notifs separadas", async () => {
+    const recipient = await createUser();
+    const compartidaId = new mongoose.Types.ObjectId().toString();
+    const mk = (commentId) =>
+      saveNotification(recipient._id, "compartida_comment_like", {
+        compartidaId,
+        commentId,
+        lastSenderUsername: "ana",
+        actor: { userId: "a", username: "ana" },
+      });
+
+    await mk(new mongoose.Types.ObjectId().toString());
+    await mk(new mongoose.Types.ObjectId().toString());
+
+    const docs = await Notification.find({
+      recipient: recipient._id,
+      type: "compartida_comment_like",
+    });
+    expect(docs).toHaveLength(2);
+  });
+});

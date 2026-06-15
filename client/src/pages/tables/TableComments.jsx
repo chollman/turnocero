@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import Avatar from "../../components/shared/Avatar";
+import CommentLikeButton from "../../components/shared/CommentLikeButton";
+import LikersModal from "../../components/shared/LikersModal";
 import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
 import { getErrorMessage } from "../../utils/getErrorMessage";
+import { patchCommentInTree, toggleLikePatch } from "../../utils/commentLikes";
 import { API } from "../../api/endpoints";
 import styles from "./TableDetail.module.css";
 
@@ -59,6 +62,8 @@ export default function TableComments({
   const [replyingTo, setReplyingTo] = useState(null); // id del comentario al que se responde
   const [replyText, setReplyText] = useState("");
   const [replySubmitting, setReplySubmitting] = useState(false);
+  // id del comentario cuyo modal de "¿a quién le gustó?" está abierto.
+  const [likersCommentId, setLikersCommentId] = useState(null);
   const [isMobile, setIsMobile] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -195,6 +200,26 @@ export default function TableComments({
     }
   };
 
+  // Toggle de like de un comentario/respuesta. Optimistic + rollback.
+  const toggleCommentLike = async (comment) => {
+    if (!user) {
+      onRequireLogin?.("Iniciá sesión para reaccionar a este comentario.");
+      return;
+    }
+    const original = {
+      liked: comment.liked,
+      likeCount: comment.likeCount ?? 0,
+    };
+    setComments((cs) =>
+      patchCommentInTree(cs, comment._id, toggleLikePatch(comment)),
+    );
+    try {
+      await axios.post(API.tables.COMMENT_LIKE(tableId, comment._id));
+    } catch {
+      setComments((cs) => patchCommentInTree(cs, comment._id, original));
+    }
+  };
+
   // Render de un comentario individual (sirve para top-level y respuestas).
   const renderComment = (comment, { isReply = false } = {}) => {
     const authorInfo = getUserDisplay(comment.author);
@@ -256,6 +281,15 @@ export default function TableComments({
           )}
           {editingId !== comment._id && (
             <div className={styles.commentActions}>
+              <CommentLikeButton
+                liked={comment.liked}
+                count={comment.likeCount ?? 0}
+                onToggle={() => toggleCommentLike(comment)}
+                onShowLikers={
+                  canPost ? () => setLikersCommentId(comment._id) : undefined
+                }
+                disabled={!canPost}
+              />
               {user && canPost && (
                 <button
                   className={styles.btnCommentReply}
@@ -385,6 +419,17 @@ export default function TableComments({
           </button>
         </form>
       )}
+
+      <LikersModal
+        isOpen={!!likersCommentId}
+        onClose={() => setLikersCommentId(null)}
+        title="A quién le gustó"
+        fetchUrl={
+          likersCommentId
+            ? API.tables.COMMENT_LIKES(tableId, likersCommentId)
+            : null
+        }
+      />
     </div>
   );
 }

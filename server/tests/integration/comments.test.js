@@ -222,3 +222,119 @@ describe("Respuestas a comentarios (hilo de 1 nivel)", () => {
     expect(remaining).toBe(0);
   });
 });
+
+describe("POST /api/tables/:id/comments/:commentId/like", () => {
+  it("togglea el like (suma y resta) y devuelve {likes, liked}", async () => {
+    const host = await createUser();
+    const liker = await createAuthedUser();
+    const table = await createTable(host, { privacy: "public" });
+    const comment = await Comment.create({
+      table: table._id,
+      author: host._id,
+      content: "comentario",
+    });
+
+    const add = await request(app)
+      .post(`/api/tables/${table._id}/comments/${comment._id}/like`)
+      .set("Authorization", `Bearer ${liker.token}`);
+    expect(add.status).toBe(200);
+    expect(add.body).toEqual({ likes: 1, liked: true });
+
+    const remove = await request(app)
+      .post(`/api/tables/${table._id}/comments/${comment._id}/like`)
+      .set("Authorization", `Bearer ${liker.token}`);
+    expect(remove.body).toEqual({ likes: 0, liked: false });
+  });
+
+  it("403 en mesa no pública", async () => {
+    const host = await createUser();
+    const liker = await createAuthedUser();
+    const table = await createTable(host, { privacy: "private" });
+    const comment = await Comment.create({
+      table: table._id,
+      author: host._id,
+      content: "x",
+    });
+    const res = await request(app)
+      .post(`/api/tables/${table._id}/comments/${comment._id}/like`)
+      .set("Authorization", `Bearer ${liker.token}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("notifica al autor del comentario cuando lo likea otro (con notifId/count)", async () => {
+    const host = await createUser();
+    const liker = await createAuthedUser();
+    const table = await createTable(host, { privacy: "public" });
+    const comment = await Comment.create({
+      table: table._id,
+      author: host._id,
+      content: "x",
+    });
+    await request(app)
+      .post(`/api/tables/${table._id}/comments/${comment._id}/like`)
+      .set("Authorization", `Bearer ${liker.token}`);
+
+    const notif = await Notification.findOne({
+      recipient: host._id,
+      type: "comment_like",
+    });
+    expect(notif).not.toBeNull();
+    expect(notif.commentId).toBe(comment._id.toString());
+    expect(notif.tableId).toBe(table._id.toString());
+    expect(notif.count).toBe(1);
+  });
+
+  it("no notifica al likear el propio comentario", async () => {
+    const host = await createAuthedUser();
+    const table = await createTable(host.user, { privacy: "public" });
+    const comment = await Comment.create({
+      table: table._id,
+      author: host.user._id,
+      content: "x",
+    });
+    await request(app)
+      .post(`/api/tables/${table._id}/comments/${comment._id}/like`)
+      .set("Authorization", `Bearer ${host.token}`);
+
+    const count = await Notification.countDocuments({ type: "comment_like" });
+    expect(count).toBe(0);
+  });
+});
+
+describe("GET /api/tables/:id/comments/:commentId/likes", () => {
+  it("devuelve los users que likearon (poblados)", async () => {
+    const host = await createUser();
+    const liker = await createAuthedUser({ username: "likeador" });
+    const table = await createTable(host, { privacy: "public" });
+    const comment = await Comment.create({
+      table: table._id,
+      author: host._id,
+      content: "x",
+      likes: [liker.user._id],
+    });
+    const res = await request(app)
+      .get(`/api/tables/${table._id}/comments/${comment._id}/likes`)
+      .set("Authorization", `Bearer ${tokenFor(host)}`);
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(1);
+    expect(res.body.users[0].username).toBe("likeador");
+  });
+
+  it("la lista de comentarios incluye likeCount y liked", async () => {
+    const host = await createAuthedUser();
+    const table = await createTable(host.user, { privacy: "public" });
+    await Comment.create({
+      table: table._id,
+      author: host.user._id,
+      content: "x",
+      likes: [host.user._id],
+    });
+    const res = await request(app)
+      .get(`/api/tables/${table._id}/comments`)
+      .set("Authorization", `Bearer ${host.token}`);
+    expect(res.status).toBe(200);
+    expect(res.body[0].likeCount).toBe(1);
+    expect(res.body[0].liked).toBe(true);
+    expect(res.body[0].likes).toBeUndefined();
+  });
+});

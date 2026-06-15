@@ -38,7 +38,7 @@ const refreshUser = vi.fn(() => Promise.resolve());
 const applyServerConfig = vi.fn();
 
 describe("notification listener hooks — event registration", () => {
-  it("useTableNotificationListeners registra los 10 eventos de tables", () => {
+  it("useTableNotificationListeners registra los 11 eventos de tables", () => {
     const socket = makeSocket();
     renderHook(() => {
       const activeTableRef = useStableRef(null);
@@ -63,6 +63,7 @@ describe("notification listener hooks — event registration", () => {
         "join:rejected",
         "table:spot-opened",
         "table:cancelled",
+        "table:comment-like",
       ].sort(),
     );
   });
@@ -136,7 +137,7 @@ describe("notification listener hooks — event registration", () => {
     );
   });
 
-  it("useCompartidaNotificationListeners registra compartida:comment y compartida:like", () => {
+  it("useCompartidaNotificationListeners registra comment, like y comment-like", () => {
     const socket = makeSocket();
     renderHook(() =>
       useCompartidaNotificationListeners({
@@ -146,10 +147,13 @@ describe("notification listener hooks — event registration", () => {
         setToasts,
       }),
     );
-    expect([...socket._events.keys()].sort()).toEqual([
-      "compartida:comment",
-      "compartida:like",
-    ]);
+    expect([...socket._events.keys()].sort()).toEqual(
+      [
+        "compartida:comment",
+        "compartida:like",
+        "compartida:comment-like",
+      ].sort(),
+    );
   });
 
   it("useNoticiaNotificationListeners registra noticia:published", () => {

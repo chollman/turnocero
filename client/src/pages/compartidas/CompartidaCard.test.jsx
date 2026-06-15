@@ -1037,4 +1037,54 @@ describe("<CompartidaCard>", () => {
       configurable: true,
     });
   });
+
+  describe("contador de likes clickeable (¿a quién le gustó?)", () => {
+    it("normal: el número de likes abre el modal de likers", async () => {
+      server.use(
+        http.get("/api/compartidas/:id/likes", () =>
+          HttpResponse.json({
+            users: [{ _id: "u9", username: "fanpost", avatar: {} }],
+          }),
+        ),
+      );
+      renderCard(makePost({ likes: ["x", "y"] }));
+      fireEvent.click(
+        screen.getByRole("button", { name: /ver a quién le gustó/i }),
+      );
+      expect(await screen.findByText("fanpost")).toBeInTheDocument();
+    });
+
+    it("featured: el número de likes abre el modal de likers", async () => {
+      server.use(
+        http.get("/api/compartidas/:id/likes", () =>
+          HttpResponse.json({
+            users: [{ _id: "u9", username: "fanfeat", avatar: {} }],
+          }),
+        ),
+      );
+      useAuth.mockReturnValue({ user: null });
+      useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+      render(
+        <MemoryRouter>
+          <CompartidaCard
+            post={makePost({ likes: ["x", "y", "z"] })}
+            featured
+            onDeleted={vi.fn()}
+            onUpdated={vi.fn()}
+          />
+        </MemoryRouter>,
+      );
+      fireEvent.click(
+        screen.getByRole("button", { name: /ver a quién le gustó/i }),
+      );
+      expect(await screen.findByText("fanfeat")).toBeInTheDocument();
+    });
+
+    it("con 0 likes el número no es clickeable", () => {
+      renderCard(makePost({ likes: [] }));
+      expect(
+        screen.queryByRole("button", { name: /ver a quién le gustó/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
 });

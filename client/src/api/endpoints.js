@@ -136,6 +136,10 @@ export const API = {
     COMMENTS: (id) => `/api/tables/${enc(id)}/comments`,
     COMMENT_DETAIL: (id, commentId) =>
       `/api/tables/${enc(id)}/comments/${enc(commentId)}`,
+    COMMENT_LIKE: (id, commentId) =>
+      `/api/tables/${enc(id)}/comments/${enc(commentId)}/like`,
+    COMMENT_LIKES: (id, commentId) =>
+      `/api/tables/${enc(id)}/comments/${enc(commentId)}/likes`,
     IMAGES: (id) => `/api/tables/${enc(id)}/images`,
     IMAGE_DETAIL: (id, imageId) =>
       `/api/tables/${enc(id)}/images/${enc(imageId)}`,
@@ -148,6 +152,7 @@ export const API = {
     DETAIL: (id) => `/api/compartidas/${enc(id)}`,
     OG: (id) => `/api/compartidas/${enc(id)}/og`,
     LIKE: (id) => `/api/compartidas/${enc(id)}/like`,
+    LIKES: (id) => `/api/compartidas/${enc(id)}/likes`,
     IMAGES: (id) => `/api/compartidas/${enc(id)}/images`,
     INLINE_IMAGE: "/api/compartidas/inline-image",
     IMAGE_DETAIL: (id, imgId) =>
@@ -155,6 +160,10 @@ export const API = {
     COMMENTS: (id) => `/api/compartidas/${enc(id)}/comments`,
     COMMENT_DETAIL: (id, cid) =>
       `/api/compartidas/${enc(id)}/comments/${enc(cid)}`,
+    COMMENT_LIKE: (id, cid) =>
+      `/api/compartidas/${enc(id)}/comments/${enc(cid)}/like`,
+    COMMENT_LIKES: (id, cid) =>
+      `/api/compartidas/${enc(id)}/comments/${enc(cid)}/likes`,
   },
 
   // ── Noticias ─────────────────────────────────────────────────────────

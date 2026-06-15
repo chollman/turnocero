@@ -51,6 +51,10 @@ const AGGREGATING = new Set([
   "admin_chat",
   "compartida_comment",
   "compartida_like",
+  // Likes de comentarios (compartida + mesa): agregan por comentario (varios
+  // users likeando el mismo comentario → una notif con count).
+  "compartida_comment_like",
+  "comment_like",
   // Cuando varios users agregan juegos / crean mesas en el mismo evento,
   // los inscriptos reciben UNA notif con count incrementado por evento.
   "evento_ludoteca_added",
@@ -79,6 +83,8 @@ const TYPE_TO_SECTION = {
   dm: "dms",
   compartida_comment: "compartidas",
   compartida_like: "compartidas",
+  compartida_comment_like: "compartidas",
+  comment_like: "mesas",
   tournament_accepted: "torneos",
   tournament_rejected: "torneos",
   tournament_advanced: "torneos",
@@ -135,6 +141,8 @@ async function saveNotification(recipientId, type, fields) {
     if (fields.fromUserId) filter.fromUserId = fields.fromUserId;
     if (fields.torneoId) filter.torneoId = fields.torneoId;
     if (fields.compartidaId) filter.compartidaId = fields.compartidaId;
+    // Like de comentario: agrega por comentario (no por compartida/mesa).
+    if (fields.commentId) filter.commentId = fields.commentId;
     if (fields.eventoId) filter.eventoId = fields.eventoId;
     if (fields.mathtradeId) filter.mathtradeId = fields.mathtradeId;
     if (fields.communityId) filter.communityId = fields.communityId;

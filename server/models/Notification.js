@@ -20,6 +20,9 @@ const NOTIFICATION_TYPES = [
   // Compartidas
   "compartida_comment",
   "compartida_like",
+  "compartida_comment_like", // alguien likeó tu comentario/respuesta en una compartida — AGREGANTE por comentario
+  // Mesas — like de comentario
+  "comment_like", // alguien likeó tu comentario/respuesta en una mesa — AGREGANTE por comentario
   // Torneos
   "tournament_accepted",
   "tournament_rejected",
@@ -97,6 +100,12 @@ const notificationSchema = new mongoose.Schema(
     // Compartida-related
     compartidaId: { type: String, default: null },
     compartidaTitle: { type: String, default: "" },
+    // Like de comentario (compartida_comment_like / comment_like): el id del
+    // comentario likeado. Entra en la clave de upsert para AGREGAR por
+    // comentario — varios users likeando el MISMO comentario colapsan en una
+    // notif con count; comentarios distintos generan notifs distintas. El
+    // deep-link usa compartidaId/tableId (el comentario vive dentro del recurso).
+    commentId: { type: String, default: null },
     // Evento-related
     eventoId: { type: String, default: null },
     eventoTitle: { type: String, default: "" },
@@ -189,6 +198,7 @@ notificationSchema.index({ recipient: 1, type: 1, tableId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, fromUserId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, torneoId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, compartidaId: 1 });
+notificationSchema.index({ recipient: 1, type: 1, commentId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, eventoId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, mathtradeId: 1 });
 notificationSchema.index({ recipient: 1, type: 1, communityId: 1 });

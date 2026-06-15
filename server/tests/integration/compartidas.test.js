@@ -536,7 +536,14 @@ describe("Compartidas — reseñas vs juntadas", () => {
     date: "2026-06-08",
     duration: 60,
     players: [
-      { name: "Martín", username: "martin", score: 85, win: true, position: 1, team: "Z" },
+      {
+        name: "Martín",
+        username: "martin",
+        score: 85,
+        win: true,
+        position: 1,
+        team: "Z",
+      },
       { name: "Bob", username: "bob", score: 72, win: false, position: 2 },
     ],
   };
@@ -664,7 +671,11 @@ describe("Compartidas — reseñas vs juntadas", () => {
           // El cliente intenta inyectar un userId arbitrario; sin cuenta TC con
           // ese @BGG, el server lo ignora y deja null.
           players: [
-            { name: "Spoof", username: "nadie", userId: "ffffffffffffffffffffffff" },
+            {
+              name: "Spoof",
+              username: "nadie",
+              userId: "ffffffffffffffffffffffff",
+            },
           ],
         },
       });
@@ -960,5 +971,127 @@ describe("POST /api/compartidas/:id/comments — notificaciones del hilo", () =>
     await comment(compartida._id, token, "comento mi propio post");
     const own = await commentNotifsFor(user._id);
     expect(own).toHaveLength(0);
+  });
+});
+
+describe("Likes de comentarios de compartidas", () => {
+  const CompartidaComment = require("../../models/CompartidaComment");
+  const Notification = require("../../models/Notification");
+
+  const mkComment = (compartida, author, overrides = {}) =>
+    CompartidaComment.create({
+      compartida: compartida._id,
+      author: author._id,
+      content: "comentario",
+      ...overrides,
+    });
+
+  it("POST .../comments/:cid/like togglea y devuelve {likes, liked}", async () => {
+    const author = await createUser();
+    const liker = await createAuthedUser();
+    const compartida = await createCompartida(author, { privacy: "public" });
+    const c = await mkComment(compartida, author);
+
+    const add = await request(app)
+      .post(`/api/compartidas/${compartida._id}/comments/${c._id}/like`)
+      .set("Authorization", `Bearer ${liker.token}`);
+    expect(add.status).toBe(200);
+    expect(add.body).toEqual({ likes: 1, liked: true });
+
+    const remove = await request(app)
+      .post(`/api/compartidas/${compartida._id}/comments/${c._id}/like`)
+      .set("Authorization", `Bearer ${liker.token}`);
+    expect(remove.body).toEqual({ likes: 0, liked: false });
+  });
+
+  it("403 si el post no es visible para el usuario", async () => {
+    const author = await createUser();
+    const stranger = await createAuthedUser();
+    const compartida = await createCompartida(author, { privacy: "private" });
+    const c = await mkComment(compartida, author);
+    const res = await request(app)
+      .post(`/api/compartidas/${compartida._id}/comments/${c._id}/like`)
+      .set("Authorization", `Bearer ${stranger.token}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("notifica al autor del comentario y no en self-like", async () => {
+    const author = await createUser();
+    const liker = await createAuthedUser();
+    const compartida = await createCompartida(author, { privacy: "public" });
+    const c = await mkComment(compartida, author);
+
+    await request(app)
+      .post(`/api/compartidas/${compartida._id}/comments/${c._id}/like`)
+      .set("Authorization", `Bearer ${liker.token}`);
+    const notif = await Notification.findOne({
+      recipient: author._id,
+      type: "compartida_comment_like",
+    });
+    expect(notif).not.toBeNull();
+    expect(notif.commentId).toBe(c._id.toString());
+    expect(notif.compartidaId).toBe(compartida._id.toString());
+
+    await request(app)
+      .post(`/api/compartidas/${compartida._id}/comments/${c._id}/like`)
+      .set("Authorization", `Bearer ${tokenFor(author)}`);
+    const count = await Notification.countDocuments({
+      type: "compartida_comment_like",
+    });
+    expect(count).toBe(1);
+  });
+
+  it("GET .../comments/:cid/likes devuelve los likers poblados", async () => {
+    const author = await createUser();
+    const liker = await createUser({ username: "fan" });
+    const compartida = await createCompartida(author, { privacy: "public" });
+    const c = await mkComment(compartida, author, { likes: [liker._id] });
+    const res = await request(app).get(
+      `/api/compartidas/${compartida._id}/comments/${c._id}/likes`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(1);
+    expect(res.body.users[0].username).toBe("fan");
+  });
+
+  it("GET comments incluye likeCount/liked y oculta el array de likes", async () => {
+    const author = await createAuthedUser();
+    const compartida = await createCompartida(author.user, {
+      privacy: "public",
+    });
+    await mkComment(compartida, author.user, { likes: [author.user._id] });
+    const res = await request(app)
+      .get(`/api/compartidas/${compartida._id}/comments`)
+      .set("Authorization", `Bearer ${author.token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.comments[0].likeCount).toBe(1);
+    expect(res.body.comments[0].liked).toBe(true);
+    expect(res.body.comments[0].likes).toBeUndefined();
+  });
+});
+
+describe("GET /api/compartidas/:id/likes — likers del post", () => {
+  it("devuelve los users que likearon (poblados)", async () => {
+    const fan = await createUser({ username: "superfan" });
+    const author = await createUser();
+    const compartida = await createCompartida(author, {
+      privacy: "public",
+      likes: [fan._id],
+    });
+    const res = await request(app).get(
+      `/api/compartidas/${compartida._id}/likes`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(1);
+    expect(res.body.users[0].username).toBe("superfan");
+  });
+
+  it("403 a un anónimo en un post privado", async () => {
+    const author = await createUser();
+    const compartida = await createCompartida(author, { privacy: "private" });
+    const res = await request(app).get(
+      `/api/compartidas/${compartida._id}/likes`,
+    );
+    expect(res.status).toBe(403);
   });
 });

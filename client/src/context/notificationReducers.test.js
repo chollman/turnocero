@@ -21,6 +21,8 @@ import {
   applyTorneoNotif,
   applyCompartidaCommentNotif,
   applyCompartidaLikeNotif,
+  applyCompartidaCommentLikeNotif,
+  applyCommentLikeNotif,
   applyNoticiaPublishedNotif,
   applyEventoNotif,
   applyCommunityJoinRequestNotif,
@@ -539,7 +541,11 @@ describe("applyBggPlaySharedNotif", () => {
   it("agrega la notif keyed por playId con el snapshot embebido", () => {
     const setN = makeSetterSpy([]);
     const setT = makeSetterSpy([]);
-    applyBggPlaySharedNotif({ setNotifications: setN, setToasts: setT, payload });
+    applyBggPlaySharedNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload,
+    });
     const n = setN.state()[0];
     expect(n).toMatchObject({
       type: "bgg_play_shared",
@@ -557,7 +563,11 @@ describe("applyBggPlaySharedNotif", () => {
   it("reemplaza por playId (no duplica la misma partida)", () => {
     const setN = makeSetterSpy([]);
     const setT = makeSetterSpy([]);
-    applyBggPlaySharedNotif({ setNotifications: setN, setToasts: setT, payload });
+    applyBggPlaySharedNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload,
+    });
     applyBggPlaySharedNotif({
       setNotifications: setN,
       setToasts: setT,
@@ -801,6 +811,80 @@ describe("applyCompartidaLikeNotif", () => {
     });
     expect(setN.state()[0].type).toBe("compartida_like");
     expect(setN.state()[0].count).toBe(5);
+  });
+});
+
+describe("applyCompartidaCommentLikeNotif", () => {
+  it("agrega por commentId con compartidaId para el deep-link", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyCompartidaCommentLikeNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: {
+        notifId: "n1",
+        commentId: "cm1",
+        compartidaId: "c1",
+        compartidaTitle: "x",
+        count: 2,
+        fromUsername: "bob",
+        timestamp: "t",
+      },
+    });
+    const n = setN.state()[0];
+    expect(n.type).toBe("compartida_comment_like");
+    expect(n.commentId).toBe("cm1");
+    expect(n.compartidaId).toBe("c1");
+    expect(n.count).toBe(2);
+    expect(n.lastSenderUsername).toBe("bob");
+  });
+
+  it("dos likes del mismo comentario actualizan una sola notif", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    const base = {
+      commentId: "cm1",
+      compartidaId: "c1",
+      fromUsername: "bob",
+      timestamp: "t",
+    };
+    applyCompartidaCommentLikeNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: { ...base, notifId: "n1", count: 1 },
+    });
+    applyCompartidaCommentLikeNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: { ...base, notifId: "n1", count: 2 },
+    });
+    expect(setN.state()).toHaveLength(1);
+    expect(setN.state()[0].count).toBe(2);
+  });
+});
+
+describe("applyCommentLikeNotif", () => {
+  it("agrega por commentId con tableId para el deep-link", () => {
+    const setN = makeSetterSpy([]);
+    const setT = makeSetterSpy([]);
+    applyCommentLikeNotif({
+      setNotifications: setN,
+      setToasts: setT,
+      payload: {
+        notifId: "n2",
+        commentId: "cm2",
+        tableId: "tb1",
+        tableName: "Catan",
+        count: 1,
+        fromUsername: "ana",
+        timestamp: "t",
+      },
+    });
+    const n = setN.state()[0];
+    expect(n.type).toBe("comment_like");
+    expect(n.commentId).toBe("cm2");
+    expect(n.tableId).toBe("tb1");
+    expect(n.lastSenderUsername).toBe("ana");
   });
 });
 

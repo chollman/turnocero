@@ -33,6 +33,15 @@ const commentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Likes del comentario (mismo shape que Compartida.likes): array plano de
+    // refs a User. El cliente recibe `likeCount`/`liked` derivados (ver
+    // utils/serializeComment.js), nunca este array crudo.
+    likes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   { timestamps: true },
 );

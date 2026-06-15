@@ -3,8 +3,11 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import Avatar from "../../components/shared/Avatar";
+import CommentLikeButton from "../../components/shared/CommentLikeButton";
+import LikersModal from "../../components/shared/LikersModal";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { getErrorMessage } from "../../utils/getErrorMessage";
+import { patchCommentInTree, toggleLikePatch } from "../../utils/commentLikes";
 import { API } from "../../api/endpoints";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 import styles from "./CompartidaCard.module.css";
@@ -52,6 +55,8 @@ export default function CompartidaComments({
   const [replyText, setReplyText] = useState("");
   const [replySubmitting, setReplySubmitting] = useState(false);
   const [error, setError] = useState("");
+  // id del comentario cuyo modal de "¿a quién le gustó?" está abierto.
+  const [likersCommentId, setLikersCommentId] = useState(null);
   const scrollRef = useRef(null);
 
   const loadComments = useCallback(
@@ -211,6 +216,23 @@ export default function CompartidaComments({
     }
   };
 
+  // Toggle de like de un comentario/respuesta. Optimistic + rollback (patrón
+  // useCompartidaLike). El árbol se actualiza con patchCommentInTree (sirve
+  // tanto para top-level como para respuestas).
+  const toggleCommentLike = async (c) => {
+    if (!user) {
+      onRequireLogin?.("Iniciá sesión para reaccionar a este comentario.");
+      return;
+    }
+    const original = { liked: c.liked, likeCount: c.likeCount ?? 0 };
+    setComments((cs) => patchCommentInTree(cs, c._id, toggleLikePatch(c)));
+    try {
+      await axios.post(API.compartidas.COMMENT_LIKE(compartidaId, c._id));
+    } catch {
+      setComments((cs) => patchCommentInTree(cs, c._id, original));
+    }
+  };
+
   // Render de un comentario individual (sirve para top-level y respuestas).
   const renderComment = (c, { isReply = false } = {}) => {
     const info = getUserDisplay(c.author);
@@ -283,6 +305,12 @@ export default function CompartidaComments({
           )}
           {editingCid !== c._id && (
             <div className={styles.commentActions}>
+              <CommentLikeButton
+                liked={c.liked}
+                count={c.likeCount ?? 0}
+                onToggle={() => toggleCommentLike(c)}
+                onShowLikers={() => setLikersCommentId(c._id)}
+              />
               {user && (
                 <button
                   className={styles.commentActionBtn}
@@ -366,7 +394,8 @@ export default function CompartidaComments({
   return (
     <div className={styles.comments}>
       <div className={styles.commentsHead}>
-        <Meeple />Dejá tu comentario{total > 1 ? ` (${total})` : ""}
+        <Meeple />
+        Dejá tu comentario{total > 1 ? ` (${total})` : ""}
       </div>
 
       {/* Form arriba — los comentarios nuevos aparecen al instante en el tope. */}
@@ -455,6 +484,17 @@ export default function CompartidaComments({
           {hasMore && <div ref={sentinelRef} aria-hidden="true" />}
         </div>
       )}
+
+      <LikersModal
+        isOpen={!!likersCommentId}
+        onClose={() => setLikersCommentId(null)}
+        title="A quién le gustó"
+        fetchUrl={
+          likersCommentId
+            ? API.compartidas.COMMENT_LIKES(compartidaId, likersCommentId)
+            : null
+        }
+      />
     </div>
   );
 }

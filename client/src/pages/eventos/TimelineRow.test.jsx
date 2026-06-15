@@ -8,7 +8,7 @@ function makeEvento(overrides = {}) {
     _id: "e1",
     title: "Torneo de Catán",
     description: "Una linda descripción.",
-    eventDate: "2026-06-13T17:00:00",
+    eventDate: "2030-06-13T17:00:00",
     location: "Bar La Torre",
     fee: 3500,
     maxParticipants: 24,

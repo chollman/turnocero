@@ -24,6 +24,9 @@ export const TYPE_DOMAIN = {
   // Compartidas
   compartida_comment: "compartida",
   compartida_like: "compartida",
+  compartida_comment_like: "compartida",
+  // Mesas — like de comentario
+  comment_like: "mesa",
   // Torneos
   tournament_accepted: "torneo",
   tournament_rejected: "torneo",
@@ -88,6 +91,8 @@ const COUNT_BADGE_TYPES = new Set([
   "admin_chat",
   "compartida_comment",
   "compartida_like",
+  "compartida_comment_like",
+  "comment_like",
   "evento_ludoteca_added",
   "evento_mesa_created",
   "community_join_request",
@@ -290,6 +295,24 @@ export function getNotifMeta(n) {
             : `A ${n.lastSenderUsername} le gustó tu compartida`,
         body: n.compartidaTitle ? `“${n.compartidaTitle}”` : "",
         cta: "Ver compartida",
+      };
+    case "compartida_comment_like":
+      return {
+        title:
+          n.count > 1
+            ? `A ${n.lastSenderUsername} y ${n.count - 1} más les gustó tu comentario`
+            : `A ${n.lastSenderUsername} le gustó tu comentario`,
+        body: n.compartidaTitle ? `en «${n.compartidaTitle}»` : "",
+        cta: "Ver compartida",
+      };
+    case "comment_like":
+      return {
+        title:
+          n.count > 1
+            ? `A ${n.lastSenderUsername} y ${n.count - 1} más les gustó tu comentario`
+            : `A ${n.lastSenderUsername} le gustó tu comentario`,
+        body: n.tableName ? `en la mesa de ${n.tableName}` : "",
+        cta: "Ver mesa",
       };
     case "tournament_accepted":
       return {

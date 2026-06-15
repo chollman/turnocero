@@ -10,6 +10,7 @@ import {
   applyJoinRejectedNotif,
   applySpotOpenedNotif,
   applyTableCancelledNotif,
+  applyCommentLikeNotif,
 } from "../notificationReducers";
 
 // Listeners de notificaciones relacionadas con mesas. La supresión por
@@ -63,6 +64,10 @@ export function useTableNotificationListeners({
       "table:cancelled": gated("table:cancelled", (payload) =>
         applyTableCancelledNotif({ setNotifications, setToasts, payload }),
       ),
+      "table:comment-like": gated("table:comment-like", (payload) => {
+        if (activeTableRef.current === payload.tableId) return;
+        applyCommentLikeNotif({ setNotifications, setToasts, payload });
+      }),
     }),
     [gated, activeTableRef, setNotifications, setToasts],
   );

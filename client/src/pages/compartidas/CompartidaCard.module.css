@@ -1241,6 +1241,22 @@
   background: var(--red-10);
 }
 
+/* El número de likes del post: clickeable abre el modal "¿a quién le gustó?".
+   Vive dentro del botón de toggle, por eso es un span con role=button. */
+.likeCountClickable {
+  cursor: pointer;
+  border-radius: 4px;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color var(--transition);
+}
+
+.likeCountClickable:hover,
+.likeCountClickable:focus-visible {
+  text-decoration-color: currentColor;
+  outline: none;
+}
+
 .likeHeart {
   display: inline-flex;
   align-items: center;

@@ -500,4 +500,63 @@ describe("<CompartidaComments> — respuestas (hilo)", () => {
     // 2 (raíz + respuesta) descontados → 0.
     expect(onCountChange).toHaveBeenLastCalledWith(0);
   });
+
+  describe("likes de comentarios", () => {
+    const likeable = [
+      {
+        _id: "c1",
+        content: "comentario likeable",
+        author: other,
+        createdAt: new Date().toISOString(),
+        likeCount: 2,
+        liked: false,
+      },
+    ];
+
+    it("muestra el contador y togglea (POST al like endpoint)", async () => {
+      setupComments(likeable, { total: 1 });
+      let posted = false;
+      server.use(
+        http.post("/api/compartidas/:id/comments/:cid/like", () => {
+          posted = true;
+          return HttpResponse.json({ likes: 3, liked: true });
+        }),
+      );
+      renderComponent();
+      await screen.findByText("comentario likeable");
+      // El número 2 es clickeable (abre likers); el corazón togglea.
+      fireEvent.click(screen.getByRole("button", { name: /^me gusta$/i }));
+      await waitFor(() => expect(posted).toBe(true));
+      // Optimistic: pasa a 3 y a "quitar me gusta".
+      expect(
+        screen.getByRole("button", { name: /quitar me gusta/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("click en el número abre el modal de likers", async () => {
+      setupComments(likeable, { total: 1 });
+      server.use(
+        http.get("/api/compartidas/:id/comments/:cid/likes", () =>
+          HttpResponse.json({
+            users: [{ _id: "u9", username: "fan", avatar: {} }],
+          }),
+        ),
+      );
+      renderComponent();
+      await screen.findByText("comentario likeable");
+      fireEvent.click(
+        screen.getByRole("button", { name: /ver a quién le gustó/i }),
+      );
+      expect(await screen.findByText("fan")).toBeInTheDocument();
+    });
+
+    it("anónimo: el toggle dispara onRequireLogin", async () => {
+      setupComments(likeable, { total: 1 });
+      const onRequireLogin = vi.fn();
+      renderComponent({ user: null, onRequireLogin });
+      await screen.findByText("comentario likeable");
+      fireEvent.click(screen.getByRole("button", { name: /^me gusta$/i }));
+      expect(onRequireLogin).toHaveBeenCalled();
+    });
+  });
 });

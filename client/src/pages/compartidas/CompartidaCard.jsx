@@ -8,6 +8,7 @@ import { useSiteConfig } from "../../context/SiteConfigContext";
 import { API } from "../../api/endpoints";
 import GameTile from "../../components/shared/GameTile";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
+import LikersModal from "../../components/shared/LikersModal";
 import Avatar from "../../components/shared/Avatar";
 import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
 import { getUserDisplay } from "../../utils/userDisplay";
@@ -205,6 +206,37 @@ function Polaroid({ image, index = 0, count = 1, withTape = true, caption }) {
   );
 }
 
+// Contador de likes del post. Cuando hay al menos un like, el número es
+// clickeable (role=button) y abre el modal "¿a quién le gustó?". Vive DENTRO
+// del botón de toggle del corazón, así que stopPropagation evita togglear el
+// like al clickear el número (un <button> anidado sería HTML inválido).
+function LikeCount({ count, onShow, className }) {
+  if (count > 0) {
+    return (
+      <span
+        className={className}
+        role="button"
+        tabIndex={0}
+        aria-label="Ver a quién le gustó"
+        onClick={(e) => {
+          e.stopPropagation();
+          onShow();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.stopPropagation();
+            e.preventDefault();
+            onShow();
+          }
+        }}
+      >
+        {count}
+      </span>
+    );
+  }
+  return <span>{count}</span>;
+}
+
 export default function CompartidaCard({
   post: initialPost,
   onDeleted,
@@ -238,6 +270,7 @@ export default function CompartidaCard({
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showLikers, setShowLikers] = useState(false);
   const menuRef = useRef(null);
 
   const authorInfo = getUserDisplay(post.author);
@@ -729,7 +762,11 @@ export default function CompartidaCard({
               </svg>
             )}
           </span>
-          {likeCount}
+          <LikeCount
+            count={likeCount}
+            onShow={() => setShowLikers(true)}
+            className={styles.likeCountClickable}
+          />
         </button>
         <button
           type="button"
@@ -856,6 +893,12 @@ export default function CompartidaCard({
         </article>
 
         {lightboxPortal}
+        <LikersModal
+          isOpen={showLikers}
+          onClose={() => setShowLikers(false)}
+          title="A quién le gustó"
+          fetchUrl={showLikers ? API.compartidas.LIKES(post._id) : null}
+        />
       </>
     );
   }
@@ -1116,7 +1159,11 @@ export default function CompartidaCard({
                   </svg>
                 )}
               </span>
-              <span>{likeCount}</span>
+              <LikeCount
+                count={likeCount}
+                onShow={() => setShowLikers(true)}
+                className={styles.likeCountClickable}
+              />
             </button>
             <button className={styles.reactionBtn} onClick={toggleComments}>
               <svg
@@ -1230,6 +1277,12 @@ export default function CompartidaCard({
 
       {/* ── Lightbox ── */}
       {lightboxPortal}
+      <LikersModal
+        isOpen={showLikers}
+        onClose={() => setShowLikers(false)}
+        title="A quién le gustó"
+        fetchUrl={showLikers ? API.compartidas.LIKES(post._id) : null}
+      />
     </>
   );
 }
