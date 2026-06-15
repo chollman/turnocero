@@ -170,6 +170,7 @@
   padding: 8px 12px;
   color: var(--text-primary);
   font-size: 13px;
+  line-height: 1.5;
   font-family: inherit;
   outline: none;
   width: 200px;
@@ -195,6 +196,7 @@
   border-radius: 8px;
   font-family: var(--font-display);
   font-size: 13px;
+  line-height: 1.5;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 16px var(--amber-glow);
