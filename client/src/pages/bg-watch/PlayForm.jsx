@@ -1046,7 +1046,9 @@ export default function PlayForm({
                     {soloPlay && <CheckIcon />}
                   </span>
                   <span className={styles.hpText}>
-                    <span className={styles.hpTextFull}>Jugué en solitario</span>
+                    <span className={styles.hpTextFull}>
+                      Jugué en solitario
+                    </span>
                     <span className={styles.hpTextShort}>Solitario</span>
                   </span>
                 </label>
@@ -1065,7 +1067,9 @@ export default function PlayForm({
                       ↺
                     </span>
                     <span className={styles.hpText}>
-                      <span className={styles.hpTextFull}>Usar última juntada</span>
+                      <span className={styles.hpTextFull}>
+                        Usar última juntada
+                      </span>
                       <span className={styles.hpTextShort}>Usar última</span>
                     </span>
                     <span className={styles.hpHint}>

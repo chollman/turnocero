@@ -1038,7 +1038,9 @@ describe("NotificationContext", () => {
     act(() => screen.getByText("clear-all").click()); // clearAll
 
     // Esperar a cualquier request en vuelo antes de afirmar que no hubo ninguno.
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => {
+      setTimeout(r, 50);
+    });
     expect(readHits).toBe(0);
     expect(clearHits).toBe(0);
   });
