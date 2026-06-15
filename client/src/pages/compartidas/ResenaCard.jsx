@@ -297,7 +297,10 @@ export default function ResenaCard({
         style={{ "--i": index }}
       >
         {featured && (
-          <div className={styles.featuredBadge}><Meeple />Reseña destacada</div>
+          <div className={styles.featuredBadge}>
+            <Meeple />
+            Reseña destacada
+          </div>
         )}
 
         {/* ── Header de juego (cover + nombre + rating) ── */}
@@ -461,6 +464,7 @@ export default function ResenaCard({
             <RichTextEditor
               value={editBody}
               onChange={setEditBody}
+              extended
               placeholder="Escribí tu reseña…"
               maxLength={20000}
             />
@@ -501,7 +505,11 @@ export default function ResenaCard({
                   }}
                 >
                   <div ref={bodyInnerRef}>
-                    <RichTextContent html={post.body} className={styles.body} />
+                    <RichTextContent
+                      html={post.body}
+                      extended
+                      className={styles.body}
+                    />
                   </div>
                   {showReadMore && !expanded && (
                     <div className={styles.bodyFade} aria-hidden="true" />
@@ -531,7 +539,11 @@ export default function ResenaCard({
                 )}
               </div>
             ) : (
-              <RichTextContent html={post.body} className={styles.body} />
+              <RichTextContent
+                html={post.body}
+                extended
+                className={styles.body}
+              />
             )}
 
             {lbImages.length > 0 && (

@@ -455,6 +455,29 @@ describe("Compartidas — reseñas vs juntadas", () => {
     expect(stored.body).not.toContain("script");
   });
 
+  it("POST reseña: conserva el set enriquecido (h4 + YouTube) y strippea iframes ajenos", async () => {
+    const { token } = await createAuthedUser();
+    await seedGame();
+    const res = await request(app)
+      .post("/api/compartidas")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        category: "resena",
+        title: "Reseña con embed",
+        boardGame: { bggId: 13, name: "FAKE", thumbnail: "x" },
+        rating: 8,
+        body:
+          "<h4>Setup</h4><p>a</p>" +
+          '<iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"></iframe>' +
+          '<iframe src="https://evil.com/x"></iframe>',
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.body).toContain("<h4>Setup</h4>");
+    expect(res.body.body).toMatch(/youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
+    expect(res.body.body).toMatch(/sandbox=/);
+    expect(res.body.body).not.toContain("evil.com");
+  });
+
   it("POST juntada sin juego sigue funcionando", async () => {
     const { token } = await createAuthedUser();
     const res = await request(app)

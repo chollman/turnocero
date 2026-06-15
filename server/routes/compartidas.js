@@ -23,7 +23,7 @@ const httpError = require("../utils/httpError");
 const { isSameId } = require("../utils/idCompare");
 const serializeComment = require("../utils/serializeComment");
 const { assertLinkable } = require("../utils/tablePrivacy");
-const { sanitizeCompartidaHtml, stripHtml } = require("../utils/sanitizeHtml");
+const { sanitizeRichHtml, stripHtml } = require("../utils/sanitizeHtml");
 const { escapeRegex } = require("../utils/regex");
 const { resolveGame } = require("../services/bgg/bggResolve");
 
@@ -433,7 +433,7 @@ router.post(
       }
       boardGameSnapshot = await resolveBoardGameSnapshot(boardGame);
       finalRating = r;
-      finalBody = sanitizeCompartidaHtml(body || "");
+      finalBody = sanitizeRichHtml(body || "");
     } else {
       // Juntada: aceptar lista `boardGames`, o un `boardGame` único (compat).
       boardGameList = await resolveBoardGameList(
@@ -551,7 +551,7 @@ router.put(
 
     if (title !== undefined) compartida.title = title.trim();
     if (body !== undefined) {
-      compartida.body = isResena ? sanitizeCompartidaHtml(body) : body.trim();
+      compartida.body = isResena ? sanitizeRichHtml(body) : body.trim();
     }
     if (privacy !== undefined) compartida.privacy = privacy;
 

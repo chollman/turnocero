@@ -205,8 +205,7 @@ export default function CreateCompartidaForm({
           title: title.trim(),
           body: isResena ? body : body.trim(),
           rating: isResena ? rating : undefined,
-          boardGame:
-            isResena && games[0] ? toGamePayload(games[0]) : undefined,
+          boardGame: isResena && games[0] ? toGamePayload(games[0]) : undefined,
           boardGames: !isResena ? games.map(toGamePayload) : undefined,
           privacy,
           linkedTable: linkedTableId || undefined,
@@ -444,6 +443,7 @@ export default function CreateCompartidaForm({
         <RichTextEditor
           value={body}
           onChange={setBody}
+          extended
           placeholder="Escribí tu reseña… usá títulos y subsecciones a tu gusto."
           maxLength={REVIEW_BODY_MAX}
           disabled={loading}
