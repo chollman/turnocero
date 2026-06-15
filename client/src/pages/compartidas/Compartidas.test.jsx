@@ -165,7 +165,7 @@ describe("<Compartidas>", () => {
       ).toBeGreaterThanOrEqual(2),
     );
     expect(
-      screen.getByRole("button", { name: /qué jugaste hoy/i }),
+      screen.getByRole("button", { name: /compartir una juntada o reseña/i }),
     ).toBeInTheDocument();
   });
 
@@ -176,11 +176,11 @@ describe("<Compartidas>", () => {
         screen.getAllByTestId("compartida-card").length,
       ).toBeGreaterThanOrEqual(1),
     );
-    fireEvent.click(screen.getByRole("button", { name: /qué jugaste hoy/i }));
+    fireEvent.click(screen.getByRole("button", { name: /compartir una juntada o reseña/i }));
     expect(screen.getByTestId("create-form")).toBeInTheDocument();
     // Composer hides while the form is open
     expect(
-      screen.queryByRole("button", { name: /qué jugaste hoy/i }),
+      screen.queryByRole("button", { name: /compartir una juntada o reseña/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -191,7 +191,7 @@ describe("<Compartidas>", () => {
         screen.getAllByTestId("compartida-card").length,
       ).toBeGreaterThanOrEqual(1),
     );
-    fireEvent.click(screen.getByRole("button", { name: /qué jugaste hoy/i }));
+    fireEvent.click(screen.getByRole("button", { name: /compartir una juntada o reseña/i }));
     expect(screen.getByTestId("create-form")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "cancelar-form" }));
     expect(screen.queryByTestId("create-form")).not.toBeInTheDocument();
@@ -204,7 +204,7 @@ describe("<Compartidas>", () => {
         screen.getAllByTestId("compartida-card").length,
       ).toBeGreaterThanOrEqual(2),
     );
-    fireEvent.click(screen.getByRole("button", { name: /qué jugaste hoy/i }));
+    fireEvent.click(screen.getByRole("button", { name: /compartir una juntada o reseña/i }));
     fireEvent.click(screen.getByRole("button", { name: "crear" }));
     await waitFor(() =>
       expect(screen.getByText("Nuevo post")).toBeInTheDocument(),
@@ -458,7 +458,7 @@ describe("<Compartidas>", () => {
 
   it("el composer ya no tiene el botón 'Enlazar mesa'", async () => {
     renderPage();
-    await screen.findByRole("button", { name: /qué jugaste hoy/i });
+    await screen.findByRole("button", { name: /compartir una juntada o reseña/i });
     expect(
       screen.queryByRole("button", { name: /enlazar mesa/i }),
     ).not.toBeInTheDocument();
