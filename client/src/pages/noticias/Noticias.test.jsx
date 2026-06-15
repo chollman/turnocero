@@ -100,14 +100,15 @@ describe("<Noticias> (portada editorial)", () => {
     expect(await screen.findByText(/sin novedades/i)).toBeInTheDocument();
   });
 
-  it("admin sees the '+ Nueva noticia' button; regular users do not", async () => {
+  it("admin sees the '+ Nueva noticia' control (inline + mobile FAB)", async () => {
     server.use(http.get("/api/noticias", () => jsonList([makeNoticia()])));
     useAuth.mockReturnValue({ user: { _id: "admin", isAdmin: true } });
     renderPage();
     await screen.findByText(/Noticiero/i);
+    // Inline button (desktop) + FAB (mobile) both render; CSS hides one per viewport.
     expect(
-      screen.getByRole("button", { name: /nueva noticia/i }),
-    ).toBeInTheDocument();
+      screen.getAllByRole("button", { name: /nueva noticia/i }).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it("regular users do not see the create button", async () => {
@@ -139,6 +140,22 @@ describe("<Noticias> (portada editorial)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reseñas" }));
     await waitFor(() => expect(seen).toContain("resena"));
     expect(await screen.findByText("Una reseña")).toBeInTheDocument();
+  });
+
+  it("filters via the mobile section dropdown", async () => {
+    const seen = [];
+    server.use(
+      http.get("/api/noticias", ({ request }) => {
+        seen.push(new URL(request.url).searchParams.get("category"));
+        return jsonList([makeNoticia({ title: "Algo" })]);
+      }),
+    );
+    renderPage();
+    await screen.findByText("Algo");
+    fireEvent.change(screen.getByLabelText("Sección"), {
+      target: { value: "evento" },
+    });
+    await waitFor(() => expect(seen).toContain("evento"));
   });
 
   it("shows the filtered empty state when a search returns nothing", async () => {

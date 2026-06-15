@@ -99,9 +99,7 @@ export default function NoticiaDetail() {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
-          <BackButton to="/noticias" flush>
-            Volver al noticiero
-          </BackButton>
+          <BackButton to="/noticias">Volver al noticiero</BackButton>
           <div className={styles.skeleton}>
             <div className={styles.skLine} style={{ width: "30%" }} />
             <div className={styles.skTitle} />
@@ -124,9 +122,7 @@ export default function NoticiaDetail() {
       <div className={styles.page}>
         <div className={styles.inner}>
           <p className={styles.notFoundTitle}>Noticia no encontrada</p>
-          <BackButton to="/noticias" flush>
-            Volver al noticiero
-          </BackButton>
+          <BackButton to="/noticias">Volver al noticiero</BackButton>
         </div>
       </div>
     );
@@ -268,9 +264,7 @@ export default function NoticiaDetail() {
       </Helmet>
 
       <div className={styles.inner}>
-        <BackButton to="/noticias" flush>
-          Volver al noticiero
-        </BackButton>
+        <BackButton to="/noticias">Volver al noticiero</BackButton>
 
         {noticia.status === "draft" && (
           <div className={styles.draftBanner}>

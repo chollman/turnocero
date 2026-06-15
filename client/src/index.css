@@ -273,6 +273,11 @@ select {
 @media (--below-desktop) {
   .appContent {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    /* Guard mobile: ninguna sección debe scrollear horizontalmente en
+       pantallas chicas. `clip` no crea contexto de scroll (no rompe
+       position:sticky ni los position:fixed como FABs/drawer). Scopeado a
+       mobile para no recortar tooltips/popovers inline en desktop. */
+    overflow-x: clip;
   }
 }
 

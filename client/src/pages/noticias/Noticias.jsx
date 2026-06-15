@@ -226,16 +226,31 @@ export default function Noticias() {
         </div>
 
         {/* ── Section tabs + search + admin CTA ── */}
-        <div className={styles.sectionTabs}>
-          {NOTICIA_SECTIONS.map((s) => (
-            <button
-              key={s.id}
-              className={`${styles.sectionTab} ${tab === s.id ? styles.sectionTabActive : ""}`}
-              onClick={() => setTab(s.id)}
-            >
-              {s.label}
-            </button>
-          ))}
+        <div className={styles.controls}>
+          <div className={styles.sectionTabs}>
+            {NOTICIA_SECTIONS.map((s) => (
+              <button
+                key={s.id}
+                className={`${styles.sectionTab} ${tab === s.id ? styles.sectionTabActive : ""}`}
+                onClick={() => setTab(s.id)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          {/* Mobile: dropdown en lugar de las tabs (oculto en desktop por CSS). */}
+          <select
+            className={styles.tabSelect}
+            value={tab}
+            onChange={(e) => setTab(e.target.value)}
+            aria-label="Sección"
+          >
+            {NOTICIA_SECTIONS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
           <div className={styles.tabsSpacer} />
           <input
             className={styles.search}
@@ -252,6 +267,17 @@ export default function Noticias() {
             </button>
           )}
         </div>
+
+        {/* FAB — mobile only, admin only (reemplaza al botón inline). */}
+        {isAdmin && (
+          <button
+            className={styles.fab}
+            onClick={() => navigate("/noticias/crear")}
+            aria-label="Nueva noticia"
+          >
+            + Nueva noticia
+          </button>
+        )}
 
         {loading ? (
           <div className={styles.skeletonWrap}>

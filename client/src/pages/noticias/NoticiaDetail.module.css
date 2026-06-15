@@ -10,7 +10,7 @@
 }
 
 .inner {
-  max-width: calc(820px + var(--sidebar-freed));
+  max-width: calc(1180px + var(--sidebar-freed));
   margin: 0 auto;
   padding: 0 var(--page-padding) 0 var(--page-padding-left);
 }

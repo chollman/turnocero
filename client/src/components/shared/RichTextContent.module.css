@@ -4,6 +4,18 @@
   color: var(--text-primary);
   font-size: 1.02rem;
   line-height: 1.7;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Romper URLs/palabras largas para que nunca desborden horizontalmente. */
+.content a,
+.content p,
+.content li,
+.content h2,
+.content h3,
+.content h4 {
+  overflow-wrap: break-word;
   word-break: break-word;
 }
 

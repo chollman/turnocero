@@ -1,19 +1,20 @@
 /* Artículo editorial de Noticias — tipografía serif, drop cap, epígrafes. */
 
 .article {
-  max-width: 740px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .kicker {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   margin-bottom: 18px;
+  overflow-wrap: anywhere;
 }
 
 .liveDot {
@@ -43,6 +44,7 @@
   color: var(--text-primary);
   margin: 0 0 22px;
   text-wrap: balance;
+  overflow-wrap: break-word;
 }
 
 .dek {
@@ -53,6 +55,7 @@
   color: var(--text-secondary);
   margin: 0 0 28px;
   letter-spacing: -0.005em;
+  overflow-wrap: break-word;
 }
 
 .byline {
@@ -79,6 +82,7 @@
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
 }
 
 .bylineMeta {
@@ -138,6 +142,8 @@
   font-size: 18px;
   line-height: 1.7;
   color: var(--text-secondary);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .bodyProse :global(p),
@@ -439,5 +445,15 @@
   }
   .bodyProse {
     font-size: 16px;
+  }
+
+  /* El avatar + autor/fecha ocupan la primera fila completa; las acciones
+     (admin + compartir) bajan a una segunda fila para no aplastar la meta. */
+  .byline {
+    flex-wrap: wrap;
+    row-gap: 14px;
+  }
+  .bylineInfo {
+    flex: 1 1 calc(100% - 54px);
   }
 }
