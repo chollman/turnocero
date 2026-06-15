@@ -66,6 +66,23 @@ describe("<ScoreRow>", () => {
     expect(onTeam).toHaveBeenCalledWith("B");
   });
 
+  it("equipos: muestra el label 'Elegí el equipo:'; versus no", () => {
+    const { unmount } = renderRow({ mode: "equipos" });
+    expect(screen.getByText(/elegí el equipo:/i)).toBeInTheDocument();
+    unmount();
+    renderRow({ mode: "versus" });
+    expect(screen.queryByText(/elegí el equipo:/i)).toBeNull();
+  });
+
+  it("equipos: la fila lleva la clase scoreRowTeams (layout de dos líneas en mobile); otros modos no", () => {
+    const { container: teams } = renderRow({ mode: "equipos" });
+    expect(teams.firstChild.className).toMatch(/scoreRowTeams/);
+    const { container: versus } = renderRow({ mode: "versus" });
+    expect(versus.firstChild.className).not.toMatch(/scoreRowTeams/);
+    const { container: coop } = renderRow({ mode: "coop" });
+    expect(coop.firstChild.className).not.toMatch(/scoreRowTeams/);
+  });
+
   it("líder muestra la corona; el toggle de ganó llama onToggleWin", () => {
     const onToggleWin = vi.fn();
     renderRow({ leader: true, onToggleWin });

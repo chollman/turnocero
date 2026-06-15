@@ -787,6 +787,22 @@
   color: var(--purple);
 }
 /* Selector de equipo por jugador (en la fila) */
+/* Envuelve el label + el grupo de botones de equipo. El label sólo aparece en
+   la fila de dos líneas de mobile (ver @media --phone); en desktop queda como
+   wrapper inerte alrededor del .teamPick. */
+.teamSelect {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.teamSelectLabel {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
 .teamPick {
   display: inline-flex;
   gap: 4px;
@@ -953,6 +969,12 @@
 .scoreRowLeader .scoreRank {
   color: var(--gold);
 }
+/* Envoltura del avatar para poder asignarle un grid-area (modo equipos en
+   mobile, fila de dos líneas). En el resto de los modos es un wrapper inerte. */
+.scoreAvatar {
+  display: flex;
+  align-items: center;
+}
 .scorePlayer {
   display: flex;
   align-items: center;
@@ -1018,6 +1040,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+/* En la fila de equipos (una sola línea, ≥601px) el selector de equipo iguala
+   su alto al del input de puntaje. El input manda (alto natural): sólo el
+   selector se estira para alcanzarlo (align-self) y dentro el grupo de botones
+   ocupa toda esa altura, con las letras centradas. En --phone (dos líneas) no
+   aplica porque ahí scoreControls es display:contents. */
+.scoreRowTeams .teamSelect {
+  align-self: stretch;
+  align-items: stretch;
+}
+.scoreRowTeams .teamPick {
+  align-items: center;
 }
 /* Celda unificada del stepper (handoff v2): − input + dentro de un solo
    contenedor con borde; el focus ilumina la celda entera. */
@@ -1927,14 +1961,15 @@
   .scoreControls {
     gap: 5px;
   }
+  /* En mobile se cargan los puntajes tipeando: ocultamos los steppers − / +
+     y dejamos sólo el input dentro de la celda. */
   .scoreStep {
-    width: 19px;
-    font-size: 14px;
+    display: none;
   }
   .scoreInput {
-    width: 34px;
+    width: 50px;
     font-size: 0.9rem;
-    padding: 6px 0;
+    padding: 6px 8px;
   }
   .winToggle {
     width: 28px;
@@ -1961,6 +1996,48 @@
   /* La fila de "Vos" no reserva el hueco del quitar en mobile (handoff). */
   .scoreRemovePlaceholder {
     display: none;
+  }
+
+  /* Modo equipos en mobile (estrategia A): la fila se parte en dos líneas.
+     Arriba: rank · avatar · nombre · puntaje · quitar (el puntaje queda en la
+     1ª línea, como antes). Abajo: "Elegí el equipo:" + selector A/B/C/D,
+     alineado a la derecha de modo que el último botón cierre con el borde
+     derecho del input de puntaje (la columna `score`). */
+  .scoreRowTeams {
+    grid-template-columns: 22px 28px minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "rank avatar name score remove"
+      "team team   team team  .";
+    gap: 8px 7px;
+  }
+  .scoreRowTeams .scoreRank {
+    grid-area: rank;
+  }
+  .scoreRowTeams .scoreAvatar {
+    grid-area: avatar;
+  }
+  .scoreRowTeams .scorePlayer {
+    grid-area: name;
+  }
+  /* El wrapper desaparece y sus hijos —puntaje y selector— se ubican por
+     separado: el puntaje en la 1ª línea, el selector en la 2ª. */
+  .scoreRowTeams .scoreControls {
+    display: contents;
+  }
+  .scoreRowTeams .scoreCell {
+    grid-area: score;
+  }
+  .scoreRowTeams .teamSelect {
+    grid-area: team;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .scoreRowTeams .teamSelectLabel {
+    display: inline;
+  }
+  .scoreRowTeams .scoreRemove,
+  .scoreRowTeams .scoreRemovePlaceholder {
+    grid-area: remove;
   }
 
   /* "Agregar jugador" / "Anónimo" (addGuest del handoff). */

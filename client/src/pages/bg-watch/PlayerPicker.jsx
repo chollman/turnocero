@@ -50,6 +50,7 @@ export default function PlayerPicker({
   // BGG): con 1-2 letras no refetchea, sigue mostrando la lista por defecto.
   const searchTerm = useSearchTerm(q);
   const listRef = useRef(null);
+  const inputRef = useRef(null);
   const abortRef = useRef(null);
   const reqIdRef = useRef(0);
 
@@ -157,6 +158,17 @@ export default function PlayerPicker({
     enabled: page < pages && !loading && !loadingMore,
   });
 
+  // Al elegir un jugador el picker NO se cierra (se pueden sumar varios). Para
+  // poder buscar el siguiente al toque, limpiamos el input y lo reenfocamos.
+  const handlePick = useCallback(
+    (player) => {
+      onPick(player);
+      setQ("");
+      inputRef.current?.focus();
+    },
+    [onPick],
+  );
+
   // Set de identidades ya agregadas para no ofrecer duplicados.
   const existingUsernames = new Set(
     (existing || [])
@@ -196,6 +208,7 @@ export default function PlayerPicker({
     <div className={styles.modalSection}>
       <div className={styles.playerPickerHead}>
         <input
+          ref={inputRef}
           type="text"
           className={styles.modalInput}
           placeholder={
@@ -226,7 +239,7 @@ export default function PlayerPicker({
               <button
                 type="button"
                 className={styles.locationCreateBtn}
-                onClick={() => onPick({ name: term, username: "" })}
+                onClick={() => handlePick({ name: term, username: "" })}
               >
                 <span className={styles.gameSearchThumbFallback}>＋</span>
                 <span className={styles.gameSearchInfo}>Usar «{term}»</span>
@@ -259,7 +272,7 @@ export default function PlayerPicker({
                     type="button"
                     className={styles.gameSearchItem}
                     onClick={() =>
-                      onPick({ name: p.name, username: p.username })
+                      handlePick({ name: p.name, username: p.username })
                     }
                   >
                     <Avatar user={avatarUser} size="xs" />
@@ -291,7 +304,7 @@ export default function PlayerPicker({
                     type="button"
                     className={styles.gameSearchItem}
                     onClick={() =>
-                      onPick({ name, username: u.bggUsername || "" })
+                      handlePick({ name, username: u.bggUsername || "" })
                     }
                   >
                     <Avatar user={u} size="xs" />

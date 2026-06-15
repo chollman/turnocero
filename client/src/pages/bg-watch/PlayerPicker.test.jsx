@@ -226,6 +226,25 @@ describe("<PlayerPicker>", () => {
     expect(onPick).toHaveBeenCalledWith({ name: "Bob", username: "bobbgg" });
   });
 
+  it("al elegir un jugador limpia el input y lo reenfoca para buscar otro", async () => {
+    render(
+      <PlayerPicker
+        bggUsername="me"
+        existing={[]}
+        onPick={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    await screen.findByText("Bob");
+    const input = screen.getByPlaceholderText(/buscá o escribí un jugador/i);
+    fireEvent.change(input, { target: { value: "Bob" } });
+    expect(input).toHaveValue("Bob");
+    fireEvent.click((await screen.findByText("Bob")).closest("button"));
+    // El picker no se cierra: el input queda vacío y enfocado para el siguiente.
+    expect(input).toHaveValue("");
+    expect(input).toHaveFocus();
+  });
+
   it("ofrece 'Usar «…»' para un nombre nuevo no listado", async () => {
     const onPick = vi.fn();
     render(

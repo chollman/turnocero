@@ -100,7 +100,7 @@ export default function ScoreRow({
   const scoreLabel = `Puntaje de ${p.name || p.username || "jugador"}`;
   return (
     <div
-      className={`${styles.scoreRow} ${leader ? styles.scoreRowLeader : ""} ${isYou ? styles.scoreRowYou : ""}`}
+      className={`${styles.scoreRow} ${mode === "equipos" ? styles.scoreRowTeams : ""} ${leader ? styles.scoreRowLeader : ""} ${isYou ? styles.scoreRowYou : ""}`}
     >
       <span className={styles.scoreRank}>
         {mode === "versus"
@@ -109,7 +109,9 @@ export default function ScoreRow({
             : "—"
           : "·"}
       </span>
-      <PlayerAvatar player={p} userMap={userMap} />
+      <span className={styles.scoreAvatar}>
+        <PlayerAvatar player={p} userMap={userMap} />
+      </span>
       <div className={styles.scorePlayer}>
         <span className={styles.scorePlayerName}>{p.name || p.username}</span>
         {!p.anonymous && p.username && (
@@ -161,22 +163,25 @@ export default function ScoreRow({
             onStep={onStep}
             label={scoreLabel}
           />
-          <div
-            className={styles.teamPick}
-            role="group"
-            aria-label={`Equipo de ${p.name || p.username || "jugador"}`}
-          >
-            {activeTeams.map((t) => (
-              <button
-                key={t}
-                type="button"
-                className={`${styles.teamBtn} ${styles[`teamBtn${t}`]} ${p.team === t ? styles.teamBtnActive : ""}`}
-                onClick={() => onTeam(t)}
-                aria-pressed={p.team === t}
-              >
-                {t}
-              </button>
-            ))}
+          <div className={styles.teamSelect}>
+            <span className={styles.teamSelectLabel}>Elegí el equipo:</span>
+            <div
+              className={styles.teamPick}
+              role="group"
+              aria-label={`Equipo de ${p.name || p.username || "jugador"}`}
+            >
+              {activeTeams.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`${styles.teamBtn} ${styles[`teamBtn${t}`]} ${p.team === t ? styles.teamBtnActive : ""}`}
+                  onClick={() => onTeam(t)}
+                  aria-pressed={p.team === t}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
