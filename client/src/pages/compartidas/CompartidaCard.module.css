@@ -81,7 +81,9 @@
 
 @media (--below-desktop) {
   .cardFeatured {
-    padding: 22px;
+    /* Márgenes laterales alineados con las compartidas normales (18px de
+       inset del contenido en este rango). */
+    padding: 22px 18px;
     overflow: visible;
   }
 }
@@ -1964,6 +1966,10 @@
   .contentWrap {
     padding: 0 14px 8px;
   }
+  /* Compartida del día: mismos márgenes laterales que las normales (14px). */
+  .cardFeatured {
+    padding: 22px 14px;
+  }
   .photos {
     padding: 6px 14px 12px;
     gap: 10px;
@@ -1984,6 +1990,17 @@
   .mediaGridOdd:has(.mediaScorecard) > *:last-child {
     grid-column: auto;
     width: 100%;
+  }
+  /* Margen inferior bajo el scorecard en mobile, para separarlo de lo que
+     sigue (fotos apiladas, tickets enlazados o el footer). */
+  .mediaScorecard {
+    margin-bottom: 12px;
+  }
+  /* Compartida del día: el scorecard va a ancho completo, sin el padding
+     lateral del wrapper. */
+  .playResult {
+    padding: 0;
+    margin-bottom: 12px;
   }
   .mesaTicket {
     margin: 0 14px 12px;

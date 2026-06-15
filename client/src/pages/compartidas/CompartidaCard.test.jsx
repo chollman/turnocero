@@ -126,6 +126,18 @@ describe("<CompartidaCard>", () => {
     expect(screen.queryByText(/ganó/i)).not.toBeInTheDocument();
   });
 
+  it("con scorecard, oculta las game tags (el scorecard ya identifica el juego)", () => {
+    renderCard(
+      makePost({
+        playResult: PLAY_RESULT,
+        boardGames: [{ bggId: 13, name: "Catan", thumbnail: "", image: "" }],
+      }),
+    );
+    expect(document.querySelector(".mediaScorecard")).toBeInTheDocument();
+    expect(document.querySelector(".gameTags")).toBeNull();
+    expect(screen.queryByText("Catan")).not.toBeInTheDocument();
+  });
+
   // ── Layout de la grilla scorecard + fotos (paridad de tiles) ──────────
   it("scorecard + 3 fotos: scorecard primero y grilla par (no centra la última)", () => {
     renderCard(makePost({ playResult: PLAY_RESULT, images: photoUrls(3) }));
@@ -495,6 +507,29 @@ describe("<CompartidaCard>", () => {
     expect(
       container.querySelector(".photosFeaturedStacked"),
     ).toBeInTheDocument();
+  });
+
+  it("featured con scorecard: oculta las game tags", () => {
+    useAuth.mockReturnValue({ user: null });
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+    render(
+      <MemoryRouter>
+        <CompartidaCard
+          post={makePost({
+            playResult: PLAY_RESULT,
+            boardGames: [
+              { bggId: 13, name: "Catan", thumbnail: "", image: "" },
+            ],
+          })}
+          featured
+          onDeleted={vi.fn()}
+          onUpdated={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    expect(document.querySelector(".playResult")).toBeInTheDocument();
+    expect(document.querySelector(".gameTags")).toBeNull();
+    expect(screen.queryByText("Catan")).not.toBeInTheDocument();
   });
 
   it("featured sin scorecard: la galería NO se apila (tira al costado)", () => {

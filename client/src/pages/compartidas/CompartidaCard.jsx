@@ -663,8 +663,10 @@ export default function CompartidaCard({
       <p className={styles.pullQuote}>{pullQuote}</p>
     ) : null;
 
+    // Con scorecard presente, el scorecard ya identifica el juego — ocultamos
+    // las game tags para no duplicar.
     const featuredGameTags =
-      post.boardGames?.length > 0 ? (
+      !showScorecard && post.boardGames?.length > 0 ? (
         <div className={`${styles.gameTags} ${styles.gameTagsFeatured}`}>
           {post.boardGames.map((g) => (
             <span key={g.bggId} className={styles.gameTag}>
@@ -1001,8 +1003,10 @@ export default function CompartidaCard({
         </>
       )}
 
-      {/* ── Juegos jugados (juntada) ── */}
-      {!editing && post.boardGames?.length > 0 && (
+      {/* ── Juegos jugados (juntada) ──
+          Con scorecard presente, el scorecard ya identifica el juego —
+          ocultamos las game tags para no duplicar. */}
+      {!editing && !showScorecard && post.boardGames?.length > 0 && (
         <div className={styles.gameTags}>
           {post.boardGames.map((g) => (
             <span key={g.bggId} className={styles.gameTag}>
