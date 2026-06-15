@@ -1,618 +1,370 @@
-import Meeple from "../../components/shared/Meeple";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 import { API } from "../../api/endpoints";
-import ItemCommunityTag from "../../components/shared/ItemCommunityTag";
+import Avatar from "../../components/shared/Avatar";
+import Meeple from "../../components/shared/Meeple";
 import EmptyState from "../../components/shared/EmptyState";
 import { ArtNoticia } from "../../components/shared/EmptyArt";
 import { GhostMesa } from "../../components/shared/EmptyGhosts";
+import { getUserDisplay } from "../../utils/userDisplay";
+import {
+  NOTICIA_SECTIONS,
+  categoryLabel,
+  categoryColor,
+  isLiveCategory,
+} from "../../utils/noticiaCategories";
+import { readingLabel } from "../../utils/readingTime";
 import styles from "./Noticias.module.css";
 
 function timeAgo(date) {
   const diff = (Date.now() - new Date(date)) / 1000;
   if (diff < 60) return "ahora";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
+  if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
+  if (diff < 604800) return `hace ${Math.floor(diff / 86400)} d`;
   return new Date(date).toLocaleDateString("es-AR", {
     day: "numeric",
-    month: "long",
-    year: "numeric",
+    month: "short",
   });
 }
 
-function ImageDropzone({ preview, onFile }) {
-  const inputRef = useRef(null);
-  const onFileRef = useRef(onFile);
-  const [dragOver, setDragOver] = useState(false);
-
-  useEffect(() => {
-    onFileRef.current = onFile;
-  }, [onFile]);
-
-  useEffect(() => {
-    const handlePaste = (e) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (const item of items) {
-        if (item.type.startsWith("image/")) {
-          const f = item.getAsFile();
-          if (f) {
-            onFileRef.current(f);
-            break;
-          }
-        }
-      }
-    };
-    document.addEventListener("paste", handlePaste);
-    return () => document.removeEventListener("paste", handlePaste);
-  }, []);
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setDragOver(false);
-    const f = e.dataTransfer.files?.[0];
-    if (f) onFile(f);
-  };
-
-  const classes = [
-    styles.dropzone,
-    preview ? styles.dropzoneWithPreview : "",
-    dragOver ? styles.dropzoneDragOver : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  return (
-    <div
-      className={classes}
-      onDrop={handleDrop}
-      onDragOver={(e) => {
-        e.preventDefault();
-        setDragOver(true);
-      }}
-      onDragLeave={() => setDragOver(false)}
-      onClick={() => inputRef.current?.click()}
-    >
-      {preview ? (
-        <img src={preview} alt="preview" className={styles.dropzonePreview} />
-      ) : (
-        <div className={styles.dropzonePlaceholder}>
-          <span className={styles.dropzoneIcon}>🖼</span>
-          <span className={styles.dropzoneText}>
-            Arrastrá, pegá o hacé click para subir la imagen
-          </span>
-          <span className={styles.dropzoneSub}>JPG, PNG, WEBP · máx. 5 MB</span>
-        </div>
-      )}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
-        className={styles.fileInput}
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onFile(f);
-        }}
+function ImageOrFallback({ noticia, className }) {
+  if (noticia.image?.url) {
+    return (
+      <img
+        src={noticia.image.url}
+        alt={noticia.title || ""}
+        className={className}
       />
+    );
+  }
+  return (
+    <div className={`${className} ${styles.fallback}`}>
+      {noticia.image?.caption || "imagen"}
     </div>
   );
 }
 
-function NoticiaCard({ noticia: initial, onDeleted, onUpdated, isAdmin }) {
-  const [noticia, setNoticia] = useState(initial);
-  const [lightbox, setLightbox] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [confirming, setConfirm] = useState(false);
-
-  // edit form state
-  const [editTitle, setEditTitle] = useState(noticia.title || "");
-  const [editBody, setEditBody] = useState(noticia.body || "");
-  const [editLink, setEditLink] = useState(noticia.link || "");
-  const [editLinkLabel, setEditLinkLabel] = useState(noticia.linkLabel || "");
-  const [newFile, setNewFile] = useState(null);
-  const [newPreview, setNewPreview] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [editError, setEditError] = useState("");
-
-  const openEdit = () => {
-    setEditTitle(noticia.title || "");
-    setEditBody(noticia.body || "");
-    setEditLink(noticia.link || "");
-    setEditLinkLabel(noticia.linkLabel || "");
-    setNewFile(null);
-    setNewPreview(null);
-    setEditError("");
-    setEditing(true);
-  };
-
-  const handleNewFile = (f) => {
-    setNewFile(f);
-    setNewPreview(URL.createObjectURL(f));
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    setEditError("");
-    try {
-      const fd = new FormData();
-      fd.append("title", editTitle.trim());
-      fd.append("body", editBody.trim());
-      fd.append("link", editLink.trim());
-      fd.append("linkLabel", editLinkLabel.trim());
-      if (newFile) fd.append("image", newFile);
-      const { data } = await axios.put(API.noticias.DETAIL(noticia._id), fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setNoticia(data);
-      onUpdated?.(data);
-      setEditing(false);
-    } catch (err) {
-      setEditError(err.response?.data?.message || "Error al guardar");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await axios.delete(API.noticias.DETAIL(noticia._id));
-      onDeleted(noticia._id);
-    } catch {
-      /* silently ignore */
-    }
-  };
-
+function StoryCard({ noticia }) {
+  const cat = noticia.category || "general";
+  const who = getUserDisplay(noticia.author);
   return (
-    <>
-      <article className={styles.card}>
-        {/* ── Image / edit dropzone ── */}
-        {editing ? (
-          <div className={styles.editImageWrap}>
-            <ImageDropzone
-              preview={newPreview || noticia.image?.url || null}
-              onFile={handleNewFile}
-            />
-            {newFile && (
-              <span className={styles.editImageHint}>
-                Nueva imagen seleccionada — se reemplazará al guardar
-              </span>
-            )}
-          </div>
-        ) : noticia.image?.url ? (
-          <button
-            className={styles.imageBtn}
-            onClick={() => setLightbox(true)}
-            aria-label="Ver imagen completa"
-          >
-            <img
-              src={noticia.image.url}
-              alt=""
-              className={styles.imageBg}
-              aria-hidden="true"
-            />
-            <img
-              src={noticia.image.url}
-              alt={noticia.title || "Noticia"}
-              className={styles.image}
-            />
-          </button>
-        ) : null}
-
-        <div className={styles.cardBody}>
-          {/* ── Meta row: date + admin actions ── */}
-          <div className={styles.cardMeta}>
-            <span className={styles.cardDate}>
-              {timeAgo(noticia.createdAt)}
-            </span>
-            <ItemCommunityTag communityId={noticia.community} />
-            {isAdmin && !editing && (
-              <div className={styles.adminActions}>
-                <button className={styles.editBtn} onClick={openEdit}>
-                  Editar
-                </button>
-                {confirming ? (
-                  <div className={styles.confirmRow}>
-                    <span className={styles.confirmLabel}>¿Eliminar?</span>
-                    <button
-                      className={styles.confirmYes}
-                      onClick={handleDelete}
-                    >
-                      Sí
-                    </button>
-                    <button
-                      className={styles.confirmNo}
-                      onClick={() => setConfirm(false)}
-                    >
-                      No
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    className={styles.deleteBtn}
-                    onClick={() => setConfirm(true)}
-                  >
-                    Eliminar
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* ── Content or edit form ── */}
-          {editing ? (
-            <div className={styles.editForm}>
-              <input
-                className={styles.fieldInput}
-                placeholder="Título (opcional)"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                maxLength={200}
-              />
-              <textarea
-                className={styles.fieldTextarea}
-                placeholder="Descripción (opcional)"
-                value={editBody}
-                onChange={(e) => setEditBody(e.target.value)}
-                rows={3}
-                maxLength={2000}
-              />
-              <input
-                className={styles.fieldInput}
-                placeholder="Link externo (opcional) — https://..."
-                value={editLink}
-                onChange={(e) => setEditLink(e.target.value)}
-                maxLength={500}
-                type="url"
-              />
-              <input
-                className={styles.fieldInput}
-                placeholder={`Texto del botón (opcional) — por defecto "Ver más →"`}
-                value={editLinkLabel}
-                onChange={(e) => setEditLinkLabel(e.target.value)}
-                maxLength={80}
-                disabled={!editLink.trim()}
-              />
-              {editError && <p className={styles.errorMsg}>{editError}</p>}
-              <div className={styles.editActions}>
-                <button
-                  className={styles.btnGhost}
-                  onClick={() => setEditing(false)}
-                  disabled={saving}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className={styles.btnPublish}
-                  onClick={handleSave}
-                  disabled={saving}
-                >
-                  {saving ? "Guardando…" : "Guardar"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {noticia.title && (
-                <h2 className={styles.cardTitle}>{noticia.title}</h2>
-              )}
-              {noticia.body && (
-                <p className={styles.cardText}>{noticia.body}</p>
-              )}
-              {noticia.link && (
-                <a
-                  href={noticia.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.cardLink}
-                >
-                  {noticia.linkLabel || "Ver más →"}
-                </a>
-              )}
-              <Link
-                to={`/noticias/${noticia._id}`}
-                className={styles.detailLink}
-              >
-                Ver y compartir →
-              </Link>
-            </>
-          )}
-        </div>
-      </article>
-
-      {lightbox && noticia.image?.url && (
-        <div className={styles.lightbox} onClick={() => setLightbox(false)}>
-          <img
-            src={noticia.image.url}
-            alt={noticia.title || ""}
-            className={styles.lightboxImg}
-          />
-          <button className={styles.lightboxClose}>✕</button>
-        </div>
-      )}
-    </>
+    <Link to={`/noticias/${noticia._id}`} className={styles.story}>
+      <div className={styles.storyImage}>
+        <ImageOrFallback noticia={noticia} className={styles.storyImageInner} />
+      </div>
+      <span
+        className={styles.storyKicker}
+        style={{ color: categoryColor(cat) }}
+      >
+        <Meeple /> {noticia.kicker || categoryLabel(cat)}
+      </span>
+      <h3 className={styles.storyHeadline}>{noticia.title || "Sin título"}</h3>
+      {noticia.dek && <p className={styles.storyDek}>{noticia.dek}</p>}
+      <span className={styles.storyByline}>
+        <strong>{who.name}</strong>
+        <span>·</span>
+        <span>{timeAgo(noticia.publishedAt || noticia.createdAt)}</span>
+      </span>
+    </Link>
   );
 }
 
-function CreateForm({ onCreated, onCancel }) {
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [link, setLink] = useState("");
-  const [linkLabel, setLinkLabel] = useState("");
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [submitting, setSub] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleFile = (f) => {
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
-    setError("");
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSub(true);
-    setError("");
-    try {
-      const fd = new FormData();
-      fd.append("image", file);
-      if (title.trim()) fd.append("title", title.trim());
-      if (body.trim()) fd.append("body", body.trim());
-      if (link.trim()) fd.append("link", link.trim());
-      if (linkLabel.trim()) fd.append("linkLabel", linkLabel.trim());
-      const { data } = await axios.post(API.noticias.LIST, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      onCreated(data);
-    } catch (err) {
-      setError(err.response?.data?.message || "Error al publicar");
-    } finally {
-      setSub(false);
-    }
-  };
-
+function BriefItem({ noticia }) {
+  const cat = noticia.category || "general";
   return (
-    <form className={styles.createForm} onSubmit={handleSubmit}>
-      <h3 className={styles.createTitle}>Nueva noticia</h3>
-
-      <ImageDropzone preview={preview} onFile={handleFile} />
-
-      <input
-        className={styles.fieldInput}
-        placeholder="Título (opcional)"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        maxLength={200}
-      />
-
-      <textarea
-        className={styles.fieldTextarea}
-        placeholder="Descripción (opcional)"
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        rows={3}
-        maxLength={2000}
-      />
-
-      <input
-        className={styles.fieldInput}
-        placeholder="Link externo (opcional) — https://..."
-        value={link}
-        onChange={(e) => setLink(e.target.value)}
-        maxLength={500}
-        type="url"
-      />
-      <input
-        className={styles.fieldInput}
-        placeholder={`Texto del botón (opcional) — por defecto "Ver más →"`}
-        value={linkLabel}
-        onChange={(e) => setLinkLabel(e.target.value)}
-        maxLength={80}
-        disabled={!link.trim()}
-      />
-
-      {error && <p className={styles.errorMsg}>{error}</p>}
-
-      <div className={styles.createActions}>
-        <button
-          type="button"
-          className={styles.btnGhost}
-          onClick={onCancel}
-          disabled={submitting}
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          className={styles.btnPublish}
-          disabled={submitting}
-        >
-          {submitting ? "Publicando…" : "Publicar"}
-        </button>
+    <Link to={`/noticias/${noticia._id}`} className={styles.brief}>
+      <span
+        className={styles.briefKicker}
+        style={{ color: categoryColor(cat) }}
+      >
+        {noticia.kicker || categoryLabel(cat)}
+      </span>
+      <h4 className={styles.briefHeadline}>{noticia.title || "Sin título"}</h4>
+      <div className={styles.briefMeta}>
+        <span>{timeAgo(noticia.publishedAt || noticia.createdAt)}</span>
       </div>
-    </form>
+    </Link>
+  );
+}
+
+function Lead({ noticia }) {
+  const cat = noticia.category || "general";
+  const who = getUserDisplay(noticia.author);
+  return (
+    <div className={styles.lead}>
+      <Link to={`/noticias/${noticia._id}`} className={styles.leadText}>
+        <div
+          className={`${styles.leadCategory} ${isLiveCategory(cat) ? styles.leadLive : ""}`}
+          style={{ color: categoryColor(cat) }}
+        >
+          {isLiveCategory(cat) && (
+            <span className={styles.liveDot} aria-hidden="true" />
+          )}
+          {categoryLabel(cat)}
+        </div>
+        <h2 className={styles.leadHeadline}>{noticia.title || "Sin título"}</h2>
+        {noticia.dek && <p className={styles.leadDek}>{noticia.dek}</p>}
+        <div className={styles.leadMeta}>
+          <Avatar user={noticia.author} size="xs" />
+          <span>
+            <strong>{who.name}</strong> ·{" "}
+            {timeAgo(noticia.publishedAt || noticia.createdAt)}
+          </span>
+          {noticia.body && <span>· {readingLabel(noticia.body)}</span>}
+        </div>
+      </Link>
+      <Link to={`/noticias/${noticia._id}`} className={styles.leadImage}>
+        <ImageOrFallback noticia={noticia} className={styles.leadImageInner} />
+        {noticia.image?.caption && (
+          <span className={styles.leadImageCaption}>
+            {noticia.image.caption}
+          </span>
+        )}
+      </Link>
+    </div>
   );
 }
 
 export default function Noticias() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const brandName = useBrandName();
   const isAdmin = user?.isAdmin;
 
   const [noticias, setNoticias] = useState([]);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotal] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setMore] = useState(false);
-  const [showCreate, setCreate] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [tab, setTab] = useState("all");
+  const [searchInput, setSearchInput] = useState("");
+  const search = useDebouncedValue(searchInput, 350);
 
-  const load = useCallback(async (pageNum = 1, replace = true) => {
-    if (pageNum === 1) setLoading(true);
-    else setMore(true);
-    try {
-      const { data } = await axios.get(API.noticias.LIST, {
-        params: { page: pageNum, limit: 10 },
-      });
-      setNoticias((prev) =>
-        replace ? data.noticias : [...prev, ...data.noticias],
-      );
-      setTotal(data.pages);
-      setPage(pageNum);
-    } catch {
-      /* silently ignore */
-    } finally {
-      setLoading(false);
-      setMore(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (pageNum, replace) => {
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
+      try {
+        const params = { page: pageNum, limit: 10 };
+        if (tab !== "all") params.category = tab;
+        if (search.trim()) params.search = search.trim();
+        const { data } = await axios.get(API.noticias.LIST, { params });
+        setNoticias((prev) =>
+          replace ? data.noticias : [...prev, ...data.noticias],
+        );
+        setTotalPages(data.pages);
+        setTotal(data.total);
+        setPage(pageNum);
+      } catch {
+        /* el toast global cubre el error */
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [tab, search],
+  );
 
   useEffect(() => {
-    load(1);
+    load(1, true);
   }, [load]);
 
-  const handleCreated = (noticia) => {
-    setNoticias((prev) => [noticia, ...prev]);
-    setCreate(false);
-  };
+  const today = new Date().toLocaleDateString("es-AR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
-  const handleDeleted = (id) =>
-    setNoticias((prev) => prev.filter((n) => n._id !== id));
-
-  const handleUpdated = (updated) =>
-    setNoticias((prev) =>
-      prev.map((n) => (n._id === updated._id ? updated : n)),
-    );
-
-  const pageUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/noticias`
-      : "/noticias";
-  const ogImage = noticias.find((n) => n.image?.url)?.image?.url;
+  const filtering = tab !== "all" || !!search.trim();
+  // Composición editorial (solo en la portada "all" sin búsqueda).
+  const lead = !filtering
+    ? noticias.find((n) => n.featured) ||
+      noticias.find((n) => n.image?.url) ||
+      noticias[0]
+    : null;
+  const briefs = !filtering
+    ? noticias.filter((n) => n.isBrief && n._id !== lead?._id)
+    : [];
+  const stories = noticias.filter(
+    (n) => n._id !== lead?._id && !briefs.includes(n),
+  );
 
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{`Noticias – ${brandName} 🎲`}</title>
+        <title>{`El Noticiero de ${brandName} 🗞️`}</title>
         <meta
           name="description"
-          content="Novedades y eventos de la comunidad TurnoCero."
+          content={`Novedades, reseñas y eventos de la comunidad ${brandName}.`}
         />
-        <meta property="og:title" content="Noticias – TurnoCero 🎲" />
-        <meta
-          property="og:description"
-          content="Novedades y eventos de la comunidad TurnoCero."
-        />
-        <meta property="og:url" content={pageUrl} />
-        <meta property="og:type" content="website" />
-        {ogImage && <meta property="og:image" content={ogImage} />}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Noticias – TurnoCero 🎲" />
-        <meta
-          name="twitter:description"
-          content="Novedades y eventos de la comunidad TurnoCero."
-        />
-        {ogImage && <meta name="twitter:image" content={ogImage} />}
       </Helmet>
+
       <div className={styles.inner}>
-        <div className={styles.header}>
-          <div className={styles.heroBlock}>
-            <div className={styles.eyebrow}>
-              <Meeple />
-              COMUNIDAD
-            </div>
-            <h1 className={styles.title}>Noticias</h1>
-            <p className={styles.sub}>
-              Novedades y eventos de la comunidad TurnoCero.
-            </p>
+        {/* ── Masthead ── */}
+        <div className={styles.masthead}>
+          <div className={styles.mastheadLeft}>
+            {today}
+            <br />
+            <strong>Noticias totales: #{total}</strong>
           </div>
+          <h1 className={styles.mastheadTitle}>
+            El <em>Noticiero</em> de {brandName}
+          </h1>
+          <div className={styles.mastheadRight}>
+            La comunidad
+            <br />
+            <strong>{new Date().getFullYear()} ·</strong> juegos de mesa
+          </div>
+        </div>
+
+        {/* ── Section tabs + search + admin CTA ── */}
+        <div className={styles.sectionTabs}>
+          {NOTICIA_SECTIONS.map((s) => (
+            <button
+              key={s.id}
+              className={`${styles.sectionTab} ${tab === s.id ? styles.sectionTabActive : ""}`}
+              onClick={() => setTab(s.id)}
+            >
+              {s.label}
+            </button>
+          ))}
+          <div className={styles.tabsSpacer} />
+          <input
+            className={styles.search}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Buscar nota…"
+          />
           {isAdmin && (
             <button
-              className={`${styles.newBtn} ${showCreate ? styles.newBtnActive : ""}`}
-              onClick={() => setCreate((s) => !s)}
+              className={styles.newBtn}
+              onClick={() => navigate("/noticias/crear")}
             >
-              {showCreate ? "✕ Cancelar" : "+ Nueva noticia"}
+              + Nueva noticia
             </button>
           )}
         </div>
 
-        {showCreate && (
-          <CreateForm
-            onCreated={handleCreated}
-            onCancel={() => setCreate(false)}
-          />
-        )}
-
         {loading ? (
-          <div className={styles.skeletons}>
-            {[1, 2, 3].map((i) => (
-              <div key={i} className={styles.skeleton}>
-                <div className={styles.skeletonImg} />
-                <div className={styles.skeletonBody}>
-                  <div
-                    className={styles.skeletonLine}
-                    style={{ width: "55%" }}
-                  />
-                  <div
-                    className={styles.skeletonLine}
-                    style={{ width: "80%" }}
-                  />
-                  <div
-                    className={styles.skeletonLine}
-                    style={{ width: "65%" }}
-                  />
-                </div>
+          <div className={styles.skeletonWrap}>
+            <div className={styles.skLead}>
+              <div className={styles.skBlock}>
+                <div className={styles.skLine} style={{ width: "30%" }} />
+                <div className={styles.skTitle} />
+                <div className={styles.skLine} style={{ width: "80%" }} />
               </div>
-            ))}
+              <div className={styles.skImg} />
+            </div>
+            <div className={styles.skGrid}>
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className={styles.skStory}>
+                  <div className={styles.skStoryImg} />
+                  <div className={styles.skLine} style={{ width: "60%" }} />
+                  <div className={styles.skLine} style={{ width: "90%" }} />
+                </div>
+              ))}
+            </div>
           </div>
         ) : noticias.length === 0 ? (
-          <EmptyState
-            art={<ArtNoticia />}
-            ghost={<GhostMesa />}
-            eyebrow="Sin novedades"
-            title={
-              <>
-                Nada que <em>anunciar</em>… por ahora.
-              </>
-            }
-            text="Cuando haya novedades, anuncios o convocatorias de la comunidad, las vas a ver acá."
-            primary={
-              isAdmin
-                ? { label: "Publicar noticia", onClick: () => setCreate(true) }
-                : undefined
-            }
-          />
+          filtering ? (
+            <EmptyState
+              variant="filtered"
+              compact
+              art={<ArtNoticia />}
+              eyebrow="Sin coincidencias"
+              title={
+                <>
+                  Nada para <em>ese filtro.</em>
+                </>
+              }
+              text="No encontramos notas con esa categoría o búsqueda."
+              secondary={{
+                label: "Limpiar filtros",
+                onClick: () => {
+                  setTab("all");
+                  setSearchInput("");
+                },
+              }}
+            />
+          ) : (
+            <EmptyState
+              art={<ArtNoticia />}
+              ghost={<GhostMesa />}
+              eyebrow="Sin novedades"
+              title={
+                <>
+                  Nada que <em>anunciar</em>… por ahora.
+                </>
+              }
+              text="Cuando haya novedades, reseñas o convocatorias de la comunidad, las vas a ver acá."
+              primary={
+                isAdmin
+                  ? { label: "Publicar noticia", to: "/noticias/crear" }
+                  : undefined
+              }
+            />
+          )
         ) : (
-          <div
-            className={styles.feed}
-            style={{
-              gridTemplateColumns: `repeat(${Math.min(3, noticias.length)}, 1fr)`,
-            }}
-          >
-            {noticias.map((n) => (
-              <NoticiaCard
-                key={n._id}
-                noticia={n}
-                onDeleted={handleDeleted}
-                onUpdated={handleUpdated}
-                isAdmin={isAdmin}
-              />
-            ))}
+          <>
+            {lead && <Lead noticia={lead} />}
 
-            {page < totalPages && (
-              <button
-                className={styles.loadMoreBtn}
-                onClick={() => load(page + 1, false)}
-                disabled={loadingMore}
-              >
-                {loadingMore ? "Cargando…" : "Ver más noticias"}
-              </button>
-            )}
-          </div>
+            <div className={styles.gridArea}>
+              <div className={styles.storiesCol}>
+                <div className={styles.colLabel}>
+                  <Meeple /> {filtering ? "Resultados" : "Notas destacadas"}
+                </div>
+                <div className={styles.storyGrid}>
+                  {stories.map((n) => (
+                    <StoryCard key={n._id} noticia={n} />
+                  ))}
+                </div>
+
+                {lead?.quote?.text && (
+                  <div className={styles.breakout}>
+                    <p className={styles.breakoutText}>{lead.quote.text}</p>
+                    {(lead.quote.author || lead.quote.context) && (
+                      <div className={styles.breakoutAttrib}>
+                        —{" "}
+                        {lead.quote.author && (
+                          <strong>{lead.quote.author}</strong>
+                        )}
+                        {lead.quote.context ? ` · ${lead.quote.context}` : ""}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {page < totalPages && (
+                  <button
+                    className={styles.loadMore}
+                    onClick={() => load(page + 1, false)}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? "Cargando…" : "Ver más noticias"}
+                  </button>
+                )}
+              </div>
+
+              {!filtering && briefs.length > 0 && (
+                <aside className={styles.briefsCol}>
+                  <div className={styles.colLabel}>
+                    <Meeple /> Breves
+                  </div>
+                  {briefs.map((n) => (
+                    <BriefItem key={n._id} noticia={n} />
+                  ))}
+                </aside>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>

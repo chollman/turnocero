@@ -34,6 +34,8 @@ import Notifications from "./pages/notifications/Notifications";
 import MeFeed from "./pages/me/MeFeed";
 import Noticias from "./pages/noticias/Noticias";
 import NoticiaDetail from "./pages/noticias/NoticiaDetail";
+import CreateNoticia from "./pages/noticias/CreateNoticia";
+import EditNoticia from "./pages/noticias/EditNoticia";
 import Torneos from "./pages/torneos/Torneos";
 import TorneoDetail from "./pages/torneos/TorneoDetail";
 import CreateTorneo from "./pages/torneos/CreateTorneo";
@@ -330,6 +332,26 @@ export function AppRoutes({ transition }) {
                 <SectionGate section="noticias">
                   <Noticias />
                 </SectionGate>
+              }
+            />
+            <Route
+              path="/noticias/crear"
+              element={
+                <AdminRoute>
+                  <SectionGate section="noticias">
+                    <CreateNoticia />
+                  </SectionGate>
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/noticias/:id/editar"
+              element={
+                <AdminRoute>
+                  <SectionGate section="noticias">
+                    <EditNoticia />
+                  </SectionGate>
+                </AdminRoute>
               }
             />
             <Route

@@ -10,286 +10,103 @@
 }
 
 .inner {
-  max-width: calc(780px + var(--sidebar-freed));
+  max-width: calc(820px + var(--sidebar-freed));
   margin: 0 auto;
   padding: 0 var(--page-padding) 0 var(--page-padding-left);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
 }
 
-/* ── Card ── */
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
+@media (--below-desktop) {
+  .inner {
+    padding: 0 var(--page-padding-mobile);
+  }
 }
 
-/* ── Image ── */
-.imageBtn {
-  display: block;
-  position: relative;
-  width: 100%;
-  background: var(--bg-dark);
-  border: none;
-  padding: 0;
-  cursor: zoom-in;
-  overflow: hidden;
-}
-
-.imageBg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: blur(22px);
-  transform: scale(1.12);
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.image {
-  display: block;
-  position: relative;
-  width: 100%;
-  max-height: 620px;
-  object-fit: contain;
-  z-index: 1;
-  transition: transform 0.25s ease;
-}
-
-.imageBtn:hover .image {
-  transform: scale(1.01);
-}
-
-/* ── Body ── */
-.body {
-  padding: 20px 24px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-/* ── Meta ── */
-.meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.date {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.adminActions {
-  display: flex;
-  gap: 8px;
-}
-
-.editBtn {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-decoration: none;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition:
-    color var(--transition),
-    background var(--transition);
-}
-
-.editBtn:hover {
-  color: var(--amber-light);
-  background: var(--amber-glow);
-}
-
-.deleteBtn {
-  background: none;
-  border: none;
-  color: var(--red);
-  font-size: 12px;
-  font-weight: 700;
-  font-family: var(--font-display);
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: background var(--transition);
-}
-
-.deleteBtn:hover {
-  background: var(--red-10);
-}
-
-/* ── Content ── */
-.title {
-  font-family: var(--font-display);
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.03em;
-  line-height: 1.2;
-  margin: 0;
-}
-
-.text {
-  font-size: 15px;
+/* ── Draft banner ── */
+.draftBanner {
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  border: 1px dashed var(--orange);
+  background: var(--orange-10);
   color: var(--text-secondary);
-  line-height: 1.7;
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.externalLink {
-  display: inline-block;
-  padding: 8px 18px;
-  background: var(--amber-glow);
-  border: 1px solid var(--border-amber);
   border-radius: 8px;
-  font-family: var(--font-display);
   font-size: 13px;
-  font-weight: 700;
-  color: var(--amber-light);
-  text-decoration: none;
-  transition:
-    background var(--transition),
-    border-color var(--transition);
-  align-self: flex-start;
 }
 
-.externalLink:hover {
-  background: var(--amber-25);
-  border-color: var(--amber);
-}
-
-/* ── Share section ── */
-.shareSection {
+/* ── Byline share group ── */
+.shareGroup {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-top: 4px;
-  border-top: 1px solid var(--border);
-  margin-top: 4px;
-}
-
-.shareLabel {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.shareButtons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .shareBtn {
-  display: inline-flex;
-  align-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.shareBtn:hover {
+  border-color: var(--border-amber);
+  color: var(--amber-light);
+  background: var(--amber-10);
+}
+
+.shareBtnCopied {
+  color: var(--green);
+  border-color: var(--green-25);
+  background: var(--green-10);
+}
+
+/* ── Admin actions ── */
+.adminActions {
+  display: flex;
   gap: 6px;
-  padding: 7px 14px;
-  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.adminBtn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: transparent;
   border: 1px solid var(--border);
   border-radius: 8px;
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-decoration: none;
+  padding: 7px 11px;
   cursor: pointer;
   transition: all var(--transition);
 }
 
-.shareBtn:hover {
-  border-color: var(--amber);
-  color: var(--amber-light);
-  background: var(--amber-glow);
+.adminBtn:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
 }
 
-.shareBtnCopied {
-  border-color: var(--green) !important;
-  color: var(--green) !important;
-}
-
-/* ── Lightbox ── */
-.lightbox {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.94);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: zoom-out;
-}
-
-.lightboxImg {
-  max-width: 92vw;
-  max-height: 92vh;
-  object-fit: contain;
-  border-radius: 8px;
-}
-
-.lightboxClose {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: rgba(255, 255, 255, 0.12);
-  border: none;
-  color: #fff;
-  font-size: 18px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.adminDanger:hover {
+  border-color: var(--red-25);
+  color: var(--red);
+  background: var(--red-10);
 }
 
 /* ── Skeleton ── */
 .skeleton {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.skeletonImg {
-  width: 100%;
-  height: 380px;
-  background: linear-gradient(
-    90deg,
-    var(--bg-elevated) 25%,
-    var(--bg-hover) 50%,
-    var(--bg-elevated) 75%
-  );
-  background-size: 400% 100%;
-  animation: shimmer 1.6s ease-in-out infinite;
-}
-
-.skeletonBody {
-  padding: 20px 24px 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  margin-top: 20px;
 }
 
-.skeletonLine {
-  height: 16px;
-  border-radius: 6px;
+.skLine,
+.skTitle,
+.skImg {
   background: linear-gradient(
     90deg,
     var(--bg-elevated) 25%,
@@ -297,10 +114,26 @@
     var(--bg-elevated) 75%
   );
   background-size: 400% 100%;
-  animation: shimmer 1.6s ease-in-out infinite;
+  animation: noticiaShimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
 }
 
-@keyframes shimmer {
+.skLine {
+  height: 14px;
+}
+
+.skTitle {
+  height: 44px;
+  width: 80%;
+}
+
+.skImg {
+  height: 320px;
+  width: 100%;
+  margin: 12px 0;
+}
+
+@keyframes noticiaShimmer {
   0% {
     background-position: 100% 0;
   }
@@ -310,48 +143,37 @@
 }
 
 /* ── Not found ── */
-.notFound {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 80px 0;
-  text-align: center;
-}
-
 .notFoundTitle {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
   color: var(--text-primary);
+  margin: 24px 0 16px;
 }
 
-/* ── Mobile ── */
-@media (--below-desktop) {
-  .page {
-    padding-bottom: var(--page-padding-mobile);
-  }
-  .inner {
-    padding: 0 var(--page-padding-mobile);
-  }
+/* ── Lightbox ── */
+.lightboxBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.92);
 }
 
-@media (--phone) {
-  .body {
-    padding: 16px 16px 20px;
-  }
-  .title {
-    font-size: 20px;
-  }
-  .image {
-    max-height: 420px;
-  }
+.lightbox {
+  background: transparent;
+  border: none;
+  padding: 0;
+  max-width: 92vw;
+  max-height: 92vh;
+  box-shadow: none;
+}
 
-  .shareButtons {
-    gap: 6px;
-  }
-  .shareBtn {
-    padding: 6px 10px;
-    font-size: 11px;
-  }
+.lightboxImg {
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 8px;
 }

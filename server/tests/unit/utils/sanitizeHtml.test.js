@@ -1,5 +1,6 @@
 const {
   sanitizeCompartidaHtml,
+  sanitizeNoticiaHtml,
   stripHtml,
 } = require("../../../utils/sanitizeHtml");
 
@@ -75,6 +76,58 @@ describe("sanitizeCompartidaHtml", () => {
     expect(sanitizeCompartidaHtml("")).toBe("");
     expect(sanitizeCompartidaHtml(null)).toBe("");
     expect(sanitizeCompartidaHtml(undefined)).toBe("");
+  });
+});
+
+describe("sanitizeNoticiaHtml", () => {
+  it("keeps the extra editorial tags (h4, hr, code, pre)", () => {
+    const out = sanitizeNoticiaHtml(
+      "<h4>Sub</h4><hr><pre><code>x = 1</code></pre>",
+    );
+    expect(out).toContain("<h4>");
+    expect(out).toContain("<hr>");
+    expect(out).toContain("<pre>");
+    expect(out).toContain("<code>");
+  });
+
+  it("reduces style to a valid text-align only", () => {
+    const ok = sanitizeNoticiaHtml('<p style="text-align: center">c</p>');
+    expect(ok).toContain("text-align: center");
+    const evil = sanitizeNoticiaHtml(
+      '<p style="text-align:center;background:url(javascript:alert(1))">x</p>',
+    );
+    expect(evil).toContain("text-align: center");
+    expect(evil).not.toMatch(/javascript|background|url\(/i);
+    const bad = sanitizeNoticiaHtml('<p style="position:fixed">x</p>');
+    expect(bad).not.toContain("style");
+  });
+
+  it("keeps a valid YouTube embed and forces a sandbox", () => {
+    const out = sanitizeNoticiaHtml(
+      '<iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"></iframe>',
+    );
+    expect(out).toMatch(/youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
+    expect(out).toMatch(/sandbox=/);
+    expect(out).not.toMatch(/onload|onerror/i);
+  });
+
+  it("strips iframes from any other host", () => {
+    expect(
+      sanitizeNoticiaHtml('<iframe src="https://evil.com/x"></iframe>'),
+    ).not.toContain("<iframe");
+    expect(
+      sanitizeNoticiaHtml(
+        '<iframe src="https://www.youtube.com/embed/x"></iframe>',
+      ),
+    ).not.toContain("<iframe");
+  });
+
+  it("does not leak the extended allow-list into compartidas", () => {
+    const out = sanitizeCompartidaHtml(
+      '<h4>no</h4><iframe src="https://www.youtube-nocookie.com/embed/abcdef"></iframe>',
+    );
+    expect(out).not.toContain("<h4");
+    expect(out).not.toContain("<iframe");
   });
 });
 

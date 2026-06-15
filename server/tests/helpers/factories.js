@@ -83,14 +83,16 @@ async function createResena(author, overrides = {}) {
 }
 
 async function createNoticia(author, overrides = {}) {
+  const { community, ...rest } = overrides;
   return Noticia.create({
     author: author._id,
-    community: await defaultCommunity(overrides.community),
+    community: await defaultCommunity(community),
     title: overrides.title || "Test news",
     body: overrides.body || "Body of the news.",
     link: overrides.link || "",
     linkLabel: overrides.linkLabel || "",
     image: overrides.image,
+    ...rest,
   });
 }
 

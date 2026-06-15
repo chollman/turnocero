@@ -7,6 +7,11 @@ import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import styles from "./RichTextEditor.module.css";
+import {
+  YoutubeEmbed,
+  TextAlign,
+  extractYoutubeId,
+} from "./noticiaEditorExtensions";
 
 // Botón de la toolbar. A nivel de módulo (no dentro del render) para no crear
 // un componente nuevo en cada render.
@@ -28,7 +33,7 @@ function ToolbarButton({ onClick, active, label, disabled, children }) {
 }
 
 /**
- * Editor WYSIWYG (Tiptap) para el cuerpo de las reseñas. Produce HTML que el
+ * Editor WYSIWYG (Tiptap) para cuerpos enriquecidos. Produce HTML que el
  * servidor sanitiza al guardar y `RichTextContent` re-sanitiza al renderizar.
  * El allow-list de marcas/nodos acá coincide con `utils/sanitizeConfig.js`.
  *
@@ -38,6 +43,10 @@ function ToolbarButton({ onClick, active, label, disabled, children }) {
  *   placeholder?: string
  *   disabled?: boolean
  *   maxLength?: number — tope de caracteres de texto plano (default 20000).
+ *   uploadUrl?: string — endpoint multipart para imágenes inline
+ *                        (default: reseñas de Compartidas).
+ *   extended?: boolean — habilita H4, separador, código, alineación, YouTube y
+ *                        drag-drop/paste de imágenes (modo Noticias).
  */
 export default function RichTextEditor({
   value = "",
@@ -45,20 +54,44 @@ export default function RichTextEditor({
   placeholder = "Escribí tu reseña…",
   disabled = false,
   maxLength = 20000,
+  uploadUrl = API.compartidas.INLINE_IMAGE,
+  extended = false,
 }) {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const uploadingRef = useRef(false);
+
+  // Sube un archivo de imagen a Cloudinary y devuelve la URL (o null).
+  const uploadImage = async (file) => {
+    if (!file || uploadingRef.current) return null;
+    uploadingRef.current = true;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const { data } = await axios.post(uploadUrl, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return data.url;
+    } catch {
+      window.alert("No se pudo subir la imagen.");
+      return null;
+    } finally {
+      uploadingRef.current = false;
+      setUploading(false);
+    }
+  };
 
   const editor = useEditor({
     editable: !disabled,
     extensions: [
       StarterKit.configure({
-        heading: { levels: [2, 3] },
-        // Nodos fuera del allow-list de sanitización: deshabilitados para que
-        // el HTML guardado no contenga nada que el server vaya a strippear.
-        codeBlock: false,
-        code: false,
-        horizontalRule: false,
+        heading: { levels: extended ? [2, 3, 4] : [2, 3] },
+        // En modo reseña, nodos fuera del allow-list quedan deshabilitados. En
+        // modo extendido (Noticias) habilitamos código, bloque de código y regla.
+        codeBlock: extended ? undefined : false,
+        code: extended ? undefined : false,
+        horizontalRule: extended ? undefined : false,
         strike: false,
       }),
       Link.configure({
@@ -71,6 +104,12 @@ export default function RichTextEditor({
       }),
       Placeholder.configure({ placeholder }),
       Image.configure({ inline: false, allowBase64: false }),
+      ...(extended
+        ? [
+            TextAlign.configure({ types: ["paragraph", "heading"] }),
+            YoutubeEmbed,
+          ]
+        : []),
     ],
     content: value || "",
     onUpdate: ({ editor: ed }) => {
@@ -103,6 +142,46 @@ export default function RichTextEditor({
         }
         return false;
       },
+      // Drag-drop de imágenes (solo modo extendido).
+      handleDrop: extended
+        ? (view, event) => {
+            const file = event.dataTransfer?.files?.[0];
+            if (!file || !file.type.startsWith("image/")) return false;
+            event.preventDefault();
+            const coords = view.posAtCoords({
+              left: event.clientX,
+              top: event.clientY,
+            });
+            uploadImage(file).then((url) => {
+              if (!url || !editor) return;
+              const pos = coords?.pos ?? editor.state.selection.from;
+              editor
+                .chain()
+                .focus()
+                .insertContentAt(pos, {
+                  type: "image",
+                  attrs: { src: url },
+                })
+                .run();
+            });
+            return true;
+          }
+        : undefined,
+      // Paste de imágenes desde el portapapeles (solo modo extendido).
+      handlePaste: extended
+        ? (_view, event) => {
+            const file = [...(event.clipboardData?.files || [])].find((f) =>
+              f.type.startsWith("image/"),
+            );
+            if (!file) return false;
+            event.preventDefault();
+            uploadImage(file).then((url) => {
+              if (url && editor)
+                editor.chain().focus().setImage({ src: url }).run();
+            });
+            return true;
+          }
+        : undefined,
     },
   });
 
@@ -132,25 +211,22 @@ export default function RichTextEditor({
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
-  // Subir una imagen al servidor (Cloudinary) e insertarla inline. Se sube
-  // antes de que la compartida exista, así que usa un endpoint genérico.
   const handleImageFile = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file) return;
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("image", file);
-      const { data } = await axios.post(API.compartidas.INLINE_IMAGE, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      editor.chain().focus().setImage({ src: data.url }).run();
-    } catch {
-      window.alert("No se pudo subir la imagen.");
-    } finally {
-      setUploading(false);
+    const url = await uploadImage(file);
+    if (url) editor.chain().focus().setImage({ src: url }).run();
+  };
+
+  const addYoutube = () => {
+    const url = window.prompt("Pegá el link del video de YouTube:");
+    if (!url) return;
+    const id = extractYoutubeId(url);
+    if (!id) {
+      window.alert("No reconocí ese link de YouTube.");
+      return;
     }
+    editor.chain().focus().setYoutubeVideo(id).run();
   };
 
   return (
@@ -180,6 +256,18 @@ export default function RichTextEditor({
         >
           H3
         </ToolbarButton>
+        {extended && (
+          <ToolbarButton
+            label="Subtítulo menor"
+            disabled={disabled}
+            active={editor.isActive("heading", { level: 4 })}
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 4 }).run()
+            }
+          >
+            H4
+          </ToolbarButton>
+        )}
         <span className={styles.sep} aria-hidden="true" />
         <ToolbarButton
           label="Negrita"
@@ -197,6 +285,16 @@ export default function RichTextEditor({
         >
           <em>I</em>
         </ToolbarButton>
+        {extended && (
+          <ToolbarButton
+            label="Código"
+            disabled={disabled}
+            active={editor.isActive("code")}
+            onClick={() => editor.chain().focus().toggleCode().run()}
+          >
+            {"</>"}
+          </ToolbarButton>
+        )}
         <span className={styles.sep} aria-hidden="true" />
         <ToolbarButton
           label="Lista con viñetas"
@@ -222,6 +320,45 @@ export default function RichTextEditor({
         >
           {"❝"}
         </ToolbarButton>
+        {extended && (
+          <>
+            <ToolbarButton
+              label="Separador"
+              disabled={disabled}
+              onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            >
+              {"―"}
+            </ToolbarButton>
+            <span className={styles.sep} aria-hidden="true" />
+            <ToolbarButton
+              label="Alinear a la izquierda"
+              disabled={disabled}
+              active={editor.isActive({ textAlign: "left" })}
+              onClick={() => editor.chain().focus().setTextAlign("left").run()}
+            >
+              {"⬅"}
+            </ToolbarButton>
+            <ToolbarButton
+              label="Centrar"
+              disabled={disabled}
+              active={editor.isActive({ textAlign: "center" })}
+              onClick={() =>
+                editor.chain().focus().setTextAlign("center").run()
+              }
+            >
+              {"↔"}
+            </ToolbarButton>
+            <ToolbarButton
+              label="Alinear a la derecha"
+              disabled={disabled}
+              active={editor.isActive({ textAlign: "right" })}
+              onClick={() => editor.chain().focus().setTextAlign("right").run()}
+            >
+              {"➡"}
+            </ToolbarButton>
+          </>
+        )}
+        <span className={styles.sep} aria-hidden="true" />
         <ToolbarButton
           label="Link"
           disabled={disabled}
@@ -237,6 +374,15 @@ export default function RichTextEditor({
         >
           {uploading ? "…" : "🖼️"}
         </ToolbarButton>
+        {extended && (
+          <ToolbarButton
+            label="Video de YouTube"
+            disabled={disabled}
+            onClick={addYoutube}
+          >
+            {"▶"}
+          </ToolbarButton>
+        )}
         <input
           ref={fileInputRef}
           type="file"

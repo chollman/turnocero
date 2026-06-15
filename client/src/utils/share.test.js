@@ -1,7 +1,49 @@
 import { describe, it, expect } from "vitest";
-import { buildCompartidaShare, buildPartidaShare } from "./share";
+import {
+  buildCompartidaShare,
+  buildPartidaShare,
+  buildNoticiaShare,
+} from "./share";
 
 const ORIGIN = "https://turnocero.app";
+
+describe("buildNoticiaShare", () => {
+  it("builds the deeplink and prefers the dek over the body", () => {
+    const { url, caption, whatsappText } = buildNoticiaShare(
+      {
+        _id: "n1",
+        title: "Gran nota",
+        dek: "La bajada",
+        body: "<p>cuerpo</p>",
+      },
+      ORIGIN,
+    );
+    expect(url).toBe(`${ORIGIN}/noticias/n1`);
+    expect(caption).toBe("*Gran nota*\nLa bajada");
+    expect(caption).not.toContain(url); // sin duplicado en Telegram
+    expect(whatsappText).toContain(url);
+  });
+
+  it("strips HTML from the body when there is no dek", () => {
+    const { caption } = buildNoticiaShare(
+      { _id: "n2", title: "T", body: "<p>Hola <strong>mundo</strong></p>" },
+      ORIGIN,
+    );
+    expect(caption).toBe("*T*\nHola mundo");
+  });
+
+  it("overrideUrl (short link) reemplaza el deeplink", () => {
+    const short = "https://turnocero.app/s/abc12xZ";
+    const { url, whatsappText } = buildNoticiaShare(
+      { _id: "n3", title: "T" },
+      ORIGIN,
+      short,
+    );
+    expect(url).toBe(short);
+    expect(whatsappText).toContain(short);
+    expect(whatsappText).not.toContain("/noticias/n3");
+  });
+});
 
 describe("buildCompartidaShare", () => {
   it("builds the deeplink from origin + id", () => {

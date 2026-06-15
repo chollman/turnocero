@@ -38,6 +38,19 @@ export function buildCompartidaShare(post, origin = "", overrideUrl) {
   return { url, caption, whatsappText };
 }
 
+// Compartir una noticia (artículo). Mismo contrato: caption SIN url (título +
+// bajada/cuerpo en texto plano), whatsappText con la url una sola vez.
+export function buildNoticiaShare(noticia, origin = "", overrideUrl) {
+  const url = overrideUrl || `${origin}/noticias/${noticia._id}`;
+  const parts = [];
+  if (noticia.title) parts.push(`*${noticia.title}*`);
+  const body = plainBody(noticia.dek || noticia.body);
+  if (body) parts.push(truncate(body));
+  const caption = parts.join("\n");
+  const whatsappText = caption ? `${caption}\n🗞️ ${url}` : `🗞️ ${url}`;
+  return { url, caption, whatsappText };
+}
+
 // Compartir una partida de BG Watch (página /bg-watch/:user/partidas/:playId).
 // Mismo contrato que buildCompartidaShare: caption SIN url, whatsappText con
 // la url exactamente una vez.

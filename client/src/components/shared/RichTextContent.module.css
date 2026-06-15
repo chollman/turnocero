@@ -72,7 +72,86 @@
 
 .content img {
   max-width: 100%;
+  max-height: 500px;
   height: auto;
+  width: auto;
+  border-radius: 10px;
+  margin: 0.6em 0;
+  display: block;
+  cursor: zoom-in;
+}
+
+/* ── Lightbox de imágenes del cuerpo ── */
+.lightboxBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.lightbox {
+  background: transparent;
+  border: none;
+  padding: 0;
+  max-width: 94vw;
+  max-height: 94vh;
+  box-shadow: none;
+}
+
+.lightboxImg {
+  max-width: 94vw;
+  max-height: 94vh;
+  object-fit: contain;
+  border-radius: 8px;
+  cursor: zoom-out;
+}
+
+/* ── Elementos del modo enriquecido (extended): h4, separador, código, embeds ── */
+.content h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1.1em 0 0.4em;
+  color: var(--text-primary);
+}
+
+.content hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.6em 0;
+}
+
+.content code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--bg-elevated);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.content pre {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  margin: 0 0 1em;
+}
+
+.content pre code {
+  background: none;
+  padding: 0;
+}
+
+.content iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border: 1px solid var(--border);
   border-radius: 10px;
   margin: 0.6em 0;
   display: block;

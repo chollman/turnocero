@@ -169,8 +169,12 @@ export const API = {
   // ── Noticias ─────────────────────────────────────────────────────────
   noticias: {
     LIST: "/api/noticias",
+    CREATE: "/api/noticias",
     DETAIL: (id) => `/api/noticias/${enc(id)}`,
+    UPDATE: (id) => `/api/noticias/${enc(id)}`,
+    DELETE: (id) => `/api/noticias/${enc(id)}`,
     OG: (id) => `/api/noticias/${enc(id)}/og`,
+    INLINE_IMAGE: "/api/noticias/inline-image",
   },
 
   // ── Short links (deeplinks compartibles) ─────────────────────────────

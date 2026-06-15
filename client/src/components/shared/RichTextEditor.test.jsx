@@ -22,4 +22,30 @@ describe("<RichTextEditor>", () => {
     render(<RichTextEditor value="" onChange={vi.fn()} maxLength={500} />);
     expect(screen.getByText(/\/ 500/)).toBeInTheDocument();
   });
+
+  it("does NOT show extended controls by default (reseña mode)", () => {
+    render(<RichTextEditor value="" onChange={vi.fn()} />);
+    expect(
+      screen.queryByRole("button", { name: /youtube/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /subtítulo menor/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows extended controls in extended mode (Noticias)", () => {
+    render(<RichTextEditor value="" onChange={vi.fn()} extended />);
+    expect(
+      screen.getByRole("button", { name: /video de youtube/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /subtítulo menor/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /separador/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /centrar/i }),
+    ).toBeInTheDocument();
+  });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
@@ -10,8 +10,33 @@ vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 import NoticiaDetail from "./NoticiaDetail";
 import { useAuth } from "../../context/AuthContext";
 
-function setupNoticia(noticia) {
-  server.use(http.get("/api/noticias/:id", () => HttpResponse.json(noticia)));
+function makeNoticia(overrides = {}) {
+  return {
+    _id: "n1",
+    title: "Título de la noticia",
+    dek: overrides.dek || "",
+    body: "Cuerpo extenso de la noticia con texto interesante.",
+    category: overrides.category || "general",
+    kicker: overrides.kicker || "",
+    link: overrides.link || "",
+    linkLabel: overrides.linkLabel || "",
+    image: overrides.image || null,
+    status: overrides.status || "published",
+    tags: overrides.tags || [],
+    author: { _id: "a1", username: "admin", avatar: { url: "", publicId: "" } },
+    publishedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+function setupNoticia(noticia, { related = [] } = {}) {
+  server.use(
+    http.get("/api/noticias/:id", () => HttpResponse.json(noticia)),
+    http.get("/api/noticias", () =>
+      HttpResponse.json({ noticias: related, page: 1, pages: 1, total: 0 }),
+    ),
+  );
 }
 
 function renderDetail({ user = null, id = "n1" } = {}) {
@@ -28,28 +53,38 @@ function renderDetail({ user = null, id = "n1" } = {}) {
   );
 }
 
-function makeNoticia(overrides = {}) {
-  return {
-    _id: "n1",
-    title: "Título de la noticia",
-    body: "Cuerpo extenso de la noticia con texto interesante.",
-    link: overrides.link || "",
-    linkLabel: overrides.linkLabel || "",
-    image: overrides.image || null,
-    author: { _id: "a1", username: "admin", avatar: { url: "", publicId: "" } },
-    createdAt: new Date().toISOString(),
-    ...overrides,
-  };
-}
-
 describe("<NoticiaDetail>", () => {
-  it("renders the title + body once loaded", async () => {
-    setupNoticia(makeNoticia());
+  beforeEach(() => useAuth.mockReturnValue({ user: null }));
+
+  it("renders the headline, dek and body once loaded", async () => {
+    setupNoticia(makeNoticia({ dek: "Una bajada editorial" }));
     renderDetail();
     expect(
       await screen.findByRole("heading", { name: "Título de la noticia" }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Una bajada editorial")).toBeInTheDocument();
     expect(screen.getByText(/cuerpo extenso/i)).toBeInTheDocument();
+  });
+
+  it("renders rich HTML bodies (sanitized)", async () => {
+    setupNoticia(
+      makeNoticia({
+        body: "<p>Primer párrafo</p><h2>Sección</h2><p>Más texto</p>",
+      }),
+    );
+    renderDetail();
+    expect(await screen.findByText("Primer párrafo")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Sección", level: 2 }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders tags as chips", async () => {
+    setupNoticia(makeNoticia({ tags: ["torneo", "wingspan"] }));
+    renderDetail();
+    await screen.findByRole("heading", { name: "Título de la noticia" });
+    expect(screen.getByText("#torneo")).toBeInTheDocument();
+    expect(screen.getByText("#wingspan")).toBeInTheDocument();
   });
 
   it("renders the external link when provided", async () => {
@@ -58,16 +93,26 @@ describe("<NoticiaDetail>", () => {
     );
     renderDetail();
     await screen.findByRole("heading", { name: "Título de la noticia" });
-    const link = screen.getByRole("link", { name: /leer más/i });
-    expect(link).toHaveAttribute("href", "https://x.com/y");
+    expect(screen.getByRole("link", { name: /leer más/i })).toHaveAttribute(
+      "href",
+      "https://x.com/y",
+    );
   });
 
-  it("shows admin actions (Editar/Eliminar) only for admins", async () => {
+  it("shows the related 'Seguí leyendo' cards", async () => {
+    setupNoticia(makeNoticia(), {
+      related: [makeNoticia({ _id: "r1", title: "Nota relacionada" })],
+    });
+    renderDetail();
+    expect(await screen.findByText("Nota relacionada")).toBeInTheDocument();
+  });
+
+  it("shows admin actions only for admins", async () => {
     setupNoticia(makeNoticia());
     renderDetail({ user: { _id: "admin", isAdmin: true } });
     await screen.findByRole("heading", { name: "Título de la noticia" });
     expect(
-      screen.queryByRole("button", { name: /eliminar/i }),
+      screen.getByRole("button", { name: /eliminar/i }),
     ).toBeInTheDocument();
   });
 
@@ -78,6 +123,25 @@ describe("<NoticiaDetail>", () => {
     expect(
       screen.queryByRole("button", { name: /eliminar/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows a draft banner for draft noticias", async () => {
+    setupNoticia(makeNoticia({ status: "draft" }));
+    renderDetail({ user: { _id: "admin", isAdmin: true } });
+    await screen.findByRole("heading", { name: "Título de la noticia" });
+    expect(screen.getByText(/borrador/i)).toBeInTheDocument();
+  });
+
+  it("renders share buttons", async () => {
+    setupNoticia(makeNoticia());
+    renderDetail();
+    await screen.findByRole("heading", { name: "Título de la noticia" });
+    expect(
+      screen.getByRole("link", { name: /compartir en whatsapp/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /copiar link/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows the not-found state on 404", async () => {
