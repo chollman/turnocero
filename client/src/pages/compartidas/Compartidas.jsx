@@ -261,7 +261,7 @@ export default function Compartidas() {
                   className={styles.composerTrigger}
                   onClick={() => setShowCreate(true)}
                 >
-                  ¿Qué jugaste hoy, {userFirstName}?
+                  ¿Querés compartir una juntada o reseña, {userFirstName}?
                 </button>
                 <div className={styles.composerActions}>
                   <button
