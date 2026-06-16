@@ -301,8 +301,14 @@ async function handleNoticia(url, id, apiUrl, brand = DEFAULT_BRAND) {
   const desc =
     data.body || `Novedades de ${brand.name}, la comunidad de juegos de mesa.`;
   const hasImage = Boolean(data.image);
+  // `f_jpg,q_auto`: forzar JPEG comprimido — las portadas suelen ser PNG
+  // grandes (1–2 MB) y WhatsApp no renderiza imágenes pesadas (ni WebP). JPEG
+  // chico es el formato más compatible para el preview al compartir.
   const image = hasImage
-    ? data.image.replace("/upload/", "/upload/w_1200,h_630,c_fill,g_auto/")
+    ? data.image.replace(
+        "/upload/",
+        "/upload/w_1200,h_630,c_fill,g_auto,f_jpg,q_auto/",
+      )
     : `${url.origin}/og-default.png`;
 
   return ogHtml({

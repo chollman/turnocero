@@ -20,8 +20,13 @@ const SHARE_URL = (id) =>
 
 function ogImage(url) {
   if (!url) return null;
+  // f_jpg,q_auto: JPEG comprimido — WhatsApp no renderiza imágenes pesadas
+  // (portadas PNG de 1–2 MB) ni WebP; JPEG chico es lo más compatible.
   return url.includes("/upload/")
-    ? url.replace("/upload/", "/upload/w_1200,h_630,c_fill,g_auto/")
+    ? url.replace(
+        "/upload/",
+        "/upload/w_1200,h_630,c_fill,g_auto,f_jpg,q_auto/",
+      )
     : url;
 }
 
