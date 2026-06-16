@@ -25,6 +25,13 @@ function ogImage(url) {
     : url;
 }
 
+// Primera imagen del cuerpo — fallback de og:image cuando la nota no tiene
+// foto de portada propia pero sí imágenes embebidas.
+function firstBodyImage(html) {
+  const m = /<img\b[^>]*\bsrc=["'](https?:\/\/[^"']+)["']/i.exec(html || "");
+  return m ? m[1] : null;
+}
+
 export default function NoticiaDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -141,7 +148,7 @@ export default function NoticiaDetail() {
     noticia.dek ||
     (noticia.body || "").replace(/<[^>]+>/g, " ").slice(0, 200) ||
     "Novedades de la comunidad.";
-  const metaImage = ogImage(noticia.image?.url);
+  const metaImage = ogImage(noticia.image?.url || firstBodyImage(noticia.body));
 
   const shareSlot = (
     <div className={styles.shareGroup}>

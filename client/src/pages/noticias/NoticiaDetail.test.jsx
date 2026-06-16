@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { http, HttpResponse } from "msw";
@@ -142,6 +142,21 @@ describe("<NoticiaDetail>", () => {
     expect(
       screen.getByRole("button", { name: /copiar link/i }),
     ).toBeInTheDocument();
+  });
+
+  it("falls back to the first body image for og:image when there's no cover", async () => {
+    setupNoticia(
+      makeNoticia({
+        image: null,
+        body: '<p>Intro</p><img src="https://cdn.example/foto.jpg"><p>más</p>',
+      }),
+    );
+    renderDetail();
+    await screen.findByRole("heading", { name: "Título de la noticia" });
+    await waitFor(() => {
+      const og = document.head.querySelector('meta[property="og:image"]');
+      expect(og?.getAttribute("content")).toContain("cdn.example/foto.jpg");
+    });
   });
 
   it("shows the not-found state on 404", async () => {

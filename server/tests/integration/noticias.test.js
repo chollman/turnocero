@@ -114,6 +114,29 @@ describe("GET /api/noticias/:id/og — OG data for crawlers", () => {
     expect(res.body.category).toBe("evento");
   });
 
+  it("uses the cover image as OG image, else the first body image", async () => {
+    const author = await createUser();
+    // Con portada: usa la portada.
+    const withCover = await createNoticia(author, {
+      image: { url: "https://cdn/cover.jpg", publicId: "c" },
+      body: '<p>x</p><img src="https://cdn/body.jpg">',
+    });
+    const r1 = await request(app)
+      .get(`/api/noticias/${withCover._id}/og`)
+      .expect(200);
+    expect(r1.body.image).toBe("https://cdn/cover.jpg");
+
+    // Sin portada pero con imagen en el cuerpo: usa la del cuerpo.
+    const noCover = await createNoticia(author, {
+      image: undefined,
+      body: '<p>texto</p><img src="https://cdn/body-only.jpg"><img src="https://cdn/second.jpg">',
+    });
+    const r2 = await request(app)
+      .get(`/api/noticias/${noCover._id}/og`)
+      .expect(200);
+    expect(r2.body.image).toBe("https://cdn/body-only.jpg");
+  });
+
   it("404s for a draft noticia", async () => {
     const author = await createUser();
     const noticia = await createNoticia(author, { status: "draft" });

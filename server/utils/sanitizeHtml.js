@@ -141,6 +141,15 @@ function sanitizeNoticiaHtml(dirty) {
   });
 }
 
+// Primera <img> con src http(s) dentro de un HTML. Se usa como fallback de
+// og:image cuando una noticia no tiene portada propia pero sí imágenes en el
+// cuerpo, para que el preview al compartir muestre una foto de la nota.
+function firstHtmlImage(html) {
+  if (!html) return null;
+  const m = /<img\b[^>]*\bsrc=["'](https?:\/\/[^"']+)["']/i.exec(String(html));
+  return m ? m[1] : null;
+}
+
 // Texto plano a partir de HTML — para previews/OG (descripciones, recortes).
 function stripHtml(html) {
   if (!html) return "";
@@ -164,6 +173,7 @@ module.exports = {
   // comparten Noticias y las reseñas de Compartidas — mismo editor `extended`.
   sanitizeRichHtml: sanitizeNoticiaHtml,
   stripHtml,
+  firstHtmlImage,
   ALLOWED_TAGS,
   ALLOWED_ATTR,
   NOTICIA_ALLOWED_TAGS,

@@ -15,7 +15,11 @@ const { parsePagination } = require("../utils/paginate");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
 const { escapeRegex } = require("../utils/regex");
-const { sanitizeNoticiaHtml, stripHtml } = require("../utils/sanitizeHtml");
+const {
+  sanitizeNoticiaHtml,
+  stripHtml,
+  firstHtmlImage,
+} = require("../utils/sanitizeHtml");
 
 router.use(requireSection("noticias"));
 
@@ -246,7 +250,8 @@ router.get(
       res.json({
         title: noticia.title || null,
         body: desc || null,
-        image: noticia.image?.url || null,
+        // Foto de portada; si la nota no tiene, la primera imagen del cuerpo.
+        image: noticia.image?.url || firstHtmlImage(noticia.body) || null,
         category: noticia.category || null,
         author: noticia.author
           ? noticia.author.displayName || noticia.author.username

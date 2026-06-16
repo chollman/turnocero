@@ -2,7 +2,24 @@ const {
   sanitizeCompartidaHtml,
   sanitizeNoticiaHtml,
   stripHtml,
+  firstHtmlImage,
 } = require("../../../utils/sanitizeHtml");
+
+describe("firstHtmlImage", () => {
+  it("returns the first http(s) image src in the HTML", () => {
+    expect(
+      firstHtmlImage(
+        '<p>hola</p><img alt="x" src="https://cf.geekdo.com/a.jpg"><img src="https://x/b.jpg">',
+      ),
+    ).toBe("https://cf.geekdo.com/a.jpg");
+  });
+
+  it("returns null when there is no image (or falsy input)", () => {
+    expect(firstHtmlImage("<p>sin imágenes</p>")).toBeNull();
+    expect(firstHtmlImage("")).toBeNull();
+    expect(firstHtmlImage(null)).toBeNull();
+  });
+});
 
 describe("sanitizeCompartidaHtml", () => {
   it("strips <script> tags", () => {
