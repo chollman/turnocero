@@ -10,6 +10,9 @@ export const STORAGE_KEYS = Object.freeze({
   VIEW_AS_USER: "viewAsUser",
   THEME: "turnocero_theme",
   SIDEBAR_COLLAPSED: "turnocero_sidebar_collapsed",
+  // Última ruta visitada — para restaurarla cuando la PWA (standalone) arranca
+  // en el start_url "/" y pierde el deep-link al refrescar/reabrir.
+  LAST_ROUTE: "turnocero_last_route",
   // sessionStorage
   BANNED_MESSAGE: "bannedMessage",
   FLASH_MESSAGE: "flashMessage",

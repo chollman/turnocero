@@ -89,6 +89,7 @@ import SplashScreen from "./components/layout/SplashScreen";
 import PageTransition from "./components/layout/PageTransition";
 import usePageTransition from "./components/layout/usePageTransition";
 import useVisualViewportVars from "./utils/useVisualViewportVars";
+import usePwaRouteRestore from "./hooks/usePwaRouteRestore";
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -747,6 +748,8 @@ function AppShell() {
   // chrome (en AppRoutes), así ambos siguen la misma `displayLocation`.
   const transition = usePageTransition();
   useVisualViewportVars();
+  // PWA: restaura el deep-link si el SO recargó el start_url ("/") al refrescar.
+  usePwaRouteRestore();
   // El FAB "Bancanos" y el AdminViewToggle comparten el spot bottom-left. El
   // FAB reporta acá si está visible para que el toggle suba (stacked) mientras
   // el FAB ocupa el spot y baje cuando se esconde (timer o ruta /colabora).
