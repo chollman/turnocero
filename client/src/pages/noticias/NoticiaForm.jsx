@@ -253,10 +253,10 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
         <title>{`${isEdit ? "Editar" : "Nueva"} noticia – ${brandName}`}</title>
       </Helmet>
       <div className={styles.inner}>
-        <div className={styles.header}>
-          <BackButton to={isEdit ? `/noticias/${id}` : "/noticias"} flush>
-            {isEdit ? "Volver a la noticia" : "Volver al noticiero"}
-          </BackButton>
+        <BackButton to={isEdit ? `/noticias/${id}` : "/noticias"} flush>
+          {isEdit ? "Volver a la noticia" : "Volver al noticiero"}
+        </BackButton>
+        <header className={styles.hero}>
           <div className={styles.eyebrow}>
             <Meeple /> REDACCIÓN
           </div>
@@ -267,7 +267,7 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
             Cargá la nota como en un diario: portada, titular, bajada y cuerpo
             enriquecido. Guardá borrador y previsualizá antes de publicar.
           </p>
-        </div>
+        </header>
 
         <div className={styles.toggleRow}>
           <button

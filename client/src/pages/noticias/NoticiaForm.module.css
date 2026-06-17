@@ -10,7 +10,9 @@
 }
 
 .inner {
-  max-width: calc(820px + var(--sidebar-freed));
+  /* Mismo ancho que el listado de Noticias y el resto de la app (no la
+     columna angosta de 820px que tenía antes). */
+  max-width: calc(1180px + var(--sidebar-freed));
   margin: 0 auto;
   padding: 0 var(--page-padding) 0 var(--page-padding-left);
   display: flex;
@@ -31,7 +33,15 @@
   padding: 24px 0;
 }
 
-/* ── Header ── */
+/* ── Header (hero editorial estándar) ── */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
 .eyebrow {
   display: inline-flex;
   align-items: center;

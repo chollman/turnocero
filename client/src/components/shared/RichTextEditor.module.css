@@ -68,6 +68,9 @@
   font-size: 1.02rem;
   line-height: 1.7;
   min-height: 140px;
+  /* Que palabras/URLs largas y el contenido en general no desborden la caja. */
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .prose:focus {
@@ -131,6 +134,42 @@
 
 .prose img.ProseMirror-selectednode {
   outline: 2px solid var(--amber);
+}
+
+/* Embed de YouTube (modo extendido): responsivo 16:9, nunca más ancho que la caja. */
+.prose iframe {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 0.5em 0;
+  display: block;
+}
+
+/* Código en bloque (modo extendido): no rompe tokens a mitad de caracter y
+   scrollea en horizontal como red de seguridad en vez de desbordar la caja.
+   (ProseMirror fuerza white-space: pre-wrap, así que envuelve por espacios.) */
+.prose pre {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 0 0 0.8em;
+  overflow-x: auto;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+.prose pre code {
+  background: none;
+  padding: 0;
 }
 
 .counter {
