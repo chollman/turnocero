@@ -37,9 +37,10 @@ function relativeDate(iso) {
   return `Hace ${yr} ${yr === 1 ? "año" : "años"}`;
 }
 
-// Día + mes abreviado (capitalizado) para el badge de fecha mobile: "18" / "May".
+// Día + mes abreviado (capitalizado) + año para el badge de fecha tipo
+// almanaque: "18" / "May" / "2026".
 function dateParts(iso) {
-  if (!iso) return { day: "", month: "" };
+  if (!iso) return { day: "", month: "", year: "" };
   const [y, m, d] = iso.split("-");
   const date = new Date(y, m - 1, d);
   const day = String(date.getDate());
@@ -47,7 +48,8 @@ function dateParts(iso) {
     .toLocaleDateString("es-AR", { month: "short" })
     .replace(".", "");
   const month = monthRaw.charAt(0).toUpperCase() + monthRaw.slice(1);
-  return { day, month };
+  const year = String(date.getFullYear());
+  return { day, month, year };
 }
 
 // Íconos inline del handoff "BG Watch Mobile" (sin libs de íconos). currentColor
@@ -80,6 +82,22 @@ function PeopleIcon() {
     >
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
       <circle cx="9" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg
+      className={styles.metaIcon}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
     </svg>
   );
 }
@@ -320,13 +338,11 @@ export default function PlayCard({
       ? winners[0].score
       : null;
 
-  const { day: dateDay, month: dateMonth } = dateParts(play.date);
-
-  const truncatedComment = play.comments
-    ? play.comments.length > 80
-      ? `${play.comments.slice(0, 80)}…`
-      : play.comments
-    : null;
+  const {
+    day: dateDay,
+    month: dateMonth,
+    year: dateYear,
+  } = dateParts(play.date);
 
   const interactive = typeof onClick === "function";
 
@@ -351,6 +367,7 @@ export default function PlayCard({
       <div className={styles.playDateBadge} aria-hidden="true">
         <span className={styles.playDateBadgeDay}>{dateDay}</span>
         <span className={styles.playDateBadgeMonth}>{dateMonth}</span>
+        <span className={styles.playDateBadgeYear}>{dateYear}</span>
       </div>
 
       <div className={styles.playThumb}>
@@ -411,12 +428,18 @@ export default function PlayCard({
           </div>
         )}
 
-        {/* Meta compacta (solo --phone): lugar + cantidad de jugadores. */}
+        {/* Meta: lugar · duración · jugadores (handoff .playMeta). */}
         <div className={styles.playMeta}>
           {play.location && (
             <span className={styles.playMetaItem}>
               <PinIcon />
               {play.location}
+            </span>
+          )}
+          {play.duration > 0 && (
+            <span className={styles.playMetaItem}>
+              <ClockIcon />
+              {play.duration} min
             </span>
           )}
           {totalPlayers > 0 && (
@@ -427,9 +450,9 @@ export default function PlayCard({
           )}
         </div>
 
-        {/* Roster (solo --phone): corona + TODOS los avatares, con el/los
-            ganador(es) primero (pegados a la corona) y separados del resto por
-            un pequeño gap. El resultado va a la columna derecha. */}
+        {/* Roster: corona + TODOS los avatares, con el/los ganador(es) primero
+            (pegados a la corona) y separados del resto por un pequeño gap. El
+            resultado va a la columna derecha (handoff .playWinner). */}
         {sortedPlayers.length > 0 && (
           <div className={styles.playWinnerLine}>
             {winners.length > 0 && (
@@ -470,40 +493,11 @@ export default function PlayCard({
             </span>
           </div>
         )}
-
-        <div className={styles.playTags}>
-          {play.location && (
-            <span className={styles.playTag}>
-              <span className={styles.tagIcon}>📍</span>
-              {play.location}
-            </span>
-          )}
-          {play.duration > 0 && (
-            <span className={styles.playTag}>
-              <span className={styles.tagIcon}>⏱</span>
-              {play.duration} min
-            </span>
-          )}
-          {play.quantity > 1 && (
-            <span className={styles.playTag}>×{play.quantity} partidas</span>
-          )}
-          {play.incomplete && (
-            <span className={`${styles.playTag} ${styles.playTagWarn}`}>
-              Incompleta
-            </span>
-          )}
-          {truncatedComment && (
-            <span className={styles.playTagComment}>
-              <span className={styles.tagIcon}>💬</span>
-              {truncatedComment}
-            </span>
-          )}
-        </div>
       </div>
 
-      {/* Columna derecha (solo --phone): resultado + puntaje. En victorias
-          colectivas el puesto individual se reemplaza por el resultado del
-          equipo ("Ganaron en equipo" / "Perdieron"). */}
+      {/* Columna derecha: resultado + puntaje. En victorias colectivas el
+          puesto individual se reemplaza por el resultado del equipo
+          ("Ganaron en equipo" / "Perdieron"). Handoff .playRight. */}
       {(teamLabel || rankLabel || rightScore != null) && (
         <div className={styles.playRight}>
           {isCollective
