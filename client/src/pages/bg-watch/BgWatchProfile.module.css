@@ -92,13 +92,59 @@
   text-transform: uppercase;
 }
 
+/* Mobile-only: "Nueva partida" inline (junto a los links) y "Ver la comunidad"
+   como botón por fuera del hero. En desktop ambos se ocultan (la acción usa
+   .heroActions y el link de comunidad vive dentro del hero). */
+.newPlayInline,
+.comunidadBtn {
+  display: none;
+}
+
+/* Flecha del CTA "Ver la comunidad" empujada al extremo derecho del botón. */
+.comunidadArrow {
+  margin-left: auto;
+  font-size: 16px;
+  line-height: 1;
+}
+
 @media (--phone) {
   .hero {
     grid-template-columns: auto 1fr;
     padding: 20px;
   }
+  /* En mobile la acción no va como fila full-width del hero: su lugar lo ocupa
+     el botón inline dentro de los links. */
   .heroActions {
-    grid-column: 1 / -1;
+    display: none;
+  }
+  .comunidadInline {
+    display: none;
+  }
+  .newPlayInline {
+    display: inline-flex;
+    margin-top: 4px;
+  }
+  /* CTA secundario "Ver la comunidad": acento púrpura de BG Watch, pill al tono
+     del hero/stat-tiles, ancho completo bajo el hero. */
+  .comunidadBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 13px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--purple-25);
+    background: var(--purple-10);
+    color: var(--purple-light);
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all var(--transition);
+  }
+  .comunidadBtn:hover {
+    background: var(--purple-15);
+    border-color: var(--purple-40);
   }
 }
 
@@ -279,31 +325,55 @@
 }
 
 @media (--phone) {
+  /* Handoff "BG Watch Mobile": en mobile la barra se abre en tiles 2×2
+     SEPARADOS (gap + esquina redondeada propia + borde de acento por tipo), en
+     vez de la barra única con divisores internos del desktop. */
   .statsBar {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
   }
 
-  .statCard {
-    padding: 14px 12px;
-    min-height: 76px;
-    border-bottom: 1px solid var(--border);
+  .statsBar .statCard {
+    gap: 3px;
+    padding: 12px 13px;
+    min-height: 0;
+    border: 1px solid var(--border);
+    border-radius: 13px;
   }
 
-  /* En 2 columnas: la 2ª de cada fila no lleva borde derecho y la última
-     fila no lleva borde inferior. */
-  .statCard:nth-child(even) {
-    border-right: none;
+  /* Borde de acento por tile (púrpura = acento de sección BG Watch; oro = la
+     última partida). El de mayor specificity gana al .statCard:last-child base. */
+  .statsBar .statAccent {
+    border-color: var(--purple-40);
   }
-  .statCard:nth-last-child(-n + 2) {
-    border-bottom: none;
+  .statsBar .statPurple {
+    border-color: var(--purple-25);
+  }
+  .statsBar .statGold {
+    border-color: var(--gold-25);
+  }
+
+  .statLabel {
+    font-family: var(--font-mono);
+    font-size: 9px;
   }
 
   .statValue {
-    font-size: 24px;
+    font-size: 27px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
   }
 
   .statValueSm {
-    font-size: 14px;
+    font-size: 16px;
+  }
+
+  .statHint {
+    font-size: 10px;
   }
 }
 

@@ -95,6 +95,15 @@ export default function BgWatchProfile() {
       ),
     [navigate, bggUsername, location.pathname],
   );
+  const goToNewPlay = useCallback(
+    () =>
+      navigate(
+        `/bg-watch/${bggUsername}/partidas/nueva?volver=${encodeURIComponent(
+          location.pathname,
+        )}`,
+      ),
+    [navigate, bggUsername, location.pathname],
+  );
 
   // Tabs de sección. `badge` se muestra sólo cuando hay dato (null = oculto).
   const tabItems = [
@@ -164,9 +173,25 @@ export default function BgWatchProfile() {
               >
                 Ver en BoardGameGeek ↗
               </a>
-              <Link to="/bg-watch/comunidad" className={styles.bggLink}>
+              {/* "Ver la comunidad" vive dentro del hero en desktop; en mobile
+                  se oculta acá y se muestra la copia de fuera del hero. */}
+              <Link
+                to="/bg-watch/comunidad"
+                className={`${styles.bggLink} ${styles.comunidadInline}`}
+              >
                 Ver la comunidad →
               </Link>
+              {/* En mobile "Nueva partida" ocupa el lugar que dejó "Ver la
+                  comunidad" (en desktop usa la columna de acciones del hero). */}
+              {canCreate && (
+                <button
+                  type="button"
+                  className={`${styles.newPlayBtn} ${styles.newPlayInline}`}
+                  onClick={goToNewPlay}
+                >
+                  + Nueva partida
+                </button>
+              )}
             </div>
           </div>
           {canCreate && (
@@ -174,19 +199,24 @@ export default function BgWatchProfile() {
               <button
                 type="button"
                 className={styles.newPlayBtn}
-                onClick={() =>
-                  navigate(
-                    `/bg-watch/${bggUsername}/partidas/nueva?volver=${encodeURIComponent(
-                      location.pathname,
-                    )}`,
-                  )
-                }
+                onClick={goToNewPlay}
               >
                 + Nueva partida
               </button>
             </div>
           )}
         </div>
+
+        {/* En mobile "Ver la comunidad" se muestra por fuera del hero como CTA
+            secundario (su lugar adentro lo ocupa "Nueva partida"). En desktop
+            esta copia se oculta — el link vive dentro del hero. */}
+        <Link to="/bg-watch/comunidad" className={styles.comunidadBtn}>
+          <Meeple />
+          Ver la comunidad
+          <span className={styles.comunidadArrow} aria-hidden="true">
+            →
+          </span>
+        </Link>
 
         {sessionExpired && <BgWatchSessionNotice />}
 
