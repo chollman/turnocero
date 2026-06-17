@@ -145,28 +145,23 @@ describe("<PlayCard>", () => {
     expect(screen.getAllByLabelText("Nuevo")).toHaveLength(1);
   });
 
-  it("renders location, duration tags", () => {
+  it("renders location and duration in the meta line", () => {
     renderCard();
-    // La ubicación aparece en los tags (desktop) y en la meta (mobile).
+    // La fila tipo almanaque del handoff muestra lugar · duración · jugadores
+    // en una sola meta-línea (los tags/comentarios viven en el detalle).
     expect(screen.getAllByText(/Buenos Aires/).length).toBeGreaterThan(0);
     expect(screen.getByText(/90 min/)).toBeInTheDocument();
   });
 
-  it("renders quantity tag when quantity > 1", () => {
-    renderCard({ play: { quantity: 3 } });
-    expect(screen.getByText(/×3 partidas/)).toBeInTheDocument();
-  });
-
-  it("renders Incompleta tag when incomplete", () => {
-    renderCard({ play: { incomplete: true } });
-    // "Incompleta" vive en los tags (desktop); la meta mobile no lo muestra.
-    expect(screen.getByText(/incompleta/i)).toBeInTheDocument();
-  });
-
-  it("truncates long comments to 80 chars + ellipsis", () => {
-    renderCard({ play: { comments: "x".repeat(120) } });
-    const tag = screen.getByText(/x{80}…/);
-    expect(tag).toBeInTheDocument();
+  it("does not render quantity / incompleta / comment tags on the card", () => {
+    // La card pasó a la fila compacta del handoff: cantidad, 'Incompleta' y el
+    // comentario se ven en el detalle de la partida, no en el listado.
+    renderCard({
+      play: { quantity: 3, incomplete: true, comments: "x".repeat(120) },
+    });
+    expect(screen.queryByText(/×3 partidas/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/incompleta/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/x{80}…/)).not.toBeInTheDocument();
   });
 
   it("links a player chip to /usuarios/:id when turnoceroUser is provided in userMap", () => {

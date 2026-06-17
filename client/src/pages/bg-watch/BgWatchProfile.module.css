@@ -206,20 +206,23 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0;
-  background: var(--bg-card);
+  background: var(--bg-paper);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
 }
 
+/* Contenido alineado al tope (no centrado): así la etiqueta y el valor de cada
+   celda comparten línea base aunque sólo algunas tengan sub-línea (sino, con
+   justify-content:center, los valores quedan desalineados entre celdas). */
 .statCard {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 18px 18px;
+  gap: 8px;
+  padding: 20px;
   border-right: 1px solid var(--border);
-  min-height: 86px;
-  justify-content: center;
+  min-height: 96px;
+  justify-content: flex-start;
 }
 
 .statCard:last-child {
@@ -308,7 +311,7 @@
 .tabs {
   display: flex;
   gap: 4px;
-  background: var(--bg-card);
+  background: var(--bg-paper);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 4px;
@@ -350,10 +353,10 @@
 .tabBadge {
   background: var(--bg-elevated);
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   padding: 1px 6px;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .tabActive .tabBadge {
@@ -375,7 +378,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  background: var(--bg-card);
+  background: var(--bg-paper);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 11px 14px;
@@ -425,7 +428,7 @@
   margin: 0;
   padding: 4px;
   list-style: none;
-  background: var(--bg-card);
+  background: var(--bg-paper);
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
@@ -876,19 +879,31 @@
   color: var(--text-muted);
 }
 
-/* ─── Play card ─── */
+/* ─── Play card (fila tipo almanaque del handoff "BG Watch Reimagined", con
+   las modificaciones del rediseño mobile: card con borde + acento de victoria).
+   Misma grilla en todos los anchos — el bloque @media (--phone) sólo achica
+   medidas. Columnas: fecha · thumb · cuerpo · resultado+puntaje. ─── */
 .playCard {
-  display: flex;
-  gap: 14px;
-  padding: 14px;
+  display: grid;
+  grid-template-columns: 76px 60px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
+  box-shadow: inset 3px 0 0 0 transparent;
   transition:
     border-color var(--transition),
-    background var(--transition);
+    background var(--transition),
+    box-shadow var(--transition);
   animation: bgwatchCardEnter 0.28s ease both;
   animation-delay: calc(var(--i, 0) * 125ms);
+}
+
+/* Acento de victoria del dueño: borde izquierdo verde (rediseño mobile). */
+.playCardWin {
+  box-shadow: inset 3px 0 0 0 var(--green);
 }
 
 .playCardInteractive {
@@ -908,9 +923,9 @@
 
 .playThumb {
   flex-shrink: 0;
-  width: 72px;
-  height: 72px;
-  border-radius: 8px;
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
   overflow: hidden;
   background: linear-gradient(
     135deg,
@@ -962,18 +977,17 @@
 }
 
 .playBody {
-  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
 
 .playTopRow {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 
 .playGameName {
@@ -985,12 +999,9 @@
   line-height: 1.25;
   flex: 1;
   min-width: 0;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
 }
 
 .playDateBlock {
@@ -1021,21 +1032,31 @@
   gap: 6px;
 }
 
-/* ─── Elementos exclusivos de mobile (--phone) ───
-   El badge de fecha, la meta compacta, la línea de ganador y la columna
-   derecha (puesto + puntaje) reemplazan en teléfonos a los chips + la fecha
-   del topRow. Acá quedan ocultos; el bloque @media (--phone) del final los
-   muestra y arma la grilla de la card. Ver handoff "BG Watch Mobile". */
-.playDateBadge,
-.playMeta,
-.playWinnerLine,
-.playRight {
+/* ─── Restos del layout viejo de desktop (chips de jugadores y el bloque
+   fecha/resultado del topRow). La fila tipo almanaque del handoff los reemplaza
+   por el badge de fecha + meta + línea de ganador + columna derecha, así que
+   quedan ocultos en todos los anchos. */
+.playDateBlock,
+.playPlayers {
   display: none;
+}
+
+/* Badge de fecha (columna 1): caja tipo almanaque (día grande + mes + año). */
+.playDateBadge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 4px;
 }
 
 .playDateBadgeDay {
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 0.9;
@@ -1044,40 +1065,54 @@
 
 .playDateBadgeMonth {
   font-family: var(--font-mono);
-  font-size: 8.5px;
+  font-size: 9.5px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--purple);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
-/* Meta: fila mono con ícono + texto (lugar · jugadores). Handoff .playMeta. */
-.playMeta {
-  gap: 9px;
+.playDateBadgeYear {
   font-family: var(--font-mono);
   font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+/* Meta: fila mono con ícono + texto (lugar · duración · jugadores). Handoff
+   .playMeta. */
+.playMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
   color: var(--text-muted);
 }
 
 .playMetaItem {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 5px;
   white-space: nowrap;
 }
 
 .metaIcon {
-  width: 9px;
-  height: 9px;
+  width: 11px;
+  height: 11px;
   flex-shrink: 0;
 }
 
-/* Línea de ganador: corona gold + avatar(es) + "Ganó X". Handoff .playWinner. */
+/* Línea de ganador: corona gold + avatares (ganador(es) primero). Handoff
+   .playWinner. */
 .playWinnerLine {
-  gap: 5px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-muted);
 }
 
@@ -1089,8 +1124,8 @@
 }
 
 .winnerCrownIcon {
-  width: 10px;
-  height: 10px;
+  width: 13px;
+  height: 13px;
 }
 
 .playWinnerAvatars {
@@ -1098,13 +1133,12 @@
   flex-shrink: 0;
 }
 
-/* Avatares chiquitos del ganador, al tamaño del handoff (.wAv 17px). El
-   <Avatar size="xs"> compartido mide 24px; lo achicamos acá (gana al
-   .avatar.size_xs por !important) para no comerle ancho al texto "Ganó X". */
+/* Avatares del roster. El <Avatar size="xs"> compartido mide 24px; lo
+   achicamos a 22px en desktop (18px en --phone) para que la fila respire. */
 .playWinnerAvatars > * {
-  width: 18px !important;
-  height: 18px !important;
-  font-size: 8px !important;
+  width: 22px !important;
+  height: 22px !important;
+  font-size: 9px !important;
 }
 
 .playWinnerAvatars > * + * {
@@ -1133,11 +1167,20 @@
   font-weight: 600;
 }
 
+/* Columna derecha (resultado + puntaje del dueño). Handoff .playRight. */
+.playRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  text-align: right;
+}
+
 .playRankPill {
   font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -1154,13 +1197,13 @@
    colectivas). Envuelve a 2 líneas a la derecha sin ensanchar la card. */
 .playTeamResult {
   font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   text-align: right;
   line-height: 1.25;
-  max-width: 54px;
+  max-width: 96px;
 }
 
 .playTeamResultWin {
@@ -1331,50 +1374,6 @@
   font-family: var(--font-display);
   font-size: 9px;
   font-weight: 700;
-}
-
-.playTags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
-
-.playTag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.playTagWarn {
-  background: color-mix(in srgb, var(--red) 14%, transparent);
-  border-color: color-mix(in srgb, var(--red) 40%, transparent);
-  color: var(--red);
-}
-
-.playTagComment {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  font-style: italic;
-  padding: 2px 4px;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tagIcon {
-  font-size: 11px;
-  opacity: 0.9;
 }
 
 /* ─── Pagination ─── */
@@ -2848,28 +2847,37 @@
     display: none;
   }
 
-  /* Card de partida (rediseño mobile): grilla de 4 columnas —
-     fecha · thumb · info · puesto+puntaje. Medidas del handoff
-     "BG Watch Mobile" (.play). */
+  /* Card de partida en --phone: misma fila que desktop, con medidas más
+     compactas (handoff "BG Watch Mobile"). La grilla, el badge de fecha, meta,
+     línea de ganador y columna derecha ya son base; acá sólo se achican. */
   .playCard {
-    display: grid;
     grid-template-columns: 46px 42px minmax(0, 1fr) auto;
-    align-items: center;
     gap: 11px;
     padding: 11px 12px;
     border-radius: 13px;
-    box-shadow: inset 3px 0 0 0 transparent;
   }
 
-  .playCardWin {
-    box-shadow: inset 3px 0 0 0 var(--green);
-  }
-
+  /* El badge en mobile va sin caja (no entra cómodo en 46px). */
   .playDateBadge {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    gap: 0;
+  }
+
+  .playDateBadgeDay {
+    font-size: 1.4rem;
+  }
+
+  .playDateBadgeMonth {
+    font-size: 8.5px;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+
+  .playDateBadgeYear {
+    display: none;
   }
 
   .playThumb {
@@ -2882,50 +2890,58 @@
     font-size: 20px;
   }
 
-  /* El thumb y la fecha ya son columnas; el cuerpo (.playInfo del handoff) se
-     queda con nombre + meta + ganador, apretado a gap 3px. */
   .playBody {
     gap: 3px;
   }
 
   .playGameName {
-    display: block;
     font-size: 14px;
-    font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.1;
-    white-space: nowrap;
-    -webkit-line-clamp: initial;
-    line-clamp: initial;
   }
 
-  /* La fecha/resultado del topRow (desktop), los chips de jugadores, los tags
-     y el menú kebab se reemplazan por el badge, la meta, la línea de ganador y
-     la columna derecha — la card mobile no lleva ⋯ (handoff). */
-  .playDateBlock,
-  .playPlayers,
-  .playTags,
+  /* La card mobile no lleva ⋯ (handoff); las acciones quedan en el detalle. */
   .playCardMenu {
     display: none;
   }
 
   .playMeta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    gap: 4px 9px;
+    font-size: 9.5px;
+  }
+
+  .metaIcon {
+    width: 9px;
+    height: 9px;
   }
 
   .playWinnerLine {
-    display: flex;
-    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+  }
+
+  .winnerCrownIcon {
+    width: 10px;
+    height: 10px;
+  }
+
+  .playWinnerAvatars > * {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 8px !important;
   }
 
   .playRight {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
     gap: 2px;
-    text-align: right;
+  }
+
+  .playRankPill {
+    font-size: 9px;
+  }
+
+  .playTeamResult {
+    font-size: 9px;
+    max-width: 54px;
   }
 
   .modalCard {
