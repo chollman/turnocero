@@ -10,6 +10,7 @@ import { getErrorMessage } from "../../utils/getErrorMessage";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import CommunitiesAdmin from "./CommunitiesAdmin";
+import BggUsagePanel from "./BggUsagePanel";
 import styles from "./PanelAdmin.module.css";
 
 const SECTION_META = [
@@ -412,7 +413,14 @@ function SectionToggle({ section, enabled, busy, onToggle }) {
   );
 }
 
-function PanelAdminInner() {
+const ADMIN_TABS = [
+  { key: "secciones", label: "Secciones" },
+  { key: "comunidades", label: "Comunidades" },
+  { key: "bgg", label: "Uso de BGG" },
+  { key: "ideas", label: "Ideas" },
+];
+
+function SectionsTab() {
   const { sections, loaded, updatedAt, updateConfig } = useSiteConfig();
   const [busyKey, setBusyKey] = useState(null);
   const [error, setError] = useState("");
@@ -430,21 +438,53 @@ function PanelAdminInner() {
   };
 
   if (!loaded) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.inner}>
-          <div className={styles.hero}>
-            <div className={styles.eyebrow}>
-              <Meeple />
-              ADMIN
-            </div>
-            <h1 className={styles.title}>Panel de secciones</h1>
-            <p className={styles.sub}>Cargando configuración…</p>
+    return <p className={styles.sub}>Cargando configuración…</p>;
+  }
+
+  return (
+    <>
+      <p className={styles.sub}>
+        Prendé o apagá secciones del sitio para usuarios no-admin. Vos seguís
+        viendo todo (salvo que actives <em>"Ver como usuario"</em>). Los cambios
+        se reflejan en tiempo real para todos los clientes conectados.
+      </p>
+      {updatedAt && (
+        <span className={styles.updatedAt}>
+          Última actualización:{" "}
+          {new Date(updatedAt).toLocaleString("es-AR", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      )}
+
+      {error && <div className={styles.errorBox}>{error}</div>}
+
+      {SECTION_META.map((group) => (
+        <div key={group.group} className={styles.group}>
+          <h2 className={styles.groupTitle}>{group.group}</h2>
+          <div className={styles.grid}>
+            {group.items.map((item) => (
+              <SectionToggle
+                key={item.key}
+                section={item}
+                enabled={sections?.[item.key]?.enabled !== false}
+                busy={busyKey === item.key}
+                onToggle={handleToggle}
+              />
+            ))}
           </div>
         </div>
-      </div>
-    );
-  }
+      ))}
+    </>
+  );
+}
+
+function PanelAdminInner() {
+  const [tab, setTab] = useState("secciones");
 
   return (
     <div className={styles.page}>
@@ -454,49 +494,40 @@ function PanelAdminInner() {
             <Meeple />
             ADMIN
           </div>
-          <h1 className={styles.title}>Panel de secciones</h1>
-          <p className={styles.sub}>
-            Prendé o apagá secciones del sitio para usuarios no-admin. Vos
-            seguís viendo todo (salvo que actives <em>"Ver como usuario"</em>).
-            Los cambios se reflejan en tiempo real para todos los clientes
-            conectados.
-          </p>
-          {updatedAt && (
-            <span className={styles.updatedAt}>
-              Última actualización:{" "}
-              {new Date(updatedAt).toLocaleString("es-AR", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
-          )}
+          <h1 className={styles.title}>Panel de administración</h1>
         </div>
 
-        {error && <div className={styles.errorBox}>{error}</div>}
+        <div
+          className={styles.tabBar}
+          role="tablist"
+          aria-label="Secciones del panel de administración"
+        >
+          {ADMIN_TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              id={`admin-tab-${t.key}`}
+              aria-selected={tab === t.key}
+              aria-controls={`admin-panel-${t.key}`}
+              className={`${styles.tabBtn} ${tab === t.key ? styles.tabBtnActive : ""}`}
+              onClick={() => setTab(t.key)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
-        {SECTION_META.map((group) => (
-          <div key={group.group} className={styles.group}>
-            <h2 className={styles.groupTitle}>{group.group}</h2>
-            <div className={styles.grid}>
-              {group.items.map((item) => (
-                <SectionToggle
-                  key={item.key}
-                  section={item}
-                  enabled={sections?.[item.key]?.enabled !== false}
-                  busy={busyKey === item.key}
-                  onToggle={handleToggle}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-
-        <CommunitiesAdmin />
-
-        <IdeasSection />
+        <div
+          role="tabpanel"
+          id={`admin-panel-${tab}`}
+          aria-labelledby={`admin-tab-${tab}`}
+        >
+          {tab === "secciones" && <SectionsTab />}
+          {tab === "comunidades" && <CommunitiesAdmin />}
+          {tab === "bgg" && <BggUsagePanel />}
+          {tab === "ideas" && <IdeasSection />}
+        </div>
       </div>
     </div>
   );

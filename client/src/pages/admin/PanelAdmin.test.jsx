@@ -15,8 +15,12 @@ vi.mock("../../context/NotificationContext", () => ({
   useNotifications: () => useNotificationsMock(),
 }));
 
-// CommunitiesAdmin — has its own test + fetches /api/comunidades; stub here.
-vi.mock("./CommunitiesAdmin", () => ({ default: () => null }));
+// CommunitiesAdmin y BggUsagePanel tienen sus propios tests + hacen fetch;
+// acá los stubbeamos con un sentinel para verificar el ruteo de tabs.
+vi.mock("./CommunitiesAdmin", () => ({
+  default: () => <div>COMUNIDADES_PANEL</div>,
+}));
+vi.mock("./BggUsagePanel", () => ({ default: () => <div>BGG_PANEL</div> }));
 
 import PanelAdmin from "./PanelAdmin";
 
@@ -54,6 +58,15 @@ beforeEach(() => {
     updateConfig: vi.fn().mockResolvedValue({}),
   });
   useNotificationsMock.mockReturnValue({ addToast: vi.fn() });
+  // Handler por defecto para la pestaña Ideas (los tests específicos lo pisan).
+  server.use(
+    http.get("/api/ideas", () =>
+      HttpResponse.json({
+        ideas: [],
+        counts: { new: 0, reviewed: 0, archived: 0 },
+      }),
+    ),
+  );
 });
 
 describe("<PanelAdmin>", () => {
@@ -149,8 +162,25 @@ describe("<PanelAdmin>", () => {
     });
   });
 
-  it("renders the Ideas recibidas tabs", async () => {
+  it("organiza las features en pestañas y rutea entre ellas", () => {
     renderPanel();
+    // Por defecto se muestra Secciones; los otros paneles no están montados.
+    expect(screen.getByText("Contenido principal")).toBeInTheDocument();
+    expect(screen.queryByText("COMUNIDADES_PANEL")).not.toBeInTheDocument();
+    expect(screen.queryByText("BGG_PANEL")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Comunidades" }));
+    expect(screen.getByText("COMUNIDADES_PANEL")).toBeInTheDocument();
+    expect(screen.queryByText("Contenido principal")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Uso de BGG" }));
+    expect(screen.getByText("BGG_PANEL")).toBeInTheDocument();
+    expect(screen.queryByText("COMUNIDADES_PANEL")).not.toBeInTheDocument();
+  });
+
+  it("renders the Ideas recibidas tabs (tras abrir la pestaña Ideas)", async () => {
+    renderPanel();
+    fireEvent.click(screen.getByRole("tab", { name: "Ideas" }));
     expect(
       await screen.findByRole("tab", { name: /nuevas/i }),
     ).toBeInTheDocument();
@@ -185,6 +215,7 @@ describe("<PanelAdmin>", () => {
     );
 
     renderPanel();
+    fireEvent.click(screen.getByRole("tab", { name: "Ideas" }));
     expect(
       await screen.findByText(/widget de dado en la sidebar/i),
     ).toBeInTheDocument();

@@ -15,6 +15,11 @@ app.use(express.json());
 // deja en req.tenant para TODAS las rutas. No toca Mongo si no hay header.
 app.use(require("./middleware/resolveCommunities").resolveTenant);
 
+// Contabiliza las llamadas salientes a BGG por request (AsyncLocalStorage).
+// No escribe a Mongo si el request no tocó BGG. Va antes de las rutas para
+// envolver cualquier handler que dispare fetchBgg (BG Watch, ludoteca, OG).
+app.use(require("./middleware/bggUsageContext"));
+
 // Routes
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/tables", require("./routes/tables"));

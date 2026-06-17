@@ -110,6 +110,7 @@ const {
   nameFromKeys,
 } = require("../services/bgg/bggPlayerOverlay");
 const { invalidateOwnerDerived } = require("../services/bgg/bggInvalidate");
+const { recordMutation, recordSync } = require("../services/bgg/bggUsage");
 const {
   sanitizeLocationKeys,
   loadLocationOverlayIndex,
@@ -1337,6 +1338,7 @@ router.post(
     // full reconcile puede haber insertado/borrado partidas → el selector debe
     // reconstruirse, no solo dropear el cache L1.
     await invalidateOwnerDerived(user.bggUsername);
+    await recordSync(user);
 
     res.json({
       success: true,
@@ -1410,6 +1412,11 @@ router.post(
       });
     }
 
+    await recordMutation(user, "create", {
+      playId: playid,
+      gameId: req.body.objectid,
+    });
+
     res.json({
       success: true,
       playid,
@@ -1477,6 +1484,12 @@ router.post(
 
     const { playid } = await createPlay(user, body);
     await acknowledgeSharedPlay({ req, recipient: user, notifId });
+
+    await recordMutation(user, "create", {
+      playId: playid,
+      gameId: snap.gameId,
+      gameName: snap.gameName,
+    });
 
     res.json({ success: true, playid });
   }),
@@ -1546,6 +1559,11 @@ router.delete(
     }
 
     await invalidateOwnerDerived(user.bggUsername);
+    await recordMutation(user, "delete", {
+      playId,
+      gameId: existing?.gameId,
+      gameName: existing?.gameName,
+    });
 
     res.json({ success: true });
   }),
@@ -1602,6 +1620,10 @@ router.put(
       req.body.objectid,
       req.body.variant,
     );
+    await recordMutation(user, "edit", {
+      playId,
+      gameId: req.body.objectid,
+    });
 
     res.json({ success: true, playid: playId, play: playToApi(verified) });
   }),

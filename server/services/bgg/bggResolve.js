@@ -18,6 +18,7 @@
 const BggGame = require("../../models/BggGame");
 const BggCollection = require("../../models/BggCollection");
 const logger = require("../../utils/logger");
+const { noteRead } = require("./bggUsage");
 const { getCached, setCached, CACHE_TTL } = require("./bggCache");
 const {
   parser,
@@ -32,6 +33,9 @@ const GAME_CACHE_TTL = CACHE_TTL; // 30 min — game data es inmutable, no hay u
 const COLLECTION_MONGO_TTL = 6 * 60 * 60 * 1000; // 6h
 
 async function fetchBgg(url) {
+  // Contabiliza la llamada saliente (atribuida al request activo vía ALS).
+  noteRead(url);
+
   const headers = { "User-Agent": "Turnocero/1.0" };
   if (process.env.BGG_API_KEY)
     headers.Authorization = `Bearer ${process.env.BGG_API_KEY}`;

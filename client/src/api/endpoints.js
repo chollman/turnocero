@@ -321,6 +321,8 @@ export const API = {
     USER_BAN: (userId) => `/api/admin/users/${enc(userId)}/ban`,
     USER_DELETE: (userId) => `/api/admin/users/${enc(userId)}`,
     USER_TOGGLE_ADMIN: (userId) => `/api/admin/users/${enc(userId)}/admin`,
+    BGG_USAGE: "/api/admin/bgg-usage",
+    BGG_USAGE_EVENTS: "/api/admin/bgg-usage/events",
   },
 
   // ── Geocoding ────────────────────────────────────────────────────────
