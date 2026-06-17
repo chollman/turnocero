@@ -74,6 +74,7 @@ function ScoreCell({ value, onChange, onStep, label }) {
  *   player                    el jugador { name, username, score, win, new, anonymous, team }
  *   mode                      "versus" | "coop" | "equipos"
  *   position                  ranking 1-based (solo se muestra en versus con score)
+ *   rankByWin                 versus sin puntajes: mostrar el ranking derivado del "Ganó"
  *   leader / isYou            flags de líder (corona) y de "vos"
  *   userMap                   mapa @BGG → usuario TC (para el avatar)
  *   activeTeams               equipos disponibles (modo equipos)
@@ -85,6 +86,7 @@ export default function ScoreRow({
   player,
   mode,
   position,
+  rankByWin = false,
   leader,
   isYou,
   userMap,
@@ -104,7 +106,7 @@ export default function ScoreRow({
     >
       <span className={styles.scoreRank}>
         {mode === "versus"
-          ? hasDisplayableScore(p.score)
+          ? hasDisplayableScore(p.score) || rankByWin
             ? `#${position}`
             : "—"
           : "·"}

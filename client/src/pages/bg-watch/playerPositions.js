@@ -33,9 +33,17 @@ function makeComparator(nums) {
 // Posiciones 1-based alineadas con `players` (mismo largo/orden que el input).
 // Sin ningún score numérico → posición = orden del array (comportamiento
 // histórico). Con scores → ranking desc con empates compartidos.
+//
+// Caso especial (competitiva sin puntajes pero con "Ganó" marcado): si NINGÚN
+// jugador tiene score numérico pero al menos uno está marcado como ganador, el/
+// los ganador/es van 1° y el resto empata en 2° — anotar "quién ganó" sin cargar
+// puntajes igual produce un ranking.
 export function computePlayerPositions(players = []) {
   const nums = players.map(numericScore);
-  if (!nums.some((n) => n !== null)) return players.map((_, i) => i + 1);
+  if (!nums.some((n) => n !== null)) {
+    if (players.some((p) => p?.win)) return players.map((p) => (p?.win ? 1 : 2));
+    return players.map((_, i) => i + 1);
+  }
 
   const order = players.map((_, i) => i).sort(makeComparator(nums));
 

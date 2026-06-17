@@ -31,6 +31,7 @@ function renderRow(props = {}) {
       userMap={props.userMap || {}}
       activeTeams={props.activeTeams || ["A", "B"]}
       canRemove={props.canRemove ?? true}
+      rankByWin={props.rankByWin || false}
       onScore={props.onScore || vi.fn()}
       onStep={props.onStep || vi.fn()}
       onTeam={props.onTeam || vi.fn()}
@@ -51,6 +52,16 @@ describe("<ScoreRow>", () => {
   it("versus sin score muestra — en el ranking", () => {
     renderRow({ player: makePlayer({ score: "" }) });
     expect(screen.getByText("—")).toBeInTheDocument();
+  });
+
+  it("versus sin score pero con rankByWin muestra la posición derivada del 'Ganó'", () => {
+    renderRow({
+      player: makePlayer({ score: "", win: true }),
+      position: 1,
+      rankByWin: true,
+    });
+    expect(screen.getByText("#1")).toBeInTheDocument();
+    expect(screen.queryByText("—")).toBeNull();
   });
 
   it("coop: sin stepper, etiqueta de equipo", () => {

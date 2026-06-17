@@ -53,6 +53,53 @@ describe("computePlayerPositions", () => {
   it("maneja lista vacía", () => {
     expect(computePlayerPositions([])).toEqual([]);
   });
+
+  it("sin puntajes pero con un 'Ganó' marcado: ganador 1°, resto 2°", () => {
+    expect(
+      computePlayerPositions([
+        { score: "", win: false },
+        { score: "", win: true },
+        { score: "", win: false },
+      ]),
+    ).toEqual([2, 1, 2]);
+  });
+
+  it("sin puntajes con varios ganadores: todos 1°, el resto 2°", () => {
+    expect(
+      computePlayerPositions([
+        { score: "", win: true },
+        { score: "", win: true },
+        { score: "", win: false },
+      ]),
+    ).toEqual([1, 1, 2]);
+  });
+
+  it("sin puntajes y sin ganador marcado usa el orden del array", () => {
+    expect(
+      computePlayerPositions([
+        { score: "", win: false },
+        { score: "", win: false },
+      ]),
+    ).toEqual([1, 2]);
+  });
+
+  it("ignora 'null'/vacío como score y aplica el ranking por 'Ganó'", () => {
+    expect(
+      computePlayerPositions([
+        { score: "null", win: false },
+        { score: "", win: true },
+      ]),
+    ).toEqual([2, 1]);
+  });
+
+  it("con algún score numérico, el 'Ganó' NO altera el ranking (manda el puntaje)", () => {
+    expect(
+      computePlayerPositions([
+        { score: "5", win: true },
+        { score: "10", win: false },
+      ]),
+    ).toEqual([2, 1]);
+  });
 });
 
 describe("sortPlayersByScoreDesc", () => {

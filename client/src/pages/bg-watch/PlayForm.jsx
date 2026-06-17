@@ -501,20 +501,26 @@ export default function PlayForm({
     );
   }, [players, bggUsername]);
 
-  // Líder único (corona): sólo en versus, con al menos un score numérico y una
-  // sola posición 1.
+  // Líder único (corona): sólo en versus, con un resultado cargado (algún score
+  // numérico o, sin puntajes, un "Ganó" marcado) y una sola posición 1.
   const anyNumeric = players.some(
     (p) =>
       hasDisplayableScore(p.score) &&
       Number.isFinite(Number(String(p.score).trim())),
   );
+  // Resultado por "Ganó" sin puntajes (competitiva): se marcó ganador pero no se
+  // cargó ningún score. Habilita el ranking win-based (ganador 1°, resto 2°).
+  const winOnlyResult =
+    mode === "versus" && !anyNumeric && players.some((p) => p.win);
+  // Hay posiciones con sentido si hay algún score o un resultado por "Ganó".
+  const hasRanking = anyNumeric || winOnlyResult;
   const leaderIndex = useMemo(() => {
-    if (mode !== "versus" || !anyNumeric) return -1;
+    if (mode !== "versus" || !hasRanking) return -1;
     const firsts = positions
       .map((pos, i) => (pos === 1 ? i : -1))
       .filter((i) => i >= 0);
     return firsts.length === 1 ? firsts[0] : -1;
-  }, [mode, anyNumeric, positions]);
+  }, [mode, hasRanking, positions]);
 
   // ¿Ganó este jugador? coop = todos; equipos = los del equipo ganador; versus
   // = su flag (autoasignado por score).
@@ -1088,6 +1094,7 @@ export default function PlayForm({
                   player={p}
                   mode={mode}
                   position={positions[i]}
+                  rankByWin={winOnlyResult}
                   leader={
                     i === leaderIndex || (mode === "equipos" && playerWins(p))
                   }
