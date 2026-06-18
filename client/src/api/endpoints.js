@@ -292,6 +292,7 @@ export const API = {
   push: {
     SUBSCRIBE: "/api/push/subscribe",
     UNSUBSCRIBE: "/api/push/unsubscribe",
+    TEST: "/api/push/test",
   },
 
   // ── Direct messages ──────────────────────────────────────────────────

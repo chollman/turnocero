@@ -457,3 +457,60 @@
   border-color: var(--red);
   color: var(--red);
 }
+
+/* ─── Probar push ─── */
+.pushHint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 12px 0 0 0;
+}
+
+.pushLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--amber);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.pushLink:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.pushActions {
+  margin-top: 16px;
+}
+
+.pushBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--amber);
+  color: var(--on-amber);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 11px 20px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
+}
+
+.pushBtn:hover:not(:disabled) {
+  background: var(--amber-light);
+  color: var(--on-amber);
+  box-shadow: 0 4px 22px var(--amber-glow);
+}
+
+.pushBtn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+  box-shadow: none;
+}

@@ -51,4 +51,27 @@ describe("buildPushNotification", () => {
     expect(title).toBe(getNotifMeta({ type: "__unknown__" }).title);
     expect(options.data.url).toBe(notifLink({ type: "__unknown__" }));
   });
+
+  describe("payload de prueba (test: true)", () => {
+    it("usa el title/body/url explícitos del payload, sin pasar por notifDomains", () => {
+      const { title, options } = buildPushNotification({
+        test: true,
+        title: "Notificación de prueba",
+        body: "Funciona 🎲",
+        url: "/panel-admin",
+      });
+      expect(title).toBe("Notificación de prueba");
+      expect(options.body).toBe("Funciona 🎲");
+      expect(options.data.url).toBe("/panel-admin");
+      expect(options.data.type).toBe("test");
+      expect(options.tag).toBe("turnocero-test-push");
+    });
+
+    it("cae a copy y url por defecto cuando el payload solo trae test", () => {
+      const { title, options } = buildPushNotification({ test: true });
+      expect(title).toBe("Notificación de prueba");
+      expect(options.body).toMatch(/funcionan/i);
+      expect(options.data.url).toBe("/panel-admin");
+    });
+  });
 });

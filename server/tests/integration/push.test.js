@@ -1,6 +1,7 @@
 const request = require("supertest");
 const app = require("../../app");
 const PushSubscription = require("../../models/PushSubscription");
+const pushService = require("../../services/pushService");
 const { createAuthedUser, authHeader } = require("../helpers/auth");
 
 const validSub = {
@@ -97,6 +98,57 @@ describe("POST /api/push/unsubscribe", () => {
     const res = await request(app)
       .post("/api/push/unsubscribe")
       .send({ endpoint: validSub.endpoint });
+    expect(res.status).toBe(401);
+  });
+});
+
+describe("POST /api/push/test", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("envía una push de prueba y devuelve el conteo (admin)", async () => {
+    const { user, token } = await createAuthedUser({ isAdmin: true });
+    const spy = vi
+      .spyOn(pushService, "sendToUser")
+      .mockResolvedValue({ sent: 2, pruned: 0 });
+
+    const res = await request(app)
+      .post("/api/push/test")
+      .set(authHeader(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ ok: true, sent: 2, pruned: 0 });
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    // Se envía al propio admin con el flag `test` (para que el SW lo muestre
+    // aunque la app esté en foco) y copy de prueba.
+    const [recipientId, payload] = spy.mock.calls[0];
+    expect(String(recipientId)).toBe(user._id.toString());
+    expect(payload).toMatchObject({ test: true, type: "test" });
+  });
+
+  it("devuelve sent:0 cuando no hay dispositivos suscriptos", async () => {
+    // Sin VAPID configurado en tests, sendToUser real es un no-op {sent:0}.
+    const { token } = await createAuthedUser({ isAdmin: true });
+    const res = await request(app)
+      .post("/api/push/test")
+      .set(authHeader(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body.sent).toBe(0);
+  });
+
+  it("rechaza a usuarios no-admin (403)", async () => {
+    const { token } = await createAuthedUser();
+    const res = await request(app)
+      .post("/api/push/test")
+      .set(authHeader(token));
+    expect(res.status).toBe(403);
+  });
+
+  it("rechaza sin auth (401)", async () => {
+    const res = await request(app).post("/api/push/test");
     expect(res.status).toBe(401);
   });
 });

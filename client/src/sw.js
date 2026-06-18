@@ -51,7 +51,10 @@ self.addEventListener("push", (event) => {
       const focused = wins.some(
         (c) => c.focused || c.visibilityState === "visible",
       );
-      if (focused) return;
+      // Las push de prueba (panel admin) se muestran siempre, aunque la app esté
+      // en foco — la gracia del botón es confirmar visualmente que el push llega
+      // a ESTA pantalla. El resto sí se suprime: el toast in-app ya lo cubre.
+      if (focused && !data.test) return;
 
       const { title, options } = buildPushNotification(data);
       await self.registration.showNotification(title, options);

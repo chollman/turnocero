@@ -11,6 +11,7 @@ import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import CommunitiesAdmin from "./CommunitiesAdmin";
 import BggUsagePanel from "./BggUsagePanel";
+import PushTestPanel from "./PushTestPanel";
 import styles from "./PanelAdmin.module.css";
 
 const SECTION_META = [
@@ -494,6 +495,8 @@ function SectionsTab() {
           </div>
         </div>
       ))}
+
+      <PushTestPanel />
     </>
   );
 }

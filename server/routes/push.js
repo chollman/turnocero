@@ -2,10 +2,11 @@ const express = require("express");
 const router = express.Router();
 const { body, validationResult } = require("express-validator");
 const PushSubscription = require("../models/PushSubscription");
-const { protect } = require("../middleware/auth");
+const { protect, requireAdmin } = require("../middleware/auth");
 const userRateLimit = require("../middleware/userRateLimit");
 const asyncHandler = require("../utils/asyncHandler");
 const httpError = require("../utils/httpError");
+const pushService = require("../services/pushService");
 
 function checkValidation(req) {
   const errors = validationResult(req);
@@ -71,6 +72,31 @@ router.post(
       user: req.user._id,
     });
     res.json({ ok: true });
+  }),
+);
+
+// POST /api/push/test — envía una notificación push de prueba a TODOS los
+// dispositivos suscriptos del admin autenticado. Herramienta de diagnóstico del
+// panel: verifica que la entrega Web Push al sistema operativo funciona, sin
+// depender de que ocurra un evento real ni del allowlist de tipos pusheables.
+// Lleva el flag `test: true` para que el service worker la muestre aunque la app
+// esté en foco (el resto de las push se suprimen con la ventana enfocada).
+router.post(
+  "/test",
+  protect,
+  requireAdmin,
+  userRateLimit({ windowMs: 60_000, max: 10 }),
+  asyncHandler(async (req, res) => {
+    const result = await pushService.sendToUser(req.user._id, {
+      test: true,
+      type: "test",
+      title: "Notificación de prueba",
+      body: "Si ves esto, las notificaciones push funcionan. 🎲",
+      url: "/panel-admin",
+    });
+    // { sent, pruned } — el cliente usa `sent` para distinguir "llegó a N
+    // dispositivos" de "no tenés ninguno suscripto".
+    res.json({ ok: true, ...result });
   }),
 );
 
