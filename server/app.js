@@ -32,6 +32,7 @@ app.use("/api/users", require("./routes/users"));
 app.use("/api/friends", require("./routes/friends"));
 app.use("/api/compartidas", require("./routes/compartidas"));
 app.use("/api/notifications", require("./routes/notifications"));
+app.use("/api/push", require("./routes/push"));
 app.use("/api/noticias", require("./routes/noticias"));
 app.use("/api/torneos", require("./routes/torneos"));
 app.use("/api/mathtrade", require("./routes/mathtrade"));

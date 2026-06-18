@@ -6,6 +6,7 @@ const {
   updateSiteConfig,
 } = require("../../../utils/siteConfig");
 const { createUser } = require("../../helpers/auth");
+const pushService = require("../../../services/pushService");
 
 async function enableAllSections() {
   const all = {};
@@ -184,6 +185,83 @@ describe("emitNotification", () => {
     });
     expect(notif).not.toBeNull();
     // No throw, no emit — the persistence side still works.
+  });
+});
+
+describe("emitNotification — Web Push integration", () => {
+  const origSend = pushService.sendToUser;
+  let sendSpy;
+
+  beforeEach(async () => {
+    await enableAllSections();
+    sendSpy = vi.fn().mockResolvedValue({ sent: 0, pruned: 0 });
+    pushService.sendToUser = sendSpy;
+  });
+
+  afterEach(() => {
+    pushService.sendToUser = origSend;
+  });
+
+  it("envía push (recipientIdStr, payload) para un tipo pushable", async () => {
+    const user = await createUser();
+    const io = makeIo();
+    await emitNotification({
+      io,
+      recipientId: user._id,
+      type: "dm",
+      fields: { fromUserId: "u2", fromUsername: "Ana", lastMessagePreview: "hola" },
+      socketEvent: "dm:message",
+    });
+    expect(sendSpy).toHaveBeenCalledTimes(1);
+    expect(sendSpy.mock.calls[0][0]).toBe(user._id.toString());
+    expect(sendSpy.mock.calls[0][1]).toMatchObject({
+      type: "dm",
+      fromUsername: "Ana",
+      lastMessagePreview: "hola",
+    });
+    expect(sendSpy.mock.calls[0][1].notifId).toBeDefined();
+  });
+
+  it("NO envía push para un tipo no-pushable (queda solo in-app)", async () => {
+    const user = await createUser();
+    const io = makeIo();
+    await emitNotification({
+      io,
+      recipientId: user._id,
+      type: "comment",
+      fields: { tableId: "t1", tableName: "M", lastCommenterUsername: "x" },
+      socketEvent: "table:comment",
+    });
+    expect(sendSpy).not.toHaveBeenCalled();
+  });
+
+  it("NO envía push si la sección push está apagada", async () => {
+    await updateSiteConfig({ push: { enabled: false } }, null, null);
+    const user = await createUser();
+    const io = makeIo();
+    await emitNotification({
+      io,
+      recipientId: user._id,
+      type: "dm",
+      fields: { fromUserId: "u2", fromUsername: "Ana" },
+      socketEvent: "dm:message",
+    });
+    expect(sendSpy).not.toHaveBeenCalled();
+  });
+
+  it("un push que rechaza no rompe emitNotification ni bloquea el emit", async () => {
+    pushService.sendToUser = vi.fn().mockRejectedValue(new Error("boom"));
+    const user = await createUser();
+    const io = makeIo();
+    const notif = await emitNotification({
+      io,
+      recipientId: user._id,
+      type: "dm",
+      fields: { fromUserId: "u2", fromUsername: "Ana" },
+      socketEvent: "dm:message",
+    });
+    expect(notif).not.toBeNull();
+    expect(io.emitted).toHaveLength(1);
   });
 });
 

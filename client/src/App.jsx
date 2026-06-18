@@ -90,6 +90,7 @@ import PageTransition from "./components/layout/PageTransition";
 import usePageTransition from "./components/layout/usePageTransition";
 import useVisualViewportVars from "./utils/useVisualViewportVars";
 import usePwaRouteRestore from "./hooks/usePwaRouteRestore";
+import PushPrompt from "./components/shared/PushPrompt";
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -785,6 +786,7 @@ function AppShell() {
       <ColaborarFab onVisibilityChange={setBancanosVisible} />
       <AdminViewToggle bancanosVisible={bancanosVisible} />
       <ViewAsUserBanner />
+      <PushPrompt />
     </>
   );
 }

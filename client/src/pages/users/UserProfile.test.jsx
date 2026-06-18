@@ -29,6 +29,7 @@ vi.mock("../../context/ThemeContext", () => ({ useTheme: vi.fn() }));
 vi.mock("../../context/NotificationContext", () => ({
   useNotifications: vi.fn(),
 }));
+vi.mock("../../hooks/usePushNotifications", () => ({ default: vi.fn() }));
 
 // AvatarCropModal: skip the real react-easy-crop flow and immediately confirm with a fake blob.
 vi.mock("../../components/shared/AvatarCropModal", () => ({
@@ -62,16 +63,32 @@ import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useTheme } from "../../context/ThemeContext";
 import { useNotifications } from "../../context/NotificationContext";
+import usePushNotifications from "../../hooks/usePushNotifications";
+
+const defaultPush = () => ({
+  isSupported: false,
+  permission: "default",
+  isSubscribed: false,
+  requiresStandalone: false,
+  busy: false,
+  error: null,
+  subscribe: vi.fn(),
+  unsubscribe: vi.fn(),
+});
 
 function setup({
   user = { _id: "u1", username: "cha", email: "cha@test.local" },
   refreshUser = vi.fn(),
   updateProfile = vi.fn(),
+  sectionEnabled = () => true,
+  push = defaultPush(),
+  addToast = vi.fn(),
 } = {}) {
   useAuth.mockReturnValue({ user, updateProfile, refreshUser });
-  useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+  useSiteConfig.mockReturnValue({ isSectionEnabled: sectionEnabled });
   useTheme.mockReturnValue({ theme: "dark", setTheme: vi.fn() });
-  useNotifications.mockReturnValue({ addToast: vi.fn() });
+  useNotifications.mockReturnValue({ addToast });
+  usePushNotifications.mockReturnValue(push);
 
   return render(
     <MemoryRouter>
@@ -602,5 +619,63 @@ describe("UserProfile — Dirección (Google Maps)", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /buscar/i }));
     expect(screen.getByText(/al menos 3 caracteres/i)).toBeInTheDocument();
+  });
+});
+
+describe("<UserProfile> — Notificaciones push section", () => {
+  it("no renderiza la sección si el toggle push está apagado", () => {
+    setup({ sectionEnabled: (k) => k !== "push" });
+    expect(screen.queryByText("Notificaciones push")).not.toBeInTheDocument();
+  });
+
+  it("muestra el mensaje de no-soportado cuando el browser no soporta push", () => {
+    setup({ push: { ...defaultPush(), isSupported: false } });
+    expect(screen.getByText("Notificaciones push")).toBeInTheDocument();
+    expect(
+      screen.getByText(/no soporta notificaciones push/i),
+    ).toBeInTheDocument();
+  });
+
+  it("muestra el botón Activar y llama subscribe al hacer click", async () => {
+    const subscribe = vi.fn().mockResolvedValue(true);
+    const addToast = vi.fn();
+    setup({
+      addToast,
+      push: { ...defaultPush(), isSupported: true, subscribe },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /activar notificaciones/i }),
+    );
+    expect(subscribe).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(addToast).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "success" }),
+      ),
+    );
+  });
+
+  it("muestra Desactivar cuando ya está suscripto", () => {
+    setup({
+      push: { ...defaultPush(), isSupported: true, isSubscribed: true },
+    });
+    expect(
+      screen.getByRole("button", { name: /desactivar notificaciones/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("guía a instalar la PWA en iOS-pestaña", () => {
+    setup({
+      push: { ...defaultPush(), isSupported: false, requiresStandalone: true },
+    });
+    expect(
+      screen.getByText(/en tu pantalla de inicio/i),
+    ).toBeInTheDocument();
+  });
+
+  it("avisa que el permiso está bloqueado (denied)", () => {
+    setup({
+      push: { ...defaultPush(), isSupported: true, permission: "denied" },
+    });
+    expect(screen.getByText(/Bloqueaste las notificaciones/i)).toBeInTheDocument();
   });
 });

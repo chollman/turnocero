@@ -16,6 +16,7 @@ const SECTION_KEYS = [
   "calendario",
   "mathtrade",
   "comunidades",
+  "push",
 ];
 
 // Defaults que preservan el comportamiento actual hardcodeado:

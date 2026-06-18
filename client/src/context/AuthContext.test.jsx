@@ -6,6 +6,10 @@ import { server } from "../test/server";
 
 vi.mock("../utils/tenant", () => ({ detectTenant: vi.fn() }));
 import { detectTenant } from "../utils/tenant";
+vi.mock("../utils/pushDevice", () => ({
+  unsubscribeThisDevice: vi.fn().mockResolvedValue(undefined),
+}));
+import { unsubscribeThisDevice } from "../utils/pushDevice";
 import { AuthProvider, useAuth } from "./AuthContext";
 
 function Probe() {
@@ -57,6 +61,7 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
   detectTenant.mockReturnValue(null); // sitio principal por defecto
+  unsubscribeThisDevice.mockClear();
   // Default: /api/auth/me returns 401 — guest
   server.use(
     http.get("/api/auth/me", () => HttpResponse.json({}, { status: 401 })),
@@ -190,6 +195,8 @@ describe("AuthContext", () => {
     expect(localStorage.getItem("token")).toBeNull();
     expect(screen.getByTestId("user").textContent).toBe("null");
     expect(screen.getByTestId("view-as-user").textContent).toBe("false");
+    // El logout explícito des-suscribe este device de push (best-effort).
+    expect(unsubscribeThisDevice).toHaveBeenCalled();
   });
 
   it("verifyEmail stores token and sets the user", async () => {

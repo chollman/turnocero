@@ -19,10 +19,17 @@ export const defaultHandlers = [
         bgwatch: { enabled: true },
         utilidades: { enabled: true },
         colabora: { enabled: true },
+        push: { enabled: true },
       },
     }),
   ),
   http.get("/api/notifications", () => HttpResponse.json([])),
+  // Web Push subscribe/unsubscribe — disparados por usePushNotifications.
+  // Tests específicos overridean con server.use(...).
+  http.post("/api/push/subscribe", () =>
+    HttpResponse.json({ ok: true }, { status: 201 }),
+  ),
+  http.post("/api/push/unsubscribe", () => HttpResponse.json({ ok: true })),
   // Default para el get-or-create de short links — lo disparan los controles de
   // compartir (eager en páginas de detalle, primed en feeds). Tests específicos
   // overridean con server.use(...).

@@ -1,4 +1,8 @@
 const saveNotification = require("./saveNotification");
+const pushService = require("../services/pushService");
+const serializeNotifForPush = require("./serializeNotifForPush");
+const { PUSHABLE_TYPES } = require("../config/pushableTypes");
+const { isSectionEnabled } = require("./siteConfig");
 
 /**
  * Persist a notification and emit a Socket.IO event to the recipient's room.
@@ -40,6 +44,19 @@ async function emitNotification({
 
   const notif = await saveNotification(recipientIdStr, type, fields);
   if (!notif) return null; // section disabled, save failed, etc.
+
+  // Web Push (best-effort) — entrega a nivel OS a los devices suscriptos, así
+  // la notificación llega aunque la PWA esté cerrada / en background. Solo para
+  // un subset curado de tipos (config/pushableTypes) y respetando el toggle
+  // admin `push`. Fire-and-forget: nunca bloquea la respuesta HTTP ni el loop
+  // del cron, y un fallo de push nunca se propaga. (Llamado vía el objeto
+  // `pushService` a propósito — los tests mutan `pushService.sendToUser`.)
+  if (isSectionEnabled("push") && PUSHABLE_TYPES.has(type)) {
+    pushService
+      .sendToUser(recipientIdStr, serializeNotifForPush(notif))
+      .catch(() => {});
+  }
+
   if (!io || !socketEvent) return notif;
 
   // `actor` (singular) sólo alimenta el array `actors` del doc — no se emite

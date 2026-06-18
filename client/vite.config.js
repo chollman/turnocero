@@ -8,6 +8,18 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      // Estrategia injectManifest: usamos un SW propio (src/sw.js) para poder
+      // agregar los listeners de Web Push. El SW reproduce a mano lo que antes
+      // configurábamos vía `workbox` (precache + skipWaiting + clientsClaim +
+      // cleanupOutdatedCaches + navigateFallback con denylist /api). El registro
+      // del SW lo sigue inyectando vite-plugin-pwa en index.html (injectRegister
+      // default 'auto'), así que no hace falta tocar main.jsx.
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.js",
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
+      },
       includeAssets: [
         "logo.svg",
         "favicon.ico",
@@ -31,26 +43,6 @@ export default defineConfig({
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
-          },
-        ],
-      },
-      workbox: {
-        // Take over immediately on activation and skip the "waiting" phase.
-        // Without these, a new SW would wait for every open tab to close
-        // before activating — leaving users on a stale cache that points
-        // to JS chunks that no longer exist on the server (white screen).
-        clientsClaim: true,
-        skipWaiting: true,
-        // Drop precaches from previous SW versions so we don't keep
-        // serving deleted chunks.
-        cleanupOutdatedCaches: true,
-        navigateFallback: "/index.html",
-        // Don't serve the SPA shell for API requests.
-        navigateFallbackDenylist: [/^\/api\//],
-        runtimeCaching: [
-          {
-            urlPattern: /^\/api\//,
-            handler: "NetworkOnly",
           },
         ],
       },

@@ -33,7 +33,8 @@
     "node-cron": "^4.2.1",
     "resend": "^6.12.3",
     "socket.io": "^4.8.3",
-    "turnocero": "file:.."
+    "turnocero": "file:..",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

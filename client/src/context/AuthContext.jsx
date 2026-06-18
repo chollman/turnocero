@@ -4,6 +4,7 @@ import axios from "axios";
 import { STORAGE_KEYS } from "../utils/storageKeys";
 import { API } from "../api/endpoints";
 import { detectTenant } from "../utils/tenant";
+import { unsubscribeThisDevice } from "../utils/pushDevice";
 
 // Auth es doble: token Bearer en `localStorage` (por-origin) + cookie httpOnly.
 // Con el dominio propio (`turnocero.app` front + `api.turnocero.app` back) la
@@ -198,6 +199,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    // Des-suscribir este device de push ANTES de tirar la sesión (best-effort,
+    // nunca bloquea). En un device compartido evita que sigan llegando pushes
+    // del usuario que se va. Solo en el logout EXPLÍCITO — no en el auto-logout
+    // por 401/ban (que podría ser un 401 transitorio).
+    await unsubscribeThisDevice();
     await axios.post(API.auth.LOGOUT).catch(() => {});
     local.remove(STORAGE_KEYS.TOKEN);
     local.remove(STORAGE_KEYS.VIEW_AS_USER);

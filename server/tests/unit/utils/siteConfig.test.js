@@ -20,6 +20,7 @@ describe("utils/siteConfig", () => {
         "dms",
         "bgwatch",
         "utilidades",
+        "push",
       ]),
     );
   });
@@ -31,6 +32,7 @@ describe("utils/siteConfig", () => {
     expect(SiteConfig.defaultFor("compartidas")).toBe(true);
     expect(SiteConfig.defaultFor("eventos")).toBe(true);
     expect(SiteConfig.defaultFor("utilidades")).toBe(true);
+    expect(SiteConfig.defaultFor("push")).toBe(true);
   });
 
   describe("loadSiteConfig + getSiteConfig + isSectionEnabled", () => {

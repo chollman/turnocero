@@ -31,7 +31,10 @@
     "react-helmet-async": "^2.0.5",
     "react-router-dom": "^6.23.1",
     "socket.io-client": "^4.8.3",
-    "turnocero": "file:.."
+    "turnocero": "file:..",
+    "workbox-precaching": "^7.4.1",
+    "workbox-routing": "^7.4.1",
+    "workbox-strategies": "^7.4.1"
   },
   "devDependencies": {
     "@csstools/postcss-global-data": "^4.0.0",

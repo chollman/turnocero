@@ -211,7 +211,7 @@ Small standalone tabletop tools, intentionally **forced-dark** regardless of the
 
 ### Panel Admin and SiteConfig (section toggles)
 
-`SiteConfig` is a single MongoDB document (`_id: 'singleton'`) that controls which top-level sections are enabled site-wide. Section keys: `mesas`, `compartidas`, `noticias`, `torneos`, `eventos`, `comunidad`, `miFeed`, `amigos`, `dms`, `bgwatch`, `utilidades`, `colabora`, `calendario`, `mathtrade`, `comunidades`. Note the two community keys: **`comunidades`** (plural) gates the Comunidades directory; **`comunidad`** (singular) gates the per-community member list (see Comunidades above). Defaults preserve historical hardcoded admin-only-ness for `mesas`, `torneos`, `miFeed`, and `mathtrade` (default `enabled: false`); all others default `true`. Admins flip toggles in `/panel-admin`; server enforces via `requireSection` middleware, client gates via `<SectionGate section="...">` (see [`App.jsx`](client/src/App.jsx)). When you add a new top-level feature, plumb it through `SECTION_KEYS`, the route guard, and the panel — see `feedback_panel_admin_toggles.md`.
+`SiteConfig` is a single MongoDB document (`_id: 'singleton'`) that controls which top-level sections are enabled site-wide. Section keys: `mesas`, `compartidas`, `noticias`, `torneos`, `eventos`, `comunidad`, `miFeed`, `amigos`, `dms`, `bgwatch`, `utilidades`, `colabora`, `calendario`, `mathtrade`, `comunidades`, `push`. The **`push`** key is a master switch for Web Push delivery (default `true`); turning it off stops outbound pushes and hides the push opt-in UI, but does NOT affect in-app notifications. Note the two community keys: **`comunidades`** (plural) gates the Comunidades directory; **`comunidad`** (singular) gates the per-community member list (see Comunidades above). Defaults preserve historical hardcoded admin-only-ness for `mesas`, `torneos`, `miFeed`, and `mathtrade` (default `enabled: false`); all others default `true`. Admins flip toggles in `/panel-admin`; server enforces via `requireSection` middleware, client gates via `<SectionGate section="...">` (see [`App.jsx`](client/src/App.jsx)). When you add a new top-level feature, plumb it through `SECTION_KEYS`, the route guard, and the panel — see `feedback_panel_admin_toggles.md`.
 
 `SiteConfigContext` loads the config once on app boot and exposes `isSectionEnabled(key)`. Routes wrapped in `<SectionGate>` redirect/hide for disabled sections; admins always see disabled sections (with a banner) unless they enable "view as user".
 
@@ -226,6 +226,18 @@ Registration creates the user in an unverified state and emails a 6-digit code (
 ### Friends system
 
 Stored on the `User` model: `friends: [ObjectId]` and `friendRequests: [{ from, sentAt }]`. Managed via `/api/friends/:id/request|accept|reject` and `DELETE /api/friends/:id`. The friends list gates `'friends'`-privacy Compartidas and DM access.
+
+### Web Push notifications (PWA)
+
+OS-level push delivered when a notification is persisted, so it arrives even with the PWA closed/backgrounded. **Supplements** the Socket.IO in-app system, doesn't replace it.
+
+- **Single integration point:** [`emitNotification.js`](server/utils/emitNotification.js) fires the push (fire-and-forget, best-effort) right after `saveNotification` returns a non-null doc — so it covers both request routes and the cron. It only pushes when `isSectionEnabled('push')` AND the type is in the curated allowlist [`config/pushableTypes.js`](server/config/pushableTypes.js) (high-value/personal types + BG Watch; likes/photos/generic comments are in-app only). Respects section gating automatically (no push when the notif didn't persist).
+- **Copy reuse (single source of truth):** the push payload is the Notification fields serialized by [`serializeNotifForPush.js`](server/utils/serializeNotifForPush.js) (whitelist, <4KB; excludes `playSnapshot`/`community`). The **service worker** ([client/src/sw.js](client/src/sw.js)) reuses `getNotifMeta`/`notifLink` from [notifDomains.js](client/src/utils/notifDomains.js) (via the pure, testable [client/src/sw/pushNotification.js](client/src/sw/pushNotification.js)) to build title/body/url — so push text never diverges from the in-app bandeja.
+- **Service worker:** vite-plugin-pwa runs in **`injectManifest`** mode (was `generateSW`) so we can add `push`/`notificationclick` handlers. [client/src/sw.js](client/src/sw.js) hand-reproduces the old workbox behavior (precache + `cleanupOutdatedCaches` + `skipWaiting` + `clients.claim` + `/api` NetworkOnly + navigation fallback with `/api` denylist) — **keep all of these or stale cache → white screen** (see `feedback_pwa_sw_config`). The `push` handler suppresses the OS notification if any client window is focused (the in-app toast already covers that device).
+- **Multi-device:** never suppress server-side by socket presence — always send to all of a user's subscriptions; each device's SW decides locally. Dead subscriptions (404/410) are pruned by [`services/pushService.js`](server/services/pushService.js).
+- **Subscriptions:** [`PushSubscription`](server/models/PushSubscription.js) model (one per device, upsert by `endpoint`). Client [`usePushNotifications`](client/src/hooks/usePushNotifications.js) handles permission (from a user gesture) + `pushManager.subscribe` with the VAPID key (`urlBase64ToUint8Array` in [pushKey.js](client/src/utils/pushKey.js)). Opt-in lives in `/perfil` ("Notificaciones push" section) + a proactive [`PushPrompt`](client/src/components/shared/PushPrompt.jsx) banner (2nd session+, 14-day re-prompt). On explicit logout the device unsubscribes ([pushDevice.js](client/src/utils/pushDevice.js)).
+- **iOS caveat:** Web Push needs iOS 16.4+ **and the PWA installed standalone** (no push in a Safari tab); the UI detects this (`requiresStandalone`) and guides "Agregar a inicio".
+- **Env / deploy:** generate VAPID keys once (`npx web-push generate-vapid-keys`). Server: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`. Client: `VITE_VAPID_PUBLIC_KEY` (the public key, embedded at build). Without keys, push is a no-op — nothing breaks.
 
 ### Direct Messages (DM)
 
@@ -434,6 +446,9 @@ GET    /api/dm/:userId                          — paginated message history; f
 POST   /api/dm/:userId                          — send message; friends only
 PATCH  /api/dm/:userId/read                     — mark messages from that user as read
 
+POST   /api/push/subscribe                      — auth; upsert this device's Web Push subscription
+POST   /api/push/unsubscribe                    — auth; remove this device's subscription (by endpoint)
+
 GET    /api/admin-chat                          — last 100 messages; admin only
 POST   /api/admin-chat                          — send message; admin only
 
@@ -610,6 +625,9 @@ VITE_API_URL=http://localhost:4000
 # OAuth login — mismos valores que GOOGLE_CLIENT_ID / FB_APP_ID del server.
 VITE_GOOGLE_CLIENT_ID=
 VITE_FB_APP_ID=
+# Web Push — la VAPID PUBLIC key (igual a VAPID_PUBLIC_KEY del server). Es
+# pública, se embebe en el build. Sin esto, el botón "Activar" no suscribe.
+VITE_VAPID_PUBLIC_KEY=
 ```
 
 ### BG Watch (BGG integration)

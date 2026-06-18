@@ -288,6 +288,12 @@ export const API = {
     DISMISS: (id) => `/api/notifications/${enc(id)}`,
   },
 
+  // ── Web Push ─────────────────────────────────────────────────────────
+  push: {
+    SUBSCRIBE: "/api/push/subscribe",
+    UNSUBSCRIBE: "/api/push/unsubscribe",
+  },
+
   // ── Direct messages ──────────────────────────────────────────────────
   dm: {
     CONVERSATIONS: "/api/dm",

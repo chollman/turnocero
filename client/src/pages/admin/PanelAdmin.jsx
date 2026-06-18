@@ -163,6 +163,21 @@ const SECTION_META = [
       },
     ],
   },
+  {
+    group: "Notificaciones",
+    items: [
+      {
+        key: "push",
+        label: "Notificaciones push",
+        desc: "Avisos al sistema operativo (PWA mobile/desktop) cuando la app está cerrada. Las notificaciones in-app no se ven afectadas.",
+        affects: [
+          "Deja de enviar push (los devices suscriptos no reciben más)",
+          'Oculta la sección "Notificaciones push" en /perfil',
+          "Oculta el prompt para activar notificaciones",
+        ],
+      },
+    ],
+  },
 ];
 
 const STATUS_LABELS = {

@@ -23,6 +23,7 @@ import {
 import PasswordInput from "../../components/shared/PasswordInput";
 import AddressMap from "../../components/shared/AddressMap";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
+import usePushNotifications from "../../hooks/usePushNotifications";
 import styles from "./UserProfile.module.css";
 
 const AVATAR_MIME = ["image/jpeg", "image/png", "image/webp"];
@@ -89,6 +90,90 @@ export default function UserProfile() {
   const { theme, setTheme } = useTheme();
   const { addToast } = useNotifications();
   const bgwatchEnabled = isSectionEnabled("bgwatch");
+  const pushEnabled = isSectionEnabled("push");
+  const push = usePushNotifications();
+
+  const handlePushSubscribe = async () => {
+    const ok = await push.subscribe();
+    addToast(
+      ok
+        ? {
+            type: "success",
+            title: "¡Activadas!",
+            message: "Te vamos a avisar en este dispositivo.",
+          }
+        : {
+            type: "error",
+            title: "No se pudo",
+            message:
+              "Revisá los permisos de notificaciones del navegador.",
+          },
+    );
+  };
+
+  const handlePushUnsubscribe = async () => {
+    const ok = await push.unsubscribe();
+    addToast(
+      ok
+        ? {
+            type: "success",
+            title: "Listo",
+            message: "Desactivaste las notificaciones en este dispositivo.",
+          }
+        : { type: "error", title: "Ups", message: "No se pudieron desactivar." },
+    );
+  };
+
+  function renderPushControl() {
+    // iOS en pestaña: el push solo anda con la PWA instalada. Va PRIMERO porque
+    // ahí `isSupported` es false, pero el mensaje útil es "instalá", no
+    // "no soporta".
+    if (push.requiresStandalone) {
+      return (
+        <p className={styles.hint}>
+          Instalá {brandName} en tu pantalla de inicio (compartir → “Agregar a
+          inicio”) para activar las notificaciones.
+        </p>
+      );
+    }
+    if (!push.isSupported) {
+      return (
+        <p className={styles.hint}>
+          Tu navegador no soporta notificaciones push.
+        </p>
+      );
+    }
+    if (push.permission === "denied") {
+      return (
+        <p className={styles.hint}>
+          Bloqueaste las notificaciones. Habilitalas desde la configuración del
+          navegador para este sitio.
+        </p>
+      );
+    }
+    if (push.isSubscribed) {
+      return (
+        <button
+          type="button"
+          className={styles.btnGhost}
+          disabled={push.busy}
+          onClick={handlePushUnsubscribe}
+        >
+          {push.busy ? "Desactivando…" : "Desactivar notificaciones"}
+        </button>
+      );
+    }
+    return (
+      <button
+        type="button"
+        className={styles.btnPrimary}
+        disabled={push.busy}
+        onClick={handlePushSubscribe}
+      >
+        {push.busy ? "Activando…" : "Activar notificaciones"}
+      </button>
+    );
+  }
 
   // ── BGG connection state ──
   const [bggPassword, setBggPassword] = useState("");
@@ -602,6 +687,18 @@ export default function UserProfile() {
                 </button>
               </div>
             </div>
+
+            {pushEnabled && (
+              <div className={styles.section}>
+                <div className={styles.sectionLabel}>Notificaciones push</div>
+                <p className={styles.hint}>
+                  Recibí un aviso en este dispositivo cuando pase algo
+                  importante (un mensaje, una solicitud, un recordatorio),
+                  aunque {brandName} esté cerrada.
+                </p>
+                {renderPushControl()}
+              </div>
+            )}
 
             <div className={styles.section}>
               <div className={styles.sectionLabel}>Avatar</div>

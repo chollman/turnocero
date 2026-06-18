@@ -13,6 +13,9 @@ export const STORAGE_KEYS = Object.freeze({
   // Última ruta visitada — para restaurarla cuando la PWA (standalone) arranca
   // en el start_url "/" y pierde el deep-link al refrescar/reabrir.
   LAST_ROUTE: "turnocero_last_route",
+  // Estado del prompt proactivo de notificaciones push: JSON
+  // { dismissedAt: epochMs|null, sessionCount: number }.
+  PUSH_PROMPT: "turnocero_push_prompt",
   // sessionStorage
   BANNED_MESSAGE: "bannedMessage",
   FLASH_MESSAGE: "flashMessage",
