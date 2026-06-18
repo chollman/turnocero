@@ -40,10 +40,10 @@ describe("buildPushNotification", () => {
     expect(options.renotify).toBe(false);
   });
 
-  it("incluye icon y badge", () => {
+  it("incluye icon (logo a color) y badge (silueta monocroma)", () => {
     const { options } = buildPushNotification({ type: "dm" });
     expect(options.icon).toBe("/pwa-192x192.png");
-    expect(options.badge).toBe("/pwa-64x64.png");
+    expect(options.badge).toBe("/badge-96x96.png");
   });
 
   it("title cae a 'TurnoCero' y url a /notificaciones para data vacía/desconocida", () => {

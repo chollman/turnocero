@@ -15,8 +15,11 @@ export function buildPushNotification(data = {}) {
     title: meta.title || "TurnoCero",
     options: {
       body: meta.body || "",
+      // icon = logo a color (lado grande de la notif). badge = silueta
+      // monocroma de la marca para la barra de estado de Android, que lo
+      // enmascara por alfa (un PNG opaco saldría como cuadrado blanco).
       icon: "/pwa-192x192.png",
-      badge: "/pwa-64x64.png",
+      badge: "/badge-96x96.png",
       // tag por notifId colapsa pushes repetidos de la MISMA notif evolutiva
       // (p.ej. un contador de chat) en una sola entrada del OS; cae a `type`.
       tag: data.notifId || data.type || undefined,
