@@ -1,94 +1,104 @@
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  background: linear-gradient(135deg, var(--amber-10), var(--amber-20));
-  border: 1px solid var(--border-amber);
-  border-radius: 14px;
-  padding: 18px 20px;
+/* Banda "Mi BG Watch" — diseño del handoff (.bgwBand): card púrpura tintada,
+   avatar con gradiente + die badge, info, y stats + "Ver completo" a la derecha. */
+.band {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 18px;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--purple-25);
+  border-radius: 18px;
+  background:
+    radial-gradient(560px circle at 90% -60%, var(--purple-15), transparent 60%),
+    linear-gradient(180deg, var(--purple-10), transparent),
+    var(--bg-paper);
+  padding: 20px 22px;
   text-decoration: none;
   color: inherit;
   transition:
-    transform var(--transition),
-    box-shadow var(--transition);
+    border-color var(--transition),
+    transform var(--transition);
 }
 
-.card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px var(--amber-glow);
+.band:hover {
+  border-color: var(--purple);
+  transform: translateY(-2px);
 }
 
-/* ─── Header (avatar + identity + inline CTA) ─── */
-.header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
+/* ─── Avatar (gradiente púrpura + die badge) ─── */
 .avatar {
   position: relative;
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  background: var(--amber);
-  color: var(--on-amber);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 15px;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px var(--amber-glow);
+  background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+  display: grid;
+  place-items: center;
+  color: #fff;
 }
 
 .avatarLetter {
   font-family: var(--font-display);
-  font-size: 24px;
   font-weight: 800;
+  font-size: 22px;
   line-height: 1;
 }
 
-.avatarBadge {
+/* Foto de avatar del usuario (si tiene una asignada). Redondeada al mismo radio
+   del tile — no podemos usar overflow:hidden en .avatar porque clippea el die. */
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 15px;
+}
+
+.die {
   position: absolute;
-  bottom: -4px;
-  right: -4px;
+  right: -5px;
+  bottom: -5px;
   width: 22px;
   height: 22px;
-  border-radius: 50%;
-  background: var(--bg-card);
-  color: var(--amber-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--bg-card);
+  border-radius: 7px;
+  background: var(--bg-paper);
+  border: 1px solid var(--purple-25);
+  color: var(--purple);
+  display: grid;
+  place-items: center;
 }
 
-.avatarBadge svg {
-  width: 14px;
-  height: 14px;
+.die svg {
+  width: 12px;
+  height: 12px;
 }
 
-.identity {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
+/* ─── Info ─── */
+.info {
   min-width: 0;
 }
 
-.eyebrow {
-  font-family: var(--font-display);
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: "Manrope", var(--font-display);
   font-size: 10px;
   font-weight: 800;
-  color: var(--amber-light);
-  letter-spacing: 0.15em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--purple-light);
 }
 
 .username {
+  display: block;
+  margin: 3px 0;
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: var(--text-primary);
   letter-spacing: -0.02em;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -98,124 +108,84 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 2px;
+  font-size: 11px;
+  color: var(--green);
 }
 
 .connectedDot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 6px var(--green-40);
+  box-shadow: 0 0 0 3px var(--green-10);
 }
 
-.ctaInline {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--amber);
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-.ctaInline svg {
-  width: 16px;
-  height: 16px;
-  transition: transform var(--transition);
-}
-
-.card:hover .ctaInline svg {
-  transform: translateX(3px);
-}
-
-@media (--phone) {
-  .ctaInline {
-    width: 100%;
-    justify-content: flex-end;
-  }
-}
-
-/* ─── Stats row ─── */
+/* ─── Stats + CTA ─── */
 .stats {
   display: flex;
-  align-items: stretch;
-  gap: 0;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px 4px;
+  align-items: center;
+  gap: 22px;
+  flex-shrink: 0;
 }
 
 .statItem {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-  min-width: 0;
-}
-
-.statLabel {
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  text-align: center;
+  gap: 1px;
+  text-align: right;
 }
 
 .statValue {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 1.3rem;
   font-weight: 800;
+  letter-spacing: -0.04em;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
   line-height: 1;
 }
 
-.statValueSm {
-  font-family: var(--font-display);
-  font-size: 13px;
+.statLabel {
+  font-family: "Manrope", var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Manrope", var(--font-display);
+  font-size: 12.5px;
   font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.15;
-  text-align: center;
-  word-break: break-word;
+  color: var(--purple-light);
+  white-space: nowrap;
 }
 
-.statDivider {
-  width: 1px;
-  background: var(--border);
-  margin: 4px 0;
-  flex-shrink: 0;
+.go svg {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--transition);
 }
 
-@media (max-width: 520px) {
-  .statValue {
-    font-size: 18px;
+.band:hover .go svg {
+  transform: translateX(3px);
+}
+
+@media (--phone) {
+  /* Avatar + info en la primera línea; las stats bajan a una segunda fila
+     full-width. */
+  .band {
+    grid-template-columns: auto 1fr;
   }
-  .statValueSm {
-    font-size: 11.5px;
-  }
-  .statLabel {
-    font-size: 9px;
+  .stats {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
   .statItem {
-    padding: 0 4px;
+    text-align: left;
   }
-}
-
-/* ─── Error note ─── */
-.errorNote {
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-muted);
-  text-align: center;
 }

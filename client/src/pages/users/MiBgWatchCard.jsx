@@ -5,16 +5,6 @@ import axios from "axios";
 import { API } from "../../api/endpoints";
 import styles from "./MiBgWatchCard.module.css";
 
-function formatDate(iso) {
-  if (!iso) return null;
-  const [year, month, day] = iso.split("-");
-  return new Date(year, month - 1, day).toLocaleDateString("es-AR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 const DieIcon = () => (
   <svg
     viewBox="0 0 24 24"
@@ -50,23 +40,18 @@ const ArrowIcon = () => (
 );
 
 /**
- * Promotional card shown at the top of /perfil for users with an active BG Watch connection.
- * Shows lightweight stats and a CTA to the user's own BG Watch profile.
+ * Banda BG Watch ("Mi BG Watch") arriba de /perfil para usuarios con la
+ * conexión activa. Stats livianas + CTA al perfil BG Watch propio.
+ * Diseño: card púrpura (handoff "Mi Perfil Reimagined" → .bgwBand).
  */
-export default function MiBgWatchCard({ bggUsername }) {
-  const [stats, setStats] = useState({
-    partidas: null,
-    juegos: null,
-    lastDate: null,
-  });
+export default function MiBgWatchCard({ bggUsername, avatarUrl }) {
+  const [stats, setStats] = useState({ partidas: null, juegos: null });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!bggUsername) return;
     let cancelled = false;
     setLoading(true);
-    setError(false);
 
     const partidasReq = axios
       .get(API.bgg.PARTIDAS(bggUsername), { params: { page: 1 } })
@@ -80,13 +65,10 @@ export default function MiBgWatchCard({ bggUsername }) {
 
     Promise.all([partidasReq, coleccionReq]).then(([partidas, coleccion]) => {
       if (cancelled) return;
-      const ok = partidas !== null || coleccion !== null;
       setStats({
         partidas: partidas?.total ?? null,
         juegos: Array.isArray(coleccion) ? coleccion.length : null,
-        lastDate: partidas?.plays?.[0]?.date ?? null,
       });
-      setError(!ok);
       setLoading(false);
     });
 
@@ -98,57 +80,49 @@ export default function MiBgWatchCard({ bggUsername }) {
   const initial = bggUsername?.charAt(0)?.toUpperCase() || "?";
   const partidasDisplay = loading ? "…" : (stats.partidas ?? "—");
   const juegosDisplay = loading ? "…" : (stats.juegos ?? "—");
-  const lastDateDisplay = loading ? "…" : (formatDate(stats.lastDate) ?? "—");
 
   return (
     <Link
       to={`/bg-watch/${encodeURIComponent(bggUsername)}`}
-      className={styles.card}
+      className={styles.band}
     >
-      <div className={styles.header}>
-        <div className={styles.avatar} aria-hidden="true">
+      <div className={styles.avatar} aria-hidden="true">
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" className={styles.avatarImg} />
+        ) : (
           <span className={styles.avatarLetter}>{initial}</span>
-          <span className={styles.avatarBadge}>
-            <DieIcon />
-          </span>
-        </div>
-        <div className={styles.identity}>
-          <span className={styles.eyebrow}><Meeple />MI BG WATCH</span>
-          <span className={styles.username}>@{bggUsername}</span>
-          <span className={styles.connectedTag}>
-            <span className={styles.connectedDot} aria-hidden="true" />
-            Conectado a BoardGameGeek
-          </span>
-        </div>
-        <span className={styles.ctaInline}>
-          Ver mi BG Watch completo
-          <ArrowIcon />
+        )}
+        <span className={styles.die}>
+          <DieIcon />
+        </span>
+      </div>
+
+      <div className={styles.info}>
+        <span className={styles.kicker}>
+          <Meeple />
+          MI BG WATCH
+        </span>
+        <span className={styles.username}>@{bggUsername}</span>
+        <span className={styles.connectedTag}>
+          <span className={styles.connectedDot} aria-hidden="true" />
+          Conectado a BoardGameGeek
         </span>
       </div>
 
       <div className={styles.stats}>
         <div className={styles.statItem}>
-          <span className={styles.statLabel}>Partidas</span>
           <span className={styles.statValue}>{partidasDisplay}</span>
+          <span className={styles.statLabel}>Partidas</span>
         </div>
-        <div className={styles.statDivider} aria-hidden="true" />
         <div className={styles.statItem}>
-          <span className={styles.statLabel}>Juegos en colección</span>
           <span className={styles.statValue}>{juegosDisplay}</span>
+          <span className={styles.statLabel}>Colección</span>
         </div>
-        <div className={styles.statDivider} aria-hidden="true" />
-        <div className={styles.statItem}>
-          <span className={styles.statLabel}>Última partida</span>
-          <span className={styles.statValueSm}>{lastDateDisplay}</span>
-        </div>
+        <span className={styles.go}>
+          Ver completo
+          <ArrowIcon />
+        </span>
       </div>
-
-      {error && !loading && (
-        <p className={styles.errorNote}>
-          No se pudieron cargar las estadísticas ahora. Igual podés entrar a tu
-          BG Watch.
-        </p>
-      )}
     </Link>
   );
 }

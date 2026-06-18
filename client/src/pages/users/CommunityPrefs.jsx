@@ -8,7 +8,10 @@ import styles from "./CommunityPrefs.module.css";
 
 // Sección "Comunidades" del perfil: elegir qué comunidades ver en conjunto
 // (viewing) + cuál aplica su skin, y salir de comunidades.
-export default function CommunityPrefs() {
+//
+// `embed`: cuando es true, se renderiza SIN el `<section>`/heading propios —
+// el caller (UserProfile) ya lo envuelve en una card numerada con su header.
+export default function CommunityPrefs({ embed = false }) {
   const { memberships, skin, leaveCommunity } = useCommunity();
   const { addToast } = useNotifications();
   const { busy, viewingSet, toggleViewing, chooseSkin, guard } =
@@ -17,7 +20,17 @@ export default function CommunityPrefs() {
   const [leaveTarget, setLeaveTarget] = useState(null);
 
   // Una sola membership (la base) → no hay nada que elegir todavía.
-  if (memberships.length <= 1) return null;
+  if (memberships.length <= 1) {
+    if (embed) {
+      return (
+        <p className={styles.help} style={{ margin: 0 }}>
+          Todavía estás solo en la comunidad base. Sumate a otras desde el
+          directorio de comunidades.
+        </p>
+      );
+    }
+    return null;
+  }
 
   const confirmLeave = () =>
     guard(async () => {
@@ -27,10 +40,9 @@ export default function CommunityPrefs() {
       setLeaveTarget(null);
     }, "No pudimos salir de la comunidad");
 
-  return (
-    <section className={styles.section}>
-      <h2 className={styles.heading}>Comunidades</h2>
-      <p className={styles.help}>
+  const inner = (
+    <>
+      <p className={styles.help} style={embed ? { marginTop: 0 } : undefined}>
         Elegí qué comunidades ver en conjunto y cuál usar para el aspecto del
         sitio.
       </p>
@@ -99,6 +111,15 @@ export default function CommunityPrefs() {
           if (!busy) setLeaveTarget(null);
         }}
       />
+    </>
+  );
+
+  if (embed) return inner;
+
+  return (
+    <section className={styles.section}>
+      <h2 className={styles.heading}>Comunidades</h2>
+      {inner}
     </section>
   );
 }

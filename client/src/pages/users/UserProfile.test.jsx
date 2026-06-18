@@ -679,3 +679,91 @@ describe("<UserProfile> — Notificaciones push section", () => {
     expect(screen.getByText(/Bloqueaste las notificaciones/i)).toBeInTheDocument();
   });
 });
+
+describe("<UserProfile> — índice (rail) y numeración", () => {
+  it("renderiza el rail con los items de las secciones visibles", () => {
+    setup();
+    expect(
+      screen.getByRole("button", { name: "Apariencia" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "BoardGameGeek" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Recordatorios" }),
+    ).toBeInTheDocument();
+  });
+
+  it("numera las secciones (01 = la primera)", () => {
+    setup();
+    expect(screen.getByText("01")).toBeInTheDocument();
+  });
+
+  it("clickear un item del índice scrollea a esa sección", () => {
+    const orig = window.HTMLElement.prototype.scrollIntoView;
+    const spy = vi.fn();
+    window.HTMLElement.prototype.scrollIntoView = spy;
+    try {
+      setup();
+      fireEvent.click(screen.getByRole("button", { name: "Contacto" }));
+      expect(spy).toHaveBeenCalled();
+    } finally {
+      window.HTMLElement.prototype.scrollIntoView = orig;
+    }
+  });
+
+  it("oculta del rail la sección de push cuando está apagada", () => {
+    setup({ sectionEnabled: (k) => k !== "push" });
+    expect(
+      screen.queryByRole("button", { name: "Notificaciones" }),
+    ).toBeNull();
+  });
+
+  it("el botón Guardar (rail) arranca deshabilitado y se habilita al cambiar un campo", () => {
+    const updateProfile = vi.fn().mockResolvedValue({});
+    setup({ updateProfile });
+
+    const save = screen.getByRole("button", { name: /guardar cambios/i });
+    // Sin cambios → deshabilitado, y un click no dispara updateProfile.
+    expect(save).toBeDisabled();
+    fireEvent.click(save);
+    expect(updateProfile).not.toHaveBeenCalled();
+
+    // Cambiar un campo guardable lo habilita.
+    fireEvent.change(screen.getByLabelText(/avisarme/i), {
+      target: { value: "2" },
+    });
+    expect(save).not.toBeDisabled();
+    fireEvent.click(save);
+    expect(updateProfile).toHaveBeenCalled();
+  });
+});
+
+describe("<UserProfile> — hero (identity header)", () => {
+  it("muestra la foto de avatar del usuario en el tile del hero", () => {
+    setup({
+      user: {
+        _id: "u1",
+        username: "cha",
+        email: "a@b.com",
+        avatar: { url: "https://cdn.test/me.webp", publicId: "p", color: "" },
+      },
+    });
+    const heroImg = document.querySelector('[class*="heroAvatarImg"]');
+    expect(heroImg).not.toBeNull();
+    expect(heroImg.getAttribute("src")).toBe("https://cdn.test/me.webp");
+  });
+
+  it("muestra la inicial (sin img) en el hero cuando no hay foto", () => {
+    setup({
+      user: {
+        _id: "u1",
+        username: "cha",
+        email: "a@b.com",
+        displayName: "Cami",
+        avatar: { url: "", publicId: "", color: "" },
+      },
+    });
+    expect(document.querySelector('[class*="heroAvatarImg"]')).toBeNull();
+  });
+});

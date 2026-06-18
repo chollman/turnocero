@@ -16,8 +16,234 @@
   gap: 28px;
 }
 
-/* ─── Hero ─── */
+/* ─── Account console: contenido + rail de índice sticky ─── */
+.acctLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 216px;
+  column-gap: 0.75rem;
+  row-gap: 16px;
+  align-items: start;
+}
+
+.acctContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* ─── Rail de índice (navegación por sección + Guardar) ─── */
+.railWrap {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.railNav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 7px;
+}
+
+.railItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 11px;
+  color: var(--text-secondary);
+  font-family: "Manrope", var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+
+.railItem:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.railItemActive,
+.railItemActive:hover {
+  background: var(--amber-15);
+  color: var(--amber-light);
+}
+
+.railDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+.railItemActive .railDot {
+  opacity: 1;
+}
+
+.railSave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--amber);
+  color: var(--on-amber);
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-family: "Manrope", var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--amber-glow);
+  transition: all var(--transition);
+}
+
+.railSave:hover:not(:disabled) {
+  background: var(--amber-light);
+  box-shadow: 0 4px 22px var(--amber-glow);
+  transform: translateY(-1px);
+}
+
+.railSave:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.railSaved {
+  text-align: center;
+  color: var(--green);
+  font-family: "Manrope", var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Section cards ─── */
+.sec {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 24px;
+  scroll-margin-top: calc(var(--navbar-h, 64px) + 16px);
+}
+
+.secHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.secNum {
+  font-family: ui-monospace, "SFMono-Regular", "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.secTitle {
+  margin: 0;
+  font-family: "Manrope", var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+/* Botones que cuelgan directo del card (ej. push Activar/Desactivar): ancho
+   intrínseco a la izquierda, sin estirar ni el margin-left:auto del .btnGhost. */
+.sec > button {
+  align-self: flex-start;
+  margin-left: 0;
+}
+
+/* Submit oculto: habilita Enter-para-guardar dentro del form (el botón visible
+   vive en el rail, fuera del form). */
+.hiddenSubmit {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0 0 0 0);
+}
+
+@media (--desktop) {
+  .sec {
+    scroll-margin-top: 24px;
+  }
+}
+
+@media (--below-desktop) {
+  .acctLayout {
+    grid-template-columns: 1fr;
+  }
+  /* En mobile ocultamos el índice de secciones (la "navegación" de la derecha).
+     El botón Guardar queda al final del contenido, full-width. */
+  .railWrap {
+    position: static;
+    gap: 12px;
+  }
+  .railNav {
+    display: none;
+  }
+}
+
+/* ─── Hero (identity header del diseño: avatar tile + bloque de identidad) ─── */
 .hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.heroAvatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: var(--on-amber);
+  font-family: "Manrope", var(--font-display);
+  font-weight: 800;
+  font-size: 30px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
+}
+
+.heroAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.heroIdent {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -55,9 +281,9 @@
   gap: 6px;
   padding: 6px 12px;
   border-radius: 999px;
-  background: var(--amber-15);
-  border: 1px solid var(--border-amber);
-  color: var(--amber-light);
+  background: var(--purple-10);
+  border: 1px solid var(--purple-25);
+  color: var(--purple-light);
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
@@ -71,8 +297,8 @@
 }
 
 .bgWatchBadge:hover {
-  background: var(--amber-25);
-  color: var(--amber);
+  background: var(--purple-15);
+  color: var(--purple);
   transform: translateY(-1px);
 }
 
@@ -82,15 +308,8 @@
 }
 
 .bgWatchBadgeCheck {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--amber);
-  color: var(--on-amber);
-  font-size: 10px;
+  color: var(--green);
+  font-size: 11px;
   font-weight: 800;
   line-height: 1;
 }
@@ -217,14 +436,6 @@
   }
 }
 
-/* ─── Form card ─── */
-.formCard {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 28px;
-}
-
 /* ─── Feedback banners ─── */
 .errorBox {
   background: var(--red-10);
@@ -246,26 +457,11 @@
   margin-bottom: 20px;
 }
 
-/* ─── Form ─── */
+/* ─── Form (columna de section cards) ─── */
 .form {
   display: flex;
   flex-direction: column;
-  gap: 0;
-}
-
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding-bottom: 24px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid var(--border);
-}
-
-.section:last-of-type {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
+  gap: 16px;
 }
 
 .sectionLabel {
@@ -281,7 +477,8 @@
 .twoCol {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  column-gap: 0.75rem;
+  row-gap: 16px;
 }
 
 /* ─── Field ─── */
@@ -377,7 +574,7 @@
 /* ─── Geocode row ─── */
 .geocodeRow {
   display: flex;
-  gap: 8px;
+  gap: 0.75rem;
 }
 
 .geocodeRow .input {
@@ -428,37 +625,40 @@
 }
 
 .bggInvalidBox {
-  background: var(--orange-15);
-  border: 1px solid var(--orange-45);
+  background: var(--red-10);
+  border: 1px solid var(--red-30);
   border-radius: 8px;
   padding: 10px 14px;
-  color: var(--orange);
+  color: var(--red);
   font-size: 13px;
   line-height: 1.5;
 }
 
 .bggConnectForm {
   display: flex;
-  gap: 10px;
+  gap: 0.75rem;
   align-items: flex-end;
   flex-wrap: wrap;
 }
 
-.bggStatus {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  background: var(--bg-elevated);
+/* Grid 2×2 de estado (diseño): celdas sobre --bg-dark separadas por líneas
+   de --border (truco del gap 1px sobre fondo border). */
+.bggStatusGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px 16px;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-.bggStatusBlock {
+.bggStatusCell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  background: var(--bg-dark);
+  padding: 14px 16px;
 }
 
 .bggStatusLabel {
@@ -477,13 +677,29 @@
   color: var(--text-primary);
 }
 
+.bggStatusValueGreen {
+  color: var(--green);
+}
+
 .bggSyncHint {
-  margin: 4px 0 0 0;
+  margin: 0;
   font-family: var(--font-display);
   font-size: 12px;
   line-height: 1.45;
   color: var(--text-muted);
   max-width: 460px;
+}
+
+.bggActions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Mantener los botones agrupados a la izquierda (el .btnGhost trae
+   margin-left:auto por defecto para otros usos). */
+.bggActions .btnGhost {
+  margin-left: 0;
 }
 
 .btnGhost {
@@ -514,7 +730,7 @@
 .avatarRow {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
@@ -622,14 +838,10 @@
   color: var(--on-amber);
 }
 
-/* ─── Actions ─── */
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 24px;
-}
-
 .btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   background: var(--amber);
   color: var(--on-amber);
   border: none;
@@ -670,8 +882,8 @@
     letter-spacing: -0.035em;
   }
 
-  .formCard {
-    padding: 20px 16px;
+  .sec {
+    padding: 18px 16px;
   }
 }
 
@@ -688,11 +900,12 @@
     height: 220px;
   }
 
-  .btnPrimary {
-    width: 100%;
+  .bggStatusGrid {
+    grid-template-columns: 1fr;
   }
 
-  .actions {
-    justify-content: stretch;
+  .bggConnectForm {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

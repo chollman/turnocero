@@ -13,7 +13,7 @@ import CommunityPrefs from "./CommunityPrefs";
 import Avatar from "../../components/shared/Avatar";
 import AvatarCropModal from "../../components/shared/AvatarCropModal";
 import AvatarColorPicker from "../../components/shared/AvatarColorPicker";
-import { hashToBrandColor } from "../../utils/hash";
+import { hashToBrandColor, isValidAvatarColor } from "../../utils/hash";
 import { getInitials } from "../../utils/initials";
 import { getUserDisplay } from "../../utils/userDisplay";
 import {
@@ -80,6 +80,57 @@ const SunIcon = () => (
     <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
   </svg>
 );
+
+// Ícono "refresh-cw" (handoff: Icon.Refresh) para "Reconciliar todo con BGG".
+const RefreshIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polyline points="23 4 23 10 17 10" />
+    <polyline points="1 20 1 14 7 14" />
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+  </svg>
+);
+
+// Rail de índice (derecha en desktop, arriba en mobile): navegación por sección
+// con scrollspy + el botón Guardar. El Guardar dispara el mismo submit del form.
+function Rail({ sections, active, onJump, saving, saved, dirty, onSave }) {
+  return (
+    <aside className={styles.railWrap}>
+      <nav className={styles.railNav} aria-label="Secciones del perfil">
+        {sections.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            className={`${styles.railItem} ${active === s.id ? styles.railItemActive : ""}`}
+            onClick={() => onJump(s.id)}
+            aria-current={active === s.id ? "true" : undefined}
+          >
+            <span className={styles.railDot} aria-hidden="true" />
+            {s.label}
+          </button>
+        ))}
+      </nav>
+      <button
+        type="button"
+        className={styles.railSave}
+        onClick={onSave}
+        disabled={saving || !dirty}
+      >
+        {saving ? "Guardando…" : "Guardar cambios"}
+      </button>
+      {saved && <div className={styles.railSaved}>✓ Perfil guardado</div>}
+    </aside>
+  );
+}
 
 export default function UserProfile() {
   const { user, updateProfile, refreshUser } = useAuth();
@@ -457,8 +508,26 @@ export default function UserProfile() {
     }
   };
 
+  // El form está "sucio" si algún campo guardable difiere de lo guardado en el
+  // usuario. El botón Guardar se deshabilita cuando no hay cambios. (El avatar,
+  // su color, el tema, el push y la conexión BGG se guardan por su cuenta — no
+  // cuentan acá.)
+  const isDirty =
+    !!user &&
+    (form.displayName !== (user.displayName || "") ||
+      form.nombre !== (user.nombre || "") ||
+      form.apellido !== (user.apellido || "") ||
+      form.telegram !== (user.telegram || "") ||
+      form.celular !== (user.celular || "") ||
+      form.bggUsername !== (user.bggUsername || "") ||
+      form.direccionTexto !== (user.direccion?.texto || "") ||
+      form.lat !== (user.direccion?.lat ?? null) ||
+      form.lng !== (user.direccion?.lng ?? null) ||
+      Number(form.eventoReminderHours) !== (user.eventoReminderHours ?? 24));
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isDirty) return;
     setSaving(true);
     setError("");
     setSuccess("");
@@ -487,15 +556,106 @@ export default function UserProfile() {
     }
   };
 
+  // ── Secciones (orden del diseño). Las condicionales (push/bgg) se filtran;
+  // los números 01..N y el rail se derivan de las visibles. ──
+  const sectionDefs = [
+    { id: "apariencia", label: "Apariencia", show: true },
+    { id: "notificaciones", label: "Notificaciones", show: pushEnabled },
+    { id: "avatar", label: "Avatar", show: true },
+    { id: "datos", label: "Datos personales", show: true },
+    { id: "contacto", label: "Contacto", show: true },
+    { id: "bgg", label: "BoardGameGeek", show: bgwatchEnabled },
+    { id: "comunidades", label: "Comunidades", show: true },
+    { id: "ubicacion", label: "Ubicación", show: true },
+    { id: "recordatorios", label: "Recordatorios", show: true },
+  ];
+  const visibleSections = sectionDefs.filter((s) => s.show);
+  const sectionNumber = (id) => {
+    const i = visibleSections.findIndex((s) => s.id === id);
+    return i < 0 ? "" : String(i + 1).padStart(2, "0");
+  };
+
+  const [activeSection, setActiveSection] = useState("apariencia");
+
+  // Scrollspy vía IntersectionObserver: la sección activa es la primera (en
+  // orden) cuyo tope entró en la franja superior. Robusto ante el contenedor de
+  // scroll (window o .appContent) — IO no depende del target del scroll.
+  const sectionVisibility = useRef({});
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return undefined;
+    const ids = visibleSections.map((s) => s.id);
+    const els = ids
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+    if (els.length === 0) return undefined;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          sectionVisibility.current[e.target.id] = e.isIntersecting;
+        });
+        const first = ids.find((id) => sectionVisibility.current[id]);
+        if (first) setActiveSection(first);
+      },
+      { rootMargin: "-90px 0px -65% 0px", threshold: 0 },
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+    // Re-observa cuando cambian las secciones visibles o al cargar el user
+    // (aparece la sección BGG).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pushEnabled, bgwatchEnabled, user?._id]);
+
+  const jumpTo = (id) => {
+    setActiveSection(id);
+    const el = document.getElementById(id);
+    el?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  };
+
+  const secHead = (id, title) => (
+    <div className={styles.secHead}>
+      <span className={styles.secNum}>{sectionNumber(id)}</span>
+      <h2 className={styles.secTitle}>{title}</h2>
+    </div>
+  );
+
+  // Avatar del hero (diseño .acctAvatar): foto del usuario si tiene una
+  // asignada, si no la inicial sobre su color elegido (o el hash del id).
+  const heroDisplay = getUserDisplay(user);
+  const heroAvatarUrl = heroDisplay.avatar?.url;
+  const heroInitials = getInitials(heroDisplay);
+  const heroAvatarColor = isValidAvatarColor(heroDisplay.avatar?.color)
+    ? heroDisplay.avatar.color
+    : hashToBrandColor(String(heroDisplay._id || heroDisplay.username || ""));
+
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
         <div className={styles.hero}>
-          <div className={styles.eyebrow}>
-            <Meeple />
-            MI PERFIL
+          <div
+            className={styles.heroAvatar}
+            style={
+              heroAvatarUrl
+                ? undefined
+                : { background: `var(${heroAvatarColor})` }
+            }
+            aria-hidden="true"
+          >
+            {heroAvatarUrl ? (
+              <img
+                src={heroAvatarUrl}
+                alt=""
+                className={styles.heroAvatarImg}
+              />
+            ) : (
+              heroInitials
+            )}
           </div>
-          <div className={styles.titleRow}>
+          <div className={styles.heroIdent}>
+            <div className={styles.eyebrow}>
+              <Meeple />
+              MI PERFIL
+            </div>
+            <div className={styles.titleRow}>
             <h1 className={styles.heroTitle}>@{user?.username}</h1>
             {bgwatchEnabled &&
               user?.bggUsername &&
@@ -559,14 +719,19 @@ export default function UserProfile() {
                 </Link>
               )}
           </div>
-          <p className={styles.heroSub}>{user?.email}</p>
+            <p className={styles.heroSub}>{user?.email}</p>
+          </div>
         </div>
 
-        {bgwatchEnabled &&
-          user &&
-          !user.bggUsername &&
-          !bgWatchBannerDismissed && (
-            <div className={styles.bgWatchBanner}>
+        <div className={styles.acctLayout}>
+          <div className={styles.acctContent}>
+            {error && <div className={styles.errorBox}>{error}</div>}
+
+            {bgwatchEnabled &&
+              user &&
+              !user.bggUsername &&
+              !bgWatchBannerDismissed && (
+                <div className={styles.bgWatchBanner}>
               <span className={styles.bgWatchBannerIcon} aria-hidden="true">
                 <svg
                   width="22"
@@ -644,20 +809,23 @@ export default function UserProfile() {
             </div>
           )}
 
-        {bgwatchEnabled &&
-          user?.bggUsername &&
-          user?.bggConnected &&
-          !user?.bggInvalid && <MiBgWatchCard bggUsername={user.bggUsername} />}
+            {bgwatchEnabled &&
+              user?.bggUsername &&
+              user?.bggConnected &&
+              !user?.bggInvalid && (
+                <MiBgWatchCard
+                  bggUsername={user.bggUsername}
+                  avatarUrl={user?.avatar?.url}
+                />
+              )}
 
-        <CommunityPrefs />
-
-        <div className={styles.formCard}>
-          {error && <div className={styles.errorBox}>{error}</div>}
-          {success && <div className={styles.successBox}>{success}</div>}
-
-          <form onSubmit={handleSubmit} className={styles.form}>
-            <div className={styles.section}>
-              <div className={styles.sectionLabel}>Apariencia</div>
+            <form
+              id="perfilForm"
+              onSubmit={handleSubmit}
+              className={styles.form}
+            >
+              <div className={styles.sec} id="apariencia">
+                {secHead("apariencia", "Apariencia")}
               <p className={styles.hint}>
                 Elegí cómo querés ver {brandName}. Tu preferencia se guarda en
                 este dispositivo.
@@ -688,9 +856,9 @@ export default function UserProfile() {
               </div>
             </div>
 
-            {pushEnabled && (
-              <div className={styles.section}>
-                <div className={styles.sectionLabel}>Notificaciones push</div>
+              {pushEnabled && (
+                <div className={styles.sec} id="notificaciones">
+                  {secHead("notificaciones", "Notificaciones push")}
                 <p className={styles.hint}>
                   Recibí un aviso en este dispositivo cuando pase algo
                   importante (un mensaje, una solicitud, un recordatorio),
@@ -700,8 +868,8 @@ export default function UserProfile() {
               </div>
             )}
 
-            <div className={styles.section}>
-              <div className={styles.sectionLabel}>Avatar</div>
+              <div className={styles.sec} id="avatar">
+                {secHead("avatar", "Avatar")}
               <p className={styles.hint}>
                 Subí una foto cuadrada para que te identifiquen en mesas,
                 comentarios y chats.
@@ -760,8 +928,8 @@ export default function UserProfile() {
               />
             </div>
 
-            <div className={styles.section}>
-              <div className={styles.sectionLabel}>Información personal</div>
+              <div className={styles.sec} id="datos">
+                {secHead("datos", "Información personal")}
 
               <div className={styles.field}>
                 <label className={styles.label}>Nombre para mostrar</label>
@@ -801,8 +969,8 @@ export default function UserProfile() {
               </div>
             </div>
 
-            <div className={styles.section}>
-              <div className={styles.sectionLabel}>Contacto</div>
+              <div className={styles.sec} id="contacto">
+                {secHead("contacto", "Contacto")}
 
               <div className={styles.twoCol}>
                 <div className={styles.field}>
@@ -856,11 +1024,9 @@ export default function UserProfile() {
               )}
             </div>
 
-            {bgwatchEnabled && (
-              <div className={styles.section} id="conexion-bgg">
-                <div className={styles.sectionLabel}>
-                  Conexión con BoardGameGeek
-                </div>
+              {bgwatchEnabled && (
+                <div className={styles.sec} id="bgg">
+                  {secHead("bgg", "Conexión con BoardGameGeek")}
                 <p className={styles.hint}>
                   Conectá tu cuenta de BGG para cargar, editar y eliminar
                   partidas directamente desde {brandName}. Tu password se guarda
@@ -887,17 +1053,19 @@ export default function UserProfile() {
                   user?.bggConnected &&
                   !user?.bggInvalid && (
                     <>
-                      <div className={styles.bggStatus}>
-                        <div className={styles.bggStatusBlock}>
+                      <div className={styles.bggStatusGrid}>
+                        <div className={styles.bggStatusCell}>
                           <span className={styles.bggStatusLabel}>
                             Conectado como
                           </span>
-                          <span className={styles.bggStatusValue}>
+                          <span
+                            className={`${styles.bggStatusValue} ${styles.bggStatusValueGreen}`}
+                          >
                             @{user.bggUsername}
                           </span>
                         </div>
                         {user.bggConnectedAt && (
-                          <div className={styles.bggStatusBlock}>
+                          <div className={styles.bggStatusCell}>
                             <span className={styles.bggStatusLabel}>Desde</span>
                             <span className={styles.bggStatusValue}>
                               {new Date(user.bggConnectedAt).toLocaleDateString(
@@ -912,7 +1080,7 @@ export default function UserProfile() {
                           </div>
                         )}
                         {user.bggSync?.lastFullSyncAt && (
-                          <div className={styles.bggStatusBlock}>
+                          <div className={styles.bggStatusCell}>
                             <span className={styles.bggStatusLabel}>
                               Última reconciliación completa
                             </span>
@@ -924,7 +1092,7 @@ export default function UserProfile() {
                           </div>
                         )}
                         {user.bggSync?.lastProbedAt && (
-                          <div className={styles.bggStatusBlock}>
+                          <div className={styles.bggStatusCell}>
                             <span className={styles.bggStatusLabel}>
                               Última verificación
                             </span>
@@ -938,12 +1106,14 @@ export default function UserProfile() {
                             </span>
                           </div>
                         )}
-                        <p className={styles.bggSyncHint}>
-                          Tu historial se mantiene actualizado automáticamente
-                          cuando entrás a BG Watch. Apretá el botón solo si
-                          editaste partidas viejas en BGG.com y querés forzar
-                          una reconciliación completa ahora.
-                        </p>
+                      </div>
+                      <p className={styles.bggSyncHint}>
+                        Tu historial se mantiene actualizado automáticamente
+                        cuando entrás a BG Watch. Apretá el botón solo si
+                        editaste partidas viejas en BGG.com y querés forzar una
+                        reconciliación completa ahora.
+                      </p>
+                      <div className={styles.bggActions}>
                         <button
                           type="button"
                           className={styles.btnPrimary}
@@ -951,9 +1121,14 @@ export default function UserProfile() {
                           disabled={syncBusy || bggBusy}
                           title="Walk completo del historial de BGG. Útil si editaste partidas más viejas que las 30 más recientes."
                         >
-                          {syncBusy
-                            ? "Reconciliando…"
-                            : "↻ Reconciliar todo con BGG"}
+                          {syncBusy ? (
+                            "Reconciliando…"
+                          ) : (
+                            <>
+                              <RefreshIcon />
+                              Reconciliar todo con BGG
+                            </>
+                          )}
                         </button>
                         <button
                           type="button"
@@ -1020,8 +1195,13 @@ export default function UserProfile() {
               </div>
             )}
 
-            <div className={styles.section}>
-              <div className={styles.sectionLabel}>Dirección</div>
+              <div className={styles.sec} id="comunidades">
+                {secHead("comunidades", "Comunidades")}
+                <CommunityPrefs embed />
+              </div>
+
+              <div className={styles.sec} id="ubicacion">
+                {secHead("ubicacion", "Dirección")}
               <p className={styles.hint}>
                 Empezá a escribir y elegí una opción del menú, o cliqueá
                 directamente en el mapa para marcar tu ubicación.
@@ -1060,10 +1240,8 @@ export default function UserProfile() {
               />
             </div>
 
-            <div className={styles.section}>
-              <div className={styles.sectionLabel}>
-                Recordatorios de eventos
-              </div>
+              <div className={styles.sec} id="recordatorios">
+                {secHead("recordatorios", "Recordatorios de eventos")}
               <p className={styles.hint}>
                 Cuándo querés que te avisemos sobre los eventos donde estás
                 inscripto. Aplica solo a eventos pagos o con cupo confirmado.
@@ -1087,16 +1265,24 @@ export default function UserProfile() {
               </div>
             </div>
 
-            <div className={styles.actions}>
               <button
                 type="submit"
-                className={styles.btnPrimary}
-                disabled={saving}
-              >
-                {saving ? "Guardando…" : "Guardar cambios"}
-              </button>
-            </div>
-          </form>
+                aria-hidden="true"
+                tabIndex={-1}
+                className={styles.hiddenSubmit}
+              />
+            </form>
+          </div>
+
+          <Rail
+            sections={visibleSections}
+            active={activeSection}
+            onJump={jumpTo}
+            saving={saving}
+            saved={!!success}
+            dirty={isDirty}
+            onSave={handleSubmit}
+          />
         </div>
       </div>
 

@@ -47,6 +47,23 @@ describe("<MiBgWatchCard>", () => {
   it("renders avatar letter from first char of bggUsername", () => {
     renderCard("Daniel");
     expect(screen.getByText("D")).toBeInTheDocument();
+    expect(document.querySelector("img")).toBeNull();
+  });
+
+  it("muestra la foto de avatar del usuario si está asignada", () => {
+    render(
+      <MemoryRouter>
+        <MiBgWatchCard
+          bggUsername="CarcaFan"
+          avatarUrl="https://cdn.test/avatar.webp"
+        />
+      </MemoryRouter>,
+    );
+    const img = document.querySelector("img");
+    expect(img).not.toBeNull();
+    expect(img.getAttribute("src")).toBe("https://cdn.test/avatar.webp");
+    // Sin inicial cuando hay foto.
+    expect(screen.queryByText("C")).toBeNull();
   });
 
   it('shows loading "…" before API resolves', () => {
@@ -62,7 +79,7 @@ describe("<MiBgWatchCard>", () => {
     });
   });
 
-  it("renders error note when both APIs fail", async () => {
+  it('muestra "—" en las stats cuando fallan ambas APIs', async () => {
     server.use(
       http.get("/api/bgg/partidas/:bggUsername", () =>
         HttpResponse.json({}, { status: 500 }),
@@ -73,10 +90,10 @@ describe("<MiBgWatchCard>", () => {
     );
     renderCard();
     await waitFor(() => {
-      expect(
-        screen.getByText(/igual podés entrar a tu bg watch/i),
-      ).toBeInTheDocument();
+      expect(screen.getAllByText("—").length).toBeGreaterThan(0);
     });
+    // La banda sigue siendo un link al BG Watch.
+    expect(screen.getByRole("link")).toBeInTheDocument();
   });
 
   it('renders "?" as initial when bggUsername is empty', () => {
