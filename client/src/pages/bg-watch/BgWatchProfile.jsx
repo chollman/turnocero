@@ -171,7 +171,8 @@ export default function BgWatchProfile() {
                 rel="noopener noreferrer"
                 className={styles.bggLink}
               >
-                Ver en BoardGameGeek ↗
+                Ver en BoardGameGeek
+                <span className={styles.bggLinkIcon}> ↗</span>
               </a>
               {/* "Ver la comunidad" vive dentro del hero en desktop; en mobile
                   se oculta acá y se muestra la copia de fuera del hero. */}
@@ -189,7 +190,7 @@ export default function BgWatchProfile() {
                   className={`${styles.newPlayBtn} ${styles.newPlayInline}`}
                   onClick={goToNewPlay}
                 >
-                  + Nueva partida
+                  Nueva partida
                 </button>
               )}
             </div>

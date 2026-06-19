@@ -108,21 +108,99 @@
 }
 
 @media (--phone) {
+  /* Hero mobile: eyebrow (línea 1) · título (línea 2) · avatar a la izquierda +
+     acciones a la derecha (línea 3). El heroMain se vuelve `display: contents`
+     para que su eyebrow, título y links participen directamente de la grilla
+     del hero y se ubiquen por áreas. */
   .hero {
     grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "eyebrow eyebrow"
+      "title   title"
+      "avatar  links";
+    align-items: center;
+    column-gap: 16px;
+    row-gap: 8px;
     padding: 20px;
   }
+  .heroMain {
+    display: contents;
+  }
+  /* Sin el wrapper heroMain (z-index:1) los hijos quedarían bajo el dot-grid de
+     .hero::before; los re-elevamos. */
+  .eyebrow,
+  .heroTitle,
+  .heroLinks {
+    position: relative;
+    z-index: 1;
+  }
+  .eyebrow {
+    grid-area: eyebrow;
+  }
+  .heroTitle {
+    grid-area: title;
+  }
+  .heroAvatar {
+    grid-area: avatar;
+  }
+  /* Columna a la derecha del avatar, con "Ver en BGG" y "Nueva partida"
+     apilados y alineados a la izquierda. */
+  .heroLinks {
+    grid-area: links;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 0;
+  }
+  /* "Ver en BGG" toma el look del pill "Ver la comunidad" (.comunidadBtn) y se
+     alinea a la izquierda de su columna (en vez del flex-end del resto).
+     `:not(.comunidadInline)` para no pisar el `display: none` del link de
+     comunidad inline (también es un .bggLink, oculto en mobile). */
+  .heroLinks .bggLink:not(.comunidadInline) {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 0;
+    /* Igual padding que "Nueva partida" (.newPlayBtn) para que matcheen. */
+    padding: 9px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--purple-25);
+    background: var(--purple-10);
+    color: var(--purple-light);
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    transition: all var(--transition);
+  }
+  .heroLinks .bggLink:not(.comunidadInline):hover {
+    background: var(--purple-15);
+    border-color: var(--purple-40);
+    text-decoration: none;
+  }
+  /* En mobile los botones del hero van sin icono: se oculta la flecha ↗ de
+     "Ver en BGG" (el "+" de Nueva partida se quita directo del texto, ese
+     botón es mobile-only). */
+  .heroLinks .bggLinkIcon {
+    display: none;
+  }
   /* En mobile la acción no va como fila full-width del hero: su lugar lo ocupa
-     el botón inline dentro de los links. */
+     el botón inline dentro de los links, alineado a la derecha. */
   .heroActions {
     display: none;
   }
   .comunidadInline {
     display: none;
   }
-  .newPlayInline {
+  /* `.heroLinks .newPlayInline` (2 clases) para ganarle en specificity al
+     `.newPlayBtn { align-self: flex-start }` base que, por venir después en el
+     archivo, si no lo empujaría a la izquierda de la columna. */
+  .heroLinks .newPlayInline {
     display: inline-flex;
-    margin-top: 4px;
+    align-self: flex-start;
+    margin-top: 0;
+    font-size: 12px;
   }
   /* CTA secundario "Ver la comunidad": acento púrpura de BG Watch, pill al tono
      del hero/stat-tiles, ancho completo bajo el hero. */
