@@ -194,6 +194,10 @@ select {
 /* Layout offset variable — used by pages for min-height / sticky positioning */
 :root {
   --navbar-h: 70px;
+  /* Gap estándar entre widgets/paneles apilados en un layout (rails, columnas
+     de paneles, grids de cards de sección). NO para spacing interno de un
+     componente (icono+texto, filas de form, label+valor). */
+  --gap-widgets: 0.75rem;
 }
 
 @media (--desktop) {

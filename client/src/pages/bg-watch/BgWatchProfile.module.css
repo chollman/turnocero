@@ -1105,7 +1105,7 @@
 .playsList {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--gap-widgets);
 }
 
 .playsHeader {
@@ -3244,7 +3244,7 @@
 .partidasLayout {
   display: grid;
   grid-template-columns: 1fr 300px;
-  gap: 28px;
+  gap: var(--gap-widgets);
   align-items: start;
 }
 
@@ -3252,13 +3252,13 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--gap-widgets);
 }
 
 .playsSideCol {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--gap-widgets);
   position: sticky;
   top: calc(var(--navbar-h, 64px) + 12px);
 }
