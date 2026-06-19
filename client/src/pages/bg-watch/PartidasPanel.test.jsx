@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  within,
+} from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse, delay } from "msw";
 import { server } from "../../test/server";
@@ -113,14 +119,16 @@ describe("<PartidasPanel>", () => {
 
   it("shows the four filter chips in list mode", async () => {
     renderPanel();
-    expect(screen.getByRole("button", { name: "Todas" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Este año" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Este mes" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "7 días" })).toBeInTheDocument();
+    // El mismo set de filtros vive en los chips (desktop) y en el dropdown
+    // mobile; acotamos al grupo de chips para no chocar con el trigger del
+    // dropdown (que también dice "Todas").
+    const chips = within(
+      screen.getByRole("group", { name: /filtrar por fecha/i }),
+    );
+    expect(chips.getByRole("button", { name: "Todas" })).toBeInTheDocument();
+    expect(chips.getByRole("button", { name: "Este año" })).toBeInTheDocument();
+    expect(chips.getByRole("button", { name: "Este mes" })).toBeInTheDocument();
+    expect(chips.getByRole("button", { name: "7 días" })).toBeInTheDocument();
   });
 
   it("shows empty state when there are no plays (filter = all)", async () => {
@@ -317,7 +325,9 @@ describe("<PartidasPanel>", () => {
   it("renders the sidebar widgets in list mode", async () => {
     renderPanel();
     await waitFor(() => {
-      expect(screen.getByTestId("heatmap")).toBeInTheDocument();
+      // El heatmap se renderiza dos veces (mobile arriba + sidebar); en jsdom
+      // sin CSS ambos quedan en el DOM.
+      expect(screen.getAllByTestId("heatmap").length).toBeGreaterThan(0);
     });
     expect(screen.getByTestId("top-collection")).toBeInTheDocument();
     expect(screen.getByTestId("win-rate")).toBeInTheDocument();
@@ -325,7 +335,7 @@ describe("<PartidasPanel>", () => {
 
   it("hides the sidebar widgets in 'Por juego' mode", async () => {
     renderPanel({ collection: [{ id: 13, name: "Catán", numPlays: 5 }] });
-    await screen.findByTestId("heatmap");
+    await screen.findAllByTestId("heatmap");
     fireEvent.click(screen.getByRole("button", { name: "Por juego" }));
     expect(screen.queryByTestId("heatmap")).toBeNull();
     expect(screen.queryByTestId("win-rate")).toBeNull();
@@ -352,7 +362,7 @@ describe("<PartidasPanel>", () => {
     const winRate = await screen.findByTestId("win-rate");
     expect(winRate.dataset.wins).toBe("8");
     expect(winRate.dataset.rated).toBe("20");
-    expect(screen.getByTestId("heatmap").dataset.len).toBe("1");
+    expect(screen.getAllByTestId("heatmap")[0].dataset.len).toBe("1");
   });
 
   it("clicking a filter chip changes its active class", async () => {

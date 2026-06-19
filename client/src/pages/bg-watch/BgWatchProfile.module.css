@@ -728,6 +728,101 @@
   color: var(--on-amber);
 }
 
+/* ─── Filtro de fecha como dropdown (solo --phone) ───
+   Reemplaza a los chips de .filterBar en mobile para que entre en la misma fila
+   que "Actualizado…"; en desktop queda oculto y mandan los chips. Mismo lenguaje
+   visual que .filterChip (pill mono) + popover tipo .tabSelectPop. */
+.filterSelect {
+  display: none;
+  position: relative;
+}
+
+.filterSelectBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: border-color 0.15s;
+}
+
+.filterSelectBtn:hover {
+  border-color: var(--purple-25);
+  color: var(--text-primary);
+}
+
+.filterSelectCurrent {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.filterSelectChevron {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.filterSelectChevronOpen {
+  transform: rotate(180deg);
+}
+
+.filterSelectPop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  margin: 0;
+  padding: 4px;
+  min-width: 150px;
+  list-style: none;
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.filterSelectItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 9px 12px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  text-align: left;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.filterSelectItem:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.filterSelectItemActive {
+  background: var(--bg-elevated);
+  color: var(--purple-light);
+}
+
 /* ─── Refresh button (manual refetch trigger) ─── */
 .refreshBtn {
   display: inline-flex;
@@ -2889,34 +2984,28 @@
     gap: 10px;
   }
 
-  /* Toolbar en dos filas: filtros con scroll horizontal arriba; toggle
-     full-width + refresh compacto abajo; "Actualizado" como caption. */
-  /* Toolbar = playsBar del handoff: título · toggle · sync en una fila.
-     filterBar arriba (fila propia); lastSynced abajo. */
+  /* Toolbar = playsBar del handoff: fila 1 = título · toggle · sync; fila 2 =
+     dropdown de filtro (izquierda) · "Actualizado…" (derecha). */
   .panelToolbar {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "title  toggle sync"
+      "filter synced synced";
     align-items: center;
     gap: 8px;
   }
 
-  /* Los chips de fecha bajan DEBAJO de la fila título·toggle·sync (order 4,
-     entre la playsBar y "Actualizado hace X"). */
+  /* En mobile los chips se reemplazan por el dropdown (.filterSelect), en la
+     misma fila que "Actualizado…". */
   .filterBar {
-    grid-column: 1 / -1;
-    order: 4;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .filterBar::-webkit-scrollbar {
     display: none;
   }
 
-  .filterChip {
-    white-space: nowrap;
-    flex-shrink: 0;
+  .filterSelect {
+    display: block;
+    grid-area: filter;
+    justify-self: start;
   }
 
   .playsBarTitle {
@@ -2924,7 +3013,7 @@
     align-items: center;
     gap: 8px;
     min-width: 0;
-    order: 1;
+    grid-area: title;
   }
 
   /* Toggle compacto (no full-width): rect redondeado + iconos + "Juego". */
@@ -2932,7 +3021,7 @@
     width: auto;
     margin-left: 0;
     border-radius: 9px;
-    order: 2;
+    grid-area: toggle;
   }
 
   .viewToggleBtn {
@@ -2972,7 +3061,7 @@
     border-radius: 9px;
     background: transparent;
     justify-content: center;
-    order: 3;
+    grid-area: sync;
   }
 
   .refreshLabel {
@@ -2984,8 +3073,8 @@
   }
 
   .lastSynced {
-    grid-column: 1 / -1;
-    order: 5;
+    grid-area: synced;
+    justify-self: end;
     text-align: right;
     white-space: normal;
   }
@@ -3174,6 +3263,13 @@
   top: calc(var(--navbar-h, 64px) + 12px);
 }
 
+/* El heatmap se renderiza dos veces: arriba del panel en mobile (bajo el
+   dropdown de tabs) y en el sidebar en desktop. CSS muestra uno solo por
+   breakpoint (ver el bloque --phone), nunca ambos. */
+.heatmapMobile {
+  display: none;
+}
+
 .sideWidget {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -3359,5 +3455,16 @@
   }
   .playsSideCol {
     position: static;
+  }
+}
+
+/* En mobile el heatmap sube arriba del panel (bajo el dropdown de tabs); el
+   del sidebar se oculta para no duplicarlo. */
+@media (--phone) {
+  .heatmapMobile {
+    display: block;
+  }
+  .heatmapDesktop {
+    display: none;
   }
 }

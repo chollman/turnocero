@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import PlayCard from "./PlayCard";
+import BgWatchFilterSelect from "./BgWatchFilterSelect";
 import PlayCardSkeleton from "./PlayCardSkeleton";
 import GameCardSkeleton from "./GameCardSkeleton";
 import Pagination from "./Pagination";
@@ -315,20 +316,40 @@ export default function PartidasPanel({
 
   return (
     <div className={styles.tabContent}>
+      {/* En mobile el heatmap va arriba del panel (bajo el dropdown de tabs);
+          en desktop vive en el sidebar. CSS muestra uno solo por breakpoint. */}
+      {viewMode === "list" && (
+        <div className={styles.heatmapMobile}>
+          <Heatmap heatmap={resumen?.heatmap} />
+        </div>
+      )}
       <div className={styles.panelToolbar}>
         {viewMode === "list" && (
-          <div className={styles.filterBar}>
-            {FILTERS.map((f) => (
-              <button
-                key={f.id}
-                className={`${styles.filterChip} ${filter === f.id ? styles.filterChipActive : ""}`}
-                onClick={() => handleFilter(f.id)}
-                type="button"
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+          <>
+            {/* Desktop: chips. Mobile: dropdown (mismo set de filtros) — la
+                visibilidad la resuelve el CSS (.filterBar vs .filterSelect). */}
+            <div
+              className={styles.filterBar}
+              role="group"
+              aria-label="Filtrar por fecha"
+            >
+              {FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  className={`${styles.filterChip} ${filter === f.id ? styles.filterChipActive : ""}`}
+                  onClick={() => handleFilter(f.id)}
+                  type="button"
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <BgWatchFilterSelect
+              filters={FILTERS}
+              activeId={filter}
+              onSelect={handleFilter}
+            />
+          </>
         )}
         {/* Título "Partidas · N" — sólo mobile (en desktop lo da el playsHeader
             de la lista). Diseño .playsBar del handoff "BG Watch Mobile". */}
@@ -458,7 +479,9 @@ export default function PartidasPanel({
           </div>
 
           <aside className={styles.playsSideCol}>
-            <Heatmap heatmap={resumen?.heatmap} />
+            <div className={styles.heatmapDesktop}>
+              <Heatmap heatmap={resumen?.heatmap} />
+            </div>
             <TopCollectionWidget
               games={playedGames || []}
               bggUsername={bggUsername}
