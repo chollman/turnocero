@@ -7,8 +7,11 @@ export default function Utilidades() {
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
-        <h1 className={styles.title}>Utilidades</h1>
-        <p className={styles.subtitle}>Mini-apps para la mesa</p>
+        <header className={styles.hero}>
+          <p className={styles.heroEyebrow}>Caja de herramientas</p>
+          <h1 className={styles.title}>Utilidades</h1>
+          <p className={styles.subtitle}>Mini-apps para la mesa</p>
+        </header>
         <div className={styles.grid}>
           <UtilCard
             icon="👆"

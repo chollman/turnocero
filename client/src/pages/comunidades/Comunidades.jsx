@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import Meeple from "../../components/shared/Meeple";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import { API } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
@@ -180,9 +179,7 @@ export default function Comunidades() {
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
-        <div className={styles.eyebrow}>
-          <Meeple /> MIS COMUNIDADES
-        </div>
+        <div className={styles.eyebrow}>MIS COMUNIDADES</div>
         <h1 className={styles.title}>Mis Comunidades</h1>
         <p className={styles.subtitle}>
           Unite a una comunidad para ver y compartir su contenido. Podés

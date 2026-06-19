@@ -24,41 +24,60 @@
 
 /* ── Header ── */
 .header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
   gap: 16px;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.75rem;
+  min-width: 0;
 }
 
 .heroBlock {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
+  min-width: 0;
 }
 
 .eyebrow {
-  font-family: var(--font-display);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 500;
+  letter-spacing: 0.18em;
   color: var(--amber-light);
-  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1px;
+  background: var(--amber-light);
 }
 
 .title {
   font-family: var(--font-display);
-  font-size: 40px;
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
   color: var(--text-primary);
-  line-height: 1;
-  margin: 0;
+  margin: 8px 0;
+  text-wrap: balance;
 }
 
 .sub {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 0.95rem;
+  max-width: 540px;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .newBtn {
@@ -717,15 +736,12 @@
 /* ── Mobile header ── */
 @media (--below-desktop) {
   .header {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     align-items: flex-start;
     gap: 10px;
   }
   .newBtn {
     align-self: stretch;
     text-align: center;
-  }
-  .title {
-    font-size: 28px;
   }
 }

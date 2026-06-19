@@ -1,4 +1,3 @@
-import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
@@ -112,10 +111,7 @@ export default function MathTrades() {
       <div className={styles.inner}>
         <div className={styles.header}>
           <div>
-            <div className={styles.eyebrow}>
-              <Meeple />
-              INTERCAMBIOS
-            </div>
+            <div className={styles.eyebrow}>INTERCAMBIOS</div>
             <h1 className={styles.title}>Math Trade</h1>
             <p className={styles.sub}>
               Ofrecé tus juegos, armá tu lista de deseos y dejá que el sistema

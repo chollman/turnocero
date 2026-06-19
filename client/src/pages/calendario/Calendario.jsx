@@ -205,9 +205,7 @@ export default function Calendario() {
 
       <header className={styles.hero}>
         <div className={styles.heroLeft}>
-          <div className={styles.heroEyebrow}>
-            <Meeple /> Agenda unificada
-          </div>
+          <div className={styles.heroEyebrow}>Agenda unificada</div>
           <h1 className={styles.heroTitle}>
             Qué se <em>viene</em>.
           </h1>

@@ -207,7 +207,7 @@ export default function MeFeed() {
     <div className={styles.page}>
       <div className={styles.inner}>
         <div className={styles.hero}>
-          <div className={styles.eyebrow}><Meeple />MI FEED</div>
+          <div className={styles.heroEyebrow}>MI FEED</div>
           <h1 className={styles.heroTitle}>Hola, {nombre}.</h1>
           {loading ? (
             <div className={styles.heroSubSkeleton} />

@@ -685,7 +685,7 @@ export default function PlayForm({
       <header className={styles.head}>
         <div>
           <div className={styles.kicker}>
-            <Meeple /> BG WATCH · {editMode ? "editar" : "nueva entrada"}
+            BG WATCH · {editMode ? "editar" : "nueva entrada"}
           </div>
           <h1 className={styles.title}>
             {editMode ? "Editá la " : "Anotá la "}
