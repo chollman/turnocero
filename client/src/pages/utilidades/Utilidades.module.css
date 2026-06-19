@@ -69,7 +69,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: var(--gap-widgets);
 }
 
 @media (--below-desktop) {
@@ -85,6 +85,6 @@
 @media (--phone) {
   .grid {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: var(--gap-widgets);
   }
 }

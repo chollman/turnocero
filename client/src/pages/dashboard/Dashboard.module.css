@@ -280,7 +280,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(290px, 100%), 1fr));
-  gap: 18px;
+  gap: var(--gap-widgets);
 }
 
 /* Cada slot del grid tiene height: 100% para que la card interna llene
@@ -298,7 +298,7 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--gap-widgets);
 }
 
 /* ============================================================

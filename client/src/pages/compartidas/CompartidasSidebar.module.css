@@ -6,7 +6,7 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--gap-widgets);
 }
 
 @media (--below-desktop) {
