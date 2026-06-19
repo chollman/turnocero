@@ -3260,6 +3260,25 @@
   gap: var(--gap-widgets);
   position: sticky;
   top: calc(var(--navbar-h, 64px) + 12px);
+  /* Alinea el tope de los widgets con la primera PlayCard: la columna de la
+     lista arranca con `.playsHeader` (contador + paginación, ~24px) más el
+     gap de la lista, así que sin este margen los widgets flotan por encima
+     de la primera card. El margen se "consume" al scrollear; al fijarse,
+     manda el `top` de arriba. */
+  margin-top: calc(var(--gap-widgets) + 24px);
+}
+
+/* En desktop el `.appFrame` (overlay fijo, z-index alto) dibuja un borde de
+   0.75rem arriba en `--bg-card`. Con `top: 12px` el widget se fija justo
+   contra el borde interno del marco — y como ambos son `--bg-card`, se
+   funden sin separación. Sumamos el grosor del marco (0.75rem) para que
+   queden 12px de gap real entre el card y el marco al scrollear. (En el
+   tramo 881–959px no hay appFrame pero sí navbar mobile, por eso el base
+   se queda sin este extra.) */
+@media (--desktop) {
+  .playsSideCol {
+    top: calc(var(--navbar-h, 64px) + 0.75rem + 12px);
+  }
 }
 
 /* El heatmap se renderiza dos veces: arriba del panel en mobile (bajo el
@@ -3454,6 +3473,9 @@
   }
   .playsSideCol {
     position: static;
+    /* Apilado bajo la lista: sin la grilla de 2 columnas no hay primera card
+       a la derecha con la cual alinear, así que el margen de arriba sobra. */
+    margin-top: 0;
   }
 }
 

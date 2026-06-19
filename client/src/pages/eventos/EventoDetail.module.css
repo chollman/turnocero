@@ -198,7 +198,15 @@
    entre en cascada cuando el main ya se asentó. Reusa los keyframes
    `eventoMainGlitchSlide` / `eventoMainCyberScanlines` / `eventoMainCyberScanBeam`. */
 .aside {
-  position: relative;
+  /* Sticky: el stub (precio/CTA/comprobante) sigue al usuario mientras
+     scrollea el contenido del evento. El scroll container es `html`
+     (overflow-y: scroll) y no hay navbar fijo en desktop, así que `top`
+     se mide desde el viewport. La grilla usa `align-items: start`, lo que
+     deja al aside con su altura natural (necesario para que sticky tenga
+     recorrido). El `overflow: clip` propio NO rompe el sticky del propio
+     elemento. */
+  position: sticky;
+  top: 24px;
   /* Mismo motivo que `.main`: el beam termina con translateY(100%) y sin
      clip extiende el scroll del documento. */
   overflow: clip;
@@ -795,6 +803,11 @@
   .layout {
     grid-template-columns: 1fr;
     gap: 18px;
+  }
+  /* En una sola columna el aside queda apilado bajo el contenido; sticky
+     ahí lo "pegaría" al tope mientras se scrollea — innecesario y molesto. */
+  .aside {
+    position: static;
   }
   .back {
     margin-bottom: 14px;
