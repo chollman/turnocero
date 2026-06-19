@@ -144,7 +144,10 @@ function ConnectedView({ bggUsername }) {
         </div>
       </div>
 
-      <Link to="/bg-watch" className={styles.cta}>
+      <Link
+        to={`/bg-watch/${encodeURIComponent(bggUsername)}/partidas/nueva`}
+        className={styles.cta}
+      >
         + Registrar partida
       </Link>
     </div>

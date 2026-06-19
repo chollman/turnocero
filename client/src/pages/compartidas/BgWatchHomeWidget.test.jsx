@@ -199,12 +199,12 @@ describe("<BgWatchHomeWidget>", () => {
     ).toBeInTheDocument();
   });
 
-  it('"+ Registrar partida" CTA links to /bg-watch', () => {
+  it('"+ Registrar partida" CTA links to the user\'s play creator', () => {
     renderWidget({
       user: { _id: "me", bggUsername: "CarcaFan", bggConnected: true },
     });
     expect(
       screen.getByRole("link", { name: /registrar partida/i }),
-    ).toHaveAttribute("href", "/bg-watch");
+    ).toHaveAttribute("href", "/bg-watch/CarcaFan/partidas/nueva");
   });
 });
