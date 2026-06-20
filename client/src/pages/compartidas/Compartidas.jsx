@@ -86,6 +86,9 @@ export default function Compartidas() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  // Distingue "feed vacío" de "falló la carga" — sin esto, un error de red
+  // mostraba el empty state como si no hubiera compartidas.
+  const [error, setError] = useState(false);
   // Inicializar pestaña/búsqueda desde la URL para soportar deep-links
   // compartibles (?tab=resena&q=catan).
   const [tab, setTab] = useState(() => {
@@ -138,8 +141,10 @@ export default function Compartidas() {
 
   const loadFeed = useCallback(
     async (pageNum = 1, replace = true, opts = {}) => {
-      if (pageNum === 1) setLoading(true);
-      else setLoadingMore(true);
+      if (pageNum === 1) {
+        setLoading(true);
+        setError(false);
+      } else setLoadingMore(true);
       try {
         const params = { page: pageNum, limit: 10 };
         if (opts.category) params.category = opts.category;
@@ -155,7 +160,10 @@ export default function Compartidas() {
           setFeatured(data.featured || null);
         }
       } catch {
-        /* silently ignore */
+        // La paginación (load-more) falla en silencio: el feed ya cargado sigue
+        // usable. Un error en la primera página sí se reporta para no confundir
+        // "falló" con "vacío".
+        if (pageNum === 1) setError(true);
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -392,6 +400,24 @@ export default function Compartidas() {
               <CompartidaSkeleton />
               <CompartidaSkeleton />
             </div>
+          ) : error ? (
+            <EmptyState
+              variant="filtered"
+              compact
+              art={<ArtCompartida />}
+              eyebrow="Algo salió mal"
+              title={
+                <>
+                  No pudimos cargar el <em>feed.</em>
+                </>
+              }
+              text="Hubo un problema al traer las compartidas. Revisá tu conexión e intentá de nuevo."
+              primary={{
+                label: "Reintentar",
+                onClick: () =>
+                  loadFeed(1, true, { category: categoryParam, q: qParam }),
+              }}
+            />
           ) : posts.length === 0 && !featured ? (
             isFiltered ? (
               <EmptyState
