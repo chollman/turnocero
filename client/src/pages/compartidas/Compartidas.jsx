@@ -1,6 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
@@ -32,7 +32,8 @@ const TABS = [
 const INTERLEAVE_EVERY = 3;
 
 // Frase intercalada en el feed. Se elige una al azar por visita a la sección
-// (ver utils/compartidaQuotes.js).
+// (ver utils/compartidaQuotes.js). Fallback de ritmo cuando la sección Mesas
+// está apagada (sin /mesas adónde mandar, el CTA no aplica).
 function QuoteWidget({ text }) {
   return (
     <div className={`${styles.inlineWidget} ${styles.gold}`}>
@@ -47,11 +48,33 @@ function QuoteWidget({ text }) {
   );
 }
 
+// CTA contextual intercalado en el feed: empuja de "leer compartidas" a "jugar"
+// (conversión compartida → mesa). Reemplaza a la frase decorativa, que no
+// convertía. /mesas es navegable sin login, así que sirve a guests y logueados.
+function MesasCta() {
+  return (
+    <Link to="/mesas" className={`${styles.inlineWidget} ${styles.mesasCta}`}>
+      <div className={styles.widgetEyebrow}>
+        <span className={styles.left}>
+          <Meeple />
+          Mesas abiertas
+        </span>
+      </div>
+      <p className={styles.mesasCtaText}>
+        ¿Buscás con quién jugar? Mirá las mesas abiertas de la comunidad y
+        sumate a una.
+      </p>
+      <span className={styles.mesasCtaBtn}>Ver mesas abiertas →</span>
+    </Link>
+  );
+}
+
 export default function Compartidas() {
   const { user } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
   const brandName = useBrandName();
   const bgwatchEnabled = isSectionEnabled("bgwatch");
+  const mesasEnabled = isSectionEnabled("mesas");
   const [searchParams] = useSearchParams();
   const prefilledMesa = searchParams.get("mesa") || "";
   const prefilledEvento = searchParams.get("evento") || "";
@@ -422,11 +445,12 @@ export default function Compartidas() {
               {visiblePosts.map((post, i) => (
                 <Fragment key={post._id}>
                   {renderCard(post, { index: featured ? i + 1 : i })}
-                  {/* Interleave a quote widget every Nth post — mobile design uses these
-                      between cards so the feed has more rhythm. */}
-                  {!isFiltered && i + 1 === INTERLEAVE_EVERY && (
-                    <QuoteWidget text={quote} />
-                  )}
+                  {/* Widget intercalado cada N posts (ritmo del feed). Preferimos
+                      un CTA a mesas (conversión); si la sección Mesas está
+                      apagada, caemos a la frase decorativa. */}
+                  {!isFiltered &&
+                    i + 1 === INTERLEAVE_EVERY &&
+                    (mesasEnabled ? <MesasCta /> : <QuoteWidget text={quote} />)}
                 </Fragment>
               ))}
 
