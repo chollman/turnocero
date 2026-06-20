@@ -182,7 +182,14 @@ function PrivacyIcon({ privacy }) {
 
 // Polaroid primitive — paper-stock background, optional tape and caption.
 // `index` drives a deterministic rotation per slot.
-function Polaroid({ image, index = 0, count = 1, withTape = true, caption }) {
+function Polaroid({
+  image,
+  index = 0,
+  count = 1,
+  withTape = true,
+  caption,
+  alt = "",
+}) {
   const tapePos = TAPE_POSITIONS[index % TAPE_POSITIONS.length];
   const rotateClass = styles[`polaroidRot${index % 4}`];
   return (
@@ -197,7 +204,12 @@ function Polaroid({ image, index = 0, count = 1, withTape = true, caption }) {
         className={`${styles.polaroidPhoto} ${count === 1 ? styles.polaroidPhotoLandscape : ""}`}
       >
         {image?.url ? (
-          <img src={image.url} alt="" className={styles.photo} loading="lazy" />
+          <img
+            src={image.url}
+            alt={alt}
+            className={styles.photo}
+            loading="lazy"
+          />
         ) : (
           <span className={styles.polaroidPhotoFallback}>foto</span>
         )}
@@ -822,6 +834,7 @@ export default function CompartidaCard({
             count={1}
             withTape
             caption="el momento exacto"
+            alt={`Foto de la compartida de ${authorName}`}
           />
         </button>
         {imageCount > 1 && (
@@ -1107,6 +1120,7 @@ export default function CompartidaCard({
                 index={i}
                 count={imageCount}
                 withTape={i === 0 || imageCount > 1}
+                alt={`Foto ${i + 1} de la compartida de ${authorName}`}
               />
             </button>
           ))}

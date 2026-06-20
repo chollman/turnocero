@@ -151,6 +151,28 @@ describe("<CreateCompartidaForm>", () => {
     expect(screen.getByRole("radio", { name: "8" })).toBeInTheDocument();
   });
 
+  it("a11y: las flechas navegan el radiogroup de puntuación (roving tabindex)", () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("radio", { name: /reseña/i }));
+    // Sin puntuación elegida, el primer pill (1) es el único tabbable.
+    expect(screen.getByRole("radio", { name: "1" })).toHaveAttribute(
+      "tabindex",
+      "0",
+    );
+    expect(screen.getByRole("radio", { name: "2" })).toHaveAttribute(
+      "tabindex",
+      "-1",
+    );
+    // ArrowRight desde el 1 selecciona el 2.
+    fireEvent.keyDown(screen.getByRole("radio", { name: "1" }), {
+      key: "ArrowRight",
+    });
+    expect(screen.getByRole("radio", { name: "2" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
+
   it("la reseña oculta el control de foto separado", () => {
     renderForm(); // juntada: el botón Foto está presente
     expect(screen.getByRole("button", { name: /foto/i })).toBeInTheDocument();
