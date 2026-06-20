@@ -794,6 +794,16 @@ export default function CompartidaCard({
       </div>
     );
 
+    const featuredReadMore = (
+      <Link
+        to={`/compartidas/${post._id}`}
+        className={styles.featuredReadMore}
+      >
+        Leer la compartida completa
+        {ctaArrow}
+      </Link>
+    );
+
     const featuredPhotos = (
       <div
         className={`${styles.photos} ${styles.photosFeatured} ${
@@ -862,6 +872,7 @@ export default function CompartidaCard({
                 <div className={styles.broadsideMain}>
                   {featuredScorecard}
                   {featuredMeta}
+                  {featuredReadMore}
                 </div>
                 {featuredPhotos}
               </div>
@@ -874,6 +885,7 @@ export default function CompartidaCard({
                 {featuredSubtitle}
                 {featuredGameTags}
                 {featuredMeta}
+                {featuredReadMore}
               </div>
               {featuredPhotos}
             </div>
