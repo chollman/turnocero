@@ -135,6 +135,13 @@ describe("<ResenaCard>", () => {
     ).toBeInTheDocument();
   });
 
+  it("el nombre del juego enlaza a su página de reseñas (/compartidas/juego/:bggId)", () => {
+    const { container } = renderCard(makeResena());
+    const link = container.querySelector('a[href="/compartidas/juego/13"]');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveTextContent("Catan");
+  });
+
   it("a11y: el lightbox es un dialog con aria-modal y nombre accesible", () => {
     renderCard(
       makeResena({ images: [{ _id: "i1", url: "http://example.com/1.jpg" }] }),

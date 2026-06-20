@@ -150,6 +150,7 @@ export const API = {
   compartidas: {
     LIST: "/api/compartidas",
     STATS: "/api/compartidas/stats",
+    BY_GAME: (bggId) => `/api/compartidas/juego/${enc(bggId)}`,
     DETAIL: (id) => `/api/compartidas/${enc(id)}`,
     OG: (id) => `/api/compartidas/${enc(id)}/og`,
     LIKE: (id) => `/api/compartidas/${enc(id)}/like`,
