@@ -134,4 +134,14 @@ describe("<ResenaCard>", () => {
       screen.getByRole("toolbar", { name: /formato de texto/i }),
     ).toBeInTheDocument();
   });
+
+  it("a11y: el lightbox es un dialog con aria-modal y nombre accesible", () => {
+    renderCard(
+      makeResena({ images: [{ _id: "i1", url: "http://example.com/1.jpg" }] }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /ver foto 1/i }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toHaveAccessibleName(/foto ampliada/i);
+  });
 });

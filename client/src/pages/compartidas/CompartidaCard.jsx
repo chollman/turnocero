@@ -15,6 +15,7 @@ import { getUserDisplay } from "../../utils/userDisplay";
 import { getLocationDisplay } from "../../utils/location";
 import { buildCompartidaShare } from "../../utils/share";
 import { useShortLink } from "../../hooks/useShortLink";
+import useDialogA11y from "../../hooks/useDialogA11y";
 import { getShortUrl } from "../../utils/shortlink";
 import CompartidaComments from "./CompartidaComments";
 import { useCompartidaLike } from "./useCompartidaLike";
@@ -294,6 +295,7 @@ export default function CompartidaCard({
   }, []);
 
   const lbImages = post.images || [];
+  const lightboxRef = useDialogA11y(lightboxIndex !== null);
   const closeLightbox = () => setLightboxIndex(null);
   const goPrev = () =>
     setLightboxIndex((i) =>
@@ -413,7 +415,15 @@ export default function CompartidaCard({
   const lightboxPortal =
     lightboxIndex !== null && lbImages[lightboxIndex]
       ? createPortal(
-          <div className={styles.lightbox} onClick={closeLightbox}>
+          <div
+            className={styles.lightbox}
+            onClick={closeLightbox}
+            ref={lightboxRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Foto ampliada"
+            tabIndex={-1}
+          >
             <button
               type="button"
               className={styles.lightboxClose}
@@ -1133,6 +1143,7 @@ export default function CompartidaCard({
             <button
               className={`${styles.reactionBtn} ${liked ? styles.reactionBtnLiked : ""}`}
               onClick={handleLike}
+              aria-label={liked ? "Quitar me gusta" : "Me gusta"}
             >
               <span
                 className={`${styles.likeHeart} ${heartPopping ? styles.likeHeartPop : ""}`}
@@ -1165,7 +1176,12 @@ export default function CompartidaCard({
                 className={styles.likeCountClickable}
               />
             </button>
-            <button className={styles.reactionBtn} onClick={toggleComments}>
+            <button
+              className={styles.reactionBtn}
+              onClick={toggleComments}
+              aria-label={showComments ? "Ocultar comentarios" : "Ver comentarios"}
+              aria-expanded={showComments}
+            >
               <svg
                 viewBox="0 0 24 24"
                 fill="none"

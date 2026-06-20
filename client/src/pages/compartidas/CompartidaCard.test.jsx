@@ -861,6 +861,35 @@ describe("<CompartidaCard>", () => {
     expect(screen.queryByText(/\d+ \/ \d+/)).not.toBeInTheDocument();
   });
 
+  it("a11y: el lightbox es un dialog con aria-modal y nombre accesible", () => {
+    const { container } = renderCard(makePost({ images: LB_IMAGES }));
+    openLightbox(container, 0);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toHaveAccessibleName(/foto ampliada/i);
+  });
+
+  it("a11y: los botones de like y comentarios tienen nombre accesible", () => {
+    server.use(
+      http.get("/api/compartidas/:id/comments", () =>
+        HttpResponse.json({ comments: [], total: 0, pages: 1 }),
+      ),
+    );
+    renderCard(makePost({ commentCount: 2 }));
+    // El like solo tenía un número → ahora expone un aria-label.
+    expect(
+      screen.getByRole("button", { name: /^me gusta$/i }),
+    ).toBeInTheDocument();
+    const commentBtn = screen.getByRole("button", {
+      name: /ver comentarios/i,
+    });
+    expect(commentBtn).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(commentBtn);
+    expect(
+      screen.getByRole("button", { name: /ocultar comentarios/i }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
   // -----------------------------------------------------------------------
   // BgWatch author link
   // -----------------------------------------------------------------------
