@@ -869,6 +869,14 @@ describe("<CompartidaCard>", () => {
     expect(dialog).toHaveAccessibleName(/foto ampliada/i);
   });
 
+  it("a11y: el botón de la foto tiene nombre accesible (alt descriptivo)", () => {
+    renderCard(makePost({ images: [LB_IMAGES[0]] }));
+    // El alt de la foto le da nombre al botón que la envuelve (antes vacío).
+    expect(
+      screen.getByRole("button", { name: /foto 1 de la compartida de/i }),
+    ).toBeInTheDocument();
+  });
+
   it("a11y: los botones de like y comentarios tienen nombre accesible", () => {
     server.use(
       http.get("/api/compartidas/:id/comments", () =>

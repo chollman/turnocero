@@ -16,6 +16,7 @@ import { getUserDisplay } from "../../utils/userDisplay";
 import { buildCompartidaShare } from "../../utils/share";
 import { useShortLink } from "../../hooks/useShortLink";
 import useDialogA11y from "../../hooks/useDialogA11y";
+import useRovingRadioGroup from "../../hooks/useRovingRadioGroup";
 import { getShortUrl } from "../../utils/shortlink";
 import CompartidaComments from "./CompartidaComments";
 import { useCompartidaLike } from "./useCompartidaLike";
@@ -44,6 +45,8 @@ const PRIVACY_LABELS = {
 };
 
 const bodyToText = (html) => (html || "").replace(/<[^>]*>/g, " ").trim();
+
+const RATING_VALUES = Array.from({ length: 10 }, (_, i) => i + 1);
 
 // Reseñas con más de este largo (texto plano) se recortan en el feed y se
 // expanden con un botón "Leer más" (efecto slide).
@@ -114,6 +117,11 @@ export default function ResenaCard({
 
   const lbImages = post.images || [];
   const lightboxRef = useDialogA11y(lightboxIndex !== null);
+  const ratingGroup = useRovingRadioGroup({
+    items: RATING_VALUES,
+    value: editRating,
+    onChange: setEditRating,
+  });
   const closeLightbox = () => setLightboxIndex(null);
   const goPrev = () =>
     setLightboxIndex((i) =>
@@ -458,12 +466,11 @@ export default function ResenaCard({
               role="radiogroup"
               aria-label="Puntuación"
             >
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              {RATING_VALUES.map((n, i) => (
                 <button
                   key={n}
                   type="button"
-                  role="radio"
-                  aria-checked={editRating === n}
+                  {...ratingGroup.getRadioProps(n, i)}
                   className={`${styles.ratingPill} ${editRating === n ? styles.ratingPillActive : ""}`}
                   onClick={() => setEditRating(n)}
                 >

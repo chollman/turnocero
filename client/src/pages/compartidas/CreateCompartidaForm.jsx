@@ -8,6 +8,7 @@ import CommunitySelect from "../../components/shared/CommunitySelect";
 import GameTile from "../../components/shared/GameTile";
 import BggGameSearch from "../../components/shared/BggGameSearch";
 import RichTextEditor from "../../components/shared/RichTextEditor";
+import useRovingRadioGroup from "../../hooks/useRovingRadioGroup";
 import { getLocationDisplay } from "../../utils/location";
 import { createJuntada, toGamePayload } from "./createJuntada";
 import styles from "./CreateCompartidaForm.module.css";
@@ -20,6 +21,8 @@ const PRIVACY_OPTIONS = [
 
 const REVIEW_BODY_MAX = 20000;
 const MAX_JUNTADA_GAMES = 12;
+const TYPE_VALUES = ["resena", "juntada"];
+const RATING_VALUES = Array.from({ length: 10 }, (_, i) => i + 1);
 
 // Texto plano a partir del body (para chequear contenido real: un editor
 // vacío produce "<p></p>").
@@ -80,6 +83,18 @@ export default function CreateCompartidaForm({
       });
     }
   };
+
+  // Roving tabindex + flechas para los radiogroups (tipo y puntuación).
+  const typeGroup = useRovingRadioGroup({
+    items: TYPE_VALUES,
+    value: category,
+    onChange: switchCategory,
+  });
+  const ratingGroup = useRovingRadioGroup({
+    items: RATING_VALUES,
+    value: rating,
+    onChange: setRating,
+  });
   // El linking es solo contextual: el id viene de la mesa/evento desde donde
   // se abrió la compartida (no hay dropdown manual). Mostramos un chip quitable.
   const [linkedTableId, setLinkedTableId] = useState(prefilledTableId || "");
@@ -257,8 +272,7 @@ export default function CreateCompartidaForm({
       >
         <button
           type="button"
-          role="radio"
-          aria-checked={isResena}
+          {...typeGroup.getRadioProps("resena", 0)}
           className={`${styles.typeBtn} ${isResena ? styles.typeBtnActive : ""}`}
           onClick={() => switchCategory("resena")}
           disabled={loading}
@@ -271,8 +285,7 @@ export default function CreateCompartidaForm({
         </button>
         <button
           type="button"
-          role="radio"
-          aria-checked={!isResena}
+          {...typeGroup.getRadioProps("juntada", 1)}
           className={`${styles.typeBtn} ${!isResena ? styles.typeBtnActive : ""}`}
           onClick={() => switchCategory("juntada")}
           disabled={loading}
@@ -531,12 +544,11 @@ export default function CreateCompartidaForm({
             role="radiogroup"
             aria-label="Puntuación"
           >
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            {RATING_VALUES.map((n, i) => (
               <button
                 key={n}
                 type="button"
-                role="radio"
-                aria-checked={rating === n}
+                {...ratingGroup.getRadioProps(n, i)}
                 className={`${styles.ratingPill} ${rating === n ? styles.ratingPillActive : ""}`}
                 onClick={() => setRating(n)}
                 disabled={loading}
