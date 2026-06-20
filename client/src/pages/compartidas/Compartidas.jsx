@@ -230,9 +230,7 @@ export default function Compartidas() {
                 Lo que <em>jugamos</em> esta semana.
               </h1>
               <p className={styles.heroSub}>
-                Compartí tus partidas, fotos y momentos. Esto es la bitácora
-                abierta de la comunidad — un pedacito de cada mesa, para que no
-                se pierda nada.
+                Partidas, fotos y momentos: la bitácora abierta de la comunidad.
               </p>
             </div>
             <div className={styles.heroStats}>
