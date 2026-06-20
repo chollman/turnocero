@@ -267,6 +267,43 @@
   border-color: var(--orange-30);
 }
 
+/* CTA contextual a mesas (reemplaza la frase decorativa). Tarjeta-link ámbar. */
+.inlineWidget.mesasCta {
+  background:
+    radial-gradient(400px circle at 100% 0%, var(--amber-glow), transparent 55%),
+    linear-gradient(135deg, #211c14, #15191f);
+  border-color: var(--border-amber);
+  text-decoration: none;
+  transition: border-color var(--transition);
+}
+
+.inlineWidget.mesasCta:hover {
+  border-color: var(--amber);
+}
+
+.inlineWidget.mesasCta .left {
+  color: var(--amber);
+}
+
+.mesasCtaText {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.mesasCtaBtn {
+  align-self: flex-start;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--amber-light);
+}
+
 .widgetEyebrow {
   display: flex;
   align-items: center;
