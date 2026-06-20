@@ -17,6 +17,11 @@ vi.mock("../../components/shared/GameTile", () => ({
 vi.mock("./BgWatchHomeWidget", () => ({
   default: () => <div data-testid="bg-widget" />,
 }));
+vi.mock("../../components/shared/GuestJoinBanner", () => ({
+  default: ({ variant }) => (
+    <div data-testid="guest-join" data-variant={variant} />
+  ),
+}));
 
 import CompartidasSidebar from "./CompartidasSidebar";
 
@@ -126,9 +131,39 @@ describe("<CompartidasSidebar>", () => {
     });
   });
 
-  it("renders nothing for guests (no user)", () => {
+  it("does not render the guest join card for logged-in users", () => {
+    renderSidebar();
+    expect(screen.queryByTestId("guest-join")).not.toBeInTheDocument();
+  });
+
+  it("sells to guests: shows the join card + community top games, hides personal widgets", async () => {
     useAuthMock.mockReturnValue({ user: null });
     renderSidebar();
+
+    // Tarjeta de conversión (variante card) presente; widgets personales no.
+    const card = screen.getByTestId("guest-join");
+    expect(card).toHaveAttribute("data-variant", "card");
     expect(screen.queryByTestId("bg-widget")).not.toBeInTheDocument();
+    expect(screen.queryByText("Próximas partidas")).not.toBeInTheDocument();
+
+    // "Top juegos" (público) sí se muestra como prueba social.
+    await waitFor(() => {
+      expect(screen.getByText("Top juegos esta semana")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Carcassonne")).toBeInTheDocument();
+  });
+
+  it("hides the top-games widget from guests when there is no data", async () => {
+    useAuthMock.mockReturnValue({ user: null });
+    server.use(http.get("/api/tables/top-games", () => HttpResponse.json([])));
+    renderSidebar();
+    // El guest no debe ver un "Sin datos esta semana" deslucido.
+    await waitFor(() => {
+      expect(screen.getByTestId("guest-join")).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText("Top juegos esta semana"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/sin datos esta semana/i)).not.toBeInTheDocument();
   });
 });

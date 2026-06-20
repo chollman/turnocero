@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { API } from "../../api/endpoints";
 import GameTile from "../../components/shared/GameTile";
+import GuestJoinBanner from "../../components/shared/GuestJoinBanner";
 import BgWatchHomeWidget from "./BgWatchHomeWidget";
 import styles from "./CompartidasSidebar.module.css";
 
@@ -30,26 +31,15 @@ export default function CompartidasSidebar() {
   const [topGames, setTopGames] = useState([]);
 
   useEffect(() => {
-    if (!user || !mesasEnabled) {
+    if (!mesasEnabled) {
       setTables([]);
       setTopGames([]);
       return undefined;
     }
     const ac = new AbortController();
-    axios
-      .get(API.tables.MINE, { params: { limit: 4 }, signal: ac.signal })
-      .then(({ data }) => {
-        if (ac.signal.aborted) return;
-        const upcoming = (data.tables || [])
-          .filter(
-            (t) => t.status !== "cancelled" && new Date(t.date) >= new Date(),
-          )
-          .sort((a, b) => new Date(a.date) - new Date(b.date))
-          .slice(0, 3);
-        setTables(upcoming);
-      })
-      .catch(() => {});
 
+    // "Top juegos" es público (optionalAuth) → se trae siempre, también para
+    // anónimos: es la prueba social de que la comunidad está activa.
     axios
       .get(API.tables.TOP_GAMES, { signal: ac.signal })
       .then(({ data }) => {
@@ -57,16 +47,38 @@ export default function CompartidasSidebar() {
       })
       .catch(() => {});
 
+    // "Tus mesas" es personal → solo para usuarios logueados.
+    if (user) {
+      axios
+        .get(API.tables.MINE, { params: { limit: 4 }, signal: ac.signal })
+        .then(({ data }) => {
+          if (ac.signal.aborted) return;
+          const upcoming = (data.tables || [])
+            .filter(
+              (t) => t.status !== "cancelled" && new Date(t.date) >= new Date(),
+            )
+            .sort((a, b) => new Date(a.date) - new Date(b.date))
+            .slice(0, 3);
+          setTables(upcoming);
+        })
+        .catch(() => {});
+    } else {
+      setTables([]);
+    }
+
     return () => ac.abort();
   }, [user, mesasEnabled]);
 
   return (
     <aside className={styles.sidebar}>
+      {/* ── Guests: tarjeta de conversión arriba (se auto-oculta logueado) ── */}
+      {!user && <GuestJoinBanner variant="card" />}
+
       {/* ── BG Watch (activo o promo) ── */}
       {user && bgwatchEnabled && <BgWatchHomeWidget user={user} dismissible />}
 
-      {/* ── Próximas mesas ── */}
-      {mesasEnabled && (
+      {/* ── Próximas mesas (personal → solo logueado) ── */}
+      {user && mesasEnabled && (
         <div className={styles.widget}>
           <div className={styles.widgetHeader}>
             <span className={styles.widgetEyebrow}><Meeple />TUS MESAS</span>
@@ -121,8 +133,9 @@ export default function CompartidasSidebar() {
         </div>
       )}
 
-      {/* ── Top juegos ── */}
-      {mesasEnabled && (
+      {/* ── Top juegos (público → prueba social). A un guest solo se lo
+          mostramos si hay data (no un "Sin datos" deslucido). ── */}
+      {mesasEnabled && (user || topGames.length > 0) && (
         <div className={styles.widget}>
           <div className={styles.widgetHeader}>
             <span className={styles.widgetEyebrow}><Meeple />COMUNIDAD</span>
