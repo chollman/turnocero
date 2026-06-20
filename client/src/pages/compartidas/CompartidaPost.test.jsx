@@ -19,6 +19,9 @@ vi.mock("./ResenaCard", () => ({
   ),
 }));
 vi.mock("./CompartidasSidebar", () => ({ default: () => null }));
+vi.mock("../../components/shared/GuestJoinBanner", () => ({
+  default: () => <div data-testid="guest-join-banner" />,
+}));
 
 import CompartidaPost from "./CompartidaPost";
 import { useNotifications } from "../../context/NotificationContext";
@@ -85,6 +88,12 @@ describe("<CompartidaPost>", () => {
     expect(
       screen.getByRole("link", { name: /volver al feed/i }),
     ).toHaveAttribute("href", "/compartidas");
+  });
+
+  it("mounts the guest acquisition banner on the viral landing page", async () => {
+    setupPost(makePost());
+    renderPage();
+    expect(screen.getByTestId("guest-join-banner")).toBeInTheDocument();
   });
 
   it("shows 404 error when post does not exist", async () => {
