@@ -20,6 +20,7 @@ import CompartidaSkeleton from "./CompartidaSkeleton";
 import CreateCompartidaForm from "./CreateCompartidaForm";
 import CompartidasSidebar from "./CompartidasSidebar";
 import BgWatchHomeWidget from "./BgWatchHomeWidget";
+import GuestJoinBanner from "../../components/shared/GuestJoinBanner";
 import styles from "./Compartidas.module.css";
 
 const TABS = [
@@ -249,6 +250,9 @@ export default function Compartidas() {
               </div>
             </div>
           </header>
+
+          {/* ── Banda de adquisición (solo guests; se auto-oculta logueado) ── */}
+          <GuestJoinBanner />
 
           {/* ── Composer one-liner ── */}
           {user && !showCreate && (

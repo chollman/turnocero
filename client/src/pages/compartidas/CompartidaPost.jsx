@@ -10,6 +10,7 @@ import ResenaCard from "./ResenaCard";
 import CompartidasSidebar from "./CompartidasSidebar";
 import CompartidaSkeleton from "./CompartidaSkeleton";
 import BackButton from "../../components/shared/BackButton";
+import GuestJoinBanner from "../../components/shared/GuestJoinBanner";
 import styles from "./CompartidaPost.module.css";
 
 // Texto plano a partir del body HTML de una reseña (para meta/description).
@@ -114,6 +115,10 @@ export default function CompartidaPost() {
           <BackButton to="/compartidas" flush>
             Volver al feed
           </BackButton>
+
+          {/* Aterrizaje viral: el link llegó por WhatsApp/Telegram a un anónimo.
+              Le damos contexto + CTA de registro (se auto-oculta logueado). */}
+          <GuestJoinBanner />
 
           {loading && <CompartidaSkeleton />}
 
