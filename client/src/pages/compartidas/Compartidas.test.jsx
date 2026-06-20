@@ -74,9 +74,10 @@ import { useSiteConfig } from "../../context/SiteConfigContext";
 function renderPage({
   user = { _id: "me", username: "me" },
   initialEntries = ["/"],
+  isSectionEnabled = () => true,
 } = {}) {
   useAuth.mockReturnValue({ user });
-  useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+  useSiteConfig.mockReturnValue({ isSectionEnabled });
   return render(
     <HelmetProvider>
       <MemoryRouter initialEntries={initialEntries}>
@@ -123,6 +124,49 @@ describe("<Compartidas>", () => {
     });
     expect(screen.getByText("Hello")).toBeInTheDocument();
     expect(screen.getByText("World")).toBeInTheDocument();
+  });
+
+  // El widget intercalado aparece tras el 3er post (INTERLEAVE_EVERY = 3).
+  function setupThreePosts() {
+    server.use(
+      http.get("/api/compartidas", () =>
+        HttpResponse.json({
+          compartidas: [
+            makePost({ _id: "p1", body: "Uno" }),
+            makePost({ _id: "p2", body: "Dos" }),
+            makePost({ _id: "p3", body: "Tres" }),
+          ],
+          featured: null,
+          page: 1,
+          pages: 1,
+          total: 3,
+        }),
+      ),
+    );
+  }
+
+  it("intercala un CTA a /mesas (no la frase) cuando la sección Mesas está activa", async () => {
+    setupThreePosts();
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(screen.getAllByTestId("compartida-card").length).toBe(3);
+    });
+    const cta = container.querySelector('a[href="/mesas"]');
+    expect(cta).toBeInTheDocument();
+    expect(cta).toHaveTextContent(/ver mesas abiertas/i);
+    expect(screen.queryByText(/frase de la mesa/i)).not.toBeInTheDocument();
+  });
+
+  it("cae a la frase decorativa cuando la sección Mesas está apagada", async () => {
+    setupThreePosts();
+    const { container } = renderPage({
+      isSectionEnabled: (key) => key !== "mesas",
+    });
+    await waitFor(() => {
+      expect(screen.getAllByTestId("compartida-card").length).toBe(3);
+    });
+    expect(screen.getByText(/frase de la mesa/i)).toBeInTheDocument();
+    expect(container.querySelector('a[href="/mesas"]')).not.toBeInTheDocument();
   });
 
   it("renders empty state gracefully when API returns no posts", async () => {
