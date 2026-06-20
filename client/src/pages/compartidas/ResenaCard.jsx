@@ -15,6 +15,7 @@ import BggGameSearch from "../../components/shared/BggGameSearch";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { buildCompartidaShare } from "../../utils/share";
 import { useShortLink } from "../../hooks/useShortLink";
+import useDialogA11y from "../../hooks/useDialogA11y";
 import { getShortUrl } from "../../utils/shortlink";
 import CompartidaComments from "./CompartidaComments";
 import { useCompartidaLike } from "./useCompartidaLike";
@@ -112,6 +113,7 @@ export default function ResenaCard({
   }, []);
 
   const lbImages = post.images || [];
+  const lightboxRef = useDialogA11y(lightboxIndex !== null);
   const closeLightbox = () => setLightboxIndex(null);
   const goPrev = () =>
     setLightboxIndex((i) =>
@@ -233,7 +235,15 @@ export default function ResenaCard({
   const lightboxPortal =
     lightboxIndex !== null && lbImages[lightboxIndex]
       ? createPortal(
-          <div className={styles.lightbox} onClick={closeLightbox}>
+          <div
+            className={styles.lightbox}
+            onClick={closeLightbox}
+            ref={lightboxRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Foto ampliada"
+            tabIndex={-1}
+          >
             <button
               type="button"
               className={styles.lightboxClose}
