@@ -7,6 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { API } from "../../api/endpoints";
 import GameTile from "../../components/shared/GameTile";
+import BggGameSearch from "../../components/shared/BggGameSearch";
 import LoginPromptModal from "../../components/shared/LoginPromptModal";
 import LikersModal from "../../components/shared/LikersModal";
 import Avatar from "../../components/shared/Avatar";
@@ -279,6 +280,8 @@ export default function CompartidaCard({
   const [editTitle, setEditTitle] = useState(post.title);
   const [editBody, setEditBody] = useState(post.body);
   const [editPrivacy, setEditPrivacy] = useState(post.privacy);
+  // Juegos editables de la juntada (antes solo se podía editar el texto).
+  const [editGames, setEditGames] = useState(post.boardGames || []);
   // Lightbox: trackea el índice (no la url) para navegar prev/next.
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [expanded, setExpanded] = useState(false);
@@ -353,18 +356,39 @@ export default function CompartidaCard({
     }
   };
 
+  // Juegos: clave estable (bggId del snapshot o id del resultado de búsqueda).
+  const gameKey = (g) => g.bggId ?? g.id;
+  const MAX_GAMES = 12;
+  const addEditGame = (g) =>
+    setEditGames((prev) => {
+      if (prev.length >= MAX_GAMES) return prev;
+      if (prev.some((x) => gameKey(x) === gameKey(g))) return prev; // dedupe
+      return [...prev, g];
+    });
+  const removeEditGame = (key) =>
+    setEditGames((prev) => prev.filter((x) => gameKey(x) !== key));
+
   const handleSaveEdit = async () => {
     try {
       const { data } = await axios.put(API.compartidas.DETAIL(post._id), {
         title: editTitle,
         body: editBody,
         privacy: editPrivacy,
+        // El server re-resuelve cada juego por bggId/id contra BGG.
+        boardGames: editGames.map((g) => ({
+          bggId: gameKey(g),
+          name: g.name,
+          thumbnail: g.thumbnail,
+          image: g.image,
+          year: g.year,
+        })),
       });
       const updated = {
         ...post,
         title: data.title,
         body: data.body,
         privacy: data.privacy,
+        boardGames: data.boardGames ?? post.boardGames,
       };
       setPost(updated);
       onUpdated?.(updated);
@@ -1031,6 +1055,50 @@ export default function CompartidaCard({
               </button>
             ))}
           </div>
+
+          {/* ── Juegos (editable) ── */}
+          <div className={styles.editGamesField}>
+            <span className={styles.editGamesLabel}>Juegos jugados</span>
+            {editGames.length > 0 && (
+              <div className={styles.editGameChips}>
+                {editGames.map((g) => (
+                  <span key={gameKey(g)} className={styles.editGameChip}>
+                    {g.thumbnail || g.image ? (
+                      <img
+                        src={g.thumbnail || g.image}
+                        alt=""
+                        className={styles.editGameChipImg}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className={styles.editGameChipImg} aria-hidden="true">
+                        🎲
+                      </span>
+                    )}
+                    <span className={styles.editGameChipName}>{g.name}</span>
+                    <button
+                      type="button"
+                      className={styles.editGameChipRemove}
+                      onClick={() => removeEditGame(gameKey(g))}
+                      aria-label={`Quitar ${g.name}`}
+                      title="Quitar juego"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            {editGames.length < MAX_GAMES && (
+              <BggGameSearch
+                onPick={addEditGame}
+                autoFocus={false}
+                clearOnPick
+                placeholder="Agregá un juego (≥3 caracteres)…"
+              />
+            )}
+          </div>
+
           <div className={styles.editActions}>
             <button
               className={styles.btnGhost}
