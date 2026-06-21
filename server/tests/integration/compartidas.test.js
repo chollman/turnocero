@@ -835,6 +835,28 @@ describe("Compartidas — reseñas vs juntadas", () => {
     );
   });
 
+  it("GET ?q= también matchea por el texto del post (body)", async () => {
+    const author = await createUser();
+    await createCompartida(author, {
+      title: "Sin pistas en el título",
+      body: "Anoche jugamos algo realmente memorable hasta tarde",
+      privacy: "public",
+    });
+    await createCompartida(author, {
+      title: "Otra",
+      body: "Una tarde tranquila",
+      privacy: "public",
+    });
+
+    const res = await request(app).get("/api/compartidas?q=memorable");
+    const titles = visibleBodies(res.body);
+    expect(titles).toContain(
+      "Anoche jugamos algo realmente memorable hasta tarde",
+    );
+    // No trae la otra (no contiene el término en ningún campo).
+    expect(titles).not.toContain("Una tarde tranquila");
+  });
+
   it("OG de reseña incluye rating y juego", async () => {
     const author = await createUser();
     const { createResena } = require("../helpers/factories");

@@ -241,6 +241,10 @@ router.get(
           { title: rx },
           { "boardGame.name": rx },
           { "boardGames.name": rx },
+          // También buscamos dentro del texto del post. En reseñas el body es
+          // HTML, así que el regex matchea el contenido (las palabras están);
+          // a cambio puede pegar algún nombre de tag — aceptable para búsqueda.
+          { body: rx },
         ],
       });
     }
