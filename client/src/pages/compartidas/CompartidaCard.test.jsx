@@ -472,6 +472,55 @@ describe("<CompartidaCard>", () => {
     expect(putBody.boardGames[0].bggId).toBe(77);
   });
 
+  it("editar juntada: permite quitar una foto existente (DELETE)", async () => {
+    let deleteCalled = false;
+    server.use(
+      http.delete("/api/compartidas/:id/images/:imgId", () => {
+        deleteCalled = true;
+        return HttpResponse.json({ message: "Imagen eliminada" });
+      }),
+    );
+    renderCard(
+      makePost({
+        images: [{ _id: "im1", url: "https://cdn/p.jpg", publicId: "p" }],
+      }),
+      { user: { _id: "a1", username: "cha" } },
+    );
+    fireEvent.click(screen.getByText("⋯"));
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.click(screen.getByRole("button", { name: /quitar foto/i }));
+    await waitFor(() => expect(deleteCalled).toBe(true));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: /quitar foto/i }),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it("editar juntada: permite subir una foto nueva (POST)", async () => {
+    server.use(
+      http.post("/api/compartidas/:id/images", () =>
+        HttpResponse.json(
+          [{ _id: "imNew", url: "https://cdn/new.jpg", publicId: "new" }],
+          { status: 201 },
+        ),
+      ),
+    );
+    const { container } = renderCard(makePost({ images: [] }), {
+      user: { _id: "a1", username: "cha" },
+    });
+    fireEvent.click(screen.getByText("⋯"));
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    const fileInput = container.querySelector('input[type="file"]');
+    const file = new File(["x"], "photo.png", { type: "image/png" });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /quitar foto/i }),
+      ).toBeInTheDocument(),
+    );
+  });
+
   it("renders the featured badge when featured=true", () => {
     useAuth.mockReturnValue({ user: null });
     useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });

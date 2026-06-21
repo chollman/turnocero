@@ -282,6 +282,9 @@ export default function CompartidaCard({
   const [editPrivacy, setEditPrivacy] = useState(post.privacy);
   // Juegos editables de la juntada (antes solo se podía editar el texto).
   const [editGames, setEditGames] = useState(post.boardGames || []);
+  // Fotos editables (alta/baja inmediata vía endpoints propios, máx. 3).
+  const [imgBusy, setImgBusy] = useState(false);
+  const editFileRef = useRef(null);
   // Lightbox: trackea el índice (no la url) para navegar prev/next.
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [expanded, setExpanded] = useState(false);
@@ -367,6 +370,45 @@ export default function CompartidaCard({
     });
   const removeEditGame = (key) =>
     setEditGames((prev) => prev.filter((x) => gameKey(x) !== key));
+
+  // Fotos: alta/baja inmediata (endpoints separados del PUT). El POST devuelve
+  // el array `images` actualizado; el DELETE solo confirma, así que filtramos.
+  const MAX_IMAGES = 3;
+  const handleAddEditImage = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || post.images.length >= MAX_IMAGES || imgBusy) return;
+    setImgBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const { data } = await axios.post(API.compartidas.IMAGES(post._id), fd);
+      const updated = { ...post, images: data };
+      setPost(updated);
+      onUpdated?.(updated);
+    } catch {
+      /* silently ignore */
+    } finally {
+      setImgBusy(false);
+    }
+  };
+  const handleRemoveEditImage = async (imgId) => {
+    if (imgBusy) return;
+    setImgBusy(true);
+    try {
+      await axios.delete(API.compartidas.IMAGE_DETAIL(post._id, imgId));
+      const updated = {
+        ...post,
+        images: post.images.filter((im) => im._id !== imgId),
+      };
+      setPost(updated);
+      onUpdated?.(updated);
+    } catch {
+      /* silently ignore */
+    } finally {
+      setImgBusy(false);
+    }
+  };
 
   const handleSaveEdit = async () => {
     try {
@@ -1097,6 +1139,50 @@ export default function CompartidaCard({
                 placeholder="Agregá un juego (≥3 caracteres)…"
               />
             )}
+          </div>
+
+          {/* ── Fotos (editable, alta/baja inmediata) ── */}
+          <div className={styles.editPhotosField}>
+            <span className={styles.editGamesLabel}>
+              Fotos {post.images.length > 0 ? `(${post.images.length}/3)` : ""}
+            </span>
+            <div className={styles.editPhotos}>
+              {post.images.map((img) => (
+                <div key={img._id} className={styles.editPhotoThumb}>
+                  <img src={img.url} alt="" loading="lazy" />
+                  <button
+                    type="button"
+                    className={styles.editPhotoRemove}
+                    onClick={() => handleRemoveEditImage(img._id)}
+                    disabled={imgBusy}
+                    aria-label="Quitar foto"
+                    title="Quitar foto"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              {post.images.length < MAX_IMAGES && (
+                <button
+                  type="button"
+                  className={styles.editPhotoAdd}
+                  onClick={() => editFileRef.current?.click()}
+                  disabled={imgBusy}
+                  aria-label="Agregar foto"
+                  title="Agregar foto"
+                >
+                  {imgBusy ? "…" : "+"}
+                </button>
+              )}
+            </div>
+            <input
+              ref={editFileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              hidden
+              aria-hidden="true"
+              onChange={handleAddEditImage}
+            />
           </div>
 
           <div className={styles.editActions}>
