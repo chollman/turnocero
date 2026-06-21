@@ -500,6 +500,17 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
               : `Ver mesa de ${table.boardGame}`
           }
         >
+          {/* Miniatura del juego — oculta en desktop (vista lista densa), se
+              muestra en mobile para volver a darle identidad visual a cada
+              card sin tener que cambiar a la vista en cuadrícula. */}
+          <div className={styles.rowThumb} aria-hidden="true">
+            <MesaTile
+              game={tileGame}
+              seed={seed}
+              imageUrl={useImage ? table.bggImage : null}
+            />
+          </div>
+
           <div className={styles.rowDate}>
             {dParts && (
               <>
