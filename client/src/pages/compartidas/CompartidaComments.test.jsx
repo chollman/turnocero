@@ -559,4 +559,42 @@ describe("<CompartidaComments> — respuestas (hilo)", () => {
       expect(onRequireLogin).toHaveBeenCalled();
     });
   });
+
+  describe("pulido del input", () => {
+    it("muestra el conteo en el header desde 1 comentario", async () => {
+      setupComments(
+        [
+          {
+            _id: "k1",
+            content: "Hola",
+            author: other,
+            createdAt: new Date().toISOString(),
+            likeCount: 0,
+            liked: false,
+            replies: [],
+          },
+        ],
+        { total: 1 },
+      );
+      renderComponent();
+      await waitFor(() => {
+        expect(document.querySelector(".commentsHead").textContent).toMatch(
+          /\(1\)/,
+        );
+      });
+    });
+
+    it("muestra el contador de caracteres solo cerca del límite", async () => {
+      renderComponent();
+      const input = await screen.findByPlaceholderText(
+        /escribí un comentario/i,
+      );
+      // Lejos del límite: sin contador.
+      fireEvent.change(input, { target: { value: "hola" } });
+      expect(screen.queryByText(/\/500$/)).not.toBeInTheDocument();
+      // Cerca del límite (>= 450): aparece "460/500".
+      fireEvent.change(input, { target: { value: "a".repeat(460) } });
+      expect(screen.getByText("460/500")).toBeInTheDocument();
+    });
+  });
 });
