@@ -125,7 +125,10 @@ function ConnectedView({ bggUsername }) {
           className={styles.skeletonHeadline}
           role="status"
           aria-label="Cargando tus partidas"
-        />
+        >
+          <span className={styles.skeletonLine} />
+          <span className={`${styles.skeletonLine} ${styles.skeletonLineShort}`} />
+        </div>
       ) : (
         <p className={styles.headline}>{headlineText}</p>
       )}
