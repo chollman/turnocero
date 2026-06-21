@@ -9,7 +9,11 @@ import styles from "./GuestJoinBanner.module.css";
 // al visitante frío "qué es esto y por qué registrarme" en el momento de mayor
 // interés (justo después de ver el contenido que le mandó un amigo) con un CTA
 // de registro conectado al contenido. Se auto-oculta para usuarios logueados.
-export default function GuestJoinBanner() {
+//
+// `variant`:
+//   - "banner" (default): banda horizontal full-width (feed + página de post).
+//   - "card": tarjeta vertical para columnas angostas (sidebar).
+export default function GuestJoinBanner({ variant = "banner" }) {
   const { user, loading } = useAuth();
   const brandName = useBrandName();
 
@@ -17,8 +21,13 @@ export default function GuestJoinBanner() {
   // a usuarios que sí están logueados).
   if (loading || user) return null;
 
+  const isCard = variant === "card";
+
   return (
-    <aside className={styles.banner} aria-label={`Sumate a ${brandName}`}>
+    <aside
+      className={`${styles.banner} ${isCard ? styles.card : ""}`}
+      aria-label={`Sumate a ${brandName}`}
+    >
       <div className={styles.text}>
         <p className={styles.title}>
           Sumate a <strong>{brandName}</strong>

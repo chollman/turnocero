@@ -78,6 +78,25 @@
   color: var(--amber-light);
 }
 
+/* ── Card variant (sidebar) — promo vertical para columnas angostas ── */
+.card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 16px;
+}
+
+.card .actions {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.card .primary,
+.card .secondary {
+  text-align: center;
+}
+
 @media (--phone) {
   .banner {
     flex-direction: column;

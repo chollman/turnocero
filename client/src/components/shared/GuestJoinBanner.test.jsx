@@ -47,6 +47,17 @@ describe("GuestJoinBanner", () => {
     ).toBeInTheDocument();
   });
 
+  it("conserva propuesta de valor y CTAs en la variante card (sidebar)", () => {
+    render(<GuestJoinBanner variant="card" />, { wrapper: RouterOnly });
+    expect(screen.getByText(/Sumate a/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Registrate gratis/i }),
+    ).toHaveAttribute("href", "/register");
+    expect(
+      screen.getByRole("link", { name: /Ya tengo cuenta/i }),
+    ).toHaveAttribute("href", "/login");
+  });
+
   it("no renderiza nada para un usuario logueado", () => {
     h.auth = { user: { _id: "u1" }, loading: false };
     const { container } = renderBanner();
