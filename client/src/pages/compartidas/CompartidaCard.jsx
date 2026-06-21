@@ -464,10 +464,7 @@ export default function CompartidaCard({
               src={lbImages[lightboxIndex].url}
               alt=""
               className={styles.lightboxImg}
-              onClick={(e) => {
-                e.stopPropagation();
-                closeLightbox();
-              }}
+              onClick={(e) => e.stopPropagation()}
             />
             {lbImages.length > 1 && (
               <button
