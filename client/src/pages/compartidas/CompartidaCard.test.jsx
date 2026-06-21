@@ -841,10 +841,14 @@ describe("<CompartidaCard>", () => {
     expect(document.querySelector(".lightboxImg")).toBeNull();
   });
 
-  it("cierra el lightbox al hacer click en la imagen ampliada", () => {
+  it("no cierra al click en la imagen; sí al click en el backdrop", () => {
     const { container } = renderCard(makePost({ images: LB_IMAGES }));
     openLightbox(container, 0);
+    // Click en la imagen → sigue abierto (consistente con ResenaCard).
     fireEvent.click(document.querySelector(".lightboxImg"));
+    expect(document.querySelector(".lightboxImg")).not.toBeNull();
+    // Click en el backdrop (contenedor del dialog) → cierra.
+    fireEvent.click(document.querySelector(".lightbox"));
     expect(document.querySelector(".lightboxImg")).toBeNull();
   });
 

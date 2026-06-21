@@ -144,4 +144,11 @@ describe("<ResenaCard>", () => {
     expect(dialog).toHaveAttribute("aria-modal", "true");
     expect(dialog).toHaveAccessibleName(/foto ampliada/i);
   });
+
+  it("el botón de copiar usa un ícono SVG (consistente con CompartidaCard)", () => {
+    renderCard(makeResena());
+    const copyBtn = screen.getByRole("button", { name: /copiar enlace/i });
+    expect(copyBtn.querySelector("svg")).toBeInTheDocument();
+    expect(copyBtn).not.toHaveTextContent("🔗");
+  });
 });
