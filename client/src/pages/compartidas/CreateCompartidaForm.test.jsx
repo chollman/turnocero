@@ -557,4 +557,61 @@ describe("<CreateCompartidaForm>", () => {
       screen.getByRole("button", { name: /publicar compartida/i }),
     ).toBeEnabled();
   });
+
+  // ── Guardas de pérdida de datos ──────────────────────────────────────
+  const bodyInput = () =>
+    screen.getByPlaceholderText(/cont[aá] c[oó]mo sali[oó]/i);
+
+  it("cambiar de tipo con contenido pide confirmación; al rechazar no cambia", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderForm(); // juntada
+    fireEvent.change(bodyInput(), {
+      target: { value: "Anoche jugamos algo épico" },
+    });
+    fireEvent.click(screen.getByRole("radio", { name: /reseña/i }));
+    expect(confirmSpy).toHaveBeenCalled();
+    // Sigue en juntada con el texto intacto.
+    expect(bodyInput()).toHaveValue("Anoche jugamos algo épico");
+    expect(screen.queryByLabelText("editor reseña")).not.toBeInTheDocument();
+    confirmSpy.mockRestore();
+  });
+
+  it("cambiar de tipo con contenido: si se confirma, cambia y limpia", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderForm();
+    fireEvent.change(bodyInput(), { target: { value: "Algo escrito" } });
+    fireEvent.click(screen.getByRole("radio", { name: /reseña/i }));
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(screen.getByLabelText("editor reseña")).toBeInTheDocument();
+    confirmSpy.mockRestore();
+  });
+
+  it("cambiar de tipo con el form vacío no pide confirmación", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderForm();
+    fireEvent.click(screen.getByRole("radio", { name: /reseña/i }));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it("Cancelar con contenido pide confirmación; al rechazar no cierra", () => {
+    const onCancel = vi.fn();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderForm({ onCancel });
+    fireEvent.change(bodyInput(), { target: { value: "borrador" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it("Cancelar con el form vacío cierra sin confirmar", () => {
+    const onCancel = vi.fn();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderForm({ onCancel });
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(onCancel).toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
 });

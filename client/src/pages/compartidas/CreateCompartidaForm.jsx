@@ -67,9 +67,24 @@ export default function CreateCompartidaForm({
     setGames((prev) => prev.filter((x) => x.id !== id));
 
   // Cambiar de tipo limpia el body (el formato plano ↔ HTML no es compatible)
-  // y resetea rating. Si se pasa a reseña, recorta la lista a 1 juego.
+  // y resetea rating. Si se pasa a reseña, recorta la lista a 1 juego y descarta
+  // las fotos. Antes de perder lo escrito, pedimos confirmación.
   const switchCategory = (next) => {
     if (next === category) return;
+    const losesImages = next === "resena" && images.length > 0;
+    const losesGames = next === "resena" && games.length > 1;
+    const losesContent =
+      bodyToText(body).length > 0 || rating > 0 || losesImages || losesGames;
+    if (
+      losesContent &&
+      !window.confirm(
+        `Si cambiás a ${next === "resena" ? "Reseña" : "Juntada"} se va a borrar lo que escribiste${
+          losesImages ? " y las fotos" : ""
+        }. ¿Continuar?`,
+      )
+    ) {
+      return;
+    }
     setCategory(next);
     setBody("");
     setRating(0);
@@ -184,6 +199,20 @@ export default function CreateCompartidaForm({
 
   const [community, setCommunity] = useState("");
   const submittingRef = useRef(false);
+
+  // Cancelar con contenido escrito pide confirmación (evita descartar sin querer).
+  const handleCancel = () => {
+    const dirty =
+      title.trim() ||
+      bodyToText(body).length > 0 ||
+      images.length > 0 ||
+      games.length > 0 ||
+      rating > 0;
+    if (dirty && !window.confirm("¿Descartar esta compartida sin publicar?")) {
+      return;
+    }
+    onCancel?.();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -584,7 +613,7 @@ export default function CreateCompartidaForm({
           <button
             type="button"
             className={styles.cancelBtn}
-            onClick={onCancel}
+            onClick={handleCancel}
             disabled={loading}
           >
             Cancelar
