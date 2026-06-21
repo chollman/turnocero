@@ -325,6 +325,27 @@ router.get(
   }),
 );
 
+// ── GET /api/compartidas/stats — totales globales para el hero (público) ────
+// Conteos GLOBALES (no filtrados por tab/búsqueda) respetando visibilidad +
+// scope de comunidad: total de compartidas visibles y cuántas en los últimos
+// 7 días. Va ANTES de /:id (que espera un ObjectId) para no colisionar.
+router.get(
+  "/stats",
+  optionalAuth,
+  resolveCommunities,
+  asyncHandler(async (req, res) => {
+    const base = [visibilityFilter(req.user), communityFilter(req)];
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const [total, week] = await Promise.all([
+      Compartida.countDocuments({ $and: base }),
+      Compartida.countDocuments({
+        $and: [...base, { createdAt: { $gte: weekAgo } }],
+      }),
+    ]);
+    res.json({ total, week });
+  }),
+);
+
 // ── GET /api/compartidas/:id/og — public OG data for crawlers (no auth) ────
 // Responde 404 con body vacío (no { message }) para crawlers — la convención
 // general del errorHandler aplica { message } a 4xx, así que este endpoint
