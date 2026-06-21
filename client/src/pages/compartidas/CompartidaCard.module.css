@@ -387,6 +387,155 @@
   background: var(--amber-glow);
 }
 
+/* ── Editor de juegos (en modo edición de la juntada) ── */
+.editGamesField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editGamesLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.editGameChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.editGameChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 4px;
+  border: 1px solid var(--border-amber);
+  border-radius: 8px;
+  background: var(--amber-10);
+  max-width: 100%;
+}
+
+.editGameChipImg {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  background: var(--bg-dark);
+}
+
+.editGameChipName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editGameChipRemove {
+  background: var(--overlay-soft);
+  border: none;
+  color: var(--text-secondary);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--transition);
+}
+
+.editGameChipRemove:hover {
+  color: var(--red);
+}
+
+/* ── Editor de fotos (en modo edición de la juntada) ── */
+.editPhotosField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editPhotos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.editPhotoThumb {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.editPhotoThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.editPhotoRemove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editPhotoRemove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.editPhotoAdd {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 24px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.editPhotoAdd:hover:not(:disabled) {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.editPhotoAdd:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .editActions {
   display: flex;
   justify-content: flex-end;

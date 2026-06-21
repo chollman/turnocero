@@ -6,6 +6,25 @@ import { server } from "../../test/server";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
+// BggGameSearch (en el editor de juegos) — botón que elige un juego fijo.
+vi.mock("../../components/shared/BggGameSearch", () => ({
+  default: ({ onPick }) => (
+    <button
+      type="button"
+      onClick={() =>
+        onPick({
+          id: 77,
+          name: "Azul",
+          thumbnail: "az.jpg",
+          image: "az.jpg",
+          year: 2017,
+        })
+      }
+    >
+      mock-add-game
+    </button>
+  ),
+}));
 
 import CompartidaCard from "./CompartidaCard";
 import { useAuth } from "../../context/AuthContext";
@@ -416,6 +435,90 @@ describe("<CompartidaCard>", () => {
     expect(screen.getByPlaceholderText(/título/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Público" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Solo yo" })).toBeInTheDocument();
+  });
+
+  it("editar juntada: cambia los juegos y los manda en el PUT", async () => {
+    let putBody = null;
+    server.use(
+      http.put("/api/compartidas/:id", async ({ request }) => {
+        putBody = await request.json();
+        return HttpResponse.json({
+          title: "",
+          body: "Anoche jugamos Catán",
+          privacy: "public",
+          boardGames: putBody.boardGames,
+        });
+      }),
+    );
+    renderCard(
+      makePost({
+        boardGames: [{ bggId: 13, name: "Catan", thumbnail: "", image: "" }],
+      }),
+      { user: { _id: "a1", username: "cha" } }, // autor (post.author._id = a1)
+    );
+    fireEvent.click(screen.getByText("⋯"));
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+
+    // El juego actual aparece como chip.
+    expect(screen.getByText("Catan")).toBeInTheDocument();
+    // Agregar uno nuevo (mock) y quitar el actual.
+    fireEvent.click(screen.getByRole("button", { name: "mock-add-game" }));
+    expect(screen.getByText("Azul")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /quitar catan/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+    await waitFor(() => expect(putBody).not.toBeNull());
+    expect(putBody.boardGames.map((g) => g.name)).toEqual(["Azul"]);
+    expect(putBody.boardGames[0].bggId).toBe(77);
+  });
+
+  it("editar juntada: permite quitar una foto existente (DELETE)", async () => {
+    let deleteCalled = false;
+    server.use(
+      http.delete("/api/compartidas/:id/images/:imgId", () => {
+        deleteCalled = true;
+        return HttpResponse.json({ message: "Imagen eliminada" });
+      }),
+    );
+    renderCard(
+      makePost({
+        images: [{ _id: "im1", url: "https://cdn/p.jpg", publicId: "p" }],
+      }),
+      { user: { _id: "a1", username: "cha" } },
+    );
+    fireEvent.click(screen.getByText("⋯"));
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.click(screen.getByRole("button", { name: /quitar foto/i }));
+    await waitFor(() => expect(deleteCalled).toBe(true));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: /quitar foto/i }),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it("editar juntada: permite subir una foto nueva (POST)", async () => {
+    server.use(
+      http.post("/api/compartidas/:id/images", () =>
+        HttpResponse.json(
+          [{ _id: "imNew", url: "https://cdn/new.jpg", publicId: "new" }],
+          { status: 201 },
+        ),
+      ),
+    );
+    const { container } = renderCard(makePost({ images: [] }), {
+      user: { _id: "a1", username: "cha" },
+    });
+    fireEvent.click(screen.getByText("⋯"));
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    const fileInput = container.querySelector('input[type="file"]');
+    const file = new File(["x"], "photo.png", { type: "image/png" });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /quitar foto/i }),
+      ).toBeInTheDocument(),
+    );
   });
 
   it("renders the featured badge when featured=true", () => {
