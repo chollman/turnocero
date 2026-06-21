@@ -434,6 +434,44 @@ describe("<CompartidaCard>", () => {
     expect(screen.getByText(/compartida del día/i)).toBeInTheDocument();
   });
 
+  it("featured: ofrece un CTA para leer la compartida completa (link a /compartidas/:id)", () => {
+    useAuth.mockReturnValue({ user: null });
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+    const { container } = render(
+      <MemoryRouter>
+        <CompartidaCard
+          post={makePost({
+            body: "Un relato bien largo ".repeat(20),
+          })}
+          featured
+          onDeleted={vi.fn()}
+          onUpdated={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    const link = container.querySelector('a[href="/compartidas/c1"]');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveTextContent(/leer la compartida completa/i);
+  });
+
+  it("featured con scorecard: también muestra el CTA de leer completa", () => {
+    useAuth.mockReturnValue({ user: null });
+    useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
+    const { container } = render(
+      <MemoryRouter>
+        <CompartidaCard
+          post={makePost({ playResult: PLAY_RESULT })}
+          featured
+          onDeleted={vi.fn()}
+          onUpdated={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    expect(
+      container.querySelector('a[href="/compartidas/c1"]'),
+    ).toHaveTextContent(/leer la compartida completa/i);
+  });
+
   it("featured: la mesa enlazada es clickeable (link a /mesas/:id) con CTA impactante", () => {
     useAuth.mockReturnValue({ user: null });
     useSiteConfig.mockReturnValue({ isSectionEnabled: () => true });
