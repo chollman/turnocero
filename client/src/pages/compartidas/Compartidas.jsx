@@ -295,6 +295,14 @@ export default function Compartidas() {
           {/* ── Banda de adquisición (solo guests; se auto-oculta logueado) ── */}
           <GuestJoinBanner />
 
+          {/* ── BG Watch widget (mobile only; sidebar already shows it on desktop).
+               Va ARRIBA del composer para que sea lo primero que ve el usuario. ── */}
+          {user && bgwatchEnabled && (
+            <div className={styles.mobileWidgetSlot}>
+              <BgWatchHomeWidget user={user} dismissible />
+            </div>
+          )}
+
           {/* ── Composer one-liner ── */}
           {user && !showCreate && (
             <div className={styles.composer}>
@@ -337,13 +345,6 @@ export default function Compartidas() {
                   />
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* ── BG Watch widget (mobile only; sidebar already shows it on desktop) ── */}
-          {user && bgwatchEnabled && (
-            <div className={styles.mobileWidgetSlot}>
-              <BgWatchHomeWidget user={user} dismissible />
             </div>
           )}
 
