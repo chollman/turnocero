@@ -153,6 +153,54 @@
   letter-spacing: -0.02em;
 }
 
+/* ── Skeletons de carga (reemplazan los guiones "—" mientras se traen los
+   datos). Shimmer lavanda para no romper la paleta del widget. ── */
+.skeletonHeadline,
+.skeletonStat {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(180, 140, 255, 0.1) 25%,
+    rgba(180, 140, 255, 0.26) 37%,
+    rgba(180, 140, 255, 0.1) 63%
+  );
+  background-size: 400% 100%;
+  animation: bgwShimmer 1.4s ease infinite;
+}
+
+.skeletonHeadline {
+  height: 1.15rem;
+  width: 72%;
+  margin: 8px 0 12px;
+}
+
+.skeletonStat {
+  display: block;
+  height: 1.1rem;
+  width: 44px;
+  margin: 8px auto 0;
+}
+
+.skeletonStatWide {
+  width: 82px;
+}
+
+@keyframes bgwShimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeletonHeadline,
+  .skeletonStat {
+    animation: none;
+  }
+}
+
 .cta {
   display: block;
   width: 100%;

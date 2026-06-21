@@ -140,6 +140,28 @@ describe("<BgWatchHomeWidget>", () => {
     ).toHaveAttribute("href", "/bg-watch/CarcaFan");
   });
 
+  it("muestra skeletons mientras carga (en lugar de guiones)", async () => {
+    renderWidget({
+      user: {
+        _id: "me",
+        bggUsername: "CarcaFan",
+        bggConnected: true,
+        bggInvalid: false,
+      },
+    });
+    // Estado de carga inicial: skeleton presente y SIN guiones.
+    expect(
+      screen.getByRole("status", { name: /cargando tus partidas/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("—")).not.toBeInTheDocument();
+    // Al resolver, el skeleton desaparece.
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("status", { name: /cargando/i }),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
   // Regression: BG Watch read-only (solo bggUsername, sin la conexión por
   // password) debe mostrar la vista conectada, NO el promo "¿Llevás tus
   // partidas en BGG?". Antes exigía bggConnected y el read-only veía el promo.
