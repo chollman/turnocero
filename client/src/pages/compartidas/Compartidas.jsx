@@ -385,7 +385,7 @@ export default function Compartidas() {
               <input
                 className={styles.search}
                 type="search"
-                placeholder="Buscar por título o juego…"
+                placeholder="Buscar por título, juego o texto…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 aria-label="Buscar compartidas"
