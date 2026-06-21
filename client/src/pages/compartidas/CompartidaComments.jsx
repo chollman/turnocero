@@ -13,6 +13,7 @@ import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 import styles from "./CompartidaCard.module.css";
 
 const PAGE_SIZE = 10;
+const COMMENT_MAX = 500;
 
 // Comentarios muestran fecha+hora absoluta en formato dd/MM/aa HH:mm
 // (ej. "05/01/26 14:30"). Lo armamos a mano para fijar el separador exacto
@@ -395,7 +396,7 @@ export default function CompartidaComments({
     <div className={styles.comments}>
       <div className={styles.commentsHead}>
         <Meeple />
-        Dejá tu comentario{total > 1 ? ` (${total})` : ""}
+        Dejá tu comentario{total > 0 ? ` (${total})` : ""}
       </div>
 
       {/* Form arriba — los comentarios nuevos aparecen al instante en el tope. */}
@@ -407,7 +408,7 @@ export default function CompartidaComments({
             placeholder="Escribí un comentario…"
             value={commentInput}
             onChange={(e) => setCommentInput(e.target.value)}
-            maxLength={500}
+            maxLength={COMMENT_MAX}
             disabled={submitting}
           />
           <button
@@ -444,6 +445,11 @@ export default function CompartidaComments({
         >
           Iniciá sesión para comentar
         </button>
+      )}
+      {user && commentInput.length >= COMMENT_MAX - 50 && (
+        <div className={styles.commentCharCount}>
+          {`${commentInput.length}/${COMMENT_MAX}`}
+        </div>
       )}
 
       {error && <p className={styles.commentsError}>{error}</p>}

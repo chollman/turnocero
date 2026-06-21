@@ -1794,6 +1794,15 @@
   margin-top: 12px;
 }
 
+/* Contador de caracteres del input de comentario — aparece cerca del límite. */
+.commentCharCount {
+  margin-top: 4px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 .commentInput {
   flex: 1;
   background: var(--bg-elevated);
