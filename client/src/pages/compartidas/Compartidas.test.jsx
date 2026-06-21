@@ -187,17 +187,46 @@ describe("<Compartidas>", () => {
     });
   });
 
-  it("handles a 500 silently and stops the loading indicator", async () => {
+  it("muestra un estado de error (no 'vacío') cuando la carga del feed falla", async () => {
     server.use(
       http.get("/api/compartidas", () =>
         HttpResponse.json({}, { status: 500 }),
       ),
     );
     renderPage();
-    // No crash; tab/header still renders
     await waitFor(() => {
-      // After the failed fetch, loading flag goes false; no cards.
-      expect(screen.queryByTestId("compartida-card")).not.toBeInTheDocument();
+      expect(screen.getByText(/no pudimos cargar el/i)).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("button", { name: /reintentar/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("compartida-card")).not.toBeInTheDocument();
+    // No debe confundirse con el empty state ("Contá tu última partida").
+    expect(screen.queryByText(/contá tu/i)).not.toBeInTheDocument();
+  });
+
+  it("reintenta la carga al tocar 'Reintentar'", async () => {
+    let calls = 0;
+    server.use(
+      http.get("/api/compartidas", () => {
+        calls += 1;
+        if (calls === 1) return HttpResponse.json({}, { status: 500 });
+        return HttpResponse.json({
+          compartidas: [makePost({ body: "Recuperado" })],
+          featured: null,
+          page: 1,
+          pages: 1,
+          total: 1,
+        });
+      }),
+    );
+    renderPage();
+    await waitFor(() =>
+      screen.getByRole("button", { name: /reintentar/i }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /reintentar/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Recuperado")).toBeInTheDocument();
     });
   });
 
