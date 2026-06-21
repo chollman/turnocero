@@ -154,8 +154,12 @@
 }
 
 /* ── Skeletons de carga (reemplazan los guiones "—" mientras se traen los
-   datos). Shimmer lavanda para no romper la paleta del widget. ── */
-.skeletonHeadline,
+   datos). Las dimensiones replican EXACTAMENTE la caja de los datos para que
+   el widget no cambie de alto al cargar:
+   - headline conectado = 2 líneas → 2 barras + gap (≈ alto de 2 líneas);
+   - valor de stat = línea de 1.6rem → barra centrada en una caja de 1.6rem
+     (0.2 + 1.2 + 0.2). Shimmer lavanda acorde a la paleta del widget. ── */
+.skeletonLine,
 .skeletonStat {
   border-radius: 6px;
   background: linear-gradient(
@@ -168,17 +172,29 @@
   animation: bgwShimmer 1.4s ease infinite;
 }
 
+/* Mismas márgenes que `.headline` (8/12) → mismo footprint que el titular. */
 .skeletonHeadline {
-  height: 1.15rem;
-  width: 72%;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
   margin: 8px 0 12px;
 }
 
+.skeletonLine {
+  height: 1.1rem;
+}
+
+.skeletonLineShort {
+  width: 58%;
+}
+
+/* 0.2 + 1.2 + 0.2 = 1.6rem → idéntico a la caja del valor numérico (`.statValue`,
+   font-size 1.6rem / line-height 1), así la fila de stats no salta. */
 .skeletonStat {
   display: block;
-  height: 1.1rem;
+  height: 1.2rem;
   width: 44px;
-  margin: 8px auto 0;
+  margin: 0.2rem auto;
 }
 
 .skeletonStatWide {
@@ -194,8 +210,19 @@
   }
 }
 
+/* En mobile el titular es un poco más chico (1rem / 1.18) → barras más bajas. */
+@media (--below-desktop) {
+  .skeletonLine {
+    height: 0.95rem;
+  }
+  .skeletonHeadline {
+    gap: 6px;
+    margin: 5px 0 9px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .skeletonHeadline,
+  .skeletonLine,
   .skeletonStat {
     animation: none;
   }
