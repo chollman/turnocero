@@ -246,6 +246,19 @@ export default function CreateCompartidaForm({
       !loading
     : Boolean(title.trim() || bodyText || images.length > 0) && !loading;
 
+  // Qué falta para poder publicar — guía el botón deshabilitado (sin esto el
+  // usuario veía un botón gris sin saber por qué, ya que el error solo se setea
+  // en submit y submit está bloqueado).
+  const missing = [];
+  if (isResena) {
+    if (games.length === 0) missing.push("el juego");
+    if (!rating) missing.push("la puntuación");
+    if (!title.trim() && !bodyText) missing.push("un título o el cuerpo");
+  } else if (!title.trim() && !bodyText && images.length === 0) {
+    missing.push("un título, un texto o una foto");
+  }
+  const submitHint = !loading && missing.length > 0 ? missing.join(" · ") : "";
+
   const tableLoc = linkedTable
     ? getLocationDisplay(linkedTable.location, "city")
     : "";
@@ -562,6 +575,11 @@ export default function CreateCompartidaForm({
 
       {/* Actions */}
       <div className={styles.actions}>
+        {submitHint && (
+          <span className={styles.submitHint} role="status">
+            Falta: {submitHint}
+          </span>
+        )}
         {onCancel && (
           <button
             type="button"
