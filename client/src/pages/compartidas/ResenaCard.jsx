@@ -343,7 +343,17 @@ export default function ResenaCard({
             <div className={styles.gameHeaderInfo}>
               <span className={styles.eyebrow}>Reseña</span>
               <span className={styles.gameName}>
-                {game?.name || "Juego"}
+                {game?.bggId ? (
+                  <Link
+                    to={`/compartidas/juego/${game.bggId}`}
+                    className={styles.gameNameLink}
+                    title={`Ver todas las reseñas de ${game.name}`}
+                  >
+                    {game?.name || "Juego"}
+                  </Link>
+                ) : (
+                  game?.name || "Juego"
+                )}
                 {game?.year ? (
                   <span className={styles.gameYear}> ({game.year})</span>
                 ) : null}

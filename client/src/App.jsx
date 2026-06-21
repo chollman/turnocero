@@ -53,6 +53,7 @@ import ComunidadDetail from "./pages/comunidades/ComunidadDetail";
 import ComunidadGestion from "./pages/comunidades/ComunidadGestion";
 import Compartidas from "./pages/compartidas/Compartidas";
 import CompartidaPost from "./pages/compartidas/CompartidaPost";
+import ReviewsByGame from "./pages/compartidas/ReviewsByGame";
 import BgWatchProfile from "./pages/bg-watch/BgWatchProfile";
 import BgWatchPerGameView from "./pages/bg-watch/BgWatchPerGameView";
 import BgWatchLanding from "./pages/bg-watch/BgWatchLanding";
@@ -507,6 +508,14 @@ export function AppRoutes({ transition }) {
               element={
                 <SectionGate section="compartidas">
                   <Compartidas />
+                </SectionGate>
+              }
+            />
+            <Route
+              path="/compartidas/juego/:bggId"
+              element={
+                <SectionGate section="compartidas">
+                  <ReviewsByGame />
                 </SectionGate>
               }
             />

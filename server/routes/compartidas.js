@@ -350,6 +350,87 @@ router.get(
   }),
 );
 
+// ── GET /api/compartidas/juego/:bggId — reseñas de un juego (público) ───────
+// Página de reseñas por juego (SEO + descubrimiento): lista las reseñas
+// públicas/visibles de un juego (por bggId) + el promedio de puntuación. Va
+// ANTES de /:id (que espera un ObjectId) — igual no colisiona porque tiene dos
+// segmentos, pero lo dejamos arriba por claridad.
+router.get(
+  "/juego/:bggId",
+  optionalAuth,
+  resolveCommunities,
+  asyncHandler(async (req, res) => {
+    const bggId = Number(req.params.bggId);
+    if (!Number.isFinite(bggId) || bggId <= 0) {
+      throw httpError(400, "Juego inválido");
+    }
+    const { page, limit, skip } = parsePagination(req.query);
+
+    const filter = {
+      $and: [
+        visibilityFilter(req.user),
+        communityFilter(req),
+        { category: "resena" },
+        { "boardGame.bggId": bggId },
+      ],
+    };
+
+    const [reviews, stats] = await Promise.all([
+      populateCompartida(Compartida.find(filter))
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Compartida.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: null,
+            avg: { $avg: "$rating" },
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    const total = stats[0]?.count ?? 0;
+    const avgRating =
+      stats[0]?.avg != null ? Math.round(stats[0].avg * 10) / 10 : null;
+
+    // Snapshot del juego para el encabezado: lo tomamos de una reseña; si no hay
+    // ninguna (todavía), lo resolvemos contra BGG. Si tampoco existe ahí → 404.
+    let game = reviews[0]?.boardGame
+      ? {
+          bggId: reviews[0].boardGame.bggId,
+          name: reviews[0].boardGame.name,
+          thumbnail: reviews[0].boardGame.thumbnail || "",
+          image: reviews[0].boardGame.image || "",
+          year: reviews[0].boardGame.year ?? null,
+        }
+      : null;
+    if (!game) {
+      const resolved = await resolveGame(bggId);
+      if (!resolved) throw httpError(404, "Juego no encontrado");
+      game = {
+        bggId: resolved.id,
+        name: resolved.name,
+        thumbnail: resolved.thumbnail || "",
+        image: resolved.image || "",
+        year: resolved.year ?? null,
+      };
+    }
+
+    const countMap = await commentCountMap(reviews);
+    res.json({
+      game,
+      avgRating,
+      total,
+      page,
+      pages: Math.ceil(total / limit) || 1,
+      reviews: attachCounts(reviews, countMap),
+    });
+  }),
+);
+
 // ── GET /api/compartidas/:id/og — public OG data for crawlers (no auth) ────
 // Responde 404 con body vacío (no { message }) para crawlers — la convención
 // general del errorHandler aplica { message } a 4xx, así que este endpoint
