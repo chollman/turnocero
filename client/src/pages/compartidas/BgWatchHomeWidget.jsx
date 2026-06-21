@@ -106,7 +106,7 @@ function ConnectedView({ bggUsername }) {
         : `${totalYear} ${totalYear === 1 ? "partida" : "partidas"} registrada${totalYear === 1 ? "" : "s"} este año 🎉`;
 
   return (
-    <div className={styles.widgetConnected}>
+    <div className={styles.widgetConnected} aria-busy={loading}>
       <div className={styles.widgetHead}>
         <span className={styles.connectedEyebrow}>
           <Meeple />
@@ -120,13 +120,27 @@ function ConnectedView({ bggUsername }) {
         </Link>
       </div>
 
-      <p className={styles.headline}>{headlineText}</p>
+      {loading ? (
+        <div
+          className={styles.skeletonHeadline}
+          role="status"
+          aria-label="Cargando tus partidas"
+        />
+      ) : (
+        <p className={styles.headline}>{headlineText}</p>
+      )}
 
       <div className={styles.stats}>
         <div className={styles.stat}>
           <span className={styles.statLabel}>Este mes</span>
           <span className={styles.statValue}>
-            {loading || error ? "—" : stats.thisMonth}
+            {loading ? (
+              <span className={styles.skeletonStat} aria-hidden="true" />
+            ) : error ? (
+              "—"
+            ) : (
+              stats.thisMonth
+            )}
           </span>
         </div>
         <div className={styles.stat}>
@@ -139,7 +153,16 @@ function ConnectedView({ bggUsername }) {
                 : undefined
             }
           >
-            {loading || error ? "—" : stats.mostPlayed?.name || "—"}
+            {loading ? (
+              <span
+                className={`${styles.skeletonStat} ${styles.skeletonStatWide}`}
+                aria-hidden="true"
+              />
+            ) : error ? (
+              "—"
+            ) : (
+              stats.mostPlayed?.name || "—"
+            )}
           </span>
         </div>
       </div>
