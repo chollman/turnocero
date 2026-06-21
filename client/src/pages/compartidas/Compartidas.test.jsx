@@ -102,6 +102,9 @@ function makePost(overrides = {}) {
 
 beforeEach(() => {
   server.use(
+    http.get("/api/compartidas/stats", () =>
+      HttpResponse.json({ total: 128, week: 7 }),
+    ),
     http.get("/api/compartidas", () =>
       HttpResponse.json({
         compartidas: [makePost({ body: "Hello" }), makePost({ body: "World" })],
@@ -124,6 +127,16 @@ describe("<Compartidas>", () => {
     });
     expect(screen.getByText("Hello")).toBeInTheDocument();
     expect(screen.getByText("World")).toBeInTheDocument();
+  });
+
+  it("el hero muestra los stats GLOBALES del server (no los del feed filtrado)", async () => {
+    renderPage();
+    // total global = 128 (no el total del feed, que es 12) y semana = 7.
+    await waitFor(() => {
+      expect(screen.getByText("128")).toBeInTheDocument();
+    });
+    expect(screen.getByText("7")).toBeInTheDocument();
+    expect(screen.queryByText("12")).not.toBeInTheDocument();
   });
 
   // El widget intercalado aparece tras el 3er post (INTERLEAVE_EVERY = 3).

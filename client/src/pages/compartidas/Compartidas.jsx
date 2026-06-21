@@ -122,7 +122,10 @@ export default function Compartidas() {
   // Fotos elegidas desde el "Subir foto" del composer — se siembran en el form.
   const [composerFiles, setComposerFiles] = useState(null);
   const composerFileRef = useRef(null);
-  const [weekCount, setWeekCount] = useState(0);
+  // Stats GLOBALES del hero (total + últimos 7 días), servidas por el backend
+  // y decoupladas del feed: NO cambian con la pestaña/búsqueda activa ni
+  // dependen de cuántos posts haya cargado el scroll.
+  const [stats, setStats] = useState(null);
   // Frase al azar, fijada una vez por visita (montaje) a la sección.
   const [quote] = useState(randomCompartidaQuote);
 
@@ -212,12 +215,17 @@ export default function Compartidas() {
 
   const visiblePosts = posts.filter((p) => !featured || p._id !== featured._id);
 
+  // Stats globales del hero — una sola vez al montar.
   useEffect(() => {
-    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    setWeekCount(
-      posts.filter((p) => new Date(p.createdAt).getTime() >= weekAgo).length,
-    );
-  }, [posts]);
+    const ac = new AbortController();
+    axios
+      .get(API.compartidas.STATS, { signal: ac.signal })
+      .then(({ data }) => {
+        if (!ac.signal.aborted) setStats(data);
+      })
+      .catch(() => {});
+    return () => ac.abort();
+  }, []);
 
   const userDisplay = user ? getUserDisplay(user) : null;
   const userFirstName =
@@ -271,13 +279,15 @@ export default function Compartidas() {
                 <span
                   className={`${styles.heroStatVal} ${styles.heroStatValAccent}`}
                 >
-                  {total || visiblePosts.length + (featured ? 1 : 0)}
+                  {stats?.total ??
+                    total ??
+                    visiblePosts.length + (featured ? 1 : 0)}
                 </span>
               </div>
               <div className={styles.heroStatDivider} />
               <div className={styles.heroStat}>
                 <span className={styles.heroStatLabel}>Esta semana</span>
-                <span className={styles.heroStatVal}>{weekCount}</span>
+                <span className={styles.heroStatVal}>{stats?.week ?? 0}</span>
               </div>
             </div>
           </header>
