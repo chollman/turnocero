@@ -210,13 +210,18 @@
   }
 }
 
-/* En mobile el titular es un poco más chico (1rem / 1.18) → barras más bajas. */
+/* En mobile el widget es ancho (slot del feed) → el titular del año entra en
+   UNA sola línea, así que el skeleton también: ocultamos la 2ª barra y bajamos
+   un poco la altura (titular 1rem / 1.18). */
 @media (--below-desktop) {
   .skeletonLine {
     height: 0.95rem;
+    width: 60%;
+  }
+  .skeletonLineShort {
+    display: none;
   }
   .skeletonHeadline {
-    gap: 6px;
     margin: 5px 0 9px;
   }
 }
