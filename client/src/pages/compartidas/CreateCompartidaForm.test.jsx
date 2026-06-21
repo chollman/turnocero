@@ -517,4 +517,44 @@ describe("<CreateCompartidaForm>", () => {
       expect(screen.queryByText(/mesa enlazada/i)).not.toBeInTheDocument(),
     );
   });
+
+  // ── Hint del botón deshabilitado ──────────────────────────────────────
+  it("juntada vacía: muestra el hint de qué falta y se habilita al escribir", () => {
+    renderForm(); // arranca en juntada
+    expect(screen.getByText(/^falta:/i)).toHaveTextContent(
+      /un título, un texto o una foto/i,
+    );
+    expect(
+      screen.getByRole("button", { name: /publicar compartida/i }),
+    ).toBeDisabled();
+
+    fireEvent.change(screen.getByPlaceholderText(/título/i), {
+      target: { value: "Gran noche de juegos" },
+    });
+    expect(screen.queryByText(/^falta:/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /publicar compartida/i }),
+    ).toBeEnabled();
+  });
+
+  it("reseña: el hint lista lo que falta y desaparece al completar todo", () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("radio", { name: /reseña/i }));
+    // Falta juego + puntuación + título/cuerpo.
+    expect(screen.getByText(/^falta:/i)).toHaveTextContent(/el juego/i);
+    expect(screen.getByText(/^falta:/i)).toHaveTextContent(/la puntuación/i);
+
+    fireEvent.click(screen.getByRole("button", { name: "mock-pick-game" }));
+    expect(screen.getByText(/^falta:/i)).not.toHaveTextContent(/el juego/i);
+
+    fireEvent.click(screen.getByRole("radio", { name: "8" }));
+    fireEvent.change(screen.getByLabelText("editor reseña"), {
+      target: { value: "Muy bueno" },
+    });
+
+    expect(screen.queryByText(/^falta:/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /publicar compartida/i }),
+    ).toBeEnabled();
+  });
 });
