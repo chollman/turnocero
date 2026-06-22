@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { API } from "../../../api/endpoints";
 import { useNotifications } from "../../../context/NotificationContext";
 import { getErrorMessage } from "../../../utils/getErrorMessage";
@@ -15,6 +16,7 @@ export default function ItemForm({
   onSaved,
   onCancel,
 }) {
+  const { t } = useTranslation();
   const { addToast } = useNotifications();
   const [offered, setOffered] = useState(
     item
@@ -34,13 +36,13 @@ export default function ItemForm({
   const submit = async (e) => {
     e.preventDefault();
     if (!offered) {
-      addToast({ type: "error", title: "Elegí el juego que ofrecés" });
+      addToast({ type: "error", title: t("mathtrade:itemForm.missingOffered") });
       return;
     }
     if (wants.length === 0) {
       addToast({
         type: "error",
-        title: "Agregá al menos un juego a tu want list",
+        title: t("mathtrade:itemForm.missingWants"),
       });
       return;
     }
@@ -58,7 +60,7 @@ export default function ItemForm({
     } catch (err) {
       addToast({
         type: "error",
-        title: "No pudimos guardar tu oferta",
+        title: t("mathtrade:itemForm.saveError"),
         message: getErrorMessage(err),
       });
     } finally {
@@ -69,7 +71,9 @@ export default function ItemForm({
   return (
     <form className={styles.form} onSubmit={submit}>
       <div>
-        <span className={styles.formLabel}>Juego que ofrecés</span>
+        <span className={styles.formLabel}>
+          {t("mathtrade:itemForm.offeredLabel")}
+        </span>
         {offered ? (
           <div className={styles.pickedGame}>
             {offered.thumbnail ? (
@@ -88,14 +92,14 @@ export default function ItemForm({
               onClick={() => setOffered(null)}
               style={{ marginLeft: "auto" }}
             >
-              Cambiar
+              {t("mathtrade:itemForm.change")}
             </button>
           </div>
         ) : (
           <BggGameSearch
             onPick={(g) => setOffered(g)}
             autoFocus={false}
-            placeholder="Buscá el juego que querés dar…"
+            placeholder={t("mathtrade:itemForm.searchOfferedPlaceholder")}
           />
         )}
       </div>
@@ -104,7 +108,7 @@ export default function ItemForm({
 
       <div>
         <label className={styles.formLabel} htmlFor="item-notes">
-          Notas (opcional)
+          {t("mathtrade:itemForm.notesLabel")}
         </label>
         <input
           id="item-notes"
@@ -112,17 +116,21 @@ export default function ItemForm({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           maxLength={500}
-          placeholder="Estado, edición, detalles de entrega…"
+          placeholder={t("mathtrade:itemForm.notesPlaceholder")}
         />
       </div>
 
       <div className={styles.itemActions}>
         <button type="submit" className={styles.cta} disabled={saving}>
-          {saving ? "Guardando…" : item ? "Guardar cambios" : "Agregar oferta"}
+          {saving
+            ? t("mathtrade:itemForm.submitting")
+            : item
+              ? t("mathtrade:itemForm.submitEdit")
+              : t("mathtrade:itemForm.submitCreate")}
         </button>
         {onCancel && (
           <button type="button" className={styles.smallBtn} onClick={onCancel}>
-            Cancelar
+            {t("common:actions.cancel")}
           </button>
         )}
       </div>

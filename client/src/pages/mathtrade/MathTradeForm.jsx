@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import { API } from "../../api/endpoints";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
@@ -14,6 +15,7 @@ import styles from "./MathTradeForm.module.css";
 
 // Form compartido por crear y editar. `initial` viene poblado en modo edición.
 export default function MathTradeForm({ mode = "create", initial = null }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { addToast } = useNotifications();
   const brandName = useBrandName();
@@ -41,7 +43,7 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim()) {
-      addToast({ type: "error", title: "Falta el título" });
+      addToast({ type: "error", title: t("mathtrade:form.missingTitle") });
       return;
     }
     setSubmitting(true);
@@ -64,8 +66,8 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
         type: "error",
         title:
           mode === "create"
-            ? "No pudimos crear el intercambio"
-            : "No pudimos guardar los cambios",
+            ? t("mathtrade:form.createError")
+            : t("mathtrade:form.saveError"),
         message: getErrorMessage(err),
       });
     } finally {
@@ -78,20 +80,24 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
       <Helmet>
         <title>
           {`${
-            mode === "create" ? "Nuevo intercambio" : "Editar intercambio"
+            mode === "create"
+              ? t("mathtrade:form.docTitleCreate")
+              : t("mathtrade:form.docTitleEdit")
           } – ${brandName}`}
         </title>
       </Helmet>
       <div className={styles.inner}>
-        <BackButton to="/math-trade">Volver a Math Trade</BackButton>
+        <BackButton to="/math-trade">{t("mathtrade:form.back")}</BackButton>
         <h1 className={styles.title}>
-          {mode === "create" ? "Nuevo intercambio" : "Editar intercambio"}
+          {mode === "create"
+            ? t("mathtrade:form.titleCreate")
+            : t("mathtrade:form.titleEdit")}
         </h1>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="mt-title">
-              Título
+              {t("mathtrade:form.titleLabel")}
             </label>
             <input
               id="mt-title"
@@ -99,13 +105,13 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
-              placeholder="Ej: Math Trade de fin de año"
+              placeholder={t("mathtrade:form.titlePlaceholder")}
             />
           </div>
 
           <div className={styles.field}>
             <label className={styles.label} htmlFor="mt-desc">
-              Descripción
+              {t("mathtrade:form.descriptionLabel")}
             </label>
             <textarea
               id="mt-desc"
@@ -113,24 +119,21 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={2000}
-              placeholder="Reglas, fechas de entrega, punto de encuentro…"
+              placeholder={t("mathtrade:form.descriptionPlaceholder")}
             />
           </div>
 
           <div className={styles.field}>
-            <span className={styles.label}>Fecha límite de inscripción</span>
+            <span className={styles.label}>
+              {t("mathtrade:form.deadlineLabel")}
+            </span>
             <DateTimePicker value={deadline} onChange={setDeadline} />
           </div>
 
           <div className={styles.field}>
             <span className={styles.label}>
-              Algoritmo de matching
-              <InfoTooltip>
-                Automática: maximiza los intercambios pero usa la cadena más
-                corta posible que no te haga perder intercambios (más robusto).
-                Cadena máxima: el máximo de intercambios, cadenas de cualquier
-                largo. Cadena acotada: vos fijás el largo máximo de cadena.
-              </InfoTooltip>
+              {t("mathtrade:form.matchingLabel")}
+              <InfoTooltip>{t("mathtrade:form.matchingTooltip")}</InfoTooltip>
             </span>
             <div className={styles.modeRow}>
               <button
@@ -138,9 +141,11 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
                 className={`${styles.modeBtn} ${matchMode === "auto" ? styles.modeBtnActive : ""}`}
                 onClick={() => setMatchMode("auto")}
               >
-                <span className={styles.modeBtnTitle}>Automática ✦</span>
+                <span className={styles.modeBtnTitle}>
+                  {t("mathtrade:form.modeAutoTitle")}
+                </span>
                 <span className={styles.modeBtnDesc}>
-                  La cadena más corta que no pierde intercambios. Recomendada.
+                  {t("mathtrade:form.modeAutoDesc")}
                 </span>
               </button>
               <button
@@ -148,9 +153,11 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
                 className={`${styles.modeBtn} ${matchMode === "max" ? styles.modeBtnActive : ""}`}
                 onClick={() => setMatchMode("max")}
               >
-                <span className={styles.modeBtnTitle}>Cadena máxima</span>
+                <span className={styles.modeBtnTitle}>
+                  {t("mathtrade:form.modeMaxTitle")}
+                </span>
                 <span className={styles.modeBtnDesc}>
-                  Maximiza los intercambios, cadenas de cualquier largo.
+                  {t("mathtrade:form.modeMaxDesc")}
                 </span>
               </button>
               <button
@@ -158,9 +165,11 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
                 className={`${styles.modeBtn} ${matchMode === "bounded" ? styles.modeBtnActive : ""}`}
                 onClick={() => setMatchMode("bounded")}
               >
-                <span className={styles.modeBtnTitle}>Cadena acotada</span>
+                <span className={styles.modeBtnTitle}>
+                  {t("mathtrade:form.modeBoundedTitle")}
+                </span>
                 <span className={styles.modeBtnDesc}>
-                  Vos fijás el largo máximo de cadena.
+                  {t("mathtrade:form.modeBoundedDesc")}
                 </span>
               </button>
             </div>
@@ -169,7 +178,7 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
           {matchMode === "bounded" && (
             <div className={styles.field}>
               <label className={styles.label} htmlFor="mt-chain">
-                Máximo de personas por cadena
+                {t("mathtrade:form.maxPeopleLabel")}
               </label>
               <div className={styles.numberRow}>
                 <input
@@ -181,13 +190,17 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
                   value={maxChain}
                   onChange={(e) => setMaxChain(Number(e.target.value))}
                 />
-                <span className={styles.modeBtnDesc}>entre 2 y 12</span>
+                <span className={styles.modeBtnDesc}>
+                  {t("mathtrade:form.maxPeopleHint")}
+                </span>
               </div>
             </div>
           )}
 
           <div className={styles.field}>
-            <span className={styles.label}>Imagen (opcional)</span>
+            <span className={styles.label}>
+              {t("mathtrade:form.imageLabel")}
+            </span>
             <ImageDropzone preview={preview} onFile={handleFile} />
           </div>
 
@@ -198,13 +211,13 @@ export default function MathTradeForm({ mode = "create", initial = null }) {
               disabled={submitting}
             >
               {submitting
-                ? "Guardando…"
+                ? t("mathtrade:form.submitting")
                 : mode === "create"
-                  ? "Crear intercambio"
-                  : "Guardar cambios"}
+                  ? t("mathtrade:form.submitCreate")
+                  : t("mathtrade:form.submitEdit")}
             </button>
             <Link to="/math-trade" className={styles.cancel}>
-              Cancelar
+              {t("common:actions.cancel")}
             </Link>
           </div>
         </form>

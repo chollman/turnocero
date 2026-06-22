@@ -1,5 +1,10 @@
-import { describe, it, expect } from "vitest";
-import { getStatusMeta, getModeLabel, STATUS_META } from "./mathtradeStatus";
+import { describe, it, expect, afterEach } from "vitest";
+import i18n from "../../i18n";
+import { getStatusMeta, getModeLabel } from "./mathtradeStatus";
+
+afterEach(() => {
+  i18n.changeLanguage("es");
+});
 
 describe("getStatusMeta", () => {
   it("devuelve label + color para cada estado conocido", () => {
@@ -9,7 +14,13 @@ describe("getStatusMeta", () => {
   });
 
   it("cae a draft para estados desconocidos", () => {
-    expect(getStatusMeta("inventado")).toEqual(STATUS_META.draft);
+    expect(getStatusMeta("inventado")).toEqual(getStatusMeta("draft"));
+  });
+
+  it("traduce al inglés con el toggle de idioma", () => {
+    i18n.changeLanguage("en");
+    expect(getStatusMeta("open").label).toBe("Registration open");
+    expect(getStatusMeta("results").color).toBe("--amber");
   });
 });
 
@@ -22,5 +33,11 @@ describe("getModeLabel", () => {
 
   it("default a cadena máxima", () => {
     expect(getModeLabel(undefined)).toBe("Cadena máxima");
+  });
+
+  it("traduce los modos al inglés", () => {
+    i18n.changeLanguage("en");
+    expect(getModeLabel("max")).toBe("Maximum chain");
+    expect(getModeLabel("auto")).toBe("Automatic");
   });
 });

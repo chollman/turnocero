@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
+import { useTranslation, Trans } from "react-i18next";
+import { getLocale } from "../../utils/locale";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
@@ -17,6 +19,7 @@ import ResultsView from "./components/ResultsView";
 import styles from "./MathTradeDetail.module.css";
 
 function ItemCard({ item, showOwner, actions }) {
+  const { t } = useTranslation();
   const display = showOwner ? getUserDisplay(item.owner) : null;
   return (
     <div className={styles.itemCard}>
@@ -28,7 +31,8 @@ function ItemCard({ item, showOwner, actions }) {
         )}
         <div>
           <div className={styles.itemGame}>
-            {item.gameName || `Juego #${item.bggGameId}`}
+            {item.gameName ||
+              t("mathtrade:detail.gameFallback", { id: item.bggGameId })}
           </div>
           {showOwner && (
             <div className={styles.itemOwner}>
@@ -38,14 +42,16 @@ function ItemCard({ item, showOwner, actions }) {
           )}
         </div>
       </div>
-      <div className={styles.wantsLabel}>Quiere a cambio</div>
+      <div className={styles.wantsLabel}>{t("mathtrade:detail.wantsLabel")}</div>
       <div className={styles.wantChips}>
         {item.wants.length === 0 ? (
-          <span className={styles.wantChip}>Sin want list</span>
+          <span className={styles.wantChip}>
+            {t("mathtrade:detail.noWantList")}
+          </span>
         ) : (
           item.wants.map((w) => (
             <span className={styles.wantChip} key={w.bggGameId}>
-              {w.gameName || `#${w.bggGameId}`}
+              {w.gameName || t("mathtrade:chain.gameFallback", { id: w.bggGameId })}
             </span>
           ))
         )}
@@ -57,6 +63,7 @@ function ItemCard({ item, showOwner, actions }) {
 
 export default function MathTradeDetail() {
   const { id } = useParams();
+  const { t } = useTranslation();
   const { user, isActuallyAdmin, viewAsUser } = useAuth();
   const { addToast } = useNotifications();
   const brandName = useBrandName();
@@ -145,7 +152,7 @@ export default function MathTradeDetail() {
     } catch (err) {
       addToast({
         type: "error",
-        title: "No se pudo eliminar la oferta",
+        title: t("mathtrade:detail.deleteError"),
         message: getErrorMessage(err),
       });
     }
@@ -159,13 +166,13 @@ export default function MathTradeDetail() {
   if (notFound)
     return (
       <div className={styles.page}>
-        <div className={styles.empty}>Este intercambio no existe.</div>
+        <div className={styles.empty}>{t("mathtrade:detail.notFound")}</div>
       </div>
     );
   if (loading || !trade)
     return (
       <div className={styles.page}>
-        <div className={styles.empty}>Cargando…</div>
+        <div className={styles.empty}>{t("common:states.loading")}</div>
       </div>
     );
 
@@ -175,10 +182,15 @@ export default function MathTradeDetail() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{`${trade.title} – Math Trade – ${brandName}`}</title>
+        <title>
+          {t("mathtrade:detail.docTitle", {
+            title: trade.title,
+            brand: brandName,
+          })}
+        </title>
       </Helmet>
       <div className={styles.inner}>
-        <BackButton to="/math-trade">Math Trade</BackButton>
+        <BackButton to="/math-trade">{t("mathtrade:detail.back")}</BackButton>
 
         <div className={styles.hero}>
           {trade.image?.url && (
@@ -202,20 +214,25 @@ export default function MathTradeDetail() {
           <div className={styles.metaRow}>
             <span>{getModeLabel(trade.matching?.mode)}</span>
             {trade.matching?.mode === "bounded" && (
-              <span>· Máx. {trade.matching.maxChainLength} por cadena</span>
+              <span>
+                {t("mathtrade:detail.maxPerChain", {
+                  count: trade.matching.maxChainLength,
+                })}
+              </span>
             )}
             {trade.submissionDeadline && (
               <span>
-                · Cierre:{" "}
-                {new Date(trade.submissionDeadline).toLocaleDateString(
-                  "es-AR",
-                  {
-                    day: "numeric",
-                    month: "long",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  },
-                )}
+                {t("mathtrade:detail.deadline", {
+                  date: new Date(trade.submissionDeadline).toLocaleDateString(
+                    getLocale(),
+                    {
+                      day: "numeric",
+                      month: "long",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  ),
+                })}
               </span>
             )}
           </div>
@@ -228,20 +245,20 @@ export default function MathTradeDetail() {
             className={`${styles.tab} ${tab === "ofertas" ? styles.tabActive : ""}`}
             onClick={() => setTab("ofertas")}
           >
-            Mis ofertas
+            {t("mathtrade:detail.tabs.myOffers")}
           </button>
           <button
             className={`${styles.tab} ${tab === "participantes" ? styles.tabActive : ""}`}
             onClick={() => setTab("participantes")}
           >
-            Participantes ({items.length})
+            {t("mathtrade:detail.tabs.participants", { count: items.length })}
           </button>
           {published && (
             <button
               className={`${styles.tab} ${tab === "resultados" ? styles.tabActive : ""}`}
               onClick={() => setTab("resultados")}
             >
-              Resultados
+              {t("mathtrade:detail.tabs.results")}
             </button>
           )}
         </div>
@@ -250,7 +267,10 @@ export default function MathTradeDetail() {
           <div>
             {!user ? (
               <div className={styles.loginPrompt}>
-                <Link to="/login">Iniciá sesión</Link> para ofrecer tus juegos.
+                <Trans
+                  i18nKey="mathtrade:loginPrompt"
+                  components={{ login: <Link to="/login" /> }}
+                />
               </div>
             ) : (
               <>
@@ -267,18 +287,18 @@ export default function MathTradeDetail() {
                       style={{ marginBottom: 18 }}
                       onClick={() => setEditing({ type: "new" })}
                     >
-                      + Ofrecer un juego
+                      {t("mathtrade:detail.offerGame")}
                     </button>
                   )
                 )}
                 {!canSubmit && (
                   <p className={styles.wantsLabel} style={{ marginBottom: 14 }}>
-                    La carga de ofertas está cerrada.
+                    {t("mathtrade:detail.submissionsClosed")}
                   </p>
                 )}
                 {myItems.length === 0 ? (
                   <div className={styles.empty}>
-                    Todavía no ofreciste ningún juego.
+                    {t("mathtrade:detail.noOffersYet")}
                   </div>
                 ) : (
                   <div className={styles.itemGrid}>
@@ -306,13 +326,13 @@ export default function MathTradeDetail() {
                                     setEditing({ type: "edit", item })
                                   }
                                 >
-                                  Editar
+                                  {t("common:actions.edit")}
                                 </button>
                                 <button
                                   className={`${styles.smallBtn} ${styles.dangerBtn}`}
                                   onClick={() => deleteItem(item)}
                                 >
-                                  Eliminar
+                                  {t("common:actions.delete")}
                                 </button>
                               </div>
                             )
@@ -330,7 +350,9 @@ export default function MathTradeDetail() {
         {tab === "participantes" && (
           <div>
             {items.length === 0 ? (
-              <div className={styles.empty}>Todavía no hay ofertas.</div>
+              <div className={styles.empty}>
+                {t("mathtrade:detail.noParticipantsYet")}
+              </div>
             ) : (
               <div className={styles.itemGrid}>
                 {items.map((item) => (

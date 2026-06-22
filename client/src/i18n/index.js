@@ -38,6 +38,8 @@ import esError from "./resources/es/error.json";
 import enError from "./resources/en/error.json";
 import esComunidades from "./resources/es/comunidades.json";
 import enComunidades from "./resources/en/comunidades.json";
+import esMathtrade from "./resources/es/mathtrade.json";
+import enMathtrade from "./resources/en/mathtrade.json";
 
 export const resources = {
   es: {
@@ -53,6 +55,7 @@ export const resources = {
     shared: esShared,
     error: esError,
     comunidades: esComunidades,
+    mathtrade: esMathtrade,
   },
   en: {
     common: enCommon,
@@ -67,6 +70,7 @@ export const resources = {
     shared: enShared,
     error: enError,
     comunidades: enComunidades,
+    mathtrade: enMathtrade,
   },
 };
 

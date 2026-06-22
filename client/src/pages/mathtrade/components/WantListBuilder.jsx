@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import BggGameSearch from "../../../components/shared/BggGameSearch";
 import styles from "../MathTradeDetail.module.css";
 
@@ -5,6 +6,7 @@ import styles from "../MathTradeDetail.module.css";
 // (el orden = rank) y permite quitarlos. `wants` es el array controlado y
 // `onChange` recibe la nueva lista.
 export default function WantListBuilder({ wants, onChange }) {
+  const { t } = useTranslation();
   const add = (g) => {
     if (wants.some((w) => w.bggGameId === g.id)) return; // ya está
     onChange([
@@ -25,26 +27,25 @@ export default function WantListBuilder({ wants, onChange }) {
 
   return (
     <div>
-      <span className={styles.formLabel}>
-        Want list (en orden de preferencia)
-      </span>
+      <span className={styles.formLabel}>{t("mathtrade:wantList.label")}</span>
       {wants.length === 0 && (
         <p className={styles.chainGive} style={{ marginBottom: 8 }}>
-          Agregá los juegos que aceptarías a cambio.
+          {t("mathtrade:wantList.empty")}
         </p>
       )}
       {wants.map((w, idx) => (
         <div className={styles.wantRow} key={w.bggGameId}>
           <span className={styles.wantRank}>{idx + 1}</span>
           <span className={styles.wantName}>
-            {w.gameName || `Juego #${w.bggGameId}`}
+            {w.gameName ||
+              t("mathtrade:wantList.gameFallback", { id: w.bggGameId })}
           </span>
           <button
             type="button"
             className={styles.iconBtn}
             onClick={() => move(idx, -1)}
             disabled={idx === 0}
-            aria-label="Subir preferencia"
+            aria-label={t("mathtrade:wantList.moveUp")}
           >
             ↑
           </button>
@@ -53,7 +54,7 @@ export default function WantListBuilder({ wants, onChange }) {
             className={styles.iconBtn}
             onClick={() => move(idx, 1)}
             disabled={idx === wants.length - 1}
-            aria-label="Bajar preferencia"
+            aria-label={t("mathtrade:wantList.moveDown")}
           >
             ↓
           </button>
@@ -61,7 +62,7 @@ export default function WantListBuilder({ wants, onChange }) {
             type="button"
             className={styles.iconBtn}
             onClick={() => remove(w.bggGameId)}
-            aria-label="Quitar"
+            aria-label={t("mathtrade:wantList.remove")}
           >
             ×
           </button>
@@ -72,7 +73,7 @@ export default function WantListBuilder({ wants, onChange }) {
           onPick={add}
           clearOnPick
           autoFocus={false}
-          placeholder="Agregá un juego a tu want list…"
+          placeholder={t("mathtrade:wantList.searchPlaceholder")}
         />
       </div>
     </div>
