@@ -19,8 +19,8 @@ import {
   isValidPassword,
   passwordChecks,
   passwordStrength,
-  STRENGTH_LABELS,
-  PASSWORD_REQUIREMENTS,
+  getStrengthLabels,
+  getPasswordRequirements,
 } from "../../utils/passwordValidation";
 
 // ─── Inline icons (no icon libs — patrón del repo) ───────────────
@@ -307,7 +307,7 @@ export default function Auth({ mode }) {
     e.preventDefault();
     setError("");
     if (!isValidPassword(password)) {
-      setError(PASSWORD_REQUIREMENTS);
+      setError(getPasswordRequirements());
       return;
     }
     if (!terms) {
@@ -556,7 +556,7 @@ export default function Auth({ mode }) {
                       ))}
                     </div>
                     <span className={styles.strengthLabel}>
-                      Seguridad: {STRENGTH_LABELS[strength] || "muy débil"}
+                      Seguridad: {getStrengthLabels()[strength] || "muy débil"}
                     </span>
                   </div>
                 )}

@@ -24,6 +24,8 @@ import esTime from "./resources/es/time.json";
 import enTime from "./resources/en/time.json";
 import esDates from "./resources/es/dates.json";
 import enDates from "./resources/en/dates.json";
+import esEnums from "./resources/es/enums.json";
+import enEnums from "./resources/en/enums.json";
 
 export const resources = {
   es: {
@@ -32,6 +34,7 @@ export const resources = {
     notifs: esNotifs,
     time: esTime,
     dates: esDates,
+    enums: esEnums,
   },
   en: {
     common: enCommon,
@@ -39,6 +42,7 @@ export const resources = {
     notifs: enNotifs,
     time: enTime,
     dates: enDates,
+    enums: enEnums,
   },
 };
 

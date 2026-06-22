@@ -1,11 +1,16 @@
 // Reglas de contraseña usadas en registro y reset. Antes esta lógica vivía
 // duplicada en Register.jsx y ResetPassword.jsx — un cambio (ej. exigir un
 // símbolo) requería editar ambos en sync.
+//
+// Los strings de UI salen por i18n vía GETTERS — el idioma puede cambiar en
+// runtime con el toggle de /perfil; una constante a module-load lo congelaría.
+import i18n from "../i18n";
 
 export const PASSWORD_MIN_LENGTH = 8;
 
-export const PASSWORD_REQUIREMENTS =
-  "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número";
+export function getPasswordRequirements() {
+  return i18n.t("enums:password.requirements", { count: PASSWORD_MIN_LENGTH });
+}
 
 // Desglose por requisito para el feedback inline (registro / reset): permite
 // mostrar EXACTAMENTE qué falta en vez de un mensaje genérico. `isValidPassword`
@@ -15,11 +20,21 @@ export function passwordChecks(pwd) {
   return [
     {
       key: "length",
-      label: `Al menos ${PASSWORD_MIN_LENGTH} caracteres`,
+      label: i18n.t("enums:password.checks.length", {
+        count: PASSWORD_MIN_LENGTH,
+      }),
       met: value.length >= PASSWORD_MIN_LENGTH,
     },
-    { key: "upper", label: "Una letra mayúscula", met: /[A-Z]/.test(value) },
-    { key: "digit", label: "Un número", met: /\d/.test(value) },
+    {
+      key: "upper",
+      label: i18n.t("enums:password.checks.upper"),
+      met: /[A-Z]/.test(value),
+    },
+    {
+      key: "digit",
+      label: i18n.t("enums:password.checks.digit"),
+      met: /\d/.test(value),
+    },
   ];
 }
 
@@ -31,7 +46,7 @@ export function isValidPassword(pwd) {
 // Medidor de fuerza para el feedback en vivo del registro (sólo visual; el
 // mínimo real lo impone isValidPassword en el submit). Devuelve 0..4 sumando:
 // longitud ≥ 8, mayúscula+minúscula, dígito, símbolo. Etiquetas alineadas por
-// índice en STRENGTH_LABELS (0 = vacío).
+// índice en getStrengthLabels() (0 = vacío).
 export function passwordStrength(pwd) {
   if (typeof pwd !== "string" || pwd.length === 0) return 0;
   let score = 0;
@@ -42,4 +57,6 @@ export function passwordStrength(pwd) {
   return score;
 }
 
-export const STRENGTH_LABELS = ["", "Débil", "Aceptable", "Buena", "Fuerte"];
+export function getStrengthLabels() {
+  return i18n.t("enums:password.strength", { returnObjects: true });
+}

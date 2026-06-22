@@ -1,12 +1,17 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
+import i18n from "../i18n";
 import {
   isValidPassword,
   passwordChecks,
   passwordStrength,
-  STRENGTH_LABELS,
+  getStrengthLabels,
   PASSWORD_MIN_LENGTH,
-  PASSWORD_REQUIREMENTS,
+  getPasswordRequirements,
 } from "./passwordValidation";
+
+afterEach(() => {
+  i18n.changeLanguage("es");
+});
 
 describe("isValidPassword", () => {
   it("acepta una contraseña que cumple los 3 requisitos", () => {
@@ -38,9 +43,9 @@ describe("isValidPassword", () => {
   });
 
   it("exporta un mensaje legible para la UI", () => {
-    expect(PASSWORD_REQUIREMENTS).toMatch(/8 caracteres/);
-    expect(PASSWORD_REQUIREMENTS).toMatch(/mayúscula/);
-    expect(PASSWORD_REQUIREMENTS).toMatch(/número/);
+    expect(getPasswordRequirements()).toMatch(/8 caracteres/);
+    expect(getPasswordRequirements()).toMatch(/mayúscula/);
+    expect(getPasswordRequirements()).toMatch(/número/);
   });
 });
 
@@ -93,10 +98,31 @@ describe("passwordStrength", () => {
     expect(passwordStrength("Abcdefg1!")).toBe(4); // + symbol
   });
 
-  it("caps at 4 and aligns with STRENGTH_LABELS by index", () => {
+  it("caps at 4 and aligns with getStrengthLabels() by index", () => {
     const score = passwordStrength("Abcdefg1!@#");
     expect(score).toBe(4);
-    expect(STRENGTH_LABELS[score]).toBe("Fuerte");
-    expect(STRENGTH_LABELS).toHaveLength(5);
+    expect(getStrengthLabels()[score]).toBe("Fuerte");
+    expect(getStrengthLabels()).toHaveLength(5);
+  });
+});
+
+describe("i18n (en)", () => {
+  it("renders requirements, checks and strength labels in English", () => {
+    i18n.changeLanguage("en");
+    expect(getPasswordRequirements()).toMatch(/8 characters/);
+    expect(getPasswordRequirements()).toMatch(/uppercase/);
+    const checks = passwordChecks("");
+    expect(checks.map((c) => c.label)).toEqual([
+      "At least 8 characters",
+      "One uppercase letter",
+      "One number",
+    ]);
+    expect(getStrengthLabels()).toEqual([
+      "",
+      "Weak",
+      "Acceptable",
+      "Good",
+      "Strong",
+    ]);
   });
 });

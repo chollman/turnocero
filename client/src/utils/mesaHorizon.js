@@ -6,6 +6,7 @@
 // La granularidad es DIARIA (no por horas), comparando contra el inicio
 // del día actual: una mesa a las 23:00 de hoy sigue siendo "today" aunque
 // falten 5 minutos; una mesa a las 00:30 del día siguiente es "tomorrow".
+import i18n from "../i18n";
 
 export function mesaHorizon(dateInput, now = new Date()) {
   if (!dateInput) return "later";
@@ -29,13 +30,32 @@ export function mesaHorizon(dateInput, now = new Date()) {
   return "later";
 }
 
-export const HORIZON_META = {
-  today: { name: "Hoy", sub: "a punto de empezar" },
-  tomorrow: { name: "Mañana", sub: "24 horas" },
-  thisWeek: { name: "Esta semana", sub: "próximos 7 días" },
-  later: { name: "Próximamente", sub: "más adelante" },
-  past: { name: "Pasadas", sub: "ya jugadas" },
-};
+// Labels (name/sub) vía i18n con un GETTER — el idioma puede cambiar en runtime
+// con el toggle de /perfil; una constante a module-load lo congelaría.
+export function getHorizonMeta() {
+  return {
+    today: {
+      name: i18n.t("enums:horizon.today.name"),
+      sub: i18n.t("enums:horizon.today.sub"),
+    },
+    tomorrow: {
+      name: i18n.t("enums:horizon.tomorrow.name"),
+      sub: i18n.t("enums:horizon.tomorrow.sub"),
+    },
+    thisWeek: {
+      name: i18n.t("enums:horizon.thisWeek.name"),
+      sub: i18n.t("enums:horizon.thisWeek.sub"),
+    },
+    later: {
+      name: i18n.t("enums:horizon.later.name"),
+      sub: i18n.t("enums:horizon.later.sub"),
+    },
+    past: {
+      name: i18n.t("enums:horizon.past.name"),
+      sub: i18n.t("enums:horizon.past.sub"),
+    },
+  };
+}
 
 // Orden estable para iterar los grupos al renderizar.
 export const HORIZON_ORDER = ["today", "tomorrow", "thisWeek", "later", "past"];
@@ -61,10 +81,11 @@ export function groupByHorizon(items, dateAccessor = (t) => t.date, now) {
         dir * (new Date(dateAccessor(a)) - new Date(dateAccessor(b))),
     );
   }
+  const meta = getHorizonMeta();
   return HORIZON_ORDER.filter((k) => groups.has(k)).map((k) => ({
     key: k,
-    name: HORIZON_META[k].name,
-    sub: HORIZON_META[k].sub,
+    name: meta[k].name,
+    sub: meta[k].sub,
     items: groups.get(k),
   }));
 }

@@ -1,5 +1,10 @@
-import { describe, it, expect } from "vitest";
-import { mesaHorizon, groupByHorizon } from "./mesaHorizon";
+import { describe, it, expect, afterEach } from "vitest";
+import i18n from "../i18n";
+import { mesaHorizon, groupByHorizon, getHorizonMeta } from "./mesaHorizon";
+
+afterEach(() => {
+  i18n.changeLanguage("es");
+});
 
 const D = (year, month, day, hour = 12, minute = 0) =>
   new Date(year, month - 1, day, hour, minute);
@@ -76,5 +81,23 @@ describe("groupByHorizon", () => {
     const groups = groupByHorizon(items, (i) => i.when, NOW);
     expect(groups[0].key).toBe("today");
     expect(groups[0].items).toHaveLength(1);
+  });
+
+  it("labels each group in Spanish by default", () => {
+    const items = [{ id: 1, when: D(2026, 5, 20, 18) }];
+    const groups = groupByHorizon(items, (i) => i.when, NOW);
+    expect(groups[0].name).toBe("Hoy");
+    expect(groups[0].sub).toBe("a punto de empezar");
+  });
+
+  it("labels each group in English when the language is 'en'", () => {
+    i18n.changeLanguage("en");
+    expect(getHorizonMeta().today).toEqual({
+      name: "Today",
+      sub: "about to start",
+    });
+    const items = [{ id: 1, when: D(2026, 5, 20, 18) }];
+    const groups = groupByHorizon(items, (i) => i.when, NOW);
+    expect(groups[0].name).toBe("Today");
   });
 });

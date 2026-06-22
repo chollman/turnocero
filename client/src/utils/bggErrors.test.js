@@ -1,8 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
+import i18n from "../i18n";
 import { bggConnectErrorMessage, bggSyncErrorMessage } from "./bggErrors";
 
 const axiosErr = (status, message) => ({
   response: { status, data: message === undefined ? {} : { message } },
+});
+
+afterEach(() => {
+  i18n.changeLanguage("es");
 });
 
 describe("bggConnectErrorMessage", () => {
@@ -92,5 +97,19 @@ describe("bggSyncErrorMessage", () => {
 
   it("falls back to a generic message for an unknown error shape", () => {
     expect(bggSyncErrorMessage(axiosErr(418))).toMatch(/Probá de nuevo en un momento/i);
+  });
+});
+
+describe("i18n (en)", () => {
+  it("renders BGG error copy in English, interpolating the brand", () => {
+    i18n.changeLanguage("en");
+    const connect = bggConnectErrorMessage(axiosErr(401), { brandName: "El Clu" });
+    expect(connect).toMatch(/BGG password is incorrect/i);
+    expect(connect).toMatch(/not your El Clu password/i);
+    expect(bggSyncErrorMessage(axiosErr(404))).toMatch(
+      /couldn't find that user on BGG/i,
+    );
+    // Server-provided messages are never translated.
+    expect(bggSyncErrorMessage(axiosErr(500, "Boom interno"))).toBe("Boom interno");
   });
 });

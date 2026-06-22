@@ -1,13 +1,18 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
+import i18n from "../i18n";
 import {
-  EVENTO_STATUS_BADGES,
-  EVENTO_STATUS_OPTIONS,
+  getEventoStatusBadges,
+  getEventoStatusOptions,
   getEventoStatusBadge,
 } from "./eventoStatus";
 
+afterEach(() => {
+  i18n.changeLanguage("es");
+});
+
 describe("eventoStatus", () => {
   it("cubre los 4 estados del modelo Evento", () => {
-    expect(Object.keys(EVENTO_STATUS_BADGES).sort()).toEqual([
+    expect(Object.keys(getEventoStatusBadges()).sort()).toEqual([
       "cancelled",
       "closed",
       "draft",
@@ -16,29 +21,34 @@ describe("eventoStatus", () => {
   });
 
   it("badges devuelven label en español y className para CSS Modules", () => {
-    expect(EVENTO_STATUS_BADGES.open).toEqual({
+    const badges = getEventoStatusBadges();
+    expect(badges.open).toEqual({
       label: "Abierto",
       className: "open",
     });
-    expect(EVENTO_STATUS_BADGES.draft).toEqual({
+    expect(badges.draft).toEqual({
       label: "Borrador",
       className: "draft",
     });
-    expect(EVENTO_STATUS_BADGES.closed).toEqual({
+    expect(badges.closed).toEqual({
       label: "Cerrado",
       className: "closed",
     });
-    expect(EVENTO_STATUS_BADGES.cancelled).toEqual({
+    expect(badges.cancelled).toEqual({
       label: "Cancelado",
       className: "cancelled",
     });
   });
 
   it("getEventoStatusBadge retorna el badge correcto", () => {
-    expect(getEventoStatusBadge("open")).toBe(EVENTO_STATUS_BADGES.open);
-    expect(getEventoStatusBadge("cancelled")).toBe(
-      EVENTO_STATUS_BADGES.cancelled,
-    );
+    expect(getEventoStatusBadge("open")).toEqual({
+      label: "Abierto",
+      className: "open",
+    });
+    expect(getEventoStatusBadge("cancelled")).toEqual({
+      label: "Cancelado",
+      className: "cancelled",
+    });
   });
 
   it("getEventoStatusBadge retorna null para estados desconocidos", () => {
@@ -47,19 +57,31 @@ describe("eventoStatus", () => {
     expect(getEventoStatusBadge(null)).toBeNull();
   });
 
-  it("EVENTO_STATUS_OPTIONS contiene los 4 estados con description", () => {
-    expect(EVENTO_STATUS_OPTIONS).toHaveLength(4);
-    const values = EVENTO_STATUS_OPTIONS.map((o) => o.value).sort();
+  it("getEventoStatusOptions contiene los 4 estados con description", () => {
+    const options = getEventoStatusOptions();
+    expect(options).toHaveLength(4);
+    const values = options.map((o) => o.value).sort();
     expect(values).toEqual(["cancelled", "closed", "draft", "open"]);
-    for (const opt of EVENTO_STATUS_OPTIONS) {
+    for (const opt of options) {
       expect(opt.label).toBeTruthy();
       expect(opt.description).toBeTruthy();
     }
   });
 
   it("cada estado de options matchea con su badge label", () => {
-    for (const opt of EVENTO_STATUS_OPTIONS) {
-      expect(EVENTO_STATUS_BADGES[opt.value]?.label).toBe(opt.label);
+    const badges = getEventoStatusBadges();
+    for (const opt of getEventoStatusOptions()) {
+      expect(badges[opt.value]?.label).toBe(opt.label);
     }
+  });
+
+  it("renders English labels when the language is 'en'", () => {
+    i18n.changeLanguage("en");
+    expect(getEventoStatusBadge("open").label).toBe("Open");
+    expect(getEventoStatusOptions()[0]).toMatchObject({
+      value: "draft",
+      label: "Draft",
+      description: "Not visible to users",
+    });
   });
 });
