@@ -1,0 +1,5 @@
+{
+  "justNow": "recién",
+  "atTime": "a las {{time}}",
+  "onDateAtTime": "el {{date}} a las {{time}}"
+}

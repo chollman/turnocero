@@ -20,10 +20,12 @@ import esAuth from "./resources/es/auth.json";
 import enAuth from "./resources/en/auth.json";
 import esNotifs from "./resources/es/notifs.json";
 import enNotifs from "./resources/en/notifs.json";
+import esTime from "./resources/es/time.json";
+import enTime from "./resources/en/time.json";
 
 export const resources = {
-  es: { common: esCommon, auth: esAuth, notifs: esNotifs },
-  en: { common: enCommon, auth: enAuth, notifs: enNotifs },
+  es: { common: esCommon, auth: esAuth, notifs: esNotifs, time: esTime },
+  en: { common: enCommon, auth: enAuth, notifs: enNotifs, time: enTime },
 };
 
 function getInitialLang() {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { formatTimeAgo, formatExactDateTime } from "./time";
+import i18n from "../i18n";
 
 describe("formatTimeAgo", () => {
   const NOW = new Date("2026-05-18T12:00:00Z").getTime();
@@ -106,5 +107,44 @@ describe("formatExactDateTime", () => {
     expect(formatExactDateTime(null)).toBe("");
     expect(formatExactDateTime(undefined)).toBe("");
     expect(formatExactDateTime("not a date")).toBe("");
+  });
+});
+
+describe("i18n — render en inglés", () => {
+  const NOW = new Date("2026-05-18T12:00:00Z").getTime();
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    i18n.changeLanguage("en");
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    i18n.changeLanguage("es");
+  });
+
+  it('formatTimeAgo usa "just now" dentro de los 45s', () => {
+    expect(formatTimeAgo(new Date(NOW))).toBe("just now");
+  });
+
+  it("formatTimeAgo usa el locale en-US para tiempos relativos", () => {
+    // en con numeric:'auto' → "5 minutes ago" (no "hace 5 minutos").
+    expect(formatTimeAgo(new Date(NOW - 5 * 60 * 1000))).toBe("5 minutes ago");
+  });
+
+  it('formatExactDateTime mismo día → "at HH:MM"', () => {
+    const d = new Date(NOW);
+    d.setHours(14, 30, 0, 0);
+    expect(formatExactDateTime(d)).toBe("at 14:30");
+  });
+
+  it('formatExactDateTime otro día → "on D/M at HH:MM"', () => {
+    const d = new Date(NOW);
+    d.setDate(d.getDate() - 3);
+    d.setHours(9, 5, 0, 0);
+    expect(formatExactDateTime(d)).toBe(
+      `on ${d.getDate()}/${d.getMonth() + 1} at 09:05`,
+    );
   });
 });
