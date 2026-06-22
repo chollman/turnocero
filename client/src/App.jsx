@@ -6,6 +6,7 @@ import { CommunityProvider, useCommunity } from "./context/CommunityContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ChatProvider } from "./context/ChatContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 // Client ID de Google Identity Services. Si no está configurado, el provider
@@ -809,21 +810,23 @@ export default function App() {
       future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-        <ThemeProvider>
-          <AuthProvider>
-            <SiteConfigProvider>
-              <CommunityProvider>
-                <NotificationProvider>
-                  <ChatProvider>
-                    <ErrorBoundary>
-                      <AppShell />
-                    </ErrorBoundary>
-                  </ChatProvider>
-                </NotificationProvider>
-              </CommunityProvider>
-            </SiteConfigProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <SiteConfigProvider>
+                <CommunityProvider>
+                  <NotificationProvider>
+                    <ChatProvider>
+                      <ErrorBoundary>
+                        <AppShell />
+                      </ErrorBoundary>
+                    </ChatProvider>
+                  </NotificationProvider>
+                </CommunityProvider>
+              </SiteConfigProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </LanguageProvider>
       </GoogleOAuthProvider>
     </BrowserRouter>
   );

@@ -1,6 +1,8 @@
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { I18nextProvider } from "react-i18next";
 import { ThemeProvider } from "../../context/ThemeContext";
+import i18n from "../../i18n";
 
 /**
  * Lightweight wrapper for component tests that mounts theme + router + helmet only.
@@ -13,11 +15,15 @@ import { ThemeProvider } from "../../context/ThemeContext";
  */
 export function AllProviders({ children, initialEntries = ["/"] }) {
   return (
-    <HelmetProvider>
-      <ThemeProvider>
-        <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
-      </ThemeProvider>
-    </HelmetProvider>
+    <I18nextProvider i18n={i18n}>
+      <HelmetProvider>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={initialEntries}>
+            {children}
+          </MemoryRouter>
+        </ThemeProvider>
+      </HelmetProvider>
+    </I18nextProvider>
   );
 }
 

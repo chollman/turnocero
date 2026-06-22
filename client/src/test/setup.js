@@ -2,6 +2,10 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeAll, afterAll } from "vitest";
 import { cleanup } from "@testing-library/react";
 import { server } from "./server";
+// Inicializa el singleton de i18next con los recursos `es` reales (init síncrono)
+// para que `useTranslation()`/`t()` funcionen en cualquier componente bajo test y
+// las aserciones en español sigan verdes sin proveedor explícito.
+import "../i18n";
 
 // Cleanup React DOM between tests
 afterEach(() => {

@@ -1,0 +1,18 @@
+{
+  "actions": {
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "back": "Volver",
+    "confirm": "Confirmar",
+    "accept": "Aceptar",
+    "reject": "Rechazar",
+    "close": "Cerrar"
+  },
+  "states": {
+    "loading": "Cargando…",
+    "noResults": "Sin resultados",
+    "error": "Ocurrió un error"
+  }
+}

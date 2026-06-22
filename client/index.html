@@ -26,6 +26,15 @@
           var t = localStorage.getItem("turnocero_theme");
           if (t !== "dark" && t !== "light") t = "dark";
           document.documentElement.setAttribute("data-theme", t);
+          // Idioma: reaplicar el atributo <html lang> antes de hidratar para
+          // a11y/SEO/lectores de pantalla. El <html lang="es"> estático queda
+          // como default para crawlers sin JS.
+          var lng = localStorage.getItem("turnocero_language");
+          if (lng !== "es" && lng !== "en") lng = "es";
+          document.documentElement.setAttribute(
+            "lang",
+            lng === "es" ? "es-AR" : "en",
+          );
           // Colapso del sidebar: reaplicar antes de hidratar para que el ancho
           // del contenido no salte (narrow→wide) en el primer paint. Sólo aplica
           // si hay sesión (el sidebar colapsable existe únicamente logueado; un
