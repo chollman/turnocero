@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 import DOMPurify from "dompurify";
+import { useTranslation } from "react-i18next";
 import Modal from "./Modal";
 import {
   SANITIZE_CONFIG,
@@ -28,6 +29,7 @@ export default function RichTextContent({
   className = "",
   extended = false,
 }) {
+  const { t } = useTranslation();
   const [lightbox, setLightbox] = useState(null);
 
   const clean = useMemo(() => {
@@ -62,7 +64,7 @@ export default function RichTextContent({
         <Modal
           isOpen={!!lightbox}
           onClose={() => setLightbox(null)}
-          ariaLabel="Imagen ampliada"
+          ariaLabel={t("shared:richTextContent.lightboxAria")}
           className={styles.lightbox}
           backdropClassName={styles.lightboxBackdrop}
         >

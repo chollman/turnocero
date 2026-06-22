@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import styles from "./DiceLoader.module.css";
 
 /**
@@ -14,7 +15,11 @@ import styles from "./DiceLoader.module.css";
  *   text — mensaje principal (default "Buscando").
  *   hint — aclaración chica debajo (default sin hint).
  */
-export default function DiceLoader({ text = "Buscando", hint = "" }) {
+export default function DiceLoader({ text, hint = "" }) {
+  const { t } = useTranslation();
+  // El texto por defecto ("Buscando") se resuelve acá, no en el param, porque
+  // `t` no está disponible en la firma. Uno pasado por el caller gana.
+  const resolvedText = text ?? t("shared:diceLoader.defaultText");
   return (
     <div className={styles.wrap} role="status">
       <svg className={styles.die} viewBox="0 0 48 48" aria-hidden="true">
@@ -71,7 +76,7 @@ export default function DiceLoader({ text = "Buscando", hint = "" }) {
       </svg>
       <div className={styles.texts}>
         <span className={styles.text}>
-          {text}
+          {resolvedText}
           <span className={styles.dots} aria-hidden="true">
             <i />
             <i />

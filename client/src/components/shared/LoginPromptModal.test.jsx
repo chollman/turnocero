@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import LoginPromptModal from "./LoginPromptModal";
+import i18n from "../../i18n";
 import { RouterOnly } from "../../test/wrappers/AllProviders";
 
 describe("<LoginPromptModal>", () => {
@@ -85,5 +86,26 @@ describe("<LoginPromptModal>", () => {
       wrapper: RouterOnly,
     });
     fireEvent.click(screen.getByRole("button", { name: /registrate/i }));
+  });
+
+  describe("in English", () => {
+    afterEach(() => {
+      i18n.changeLanguage("es");
+    });
+
+    it("renders the English copy when the language is en", () => {
+      i18n.changeLanguage("en");
+      render(<LoginPromptModal isOpen onClose={() => {}} />, {
+        wrapper: RouterOnly,
+      });
+      expect(screen.getByText("Join the game!")).toBeInTheDocument();
+      expect(screen.getByText("Log in to continue.")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Log in" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Sign up free" }),
+      ).toBeInTheDocument();
+    });
   });
 });

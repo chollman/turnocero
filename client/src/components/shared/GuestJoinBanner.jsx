@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import styles from "./GuestJoinBanner.module.css";
@@ -16,6 +17,7 @@ import styles from "./GuestJoinBanner.module.css";
 export default function GuestJoinBanner({ variant = "banner" }) {
   const { user, loading } = useAuth();
   const brandName = useBrandName();
+  const { t } = useTranslation();
 
   // Mientras resolvemos la sesión no mostramos nada (evita un flash de la banda
   // a usuarios que sí están logueados).
@@ -26,23 +28,24 @@ export default function GuestJoinBanner({ variant = "banner" }) {
   return (
     <aside
       className={`${styles.banner} ${isCard ? styles.card : ""}`}
-      aria-label={`Sumate a ${brandName}`}
+      aria-label={t("shared:guestJoin.aria", { brand: brandName })}
     >
       <div className={styles.text}>
         <p className={styles.title}>
-          Sumate a <strong>{brandName}</strong>
+          <Trans
+            i18nKey="shared:guestJoin.title"
+            values={{ brand: brandName }}
+            components={[<span key="0" />, <strong key="1" />]}
+          />
         </p>
-        <p className={styles.sub}>
-          Encontrá gente para jugar cerca tuyo y compartí tus partidas. Es
-          gratis.
-        </p>
+        <p className={styles.sub}>{t("shared:guestJoin.sub")}</p>
       </div>
       <div className={styles.actions}>
         <Link to="/register" className={styles.primary}>
-          Registrate gratis
+          {t("shared:guestJoin.register")}
         </Link>
         <Link to="/login" className={styles.secondary}>
-          Ya tengo cuenta
+          {t("shared:guestJoin.haveAccount")}
         </Link>
       </div>
     </aside>

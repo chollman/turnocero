@@ -1,0 +1,146 @@
+{
+  "loginPrompt": {
+    "title": "Join the game!",
+    "defaultMessage": "Log in to continue.",
+    "login": "Log in",
+    "register": "Sign up free"
+  },
+  "guestJoin": {
+    "aria": "Join {{brand}}",
+    "title": "Join <1>{{brand}}</1>",
+    "sub": "Find people to play with near you and share your games. It's free.",
+    "register": "Sign up free",
+    "haveAccount": "I already have an account"
+  },
+  "pushPrompt": {
+    "aria": "Enable notifications",
+    "title": "Enable notifications",
+    "installText": "Install the app on your home screen (share → “Add to Home Screen”) to receive alerts.",
+    "text": "Get notified right away when someone messages you, invites you, or an event is coming up — even with the app closed.",
+    "activating": "Enabling…",
+    "activate": "Enable",
+    "understood": "Got it",
+    "notNow": "Not now",
+    "successTitle": "Enabled!",
+    "successMessage": "We'll let you know on this device.",
+    "errorTitle": "Couldn't enable",
+    "errorMessage": "Check your browser's notification permissions."
+  },
+  "listFilters": {
+    "filters": "Filters",
+    "activeCount": "{{count}} active filters",
+    "popoverAria": "List filters",
+    "statusTitle": "Status",
+    "filterListAria": "Filter list",
+    "distanceTitle": "Distance",
+    "resultsWithin": "Results <1>within {{radius}} km</1> of your location",
+    "filterByDistance": "Filter by <1>distance</1> from your location",
+    "addAddress": "Add your address in <1>your profile</1> to filter by distance",
+    "decreaseRadius": "Decrease radius by 1 km",
+    "increaseRadius": "Increase radius by 1 km",
+    "radiusAria": "Maximum radius in kilometers",
+    "radiusTitle": "Radius: {{value}}",
+    "radiusTitleDisabled": "Add your address in your profile to enable this filter",
+    "noLimit": "No limit"
+  },
+  "bggSearch": {
+    "placeholder": "Search for a game on BGG (≥3 characters)…",
+    "inputAria": "Search game on BoardGameGeek",
+    "loading": "Searching on BGG",
+    "loadingHint": "this may take a few seconds",
+    "noResults": "No results."
+  },
+  "diceLoader": {
+    "defaultText": "Searching"
+  },
+  "passwordInput": {
+    "hide": "Hide password",
+    "show": "Show password"
+  },
+  "confirmAction": {
+    "loading": "..."
+  },
+  "avatarCrop": {
+    "overlayAria": "Crop avatar",
+    "title": "Crop avatar",
+    "zoom": "Zoom",
+    "saving": "Saving…"
+  },
+  "avatarColorPicker": {
+    "groupAria": "Avatar color",
+    "autoAria": "Automatic color",
+    "autoTitle": "Automatic",
+    "swatchAria": "Color {{token}}"
+  },
+  "avatar": {
+    "deleted": "Deleted user"
+  },
+  "commentLike": {
+    "remove": "Remove like",
+    "like": "Like",
+    "showLikers": "See who liked it ({{count}})"
+  },
+  "likersModal": {
+    "defaultTitle": "Who liked it",
+    "loadError": "We couldn't load the list.",
+    "empty": "Nobody has liked it yet."
+  },
+  "communitySelect": {
+    "label": "Post in"
+  },
+  "infoTooltip": {
+    "defaultLabel": "More info"
+  },
+  "addressMap": {
+    "missingKey": "You need to set <1>VITE_GOOGLE_MAPS_API_KEY</1> in the environment.",
+    "markerLabel": "Selected location"
+  },
+  "richTextContent": {
+    "lightboxAria": "Enlarged image"
+  },
+  "richTextEditor": {
+    "defaultPlaceholder": "Write your review…",
+    "uploadError": "The image couldn't be uploaded.",
+    "linkPrompt": "Link URL:",
+    "youtubePrompt": "Paste the YouTube video link:",
+    "youtubeError": "I didn't recognize that YouTube link.",
+    "toolbarAria": "Text formatting",
+    "heading": "Heading",
+    "subheading": "Subheading",
+    "subheadingMinor": "Minor subheading",
+    "bold": "Bold",
+    "italic": "Italic",
+    "code": "Code",
+    "bulletList": "Bulleted list",
+    "orderedList": "Numbered list",
+    "quote": "Quote",
+    "separator": "Separator",
+    "alignLeft": "Align left",
+    "alignCenter": "Center",
+    "alignRight": "Align right",
+    "link": "Link",
+    "image": "Image",
+    "youtube": "YouTube video"
+  },
+  "dateTimePicker": {
+    "pickDate": "Pick a date",
+    "pickDateTime": "Pick date and time",
+    "dialogDate": "Select date",
+    "dialogDateTime": "Select date and time",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "weekdayInitials": ["M", "T", "W", "T", "F", "S", "S"],
+    "hour": "Hour",
+    "minutes": "Minutes",
+    "done": "Done"
+  },
+  "seatTrack": {
+    "label": "{{filled}} of {{total}} seats taken"
+  },
+  "tableMap": {
+    "ariaWithGame": "Top-down view of the {{game}} table with the players",
+    "aria": "Top-down view of the table with the players",
+    "emptySeat": "open seat",
+    "deleted": "deleted"
+  }
+}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Cropper from "react-easy-crop";
+import { useTranslation } from "react-i18next";
 import styles from "./AvatarCropModal.module.css";
 
 async function getCroppedBlob(imageSrc, pixelCrop) {
@@ -30,6 +31,7 @@ async function getCroppedBlob(imageSrc, pixelCrop) {
 }
 
 export default function AvatarCropModal({ open, file, onCancel, onConfirm }) {
+  const { t } = useTranslation();
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
@@ -88,11 +90,11 @@ export default function AvatarCropModal({ open, file, onCancel, onConfirm }) {
       className={styles.overlay}
       role="dialog"
       aria-modal="true"
-      aria-label="Recortar avatar"
+      aria-label={t("shared:avatarCrop.overlayAria")}
     >
       <div className={styles.modal}>
         <div className={styles.header}>
-          <h3 className={styles.title}>Recortar avatar</h3>
+          <h3 className={styles.title}>{t("shared:avatarCrop.title")}</h3>
         </div>
 
         <div className={styles.cropArea}>
@@ -112,7 +114,7 @@ export default function AvatarCropModal({ open, file, onCancel, onConfirm }) {
 
         <div className={styles.controls}>
           <label className={styles.zoomLabel}>
-            <span>Zoom</span>
+            <span>{t("shared:avatarCrop.zoom")}</span>
             <input
               type="range"
               min={1}
@@ -121,7 +123,7 @@ export default function AvatarCropModal({ open, file, onCancel, onConfirm }) {
               value={zoom}
               onChange={(e) => setZoom(Number(e.target.value))}
               className={styles.zoomSlider}
-              aria-label="Zoom"
+              aria-label={t("shared:avatarCrop.zoom")}
             />
           </label>
         </div>
@@ -133,7 +135,7 @@ export default function AvatarCropModal({ open, file, onCancel, onConfirm }) {
             onClick={onCancel}
             disabled={saving}
           >
-            Cancelar
+            {t("common:actions.cancel")}
           </button>
           <button
             type="button"
@@ -141,7 +143,7 @@ export default function AvatarCropModal({ open, file, onCancel, onConfirm }) {
             onClick={handleSave}
             disabled={saving || !croppedAreaPixels}
           >
-            {saving ? "Guardando…" : "Guardar"}
+            {saving ? t("shared:avatarCrop.saving") : t("common:actions.save")}
           </button>
         </div>
       </div>

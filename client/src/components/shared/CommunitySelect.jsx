@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useCommunity } from "../../context/CommunityContext";
 import styles from "./CommunitySelect.module.css";
 
@@ -8,10 +9,14 @@ import styles from "./CommunitySelect.module.css";
 export default function CommunitySelect({
   value,
   onChange,
-  label = "Publicar en",
+  label,
   className = "",
 }) {
+  const { t } = useTranslation();
   const { memberships, skin, isTenant } = useCommunity();
+  // El label por defecto ("Publicar en") se resuelve acá, no en el param,
+  // porque `t` no está disponible en la firma. Uno del caller gana.
+  const resolvedLabel = label ?? t("shared:communitySelect.label");
   // En modo tenant (subdominio) el contenido se publica SIEMPRE en esa
   // comunidad (el server lo fuerza) — no hay nada que elegir.
   if (isTenant) return null;
@@ -22,7 +27,7 @@ export default function CommunitySelect({
   return (
     <div className={`${styles.wrap} ${className}`}>
       <label className={styles.label} htmlFor="community-select">
-        {label}
+        {resolvedLabel}
       </label>
       <select
         id="community-select"

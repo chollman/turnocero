@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./InfoTooltip.module.css";
 
 // Ícono "i" outlined, estilo Feather — matchea PinIcon/LockIcon/EyeIcon del codebase.
@@ -44,9 +45,13 @@ const InfoIcon = ({ size = 17 }) => (
  */
 export default function InfoTooltip({
   children,
-  label = "Más información",
+  label,
   placement = "top",
 }) {
+  const { t } = useTranslation();
+  // El label por defecto ("Más información") se resuelve acá, no en el param,
+  // porque `t` no está disponible en la firma. Uno del caller gana.
+  const resolvedLabel = label ?? t("shared:infoTooltip.defaultLabel");
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef(null);
   const tooltipRef = useRef(null);
@@ -125,7 +130,7 @@ export default function InfoTooltip({
       <button
         type="button"
         className={styles.trigger}
-        aria-label={label}
+        aria-label={resolvedLabel}
         aria-expanded={open}
         onClick={(e) => {
           e.preventDefault();

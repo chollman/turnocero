@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -38,6 +39,7 @@ function writeState(next) {
 
 export default function PushPrompt() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { isSectionEnabled } = useSiteConfig();
   const { addToast } = useNotifications();
   const push = usePushNotifications();
@@ -85,15 +87,15 @@ export default function PushPrompt() {
     if (ok) {
       addToast({
         type: "success",
-        title: "¡Activadas!",
-        message: "Te vamos a avisar en este dispositivo.",
+        title: t("shared:pushPrompt.successTitle"),
+        message: t("shared:pushPrompt.successMessage"),
       });
       setHidden(true);
     } else {
       addToast({
         type: "error",
-        title: "No se pudo",
-        message: "Revisá los permisos de notificaciones del navegador.",
+        title: t("shared:pushPrompt.errorTitle"),
+        message: t("shared:pushPrompt.errorMessage"),
       });
     }
   };
@@ -102,18 +104,20 @@ export default function PushPrompt() {
     <div
       className={styles.prompt}
       role="dialog"
-      aria-label="Activar notificaciones"
+      aria-label={t("shared:pushPrompt.aria")}
     >
       <div className={styles.head}>
         <div className={styles.icon} aria-hidden="true">
           🔔
         </div>
         <div className={styles.body}>
-          <strong className={styles.title}>Activá las notificaciones</strong>
+          <strong className={styles.title}>
+            {t("shared:pushPrompt.title")}
+          </strong>
           <p className={styles.text}>
             {showInstall
-              ? "Instalá la app en tu pantalla de inicio (compartir → “Agregar a inicio”) para recibir avisos."
-              : "Enterate al toque cuando te escriban, te inviten o se acerque un evento — aunque tengas la app cerrada."}
+              ? t("shared:pushPrompt.installText")
+              : t("shared:pushPrompt.text")}
           </p>
         </div>
       </div>
@@ -125,11 +129,15 @@ export default function PushPrompt() {
             disabled={push.busy}
             onClick={activate}
           >
-            {push.busy ? "Activando…" : "Activar"}
+            {push.busy
+              ? t("shared:pushPrompt.activating")
+              : t("shared:pushPrompt.activate")}
           </button>
         )}
         <button type="button" className={styles.ghost} onClick={dismiss}>
-          {showInstall ? "Entendido" : "Ahora no"}
+          {showInstall
+            ? t("shared:pushPrompt.understood")
+            : t("shared:pushPrompt.notNow")}
         </button>
       </div>
     </div>

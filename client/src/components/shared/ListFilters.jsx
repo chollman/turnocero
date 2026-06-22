@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import styles from "./ListFilters.module.css";
 
 function FilterIcon({ size = 14 }) {
@@ -35,6 +36,7 @@ export default function ListFilters({
   hasDireccion = false,
   maxRadiusKm = 100,
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef(null);
   const triggerRef = useRef(null);
@@ -86,11 +88,13 @@ export default function ListFilters({
         aria-haspopup="dialog"
       >
         <FilterIcon />
-        <span>Filtros</span>
+        <span>{t("shared:listFilters.filters")}</span>
         {activeCount > 0 && (
           <span
             className={styles.badge}
-            aria-label={`${activeCount} filtros activos`}
+            aria-label={t("shared:listFilters.activeCount", {
+              count: activeCount,
+            })}
           >
             {activeCount}
           </span>
@@ -101,14 +105,16 @@ export default function ListFilters({
         <div
           className={styles.popover}
           role="dialog"
-          aria-label="Filtros de la lista"
+          aria-label={t("shared:listFilters.popoverAria")}
         >
           <div className={styles.section}>
-            <div className={styles.sectionTitle}>Estado</div>
+            <div className={styles.sectionTitle}>
+              {t("shared:listFilters.statusTitle")}
+            </div>
             <div
               className={styles.chips}
               role="group"
-              aria-label="Filtrar lista"
+              aria-label={t("shared:listFilters.filterListAria")}
             >
               {visibleChips.map((c) => (
                 <button
@@ -128,7 +134,9 @@ export default function ListFilters({
 
           {showDistance && (
             <div className={styles.section}>
-              <div className={styles.sectionTitle}>Distancia</div>
+              <div className={styles.sectionTitle}>
+                {t("shared:listFilters.distanceTitle")}
+              </div>
               <div className={styles.radiusLabel}>
                 <span className={styles.radiusIcon} aria-hidden="true">
                   📍
@@ -136,23 +144,29 @@ export default function ListFilters({
                 <span>
                   {hasDireccion ? (
                     radiusKm > 0 ? (
-                      <>
-                        Resultados a <strong>menos de {radiusKm} km</strong> de
-                        tu ubicación
-                      </>
+                      <Trans
+                        i18nKey="shared:listFilters.resultsWithin"
+                        values={{ radius: radiusKm }}
+                        components={[<span key="0" />, <strong key="1" />]}
+                      />
                     ) : (
-                      <>
-                        Filtrá por <strong>distancia</strong> desde tu ubicación
-                      </>
+                      <Trans
+                        i18nKey="shared:listFilters.filterByDistance"
+                        components={[<span key="0" />, <strong key="1" />]}
+                      />
                     )
                   ) : (
-                    <>
-                      Agregá tu dirección en{" "}
-                      <Link to="/perfil" className={styles.radiusInlineLink}>
-                        tu perfil
-                      </Link>{" "}
-                      para filtrar por distancia
-                    </>
+                    <Trans
+                      i18nKey="shared:listFilters.addAddress"
+                      components={[
+                        <span key="0" />,
+                        <Link
+                          key="1"
+                          to="/perfil"
+                          className={styles.radiusInlineLink}
+                        />,
+                      ]}
+                    />
                   )}
                 </span>
               </div>
@@ -162,7 +176,7 @@ export default function ListFilters({
                   className={styles.radiusStep}
                   onClick={() => setRadius(radiusKm - 1)}
                   disabled={!hasDireccion || radiusKm <= 0}
-                  aria-label="Disminuir radio 1 km"
+                  aria-label={t("shared:listFilters.decreaseRadius")}
                   title="−1 km"
                 >
                   −
@@ -176,11 +190,13 @@ export default function ListFilters({
                   onChange={(e) => onRadiusChange?.(Number(e.target.value))}
                   className={styles.radiusSlider}
                   disabled={!hasDireccion}
-                  aria-label="Radio máximo en kilómetros"
+                  aria-label={t("shared:listFilters.radiusAria")}
                   title={
                     hasDireccion
-                      ? `Radio: ${radiusKm || "Sin límite"}`
-                      : "Agregá tu dirección en el perfil para activar este filtro"
+                      ? t("shared:listFilters.radiusTitle", {
+                          value: radiusKm || t("shared:listFilters.noLimit"),
+                        })
+                      : t("shared:listFilters.radiusTitleDisabled")
                   }
                 />
                 <button
@@ -188,13 +204,15 @@ export default function ListFilters({
                   className={styles.radiusStep}
                   onClick={() => setRadius(radiusKm + 1)}
                   disabled={!hasDireccion || radiusKm >= maxRadiusKm}
-                  aria-label="Aumentar radio 1 km"
+                  aria-label={t("shared:listFilters.increaseRadius")}
                   title="+1 km"
                 >
                   +
                 </button>
                 <span className={styles.radiusValue}>
-                  {radiusKm > 0 ? `${radiusKm} km` : "Sin límite"}
+                  {radiusKm > 0
+                    ? `${radiusKm} km`
+                    : t("shared:listFilters.noLimit")}
                 </span>
               </div>
             </div>

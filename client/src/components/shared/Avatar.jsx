@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { getUserDisplay } from "../../utils/userDisplay";
 import {
   hashToBrandColor,
@@ -24,6 +25,7 @@ export {
 };
 
 export default function Avatar({ user, size = "md", className = "" }) {
+  const { t } = useTranslation();
   const display = getUserDisplay(user);
   const sizeClass = styles[`size_${size}`] || styles.size_md;
 
@@ -31,7 +33,7 @@ export default function Avatar({ user, size = "md", className = "" }) {
     return (
       <span
         className={`${styles.avatar} ${sizeClass} ${styles.deleted} ${className}`}
-        aria-label="Usuario eliminado"
+        aria-label={t("shared:avatar.deleted")}
       >
         <GhostIcon size={GHOST_SIZE[size] || GHOST_SIZE.md} />
       </span>
