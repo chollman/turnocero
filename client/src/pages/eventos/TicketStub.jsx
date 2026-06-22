@@ -1,5 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import ComprobanteDropzone from "./ComprobanteDropzone";
 import { dateParts, countdown, formatFee } from "../../utils/eventoDate";
 import {
@@ -11,13 +12,6 @@ import {
   RefreshIcon,
 } from "./EventoIcons";
 import styles from "./TicketStub.module.css";
-
-const STATUS_LABEL = {
-  open: "Abierto",
-  closed: "Cerrado",
-  cancelled: "Cancelado",
-  draft: "Borrador",
-};
 
 export default function TicketStub({
   evento,
@@ -39,6 +33,13 @@ export default function TicketStub({
   // su propio fallback al evaluar el delta temporal.
   now,
 }) {
+  const { t } = useTranslation("eventos");
+  const STATUS_LABEL = {
+    open: t("ticket.statusOpen"),
+    closed: t("ticket.statusClosed"),
+    cancelled: t("ticket.statusCancelled"),
+    draft: t("ticket.statusDraft"),
+  };
   const [showForm, setShowForm] = useState(false);
   const [comprobante, setComprobante] = useState(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -64,7 +65,7 @@ export default function TicketStub({
     // Validación local (no llega a la API): este mensaje SÍ vive inline
     // porque es feedback al campo de comprobante mientras se llena el form.
     if (!isFree && !comprobante) {
-      setLocalErr("Adjuntá el comprobante para continuar.");
+      setLocalErr(t("ticket.comprobanteRequired"));
       return;
     }
     setLocalErr("");
@@ -88,21 +89,28 @@ export default function TicketStub({
       <div className={styles.form}>
         {evento.conditions && (
           <div>
-            <div className={styles.formLabel}><Meeple />Condiciones</div>
+            <div className={styles.formLabel}>
+              <Meeple />
+              {t("ticket.formConditions")}
+            </div>
             <p className={styles.formText}>{evento.conditions}</p>
           </div>
         )}
         {!isFree && evento.transferDetails && (
           <div>
             <div className={styles.formLabel}>
-              <Meeple />Datos de transferencia · {formatFee(evento.fee)}
+              <Meeple />
+              {t("ticket.formTransferDetails", { fee: formatFee(evento.fee) })}
             </div>
             <div className={styles.transferBox}>{evento.transferDetails}</div>
           </div>
         )}
         {!isFree && (
           <div>
-            <div className={styles.formLabel}><Meeple />Comprobante *</div>
+            <div className={styles.formLabel}>
+              <Meeple />
+              {t("ticket.formComprobante")}
+            </div>
             <ComprobanteDropzone file={comprobante} onFile={setComprobante} />
           </div>
         )}
@@ -118,7 +126,7 @@ export default function TicketStub({
             }}
             disabled={inscribing}
           >
-            Cancelar
+            {t("ticket.formCancel")}
           </button>
           <button
             className={styles.cta}
@@ -126,7 +134,7 @@ export default function TicketStub({
             onClick={handleSubmit}
             disabled={inscribing || (!isFree && !comprobante)}
           >
-            {inscribing ? "Enviando…" : "Confirmar"}
+            {inscribing ? t("ticket.sending") : t("ticket.confirm")}
           </button>
         </div>
       </div>
@@ -136,7 +144,10 @@ export default function TicketStub({
   return (
     <div className={styles.stub}>
       <div className={styles.top}>
-        <div className={styles.label}><Meeple />Marcá la fecha</div>
+        <div className={styles.label}>
+          <Meeple />
+          {t("ticket.markDate")}
+        </div>
         {d && (
           <div className={styles.dateBlock}>
             <span className={styles.day}>{d.day}</span>
@@ -148,7 +159,9 @@ export default function TicketStub({
             </div>
           </div>
         )}
-        {d && <div className={styles.time}>⏱ {d.time} hs (hora local)</div>}
+        {d && (
+          <div className={styles.time}>{t("ticket.time", { time: d.time })}</div>
+        )}
         {!isPast && evento.status === "open" && cd.text && (
           <div
             className={`${styles.countdown} ${styles[`countdown_${cd.tone}`] || ""}`}
@@ -169,7 +182,7 @@ export default function TicketStub({
 
       <div className={styles.bottom}>
         <div className={styles.rowItem}>
-          <span className={styles.rowLabel}>Inscripción</span>
+          <span className={styles.rowLabel}>{t("ticket.feeLabel")}</span>
           <span
             className={`${styles.rowValue} ${isFree ? styles.rowValueFree : ""}`}
           >
@@ -177,7 +190,7 @@ export default function TicketStub({
           </span>
         </div>
         <div className={styles.rowItem}>
-          <span className={styles.rowLabel}>Cupo</span>
+          <span className={styles.rowLabel}>{t("ticket.cupoLabel")}</span>
           <span className={styles.rowValue}>
             {hasMax ? (
               <>
@@ -187,7 +200,7 @@ export default function TicketStub({
                 </span>
               </>
             ) : (
-              `${participants} · sin límite`
+              t("ticket.cupoUnlimited", { participants })
             )}
           </span>
         </div>
@@ -200,7 +213,7 @@ export default function TicketStub({
           </div>
         )}
         <div className={styles.rowItem}>
-          <span className={styles.rowLabel}>Estado</span>
+          <span className={styles.rowLabel}>{t("ticket.statusLabel")}</span>
           <span className={`${styles.rowValue} ${styles.rowValueAccent}`}>
             {STATUS_LABEL[evento.status] || evento.status}
           </span>
@@ -215,12 +228,19 @@ export default function TicketStub({
                   onClick={onOpenInscripciones}
                   type="button"
                 >
-                  Gestionar inscripciones
-                  {pendingCount > 0 ? ` · ${pendingCount} pendientes` : ""}
+                  {t("ticket.manageRegistrations")}
+                  {pendingCount > 0
+                    ? t("ticket.manageRegistrationsPending", {
+                        count: pendingCount,
+                      })
+                    : ""}
                 </button>
               )}
               <div className={styles.adminBlock}>
-                <div className={styles.adminTitle}><Meeple />Acciones de host</div>
+                <div className={styles.adminTitle}>
+                  <Meeple />
+                  {t("ticket.hostActions")}
+                </div>
                 <div className={styles.adminActions}>
                   {onEdit && (
                     <button
@@ -229,7 +249,7 @@ export default function TicketStub({
                       onClick={onEdit}
                     >
                       <EditIcon size={11} />
-                      &nbsp;Editar
+                      &nbsp;{t("ticket.edit")}
                     </button>
                   )}
                   {evento.status === "cancelled" && onReopen ? (
@@ -239,7 +259,7 @@ export default function TicketStub({
                       onClick={onReopen}
                     >
                       <RefreshIcon size={11} />
-                      &nbsp;Reabrir
+                      &nbsp;{t("ticket.reopen")}
                     </button>
                   ) : (onDelete || onCancelEvent) && !confirmDelete ? (
                     <button
@@ -248,14 +268,14 @@ export default function TicketStub({
                       onClick={() => setConfirmDelete(true)}
                     >
                       <TrashIcon size={11} />
-                      &nbsp;Cancelar
+                      &nbsp;{t("ticket.cancel")}
                     </button>
                   ) : null}
                 </div>
                 {confirmDelete && (
                   <div className={styles.confirmRow}>
                     <span className={styles.confirmText}>
-                      ¿Cancelar este evento?
+                      {t("ticket.confirmCancelEvent")}
                     </span>
                     <button
                       className={`${styles.adminBtn} ${styles.adminBtnConfirm}`}
@@ -265,14 +285,14 @@ export default function TicketStub({
                       }}
                       type="button"
                     >
-                      Sí
+                      {t("ticket.yes")}
                     </button>
                     <button
                       className={styles.adminBtn}
                       onClick={() => setConfirmDelete(false)}
                       type="button"
                     >
-                      No
+                      {t("ticket.no")}
                     </button>
                   </div>
                 )}
@@ -284,23 +304,27 @@ export default function TicketStub({
               type="button"
               onClick={onLoginRequest}
             >
-              Iniciá sesión para inscribirte
+              {t("ticket.loginToRegister")}
             </button>
           ) : status === "confirmed" ? (
             <div className={`${styles.state} ${styles.stateConfirmed}`}>
               <CheckIcon size={20} />
               <span className={styles.stateTitle}>
-                ¡Inscripción confirmada!
+                {t("ticket.confirmedTitle")}
               </span>
-              <span className={styles.stateSub}>Tu lugar está reservado</span>
+              <span className={styles.stateSub}>
+                {t("ticket.confirmedSub")}
+              </span>
             </div>
           ) : status === "pending" ? (
             <>
               <div className={`${styles.state} ${styles.statePending}`}>
                 <ClockIcon size={20} />
-                <span className={styles.stateTitle}>Pendiente de revisión</span>
+                <span className={styles.stateTitle}>
+                  {t("ticket.pendingTitle")}
+                </span>
                 <span className={styles.stateSub}>
-                  El admin revisará tu comprobante
+                  {t("ticket.pendingSub")}
                 </span>
               </div>
               {userRegistration?.comprobante?.url && (
@@ -310,7 +334,7 @@ export default function TicketStub({
                   rel="noopener noreferrer"
                   className={styles.ghostBtn}
                 >
-                  Ver comprobante enviado
+                  {t("ticket.viewSentComprobante")}
                 </a>
               )}
               {!confirmCancel ? (
@@ -319,12 +343,12 @@ export default function TicketStub({
                   type="button"
                   onClick={() => setConfirmCancel(true)}
                 >
-                  Cancelar inscripción
+                  {t("ticket.cancelRegistration")}
                 </button>
               ) : (
                 <div className={styles.confirmRow}>
                   <span className={styles.confirmText}>
-                    ¿Cancelar tu inscripción?
+                    {t("ticket.confirmCancelRegistration")}
                   </span>
                   <button
                     className={`${styles.adminBtn} ${styles.adminBtnConfirm}`}
@@ -335,14 +359,14 @@ export default function TicketStub({
                     }}
                     disabled={cancellingReg}
                   >
-                    {cancellingReg ? "…" : "Sí"}
+                    {cancellingReg ? "…" : t("ticket.yes")}
                   </button>
                   <button
                     className={styles.adminBtn}
                     type="button"
                     onClick={() => setConfirmCancel(false)}
                   >
-                    No
+                    {t("ticket.no")}
                   </button>
                 </div>
               )}
@@ -353,13 +377,13 @@ export default function TicketStub({
                 <XIcon size={20} />
                 <span className={styles.stateTitle}>
                   {userRegistration?.permanentlyRejected
-                    ? "Inscripción rechazada permanentemente"
-                    : "Inscripción rechazada"}
+                    ? t("ticket.rejectedPermanentTitle")
+                    : t("ticket.rejectedTitle")}
                 </span>
                 <span className={styles.stateSub}>
                   {userRegistration?.permanentlyRejected
-                    ? "El organizador te bloqueó del evento. No podés volver a intentar."
-                    : "Podés volver a enviar tu comprobante"}
+                    ? t("ticket.rejectedPermanentSub")
+                    : t("ticket.rejectedSub")}
                 </span>
                 {userRegistration?.adminNotes && (
                   <span className={styles.stateSub}>
@@ -379,26 +403,28 @@ export default function TicketStub({
                       setLocalErr("");
                     }}
                   >
-                    Volver a intentar{" "}
-                    {isFree ? "· Gratis" : `· ${formatFee(evento.fee)}`}
+                    {t("ticket.retry")}
+                    {isFree
+                      ? t("ticket.free")
+                      : t("ticket.feeSuffix", { fee: formatFee(evento.fee) })}
                   </button>
                 ))}
             </>
           ) : evento.status === "cancelled" ? (
             <button className={styles.ghostBtn} disabled type="button">
-              Evento cancelado
+              {t("ticket.eventCancelled")}
             </button>
           ) : evento.status === "closed" ? (
             <button className={styles.ghostBtn} disabled type="button">
-              Inscripciones cerradas
+              {t("ticket.registrationsClosed")}
             </button>
           ) : evento.status === "draft" ? (
             <button className={styles.ghostBtn} disabled type="button">
-              Aún no publicado
+              {t("ticket.notPublished")}
             </button>
           ) : isFull ? (
             <button className={styles.ghostBtn} disabled type="button">
-              Sin cupo disponible
+              {t("ticket.noCupo")}
             </button>
           ) : showForm ? (
             inscriptionForm
@@ -408,13 +434,16 @@ export default function TicketStub({
               type="button"
               onClick={() => setShowForm(true)}
             >
-              Inscribirme {isFree ? "· Gratis" : `· ${formatFee(evento.fee)}`}
+              {t("ticket.inscribirme")}
+              {isFree
+                ? t("ticket.free")
+                : t("ticket.feeSuffix", { fee: formatFee(evento.fee) })}
             </button>
           )}
 
           {status === "confirmed" && evento.transferDetails && (
             <details className={styles.transferDetails}>
-              <summary>Ver datos de transferencia</summary>
+              <summary>{t("ticket.viewTransferDetails")}</summary>
               <div className={styles.transferBox}>{evento.transferDetails}</div>
             </details>
           )}

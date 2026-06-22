@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import i18n from "../../i18n";
 import PosterCard from "./PosterCard";
 
 function makeEvento(overrides = {}) {
@@ -172,5 +173,19 @@ describe("<PosterCard>", () => {
     // El displayName reemplaza completamente el formato city.
     expect(screen.getByText("Bar de Pepe")).toBeInTheDocument();
     expect(screen.queryByText("San Martín")).not.toBeInTheDocument();
+  });
+
+  describe("i18n (en)", () => {
+    afterEach(async () => {
+      await i18n.changeLanguage("es");
+    });
+
+    it("renders English CTA when language is en", async () => {
+      await i18n.changeLanguage("en");
+      renderCard({ event: { status: "open" }, isHost: false });
+      // CTA por defecto: "Inscribirme" / "Sign up".
+      expect(screen.getByText(/Sign up/)).toBeInTheDocument();
+      expect(screen.queryByText("Inscribirme")).not.toBeInTheDocument();
+    });
   });
 });

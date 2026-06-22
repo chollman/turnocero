@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
@@ -25,11 +26,11 @@ import { ImageIcon } from "./EventoIcons";
 import BackButton from "../../components/shared/BackButton";
 import styles from "./EventoDetail.module.css";
 
-const STATUS_EYEBROW = {
-  open: "Inscripciones abiertas",
-  closed: "Inscripciones cerradas",
-  cancelled: "Evento cancelado",
-  draft: "Borrador · no visible",
+const STATUS_EYEBROW_KEYS = {
+  open: "detail.eyebrowOpen",
+  closed: "detail.eyebrowClosed",
+  cancelled: "detail.eyebrowCancelled",
+  draft: "detail.eyebrowDraft",
 };
 
 // Tabs válidos. Defaults a 'detalle' (vista actual). El estado se sincroniza
@@ -37,6 +38,7 @@ const STATUS_EYEBROW = {
 const VALID_TABS = ["detalle", "ludoteca", "mesas"];
 
 export default function EventoDetail() {
+  const { t } = useTranslation("eventos");
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -308,8 +310,9 @@ export default function EventoDetail() {
     } catch (err) {
       addToast({
         type: "error",
-        title: "No pudimos enviar tu inscripción",
-        message: err.response?.data?.message || "Reintentá en unos segundos.",
+        title: t("detail.inscribirseErrorTitle"),
+        message:
+          err.response?.data?.message || t("detail.inscribirseErrorMessage"),
       });
       throw err;
     } finally {
@@ -331,8 +334,9 @@ export default function EventoDetail() {
     } catch (err) {
       addToast({
         type: "error",
-        title: "No pudimos cancelar tu inscripción",
-        message: err.response?.data?.message || "Reintentá en unos segundos.",
+        title: t("detail.cancelRegErrorTitle"),
+        message:
+          err.response?.data?.message || t("detail.cancelRegErrorMessage"),
       });
     } finally {
       setCancellingReg(false);
@@ -378,8 +382,9 @@ export default function EventoDetail() {
     } catch (err) {
       addToast({
         type: "error",
-        title: "No pudimos guardar los cambios",
-        message: err.response?.data?.message || "Reintentá en unos segundos.",
+        title: t("detail.saveEditErrorTitle"),
+        message:
+          err.response?.data?.message || t("detail.saveEditErrorMessage"),
       });
       throw err;
     } finally {
@@ -400,8 +405,9 @@ export default function EventoDetail() {
     } catch (err) {
       addToast({
         type: "error",
-        title: "No pudimos cancelar el evento",
-        message: err.response?.data?.message || "Reintentá en unos segundos.",
+        title: t("detail.cancelEventErrorTitle"),
+        message:
+          err.response?.data?.message || t("detail.cancelEventErrorMessage"),
       });
     }
   }
@@ -422,7 +428,7 @@ export default function EventoDetail() {
       title: `${evento.title} – ${brandName}`,
       text: evento.description
         ? evento.description.slice(0, 200)
-        : `Sumate a este evento en ${brandName}.`,
+        : t("detail.shareText", { brand: brandName }),
       url,
     };
     try {
@@ -439,14 +445,14 @@ export default function EventoDetail() {
       await navigator.clipboard.writeText(url);
       addToast({
         type: "error",
-        title: "Link copiado",
-        message: "Pegá el enlace del evento donde quieras compartirlo.",
+        title: t("detail.shareLinkCopiedTitle"),
+        message: t("detail.shareLinkCopiedMessage"),
       });
     } catch {
       addToast({
         type: "error",
-        title: "No pudimos compartir",
-        message: "Copiá el link manualmente desde la barra de direcciones.",
+        title: t("detail.shareErrorTitle"),
+        message: t("detail.shareErrorMessage"),
       });
     }
   }
@@ -462,8 +468,9 @@ export default function EventoDetail() {
     } catch (err) {
       addToast({
         type: "error",
-        title: "No pudimos reabrir el evento",
-        message: err.response?.data?.message || "Reintentá en unos segundos.",
+        title: t("detail.reopenEventErrorTitle"),
+        message:
+          err.response?.data?.message || t("detail.reopenEventErrorMessage"),
       });
     }
   }
@@ -514,9 +521,11 @@ export default function EventoDetail() {
             <Meeple />
             404
           </p>
-          <h1 className={styles.notFoundTitle}>Evento no encontrado</h1>
+          <h1 className={styles.notFoundTitle}>
+            {t("detail.notFoundTitle")}
+          </h1>
           <Link to="/eventos" className={styles.notFoundLink}>
-            ← Volver a eventos
+            {t("detail.notFoundLink")}
           </Link>
         </div>
       </div>
@@ -568,11 +577,17 @@ export default function EventoDetail() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{`${evento.title} — ${brandName}`}</title>
+        <title>
+          {t("detail.metaTitle", {
+            title: evento.title,
+            brand: brandName,
+          })}
+        </title>
         <meta
           name="description"
           content={
-            evento.description?.slice(0, 160) || `Evento: ${evento.title}`
+            evento.description?.slice(0, 160) ||
+            t("detail.metaDescription", { title: evento.title })
           }
         />
       </Helmet>
@@ -580,7 +595,7 @@ export default function EventoDetail() {
       <Modal
         isOpen={!!lightbox && !!evento.image?.url}
         onClose={() => setLightbox(false)}
-        ariaLabel={`Imagen ampliada: ${evento.title}`}
+        ariaLabel={t("detail.lightboxAria", { title: evento.title })}
         backdropClassName={styles.lightbox}
         className={styles.lightboxContent}
       >
@@ -588,7 +603,7 @@ export default function EventoDetail() {
           className={styles.lightboxClose}
           onClick={() => setLightbox(false)}
           type="button"
-          aria-label="Cerrar imagen"
+          aria-label={t("detail.closeImage")}
         >
           ✕
         </button>
@@ -605,13 +620,13 @@ export default function EventoDetail() {
 
       <LoginPromptModal
         isOpen={showLoginPrompt}
-        message="Iniciá sesión para inscribirte en este evento"
+        message={t("detail.loginPrompt")}
         onClose={() => setShowLoginPrompt(false)}
       />
 
       <div className={styles.headerRow}>
         <BackButton to="/eventos" flush>
-          Volver a eventos
+          {t("detail.back")}
         </BackButton>
         {(evento.status !== "draft" && evento.status !== "cancelled") ||
         canCompartirExperiencia ? (
@@ -621,7 +636,7 @@ export default function EventoDetail() {
                 type="button"
                 onClick={() => navigate(`/compartidas?evento=${id}`)}
                 className={styles.shareBtn}
-                aria-label="Compartir tu experiencia en este evento"
+                aria-label={t("detail.shareExperienceAria")}
               >
                 <svg
                   width="13"
@@ -638,7 +653,7 @@ export default function EventoDetail() {
                   <circle cx="8.5" cy="8.5" r="1.5" />
                   <polyline points="21 15 16 10 5 21" />
                 </svg>
-                Compartir tu experiencia
+                {t("detail.shareExperience")}
               </button>
             )}
             {evento.status !== "draft" && evento.status !== "cancelled" && (
@@ -646,7 +661,7 @@ export default function EventoDetail() {
                 type="button"
                 onClick={handleShare}
                 className={styles.shareBtn}
-                aria-label="Compartir evento"
+                aria-label={t("detail.shareAria")}
               >
                 <svg
                   width="13"
@@ -665,7 +680,7 @@ export default function EventoDetail() {
                   <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
                   <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
                 </svg>
-                Compartir
+                {t("detail.share")}
               </button>
             )}
           </div>
@@ -678,7 +693,7 @@ export default function EventoDetail() {
             <nav
               className={styles.tabs}
               role="tablist"
-              aria-label="Secciones del evento"
+              aria-label={t("detail.tabsAria")}
             >
               <button
                 type="button"
@@ -687,7 +702,7 @@ export default function EventoDetail() {
                 className={`${styles.tab} ${activeTab === "detalle" ? styles.tabActive : ""}`}
                 onClick={() => setActiveTab("detalle")}
               >
-                Detalle
+                {t("detail.tabDetalle")}
               </button>
               <button
                 type="button"
@@ -696,7 +711,7 @@ export default function EventoDetail() {
                 className={`${styles.tab} ${activeTab === "ludoteca" ? styles.tabActive : ""}`}
                 onClick={() => setActiveTab("ludoteca")}
               >
-                Ludoteca
+                {t("detail.tabLudoteca")}
                 {ludotecaCount > 0 && (
                   <span className={styles.tabBadge}>{ludotecaCount}</span>
                 )}
@@ -708,7 +723,7 @@ export default function EventoDetail() {
                 className={`${styles.tab} ${activeTab === "mesas" ? styles.tabActive : ""}`}
                 onClick={() => setActiveTab("mesas")}
               >
-                Mesas
+                {t("detail.tabMesas")}
                 {mesasCount > 0 && (
                   <span className={styles.tabBadge}>{mesasCount}</span>
                 )}
@@ -764,7 +779,7 @@ export default function EventoDetail() {
                           type="button"
                           className={styles.heroBtn}
                           onClick={() => setLightbox(true)}
-                          aria-label="Ver imagen ampliada"
+                          aria-label={t("detail.viewLargeImage")}
                         >
                           <img
                             src={evento.image.url}
@@ -777,7 +792,11 @@ export default function EventoDetail() {
                         <div className={styles.heroFallback}>
                           <div className={styles.heroFallbackInner}>
                             <ImageIcon size={48} />
-                            <span>imagen del evento · {evento.title}</span>
+                            <span>
+                              {t("detail.fallbackImage", {
+                                title: evento.title,
+                              })}
+                            </span>
                           </div>
                         </div>
                       )}
@@ -785,32 +804,38 @@ export default function EventoDetail() {
 
                     <div className={styles.titleBlock}>
                       <div className={styles.eyebrow}>
-                        {STATUS_EYEBROW[evento.status] || ""}
+                        {STATUS_EYEBROW_KEYS[evento.status]
+                          ? t(STATUS_EYEBROW_KEYS[evento.status])
+                          : ""}
                       </div>
                       <h1 className={styles.title}>{evento.title}</h1>
                     </div>
 
                     <div className={styles.metaStrip}>
                       <div className={styles.metaCell}>
-                        <span className={styles.metaLabel}>Cuándo</span>
+                        <span className={styles.metaLabel}>
+                          {t("detail.metaWhen")}
+                        </span>
                         <span className={styles.metaValue}>
                           {d
                             ? `${d.weekdayLong} ${d.day} ${d.monthLong}`
-                            : "A confirmar"}
+                            : t("detail.metaWhenTbd")}
                         </span>
                         {d && (
                           <span
                             className={`${styles.metaValue} ${styles.metaTime}`}
                           >
-                            {d.time} hs
+                            {t("detail.metaTime", { time: d.time })}
                           </span>
                         )}
                       </div>
                       <div className={styles.metaCell}>
-                        <span className={styles.metaLabel}>Dónde</span>
+                        <span className={styles.metaLabel}>
+                          {t("detail.metaWhere")}
+                        </span>
                         <span className={styles.metaValue}>
                           {(() => {
-                            const t =
+                            const tt =
                               typeof evento.location === "string"
                                 ? evento.location
                                 : evento.location?.texto || "";
@@ -823,8 +848,8 @@ export default function EventoDetail() {
                               "regular",
                             );
                             return (
-                              <span title={t}>
-                                {display || "Por confirmar"}
+                              <span title={tt}>
+                                {display || t("detail.metaWhereTbd")}
                               </span>
                             );
                           })()}
@@ -841,7 +866,9 @@ export default function EventoDetail() {
                         </span>
                       </div>
                       <div className={styles.metaCell}>
-                        <span className={styles.metaLabel}>Inscripción</span>
+                        <span className={styles.metaLabel}>
+                          {t("detail.metaFee")}
+                        </span>
                         <span
                           className={`${styles.metaValue} ${isFree ? styles.metaValueFree : ""}`}
                         >
@@ -849,11 +876,18 @@ export default function EventoDetail() {
                         </span>
                       </div>
                       <div className={styles.metaCell}>
-                        <span className={styles.metaLabel}>Cupo</span>
+                        <span className={styles.metaLabel}>
+                          {t("detail.metaCupo")}
+                        </span>
                         <span className={styles.metaValue}>
                           {hasMax
-                            ? `${activeCount} de ${evento.maxParticipants}`
-                            : `${activeCount} inscriptos`}
+                            ? t("detail.cupoOf", {
+                                active: activeCount,
+                                max: evento.maxParticipants,
+                              })
+                            : t("detail.cupoInscriptos", {
+                                active: activeCount,
+                              })}
                         </span>
                       </div>
                     </div>
@@ -863,7 +897,7 @@ export default function EventoDetail() {
                         <div className={styles.sectionHead}>
                           <span className={styles.sectionLabel}>
                             <Meeple />
-                            Descripción
+                            {t("detail.sectionDescription")}
                           </span>
                           <span className={styles.sectionRule} />
                         </div>
@@ -876,7 +910,7 @@ export default function EventoDetail() {
                         <div className={styles.sectionHead}>
                           <span className={styles.sectionLabel}>
                             <Meeple />
-                            Condiciones
+                            {t("detail.sectionConditions")}
                           </span>
                           <span className={styles.sectionRule} />
                         </div>
@@ -889,7 +923,7 @@ export default function EventoDetail() {
                         <div className={styles.sectionHead}>
                           <span className={styles.sectionLabel}>
                             <Meeple />
-                            Organiza
+                            {t("detail.sectionOrganiza")}
                           </span>
                           <span className={styles.sectionRule} />
                         </div>
@@ -897,7 +931,7 @@ export default function EventoDetail() {
                           <Avatar user={evento.author} size="xl" />
                           <div className={styles.hostCardDetails}>
                             <div className={styles.hostCardLabel}>
-                              Host del evento
+                              {t("detail.hostLabel")}
                             </div>
                             <div className={styles.hostCardName}>
                               {authorDisplay.name}
@@ -913,7 +947,7 @@ export default function EventoDetail() {
                               to={`/usuarios/${evento.author._id}`}
                               className={styles.hostCardLink}
                             >
-                              Ver perfil
+                              {t("detail.viewProfile")}
                             </Link>
                           )}
                         </div>
@@ -925,8 +959,9 @@ export default function EventoDetail() {
                         <div className={styles.sectionHead}>
                           <span className={styles.sectionLabel}>
                             <Meeple />
-                            Inscriptos confirmados ·{" "}
-                            {evento.confirmedRegistrations.length}
+                            {t("detail.confirmedTitle", {
+                              count: evento.confirmedRegistrations.length,
+                            })}
                           </span>
                           <span className={styles.sectionRule} />
                         </div>

@@ -1,5 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
@@ -29,6 +30,7 @@ export default function EventoLudoteca({
   setItems: setItemsProp,
   canAdd = false,
 }) {
+  const { t } = useTranslation("eventos");
   const { user } = useAuth();
   const { addToast } = useNotifications();
 
@@ -82,7 +84,9 @@ export default function EventoLudoteca({
 
   const handleDelete = async (item) => {
     if (deletingId) return;
-    const ok = window.confirm(`¿Quitar "${item.gameName}" de la ludoteca?`);
+    const ok = window.confirm(
+      t("ludoteca.confirmRemove", { game: item.gameName }),
+    );
     if (!ok) return;
     setDeletingId(item._id);
     try {
@@ -91,8 +95,9 @@ export default function EventoLudoteca({
     } catch (err) {
       addToast({
         type: "error",
-        title: "Error",
-        message: err.response?.data?.message || "No pudimos quitar el juego.",
+        title: t("ludoteca.removeErrorTitle"),
+        message:
+          err.response?.data?.message || t("ludoteca.removeErrorMessage"),
       });
     } finally {
       setDeletingId(null);
@@ -108,18 +113,18 @@ export default function EventoLudoteca({
   };
 
   if (items == null) {
-    return <div className={styles.dim}>Cargando ludoteca…</div>;
+    return <div className={styles.dim}>{t("ludoteca.loading")}</div>;
   }
 
   return (
     <div className={styles.wrap}>
       <header className={styles.header}>
         <div>
-          <h3 className={styles.title}>Ludoteca del evento</h3>
+          <h3 className={styles.title}>{t("ludoteca.title")}</h3>
           <p className={styles.subtitle}>
             {items.length === 0
-              ? "Todavía no hay juegos. Agregá los que vas a llevar."
-              : `${items.length} ${items.length === 1 ? "juego" : "juegos"} aportado${items.length === 1 ? "" : "s"} por la comunidad.`}
+              ? t("ludoteca.subtitleEmpty")
+              : t("ludoteca.subtitle", { count: items.length })}
           </p>
         </div>
         {canAdd && (
@@ -128,18 +133,18 @@ export default function EventoLudoteca({
             className={styles.addBtn}
             onClick={() => setPickerOpen(true)}
           >
-            + Agregar juego
+            {t("ludoteca.addBtn")}
           </button>
         )}
       </header>
 
       {items.length === 0 ? (
         <div className={styles.empty}>
-          <span className={styles.emptyDot}><Meeple /></span>
+          <span className={styles.emptyDot}>
+            <Meeple />
+          </span>
           <p className={styles.emptyText}>
-            {canAdd
-              ? "Sé el primero en sumar un juego a la ludoteca."
-              : "Sólo los inscriptos confirmados pueden agregar juegos."}
+            {canAdd ? t("ludoteca.emptyCanAdd") : t("ludoteca.emptyCannotAdd")}
           </p>
         </div>
       ) : (
@@ -156,7 +161,9 @@ export default function EventoLudoteca({
                     target="_blank"
                     rel="noopener noreferrer"
                     className={styles.thumbLink}
-                    aria-label={`Ver ${item.gameName} en BoardGameGeek`}
+                    aria-label={t("ludoteca.viewOnBgg", {
+                      game: item.gameName,
+                    })}
                   >
                     {item.image || item.thumbnail ? (
                       <img
@@ -208,8 +215,11 @@ export default function EventoLudoteca({
                         <>
                           {" · "}
                           {item.minPlayers === item.maxPlayers
-                            ? `${item.minPlayers} jug.`
-                            : `${item.minPlayers}-${item.maxPlayers} jug.`}
+                            ? t("ludoteca.players", { count: item.minPlayers })
+                            : t("ludoteca.playersRange", {
+                                min: item.minPlayers,
+                                max: item.maxPlayers,
+                              })}
                         </>
                       )}
                     </div>
@@ -242,7 +252,9 @@ export default function EventoLudoteca({
                     className={styles.removeBtn}
                     onClick={() => handleDelete(item)}
                     disabled={deletingId === item._id}
-                    aria-label={`Quitar ${item.gameName}`}
+                    aria-label={t("ludoteca.removeAria", {
+                      game: item.gameName,
+                    })}
                   >
                     ×
                   </button>
