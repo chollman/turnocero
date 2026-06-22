@@ -465,4 +465,22 @@ describe("<TableCard> list mode", () => {
     const cta = screen.getByRole("button", { name: /mesa llena/i });
     expect(cta).toBeDisabled();
   });
+
+  it("renders the game thumbnail (real image) in list mode", () => {
+    const { container } = renderList(
+      makeTable({ bggImage: "https://cdn/catan.jpg" }),
+    );
+    const thumb = container.querySelector(".rowThumb");
+    expect(thumb).toBeTruthy();
+    const img = thumb.querySelector("img");
+    expect(img).toHaveAttribute("src", "https://cdn/catan.jpg");
+  });
+
+  it("renders a generated tile thumbnail when the table has no bggImage", () => {
+    const { container } = renderList(makeTable());
+    const thumb = container.querySelector(".rowThumb");
+    expect(thumb).toBeTruthy();
+    // Sin imagen real, MesaTile genera un mosaico SVG determinístico.
+    expect(thumb.querySelector("svg")).toBeTruthy();
+  });
 });
