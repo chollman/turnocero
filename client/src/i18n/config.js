@@ -9,7 +9,15 @@ export const DEFAULT_LANG = "es";
 // Namespaces = un archivo JSON por dominio bajo resources/<lang>/. Se van
 // sumando a medida que se migra cada sección (mesas, torneos, …). `common` es
 // el default namespace (keys sin prefijo `ns:` resuelven acá).
-export const NAMESPACES = ["common", "auth", "notifs", "time", "dates", "enums"];
+export const NAMESPACES = [
+  "common",
+  "auth",
+  "notifs",
+  "time",
+  "dates",
+  "enums",
+  "quotes",
+];
 export const DEFAULT_NS = "common";
 
 // Mapea el código interno (`es`/`en`) al valor del atributo <html lang> para
