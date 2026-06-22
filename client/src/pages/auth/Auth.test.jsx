@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import i18n from "../../i18n";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
@@ -339,6 +340,24 @@ describe("<Auth> — register mode", () => {
     const input = screen.getByPlaceholderText("BlackwatchGames");
     fireEvent.change(input, { target: { value: "Cami Rossi" } });
     expect(input.value).toBe("CamiRossi");
+  });
+});
+
+describe("<Auth> — i18n (English)", () => {
+  afterEach(() => {
+    i18n.changeLanguage("es");
+  });
+
+  it("renders English login copy when the language is set to en", () => {
+    i18n.changeLanguage("en");
+    renderAuth("login");
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.find((t) => t.textContent === "Log in")).toBeTruthy();
+    expect(screen.getByText("Welcome back")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("username or you@email.com"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /log in/i })).toBeInTheDocument();
   });
 });
 

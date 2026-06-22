@@ -6,6 +6,7 @@ import {
   useLocation,
   useSearchParams,
 } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import GameTile from "../../components/shared/GameTile";
 import Logo from "../../components/shared/Logo";
@@ -19,6 +20,7 @@ import { useBrandName } from "../../hooks/useBrandName";
 const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function VerifyEmail() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -65,13 +67,11 @@ export default function VerifyEmail() {
     e.preventDefault();
     setError("");
     if (!email) {
-      setError(
-        "Necesitamos tu email. Volvé a crear la cuenta o iniciá sesión.",
-      );
+      setError(t("auth:verify.errEmailMissing"));
       return;
     }
     if (code.length !== 6) {
-      setError("El código tiene 6 dígitos.");
+      setError(t("auth:verify.errCodeLength"));
       return;
     }
     setLoading(true);
@@ -80,7 +80,7 @@ export default function VerifyEmail() {
       sessionStorage.removeItem(STORAGE_KEYS.PENDING_VERIFY_EMAIL);
       navigate("/");
     } catch (err) {
-      setError(getErrorMessage(err, "No pudimos verificar tu email."));
+      setError(getErrorMessage(err, t("auth:verify.errVerifyFallback")));
     } finally {
       setLoading(false);
     }
@@ -90,18 +90,16 @@ export default function VerifyEmail() {
     setError("");
     setSuccess("");
     if (!email) {
-      setError("Necesitamos tu email para reenviar el código.");
+      setError(t("auth:verify.errResendMissing"));
       return;
     }
     setResending(true);
     try {
       await requestEmailVerification(email);
-      setSuccess(
-        "Si la cuenta existe y no está verificada, te enviamos un código nuevo.",
-      );
+      setSuccess(t("auth:verify.resendSuccess"));
       setCooldown(RESEND_COOLDOWN_SECONDS);
     } catch (err) {
-      setError(getErrorMessage(err, "No pudimos reenviar el código."));
+      setError(getErrorMessage(err, t("auth:verify.errResendFallback")));
     } finally {
       setResending(false);
     }
@@ -132,20 +130,19 @@ export default function VerifyEmail() {
 
         <div className={styles.eyebrow}>
           <Meeple />
-          VERIFICÁ TU EMAIL
+          {t("auth:verify.eyebrow")}
         </div>
-        <h1 className={styles.heading}>Un último paso.</h1>
+        <h1 className={styles.heading}>{t("auth:verify.heading")}</h1>
         <p className={styles.sub}>
-          Te enviamos un código de 6 dígitos
           {maskedEmail ? (
-            <>
-              {" "}
-              a <strong>{maskedEmail}</strong>
-            </>
+            <Trans
+              i18nKey="auth:verify.sub"
+              values={{ email: maskedEmail }}
+              components={[<span key="0" />, <strong key="1" />]}
+            />
           ) : (
-            ""
+            t("auth:verify.subNoEmail")
           )}
-          .
         </p>
 
         {error && <div className={styles.errorBox}>{error}</div>}
@@ -155,7 +152,7 @@ export default function VerifyEmail() {
           {!stateEmail && !queryEmail && (
             <div className={styles.field}>
               <label className={styles.label} htmlFor="verify-email">
-                Email
+                {t("auth:emailLabel")}
               </label>
               <input
                 id="verify-email"
@@ -163,7 +160,7 @@ export default function VerifyEmail() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={styles.input}
-                placeholder="tu@email.com"
+                placeholder={t("auth:emailPlaceholder")}
                 required
               />
             </div>
@@ -171,7 +168,7 @@ export default function VerifyEmail() {
 
           <div className={styles.field}>
             <label className={styles.label} htmlFor="verify-code">
-              Código
+              {t("auth:verify.codeLabel")}
             </label>
             <input
               id="verify-code"
@@ -194,10 +191,10 @@ export default function VerifyEmail() {
             disabled={loading || code.length !== 6}
           >
             {loading ? (
-              "Verificando…"
+              t("auth:verify.submitting")
             ) : (
               <>
-                <span>✓</span> Verificar
+                <span>✓</span> {t("auth:verify.submit")}
               </>
             )}
           </button>
@@ -205,7 +202,7 @@ export default function VerifyEmail() {
 
         <div className={styles.helpRow}>
           <span>
-            ¿No te llegó?{" "}
+            {t("auth:verify.resendQuestion")}{" "}
             <button
               type="button"
               onClick={handleResend}
@@ -213,15 +210,15 @@ export default function VerifyEmail() {
               disabled={resending || cooldown > 0}
             >
               {cooldown > 0
-                ? `Reenviar en ${cooldown}s`
+                ? t("auth:verify.resendCooldown", { seconds: cooldown })
                 : resending
-                  ? "Enviando…"
-                  : "Reenviar código"}
+                  ? t("auth:verify.resending")
+                  : t("auth:verify.resendCta")}
             </button>
           </span>
           <span>
             <Link to="/login" style={{ color: "var(--text-secondary)" }}>
-              ← Volver al login
+              {t("auth:backToLogin")}
             </Link>
           </span>
         </div>
@@ -240,22 +237,22 @@ export default function VerifyEmail() {
           <div>
             <div className={styles.showcaseEyebrow}>
               <Meeple />
-              MESAS ACTIVAS
+              {t("auth:showcase.activeTables")}
             </div>
             {showcase?.total > 0 ? (
               <h2 className={styles.showcaseTitle}>
-                {showcase.total} mesas
+                {t("auth:showcase.tablesCount", { count: showcase.total })}
                 <br />
                 <span className={styles.showcaseTitleAccent}>
-                  esperando jugadores.
+                  {t("auth:showcase.waitingPlayers")}
                 </span>
               </h2>
             ) : (
               <h2 className={styles.showcaseTitle}>
-                Tu próxima
+                {t("auth:showcase.nextTitle")}
                 <br />
                 <span className={styles.showcaseTitleAccent}>
-                  partida te espera.
+                  {t("auth:showcase.nextAccent")}
                 </span>
               </h2>
             )}

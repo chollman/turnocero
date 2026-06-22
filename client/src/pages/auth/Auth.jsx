@@ -1,6 +1,7 @@
 import Meeple from "../../components/shared/Meeple";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useCommunity } from "../../context/CommunityContext";
@@ -12,6 +13,7 @@ import styles from "./Auth.module.css";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { STORAGE_KEYS } from "../../utils/storageKeys";
 import { useShowcaseTables } from "../../hooks/useShowcaseTables";
+import { getLocale } from "../../utils/locale";
 import { getLocationDisplay } from "../../utils/location";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { getInitials } from "../../utils/initials";
@@ -111,10 +113,11 @@ const Icon = {
 // ─── Showcase preview card (datos reales de una mesa abierta) ─────
 function formatShowcaseDate(dateStr) {
   const d = new Date(dateStr);
-  const weekday = d.toLocaleDateString("es-AR", { weekday: "short" });
+  const locale = getLocale();
+  const weekday = d.toLocaleDateString(locale, { weekday: "short" });
   const day = d.getDate();
-  const month = d.toLocaleDateString("es-AR", { month: "short" });
-  const time = d.toLocaleTimeString("es-AR", {
+  const month = d.toLocaleDateString(locale, { month: "short" });
+  const time = d.toLocaleTimeString(locale, {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -127,6 +130,7 @@ function openSeats(table) {
 }
 
 export function PreviewCard({ table }) {
+  const { t } = useTranslation();
   const host = getUserDisplay(table.host);
   const filled = table.players.length + 1;
   const total = table.maxPlayers + 1;
@@ -140,7 +144,7 @@ export function PreviewCard({ table }) {
   return (
     <div className={styles.previewCard} key={table._id || table.boardGame}>
       <div className={styles.previewLabel}>
-        <Icon.Dice /> Mesa abierta cerca tuyo
+        <Icon.Dice /> {t("auth:showcaseHome.previewLabel")}
       </div>
       <div className={styles.previewHead}>
         <div
@@ -166,7 +170,7 @@ export function PreviewCard({ table }) {
       </div>
       <div className={styles.previewFoot}>
         <span className={styles.previewSeats}>
-          {open} {open === 1 ? "lugar" : "lugares"}
+          {t("auth:showcaseHome.seats", { count: open })}
         </span>
         <span className={styles.previewWhen}>
           {formatShowcaseDate(table.date)}
@@ -178,6 +182,7 @@ export function PreviewCard({ table }) {
 
 // ─── Showcase pane (derecha) — escena SVG + datos reales ─────────
 function Showcase({ showcase }) {
+  const { t } = useTranslation();
   const total = showcase?.total || 0;
   const table = showcase?.table || null;
 
@@ -190,17 +195,20 @@ function Showcase({ showcase }) {
 
       <div className={styles.scTop}>
         <div className={styles.scEyebrow}>
-          <span className={styles.liveDot} /> En vivo · esta semana
+          <span className={styles.liveDot} /> {t("auth:showcaseHome.live")}
         </div>
         <h2 className={styles.scHeadline}>
           {total > 0 ? (
-            <>
-              {total} mesas activas <em>esperando</em> jugadores.
-            </>
+            <Trans
+              i18nKey="auth:showcaseHome.headlineActive"
+              values={{ count: total }}
+              components={[<span key="0" />, <em key="1" />]}
+            />
           ) : (
-            <>
-              Tu próxima mesa <em>te espera.</em>
-            </>
+            <Trans
+              i18nKey="auth:showcaseHome.headlineEmpty"
+              components={[<span key="0" />, <em key="1" />]}
+            />
           )}
         </h2>
         {total > 0 && (
@@ -209,12 +217,16 @@ function Showcase({ showcase }) {
               <span className={`${styles.statValue} ${styles.statAccent}`}>
                 {total}
               </span>
-              <span className={styles.statLabel}>Mesas activas</span>
+              <span className={styles.statLabel}>
+                {t("auth:showcaseHome.statActive")}
+              </span>
             </div>
             {table && (
               <div className={styles.stat}>
                 <span className={styles.statValue}>{openSeats(table)}</span>
-                <span className={styles.statLabel}>Lugares libres</span>
+                <span className={styles.statLabel}>
+                  {t("auth:showcaseHome.statFree")}
+                </span>
               </div>
             )}
           </div>
@@ -228,6 +240,7 @@ function Showcase({ showcase }) {
 
 // ─── Pantalla de auth (login + registro en un solo componente) ───
 export default function Auth({ mode }) {
+  const { t } = useTranslation();
   const isLogin = mode === "login";
   const navigate = useNavigate();
   const { login, register } = useAuth();
@@ -297,7 +310,7 @@ export default function Auth({ mode }) {
         });
         return;
       }
-      setError(getErrorMessage(err, "Error al iniciar sesión"));
+      setError(getErrorMessage(err, t("auth:login.errorFallback")));
     } finally {
       setLoading(false);
     }
@@ -311,7 +324,7 @@ export default function Auth({ mode }) {
       return;
     }
     if (!terms) {
-      setError("Tenés que aceptar los términos para crear tu cuenta.");
+      setError(t("auth:register.termsRequired"));
       return;
     }
     setLoading(true);
@@ -320,7 +333,7 @@ export default function Auth({ mode }) {
       await register(username, email, password, { avatarColor: color });
       navigate("/verificar-email", { state: { email } });
     } catch (err) {
-      setError(getErrorMessage(err, "Error al registrarse"));
+      setError(getErrorMessage(err, t("auth:register.errorFallback")));
     } finally {
       setLoading(false);
     }
@@ -350,14 +363,18 @@ export default function Auth({ mode }) {
         </div>
 
         {/* Toggle login / registro — debajo de la marca, pinneado al tope */}
-        <div className={styles.switch} role="tablist" aria-label="Modo">
+        <div
+          className={styles.switch}
+          role="tablist"
+          aria-label={t("auth:tabs.aria")}
+        >
           <Link
             to="/login"
             role="tab"
             aria-selected={isLogin}
             className={`${styles.switchBtn} ${isLogin ? styles.switchActive : ""}`}
           >
-            Iniciar sesión
+            {t("auth:tabs.login")}
           </Link>
           <Link
             to="/register"
@@ -365,7 +382,7 @@ export default function Auth({ mode }) {
             aria-selected={!isLogin}
             className={`${styles.switchBtn} ${!isLogin ? styles.switchActive : ""}`}
           >
-            Crear cuenta
+            {t("auth:tabs.register")}
           </Link>
         </div>
 
@@ -374,40 +391,43 @@ export default function Auth({ mode }) {
           {/* Mini-hero (sólo mobile, reemplaza al showcase) */}
           <div className={styles.mhero}>
             <div className={styles.scEyebrow}>
-              <span className={styles.liveDot} /> En vivo · esta semana
+              <span className={styles.liveDot} /> {t("auth:showcaseHome.live")}
             </div>
             <h2 className={styles.mheroHeadline}>
               {showcase?.total > 0 ? (
-                <>
-                  {showcase.total} mesas activas <em>en tu zona.</em>
-                </>
+                <Trans
+                  i18nKey="auth:showcaseHome.mheroActive"
+                  values={{ count: showcase.total }}
+                  components={[<span key="0" />, <em key="1" />]}
+                />
               ) : (
-                <>
-                  Tu próxima mesa <em>te espera.</em>
-                </>
+                <Trans
+                  i18nKey="auth:showcaseHome.headlineEmpty"
+                  components={[<span key="0" />, <em key="1" />]}
+                />
               )}
             </h2>
           </div>
 
           <span className={styles.kicker}>
             <Meeple />
-            {isLogin ? "Bienvenido de vuelta" : "Sumate a la comunidad"}
+            {isLogin ? t("auth:login.kicker") : t("auth:register.kicker")}
           </span>
           <h1 className={styles.title}>
             {isLogin ? (
-              <>
-                Volvé a la <em>mesa</em>.
-              </>
+              <Trans
+                i18nKey="auth:login.title"
+                components={[<span key="0" />, <em key="1" />]}
+              />
             ) : (
-              <>
-                Armá tu <em>lugar</em>.
-              </>
+              <Trans
+                i18nKey="auth:register.title"
+                components={[<span key="0" />, <em key="1" />]}
+              />
             )}
           </h1>
           <p className={styles.lede}>
-            {isLogin
-              ? "Sumate a tu próxima partida o convocá la tuya."
-              : "Creá tu cuenta en un minuto y empezá a jugar con gente de tu zona."}
+            {isLogin ? t("auth:login.lede") : t("auth:register.lede")}
           </p>
 
           {error && <div className={styles.errorBox}>{error}</div>}
@@ -416,7 +436,9 @@ export default function Auth({ mode }) {
           {isLogin ? (
             <form onSubmit={handleLogin} className={styles.fields}>
               <div className={styles.fld}>
-                <label htmlFor="auth-identifier">Usuario o email</label>
+                <label htmlFor="auth-identifier">
+                  {t("auth:login.identifierLabel")}
+                </label>
                 <div className={styles.inputWrap}>
                   <span className={styles.lead}>
                     <Icon.Mail />
@@ -427,7 +449,7 @@ export default function Auth({ mode }) {
                     type="text"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="usuario o tu@email.com"
+                    placeholder={t("auth:login.identifierPlaceholder")}
                     autoComplete="username"
                     autoFocus
                   />
@@ -436,9 +458,11 @@ export default function Auth({ mode }) {
 
               <div className={styles.fld}>
                 <div className={styles.labelRow}>
-                  <label htmlFor="auth-password">Contraseña</label>
+                  <label htmlFor="auth-password">
+                    {t("auth:login.passwordLabel")}
+                  </label>
                   <Link to="/recuperar-contrasenia" className={styles.forgot}>
-                    ¿Olvidaste tu contraseña?
+                    {t("auth:login.forgotLink")}
                   </Link>
                 </div>
                 <div className={styles.inputWrap}>
@@ -459,7 +483,9 @@ export default function Auth({ mode }) {
                     className={styles.reveal}
                     onClick={() => setShowPw((s) => !s)}
                     aria-label={
-                      showPw ? "Ocultar contraseña" : "Mostrar contraseña"
+                      showPw
+                        ? t("auth:pwToggleHide")
+                        : t("auth:pwToggleShow")
                     }
                   >
                     {showPw ? <Icon.EyeOff /> : <Icon.Eye />}
@@ -473,13 +499,15 @@ export default function Auth({ mode }) {
                 disabled={loading}
               >
                 <Icon.Dice />
-                {loading ? "Entrando…" : "Entrar"}
+                {loading ? t("auth:login.submitting") : t("auth:login.submit")}
               </button>
             </form>
           ) : (
             <form onSubmit={handleRegister} className={styles.fields}>
               <div className={styles.fld}>
-                <label htmlFor="auth-username">Nombre de usuario</label>
+                <label htmlFor="auth-username">
+                  {t("auth:register.usernameLabel")}
+                </label>
                 <div className={styles.inputWrap}>
                   <span className={styles.handlePrefix}>@</span>
                   <input
@@ -490,7 +518,7 @@ export default function Auth({ mode }) {
                     onChange={(e) =>
                       setUsername(e.target.value.replace(/\s/g, ""))
                     }
-                    placeholder="BlackwatchGames"
+                    placeholder={t("auth:register.usernamePlaceholder")}
                     autoComplete="username"
                     minLength={3}
                     maxLength={30}
@@ -500,7 +528,7 @@ export default function Auth({ mode }) {
               </div>
 
               <div className={styles.fld}>
-                <label htmlFor="auth-email">Email</label>
+                <label htmlFor="auth-email">{t("auth:emailLabel")}</label>
                 <div className={styles.inputWrap}>
                   <span className={styles.lead}>
                     <Icon.Mail />
@@ -511,14 +539,16 @@ export default function Auth({ mode }) {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="tu@email.com"
+                    placeholder={t("auth:emailPlaceholder")}
                     autoComplete="email"
                   />
                 </div>
               </div>
 
               <div className={styles.fld}>
-                <label htmlFor="auth-reg-password">Contraseña</label>
+                <label htmlFor="auth-reg-password">
+                  {t("auth:register.passwordLabel")}
+                </label>
                 <div className={styles.inputWrap}>
                   <span className={styles.lead}>
                     <Icon.Lock />
@@ -529,7 +559,7 @@ export default function Auth({ mode }) {
                     type={showPw ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mín. 8 caracteres, 1 mayúscula y 1 número"
+                    placeholder={t("auth:reset.newPasswordPlaceholder")}
                     autoComplete="new-password"
                   />
                   <button
@@ -537,7 +567,9 @@ export default function Auth({ mode }) {
                     className={styles.reveal}
                     onClick={() => setShowPw((s) => !s)}
                     aria-label={
-                      showPw ? "Ocultar contraseña" : "Mostrar contraseña"
+                      showPw
+                        ? t("auth:pwToggleHide")
+                        : t("auth:pwToggleShow")
                     }
                   >
                     {showPw ? <Icon.EyeOff /> : <Icon.Eye />}
@@ -556,7 +588,11 @@ export default function Auth({ mode }) {
                       ))}
                     </div>
                     <span className={styles.strengthLabel}>
-                      Seguridad: {getStrengthLabels()[strength] || "muy débil"}
+                      {t("auth:register.strengthLabel", {
+                        label:
+                          getStrengthLabels()[strength] ||
+                          t("auth:register.strengthVeryWeak"),
+                      })}
                     </span>
                   </div>
                 )}
@@ -564,7 +600,7 @@ export default function Auth({ mode }) {
                   <ul
                     className={styles.pwReqs}
                     aria-live="polite"
-                    aria-label="Requisitos de la contraseña"
+                    aria-label={t("auth:register.pwReqsAria")}
                   >
                     {pwChecks.map((c) => (
                       <li
@@ -588,7 +624,7 @@ export default function Auth({ mode }) {
               </div>
 
               <div className={styles.fld}>
-                <label>Tu avatar</label>
+                <label>{t("auth:register.avatarLabel")}</label>
                 <AvatarColorPicker
                   value={color}
                   onChange={setColor}
@@ -607,27 +643,29 @@ export default function Auth({ mode }) {
                   <Icon.Check />
                 </span>
                 <span>
-                  Acepto los{" "}
-                  <Link
-                    to="/terminos"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.termsAccent}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    términos
-                  </Link>{" "}
-                  y la{" "}
-                  <Link
-                    to="/privacidad"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.termsAccent}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    política de privacidad
-                  </Link>{" "}
-                  de TurnoCero.
+                  <Trans
+                    i18nKey="auth:register.terms"
+                    components={[
+                      <span key="0" />,
+                      <Link
+                        key="1"
+                        to="/terminos"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.termsAccent}
+                        onClick={(e) => e.stopPropagation()}
+                      />,
+                      <span key="2" />,
+                      <Link
+                        key="3"
+                        to="/privacidad"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.termsAccent}
+                        onClick={(e) => e.stopPropagation()}
+                      />,
+                    ]}
+                  />
                 </span>
               </label>
 
@@ -637,7 +675,9 @@ export default function Auth({ mode }) {
                 disabled={!canRegister}
               >
                 <Icon.Dice />
-                {loading ? "Creando cuenta…" : "Crear mi cuenta"}
+                {loading
+                  ? t("auth:register.submitting")
+                  : t("auth:register.submit")}
               </button>
             </form>
           )}
@@ -646,14 +686,15 @@ export default function Auth({ mode }) {
 
           <p className={styles.footLine}>
             {isLogin ? (
-              <>
-                ¿Todavía no tenés cuenta?{" "}
-                <Link to="/register">Crear cuenta →</Link>
-              </>
+              <Trans
+                i18nKey="auth:login.footLine"
+                components={[<span key="0" />, <Link key="1" to="/register" />]}
+              />
             ) : (
-              <>
-                ¿Ya tenés cuenta? <Link to="/login">Iniciá sesión →</Link>
-              </>
+              <Trans
+                i18nKey="auth:register.footLine"
+                components={[<span key="0" />, <Link key="1" to="/login" />]}
+              />
             )}
           </p>
         </div>
