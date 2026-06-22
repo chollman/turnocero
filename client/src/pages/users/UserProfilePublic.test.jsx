@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import i18n from "../../i18n";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
@@ -59,6 +60,10 @@ function setup({ profile = makeProfile(), currentUser = null } = {}) {
   );
 }
 
+afterEach(() => {
+  i18n.changeLanguage("es");
+});
+
 describe("<UserProfilePublic>", () => {
   it("renders the user display name + @username", async () => {
     setup();
@@ -98,6 +103,17 @@ describe("<UserProfilePublic>", () => {
     await screen.findByText("@theuser");
     expect(screen.getByText("Catán")).toBeInTheDocument();
     expect(screen.getByText("Wingspan")).toBeInTheDocument();
+  });
+
+  it("renders English labels when the language is set to en", async () => {
+    i18n.changeLanguage("en");
+    const profile = makeProfile();
+    profile.stats.favoriteGames = [{ game: "Catán", count: 5 }];
+    setup({ profile });
+    await screen.findByText("@theuser");
+    // Stat labels migrated to the usuarios namespace render in English.
+    expect(screen.getByText("Games played")).toBeInTheDocument();
+    expect(screen.getByText("FAVORITE GAMES")).toBeInTheDocument();
   });
 
   it("handles a 404 (rendering error / fallback) without crashing", async () => {

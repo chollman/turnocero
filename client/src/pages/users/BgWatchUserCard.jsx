@@ -2,13 +2,15 @@ import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { API } from "../../api/endpoints";
+import { getLocale } from "../../utils/locale";
 import styles from "./BgWatchUserCard.module.css";
 
 function formatDate(iso) {
   if (!iso) return null;
   const [year, month, day] = iso.split("-");
-  return new Date(year, month - 1, day).toLocaleDateString("es-AR", {
+  return new Date(year, month - 1, day).toLocaleDateString(getLocale(), {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -50,6 +52,7 @@ const ArrowIcon = () => (
 );
 
 export default function BgWatchUserCard({ bggUsername }) {
+  const { t } = useTranslation();
   const [stats, setStats] = useState({
     partidas: null,
     juegos: null,
@@ -125,15 +128,15 @@ export default function BgWatchUserCard({ bggUsername }) {
           </span>
         </div>
         <div className={styles.identity}>
-          <span className={styles.eyebrow}><Meeple />BG WATCH</span>
+          <span className={styles.eyebrow}><Meeple />{t("usuarios:bggCard.eyebrow")}</span>
           <span className={styles.username}>@{bggUsername}</span>
           <span className={styles.connectedTag}>
             <span className={styles.connectedDot} aria-hidden="true" />
-            Conectado a BoardGameGeek
+            {t("usuarios:bggCard.connected")}
           </span>
         </div>
         <span className={styles.ctaInline}>
-          Ver BG Watch
+          {t("usuarios:bggCard.ctaInline")}
           <ArrowIcon />
         </span>
       </div>
@@ -147,7 +150,7 @@ export default function BgWatchUserCard({ bggUsername }) {
                 aria-hidden="true"
               />
               <div className={styles.topGameInfo}>
-                <span className={styles.topGameLabel}>JUEGO MÁS JUGADO</span>
+                <span className={styles.topGameLabel}>{t("usuarios:bggCard.topGameLabel")}</span>
                 <span
                   className={`${styles.topGameName} ${styles.skeletonLine}`}
                   aria-hidden="true"
@@ -176,11 +179,10 @@ export default function BgWatchUserCard({ bggUsername }) {
                 </div>
               )}
               <div className={styles.topGameInfo}>
-                <span className={styles.topGameLabel}>JUEGO MÁS JUGADO</span>
+                <span className={styles.topGameLabel}>{t("usuarios:bggCard.topGameLabel")}</span>
                 <span className={styles.topGameName}>{topGame.name}</span>
                 <span className={styles.topGamePlays}>
-                  {topGame.numPlays}{" "}
-                  {topGame.numPlays === 1 ? "partida" : "partidas"}
+                  {t("usuarios:bggCard.plays", { count: topGame.numPlays })}
                 </span>
               </div>
             </>
@@ -190,26 +192,23 @@ export default function BgWatchUserCard({ bggUsername }) {
 
       <div className={styles.stats}>
         <div className={styles.statItem}>
-          <span className={styles.statLabel}>Partidas</span>
+          <span className={styles.statLabel}>{t("usuarios:bggCard.statPlays")}</span>
           <span className={styles.statValue}>{partidasDisplay}</span>
         </div>
         <div className={styles.statDivider} aria-hidden="true" />
         <div className={styles.statItem}>
-          <span className={styles.statLabel}>Juegos en colección</span>
+          <span className={styles.statLabel}>{t("usuarios:bggCard.statCollection")}</span>
           <span className={styles.statValue}>{juegosDisplay}</span>
         </div>
         <div className={styles.statDivider} aria-hidden="true" />
         <div className={styles.statItem}>
-          <span className={styles.statLabel}>Última partida</span>
+          <span className={styles.statLabel}>{t("usuarios:bggCard.statLastPlay")}</span>
           <span className={styles.statValueSm}>{lastDateDisplay}</span>
         </div>
       </div>
 
       {error && !loading && (
-        <p className={styles.errorNote}>
-          No se pudieron cargar las estadísticas ahora. Igual podés entrar al BG
-          Watch.
-        </p>
+        <p className={styles.errorNote}>{t("usuarios:bggCard.errorNote")}</p>
       )}
     </Link>
   );

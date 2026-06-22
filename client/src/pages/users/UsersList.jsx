@@ -2,9 +2,11 @@ import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Trans, useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
+import { getLocale } from "../../utils/locale";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import Avatar from "../../components/shared/Avatar";
@@ -14,21 +16,22 @@ import { GhostMembers } from "../../components/shared/EmptyGhosts";
 import styles from "./UsersList.module.css";
 import UsersListSkeleton from "./UsersListSkeleton";
 
-const SORT_OPTIONS = [
-  { value: "alpha", label: "A–Z" },
-  { value: "activity", label: "Más activos" },
-  { value: "date_desc", label: "Más nuevos" },
-  { value: "date_asc", label: "Más antiguos" },
+const buildSortOptions = (t) => [
+  { value: "alpha", label: t("usuarios:list.sortAlpha") },
+  { value: "activity", label: t("usuarios:list.sortActivity") },
+  { value: "date_desc", label: t("usuarios:list.sortDateDesc") },
+  { value: "date_asc", label: t("usuarios:list.sortDateAsc") },
 ];
 
 function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const displayLabel =
     user.displayName ||
     [user.nombre, user.apellido].filter(Boolean).join(" ") ||
     user.username;
   const totalActivity = user.tablesHosted + user.tablesAsPlayer;
-  const joined = new Date(user.createdAt).toLocaleDateString("es-AR", {
+  const joined = new Date(user.createdAt).toLocaleDateString(getLocale(), {
     month: "short",
     year: "numeric",
   });
@@ -55,15 +58,15 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
           className={styles.bannedBadge}
           title={
             user.bannedReason
-              ? `Motivo: ${user.bannedReason}`
-              : "Usuario baneado"
+              ? t("usuarios:list.bannedReason", { reason: user.bannedReason })
+              : t("usuarios:list.banned")
           }
         >
-          Baneado
+          {t("usuarios:list.bannedBadge")}
         </span>
       )}
       {user.isAdmin && !isSelf && (
-        <span className={styles.adminBadge}>Admin</span>
+        <span className={styles.adminBadge}>{t("usuarios:list.admin")}</span>
       )}
 
       <div className={styles.cardAvatar}>
@@ -85,14 +88,16 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
           )}
           <span className={styles.metaChip}>
             <span className={styles.metaIcon}>📅</span>
-            Desde {joined}
+            {t("usuarios:list.since", { date: joined })}
           </span>
           {user.bggUsername && (
             <Link
               to={`/bg-watch/${encodeURIComponent(user.bggUsername)}`}
               className={styles.bgWatchChip}
               onClick={(e) => e.stopPropagation()}
-              title={`Ver el BG Watch de @${user.username}`}
+              title={t("usuarios:list.bgWatchChipTitle", {
+                username: user.username,
+              })}
             >
               <svg
                 className={styles.bgWatchChipIcon}
@@ -141,13 +146,15 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
                   stroke="none"
                 />
               </svg>
-              BG Watch
+              {t("usuarios:list.bgWatch")}
             </Link>
           )}
           {user.bggConnected && !user.bggInvalid && (
             <span
               className={styles.bggConnectedChip}
-              title={`@${user.username} conectó su cuenta de BGG — puede cargar partidas`}
+              title={t("usuarios:list.bggConnectedTitle", {
+                username: user.username,
+              })}
             >
               <svg
                 className={styles.bggConnectedChipIcon}
@@ -161,7 +168,7 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
               >
                 <path d="M20 6 9 17l-5-5" />
               </svg>
-              Conectado
+              {t("usuarios:list.connected")}
             </span>
           )}
         </div>
@@ -169,17 +176,23 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
       <div className={styles.cardStats}>
         <div className={styles.statItem}>
           <span className={styles.statValue}>{user.tablesHosted}</span>
-          <span className={styles.statLabel}>Mesas creadas</span>
+          <span className={styles.statLabel}>
+            {t("usuarios:list.statTablesHosted")}
+          </span>
         </div>
         <div className={styles.statDivider} />
         <div className={styles.statItem}>
           <span className={styles.statValue}>{user.tablesAsPlayer}</span>
-          <span className={styles.statLabel}>Mesas jugadas</span>
+          <span className={styles.statLabel}>
+            {t("usuarios:list.statTablesPlayed")}
+          </span>
         </div>
         <div className={styles.statDivider} />
         <div className={styles.statItem}>
           <span className={styles.statValue}>{user.compartidas}</span>
-          <span className={styles.statLabel}>Publicaciones</span>
+          <span className={styles.statLabel}>
+            {t("usuarios:list.statPublications")}
+          </span>
         </div>
         <div className={styles.statDivider} />
         <div className={styles.statItem}>
@@ -188,7 +201,9 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
           >
             {totalActivity}
           </span>
-          <span className={styles.statLabel}>Total</span>
+          <span className={styles.statLabel}>
+            {t("usuarios:list.statTotal")}
+          </span>
         </div>
       </div>
 
@@ -204,7 +219,9 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
               onBan(user);
             }}
           >
-            {user.isBanned ? "Desbanear" : "Banear"}
+            {user.isBanned
+              ? t("usuarios:list.unban")
+              : t("usuarios:list.ban")}
           </button>
           <button
             className={styles.deleteButton}
@@ -213,7 +230,7 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
               onDelete(user);
             }}
           >
-            Eliminar
+            {t("usuarios:list.delete")}
           </button>
         </div>
       )}
@@ -222,8 +239,10 @@ function UserCard({ user, currentUser, isAdmin, onBan, onDelete, index = 0 }) {
 }
 
 export default function UsersList({ communityId = null } = {}) {
+  const { t } = useTranslation();
   const { user: currentUser } = useAuth();
   const brandName = useBrandName();
+  const sortOptions = buildSortOptions(t);
   const isAdmin = !!currentUser?.isAdmin;
   // Modo "embebido": cuando se renderiza dentro de la vista de una comunidad
   // (ComunidadDetail provee su propio encabezado). Oculta el hero global y el
@@ -302,7 +321,9 @@ export default function UsersList({ communityId = null } = {}) {
       );
       setBanTarget(null);
     } catch (err) {
-      setActionError(err.response?.data?.message || "Error al actualizar");
+      setActionError(
+        err.response?.data?.message || t("usuarios:list.updateError"),
+      );
     } finally {
       setActionLoading(false);
     }
@@ -317,7 +338,9 @@ export default function UsersList({ communityId = null } = {}) {
       setUsers((prev) => prev.filter((u) => u._id !== deleteTarget._id));
       setDeleteTarget(null);
     } catch (err) {
-      setActionError(err.response?.data?.message || "Error al eliminar");
+      setActionError(
+        err.response?.data?.message || t("usuarios:list.deleteError"),
+      );
     } finally {
       setActionLoading(false);
     }
@@ -339,15 +362,15 @@ export default function UsersList({ communityId = null } = {}) {
           <div className={styles.heroBlock}>
             <div className={styles.eyebrow}>
               <Meeple />
-              COMUNIDAD
+              {t("usuarios:list.eyebrow")}
             </div>
-            <h1 className={styles.heroTitle}>Comunidad</h1>
+            <h1 className={styles.heroTitle}>{t("usuarios:list.heroTitle")}</h1>
             <p className={styles.heroSub}>
-              Jugadores registrados en {brandName}
+              {t("usuarios:list.heroSub", { brand: brandName })}
             </p>
           </div>
           <span className={styles.countBadge}>
-            {visibleUsers.length} jugador{visibleUsers.length !== 1 ? "es" : ""}
+            {t("usuarios:list.countBadge", { count: visibleUsers.length })}
           </span>
         </div>
       )}
@@ -399,14 +422,15 @@ export default function UsersList({ communityId = null } = {}) {
           </span>
           <div className={styles.bgWatchBannerBody}>
             <strong className={styles.bgWatchBannerTitle}>
-              ¿Ya conocés BG Watch?
+              {t("usuarios:list.bgWatchBannerTitle")}
             </strong>
             <p className={styles.bgWatchBannerSub}>
-              Conectá tu cuenta de BoardGameGeek y llevá registro de tus
-              partidas desde {brandName}.
+              {t("usuarios:list.bgWatchBannerSub", { brand: brandName })}
             </p>
           </div>
-          <span className={styles.bgWatchBannerCta}>Activá →</span>
+          <span className={styles.bgWatchBannerCta}>
+            {t("usuarios:list.bgWatchBannerCta")}
+          </span>
         </Link>
       )}
 
@@ -416,7 +440,7 @@ export default function UsersList({ communityId = null } = {}) {
           <input
             className={styles.searchInput}
             type="text"
-            placeholder="Buscar por usuario o nombre…"
+            placeholder={t("usuarios:list.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -433,7 +457,7 @@ export default function UsersList({ communityId = null } = {}) {
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
-            {SORT_OPTIONS.map((o) => (
+            {sortOptions.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
@@ -444,7 +468,7 @@ export default function UsersList({ communityId = null } = {}) {
             className={`${styles.toggleBtn} ${activeOnly ? styles.toggleActive : ""}`}
             onClick={() => setActiveOnly((v) => !v)}
           >
-            Solo activos
+            {t("usuarios:list.onlyActive")}
           </button>
 
           {currentUser && (
@@ -452,14 +476,14 @@ export default function UsersList({ communityId = null } = {}) {
               className={`${styles.toggleBtn} ${friendsOnly ? styles.toggleActive : ""}`}
               onClick={() => setFriendsOnly((v) => !v)}
             >
-              Solo amigos
+              {t("usuarios:list.onlyFriends")}
             </button>
           )}
 
           <button
             className={`${styles.toggleBtn} ${styles.toggleBgWatch} ${bgWatchOnly ? styles.toggleActive : ""}`}
             onClick={() => setBgWatchOnly((v) => !v)}
-            title="Mostrar solo jugadores con BG Watch activo"
+            title={t("usuarios:list.bgWatchOnlyTitle")}
           >
             <svg
               className={styles.toggleBgWatchIcon}
@@ -502,7 +526,7 @@ export default function UsersList({ communityId = null } = {}) {
                 stroke="none"
               />
             </svg>
-            Con BG Watch
+            {t("usuarios:list.withBgWatch")}
           </button>
         </div>
       </div>
@@ -519,15 +543,16 @@ export default function UsersList({ communityId = null } = {}) {
             variant="filtered"
             compact
             art={<ArtSearch />}
-            eyebrow="Sin coincidencias"
+            eyebrow={t("usuarios:list.emptyFilteredEyebrow")}
             title={
-              <>
-                Ningún jugador con <em>esos filtros.</em>
-              </>
+              <Trans
+                i18nKey="usuarios:list.emptyFilteredTitle"
+                components={{ em: <em /> }}
+              />
             }
-            text="No encontramos a nadie así. Probá con otro nombre o sacá algún filtro."
+            text={t("usuarios:list.emptyFilteredText")}
             secondary={{
-              label: "Limpiar filtros",
+              label: t("usuarios:list.clearFilters"),
               icon: "clear",
               onClick: () => {
                 setSearch("");
@@ -541,13 +566,14 @@ export default function UsersList({ communityId = null } = {}) {
           <EmptyState
             art={<ArtComunidad />}
             ghost={<GhostMembers />}
-            eyebrow="Roster vacío"
+            eyebrow={t("usuarios:list.emptyEyebrow")}
             title={
-              <>
-                Todavía <em>nadie</em> por acá.
-              </>
+              <Trans
+                i18nKey="usuarios:list.emptyTitle"
+                components={{ em: <em /> }}
+              />
             }
-            text="No hay jugadores para mostrar. En cuanto se sumen los primeros, van a aparecer en este roster."
+            text={t("usuarios:list.emptyText")}
           />
         )
       ) : (
@@ -568,20 +594,26 @@ export default function UsersList({ communityId = null } = {}) {
 
       <ConfirmActionModal
         isOpen={!!banTarget}
-        title={banTarget?.isBanned ? "Desbanear usuario" : "Banear usuario"}
+        title={
+          banTarget?.isBanned
+            ? t("usuarios:list.unbanUser")
+            : t("usuarios:list.banUser")
+        }
         message={
           banTarget?.isBanned
-            ? `¿Querés desbanear a @${banTarget?.username}? Podrá volver a iniciar sesión y usar la app.`
-            : `¿Querés banear a @${banTarget?.username}? No podrá iniciar sesión y será expulsado si ya tiene una sesión activa.${actionError ? `\n\n${actionError}` : ""}`
+            ? t("usuarios:list.unbanConfirm", { username: banTarget?.username })
+            : `${t("usuarios:list.banConfirm", { username: banTarget?.username })}${actionError ? `\n\n${actionError}` : ""}`
         }
-        confirmLabel={banTarget?.isBanned ? "Desbanear" : "Banear"}
+        confirmLabel={
+          banTarget?.isBanned ? t("usuarios:list.unban") : t("usuarios:list.ban")
+        }
         variant={banTarget?.isBanned ? "warning" : "danger"}
         inputLabel={
           banTarget && !banTarget.isBanned
-            ? "Motivo del baneo (opcional)"
+            ? t("usuarios:list.banReasonLabel")
             : undefined
         }
-        inputPlaceholder="Por ejemplo: spam reiterado, comportamiento inapropiado…"
+        inputPlaceholder={t("usuarios:list.banReasonPlaceholder")}
         loading={actionLoading}
         onConfirm={handleBanConfirm}
         onCancel={closeModals}
@@ -589,9 +621,9 @@ export default function UsersList({ communityId = null } = {}) {
 
       <ConfirmActionModal
         isOpen={!!deleteTarget}
-        title="Eliminar usuario"
-        message={`¿Querés eliminar a @${deleteTarget?.username}? Esta acción no se puede deshacer. El usuario podrá registrarse nuevamente con el mismo email y sus contenidos (mesas, mensajes, comentarios) figurarán como "Usuario eliminado".${actionError ? `\n\n${actionError}` : ""}`}
-        confirmLabel="Eliminar definitivamente"
+        title={t("usuarios:list.deleteUser")}
+        message={`${t("usuarios:list.deleteConfirm", { username: deleteTarget?.username })}${actionError ? `\n\n${actionError}` : ""}`}
+        confirmLabel={t("usuarios:list.deletePermanently")}
         variant="danger"
         loading={actionLoading}
         onConfirm={handleDeleteConfirm}

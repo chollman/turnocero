@@ -2,10 +2,12 @@ import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { API } from "../../api/endpoints";
+import { getLocale } from "../../utils/locale";
 import GameTile from "../../components/shared/GameTile";
 import BackButton from "../../components/shared/BackButton";
 import Avatar from "../../components/shared/Avatar";
@@ -21,25 +23,25 @@ function seedFromId(id = "") {
 
 function formatDate(iso) {
   if (!iso) return null;
-  return new Date(iso).toLocaleDateString("es-AR", {
+  return new Date(iso).toLocaleDateString(getLocale(), {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
 }
 
-function timeAgo(iso) {
+function timeAgo(iso, t) {
   if (!iso) return null;
   const diff = Date.now() - new Date(iso).getTime();
   const days = Math.floor(diff / 86400000);
-  if (days === 0) return "hoy";
-  if (days === 1) return "ayer";
-  if (days < 7) return `hace ${days} días`;
+  if (days === 0) return t("usuarios:public.today");
+  if (days === 1) return t("usuarios:public.yesterday");
+  if (days < 7) return t("usuarios:public.daysAgo", { count: days });
   if (days < 30)
-    return `hace ${Math.floor(days / 7)} semana${Math.floor(days / 7) > 1 ? "s" : ""}`;
+    return t("usuarios:public.weeksAgo", { count: Math.floor(days / 7) });
   if (days < 365)
-    return `hace ${Math.floor(days / 30)} mes${Math.floor(days / 30) > 1 ? "es" : ""}`;
-  return `hace ${Math.floor(days / 365)} año${Math.floor(days / 365) > 1 ? "s" : ""}`;
+    return t("usuarios:public.monthsAgo", { count: Math.floor(days / 30) });
+  return t("usuarios:public.yearsAgo", { count: Math.floor(days / 365) });
 }
 
 function StatCard({ value, label, accent }) {
@@ -54,11 +56,14 @@ function StatCard({ value, label, accent }) {
 }
 
 function FavoriteGames({ games }) {
+  const { t } = useTranslation();
   if (!games || games.length === 0) return null;
   const max = games[0].count;
   return (
     <div className={styles.favSection}>
-      <div className={styles.sectionLabel}>JUEGOS FAVORITOS</div>
+      <div className={styles.sectionLabel}>
+        {t("usuarios:public.favoriteGames")}
+      </div>
       <div className={styles.gamesList}>
         {games.map((g, i) => (
           <div key={g.game} className={styles.gameRow}>
@@ -79,6 +84,7 @@ function FavoriteGames({ games }) {
 }
 
 export default function UserProfilePublic() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   // React Router v6 mantiene `idx` en `window.history.state` para trackear su
@@ -89,7 +95,9 @@ export default function UserProfilePublic() {
   // no servía: sobrevive al reload y daba falsos positivos.
   const canGoBack = (window.history.state?.idx ?? 0) > 0;
   const goBack = () => (canGoBack ? navigate(-1) : navigate("/comunidades"));
-  const backLabel = canGoBack ? "Volver" : "Comunidades";
+  const backLabel = canGoBack
+    ? t("usuarios:public.back")
+    : t("usuarios:public.communities");
   const { user: currentUser, refreshUser } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
   const { notifyFriendAdded } = useNotifications();
@@ -116,13 +124,13 @@ export default function UserProfilePublic() {
       })
       .catch((err) => {
         if (axios.isCancel(err)) return;
-        setError("No se pudo cargar el perfil");
+        setError(t("usuarios:public.loadError"));
       })
       .finally(() => {
         if (!ac.signal.aborted) setLoading(false);
       });
     return () => ac.abort();
-  }, [id]);
+  }, [id, t]);
 
   const handleFriendAction = async (action) => {
     setFriendLoading(true);
@@ -161,9 +169,11 @@ export default function UserProfilePublic() {
     return (
       <div className={styles.page}>
         <div className={styles.stateCenter}>
-          <p>{error || "Usuario no encontrado"}</p>
+          <p>{error || t("usuarios:public.userNotFound")}</p>
           <BackButton onClick={goBack} flush>
-            {canGoBack ? "Volver" : "Volver a jugadores"}
+            {canGoBack
+              ? t("usuarios:public.back")
+              : t("usuarios:public.backToPlayers")}
           </BackButton>
         </div>
       </div>
@@ -182,8 +192,8 @@ export default function UserProfilePublic() {
 
   const contactParts = [
     profile.direccion?.texto,
-    profile.telegram ? "✈️ Telegram" : null,
-    profile.celular ? "📱 Celular" : null,
+    profile.telegram ? `✈️ ${t("usuarios:public.telegram")}` : null,
+    profile.celular ? `📱 ${t("usuarios:public.celular")}` : null,
   ].filter(Boolean);
 
   return (
@@ -205,7 +215,10 @@ export default function UserProfilePublic() {
           <Avatar user={profile} size="xl" />
           <div className={styles.heroInfo}>
             <div className={styles.eyebrow}>
-              <Meeple />PERFIL{joinYear ? ` · DESDE ${joinYear}` : ""}
+              <Meeple />
+              {joinYear
+                ? t("usuarios:public.eyebrowSince", { year: joinYear })
+                : t("usuarios:public.eyebrow")}
             </div>
             <h1 className={styles.heroTitle}>{displayName}</h1>
             <div className={styles.heroSub}>
@@ -221,7 +234,7 @@ export default function UserProfilePublic() {
                     onClick={() => handleFriendAction("request")}
                     disabled={friendLoading}
                   >
-                    Agregar amigo
+                    {t("usuarios:public.addFriend")}
                   </button>
                 )}
                 {relationship === "request_sent" && (
@@ -230,7 +243,7 @@ export default function UserProfilePublic() {
                     onClick={() => handleFriendAction("cancel_request")}
                     disabled={friendLoading}
                   >
-                    Solicitud enviada · Cancelar
+                    {t("usuarios:public.requestSentCancel")}
                   </button>
                 )}
                 {relationship === "request_received" && (
@@ -240,26 +253,28 @@ export default function UserProfilePublic() {
                       onClick={() => handleFriendAction("accept")}
                       disabled={friendLoading}
                     >
-                      ✓ Aceptar
+                      {t("usuarios:public.accept")}
                     </button>
                     <button
                       className={styles.friendBtnMuted}
                       onClick={() => handleFriendAction("reject")}
                       disabled={friendLoading}
                     >
-                      Rechazar
+                      {t("usuarios:public.reject")}
                     </button>
                   </div>
                 )}
                 {relationship === "friends" && (
                   <div className={styles.friendBtnGroup}>
-                    <span className={styles.friendsBadge}>✓ Amigos</span>
+                    <span className={styles.friendsBadge}>
+                      {t("usuarios:public.friendsBadge")}
+                    </span>
                     <button
                       className={styles.friendBtnUnfriend}
                       onClick={() => handleFriendAction("unfriend")}
                       disabled={friendLoading}
                     >
-                      Desamigar
+                      {t("usuarios:public.unfriend")}
                     </button>
                   </div>
                 )}
@@ -273,27 +288,45 @@ export default function UserProfilePublic() {
           {mesasEnabled && (
             <StatCard
               value={stats.totalGamesPlayed}
-              label="Partidas jugadas"
+              label={t("usuarios:public.statGamesPlayed")}
               accent
             />
           )}
           {mesasEnabled && (
-            <StatCard value={stats.tablesHosted.total} label="Mesas creadas" />
+            <StatCard
+              value={stats.tablesHosted.total}
+              label={t("usuarios:public.statTablesHosted")}
+            />
           )}
           {mesasEnabled && (
-            <StatCard value={stats.tablesAsPlayer.total} label="Como jugador" />
+            <StatCard
+              value={stats.tablesAsPlayer.total}
+              label={t("usuarios:public.statAsPlayer")}
+            />
           )}
           {mesasEnabled && (
-            <StatCard value={stats.tablesHosted.active} label="Mesas activas" />
+            <StatCard
+              value={stats.tablesHosted.active}
+              label={t("usuarios:public.statTablesActive")}
+            />
           )}
           {amigosEnabled && (
-            <StatCard value={profile.friendsCount} label="Amigos" />
+            <StatCard
+              value={profile.friendsCount}
+              label={t("usuarios:public.statFriends")}
+            />
           )}
           {compartidasEnabled && (
-            <StatCard value={stats.compartidas} label="Publicaciones" />
+            <StatCard
+              value={stats.compartidas}
+              label={t("usuarios:public.statPublications")}
+            />
           )}
           {compartidasEnabled && (
-            <StatCard value={stats.likesReceived} label="Likes recibidos" />
+            <StatCard
+              value={stats.likesReceived}
+              label={t("usuarios:public.statLikes")}
+            />
           )}
         </div>
 
@@ -310,13 +343,17 @@ export default function UserProfilePublic() {
               profile.telegram ||
               profile.celular) && (
               <div className={styles.infoCard}>
-                <div className={styles.sectionLabel}>CONTACTO</div>
+                <div className={styles.sectionLabel}>
+                  {t("usuarios:public.contact")}
+                </div>
                 <div className={styles.infoList}>
                   {profile.direccion?.texto && (
                     <div className={styles.infoRow}>
                       <span className={styles.infoIcon}>📍</span>
                       <div className={styles.infoText}>
-                        <span className={styles.infoLabel}>Zona</span>
+                        <span className={styles.infoLabel}>
+                          {t("usuarios:public.zone")}
+                        </span>
                         <span className={styles.infoValue}>
                           {profile.direccion.texto}
                         </span>
@@ -327,7 +364,9 @@ export default function UserProfilePublic() {
                     <div className={styles.infoRow}>
                       <span className={styles.infoIcon}>✈️</span>
                       <div className={styles.infoText}>
-                        <span className={styles.infoLabel}>Telegram</span>
+                        <span className={styles.infoLabel}>
+                          {t("usuarios:public.telegram")}
+                        </span>
                         <span className={styles.infoValue}>
                           @{profile.telegram}
                         </span>
@@ -338,7 +377,9 @@ export default function UserProfilePublic() {
                     <div className={styles.infoRow}>
                       <span className={styles.infoIcon}>📱</span>
                       <div className={styles.infoText}>
-                        <span className={styles.infoLabel}>Celular</span>
+                        <span className={styles.infoLabel}>
+                          {t("usuarios:public.celular")}
+                        </span>
                         <span className={styles.infoValue}>
                           {profile.celular}
                         </span>
@@ -353,7 +394,9 @@ export default function UserProfilePublic() {
 
             {stats.lastActivity && (
               <div className={styles.activityHint}>
-                Última actividad {timeAgo(stats.lastActivity)}
+                {t("usuarios:public.lastActivity", {
+                  ago: timeAgo(stats.lastActivity, t),
+                })}
               </div>
             )}
           </div>
@@ -364,14 +407,16 @@ export default function UserProfilePublic() {
               <>
                 <div className={styles.infoCard}>
                   <div className={styles.sectionLabel}>
-                    MESAS COMO ANFITRIÓN
+                    {t("usuarios:public.tablesAsHost")}
                   </div>
                   <div className={styles.breakdown}>
                     <div className={styles.breakdownItem}>
                       <span
                         className={`${styles.breakdownDot} ${styles.dotOpen}`}
                       />
-                      <span className={styles.breakdownLabel}>Abiertas</span>
+                      <span className={styles.breakdownLabel}>
+                        {t("usuarios:public.open")}
+                      </span>
                       <span className={styles.breakdownValue}>
                         {stats.tablesHosted.open}
                       </span>
@@ -380,7 +425,9 @@ export default function UserProfilePublic() {
                       <span
                         className={`${styles.breakdownDot} ${styles.dotFull}`}
                       />
-                      <span className={styles.breakdownLabel}>Llenas</span>
+                      <span className={styles.breakdownLabel}>
+                        {t("usuarios:public.full")}
+                      </span>
                       <span className={styles.breakdownValue}>
                         {stats.tablesHosted.full}
                       </span>
@@ -389,7 +436,9 @@ export default function UserProfilePublic() {
                       <span
                         className={`${styles.breakdownDot} ${styles.dotCancelled}`}
                       />
-                      <span className={styles.breakdownLabel}>Canceladas</span>
+                      <span className={styles.breakdownLabel}>
+                        {t("usuarios:public.cancelled")}
+                      </span>
                       <span className={styles.breakdownValue}>
                         {stats.tablesHosted.cancelled}
                       </span>
@@ -402,7 +451,7 @@ export default function UserProfilePublic() {
                           className={`${styles.breakdownDot} ${styles.dotSuccess}`}
                         />
                         <span className={styles.breakdownLabel}>
-                          Tasa de éxito
+                          {t("usuarios:public.successRate")}
                         </span>
                         <span
                           className={`${styles.breakdownValue} ${styles.breakdownValueSuccess}`}
@@ -422,11 +471,13 @@ export default function UserProfilePublic() {
 
                 {stats.totalGamesPlayed > 0 && (
                   <div className={styles.infoCard}>
-                    <div className={styles.sectionLabel}>ROL EN PARTIDAS</div>
+                    <div className={styles.sectionLabel}>
+                      {t("usuarios:public.roleInGames")}
+                    </div>
                     <div className={styles.ratioWrap}>
                       <div className={styles.ratioLabels}>
-                        <span>Anfitrión</span>
-                        <span>Jugador</span>
+                        <span>{t("usuarios:public.host")}</span>
+                        <span>{t("usuarios:public.player")}</span>
                       </div>
                       <div className={styles.ratioBar}>
                         <div
@@ -462,7 +513,9 @@ export default function UserProfilePublic() {
 
             {profile.createdAt && (
               <div className={styles.miembroCard}>
-                <div className={styles.sectionLabel}>MIEMBRO DESDE</div>
+                <div className={styles.sectionLabel}>
+                  {t("usuarios:public.memberSince")}
+                </div>
                 <div className={styles.miembroDate}>
                   {formatDate(profile.createdAt)}
                 </div>

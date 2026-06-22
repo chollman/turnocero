@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useCommunity } from "../../context/CommunityContext";
 import { useNotifications } from "../../context/NotificationContext";
 import useViewingControls from "../../hooks/useViewingControls";
@@ -12,6 +13,7 @@ import styles from "./CommunityPrefs.module.css";
 // `embed`: cuando es true, se renderiza SIN el `<section>`/heading propios —
 // el caller (UserProfile) ya lo envuelve en una card numerada con su header.
 export default function CommunityPrefs({ embed = false }) {
+  const { t } = useTranslation();
   const { memberships, skin, leaveCommunity } = useCommunity();
   const { addToast } = useNotifications();
   const { busy, viewingSet, toggleViewing, chooseSkin, guard } =
@@ -24,8 +26,7 @@ export default function CommunityPrefs({ embed = false }) {
     if (embed) {
       return (
         <p className={styles.help} style={{ margin: 0 }}>
-          Todavía estás solo en la comunidad base. Sumate a otras desde el
-          directorio de comunidades.
+          {t("usuarios:communityPrefs.soloBase")}
         </p>
       );
     }
@@ -36,15 +37,19 @@ export default function CommunityPrefs({ embed = false }) {
     guard(async () => {
       const m = leaveTarget;
       await leaveCommunity(m.community.slug);
-      addToast({ type: "success", message: `Saliste de ${m.community.name}` });
+      addToast({
+        type: "success",
+        message: t("usuarios:communityPrefs.leftCommunity", {
+          name: m.community.name,
+        }),
+      });
       setLeaveTarget(null);
-    }, "No pudimos salir de la comunidad");
+    }, t("usuarios:communityPrefs.leaveError"));
 
   const inner = (
     <>
       <p className={styles.help} style={embed ? { marginTop: 0 } : undefined}>
-        Elegí qué comunidades ver en conjunto y cuál usar para el aspecto del
-        sitio.
+        {t("usuarios:communityPrefs.help")}
       </p>
       <ul className={styles.list}>
         {memberships.map((m) => {
@@ -60,7 +65,9 @@ export default function CommunityPrefs({ embed = false }) {
                 />
                 <span className={styles.cname}>{m.community.name}</span>
                 {m.role === "subadmin" && (
-                  <span className={styles.roleTag}>Subadmin</span>
+                  <span className={styles.roleTag}>
+                    {t("usuarios:communityPrefs.subadmin")}
+                  </span>
                 )}
               </label>
               <label className={styles.skin}>
@@ -71,14 +78,14 @@ export default function CommunityPrefs({ embed = false }) {
                   disabled={busy}
                   onChange={() => chooseSkin(id)}
                 />
-                Skin
+                {t("usuarios:communityPrefs.skin")}
               </label>
               {m.role === "subadmin" && (
                 <Link
                   className={styles.manage}
                   to={`/comunidades/${m.community.slug}/gestion`}
                 >
-                  Gestionar
+                  {t("usuarios:communityPrefs.manage")}
                 </Link>
               )}
               {!m.community.isBase && (
@@ -88,22 +95,22 @@ export default function CommunityPrefs({ embed = false }) {
                   disabled={busy}
                   onClick={() => setLeaveTarget(m)}
                 >
-                  Salir
+                  {t("usuarios:communityPrefs.leave")}
                 </button>
               )}
             </li>
           );
         })}
       </ul>
-      <p className={styles.note}>
-        Si no marcás ninguna en "ver juntas", ves todas.
-      </p>
+      <p className={styles.note}>{t("usuarios:communityPrefs.note")}</p>
 
       <ConfirmActionModal
         isOpen={!!leaveTarget}
-        title="Salir de la comunidad"
-        message={`¿Querés salir de ${leaveTarget?.community?.name}? Vas a dejar de ver su contenido. Podés volver a unirte cuando quieras.`}
-        confirmLabel="Sí, salir"
+        title={t("usuarios:communityPrefs.leaveTitle")}
+        message={t("usuarios:communityPrefs.leaveMessage", {
+          name: leaveTarget?.community?.name,
+        })}
+        confirmLabel={t("usuarios:communityPrefs.leaveConfirm")}
         variant="danger"
         loading={busy}
         onConfirm={confirmLeave}
@@ -118,7 +125,7 @@ export default function CommunityPrefs({ embed = false }) {
 
   return (
     <section className={styles.section}>
-      <h2 className={styles.heading}>Comunidades</h2>
+      <h2 className={styles.heading}>{t("usuarios:communityPrefs.heading")}</h2>
       {inner}
     </section>
   );
