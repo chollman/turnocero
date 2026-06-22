@@ -1,7 +1,9 @@
+import { useTranslation } from "react-i18next";
 import Avatar from "../../components/shared/Avatar";
 import NotifIcon from "./NotifIcons";
 import {
   getDomainMeta,
+  getDomainLabel,
   getNotifMeta,
   getCountBadge,
   isActionable,
@@ -27,8 +29,10 @@ export default function NotifRow({
   onAccept,
   onReject,
 }) {
+  const { t } = useTranslation();
   const domain = getDomainMeta(notif.type);
-  const meta = getNotifMeta(notif);
+  const domainLabel = getDomainLabel(notif.type, t);
+  const meta = getNotifMeta(notif, t);
   const actors = getActors(notif);
   const countBadge = getCountBadge(notif);
   const grouped = actors.length > 1;
@@ -123,7 +127,7 @@ export default function NotifRow({
       >
         <div className={styles.topline}>
           {!notif.read && <span className={styles.unreadDot} />}
-          <span className={styles.domainTag}>{domain.label}</span>
+          <span className={styles.domainTag}>{domainLabel}</span>
           {notifTarget(notif) && (
             <span className={styles.target}>· {notifTarget(notif)}</span>
           )}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useNotifications } from "../../context/NotificationContext";
 import { useChat } from "../../context/ChatContext";
@@ -9,7 +10,8 @@ import {
   isActionable,
   notifBucket,
   notifLink,
-  NOTIF_BUCKETS,
+  NOTIF_BUCKET_KEYS,
+  getBucketLabel,
 } from "../../utils/notifDomains";
 import EmptyState from "../../components/shared/EmptyState";
 import { ArtNotif, ArtSearch } from "../../components/shared/EmptyArt";
@@ -64,6 +66,7 @@ export default function Notifications() {
   } = useNotifications();
   const { clearConversationUnread } = useChat();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [filter, setFilter] = useState("all");
   const [resolved, setResolved] = useState({}); // id -> 'accept' | 'reject'
@@ -314,21 +317,21 @@ export default function Notifications() {
             />
           ) : (
             <>
-              {NOTIF_BUCKETS.map(
-                (bucket) =>
-                  buckets[bucket.key].length > 0 && (
-                    <section key={bucket.key} className={styles.bucket}>
+              {NOTIF_BUCKET_KEYS.map(
+                (bucketKey) =>
+                  buckets[bucketKey].length > 0 && (
+                    <section key={bucketKey} className={styles.bucket}>
                       <div className={styles.bucketHeader}>
                         <span className={styles.bucketLabel}>
-                          {bucket.label}
+                          {getBucketLabel(bucketKey, t)}
                         </span>
                         <span className={styles.bucketRule} />
                         <span className={styles.bucketCount}>
-                          {buckets[bucket.key].length}
+                          {buckets[bucketKey].length}
                         </span>
                       </div>
                       <ul className={styles.list}>
-                        {buckets[bucket.key].map((n) => {
+                        {buckets[bucketKey].map((n) => {
                           const id = notifId(n);
                           if (resolved[id]) {
                             return (

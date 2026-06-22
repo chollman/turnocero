@@ -7,17 +7,20 @@
 // MISMAS funciones que usa la bandeja in-app, así el texto del push y el de la
 // app nunca divergen (única fuente de verdad para las 34 notifs).
 import { getNotifMeta, notifLink } from "../utils/notifDomains";
+import { notifT } from "./swI18n";
 
 export function buildPushNotification(data = {}) {
+  // `t` fijado al idioma del payload (default es) + ns `notifs`.
+  const t = notifT(data.language);
   // Notificación de prueba (botón del panel admin): copy explícito que viaja en
   // el payload. No pasa por getNotifMeta porque "test" no es un tipo real de
   // notificación. Tag fijo para que pruebas sucesivas se colapsen en una sola
   // entrada del OS.
   if (data.test) {
     return {
-      title: data.title || "Notificación de prueba",
+      title: data.title || t("notifs:test.title"),
       options: {
-        body: data.body || "Si ves esto, las notificaciones push funcionan. 🎲",
+        body: data.body || t("notifs:test.body"),
         icon: "/pwa-192x192.png",
         badge: "/badge-96x96.png",
         tag: "turnocero-test-push",
@@ -26,7 +29,7 @@ export function buildPushNotification(data = {}) {
       },
     };
   }
-  const meta = getNotifMeta(data);
+  const meta = getNotifMeta(data, t);
   const url = notifLink(data);
   return {
     title: meta.title || "TurnoCero",

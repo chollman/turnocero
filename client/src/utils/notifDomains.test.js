@@ -1,7 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
+import i18n from "../i18n";
 import {
   getDomain,
   getDomainMeta,
+  getDomainLabel,
   isActionable,
   getCountBadge,
   notifBucket,
@@ -9,6 +11,10 @@ import {
   notifTarget,
   getNotifMeta,
 } from "./notifDomains";
+
+// `t` del singleton real (init en español por el test setup). Helper para no
+// repetir la firma `(notif, i18n.t)` en cada caso.
+const nm = (n) => getNotifMeta(n, i18n.t);
 
 describe("notifDomains", () => {
   describe("getDomain / getDomainMeta", () => {
@@ -30,7 +36,7 @@ describe("notifDomains", () => {
     it("maps BG Watch shared-play types to the bgwatch domain", () => {
       expect(getDomain("bgg_play_shared")).toBe("bgwatch");
       expect(getDomain("bgg_play_accepted")).toBe("bgwatch");
-      expect(getDomainMeta("bgg_play_shared").label).toBe("BG Watch");
+      expect(getDomainLabel("bgg_play_shared", i18n.t)).toBe("BG Watch");
     });
 
     it("returns brand colorVar + icon per domain", () => {
@@ -124,19 +130,19 @@ describe("notifDomains", () => {
   describe("getNotifMeta", () => {
     it("singular vs plural join_request", () => {
       expect(
-        getNotifMeta({
+        nm({
           type: "join_request",
           count: 1,
           lastRequesterUsername: "lu",
         }).title,
       ).toMatch(/lu quiere unirse/i);
-      expect(getNotifMeta({ type: "join_request", count: 3 }).title).toMatch(
+      expect(nm({ type: "join_request", count: 3 }).title).toMatch(
         /3 personas quieren unirse/i,
       );
     });
 
     it("comment usa copy neutral (no asume 'tu mesa') con el nombre de la mesa", () => {
-      const single = getNotifMeta({
+      const single = nm({
         type: "comment",
         count: 1,
         lastCommenterUsername: "ana",
@@ -147,7 +153,7 @@ describe("notifDomains", () => {
       expect(single.title).not.toMatch(/tu mesa/i);
       expect(single.title).toMatch(/ana comentó la mesa de Catan/i);
 
-      const many = getNotifMeta({
+      const many = nm({
         type: "comment",
         count: 4,
         tableName: "Catan",
@@ -156,7 +162,7 @@ describe("notifDomains", () => {
     });
 
     it("compartida_like aggregates names with count", () => {
-      const meta = getNotifMeta({
+      const meta = nm({
         type: "compartida_like",
         count: 8,
         lastSenderUsername: "cami",
@@ -165,7 +171,7 @@ describe("notifDomains", () => {
     });
 
     it("compartida_comment_like: copy de like de comentario (singular/plural)", () => {
-      const single = getNotifMeta({
+      const single = nm({
         type: "compartida_comment_like",
         count: 1,
         lastSenderUsername: "ana",
@@ -175,7 +181,7 @@ describe("notifDomains", () => {
       expect(single.body).toMatch(/«Mi noche»/);
       expect(single.cta).toBe("Ver compartida");
 
-      const many = getNotifMeta({
+      const many = nm({
         type: "compartida_comment_like",
         count: 5,
         lastSenderUsername: "ana",
@@ -184,7 +190,7 @@ describe("notifDomains", () => {
     });
 
     it("comment_like: copy de like de comentario de mesa", () => {
-      const meta = getNotifMeta({
+      const meta = nm({
         type: "comment_like",
         count: 1,
         lastSenderUsername: "beto",
@@ -196,18 +202,18 @@ describe("notifDomains", () => {
     });
 
     it("returns a cta for navigable types and null where destructive", () => {
-      expect(getNotifMeta({ type: "evento_confirmed" }).cta).toBeTruthy();
-      expect(getNotifMeta({ type: "table_cancelled" }).cta).toBeNull();
+      expect(nm({ type: "evento_confirmed" }).cta).toBeTruthy();
+      expect(nm({ type: "table_cancelled" }).cta).toBeNull();
     });
 
     it("has a safe default for unknown types", () => {
-      const meta = getNotifMeta({ type: "mystery" });
+      const meta = nm({ type: "mystery" });
       expect(meta.title).toBeTruthy();
     });
 
     it("community copy: request (singular/plural), accepted, rejected", () => {
       expect(
-        getNotifMeta({
+        nm({
           type: "community_join_request",
           count: 1,
           communityName: "Rosario Juega",
@@ -215,25 +221,25 @@ describe("notifDomains", () => {
         }).title,
       ).toMatch(/ana quiere unirse a Rosario Juega/i);
       expect(
-        getNotifMeta({
+        nm({
           type: "community_join_request",
           count: 3,
           communityName: "Rosario Juega",
         }).title,
       ).toMatch(/3 solicitudes/i);
       expect(
-        getNotifMeta({
+        nm({
           type: "community_join_accepted",
           communityName: "Rosario Juega",
         }).body,
       ).toMatch(/ya sos parte de Rosario Juega/i);
-      expect(getNotifMeta({ type: "community_join_rejected" }).title).toMatch(
+      expect(nm({ type: "community_join_rejected" }).title).toMatch(
         /rechazada/i,
       );
     });
 
     it("BG Watch copy: shared (incluye autor + juego) y accepted (gracias)", () => {
-      const shared = getNotifMeta({
+      const shared = nm({
         type: "bgg_play_shared",
         fromUsername: "ana",
         gameName: "Catán",
@@ -241,7 +247,7 @@ describe("notifDomains", () => {
       expect(shared.title).toMatch(/ana/i);
       expect(shared.body).toMatch(/Catán/);
       expect(shared.cta).toBeTruthy();
-      const accepted = getNotifMeta({
+      const accepted = nm({
         type: "bgg_play_accepted",
         fromUsername: "bob",
         gameName: "Catán",
@@ -291,6 +297,46 @@ describe("notifDomains", () => {
           communityName: "Rosario Juega",
         }),
       ).toBe("Rosario Juega");
+    });
+  });
+
+  describe("i18n (English render)", () => {
+    // El singleton arranca en español (test setup); volvemos a dejarlo así para
+    // no contaminar otros tests del mismo proceso.
+    afterEach(() => i18n.changeLanguage("es"));
+
+    it("renders titles/body/cta + domain label in English", () => {
+      i18n.changeLanguage("en");
+
+      // Plural con count + username.
+      expect(
+        getNotifMeta(
+          { type: "join_request", count: 1, lastRequesterUsername: "lu" },
+          i18n.t,
+        ).title,
+      ).toBe("lu wants to join your table");
+      expect(
+        getNotifMeta({ type: "join_request", count: 3 }, i18n.t).title,
+      ).toBe("3 people want to join your table");
+
+      // "y N más" → "and N others".
+      expect(
+        getNotifMeta(
+          { type: "compartida_like", count: 8, lastSenderUsername: "cami" },
+          i18n.t,
+        ).title,
+      ).toBe("cami and 7 others liked your shared post");
+
+      // body + cta.
+      const ev = getNotifMeta(
+        { type: "evento_confirmed", eventoTitle: "Jornada" },
+        i18n.t,
+      );
+      expect(ev.body).toBe("You're in Jornada");
+      expect(ev.cta).toBe("View event");
+
+      // Domain label.
+      expect(getDomainLabel("chat", i18n.t)).toBe("Tables");
     });
   });
 });

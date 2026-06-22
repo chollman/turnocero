@@ -1,0 +1,256 @@
+{
+  "domains": {
+    "mesa": "Tables",
+    "evento": "Events",
+    "torneo": "Tournaments",
+    "amigo": "Friends",
+    "compartida": "Shared",
+    "mathtrade": "Math Trade",
+    "comunidad": "Communities",
+    "bgwatch": "BG Watch",
+    "admin": "Admin"
+  },
+  "buckets": {
+    "today": "Today",
+    "week": "This week",
+    "earlier": "Earlier"
+  },
+  "test": {
+    "title": "Test notification",
+    "body": "If you can see this, push notifications are working. 🎲"
+  },
+  "default": {
+    "title": "New notification"
+  },
+  "join_request": {
+    "title_one": "{{username}} wants to join your table",
+    "title_other": "{{count}} people want to join your table",
+    "bodyTable": "{{tableName}} table",
+    "cta": "View requests"
+  },
+  "join_accepted": {
+    "title": "You were accepted at the table!",
+    "body": "You're now part of the {{tableName}} table",
+    "cta": "View table"
+  },
+  "join_rejected": {
+    "title": "Request rejected",
+    "body": "Your request for {{tableName}} was rejected",
+    "cta": "View tables"
+  },
+  "player_joined": {
+    "title_one": "{{username}} joined your table",
+    "title_other": "{{count}} new players at your table",
+    "bodyTable": "{{tableName}} table",
+    "cta": "View table"
+  },
+  "player_left": {
+    "title_one": "{{username}} left your table",
+    "title_other": "{{count}} players left your table",
+    "bodyTable": "{{tableName}} table",
+    "cta": "View table"
+  },
+  "spot_opened": {
+    "title": "A spot opened up!",
+    "body": "There's room at {{tableName}}",
+    "cta": "View table"
+  },
+  "table_cancelled": {
+    "title": "Table cancelled",
+    "body": "{{tableName}} was cancelled"
+  },
+  "chat": {
+    "title_one": "New message in the chat",
+    "title_other": "{{count}} new messages in the chat",
+    "cta": "Open chat"
+  },
+  "comment": {
+    "whereTable": "the {{tableName}} table",
+    "whereGeneric": "a table",
+    "title_one": "{{username}} commented on {{where}}",
+    "title_other": "{{count}} new comments on {{where}}",
+    "cta": "View table"
+  },
+  "image": {
+    "title_one": "New photo at the table",
+    "title_other": "{{count}} new photos",
+    "body_one": "{{username}} uploaded a photo",
+    "body_other": "{{username}} uploaded photos",
+    "cta": "View table"
+  },
+  "friend_request": {
+    "title": "{{username}} sent you a friend request",
+    "cta": "View profile"
+  },
+  "friend_accepted": {
+    "title": "{{username}} accepted your request",
+    "body": "You're now friends",
+    "cta": "View profile"
+  },
+  "dm": {
+    "title_one": "{{username}} messaged you",
+    "title_other": "{{count}} new messages from {{username}}",
+    "cta": "Reply"
+  },
+  "admin_chat": {
+    "title_one": "New message in the admin chat",
+    "title_other": "{{count}} new messages in the admin chat",
+    "cta": "Open chat"
+  },
+  "compartida_comment": {
+    "whereTitle": "“{{compartidaTitle}}”",
+    "whereGeneric": "a shared post",
+    "title_one": "{{username}} commented on {{where}}",
+    "title_other": "{{count}} new comments on {{where}}",
+    "cta": "Reply"
+  },
+  "compartida_like": {
+    "title_one": "{{username}} liked your shared post",
+    "title_other": "{{username}} and {{others}} others liked your shared post",
+    "body": "“{{compartidaTitle}}”",
+    "cta": "View shared post"
+  },
+  "compartida_comment_like": {
+    "title_one": "{{username}} liked your comment",
+    "title_other": "{{username}} and {{others}} others liked your comment",
+    "body": "on “{{compartidaTitle}}”",
+    "cta": "View shared post"
+  },
+  "comment_like": {
+    "title_one": "{{username}} liked your comment",
+    "title_other": "{{username}} and {{others}} others liked your comment",
+    "body": "on the {{tableName}} table",
+    "cta": "View table"
+  },
+  "tournament_accepted": {
+    "title": "Registration approved!",
+    "body": "You're in {{torneoTitle}}",
+    "fallbackTorneo": "the tournament",
+    "cta": "View tournament"
+  },
+  "tournament_rejected": {
+    "title": "Registration rejected",
+    "body": "Your tournament registration was rejected",
+    "cta": "View tournament"
+  },
+  "tournament_advanced": {
+    "labelPhase": "phase",
+    "labelRound": "round",
+    "title": "You advanced a {{label}}!",
+    "bodyNumbered": "You advanced to {{label}} {{nextNum}}",
+    "bodyNext": "You advanced to the next {{label}}",
+    "cta": "View tournament"
+  },
+  "tournament_eliminated": {
+    "title": "You're out of the tournament",
+    "body": "Better luck next time 🎲",
+    "cta": "View tournament"
+  },
+  "tournament_started": {
+    "title": "The tournament has started!",
+    "body": "{{torneoTitle}} is now in play",
+    "fallbackTorneo": "The tournament",
+    "cta": "View tournament"
+  },
+  "tournament_finished": {
+    "title": "Tournament finished",
+    "body": "{{torneoTitle}} has ended",
+    "fallbackTorneo": "the tournament",
+    "cta": "View tournament"
+  },
+  "evento_confirmed": {
+    "title": "Registration confirmed!",
+    "body": "You're in {{eventoTitle}}",
+    "cta": "View event"
+  },
+  "evento_rejected": {
+    "title": "Registration rejected",
+    "titlePermanent": "Registration rejected (permanent)",
+    "body": "Your registration for {{eventoTitle}} was rejected",
+    "bodyPermanent": "You won't be able to register for {{eventoTitle}} again",
+    "cta": "View event"
+  },
+  "evento_cancelled": {
+    "title": "Event cancelled",
+    "titleDeleted": "Event deleted",
+    "body": "{{eventoTitle}} was cancelled",
+    "bodyDeleted": "{{eventoTitle}} is no longer available",
+    "cta": "View event",
+    "ctaDeleted": "View events"
+  },
+  "evento_updated": {
+    "title": "Changes to the event",
+    "body": "{{eventoTitle}}: {{detail}}",
+    "fieldDate": "new date",
+    "fieldLocation": "new location",
+    "detailFallback": "changes",
+    "cta": "View event"
+  },
+  "evento_reminder": {
+    "title": "{{eventoTitle}} is tomorrow",
+    "body": "Event reminder",
+    "cta": "View event"
+  },
+  "evento_ludoteca_added": {
+    "fallbackWho": "someone",
+    "fallbackGame": "a game",
+    "title_one": "{{who}} added a game to the library",
+    "title_other": "{{count}} new games in the library",
+    "body": "{{who}} added {{game}} to {{eventoTitle}}",
+    "cta": "View event"
+  },
+  "evento_mesa_created": {
+    "fallbackWho": "someone",
+    "fallbackGame": "a game",
+    "title_one": "{{who}} set up a table at the event",
+    "title_other": "{{count}} new tables at the event",
+    "body": "{{who}} set up {{game}} at {{eventoTitle}}",
+    "cta": "View event"
+  },
+  "mathtrade_results": {
+    "title": "The math trade results are out!",
+    "body": "You can now see your trades in {{mathtradeTitle}}",
+    "fallbackMathtrade": "the math trade",
+    "cta": "View results"
+  },
+  "community_join_request": {
+    "fallbackWho": "Someone",
+    "fallbackCommunity": "your community",
+    "title_one": "{{who}} wants to join {{communityName}}",
+    "title_other": "{{count}} requests to join {{communityName}}",
+    "body": "Check the pending requests",
+    "cta": "View requests"
+  },
+  "community_join_accepted": {
+    "title": "You joined the community!",
+    "body": "You're now part of {{communityName}}",
+    "fallbackCommunity": "the community",
+    "cta": "View community"
+  },
+  "community_join_rejected": {
+    "title": "Request rejected",
+    "body": "Your request for {{communityName}} was rejected",
+    "fallbackCommunity": "the community",
+    "cta": "View communities"
+  },
+  "community_content_removed": {
+    "title": "A moderator removed your content",
+    "body": "A post of yours was removed in {{communityName}}",
+    "fallbackCommunity": "the community",
+    "cta": "View community"
+  },
+  "bgg_play_shared": {
+    "fallbackWho": "Someone",
+    "fallbackGame": "a play",
+    "title": "{{who}} included you in a play",
+    "body": "They logged {{game}} with you. Log it in your BGG account.",
+    "cta": "View play"
+  },
+  "bgg_play_accepted": {
+    "fallbackWho": "Someone",
+    "fallbackGame": "the play",
+    "title": "{{who}} logged your play",
+    "body": "They recorded {{game}} in their account. Thanks for sharing it!",
+    "cta": "View profile"
+  }
+}

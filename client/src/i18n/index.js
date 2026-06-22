@@ -18,10 +18,12 @@ import esCommon from "./resources/es/common.json";
 import enCommon from "./resources/en/common.json";
 import esAuth from "./resources/es/auth.json";
 import enAuth from "./resources/en/auth.json";
+import esNotifs from "./resources/es/notifs.json";
+import enNotifs from "./resources/en/notifs.json";
 
 export const resources = {
-  es: { common: esCommon, auth: esAuth },
-  en: { common: enCommon, auth: enAuth },
+  es: { common: esCommon, auth: esAuth, notifs: esNotifs },
+  en: { common: enCommon, auth: enAuth, notifs: enNotifs },
 };
 
 function getInitialLang() {
