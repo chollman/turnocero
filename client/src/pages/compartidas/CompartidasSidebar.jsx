@@ -1,17 +1,19 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { API } from "../../api/endpoints";
+import { getLocale } from "../../utils/locale";
 import GameTile from "../../components/shared/GameTile";
 import GuestJoinBanner from "../../components/shared/GuestJoinBanner";
 import BgWatchHomeWidget from "./BgWatchHomeWidget";
 import styles from "./CompartidasSidebar.module.css";
 
 function formatDate(date) {
-  return new Date(date).toLocaleDateString("es-AR", {
+  return new Date(date).toLocaleDateString(getLocale(), {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -23,6 +25,7 @@ function seedFromId(id = "") {
 }
 
 export default function CompartidasSidebar() {
+  const { t } = useTranslation("compartidas");
   const { user } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
   const mesasEnabled = isSectionEnabled("mesas");
@@ -81,49 +84,52 @@ export default function CompartidasSidebar() {
       {user && mesasEnabled && (
         <div className={styles.widget}>
           <div className={styles.widgetHeader}>
-            <span className={styles.widgetEyebrow}><Meeple />TUS MESAS</span>
+            <span className={styles.widgetEyebrow}><Meeple />{t("sidebar.tusMesas")}</span>
             <Link to="/mesas" className={styles.widgetLink}>
-              Ver todas →
+              {t("sidebar.verTodas")}
             </Link>
           </div>
-          <h3 className={styles.widgetTitle}>Próximas partidas</h3>
+          <h3 className={styles.widgetTitle}>{t("sidebar.proximasPartidas")}</h3>
 
           {tables.length === 0 ? (
             <div className={styles.emptyWidget}>
-              <p className={styles.emptyText}>Sin mesas próximas</p>
+              <p className={styles.emptyText}>{t("sidebar.sinMesas")}</p>
               <Link to="/mesas/crear" className={styles.emptyAction}>
-                + Crear mesa
+                {t("sidebar.crearMesa")}
               </Link>
             </div>
           ) : (
             <div className={styles.tableList}>
-              {tables.map((t) => {
-                const seats = t.maxPlayers - (t.players?.length || 0);
-                const isFull = t.status === "full";
+              {tables.map((table) => {
+                const seats =
+                  table.maxPlayers - (table.players?.length || 0);
+                const isFull = table.status === "full";
                 return (
                   <Link
-                    key={t._id}
-                    to={`/mesas/${t._id}`}
+                    key={table._id}
+                    to={`/mesas/${table._id}`}
                     className={styles.tableRow}
                   >
                     <div className={styles.tableTile}>
                       <GameTile
-                        game={t.boardGame}
-                        seed={seedFromId(t._id)}
+                        game={table.boardGame}
+                        seed={seedFromId(table._id)}
                         size={38}
-                        imageUrl={t.bggThumbnail}
+                        imageUrl={table.bggThumbnail}
                       />
                     </div>
                     <div className={styles.tableInfo}>
-                      <span className={styles.tableGame}>{t.boardGame}</span>
+                      <span className={styles.tableGame}>{table.boardGame}</span>
                       <span className={styles.tableMeta}>
-                        {formatDate(t.date)}
+                        {formatDate(table.date)}
                       </span>
                     </div>
                     <span
                       className={`${styles.tableSeats} ${isFull ? styles.tableSeatsFull : ""}`}
                     >
-                      {isFull ? "Llena" : `${seats}L`}
+                      {isFull
+                        ? t("sidebar.full")
+                        : t("sidebar.seatsShort", { count: seats })}
                     </span>
                   </Link>
                 );
@@ -138,12 +144,12 @@ export default function CompartidasSidebar() {
       {mesasEnabled && (user || topGames.length > 0) && (
         <div className={styles.widget}>
           <div className={styles.widgetHeader}>
-            <span className={styles.widgetEyebrow}><Meeple />COMUNIDAD</span>
+            <span className={styles.widgetEyebrow}><Meeple />{t("sidebar.comunidad")}</span>
           </div>
-          <h3 className={styles.widgetTitle}>Top juegos esta semana</h3>
+          <h3 className={styles.widgetTitle}>{t("sidebar.topJuegos")}</h3>
 
           {topGames.length === 0 ? (
-            <p className={styles.emptyText}>Sin datos esta semana</p>
+            <p className={styles.emptyText}>{t("sidebar.sinDatos")}</p>
           ) : (
             <div className={styles.gameList}>
               {topGames.map((g, i) => (

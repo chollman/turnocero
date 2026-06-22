@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
@@ -21,6 +22,7 @@ const stripHtml = (html) =>
     .trim();
 
 export default function CompartidaPost() {
+  const { t } = useTranslation("compartidas");
   const { id } = useParams();
   const navigate = useNavigate();
   const { setActiveCompartida } = useNotifications();
@@ -43,16 +45,16 @@ export default function CompartidaPost() {
       .catch((err) => {
         if (axios.isCancel(err)) return;
         if (err.response?.status === 404)
-          setError("Esta compartida no existe o fue eliminada.");
+          setError(t("post.errorNotFound"));
         else if (err.response?.status === 403)
-          setError("No tenés acceso a esta compartida.");
-        else setError("Error al cargar la compartida.");
+          setError(t("post.errorForbidden"));
+        else setError(t("post.errorGeneric"));
       })
       .finally(() => {
         if (!ac.signal.aborted) setLoading(false);
       });
     return () => ac.abort();
-  }, [id]);
+  }, [id, t]);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const postUrl = `${origin}/compartidas/${id}`;
@@ -61,20 +63,26 @@ export default function CompartidaPost() {
     : "TurnoCero";
   const isResena = post?.category === "resena";
   const metaTitle = post?.title
-    ? `${post.title} – ${brandName} 🎲`
+    ? t("post.metaTitleWithTitle", { title: post.title, brand: brandName })
     : isResena
-      ? `Reseña de ${post?.boardGame?.name || "un juego"} – ${brandName} 🎲`
-      : `Compartida de ${authorName} – ${brandName} 🎲`;
+      ? t("post.metaTitleResena", {
+          game: post?.boardGame?.name || t("post.metaGameFallback"),
+          brand: brandName,
+        })
+      : t("post.metaTitleDefault", { author: authorName, brand: brandName });
   // Para reseñas el body es HTML → texto plano; sumamos juego + puntuación.
   const bodyText = isResena ? stripHtml(post?.body) : post?.body || "";
   const resenaPrefix =
     isResena && post?.boardGame?.name
-      ? `Reseña de ${post.boardGame.name}${post.rating != null ? ` · ${post.rating}/10` : ""}. `
+      ? t("post.metaResenaPrefix", {
+          game: post.boardGame.name,
+          rating: post.rating != null ? ` · ${post.rating}/10` : "",
+        })
       : "";
   const fullDesc = `${resenaPrefix}${bodyText}`.trim();
   const metaDesc = fullDesc
     ? fullDesc.slice(0, 160) + (fullDesc.length > 160 ? "…" : "")
-    : "Mirá esta compartida en TurnoCero, la comunidad de juegos de mesa.";
+    : t("post.metaDescDefault");
   const rawImage = post?.images?.[0]?.url || post?.boardGame?.image;
   // Resize to 1200×630 via Cloudinary transformation for optimal OG display.
   // Sin foto cae al og-default.png (también 1200×630), así que siempre hay una
@@ -113,7 +121,7 @@ export default function CompartidaPost() {
       <div className={styles.layout}>
         <div className={styles.feedCol}>
           <BackButton to="/compartidas" flush>
-            Volver al feed
+            {t("post.back")}
           </BackButton>
 
           {/* Aterrizaje viral: el link llegó por WhatsApp/Telegram a un anónimo.
@@ -129,7 +137,7 @@ export default function CompartidaPost() {
                 className={styles.backLink}
                 onClick={() => navigate("/compartidas")}
               >
-                Ir al feed de Compartidas
+                {t("post.goToFeed")}
               </button>
             </div>
           )}

@@ -1,6 +1,7 @@
 import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import Avatar from "../../components/shared/Avatar";
 import CommentLikeButton from "../../components/shared/CommentLikeButton";
@@ -42,6 +43,7 @@ export default function CompartidaComments({
   onRequireLogin,
   onCountChange,
 }) {
+  const { t } = useTranslation("compartidas");
   const [comments, setComments] = useState([]); // top-level, cada uno con .replies
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -130,7 +132,7 @@ export default function CompartidaComments({
       bumpTotal(1);
       setCommentInput("");
     } catch (err) {
-      setError(getErrorMessage(err, "No pudimos enviar el comentario"));
+      setError(getErrorMessage(err, t("comments.errorSend")));
     } finally {
       setSubmitting(false);
     }
@@ -164,7 +166,7 @@ export default function CompartidaComments({
       setReplyingTo(null);
       setReplyText("");
     } catch (err) {
-      setError(getErrorMessage(err, "No pudimos enviar la respuesta"));
+      setError(getErrorMessage(err, t("comments.errorReply")));
     } finally {
       setReplySubmitting(false);
     }
@@ -191,7 +193,7 @@ export default function CompartidaComments({
       );
       setEditingCid(null);
     } catch (err) {
-      setError(getErrorMessage(err, "No pudimos editar el comentario"));
+      setError(getErrorMessage(err, t("comments.errorEdit")));
     }
   };
 
@@ -213,7 +215,7 @@ export default function CompartidaComments({
         );
       }
     } catch (err) {
-      setError(getErrorMessage(err, "No pudimos eliminar el comentario"));
+      setError(getErrorMessage(err, t("comments.errorDelete")));
     }
   };
 
@@ -222,7 +224,7 @@ export default function CompartidaComments({
   // tanto para top-level como para respuestas).
   const toggleCommentLike = async (c) => {
     if (!user) {
-      onRequireLogin?.("Iniciá sesión para reaccionar a este comentario.");
+      onRequireLogin?.(t("comments.requireLogin"));
       return;
     }
     const original = { liked: c.liked, likeCount: c.likeCount ?? 0 };
@@ -253,7 +255,7 @@ export default function CompartidaComments({
           <Link
             to={profilePath}
             className={styles.avatarLink}
-            aria-label={`Ver perfil de ${info.name}`}
+            aria-label={t("comments.viewProfile", { name: info.name })}
           >
             <Avatar user={c.author} size="xs" />
           </Link>
@@ -275,7 +277,9 @@ export default function CompartidaComments({
             <span className={styles.commentTime}>
               {formatDateTime(c.createdAt)}
             </span>
-            {c.editedAt && <span className={styles.editedBadge}>editado</span>}
+            {c.editedAt && (
+              <span className={styles.editedBadge}>{t("comments.edited")}</span>
+            )}
           </div>
           {editingCid === c._id ? (
             <div className={styles.inlineEdit}>
@@ -291,13 +295,13 @@ export default function CompartidaComments({
                   className={styles.btnSave}
                   onClick={() => handleEdit(c._id)}
                 >
-                  Guardar
+                  {t("comments.save")}
                 </button>
                 <button
                   className={styles.btnGhost}
                   onClick={() => setEditingCid(null)}
                 >
-                  Cancelar
+                  {t("comments.cancel")}
                 </button>
               </div>
             </div>
@@ -317,7 +321,7 @@ export default function CompartidaComments({
                   className={styles.commentActionBtn}
                   onClick={() => openReply(c._id, isReply ? info.name : null)}
                 >
-                  Responder
+                  {t("comments.reply")}
                 </button>
               )}
               {isOwn && (
@@ -328,7 +332,7 @@ export default function CompartidaComments({
                     setEditContent(c.content);
                   }}
                 >
-                  Editar
+                  {t("comments.edit")}
                 </button>
               )}
               {canDel && (
@@ -338,12 +342,12 @@ export default function CompartidaComments({
                     // Confirmación antes de borrar — propio o, para autor/admin,
                     // el comentario de otro usuario.
                     const msg = isOwn
-                      ? "¿Eliminar tu comentario?"
-                      : `¿Eliminar el comentario de ${info.name}?`;
+                      ? t("comments.confirmDeleteOwn")
+                      : t("comments.confirmDeleteOther", { name: info.name });
                     if (window.confirm(msg)) handleDelete(c._id);
                   }}
                 >
-                  Eliminar
+                  {t("comments.delete")}
                 </button>
               )}
             </div>
@@ -360,7 +364,7 @@ export default function CompartidaComments({
             >
               <input
                 className={styles.commentInput}
-                placeholder="Escribí una respuesta…"
+                placeholder={t("comments.replyPlaceholder")}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 maxLength={500}
@@ -371,7 +375,7 @@ export default function CompartidaComments({
                 type="submit"
                 className={styles.commentSubmit}
                 disabled={!replyText.trim() || replySubmitting}
-                aria-label="Enviar respuesta"
+                aria-label={t("comments.sendReply")}
               >
                 {replySubmitting ? "…" : "➤"}
               </button>
@@ -383,7 +387,7 @@ export default function CompartidaComments({
                   setReplyText("");
                 }}
               >
-                Cancelar
+                {t("comments.cancel")}
               </button>
             </form>
           )}
@@ -396,7 +400,9 @@ export default function CompartidaComments({
     <div className={styles.comments}>
       <div className={styles.commentsHead}>
         <Meeple />
-        Dejá tu comentario{total > 0 ? ` (${total})` : ""}
+        {total > 0
+          ? t("comments.headCount", { count: total })
+          : t("comments.head")}
       </div>
 
       {/* Form arriba — los comentarios nuevos aparecen al instante en el tope. */}
@@ -405,7 +411,7 @@ export default function CompartidaComments({
           <Avatar user={user} size="xs" />
           <input
             className={styles.commentInput}
-            placeholder="Escribí un comentario…"
+            placeholder={t("comments.commentPlaceholder")}
             value={commentInput}
             onChange={(e) => setCommentInput(e.target.value)}
             maxLength={COMMENT_MAX}
@@ -415,7 +421,7 @@ export default function CompartidaComments({
             type="submit"
             className={styles.commentSubmit}
             disabled={!commentInput.trim() || submitting}
-            aria-label="Enviar comentario"
+            aria-label={t("comments.sendComment")}
           >
             {submitting ? (
               "…"
@@ -438,12 +444,10 @@ export default function CompartidaComments({
       ) : (
         <button
           className={styles.guestCommentCta}
-          onClick={() =>
-            onRequireLogin?.("Iniciá sesión para comentar en esta compartida.")
-          }
+          onClick={() => onRequireLogin?.(t("comments.requireLoginComment"))}
           type="button"
         >
-          Iniciá sesión para comentar
+          {t("comments.guestCta")}
         </button>
       )}
       {user && commentInput.length >= COMMENT_MAX - 50 && (
@@ -461,9 +465,7 @@ export default function CompartidaComments({
           <span className={styles.commentsLoaderDot} />
         </div>
       ) : total === 0 ? (
-        <p className={styles.noComments}>
-          Sin comentarios aún. ¡Sé el primero!
-        </p>
+        <p className={styles.noComments}>{t("comments.empty")}</p>
       ) : (
         <div className={styles.commentsScroll} ref={scrollRef}>
           {comments.map((c) => (
@@ -484,7 +486,9 @@ export default function CompartidaComments({
               onClick={onLoadMore}
               disabled={loadingMore}
             >
-              {loadingMore ? "Cargando…" : "Ver comentarios anteriores"}
+              {loadingMore
+                ? t("comments.loadingMore")
+                : t("comments.loadMore")}
             </button>
           )}
           {hasMore && <div ref={sentinelRef} aria-hidden="true" />}
@@ -494,7 +498,7 @@ export default function CompartidaComments({
       <LikersModal
         isOpen={!!likersCommentId}
         onClose={() => setLikersCommentId(null)}
-        title="A quién le gustó"
+        title={t("comments.likersTitle")}
         fetchUrl={
           likersCommentId
             ? API.compartidas.COMMENT_LIKES(compartidaId, likersCommentId)

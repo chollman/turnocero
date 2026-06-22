@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import BggGameSearch from "../../components/shared/BggGameSearch";
 // Reusamos las clases del form de compartidas para que la sección "Compartí esta
 // partida" se vea idéntica a una juntada. El layout/gap propio va en el módulo local.
@@ -6,9 +7,9 @@ import shared from "./CreateCompartidaForm.module.css";
 import styles from "./JuntadaFields.module.css";
 
 const PRIVACY_OPTIONS = [
-  { value: "public", label: "Público" },
-  { value: "friends", label: "Amigos" },
-  { value: "private", label: "Solo yo" },
+  { value: "public", labelKey: "privacyPublic" },
+  { value: "friends", labelKey: "privacyFriends" },
+  { value: "private", labelKey: "privacyPrivate" },
 ];
 const MAX_GAMES = 12;
 const MAX_IMAGES = 3;
@@ -28,6 +29,7 @@ const MAX_IMAGES = 3;
  * revocar las que queden tras un submit exitoso.
  */
 export default function JuntadaFields({ value, onChange, disabled = false }) {
+  const { t } = useTranslation("compartidas");
   const { privacy, games, title, body, images } = value;
   const fileInputRef = useRef(null);
   const set = (patch) => onChange({ ...value, ...patch });
@@ -58,7 +60,7 @@ export default function JuntadaFields({ value, onChange, disabled = false }) {
     <div className={styles.fields}>
       {/* Visibilidad */}
       <div className={shared.privacyRow}>
-        <span className={shared.privacyLabel}>Visibilidad:</span>
+        <span className={shared.privacyLabel}>{t("juntada.visibility")}</span>
         {PRIVACY_OPTIONS.map((opt) => (
           <button
             key={opt.value}
@@ -67,7 +69,7 @@ export default function JuntadaFields({ value, onChange, disabled = false }) {
             onClick={() => set({ privacy: opt.value })}
             disabled={disabled}
           >
-            {opt.label}
+            {t(`juntada.${opt.labelKey}`)}
           </button>
         ))}
       </div>
@@ -75,8 +77,8 @@ export default function JuntadaFields({ value, onChange, disabled = false }) {
       {/* Juegos (0..N, opcional) */}
       <div className={shared.gameField}>
         <span className={shared.fieldLabel}>
-          Juegos{" "}
-          <span className={shared.opt}>· opcional, podés agregar varios</span>
+          {t("juntada.games")}
+          <span className={shared.opt}>{t("juntada.gamesOpt")}</span>
         </span>
 
         {games.length > 0 && (
@@ -106,8 +108,8 @@ export default function JuntadaFields({ value, onChange, disabled = false }) {
                   className={shared.linkChipRemove}
                   onClick={() => removeGame(g.id)}
                   disabled={disabled}
-                  aria-label={`Quitar ${g.name}`}
-                  title="Quitar juego"
+                  aria-label={t("juntada.removeGame", { name: g.name })}
+                  title={t("juntada.removeGameTitle")}
                 >
                   ✕
                 </button>
@@ -121,7 +123,7 @@ export default function JuntadaFields({ value, onChange, disabled = false }) {
             onPick={addGame}
             autoFocus={false}
             clearOnPick
-            placeholder="Agregá un juego (≥3 caracteres)…"
+            placeholder={t("juntada.gameSearchPlaceholder")}
           />
         )}
       </div>
@@ -129,7 +131,7 @@ export default function JuntadaFields({ value, onChange, disabled = false }) {
       {/* Título */}
       <input
         className={shared.titleInput}
-        placeholder="Título (opcional)"
+        placeholder={t("juntada.titlePlaceholder")}
         value={title}
         onChange={(e) => set({ title: e.target.value })}
         maxLength={100}
@@ -139,7 +141,7 @@ export default function JuntadaFields({ value, onChange, disabled = false }) {
       {/* Texto */}
       <textarea
         className={shared.bodyInput}
-        placeholder="Contá cómo salió, qué jugaron, anécdotas…"
+        placeholder={t("juntada.bodyPlaceholder")}
         value={body}
         onChange={(e) => set({ body: e.target.value })}
         rows={4}
@@ -157,7 +159,7 @@ export default function JuntadaFields({ value, onChange, disabled = false }) {
                 type="button"
                 className={shared.removeImg}
                 onClick={() => removeImage(i)}
-                aria-label="Quitar foto"
+                aria-label={t("juntada.removePhoto")}
               >
                 ✕
               </button>
@@ -172,7 +174,11 @@ export default function JuntadaFields({ value, onChange, disabled = false }) {
           className={shared.photoBtn}
           onClick={() => fileInputRef.current?.click()}
           disabled={images.length >= MAX_IMAGES || disabled}
-          title={images.length >= MAX_IMAGES ? "Máximo 3 fotos" : "Agregar foto"}
+          title={
+            images.length >= MAX_IMAGES
+              ? t("juntada.maxPhotos")
+              : t("juntada.addPhoto")
+          }
         >
           <svg
             width="16"
@@ -188,7 +194,11 @@ export default function JuntadaFields({ value, onChange, disabled = false }) {
             <circle cx="8.5" cy="8.5" r="1.5" />
             <polyline points="21 15 16 10 5 21" />
           </svg>
-          <span>Foto {images.length > 0 ? `(${images.length}/3)` : ""}</span>
+          <span>
+            {images.length > 0
+              ? t("juntada.photoCount", { count: images.length })
+              : t("juntada.photo")}
+          </span>
         </button>
         <input
           ref={fileInputRef}
