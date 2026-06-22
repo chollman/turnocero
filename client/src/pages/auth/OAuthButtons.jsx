@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../../context/AuthContext";
 import { useFacebookSdk } from "../../hooks/useFacebookSdk";
@@ -48,6 +49,7 @@ const FACEBOOK_ENABLED = false;
 // renderizar — así que sólo montamos este subcomponente cuando hay clientId
 // (gating simétrico al de Facebook vía useFacebookSdk).
 function GoogleButton({ busy, setBusy, onError }) {
+  const { t } = useTranslation();
   const { oauthLogin } = useAuth();
   const navigate = useNavigate();
 
@@ -59,12 +61,12 @@ function GoogleButton({ busy, setBusy, onError }) {
         await oauthLogin("google", { accessToken: tokenResponse.access_token });
         navigate("/");
       } catch (err) {
-        onError?.(getErrorMessage(err, "Error al iniciar sesión con Google"));
+        onError?.(getErrorMessage(err, t("auth:oauth.errGoogle")));
       } finally {
         setBusy(false);
       }
     },
-    onError: () => onError?.("Error al iniciar sesión con Google"),
+    onError: () => onError?.(t("auth:oauth.errGoogle")),
   });
 
   return (
@@ -75,7 +77,7 @@ function GoogleButton({ busy, setBusy, onError }) {
       disabled={busy}
     >
       <GoogleIcon />
-      Continuar con Google
+      {t("auth:oauth.google")}
     </button>
   );
 }
@@ -90,6 +92,7 @@ function GoogleButton({ busy, setBusy, onError }) {
 // Facebook: useFacebookSdk.enabled). Sin ningún proveedor, la sección no se
 // renderiza — así un deploy sin envs de OAuth no rompe la pantalla de auth.
 export default function OAuthButtons({ onError }) {
+  const { t } = useTranslation();
   const { oauthLogin } = useAuth();
   const navigate = useNavigate();
   const facebook = useFacebookSdk();
@@ -107,7 +110,7 @@ export default function OAuthButtons({ onError }) {
     } catch (err) {
       // Cancelar el popup no es un error que valga la pena mostrar.
       if (err?.message !== "Login con Facebook cancelado") {
-        onError?.(getErrorMessage(err, "Error al iniciar sesión con Facebook"));
+        onError?.(getErrorMessage(err, t("auth:oauth.errFacebook")));
       }
     } finally {
       setBusy(false);
@@ -118,7 +121,7 @@ export default function OAuthButtons({ onError }) {
 
   return (
     <div className={styles.oauthSection}>
-      <div className={styles.divider}>o continuá con</div>
+      <div className={styles.divider}>{t("auth:oauth.divider")}</div>
 
       {googleEnabled && (
         <GoogleButton busy={busy} setBusy={setBusy} onError={onError} />
@@ -132,7 +135,7 @@ export default function OAuthButtons({ onError }) {
           disabled={busy || !facebook.ready}
         >
           <FacebookIcon />
-          Continuar con Facebook
+          {t("auth:oauth.facebook")}
         </button>
       )}
     </div>

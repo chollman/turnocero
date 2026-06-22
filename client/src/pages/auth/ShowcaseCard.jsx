@@ -1,12 +1,15 @@
+import { useTranslation } from "react-i18next";
 import styles from "./Auth.module.css";
 import { getLocationDisplay } from "../../utils/location";
+import { getLocale } from "../../utils/locale";
 
 function formatShowcaseDate(dateStr) {
   const d = new Date(dateStr);
-  const weekday = d.toLocaleDateString("es-AR", { weekday: "short" });
+  const locale = getLocale();
+  const weekday = d.toLocaleDateString(locale, { weekday: "short" });
   const day = d.getDate();
-  const month = d.toLocaleDateString("es-AR", { month: "short" });
-  const time = d.toLocaleTimeString("es-AR", {
+  const month = d.toLocaleDateString(locale, { month: "short" });
+  const time = d.toLocaleTimeString(locale, {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -18,6 +21,7 @@ function formatShowcaseDate(dateStr) {
 // ForgotPassword / ResetPassword, que conservan el layout anterior con
 // GameTile). El nuevo Auth (login/register) usa su propia PreviewCard.
 export default function ShowcaseCard({ table }) {
+  const { t } = useTranslation();
   const filled = table.players.length + 1;
   const total = table.maxPlayers + 1;
   const available = total - filled;
@@ -35,7 +39,7 @@ export default function ShowcaseCard({ table }) {
       </div>
       <div className={styles.showcaseCardFooter}>
         <span className={styles.showcaseCardSeats}>
-          ● {available} lugar{available !== 1 ? "es" : ""}
+          ● {t("auth:showcaseHome.seats", { count: available })}
         </span>
         <span className={styles.showcaseCardDate}>
           {formatShowcaseDate(table.date)}
