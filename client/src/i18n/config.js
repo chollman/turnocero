@@ -18,6 +18,7 @@ export const NAMESPACES = [
   "enums",
   "quotes",
   "layout",
+  "toasts",
 ];
 export const DEFAULT_NS = "common";
 

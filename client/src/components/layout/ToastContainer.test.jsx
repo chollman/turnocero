@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import i18n from "../../i18n";
 
 const navigateMock = vi.fn();
 vi.mock("react-router-dom", async () => {
@@ -15,7 +16,10 @@ vi.mock("../../context/NotificationContext", () => ({
 }));
 vi.mock("../../context/ChatContext", () => ({ useChat: () => useChatMock() }));
 
-import ToastContainer from "./ToastContainer";
+import ToastContainer, {
+  getToastTitle,
+  getToastBody,
+} from "./ToastContainer";
 
 function defaultNotificationsValue(toasts = []) {
   return {
@@ -309,5 +313,72 @@ describe("<ToastContainer>", () => {
   it("success toast falls back to default title when none provided", () => {
     renderToasts([{ id: "t1", type: "success" }]);
     expect(screen.getByText("¡Listo!")).toBeInTheDocument();
+  });
+
+  // ── i18n: render en inglés ──
+  describe("English rendering", () => {
+    afterEach(() => {
+      i18n.changeLanguage("es");
+    });
+
+    it("renders titles and bodies in English when language is en", () => {
+      i18n.changeLanguage("en");
+      renderToasts([
+        {
+          id: "t1",
+          type: "player_joined",
+          tableName: "Wingspan",
+          joinerUsername: "ana",
+          tableId: "m1",
+        },
+        {
+          id: "t2",
+          type: "evento_reminder",
+          eventoId: "ev1",
+          eventoTitle: "Big Game",
+        },
+      ]);
+      expect(screen.getByText("New player!")).toBeInTheDocument();
+      expect(screen.getByText(/ana joined wingspan/i)).toBeInTheDocument();
+      expect(screen.getByText("Tomorrow!")).toBeInTheDocument();
+      expect(
+        screen.getByText(/reminder: big game is tomorrow/i),
+      ).toBeInTheDocument();
+    });
+  });
+});
+
+// ── Direct unit tests for the extracted pure helpers ──
+describe("getToastTitle / getToastBody", () => {
+  const tEs = i18n.getFixedT("es", "toasts");
+  const tEn = i18n.getFixedT("en", "toasts");
+
+  it("interpolates player_joined body in both languages", () => {
+    const toast = {
+      type: "player_joined",
+      joinerUsername: "ana",
+      tableName: "Catán",
+    };
+    expect(getToastTitle(toast, tEs)).toBe("¡Nuevo jugador!");
+    expect(getToastBody(toast, tEs)).toBe("ana se unió a Catán");
+    expect(getToastTitle(toast, tEn)).toBe("New player!");
+    expect(getToastBody(toast, tEn)).toBe("ana joined Catán");
+  });
+
+  it("renders the toast-only tournament_pending type", () => {
+    const toast = { type: "tournament_pending", torneoTitle: "Liga 26" };
+    expect(getToastTitle(toast, tEs)).toBe("Inscripción enviada");
+    expect(getToastBody(toast, tEs)).toBe(
+      "Liga 26 · Esperá la aprobación del admin",
+    );
+    expect(getToastTitle(toast, tEn)).toBe("Registration sent");
+  });
+
+  it("falls back to 'Alguien' when bgg_play_shared has no fromUsername", () => {
+    const toast = { type: "bgg_play_shared", gameName: "Azul" };
+    expect(getToastTitle(toast, tEs)).toBe(
+      "Alguien te incluyó en una partida",
+    );
+    expect(getToastBody(toast, tEs)).toBe("Cargó “Azul” — revisala");
   });
 });
