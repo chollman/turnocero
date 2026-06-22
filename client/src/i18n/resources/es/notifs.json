@@ -1,0 +1,256 @@
+{
+  "domains": {
+    "mesa": "Mesas",
+    "evento": "Eventos",
+    "torneo": "Torneos",
+    "amigo": "Amigos",
+    "compartida": "Compartidas",
+    "mathtrade": "Math Trade",
+    "comunidad": "Comunidades",
+    "bgwatch": "BG Watch",
+    "admin": "Admin"
+  },
+  "buckets": {
+    "today": "Hoy",
+    "week": "Esta semana",
+    "earlier": "Antes"
+  },
+  "test": {
+    "title": "Notificación de prueba",
+    "body": "Si ves esto, las notificaciones push funcionan. 🎲"
+  },
+  "default": {
+    "title": "Notificación nueva"
+  },
+  "join_request": {
+    "title_one": "{{username}} quiere unirse a tu mesa",
+    "title_other": "{{count}} personas quieren unirse a tu mesa",
+    "bodyTable": "Mesa de {{tableName}}",
+    "cta": "Ver solicitudes"
+  },
+  "join_accepted": {
+    "title": "¡Te aceptaron en la mesa!",
+    "body": "Ya sos parte de la mesa de {{tableName}}",
+    "cta": "Ver mesa"
+  },
+  "join_rejected": {
+    "title": "Solicitud rechazada",
+    "body": "Tu solicitud para {{tableName}} fue rechazada",
+    "cta": "Ver mesas"
+  },
+  "player_joined": {
+    "title_one": "{{username}} se unió a tu mesa",
+    "title_other": "{{count}} jugadores nuevos en tu mesa",
+    "bodyTable": "Mesa de {{tableName}}",
+    "cta": "Ver mesa"
+  },
+  "player_left": {
+    "title_one": "{{username}} dejó tu mesa",
+    "title_other": "{{count}} jugadores dejaron tu mesa",
+    "bodyTable": "Mesa de {{tableName}}",
+    "cta": "Ver mesa"
+  },
+  "spot_opened": {
+    "title": "¡Se liberó un lugar!",
+    "body": "Hay lugar en {{tableName}}",
+    "cta": "Ver mesa"
+  },
+  "table_cancelled": {
+    "title": "Mesa cancelada",
+    "body": "Se canceló {{tableName}}"
+  },
+  "chat": {
+    "title_one": "Mensaje nuevo en el chat",
+    "title_other": "{{count}} mensajes nuevos en el chat",
+    "cta": "Abrir chat"
+  },
+  "comment": {
+    "whereTable": "la mesa de {{tableName}}",
+    "whereGeneric": "una mesa",
+    "title_one": "{{username}} comentó {{where}}",
+    "title_other": "{{count}} comentarios nuevos en {{where}}",
+    "cta": "Ver mesa"
+  },
+  "image": {
+    "title_one": "Foto nueva en la mesa",
+    "title_other": "{{count}} fotos nuevas",
+    "body_one": "{{username}} subió una foto",
+    "body_other": "{{username}} subió fotos",
+    "cta": "Ver mesa"
+  },
+  "friend_request": {
+    "title": "{{username}} te envió una solicitud de amistad",
+    "cta": "Ver perfil"
+  },
+  "friend_accepted": {
+    "title": "{{username}} aceptó tu solicitud",
+    "body": "Ahora son amigos",
+    "cta": "Ver perfil"
+  },
+  "dm": {
+    "title_one": "{{username}} te escribió",
+    "title_other": "{{count}} mensajes nuevos de {{username}}",
+    "cta": "Responder"
+  },
+  "admin_chat": {
+    "title_one": "Mensaje nuevo en el chat de admins",
+    "title_other": "{{count}} mensajes nuevos en el chat de admins",
+    "cta": "Abrir chat"
+  },
+  "compartida_comment": {
+    "whereTitle": "«{{compartidaTitle}}»",
+    "whereGeneric": "una compartida",
+    "title_one": "{{username}} comentó {{where}}",
+    "title_other": "{{count}} comentarios nuevos en {{where}}",
+    "cta": "Responder"
+  },
+  "compartida_like": {
+    "title_one": "A {{username}} le gustó tu compartida",
+    "title_other": "A {{username}} y {{others}} más les gustó tu compartida",
+    "body": "“{{compartidaTitle}}”",
+    "cta": "Ver compartida"
+  },
+  "compartida_comment_like": {
+    "title_one": "A {{username}} le gustó tu comentario",
+    "title_other": "A {{username}} y {{others}} más les gustó tu comentario",
+    "body": "en «{{compartidaTitle}}»",
+    "cta": "Ver compartida"
+  },
+  "comment_like": {
+    "title_one": "A {{username}} le gustó tu comentario",
+    "title_other": "A {{username}} y {{others}} más les gustó tu comentario",
+    "body": "en la mesa de {{tableName}}",
+    "cta": "Ver mesa"
+  },
+  "tournament_accepted": {
+    "title": "¡Inscripción aprobada!",
+    "body": "Estás dentro de {{torneoTitle}}",
+    "fallbackTorneo": "el torneo",
+    "cta": "Ver torneo"
+  },
+  "tournament_rejected": {
+    "title": "Inscripción rechazada",
+    "body": "Tu inscripción al torneo fue rechazada",
+    "cta": "Ver torneo"
+  },
+  "tournament_advanced": {
+    "labelPhase": "fase",
+    "labelRound": "ronda",
+    "title": "¡Pasaste de {{label}}!",
+    "bodyNumbered": "Avanzaste a la {{label}} {{nextNum}}",
+    "bodyNext": "Avanzaste a la siguiente {{label}}",
+    "cta": "Ver torneo"
+  },
+  "tournament_eliminated": {
+    "title": "Quedaste fuera del torneo",
+    "body": "Suerte la próxima 🎲",
+    "cta": "Ver torneo"
+  },
+  "tournament_started": {
+    "title": "¡Empezó el torneo!",
+    "body": "{{torneoTitle}} ya está en juego",
+    "fallbackTorneo": "El torneo",
+    "cta": "Ver torneo"
+  },
+  "tournament_finished": {
+    "title": "Torneo finalizado",
+    "body": "Terminó {{torneoTitle}}",
+    "fallbackTorneo": "el torneo",
+    "cta": "Ver torneo"
+  },
+  "evento_confirmed": {
+    "title": "¡Inscripción confirmada!",
+    "body": "Estás dentro de {{eventoTitle}}",
+    "cta": "Ver evento"
+  },
+  "evento_rejected": {
+    "title": "Inscripción rechazada",
+    "titlePermanent": "Inscripción rechazada (permanente)",
+    "body": "Tu inscripción a {{eventoTitle}} fue rechazada",
+    "bodyPermanent": "No podrás volver a inscribirte a {{eventoTitle}}",
+    "cta": "Ver evento"
+  },
+  "evento_cancelled": {
+    "title": "Evento cancelado",
+    "titleDeleted": "Evento eliminado",
+    "body": "Se canceló {{eventoTitle}}",
+    "bodyDeleted": "{{eventoTitle}} ya no está disponible",
+    "cta": "Ver evento",
+    "ctaDeleted": "Ver eventos"
+  },
+  "evento_updated": {
+    "title": "Cambios en el evento",
+    "body": "{{eventoTitle}}: {{detail}}",
+    "fieldDate": "nueva fecha",
+    "fieldLocation": "nueva ubicación",
+    "detailFallback": "cambios",
+    "cta": "Ver evento"
+  },
+  "evento_reminder": {
+    "title": "{{eventoTitle}} es mañana",
+    "body": "Recordatorio del evento",
+    "cta": "Ver evento"
+  },
+  "evento_ludoteca_added": {
+    "fallbackWho": "alguien",
+    "fallbackGame": "un juego",
+    "title_one": "{{who}} sumó un juego a la ludoteca",
+    "title_other": "{{count}} juegos nuevos en la ludoteca",
+    "body": "{{who}} sumó {{game}} a {{eventoTitle}}",
+    "cta": "Ver evento"
+  },
+  "evento_mesa_created": {
+    "fallbackWho": "alguien",
+    "fallbackGame": "una partida",
+    "title_one": "{{who}} armó una mesa en el evento",
+    "title_other": "{{count}} mesas nuevas en el evento",
+    "body": "{{who}} armó {{game}} en {{eventoTitle}}",
+    "cta": "Ver evento"
+  },
+  "mathtrade_results": {
+    "title": "¡Salieron los resultados del intercambio!",
+    "body": "Ya podés ver tus trades en {{mathtradeTitle}}",
+    "fallbackMathtrade": "el math trade",
+    "cta": "Ver resultados"
+  },
+  "community_join_request": {
+    "fallbackWho": "Alguien",
+    "fallbackCommunity": "tu comunidad",
+    "title_one": "{{who}} quiere unirse a {{communityName}}",
+    "title_other": "{{count}} solicitudes para unirse a {{communityName}}",
+    "body": "Revisá las solicitudes pendientes",
+    "cta": "Ver solicitudes"
+  },
+  "community_join_accepted": {
+    "title": "¡Te uniste a la comunidad!",
+    "body": "Ya sos parte de {{communityName}}",
+    "fallbackCommunity": "la comunidad",
+    "cta": "Ver comunidad"
+  },
+  "community_join_rejected": {
+    "title": "Solicitud rechazada",
+    "body": "Tu solicitud para {{communityName}} fue rechazada",
+    "fallbackCommunity": "la comunidad",
+    "cta": "Ver comunidades"
+  },
+  "community_content_removed": {
+    "title": "Un moderador bajó tu contenido",
+    "body": "Se removió una publicación tuya en {{communityName}}",
+    "fallbackCommunity": "la comunidad",
+    "cta": "Ver comunidad"
+  },
+  "bgg_play_shared": {
+    "fallbackWho": "Alguien",
+    "fallbackGame": "una partida",
+    "title": "{{who}} te incluyó en una partida",
+    "body": "Cargó {{game}} con vos. Cargala en tu cuenta de BGG.",
+    "cta": "Ver partida"
+  },
+  "bgg_play_accepted": {
+    "fallbackWho": "Alguien",
+    "fallbackGame": "la partida",
+    "title": "{{who}} cargó tu partida",
+    "body": "Registró {{game}} en su cuenta. ¡Gracias por compartirla!",
+    "cta": "Ver perfil"
+  }
+}

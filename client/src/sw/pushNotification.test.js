@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { buildPushNotification } from "./pushNotification";
 import { getNotifMeta, notifLink } from "../utils/notifDomains";
+import { notifT } from "./swI18n";
+
+// El push usa el mismo `t` que buildPushNotification (idioma del payload,
+// default es) para que la paridad con la bandeja in-app siga siendo exacta.
+const tFor = (data) => notifT(data.language);
 
 describe("buildPushNotification", () => {
   // Guard de paridad: el copy del push debe salir EXACTO de las mismas funciones
@@ -21,7 +26,7 @@ describe("buildPushNotification", () => {
   ];
 
   it.each(cases)("title/body/url coinciden con notifDomains ($type)", (data) => {
-    const meta = getNotifMeta(data);
+    const meta = getNotifMeta(data, tFor(data));
     const { title, options } = buildPushNotification(data);
     expect(title).toBe(meta.title);
     expect(options.body).toBe(meta.body || "");
@@ -47,9 +52,10 @@ describe("buildPushNotification", () => {
   });
 
   it("title cae a 'TurnoCero' y url a /notificaciones para data vacía/desconocida", () => {
-    const { title, options } = buildPushNotification({ type: "__unknown__" });
-    expect(title).toBe(getNotifMeta({ type: "__unknown__" }).title);
-    expect(options.data.url).toBe(notifLink({ type: "__unknown__" }));
+    const data = { type: "__unknown__" };
+    const { title, options } = buildPushNotification(data);
+    expect(title).toBe(getNotifMeta(data, tFor(data)).title);
+    expect(options.data.url).toBe(notifLink(data));
   });
 
   describe("payload de prueba (test: true)", () => {

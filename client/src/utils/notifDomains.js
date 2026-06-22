@@ -60,20 +60,27 @@ export const TYPE_DOMAIN = {
 // inyecta en cada fila como `--rowColor` y se usa para barra de no-leída,
 // icono, pip y tintes. `icon` es la key dentro de NotifIcons.
 // Preparado para sumar noticia/bgwatch/sistema cuando esos notifs existan.
+// La label de cada dominio se traduce vía i18n (ns `notifs:domains.<dominio>`);
+// acá quedan solo los tokens visuales (colorVar + icon).
 export const DOMAIN_META = {
-  mesa: { label: "Mesas", colorVar: "--amber", icon: "Dice" },
-  evento: { label: "Eventos", colorVar: "--purple", icon: "Calendar" },
-  torneo: { label: "Torneos", colorVar: "--orange", icon: "Trophy" },
-  amigo: { label: "Amigos", colorVar: "--green", icon: "Users" },
-  compartida: { label: "Compartidas", colorVar: "--red", icon: "Heart" },
-  mathtrade: { label: "Math Trade", colorVar: "--green", icon: "Swap" },
-  comunidad: { label: "Comunidades", colorVar: "--purple", icon: "Community" },
-  bgwatch: { label: "BG Watch", colorVar: "--green", icon: "Dice" },
-  admin: { label: "Admin", colorVar: "--text-muted", icon: "Megaphone" },
+  mesa: { colorVar: "--amber", icon: "Dice" },
+  evento: { colorVar: "--purple", icon: "Calendar" },
+  torneo: { colorVar: "--orange", icon: "Trophy" },
+  amigo: { colorVar: "--green", icon: "Users" },
+  compartida: { colorVar: "--red", icon: "Heart" },
+  mathtrade: { colorVar: "--green", icon: "Swap" },
+  comunidad: { colorVar: "--purple", icon: "Community" },
+  bgwatch: { colorVar: "--green", icon: "Dice" },
+  admin: { colorVar: "--text-muted", icon: "Megaphone" },
 };
 
 export const getDomain = (type) => TYPE_DOMAIN[type] || "mesa";
 export const getDomainMeta = (type) => DOMAIN_META[getDomain(type)];
+
+// Label traducida del dominio de un tipo de notif. `t` viene de useTranslation().
+export function getDomainLabel(type, t) {
+  return t(`notifs:domains.${getDomain(type)}`);
+}
 
 // Tipos que el usuario puede resolver inline desde la bandeja (aceptar/rechazar).
 export const ACTIONABLE_TYPES = new Set(["friend_request", "join_request"]);
@@ -102,11 +109,12 @@ export const getCountBadge = (n) =>
   COUNT_BADGE_TYPES.has(n?.type) && (n?.count || 0) > 1 ? n.count : null;
 
 // ── Buckets de tiempo (Hoy / Esta semana / Antes) ──────────────────────
-export const NOTIF_BUCKETS = [
-  { key: "today", label: "Hoy" },
-  { key: "week", label: "Esta semana" },
-  { key: "earlier", label: "Antes" },
-];
+// Orden de render; las labels se traducen vía getBucketLabel(key, t).
+export const NOTIF_BUCKET_KEYS = ["today", "week", "earlier"];
+
+export function getBucketLabel(key, t) {
+  return t(`notifs:buckets.${key}`);
+}
 
 export function notifBucket(date, now = Date.now()) {
   const d = new Date(date);
@@ -160,323 +168,317 @@ const trunc = (s, max = 60) => (s ? `${s}${s.length >= max ? "…" : ""}` : "");
 
 // ── Copy por tipo: { title, body, cta } ─────────────────────────────────
 // title = línea principal · body = subtexto · cta = label del botón ghost.
-export function getNotifMeta(n) {
+// `t` es el `t` de i18next (react-i18next en la app; instancia standalone en
+// el SW vía notifT()). Todo literal Spanish ahora sale del ns `notifs`; la
+// lógica condicional (branches, fallbacks) se queda en JS.
+export function getNotifMeta(n, t) {
+  const k = (key, vars) => t(`notifs:${n.type}.${key}`, vars);
   switch (n.type) {
     case "join_request":
       return {
-        title:
-          n.count > 1
-            ? `${n.count} personas quieren unirse a tu mesa`
-            : `${n.lastRequesterUsername} quiere unirse a tu mesa`,
-        body: n.tableName ? `Mesa de ${n.tableName}` : "",
-        cta: "Ver solicitudes",
+        title: k("title", { count: n.count || 1, username: n.lastRequesterUsername }),
+        body: n.tableName ? k("bodyTable", { tableName: n.tableName }) : "",
+        cta: k("cta"),
       };
     case "join_accepted":
       return {
-        title: "¡Te aceptaron en la mesa!",
-        body: `Ya sos parte de la mesa de ${n.tableName}`,
-        cta: "Ver mesa",
+        title: k("title"),
+        body: k("body", { tableName: n.tableName }),
+        cta: k("cta"),
       };
     case "join_rejected":
       return {
-        title: "Solicitud rechazada",
-        body: `Tu solicitud para ${n.tableName} fue rechazada`,
-        cta: "Ver mesas",
+        title: k("title"),
+        body: k("body", { tableName: n.tableName }),
+        cta: k("cta"),
       };
     case "player_joined":
       return {
-        title:
-          n.count > 1
-            ? `${n.count} jugadores nuevos en tu mesa`
-            : `${n.lastJoinerUsername} se unió a tu mesa`,
-        body: n.tableName ? `Mesa de ${n.tableName}` : "",
-        cta: "Ver mesa",
+        title: k("title", { count: n.count || 1, username: n.lastJoinerUsername }),
+        body: n.tableName ? k("bodyTable", { tableName: n.tableName }) : "",
+        cta: k("cta"),
       };
     case "player_left":
       return {
-        title:
-          n.count > 1
-            ? `${n.count} jugadores dejaron tu mesa`
-            : `${n.lastLeaverUsername} dejó tu mesa`,
-        body: n.tableName ? `Mesa de ${n.tableName}` : "",
-        cta: "Ver mesa",
+        title: k("title", { count: n.count || 1, username: n.lastLeaverUsername }),
+        body: n.tableName ? k("bodyTable", { tableName: n.tableName }) : "",
+        cta: k("cta"),
       };
     case "spot_opened":
       return {
-        title: "¡Se liberó un lugar!",
-        body: `Hay lugar en ${n.tableName}`,
-        cta: "Ver mesa",
+        title: k("title"),
+        body: k("body", { tableName: n.tableName }),
+        cta: k("cta"),
       };
     case "table_cancelled":
       return {
-        title: "Mesa cancelada",
-        body: `Se canceló ${n.tableName}`,
+        title: k("title"),
+        body: k("body", { tableName: n.tableName }),
         cta: null,
       };
     case "chat":
       return {
-        title:
-          n.count > 1
-            ? `${n.count} mensajes nuevos en el chat`
-            : "Mensaje nuevo en el chat",
+        title: k("title", { count: n.count || 1 }),
         body: `${n.lastSenderUsername}: ${trunc(n.lastMessagePreview)}`,
-        cta: "Abrir chat",
+        cta: k("cta"),
       };
     case "comment": {
       // Copy neutral: el destinatario puede ser el host O alguien que también
       // comentó el hilo (respuestas), así que no decimos "tu mesa".
-      const dondeM = n.tableName ? `la mesa de ${n.tableName}` : "una mesa";
+      const where = n.tableName
+        ? k("whereTable", { tableName: n.tableName })
+        : k("whereGeneric");
       return {
-        title:
-          n.count > 1
-            ? `${n.count} comentarios nuevos en ${dondeM}`
-            : `${n.lastCommenterUsername} comentó ${dondeM}`,
+        title: k("title", {
+          count: n.count || 1,
+          username: n.lastCommenterUsername,
+          where,
+        }),
         body: trunc(n.lastCommentPreview),
-        cta: "Ver mesa",
+        cta: k("cta"),
       };
     }
     case "image":
       return {
-        title:
-          n.count > 1 ? `${n.count} fotos nuevas` : "Foto nueva en la mesa",
-        body: `${n.lastUploaderUsername} subió ${n.count > 1 ? "fotos" : "una foto"}`,
-        cta: "Ver mesa",
+        title: k("title", { count: n.count || 1 }),
+        body: k("body", { count: n.count || 1, username: n.lastUploaderUsername }),
+        cta: k("cta"),
       };
     case "friend_request":
       return {
-        title: `${n.fromUsername} te envió una solicitud de amistad`,
+        title: k("title", { username: n.fromUsername }),
         body: "",
-        cta: "Ver perfil",
+        cta: k("cta"),
       };
     case "friend_accepted":
       return {
-        title: `${n.fromUsername} aceptó tu solicitud`,
-        body: "Ahora son amigos",
-        cta: "Ver perfil",
+        title: k("title", { username: n.fromUsername }),
+        body: k("body"),
+        cta: k("cta"),
       };
     case "dm":
       return {
-        title:
-          n.count > 1
-            ? `${n.count} mensajes nuevos de ${n.fromUsername}`
-            : `${n.fromUsername} te escribió`,
+        title: k("title", { count: n.count || 1, username: n.fromUsername }),
         body: trunc(n.lastMessagePreview),
-        cta: "Responder",
+        cta: k("cta"),
       };
     case "admin_chat":
       return {
-        title:
-          n.count > 1
-            ? `${n.count} mensajes nuevos en el chat de admins`
-            : "Mensaje nuevo en el chat de admins",
+        title: k("title", { count: n.count || 1 }),
         body: `${n.lastSenderUsername}: ${trunc(n.lastMessagePreview)}`,
-        cta: "Abrir chat",
+        cta: k("cta"),
       };
     case "compartida_comment": {
       // Copy neutral: el destinatario puede ser el autor del post O alguien
       // que también comentó el hilo, así que no decimos "tu compartida".
-      const dondeC = n.compartidaTitle
-        ? `«${n.compartidaTitle}»`
-        : "una compartida";
+      const where = n.compartidaTitle
+        ? k("whereTitle", { compartidaTitle: n.compartidaTitle })
+        : k("whereGeneric");
       return {
-        title:
-          n.count > 1
-            ? `${n.count} comentarios nuevos en ${dondeC}`
-            : `${n.lastCommenterUsername} comentó ${dondeC}`,
+        title: k("title", {
+          count: n.count || 1,
+          username: n.lastCommenterUsername,
+          where,
+        }),
         body: trunc(n.lastCommentPreview),
-        cta: "Responder",
+        cta: k("cta"),
       };
     }
     case "compartida_like":
       return {
-        title:
-          n.count > 1
-            ? `A ${n.lastSenderUsername} y ${n.count - 1} más les gustó tu compartida`
-            : `A ${n.lastSenderUsername} le gustó tu compartida`,
-        body: n.compartidaTitle ? `“${n.compartidaTitle}”` : "",
-        cta: "Ver compartida",
+        title: k("title", {
+          count: n.count,
+          username: n.lastSenderUsername,
+          others: n.count - 1,
+        }),
+        body: n.compartidaTitle
+          ? k("body", { compartidaTitle: n.compartidaTitle })
+          : "",
+        cta: k("cta"),
       };
     case "compartida_comment_like":
       return {
-        title:
-          n.count > 1
-            ? `A ${n.lastSenderUsername} y ${n.count - 1} más les gustó tu comentario`
-            : `A ${n.lastSenderUsername} le gustó tu comentario`,
-        body: n.compartidaTitle ? `en «${n.compartidaTitle}»` : "",
-        cta: "Ver compartida",
+        title: k("title", {
+          count: n.count,
+          username: n.lastSenderUsername,
+          others: n.count - 1,
+        }),
+        body: n.compartidaTitle
+          ? k("body", { compartidaTitle: n.compartidaTitle })
+          : "",
+        cta: k("cta"),
       };
     case "comment_like":
       return {
-        title:
-          n.count > 1
-            ? `A ${n.lastSenderUsername} y ${n.count - 1} más les gustó tu comentario`
-            : `A ${n.lastSenderUsername} le gustó tu comentario`,
-        body: n.tableName ? `en la mesa de ${n.tableName}` : "",
-        cta: "Ver mesa",
+        title: k("title", {
+          count: n.count,
+          username: n.lastSenderUsername,
+          others: n.count - 1,
+        }),
+        body: n.tableName ? k("body", { tableName: n.tableName }) : "",
+        cta: k("cta"),
       };
     case "tournament_accepted":
       return {
-        title: "¡Inscripción aprobada!",
-        body: `Estás dentro de ${n.torneoTitle || "el torneo"}`,
-        cta: "Ver torneo",
+        title: k("title"),
+        body: k("body", { torneoTitle: n.torneoTitle || k("fallbackTorneo") }),
+        cta: k("cta"),
       };
     case "tournament_rejected":
       return {
-        title: "Inscripción rechazada",
-        body: `Tu inscripción al torneo fue rechazada`,
-        cta: "Ver torneo",
+        title: k("title"),
+        body: k("body"),
+        cta: k("cta"),
       };
     case "tournament_advanced": {
-      const label = n.isPhase ? "fase" : "ronda";
+      const label = n.isPhase ? k("labelPhase") : k("labelRound");
       const nextNum = n.round != null ? n.round + 1 : null;
       return {
-        title: `¡Pasaste de ${label}!`,
-        body: `Avanzaste a la ${nextNum != null ? `${label} ${nextNum}` : `siguiente ${label}`}`,
-        cta: "Ver torneo",
+        title: k("title", { label }),
+        body:
+          nextNum != null
+            ? k("bodyNumbered", { label, nextNum })
+            : k("bodyNext", { label }),
+        cta: k("cta"),
       };
     }
     case "tournament_eliminated":
       return {
-        title: "Quedaste fuera del torneo",
-        body: "Suerte la próxima 🎲",
-        cta: "Ver torneo",
+        title: k("title"),
+        body: k("body"),
+        cta: k("cta"),
       };
     case "tournament_started":
       return {
-        title: "¡Empezó el torneo!",
-        body: `${n.torneoTitle || "El torneo"} ya está en juego`,
-        cta: "Ver torneo",
+        title: k("title"),
+        body: k("body", { torneoTitle: n.torneoTitle || k("fallbackTorneo") }),
+        cta: k("cta"),
       };
     case "tournament_finished":
       return {
-        title: "Torneo finalizado",
-        body: `Terminó ${n.torneoTitle || "el torneo"}`,
-        cta: "Ver torneo",
+        title: k("title"),
+        body: k("body", { torneoTitle: n.torneoTitle || k("fallbackTorneo") }),
+        cta: k("cta"),
       };
     case "evento_confirmed":
       return {
-        title: "¡Inscripción confirmada!",
-        body: `Estás dentro de ${n.eventoTitle}`,
-        cta: "Ver evento",
+        title: k("title"),
+        body: k("body", { eventoTitle: n.eventoTitle }),
+        cta: k("cta"),
       };
     case "evento_rejected":
       return {
-        title: n.permanentlyRejected
-          ? "Inscripción rechazada (permanente)"
-          : "Inscripción rechazada",
+        title: n.permanentlyRejected ? k("titlePermanent") : k("title"),
         body: n.permanentlyRejected
-          ? `No podrás volver a inscribirte a ${n.eventoTitle}`
-          : `Tu inscripción a ${n.eventoTitle} fue rechazada`,
-        cta: n.permanentlyRejected ? null : "Ver evento",
+          ? k("bodyPermanent", { eventoTitle: n.eventoTitle })
+          : k("body", { eventoTitle: n.eventoTitle }),
+        cta: n.permanentlyRejected ? null : k("cta"),
       };
     case "evento_cancelled":
       return {
-        title: n.eventoDeleted ? "Evento eliminado" : "Evento cancelado",
+        title: n.eventoDeleted ? k("titleDeleted") : k("title"),
         body: n.eventoDeleted
-          ? `${n.eventoTitle} ya no está disponible`
-          : `Se canceló ${n.eventoTitle}`,
-        cta: n.eventoDeleted ? "Ver eventos" : "Ver evento",
+          ? k("bodyDeleted", { eventoTitle: n.eventoTitle })
+          : k("body", { eventoTitle: n.eventoTitle }),
+        cta: n.eventoDeleted ? k("ctaDeleted") : k("cta"),
       };
     case "evento_updated": {
       const fields = Array.isArray(n.changedFields) ? n.changedFields : [];
       const labels = fields.map((f) =>
         f === "eventDate"
-          ? "nueva fecha"
+          ? k("fieldDate")
           : f === "location"
-            ? "nueva ubicación"
+            ? k("fieldLocation")
             : f,
       );
-      const detail = labels.length > 0 ? labels.join(" + ") : "cambios";
+      const detail = labels.length > 0 ? labels.join(" + ") : k("detailFallback");
       return {
-        title: "Cambios en el evento",
-        body: `${n.eventoTitle}: ${detail}`,
-        cta: "Ver evento",
+        title: k("title"),
+        body: k("body", { eventoTitle: n.eventoTitle, detail }),
+        cta: k("cta"),
       };
     }
     case "evento_reminder":
       return {
-        title: `${n.eventoTitle} es mañana`,
-        body: "Recordatorio del evento",
-        cta: "Ver evento",
+        title: k("title", { eventoTitle: n.eventoTitle }),
+        body: k("body"),
+        cta: k("cta"),
       };
     case "evento_ludoteca_added": {
-      const who = n.addedByUsername || "alguien";
-      const game = n.gameName ? `“${n.gameName}”` : "un juego";
+      const who = n.addedByUsername || k("fallbackWho");
+      const game = n.gameName ? `“${n.gameName}”` : k("fallbackGame");
       return {
-        title:
-          n.count > 1
-            ? `${n.count} juegos nuevos en la ludoteca`
-            : `${who} sumó un juego a la ludoteca`,
-        body: `${who} sumó ${game} a ${n.eventoTitle}`,
-        cta: "Ver evento",
+        title: k("title", { count: n.count || 1, who }),
+        body: k("body", { who, game, eventoTitle: n.eventoTitle }),
+        cta: k("cta"),
       };
     }
     case "evento_mesa_created": {
-      const who = n.hostUsername || "alguien";
-      const game = n.gameName ? `“${n.gameName}”` : "una partida";
+      const who = n.hostUsername || k("fallbackWho");
+      const game = n.gameName ? `“${n.gameName}”` : k("fallbackGame");
       return {
-        title:
-          n.count > 1
-            ? `${n.count} mesas nuevas en el evento`
-            : `${who} armó una mesa en el evento`,
-        body: `${who} armó ${game} en ${n.eventoTitle}`,
-        cta: "Ver evento",
+        title: k("title", { count: n.count || 1, who }),
+        body: k("body", { who, game, eventoTitle: n.eventoTitle }),
+        cta: k("cta"),
       };
     }
     case "mathtrade_results":
       return {
-        title: "¡Salieron los resultados del intercambio!",
-        body: `Ya podés ver tus trades en ${n.mathtradeTitle || "el math trade"}`,
-        cta: "Ver resultados",
+        title: k("title"),
+        body: k("body", {
+          mathtradeTitle: n.mathtradeTitle || k("fallbackMathtrade"),
+        }),
+        cta: k("cta"),
       };
     case "community_join_request": {
-      const who = n.actors?.[0]?.username || "Alguien";
+      const who = n.actors?.[0]?.username || k("fallbackWho");
       return {
-        title:
-          n.count > 1
-            ? `${n.count} solicitudes para unirse a ${n.communityName || "tu comunidad"}`
-            : `${who} quiere unirse a ${n.communityName || "tu comunidad"}`,
-        body: "Revisá las solicitudes pendientes",
-        cta: "Ver solicitudes",
+        title: k("title", {
+          count: n.count || 1,
+          who,
+          communityName: n.communityName || k("fallbackCommunity"),
+        }),
+        body: k("body"),
+        cta: k("cta"),
       };
     }
     case "community_join_accepted":
       return {
-        title: "¡Te uniste a la comunidad!",
-        body: `Ya sos parte de ${n.communityName || "la comunidad"}`,
-        cta: "Ver comunidad",
+        title: k("title"),
+        body: k("body", { communityName: n.communityName || k("fallbackCommunity") }),
+        cta: k("cta"),
       };
     case "community_join_rejected":
       return {
-        title: "Solicitud rechazada",
-        body: `Tu solicitud para ${n.communityName || "la comunidad"} fue rechazada`,
-        cta: "Ver comunidades",
+        title: k("title"),
+        body: k("body", { communityName: n.communityName || k("fallbackCommunity") }),
+        cta: k("cta"),
       };
     case "community_content_removed":
       return {
-        title: "Un moderador bajó tu contenido",
-        body: `Se removió una publicación tuya en ${n.communityName || "la comunidad"}`,
-        cta: "Ver comunidad",
+        title: k("title"),
+        body: k("body", { communityName: n.communityName || k("fallbackCommunity") }),
+        cta: k("cta"),
       };
     case "bgg_play_shared": {
-      const game = n.gameName ? `“${n.gameName}”` : "una partida";
+      const game = n.gameName ? `“${n.gameName}”` : k("fallbackGame");
       return {
-        title: `${n.fromUsername || "Alguien"} te incluyó en una partida`,
-        body: `Cargó ${game} con vos. Cargala en tu cuenta de BGG.`,
-        cta: "Ver partida",
+        title: k("title", { who: n.fromUsername || k("fallbackWho") }),
+        body: k("body", { game }),
+        cta: k("cta"),
       };
     }
     case "bgg_play_accepted": {
-      const game = n.gameName ? `“${n.gameName}”` : "la partida";
+      const game = n.gameName ? `“${n.gameName}”` : k("fallbackGame");
       return {
-        title: `${n.fromUsername || "Alguien"} cargó tu partida`,
-        body: `Registró ${game} en su cuenta. ¡Gracias por compartirla!`,
-        cta: "Ver perfil",
+        title: k("title", { who: n.fromUsername || k("fallbackWho") }),
+        body: k("body", { game }),
+        cta: k("cta"),
       };
     }
     default:
       return {
-        title: "Notificación nueva",
+        title: t("notifs:default.title"),
         body: trunc(n.lastMessagePreview),
         cta: null,
       };
