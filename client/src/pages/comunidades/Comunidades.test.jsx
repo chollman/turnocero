@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import i18n from "../../i18n";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/CommunityContext", () => ({ useCommunity: vi.fn() }));
@@ -297,6 +298,38 @@ describe("<Comunidades> mine-first ordering", () => {
       .getAllByRole("heading", { level: 2 })
       .map((h) => h.textContent);
     expect(headings).toEqual(["Alpha Member", "Beta Pending", "Zeta None"]);
+  });
+});
+
+describe("<Comunidades> i18n (English)", () => {
+  afterEach(() => {
+    i18n.changeLanguage("es");
+  });
+
+  it("renders English copy when the language is en", async () => {
+    i18n.changeLanguage("en");
+    useCommunity.mockReturnValue({
+      joinCommunity: vi.fn(),
+      leaveCommunity: vi.fn(),
+    });
+    mockDirectory([
+      {
+        slug: "beta",
+        name: "Beta",
+        memberCount: 3,
+        joinPolicy: "open",
+        isBase: false,
+        viewerStatus: "none",
+      },
+    ]);
+    renderPage();
+    expect(
+      await screen.findByRole("heading", { name: "My Communities", level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("3 members")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Join" }),
+    ).toBeInTheDocument();
   });
 });
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
@@ -16,6 +17,7 @@ import styles from "./ComunidadDetail.module.css";
 // admins globales bypassean el gate. El backend (`GET /api/users?community=`)
 // reaplica el mismo gate como defensa en profundidad.
 export default function ComunidadDetail() {
+  const { t } = useTranslation();
   const { slug } = useParams();
   const { user } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
@@ -45,7 +47,7 @@ export default function ComunidadDetail() {
   if (loading) {
     return (
       <div className={styles.page}>
-        <p className={styles.muted}>Cargando comunidad…</p>
+        <p className={styles.muted}>{t("comunidades:detail.loading")}</p>
       </div>
     );
   }
@@ -73,28 +75,33 @@ export default function ComunidadDetail() {
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
-        <BackButton to="/comunidades">Mis Comunidades</BackButton>
+        <BackButton to="/comunidades">
+          {t("comunidades:detail.back")}
+        </BackButton>
         <div className={styles.eyebrow}>
-          <Meeple /> COMUNIDAD
+          <Meeple /> {t("comunidades:detail.eyebrow")}
         </div>
         <div className={styles.titleRow}>
           <h1 className={styles.title}>{community.name}</h1>
-          {community.isBase && <span className={styles.baseBadge}>Base</span>}
+          {community.isBase && (
+            <span className={styles.baseBadge}>
+              {t("comunidades:detail.baseBadge")}
+            </span>
+          )}
         </div>
         {community.description && (
           <p className={styles.description}>{community.description}</p>
         )}
         <div className={styles.metaRow}>
           <span className={styles.memberCount}>
-            {community.memberCount}{" "}
-            {community.memberCount === 1 ? "miembro" : "miembros"}
+            {t("comunidades:detail.members", { count: community.memberCount })}
           </span>
           {canManage && (
             <Link
               to={`/comunidades/${slug}/gestion`}
               className={styles.manageLink}
             >
-              Gestionar
+              {t("comunidades:detail.manage")}
             </Link>
           )}
         </div>
