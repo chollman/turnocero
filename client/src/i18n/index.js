@@ -30,6 +30,8 @@ import esQuotes from "./resources/es/quotes.json";
 import enQuotes from "./resources/en/quotes.json";
 import esLayout from "./resources/es/layout.json";
 import enLayout from "./resources/en/layout.json";
+import esToasts from "./resources/es/toasts.json";
+import enToasts from "./resources/en/toasts.json";
 
 export const resources = {
   es: {
@@ -41,6 +43,7 @@ export const resources = {
     enums: esEnums,
     quotes: esQuotes,
     layout: esLayout,
+    toasts: esToasts,
   },
   en: {
     common: enCommon,
@@ -51,6 +54,7 @@ export const resources = {
     enums: enEnums,
     quotes: enQuotes,
     layout: enLayout,
+    toasts: enToasts,
   },
 };
 
