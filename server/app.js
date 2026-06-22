@@ -11,6 +11,11 @@ app.use(cookieParser());
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// i18n: parsea el header Accept-Language y adjunta req.t/req.language a TODAS
+// las rutas (fallback "es"). Las rutas usan req.t('ns:key') para localizar
+// errores/mensajes; sin header, todo resuelve en español (comportamiento actual).
+app.use(require("./i18n").handler);
+
 // Detecta el tenant (subdominio de comunidad) vía header X-Community-Slug y lo
 // deja en req.tenant para TODAS las rutas. No toca Mongo si no hay header.
 app.use(require("./middleware/resolveCommunities").resolveTenant);
