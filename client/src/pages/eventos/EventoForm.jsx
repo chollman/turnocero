@@ -6,7 +6,7 @@ import InfoTooltip from "../../components/shared/InfoTooltip";
 import DateTimePicker from "../../components/shared/DateTimePicker";
 import ImageDropzone from "./ImageDropzone";
 import { toLocalInputValue, fromLocalInputValue } from "../../utils/eventoDate";
-import { EVENTO_STATUS_OPTIONS as STATUS_OPTIONS } from "../../utils/eventoStatus";
+import { getEventoStatusOptions } from "../../utils/eventoStatus";
 import styles from "./EventoForm.module.css";
 
 const EMPTY_LOCATION = { texto: "", lat: null, lng: null, displayName: "" };
@@ -387,7 +387,7 @@ export default function EventoForm({
               role="radiogroup"
               aria-label="Estado del evento"
             >
-              {STATUS_OPTIONS.map((opt) => {
+              {getEventoStatusOptions().map((opt) => {
                 const isActive = form.status === opt.value;
                 return (
                   <button

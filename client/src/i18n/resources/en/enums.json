@@ -1,0 +1,76 @@
+{
+  "eventoStatus": {
+    "badges": {
+      "open": "Open",
+      "draft": "Draft",
+      "closed": "Closed",
+      "cancelled": "Cancelled"
+    },
+    "options": {
+      "draft": {
+        "label": "Draft",
+        "description": "Not visible to users"
+      },
+      "open": {
+        "label": "Open",
+        "description": "Registrations enabled"
+      },
+      "closed": {
+        "label": "Closed",
+        "description": "No registrations"
+      },
+      "cancelled": {
+        "label": "Cancelled",
+        "description": "Event cancelled"
+      }
+    }
+  },
+  "horizon": {
+    "today": { "name": "Today", "sub": "about to start" },
+    "tomorrow": { "name": "Tomorrow", "sub": "24 hours" },
+    "thisWeek": { "name": "This week", "sub": "next 7 days" },
+    "later": { "name": "Upcoming", "sub": "further ahead" },
+    "past": { "name": "Past", "sub": "already played" }
+  },
+  "noticia": {
+    "categories": {
+      "general": "General",
+      "comunidad": "Community",
+      "resena": "Review",
+      "evento": "Event",
+      "producto": "Product",
+      "envivo": "Live"
+    },
+    "sections": {
+      "all": "Front page",
+      "comunidad": "Community",
+      "resena": "Reviews",
+      "evento": "Events",
+      "producto": "Product",
+      "envivo": "Live"
+    }
+  },
+  "password": {
+    "requirements": "The password must be at least {{count}} characters, one uppercase letter and one number",
+    "checks": {
+      "length": "At least {{count}} characters",
+      "upper": "One uppercase letter",
+      "digit": "One number"
+    },
+    "strength": ["", "Weak", "Acceptable", "Good", "Strong"]
+  },
+  "bgg": {
+    "connect": {
+      "wrongPassword": "Your BGG password is incorrect. It's the same one you use to sign in to boardgamegeek.com (not your {{brandName}} password). Double-check it and try again.",
+      "unavailable": "BGG didn't respond: it may be down or slow. It's not a problem with your password — wait a moment and try again.",
+      "network": "Couldn't connect to BGG. Check your internet connection and try again.",
+      "generic": "Couldn't connect to BGG. Try again in a moment."
+    },
+    "sync": {
+      "notFound": "We couldn't find that user on BGG. Check that your BGG username in your profile is spelled correctly.",
+      "failed": "BGG didn't respond or failed midway through the sync. Whatever was already synced is kept — wait a moment and try again.",
+      "network": "Couldn't sync with BGG. Check your internet connection and try again.",
+      "generic": "Couldn't sync with BGG. Try again in a moment."
+    }
+  }
+}

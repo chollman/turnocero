@@ -13,7 +13,7 @@ import { ArtNoticia } from "../../components/shared/EmptyArt";
 import { GhostMesa } from "../../components/shared/EmptyGhosts";
 import { getUserDisplay } from "../../utils/userDisplay";
 import {
-  NOTICIA_SECTIONS,
+  getNoticiaSections,
   categoryLabel,
   categoryColor,
   isLiveCategory,
@@ -228,7 +228,7 @@ export default function Noticias() {
         {/* ── Section tabs + search + admin CTA ── */}
         <div className={styles.controls}>
           <div className={styles.sectionTabs}>
-            {NOTICIA_SECTIONS.map((s) => (
+            {getNoticiaSections().map((s) => (
               <button
                 key={s.id}
                 className={`${styles.sectionTab} ${tab === s.id ? styles.sectionTabActive : ""}`}
@@ -245,7 +245,7 @@ export default function Noticias() {
             onChange={(e) => setTab(e.target.value)}
             aria-label="Sección"
           >
-            {NOTICIA_SECTIONS.map((s) => (
+            {getNoticiaSections().map((s) => (
               <option key={s.id} value={s.id}>
                 {s.label}
               </option>

@@ -6,6 +6,10 @@
 //
 // `brandName` se pasa donde aplica para respetar la marca por tenant (un
 // subdominio de comunidad muestra el nombre de la comunidad, no "TurnoCero").
+//
+// El copy fijo sale por i18n (singleton — funciones puras, idioma runtime). Los
+// branches que devuelven `serverMsg` (string del server) NO se traducen.
+import i18n from "../i18n";
 
 // ── POST /api/auth/bgg-connect ───────────────────────────────────────────
 //   401              → la password de BGG es incorrecta (lo más común — el
@@ -18,21 +22,21 @@ export function bggConnectErrorMessage(err, { brandName = "TurnoCero" } = {}) {
   const serverMsg = err?.response?.data?.message;
 
   if (status === 401) {
-    return `La contraseña de BGG no es correcta. Es la misma con la que entrás a boardgamegeek.com (no la de ${brandName}). Revisala y probá de nuevo.`;
+    return i18n.t("enums:bgg.connect.wrongPassword", { brandName });
   }
   if (status === 502 || status === 503 || status === 504) {
-    return "BGG no respondió: puede estar caído o lento. No es un problema con tu contraseña — esperá un momento y probá de nuevo.";
+    return i18n.t("enums:bgg.connect.unavailable");
   }
   if (status === 400 && typeof serverMsg === "string" && serverMsg.trim()) {
     return serverMsg;
   }
   if (!err?.response) {
-    return "No se pudo conectar con BGG. Revisá tu conexión a internet y probá de nuevo.";
+    return i18n.t("enums:bgg.connect.network");
   }
   if (typeof serverMsg === "string" && serverMsg.trim()) {
     return serverMsg;
   }
-  return "No se pudo conectar con BGG. Probá de nuevo en un momento.";
+  return i18n.t("enums:bgg.connect.generic");
 }
 
 // ── POST /api/bgg/sync ("Reconciliar todo con BGG") ──────────────────────
@@ -49,10 +53,10 @@ export function bggSyncErrorMessage(err) {
   const serverMsg = err?.response?.data?.message;
 
   if (status === 404) {
-    return "No encontramos ese usuario en BGG. Revisá que tu usuario de BGG en el perfil esté bien escrito.";
+    return i18n.t("enums:bgg.sync.notFound");
   }
   if (status === 502 || status === 503 || status === 504) {
-    return "BGG no respondió o falló a mitad de la sincronización. Lo que ya se sincronizó se conserva — esperá un momento y probá de nuevo.";
+    return i18n.t("enums:bgg.sync.failed");
   }
   if (
     (status === 400 || status === 429) &&
@@ -62,10 +66,10 @@ export function bggSyncErrorMessage(err) {
     return serverMsg;
   }
   if (!err?.response) {
-    return "No se pudo sincronizar con BGG. Revisá tu conexión a internet y probá de nuevo.";
+    return i18n.t("enums:bgg.sync.network");
   }
   if (typeof serverMsg === "string" && serverMsg.trim()) {
     return serverMsg;
   }
-  return "No se pudo sincronizar con BGG. Probá de nuevo en un momento.";
+  return i18n.t("enums:bgg.sync.generic");
 }

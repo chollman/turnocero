@@ -10,7 +10,7 @@ import BackButton from "../../components/shared/BackButton";
 import RichTextEditor from "../../components/shared/RichTextEditor";
 import CommunitySelect from "../../components/shared/CommunitySelect";
 import Meeple from "../../components/shared/Meeple";
-import { NOTICIA_CATEGORIES } from "../../utils/noticiaCategories";
+import { getNoticiaCategories } from "../../utils/noticiaCategories";
 import ArticleView from "./ArticleView";
 import styles from "./NoticiaForm.module.css";
 
@@ -324,7 +324,7 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                 >
-                  {Object.entries(NOTICIA_CATEGORIES).map(
+                  {Object.entries(getNoticiaCategories()).map(
                     ([key, { label }]) => (
                       <option key={key} value={key}>
                         {label}

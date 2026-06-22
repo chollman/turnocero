@@ -10,7 +10,7 @@ import styles from "./Auth.module.css";
 import ShowcaseCard from "./ShowcaseCard";
 import {
   isValidPassword,
-  PASSWORD_REQUIREMENTS,
+  getPasswordRequirements,
 } from "../../utils/passwordValidation";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { STORAGE_KEYS } from "../../utils/storageKeys";
@@ -44,7 +44,7 @@ export default function ResetPassword() {
       return;
     }
     if (!isValidPassword(form.password)) {
-      setError(PASSWORD_REQUIREMENTS);
+      setError(getPasswordRequirements());
       return;
     }
 
