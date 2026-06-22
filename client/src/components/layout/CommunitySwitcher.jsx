@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useCommunity } from "../../context/CommunityContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
@@ -11,6 +12,7 @@ import styles from "./CommunitySwitcher.module.css";
 // comunidades ver en conjunto (viewing) y saltar a "Mis Comunidades".
 // Reemplaza el descubrimiento enterrado en /perfil (CommunityPrefs sigue ahí).
 export default function CommunitySwitcher({ onNavigate }) {
+  const { t } = useTranslation();
   const { memberships = [], skin, skinCommunity, loaded, isTenant } =
     useCommunity();
   const { isSectionEnabled } = useSiteConfig();
@@ -59,10 +61,10 @@ export default function CommunitySwitcher({ onNavigate }) {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Cambiar de comunidad"
+        aria-label={t("layout:community.switchLabel")}
       >
         <span className={styles.eyebrow}>
-          <Meeple /> COMUNIDAD
+          <Meeple /> {t("layout:community.header")}
         </span>
         <span className={styles.activeName}>{activeName}</span>
         <svg
@@ -81,10 +83,7 @@ export default function CommunitySwitcher({ onNavigate }) {
 
       {open && (
         <div className={styles.panel} role="menu">
-          <p className={styles.help}>
-            Tildá las que querés ver en conjunto y elegí cuál define el aspecto
-            del sitio.
-          </p>
+          <p className={styles.help}>{t("layout:community.help")}</p>
           <ul className={styles.list}>
             {memberships.map((m) => {
               const id = String(m.community._id);
@@ -107,11 +106,13 @@ export default function CommunitySwitcher({ onNavigate }) {
                     onClick={() => chooseSkin(id)}
                     title={
                       isSkin
-                        ? "Esta comunidad define el aspecto"
-                        : "Usar el aspecto de esta comunidad"
+                        ? t("layout:community.skinActiveTip")
+                        : t("layout:community.skinUseTip")
                     }
                   >
-                    {isSkin ? "Aspecto activo" : "Usar aspecto"}
+                    {isSkin
+                      ? t("layout:community.skinActive")
+                      : t("layout:community.skinUse")}
                   </button>
                 </li>
               );
@@ -123,7 +124,7 @@ export default function CommunitySwitcher({ onNavigate }) {
             onClick={closeAndNavigate}
             role="menuitem"
           >
-            Ver todas las comunidades →
+            {t("layout:community.viewAll")}
           </Link>
         </div>
       )}

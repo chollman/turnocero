@@ -1,5 +1,6 @@
 import Meeple from "../shared/Meeple";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -246,70 +247,107 @@ const ICONS = {
   ),
 };
 
-const SECTIONS = [
+// Factory para construir las secciones del nav con labels traducidos. Se llama
+// en render (con `t` en scope) en vez de vivir a módulo-scope, así las labels
+// pasan por i18n. `label` de cada item queda como string ya traducido, por lo
+// que `title={item.label}` sigue funcionando.
+const buildSections = (t) => [
   {
-    label: "Comunidad",
+    label: t("layout:nav.sections.comunidad"),
     items: [
       {
         id: "compartidas",
-        label: "Compartite",
+        label: t("layout:nav.items.compartite"),
         to: "/compartidas",
         section: "compartidas",
       },
       {
         id: "noticias",
-        label: "Noticias",
+        label: t("layout:nav.items.noticias"),
         to: "/noticias",
         section: "noticias",
       },
       {
         id: "comunidades",
-        label: "Mis Comunidades",
+        label: t("layout:nav.items.comunidades"),
         to: "/comunidades",
         section: "comunidades",
       },
     ],
   },
   {
-    label: "Encuentros",
+    label: t("layout:nav.sections.encuentros"),
     items: [
-      { id: "dash", label: "Mesas", to: "/mesas", section: "mesas" },
-      { id: "eventos", label: "Eventos", to: "/eventos", section: "eventos" },
-      { id: "torneos", label: "Torneos", to: "/torneos", section: "torneos" },
+      {
+        id: "dash",
+        label: t("layout:nav.items.mesas"),
+        to: "/mesas",
+        section: "mesas",
+      },
+      {
+        id: "eventos",
+        label: t("layout:nav.items.eventos"),
+        to: "/eventos",
+        section: "eventos",
+      },
+      {
+        id: "torneos",
+        label: t("layout:nav.items.torneos"),
+        to: "/torneos",
+        section: "torneos",
+      },
       {
         id: "mathtrade",
-        label: "Math Trade",
+        label: t("layout:nav.items.mathtrade"),
         to: "/math-trade",
         section: "mathtrade",
       },
       {
         id: "calendario",
-        label: "Calendario",
+        label: t("layout:nav.items.calendario"),
         to: "/calendario",
         section: "calendario",
       },
     ],
   },
   {
-    label: "Tuyo",
+    label: t("layout:nav.sections.tuyo"),
     items: [
-      { id: "feed", label: "Mi feed", to: "/mi", section: "miFeed" },
+      {
+        id: "feed",
+        label: t("layout:nav.items.miFeed"),
+        to: "/mi",
+        section: "miFeed",
+      },
       // bgwatch / bgwatchCta resolved at render time depending on user.bggUsername
       { id: "bgwatchSlot", section: "bgwatch" },
     ],
   },
   {
-    label: "Admin",
+    label: t("layout:nav.sections.admin"),
     adminOnly: true,
     items: [
-      { id: "panel", label: "Panel admin", to: "/panel-admin" },
-      { id: "db", label: "Base de datos", to: "/base-de-datos" },
-      { id: "adminChat", label: "Chat admin", to: "/mensajes-admin" },
+      {
+        id: "panel",
+        label: t("layout:nav.items.panelAdmin"),
+        to: "/panel-admin",
+      },
+      {
+        id: "db",
+        label: t("layout:nav.items.baseDatos"),
+        to: "/base-de-datos",
+      },
+      {
+        id: "adminChat",
+        label: t("layout:nav.items.chatAdmin"),
+        to: "/mensajes-admin",
+      },
     ],
   },
 ];
 
 export default function Sidebar({ open = false, onClose }) {
+  const { t } = useTranslation();
   const { user, isActuallyAdmin, logout } = useAuth();
   const { unreadCount, adminChatUnread } = useNotifications();
   // Gating combinado: global (SiteConfig) Y override por comunidad-skin. En modo
@@ -385,16 +423,16 @@ export default function Sidebar({ open = false, onClose }) {
       if (user?.bggUsername) {
         return {
           id: "bgwatch",
-          label: "BG Watch",
+          label: t("layout:nav.items.bgwatch"),
           to: `/bg-watch/${user.bggUsername}`,
         };
       }
       return {
         id: "bgwatchCta",
-        label: "Activá BG Watch",
+        label: t("layout:nav.items.bgwatchCta"),
         to: "/bg-watch",
         variant: "promo",
-        badge: { value: "Nuevo", variant: "promo" },
+        badge: { value: t("layout:nav.items.nuevo"), variant: "promo" },
       };
     }
     // En un subdominio de comunidad (modo tenant) ocultamos el directorio: el
@@ -416,7 +454,7 @@ export default function Sidebar({ open = false, onClose }) {
   };
 
   // Build visible sections + assign global stagger index (--i) across all items.
-  const visibleSections = SECTIONS.map((sec) => {
+  const visibleSections = buildSections(t).map((sec) => {
     if (sec.adminOnly && !isActuallyAdmin) return null;
     const items = sec.items.map(resolveItem).filter(Boolean);
     if (items.length === 0) return null;
@@ -506,7 +544,7 @@ export default function Sidebar({ open = false, onClose }) {
                 <Meeple />
                 {isTenant ? (
                   <>
-                    por{" "}
+                    {t("layout:attribution")}{" "}
                     <Link to="/colabora" className={styles.attribution}>
                       TurnoCero
                     </Link>
@@ -520,8 +558,8 @@ export default function Sidebar({ open = false, onClose }) {
           <button
             className={`${styles.bellBtn} ${active === "notif" ? styles.bellBtnActive : ""}`}
             onClick={() => navigate("/notificaciones")}
-            aria-label="Notificaciones"
-            title="Notificaciones"
+            aria-label={t("layout:nav.notifications")}
+            title={t("layout:nav.notifications")}
           >
             <svg
               width="16"
@@ -569,9 +607,15 @@ export default function Sidebar({ open = false, onClose }) {
             className={styles.collapseToggle}
             onClick={toggleCollapsed}
             aria-label={
-              collapsed ? "Expandir barra lateral" : "Contraer barra lateral"
+              collapsed
+                ? t("layout:sidebar.expand")
+                : t("layout:sidebar.collapse")
             }
-            title={collapsed ? "Expandir" : "Contraer"}
+            title={
+              collapsed
+                ? t("layout:sidebar.expandTip")
+                : t("layout:sidebar.collapseTip")
+            }
           >
             <svg
               className={styles.collapseIcon}
@@ -586,23 +630,27 @@ export default function Sidebar({ open = false, onClose }) {
               <polyline points="11 17 6 12 11 7" />
               <polyline points="18 17 13 12 18 7" />
             </svg>
-            <span className={styles.collapseLab}>Contraer</span>
+            <span className={styles.collapseLab}>
+              {t("layout:sidebar.collapseTip")}
+            </span>
           </button>
           {confirmingLogout ? (
             <div className={styles.logoutConfirm}>
-              <span className={styles.logoutConfirmLabel}>¿Cerrar sesión?</span>
+              <span className={styles.logoutConfirmLabel}>
+                {t("layout:sidebar.logoutConfirm")}
+              </span>
               <div className={styles.logoutConfirmActions}>
                 <button
                   className={styles.logoutConfirmYes}
                   onClick={handleLogoutConfirm}
                 >
-                  Sí
+                  {t("layout:sidebar.logoutYes")}
                 </button>
                 <button
                   className={styles.logoutConfirmNo}
                   onClick={() => setConfirmingLogout(false)}
                 >
-                  No
+                  {t("layout:sidebar.logoutNo")}
                 </button>
               </div>
             </div>
@@ -633,8 +681,8 @@ export default function Sidebar({ open = false, onClose }) {
                   e.stopPropagation();
                   setConfirmingLogout(true);
                 }}
-                title="Cerrar sesión"
-                aria-label="Cerrar sesión"
+                title={t("layout:sidebar.logout")}
+                aria-label={t("layout:sidebar.logout")}
               >
                 <svg
                   width="15"

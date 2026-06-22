@@ -1,0 +1,60 @@
+{
+  "nav": {
+    "items": {
+      "compartidas": "Compartidas",
+      "compartite": "Compartite",
+      "noticias": "Noticias",
+      "calendario": "Calendario",
+      "comunidades": "Mis Comunidades",
+      "mesas": "Mesas",
+      "eventos": "Eventos",
+      "torneos": "Torneos",
+      "mathtrade": "Math Trade",
+      "miFeed": "Mi feed",
+      "bgwatch": "BG Watch",
+      "bgwatchCta": "Activá BG Watch",
+      "panelAdmin": "Panel admin",
+      "baseDatos": "Base de datos",
+      "chatAdmin": "Chat admin",
+      "utilidades": "Utilidades",
+      "nuevo": "Nuevo"
+    },
+    "sections": {
+      "comunidad": "Comunidad",
+      "encuentros": "Encuentros",
+      "tuyo": "Tuyo",
+      "admin": "Admin"
+    },
+    "register": "Registrate",
+    "notifications": "Notificaciones",
+    "messages": "Mensajes"
+  },
+  "menu": {
+    "open": "Abrir menú",
+    "close": "Cerrar menú"
+  },
+  "sidebar": {
+    "expand": "Expandir barra lateral",
+    "collapse": "Contraer barra lateral",
+    "expandTip": "Expandir",
+    "collapseTip": "Contraer",
+    "logoutConfirm": "¿Cerrar sesión?",
+    "logoutYes": "Sí",
+    "logoutNo": "No",
+    "logout": "Cerrar sesión"
+  },
+  "community": {
+    "switchLabel": "Cambiar de comunidad",
+    "header": "COMUNIDAD",
+    "help": "Tildá las que querés ver en conjunto y elegí cuál define el aspecto del sitio.",
+    "skinActive": "Aspecto activo",
+    "skinActiveTip": "Esta comunidad define el aspecto",
+    "skinUse": "Usar aspecto",
+    "skinUseTip": "Usar el aspecto de esta comunidad",
+    "viewAll": "Ver todas las comunidades →"
+  },
+  "splash": {
+    "loading": "Preparando tu mesa"
+  },
+  "attribution": "por"
+}

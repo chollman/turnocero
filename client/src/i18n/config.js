@@ -17,6 +17,7 @@ export const NAMESPACES = [
   "dates",
   "enums",
   "quotes",
+  "layout",
 ];
 export const DEFAULT_NS = "common";
 

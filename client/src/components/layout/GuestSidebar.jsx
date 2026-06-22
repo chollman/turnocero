@@ -1,5 +1,6 @@
 import Meeple from "../shared/Meeple";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router-dom";
 import { useSectionEnabled } from "../../hooks/useSectionEnabled";
 import { useCommunity } from "../../context/CommunityContext";
@@ -74,36 +75,45 @@ const ICONS = {
   ),
 };
 
-const NAV = [
+// Factory para construir el nav con labels traducidos (ver Sidebar.buildSections).
+const buildNav = (t) => [
   {
     id: "compartidas",
-    label: "Compartidas",
+    label: t("layout:nav.items.compartidas"),
     to: "/compartidas",
     section: "compartidas",
   },
-  { id: "noticias", label: "Noticias", to: "/noticias", section: "noticias" },
+  {
+    id: "noticias",
+    label: t("layout:nav.items.noticias"),
+    to: "/noticias",
+    section: "noticias",
+  },
   {
     id: "calendario",
-    label: "Calendario",
+    label: t("layout:nav.items.calendario"),
     to: "/calendario",
     section: "calendario",
   },
   {
     id: "utilidades",
-    label: "Utilidades",
+    label: t("layout:nav.items.utilidades"),
     to: "/utilidades",
     section: "utilidades",
   },
 ];
 
 export default function GuestSidebar({ open = false, onClose }) {
+  const { t } = useTranslation();
   const { pathname } = useLocation();
   // Gating combinado global + override por comunidad-skin (ver useSectionEnabled).
   const isSectionEnabled = useSectionEnabled();
   // En modo tenant (subdominio / ?tenant) la marca es la de la comunidad.
   const { isTenant, brand } = useCommunity();
   const active = getActiveNavId(pathname);
-  const visibleNav = NAV.filter((item) => isSectionEnabled(item.section));
+  const visibleNav = buildNav(t).filter((item) =>
+    isSectionEnabled(item.section),
+  );
 
   const initialPathRef = useRef(pathname);
   useEffect(() => {
@@ -157,7 +167,7 @@ export default function GuestSidebar({ open = false, onClose }) {
                 <Meeple />
                 {isTenant ? (
                   <>
-                    por{" "}
+                    {t("layout:attribution")}{" "}
                     <Link to="/colabora" className={styles.attribution}>
                       TurnoCero
                     </Link>
@@ -175,7 +185,7 @@ export default function GuestSidebar({ open = false, onClose }) {
             <div className={styles.navSection}>
               <span className={styles.navSectionLabel}>
                 <Meeple />
-                Comunidad
+                {t("layout:nav.sections.comunidad")}
               </span>
               {visibleNav.map((item, i) => {
                 const isActive = active === item.id;
@@ -202,7 +212,7 @@ export default function GuestSidebar({ open = false, onClose }) {
             Login
           </Link>
           <Link to="/register" className={styles.btnRegister} onClick={onClose}>
-            Registrate
+            {t("layout:nav.register")}
           </Link>
         </div>
       </aside>

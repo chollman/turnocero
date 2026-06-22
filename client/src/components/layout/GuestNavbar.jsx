@@ -1,9 +1,11 @@
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import Logo from "../shared/Logo";
 import { useCommunity } from "../../context/CommunityContext";
 import styles from "./GuestNavbar.module.css";
 
 export default function GuestNavbar({ menuOpen = false, onToggleMenu }) {
+  const { t } = useTranslation();
   // En modo tenant (subdominio / ?tenant) la marca es la de la comunidad.
   const { isTenant, brand } = useCommunity();
   return (
@@ -31,14 +33,14 @@ export default function GuestNavbar({ menuOpen = false, onToggleMenu }) {
             Login
           </Link>
           <Link to="/register" className={styles.btnRegister}>
-            Registrate
+            {t("layout:nav.register")}
           </Link>
           {onToggleMenu && (
             <button
               type="button"
               className={`${styles.menuBtn} ${menuOpen ? styles.menuBtnOpen : ""}`}
               onClick={onToggleMenu}
-              aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
+              aria-label={menuOpen ? t("layout:menu.close") : t("layout:menu.open")}
               aria-expanded={menuOpen}
             >
               <span className={styles.menuLine} />

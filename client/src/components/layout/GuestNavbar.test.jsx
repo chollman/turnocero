@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import GuestNavbar from "./GuestNavbar";
 import { AllProviders } from "../../test/wrappers/AllProviders";
+import i18n from "../../i18n";
 
 vi.mock("../../context/CommunityContext", () => ({
   useCommunity: vi.fn(),
@@ -89,5 +90,22 @@ describe("<GuestNavbar>", () => {
     expect(
       screen.queryByRole("button", { name: /abrir menú|cerrar menú/i }),
     ).not.toBeInTheDocument();
+  });
+
+  describe("English locale", () => {
+    afterEach(() => {
+      i18n.changeLanguage("es");
+    });
+
+    it("renders English labels when language is 'en'", () => {
+      i18n.changeLanguage("en");
+      renderNav({ onToggleMenu: vi.fn(), menuOpen: false });
+      expect(
+        screen.getByRole("link", { name: "Register" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /open menu/i }),
+      ).toBeInTheDocument();
+    });
   });
 });
