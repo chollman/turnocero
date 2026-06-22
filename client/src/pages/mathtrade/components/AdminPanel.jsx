@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { API } from "../../../api/endpoints";
 import { useNotifications } from "../../../context/NotificationContext";
 import { getErrorMessage } from "../../../utils/getErrorMessage";
@@ -9,26 +10,27 @@ import styles from "../MathTradeDetail.module.css";
 
 // Próximas acciones de estado por estado actual (espejo del VALID_TRANSITIONS
 // del server, con labels amigables). El target 'results' dispara la corrida +
-// publicación.
+// publicación. `labelKey` resuelve por i18n en runtime.
 const NEXT_ACTIONS = {
-  draft: [{ to: "open", label: "Abrir inscripción" }],
+  draft: [{ to: "open", labelKey: "open" }],
   open: [
-    { to: "locked", label: "Cerrar inscripción" },
-    { to: "draft", label: "Volver a borrador" },
+    { to: "locked", labelKey: "lock" },
+    { to: "draft", labelKey: "backToDraft" },
   ],
   locked: [
-    { to: "results", label: "Publicar resultados", primary: true },
-    { to: "open", label: "Reabrir inscripción" },
+    { to: "results", labelKey: "publish", primary: true },
+    { to: "open", labelKey: "reopen" },
   ],
   results: [
-    { to: "finished", label: "Finalizar" },
-    { to: "locked", label: "Despublicar" },
+    { to: "finished", labelKey: "finish" },
+    { to: "locked", labelKey: "unpublish" },
   ],
   finished: [],
   cancelled: [],
 };
 
 export default function AdminPanel({ trade, onUpdated }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { addToast } = useNotifications();
   const [mode, setMode] = useState(trade.matching?.mode || "max");
@@ -58,7 +60,7 @@ export default function AdminPanel({ trade, onUpdated }) {
     } catch (err) {
       addToast({
         type: "error",
-        title: "No se pudo cambiar el estado",
+        title: t("mathtrade:adminPanel.statusError"),
         message: getErrorMessage(err),
       });
     } finally {
@@ -77,7 +79,7 @@ export default function AdminPanel({ trade, onUpdated }) {
     } catch (err) {
       addToast({
         type: "error",
-        title: "No se pudo calcular el preview",
+        title: t("mathtrade:adminPanel.previewError"),
         message: getErrorMessage(err),
       });
     } finally {
@@ -86,8 +88,7 @@ export default function AdminPanel({ trade, onUpdated }) {
   };
 
   const del = async () => {
-    if (!window.confirm("¿Eliminar este math trade? No se puede deshacer."))
-      return;
+    if (!window.confirm(t("mathtrade:adminPanel.deleteConfirm"))) return;
     setBusy(true);
     try {
       await axios.delete(API.mathtrade.DETAIL(trade._id));
@@ -95,7 +96,7 @@ export default function AdminPanel({ trade, onUpdated }) {
     } catch (err) {
       addToast({
         type: "error",
-        title: "No se pudo eliminar",
+        title: t("mathtrade:adminPanel.deleteError"),
         message: getErrorMessage(err),
       });
       setBusy(false);
@@ -104,7 +105,9 @@ export default function AdminPanel({ trade, onUpdated }) {
 
   return (
     <div className={styles.adminPanel}>
-      <div className={styles.adminTitle}>Panel del organizador</div>
+      <div className={styles.adminTitle}>
+        {t("mathtrade:adminPanel.title")}
+      </div>
 
       <div className={styles.adminRow}>
         {actions.map((a) => (
@@ -114,7 +117,7 @@ export default function AdminPanel({ trade, onUpdated }) {
             onClick={() => changeStatus(a.to)}
             disabled={busy}
           >
-            {a.label}
+            {t(`mathtrade:adminPanel.actions.${a.labelKey}`)}
           </button>
         ))}
         {canCancel && (
@@ -123,7 +126,7 @@ export default function AdminPanel({ trade, onUpdated }) {
             onClick={() => changeStatus("cancelled")}
             disabled={busy}
           >
-            Cancelar evento
+            {t("mathtrade:adminPanel.cancelEvent")}
           </button>
         )}
         <button
@@ -131,7 +134,7 @@ export default function AdminPanel({ trade, onUpdated }) {
           onClick={() => navigate(`/math-trade/${trade._id}/editar`)}
           disabled={busy}
         >
-          Editar
+          {t("common:actions.edit")}
         </button>
         {trade.status === "draft" && (
           <button
@@ -139,7 +142,7 @@ export default function AdminPanel({ trade, onUpdated }) {
             onClick={del}
             disabled={busy}
           >
-            Eliminar
+            {t("common:actions.delete")}
           </button>
         )}
       </div>
@@ -148,20 +151,24 @@ export default function AdminPanel({ trade, onUpdated }) {
         <>
           <div className={styles.adminRow}>
             <label>
-              Modo:{" "}
+              {t("mathtrade:adminPanel.modeLabel")}
               <select
                 className={styles.adminSelect}
                 value={mode}
                 onChange={(e) => setMode(e.target.value)}
               >
-                <option value="auto">Automática (recomendada)</option>
-                <option value="max">Cadena máxima</option>
-                <option value="bounded">Cadena acotada</option>
+                <option value="auto">
+                  {t("mathtrade:adminPanel.modeAuto")}
+                </option>
+                <option value="max">{t("mathtrade:adminPanel.modeMax")}</option>
+                <option value="bounded">
+                  {t("mathtrade:adminPanel.modeBounded")}
+                </option>
               </select>
             </label>
             {mode === "bounded" && (
               <label>
-                Máx. cadena:{" "}
+                {t("mathtrade:adminPanel.maxChainLabel")}
                 <input
                   type="number"
                   min={2}
@@ -178,7 +185,7 @@ export default function AdminPanel({ trade, onUpdated }) {
               onClick={runPreview}
               disabled={busy}
             >
-              Probar matching (preview)
+              {t("mathtrade:adminPanel.tryMatching")}
             </button>
           </div>
 

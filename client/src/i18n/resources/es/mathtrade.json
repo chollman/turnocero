@@ -1,0 +1,160 @@
+{
+  "status": {
+    "draft": "Borrador",
+    "open": "Inscripción abierta",
+    "locked": "Inscripción cerrada",
+    "results": "Resultados publicados",
+    "finished": "Finalizado",
+    "cancelled": "Cancelado"
+  },
+  "mode": {
+    "max": "Cadena máxima",
+    "bounded": "Cadena acotada",
+    "auto": "Automática"
+  },
+  "list": {
+    "docTitle": "Math Trade – {{brand}} 🔄",
+    "metaDescription": "Intercambios múltiples de juegos de mesa de la comunidad TurnoCero.",
+    "eyebrow": "INTERCAMBIOS",
+    "title": "Math Trade",
+    "subtitle": "Ofrecé tus juegos, armá tu lista de deseos y dejá que el sistema encuentre las cadenas de intercambio óptimas.",
+    "newTrade": "+ Nuevo intercambio",
+    "tabs": {
+      "all": "Todos",
+      "open": "Abiertos",
+      "results": "Resultados",
+      "finished": "Finalizados"
+    },
+    "gamesOffered": "{{count}} juegos ofrecidos",
+    "emptyTitle": "No hay intercambios en esta vista",
+    "createFirst": "+ Crear el primero",
+    "draftsTitle": "Borradores (solo admins)",
+    "loadMore": "Ver más",
+    "loadingMore": "Cargando…"
+  },
+  "detail": {
+    "docTitle": "{{title}} – Math Trade – {{brand}}",
+    "back": "Math Trade",
+    "wantsLabel": "Quiere a cambio",
+    "noWantList": "Sin want list",
+    "gameFallback": "Juego #{{id}}",
+    "maxPerChain": "· Máx. {{count}} por cadena",
+    "deadline": "· Cierre: {{date}}",
+    "notFound": "Este intercambio no existe.",
+    "tabs": {
+      "myOffers": "Mis ofertas",
+      "participants": "Participantes ({{count}})",
+      "results": "Resultados"
+    },
+    "offerGame": "+ Ofrecer un juego",
+    "submissionsClosed": "La carga de ofertas está cerrada.",
+    "noOffersYet": "Todavía no ofreciste ningún juego.",
+    "noParticipantsYet": "Todavía no hay ofertas.",
+    "deleteError": "No se pudo eliminar la oferta"
+  },
+  "loginPrompt": "<login>Iniciá sesión</login> para ofrecer tus juegos.",
+  "form": {
+    "docTitleCreate": "Nuevo intercambio",
+    "docTitleEdit": "Editar intercambio",
+    "back": "Volver a Math Trade",
+    "titleCreate": "Nuevo intercambio",
+    "titleEdit": "Editar intercambio",
+    "titleLabel": "Título",
+    "titlePlaceholder": "Ej: Math Trade de fin de año",
+    "descriptionLabel": "Descripción",
+    "descriptionPlaceholder": "Reglas, fechas de entrega, punto de encuentro…",
+    "deadlineLabel": "Fecha límite de inscripción",
+    "matchingLabel": "Algoritmo de matching",
+    "matchingTooltip": "Automática: maximiza los intercambios pero usa la cadena más corta posible que no te haga perder intercambios (más robusto). Cadena máxima: el máximo de intercambios, cadenas de cualquier largo. Cadena acotada: vos fijás el largo máximo de cadena.",
+    "modeAutoTitle": "Automática ✦",
+    "modeAutoDesc": "La cadena más corta que no pierde intercambios. Recomendada.",
+    "modeMaxTitle": "Cadena máxima",
+    "modeMaxDesc": "Maximiza los intercambios, cadenas de cualquier largo.",
+    "modeBoundedTitle": "Cadena acotada",
+    "modeBoundedDesc": "Vos fijás el largo máximo de cadena.",
+    "maxPeopleLabel": "Máximo de personas por cadena",
+    "maxPeopleHint": "entre 2 y 12",
+    "imageLabel": "Imagen (opcional)",
+    "submitCreate": "Crear intercambio",
+    "submitEdit": "Guardar cambios",
+    "submitting": "Guardando…",
+    "missingTitle": "Falta el título",
+    "createError": "No pudimos crear el intercambio",
+    "saveError": "No pudimos guardar los cambios"
+  },
+  "adminPanel": {
+    "title": "Panel del organizador",
+    "actions": {
+      "open": "Abrir inscripción",
+      "lock": "Cerrar inscripción",
+      "backToDraft": "Volver a borrador",
+      "publish": "Publicar resultados",
+      "reopen": "Reabrir inscripción",
+      "finish": "Finalizar",
+      "unpublish": "Despublicar"
+    },
+    "cancelEvent": "Cancelar evento",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "modeLabel": "Modo: ",
+    "modeAuto": "Automática (recomendada)",
+    "modeMax": "Cadena máxima",
+    "modeBounded": "Cadena acotada",
+    "maxChainLabel": "Máx. cadena: ",
+    "tryMatching": "Probar matching (preview)",
+    "deleteConfirm": "¿Eliminar este math trade? No se puede deshacer.",
+    "statusError": "No se pudo cambiar el estado",
+    "previewError": "No se pudo calcular el preview",
+    "deleteError": "No se pudo eliminar"
+  },
+  "results": {
+    "itemsTraded": "juegos intercambiados",
+    "itemsOffered": "juegos ofrecidos",
+    "cyclesCount": "cadenas",
+    "longestCycle": "cadena más larga",
+    "chosenChainLength": "tope de cadena elegido",
+    "approximate": "⚠️ Resultado aproximado: la cantidad de combinaciones superó el límite de cálculo exacto, así que se usó una heurística. Es un resultado válido pero podría no ser el óptimo absoluto.",
+    "yourTrades": "Tus intercambios",
+    "byChain": "Por cadena",
+    "byUser": "Por usuario",
+    "noTrades": "No se concretó ningún intercambio",
+    "allChains": "Todas las cadenas ({{count}})"
+  },
+  "userBreakdown": {
+    "noParticipants": "No hay participantes.",
+    "tradedCount": "{{traded}}/{{total}} intercambiados",
+    "give": "entrega <strong>{{game}}</strong>",
+    "receive": "<arrow>→</arrow> recibe <strong>{{game}}</strong>",
+    "you": " (vos)",
+    "noMatch": " · sin match"
+  },
+  "chain": {
+    "title_one": "Cadena de {{count}} persona",
+    "title_other": "Cadena de {{count}} personas",
+    "giveReceive": "entrega <strong>{{give}}</strong> <arrow>→</arrow> recibe <strong>{{receives}}</strong>",
+    "you": " (vos)",
+    "gameFallback": "#{{id}}"
+  },
+  "itemForm": {
+    "offeredLabel": "Juego que ofrecés",
+    "change": "Cambiar",
+    "searchOfferedPlaceholder": "Buscá el juego que querés dar…",
+    "notesLabel": "Notas (opcional)",
+    "notesPlaceholder": "Estado, edición, detalles de entrega…",
+    "submitCreate": "Agregar oferta",
+    "submitEdit": "Guardar cambios",
+    "submitting": "Guardando…",
+    "missingOffered": "Elegí el juego que ofrecés",
+    "missingWants": "Agregá al menos un juego a tu want list",
+    "saveError": "No pudimos guardar tu oferta"
+  },
+  "wantList": {
+    "label": "Want list (en orden de preferencia)",
+    "empty": "Agregá los juegos que aceptarías a cambio.",
+    "gameFallback": "Juego #{{id}}",
+    "moveUp": "Subir preferencia",
+    "moveDown": "Bajar preferencia",
+    "remove": "Quitar",
+    "searchPlaceholder": "Agregá un juego a tu want list…"
+  }
+}

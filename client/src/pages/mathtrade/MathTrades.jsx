@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
@@ -11,13 +12,14 @@ import { getStatusMeta, getModeLabel } from "./mathtradeStatus";
 import styles from "./MathTrades.module.css";
 
 const STATUS_TABS = [
-  { id: "all", label: "Todos", filter: null },
-  { id: "open", label: "Abiertos", filter: "open" },
-  { id: "results", label: "Resultados", filter: "results" },
-  { id: "finished", label: "Finalizados", filter: "finished" },
+  { id: "all", filter: null },
+  { id: "open", filter: "open" },
+  { id: "results", filter: "results" },
+  { id: "finished", filter: "finished" },
 ];
 
 function MathTradeCard({ mt }) {
+  const { t } = useTranslation();
   const meta = getStatusMeta(mt.status);
   return (
     <Link to={`/math-trade/${mt._id}`} className={styles.card}>
@@ -36,7 +38,9 @@ function MathTradeCard({ mt }) {
       {mt.description && <p className={styles.cardDesc}>{mt.description}</p>}
       <div className={styles.cardMeta}>
         <ItemCommunityTag communityId={mt.community} />
-        <span>{mt.itemCount || 0} juegos ofrecidos</span>
+        <span>
+          {t("mathtrade:list.gamesOffered", { count: mt.itemCount || 0 })}
+        </span>
         <span>· {getModeLabel(mt.matching?.mode)}</span>
       </div>
     </Link>
@@ -44,6 +48,7 @@ function MathTradeCard({ mt }) {
 }
 
 export default function MathTrades() {
+  const { t } = useTranslation();
   const { isActuallyAdmin, viewAsUser } = useAuth();
   const brandName = useBrandName();
   const showAdminUI = isActuallyAdmin && !viewAsUser;
@@ -101,41 +106,38 @@ export default function MathTrades() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{`Math Trade – ${brandName} 🔄`}</title>
+        <title>{t("mathtrade:list.docTitle", { brand: brandName })}</title>
         <meta
           name="description"
-          content="Intercambios múltiples de juegos de mesa de la comunidad TurnoCero."
+          content={t("mathtrade:list.metaDescription")}
         />
       </Helmet>
 
       <div className={styles.inner}>
         <div className={styles.header}>
           <div>
-            <div className={styles.eyebrow}>INTERCAMBIOS</div>
-            <h1 className={styles.title}>Math Trade</h1>
-            <p className={styles.sub}>
-              Ofrecé tus juegos, armá tu lista de deseos y dejá que el sistema
-              encuentre las cadenas de intercambio óptimas.
-            </p>
+            <div className={styles.eyebrow}>{t("mathtrade:list.eyebrow")}</div>
+            <h1 className={styles.title}>{t("mathtrade:list.title")}</h1>
+            <p className={styles.sub}>{t("mathtrade:list.subtitle")}</p>
           </div>
           {showAdminUI && (
             <button
               className={styles.newBtn}
               onClick={() => navigate("/math-trade/crear")}
             >
-              + Nuevo intercambio
+              {t("mathtrade:list.newTrade")}
             </button>
           )}
         </div>
 
         <div className={styles.tabs}>
-          {STATUS_TABS.map((t) => (
+          {STATUS_TABS.map((st) => (
             <button
-              key={t.id}
-              className={`${styles.tab} ${tab === t.id ? styles.tabActive : ""}`}
-              onClick={() => setTab(t.id)}
+              key={st.id}
+              className={`${styles.tab} ${tab === st.id ? styles.tabActive : ""}`}
+              onClick={() => setTab(st.id)}
             >
-              {t.label}
+              {t(`mathtrade:list.tabs.${st.id}`)}
             </button>
           ))}
         </div>
@@ -150,11 +152,11 @@ export default function MathTrades() {
           <div className={styles.empty}>
             <span className={styles.emptyIcon}>🔄</span>
             <p className={styles.emptyTitle}>
-              No hay intercambios en esta vista
+              {t("mathtrade:list.emptyTitle")}
             </p>
             {showAdminUI && (
               <Link to="/math-trade/crear" className={styles.emptyBtn}>
-                + Crear el primero
+                {t("mathtrade:list.createFirst")}
               </Link>
             )}
           </div>
@@ -162,7 +164,9 @@ export default function MathTrades() {
           <>
             {drafts.length > 0 && (
               <div className={styles.draftsSection}>
-                <h3 className={styles.draftsTitle}>Borradores (solo admins)</h3>
+                <h3 className={styles.draftsTitle}>
+                  {t("mathtrade:list.draftsTitle")}
+                </h3>
                 <div className={styles.feed}>
                   {drafts.map((t) => (
                     <MathTradeCard key={t._id} mt={t} />
@@ -181,12 +185,14 @@ export default function MathTrades() {
                 className={styles.loadMoreBtn}
                 onClick={() => {
                   const f =
-                    STATUS_TABS.find((t) => t.id === tab)?.filter || null;
+                    STATUS_TABS.find((st) => st.id === tab)?.filter || null;
                   load(page + 1, false, f);
                 }}
                 disabled={loadingMore}
               >
-                {loadingMore ? "Cargando…" : "Ver más"}
+                {loadingMore
+                  ? t("mathtrade:list.loadingMore")
+                  : t("mathtrade:list.loadMore")}
               </button>
             )}
           </>

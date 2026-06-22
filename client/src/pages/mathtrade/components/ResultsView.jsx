@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import ChainVisualizer from "./ChainVisualizer";
 import UserBreakdown from "./UserBreakdown";
 import styles from "../MathTradeDetail.module.css";
@@ -8,6 +9,7 @@ import styles from "../MathTradeDetail.module.css";
 // de ítems) habilita la vista por usuario con los no-matcheados; si no viene,
 // la vista por usuario se deriva de las cadenas (solo matcheados).
 export default function ResultsView({ results, items, currentUserId }) {
+  const { t } = useTranslation();
   const [groupBy, setGroupBy] = useState("chain");
   if (!results) return null;
   const { summary, cycles = [] } = results;
@@ -24,39 +26,49 @@ export default function ResultsView({ results, items, currentUserId }) {
       <div className={styles.summaryBanner}>
         <div className={styles.stat}>
           <span className={styles.statNum}>{summary?.itemsTraded ?? 0}</span>
-          <span className={styles.statLabel}>juegos intercambiados</span>
+          <span className={styles.statLabel}>
+            {t("mathtrade:results.itemsTraded")}
+          </span>
         </div>
         <div className={styles.stat}>
           <span className={styles.statNum}>{summary?.itemsOffered ?? 0}</span>
-          <span className={styles.statLabel}>juegos ofrecidos</span>
+          <span className={styles.statLabel}>
+            {t("mathtrade:results.itemsOffered")}
+          </span>
         </div>
         <div className={styles.stat}>
           <span className={styles.statNum}>{summary?.cyclesCount ?? 0}</span>
-          <span className={styles.statLabel}>cadenas</span>
+          <span className={styles.statLabel}>
+            {t("mathtrade:results.cyclesCount")}
+          </span>
         </div>
         <div className={styles.stat}>
           <span className={styles.statNum}>{summary?.longestCycle ?? 0}</span>
-          <span className={styles.statLabel}>cadena más larga</span>
+          <span className={styles.statLabel}>
+            {t("mathtrade:results.longestCycle")}
+          </span>
         </div>
         {summary?.chosenChainLength != null && (
           <div className={styles.stat}>
             <span className={styles.statNum}>{summary.chosenChainLength}</span>
-            <span className={styles.statLabel}>tope de cadena elegido</span>
+            <span className={styles.statLabel}>
+              {t("mathtrade:results.chosenChainLength")}
+            </span>
           </div>
         )}
       </div>
 
       {summary?.approximate && (
         <div className={styles.approxBanner}>
-          ⚠️ Resultado aproximado: la cantidad de combinaciones superó el límite
-          de cálculo exacto, así que se usó una heurística. Es un resultado
-          válido pero podría no ser el óptimo absoluto.
+          {t("mathtrade:results.approximate")}
         </div>
       )}
 
       {myCycles.length > 0 && (
         <div className={styles.youBox}>
-          <div className={styles.chainTitle}>Tus intercambios</div>
+          <div className={styles.chainTitle}>
+            {t("mathtrade:results.yourTrades")}
+          </div>
           {myCycles.map((c, i) => (
             <ChainVisualizer
               key={i}
@@ -74,7 +86,7 @@ export default function ResultsView({ results, items, currentUserId }) {
           className={`${styles.viewToggleBtn} ${groupBy === "chain" ? styles.viewToggleBtnActive : ""}`}
           onClick={() => setGroupBy("chain")}
         >
-          Por cadena
+          {t("mathtrade:results.byChain")}
         </button>
         <button
           role="tab"
@@ -82,7 +94,7 @@ export default function ResultsView({ results, items, currentUserId }) {
           className={`${styles.viewToggleBtn} ${groupBy === "user" ? styles.viewToggleBtnActive : ""}`}
           onClick={() => setGroupBy("user")}
         >
-          Por usuario
+          {t("mathtrade:results.byUser")}
         </button>
       </div>
 
@@ -90,8 +102,8 @@ export default function ResultsView({ results, items, currentUserId }) {
         <>
           <h3 className={styles.sectionTitle}>
             {cycles.length === 0
-              ? "No se concretó ningún intercambio"
-              : `Todas las cadenas (${cycles.length})`}
+              ? t("mathtrade:results.noTrades")
+              : t("mathtrade:results.allChains", { count: cycles.length })}
           </h3>
           {cycles.map((c, i) => (
             <ChainVisualizer

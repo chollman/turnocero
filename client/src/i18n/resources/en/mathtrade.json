@@ -1,0 +1,160 @@
+{
+  "status": {
+    "draft": "Draft",
+    "open": "Registration open",
+    "locked": "Registration closed",
+    "results": "Results published",
+    "finished": "Finished",
+    "cancelled": "Cancelled"
+  },
+  "mode": {
+    "max": "Maximum chain",
+    "bounded": "Bounded chain",
+    "auto": "Automatic"
+  },
+  "list": {
+    "docTitle": "Math Trade – {{brand}} 🔄",
+    "metaDescription": "Multi-way board game swaps from the TurnoCero community.",
+    "eyebrow": "SWAPS",
+    "title": "Math Trade",
+    "subtitle": "Offer your games, build your wishlist, and let the system find the optimal trade chains.",
+    "newTrade": "+ New trade",
+    "tabs": {
+      "all": "All",
+      "open": "Open",
+      "results": "Results",
+      "finished": "Finished"
+    },
+    "gamesOffered": "{{count}} games offered",
+    "emptyTitle": "No trades in this view",
+    "createFirst": "+ Create the first one",
+    "draftsTitle": "Drafts (admins only)",
+    "loadMore": "Load more",
+    "loadingMore": "Loading…"
+  },
+  "detail": {
+    "docTitle": "{{title}} – Math Trade – {{brand}}",
+    "back": "Math Trade",
+    "wantsLabel": "Wants in exchange",
+    "noWantList": "No want list",
+    "gameFallback": "Game #{{id}}",
+    "maxPerChain": "· Max. {{count}} per chain",
+    "deadline": "· Closes: {{date}}",
+    "notFound": "This trade doesn't exist.",
+    "tabs": {
+      "myOffers": "My offers",
+      "participants": "Participants ({{count}})",
+      "results": "Results"
+    },
+    "offerGame": "+ Offer a game",
+    "submissionsClosed": "Submissions are closed.",
+    "noOffersYet": "You haven't offered any game yet.",
+    "noParticipantsYet": "No offers yet.",
+    "deleteError": "Couldn't delete the offer"
+  },
+  "loginPrompt": "<login>Log in</login> to offer your games.",
+  "form": {
+    "docTitleCreate": "New trade",
+    "docTitleEdit": "Edit trade",
+    "back": "Back to Math Trade",
+    "titleCreate": "New trade",
+    "titleEdit": "Edit trade",
+    "titleLabel": "Title",
+    "titlePlaceholder": "E.g.: End-of-year Math Trade",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Rules, delivery dates, meeting point…",
+    "deadlineLabel": "Registration deadline",
+    "matchingLabel": "Matching algorithm",
+    "matchingTooltip": "Automatic: maximizes trades but uses the shortest chain possible that doesn't cost you trades (more robust). Maximum chain: the most trades, chains of any length. Bounded chain: you set the maximum chain length.",
+    "modeAutoTitle": "Automatic ✦",
+    "modeAutoDesc": "The shortest chain that doesn't lose trades. Recommended.",
+    "modeMaxTitle": "Maximum chain",
+    "modeMaxDesc": "Maximizes trades, chains of any length.",
+    "modeBoundedTitle": "Bounded chain",
+    "modeBoundedDesc": "You set the maximum chain length.",
+    "maxPeopleLabel": "Maximum people per chain",
+    "maxPeopleHint": "between 2 and 12",
+    "imageLabel": "Image (optional)",
+    "submitCreate": "Create trade",
+    "submitEdit": "Save changes",
+    "submitting": "Saving…",
+    "missingTitle": "Title is missing",
+    "createError": "We couldn't create the trade",
+    "saveError": "We couldn't save the changes"
+  },
+  "adminPanel": {
+    "title": "Organizer panel",
+    "actions": {
+      "open": "Open registration",
+      "lock": "Close registration",
+      "backToDraft": "Back to draft",
+      "publish": "Publish results",
+      "reopen": "Reopen registration",
+      "finish": "Finish",
+      "unpublish": "Unpublish"
+    },
+    "cancelEvent": "Cancel event",
+    "edit": "Edit",
+    "delete": "Delete",
+    "modeLabel": "Mode: ",
+    "modeAuto": "Automatic (recommended)",
+    "modeMax": "Maximum chain",
+    "modeBounded": "Bounded chain",
+    "maxChainLabel": "Max. chain: ",
+    "tryMatching": "Try matching (preview)",
+    "deleteConfirm": "Delete this math trade? This can't be undone.",
+    "statusError": "Couldn't change the status",
+    "previewError": "Couldn't compute the preview",
+    "deleteError": "Couldn't delete"
+  },
+  "results": {
+    "itemsTraded": "games traded",
+    "itemsOffered": "games offered",
+    "cyclesCount": "chains",
+    "longestCycle": "longest chain",
+    "chosenChainLength": "chosen chain cap",
+    "approximate": "⚠️ Approximate result: the number of combinations exceeded the exact computation limit, so a heuristic was used. It's a valid result but might not be the absolute optimum.",
+    "yourTrades": "Your trades",
+    "byChain": "By chain",
+    "byUser": "By user",
+    "noTrades": "No trade went through",
+    "allChains": "All chains ({{count}})"
+  },
+  "userBreakdown": {
+    "noParticipants": "No participants.",
+    "tradedCount": "{{traded}}/{{total}} traded",
+    "give": "gives <strong>{{game}}</strong>",
+    "receive": "<arrow>→</arrow> receives <strong>{{game}}</strong>",
+    "you": " (you)",
+    "noMatch": " · no match"
+  },
+  "chain": {
+    "title_one": "Chain of {{count}} person",
+    "title_other": "Chain of {{count}} people",
+    "giveReceive": "gives <strong>{{give}}</strong> <arrow>→</arrow> receives <strong>{{receives}}</strong>",
+    "you": " (you)",
+    "gameFallback": "#{{id}}"
+  },
+  "itemForm": {
+    "offeredLabel": "Game you're offering",
+    "change": "Change",
+    "searchOfferedPlaceholder": "Search for the game you want to give away…",
+    "notesLabel": "Notes (optional)",
+    "notesPlaceholder": "Condition, edition, delivery details…",
+    "submitCreate": "Add offer",
+    "submitEdit": "Save changes",
+    "submitting": "Saving…",
+    "missingOffered": "Choose the game you're offering",
+    "missingWants": "Add at least one game to your want list",
+    "saveError": "We couldn't save your offer"
+  },
+  "wantList": {
+    "label": "Want list (in order of preference)",
+    "empty": "Add the games you'd accept in exchange.",
+    "gameFallback": "Game #{{id}}",
+    "moveUp": "Move preference up",
+    "moveDown": "Move preference down",
+    "remove": "Remove",
+    "searchPlaceholder": "Add a game to your want list…"
+  }
+}

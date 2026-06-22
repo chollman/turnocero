@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import Avatar from "../../../components/shared/Avatar";
 import { getUserDisplay } from "../../../utils/userDisplay";
 import styles from "../MathTradeDetail.module.css";
@@ -7,17 +8,23 @@ import styles from "../MathTradeDetail.module.css";
 // del siguiente. `cycle.items` viene en orden de "recibe": item[i] recibe el
 // juego de item[i+1].
 export default function ChainVisualizer({ cycle, highlightUserId }) {
+  const { t } = useTranslation();
   if (!cycle?.items?.length) return null;
   return (
     <div className={styles.chain}>
       <div className={styles.chainTitle}>
-        Cadena de {cycle.length} {cycle.length === 1 ? "persona" : "personas"}
+        {t("mathtrade:chain.title", { count: cycle.length })}
       </div>
       {cycle.items.map((node, i) => {
         const display = getUserDisplay(node.owner);
         const isYou =
           highlightUserId &&
           String(node.owner?._id || node.owner) === String(highlightUserId);
+        const give =
+          node.gameName || t("mathtrade:chain.gameFallback", { id: node.gameId });
+        const receives =
+          node.receivesGameName ||
+          t("mathtrade:chain.gameFallback", { id: node.receivesGameId });
         return (
           <Fragment key={node.itemId}>
             <div
@@ -28,14 +35,17 @@ export default function ChainVisualizer({ cycle, highlightUserId }) {
               <div>
                 <div className={styles.chainName}>
                   {display.name}
-                  {isYou ? " (vos)" : ""}
+                  {isYou ? t("mathtrade:chain.you") : ""}
                 </div>
                 <div className={styles.chainGive}>
-                  entrega <strong>{node.gameName || `#${node.gameId}`}</strong>{" "}
-                  <span className={styles.chainArrow}>→</span> recibe{" "}
-                  <strong>
-                    {node.receivesGameName || `#${node.receivesGameId}`}
-                  </strong>
+                  <Trans
+                    i18nKey="mathtrade:chain.giveReceive"
+                    values={{ give, receives }}
+                    components={{
+                      strong: <strong />,
+                      arrow: <span className={styles.chainArrow} />,
+                    }}
+                  />
                 </div>
               </div>
             </div>
