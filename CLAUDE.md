@@ -35,7 +35,7 @@ After that, Claude will read and write memories directly from the repo folder.
 
 ## Project Overview
 
-**Turnocero** is a full-stack web app for the Argentine board-game community. Core feature: organize _mesas_ (game sessions) — create, join, chat, and manage them. Additional features: _Compartidas_ (social posts about sessions), _Noticias_ (admin news/announcements), _Torneos_ (admin-managed tournaments — league, single-elimination, and multi-table groups), _Eventos_ (paid events with admin-confirmed registrations), _Comunidades_ (soft multi-tenancy: content separated by community + per-community reskin), a friends system, direct messages between friends, _Utilidades_ (small tabletop tools), and public browsing without login. The UI and all user-facing content are in **Argentine Spanish**. The app is deployed as a **PWA** (vite-plugin-pwa; assets in `client/public/`).
+**Turnocero** is a full-stack web app for the Argentine board-game community. Core feature: organize _mesas_ (game sessions) — create, join, chat, and manage them. Additional features: _Compartidas_ (social posts about sessions), _Noticias_ (admin news/announcements), _Torneos_ (admin-managed tournaments — league, single-elimination, and multi-table groups), _Eventos_ (paid events with admin-confirmed registrations), _Comunidades_ (soft multi-tenancy: content separated by community + per-community reskin), a friends system, direct messages between friends, _Utilidades_ (small tabletop tools), and public browsing without login. The UI defaults to **Argentine Spanish** (`es-AR`); **English (`en`) is available** via a toggle in `/perfil`, and all user-facing strings go through **i18n keys** present in both languages (see "Internationalization (i18n)" below and `.claude/memory/feedback_i18n_keys.md`). The app is deployed as a **PWA** (vite-plugin-pwa; assets in `client/public/`).
 
 ## Development Commands
 
@@ -540,6 +540,17 @@ All user avatar slots in the UI go through `<Avatar user={...} size="xs|sm|md|lg
 When adding a new server route that returns a populated user reference, **include `avatar` in the `.populate(...)` select** so the client can render it. Most existing populates already use `'username displayName avatar'`.
 
 Upload UI: [client/src/components/shared/AvatarCropModal.jsx](client/src/components/shared/AvatarCropModal.jsx) wraps `react-easy-crop` (1:1 aspect, round shape, pan/zoom), outputs a 600×600 JPEG @ 0.9 client-side, then the server transform (see Image uploads) reduces it to 400×400 WebP.
+
+### Internationalization (i18n)
+
+The app is bilingual: **Argentine Spanish (`es`, default) + English (`en`)**, chosen via the toggle in `/perfil`. **All user-facing strings go through i18n keys present in both languages** — hardcoded literals (in either language) are a bug. Full convention: `.claude/memory/feedback_i18n_keys.md`; audit with `/i18n-audit` (this supersedes `/spanish-audit`).
+
+- **Client:** `react-i18next` + `i18next`. `const { t } = useTranslation();` → `t('ns:section.key')`. Resources in `client/src/i18n/resources/{es,en}/<ns>.json` (one file per domain namespace; `common` is the default). Keys are semantic English; plurals via `_one`/`_other` + `count`; interpolation via `{{var}}`. `LanguageContext` ([client/src/context/LanguageContext.jsx](client/src/context/LanguageContext.jsx)) mirrors `ThemeContext` — persists to `localStorage` (`STORAGE_KEYS.LANGUAGE`), sets `<html lang>`, sets the axios `Accept-Language` header, and calls `i18n.changeLanguage`. An inline script in `index.html` restores `<html lang>` pre-hydration.
+- **Server:** `i18next` + `i18next-http-middleware` ([server/i18n/](server/i18n/)), mounted in `app.js` before the routes. It reads `Accept-Language` and attaches `req.t` / `req.language` (fallback `es`). Routes use `throw httpError(4xx, req.t('errors:key'))`; emails/cron use `getFixedT(user.language, ns)` to localize by the **recipient's** stored `User.language` (enum `['es','en']`, default `'es'`, set via `PUT /api/auth/profile`).
+- **Formatting:** never hardcode `"es-AR"` — use [client/src/utils/locale.js](client/src/utils/locale.js) (`getLocale`, `formatNumber`, `formatDate`, `formatTime`), which read the active language.
+- **URLs stay Spanish** — routing slugs are NOT translated, only display text (see "Frontend routing").
+- **Tests:** the test setups load the real `es` resources so existing Spanish assertions stay green when a string becomes a key; `es↔en` key-parity is enforced (`client/src/i18n/parity.test.js`, `server/tests/unit/i18n/i18n.test.js`). Every new/migrated string ships es + en + a test.
+- **Rollout:** infra + pilots (auth recovery pages, `/perfil` toggle, `locale.js`) landed; the bulk migration is incremental per section/namespace — use `/i18n-audit`.
 
 ### Server error format
 
