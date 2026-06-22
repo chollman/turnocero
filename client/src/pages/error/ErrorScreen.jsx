@@ -2,6 +2,8 @@ import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
+import { useTranslation, Trans } from "react-i18next";
+import { getLocale } from "../../utils/locale";
 import styles from "./ErrorScreen.module.css";
 
 // ─── Iconos inline (no usamos librerías de iconos en el proyecto) ──────────
@@ -370,29 +372,10 @@ function Hero500() {
   );
 }
 
-const COPY = {
-  404: {
-    eyebrow: "Error 404 · página no encontrada",
-    title: (
-      <>
-        Esta carta no está <em>en el mazo.</em>
-      </>
-    ),
-    text: "Buscamos en todas las cajas y no encontramos lo que pedías. Quizás la mesa se levantó, el link quedó viejo, o tipeaste un número de la suerte que no tocaba.",
-    primary: { label: "Volver al inicio", icon: Icon.home },
-    secondary: { label: "Página anterior", icon: Icon.back },
-  },
-  500: {
-    eyebrow: "Error 500 · algo se cayó de la mesa",
-    title: (
-      <>
-        Se nos <em>volcó el tablero.</em>
-      </>
-    ),
-    text: "No es culpa tuya — un error de nuestro lado dio vuelta las piezas. Ya estamos levantando todo. Probá de nuevo en un toque y deberíamos estar jugando otra vez.",
-    primary: { label: "Reintentar", icon: Icon.retry },
-    secondary: { label: "Ir al inicio", icon: Icon.home },
-  },
+// Iconos de los botones por variante (el copy sale de i18n in-component).
+const ACTION_ICONS = {
+  404: { primary: Icon.home, secondary: Icon.back },
+  500: { primary: Icon.retry, secondary: Icon.home },
 };
 
 // Genera un id de incidente pseudo-aleatorio para que soporte tenga algo
@@ -405,7 +388,7 @@ function makeIncident() {
     chars[Math.floor(Math.random() * chars.length)];
   let stamp;
   try {
-    stamp = new Intl.DateTimeFormat("es-AR", {
+    stamp = new Intl.DateTimeFormat(getLocale(), {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -431,8 +414,16 @@ export default function ErrorScreen({
   onSecondary,
   links = [],
 }) {
+  const { t } = useTranslation();
   const is500 = variant === "500";
-  const copy = COPY[is500 ? "500" : "404"];
+  const v = is500 ? "500" : "404";
+  const icons = ACTION_ICONS[v];
+  const copy = {
+    eyebrow: t(`error:screen.eyebrow${v}`),
+    text: t(`error:screen.text${v}`),
+    primary: { label: t(`error:screen.primary${v}`), icon: icons.primary },
+    secondary: { label: t(`error:screen.secondary${v}`), icon: icons.secondary },
+  };
   const [copied, setCopied] = useState(false);
   const [incident] = useState(() => (is500 ? makeIncident() : null));
 
@@ -441,13 +432,11 @@ export default function ErrorScreen({
   // al desmontar, así una recuperación in-place no deja el tab en "error".
   useEffect(() => {
     const prev = document.title;
-    document.title = is500
-      ? "Algo salió mal · TurnoCero"
-      : "Página no encontrada · TurnoCero";
+    document.title = t(is500 ? "error:screen.docTitle500" : "error:screen.docTitle404");
     return () => {
       document.title = prev;
     };
-  }, [is500]);
+  }, [is500, t]);
 
   const handleCopy = async () => {
     try {
@@ -471,7 +460,9 @@ export default function ErrorScreen({
         <h1 className={styles.errCode}>{is500 ? "500" : "404"}</h1>
 
         <span className={styles.errEyebrow}>{copy.eyebrow}</span>
-        <h2 className={styles.errTitle}>{copy.title}</h2>
+        <h2 className={styles.errTitle}>
+          <Trans i18nKey={`error:screen.title${v}`} components={{ em: <em /> }} />
+        </h2>
         <p className={styles.errText}>{copy.text}</p>
 
         <div className={styles.errActions}>
@@ -495,7 +486,11 @@ export default function ErrorScreen({
           <div className={styles.errIncident}>
             <span className={styles.dot} />
             <span>
-              Incidente <strong>#{incident.code}</strong> · {incident.stamp}
+              <Trans
+                i18nKey="error:screen.incident"
+                values={{ code: incident.code, stamp: incident.stamp }}
+                components={{ strong: <strong /> }}
+              />
             </span>
             <button
               type="button"
@@ -503,14 +498,15 @@ export default function ErrorScreen({
               onClick={handleCopy}
               aria-live="polite"
             >
-              {copied ? "✓ copiado" : "copiar"}
+              {copied ? t("error:screen.copied") : t("error:screen.copy")}
             </button>
           </div>
         ) : (
           links.length > 0 && (
             <div className={styles.errLinks}>
               <span className={styles.errLinksLabel}>
-                <Meeple />O probá una de estas mesas
+                <Meeple />
+                {t("error:screen.quickLinks")}
               </span>
               {links.map((l) => (
                 <Link key={l.to} className={styles.errLink} to={l.to}>
