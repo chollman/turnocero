@@ -103,6 +103,15 @@ const userSchema = new mongoose.Schema(
       enum: [0, 2, 24],
       default: 24,
     },
+    // Idioma preferido de la UI y del contenido que el server inicia (emails,
+    // push). "es" (español rioplatense) es el default — preserva el
+    // comportamiento histórico de todos los usuarios existentes sin migración.
+    // Lo setea el toggle de /perfil vía PUT /api/auth/profile.
+    language: {
+      type: String,
+      enum: ["es", "en"],
+      default: "es",
+    },
     telegram: {
       type: String,
       default: "",
