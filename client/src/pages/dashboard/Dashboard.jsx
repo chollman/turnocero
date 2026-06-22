@@ -1,11 +1,13 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation, Trans } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import useLocalStorageState from "../../utils/useLocalStorageState";
+import { formatDate } from "../../utils/locale";
 import { groupByHorizon } from "../../utils/mesaHorizon";
 import ListFilters from "../../components/shared/ListFilters";
 import EmptyState from "../../components/shared/EmptyState";
@@ -19,14 +21,33 @@ import styles from "./Dashboard.module.css";
 // `requiresAuth`). Para los que sí cambian la query al server (mine/host/
 // joined) usamos los handlers debajo; los demás (`open`, `public`) filtran
 // in-memory para evitar round-trips por una decisión visual.
-const ALL_FILTERS = [
-  { value: "all", label: "Todas" },
-  { value: "mine", label: "Mis mesas", requiresAuth: true },
-  { value: "host", label: "Hosting", requiresAuth: true },
-  { value: "joined", label: "Jugando", requiresAuth: true },
-  { value: "open", label: "Con lugar" },
-  { value: "public", label: "Públicas" },
-];
+// `value` se persiste en localStorage y alimenta los predicados — NO traducir.
+function buildAllFilters(t) {
+  return [
+    { value: "all", label: t("dashboard:list.filters.all") },
+    {
+      value: "mine",
+      label: t("dashboard:list.filters.mine"),
+      requiresAuth: true,
+    },
+    {
+      value: "host",
+      label: t("dashboard:list.filters.host"),
+      requiresAuth: true,
+    },
+    {
+      value: "joined",
+      label: t("dashboard:list.filters.joined"),
+      requiresAuth: true,
+    },
+    { value: "open", label: t("dashboard:list.filters.open") },
+    { value: "public", label: t("dashboard:list.filters.public") },
+  ];
+}
+
+// Valores de filtro que requieren auth — antes derivado de ALL_FILTERS, ahora
+// estático para que el reset de localStorage no dependa del idioma.
+const AUTH_FILTERS = ["mine", "host", "joined"];
 
 const MAX_RADIUS_KM = 100;
 
@@ -105,7 +126,9 @@ function buildPredicate(filterId, user) {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
+  const allFilters = useMemo(() => buildAllFilters(t), [t]);
   const hasDireccion = Boolean(user?.direccion?.lat && user?.direccion?.lng);
   const [tables, setTables] = useState([]);
   const [pagination, setPagination] = useState({
@@ -141,8 +164,7 @@ export default function Dashboard() {
   // logueado (anon o session expiró), volver a "all". Evita estados raros
   // tipo "Mis mesas" para anon.
   useEffect(() => {
-    const def = ALL_FILTERS.find((f) => f.value === filter);
-    if (def?.requiresAuth && !user) setFilter("all");
+    if (AUTH_FILTERS.includes(filter) && !user) setFilter("all");
   }, [filter, user, setFilter]);
 
   // Resetear página al cambiar search, radio o filtro.
@@ -194,7 +216,7 @@ export default function Dashboard() {
         });
       } catch (err) {
         if (axios.isCancel(err)) return;
-        setError("Error al cargar las mesas");
+        setError(t("dashboard:list.loadError"));
       } finally {
         if (!ac.signal.aborted) setLoading(false);
       }
@@ -209,6 +231,7 @@ export default function Dashboard() {
     debouncedRadius,
     hasDireccion,
     refetchKey,
+    t,
   ]);
 
   const handleUpdate = (updatedTable) => {
@@ -251,7 +274,7 @@ export default function Dashboard() {
     const publicCount = tables.filter(buildPredicate("public", user)).length;
     if (filter !== "open" && openCount > 0)
       chips.push({
-        label: "Con lugar",
+        label: t("dashboard:list.chipOpen"),
         count: openCount,
         onClick: () => {
           setSearch("");
@@ -260,7 +283,7 @@ export default function Dashboard() {
       });
     if (filter !== "public" && publicCount > 0)
       chips.push({
-        label: "Públicas",
+        label: t("dashboard:list.chipPublic"),
         count: publicCount,
         onClick: () => {
           setSearch("");
@@ -268,7 +291,7 @@ export default function Dashboard() {
         },
       });
     return chips;
-  }, [tables, filter, user, setFilter]);
+  }, [tables, filter, user, setFilter, t]);
 
   // Mesas "activas" = sólo las futuras. El server expone `upcomingTotal`
   // contado aparte; el `total` general incluye históricas (que viven en
@@ -276,10 +299,10 @@ export default function Dashboard() {
   const activeCount = pagination.upcomingTotal;
   const totalLabel =
     activeCount > 0
-      ? `${activeCount} mesa${activeCount !== 1 ? "s" : ""} activa${activeCount !== 1 ? "s" : ""}`
-      : "Mesas de juego";
+      ? t("dashboard:list.eyebrowActive", { count: activeCount })
+      : t("dashboard:list.eyebrowFallback");
 
-  const todayLabel = new Date().toLocaleDateString("es-AR", {
+  const todayLabel = formatDate(new Date(), {
     day: "numeric",
     month: "long",
   });
@@ -293,12 +316,9 @@ export default function Dashboard() {
             <Meeple />{totalLabel} · {todayLabel}
           </p>
           <h1 className={styles.heroTitle}>
-            Tirá los <em>dados</em>.
+            <Trans i18nKey="dashboard:list.heroTitle" components={{ em: <em /> }} />
           </h1>
-          <p className={styles.heroSub}>
-            Sumate a una mesa o convocá la tuya. Encontrá jugadores cerca y
-            empezá la próxima partida.
-          </p>
+          <p className={styles.heroSub}>{t("dashboard:list.heroSub")}</p>
         </div>
       </header>
 
@@ -311,16 +331,16 @@ export default function Dashboard() {
           <input
             type="text"
             className={styles.search}
-            placeholder="Buscar juego o host…"
+            placeholder={t("dashboard:list.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="Buscar"
+            aria-label={t("dashboard:list.searchAria")}
           />
         </div>
 
         <div className={styles.controlsRight}>
           <ListFilters
-            chips={ALL_FILTERS}
+            chips={allFilters}
             activeChip={filter}
             onChipChange={setFilter}
             defaultChip="all"
@@ -333,12 +353,16 @@ export default function Dashboard() {
             maxRadiusKm={MAX_RADIUS_KM}
           />
 
-          <div className={styles.viewToggle} role="group" aria-label="Vista">
+          <div
+            className={styles.viewToggle}
+            role="group"
+            aria-label={t("dashboard:list.viewAria")}
+          >
             <button
               type="button"
               className={`${styles.viewBtn} ${viewMode === "grid" ? styles.viewBtnActive : ""}`}
               onClick={() => setViewMode("grid")}
-              title="Vista en cuadrícula"
+              title={t("dashboard:list.viewGrid")}
               aria-pressed={viewMode === "grid"}
             >
               <GridIcon />
@@ -347,7 +371,7 @@ export default function Dashboard() {
               type="button"
               className={`${styles.viewBtn} ${viewMode === "list" ? styles.viewBtnActive : ""}`}
               onClick={() => setViewMode("list")}
-              title="Vista en lista"
+              title={t("dashboard:list.viewList")}
               aria-pressed={viewMode === "list"}
             >
               <ListIcon />
@@ -355,7 +379,7 @@ export default function Dashboard() {
           </div>
           {user && (
             <Link to="/mesas/crear" className={styles.newBtn}>
-              <span aria-hidden="true">+</span> Crear mesa
+              <span aria-hidden="true">+</span> {t("dashboard:list.createMesa")}
             </Link>
           )}
         </div>
@@ -376,7 +400,7 @@ export default function Dashboard() {
             className={styles.retryBtn}
             onClick={() => setRefetchKey((k) => k + 1)}
           >
-            Reintentar
+            {t("dashboard:list.retry")}
           </button>
         </div>
       ) : filteredTables.length === 0 ? (
@@ -385,16 +409,17 @@ export default function Dashboard() {
             variant="filtered"
             compact
             art={<ArtSearch />}
-            eyebrow="Sin coincidencias"
+            eyebrow={t("dashboard:list.emptyFilteredEyebrow")}
             title={
-              <>
-                Ninguna mesa con <em>esos filtros.</em>
-              </>
+              <Trans
+                i18nKey="dashboard:list.emptyFilteredTitle"
+                components={{ em: <em /> }}
+              />
             }
-            text="Probá ampliar la búsqueda o sacá algún filtro."
+            text={t("dashboard:list.emptyFilteredText")}
             chips={filterChips}
             secondary={{
-              label: "Limpiar filtros",
+              label: t("dashboard:list.clearFilters"),
               icon: "clear",
               onClick: clearFilters,
             }}
@@ -403,26 +428,32 @@ export default function Dashboard() {
           <EmptyState
             art={<ArtMesa />}
             ghost={<GhostMesa />}
-            eyebrow="Ninguna mesa abierta"
+            eyebrow={t("dashboard:list.emptyEyebrow")}
             title={
-              <>
-                La mesa está <em>servida.</em>
-              </>
+              <Trans
+                i18nKey="dashboard:list.emptyTitle"
+                components={{ em: <em /> }}
+              />
             }
             text={
               user
-                ? "Todavía no hay mesas en tu zona. Sé quien tira los dados primero — armá la tuya y la comunidad se suma."
-                : "Todavía no hay mesas abiertas. Registrate y armá la primera de tu zona."
+                ? t("dashboard:list.emptyTextAuthed")
+                : t("dashboard:list.emptyTextAnon")
             }
             primary={
               user
-                ? { label: "Crear la primera mesa", to: "/mesas/crear" }
-                : { label: "Registrate", to: "/register" }
+                ? {
+                    label: t("dashboard:list.emptyCreateFirst"),
+                    to: "/mesas/crear",
+                  }
+                : { label: t("dashboard:list.emptyRegister"), to: "/register" }
             }
             hint={
               <span>
-                O esperá — las mesas suelen aparecer los{" "}
-                <strong>jueves y viernes</strong>.
+                <Trans
+                  i18nKey="dashboard:list.emptyHint"
+                  components={{ strong: <strong /> }}
+                />
               </span>
             }
           />
@@ -432,7 +463,9 @@ export default function Dashboard() {
           {horizonGroups.map((g) => (
             <section key={g.key} className={styles.horizon}>
               <header className={styles.horizonHead}>
-                <span className={styles.horizonLabel}>Convocatorias</span>
+                <span className={styles.horizonLabel}>
+                  {t("dashboard:list.horizonLabel")}
+                </span>
                 <span
                   className={`${styles.horizonName} ${g.key === "today" ? styles.horizonNameToday : ""}`}
                 >
@@ -455,7 +488,7 @@ export default function Dashboard() {
                             pagination.total - pagination.upcomingTotal,
                           )
                         : g.items.length;
-                    return `${count} mesa${count !== 1 ? "s" : ""}`;
+                    return t("dashboard:list.horizonCount", { count });
                   })()}
                 </span>
               </header>
@@ -486,7 +519,7 @@ export default function Dashboard() {
                 onClick={() => setPage((p) => p - 1)}
                 disabled={page === 1}
               >
-                ← Anterior
+                {t("dashboard:list.prev")}
               </button>
               <span className={styles.pageInfo}>
                 {page} / {pagination.pages}
@@ -497,7 +530,7 @@ export default function Dashboard() {
                 onClick={() => setPage((p) => p + 1)}
                 disabled={page === pagination.pages}
               >
-                Siguiente →
+                {t("dashboard:list.next")}
               </button>
             </div>
           )}
@@ -506,8 +539,12 @@ export default function Dashboard() {
 
       {/* FAB — mobile only, logged-in users only */}
       {user && (
-        <Link to="/mesas/crear" className={styles.fab} aria-label="Crear mesa">
-          <span aria-hidden="true">+</span> Crear mesa
+        <Link
+          to="/mesas/crear"
+          className={styles.fab}
+          aria-label={t("dashboard:list.createMesaAria")}
+        >
+          <span aria-hidden="true">+</span> {t("dashboard:list.createMesa")}
         </Link>
       )}
     </div>

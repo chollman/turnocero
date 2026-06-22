@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
@@ -158,7 +159,7 @@ const STATE_CARD_CLASS = {
 // `position: fixed` + portal a `document.body` para no quedar clippeado
 // por containers con `overflow: hidden`. `pointer-events: none` evita
 // que el tooltip robe el cursor (sino flickerea el hover).
-function PrivateTooltip({ pos, isFull }) {
+function PrivateTooltip({ pos, isFull, t }) {
   if (!pos) return null;
   return createPortal(
     <div
@@ -169,11 +170,13 @@ function PrivateTooltip({ pos, isFull }) {
       }}
       role="tooltip"
     >
-      <span className={styles.privateTooltipTitle}>🔒 Mesa privada</span>
+      <span className={styles.privateTooltipTitle}>
+        {t("dashboard:card.privateTooltipTitle")}
+      </span>
       <span className={styles.privateTooltipSub}>
         {isFull
-          ? "No quedan lugares disponibles"
-          : "Solo se puede pedir lugar al host"}
+          ? t("dashboard:card.privateTooltipFull")
+          : t("dashboard:card.privateTooltipRequest")}
       </span>
     </div>,
     document.body,
@@ -183,6 +186,7 @@ function PrivateTooltip({ pos, isFull }) {
 // -- main component ------------------------------------------------------
 
 export default function TableCard({ table, onUpdate, onCancel, listMode }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -292,7 +296,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
 
   const handleJoin = async (e) => {
     e?.stopPropagation();
-    if (!requireAuth("Iniciá sesión para unirte a esta mesa.")) return;
+    if (!requireAuth(t("dashboard:card.loginPromptJoin"))) return;
     setLoading(true);
     setError("");
     try {
@@ -301,7 +305,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
       setFlashing(true);
       setTimeout(() => setFlashing(false), 500);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al unirse");
+      setError(err.response?.data?.message || t("dashboard:card.errorJoin"));
     } finally {
       setLoading(false);
     }
@@ -315,7 +319,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
       const { data } = await axios.post(API.tables.LEAVE(table._id));
       onUpdate(data);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al salir");
+      setError(err.response?.data?.message || t("dashboard:card.errorLeave"));
     } finally {
       setLoading(false);
     }
@@ -329,7 +333,10 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
       const { data } = await axios.delete(API.tables.REQUEST(table._id));
       onUpdate(data.table);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al cancelar solicitud");
+      setError(
+        err.response?.data?.message ||
+          t("dashboard:card.errorCancelRequest"),
+      );
     } finally {
       setLoading(false);
     }
@@ -337,14 +344,14 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
 
   const handleCancel = async (e) => {
     e?.stopPropagation();
-    if (!window.confirm("¿Cancelar esta mesa?")) return;
+    if (!window.confirm(t("dashboard:card.confirmCancel"))) return;
     setLoading(true);
     setError("");
     try {
       await axios.delete(API.tables.DETAIL(table._id));
       onCancel(table._id);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al cancelar");
+      setError(err.response?.data?.message || t("dashboard:card.errorCancel"));
     } finally {
       setLoading(false);
     }
@@ -376,7 +383,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
           className={`${styles.cta} ${styles.cta_disabled}`}
           disabled
         >
-          Finalizada
+          {t("dashboard:card.ctaFinished")}
         </button>
       );
     }
@@ -391,7 +398,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
               goToDetail();
             }}
           >
-            Administrar →
+            {t("dashboard:card.ctaManage")}
           </button>
         );
       case "joined":
@@ -404,7 +411,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
               goToDetail();
             }}
           >
-            <CheckIcon /> Unido
+            <CheckIcon /> {t("dashboard:card.ctaJoined")}
           </button>
         );
       case "pending":
@@ -414,7 +421,7 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
             className={`${styles.cta} ${styles.cta_pending}`}
             onClick={handleCancelRequest}
           >
-            <ClockIcon /> Solicitud enviada
+            <ClockIcon /> {t("dashboard:card.ctaRequestSent")}
           </button>
         );
       case "full":
@@ -424,13 +431,15 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
             className={`${styles.cta} ${styles.cta_disabled}`}
             disabled
           >
-            Mesa llena
+            {t("dashboard:card.ctaFull")}
           </button>
         );
       default:
         return (
           <button type="button" className={styles.cta} onClick={handleJoin}>
-            {isPrivate ? "Solicitar →" : "Unirme"}
+            {isPrivate
+              ? t("dashboard:card.ctaRequest")
+              : t("dashboard:card.ctaJoin")}
           </button>
         );
     }
@@ -439,21 +448,25 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
   const badges = (
     <>
       {isHost && (
-        <span className={`${styles.badge} ${styles.badge_host}`}>Host</span>
+        <span className={`${styles.badge} ${styles.badge_host}`}>
+          {t("dashboard:card.badgeHost")}
+        </span>
       )}
       {isPlayer && (
-        <span className={`${styles.badge} ${styles.badge_joined}`}>Unido</span>
+        <span className={`${styles.badge} ${styles.badge_joined}`}>
+          {t("dashboard:card.badgeJoined")}
+        </span>
       )}
       {isPendingRequest && (
         <span className={`${styles.badge} ${styles.badge_pending}`}>
-          Pendiente
+          {t("dashboard:card.badgePending")}
         </span>
       )}
       {isPrivate && (
         <span
           className={`${styles.badge} ${styles.badge_lock}`}
-          title="Mesa privada"
-          aria-label="Mesa privada"
+          title={t("dashboard:card.badgePrivate")}
+          aria-label={t("dashboard:card.badgePrivate")}
         >
           <LockIcon size={10} />
         </span>
@@ -461,8 +474,8 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
       {isFriendsOnly && (
         <span
           className={`${styles.badge} ${styles.badge_friends}`}
-          title="Mesa solo para amigos"
-          aria-label="Mesa solo para amigos"
+          title={t("dashboard:card.badgeFriends")}
+          aria-label={t("dashboard:card.badgeFriends")}
         >
           <UsersIcon size={10} />
         </span>
@@ -496,8 +509,8 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
           }
           aria-label={
             restrictedPrivate
-              ? `Mesa privada de ${table.boardGame}`
-              : `Ver mesa de ${table.boardGame}`
+              ? t("dashboard:card.ariaViewPrivate", { game: table.boardGame })
+              : t("dashboard:card.ariaView", { game: table.boardGame })
           }
         >
           {/* Miniatura del juego — oculta en desktop (vista lista densa), se
@@ -543,10 +556,10 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
                 </span>
               )}
               <span className={styles.rowMetaItem}>
-                Host:{" "}
+                {t("dashboard:card.hostInline")}{" "}
                 {hostInfo.isDeleted ? (
                   <span className={styles.deletedInline}>
-                    <GhostIcon size={12} /> eliminado
+                    <GhostIcon size={12} /> {t("dashboard:card.deletedInline")}
                   </span>
                 ) : (
                   <strong>{table.host.username}</strong>
@@ -598,14 +611,14 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
                   e.stopPropagation();
                   goToDetail();
                 }}
-                title="Ver como admin"
+                title={t("dashboard:card.viewAsAdmin")}
               >
-                <EyeIcon size={12} /> Admin
+                <EyeIcon size={12} /> {t("dashboard:card.admin")}
               </button>
             )}
           </div>
         </div>
-        <PrivateTooltip pos={tooltipPos} isFull={isFull} />
+        <PrivateTooltip pos={tooltipPos} isFull={isFull} t={t} />
       </>
     );
   }
@@ -635,8 +648,8 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
         }
         aria-label={
           restrictedPrivate
-            ? `Mesa privada de ${table.boardGame}`
-            : `Ver mesa de ${table.boardGame}`
+            ? t("dashboard:card.ariaViewPrivate", { game: table.boardGame })
+            : t("dashboard:card.ariaView", { game: table.boardGame })
         }
       >
         <div className={styles.banner}>
@@ -705,18 +718,22 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
             <div className={styles.hostBlock}>
               <Avatar user={table.host} size="md" />
               <div className={styles.hostInfo}>
-                <span className={styles.hostLabel}>Host</span>
+                <span className={styles.hostLabel}>
+                  {t("dashboard:card.hostLabel")}
+                </span>
                 <span className={styles.hostName}>
                   {hostInfo.isDeleted
-                    ? "Usuario eliminado"
+                    ? t("dashboard:card.hostDeleted")
                     : table.host.username}
                 </span>
                 <span
                   className={`${styles.statusChip} ${isFull ? styles.statusChip_full : ""}`}
                 >
                   {isFull
-                    ? "Llena"
-                    : `${availableSeats} libre${availableSeats !== 1 ? "s" : ""}`}
+                    ? t("dashboard:card.seatsFull")
+                    : t("dashboard:card.seatsAvailable", {
+                        count: availableSeats,
+                      })}
                 </span>
               </div>
             </div>
@@ -741,9 +758,9 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
                     type="button"
                     className={styles.iconBtn}
                     onClick={goToEdit}
-                    title="Editar"
+                    title={t("dashboard:card.edit")}
                     disabled={loading}
-                    aria-label="Editar"
+                    aria-label={t("dashboard:card.edit")}
                   >
                     <svg
                       width="13"
@@ -764,9 +781,9 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
                     type="button"
                     className={`${styles.iconBtn} ${styles.iconBtn_danger}`}
                     onClick={handleCancel}
-                    title="Cancelar mesa"
+                    title={t("dashboard:card.cancelMesa")}
                     disabled={loading}
-                    aria-label="Cancelar mesa"
+                    aria-label={t("dashboard:card.cancelMesa")}
                   >
                     <svg
                       width="13"
@@ -790,9 +807,9 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
                   type="button"
                   className={styles.iconBtn}
                   onClick={handleLeave}
-                  title="Abandonar"
+                  title={t("dashboard:card.leave")}
                   disabled={loading}
-                  aria-label="Abandonar mesa"
+                  aria-label={t("dashboard:card.leaveMesa")}
                 >
                   <svg
                     width="13"
@@ -824,13 +841,13 @@ export default function TableCard({ table, onUpdate, onCancel, listMode }) {
               e.stopPropagation();
               goToDetail();
             }}
-            title="Ver como administrador"
+            title={t("dashboard:card.viewAsAdminLong")}
           >
-            <EyeIcon size={12} /> Admin
+            <EyeIcon size={12} /> {t("dashboard:card.admin")}
           </button>
         )}
       </div>
-      <PrivateTooltip pos={tooltipPos} isFull={isFull} />
+      <PrivateTooltip pos={tooltipPos} isFull={isFull} t={t} />
     </>
   );
 }
