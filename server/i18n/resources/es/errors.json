@@ -1,0 +1,7 @@
+{
+  "generic": "Ocurrió un error",
+  "notFound": "No encontrado",
+  "forbidden": "Acceso restringido",
+  "unauthorized": "No autenticado",
+  "tooManyAttempts": "Demasiados intentos. Probá de nuevo en unos minutos."
+}

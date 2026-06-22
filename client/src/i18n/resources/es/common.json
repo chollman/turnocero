@@ -14,5 +14,9 @@
     "loading": "Cargando…",
     "noResults": "Sin resultados",
     "error": "Ocurrió un error"
+  },
+  "language": {
+    "label": "Idioma",
+    "hint": "Elegí el idioma de la interfaz."
   }
 }

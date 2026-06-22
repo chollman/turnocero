@@ -1,6 +1,7 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import PasswordInput from "../../components/shared/PasswordInput";
 import GameTile from "../../components/shared/GameTile";
@@ -17,6 +18,7 @@ import { useShowcaseTables } from "../../hooks/useShowcaseTables";
 import { useBrandName } from "../../hooks/useBrandName";
 
 export default function ResetPassword() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { resetPassword } = useAuth();
@@ -38,7 +40,7 @@ export default function ResetPassword() {
     setError("");
 
     if (form.password !== form.confirm) {
-      setError("Las contraseñas no coinciden");
+      setError(t("auth:reset.mismatch"));
       return;
     }
     if (!isValidPassword(form.password)) {
@@ -51,11 +53,11 @@ export default function ResetPassword() {
       await resetPassword(email, token, form.password);
       sessionStorage.setItem(
         STORAGE_KEYS.FLASH_MESSAGE,
-        "Contraseña actualizada. Iniciá sesión con la nueva.",
+        t("auth:reset.flashSuccess"),
       );
       navigate("/login", { replace: true });
     } catch (err) {
-      setError(getErrorMessage(err, "No pudimos restablecer la contraseña."));
+      setError(getErrorMessage(err, t("auth:reset.errorFallback")));
     } finally {
       setLoading(false);
     }
@@ -81,20 +83,18 @@ export default function ResetPassword() {
 
         <div className={styles.eyebrow}>
           <Meeple />
-          NUEVA CONTRASEÑA
+          {t("auth:reset.eyebrow")}
         </div>
-        <h1 className={styles.heading}>Elegí una nueva contraseña.</h1>
-        <p className={styles.sub}>
-          Ingresá una contraseña segura para tu cuenta.
-        </p>
+        <h1 className={styles.heading}>{t("auth:reset.heading")}</h1>
+        <p className={styles.sub}>{t("auth:reset.sub")}</p>
 
         {invalidLink ? (
           <>
-            <div className={styles.errorBox}>
-              El link es inválido. Pedí uno nuevo para recuperar tu contraseña.
-            </div>
+            <div className={styles.errorBox}>{t("auth:reset.invalidLink")}</div>
             <p className={styles.switchLink}>
-              <Link to="/recuperar-contrasenia">Pedir un link nuevo →</Link>
+              <Link to="/recuperar-contrasenia">
+                {t("auth:reset.requestNewLink")}
+              </Link>
             </p>
           </>
         ) : (
@@ -103,7 +103,7 @@ export default function ResetPassword() {
             <form onSubmit={handleSubmit} className={styles.form}>
               <div className={styles.field}>
                 <label className={styles.label} htmlFor="reset-password">
-                  Nueva contraseña
+                  {t("auth:reset.newPasswordLabel")}
                 </label>
                 <PasswordInput
                   id="reset-password"
@@ -111,7 +111,7 @@ export default function ResetPassword() {
                   value={form.password}
                   onChange={handleChange}
                   className={styles.input}
-                  placeholder="Mín. 8 caracteres, 1 mayúscula y 1 número"
+                  placeholder={t("auth:reset.newPasswordPlaceholder")}
                   required
                   minLength={8}
                   autoComplete="new-password"
@@ -120,7 +120,7 @@ export default function ResetPassword() {
 
               <div className={styles.field}>
                 <label className={styles.label} htmlFor="reset-confirm">
-                  Confirmar contraseña
+                  {t("auth:reset.confirmLabel")}
                 </label>
                 <PasswordInput
                   id="reset-confirm"
@@ -128,7 +128,7 @@ export default function ResetPassword() {
                   value={form.confirm}
                   onChange={handleChange}
                   className={styles.input}
-                  placeholder="Repetí tu contraseña"
+                  placeholder={t("auth:reset.confirmPlaceholder")}
                   required
                   autoComplete="new-password"
                 />
@@ -140,17 +140,17 @@ export default function ResetPassword() {
                 disabled={loading}
               >
                 {loading ? (
-                  "Guardando…"
+                  t("auth:reset.submitting")
                 ) : (
                   <>
-                    <span>🔒</span> Guardar contraseña
+                    <span>🔒</span> {t("auth:reset.submit")}
                   </>
                 )}
               </button>
             </form>
 
             <p className={styles.switchLink}>
-              <Link to="/login">← Volver al login</Link>
+              <Link to="/login">{t("auth:backToLogin")}</Link>
             </p>
           </>
         )}
@@ -169,22 +169,22 @@ export default function ResetPassword() {
           <div>
             <div className={styles.showcaseEyebrow}>
               <Meeple />
-              MESAS ACTIVAS
+              {t("auth:showcase.activeTables")}
             </div>
             {showcase?.total > 0 ? (
               <h2 className={styles.showcaseTitle}>
-                {showcase.total} mesas
+                {t("auth:showcase.tablesCount", { count: showcase.total })}
                 <br />
                 <span className={styles.showcaseTitleAccent}>
-                  esperando jugadores.
+                  {t("auth:showcase.waitingPlayers")}
                 </span>
               </h2>
             ) : (
               <h2 className={styles.showcaseTitle}>
-                Tu próxima
+                {t("auth:showcase.nextTitle")}
                 <br />
                 <span className={styles.showcaseTitleAccent}>
-                  partida te espera.
+                  {t("auth:showcase.nextAccent")}
                 </span>
               </h2>
             )}

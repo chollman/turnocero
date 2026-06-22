@@ -14,5 +14,9 @@
     "loading": "Loading…",
     "noResults": "No results",
     "error": "Something went wrong"
+  },
+  "language": {
+    "label": "Language",
+    "hint": "Choose the interface language."
   }
 }

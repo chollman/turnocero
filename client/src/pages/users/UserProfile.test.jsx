@@ -26,6 +26,7 @@ vi.mock("../../components/shared/PlaceAutocomplete", () => ({
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
 vi.mock("../../context/ThemeContext", () => ({ useTheme: vi.fn() }));
+vi.mock("../../context/LanguageContext", () => ({ useLanguage: vi.fn() }));
 vi.mock("../../context/NotificationContext", () => ({
   useNotifications: vi.fn(),
 }));
@@ -62,6 +63,7 @@ import UserProfile from "./UserProfile";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useTheme } from "../../context/ThemeContext";
+import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
 import usePushNotifications from "../../hooks/usePushNotifications";
 
@@ -83,10 +85,13 @@ function setup({
   sectionEnabled = () => true,
   push = defaultPush(),
   addToast = vi.fn(),
+  lang = "es",
+  setLang = vi.fn(),
 } = {}) {
   useAuth.mockReturnValue({ user, updateProfile, refreshUser });
   useSiteConfig.mockReturnValue({ isSectionEnabled: sectionEnabled });
   useTheme.mockReturnValue({ theme: "dark", setTheme: vi.fn() });
+  useLanguage.mockReturnValue({ lang, setLang });
   useNotifications.mockReturnValue({ addToast });
   usePushNotifications.mockReturnValue(push);
 
@@ -677,6 +682,41 @@ describe("<UserProfile> — Notificaciones push section", () => {
       push: { ...defaultPush(), isSupported: true, permission: "denied" },
     });
     expect(screen.getByText(/Bloqueaste las notificaciones/i)).toBeInTheDocument();
+  });
+});
+
+describe("<UserProfile> — selector de idioma", () => {
+  it("muestra el toggle de idioma en Apariencia", () => {
+    setup();
+    expect(
+      screen.getByRole("button", { name: "Español" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "English" }),
+    ).toBeInTheDocument();
+  });
+
+  it("marca el idioma activo con aria-pressed", () => {
+    setup({ lang: "en" });
+    expect(screen.getByRole("button", { name: "English" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Español" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("al cambiar idioma actualiza el contexto y persiste en el server", async () => {
+    const setLang = vi.fn();
+    const updateProfile = vi.fn().mockResolvedValue({});
+    setup({ setLang, updateProfile });
+    fireEvent.click(screen.getByRole("button", { name: "English" }));
+    expect(setLang).toHaveBeenCalledWith("en");
+    await waitFor(() =>
+      expect(updateProfile).toHaveBeenCalledWith({ language: "en" }),
+    );
   });
 });
 
