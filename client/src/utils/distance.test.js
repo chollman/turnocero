@@ -1,5 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { formatDistanceKm } from "./distance";
+import i18n from "../i18n";
+
+afterEach(() => {
+  i18n.changeLanguage("es");
+});
 
 describe("formatDistanceKm", () => {
   it("returns null for null/undefined", () => {
@@ -38,6 +43,15 @@ describe("formatDistanceKm", () => {
   it('formats >=100km as rounded integer with " km"', () => {
     expect(formatDistanceKm(100)).toBe("100 km");
     expect(formatDistanceKm(249.6)).toBe("250 km");
+    expect(formatDistanceKm(1234.5)).toBe("1235 km");
+  });
+
+  it("uses a dot decimal separator in English", () => {
+    i18n.changeLanguage("en");
+    expect(formatDistanceKm(1.23)).toBe("1.2 km");
+    expect(formatDistanceKm(12.789)).toBe("12.8 km");
+    // Meters and large integers are language-agnostic.
+    expect(formatDistanceKm(0.85)).toBe("850 m");
     expect(formatDistanceKm(1234.5)).toBe("1235 km");
   });
 });
