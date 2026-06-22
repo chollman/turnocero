@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Avatar from "../../components/shared/Avatar";
 import Meeple from "../../components/shared/Meeple";
 import RichTextContent from "../../components/shared/RichTextContent";
+import { getLocale } from "../../utils/locale";
 import { getUserDisplay } from "../../utils/userDisplay";
 import {
   categoryLabel,
@@ -13,7 +15,7 @@ import styles from "./ArticleView.module.css";
 
 function longDate(d) {
   if (!d) return "";
-  return new Date(d).toLocaleDateString("es-AR", {
+  return new Date(d).toLocaleDateString(getLocale(), {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -66,6 +68,7 @@ export default function ArticleView({
   related = [],
   preview = false,
 }) {
+  const { t } = useTranslation();
   if (!noticia) return null;
   const cat = noticia.category || "general";
   const kicker = noticia.kicker || categoryLabel(cat);
@@ -88,7 +91,9 @@ export default function ArticleView({
       <div className={styles.byline}>
         <Avatar user={author || noticia.author} size="md" />
         <div className={styles.bylineInfo}>
-          <span className={styles.author}>Por {who.name}</span>
+          <span className={styles.author}>
+            {t("noticias:article.by", { name: who.name })}
+          </span>
           <span className={styles.bylineMeta}>
             {longDate(date)}
             {noticia.body ? ` · ${readingLabel(noticia.body)}` : ""}
@@ -103,7 +108,7 @@ export default function ArticleView({
           type="button"
           className={styles.hero}
           onClick={onImageClick}
-          aria-label="Ver imagen completa"
+          aria-label={t("noticias:article.viewFullImage")}
           disabled={!onImageClick}
         >
           <img src={noticia.image.url} alt={noticia.title || ""} />
@@ -138,7 +143,7 @@ export default function ArticleView({
             rel="noopener noreferrer"
             className={styles.externalLink}
           >
-            {noticia.linkLabel || "Ver más →"}
+            {noticia.linkLabel || t("noticias:article.linkFallback")}
           </a>
         )}
 
@@ -160,7 +165,7 @@ export default function ArticleView({
       {!preview && related.length > 0 && (
         <div className={styles.footer}>
           <div className={styles.relatedHeading}>
-            <Meeple /> Seguí leyendo
+            <Meeple /> {t("noticias:article.keepReading")}
           </div>
           <div className={styles.relatedGrid}>
             {related.map((r) => (

@@ -40,6 +40,8 @@ import esComunidades from "./resources/es/comunidades.json";
 import enComunidades from "./resources/en/comunidades.json";
 import esMathtrade from "./resources/es/mathtrade.json";
 import enMathtrade from "./resources/en/mathtrade.json";
+import esNoticias from "./resources/es/noticias.json";
+import enNoticias from "./resources/en/noticias.json";
 
 export const resources = {
   es: {
@@ -56,6 +58,7 @@ export const resources = {
     error: esError,
     comunidades: esComunidades,
     mathtrade: esMathtrade,
+    noticias: esNoticias,
   },
   en: {
     common: enCommon,
@@ -71,6 +74,7 @@ export const resources = {
     error: enError,
     comunidades: enComunidades,
     mathtrade: enMathtrade,
+    noticias: enNoticias,
   },
 };
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
+import { useTranslation, Trans } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import { useShortLink } from "../../hooks/useShortLink";
@@ -38,6 +39,7 @@ function firstBodyImage(html) {
 }
 
 export default function NoticiaDetail() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -98,7 +100,7 @@ export default function NoticiaDetail() {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("¿Eliminar esta noticia?")) return;
+    if (!window.confirm(t("noticias:detail.deleteConfirm"))) return;
     try {
       await axios.delete(API.noticias.DELETE(id));
       navigate("/noticias");
@@ -111,7 +113,7 @@ export default function NoticiaDetail() {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
-          <BackButton to="/noticias">Volver al noticiero</BackButton>
+          <BackButton to="/noticias">{t("noticias:detail.back")}</BackButton>
           <div className={styles.skeleton}>
             <div className={styles.skLine} style={{ width: "30%" }} />
             <div className={styles.skTitle} />
@@ -133,8 +135,10 @@ export default function NoticiaDetail() {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
-          <p className={styles.notFoundTitle}>Noticia no encontrada</p>
-          <BackButton to="/noticias">Volver al noticiero</BackButton>
+          <p className={styles.notFoundTitle}>
+            {t("noticias:detail.notFound")}
+          </p>
+          <BackButton to="/noticias">{t("noticias:detail.back")}</BackButton>
         </div>
       </div>
     );
@@ -148,11 +152,14 @@ export default function NoticiaDetail() {
     typeof window !== "undefined" ? window.location.origin : "",
     shortUrl,
   );
-  const metaTitle = `${noticia.title || "Noticias"} – ${brandName} 🗞️`;
+  const metaTitle = t("noticias:detail.metaTitle", {
+    title: noticia.title || t("noticias:detail.metaTitleFallback"),
+    brand: brandName,
+  });
   const metaDesc =
     noticia.dek ||
     (noticia.body || "").replace(/<[^>]+>/g, " ").slice(0, 200) ||
-    "Novedades de la comunidad.";
+    t("noticias:detail.metaDescFallback");
   const metaImage = ogImage(noticia.image?.url || firstBodyImage(noticia.body));
 
   const shareSlot = (
@@ -162,8 +169,8 @@ export default function NoticiaDetail() {
         href={`https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappText)}`}
         target="_blank"
         rel="noopener noreferrer"
-        title="Compartir en WhatsApp"
-        aria-label="Compartir en WhatsApp"
+        title={t("noticias:detail.shareWhatsapp")}
+        aria-label={t("noticias:detail.shareWhatsapp")}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
@@ -175,8 +182,8 @@ export default function NoticiaDetail() {
         href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(caption)}`}
         target="_blank"
         rel="noopener noreferrer"
-        title="Compartir en Telegram"
-        aria-label="Compartir en Telegram"
+        title={t("noticias:detail.shareTelegram")}
+        aria-label={t("noticias:detail.shareTelegram")}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.08 13.63l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.834.931z" />
@@ -187,8 +194,8 @@ export default function NoticiaDetail() {
         href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}&url=${encodeURIComponent(shareUrl)}`}
         target="_blank"
         rel="noopener noreferrer"
-        title="Compartir en X"
-        aria-label="Compartir en X"
+        title={t("noticias:detail.shareX")}
+        aria-label={t("noticias:detail.shareX")}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
           <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -197,8 +204,10 @@ export default function NoticiaDetail() {
       <button
         className={`${styles.shareBtn} ${copied ? styles.shareBtnCopied : ""}`}
         onClick={handleCopy}
-        title={copied ? "¡Copiado!" : "Copiar link"}
-        aria-label="Copiar link"
+        title={
+          copied ? t("noticias:detail.copyDone") : t("noticias:detail.copyLink")
+        }
+        aria-label={t("noticias:detail.copyLink")}
       >
         {copied ? (
           <svg
@@ -238,13 +247,13 @@ export default function NoticiaDetail() {
         className={styles.adminBtn}
         onClick={() => navigate(`/noticias/${id}/editar`)}
       >
-        Editar
+        {t("noticias:detail.edit")}
       </button>
       <button
         className={`${styles.adminBtn} ${styles.adminDanger}`}
         onClick={handleDelete}
       >
-        Eliminar
+        {t("noticias:detail.delete")}
       </button>
     </div>
   ) : null;
@@ -276,11 +285,14 @@ export default function NoticiaDetail() {
       </Helmet>
 
       <div className={styles.inner}>
-        <BackButton to="/noticias">Volver al noticiero</BackButton>
+        <BackButton to="/noticias">{t("noticias:detail.back")}</BackButton>
 
         {noticia.status === "draft" && (
           <div className={styles.draftBanner}>
-            Esta noticia es un <strong>borrador</strong> — solo vos la ves.
+            <Trans
+              i18nKey="noticias:detail.draftBanner"
+              components={{ strong: <strong /> }}
+            />
           </div>
         )}
 
@@ -297,7 +309,7 @@ export default function NoticiaDetail() {
         <Modal
           isOpen={lightbox}
           onClose={() => setLightbox(false)}
-          ariaLabel="Imagen de la noticia"
+          ariaLabel={t("noticias:detail.lightboxAria")}
           className={styles.lightbox}
           backdropClassName={styles.lightboxBackdrop}
         >

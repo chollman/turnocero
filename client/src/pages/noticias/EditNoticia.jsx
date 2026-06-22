@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import BackButton from "../../components/shared/BackButton";
@@ -7,6 +8,7 @@ import NoticiaForm from "./NoticiaForm";
 import styles from "./NoticiaForm.module.css";
 
 export default function EditNoticia() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [noticia, setNoticia] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -33,7 +35,7 @@ export default function EditNoticia() {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
-          <div className={styles.loadingNote}>Cargando…</div>
+          <div className={styles.loadingNote}>{t("noticias:edit.loading")}</div>
         </div>
       </div>
     );
@@ -42,9 +44,9 @@ export default function EditNoticia() {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
-          <p className={styles.loadingNote}>Noticia no encontrada</p>
+          <p className={styles.loadingNote}>{t("noticias:edit.notFound")}</p>
           <BackButton to="/noticias" flush>
-            Volver al noticiero
+            {t("noticias:edit.back")}
           </BackButton>
         </div>
       </div>

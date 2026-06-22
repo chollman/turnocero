@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
+import { useTranslation, Trans } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
@@ -15,12 +16,13 @@ import ArticleView from "./ArticleView";
 import styles from "./NoticiaForm.module.css";
 
 function CoverDropzone({ preview, onFile, onRemove }) {
+  const { t } = useTranslation();
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
 
   return (
     <div className={styles.coverField}>
-      <span className={styles.label}>Portada</span>
+      <span className={styles.label}>{t("noticias:form.coverLabel")}</span>
       <div
         className={`${styles.dropzone} ${preview ? styles.hasPreview : ""} ${
           dragOver ? styles.dragOver : ""
@@ -39,11 +41,15 @@ function CoverDropzone({ preview, onFile, onRemove }) {
         }}
       >
         {preview ? (
-          <img src={preview} alt="Portada" className={styles.coverPreview} />
+          <img
+            src={preview}
+            alt={t("noticias:form.coverAlt")}
+            className={styles.coverPreview}
+          />
         ) : (
           <div className={styles.dropHint}>
             <span className={styles.dropIcon}>🖼️</span>
-            Arrastrá una imagen o hacé clic para subir la portada
+            {t("noticias:form.coverHint")}
           </div>
         )}
         <input
@@ -60,7 +66,7 @@ function CoverDropzone({ preview, onFile, onRemove }) {
       </div>
       {preview && (
         <button type="button" className={styles.removeCover} onClick={onRemove}>
-          Quitar portada
+          {t("noticias:form.removeCover")}
         </button>
       )}
     </div>
@@ -68,6 +74,7 @@ function CoverDropzone({ preview, onFile, onRemove }) {
 }
 
 function TagsInput({ tags, setTags }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState("");
 
   const add = (raw) => {
@@ -81,15 +88,15 @@ function TagsInput({ tags, setTags }) {
 
   return (
     <div className={styles.field}>
-      <span className={styles.label}>Etiquetas (máx 6)</span>
+      <span className={styles.label}>{t("noticias:form.tagsLabel")}</span>
       <div className={styles.tagsBox}>
-        {tags.map((t) => (
-          <span key={t} className={styles.tagChip}>
-            #{t}
+        {tags.map((tag) => (
+          <span key={tag} className={styles.tagChip}>
+            #{tag}
             <button
               type="button"
-              aria-label={`Quitar ${t}`}
-              onClick={() => setTags((prev) => prev.filter((x) => x !== t))}
+              aria-label={t("noticias:form.removeTag", { tag })}
+              onClick={() => setTags((prev) => prev.filter((x) => x !== tag))}
             >
               ✕
             </button>
@@ -109,7 +116,11 @@ function TagsInput({ tags, setTags }) {
               }
             }}
             onBlur={() => draft && add(draft)}
-            placeholder={tags.length ? "Otra…" : "torneo, reseña, novedad…"}
+            placeholder={
+              tags.length
+                ? t("noticias:form.tagPlaceholderMore")
+                : t("noticias:form.tagPlaceholder")
+            }
           />
         )}
       </div>
@@ -122,6 +133,7 @@ function TagsInput({ tags, setTags }) {
  * Props: mode ("create" | "edit"), initial (noticia para editar), id.
  */
 export default function NoticiaForm({ mode = "create", initial = null, id }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { addToast } = useNotifications();
@@ -185,8 +197,8 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
     if (!title.trim() && !body.trim() && !preview) {
       addToast({
         type: "error",
-        title: "Faltan datos",
-        message: "Cargá al menos un título, cuerpo o portada.",
+        title: t("noticias:form.missingDataTitle"),
+        message: t("noticias:form.missingDataMessage"),
       });
       return;
     }
@@ -229,18 +241,22 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
 
       addToast({
         type: "success",
-        title: status === "draft" ? "Borrador guardado" : "Noticia publicada",
+        title:
+          status === "draft"
+            ? t("noticias:form.draftSavedTitle")
+            : t("noticias:form.publishedTitle"),
         message:
           status === "draft"
-            ? "Solo vos la ves hasta que la publiques."
-            : "Ya está en el noticiero.",
+            ? t("noticias:form.draftSavedMessage")
+            : t("noticias:form.publishedMessage"),
       });
       navigate(`/noticias/${data._id}`);
     } catch (err) {
       addToast({
         type: "error",
-        title: "No se pudo guardar",
-        message: err.response?.data?.message || "Intentá de nuevo.",
+        title: t("noticias:form.saveErrorTitle"),
+        message:
+          err.response?.data?.message || t("noticias:form.saveErrorMessage"),
       });
     } finally {
       setSubmitting(false);
@@ -250,23 +266,28 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{`${isEdit ? "Editar" : "Nueva"} noticia – ${brandName}`}</title>
+        <title>
+          {isEdit
+            ? t("noticias:form.docTitleEdit", { brand: brandName })
+            : t("noticias:form.docTitleCreate", { brand: brandName })}
+        </title>
       </Helmet>
       <div className={styles.inner}>
         <BackButton to={isEdit ? `/noticias/${id}` : "/noticias"} flush>
-          {isEdit ? "Volver a la noticia" : "Volver al noticiero"}
+          {isEdit
+            ? t("noticias:form.backToNoticia")
+            : t("noticias:form.backToNoticiero")}
         </BackButton>
         <header className={styles.hero}>
           <div className={styles.eyebrow}>
-            <Meeple /> REDACCIÓN
+            <Meeple /> {t("noticias:form.eyebrow")}
           </div>
           <h1 className={styles.title}>
-            {isEdit ? "Editar noticia" : "Nueva noticia"}
+            {isEdit
+              ? t("noticias:form.titleEdit")
+              : t("noticias:form.titleCreate")}
           </h1>
-          <p className={styles.sub}>
-            Cargá la nota como en un diario: portada, titular, bajada y cuerpo
-            enriquecido. Guardá borrador y previsualizá antes de publicar.
-          </p>
+          <p className={styles.sub}>{t("noticias:form.sub")}</p>
         </header>
 
         <div className={styles.toggleRow}>
@@ -275,14 +296,14 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
             className={`${styles.toggleBtn} ${!showPreview ? styles.toggleActive : ""}`}
             onClick={() => setShowPreview(false)}
           >
-            Editar
+            {t("noticias:form.tabEdit")}
           </button>
           <button
             type="button"
             className={`${styles.toggleBtn} ${showPreview ? styles.toggleActive : ""}`}
             onClick={() => setShowPreview(true)}
           >
-            Vista previa
+            {t("noticias:form.tabPreview")}
           </button>
         </div>
 
@@ -305,20 +326,24 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
             />
             {preview && (
               <label className={styles.field}>
-                <span className={styles.label}>Epígrafe de la portada</span>
+                <span className={styles.label}>
+                  {t("noticias:form.captionLabel")}
+                </span>
                 <input
                   className={styles.input}
                   value={imageCaption}
                   onChange={(e) => setImageCaption(e.target.value)}
                   maxLength={200}
-                  placeholder="Dónde / cuándo fue la foto"
+                  placeholder={t("noticias:form.captionPlaceholder")}
                 />
               </label>
             )}
 
             <div className={styles.fieldRow}>
               <label className={styles.field}>
-                <span className={styles.label}>Categoría</span>
+                <span className={styles.label}>
+                  {t("noticias:form.categoryLabel")}
+                </span>
                 <select
                   className={styles.input}
                   value={category}
@@ -334,70 +359,80 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
                 </select>
               </label>
               <label className={styles.field}>
-                <span className={styles.label}>Kicker (opcional)</span>
+                <span className={styles.label}>
+                  {t("noticias:form.kickerLabel")}
+                </span>
                 <input
                   className={styles.input}
                   value={kicker}
                   onChange={(e) => setKicker(e.target.value)}
                   maxLength={60}
-                  placeholder="Etiqueta corta sobre el título"
+                  placeholder={t("noticias:form.kickerPlaceholder")}
                 />
               </label>
             </div>
 
             <label className={styles.field}>
-              <span className={styles.label}>Titular</span>
+              <span className={styles.label}>
+                {t("noticias:form.headlineLabel")}
+              </span>
               <input
                 className={`${styles.input} ${styles.titleInput}`}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={200}
-                placeholder="El titular de la nota"
+                placeholder={t("noticias:form.headlinePlaceholder")}
               />
             </label>
 
             <label className={styles.field}>
-              <span className={styles.label}>Bajada</span>
+              <span className={styles.label}>{t("noticias:form.dekLabel")}</span>
               <textarea
                 className={styles.textarea}
                 value={dek}
                 onChange={(e) => setDek(e.target.value)}
                 rows={2}
                 maxLength={320}
-                placeholder="Resumen de una o dos líneas (también es la descripción al compartir)."
+                placeholder={t("noticias:form.dekPlaceholder")}
               />
             </label>
 
             <TagsInput tags={tags} setTags={setTags} />
 
             <div className={styles.field}>
-              <span className={styles.label}>Cuerpo</span>
+              <span className={styles.label}>
+                {t("noticias:form.bodyLabel")}
+              </span>
               <RichTextEditor
                 value={body}
                 onChange={setBody}
                 extended
                 uploadUrl={API.noticias.INLINE_IMAGE}
-                placeholder="Escribí la nota. Podés agregar subtítulos, imágenes, videos de YouTube…"
+                placeholder={t("noticias:form.bodyPlaceholder")}
                 maxLength={40000}
               />
             </div>
 
             <details className={styles.extra}>
-              <summary>Cita destacada (opcional)</summary>
+              <summary>{t("noticias:form.quoteSummary")}</summary>
               <label className={styles.field}>
-                <span className={styles.label}>Texto de la cita</span>
+                <span className={styles.label}>
+                  {t("noticias:form.quoteTextLabel")}
+                </span>
                 <textarea
                   className={styles.textarea}
                   value={quoteText}
                   onChange={(e) => setQuoteText(e.target.value)}
                   rows={2}
                   maxLength={400}
-                  placeholder="«Una frase memorable…»"
+                  placeholder={t("noticias:form.quoteTextPlaceholder")}
                 />
               </label>
               <div className={styles.fieldRow}>
                 <label className={styles.field}>
-                  <span className={styles.label}>Autor de la cita</span>
+                  <span className={styles.label}>
+                    {t("noticias:form.quoteAuthorLabel")}
+                  </span>
                   <input
                     className={styles.input}
                     value={quoteAuthor}
@@ -406,39 +441,45 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
                   />
                 </label>
                 <label className={styles.field}>
-                  <span className={styles.label}>Contexto</span>
+                  <span className={styles.label}>
+                    {t("noticias:form.quoteContextLabel")}
+                  </span>
                   <input
                     className={styles.input}
                     value={quoteContext}
                     onChange={(e) => setQuoteContext(e.target.value)}
                     maxLength={80}
-                    placeholder="rol / lugar"
+                    placeholder={t("noticias:form.quoteContextPlaceholder")}
                   />
                 </label>
               </div>
             </details>
 
             <details className={styles.extra}>
-              <summary>Enlace externo (opcional)</summary>
+              <summary>{t("noticias:form.linkSummary")}</summary>
               <div className={styles.fieldRow}>
                 <label className={styles.field}>
-                  <span className={styles.label}>URL</span>
+                  <span className={styles.label}>
+                    {t("noticias:form.linkUrlLabel")}
+                  </span>
                   <input
                     className={styles.input}
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
                     maxLength={500}
-                    placeholder="https://…"
+                    placeholder={t("noticias:form.linkUrlPlaceholder")}
                   />
                 </label>
                 <label className={styles.field}>
-                  <span className={styles.label}>Texto del botón</span>
+                  <span className={styles.label}>
+                    {t("noticias:form.linkLabelLabel")}
+                  </span>
                   <input
                     className={styles.input}
                     value={linkLabel}
                     onChange={(e) => setLinkLabel(e.target.value)}
                     maxLength={80}
-                    placeholder="Ver más →"
+                    placeholder={t("noticias:form.linkLabelPlaceholder")}
                   />
                 </label>
               </div>
@@ -452,8 +493,10 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
                   onChange={(e) => setFeatured(e.target.checked)}
                 />
                 <span>
-                  <strong>Destacada</strong> — va como nota principal de la
-                  portada.
+                  <Trans
+                    i18nKey="noticias:form.featured"
+                    components={{ strong: <strong /> }}
+                  />
                 </span>
               </label>
               <label className={styles.flag}>
@@ -463,7 +506,10 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
                   onChange={(e) => setIsBrief(e.target.checked)}
                 />
                 <span>
-                  <strong>Breve</strong> — va en la columna de "Breves".
+                  <Trans
+                    i18nKey="noticias:form.isBrief"
+                    components={{ strong: <strong /> }}
+                  />
                 </span>
               </label>
             </div>
@@ -477,7 +523,7 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
                 to={isEdit ? `/noticias/${id}` : "/noticias"}
                 className={styles.btnGhost}
               >
-                Cancelar
+                {t("noticias:form.cancel")}
               </Link>
               <button
                 type="button"
@@ -485,14 +531,14 @@ export default function NoticiaForm({ mode = "create", initial = null, id }) {
                 disabled={submitting}
                 onClick={() => submit("draft")}
               >
-                Guardar borrador
+                {t("noticias:form.saveDraft")}
               </button>
               <button
                 type="submit"
                 className={styles.btnPrimary}
                 disabled={submitting}
               >
-                {submitting ? "Guardando…" : "Publicar"}
+                {submitting ? t("noticias:form.saving") : t("noticias:form.publish")}
               </button>
             </div>
           </form>

@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import i18n from "../../i18n";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
@@ -52,6 +53,10 @@ describe("<Noticias> (portada editorial)", () => {
   beforeEach(() => {
     idc = 0;
     useAuth.mockReturnValue({ user: null });
+  });
+
+  afterEach(() => {
+    i18n.changeLanguage("es");
   });
 
   it("renders the masthead and section tabs", async () => {
@@ -171,6 +176,13 @@ describe("<Noticias> (portada editorial)", () => {
       target: { value: "zzz" },
     });
     expect(await screen.findByText(/ese filtro/i)).toBeInTheDocument();
+  });
+
+  it("renders English copy when the language is 'en'", async () => {
+    await i18n.changeLanguage("en");
+    server.use(http.get("/api/noticias", () => jsonList([])));
+    renderPage();
+    expect(await screen.findByText(/No news/i)).toBeInTheDocument();
   });
 
   it("'Ver más noticias' loads the next page", async () => {

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, Link } from "react-router-dom";
+import { useTranslation, Trans } from "react-i18next";
+import { getLocale } from "../../utils/locale";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
@@ -21,19 +23,23 @@ import {
 import { readingLabel } from "../../utils/readingTime";
 import styles from "./Noticias.module.css";
 
-function timeAgo(date) {
+function timeAgo(date, t) {
   const diff = (Date.now() - new Date(date)) / 1000;
-  if (diff < 60) return "ahora";
-  if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`;
-  if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
-  if (diff < 604800) return `hace ${Math.floor(diff / 86400)} d`;
-  return new Date(date).toLocaleDateString("es-AR", {
+  if (diff < 60) return t("noticias:list.timeAgo.now");
+  if (diff < 3600)
+    return t("noticias:list.timeAgo.minutes", { count: Math.floor(diff / 60) });
+  if (diff < 86400)
+    return t("noticias:list.timeAgo.hours", { count: Math.floor(diff / 3600) });
+  if (diff < 604800)
+    return t("noticias:list.timeAgo.days", { count: Math.floor(diff / 86400) });
+  return new Date(date).toLocaleDateString(getLocale(), {
     day: "numeric",
     month: "short",
   });
 }
 
 function ImageOrFallback({ noticia, className }) {
+  const { t } = useTranslation();
   if (noticia.image?.url) {
     return (
       <img
@@ -45,12 +51,13 @@ function ImageOrFallback({ noticia, className }) {
   }
   return (
     <div className={`${className} ${styles.fallback}`}>
-      {noticia.image?.caption || "imagen"}
+      {noticia.image?.caption || t("noticias:list.imageFallback")}
     </div>
   );
 }
 
 function StoryCard({ noticia }) {
+  const { t } = useTranslation();
   const cat = noticia.category || "general";
   const who = getUserDisplay(noticia.author);
   return (
@@ -64,18 +71,21 @@ function StoryCard({ noticia }) {
       >
         <Meeple /> {noticia.kicker || categoryLabel(cat)}
       </span>
-      <h3 className={styles.storyHeadline}>{noticia.title || "Sin título"}</h3>
+      <h3 className={styles.storyHeadline}>
+        {noticia.title || t("noticias:list.untitled")}
+      </h3>
       {noticia.dek && <p className={styles.storyDek}>{noticia.dek}</p>}
       <span className={styles.storyByline}>
         <strong>{who.name}</strong>
         <span>·</span>
-        <span>{timeAgo(noticia.publishedAt || noticia.createdAt)}</span>
+        <span>{timeAgo(noticia.publishedAt || noticia.createdAt, t)}</span>
       </span>
     </Link>
   );
 }
 
 function BriefItem({ noticia }) {
+  const { t } = useTranslation();
   const cat = noticia.category || "general";
   return (
     <Link to={`/noticias/${noticia._id}`} className={styles.brief}>
@@ -85,15 +95,18 @@ function BriefItem({ noticia }) {
       >
         {noticia.kicker || categoryLabel(cat)}
       </span>
-      <h4 className={styles.briefHeadline}>{noticia.title || "Sin título"}</h4>
+      <h4 className={styles.briefHeadline}>
+        {noticia.title || t("noticias:list.untitled")}
+      </h4>
       <div className={styles.briefMeta}>
-        <span>{timeAgo(noticia.publishedAt || noticia.createdAt)}</span>
+        <span>{timeAgo(noticia.publishedAt || noticia.createdAt, t)}</span>
       </div>
     </Link>
   );
 }
 
 function Lead({ noticia }) {
+  const { t } = useTranslation();
   const cat = noticia.category || "general";
   const who = getUserDisplay(noticia.author);
   return (
@@ -108,13 +121,15 @@ function Lead({ noticia }) {
           )}
           {categoryLabel(cat)}
         </div>
-        <h2 className={styles.leadHeadline}>{noticia.title || "Sin título"}</h2>
+        <h2 className={styles.leadHeadline}>
+          {noticia.title || t("noticias:list.untitled")}
+        </h2>
         {noticia.dek && <p className={styles.leadDek}>{noticia.dek}</p>}
         <div className={styles.leadMeta}>
           <Avatar user={noticia.author} size="xs" />
           <span>
             <strong>{who.name}</strong> ·{" "}
-            {timeAgo(noticia.publishedAt || noticia.createdAt)}
+            {timeAgo(noticia.publishedAt || noticia.createdAt, t)}
           </span>
           {noticia.body && <span>· {readingLabel(noticia.body)}</span>}
         </div>
@@ -132,6 +147,7 @@ function Lead({ noticia }) {
 }
 
 export default function Noticias() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const brandName = useBrandName();
@@ -176,7 +192,7 @@ export default function Noticias() {
     load(1, true);
   }, [load]);
 
-  const today = new Date().toLocaleDateString("es-AR", {
+  const today = new Date().toLocaleDateString(getLocale(), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -200,10 +216,10 @@ export default function Noticias() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{`El Noticiero de ${brandName} 🗞️`}</title>
+        <title>{t("noticias:list.docTitle", { brand: brandName })}</title>
         <meta
           name="description"
-          content={`Novedades, reseñas y eventos de la comunidad ${brandName}.`}
+          content={t("noticias:list.metaDescription", { brand: brandName })}
         />
       </Helmet>
 
@@ -213,15 +229,26 @@ export default function Noticias() {
           <div className={styles.mastheadLeft}>
             {today}
             <br />
-            <strong>Noticias totales: #{total}</strong>
+            <strong>
+              {t("noticias:list.mastheadTotal", { count: total })}
+            </strong>
           </div>
           <h1 className={styles.mastheadTitle}>
-            El <em>Noticiero</em> de {brandName}
+            <Trans
+              i18nKey="noticias:list.mastheadTitle"
+              values={{ brand: brandName }}
+              components={{ em: <em /> }}
+            />
           </h1>
           <div className={styles.mastheadRight}>
-            La comunidad
+            {t("noticias:list.mastheadRight")}
             <br />
-            <strong>{new Date().getFullYear()} ·</strong> juegos de mesa
+            <strong>
+              {t("noticias:list.mastheadYear", {
+                year: new Date().getFullYear(),
+              })}
+            </strong>{" "}
+            {t("noticias:list.mastheadGames")}
           </div>
         </div>
 
@@ -243,7 +270,7 @@ export default function Noticias() {
             className={styles.tabSelect}
             value={tab}
             onChange={(e) => setTab(e.target.value)}
-            aria-label="Sección"
+            aria-label={t("noticias:list.sectionAria")}
           >
             {getNoticiaSections().map((s) => (
               <option key={s.id} value={s.id}>
@@ -256,14 +283,14 @@ export default function Noticias() {
             className={styles.search}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Buscar nota…"
+            placeholder={t("noticias:list.searchPlaceholder")}
           />
           {isAdmin && (
             <button
               className={styles.newBtn}
               onClick={() => navigate("/noticias/crear")}
             >
-              + Nueva noticia
+              {t("noticias:list.newNoticia")}
             </button>
           )}
         </div>
@@ -273,9 +300,9 @@ export default function Noticias() {
           <button
             className={styles.fab}
             onClick={() => navigate("/noticias/crear")}
-            aria-label="Nueva noticia"
+            aria-label={t("noticias:list.newNoticiaAria")}
           >
-            + Nueva noticia
+            {t("noticias:list.newNoticia")}
           </button>
         )}
 
@@ -305,15 +332,16 @@ export default function Noticias() {
               variant="filtered"
               compact
               art={<ArtNoticia />}
-              eyebrow="Sin coincidencias"
+              eyebrow={t("noticias:list.emptyFilteredEyebrow")}
               title={
-                <>
-                  Nada para <em>ese filtro.</em>
-                </>
+                <Trans
+                  i18nKey="noticias:list.emptyFilteredTitle"
+                  components={{ em: <em /> }}
+                />
               }
-              text="No encontramos notas con esa categoría o búsqueda."
+              text={t("noticias:list.emptyFilteredText")}
               secondary={{
-                label: "Limpiar filtros",
+                label: t("noticias:list.clearFilters"),
                 onClick: () => {
                   setTab("all");
                   setSearchInput("");
@@ -324,16 +352,20 @@ export default function Noticias() {
             <EmptyState
               art={<ArtNoticia />}
               ghost={<GhostMesa />}
-              eyebrow="Sin novedades"
+              eyebrow={t("noticias:list.emptyEyebrow")}
               title={
-                <>
-                  Nada que <em>anunciar</em>… por ahora.
-                </>
+                <Trans
+                  i18nKey="noticias:list.emptyTitle"
+                  components={{ em: <em /> }}
+                />
               }
-              text="Cuando haya novedades, reseñas o convocatorias de la comunidad, las vas a ver acá."
+              text={t("noticias:list.emptyText")}
               primary={
                 isAdmin
-                  ? { label: "Publicar noticia", to: "/noticias/crear" }
+                  ? {
+                      label: t("noticias:list.publishNoticia"),
+                      to: "/noticias/crear",
+                    }
                   : undefined
               }
             />
@@ -345,7 +377,10 @@ export default function Noticias() {
             <div className={styles.gridArea}>
               <div className={styles.storiesCol}>
                 <div className={styles.colLabel}>
-                  <Meeple /> {filtering ? "Resultados" : "Notas destacadas"}
+                  <Meeple />{" "}
+                  {filtering
+                    ? t("noticias:list.results")
+                    : t("noticias:list.featuredStories")}
                 </div>
                 <div className={styles.storyGrid}>
                   {stories.map((n) => (
@@ -374,7 +409,9 @@ export default function Noticias() {
                     onClick={() => load(page + 1, false)}
                     disabled={loadingMore}
                   >
-                    {loadingMore ? "Cargando…" : "Ver más noticias"}
+                    {loadingMore
+                      ? t("noticias:list.loadingMore")
+                      : t("noticias:list.loadMore")}
                   </button>
                 )}
               </div>
@@ -382,7 +419,7 @@ export default function Noticias() {
               {!filtering && briefs.length > 0 && (
                 <aside className={styles.briefsCol}>
                   <div className={styles.colLabel}>
-                    <Meeple /> Breves
+                    <Meeple /> {t("noticias:list.briefs")}
                   </div>
                   {briefs.map((n) => (
                     <BriefItem key={n._id} noticia={n} />
