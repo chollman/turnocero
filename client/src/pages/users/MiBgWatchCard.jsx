@@ -2,6 +2,7 @@ import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { API } from "../../api/endpoints";
 import styles from "./MiBgWatchCard.module.css";
 
@@ -45,6 +46,7 @@ const ArrowIcon = () => (
  * Diseño: card púrpura (handoff "Mi Perfil Reimagined" → .bgwBand).
  */
 export default function MiBgWatchCard({ bggUsername, avatarUrl }) {
+  const { t } = useTranslation();
   const [stats, setStats] = useState({ partidas: null, juegos: null });
   const [loading, setLoading] = useState(true);
 
@@ -100,26 +102,26 @@ export default function MiBgWatchCard({ bggUsername, avatarUrl }) {
       <div className={styles.info}>
         <span className={styles.kicker}>
           <Meeple />
-          MI BG WATCH
+          {t("usuarios:miBgWatch.kicker")}
         </span>
         <span className={styles.username}>@{bggUsername}</span>
         <span className={styles.connectedTag}>
           <span className={styles.connectedDot} aria-hidden="true" />
-          Conectado a BoardGameGeek
+          {t("usuarios:miBgWatch.connected")}
         </span>
       </div>
 
       <div className={styles.stats}>
         <div className={styles.statItem}>
           <span className={styles.statValue}>{partidasDisplay}</span>
-          <span className={styles.statLabel}>Partidas</span>
+          <span className={styles.statLabel}>{t("usuarios:miBgWatch.statPlays")}</span>
         </div>
         <div className={styles.statItem}>
           <span className={styles.statValue}>{juegosDisplay}</span>
-          <span className={styles.statLabel}>Colección</span>
+          <span className={styles.statLabel}>{t("usuarios:miBgWatch.statCollection")}</span>
         </div>
         <span className={styles.go}>
-          Ver completo
+          {t("usuarios:miBgWatch.go")}
           <ArrowIcon />
         </span>
       </div>

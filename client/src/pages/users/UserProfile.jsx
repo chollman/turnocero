@@ -2,7 +2,7 @@ import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -18,6 +18,7 @@ import AvatarColorPicker from "../../components/shared/AvatarColorPicker";
 import { hashToBrandColor, isValidAvatarColor } from "../../utils/hash";
 import { getInitials } from "../../utils/initials";
 import { getUserDisplay } from "../../utils/userDisplay";
+import { getLocale } from "../../utils/locale";
 import {
   bggConnectErrorMessage,
   bggSyncErrorMessage,
@@ -33,21 +34,30 @@ const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
 const BGWATCH_BANNER_DISMISS_KEY = "turnocero_bgwatch_profile_banner_dismissed";
 
-const PROBE_OUTCOME_LABEL = {
-  no_drift: "✓ Sin cambios",
-  edits_only: "✓ Cambios aplicados",
-  reconciled: "✓ Reconciliado",
-  failed: "⚠️ Falló",
-};
+const probeOutcomeLabel = (t) => ({
+  no_drift: t("usuarios:profile.probeNoDrift"),
+  edits_only: t("usuarios:profile.probeEditsOnly"),
+  reconciled: t("usuarios:profile.probeReconciled"),
+  failed: t("usuarios:profile.probeFailed"),
+});
 
-function relativeTimeEs(date) {
+function relativeTime(date, t) {
   if (!date) return null;
   const diffSec = (Date.now() - new Date(date).getTime()) / 1000;
-  if (diffSec < 60) return "hace un momento";
-  if (diffSec < 3600) return `hace ${Math.floor(diffSec / 60)} min`;
-  if (diffSec < 86400) return `hace ${Math.floor(diffSec / 3600)} h`;
-  if (diffSec < 604800) return `hace ${Math.floor(diffSec / 86400)} d`;
-  return new Date(date).toLocaleDateString("es-AR", {
+  if (diffSec < 60) return t("usuarios:profile.relativeJustNow");
+  if (diffSec < 3600)
+    return t("usuarios:profile.relativeMinutes", {
+      count: Math.floor(diffSec / 60),
+    });
+  if (diffSec < 86400)
+    return t("usuarios:profile.relativeHours", {
+      count: Math.floor(diffSec / 3600),
+    });
+  if (diffSec < 604800)
+    return t("usuarios:profile.relativeDays", {
+      count: Math.floor(diffSec / 86400),
+    });
+  return new Date(date).toLocaleDateString(getLocale(), {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -105,9 +115,13 @@ const RefreshIcon = () => (
 // Rail de índice (derecha en desktop, arriba en mobile): navegación por sección
 // con scrollspy + el botón Guardar. El Guardar dispara el mismo submit del form.
 function Rail({ sections, active, onJump, saving, saved, dirty, onSave }) {
+  const { t } = useTranslation();
   return (
     <aside className={styles.railWrap}>
-      <nav className={styles.railNav} aria-label="Secciones del perfil">
+      <nav
+        className={styles.railNav}
+        aria-label={t("usuarios:profile.railSectionsAria")}
+      >
         {sections.map((s) => (
           <button
             key={s.id}
@@ -127,9 +141,15 @@ function Rail({ sections, active, onJump, saving, saved, dirty, onSave }) {
         onClick={onSave}
         disabled={saving || !dirty}
       >
-        {saving ? "Guardando…" : "Guardar cambios"}
+        {saving
+          ? t("usuarios:profile.saving")
+          : t("usuarios:profile.saveChanges")}
       </button>
-      {saved && <div className={styles.railSaved}>✓ Perfil guardado</div>}
+      {saved && (
+        <div className={styles.railSaved}>
+          {t("usuarios:profile.profileSaved")}
+        </div>
+      )}
     </aside>
   );
 }
@@ -161,14 +181,13 @@ export default function UserProfile() {
       ok
         ? {
             type: "success",
-            title: "¡Activadas!",
-            message: "Te vamos a avisar en este dispositivo.",
+            title: t("usuarios:profile.pushSuccessTitle"),
+            message: t("usuarios:profile.pushSuccessMessage"),
           }
         : {
             type: "error",
-            title: "No se pudo",
-            message:
-              "Revisá los permisos de notificaciones del navegador.",
+            title: t("usuarios:profile.pushErrorTitle"),
+            message: t("usuarios:profile.pushErrorMessage"),
           },
     );
   };
@@ -179,10 +198,14 @@ export default function UserProfile() {
       ok
         ? {
             type: "success",
-            title: "Listo",
-            message: "Desactivaste las notificaciones en este dispositivo.",
+            title: t("usuarios:profile.pushOffTitle"),
+            message: t("usuarios:profile.pushOffMessage"),
           }
-        : { type: "error", title: "Ups", message: "No se pudieron desactivar." },
+        : {
+            type: "error",
+            title: t("usuarios:profile.pushOffErrorTitle"),
+            message: t("usuarios:profile.pushOffErrorMessage"),
+          },
     );
   };
 
@@ -193,25 +216,17 @@ export default function UserProfile() {
     if (push.requiresStandalone) {
       return (
         <p className={styles.hint}>
-          Instalá {brandName} en tu pantalla de inicio (compartir → “Agregar a
-          inicio”) para activar las notificaciones.
+          {t("usuarios:profile.pushInstallHint", { brand: brandName })}
         </p>
       );
     }
     if (!push.isSupported) {
       return (
-        <p className={styles.hint}>
-          Tu navegador no soporta notificaciones push.
-        </p>
+        <p className={styles.hint}>{t("usuarios:profile.pushUnsupported")}</p>
       );
     }
     if (push.permission === "denied") {
-      return (
-        <p className={styles.hint}>
-          Bloqueaste las notificaciones. Habilitalas desde la configuración del
-          navegador para este sitio.
-        </p>
-      );
+      return <p className={styles.hint}>{t("usuarios:profile.pushDenied")}</p>;
     }
     if (push.isSubscribed) {
       return (
@@ -221,7 +236,9 @@ export default function UserProfile() {
           disabled={push.busy}
           onClick={handlePushUnsubscribe}
         >
-          {push.busy ? "Desactivando…" : "Desactivar notificaciones"}
+          {push.busy
+            ? t("usuarios:profile.pushDeactivating")
+            : t("usuarios:profile.pushDeactivate")}
         </button>
       );
     }
@@ -232,7 +249,9 @@ export default function UserProfile() {
         disabled={push.busy}
         onClick={handlePushSubscribe}
       >
-        {push.busy ? "Activando…" : "Activar notificaciones"}
+        {push.busy
+          ? t("usuarios:profile.pushActivating")
+          : t("usuarios:profile.pushActivate")}
       </button>
     );
   }
@@ -351,7 +370,7 @@ export default function UserProfile() {
   const handleManualGeocode = async () => {
     const q = form.direccionTexto.trim();
     if (q.length < 3) {
-      setError("Escribí una dirección de al menos 3 caracteres.");
+      setError(t("usuarios:profile.geocodeTooShort"));
       clearTimeout(errorTimerRef.current);
       errorTimerRef.current = setTimeout(() => setError(""), 3000);
       return;
@@ -368,8 +387,8 @@ export default function UserProfile() {
     } catch (err) {
       const msg =
         err.response?.status === 404
-          ? "No se encontró la dirección. Intentá ser más específico o picá una sugerencia."
-          : err.response?.data?.message || "Error al buscar la dirección.";
+          ? t("usuarios:profile.geocodeNotFound")
+          : err.response?.data?.message || t("usuarios:profile.geocodeError");
       setError(msg);
       clearTimeout(errorTimerRef.current);
       errorTimerRef.current = setTimeout(() => setError(""), 3000);
@@ -380,11 +399,11 @@ export default function UserProfile() {
 
   const handleBggConnect = async () => {
     if (!user?.bggUsername) {
-      setBggError("Configurá primero tu username de BGG y guardá el perfil.");
+      setBggError(t("usuarios:profile.bggConfigureFirst"));
       return;
     }
     if (!bggPassword) {
-      setBggError("Ingresá tu password de BGG.");
+      setBggError(t("usuarios:profile.bggEnterPassword"));
       return;
     }
     setBggBusy(true);
@@ -412,13 +431,22 @@ export default function UserProfile() {
       const { data } = await axios.post(API.bgg.SYNC);
       await refreshUser();
       const changes = [];
-      if (data.inserted) changes.push(`${data.inserted} nuevas`);
-      if (data.updated) changes.push(`${data.updated} actualizadas`);
-      if (data.deleted) changes.push(`${data.deleted} borradas`);
+      if (data.inserted)
+        changes.push(t("usuarios:profile.syncNew", { count: data.inserted }));
+      if (data.updated)
+        changes.push(
+          t("usuarios:profile.syncUpdated", { count: data.updated }),
+        );
+      if (data.deleted)
+        changes.push(
+          t("usuarios:profile.syncDeleted", { count: data.deleted }),
+        );
       const detail = changes.length
         ? ` (${changes.join(", ")})`
-        : " (sin cambios)";
-      setSyncSuccess(`Reconciliadas ${data.total} partidas${detail}`);
+        : t("usuarios:profile.syncNoChanges");
+      setSyncSuccess(
+        t("usuarios:profile.syncReconciled", { total: data.total, detail }),
+      );
     } catch (err) {
       setSyncError(bggSyncErrorMessage(err));
     } finally {
@@ -427,19 +455,17 @@ export default function UserProfile() {
   };
 
   const handleBggDisconnect = async () => {
-    if (
-      !window.confirm(
-        "¿Desconectar tu cuenta de BGG? Vas a tener que reingresar tu password para volver a cargar partidas.",
-      )
-    )
-      return;
+    if (!window.confirm(t("usuarios:profile.bggDisconnectConfirm"))) return;
     setBggBusy(true);
     setBggError("");
     try {
       await axios.delete(API.auth.BGG_CONNECTION);
       await refreshUser();
     } catch (err) {
-      setBggError(err.response?.data?.message || "Error al desconectar.");
+      setBggError(
+        err.response?.data?.message ||
+          t("usuarios:profile.bggDisconnectError"),
+      );
     } finally {
       setBggBusy(false);
     }
@@ -451,11 +477,11 @@ export default function UserProfile() {
     if (!file) return;
     setAvatarError("");
     if (!AVATAR_MIME.includes(file.type)) {
-      setAvatarError("Solo se permiten imágenes JPG, PNG o WEBP.");
+      setAvatarError(t("usuarios:profile.avatarBadType"));
       return;
     }
     if (file.size > AVATAR_MAX_BYTES) {
-      setAvatarError("La imagen no puede superar los 5 MB.");
+      setAvatarError(t("usuarios:profile.avatarTooBig"));
       return;
     }
     setAvatarFile(file);
@@ -474,7 +500,7 @@ export default function UserProfile() {
       setAvatarFile(null);
     } catch (err) {
       setAvatarError(
-        err.response?.data?.message || "Error al subir el avatar.",
+        err.response?.data?.message || t("usuarios:profile.avatarUploadError"),
       );
     } finally {
       setAvatarBusy(false);
@@ -486,8 +512,7 @@ export default function UserProfile() {
   };
 
   const handleAvatarRemove = async () => {
-    if (!window.confirm("¿Quitar tu avatar? Volverá a mostrarse tu inicial."))
-      return;
+    if (!window.confirm(t("usuarios:profile.avatarRemoveConfirm"))) return;
     setAvatarBusy(true);
     setAvatarError("");
     try {
@@ -495,7 +520,7 @@ export default function UserProfile() {
       await refreshUser();
     } catch (err) {
       setAvatarError(
-        err.response?.data?.message || "Error al quitar el avatar.",
+        err.response?.data?.message || t("usuarios:profile.avatarRemoveError"),
       );
     } finally {
       setAvatarBusy(false);
@@ -512,7 +537,7 @@ export default function UserProfile() {
       await updateProfile({ avatarColor: token });
     } catch (err) {
       setAvatarError(
-        err.response?.data?.message || "Error al guardar el color.",
+        err.response?.data?.message || t("usuarios:profile.avatarColorError"),
       );
     } finally {
       setAvatarBusy(false);
@@ -557,11 +582,13 @@ export default function UserProfile() {
         },
         eventoReminderHours: Number(form.eventoReminderHours),
       });
-      setSuccess("Perfil guardado correctamente.");
+      setSuccess(t("usuarios:profile.profileSavedOk"));
       clearTimeout(successTimerRef.current);
       successTimerRef.current = setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al guardar el perfil.");
+      setError(
+        err.response?.data?.message || t("usuarios:profile.profileSaveError"),
+      );
     } finally {
       setSaving(false);
     }
@@ -570,15 +597,43 @@ export default function UserProfile() {
   // ── Secciones (orden del diseño). Las condicionales (push/bgg) se filtran;
   // los números 01..N y el rail se derivan de las visibles. ──
   const sectionDefs = [
-    { id: "apariencia", label: "Apariencia", show: true },
-    { id: "notificaciones", label: "Notificaciones", show: pushEnabled },
-    { id: "avatar", label: "Avatar", show: true },
-    { id: "datos", label: "Datos personales", show: true },
-    { id: "contacto", label: "Contacto", show: true },
-    { id: "bgg", label: "BoardGameGeek", show: bgwatchEnabled },
-    { id: "comunidades", label: "Comunidades", show: true },
-    { id: "ubicacion", label: "Ubicación", show: true },
-    { id: "recordatorios", label: "Recordatorios", show: true },
+    {
+      id: "apariencia",
+      label: t("usuarios:profile.sections.apariencia"),
+      show: true,
+    },
+    {
+      id: "notificaciones",
+      label: t("usuarios:profile.sections.notificaciones"),
+      show: pushEnabled,
+    },
+    { id: "avatar", label: t("usuarios:profile.sections.avatar"), show: true },
+    { id: "datos", label: t("usuarios:profile.sections.datos"), show: true },
+    {
+      id: "contacto",
+      label: t("usuarios:profile.sections.contacto"),
+      show: true,
+    },
+    {
+      id: "bgg",
+      label: t("usuarios:profile.sections.bgg"),
+      show: bgwatchEnabled,
+    },
+    {
+      id: "comunidades",
+      label: t("usuarios:profile.sections.comunidades"),
+      show: true,
+    },
+    {
+      id: "ubicacion",
+      label: t("usuarios:profile.sections.ubicacion"),
+      show: true,
+    },
+    {
+      id: "recordatorios",
+      label: t("usuarios:profile.sections.recordatorios"),
+      show: true,
+    },
   ];
   const visibleSections = sectionDefs.filter((s) => s.show);
   const sectionNumber = (id) => {
@@ -664,7 +719,7 @@ export default function UserProfile() {
           <div className={styles.heroIdent}>
             <div className={styles.eyebrow}>
               <Meeple />
-              MI PERFIL
+              {t("usuarios:profile.eyebrow")}
             </div>
             <div className={styles.titleRow}>
             <h1 className={styles.heroTitle}>@{user?.username}</h1>
@@ -675,7 +730,7 @@ export default function UserProfile() {
                 <Link
                   to={`/bg-watch/${encodeURIComponent(user.bggUsername)}`}
                   className={styles.bgWatchBadge}
-                  title="Tu BG Watch está activo. Ir a mi perfil BG Watch."
+                  title={t("usuarios:profile.bgWatchBadgeTitle")}
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -723,7 +778,7 @@ export default function UserProfile() {
                       stroke="none"
                     />
                   </svg>
-                  <span>BG Watch</span>
+                  <span>{t("usuarios:profile.bgWatchBadgeLabel")}</span>
                   <span className={styles.bgWatchBadgeCheck} aria-hidden="true">
                     ✓
                   </span>
@@ -794,11 +849,10 @@ export default function UserProfile() {
               </span>
               <div className={styles.bgWatchBannerBody}>
                 <strong className={styles.bgWatchBannerTitle}>
-                  ¿Llevás partidas en BoardGameGeek?
+                  {t("usuarios:profile.bgWatchBannerTitle")}
                 </strong>
                 <p className={styles.bgWatchBannerSub}>
-                  Activá BG Watch para registrar todas tus partidas desde{" "}
-                  {brandName}.
+                  {t("usuarios:profile.bgWatchBannerSub", { brand: brandName })}
                 </p>
               </div>
               <a
@@ -806,14 +860,14 @@ export default function UserProfile() {
                 className={styles.bgWatchBannerCta}
                 onClick={handleFocusBggField}
               >
-                Activá ahora →
+                {t("usuarios:profile.bgWatchBannerCta")}
               </a>
               <button
                 type="button"
                 className={styles.bgWatchBannerDismiss}
                 onClick={handleDismissBgWatchBanner}
-                aria-label="Ocultar este banner"
-                title="Ocultar"
+                aria-label={t("usuarios:profile.bgWatchBannerDismissAria")}
+                title={t("usuarios:profile.bgWatchBannerDismissTitle")}
               >
                 ✕
               </button>
@@ -836,15 +890,14 @@ export default function UserProfile() {
               className={styles.form}
             >
               <div className={styles.sec} id="apariencia">
-                {secHead("apariencia", "Apariencia")}
+                {secHead("apariencia", t("usuarios:profile.appearanceHead"))}
               <p className={styles.hint}>
-                Elegí cómo querés ver {brandName}. Tu preferencia se guarda en
-                este dispositivo.
+                {t("usuarios:profile.appearanceHint", { brand: brandName })}
               </p>
               <div
                 className={styles.themeToggle}
                 role="group"
-                aria-label="Tema"
+                aria-label={t("usuarios:profile.themeAria")}
               >
                 <button
                   type="button"
@@ -853,7 +906,7 @@ export default function UserProfile() {
                   aria-pressed={theme === "dark"}
                 >
                   <MoonIcon />
-                  Oscuro
+                  {t("usuarios:profile.themeDark")}
                 </button>
                 <button
                   type="button"
@@ -862,7 +915,7 @@ export default function UserProfile() {
                   aria-pressed={theme === "light"}
                 >
                   <SunIcon />
-                  Claro
+                  {t("usuarios:profile.themeLight")}
                 </button>
               </div>
 
@@ -893,21 +946,18 @@ export default function UserProfile() {
 
               {pushEnabled && (
                 <div className={styles.sec} id="notificaciones">
-                  {secHead("notificaciones", "Notificaciones push")}
+                  {secHead("notificaciones", t("usuarios:profile.pushHead"))}
                 <p className={styles.hint}>
-                  Recibí un aviso en este dispositivo cuando pase algo
-                  importante (un mensaje, una solicitud, un recordatorio),
-                  aunque {brandName} esté cerrada.
+                  {t("usuarios:profile.pushHint", { brand: brandName })}
                 </p>
                 {renderPushControl()}
               </div>
             )}
 
               <div className={styles.sec} id="avatar">
-                {secHead("avatar", "Avatar")}
+                {secHead("avatar", t("usuarios:profile.avatarHead"))}
               <p className={styles.hint}>
-                Subí una foto cuadrada para que te identifiquen en mesas,
-                comentarios y chats.
+                {t("usuarios:profile.avatarHint")}
               </p>
               <div className={styles.avatarRow}>
                 <Avatar user={user} size="xl" />
@@ -918,7 +968,9 @@ export default function UserProfile() {
                     onClick={() => avatarInputRef.current?.click()}
                     disabled={avatarBusy}
                   >
-                    {user?.avatar?.url ? "Cambiar avatar" : "Subir avatar"}
+                    {user?.avatar?.url
+                      ? t("usuarios:profile.avatarChange")
+                      : t("usuarios:profile.avatarUpload")}
                   </button>
                   {user?.avatar?.url && (
                     <button
@@ -927,7 +979,7 @@ export default function UserProfile() {
                       onClick={handleAvatarRemove}
                       disabled={avatarBusy}
                     >
-                      Quitar avatar
+                      {t("usuarios:profile.avatarRemove")}
                     </button>
                   )}
                 </div>
@@ -937,10 +989,11 @@ export default function UserProfile() {
               )}
               {!user?.avatar?.url && (
                 <div className={styles.avatarColorBlock}>
-                  <div className={styles.sectionLabel}>Color del avatar</div>
+                  <div className={styles.sectionLabel}>
+                    {t("usuarios:profile.avatarColorLabel")}
+                  </div>
                   <p className={styles.hint}>
-                    Mientras no subas una foto, tu inicial se muestra sobre este
-                    color.
+                    {t("usuarios:profile.avatarColorHint")}
                   </p>
                   <AvatarColorPicker
                     value={user?.avatar?.color || ""}
@@ -964,40 +1017,46 @@ export default function UserProfile() {
             </div>
 
               <div className={styles.sec} id="datos">
-                {secHead("datos", "Información personal")}
+                {secHead("datos", t("usuarios:profile.datosHead"))}
 
               <div className={styles.field}>
-                <label className={styles.label}>Nombre para mostrar</label>
+                <label className={styles.label}>
+                  {t("usuarios:profile.displayNameLabel")}
+                </label>
                 <input
                   className={styles.input}
                   name="displayName"
                   value={form.displayName}
                   onChange={handleChange}
-                  placeholder="Como querés que te vean otros usuarios"
+                  placeholder={t("usuarios:profile.displayNamePlaceholder")}
                   maxLength={60}
                 />
               </div>
 
               <div className={styles.twoCol}>
                 <div className={styles.field}>
-                  <label className={styles.label}>Nombre</label>
+                  <label className={styles.label}>
+                    {t("usuarios:profile.nombreLabel")}
+                  </label>
                   <input
                     className={styles.input}
                     name="nombre"
                     value={form.nombre}
                     onChange={handleChange}
-                    placeholder="Tu nombre"
+                    placeholder={t("usuarios:profile.nombrePlaceholder")}
                     maxLength={50}
                   />
                 </div>
                 <div className={styles.field}>
-                  <label className={styles.label}>Apellido</label>
+                  <label className={styles.label}>
+                    {t("usuarios:profile.apellidoLabel")}
+                  </label>
                   <input
                     className={styles.input}
                     name="apellido"
                     value={form.apellido}
                     onChange={handleChange}
-                    placeholder="Tu apellido"
+                    placeholder={t("usuarios:profile.apellidoPlaceholder")}
                     maxLength={50}
                   />
                 </div>
@@ -1005,11 +1064,13 @@ export default function UserProfile() {
             </div>
 
               <div className={styles.sec} id="contacto">
-                {secHead("contacto", "Contacto")}
+                {secHead("contacto", t("usuarios:profile.contactoHead"))}
 
               <div className={styles.twoCol}>
                 <div className={styles.field}>
-                  <label className={styles.label}>Telegram</label>
+                  <label className={styles.label}>
+                    {t("usuarios:profile.telegramLabel")}
+                  </label>
                   <div className={styles.inputPrefix}>
                     <span className={styles.prefix}>@</span>
                     <input
@@ -1017,19 +1078,21 @@ export default function UserProfile() {
                       name="telegram"
                       value={form.telegram}
                       onChange={handleChange}
-                      placeholder="tu_usuario"
+                      placeholder={t("usuarios:profile.telegramPlaceholder")}
                       maxLength={50}
                     />
                   </div>
                 </div>
                 <div className={styles.field}>
-                  <label className={styles.label}>Celular</label>
+                  <label className={styles.label}>
+                    {t("usuarios:profile.celularLabel")}
+                  </label>
                   <input
                     className={styles.input}
                     name="celular"
                     value={form.celular}
                     onChange={handleChange}
-                    placeholder="+54 9 11 1234-5678"
+                    placeholder={t("usuarios:profile.celularPlaceholder")}
                     maxLength={30}
                     type="tel"
                   />
@@ -1042,7 +1105,9 @@ export default function UserProfile() {
                   id="bgg-username-field"
                   ref={bggFieldRef}
                 >
-                  <label className={styles.label}>Usuario en BGG</label>
+                  <label className={styles.label}>
+                    {t("usuarios:profile.bggUsernameLabel")}
+                  </label>
                   <div className={styles.inputPrefix}>
                     <span className={styles.prefix}>BGG</span>
                     <input
@@ -1051,7 +1116,7 @@ export default function UserProfile() {
                       name="bggUsername"
                       value={form.bggUsername}
                       onChange={handleChange}
-                      placeholder="tu_usuario_bgg"
+                      placeholder={t("usuarios:profile.bggUsernamePlaceholder")}
                       maxLength={50}
                     />
                   </div>
@@ -1061,26 +1126,23 @@ export default function UserProfile() {
 
               {bgwatchEnabled && (
                 <div className={styles.sec} id="bgg">
-                  {secHead("bgg", "Conexión con BoardGameGeek")}
+                  {secHead("bgg", t("usuarios:profile.bggHead"))}
                 <p className={styles.hint}>
-                  Conectá tu cuenta de BGG para cargar, editar y eliminar
-                  partidas directamente desde {brandName}. Tu password se guarda
-                  cifrada (AES-256-GCM) en nuestros servidores y nunca se envía
-                  al navegador.
+                  {t("usuarios:profile.bggHint", { brand: brandName })}
                 </p>
 
                 <div className={styles.bggWarning}>
-                  ⚠️ Usamos el endpoint interno de BGG (no oficial). Si BGG
-                  cambia su web, esta integración puede dejar de funcionar hasta
-                  una actualización. Podés desconectar cuando quieras.
+                  {t("usuarios:profile.bggWarning")}
                 </div>
 
                 {bggError && <div className={styles.errorBox}>{bggError}</div>}
 
                 {!user?.bggUsername && (
                   <p className={styles.hint}>
-                    Primero configurá tu <strong>Usuario en BGG</strong> arriba
-                    y guardá el perfil.
+                    <Trans
+                      i18nKey="usuarios:profile.bggConfigureUsername"
+                      components={{ 1: <strong /> }}
+                    />
                   </p>
                 )}
 
@@ -1091,7 +1153,7 @@ export default function UserProfile() {
                       <div className={styles.bggStatusGrid}>
                         <div className={styles.bggStatusCell}>
                           <span className={styles.bggStatusLabel}>
-                            Conectado como
+                            {t("usuarios:profile.bggConnectedAs")}
                           </span>
                           <span
                             className={`${styles.bggStatusValue} ${styles.bggStatusValueGreen}`}
@@ -1101,10 +1163,12 @@ export default function UserProfile() {
                         </div>
                         {user.bggConnectedAt && (
                           <div className={styles.bggStatusCell}>
-                            <span className={styles.bggStatusLabel}>Desde</span>
+                            <span className={styles.bggStatusLabel}>
+                              {t("usuarios:profile.bggSince")}
+                            </span>
                             <span className={styles.bggStatusValue}>
                               {new Date(user.bggConnectedAt).toLocaleDateString(
-                                "es-AR",
+                                getLocale(),
                                 {
                                   day: "numeric",
                                   month: "short",
@@ -1117,36 +1181,35 @@ export default function UserProfile() {
                         {user.bggSync?.lastFullSyncAt && (
                           <div className={styles.bggStatusCell}>
                             <span className={styles.bggStatusLabel}>
-                              Última reconciliación completa
+                              {t("usuarios:profile.bggLastFullReconcile")}
                             </span>
                             <span className={styles.bggStatusValue}>
-                              {relativeTimeEs(user.bggSync.lastFullSyncAt)}
+                              {relativeTime(user.bggSync.lastFullSyncAt, t)}
                               {user.bggSync.lastFullSyncCount > 0 &&
-                                ` · ${user.bggSync.lastFullSyncCount} partidas`}
+                                t("usuarios:profile.bggPlaysSuffix", {
+                                  count: user.bggSync.lastFullSyncCount,
+                                })}
                             </span>
                           </div>
                         )}
                         {user.bggSync?.lastProbedAt && (
                           <div className={styles.bggStatusCell}>
                             <span className={styles.bggStatusLabel}>
-                              Última verificación
+                              {t("usuarios:profile.bggLastProbe")}
                             </span>
                             <span className={styles.bggStatusValue}>
-                              {relativeTimeEs(user.bggSync.lastProbedAt)}
+                              {relativeTime(user.bggSync.lastProbedAt, t)}
                               {user.bggSync.lastProbeOutcome &&
-                                PROBE_OUTCOME_LABEL[
+                                probeOutcomeLabel(t)[
                                   user.bggSync.lastProbeOutcome
                                 ] &&
-                                ` · ${PROBE_OUTCOME_LABEL[user.bggSync.lastProbeOutcome]}`}
+                                ` · ${probeOutcomeLabel(t)[user.bggSync.lastProbeOutcome]}`}
                             </span>
                           </div>
                         )}
                       </div>
                       <p className={styles.bggSyncHint}>
-                        Tu historial se mantiene actualizado automáticamente
-                        cuando entrás a BG Watch. Apretá el botón solo si
-                        editaste partidas viejas en BGG.com y querés forzar una
-                        reconciliación completa ahora.
+                        {t("usuarios:profile.bggSyncHint")}
                       </p>
                       <div className={styles.bggActions}>
                         <button
@@ -1154,14 +1217,14 @@ export default function UserProfile() {
                           className={styles.btnPrimary}
                           onClick={handleBggSync}
                           disabled={syncBusy || bggBusy}
-                          title="Walk completo del historial de BGG. Útil si editaste partidas más viejas que las 30 más recientes."
+                          title={t("usuarios:profile.bggSyncButtonTitle")}
                         >
                           {syncBusy ? (
-                            "Reconciliando…"
+                            t("usuarios:profile.bggReconciling")
                           ) : (
                             <>
                               <RefreshIcon />
-                              Reconciliar todo con BGG
+                              {t("usuarios:profile.bggReconcileAll")}
                             </>
                           )}
                         </button>
@@ -1171,7 +1234,7 @@ export default function UserProfile() {
                           onClick={handleBggDisconnect}
                           disabled={bggBusy || syncBusy}
                         >
-                          Desconectar
+                          {t("usuarios:profile.bggDisconnect")}
                         </button>
                       </div>
                       {syncError && (
@@ -1188,21 +1251,23 @@ export default function UserProfile() {
                     <>
                       {user.bggInvalid && (
                         <div className={styles.bggInvalidBox}>
-                          Tu sesión BGG caducó (probablemente cambiaste el
-                          password en BGG.com). Reingresá tu password para
-                          reconectar.
+                          {t("usuarios:profile.bggInvalidBox")}
                         </div>
                       )}
                       <div className={styles.bggConnectForm}>
                         <div className={styles.field} style={{ flex: 1 }}>
                           <label className={styles.label}>
-                            Password de BGG para @{user.bggUsername}
+                            {t("usuarios:profile.bggPasswordLabel", {
+                              username: user.bggUsername,
+                            })}
                           </label>
                           <PasswordInput
                             className={styles.input}
                             value={bggPassword}
                             onChange={(e) => setBggPassword(e.target.value)}
-                            placeholder="Tu password de BoardGameGeek"
+                            placeholder={t(
+                              "usuarios:profile.bggPasswordPlaceholder",
+                            )}
                             autoComplete="off"
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
@@ -1219,10 +1284,10 @@ export default function UserProfile() {
                           disabled={bggBusy || !bggPassword}
                         >
                           {bggBusy
-                            ? "Validando…"
+                            ? t("usuarios:profile.bggValidating")
                             : user.bggInvalid
-                              ? "Reconectar"
-                              : "Conectar"}
+                              ? t("usuarios:profile.bggReconnect")
+                              : t("usuarios:profile.bggConnect")}
                         </button>
                       </div>
                     </>
@@ -1231,15 +1296,14 @@ export default function UserProfile() {
             )}
 
               <div className={styles.sec} id="comunidades">
-                {secHead("comunidades", "Comunidades")}
+                {secHead("comunidades", t("usuarios:profile.comunidadesHead"))}
                 <CommunityPrefs embed />
               </div>
 
               <div className={styles.sec} id="ubicacion">
-                {secHead("ubicacion", "Dirección")}
+                {secHead("ubicacion", t("usuarios:profile.ubicacionHead"))}
               <p className={styles.hint}>
-                Empezá a escribir y elegí una opción del menú, o cliqueá
-                directamente en el mapa para marcar tu ubicación.
+                {t("usuarios:profile.ubicacionHint")}
               </p>
 
               <div className={styles.geocodeRow}>
@@ -1249,16 +1313,16 @@ export default function UserProfile() {
                     setForm((prev) => ({ ...prev, direccionTexto: text }))
                   }
                   onSelect={handlePlaceSelect}
-                  placeholder="Ej: Av. Corrientes 1234, Buenos Aires"
+                  placeholder={t("usuarios:profile.ubicacionPlaceholder")}
                 />
                 <button
                   type="button"
                   className={styles.btnSearch}
                   onClick={handleManualGeocode}
                   disabled={geocoding}
-                  title="Buscar la dirección que tipeaste (si no querés usar las sugerencias)"
+                  title={t("usuarios:profile.ubicacionSearchTitle")}
                 >
-                  {geocoding ? "…" : "Buscar"}
+                  {geocoding ? "…" : t("usuarios:profile.ubicacionSearch")}
                 </button>
               </div>
 
@@ -1276,14 +1340,16 @@ export default function UserProfile() {
             </div>
 
               <div className={styles.sec} id="recordatorios">
-                {secHead("recordatorios", "Recordatorios de eventos")}
+                {secHead(
+                  "recordatorios",
+                  t("usuarios:profile.recordatoriosHead"),
+                )}
               <p className={styles.hint}>
-                Cuándo querés que te avisemos sobre los eventos donde estás
-                inscripto. Aplica solo a eventos pagos o con cupo confirmado.
+                {t("usuarios:profile.recordatoriosHint")}
               </p>
               <div className={styles.formGroup}>
                 <label htmlFor="eventoReminderHours" className={styles.label}>
-                  Avisarme
+                  {t("usuarios:profile.recordatoriosLabel")}
                 </label>
                 <select
                   id="eventoReminderHours"
@@ -1293,9 +1359,15 @@ export default function UserProfile() {
                   onChange={handleChange}
                   disabled={saving}
                 >
-                  <option value={24}>24 horas antes</option>
-                  <option value={2}>2 horas antes</option>
-                  <option value={0}>No quiero recordatorios</option>
+                  <option value={24}>
+                    {t("usuarios:profile.recordatorios24h")}
+                  </option>
+                  <option value={2}>
+                    {t("usuarios:profile.recordatorios2h")}
+                  </option>
+                  <option value={0}>
+                    {t("usuarios:profile.recordatoriosNone")}
+                  </option>
                 </select>
               </div>
             </div>

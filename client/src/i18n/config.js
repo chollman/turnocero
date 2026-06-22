@@ -26,6 +26,7 @@ export const NAMESPACES = [
   "noticias",
   "dashboard",
   "torneos",
+  "usuarios",
 ];
 export const DEFAULT_NS = "common";
 
