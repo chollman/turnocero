@@ -2,9 +2,11 @@ import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useTheme } from "../../context/ThemeContext";
+import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
@@ -133,13 +135,22 @@ function Rail({ sections, active, onJump, saving, saved, dirty, onSave }) {
 }
 
 export default function UserProfile() {
+  const { t } = useTranslation();
   const { user, updateProfile, refreshUser } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
   const brandName = useBrandName();
   // theme se sigue usando para Apariencia (toggle dark/light); el mapa lo lee
   // por su cuenta vía useTheme dentro de AddressMap.
   const { theme, setTheme } = useTheme();
+  const { lang, setLang } = useLanguage();
   const { addToast } = useNotifications();
+
+  // Cambia el idioma de la UI (LanguageContext) y, si hay sesión, lo persiste
+  // en el server (User.language) para que emails/push respeten la preferencia.
+  const changeLanguage = (next) => {
+    setLang(next);
+    if (user) updateProfile({ language: next }).catch(() => {});
+  };
   const bgwatchEnabled = isSectionEnabled("bgwatch");
   const pushEnabled = isSectionEnabled("push");
   const push = usePushNotifications();
@@ -852,6 +863,30 @@ export default function UserProfile() {
                 >
                   <SunIcon />
                   Claro
+                </button>
+              </div>
+
+              <p className={styles.hint}>{t("common:language.hint")}</p>
+              <div
+                className={styles.themeToggle}
+                role="group"
+                aria-label={t("common:language.label")}
+              >
+                <button
+                  type="button"
+                  className={`${styles.themeOption} ${lang === "es" ? styles.themeOptionActive : ""}`}
+                  onClick={() => changeLanguage("es")}
+                  aria-pressed={lang === "es"}
+                >
+                  Español
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.themeOption} ${lang === "en" ? styles.themeOptionActive : ""}`}
+                  onClick={() => changeLanguage("en")}
+                  aria-pressed={lang === "en"}
+                >
+                  English
                 </button>
               </div>
             </div>
