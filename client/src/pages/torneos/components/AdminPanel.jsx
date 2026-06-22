@@ -1,18 +1,19 @@
 import { useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { API } from "../../../api/endpoints";
 import styles from "../TorneoDetail.module.css";
 
 const NEXT_LABEL = {
-  draft: { next: "registration", label: "Abrir inscripciones" },
-  registration: { next: "in_progress", label: "Iniciar torneo" },
-  in_progress: { next: "finished", label: "Finalizar torneo" },
+  draft: { next: "registration", labelKey: "adminPanel.openRegistrations" },
+  registration: { next: "in_progress", labelKey: "adminPanel.startTournament" },
+  in_progress: { next: "finished", labelKey: "adminPanel.finishTournament" },
   finished: null,
 };
 
 const BACK_LABEL = {
-  registration: { next: "draft", label: "Volver a borrador" },
+  registration: { next: "draft", labelKey: "adminPanel.backToDraft" },
 };
 
 export default function AdminPanel({
@@ -22,6 +23,7 @@ export default function AdminPanel({
   onAddParticipants,
   onDelete,
 }) {
+  const { t } = useTranslation("torneos");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -41,7 +43,7 @@ export default function AdminPanel({
       });
       onChange(data);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al cambiar el estado");
+      setError(err.response?.data?.message || t("adminPanel.errorStatus"));
     } finally {
       setBusy(false);
       setConfirmingStart(false);
@@ -56,7 +58,7 @@ export default function AdminPanel({
       await axios.delete(API.torneos.DETAIL(torneo._id));
       onDelete();
     } catch (err) {
-      setError(err.response?.data?.message || "Error al eliminar");
+      setError(err.response?.data?.message || t("adminPanel.errorDelete"));
       setBusy(false);
       setConfirmingDelete(false);
     }
@@ -69,7 +71,7 @@ export default function AdminPanel({
       const { data } = await axios.post(API.torneos.RESET(torneo._id));
       onChange(data);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al reiniciar el torneo");
+      setError(err.response?.data?.message || t("adminPanel.errorReset"));
     } finally {
       setBusy(false);
       setConfirmingReset(false);
@@ -95,29 +97,31 @@ export default function AdminPanel({
   return (
     <div className={styles.adminPanel}>
       <div className={styles.adminHeader}>
-        <span className={styles.adminBadge}>Panel admin</span>
+        <span className={styles.adminBadge}>{t("adminPanel.badge")}</span>
         <div className={styles.adminLinks}>
           <Link
             to={`/torneos/${torneo._id}/editar`}
             className={styles.adminLink}
           >
-            Editar
+            {t("adminPanel.edit")}
           </Link>
           {confirmingDelete ? (
             <span className={styles.confirmRow}>
-              <span className={styles.confirmLabel}>¿Eliminar?</span>
+              <span className={styles.confirmLabel}>
+                {t("adminPanel.confirmDelete")}
+              </span>
               <button
                 className={styles.confirmYes}
                 onClick={handleDelete}
                 disabled={busy}
               >
-                Sí
+                {t("adminPanel.yes")}
               </button>
               <button
                 className={styles.confirmNo}
                 onClick={() => setConfirmingDelete(false)}
               >
-                No
+                {t("adminPanel.no")}
               </button>
             </span>
           ) : (
@@ -126,7 +130,7 @@ export default function AdminPanel({
               onClick={() => setConfirmingDelete(true)}
               disabled={busy}
             >
-              Eliminar
+              {t("adminPanel.delete")}
             </button>
           )}
         </div>
@@ -140,7 +144,7 @@ export default function AdminPanel({
               onClick={onAddParticipants}
               disabled={busy}
             >
-              + Agregar participantes
+              {t("adminPanel.addParticipants")}
             </button>
           )}
 
@@ -150,7 +154,7 @@ export default function AdminPanel({
             onClick={onReorderSeeds}
             disabled={busy || (torneo.participants?.length || 0) < 2}
           >
-            Reordenar seeds
+            {t("adminPanel.reorderSeeds")}
           </button>
         )}
 
@@ -160,46 +164,48 @@ export default function AdminPanel({
             onClick={() => changeStatus(back.next)}
             disabled={busy}
           >
-            {back.label}
+            {t(back.labelKey)}
           </button>
         )}
 
         {confirmingStart ? (
           <span className={styles.confirmInline}>
             <span className={styles.confirmLabel}>
-              ¿Generar fixture y arrancar?
+              {t("adminPanel.confirmStart")}
             </span>
             <button
               className={styles.btnPrimary}
               onClick={() => changeStatus("in_progress")}
               disabled={busy}
             >
-              Sí, iniciar
+              {t("adminPanel.yesStart")}
             </button>
             <button
               className={styles.btnGhost}
               onClick={() => setConfirmingStart(false)}
               disabled={busy}
             >
-              Cancelar
+              {t("adminPanel.cancel")}
             </button>
           </span>
         ) : confirmingFinish ? (
           <span className={styles.confirmInline}>
-            <span className={styles.confirmLabel}>¿Finalizar el torneo?</span>
+            <span className={styles.confirmLabel}>
+              {t("adminPanel.confirmFinish")}
+            </span>
             <button
               className={styles.btnPrimary}
               onClick={() => changeStatus("finished")}
               disabled={busy}
             >
-              Sí, finalizar
+              {t("adminPanel.yesFinish")}
             </button>
             <button
               className={styles.btnGhost}
               onClick={() => setConfirmingFinish(false)}
               disabled={busy}
             >
-              Cancelar
+              {t("adminPanel.cancel")}
             </button>
           </span>
         ) : next ? (
@@ -208,7 +214,7 @@ export default function AdminPanel({
             onClick={handleNext}
             disabled={busy}
           >
-            {next.label}
+            {t(next.labelKey)}
           </button>
         ) : null}
 
@@ -216,22 +222,21 @@ export default function AdminPanel({
           (confirmingReset ? (
             <span className={styles.confirmInline}>
               <span className={styles.confirmLabel}>
-                ⚠ Se borrarán todas las partidas/resultados cargados y se
-                regenerará el fixture desde cero. ¿Reiniciar?
+                {t("adminPanel.confirmReset")}
               </span>
               <button
                 className={styles.confirmYes}
                 onClick={handleReset}
                 disabled={busy}
               >
-                Sí, reiniciar
+                {t("adminPanel.yesReset")}
               </button>
               <button
                 className={styles.btnGhost}
                 onClick={() => setConfirmingReset(false)}
                 disabled={busy}
               >
-                Cancelar
+                {t("adminPanel.cancel")}
               </button>
             </span>
           ) : (
@@ -239,9 +244,9 @@ export default function AdminPanel({
               className={styles.btnGhost}
               onClick={() => setConfirmingReset(true)}
               disabled={busy}
-              title="Borra todos los matches/grupos y regenera el fixture con los mismos participantes"
+              title={t("adminPanel.resetTitle")}
             >
-              ↻ Reiniciar torneo
+              {t("adminPanel.reset")}
             </button>
           ))}
       </div>

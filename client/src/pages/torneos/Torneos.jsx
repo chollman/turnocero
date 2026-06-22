@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
@@ -13,13 +14,14 @@ import TorneoSkeleton from "./TorneoSkeleton";
 import styles from "./Torneos.module.css";
 
 const STATUS_TABS = [
-  { id: "all", label: "Todos", filter: null },
-  { id: "registration", label: "Inscripción", filter: "registration" },
-  { id: "in_progress", label: "En curso", filter: "in_progress" },
-  { id: "finished", label: "Finalizados", filter: "finished" },
+  { id: "all", labelKey: "tabAll", filter: null },
+  { id: "registration", labelKey: "tabRegistration", filter: "registration" },
+  { id: "in_progress", labelKey: "tabInProgress", filter: "in_progress" },
+  { id: "finished", labelKey: "tabFinished", filter: "finished" },
 ];
 
 export default function Torneos() {
+  const { t } = useTranslation("torneos");
   const { isActuallyAdmin, viewAsUser } = useAuth();
   const brandName = useBrandName();
   const showAdminUI = isActuallyAdmin && !viewAsUser;
@@ -61,7 +63,7 @@ export default function Torneos() {
 
   useEffect(() => {
     const ac = new AbortController();
-    const f = STATUS_TABS.find((t) => t.id === tab)?.filter || null;
+    const f = STATUS_TABS.find((s) => s.id === tab)?.filter || null;
     load(1, true, f, ac.signal);
     return () => ac.abort();
   }, [tab, load]);
@@ -75,40 +77,35 @@ export default function Torneos() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{`Torneos – ${brandName} 🏆`}</title>
-        <meta
-          name="description"
-          content="Torneos de juegos de mesa organizados por la comunidad TurnoCero."
-        />
+        <title>{t("list.metaTitle", { brand: brandName })}</title>
+        <meta name="description" content={t("list.metaDescription")} />
       </Helmet>
 
       <div className={styles.inner}>
         <div className={styles.header}>
           <div className={styles.heroBlock}>
-            <div className={styles.eyebrow}>COMPETENCIAS</div>
-            <h1 className={styles.title}>Torneos</h1>
-            <p className={styles.sub}>
-              Seguí el progreso de las competencias de la comunidad.
-            </p>
+            <div className={styles.eyebrow}>{t("list.eyebrow")}</div>
+            <h1 className={styles.title}>{t("list.title")}</h1>
+            <p className={styles.sub}>{t("list.sub")}</p>
           </div>
           {showAdminUI && (
             <button
               className={styles.newBtn}
               onClick={() => navigate("/torneos/crear")}
             >
-              + Nuevo torneo
+              {t("list.newBtn")}
             </button>
           )}
         </div>
 
         <div className={styles.tabs}>
-          {STATUS_TABS.map((t) => (
+          {STATUS_TABS.map((tabItem) => (
             <button
-              key={t.id}
-              className={`${styles.tab} ${tab === t.id ? styles.tabActive : ""}`}
-              onClick={() => setTab(t.id)}
+              key={tabItem.id}
+              className={`${styles.tab} ${tab === tabItem.id ? styles.tabActive : ""}`}
+              onClick={() => setTab(tabItem.id)}
             >
-              {t.label}
+              {t(`list.${tabItem.labelKey}`)}
             </button>
           ))}
         </div>
@@ -125,15 +122,17 @@ export default function Torneos() {
               variant="filtered"
               compact
               art={<ArtSearch />}
-              eyebrow="Sin coincidencias"
+              eyebrow={t("list.emptyFilteredEyebrow")}
               title={
-                <>
-                  Ningún torneo con <em>ese estado.</em>
-                </>
+                <Trans
+                  t={t}
+                  i18nKey="list.emptyFilteredTitle"
+                  components={{ em: <em /> }}
+                />
               }
-              text="No hay torneos en esa categoría ahora mismo."
+              text={t("list.emptyFilteredText")}
               secondary={{
-                label: "Ver todos",
+                label: t("list.emptyFilteredSecondary"),
                 icon: "clear",
                 onClick: () => setTab("all"),
               }}
@@ -142,16 +141,18 @@ export default function Torneos() {
             <EmptyState
               art={<ArtTorneo />}
               ghost={<GhostRows />}
-              eyebrow="Cuadro vacío"
+              eyebrow={t("list.emptyEyebrow")}
               title={
-                <>
-                  Que empiece la <em>competencia.</em>
-                </>
+                <Trans
+                  t={t}
+                  i18nKey="list.emptyTitle"
+                  components={{ em: <em /> }}
+                />
               }
-              text="Todavía no hay torneos activos. Armá el bracket, definí el formato y dejá que gane el mejor."
+              text={t("list.emptyText")}
               primary={
                 showAdminUI
-                  ? { label: "Armar torneo", to: "/torneos/crear" }
+                  ? { label: t("list.emptyPrimary"), to: "/torneos/crear" }
                   : undefined
               }
             />
@@ -160,7 +161,7 @@ export default function Torneos() {
           <>
             {drafts.length > 0 && (
               <div className={styles.draftsSection}>
-                <h3 className={styles.draftsTitle}>Borradores (solo admins)</h3>
+                <h3 className={styles.draftsTitle}>{t("list.draftsTitle")}</h3>
                 <div className={styles.feed}>
                   {drafts.map((t, i) => (
                     <TorneoCard key={t._id} torneo={t} index={i} />
@@ -179,12 +180,12 @@ export default function Torneos() {
                 className={styles.loadMoreBtn}
                 onClick={() => {
                   const f =
-                    STATUS_TABS.find((t) => t.id === tab)?.filter || null;
+                    STATUS_TABS.find((s) => s.id === tab)?.filter || null;
                   load(page + 1, false, f);
                 }}
                 disabled={loadingMore}
               >
-                {loadingMore ? "Cargando…" : "Ver más torneos"}
+                {loadingMore ? t("list.loadingMore") : t("list.loadMore")}
               </button>
             )}
           </>

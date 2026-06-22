@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import UserRef, { GhostIcon } from "../../../components/shared/UserRef";
 import { getUserDisplay } from "../../../utils/userDisplay";
+import i18n from "../../../i18n";
 import styles from "../Bracket.module.css";
 
 const DESKTOP = 960;
@@ -10,6 +12,7 @@ const DESKTOP = 960;
  * On desktop: horizontal columns. On mobile: one round at a time with a selector.
  */
 export default function Bracket({ matches, isAdmin, onRecord, onUndo }) {
+  const { t } = useTranslation("torneos");
   const rounds = groupByRound(matches);
   const totalRounds = rounds.length;
 
@@ -34,7 +37,7 @@ export default function Bracket({ matches, isAdmin, onRecord, onUndo }) {
   }, [isMobile, matches.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (rounds.length === 0) {
-    return <p className={styles.empty}>Todavía no se generó el bracket.</p>;
+    return <p className={styles.empty}>{t("bracket.empty")}</p>;
   }
 
   // Round 1 is a play-in round when it has fewer matches than round 2.
@@ -88,6 +91,7 @@ export default function Bracket({ matches, isAdmin, onRecord, onUndo }) {
 }
 
 function BracketMatch({ match, isAdmin, onRecord, onUndo, isFinal }) {
+  const { t } = useTranslation("torneos");
   const aWinner =
     match.winner &&
     String(match.winner._id || match.winner) === String(match.playerA?._id);
@@ -115,16 +119,16 @@ function BracketMatch({ match, isAdmin, onRecord, onUndo, isFinal }) {
         isBye={isBye && !match.playerA}
       />
 
-      {isBye && <span className={styles.byeBadge}>BYE</span>}
+      {isBye && <span className={styles.byeBadge}>{t("bracket.bye")}</span>}
 
       {canRecord && (
         <button className={styles.recordBtn} onClick={() => onRecord(match)}>
-          Cargar resultado
+          {t("bracket.record")}
         </button>
       )}
       {isCompleted && isAdmin && (
         <button className={styles.undoBtn} onClick={() => onUndo(match)}>
-          Deshacer
+          {t("bracket.undo")}
         </button>
       )}
     </div>
@@ -132,11 +136,12 @@ function BracketMatch({ match, isAdmin, onRecord, onUndo, isFinal }) {
 }
 
 function Slot({ user, isWinner, isBye }) {
+  const { t } = useTranslation("torneos");
   if (!user) {
     return (
       <div className={`${styles.slot} ${styles.slotEmpty}`}>
         <span className={styles.slotPlaceholder}>
-          {isBye ? "—" : "A definir"}
+          {isBye ? "—" : t("bracket.tbd")}
         </span>
       </div>
     );
@@ -145,7 +150,7 @@ function Slot({ user, isWinner, isBye }) {
   if (info.isDeleted) {
     return (
       <div className={`${styles.slot} ${styles.slotDeleted}`}>
-        <GhostIcon size={12} /> <span>Usuario eliminado</span>
+        <GhostIcon size={12} /> <span>{t("bracket.deletedUser")}</span>
       </div>
     );
   }
@@ -171,13 +176,14 @@ function groupByRound(matches) {
 }
 
 function roundLabel(round, total, hasPlayIn) {
-  if (hasPlayIn && round === 1) return "Preliminar";
+  if (hasPlayIn && round === 1) return i18n.t("torneos:bracket.preliminary");
   // For main-bracket labels, ignore the play-in round when counting backwards from the final.
   const mainTotal = total - (hasPlayIn ? 1 : 0);
   const mainRound = round - (hasPlayIn ? 1 : 0);
-  if (mainRound === mainTotal) return "Final";
-  if (mainRound === mainTotal - 1) return "Semifinal";
-  if (mainRound === mainTotal - 2) return "Cuartos";
-  if (mainRound === mainTotal - 3) return "Octavos";
-  return `Ronda ${mainRound}`;
+  if (mainRound === mainTotal) return i18n.t("torneos:bracket.final");
+  if (mainRound === mainTotal - 1) return i18n.t("torneos:bracket.semifinal");
+  if (mainRound === mainTotal - 2)
+    return i18n.t("torneos:bracket.quarterfinals");
+  if (mainRound === mainTotal - 3) return i18n.t("torneos:bracket.roundOf16");
+  return i18n.t("torneos:bracket.round", { number: mainRound });
 }

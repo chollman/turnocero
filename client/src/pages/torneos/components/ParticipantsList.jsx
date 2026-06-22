@@ -1,21 +1,19 @@
 import { useState } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import UserRef from "../../../components/shared/UserRef";
 import { getUserDisplay } from "../../../utils/userDisplay";
 import { API } from "../../../api/endpoints";
 import styles from "../TorneoDetail.module.css";
 
 export default function ParticipantsList({ torneo, isAdmin, onChange }) {
+  const { t } = useTranslation("torneos");
   const participants = torneo.participants || [];
   const canRemove =
     isAdmin && (torneo.status === "draft" || torneo.status === "registration");
 
   if (participants.length === 0) {
-    return (
-      <p className={styles.emptyMsg}>
-        Todavía no hay participantes inscriptos.
-      </p>
-    );
+    return <p className={styles.emptyMsg}>{t("participants.empty")}</p>;
   }
 
   return (
@@ -35,6 +33,7 @@ export default function ParticipantsList({ torneo, isAdmin, onChange }) {
 }
 
 function ParticipantItem({ user, seed, torneoId, canRemove, onChange }) {
+  const { t } = useTranslation("torneos");
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirm] = useState(false);
   const info = getUserDisplay(user);
@@ -59,7 +58,9 @@ function ParticipantItem({ user, seed, torneoId, canRemove, onChange }) {
       <span className={styles.partSeed}>#{seed}</span>
       <span className={styles.partUser}>
         {info.isDeleted ? (
-          <span className={styles.deletedTxt}>Usuario eliminado</span>
+          <span className={styles.deletedTxt}>
+            {t("participants.deletedUser")}
+          </span>
         ) : (
           <UserRef user={user} />
         )}
@@ -73,13 +74,13 @@ function ParticipantItem({ user, seed, torneoId, canRemove, onChange }) {
                 onClick={remove}
                 disabled={busy}
               >
-                Sí
+                {t("participants.yes")}
               </button>
               <button
                 className={styles.confirmNo}
                 onClick={() => setConfirm(false)}
               >
-                No
+                {t("participants.no")}
               </button>
             </>
           ) : (
@@ -87,7 +88,7 @@ function ParticipantItem({ user, seed, torneoId, canRemove, onChange }) {
               className={styles.partRemove}
               onClick={() => setConfirm(true)}
             >
-              Quitar
+              {t("participants.remove")}
             </button>
           )}
         </span>

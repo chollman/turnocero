@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import useDebouncedValue from "../../../hooks/useDebouncedValue";
 import { API } from "../../../api/endpoints";
 import UserRef from "../../../components/shared/UserRef";
@@ -8,6 +9,7 @@ import ModalPortal from "../../../components/shared/ModalPortal";
 import styles from "../TorneoDetail.module.css";
 
 export default function AddParticipantModal({ torneo, onClose, onChange }) {
+  const { t } = useTranslation("torneos");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
   const [results, setResults] = useState([]);
@@ -39,7 +41,7 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
         if (!cancelled) setResults(data || []);
       } catch (err) {
         if (!cancelled)
-          setError(err.response?.data?.message || "Error al buscar usuarios");
+          setError(err.response?.data?.message || t("addParticipant.errorSearch"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -48,7 +50,7 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch]);
+  }, [debouncedSearch, t]);
 
   const addUser = async (userId) => {
     setAdding(userId);
@@ -59,7 +61,7 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
       );
       onChange(data);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al agregar");
+      setError(err.response?.data?.message || t("addParticipant.errorAdd"));
     } finally {
       setAdding(null);
     }
@@ -73,19 +75,19 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
           onClick={(e) => e.stopPropagation()}
         >
           <div className={styles.modalHeader}>
-            <h3 className={styles.modalTitle}>Agregar participantes</h3>
+            <h3 className={styles.modalTitle}>{t("addParticipant.title")}</h3>
             <button
               className={styles.modalClose}
               onClick={onClose}
-              aria-label="Cerrar"
+              aria-label={t("addParticipant.close")}
             >
               ✕
             </button>
           </div>
 
           <p className={styles.modalSub}>
-            Buscá por nombre o usuario.{" "}
-            {cupoLleno && "⚠ El torneo alcanzó el cupo máximo."}
+            {t("addParticipant.sub")}{" "}
+            {cupoLleno && t("addParticipant.subFull")}
           </p>
 
           <input
@@ -93,15 +95,15 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
             className={styles.fieldInput}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar usuario…"
+            placeholder={t("addParticipant.searchPlaceholder")}
           />
 
           {error && <p className={styles.errorMsg}>{error}</p>}
 
           {loading && results.length === 0 ? (
-            <p className={styles.emptyMsg}>Buscando…</p>
+            <p className={styles.emptyMsg}>{t("addParticipant.searching")}</p>
           ) : results.length === 0 ? (
-            <p className={styles.emptyMsg}>Sin resultados</p>
+            <p className={styles.emptyMsg}>{t("addParticipant.noResults")}</p>
           ) : (
             <ul className={styles.userPickList}>
               {results.map((u) => {
@@ -114,7 +116,7 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
                     <span className={styles.userPickName}>
                       {info.isDeleted ? (
                         <span className={styles.deletedTxt}>
-                          Usuario eliminado
+                          {t("addParticipant.deletedUser")}
                         </span>
                       ) : (
                         <UserRef user={u} noLink />
@@ -126,14 +128,18 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
                       )}
                     </span>
                     {already ? (
-                      <span className={styles.userPickAdded}>✓ Inscripto</span>
+                      <span className={styles.userPickAdded}>
+                        {t("addParticipant.alreadyIn")}
+                      </span>
                     ) : pending ? (
                       <button
                         className={styles.userPickAddBtn}
                         onClick={() => addUser(id)}
                         disabled={!!adding || cupoLleno}
                       >
-                        {adding === id ? "Agregando…" : "Aprobar y agregar"}
+                        {adding === id
+                          ? t("addParticipant.adding")
+                          : t("addParticipant.approveAndAdd")}
                       </button>
                     ) : (
                       <button
@@ -141,7 +147,9 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
                         onClick={() => addUser(id)}
                         disabled={!!adding || cupoLleno}
                       >
-                        {adding === id ? "Agregando…" : "+ Agregar"}
+                        {adding === id
+                          ? t("addParticipant.adding")
+                          : t("addParticipant.add")}
                       </button>
                     )}
                   </li>
@@ -152,7 +160,7 @@ export default function AddParticipantModal({ torneo, onClose, onChange }) {
 
           <div className={styles.modalActions}>
             <button className={styles.btnGhost} onClick={onClose}>
-              Cerrar
+              {t("addParticipant.close")}
             </button>
           </div>
         </div>

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useNotifications } from "../../../context/NotificationContext";
 import { API } from "../../../api/endpoints";
 import styles from "../TorneoDetail.module.css";
 
 export default function RegisterButton({ torneo, user, onChange }) {
+  const { t } = useTranslation("torneos");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [justRegistered, setJust] = useState(false);
@@ -29,7 +31,7 @@ export default function RegisterButton({ torneo, user, onChange }) {
   if (!user) {
     return (
       <button className={styles.btnPrimary} onClick={() => navigate("/login")}>
-        Iniciá sesión para inscribirte
+        {t("register.loginToRegister")}
       </button>
     );
   }
@@ -58,7 +60,7 @@ export default function RegisterButton({ torneo, user, onChange }) {
       setJust(true);
       onChange();
     } catch (err) {
-      setError(err.response?.data?.message || "Error al inscribirse");
+      setError(err.response?.data?.message || t("register.errorRegister"));
     } finally {
       setBusy(false);
     }
@@ -71,14 +73,16 @@ export default function RegisterButton({ torneo, user, onChange }) {
       await axios.delete(API.torneos.REGISTER(torneo._id));
       onChange();
     } catch (err) {
-      setError(err.response?.data?.message || "Error al cancelar");
+      setError(err.response?.data?.message || t("register.errorCancel"));
     } finally {
       setBusy(false);
     }
   };
 
   if (isParticipant) {
-    return <span className={styles.statusPill}>Estás inscripto ✓</span>;
+    return (
+      <span className={styles.statusPill}>{t("register.registered")}</span>
+    );
   }
 
   if (isPending) {
@@ -89,17 +93,17 @@ export default function RegisterButton({ torneo, user, onChange }) {
         >
           <span className={styles.registerSuccessIcon}>✅</span>
           <div className={styles.registerSuccessText}>
-            <strong>Inscripción enviada</strong>
-            <span>Esperá la aprobación del admin</span>
+            <strong>{t("register.sentTitle")}</strong>
+            <span>{t("register.sentSub")}</span>
           </div>
         </div>
       );
     }
     return (
       <div className={styles.inlineRow}>
-        <span className={styles.statusPillWarn}>Inscripción pendiente</span>
+        <span className={styles.statusPillWarn}>{t("register.pending")}</span>
         <button className={styles.btnGhost} onClick={cancel} disabled={busy}>
-          Cancelar
+          {t("register.cancel")}
         </button>
         {error && <p className={styles.errorMsg}>{error}</p>}
       </div>
@@ -113,7 +117,11 @@ export default function RegisterButton({ torneo, user, onChange }) {
         onClick={register}
         disabled={busy || cupoLleno}
       >
-        {busy ? "Enviando…" : cupoLleno ? "Cupo lleno" : "Inscribirme"}
+        {busy
+          ? t("register.sending")
+          : cupoLleno
+            ? t("register.full")
+            : t("register.register")}
       </button>
       {error && <p className={styles.errorMsg}>{error}</p>}
     </div>
