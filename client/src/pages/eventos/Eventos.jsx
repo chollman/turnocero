@@ -16,7 +16,7 @@ import { API } from "../../api/endpoints";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import useLocalStorageState from "../../utils/useLocalStorageState";
 import useTickingNow from "../../utils/useTickingNow";
-import { groupByMonth, MESES_LARGO } from "../../utils/eventoDate";
+import { groupByMonth, getMonthsLong } from "../../utils/eventoDate";
 import ListFilters from "../../components/shared/ListFilters";
 import EmptyState from "../../components/shared/EmptyState";
 import { ArtEvento, ArtSearch } from "../../components/shared/EmptyArt";
@@ -263,7 +263,7 @@ export default function Eventos() {
   // "Agenda · Mes Año" siga al cambio de mes si la pestaña queda abierta
   // cruzando medianoche del último día.
   const nowDate = new Date(now);
-  const monthNow = MESES_LARGO[nowDate.getMonth()];
+  const monthNow = getMonthsLong()[nowDate.getMonth()];
   const yearNow = nowDate.getFullYear();
 
   // Si el filtro persistido en localStorage ya no es visible para este usuario

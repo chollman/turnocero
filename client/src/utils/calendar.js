@@ -2,10 +2,13 @@
 // fecha — todo nativo con `Date` (convención del repo, ver eventoDate.js).
 // La semana arranca en LUNES (convención es-AR).
 
-import { MESES_LARGO } from "./eventoDate";
+import i18n from "../i18n";
+import { getMonthsLong } from "./eventoDate";
 
-// Iniciales de día arrancando en lunes, para los headers de la grilla.
-export const WEEKDAY_INITIALS = ["L", "M", "M", "J", "V", "S", "D"];
+// Iniciales de día arrancando en lunes, para los headers de la grilla. Getter
+// (no constante) porque el idioma cambia en runtime — ver eventoDate.js.
+export const getWeekdayInitials = () =>
+  i18n.t("dates:weekdayInitials", { returnObjects: true });
 
 // Clave local "YYYY-MM-DD" de una fecha (sin tocar timezone). Sirve para
 // agrupar items por día y para matchear celdas con items.
@@ -22,9 +25,9 @@ function mondayOffset(date) {
   return (date.getDay() + 6) % 7;
 }
 
-// Etiqueta "Junio 2026".
+// Etiqueta "Junio 2026" / "June 2026".
 export function monthLabel(year, month) {
-  return `${MESES_LARGO[month]} ${year}`;
+  return i18n.t("dates:monthLabel", { month: getMonthsLong()[month], year });
 }
 
 // Avanza/retrocede meses con wraparound de año. delta puede ser ±N.

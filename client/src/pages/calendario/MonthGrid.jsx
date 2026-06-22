@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { buildMonthMatrix, WEEKDAY_INITIALS } from "../../utils/calendar";
+import { buildMonthMatrix, getWeekdayInitials } from "../../utils/calendar";
 import { TIPO_META } from "./tipos";
 import styles from "./Calendario.module.css";
 
@@ -19,7 +19,7 @@ export default function MonthGrid({
   return (
     <div className={styles.grid} role="grid" aria-label="Grilla del mes">
       <div className={styles.gridHead} role="row">
-        {WEEKDAY_INITIALS.map((d, i) => (
+        {getWeekdayInitials().map((d, i) => (
           <span key={i} className={styles.gridHeadCell} role="columnheader">
             {d}
           </span>
