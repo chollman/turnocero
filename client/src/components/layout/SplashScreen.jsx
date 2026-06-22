@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CommunityContext } from "../../context/CommunityContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import Logo from "../shared/Logo";
@@ -79,6 +80,7 @@ function Wordmark({ brandName }) {
 }
 
 export default function SplashScreen({ visible }) {
+  const { t } = useTranslation();
   const [shouldRender, setShouldRender] = useState(true);
   const [hiding, setHiding] = useState(false);
   const brandName = useBrandName();
@@ -140,7 +142,7 @@ export default function SplashScreen({ visible }) {
           <div className={styles.loaderFill} />
         </div>
         <span className={styles.loaderText}>
-          Preparando tu mesa
+          {t("layout:splash.loading")}
           <span className={styles.pips}>
             <span className={styles.pip} />
             <span className={styles.pip} />

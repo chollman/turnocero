@@ -1,4 +1,5 @@
 import Meeple from "../shared/Meeple";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useNotifications } from "../../context/NotificationContext";
 import { useChat } from "../../context/ChatContext";
@@ -39,6 +40,7 @@ const BellIcon = () => (
 );
 
 export default function Navbar({ menuOpen = false, onToggleMenu }) {
+  const { t } = useTranslation();
   const { unreadCount } = useNotifications();
   const { dmUnreadTotal } = useChat();
   const isSectionEnabled = useSectionEnabled();
@@ -65,7 +67,7 @@ export default function Navbar({ menuOpen = false, onToggleMenu }) {
             <Meeple />
             {isTenant ? (
               <>
-                por{" "}
+                {t("layout:attribution")}{" "}
                 <Link to="/colabora" className={styles.attribution}>
                   TurnoCero
                 </Link>
@@ -82,7 +84,7 @@ export default function Navbar({ menuOpen = false, onToggleMenu }) {
           <button
             className={styles.iconBtn}
             onClick={() => navigate("/mensajes")}
-            aria-label="Mensajes"
+            aria-label={t("layout:nav.messages")}
           >
             <ChatIcon />
             {dmUnreadTotal > 0 && (
@@ -99,7 +101,7 @@ export default function Navbar({ menuOpen = false, onToggleMenu }) {
         <button
           className={styles.iconBtn}
           onClick={() => navigate("/notificaciones")}
-          aria-label="Notificaciones"
+          aria-label={t("layout:nav.notifications")}
         >
           <BellIcon />
           {unreadCount > 0 && (
@@ -114,7 +116,7 @@ export default function Navbar({ menuOpen = false, onToggleMenu }) {
             type="button"
             className={`${styles.menuBtn} ${menuOpen ? styles.menuBtnOpen : ""}`}
             onClick={onToggleMenu}
-            aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
+            aria-label={menuOpen ? t("layout:menu.close") : t("layout:menu.open")}
             aria-expanded={menuOpen}
           >
             <span className={styles.menuLine} />

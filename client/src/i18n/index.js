@@ -28,6 +28,8 @@ import esEnums from "./resources/es/enums.json";
 import enEnums from "./resources/en/enums.json";
 import esQuotes from "./resources/es/quotes.json";
 import enQuotes from "./resources/en/quotes.json";
+import esLayout from "./resources/es/layout.json";
+import enLayout from "./resources/en/layout.json";
 
 export const resources = {
   es: {
@@ -38,6 +40,7 @@ export const resources = {
     dates: esDates,
     enums: esEnums,
     quotes: esQuotes,
+    layout: esLayout,
   },
   en: {
     common: enCommon,
@@ -47,6 +50,7 @@ export const resources = {
     dates: enDates,
     enums: enEnums,
     quotes: enQuotes,
+    layout: enLayout,
   },
 };
 
