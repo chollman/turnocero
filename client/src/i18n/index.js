@@ -16,10 +16,12 @@ import {
 import { STORAGE_KEYS } from "../utils/storageKeys";
 import esCommon from "./resources/es/common.json";
 import enCommon from "./resources/en/common.json";
+import esAuth from "./resources/es/auth.json";
+import enAuth from "./resources/en/auth.json";
 
 export const resources = {
-  es: { common: esCommon },
-  en: { common: enCommon },
+  es: { common: esCommon, auth: esAuth },
+  en: { common: enCommon, auth: enAuth },
 };
 
 function getInitialLang() {

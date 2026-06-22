@@ -1,6 +1,7 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import GameTile from "../../components/shared/GameTile";
 import Logo from "../../components/shared/Logo";
@@ -11,6 +12,7 @@ import { useShowcaseTables } from "../../hooks/useShowcaseTables";
 import { useBrandName } from "../../hooks/useBrandName";
 
 export default function ForgotPassword() {
+  const { t } = useTranslation();
   const { requestPasswordReset } = useAuth();
   const brandName = useBrandName();
   const [email, setEmail] = useState("");
@@ -27,7 +29,7 @@ export default function ForgotPassword() {
       await requestPasswordReset(email);
       setSubmitted(true);
     } catch (err) {
-      setError(getErrorMessage(err, "No pudimos procesar el pedido."));
+      setError(getErrorMessage(err, t("auth:forgot.errorFallback")));
     } finally {
       setLoading(false);
     }
@@ -51,27 +53,24 @@ export default function ForgotPassword() {
 
         <div className={styles.eyebrow}>
           <Meeple />
-          RECUPERAR ACCESO
+          {t("auth:forgot.eyebrow")}
         </div>
-        <h1 className={styles.heading}>¿Olvidaste tu contraseña?</h1>
-        <p className={styles.sub}>
-          Pasanos tu email y te mandamos un link para elegir una nueva.
-        </p>
+        <h1 className={styles.heading}>{t("auth:forgot.heading")}</h1>
+        <p className={styles.sub}>{t("auth:forgot.sub")}</p>
 
         {error && <div className={styles.errorBox}>{error}</div>}
 
         {submitted ? (
           <div className={styles.infoBox}>
-            Si existe una cuenta con ese email, te enviamos un link para
-            recuperar la contraseña.
+            {t("auth:forgot.successLine1")}
             <br />
-            Revisá tu bandeja de entrada (y la carpeta de spam por las dudas).
+            {t("auth:forgot.successLine2")}
           </div>
         ) : (
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="forgot-email">
-                Email
+                {t("auth:emailLabel")}
               </label>
               <input
                 id="forgot-email"
@@ -79,7 +78,7 @@ export default function ForgotPassword() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={styles.input}
-                placeholder="tu@email.com"
+                placeholder={t("auth:emailPlaceholder")}
                 required
                 autoFocus
               />
@@ -91,10 +90,10 @@ export default function ForgotPassword() {
               disabled={loading || !email}
             >
               {loading ? (
-                "Enviando…"
+                t("auth:forgot.submitting")
               ) : (
                 <>
-                  <span>📧</span> Enviar link
+                  <span>📧</span> {t("auth:forgot.submit")}
                 </>
               )}
             </button>
@@ -102,7 +101,7 @@ export default function ForgotPassword() {
         )}
 
         <p className={styles.switchLink}>
-          <Link to="/login">← Volver al login</Link>
+          <Link to="/login">{t("auth:backToLogin")}</Link>
         </p>
       </div>
 
@@ -119,22 +118,22 @@ export default function ForgotPassword() {
           <div>
             <div className={styles.showcaseEyebrow}>
               <Meeple />
-              MESAS ACTIVAS
+              {t("auth:showcase.activeTables")}
             </div>
             {showcase?.total > 0 ? (
               <h2 className={styles.showcaseTitle}>
-                {showcase.total} mesas
+                {t("auth:showcase.tablesCount", { count: showcase.total })}
                 <br />
                 <span className={styles.showcaseTitleAccent}>
-                  esperando jugadores.
+                  {t("auth:showcase.waitingPlayers")}
                 </span>
               </h2>
             ) : (
               <h2 className={styles.showcaseTitle}>
-                Tu próxima
+                {t("auth:showcase.nextTitle")}
                 <br />
                 <span className={styles.showcaseTitleAccent}>
-                  partida te espera.
+                  {t("auth:showcase.nextAccent")}
                 </span>
               </h2>
             )}
