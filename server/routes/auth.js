@@ -614,6 +614,7 @@ router.put(
       bggUsername,
       eventoReminderHours,
       avatarColor,
+      language,
     } = req.body;
     const user = await User.findById(req.user._id);
     if (!user) throw httpError(404, "Usuario no encontrado");
@@ -659,6 +660,11 @@ router.put(
         throw httpError(400, "Valor inválido para recordatorios");
       }
       user.eventoReminderHours = n;
+    }
+    // Idioma de la UI/contenido del server (emails, push). Sólo "es"/"en";
+    // cualquier otro valor se ignora silenciosamente.
+    if (language !== undefined && ["es", "en"].includes(language)) {
+      user.language = language;
     }
 
     try {
