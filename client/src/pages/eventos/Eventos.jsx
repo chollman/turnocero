@@ -9,6 +9,7 @@ import {
 import axios from "axios";
 import { io } from "socket.io-client";
 import { Helmet } from "react-helmet-async";
+import { useTranslation, Trans } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
@@ -28,19 +29,33 @@ import EventoForm from "./EventoForm";
 import { GridIcon, ListIcon, PlusIcon, SearchIcon } from "./EventoIcons";
 import styles from "./Eventos.module.css";
 
+// Definición estructural de los filtros (value + gating). Los labels salen por
+// i18n y se arman dentro del componente (buildFilters) — la const a module-scope
+// solo lleva los campos que no dependen del idioma, para que el effect de
+// visibilidad y los listeners de socket sigan funcionando sin un `t`.
 const ALL_FILTERS = [
-  { value: "all", label: "Todos", adminOnly: false },
-  { value: "open", label: "Abiertos", adminOnly: false },
-  { value: "mine", label: "Mis inscr.", adminOnly: false, requiresAuth: true },
-  { value: "closed", label: "Cerrados", adminOnly: false },
-  { value: "draft", label: "Borradores", adminOnly: true },
-  { value: "cancelled", label: "Cancelados", adminOnly: true },
+  { value: "all", adminOnly: false },
+  { value: "open", adminOnly: false },
+  { value: "mine", adminOnly: false, requiresAuth: true },
+  { value: "closed", adminOnly: false },
+  { value: "draft", adminOnly: true },
+  { value: "cancelled", adminOnly: true },
 ];
+
+const FILTER_LABEL_KEYS = {
+  all: "list.filterAll",
+  open: "list.filterOpen",
+  mine: "list.filterMine",
+  closed: "list.filterClosed",
+  draft: "list.filterDraft",
+  cancelled: "list.filterCancelled",
+};
 
 // Radio máximo del slider de distancia (km). 0 = sin filtro.
 const MAX_RADIUS_KM = 100;
 
 export default function Eventos() {
+  const { t } = useTranslation("eventos");
   const { user } = useAuth();
   const { addToast } = useNotifications();
   const brandName = useBrandName();
@@ -113,8 +128,8 @@ export default function Eventos() {
         if (err?.code !== "ERR_CANCELED") {
           addToast({
             type: "error",
-            title: "No pudimos cargar los eventos",
-            message: "Reintentá en unos segundos.",
+            title: t("list.loadError.title"),
+            message: t("list.loadError.message"),
           });
         }
       } finally {
@@ -122,7 +137,7 @@ export default function Eventos() {
         setLoadingMore(false);
       }
     },
-    [filter, hasDireccion, debouncedRadius, debouncedSearch, addToast],
+    [filter, hasDireccion, debouncedRadius, debouncedSearch, addToast, t],
   );
 
   useEffect(() => {
@@ -331,33 +346,36 @@ export default function Eventos() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleEventos, filter]);
 
+  const chips = ALL_FILTERS.map((f) => ({
+    ...f,
+    label: t(FILTER_LABEL_KEYS[f.value]),
+  }));
+
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{`Eventos — ${brandName}`}</title>
-        <meta
-          name="description"
-          content="Eventos y torneos de la comunidad de juegos de mesa"
-        />
+        <title>{t("list.metaTitle", { brand: brandName })}</title>
+        <meta name="description" content={t("list.metaDescription")} />
       </Helmet>
 
       {/* Editorial hero */}
       <header className={styles.hero}>
         <div className={styles.heroLeft}>
           <div className={styles.heroEyebrow}>
-            Agenda · {monthNow} {yearNow}
+            {t("list.heroEyebrow", { month: monthNow, year: yearNow })}
           </div>
           <h1 className={styles.heroTitle}>
-            Eventos de la <em>comunidad</em>.
+            <Trans t={t} i18nKey="list.heroTitle" components={{ em: <em /> }} />
           </h1>
           <p className={styles.heroSub}>
-            Torneos, encuentros y demos producidos por la comunidad de{" "}
-            {brandName}. Reservá tu lugar o sumá tu evento.
+            {t("list.heroSub", { brand: brandName })}
           </p>
         </div>
         <div className={styles.heroRight}>
           <div className={styles.heroStat}>
-            <span className={styles.heroStatLabel}>Próximos</span>
+            <span className={styles.heroStatLabel}>
+              {t("list.heroUpcoming")}
+            </span>
             <span
               className={`${styles.heroStatValue} ${styles.heroStatValueAccent}`}
             >
@@ -366,7 +384,7 @@ export default function Eventos() {
           </div>
           <div className={styles.heroDivider} />
           <div className={styles.heroStat}>
-            <span className={styles.heroStatLabel}>Total</span>
+            <span className={styles.heroStatLabel}>{t("list.heroTotal")}</span>
             <span className={styles.heroStatValue}>{eventos.length}</span>
           </div>
         </div>
@@ -381,16 +399,16 @@ export default function Eventos() {
           <input
             type="search"
             className={styles.searchInput}
-            placeholder="Buscar por nombre…"
+            placeholder={t("list.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="Buscar eventos por nombre"
+            aria-label={t("list.searchAria")}
           />
         </div>
 
         <div className={styles.controlsRight}>
           <ListFilters
-            chips={ALL_FILTERS}
+            chips={chips}
             activeChip={filter}
             onChipChange={setFilter}
             defaultChip="open"
@@ -406,13 +424,13 @@ export default function Eventos() {
           <div
             className={styles.viewToggle}
             role="group"
-            aria-label="Cambiar vista"
+            aria-label={t("list.viewToggleAria")}
           >
             <button
               type="button"
               className={`${styles.viewBtn} ${viewMode === "timeline" ? styles.viewBtnActive : ""}`}
               onClick={() => setViewMode("timeline")}
-              aria-label="Vista timeline"
+              aria-label={t("list.viewTimelineAria")}
               aria-pressed={viewMode === "timeline"}
             >
               <ListIcon />
@@ -421,7 +439,7 @@ export default function Eventos() {
               type="button"
               className={`${styles.viewBtn} ${viewMode === "poster" ? styles.viewBtnActive : ""}`}
               onClick={() => setViewMode("poster")}
-              aria-label="Vista posters"
+              aria-label={t("list.viewPosterAria")}
               aria-pressed={viewMode === "poster"}
             >
               <GridIcon />
@@ -434,7 +452,7 @@ export default function Eventos() {
               className={styles.newBtn}
               onClick={startCreating}
             >
-              <PlusIcon size={13} /> Nuevo evento
+              <PlusIcon size={13} /> {t("list.newBtn")}
             </button>
           )}
         </div>
@@ -473,22 +491,26 @@ export default function Eventos() {
             variant="filtered"
             compact
             art={<ArtSearch />}
-            eyebrow="Sin inscripciones"
+            eyebrow={t("list.emptyMineEyebrow")}
             title={
-              <>
-                No tenés <em>inscripciones</em> todavía.
-              </>
+              <Trans
+                t={t}
+                i18nKey="list.emptyMineTitle"
+                components={{ em: <em /> }}
+              />
             }
-            text="Cuando te anotes a un evento, lo vas a ver acá."
+            text={t("list.emptyMineText")}
             secondary={
               page < totalPages
                 ? {
-                    label: loadingMore ? "Cargando…" : "Cargar más eventos",
+                    label: loadingMore
+                      ? t("list.loadingMore")
+                      : t("list.emptyMineLoadMore"),
                     icon: "compass",
                     onClick: () => load(page + 1, false),
                   }
                 : {
-                    label: "Ver todos los eventos",
+                    label: t("list.emptyMineViewAll"),
                     icon: "compass",
                     onClick: () => setFilter("all"),
                   }
@@ -498,20 +520,25 @@ export default function Eventos() {
           <EmptyState
             art={<ArtEvento />}
             ghost={<GhostRows />}
-            eyebrow="Agenda despejada"
+            eyebrow={t("list.emptyOpenEyebrow")}
             title={
-              <>
-                Nada en la <em>agenda</em> todavía.
-              </>
+              <Trans
+                t={t}
+                i18nKey="list.emptyOpenTitle"
+                components={{ em: <em /> }}
+              />
             }
-            text="No hay eventos próximos. Si organizás torneos o encuentros, este es el lugar para convocarlos."
+            text={t("list.emptyOpenText")}
             primary={
               isAdmin
-                ? { label: "Crear el primer evento", onClick: startCreating }
+                ? {
+                    label: t("list.emptyOpenPrimary"),
+                    onClick: startCreating,
+                  }
                 : undefined
             }
             secondary={{
-              label: "Ver cerrados",
+              label: t("list.emptyOpenSecondary"),
               icon: "compass",
               onClick: () => setFilter("closed"),
             }}
@@ -521,15 +548,17 @@ export default function Eventos() {
             variant="filtered"
             compact
             art={<ArtSearch />}
-            eyebrow="Sin coincidencias"
+            eyebrow={t("list.emptyFilteredEyebrow")}
             title={
-              <>
-                Ningún evento con <em>esos filtros.</em>
-              </>
+              <Trans
+                t={t}
+                i18nKey="list.emptyFilteredTitle"
+                components={{ em: <em /> }}
+              />
             }
-            text="No encontramos eventos para esa combinación."
+            text={t("list.emptyFilteredText")}
             secondary={{
-              label: "Limpiar filtros",
+              label: t("list.emptyFilteredSecondary"),
               icon: "clear",
               onClick: () => {
                 setSearch("");
@@ -556,12 +585,14 @@ export default function Eventos() {
           {groups.map((g) => (
             <section key={g.key} className={styles.monthSection}>
               <div className={styles.monthHeader}>
-                <span className={styles.monthHeaderLabel}>Mes</span>
+                <span className={styles.monthHeaderLabel}>
+                  {t("list.monthLabel")}
+                </span>
                 <span className={styles.monthHeaderName}>{g.name}</span>
                 <span className={styles.monthHeaderYear}>{g.year}</span>
                 <span className={styles.monthHeaderRule} />
                 <span className={styles.monthHeaderCount}>
-                  {g.events.length} eventos
+                  {t("list.monthCount", { count: g.events.length })}
                 </span>
               </div>
               {g.events.map((ev, i) => (
@@ -569,10 +600,10 @@ export default function Eventos() {
                   {ev._id === firstFutureId && (
                     <div
                       className={styles.nowDivider}
-                      aria-label="A partir de hoy"
+                      aria-label={t("list.nowDividerAria")}
                     >
                       <span className={styles.nowDividerLabel}>
-                        ● Hoy · próximos eventos
+                        {t("list.nowDividerLabel")}
                       </span>
                       <span className={styles.nowDividerRule} />
                     </div>
@@ -602,7 +633,7 @@ export default function Eventos() {
               onClick={() => load(page + 1, false)}
               disabled={loadingMore}
             >
-              {loadingMore ? "Cargando…" : "Ver más eventos"}
+              {loadingMore ? t("list.loadingMore") : t("list.loadMore")}
             </button>
           </div>
         )}
@@ -613,9 +644,9 @@ export default function Eventos() {
           type="button"
           className={styles.fab}
           onClick={startCreating}
-          aria-label="Nuevo evento"
+          aria-label={t("list.newBtnAria")}
         >
-          <PlusIcon size={13} /> Nuevo evento
+          <PlusIcon size={13} /> {t("list.newBtn")}
         </button>
       )}
     </div>

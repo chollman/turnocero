@@ -48,6 +48,8 @@ import esTorneos from "./resources/es/torneos.json";
 import enTorneos from "./resources/en/torneos.json";
 import esUsuarios from "./resources/es/usuarios.json";
 import enUsuarios from "./resources/en/usuarios.json";
+import esEventos from "./resources/es/eventos.json";
+import enEventos from "./resources/en/eventos.json";
 
 export const resources = {
   es: {
@@ -68,6 +70,7 @@ export const resources = {
     dashboard: esDashboard,
     torneos: esTorneos,
     usuarios: esUsuarios,
+    eventos: esEventos,
   },
   en: {
     common: enCommon,
@@ -87,6 +90,7 @@ export const resources = {
     dashboard: enDashboard,
     torneos: enTorneos,
     usuarios: enUsuarios,
+    eventos: enEventos,
   },
 };
 

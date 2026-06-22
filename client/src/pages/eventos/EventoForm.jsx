@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import PlaceAutocomplete from "../../components/shared/PlaceAutocomplete";
@@ -61,6 +62,7 @@ export default function EventoForm({
   onCancel,
   submitting = false,
 }) {
+  const { t } = useTranslation("eventos");
   const [form, setForm] = useState(() => valuesFromEvento(initialEvento));
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState("");
@@ -115,7 +117,7 @@ export default function EventoForm({
   const handleManualGeocode = async () => {
     const q = form.location.texto.trim();
     if (q.length < 3) {
-      setError("Escribí una dirección de al menos 3 caracteres.");
+      setError(t("form.errorAddressMin"));
       setTimeout(() => setError(""), 3000);
       return;
     }
@@ -133,8 +135,8 @@ export default function EventoForm({
     } catch (err) {
       const msg =
         err.response?.status === 404
-          ? "No se encontró la dirección. Intentá ser más específico o picá una sugerencia."
-          : err.response?.data?.message || "Error al buscar la dirección.";
+          ? t("form.errorGeocodeNotFound")
+          : err.response?.data?.message || t("form.errorGeocode");
       setError(msg);
       setTimeout(() => setError(""), 3000);
     } finally {
@@ -145,15 +147,15 @@ export default function EventoForm({
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.title.trim()) {
-      setError("El título es obligatorio");
+      setError(t("form.errorTitleRequired"));
       return;
     }
     if (!form.eventDate) {
-      setError("La fecha y hora del evento son obligatorias");
+      setError(t("form.errorDateRequired"));
       return;
     }
     if (!form.location.texto.trim()) {
-      setError("El lugar del evento es obligatorio");
+      setError(t("form.errorLocationRequired"));
       return;
     }
     setError("");
@@ -180,7 +182,7 @@ export default function EventoForm({
       await onSubmit(fd);
     } catch (err) {
       setError(
-        err?.response?.data?.message || err?.message || "Error al guardar",
+        err?.response?.data?.message || err?.message || t("form.errorSave"),
       );
     }
   }
@@ -191,7 +193,7 @@ export default function EventoForm({
     <form className={styles.form} onSubmit={handleSubmit}>
       <div className={styles.head}>
         <span className={styles.eyebrow}>
-          {isEdit ? "Editar evento" : "Nuevo evento"}
+          {isEdit ? t("form.editTitle") : t("form.newTitle")}
         </span>
         <span className={styles.rule} />
       </div>
@@ -206,7 +208,7 @@ export default function EventoForm({
             {/* Span (no <label htmlFor>) porque ImageDropzone tiene su propio
                 file input oculto + handler de click — el wrapper completo es
                 el área clickeable, no necesita asociación HTML formal. */}
-            <span className={styles.fieldLabel}>Carátula del evento</span>
+            <span className={styles.fieldLabel}>{t("form.coverLabel")}</span>
             <ImageDropzone preview={preview} onFile={handleFile} />
           </div>
         </div>
@@ -214,14 +216,14 @@ export default function EventoForm({
         <div className={styles.splitFields}>
           <div className={styles.field}>
             <label className={styles.fieldLabel} htmlFor="evento-title">
-              Título *
+              {t("form.titleLabel")}
             </label>
             <input
               id="evento-title"
               name="title"
               value={form.title}
               onChange={handleChange}
-              placeholder="Ej. Torneo de Catán · Otoño 2026"
+              placeholder={t("form.titlePlaceholder")}
               className={styles.input}
               maxLength={200}
             />
@@ -229,14 +231,14 @@ export default function EventoForm({
 
           <div className={styles.field}>
             <label className={styles.fieldLabel} htmlFor="evento-description">
-              Descripción
+              {t("form.descriptionLabel")}
             </label>
             <textarea
               id="evento-description"
               name="description"
               value={form.description}
               onChange={handleChange}
-              placeholder="Contá de qué se trata el evento."
+              placeholder={t("form.descriptionPlaceholder")}
               className={styles.textarea}
               rows={3}
               maxLength={3000}
@@ -245,14 +247,14 @@ export default function EventoForm({
 
           <div className={styles.field}>
             <label className={styles.fieldLabel} htmlFor="evento-conditions">
-              Condiciones de inscripción
+              {t("form.conditionsLabel")}
             </label>
             <textarea
               id="evento-conditions"
               name="conditions"
               value={form.conditions}
               onChange={handleChange}
-              placeholder="Reglas, cancelaciones, requisitos."
+              placeholder={t("form.conditionsPlaceholder")}
               className={styles.textarea}
               rows={3}
               maxLength={2000}
@@ -262,7 +264,7 @@ export default function EventoForm({
           <div className={styles.row}>
             <div className={styles.field} style={{ flex: 1 }}>
               <label className={styles.fieldLabel} htmlFor="evento-fee">
-                Monto ($ARS, 0 = gratis)
+                {t("form.feeLabel")}
               </label>
               <input
                 id="evento-fee"
@@ -277,7 +279,7 @@ export default function EventoForm({
             </div>
             <div className={styles.field} style={{ flex: 1 }}>
               <label className={styles.fieldLabel} htmlFor="evento-max">
-                Cupo máximo
+                {t("form.maxLabel")}
               </label>
               <input
                 id="evento-max"
@@ -287,21 +289,21 @@ export default function EventoForm({
                 type="number"
                 min="1"
                 className={styles.input}
-                placeholder="Vacío = Sin límite"
+                placeholder={t("form.maxPlaceholder")}
               />
             </div>
           </div>
 
           <div className={styles.field}>
             <label className={styles.fieldLabel} htmlFor="evento-transfer">
-              Datos de transferencia
+              {t("form.transferLabel")}
             </label>
             <textarea
               id="evento-transfer"
               name="transferDetails"
               value={form.transferDetails}
               onChange={handleChange}
-              placeholder="Alias / CBU / Titular / Instrucciones."
+              placeholder={t("form.transferPlaceholder")}
               className={styles.textarea}
               rows={2}
               maxLength={500}
@@ -311,7 +313,7 @@ export default function EventoForm({
           <div className={styles.row}>
             <div className={styles.field} style={{ flex: 1 }}>
               <label className={styles.fieldLabel} htmlFor="evento-date">
-                Fecha y hora *
+                {t("form.dateLabel")}
               </label>
               <DateTimePicker
                 id="evento-date"
@@ -323,10 +325,13 @@ export default function EventoForm({
             </div>
             <div className={styles.field} style={{ flex: 1 }}>
               <label className={styles.fieldLabel} htmlFor="evento-location">
-                Lugar *
-                <InfoTooltip label="Ayuda sobre el campo Lugar">
-                  Empezá a escribir y elegí una sugerencia. Si no aparece,
-                  escribí la dirección y tocá <strong>Buscar</strong>.
+                {t("form.locationLabel")}
+                <InfoTooltip label={t("form.locationHelpAria")}>
+                  <Trans
+                    t={t}
+                    i18nKey="form.locationHelp"
+                    components={{ strong: <strong /> }}
+                  />
                 </InfoTooltip>
               </label>
               <div className={styles.locationRow}>
@@ -334,16 +339,16 @@ export default function EventoForm({
                   value={form.location.texto}
                   onChange={updateLocationTexto}
                   onSelect={handlePlaceSelect}
-                  placeholder="Dirección del evento"
+                  placeholder={t("form.locationPlaceholder")}
                 />
                 <button
                   type="button"
                   className={styles.btnSearch}
                   onClick={handleManualGeocode}
                   disabled={geocoding}
-                  title="Buscar la dirección que tipeaste (sin picar sugerencia)"
+                  title={t("form.searchBtnTitle")}
                 >
-                  {geocoding ? "…" : "Buscar"}
+                  {geocoding ? "…" : t("form.searchBtn")}
                 </button>
               </div>
               {form.location.lat != null && form.location.lng != null && (
@@ -357,15 +362,16 @@ export default function EventoForm({
 
           <div className={styles.field}>
             <label className={styles.fieldLabel} htmlFor="evento-display-name">
-              Nombre de ubicación personalizado{" "}
-              <span className={styles.fieldHint}>(opcional)</span>
-              <InfoTooltip label="Ayuda sobre el nombre de ubicación personalizado">
-                Si lo completás, aparece <strong>en lugar</strong> de la
-                dirección formateada en cards y listados. Ej:{" "}
-                <em>&quot;Bar de Pepe&quot;</em>,{" "}
-                <em>&quot;Casa de Lucía&quot;</em>,{" "}
-                <em>&quot;Centro Cultural&quot;</em>. La dirección real sigue
-                usándose para distancia y mapa.
+              {t("form.displayNameLabel")}
+              <span className={styles.fieldHint}>
+                {t("form.displayNameOptional")}
+              </span>
+              <InfoTooltip label={t("form.displayNameHelpAria")}>
+                <Trans
+                  t={t}
+                  i18nKey="form.displayNameHelp"
+                  components={{ strong: <strong />, em: <em /> }}
+                />
               </InfoTooltip>
             </label>
             <input
@@ -375,17 +381,17 @@ export default function EventoForm({
               className={styles.input}
               value={form.location.displayName}
               onChange={(e) => updateLocationDisplayName(e.target.value)}
-              placeholder="Ej. Bar de Pepe"
+              placeholder={t("form.displayNamePlaceholder")}
               maxLength={100}
             />
           </div>
 
           <div className={styles.field}>
-            <span className={styles.fieldLabel}>Estado</span>
+            <span className={styles.fieldLabel}>{t("form.statusLabel")}</span>
             <div
               className={styles.statusChips}
               role="radiogroup"
-              aria-label="Estado del evento"
+              aria-label={t("form.statusGroupAria")}
             >
               {getEventoStatusOptions().map((opt) => {
                 const isActive = form.status === opt.value;
@@ -421,7 +427,7 @@ export default function EventoForm({
           onClick={onCancel}
           disabled={submitting}
         >
-          Cancelar
+          {t("form.cancel")}
         </button>
         <button
           type="submit"
@@ -430,11 +436,11 @@ export default function EventoForm({
         >
           {submitting
             ? isEdit
-              ? "Guardando…"
-              : "Creando…"
+              ? t("form.saving")
+              : t("form.creating")
             : isEdit
-              ? "Guardar cambios"
-              : "Crear evento"}
+              ? t("form.saveChanges")
+              : t("form.createEvent")}
         </button>
       </div>
     </form>

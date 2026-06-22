@@ -1,5 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../../context/NotificationContext";
@@ -28,6 +29,7 @@ export default function EventoMesas({
   setItems: setItemsProp,
   canAdd = false,
 }) {
+  const { t } = useTranslation("eventos");
   const navigate = useNavigate();
   const { addToast } = useNotifications();
 
@@ -63,14 +65,14 @@ export default function EventoMesas({
         setLocalTables([]);
         addToast({
           type: "error",
-          title: "Error",
-          message: "No pudimos cargar las mesas del evento.",
+          title: t("mesas.loadErrorTitle"),
+          message: t("mesas.loadErrorMessage"),
         });
       });
     return () => {
       cancelled = true;
     };
-  }, [eventoId, addToast, itemsProp]);
+  }, [eventoId, addToast, itemsProp, t]);
 
   const handleCreate = () => {
     // Pasamos `eventDate` por navigation state para que CreateTable lockee el
@@ -93,18 +95,18 @@ export default function EventoMesas({
   };
 
   if (tables == null) {
-    return <div className={styles.dim}>Cargando mesas…</div>;
+    return <div className={styles.dim}>{t("mesas.loading")}</div>;
   }
 
   return (
     <div className={styles.wrap}>
       <header className={styles.header}>
         <div>
-          <h3 className={styles.title}>Mesas del evento</h3>
+          <h3 className={styles.title}>{t("mesas.title")}</h3>
           <p className={styles.subtitle}>
             {tables.length === 0
-              ? "Todavía no hay mesas armadas para este evento."
-              : `${tables.length} ${tables.length === 1 ? "mesa armada" : "mesas armadas"} para el día del evento.`}
+              ? t("mesas.subtitleEmpty")
+              : t("mesas.subtitle", { count: tables.length })}
           </p>
         </div>
         {canAdd && (
@@ -113,18 +115,18 @@ export default function EventoMesas({
             className={styles.createBtn}
             onClick={handleCreate}
           >
-            + Crear mesa
+            {t("mesas.createBtn")}
           </button>
         )}
       </header>
 
       {tables.length === 0 ? (
         <div className={styles.empty}>
-          <span className={styles.emptyDot}><Meeple /></span>
+          <span className={styles.emptyDot}>
+            <Meeple />
+          </span>
           <p className={styles.emptyText}>
-            {canAdd
-              ? "Sé el primero en armar una mesa para este evento."
-              : "Sólo los inscriptos confirmados pueden crear mesas acá."}
+            {canAdd ? t("mesas.emptyCanAdd") : t("mesas.emptyCannotAdd")}
           </p>
         </div>
       ) : (

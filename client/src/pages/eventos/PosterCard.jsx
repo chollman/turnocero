@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { dateParts, countdown, formatFee } from "../../utils/eventoDate";
 import { formatDistanceKm } from "../../utils/distance";
 import { getLocationDisplay } from "../../utils/location";
@@ -16,6 +17,7 @@ export default function PosterCard({
   userRegistrationStatus = null,
   now,
 }) {
+  const { t } = useTranslation("eventos");
   const d = dateParts(evento.eventDate);
   const isFree = !evento.fee;
   const cd = countdown(evento.eventDate, now);
@@ -39,14 +41,17 @@ export default function PosterCard({
   // 0 exacto), evitando "0 m" / "Aquí mismo" redundantes.
   const distanceLabel = formatDistanceKm(evento.distanceKm);
 
-  let ctaLabel = "Inscribirme";
-  if (isHost) ctaLabel = "Administrar";
-  else if (userRegistrationStatus === "confirmed") ctaLabel = "Inscripto";
-  else if (userRegistrationStatus === "pending") ctaLabel = "Pendiente";
-  else if (userRegistrationStatus === "rejected") ctaLabel = "Rechazada";
-  else if (evento.status === "cancelled") ctaLabel = "Cancelado";
-  else if (evento.status === "closed") ctaLabel = "Cerrado";
-  else if (evento.status === "draft") ctaLabel = "Borrador";
+  let ctaLabel = t("poster.ctaInscribirme");
+  if (isHost) ctaLabel = t("poster.ctaAdministrar");
+  else if (userRegistrationStatus === "confirmed")
+    ctaLabel = t("poster.ctaInscripto");
+  else if (userRegistrationStatus === "pending")
+    ctaLabel = t("poster.ctaPendiente");
+  else if (userRegistrationStatus === "rejected")
+    ctaLabel = t("poster.ctaRechazada");
+  else if (evento.status === "cancelled") ctaLabel = t("poster.ctaCancelado");
+  else if (evento.status === "closed") ctaLabel = t("poster.ctaCerrado");
+  else if (evento.status === "draft") ctaLabel = t("poster.ctaBorrador");
 
   return (
     <Link className={styles.poster} style={{ "--i": index }} to={detailUrl}>
@@ -61,7 +66,7 @@ export default function PosterCard({
         <div className={styles.fallback}>
           <div className={styles.fallbackInner}>
             <ImageIcon size={32} />
-            <span>imagen del evento</span>
+            <span>{t("poster.fallbackImage")}</span>
           </div>
         </div>
       )}
@@ -88,7 +93,7 @@ export default function PosterCard({
 
       {evento.status === "draft" && (
         <div className={styles.draftWatermark}>
-          <span>Borrador</span>
+          <span>{t("poster.draftWatermark")}</span>
         </div>
       )}
 

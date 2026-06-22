@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
+import { getLocale } from "../../utils/locale";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import {
@@ -10,18 +13,22 @@ import {
 } from "./EventoIcons";
 import styles from "./InscItem.module.css";
 
+// Función pura (no es un componente) — lee el idioma activo vía el singleton de
+// i18n, igual que time.js/locale.js. El armado numérico (la fecha de fallback)
+// usa getLocale() en vez de un "es-AR" hardcodeado.
 function formatRelative(s, now = Date.now()) {
-  if (!s) return "—";
+  const tt = (key, opts) => i18n.t(`eventos:inscItem.${key}`, opts);
+  if (!s) return tt("noDate");
   const d = new Date(s);
   const diff = now - d.getTime();
   const minutes = Math.round(diff / 60000);
   const hours = Math.round(diff / 3600000);
   const days = Math.round(diff / 86400000);
-  if (minutes < 1) return "recién";
-  if (minutes < 60) return `hace ${minutes} min`;
-  if (hours < 24) return `hace ${hours}h`;
-  if (days < 30) return `hace ${days} día${days === 1 ? "" : "s"}`;
-  return d.toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+  if (minutes < 1) return tt("justNow");
+  if (minutes < 60) return tt("minutesAgo", { count: minutes });
+  if (hours < 24) return tt("hoursAgo", { count: hours });
+  if (days < 30) return tt("daysAgo", { count: days });
+  return d.toLocaleDateString(getLocale(), { day: "numeric", month: "short" });
 }
 
 // `now` lo provee el caller (TriageColumn → EventoInscripciones). Si no llega,
@@ -38,6 +45,7 @@ export default function InscItem({
   now,
   index = 0,
 }) {
+  const { t } = useTranslation("eventos");
   const [accepting, setAccepting] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [banning, setBanning] = useState(false);
@@ -94,16 +102,18 @@ export default function InscItem({
       </span>
       <span className={styles.comprobanteInfo}>
         <span className={styles.comprobanteName}>
-          {isPdf ? "comprobante.pdf" : "comprobante.jpg"}
+          {isPdf
+            ? t("inscItem.comprobantePdf")
+            : t("inscItem.comprobanteJpg")}
         </span>
         <span className={styles.comprobanteOpen}>
-          Abrir <ExternalIcon size={10} />
+          {t("inscItem.open")} <ExternalIcon size={10} />
         </span>
       </span>
     </a>
   ) : status === "pending" ? (
     <div className={styles.noComprobante}>
-      <DocIcon size={14} /> Sin comprobante adjunto
+      <DocIcon size={14} /> {t("inscItem.noComprobante")}
     </div>
   ) : null;
 
@@ -112,7 +122,7 @@ export default function InscItem({
   const statusPill =
     status === "confirmed" ? (
       <span className={`${styles.statusPill} ${styles.statusPillConfirmed}`}>
-        ✓ Confirmada
+        {t("inscItem.pillConfirmed")}
       </span>
     ) : status === "rejected" ? (
       <span
@@ -120,11 +130,13 @@ export default function InscItem({
           isPermanent ? styles.statusPillBlocked : styles.statusPillRejected
         }`}
       >
-        {isPermanent ? "⛔ Bloqueado" : "↺ Puede reintentar"}
+        {isPermanent
+          ? t("inscItem.pillBlocked")
+          : t("inscItem.pillCanRetry")}
       </span>
     ) : status === "pending" ? (
       <span className={`${styles.statusPill} ${styles.statusPillPending}`}>
-        ● Pendiente
+        {t("inscItem.pillPending")}
       </span>
     ) : null;
 
@@ -135,7 +147,7 @@ export default function InscItem({
           className={styles.notesInput}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Notas internas (opcional)"
+          placeholder={t("inscItem.notesPlaceholder")}
           rows={2}
           maxLength={500}
         />
@@ -145,7 +157,7 @@ export default function InscItem({
           className={styles.notesToggle}
           onClick={() => setShowNotes(true)}
         >
-          + Agregar nota
+          {t("inscItem.addNote")}
         </button>
       )}
       <div className={styles.actions}>
@@ -154,10 +166,10 @@ export default function InscItem({
           className={styles.btnReject}
           onClick={() => handleReject(false)}
           disabled={accepting || rejecting || banning}
-          title="Rechazar este intento — el usuario puede volver a enviar un comprobante"
+          title={t("inscItem.rejectTitle")}
         >
           <XIcon size={11} />
-          &nbsp;{rejecting ? "Rechazando…" : "Rechazar"}
+          &nbsp;{rejecting ? t("inscItem.rejecting") : t("inscItem.reject")}
         </button>
         <button
           type="button"
@@ -166,7 +178,7 @@ export default function InscItem({
           disabled={accepting || rejecting || banning}
         >
           <CheckIcon size={11} />
-          &nbsp;{accepting ? "Confirmando…" : "Confirmar"}
+          &nbsp;{accepting ? t("inscItem.confirming") : t("inscItem.confirm")}
         </button>
       </div>
       <button
@@ -174,9 +186,9 @@ export default function InscItem({
         className={styles.btnBan}
         onClick={() => handleReject(true)}
         disabled={accepting || rejecting || banning}
-        title="Bloquear permanentemente — el usuario no podrá volver a inscribirse en este evento"
+        title={t("inscItem.banTitle")}
       >
-        ⛔ {banning ? "Bloqueando…" : "Bloquear del evento"}
+        ⛔ {banning ? t("inscItem.banning") : t("inscItem.banLabel")}
       </button>
     </>
   );
@@ -190,8 +202,8 @@ export default function InscItem({
           }`}
         >
           {isPermanent
-            ? "⛔ Bloqueado del evento"
-            : "↺ Puede volver a intentar"}
+            ? t("inscItem.resolvedBlocked")
+            : t("inscItem.resolvedCanRetry")}
           {reg.adminNotes ? ` · ${reg.adminNotes}` : ""}
         </p>
       )}
@@ -204,7 +216,7 @@ export default function InscItem({
         onClick={handleUndo}
         disabled={undoing}
       >
-        ↺ {undoing ? "Revirtiendo…" : "Revertir decisión"}
+        ↺ {undoing ? t("inscItem.reverting") : t("inscItem.undoLabel")}
       </button>
     </>
   );
@@ -245,7 +257,9 @@ export default function InscItem({
               onClick={() => setExpanded((v) => !v)}
               aria-expanded={expanded}
             >
-              {expanded ? "Ocultar detalles" : "Ver detalles"}
+              {expanded
+                ? t("inscItem.hideDetails")
+                : t("inscItem.viewDetails")}
             </button>
           </div>
           {expanded && (

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -27,6 +28,7 @@ export default function EventoLudotecaPicker({
   onAdded,
   existingItems = [],
 }) {
+  const { t } = useTranslation("eventos");
   const { user } = useAuth();
   const { addToast } = useNotifications();
   const hasBgg = !!user?.bggUsername;
@@ -68,17 +70,20 @@ export default function EventoLudotecaPicker({
       onAdded?.(data.item);
       addToast({
         type: "evento_ludoteca_added",
-        title: "Juego agregado",
-        message: `${selectedGame.name} ya está en la ludoteca`,
+        title: t("ludoteca.picker.addedTitle"),
+        message: t("ludoteca.picker.addedMessage", { game: selectedGame.name }),
       });
       onClose?.();
     } catch (err) {
       const msg =
         err.response?.status === 409
-          ? "Ya agregaste este juego"
-          : err.response?.data?.message ||
-            "No pudimos agregar el juego. Reintentá en unos segundos.";
-      addToast({ type: "error", title: "Error", message: msg });
+          ? t("ludoteca.picker.errorDuplicate")
+          : err.response?.data?.message || t("ludoteca.picker.errorGeneric");
+      addToast({
+        type: "error",
+        title: t("ludoteca.picker.errorTitle"),
+        message: msg,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -88,17 +93,17 @@ export default function EventoLudotecaPicker({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      ariaLabel="Agregar juego a la ludoteca"
+      ariaLabel={t("ludoteca.picker.modalAria")}
       backdropClassName={styles.backdrop}
       className={styles.modal}
     >
       <div className={styles.header}>
-        <h2 className={styles.title}>Agregar juego</h2>
+        <h2 className={styles.title}>{t("ludoteca.picker.title")}</h2>
         <button
           type="button"
           className={styles.close}
           onClick={onClose}
-          aria-label="Cerrar"
+          aria-label={t("ludoteca.picker.close")}
         >
           ×
         </button>
@@ -115,7 +120,7 @@ export default function EventoLudotecaPicker({
                 className={`${styles.tab} ${tab === "collection" ? styles.tabActive : ""}`}
                 onClick={() => setTab("collection")}
               >
-                Mi colección
+                {t("ludoteca.picker.tabCollection")}
               </button>
             )}
             <button
@@ -125,7 +130,7 @@ export default function EventoLudotecaPicker({
               className={`${styles.tab} ${tab === "search" ? styles.tabActive : ""}`}
               onClick={() => setTab("search")}
             >
-              Buscar BGG
+              {t("ludoteca.picker.tabSearch")}
             </button>
           </div>
 
@@ -136,9 +141,7 @@ export default function EventoLudotecaPicker({
               myAddedIds={myAddedIds}
             />
           ) : tab === "collection" && !hasBgg ? (
-            <p className={styles.dim}>
-              Conectá tu cuenta BGG en tu perfil para ver tu colección.
-            </p>
+            <p className={styles.dim}>{t("ludoteca.picker.connectBgg")}</p>
           ) : (
             <BggGameSearch onPick={setSelectedGame} />
           )}
@@ -166,12 +169,12 @@ export default function EventoLudotecaPicker({
           </div>
 
           <label className={styles.notesLabel}>
-            Notas (opcional, máx 200)
+            {t("ludoteca.picker.notesLabel")}
             <textarea
               className={styles.notesInput}
               value={notes}
               onChange={(e) => setNotes(e.target.value.slice(0, 200))}
-              placeholder="Ej: edición Sea Floor"
+              placeholder={t("ludoteca.picker.notesPlaceholder")}
               rows={3}
             />
           </label>
@@ -186,7 +189,7 @@ export default function EventoLudotecaPicker({
               }}
               disabled={submitting}
             >
-              ← Elegir otro
+              {t("ludoteca.picker.chooseOther")}
             </button>
             <button
               type="button"
@@ -194,7 +197,9 @@ export default function EventoLudotecaPicker({
               onClick={handleSubmit}
               disabled={submitting}
             >
-              {submitting ? "Agregando…" : "Agregar a la ludoteca"}
+              {submitting
+                ? t("ludoteca.picker.adding")
+                : t("ludoteca.picker.addToLudoteca")}
             </button>
           </div>
         </div>
@@ -205,6 +210,7 @@ export default function EventoLudotecaPicker({
 
 // Sub-componente: lista la colección BGG del user con filtro por nombre.
 function CollectionTab({ bggUsername, onPick, myAddedIds }) {
+  const { t } = useTranslation("eventos");
   const [games, setGames] = useState(null);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState("");
@@ -222,12 +228,12 @@ function CollectionTab({ bggUsername, onPick, myAddedIds }) {
       })
       .catch(() => {
         if (cancelled) return;
-        setError("No pudimos cargar tu colección.");
+        setError(t("ludoteca.picker.collectionError"));
       });
     return () => {
       cancelled = true;
     };
-  }, [bggUsername]);
+  }, [bggUsername, t]);
 
   const filtered = useMemo(() => {
     if (!games) return [];
@@ -237,13 +243,10 @@ function CollectionTab({ bggUsername, onPick, myAddedIds }) {
   }, [games, debouncedFilter]);
 
   if (error) return <p className={styles.dim}>{error}</p>;
-  if (games == null) return <p className={styles.dim}>Cargando colección…</p>;
+  if (games == null)
+    return <p className={styles.dim}>{t("ludoteca.picker.collectionLoading")}</p>;
   if (games.length === 0)
-    return (
-      <p className={styles.dim}>
-        Tu colección de BGG está vacía o aún no se sincronizó.
-      </p>
-    );
+    return <p className={styles.dim}>{t("ludoteca.picker.collectionEmpty")}</p>;
 
   return (
     <div className={styles.collectionWrap}>
@@ -252,11 +255,11 @@ function CollectionTab({ bggUsername, onPick, myAddedIds }) {
         className={styles.filterInput}
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        placeholder="Filtrar por nombre…"
-        aria-label="Filtrar mi colección"
+        placeholder={t("ludoteca.picker.filterPlaceholder")}
+        aria-label={t("ludoteca.picker.filterAria")}
       />
       {filtered.length === 0 ? (
-        <p className={styles.dim}>Sin coincidencias.</p>
+        <p className={styles.dim}>{t("ludoteca.picker.noMatches")}</p>
       ) : (
         <ul className={styles.collectionGrid}>
           {filtered.map((g) => {
@@ -277,7 +280,7 @@ function CollectionTab({ bggUsername, onPick, myAddedIds }) {
                       year: g.yearPublished,
                     })
                   }
-                  title={already ? "Ya lo agregaste" : g.name}
+                  title={already ? t("ludoteca.picker.alreadyAdded") : g.name}
                 >
                   {g.image || g.thumbnail ? (
                     <img

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation, Trans } from "react-i18next";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
 import { dateParts, countdown, formatFee } from "../../utils/eventoDate";
@@ -19,6 +20,7 @@ export default function TimelineRow({
   userRegistrationStatus = null,
   now,
 }) {
+  const { t } = useTranslation("eventos");
   const d = dateParts(evento.eventDate);
   const cd = countdown(evento.eventDate, now);
   const isFree = !evento.fee;
@@ -68,7 +70,7 @@ export default function TimelineRow({
       to={detailUrl}
       className={styles.row}
       style={{ "--i": index }}
-      aria-label={`Más info: ${evento.title}`}
+      aria-label={t("timeline.rowAria", { title: evento.title })}
     >
       <div className={styles.date}>
         <span className={styles.dateWeekday}>{d?.weekday || ""}</span>
@@ -89,22 +91,22 @@ export default function TimelineRow({
           )}
           {isHost && (
             <span className={`${styles.status} ${styles.statusHost}`}>
-              Sos host
+              {t("timeline.host")}
             </span>
           )}
           {userRegistrationStatus === "confirmed" && (
             <span className={`${styles.status} ${styles.statusInscripto}`}>
-              Inscripto
+              {t("timeline.inscripto")}
             </span>
           )}
           {userRegistrationStatus === "pending" && (
             <span className={`${styles.status} ${styles.status_draft}`}>
-              Pendiente
+              {t("timeline.pendiente")}
             </span>
           )}
           {!isPast && evento.status === "open" && isFull && (
             <span className={`${styles.status} ${styles.statusFull}`}>
-              Sin cupo
+              {t("timeline.sinCupo")}
             </span>
           )}
           {!isPast && evento.status === "open" && cd.text && (
@@ -142,8 +144,11 @@ export default function TimelineRow({
           <span className={styles.metaItem}>
             <UsersIcon size={12} />
             {hasMax
-              ? `${participants}/${evento.maxParticipants} inscriptos`
-              : `${totalInscriptions} inscripciones`}
+              ? t("timeline.inscriptos", {
+                  participants,
+                  max: evento.maxParticipants,
+                })
+              : t("timeline.inscripciones", { count: totalInscriptions })}
           </span>
         </div>
 
@@ -155,8 +160,12 @@ export default function TimelineRow({
           <div className={styles.hostLine}>
             <Avatar user={author} size="xs" />
             <span>
-              Organiza{" "}
-              <span className={styles.hostName}>{authorDisplay.name}</span>
+              <Trans
+                t={t}
+                i18nKey="timeline.organiza"
+                values={{ name: authorDisplay.name }}
+                components={{ name: <span className={styles.hostName} /> }}
+              />
             </span>
           </div>
         )}
@@ -164,7 +173,7 @@ export default function TimelineRow({
 
       <div className={styles.right}>
         <div className={styles.fee}>
-          <span className={styles.feeLabel}>Inscripción</span>
+          <span className={styles.feeLabel}>{t("timeline.fee")}</span>
           <span
             className={`${styles.feeValue} ${isFree ? styles.feeValueFree : ""}`}
           >
@@ -180,11 +189,14 @@ export default function TimelineRow({
               />
             </div>
             <span className={styles.cuposText}>
-              {participants}/{evento.maxParticipants} cupos
+              {t("timeline.cupos", {
+                participants,
+                max: evento.maxParticipants,
+              })}
             </span>
           </div>
         )}
-        <span className={styles.cta}>Más info!</span>
+        <span className={styles.cta}>{t("timeline.cta")}</span>
       </div>
     </Link>
   );

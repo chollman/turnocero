@@ -4,6 +4,7 @@ import { useParams, Link, Navigate } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { API } from "../../api/endpoints";
@@ -14,6 +15,7 @@ import { ArrowLeftIcon } from "./EventoIcons";
 import styles from "./EventoInscripciones.module.css";
 
 export default function EventoInscripciones() {
+  const { t } = useTranslation("eventos");
   const { id } = useParams();
   const { isActuallyAdmin, loading: authLoading } = useAuth();
   const { addToast } = useNotifications();
@@ -172,12 +174,14 @@ export default function EventoInscripciones() {
       } catch (err) {
         addToast({
           type: "error",
-          title: "No pudimos confirmar la inscripción",
-          message: err.response?.data?.message || "Reintentá en unos segundos.",
+          title: t("inscripciones.acceptErrorTitle"),
+          message:
+            err.response?.data?.message ||
+            t("inscripciones.acceptErrorMessage"),
         });
       }
     },
-    [id, addToast],
+    [id, addToast, t],
   );
 
   const reject = useCallback(
@@ -204,12 +208,14 @@ export default function EventoInscripciones() {
       } catch (err) {
         addToast({
           type: "error",
-          title: "No pudimos rechazar la inscripción",
-          message: err.response?.data?.message || "Reintentá en unos segundos.",
+          title: t("inscripciones.rejectErrorTitle"),
+          message:
+            err.response?.data?.message ||
+            t("inscripciones.rejectErrorMessage"),
         });
       }
     },
-    [id, addToast],
+    [id, addToast, t],
   );
 
   // Revertir: vuelve el registro a 'pending' como si el usuario recién se
@@ -239,12 +245,13 @@ export default function EventoInscripciones() {
       } catch (err) {
         addToast({
           type: "error",
-          title: "No pudimos revertir la inscripción",
-          message: err.response?.data?.message || "Reintentá en unos segundos.",
+          title: t("inscripciones.undoErrorTitle"),
+          message:
+            err.response?.data?.message || t("inscripciones.undoErrorMessage"),
         });
       }
     },
-    [id, addToast],
+    [id, addToast, t],
   );
 
   const groups = useMemo(() => {
@@ -280,7 +287,7 @@ export default function EventoInscripciones() {
   if (loading) {
     return (
       <div className={styles.page}>
-        <p className={styles.loading}>Cargando inscripciones…</p>
+        <p className={styles.loading}>{t("inscripciones.loading")}</p>
       </div>
     );
   }
@@ -288,9 +295,9 @@ export default function EventoInscripciones() {
   if (notFound) {
     return (
       <div className={styles.page}>
-        <p className={styles.notFound}>Evento no encontrado.</p>
+        <p className={styles.notFound}>{t("inscripciones.notFound")}</p>
         <Link to="/eventos" className={styles.backLink}>
-          ← Volver a eventos
+          {t("inscripciones.back")}
         </Link>
       </div>
     );
@@ -302,45 +309,67 @@ export default function EventoInscripciones() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>Inscripciones — {evento.title} — TurnoCero</title>
+        <title>
+          {t("inscripciones.metaTitle", {
+            title: evento.title,
+          })}
+        </title>
       </Helmet>
 
       <header className={styles.header}>
         <div className={styles.context}>
           <Link to={`/eventos/${id}`} className={styles.contextLink}>
-            <ArrowLeftIcon size={11} /> Volver al evento
+            <ArrowLeftIcon size={11} /> {t("inscripciones.backToEvent")}
           </Link>
-          <span className={styles.eyebrow}><Meeple />Gestión de inscripciones</span>
-          <h1 className={styles.title}>{evento.title || "Evento"}</h1>
+          <span className={styles.eyebrow}>
+            <Meeple />
+            {t("inscripciones.eyebrow")}
+          </span>
+          <h1 className={styles.title}>
+            {evento.title || t("inscripciones.fallbackTitle")}
+          </h1>
           {d && (
             <span className={styles.subtitle}>
-              {d.weekdayLong} {d.day} {d.monthLong} · {d.time} hs
+              {t("inscripciones.subtitle", {
+                weekday: d.weekdayLong,
+                day: d.day,
+                month: d.monthLong,
+                time: d.time,
+              })}
             </span>
           )}
         </div>
 
         <div className={styles.statRow}>
           <div className={styles.stat}>
-            <span className={styles.statLabel}>Pendientes</span>
+            <span className={styles.statLabel}>
+              {t("inscripciones.statPending")}
+            </span>
             <span className={`${styles.statValue} ${styles.statOrange}`}>
               {counts.pending}
             </span>
           </div>
           <div className={styles.stat}>
-            <span className={styles.statLabel}>Confirmadas</span>
+            <span className={styles.statLabel}>
+              {t("inscripciones.statConfirmed")}
+            </span>
             <span className={`${styles.statValue} ${styles.statGreen}`}>
               {counts.confirmed}
             </span>
           </div>
           <div className={styles.stat}>
-            <span className={styles.statLabel}>Rechazadas</span>
+            <span className={styles.statLabel}>
+              {t("inscripciones.statRejected")}
+            </span>
             <span className={`${styles.statValue} ${styles.statMuted}`}>
               {counts.rejected}
             </span>
           </div>
           {evento.maxParticipants && (
             <div className={styles.stat}>
-              <span className={styles.statLabel}>Cupo</span>
+              <span className={styles.statLabel}>
+                {t("inscripciones.statCupo")}
+              </span>
               <span className={styles.statValue}>
                 <span className={styles.statAccent}>{counts.occupied}</span>
                 <span className={styles.statMutedInline}>
@@ -354,30 +383,30 @@ export default function EventoInscripciones() {
 
       <div className={styles.columns}>
         <TriageColumn
-          title="Pendientes de revisión"
+          title={t("inscripciones.colPendingTitle")}
           status="pending"
           items={groups.pending}
-          emptyText="Nada por revisar 🎉"
+          emptyText={t("inscripciones.colPendingEmpty")}
           onAccept={accept}
           onReject={reject}
           onUndo={undo}
           now={now}
         />
         <TriageColumn
-          title="Confirmadas"
+          title={t("inscripciones.colConfirmedTitle")}
           status="confirmed"
           items={groups.confirmed}
-          emptyText="Sin inscripciones confirmadas"
+          emptyText={t("inscripciones.colConfirmedEmpty")}
           onAccept={accept}
           onReject={reject}
           onUndo={undo}
           now={now}
         />
         <TriageColumn
-          title="Rechazadas"
+          title={t("inscripciones.colRejectedTitle")}
           status="rejected"
           items={groups.rejected}
-          emptyText="Sin rechazos"
+          emptyText={t("inscripciones.colRejectedEmpty")}
           onAccept={accept}
           onReject={reject}
           onUndo={undo}
