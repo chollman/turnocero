@@ -1,0 +1,146 @@
+{
+  "loginPrompt": {
+    "title": "¡Sumate a la partida!",
+    "defaultMessage": "Iniciá sesión para continuar.",
+    "login": "Iniciá sesión",
+    "register": "Registrate gratis"
+  },
+  "guestJoin": {
+    "aria": "Sumate a {{brand}}",
+    "title": "Sumate a <1>{{brand}}</1>",
+    "sub": "Encontrá gente para jugar cerca tuyo y compartí tus partidas. Es gratis.",
+    "register": "Registrate gratis",
+    "haveAccount": "Ya tengo cuenta"
+  },
+  "pushPrompt": {
+    "aria": "Activar notificaciones",
+    "title": "Activá las notificaciones",
+    "installText": "Instalá la app en tu pantalla de inicio (compartir → “Agregar a inicio”) para recibir avisos.",
+    "text": "Enterate al toque cuando te escriban, te inviten o se acerque un evento — aunque tengas la app cerrada.",
+    "activating": "Activando…",
+    "activate": "Activar",
+    "understood": "Entendido",
+    "notNow": "Ahora no",
+    "successTitle": "¡Activadas!",
+    "successMessage": "Te vamos a avisar en este dispositivo.",
+    "errorTitle": "No se pudo",
+    "errorMessage": "Revisá los permisos de notificaciones del navegador."
+  },
+  "listFilters": {
+    "filters": "Filtros",
+    "activeCount": "{{count}} filtros activos",
+    "popoverAria": "Filtros de la lista",
+    "statusTitle": "Estado",
+    "filterListAria": "Filtrar lista",
+    "distanceTitle": "Distancia",
+    "resultsWithin": "Resultados a <1>menos de {{radius}} km</1> de tu ubicación",
+    "filterByDistance": "Filtrá por <1>distancia</1> desde tu ubicación",
+    "addAddress": "Agregá tu dirección en <1>tu perfil</1> para filtrar por distancia",
+    "decreaseRadius": "Disminuir radio 1 km",
+    "increaseRadius": "Aumentar radio 1 km",
+    "radiusAria": "Radio máximo en kilómetros",
+    "radiusTitle": "Radio: {{value}}",
+    "radiusTitleDisabled": "Agregá tu dirección en el perfil para activar este filtro",
+    "noLimit": "Sin límite"
+  },
+  "bggSearch": {
+    "placeholder": "Buscá un juego en BGG (≥3 caracteres)…",
+    "inputAria": "Buscar juego en BoardGameGeek",
+    "loading": "Buscando en BGG",
+    "loadingHint": "puede tardar unos segundos",
+    "noResults": "Sin resultados."
+  },
+  "diceLoader": {
+    "defaultText": "Buscando"
+  },
+  "passwordInput": {
+    "hide": "Ocultar contraseña",
+    "show": "Mostrar contraseña"
+  },
+  "confirmAction": {
+    "loading": "..."
+  },
+  "avatarCrop": {
+    "overlayAria": "Recortar avatar",
+    "title": "Recortar avatar",
+    "zoom": "Zoom",
+    "saving": "Guardando…"
+  },
+  "avatarColorPicker": {
+    "groupAria": "Color de avatar",
+    "autoAria": "Color automático",
+    "autoTitle": "Automático",
+    "swatchAria": "Color {{token}}"
+  },
+  "avatar": {
+    "deleted": "Usuario eliminado"
+  },
+  "commentLike": {
+    "remove": "Quitar me gusta",
+    "like": "Me gusta",
+    "showLikers": "Ver a quién le gustó ({{count}})"
+  },
+  "likersModal": {
+    "defaultTitle": "A quién le gustó",
+    "loadError": "No pudimos cargar la lista.",
+    "empty": "Todavía no le gustó a nadie."
+  },
+  "communitySelect": {
+    "label": "Publicar en"
+  },
+  "infoTooltip": {
+    "defaultLabel": "Más información"
+  },
+  "addressMap": {
+    "missingKey": "Falta configurar <1>VITE_GOOGLE_MAPS_API_KEY</1> en el entorno.",
+    "markerLabel": "Ubicación seleccionada"
+  },
+  "richTextContent": {
+    "lightboxAria": "Imagen ampliada"
+  },
+  "richTextEditor": {
+    "defaultPlaceholder": "Escribí tu reseña…",
+    "uploadError": "No se pudo subir la imagen.",
+    "linkPrompt": "URL del link:",
+    "youtubePrompt": "Pegá el link del video de YouTube:",
+    "youtubeError": "No reconocí ese link de YouTube.",
+    "toolbarAria": "Formato de texto",
+    "heading": "Título",
+    "subheading": "Subtítulo",
+    "subheadingMinor": "Subtítulo menor",
+    "bold": "Negrita",
+    "italic": "Itálica",
+    "code": "Código",
+    "bulletList": "Lista con viñetas",
+    "orderedList": "Lista numerada",
+    "quote": "Cita",
+    "separator": "Separador",
+    "alignLeft": "Alinear a la izquierda",
+    "alignCenter": "Centrar",
+    "alignRight": "Alinear a la derecha",
+    "link": "Link",
+    "image": "Imagen",
+    "youtube": "Video de YouTube"
+  },
+  "dateTimePicker": {
+    "pickDate": "Elegí fecha",
+    "pickDateTime": "Elegí fecha y hora",
+    "dialogDate": "Seleccionar fecha",
+    "dialogDateTime": "Seleccionar fecha y hora",
+    "prevMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "weekdayInitials": ["L", "M", "M", "J", "V", "S", "D"],
+    "hour": "Hora",
+    "minutes": "Minutos",
+    "done": "Listo"
+  },
+  "seatTrack": {
+    "label": "{{filled}} de {{total}} lugares ocupados"
+  },
+  "tableMap": {
+    "ariaWithGame": "Vista cenital de la mesa de {{game}} con los jugadores",
+    "aria": "Vista cenital de la mesa con los jugadores",
+    "emptySeat": "lugar libre",
+    "deleted": "eliminado"
+  }
+}

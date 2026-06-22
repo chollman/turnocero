@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./DateTimePicker.module.css";
 
 // ── Icons ────────────────────────────────────────────────────────────
@@ -205,6 +206,7 @@ export default function DateTimePicker({
   // que una partida no quede en el futuro).
   maxDate = null,
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [openUpward, setOpenUpward] = useState(false);
   const wrapperRef = useRef(null);
@@ -298,8 +300,8 @@ export default function DateTimePicker({
       ? formatDayPart(selectedDate)
       : formatTrigger(selectedDate)
     : dateOnly
-      ? "Elegí fecha"
-      : "Elegí fecha y hora";
+      ? t("shared:dateTimePicker.pickDate")
+      : t("shared:dateTimePicker.pickDateTime");
 
   return (
     <div className={styles.wrapper} ref={wrapperRef}>
@@ -334,7 +336,11 @@ export default function DateTimePicker({
         <div
           className={`${styles.popover} ${openUpward ? styles.popoverUp : ""}`}
           role="dialog"
-          aria-label={dateOnly ? "Seleccionar fecha" : "Seleccionar fecha y hora"}
+          aria-label={
+            dateOnly
+              ? t("shared:dateTimePicker.dialogDate")
+              : t("shared:dateTimePicker.dialogDateTime")
+          }
         >
           {/* Month nav */}
           <div className={styles.monthNav}>
@@ -342,7 +348,7 @@ export default function DateTimePicker({
               type="button"
               className={styles.monthNavBtn}
               onClick={() => setViewMonth(addMonths(viewMonth, -1))}
-              aria-label="Mes anterior"
+              aria-label={t("shared:dateTimePicker.prevMonth")}
             >
               <ChevronLeft />
             </button>
@@ -353,7 +359,7 @@ export default function DateTimePicker({
               type="button"
               className={styles.monthNavBtn}
               onClick={() => setViewMonth(addMonths(viewMonth, 1))}
-              aria-label="Mes siguiente"
+              aria-label={t("shared:dateTimePicker.nextMonth")}
             >
               <ChevronRight />
             </button>
@@ -361,7 +367,9 @@ export default function DateTimePicker({
 
           {/* Weekday header */}
           <div className={styles.weekdays} aria-hidden="true">
-            {["L", "M", "M", "J", "V", "S", "D"].map((d, i) => (
+            {t("shared:dateTimePicker.weekdayInitials", {
+              returnObjects: true,
+            }).map((d, i) => (
               <span key={i} className={styles.weekday}>
                 {d}
               </span>
@@ -417,7 +425,7 @@ export default function DateTimePicker({
                 className={styles.timeSelect}
                 value={currentHour}
                 onChange={(e) => handleHourChange(Number(e.target.value))}
-                aria-label="Hora"
+                aria-label={t("shared:dateTimePicker.hour")}
               >
                 {Array.from({ length: 24 }, (_, h) => (
                   <option key={h} value={h}>
@@ -430,7 +438,7 @@ export default function DateTimePicker({
                 className={styles.timeSelect}
                 value={currentMinute}
                 onChange={(e) => handleMinuteChange(Number(e.target.value))}
-                aria-label="Minutos"
+                aria-label={t("shared:dateTimePicker.minutes")}
               >
                 {[0, 15, 30, 45].map((m) => (
                   <option key={m} value={m}>
@@ -444,7 +452,7 @@ export default function DateTimePicker({
                 className={styles.doneBtn}
                 onClick={() => setOpen(false)}
               >
-                Listo
+                {t("shared:dateTimePicker.done")}
               </button>
             </div>
           )}

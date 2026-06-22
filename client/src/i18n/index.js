@@ -32,6 +32,8 @@ import esLayout from "./resources/es/layout.json";
 import enLayout from "./resources/en/layout.json";
 import esToasts from "./resources/es/toasts.json";
 import enToasts from "./resources/en/toasts.json";
+import esShared from "./resources/es/shared.json";
+import enShared from "./resources/en/shared.json";
 
 export const resources = {
   es: {
@@ -44,6 +46,7 @@ export const resources = {
     quotes: esQuotes,
     layout: esLayout,
     toasts: esToasts,
+    shared: esShared,
   },
   en: {
     common: enCommon,
@@ -55,6 +58,7 @@ export const resources = {
     quotes: enQuotes,
     layout: enLayout,
     toasts: enToasts,
+    shared: enShared,
   },
 };
 

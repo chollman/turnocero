@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import styles from "./SeatTrack.module.css";
 
 // Barra de progreso de lugares ocupados. La cantidad de divisores verticales
@@ -17,6 +18,7 @@ export default function SeatTrack({
   full,
   className = "",
 }) {
+  const { t } = useTranslation();
   const safeTotal = Math.max(1, Number(total) || 0);
   const safeFilled = Math.min(safeTotal, Math.max(0, Number(filled) || 0));
   const pct = (safeFilled / safeTotal) * 100;
@@ -28,7 +30,10 @@ export default function SeatTrack({
       aria-valuemin={0}
       aria-valuemax={safeTotal}
       aria-valuenow={safeFilled}
-      aria-label={`${safeFilled} de ${safeTotal} lugares ocupados`}
+      aria-label={t("shared:seatTrack.label", {
+        filled: safeFilled,
+        total: safeTotal,
+      })}
     >
       <span
         className={`${styles.fill} ${isFull ? styles.fill_full : ""}`}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import Meeple from "./Meeple";
 import { AVATAR_PALETTE, isValidAvatarColor } from "../../utils/hash";
 import styles from "./AvatarColorPicker.module.css";
@@ -25,6 +26,7 @@ export default function AvatarColorPicker({
   allowAuto = false,
   disabled = false,
 }) {
+  const { t } = useTranslation();
   const isAuto = !isValidAvatarColor(value);
   const previewToken = !isAuto
     ? value
@@ -46,7 +48,11 @@ export default function AvatarColorPicker({
         {initial ? initial : <Meeple className={styles.previewMeeple} />}
       </div>
 
-      <div className={styles.swatches} role="group" aria-label="Color de avatar">
+      <div
+        className={styles.swatches}
+        role="group"
+        aria-label={t("shared:avatarColorPicker.groupAria")}
+      >
         {allowAuto && (
           <button
             type="button"
@@ -55,9 +61,9 @@ export default function AvatarColorPicker({
             }`}
             onClick={() => onChange?.("")}
             disabled={disabled}
-            aria-label="Color automático"
+            aria-label={t("shared:avatarColorPicker.autoAria")}
             aria-pressed={isAuto}
-            title="Automático"
+            title={t("shared:avatarColorPicker.autoTitle")}
           />
         )}
         {AVATAR_PALETTE.map((token) => (
@@ -68,7 +74,9 @@ export default function AvatarColorPicker({
             style={{ background: `var(${token})`, color: `var(${token})` }}
             onClick={() => onChange?.(token)}
             disabled={disabled}
-            aria-label={`Color ${token.replace("--", "")}`}
+            aria-label={t("shared:avatarColorPicker.swatchAria", {
+              token: token.replace("--", ""),
+            })}
             aria-pressed={value === token}
           />
         ))}

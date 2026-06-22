@@ -5,6 +5,7 @@ import {
   AdvancedMarker,
   useMap,
 } from "@vis.gl/react-google-maps";
+import { Trans, useTranslation } from "react-i18next";
 import { useTheme } from "../../context/ThemeContext";
 import styles from "./AddressMap.module.css";
 
@@ -46,6 +47,7 @@ function MapSync({ lat, lng }) {
  */
 export default function AddressMap({ lat, lng, onChange, height = 280 }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   // Leer envs en cada render — permite override en tests vía vi.stubEnv y se
   // mantiene barato porque import.meta.env es un objeto sincrónico.
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -57,7 +59,10 @@ export default function AddressMap({ lat, lng, onChange, height = 280 }) {
     return (
       <div className={styles.map} style={{ height }} role="alert">
         <p className={styles.error}>
-          Falta configurar <code>VITE_GOOGLE_MAPS_API_KEY</code> en el entorno.
+          <Trans
+            i18nKey="shared:addressMap.missingKey"
+            components={[<span key="0" />, <code key="1" />]}
+          />
         </p>
       </div>
     );
@@ -101,7 +106,7 @@ export default function AddressMap({ lat, lng, onChange, height = 280 }) {
             >
               <span
                 className={styles.pin}
-                aria-label="Ubicación seleccionada"
+                aria-label={t("shared:addressMap.markerLabel")}
               />
             </AdvancedMarker>
           )}

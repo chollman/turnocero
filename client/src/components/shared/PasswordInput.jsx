@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./PasswordInput.module.css";
 
 const Eye = () => (
@@ -47,6 +48,7 @@ export default function PasswordInput({
   className,
   autoComplete,
 }) {
+  const { t } = useTranslation();
   const [show, setShow] = useState(false);
   return (
     <div className={styles.wrap}>
@@ -68,7 +70,9 @@ export default function PasswordInput({
         type="button"
         className={styles.eyeBtn}
         onClick={() => setShow((s) => !s)}
-        aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"}
+        aria-label={
+          show ? t("shared:passwordInput.hide") : t("shared:passwordInput.show")
+        }
         tabIndex={-1}
       >
         {show ? <EyeOff /> : <Eye />}

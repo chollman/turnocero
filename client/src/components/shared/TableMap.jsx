@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { useTranslation } from "react-i18next";
 import { hashStringToInt, AVATAR_PALETTE } from "../../utils/hash";
 import { getUserDisplay } from "../../utils/userDisplay";
 import styles from "./TableMap.module.css";
@@ -51,10 +52,10 @@ function initialOf(user) {
   return name.charAt(0).toUpperCase() || "?";
 }
 
-function handleOf(user) {
-  if (!user) return "lugar libre";
+function handleOf(user, t) {
+  if (!user) return t("shared:tableMap.emptySeat");
   const d = getUserDisplay(user);
-  if (d.isDeleted) return "eliminado";
+  if (d.isDeleted) return t("shared:tableMap.deleted");
   return `@${d.username || d.displayName || "anon"}`;
 }
 
@@ -73,6 +74,7 @@ export default function TableMap({
   game = "",
   imageUrl = null,
 }) {
+  const { t } = useTranslation();
   // Prefix único para los clipPaths de los avatares — evita colisiones si
   // hay más de un <TableMap> en el DOM (p. ej. listas de mesas).
   const clipPrefix = useId().replace(/:/g, "");
@@ -114,8 +116,8 @@ export default function TableMap({
       className={styles.svg}
       aria-label={
         game
-          ? `Vista cenital de la mesa de ${game} con los jugadores`
-          : "Vista cenital de la mesa con los jugadores"
+          ? t("shared:tableMap.ariaWithGame", { game })
+          : t("shared:tableMap.aria")
       }
     >
       <defs>
@@ -359,7 +361,7 @@ export default function TableMap({
                       : ""
               }`}
             >
-              {handleOf(p.user)}
+              {handleOf(p.user, t)}
             </text>
           </g>
         );

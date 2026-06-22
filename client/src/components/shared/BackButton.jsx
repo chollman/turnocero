@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import styles from "./BackButton.module.css";
 
 /**
@@ -26,20 +27,25 @@ export default function BackButton({
   onClick,
   disabled = false,
   flush = false,
-  children = "Volver",
+  children,
   className = "",
   ...rest
 }) {
+  const { t } = useTranslation();
   const cls = [styles.backBtn, flush ? styles.flush : "", className]
     .filter(Boolean)
     .join(" ");
+
+  // El texto por defecto ("Volver") se resuelve acá, no en el param, porque
+  // `t` no está disponible en la firma. Un `children` del caller gana.
+  const label = children ?? t("common:actions.back");
 
   const content = (
     <>
       <span className={styles.arrow} aria-hidden="true">
         ←
       </span>
-      {children}
+      {label}
     </>
   );
 

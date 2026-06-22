@@ -5,6 +5,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { API } from "../../api/endpoints";
 import styles from "./RichTextEditor.module.css";
 import {
@@ -51,12 +52,17 @@ function ToolbarButton({ onClick, active, label, disabled, children }) {
 export default function RichTextEditor({
   value = "",
   onChange,
-  placeholder = "Escribí tu reseña…",
+  placeholder,
   disabled = false,
   maxLength = 20000,
   uploadUrl = API.compartidas.INLINE_IMAGE,
   extended = false,
 }) {
+  const { t } = useTranslation();
+  // El placeholder por defecto ("Escribí tu reseña…") se resuelve acá, no en
+  // el param, porque `t` no está disponible en la firma. Uno del caller gana.
+  const resolvedPlaceholder =
+    placeholder ?? t("shared:richTextEditor.defaultPlaceholder");
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const uploadingRef = useRef(false);
@@ -74,7 +80,7 @@ export default function RichTextEditor({
       });
       return data.url;
     } catch {
-      window.alert("No se pudo subir la imagen.");
+      window.alert(t("shared:richTextEditor.uploadError"));
       return null;
     } finally {
       uploadingRef.current = false;
@@ -102,7 +108,7 @@ export default function RichTextEditor({
           target: "_blank",
         },
       }),
-      Placeholder.configure({ placeholder }),
+      Placeholder.configure({ placeholder: resolvedPlaceholder }),
       Image.configure({ inline: false, allowBase64: false }),
       ...(extended
         ? [
@@ -118,7 +124,7 @@ export default function RichTextEditor({
     editorProps: {
       attributes: {
         class: styles.prose,
-        "data-placeholder": placeholder,
+        "data-placeholder": resolvedPlaceholder,
       },
       // Bloquear escritura más allá del tope (texto plano).
       handleKeyDown: (_view, event) => {
@@ -202,7 +208,7 @@ export default function RichTextEditor({
 
   const setLink = () => {
     const prev = editor.getAttributes("link").href || "";
-    const url = window.prompt("URL del link:", prev);
+    const url = window.prompt(t("shared:richTextEditor.linkPrompt"), prev);
     if (url === null) return;
     if (url === "") {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
@@ -219,11 +225,11 @@ export default function RichTextEditor({
   };
 
   const addYoutube = () => {
-    const url = window.prompt("Pegá el link del video de YouTube:");
+    const url = window.prompt(t("shared:richTextEditor.youtubePrompt"));
     if (!url) return;
     const id = extractYoutubeId(url);
     if (!id) {
-      window.alert("No reconocí ese link de YouTube.");
+      window.alert(t("shared:richTextEditor.youtubeError"));
       return;
     }
     editor.chain().focus().setYoutubeVideo(id).run();
@@ -234,10 +240,10 @@ export default function RichTextEditor({
       <div
         className={styles.toolbar}
         role="toolbar"
-        aria-label="Formato de texto"
+        aria-label={t("shared:richTextEditor.toolbarAria")}
       >
         <ToolbarButton
-          label="Título"
+          label={t("shared:richTextEditor.heading")}
           disabled={disabled}
           active={editor.isActive("heading", { level: 2 })}
           onClick={() =>
@@ -247,7 +253,7 @@ export default function RichTextEditor({
           H2
         </ToolbarButton>
         <ToolbarButton
-          label="Subtítulo"
+          label={t("shared:richTextEditor.subheading")}
           disabled={disabled}
           active={editor.isActive("heading", { level: 3 })}
           onClick={() =>
@@ -258,7 +264,7 @@ export default function RichTextEditor({
         </ToolbarButton>
         {extended && (
           <ToolbarButton
-            label="Subtítulo menor"
+            label={t("shared:richTextEditor.subheadingMinor")}
             disabled={disabled}
             active={editor.isActive("heading", { level: 4 })}
             onClick={() =>
@@ -270,7 +276,7 @@ export default function RichTextEditor({
         )}
         <span className={styles.sep} aria-hidden="true" />
         <ToolbarButton
-          label="Negrita"
+          label={t("shared:richTextEditor.bold")}
           disabled={disabled}
           active={editor.isActive("bold")}
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -278,7 +284,7 @@ export default function RichTextEditor({
           <strong>B</strong>
         </ToolbarButton>
         <ToolbarButton
-          label="Itálica"
+          label={t("shared:richTextEditor.italic")}
           disabled={disabled}
           active={editor.isActive("italic")}
           onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -287,7 +293,7 @@ export default function RichTextEditor({
         </ToolbarButton>
         {extended && (
           <ToolbarButton
-            label="Código"
+            label={t("shared:richTextEditor.code")}
             disabled={disabled}
             active={editor.isActive("code")}
             onClick={() => editor.chain().focus().toggleCode().run()}
@@ -297,7 +303,7 @@ export default function RichTextEditor({
         )}
         <span className={styles.sep} aria-hidden="true" />
         <ToolbarButton
-          label="Lista con viñetas"
+          label={t("shared:richTextEditor.bulletList")}
           disabled={disabled}
           active={editor.isActive("bulletList")}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -305,7 +311,7 @@ export default function RichTextEditor({
           {"•≡"}
         </ToolbarButton>
         <ToolbarButton
-          label="Lista numerada"
+          label={t("shared:richTextEditor.orderedList")}
           disabled={disabled}
           active={editor.isActive("orderedList")}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
@@ -313,7 +319,7 @@ export default function RichTextEditor({
           {"1."}
         </ToolbarButton>
         <ToolbarButton
-          label="Cita"
+          label={t("shared:richTextEditor.quote")}
           disabled={disabled}
           active={editor.isActive("blockquote")}
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
@@ -323,7 +329,7 @@ export default function RichTextEditor({
         {extended && (
           <>
             <ToolbarButton
-              label="Separador"
+              label={t("shared:richTextEditor.separator")}
               disabled={disabled}
               onClick={() => editor.chain().focus().setHorizontalRule().run()}
             >
@@ -331,7 +337,7 @@ export default function RichTextEditor({
             </ToolbarButton>
             <span className={styles.sep} aria-hidden="true" />
             <ToolbarButton
-              label="Alinear a la izquierda"
+              label={t("shared:richTextEditor.alignLeft")}
               disabled={disabled}
               active={editor.isActive({ textAlign: "left" })}
               onClick={() => editor.chain().focus().setTextAlign("left").run()}
@@ -339,7 +345,7 @@ export default function RichTextEditor({
               {"⬅"}
             </ToolbarButton>
             <ToolbarButton
-              label="Centrar"
+              label={t("shared:richTextEditor.alignCenter")}
               disabled={disabled}
               active={editor.isActive({ textAlign: "center" })}
               onClick={() =>
@@ -349,7 +355,7 @@ export default function RichTextEditor({
               {"↔"}
             </ToolbarButton>
             <ToolbarButton
-              label="Alinear a la derecha"
+              label={t("shared:richTextEditor.alignRight")}
               disabled={disabled}
               active={editor.isActive({ textAlign: "right" })}
               onClick={() => editor.chain().focus().setTextAlign("right").run()}
@@ -360,7 +366,7 @@ export default function RichTextEditor({
         )}
         <span className={styles.sep} aria-hidden="true" />
         <ToolbarButton
-          label="Link"
+          label={t("shared:richTextEditor.link")}
           disabled={disabled}
           active={editor.isActive("link")}
           onClick={setLink}
@@ -368,7 +374,7 @@ export default function RichTextEditor({
           {"🔗"}
         </ToolbarButton>
         <ToolbarButton
-          label="Imagen"
+          label={t("shared:richTextEditor.image")}
           disabled={disabled || uploading}
           onClick={() => fileInputRef.current?.click()}
         >
@@ -376,7 +382,7 @@ export default function RichTextEditor({
         </ToolbarButton>
         {extended && (
           <ToolbarButton
-            label="Video de YouTube"
+            label={t("shared:richTextEditor.youtube")}
             disabled={disabled}
             onClick={addYoutube}
           >

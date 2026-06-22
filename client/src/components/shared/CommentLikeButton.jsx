@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./CommentLikeButton.module.css";
 
 // Botón de "me gusta" para un comentario o respuesta. El corazón togglea el
@@ -19,6 +20,7 @@ export default function CommentLikeButton({
   onShowLikers,
   disabled = false,
 }) {
+  const { t } = useTranslation();
   // Animación "pop" al pasar de no-liked a liked (350ms), igual que el like
   // del post.
   const [popping, setPopping] = useState(false);
@@ -48,7 +50,9 @@ export default function CommentLikeButton({
         className={`${styles.heartBtn} ${liked ? styles.liked : ""}`}
         onClick={onToggle}
         disabled={disabled}
-        aria-label={liked ? "Quitar me gusta" : "Me gusta"}
+        aria-label={
+          liked ? t("shared:commentLike.remove") : t("shared:commentLike.like")
+        }
         aria-pressed={liked}
       >
         <span className={`${styles.heart} ${popping ? styles.pop : ""}`}>
@@ -70,7 +74,7 @@ export default function CommentLikeButton({
             </svg>
           )}
         </span>
-        <span className={styles.label}>Me gusta</span>
+        <span className={styles.label}>{t("shared:commentLike.like")}</span>
       </button>
       {count > 0 &&
         (onShowLikers ? (
@@ -78,7 +82,7 @@ export default function CommentLikeButton({
             type="button"
             className={styles.countBtn}
             onClick={onShowLikers}
-            aria-label={`Ver a quién le gustó (${count})`}
+            aria-label={t("shared:commentLike.showLikers", { count })}
           >
             {count}
           </button>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import Modal from "./Modal";
 import Avatar from "./Avatar";
 import { getUserDisplay } from "../../utils/userDisplay";
@@ -16,9 +17,11 @@ import styles from "./LikersModal.module.css";
 //  - title:    string   — encabezado del modal
 //  - fetchUrl: string   — endpoint de likers (se refetchea cada vez que abre)
 export default function LikersModal({ isOpen, onClose, title, fetchUrl }) {
+  const { t } = useTranslation();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const heading = title || t("shared:likersModal.defaultTitle");
 
   useEffect(() => {
     if (!isOpen || !fetchUrl) return undefined;
@@ -42,17 +45,17 @@ export default function LikersModal({ isOpen, onClose, title, fetchUrl }) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      ariaLabel={title || "A quién le gustó"}
+      ariaLabel={heading}
       className={styles.modal}
       backdropClassName={styles.backdrop}
     >
       <div className={styles.head}>
-        <h3 className={styles.title}>{title || "A quién le gustó"}</h3>
+        <h3 className={styles.title}>{heading}</h3>
         <button
           type="button"
           className={styles.close}
           onClick={onClose}
-          aria-label="Cerrar"
+          aria-label={t("common:actions.close")}
         >
           ✕
         </button>
@@ -69,9 +72,9 @@ export default function LikersModal({ isOpen, onClose, title, fetchUrl }) {
             ))}
           </ul>
         ) : error ? (
-          <p className={styles.empty}>No pudimos cargar la lista.</p>
+          <p className={styles.empty}>{t("shared:likersModal.loadError")}</p>
         ) : users.length === 0 ? (
-          <p className={styles.empty}>Todavía no le gustó a nadie.</p>
+          <p className={styles.empty}>{t("shared:likersModal.empty")}</p>
         ) : (
           <ul className={styles.list}>
             {users.map((u, idx) => {

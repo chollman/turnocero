@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import { API } from "../../api/endpoints";
 import DiceLoader from "./DiceLoader";
@@ -21,11 +22,15 @@ import styles from "./BggGameSearch.module.css";
  */
 export default function BggGameSearch({
   onPick,
-  placeholder = "Buscá un juego en BGG (≥3 caracteres)…",
+  placeholder,
   autoFocus = true,
   minChars = 3,
   clearOnPick = false,
 }) {
+  const { t } = useTranslation();
+  // El placeholder por defecto se resuelve acá (no en el param) porque `t` no
+  // está disponible en la firma. Uno pasado por el caller gana.
+  const resolvedPlaceholder = placeholder ?? t("shared:bggSearch.placeholder");
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -85,16 +90,21 @@ export default function BggGameSearch({
         ref={inputRef}
         type="text"
         className={styles.input}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         value={q}
         onChange={(e) => setQ(e.target.value)}
         autoFocus={autoFocus}
-        aria-label="Buscar juego en BoardGameGeek"
+        aria-label={t("shared:bggSearch.inputAria")}
       />
       {loading && (
-        <DiceLoader text="Buscando en BGG" hint="puede tardar unos segundos" />
+        <DiceLoader
+          text={t("shared:bggSearch.loading")}
+          hint={t("shared:bggSearch.loadingHint")}
+        />
       )}
-      {showEmpty && <p className={styles.dim}>Sin resultados.</p>}
+      {showEmpty && (
+        <p className={styles.dim}>{t("shared:bggSearch.noResults")}</p>
+      )}
       {results.length > 0 && (
         <ul className={styles.list} role="listbox">
           {results.map((g) => (

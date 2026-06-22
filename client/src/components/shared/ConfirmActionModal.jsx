@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./ConfirmActionModal.module.css";
 
 export default function ConfirmActionModal({
   isOpen,
   title,
   message,
-  confirmLabel = "Confirmar",
-  cancelLabel = "Cancelar",
+  confirmLabel,
+  cancelLabel,
   variant = "warning",
   inputLabel,
   inputPlaceholder,
@@ -15,7 +16,12 @@ export default function ConfirmActionModal({
   onConfirm,
   onCancel,
 }) {
+  const { t } = useTranslation();
   const [value, setValue] = useState("");
+  // Los defaults de label viven acá (no en el param) porque `t` no está
+  // disponible en la firma. Un label pasado por el caller gana al genérico.
+  const resolvedConfirmLabel = confirmLabel ?? t("common:actions.confirm");
+  const resolvedCancelLabel = cancelLabel ?? t("common:actions.cancel");
 
   useEffect(() => {
     if (isOpen) setValue("");
@@ -57,14 +63,14 @@ export default function ConfirmActionModal({
             onClick={onCancel}
             disabled={loading}
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <button
             className={`${styles.btnConfirm} ${variant === "danger" ? styles.btnDanger : ""}`}
             onClick={handleConfirm}
             disabled={loading}
           >
-            {loading ? "..." : confirmLabel}
+            {loading ? t("shared:confirmAction.loading") : resolvedConfirmLabel}
           </button>
         </div>
       </div>
