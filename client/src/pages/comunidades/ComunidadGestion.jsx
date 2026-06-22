@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
@@ -14,6 +15,7 @@ import styles from "./ComunidadGestion.module.css";
 // La moderación de contenido se hace desde los botones de borrar del propio
 // contenido (el backend ya habilita a los subadmins vía canModerate).
 export default function ComunidadGestion() {
+  const { t } = useTranslation();
   const { slug } = useParams();
   const { user } = useAuth();
   const { memberships } = useCommunity();
@@ -41,12 +43,13 @@ export default function ComunidadGestion() {
     } catch (err) {
       addToast({
         type: "error",
-        message: err.response?.data?.message || "No se pudo cargar la gestión",
+        message:
+          err.response?.data?.message || t("comunidades:gestion.loadError"),
       });
     } finally {
       setLoading(false);
     }
-  }, [slug, addToast]);
+  }, [slug, addToast, t]);
 
   useEffect(() => {
     if (isSubadmin) load();
@@ -55,9 +58,7 @@ export default function ComunidadGestion() {
   if (!isSubadmin) {
     return (
       <div className={styles.page}>
-        <p className={styles.muted}>
-          No tenés permisos para gestionar esta comunidad.
-        </p>
+        <p className={styles.muted}>{t("comunidades:gestion.noAccess")}</p>
       </div>
     );
   }
@@ -70,7 +71,8 @@ export default function ComunidadGestion() {
     } catch (err) {
       addToast({
         type: "error",
-        message: err.response?.data?.message || "No se pudo completar",
+        message:
+          err.response?.data?.message || t("comunidades:gestion.actionError"),
       });
     }
   };
@@ -79,17 +81,17 @@ export default function ComunidadGestion() {
   const accept = (userId) =>
     act(
       () => axios.post(API.comunidades.SOLICITUD_ACCEPT(slug, userId)),
-      "Solicitud aceptada",
+      t("comunidades:gestion.requestAccepted"),
     );
   const reject = (userId) =>
     act(
       () => axios.post(API.comunidades.SOLICITUD_REJECT(slug, userId)),
-      "Solicitud rechazada",
+      t("comunidades:gestion.requestRejected"),
     );
   const expel = (userId) =>
     act(
       () => axios.delete(API.comunidades.MIEMBRO(slug, userId)),
-      "Miembro expulsado",
+      t("comunidades:gestion.memberExpelled"),
     );
   // Asignar/revocar subadmin — solo admin global (el endpoint es requireAdmin).
   const setSubadmin = (userId, makeSubadmin) =>
@@ -98,16 +100,18 @@ export default function ComunidadGestion() {
         axios.put(API.comunidades.SUBADMIN(slug, userId), {
           subadmin: makeSubadmin,
         }),
-      makeSubadmin ? "Subadmin asignado" : "Subadmin removido",
+      makeSubadmin
+        ? t("comunidades:gestion.subadminAssigned")
+        : t("comunidades:gestion.subadminRemoved"),
     );
 
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
         <div className={styles.eyebrow}>
-          <Meeple /> GESTIÓN
+          <Meeple /> {t("comunidades:gestion.eyebrow")}
         </div>
-        <h1 className={styles.title}>Gestionar comunidad</h1>
+        <h1 className={styles.title}>{t("comunidades:gestion.title")}</h1>
       </header>
 
       <div className={styles.tabs} role="tablist">
@@ -118,7 +122,9 @@ export default function ComunidadGestion() {
           className={`${styles.tab} ${tab === "solicitudes" ? styles.tabActive : ""}`}
           onClick={() => setTab("solicitudes")}
         >
-          Solicitudes ({solicitudes.length})
+          {t("comunidades:gestion.tabRequests", {
+            count: solicitudes.length,
+          })}
         </button>
         <button
           type="button"
@@ -127,22 +133,26 @@ export default function ComunidadGestion() {
           className={`${styles.tab} ${tab === "miembros" ? styles.tabActive : ""}`}
           onClick={() => setTab("miembros")}
         >
-          Miembros ({miembros.length})
+          {t("comunidades:gestion.tabMembers", { count: miembros.length })}
         </button>
       </div>
 
       {loading ? (
-        <p className={styles.muted}>Cargando…</p>
+        <p className={styles.muted}>{t("comunidades:gestion.loading")}</p>
       ) : tab === "solicitudes" ? (
         solicitudes.length === 0 ? (
-          <p className={styles.muted}>Sin solicitudes pendientes.</p>
+          <p className={styles.muted}>
+            {t("comunidades:gestion.noRequests")}
+          </p>
         ) : (
           <ul className={styles.list}>
             {solicitudes.map((s) => (
               <li key={uid(s)} className={styles.row}>
                 <Avatar user={s.user} size="sm" />
                 <span className={styles.name}>
-                  {s.user?.displayName || s.user?.username || "Usuario"}
+                  {s.user?.displayName ||
+                    s.user?.username ||
+                    t("comunidades:gestion.userFallback")}
                 </span>
                 <div className={styles.actions}>
                   <button
@@ -150,14 +160,14 @@ export default function ComunidadGestion() {
                     className={styles.accept}
                     onClick={() => accept(uid(s))}
                   >
-                    Aceptar
+                    {t("comunidades:gestion.accept")}
                   </button>
                   <button
                     type="button"
                     className={styles.reject}
                     onClick={() => reject(uid(s))}
                   >
-                    Rechazar
+                    {t("comunidades:gestion.reject")}
                   </button>
                 </div>
               </li>
@@ -171,7 +181,9 @@ export default function ComunidadGestion() {
               <Avatar user={m} size="sm" />
               <span className={styles.name}>{m.displayName || m.username}</span>
               {m.role === "subadmin" && (
-                <span className={styles.roleTag}>Subadmin</span>
+                <span className={styles.roleTag}>
+                  {t("comunidades:gestion.subadminTag")}
+                </span>
               )}
               <div className={styles.actions}>
                 {user?.isAdmin && String(m._id) !== String(user._id) && (
@@ -183,8 +195,8 @@ export default function ComunidadGestion() {
                     }
                   >
                     {m.role === "subadmin"
-                      ? "Quitar subadmin"
-                      : "Hacer subadmin"}
+                      ? t("comunidades:gestion.removeSubadmin")
+                      : t("comunidades:gestion.makeSubadmin")}
                   </button>
                 )}
                 {String(m._id) !== String(user._id) && (
@@ -193,7 +205,7 @@ export default function ComunidadGestion() {
                     className={styles.reject}
                     onClick={() => expel(m._id)}
                   >
-                    Expulsar
+                    {t("comunidades:gestion.expel")}
                   </button>
                 )}
               </div>

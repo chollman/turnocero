@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import { API } from "../../api/endpoints";
@@ -8,12 +9,6 @@ import { useCommunity } from "../../context/CommunityContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useNotifications } from "../../context/NotificationContext";
 import styles from "./Comunidades.module.css";
-
-function policyLabel(p) {
-  if (p === "open") return "Abierta";
-  if (p === "approval") return "Por aprobación";
-  return "Por código";
-}
 
 // Orden mine-first: miembro → pendiente → resto; dentro de cada grupo, base
 // primero y luego alfabético.
@@ -24,10 +19,17 @@ function statusRank(c) {
 }
 
 export default function Comunidades() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { joinCommunity, leaveCommunity, memberships } = useCommunity();
   const { isSectionEnabled } = useSiteConfig();
   const { addToast } = useNotifications();
+
+  const policyLabel = (p) => {
+    if (p === "open") return t("comunidades:directory.policy.open");
+    if (p === "approval") return t("comunidades:directory.policy.approval");
+    return t("comunidades:directory.policy.code");
+  };
 
   // Subadmin de esta comunidad o admin global → puede gestionarla.
   const canManage = (c) =>
@@ -61,14 +63,14 @@ export default function Comunidades() {
         if (!axios.isCancel(err)) {
           addToast({
             type: "error",
-            message: "No pudimos cargar las comunidades",
+            message: t("comunidades:directory.loadError"),
           });
         }
       } finally {
         setLoading(false);
       }
     },
-    [addToast],
+    [addToast, t],
   );
 
   useEffect(() => {
@@ -98,14 +100,16 @@ export default function Comunidades() {
         type: "success",
         message:
           res.status === "pending"
-            ? "Solicitud enviada — un moderador la revisará"
-            : `Te uniste a ${community.name}`,
+            ? t("comunidades:directory.joinPending")
+            : t("comunidades:directory.joinSuccess", { name: community.name }),
       });
       await load();
     } catch (err) {
       addToast({
         type: "error",
-        message: err.response?.data?.message || "No pudimos completar la acción",
+        message:
+          err.response?.data?.message ||
+          t("comunidades:directory.actionError"),
       });
     } finally {
       setBusy(null);
@@ -118,13 +122,20 @@ export default function Comunidades() {
     setLeaving(true);
     try {
       await leaveCommunity(leaveTarget.slug);
-      addToast({ type: "success", message: `Saliste de ${leaveTarget.name}` });
+      addToast({
+        type: "success",
+        message: t("comunidades:directory.leaveSuccess", {
+          name: leaveTarget.name,
+        }),
+      });
       setLeaveTarget(null);
       await load();
     } catch (err) {
       addToast({
         type: "error",
-        message: err.response?.data?.message || "No pudimos completar la acción",
+        message:
+          err.response?.data?.message ||
+          t("comunidades:directory.actionError"),
       });
     } finally {
       setLeaving(false);
@@ -133,10 +144,19 @@ export default function Comunidades() {
 
   const renderAction = (c) => {
     if (!user) {
-      return <span className={styles.muted}>Iniciá sesión para unirte</span>;
+      return (
+        <span className={styles.muted}>
+          {t("comunidades:directory.loginToJoin")}
+        </span>
+      );
     }
     if (c.viewerStatus === "member") {
-      if (c.isBase) return <span className={styles.memberTag}>Miembro</span>;
+      if (c.isBase)
+        return (
+          <span className={styles.memberTag}>
+            {t("comunidades:directory.memberTag")}
+          </span>
+        );
       return (
         <button
           type="button"
@@ -144,20 +164,26 @@ export default function Comunidades() {
           disabled={leaving}
           onClick={() => setLeaveTarget(c)}
         >
-          Salir
+          {t("comunidades:directory.leave")}
         </button>
       );
     }
     if (c.viewerStatus === "pending") {
-      return <span className={styles.pendingTag}>Solicitud pendiente</span>;
+      return (
+        <span className={styles.pendingTag}>
+          {t("comunidades:directory.pendingTag")}
+        </span>
+      );
     }
     return (
       <div className={styles.joinRow}>
         {c.joinPolicy === "code" && (
           <input
             className={styles.codeInput}
-            placeholder="Código"
-            aria-label={`Código para ${c.name}`}
+            placeholder={t("comunidades:directory.codePlaceholder")}
+            aria-label={t("comunidades:directory.codeAriaLabel", {
+              name: c.name,
+            })}
             value={codes[c.slug] || ""}
             onChange={(e) =>
               setCodes((s) => ({ ...s, [c.slug]: e.target.value }))
@@ -170,7 +196,9 @@ export default function Comunidades() {
           disabled={busy === c.slug}
           onClick={() => handleJoin(c)}
         >
-          {c.joinPolicy === "approval" ? "Solicitar unirme" : "Unirme"}
+          {c.joinPolicy === "approval"
+            ? t("comunidades:directory.requestJoin")
+            : t("comunidades:directory.join")}
         </button>
       </div>
     );
@@ -179,33 +207,39 @@ export default function Comunidades() {
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
-        <div className={styles.eyebrow}>MIS COMUNIDADES</div>
-        <h1 className={styles.title}>Mis Comunidades</h1>
+        <div className={styles.eyebrow}>
+          {t("comunidades:directory.eyebrow")}
+        </div>
+        <h1 className={styles.title}>{t("comunidades:directory.title")}</h1>
         <p className={styles.subtitle}>
-          Unite a una comunidad para ver y compartir su contenido. Podés
-          integrar varias a la vez y elegir cuáles ver desde tu perfil.
+          {t("comunidades:directory.subtitle")}
         </p>
       </header>
 
       {loading ? (
-        <p className={styles.muted}>Cargando comunidades…</p>
+        <p className={styles.muted}>{t("comunidades:directory.loading")}</p>
       ) : communities.length === 0 ? (
-        <p className={styles.muted}>Todavía no hay comunidades.</p>
+        <p className={styles.muted}>{t("comunidades:directory.empty")}</p>
       ) : (
         <div className={styles.grid}>
           {sortedCommunities.map((c) => (
             <article key={c.slug} className={styles.card}>
               <div className={styles.cardHead}>
                 <h2 className={styles.cardName}>{c.name}</h2>
-                {c.isBase && <span className={styles.baseBadge}>Base</span>}
+                {c.isBase && (
+                  <span className={styles.baseBadge}>
+                    {t("comunidades:directory.baseBadge")}
+                  </span>
+                )}
               </div>
               {c.description && (
                 <p className={styles.cardDesc}>{c.description}</p>
               )}
               <div className={styles.meta}>
                 <span>
-                  {c.memberCount}{" "}
-                  {c.memberCount === 1 ? "miembro" : "miembros"}
+                  {t("comunidades:directory.members", {
+                    count: c.memberCount,
+                  })}
                 </span>
                 <span className={styles.policy}>
                   {policyLabel(c.joinPolicy)}
@@ -219,7 +253,7 @@ export default function Comunidades() {
                       className={styles.membersLink}
                       to={`/comunidades/${c.slug}`}
                     >
-                      Ver miembros
+                      {t("comunidades:directory.viewMembers")}
                     </Link>
                   )}
                   {canManage(c) && (
@@ -227,7 +261,7 @@ export default function Comunidades() {
                       className={styles.manageLink}
                       to={`/comunidades/${c.slug}/gestion`}
                     >
-                      Gestionar
+                      {t("comunidades:directory.manage")}
                     </Link>
                   )}
                 </div>
@@ -239,9 +273,11 @@ export default function Comunidades() {
 
       <ConfirmActionModal
         isOpen={!!leaveTarget}
-        title="Salir de la comunidad"
-        message={`¿Querés salir de ${leaveTarget?.name}? Vas a dejar de ver su contenido. Podés volver a unirte cuando quieras.`}
-        confirmLabel="Sí, salir"
+        title={t("comunidades:directory.leaveModalTitle")}
+        message={t("comunidades:directory.leaveModalMessage", {
+          name: leaveTarget?.name,
+        })}
+        confirmLabel={t("comunidades:directory.leaveConfirm")}
         variant="danger"
         loading={leaving}
         onConfirm={confirmLeave}

@@ -21,6 +21,7 @@ export const NAMESPACES = [
   "toasts",
   "shared",
   "error",
+  "comunidades",
 ];
 export const DEFAULT_NS = "common";
 
