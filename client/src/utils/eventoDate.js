@@ -1,44 +1,18 @@
-export const MESES_LARGO = [
-  "Enero",
-  "Febrero",
-  "Marzo",
-  "Abril",
-  "Mayo",
-  "Junio",
-  "Julio",
-  "Agosto",
-  "Septiembre",
-  "Octubre",
-  "Noviembre",
-  "Diciembre",
-];
+// Nombres de meses/días vía i18n. Son GETTERS (no constantes) porque el idioma
+// puede cambiar en runtime con el toggle de /perfil; una constante a module-load
+// congelaría el idioma. `returnObjects` devuelve el array del JSON. No usamos
+// Intl porque el casing actual ("Enero"/"ENE"/"MIÉ") no coincide con su salida.
+import i18n from "../i18n";
+import { getLocale, formatNumber } from "./locale";
 
-export const MESES_CORTO = [
-  "ENE",
-  "FEB",
-  "MAR",
-  "ABR",
-  "MAY",
-  "JUN",
-  "JUL",
-  "AGO",
-  "SEP",
-  "OCT",
-  "NOV",
-  "DIC",
-];
-
-export const DIAS_LARGO = [
-  "Domingo",
-  "Lunes",
-  "Martes",
-  "Miércoles",
-  "Jueves",
-  "Viernes",
-  "Sábado",
-];
-
-export const DIAS_CORTO = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
+export const getMonthsLong = () =>
+  i18n.t("dates:monthsLong", { returnObjects: true });
+export const getMonthsShort = () =>
+  i18n.t("dates:monthsShort", { returnObjects: true });
+export const getWeekdaysLong = () =>
+  i18n.t("dates:weekdaysLong", { returnObjects: true });
+export const getWeekdaysShort = () =>
+  i18n.t("dates:weekdaysShort", { returnObjects: true });
 
 export function parseDate(s) {
   if (!s) return null;
@@ -51,12 +25,12 @@ export function dateParts(s) {
   if (!d) return null;
   return {
     day: d.getDate(),
-    month: MESES_CORTO[d.getMonth()],
-    monthLong: MESES_LARGO[d.getMonth()],
+    month: getMonthsShort()[d.getMonth()],
+    monthLong: getMonthsLong()[d.getMonth()],
     year: d.getFullYear(),
-    weekday: DIAS_CORTO[d.getDay()],
-    weekdayLong: DIAS_LARGO[d.getDay()],
-    time: d.toLocaleTimeString("es-AR", {
+    weekday: getWeekdaysShort()[d.getDay()],
+    weekdayLong: getWeekdaysLong()[d.getDay()],
+    time: d.toLocaleTimeString(getLocale(), {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
@@ -75,26 +49,33 @@ export function countdown(s, now = Date.now()) {
   const hours = Math.round(abs / 3600000);
   const days = Math.round(abs / 86400000);
 
+  const ct = (key, opts) => i18n.t(`dates:countdown.${key}`, opts);
   if (diff < 0) {
-    if (days >= 2) return { text: `hace ${days} días`, tone: "past" };
-    if (hours >= 1) return { text: `hace ${hours}h`, tone: "past" };
-    return { text: "finalizado", tone: "past" };
+    if (days >= 2)
+      return { text: ct("daysAgo", { count: days }), tone: "past" };
+    if (hours >= 1)
+      return { text: ct("hoursAgo", { count: hours }), tone: "past" };
+    return { text: ct("ended"), tone: "past" };
   }
-  if (minutes < 60) return { text: `en ${minutes} min`, tone: "urgent" };
-  if (hours < 24) return { text: `en ${hours}h`, tone: "urgent" };
+  if (minutes < 60)
+    return { text: ct("inMinutes", { count: minutes }), tone: "urgent" };
+  if (hours < 24)
+    return { text: ct("inHours", { count: hours }), tone: "urgent" };
   if (days <= 3)
-    return { text: `en ${days} día${days > 1 ? "s" : ""}`, tone: "urgent" };
-  if (days <= 14) return { text: `en ${days} días`, tone: "soon" };
-  if (days <= 60) return { text: `en ${days} días`, tone: "normal" };
+    return { text: ct("inDays", { count: days }), tone: "urgent" };
+  if (days <= 14) return { text: ct("inDays", { count: days }), tone: "soon" };
+  if (days <= 60)
+    return { text: ct("inDays", { count: days }), tone: "normal" };
   const weeks = Math.round(days / 7);
-  if (weeks <= 12) return { text: `en ${weeks} semanas`, tone: "normal" };
+  if (weeks <= 12)
+    return { text: ct("inWeeks", { count: weeks }), tone: "normal" };
   const months = Math.round(days / 30);
-  return { text: `en ${months} meses`, tone: "normal" };
+  return { text: ct("inMonths", { count: months }), tone: "normal" };
 }
 
 export function formatFee(fee) {
-  if (!fee || fee === 0) return "Gratis";
-  return `$${Number(fee).toLocaleString("es-AR")}`;
+  if (!fee || fee === 0) return i18n.t("dates:fee.free");
+  return `$${formatNumber(Number(fee))}`;
 }
 
 // `datetime-local` inputs trabajan en hora local sin TZ. El server guarda en
@@ -121,7 +102,13 @@ export function fromLocalInputValue(s) {
 export function formatDateLong(s) {
   const p = dateParts(s);
   if (!p) return "";
-  return `${p.weekdayLong} ${p.day} de ${p.monthLong}, ${p.year} · ${p.time}`;
+  return i18n.t("dates:formatDateLong", {
+    weekday: p.weekdayLong,
+    day: p.day,
+    month: p.monthLong,
+    year: p.year,
+    time: p.time,
+  });
 }
 
 export function groupByMonth(events) {

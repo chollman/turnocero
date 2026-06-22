@@ -1,0 +1,60 @@
+{
+  "monthsLong": [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+  ],
+  "monthsShort": [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC"
+  ],
+  "weekdaysLong": [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday"
+  ],
+  "weekdaysShort": ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"],
+  "weekdayInitials": ["M", "T", "W", "T", "F", "S", "S"],
+  "countdown": {
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago",
+    "hoursAgo": "{{count}}h ago",
+    "ended": "ended",
+    "inMinutes": "in {{count}} min",
+    "inHours": "in {{count}}h",
+    "inDays_one": "in {{count}} day",
+    "inDays_other": "in {{count}} days",
+    "inWeeks_one": "in {{count}} week",
+    "inWeeks_other": "in {{count}} weeks",
+    "inMonths_one": "in {{count}} month",
+    "inMonths_other": "in {{count}} months"
+  },
+  "fee": {
+    "free": "Free"
+  },
+  "formatDateLong": "{{weekday}}, {{month}} {{day}}, {{year}} · {{time}}",
+  "monthLabel": "{{month}} {{year}}"
+}

@@ -6,8 +6,9 @@ import {
   monthRange,
   buildMonthMatrix,
   groupByDay,
-  WEEKDAY_INITIALS,
+  getWeekdayInitials,
 } from "./calendar";
+import i18n from "../i18n";
 
 describe("dayKey", () => {
   it("formatea una fecha local como YYYY-MM-DD con zero-padding", () => {
@@ -24,6 +25,12 @@ describe("monthLabel", () => {
   it("devuelve 'Mes Año' en español", () => {
     expect(monthLabel(2026, 5)).toBe("Junio 2026");
     expect(monthLabel(2026, 0)).toBe("Enero 2026");
+  });
+
+  it("devuelve 'Month Year' en inglés", () => {
+    i18n.changeLanguage("en");
+    expect(monthLabel(2026, 5)).toBe("June 2026");
+    i18n.changeLanguage("es");
   });
 });
 
@@ -53,7 +60,7 @@ describe("monthRange", () => {
 
 describe("buildMonthMatrix", () => {
   it("arranca cada semana en lunes (7 columnas)", () => {
-    expect(WEEKDAY_INITIALS).toHaveLength(7);
+    expect(getWeekdayInitials()).toHaveLength(7);
     const matrix = buildMonthMatrix(2026, 5);
     for (const week of matrix) expect(week).toHaveLength(7);
   });

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import {
   parseDate,
   dateParts,
@@ -8,11 +8,12 @@ import {
   groupByMonth,
   toLocalInputValue,
   fromLocalInputValue,
-  MESES_LARGO,
-  MESES_CORTO,
-  DIAS_LARGO,
-  DIAS_CORTO,
+  getMonthsLong,
+  getMonthsShort,
+  getWeekdaysLong,
+  getWeekdaysShort,
 } from "./eventoDate";
+import i18n from "../i18n";
 
 describe("parseDate", () => {
   it("returns null for falsy input", () => {
@@ -46,10 +47,10 @@ describe("dateParts", () => {
   it("extracts day, month, year, weekday", () => {
     const p = dateParts("2026-06-13T17:00:00");
     expect(p.day).toBe(13);
-    expect(p.month).toBe(MESES_CORTO[5]); // JUN
+    expect(p.month).toBe(getMonthsShort()[5]); // JUN
     expect(p.monthLong).toBe("Junio");
     expect(p.year).toBe(2026);
-    expect(p.weekday).toBe(DIAS_CORTO[6]); // SÁB
+    expect(p.weekday).toBe(getWeekdaysShort()[6]); // SÁB
     expect(p.weekdayLong).toBe("Sábado");
     expect(p.monthKey).toBe("2026-06");
   });
@@ -206,10 +207,46 @@ describe("groupByMonth", () => {
 
 describe("constants", () => {
   it("have correct lengths", () => {
-    expect(MESES_LARGO).toHaveLength(12);
-    expect(MESES_CORTO).toHaveLength(12);
-    expect(DIAS_LARGO).toHaveLength(7);
-    expect(DIAS_CORTO).toHaveLength(7);
+    expect(getMonthsLong()).toHaveLength(12);
+    expect(getMonthsShort()).toHaveLength(12);
+    expect(getWeekdaysLong()).toHaveLength(7);
+    expect(getWeekdaysShort()).toHaveLength(7);
+  });
+});
+
+describe("i18n — render en inglés", () => {
+  afterEach(() => {
+    i18n.changeLanguage("es");
+  });
+
+  it("traduce nombres de mes/día", () => {
+    i18n.changeLanguage("en");
+    expect(getMonthsLong()[5]).toBe("June");
+    expect(getMonthsShort()[5]).toBe("JUN");
+    expect(getWeekdaysLong()[6]).toBe("Saturday");
+    const p = dateParts("2026-06-13T17:00:00");
+    expect(p.monthLong).toBe("June");
+    expect(p.weekdayLong).toBe("Saturday");
+  });
+
+  it("traduce countdown y formatFee", () => {
+    i18n.changeLanguage("en");
+    const now = new Date("2026-05-20T12:00:00").getTime();
+    expect(countdown("2026-05-17T12:00:00", now).text).toBe("3 days ago");
+    expect(countdown("2026-05-20T11:50:00", now).text).toBe("ended");
+    expect(countdown("2026-05-21T12:00:00", now).text).toBe("in 1 day");
+    expect(formatFee(0)).toBe("Free");
+    // Locale en-US → miles con coma.
+    expect(formatFee(3500)).toMatch(/\$3,500/);
+  });
+
+  it("formatDateLong usa el orden inglés", () => {
+    i18n.changeLanguage("en");
+    const out = formatDateLong("2026-06-13T17:00:00");
+    expect(out).toContain("Saturday");
+    expect(out).toContain("June");
+    expect(out).toContain("2026");
+    expect(out).toContain("17:00");
   });
 });
 

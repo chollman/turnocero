@@ -22,10 +22,24 @@ import esNotifs from "./resources/es/notifs.json";
 import enNotifs from "./resources/en/notifs.json";
 import esTime from "./resources/es/time.json";
 import enTime from "./resources/en/time.json";
+import esDates from "./resources/es/dates.json";
+import enDates from "./resources/en/dates.json";
 
 export const resources = {
-  es: { common: esCommon, auth: esAuth, notifs: esNotifs, time: esTime },
-  en: { common: enCommon, auth: enAuth, notifs: enNotifs, time: enTime },
+  es: {
+    common: esCommon,
+    auth: esAuth,
+    notifs: esNotifs,
+    time: esTime,
+    dates: esDates,
+  },
+  en: {
+    common: enCommon,
+    auth: enAuth,
+    notifs: enNotifs,
+    time: enTime,
+    dates: enDates,
+  },
 };
 
 function getInitialLang() {
