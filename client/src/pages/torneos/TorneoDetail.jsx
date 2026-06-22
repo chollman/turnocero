@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useBrandName } from "../../hooks/useBrandName";
@@ -22,16 +23,19 @@ import BackButton from "../../components/shared/BackButton";
 import styles from "./TorneoDetail.module.css";
 
 const STATUS_META = {
-  draft: { label: "Borrador", className: "chipDraft" },
-  registration: { label: "Inscripción abierta", className: "chipRegistration" },
-  in_progress: { label: "En curso", className: "chipInProgress" },
-  finished: { label: "Finalizado", className: "chipFinished" },
+  draft: { labelKey: "status.draft", className: "chipDraft" },
+  registration: {
+    labelKey: "status.registration",
+    className: "chipRegistration",
+  },
+  in_progress: { labelKey: "status.in_progress", className: "chipInProgress" },
+  finished: { labelKey: "status.finished", className: "chipFinished" },
 };
 
 const FORMAT_LABEL = {
-  league: { label: "Liga (todos contra todos)", icon: "🔁" },
-  single_elim: { label: "Eliminación simple", icon: "🏆" },
-  groups: { label: "Grupos multi-fase", icon: "🧩" },
+  league: { labelKey: "format.leagueFull", icon: "🔁" },
+  single_elim: { labelKey: "format.singleElimFull", icon: "🏆" },
+  groups: { labelKey: "format.groupsFull", icon: "🧩" },
 };
 
 const TABS_BY_FORMAT = {
@@ -41,14 +45,15 @@ const TABS_BY_FORMAT = {
 };
 
 const TAB_LABEL = {
-  standings: "Posiciones",
-  matches: "Partidos",
-  bracket: "Bracket",
-  groups: "Grupos",
-  participants: "Participantes",
+  standings: "detail.tabStandings",
+  matches: "detail.tabMatches",
+  bracket: "detail.tabBracket",
+  groups: "detail.tabGroups",
+  participants: "detail.tabParticipants",
 };
 
 export default function TorneoDetail() {
+  const { t } = useTranslation("torneos");
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isActuallyAdmin, viewAsUser } = useAuth();
@@ -127,7 +132,7 @@ export default function TorneoDetail() {
       await axios.delete(API.torneos.MATCH_RESULT(id, match._id));
       await loadAll();
     } catch (err) {
-      alert(err.response?.data?.message || "Error al deshacer");
+      alert(err.response?.data?.message || t("detail.undoError"));
     }
   };
 
@@ -135,7 +140,7 @@ export default function TorneoDetail() {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
-          <p className={styles.loadingMsg}>Cargando…</p>
+          <p className={styles.loadingMsg}>{t("detail.loading")}</p>
         </div>
       </div>
     );
@@ -146,9 +151,9 @@ export default function TorneoDetail() {
       <div className={styles.page}>
         <div className={styles.inner}>
           <BackButton to="/torneos" flush>
-            Volver a torneos
+            {t("detail.back")}
           </BackButton>
-          <p className={styles.loadingMsg}>Torneo no encontrado.</p>
+          <p className={styles.loadingMsg}>{t("detail.notFound")}</p>
         </div>
       </div>
     );
@@ -161,13 +166,15 @@ export default function TorneoDetail() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{`${torneo.title} – Torneos – ${brandName} 🏆`}</title>
+        <title>
+          {t("detail.metaTitle", { title: torneo.title, brand: brandName })}
+        </title>
         <meta name="description" content={`${torneo.title} — ${torneo.game}`} />
       </Helmet>
 
       <div className={styles.inner}>
         <BackButton to="/torneos" flush>
-          Volver a torneos
+          {t("detail.back")}
         </BackButton>
 
         {torneo.image?.url ? (
@@ -189,10 +196,10 @@ export default function TorneoDetail() {
         <header className={styles.titleBlock}>
           <div className={styles.titleRow}>
             <span className={`${styles.chip} ${styles[status.className]}`}>
-              {status.label}
+              {t(status.labelKey)}
             </span>
             <span className={styles.formatLabel}>
-              {format.icon} {format.label}
+              {format.icon} {t(format.labelKey)}
             </span>
           </div>
           <h1 className={styles.titleHeading}>{torneo.title}</h1>
@@ -201,10 +208,10 @@ export default function TorneoDetail() {
             <p className={styles.titleDesc}>{torneo.description}</p>
           )}
           <p className={styles.titleMeta}>
-            Organiza <UserRef user={torneo.createdBy} /> · 👥{" "}
+            {t("detail.organizedBy")} <UserRef user={torneo.createdBy} /> · 👥{" "}
             {torneo.participants?.length || 0}
             {torneo.maxParticipants ? ` / ${torneo.maxParticipants}` : ""}{" "}
-            participantes
+            {t("detail.participantsWord")}
           </p>
         </header>
 
@@ -216,14 +223,18 @@ export default function TorneoDetail() {
 
         {torneo.status === "finished" && torneo.winner && (
           <div className={styles.podium}>
-            <h3 className={styles.podiumTitle}>🏆 Resultado final</h3>
+            <h3 className={styles.podiumTitle}>{t("detail.podiumTitle")}</h3>
             <p className={styles.podiumRow}>
-              <span className={styles.podiumGold}>🥇 Campeón:</span>{" "}
+              <span className={styles.podiumGold}>
+                {t("detail.podiumChampion")}
+              </span>{" "}
               <UserRef user={torneo.winner} />
             </p>
             {torneo.runnerUp && (
               <p className={styles.podiumRow}>
-                <span className={styles.podiumSilver}>🥈 Subcampeón:</span>{" "}
+                <span className={styles.podiumSilver}>
+                  {t("detail.podiumRunnerUp")}
+                </span>{" "}
                 <UserRef user={torneo.runnerUp} />
               </p>
             )}
@@ -242,7 +253,9 @@ export default function TorneoDetail() {
 
         {showAdminUI && torneo.status === "registration" && (
           <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>Inscripciones pendientes</h3>
+            <h3 className={styles.sectionTitle}>
+              {t("detail.pendingRegistrations")}
+            </h3>
             <RegistrationsList
               torneo={torneo}
               onChange={(updated) => setTorneo(updated)}
@@ -251,13 +264,13 @@ export default function TorneoDetail() {
         )}
 
         <nav className={styles.tabs}>
-          {tabs.map((t) => (
+          {tabs.map((tabId) => (
             <button
-              key={t}
-              className={`${styles.tab} ${activeTab === t ? styles.tabActive : ""}`}
-              onClick={() => setActiveTab(t)}
+              key={tabId}
+              className={`${styles.tab} ${activeTab === tabId ? styles.tabActive : ""}`}
+              onClick={() => setActiveTab(tabId)}
             >
-              {TAB_LABEL[t]}
+              {t(TAB_LABEL[tabId])}
             </button>
           ))}
         </nav>

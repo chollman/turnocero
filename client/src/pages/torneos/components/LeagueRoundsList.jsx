@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import UserRef from "../../../components/shared/UserRef";
 import styles from "../TorneoDetail.module.css";
 
@@ -7,8 +8,9 @@ export default function LeagueRoundsList({
   onRecord,
   onUndo,
 }) {
+  const { t } = useTranslation("torneos");
   if (!matches || matches.length === 0) {
-    return <p className={styles.emptyMsg}>Todavía no se generó el fixture.</p>;
+    return <p className={styles.emptyMsg}>{t("league.emptyFixture")}</p>;
   }
 
   const rounds = groupByRound(matches);
@@ -17,7 +19,9 @@ export default function LeagueRoundsList({
     <div className={styles.roundsList}>
       {rounds.map((roundMatches, idx) => (
         <div key={idx} className={styles.roundBlock}>
-          <h4 className={styles.roundBlockTitle}>Ronda {idx + 1}</h4>
+          <h4 className={styles.roundBlockTitle}>
+            {t("league.round", { number: idx + 1 })}
+          </h4>
           <div className={styles.matchList}>
             {roundMatches.map((m) => (
               <MatchRow
@@ -36,6 +40,7 @@ export default function LeagueRoundsList({
 }
 
 function MatchRow({ match, isAdmin, onRecord, onUndo }) {
+  const { t } = useTranslation("torneos");
   const aId = match.playerA?._id ? String(match.playerA._id) : null;
   const bId = match.playerB?._id ? String(match.playerB._id) : null;
   const winId = match.winner?._id ? String(match.winner._id) : null;
@@ -54,19 +59,23 @@ function MatchRow({ match, isAdmin, onRecord, onUndo }) {
         ) : (
           <span className={styles.matchPlaceholder}>—</span>
         )}
-        {match.isDraw && <span className={styles.matchTag}>empate</span>}
+        {match.isDraw && (
+          <span className={styles.matchTag}>{t("league.draw")}</span>
+        )}
         {!match.isDraw && winId === aId && (
           <span className={styles.matchCheck}>✓</span>
         )}
       </div>
-      <span className={styles.matchVs}>vs</span>
+      <span className={styles.matchVs}>{t("league.vs")}</span>
       <div
         className={`${styles.matchSide} ${winId === bId ? styles.matchSideWinner : ""} ${styles.matchSideRight}`}
       >
         {!match.isDraw && winId === bId && (
           <span className={styles.matchCheck}>✓</span>
         )}
-        {match.isDraw && <span className={styles.matchTag}>empate</span>}
+        {match.isDraw && (
+          <span className={styles.matchTag}>{t("league.draw")}</span>
+        )}
         {match.playerB ? (
           <UserRef user={match.playerB} noLink />
         ) : (
@@ -75,7 +84,7 @@ function MatchRow({ match, isAdmin, onRecord, onUndo }) {
       </div>
 
       <div className={styles.matchActions}>
-        {isBye && <span className={styles.byeChip}>BYE</span>}
+        {isBye && <span className={styles.byeChip}>{t("league.bye")}</span>}
         {isAdmin &&
           match.status === "pending" &&
           match.playerA &&
@@ -84,7 +93,7 @@ function MatchRow({ match, isAdmin, onRecord, onUndo }) {
               className={styles.matchBtnPrimary}
               onClick={() => onRecord(match)}
             >
-              Cargar
+              {t("league.record")}
             </button>
           )}
         {isAdmin && isCompleted && (
@@ -92,7 +101,7 @@ function MatchRow({ match, isAdmin, onRecord, onUndo }) {
             className={styles.matchBtnGhost}
             onClick={() => onUndo(match)}
           >
-            Deshacer
+            {t("league.undo")}
           </button>
         )}
       </div>

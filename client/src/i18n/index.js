@@ -44,6 +44,8 @@ import esNoticias from "./resources/es/noticias.json";
 import enNoticias from "./resources/en/noticias.json";
 import esDashboard from "./resources/es/dashboard.json";
 import enDashboard from "./resources/en/dashboard.json";
+import esTorneos from "./resources/es/torneos.json";
+import enTorneos from "./resources/en/torneos.json";
 
 export const resources = {
   es: {
@@ -62,6 +64,7 @@ export const resources = {
     mathtrade: esMathtrade,
     noticias: esNoticias,
     dashboard: esDashboard,
+    torneos: esTorneos,
   },
   en: {
     common: enCommon,
@@ -79,6 +82,7 @@ export const resources = {
     mathtrade: enMathtrade,
     noticias: enNoticias,
     dashboard: enDashboard,
+    torneos: enTorneos,
   },
 };
 

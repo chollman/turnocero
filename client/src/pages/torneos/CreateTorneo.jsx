@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
+import { Trans, useTranslation } from "react-i18next";
 import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import { fromLocalInputValue } from "../../utils/eventoDate";
@@ -11,6 +12,7 @@ import ImageDropzone from "./components/ImageDropzone";
 import styles from "./Torneos.module.css";
 
 export default function CreateTorneo() {
+  const { t } = useTranslation("torneos");
   const navigate = useNavigate();
   const brandName = useBrandName();
   const [title, setTitle] = useState("");
@@ -36,7 +38,7 @@ export default function CreateTorneo() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim() || !game.trim() || !format) {
-      setError("Completá título, juego y formato");
+      setError(t("form.missingFields"));
       return;
     }
     setSub(true);
@@ -61,7 +63,7 @@ export default function CreateTorneo() {
       });
       navigate(`/torneos/${data._id}`);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al crear el torneo");
+      setError(err.response?.data?.message || t("form.createError"));
     } finally {
       setSub(false);
     }
@@ -70,62 +72,61 @@ export default function CreateTorneo() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{`Nuevo torneo – ${brandName}`}</title>
+        <title>{t("form.createMetaTitle", { brand: brandName })}</title>
       </Helmet>
       <div className={styles.inner}>
         <div className={styles.formHeader}>
           <BackButton to="/torneos" flush>
-            Volver a torneos
+            {t("form.back")}
           </BackButton>
-          <h1 className={styles.title}>Crear torneo</h1>
-          <p className={styles.sub}>
-            Configurá los datos básicos. Vas a poder abrir inscripciones y armar
-            el fixture desde la página del torneo.
-          </p>
+          <h1 className={styles.title}>{t("form.createTitle")}</h1>
+          <p className={styles.sub}>{t("form.createSub")}</p>
         </div>
 
         <form className={styles.formCard} onSubmit={handleSubmit}>
           <ImageDropzone preview={preview} onFile={handleFile} />
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Título *</span>
+            <span className={styles.fieldLabel}>{t("form.fieldTitle")}</span>
             <input
               className={styles.fieldInput}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
-              placeholder="Ej: Liga de Catán otoño 2026"
+              placeholder={t("form.titlePlaceholder")}
               required
             />
           </label>
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Juego *</span>
+            <span className={styles.fieldLabel}>{t("form.fieldGame")}</span>
             <input
               className={styles.fieldInput}
               value={game}
               onChange={(e) => setGame(e.target.value)}
               maxLength={200}
-              placeholder="Ej: Catán"
+              placeholder={t("form.gamePlaceholder")}
               required
             />
           </label>
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Descripción</span>
+            <span className={styles.fieldLabel}>
+              {t("form.fieldDescription")}
+            </span>
             <textarea
               className={styles.fieldTextarea}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               maxLength={2000}
-              placeholder="Reglas, premios, formato detallado…"
+              placeholder={t("form.descriptionPlaceholder")}
             />
           </label>
 
           <div className={styles.fieldRow}>
             <label className={styles.field}>
-              <span className={styles.fieldLabel}>Formato *</span>
+              <span className={styles.fieldLabel}>{t("form.fieldFormat")}</span>
               <div className={styles.formatOptions}>
                 <button
                   type="button"
@@ -133,9 +134,11 @@ export default function CreateTorneo() {
                   onClick={() => setFormat("league")}
                 >
                   <span className={styles.formatIcon}>🔁</span>
-                  <span className={styles.formatName}>Liga</span>
+                  <span className={styles.formatName}>
+                    {t("form.formatLeagueName")}
+                  </span>
                   <span className={styles.formatHint}>
-                    1vs1 todos contra todos · 3/1/0
+                    {t("form.formatLeagueHint")}
                   </span>
                 </button>
                 <button
@@ -144,9 +147,11 @@ export default function CreateTorneo() {
                   onClick={() => setFormat("single_elim")}
                 >
                   <span className={styles.formatIcon}>🏆</span>
-                  <span className={styles.formatName}>Eliminación simple</span>
+                  <span className={styles.formatName}>
+                    {t("form.formatSingleElimName")}
+                  </span>
                   <span className={styles.formatHint}>
-                    Bracket 1vs1 con byes
+                    {t("form.formatSingleElimHint")}
                   </span>
                 </button>
                 <button
@@ -155,9 +160,11 @@ export default function CreateTorneo() {
                   onClick={() => setFormat("groups")}
                 >
                   <span className={styles.formatIcon}>🧩</span>
-                  <span className={styles.formatName}>Grupos</span>
+                  <span className={styles.formatName}>
+                    {t("form.formatGroupsName")}
+                  </span>
                   <span className={styles.formatHint}>
-                    Mesas multijugador · multi-fase · cut por puntaje
+                    {t("form.formatGroupsHint")}
                   </span>
                 </button>
               </div>
@@ -167,12 +174,12 @@ export default function CreateTorneo() {
           {format === "groups" && (
             <div className={styles.groupsConfig}>
               <h3 className={styles.groupsConfigTitle}>
-                Configuración del formato Grupos
+                {t("form.groupsConfigTitle")}
               </h3>
               <div className={styles.groupsConfigGrid}>
                 <label className={styles.field}>
                   <span className={styles.fieldLabel}>
-                    Jugadores por mesa (X)
+                    {t("form.playersPerTableX")}
                   </span>
                   <input
                     className={styles.fieldInput}
@@ -185,7 +192,7 @@ export default function CreateTorneo() {
                 </label>
                 <label className={styles.field}>
                   <span className={styles.fieldLabel}>
-                    Partidas por grupo (P)
+                    {t("form.gamesPerGroupP")}
                   </span>
                   <input
                     className={styles.fieldInput}
@@ -198,7 +205,7 @@ export default function CreateTorneo() {
                 </label>
                 <label className={styles.field}>
                   <span className={styles.fieldLabel}>
-                    Clasificados por grupo (C)
+                    {t("form.qualifiersPerGroupC")}
                   </span>
                   <input
                     className={styles.fieldInput}
@@ -210,14 +217,15 @@ export default function CreateTorneo() {
                 </label>
               </div>
               <p className={styles.groupsConfigHint}>
-                Al iniciar el torneo se generan ⌈N/X⌉ grupos. Después de las P
-                partidas, los C mejores de cada grupo pasan a la siguiente fase.
+                {t("form.groupsConfigHint")}
               </p>
             </div>
           )}
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Modo de inscripción *</span>
+            <span className={styles.fieldLabel}>
+              {t("form.fieldInscriptionMode")}
+            </span>
             <div className={styles.formatOptions}>
               <button
                 type="button"
@@ -225,9 +233,11 @@ export default function CreateTorneo() {
                 onClick={() => setInscMode("open")}
               >
                 <span className={styles.formatIcon}>📝</span>
-                <span className={styles.formatName}>Inscripción abierta</span>
+                <span className={styles.formatName}>
+                  {t("form.modeOpenName")}
+                </span>
                 <span className={styles.formatHint}>
-                  Los usuarios se anotan y vos aprobás
+                  {t("form.modeOpenHint")}
                 </span>
               </button>
               <button
@@ -237,57 +247,58 @@ export default function CreateTorneo() {
               >
                 <span className={styles.formatIcon}>👤</span>
                 <span className={styles.formatName}>
-                  Yo agrego participantes
+                  {t("form.modeAdminName")}
                 </span>
                 <span className={styles.formatHint}>
-                  Vos elegís a quién agregar de la comunidad
+                  {t("form.modeAdminHint")}
                 </span>
               </button>
             </div>
           </label>
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Cupo máximo (opcional)</span>
+            <span className={styles.fieldLabel}>{t("form.fieldMax")}</span>
             <input
               className={styles.fieldInput}
               type="number"
               min={2}
               value={maxParticipants}
               onChange={(e) => setMax(e.target.value)}
-              placeholder="Dejá vacío para sin tope"
+              placeholder={t("form.maxPlaceholder")}
             />
           </label>
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Fecha (opcional)</span>
+            <span className={styles.fieldLabel}>{t("form.fieldDate")}</span>
             <DateTimePicker
               id="torneo-fecha"
               name="fecha"
               value={fecha}
               onChange={setFecha}
             />
-            <span className={styles.formHint}>
-              Si la cargás, el torneo aparece en el Calendario.
-            </span>
+            <span className={styles.formHint}>{t("form.dateHint")}</span>
           </label>
 
           {error && <p className={styles.errorMsg}>{error}</p>}
 
           <div className={styles.formActions}>
             <Link to="/torneos" className={styles.btnGhost}>
-              Cancelar
+              {t("form.cancel")}
             </Link>
             <button
               type="submit"
               className={styles.btnPrimary}
               disabled={submitting}
             >
-              {submitting ? "Creando…" : "Crear torneo"}
+              {submitting ? t("form.creating") : t("form.createSubmit")}
             </button>
           </div>
           <p className={styles.formHint}>
-            Se crea como <strong>Borrador</strong>. Después podés abrir
-            inscripciones desde la página del torneo.
+            <Trans
+              t={t}
+              i18nKey="form.createHint"
+              components={{ strong: <strong /> }}
+            />
           </p>
         </form>
       </div>

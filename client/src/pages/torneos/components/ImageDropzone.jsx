@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "../Torneos.module.css";
 
 export default function ImageDropzone({ preview, onFile }) {
+  const { t } = useTranslation("torneos");
   const inputRef = useRef(null);
   const onFileRef = useRef(onFile);
   const [dragOver, setDragOver] = useState(false);
@@ -59,10 +61,8 @@ export default function ImageDropzone({ preview, onFile }) {
       ) : (
         <div className={styles.dropzonePlaceholder}>
           <span className={styles.dropzoneIcon}>🖼</span>
-          <span className={styles.dropzoneText}>
-            Arrastrá, pegá o hacé click para subir un banner (opcional)
-          </span>
-          <span className={styles.dropzoneSub}>JPG, PNG, WEBP · máx. 5 MB</span>
+          <span className={styles.dropzoneText}>{t("dropzone.text")}</span>
+          <span className={styles.dropzoneSub}>{t("dropzone.sub")}</span>
         </div>
       )}
       <input

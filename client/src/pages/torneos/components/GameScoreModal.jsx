@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import UserRef from "../../../components/shared/UserRef";
 import { getUserDisplay } from "../../../utils/userDisplay";
 import ModalPortal from "../../../components/shared/ModalPortal";
 import styles from "../TorneoDetail.module.css";
 
 export default function GameScoreModal({ game, players, onClose, onConfirm }) {
+  const { t } = useTranslation("torneos");
   const [scores, setScores] = useState({});
   const [submitting, setSub] = useState(false);
   const [error, setError] = useState("");
@@ -55,14 +57,14 @@ export default function GameScoreModal({ game, players, onClose, onConfirm }) {
       return { playerId: id, score };
     });
     if (results.some((r) => r.score === null)) {
-      setError("Cargá un score numérico para cada jugador");
+      setError(t("gameScore.missingScores"));
       return;
     }
     setSub(true);
     try {
       await onConfirm({ results });
     } catch (err) {
-      setError(err.response?.data?.message || "Error al guardar");
+      setError(err.response?.data?.message || t("gameScore.errorSave"));
     } finally {
       setSub(false);
     }
@@ -74,20 +76,17 @@ export default function GameScoreModal({ game, players, onClose, onConfirm }) {
         <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
           <div className={styles.modalHeader}>
             <h3 className={styles.modalTitle}>
-              Cargar resultado · Partida {game.gameNumber}
+              {t("gameScore.title", { number: game.gameNumber })}
             </h3>
             <button
               className={styles.modalClose}
               onClick={onClose}
-              aria-label="Cerrar"
+              aria-label={t("gameScore.close")}
             >
               ✕
             </button>
           </div>
-          <p className={styles.modalSub}>
-            Ingresá el puntaje real de cada jugador. La posición se calcula
-            automáticamente.
-          </p>
+          <p className={styles.modalSub}>{t("gameScore.sub")}</p>
 
           <ul className={styles.scoreList}>
             {(players || []).map((p) => {
@@ -103,7 +102,7 @@ export default function GameScoreModal({ game, players, onClose, onConfirm }) {
                   <span className={styles.scoreUser}>
                     {info.isDeleted ? (
                       <span className={styles.deletedTxt}>
-                        Usuario eliminado
+                        {t("gameScore.deletedUser")}
                       </span>
                     ) : (
                       <UserRef user={p} noLink />
@@ -117,7 +116,7 @@ export default function GameScoreModal({ game, players, onClose, onConfirm }) {
                     onChange={(e) =>
                       setScores((s) => ({ ...s, [id]: e.target.value }))
                     }
-                    placeholder="Score"
+                    placeholder={t("gameScore.scorePlaceholder")}
                   />
                 </li>
               );
@@ -132,14 +131,14 @@ export default function GameScoreModal({ game, players, onClose, onConfirm }) {
               onClick={onClose}
               disabled={submitting}
             >
-              Cancelar
+              {t("gameScore.cancel")}
             </button>
             <button
               className={styles.btnPrimary}
               onClick={handleConfirm}
               disabled={submitting}
             >
-              {submitting ? "Guardando…" : "Guardar resultado"}
+              {submitting ? t("gameScore.saving") : t("gameScore.save")}
             </button>
           </div>
         </div>

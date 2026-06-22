@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import UserRef from "../../../components/shared/UserRef";
 import { getUserDisplay } from "../../../utils/userDisplay";
 import styles from "../TorneoDetail.module.css";
@@ -8,8 +9,9 @@ export default function GroupStandings({
   gamesPerGroup,
   qualifiersPerGroup,
 }) {
+  const { t } = useTranslation("torneos");
   if (!standings || standings.length === 0) {
-    return <p className={styles.emptyMsg}>Todavía no hay partidas jugadas.</p>;
+    return <p className={styles.emptyMsg}>{t("groupStandings.empty")}</p>;
   }
 
   const byId = new Map((players || []).map((p) => [String(p._id || p), p]));
@@ -20,14 +22,16 @@ export default function GroupStandings({
         <thead>
           <tr>
             <th className={styles.colPos}>#</th>
-            <th>Jugador</th>
-            <th className={styles.colNum}>PJ</th>
+            <th>{t("groupStandings.player")}</th>
+            <th className={styles.colNum}>{t("groupStandings.colPlayed")}</th>
             {Array.from({ length: gamesPerGroup }).map((_, i) => (
               <th key={i} className={styles.colNum}>
-                P{i + 1}
+                {t("groupStandings.colGame", { number: i + 1 })}
               </th>
             ))}
-            <th className={`${styles.colNum} ${styles.colPts}`}>Total PV</th>
+            <th className={`${styles.colNum} ${styles.colPts}`}>
+              {t("groupStandings.colTotalPV")}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -43,7 +47,9 @@ export default function GroupStandings({
                 <td className={styles.colPos}>{idx + 1}</td>
                 <td>
                   {info.isDeleted ? (
-                    <span className={styles.deletedTxt}>Usuario eliminado</span>
+                    <span className={styles.deletedTxt}>
+                      {t("groupStandings.deletedUser")}
+                    </span>
                   ) : (
                     <UserRef user={user || { _id: row.user }} />
                   )}

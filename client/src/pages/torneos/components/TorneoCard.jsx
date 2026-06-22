@@ -1,38 +1,45 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import UserRef from "../../../components/shared/UserRef";
 import ItemCommunityTag from "../../../components/shared/ItemCommunityTag";
+import { getLocale } from "../../../utils/locale";
+import i18n from "../../../i18n";
 import styles from "../Torneos.module.css";
 
 const STATUS_META = {
-  draft: { label: "Borrador", className: "chipDraft" },
-  registration: { label: "Inscripción abierta", className: "chipRegistration" },
-  in_progress: { label: "En curso", className: "chipInProgress" },
-  finished: { label: "Finalizado", className: "chipFinished" },
+  draft: { labelKey: "status.draft", className: "chipDraft" },
+  registration: {
+    labelKey: "status.registration",
+    className: "chipRegistration",
+  },
+  in_progress: { labelKey: "status.in_progress", className: "chipInProgress" },
+  finished: { labelKey: "status.finished", className: "chipFinished" },
 };
 
 const FORMAT_META = {
-  league: { label: "Liga", icon: "🔁" },
-  single_elim: { label: "Eliminación", icon: "🏆" },
-  groups: { label: "Grupos", icon: "🧩" },
+  league: { labelKey: "format.leagueShort", icon: "🔁" },
+  single_elim: { labelKey: "format.singleElimShort", icon: "🏆" },
+  groups: { labelKey: "format.groupsShort", icon: "🧩" },
 };
 
 function timeAgo(date) {
   const diff = (Date.now() - new Date(date)) / 1000;
-  if (diff < 60) return "ahora";
+  if (diff < 60) return i18n.t("torneos:card.timeNow");
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
   if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
-  return new Date(date).toLocaleDateString("es-AR", {
+  return new Date(date).toLocaleDateString(getLocale(), {
     day: "numeric",
     month: "long",
   });
 }
 
 export default function TorneoCard({ torneo, index = 0 }) {
+  const { t } = useTranslation("torneos");
   const baseStatus = STATUS_META[torneo.status] || STATUS_META.draft;
   const status =
     torneo.status === "registration" && torneo.inscriptionMode === "admin_only"
-      ? { label: "Inscripción cerrada", className: "chipFinished" }
+      ? { labelKey: "status.registrationClosed", className: "chipFinished" }
       : baseStatus;
   const format = FORMAT_META[torneo.format] || FORMAT_META.league;
   const participants =
@@ -68,7 +75,7 @@ export default function TorneoCard({ torneo, index = 0 }) {
         <div className={styles.cardMeta}>
           <ItemCommunityTag communityId={torneo.community} />
           <span className={`${styles.chip} ${styles[status.className]}`}>
-            {status.label}
+            {t(status.labelKey)}
           </span>
           <span className={styles.cardDate}>{timeAgo(torneo.createdAt)}</span>
         </div>
@@ -82,7 +89,7 @@ export default function TorneoCard({ torneo, index = 0 }) {
 
         <div className={styles.cardFooter}>
           <span className={styles.cardChipMuted}>
-            {format.icon} {format.label}
+            {format.icon} {t(format.labelKey)}
           </span>
           <span className={styles.cardChipMuted}>
             👥 {participants}
@@ -90,7 +97,7 @@ export default function TorneoCard({ torneo, index = 0 }) {
           </span>
           {torneo.createdBy && (
             <span className={styles.cardAuthor}>
-              por <UserRef user={torneo.createdBy} noLink />
+              {t("card.by")} <UserRef user={torneo.createdBy} noLink />
             </span>
           )}
         </div>

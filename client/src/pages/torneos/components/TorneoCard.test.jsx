@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import i18n from "../../../i18n";
 import TorneoCard from "./TorneoCard";
 
 function makeTorneo(overrides = {}) {
@@ -133,5 +134,18 @@ describe("<TorneoCard>", () => {
   it("shows participant count without max when maxParticipants is absent", () => {
     renderCard(makeTorneo({ participantCount: 5, maxParticipants: undefined }));
     expect(screen.getByText(/👥 5$/)).toBeInTheDocument();
+  });
+
+  describe("English", () => {
+    afterEach(() => {
+      i18n.changeLanguage("es");
+    });
+
+    it("renders English status + format labels when language is en", () => {
+      i18n.changeLanguage("en");
+      renderCard(makeTorneo({ status: "in_progress", format: "single_elim" }));
+      expect(screen.getByText("In progress")).toBeInTheDocument();
+      expect(screen.getByText(/Elimination/)).toBeInTheDocument();
+    });
   });
 });

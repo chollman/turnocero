@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
 import { toLocalInputValue, fromLocalInputValue } from "../../utils/eventoDate";
@@ -11,6 +12,7 @@ import ImageDropzone from "./components/ImageDropzone";
 import styles from "./Torneos.module.css";
 
 export default function EditTorneo() {
+  const { t } = useTranslation("torneos");
   const { id } = useParams();
   const navigate = useNavigate();
   const brandName = useBrandName();
@@ -91,7 +93,7 @@ export default function EditTorneo() {
       });
       navigate(`/torneos/${id}`);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al guardar");
+      setError(err.response?.data?.message || t("form.saveError"));
     } finally {
       setSub(false);
     }
@@ -101,7 +103,7 @@ export default function EditTorneo() {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
-          <p className={styles.cardDate}>Cargando…</p>
+          <p className={styles.cardDate}>{t("form.loading")}</p>
         </div>
       </div>
     );
@@ -109,7 +111,7 @@ export default function EditTorneo() {
     return (
       <div className={styles.page}>
         <div className={styles.inner}>
-          <p className={styles.cardDate}>Torneo no encontrado</p>
+          <p className={styles.cardDate}>{t("form.notFound")}</p>
         </div>
       </div>
     );
@@ -117,14 +119,14 @@ export default function EditTorneo() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{`Editar torneo – ${brandName}`}</title>
+        <title>{t("form.editMetaTitle", { brand: brandName })}</title>
       </Helmet>
       <div className={styles.inner}>
         <div className={styles.formHeader}>
           <BackButton to={`/torneos/${id}`} flush>
-            Volver al torneo
+            {t("form.backToTorneo")}
           </BackButton>
-          <h1 className={styles.title}>Editar torneo</h1>
+          <h1 className={styles.title}>{t("form.editTitle")}</h1>
         </div>
 
         <form className={styles.formCard} onSubmit={handleSubmit}>
@@ -134,12 +136,12 @@ export default function EditTorneo() {
           />
           {file && (
             <span className={styles.editImageHint}>
-              Nueva imagen seleccionada — se reemplazará al guardar
+              {t("form.newImageHint")}
             </span>
           )}
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Título *</span>
+            <span className={styles.fieldLabel}>{t("form.fieldTitle")}</span>
             <input
               className={styles.fieldInput}
               value={title}
@@ -150,7 +152,7 @@ export default function EditTorneo() {
           </label>
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Juego *</span>
+            <span className={styles.fieldLabel}>{t("form.fieldGame")}</span>
             <input
               className={styles.fieldInput}
               value={game}
@@ -161,7 +163,9 @@ export default function EditTorneo() {
           </label>
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Descripción</span>
+            <span className={styles.fieldLabel}>
+              {t("form.fieldDescription")}
+            </span>
             <textarea
               className={styles.fieldTextarea}
               value={description}
@@ -172,33 +176,33 @@ export default function EditTorneo() {
           </label>
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Cupo máximo</span>
+            <span className={styles.fieldLabel}>{t("form.fieldMaxShort")}</span>
             <input
               className={styles.fieldInput}
               type="number"
               min={2}
               value={maxParticipants}
               onChange={(e) => setMax(e.target.value)}
-              placeholder="Dejá vacío para sin tope"
+              placeholder={t("form.maxPlaceholder")}
             />
           </label>
 
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>Fecha (opcional)</span>
+            <span className={styles.fieldLabel}>{t("form.fieldDate")}</span>
             <DateTimePicker
               id="torneo-fecha"
               name="fecha"
               value={fecha}
               onChange={setFecha}
             />
-            <span className={styles.formHint}>
-              Si la cargás, el torneo aparece en el Calendario.
-            </span>
+            <span className={styles.formHint}>{t("form.dateHint")}</span>
           </label>
 
           {["draft", "registration"].includes(torneoStatus) && (
             <label className={styles.field}>
-              <span className={styles.fieldLabel}>Modo de inscripción</span>
+              <span className={styles.fieldLabel}>
+                {t("form.fieldInscriptionModeShort")}
+              </span>
               <div className={styles.formatOptions}>
                 <button
                   type="button"
@@ -206,7 +210,9 @@ export default function EditTorneo() {
                   onClick={() => setInscMode("open")}
                 >
                   <span className={styles.formatIcon}>📝</span>
-                  <span className={styles.formatName}>Inscripción abierta</span>
+                  <span className={styles.formatName}>
+                    {t("form.modeOpenName")}
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -215,7 +221,7 @@ export default function EditTorneo() {
                 >
                   <span className={styles.formatIcon}>👤</span>
                   <span className={styles.formatName}>
-                    Yo agrego participantes
+                    {t("form.modeAdminName")}
                   </span>
                 </button>
               </div>
@@ -225,11 +231,13 @@ export default function EditTorneo() {
           {torneoFormat === "groups" && torneoStatus === "draft" && (
             <div className={styles.groupsConfig}>
               <h3 className={styles.groupsConfigTitle}>
-                Configuración Grupos (editable solo en borrador)
+                {t("form.groupsConfigTitleEdit")}
               </h3>
               <div className={styles.groupsConfigGrid}>
                 <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Jugadores por mesa</span>
+                  <span className={styles.fieldLabel}>
+                    {t("form.playersPerTable")}
+                  </span>
                   <input
                     className={styles.fieldInput}
                     type="number"
@@ -240,7 +248,9 @@ export default function EditTorneo() {
                   />
                 </label>
                 <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Partidas por grupo</span>
+                  <span className={styles.fieldLabel}>
+                    {t("form.gamesPerGroup")}
+                  </span>
                   <input
                     className={styles.fieldInput}
                     type="number"
@@ -252,7 +262,7 @@ export default function EditTorneo() {
                 </label>
                 <label className={styles.field}>
                   <span className={styles.fieldLabel}>
-                    Clasificados por grupo
+                    {t("form.qualifiersPerGroup")}
                   </span>
                   <input
                     className={styles.fieldInput}
@@ -270,20 +280,17 @@ export default function EditTorneo() {
 
           <div className={styles.formActions}>
             <Link to={`/torneos/${id}`} className={styles.btnGhost}>
-              Cancelar
+              {t("form.cancel")}
             </Link>
             <button
               type="submit"
               className={styles.btnPrimary}
               disabled={submitting}
             >
-              {submitting ? "Guardando…" : "Guardar cambios"}
+              {submitting ? t("form.saving") : t("form.saveSubmit")}
             </button>
           </div>
-          <p className={styles.formHint}>
-            Nota: el formato del torneo no se puede editar después de creado. La
-            configuración de Grupos solo es editable en borrador.
-          </p>
+          <p className={styles.formHint}>{t("form.editHint")}</p>
         </form>
       </div>
     </div>

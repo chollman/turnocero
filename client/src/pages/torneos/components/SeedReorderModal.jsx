@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import UserRef from "../../../components/shared/UserRef";
 import { getUserDisplay } from "../../../utils/userDisplay";
 import ModalPortal from "../../../components/shared/ModalPortal";
@@ -7,6 +8,7 @@ import { API } from "../../../api/endpoints";
 import styles from "../TorneoDetail.module.css";
 
 export default function SeedReorderModal({ torneo, onClose, onSaved }) {
+  const { t } = useTranslation("torneos");
   const [order, setOrder] = useState(torneo.participants || []);
   const [submitting, setSub] = useState(false);
   const [error, setError] = useState("");
@@ -33,7 +35,7 @@ export default function SeedReorderModal({ torneo, onClose, onSaved }) {
       });
       onSaved(data);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al guardar");
+      setError(err.response?.data?.message || t("seeds.errorSave"));
     } finally {
       setSub(false);
     }
@@ -44,19 +46,16 @@ export default function SeedReorderModal({ torneo, onClose, onSaved }) {
       <div className={styles.modalBackdrop} onClick={onClose}>
         <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
           <div className={styles.modalHeader}>
-            <h3 className={styles.modalTitle}>Reordenar seeds</h3>
+            <h3 className={styles.modalTitle}>{t("seeds.title")}</h3>
             <button
               className={styles.modalClose}
               onClick={onClose}
-              aria-label="Cerrar"
+              aria-label={t("seeds.close")}
             >
               ✕
             </button>
           </div>
-          <p className={styles.modalSub}>
-            El orden determina el seeding del fixture. Cambiá usando las
-            flechas.
-          </p>
+          <p className={styles.modalSub}>{t("seeds.sub")}</p>
 
           <ul className={styles.seedList}>
             {order.map((u, i) => {
@@ -67,7 +66,7 @@ export default function SeedReorderModal({ torneo, onClose, onSaved }) {
                   <span className={styles.seedName}>
                     {info.isDeleted ? (
                       <span className={styles.deletedTxt}>
-                        Usuario eliminado
+                        {t("seeds.deletedUser")}
                       </span>
                     ) : (
                       <UserRef user={u} noLink />
@@ -78,7 +77,7 @@ export default function SeedReorderModal({ torneo, onClose, onSaved }) {
                       className={styles.seedBtn}
                       onClick={() => move(i, -1)}
                       disabled={i === 0}
-                      aria-label="Subir"
+                      aria-label={t("seeds.up")}
                     >
                       ↑
                     </button>
@@ -86,7 +85,7 @@ export default function SeedReorderModal({ torneo, onClose, onSaved }) {
                       className={styles.seedBtn}
                       onClick={() => move(i, +1)}
                       disabled={i === order.length - 1}
-                      aria-label="Bajar"
+                      aria-label={t("seeds.down")}
                     >
                       ↓
                     </button>
@@ -104,14 +103,14 @@ export default function SeedReorderModal({ torneo, onClose, onSaved }) {
               onClick={onClose}
               disabled={submitting}
             >
-              Cancelar
+              {t("seeds.cancel")}
             </button>
             <button
               className={styles.btnPrimary}
               onClick={handleSave}
               disabled={submitting}
             >
-              {submitting ? "Guardando…" : "Guardar orden"}
+              {submitting ? t("seeds.saving") : t("seeds.save")}
             </button>
           </div>
         </div>

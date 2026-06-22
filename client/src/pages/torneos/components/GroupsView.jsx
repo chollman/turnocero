@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { Trans, useTranslation } from "react-i18next";
 import UserRef from "../../../components/shared/UserRef";
 import { getUserDisplay } from "../../../utils/userDisplay";
 import { API } from "../../../api/endpoints";
@@ -9,6 +10,7 @@ import PhaseTransitionModal from "./PhaseTransitionModal";
 import styles from "../TorneoDetail.module.css";
 
 export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
+  const { t } = useTranslation("torneos");
   const [phaseData, setPhaseData] = useState(null);
   const [activePhase, setActivePhase] = useState(torneo.currentPhase || 1);
   const [loading, setLoading] = useState(true);
@@ -46,15 +48,11 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
   const refresh = () => load(activePhase);
 
   if (loading || !phaseData) {
-    return <p className={styles.emptyMsg}>Cargando grupos…</p>;
+    return <p className={styles.emptyMsg}>{t("groups.loading")}</p>;
   }
 
   if (phaseData.groups.length === 0) {
-    return (
-      <p className={styles.emptyMsg}>
-        Todavía no se generaron grupos para esta fase.
-      </p>
-    );
+    return <p className={styles.emptyMsg}>{t("groups.emptyPhase")}</p>;
   }
 
   const allCompleted = phaseData.groups.every((g) => g.status === "completed");
@@ -83,7 +81,7 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
       await axios.delete(API.torneos.GAME_RESULT(torneo._id, game._id));
       await refresh();
     } catch (err) {
-      alert(err.response?.data?.message || "Error al deshacer");
+      alert(err.response?.data?.message || t("detail.undoError"));
     }
   };
 
@@ -104,7 +102,7 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
       setEditingAdvanced(null);
       await refresh();
     } catch (err) {
-      alert(err.response?.data?.message || "Error al guardar");
+      alert(err.response?.data?.message || t("groups.errorSave"));
     }
   };
 
@@ -121,8 +119,8 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
               className={`${styles.phaseTab} ${activePhase === p ? styles.phaseTabActive : ""}`}
               onClick={() => setActivePhase(p)}
             >
-              Fase {p}
-              {p === phaseData.currentPhase ? " · actual" : ""}
+              {t("groups.phase", { number: p })}
+              {p === phaseData.currentPhase ? t("groups.phaseCurrent") : ""}
             </button>
           ))}
         </div>
@@ -163,7 +161,7 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
             className={styles.btnPrimary}
             onClick={() => setShowPhaseModal(true)}
           >
-            Generar siguiente fase →
+            {t("groups.generateNextPhase")}
           </button>
         </div>
       )}
@@ -175,8 +173,11 @@ export default function GroupsView({ torneo, isAdmin, onTorneoChange }) {
         phaseData.groups.length === 1 &&
         torneo.status === "in_progress" && (
           <p className={styles.phaseFinalHint}>
-            Esta es la mesa final. Cuando la confirmes, usá{" "}
-            <em>Finalizar torneo</em> en el panel admin.
+            <Trans
+              t={t}
+              i18nKey="groups.finalHint"
+              components={[<em key="0" />]}
+            />
           </p>
         )}
 
@@ -219,6 +220,7 @@ function GroupCard({
   onToggleEditAdvanced,
   onToggleAdvanced,
 }) {
+  const { t } = useTranslation("torneos");
   const advancedIds = new Set(
     (group.advancedPlayers || []).map((p) => String(p._id || p)),
   );
@@ -237,16 +239,18 @@ function GroupCard({
     >
       <div className={styles.groupHeader}>
         <h3 className={styles.groupTitle}>
-          {isFinalTable ? "🏆 Mesa final" : `Mesa #${group.tableNumber}`}
+          {isFinalTable
+            ? t("groups.finalTable")
+            : t("groups.table", { number: group.tableNumber })}
         </h3>
         <span
           className={`${styles.groupStatus} ${styles[`status_${group.status}`]}`}
         >
           {group.status === "completed"
-            ? "Terminado"
+            ? t("groups.statusCompleted")
             : group.status === "in_progress"
-              ? "En curso"
-              : "Pendiente"}
+              ? t("groups.statusInProgress")
+              : t("groups.statusPending")}
         </span>
       </div>
 
@@ -254,11 +258,13 @@ function GroupCard({
         <div className={styles.championBanner}>
           <span className={styles.championIcon}>🏆</span>
           <div className={styles.championText}>
-            <span className={styles.championLabel}>Campeón provisional</span>
+            <span className={styles.championLabel}>
+              {t("groups.provisionalChampion")}
+            </span>
             <span className={styles.championName}>
               <UserRef user={championUser} noLink />
               <span className={styles.championScore}>
-                {champion.totalPV} PV
+                {t("groups.pv", { score: champion.totalPV })}
               </span>
             </span>
           </div>
@@ -273,18 +279,20 @@ function GroupCard({
       />
 
       <div className={styles.groupGamesSection}>
-        <h4 className={styles.groupSubheading}>Partidas</h4>
+        <h4 className={styles.groupSubheading}>{t("groups.games")}</h4>
         <ul className={styles.groupGamesList}>
           {(group.games || []).map((g) => (
             <li key={g._id} className={styles.groupGameItem}>
               <div className={styles.groupGameInfo}>
                 <span className={styles.groupGameNumber}>
-                  Partida {g.gameNumber}
+                  {t("groups.game", { number: g.gameNumber })}
                 </span>
                 <span
                   className={`${styles.groupGameStatus} ${g.status === "completed" ? styles.groupGameStatusDone : ""}`}
                 >
-                  {g.status === "completed" ? "✓ Cargada" : "Pendiente"}
+                  {g.status === "completed"
+                    ? t("groups.gameLoaded")
+                    : t("groups.gamePending")}
                 </span>
               </div>
               {g.status === "completed" && (
@@ -298,7 +306,7 @@ function GroupCard({
                         </span>
                         <UserRef user={r.player} noLink />
                         <span className={styles.groupGameResultScore}>
-                          {r.score} pts
+                          {t("groups.pts", { score: r.score })}
                         </span>
                       </li>
                     ))}
@@ -311,14 +319,14 @@ function GroupCard({
                       className={styles.matchBtnPrimary}
                       onClick={() => onRecordGame(g)}
                     >
-                      Cargar resultado
+                      {t("groups.recordGame")}
                     </button>
                   ) : (
                     <button
                       className={styles.matchBtnGhost}
                       onClick={() => onUndoGame(g)}
                     >
-                      Deshacer
+                      {t("groups.undo")}
                     </button>
                   )}
                 </div>
@@ -332,14 +340,14 @@ function GroupCard({
         <div className={styles.groupAdvancedSection}>
           <div className={styles.groupAdvancedHeader}>
             <h4 className={styles.groupSubheading}>
-              Promovidos ({advancedIds.size})
+              {t("groups.advanced", { n: advancedIds.size })}
             </h4>
             {isAdmin && isCurrentPhase && (
               <button
                 className={styles.adminLink}
                 onClick={onToggleEditAdvanced}
               >
-                {editingAdvanced ? "Listo" : "Editar"}
+                {editingAdvanced ? t("groups.done") : t("groups.edit")}
               </button>
             )}
           </div>
@@ -360,7 +368,7 @@ function GroupCard({
                       <span>
                         {info.isDeleted ? (
                           <span className={styles.deletedTxt}>
-                            Usuario eliminado
+                            {t("groups.deletedUser")}
                           </span>
                         ) : (
                           <UserRef user={p} noLink />
@@ -380,7 +388,7 @@ function GroupCard({
                 </li>
               ))}
               {(group.advancedPlayers || []).length === 0 && (
-                <li className={styles.emptyMsg}>Sin promovidos asignados</li>
+                <li className={styles.emptyMsg}>{t("groups.noAdvanced")}</li>
               )}
             </ul>
           )}
