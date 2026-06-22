@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import i18n from "../../i18n";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
@@ -83,5 +84,23 @@ describe("<ForgotPassword>", () => {
     expect(
       screen.getByRole("link", { name: /volver al login/i }),
     ).toHaveAttribute("href", "/login");
+  });
+
+  describe("English locale", () => {
+    afterEach(() => i18n.changeLanguage("es"));
+
+    it("renders the page in English when the language is 'en'", () => {
+      i18n.changeLanguage("en");
+      renderPage();
+      expect(
+        screen.getByRole("heading", { name: /forgot your password/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /send link/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: /back to login/i }),
+      ).toBeInTheDocument();
+    });
   });
 });
