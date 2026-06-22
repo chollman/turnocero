@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AllProviders } from "../../test/wrappers/AllProviders";
+import i18n from "../../i18n";
 import ErrorScreen from "./ErrorScreen";
 
 function renderScreen(props = {}) {
@@ -103,5 +104,30 @@ describe("<ErrorScreen> — 500", () => {
     fireEvent.click(screen.getByRole("button", { name: /Ir al inicio/ }));
     expect(onPrimary).toHaveBeenCalledTimes(1);
     expect(onSecondary).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("<ErrorScreen> — i18n English", () => {
+  afterEach(() => {
+    i18n.changeLanguage("es");
+  });
+
+  it("renders the 404 copy in English", () => {
+    i18n.changeLanguage("en");
+    renderScreen({ variant: "404" });
+    expect(
+      screen.getByText(/Error 404 · page not found/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/in the deck/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Back to home/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the 500 incident chip in English", () => {
+    i18n.changeLanguage("en");
+    renderScreen({ variant: "500" });
+    expect(screen.getByText(/knocked the board over/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "copy" })).toBeInTheDocument();
   });
 });

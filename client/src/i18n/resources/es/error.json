@@ -1,0 +1,26 @@
+{
+  "screen": {
+    "eyebrow404": "Error 404 · página no encontrada",
+    "eyebrow500": "Error 500 · algo se cayó de la mesa",
+    "title404": "Esta carta no está <em>en el mazo.</em>",
+    "title500": "Se nos <em>volcó el tablero.</em>",
+    "text404": "Buscamos en todas las cajas y no encontramos lo que pedías. Quizás la mesa se levantó, el link quedó viejo, o tipeaste un número de la suerte que no tocaba.",
+    "text500": "No es culpa tuya — un error de nuestro lado dio vuelta las piezas. Ya estamos levantando todo. Probá de nuevo en un toque y deberíamos estar jugando otra vez.",
+    "primary404": "Volver al inicio",
+    "secondary404": "Página anterior",
+    "primary500": "Reintentar",
+    "secondary500": "Ir al inicio",
+    "docTitle404": "Página no encontrada · TurnoCero",
+    "docTitle500": "Algo salió mal · TurnoCero",
+    "incident": "Incidente <strong>#{{code}}</strong> · {{stamp}}",
+    "copy": "copiar",
+    "copied": "✓ copiado",
+    "quickLinks": "O probá una de estas mesas"
+  },
+  "links": {
+    "mesas": "Mesas",
+    "eventos": "Eventos",
+    "compartidas": "Compartidas",
+    "colabora": "Colaborá"
+  }
+}

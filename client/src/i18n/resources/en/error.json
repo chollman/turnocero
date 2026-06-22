@@ -1,0 +1,26 @@
+{
+  "screen": {
+    "eyebrow404": "Error 404 · page not found",
+    "eyebrow500": "Error 500 · something fell off the table",
+    "title404": "This card isn't <em>in the deck.</em>",
+    "title500": "We <em>knocked the board over.</em>",
+    "text404": "We searched every box and couldn't find what you were after. Maybe the table wrapped up, the link went stale, or you typed a lucky number that wasn't meant to be.",
+    "text500": "It's not your fault — an error on our end tipped the pieces over. We're already picking everything back up. Try again in a moment and we should be playing again.",
+    "primary404": "Back to home",
+    "secondary404": "Previous page",
+    "primary500": "Retry",
+    "secondary500": "Go home",
+    "docTitle404": "Page not found · TurnoCero",
+    "docTitle500": "Something went wrong · TurnoCero",
+    "incident": "Incident <strong>#{{code}}</strong> · {{stamp}}",
+    "copy": "copy",
+    "copied": "✓ copied",
+    "quickLinks": "Or try one of these tables"
+  },
+  "links": {
+    "mesas": "Tables",
+    "eventos": "Events",
+    "compartidas": "Compartidas",
+    "colabora": "Collaborate"
+  }
+}
