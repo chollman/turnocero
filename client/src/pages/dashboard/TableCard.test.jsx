@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
@@ -7,6 +7,7 @@ import { server } from "../../test/server";
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 
 import TableCard from "./TableCard";
+import i18n from "../../i18n";
 import { useAuth } from "../../context/AuthContext";
 import { CommunityContext } from "../../context/CommunityContext";
 
@@ -411,6 +412,21 @@ describe("<TableCard> grid mode", () => {
     fireEvent.click(screen.getByTitle("Cancelar mesa"));
     await waitFor(() => expect(onCancel).toHaveBeenCalledWith(table._id));
     confirmSpy.mockRestore();
+  });
+});
+
+describe("<TableCard> i18n", () => {
+  afterEach(() => {
+    i18n.changeLanguage("es");
+  });
+
+  it("renders English copy when language is 'en'", async () => {
+    await i18n.changeLanguage("en");
+    renderCard(makeTable(), { user: { _id: "me", username: "me" } });
+    expect(
+      screen.getByRole("button", { name: /^Join$/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Host")).toBeInTheDocument();
   });
 });
 

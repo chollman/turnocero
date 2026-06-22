@@ -24,6 +24,7 @@ export const NAMESPACES = [
   "comunidades",
   "mathtrade",
   "noticias",
+  "dashboard",
 ];
 export const DEFAULT_NS = "common";
 
