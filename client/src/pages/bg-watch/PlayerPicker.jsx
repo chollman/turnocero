@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
@@ -6,15 +7,6 @@ import useSearchTerm from "../../hooks/useSearchTerm";
 import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 import DiceLoader from "../../components/shared/DiceLoader";
 import styles from "./BgWatchProfile.module.css";
-
-function coPlayerMeta(p) {
-  const parts = [];
-  if (p.numPlays > 0) {
-    parts.push(`${p.numPlays} partida${p.numPlays === 1 ? "" : "s"}`);
-  }
-  if (p.lastPlayedDate) parts.push(`última: ${p.lastPlayedDate}`);
-  return parts.join(" · ");
-}
 
 /**
  * Selector de jugador al "+ Agregar jugador" en una partida. Dos modos:
@@ -37,6 +29,17 @@ export default function PlayerPicker({
   onPick,
   onCancel,
 }) {
+  const { t } = useTranslation("bgwatch");
+  const coPlayerMeta = (p) => {
+    const parts = [];
+    if (p.numPlays > 0) {
+      parts.push(t("playerPicker.metaPlays", { count: p.numPlays }));
+    }
+    if (p.lastPlayedDate) {
+      parts.push(t("playerPicker.metaLast", { date: p.lastPlayedDate }));
+    }
+    return parts.join(" · ");
+  };
   const [mode, setMode] = useState("coplayers");
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
@@ -213,20 +216,20 @@ export default function PlayerPicker({
           className={styles.modalInput}
           placeholder={
             mode === "coplayers"
-              ? "Buscá o escribí un jugador…"
-              : "Buscá un usuario de TurnoCero…"
+              ? t("playerPicker.searchCoplayersPlaceholder")
+              : t("playerPicker.searchTurnoceroPlaceholder")
           }
           value={q}
           onChange={(e) => setQ(e.target.value)}
           maxLength={100}
-          aria-label="Buscar jugador"
+          aria-label={t("playerPicker.searchAria")}
           autoFocus
         />
         <button
           type="button"
           className={styles.playerPickerCancel}
           onClick={onCancel}
-          aria-label="Cancelar"
+          aria-label={t("playerPicker.cancel")}
         >
           ✕
         </button>
@@ -242,7 +245,9 @@ export default function PlayerPicker({
                 onClick={() => handlePick({ name: term, username: "" })}
               >
                 <span className={styles.gameSearchThumbFallback}>＋</span>
-                <span className={styles.gameSearchInfo}>Usar «{term}»</span>
+                <span className={styles.gameSearchInfo}>
+                  {t("playerPicker.useTerm", { term })}
+                </span>
               </button>
             </li>
           )}
@@ -312,15 +317,21 @@ export default function PlayerPicker({
                       <span className={styles.gameSearchName}>
                         {name}
                         {u.isFriend && (
-                          <span className={styles.playerTagFriend}>amigo</span>
+                          <span className={styles.playerTagFriend}>
+                            {t("playerPicker.tagFriend")}
+                          </span>
                         )}
                         {!u.bggUsername && (
-                          <span className={styles.playerTagNoBgg}>sin BGG</span>
+                          <span className={styles.playerTagNoBgg}>
+                            {t("playerPicker.tagNoBgg")}
+                          </span>
                         )}
                       </span>
                       <span className={styles.gameSearchMeta}>
-                        @{u.username}
-                        {u.bggUsername ? ` · BGG: ${u.bggUsername}` : ""}
+                        {t("playerPicker.handle", { username: u.username })}
+                        {u.bggUsername
+                          ? t("playerPicker.bggMeta", { username: u.bggUsername })
+                          : ""}
                       </span>
                     </div>
                   </button>
@@ -336,7 +347,9 @@ export default function PlayerPicker({
                 onClick={onLoadMore}
                 disabled={loadingMore}
               >
-                {loadingMore ? "Cargando más…" : "Ver más"}
+                {loadingMore
+                  ? t("playerPicker.loadingMore")
+                  : t("playerPicker.loadMore")}
               </button>
             </li>
           )}
@@ -346,7 +359,7 @@ export default function PlayerPicker({
       {/* El loader va DEBAJO del "Usar «…»" (que vive dentro de la lista),
           para no tapar ese atajo mientras se busca. */}
       {loading && items.length === 0 && (
-        <DiceLoader text="Buscando jugadores" />
+        <DiceLoader text={t("playerPicker.searching")} />
       )}
 
       <button
@@ -358,11 +371,13 @@ export default function PlayerPicker({
         }}
       >
         {mode === "coplayers"
-          ? "Buscar un usuario de TurnoCero →"
-          : "← Volver a mis compañeros"}
+          ? t("playerPicker.toTurnocero")
+          : t("playerPicker.backToCoplayers")}
       </button>
 
-      {error && <p className={styles.dimText}>No se pudo cargar la lista.</p>}
+      {error && (
+        <p className={styles.dimText}>{t("playerPicker.loadError")}</p>
+      )}
     </div>
   );
 }

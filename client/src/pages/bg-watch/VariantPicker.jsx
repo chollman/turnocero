@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import styles from "./BgWatchProfile.module.css";
@@ -23,6 +24,7 @@ export default function VariantPicker({
   onPick,
   onClose,
 }) {
+  const { t } = useTranslation("bgwatch");
   const [items, setItems] = useState([]);
   const [q, setQ] = useState("");
 
@@ -54,11 +56,11 @@ export default function VariantPicker({
         <input
           type="text"
           className={styles.modalInput}
-          placeholder="Escenario, tablero, variante…"
+          placeholder={t("variantPicker.placeholder")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           maxLength={100}
-          aria-label="Variante o tablero"
+          aria-label={t("variantPicker.aria")}
           autoFocus
           onKeyDown={(e) => {
             if (e.key === "Enter" && term) {
@@ -71,7 +73,7 @@ export default function VariantPicker({
           type="button"
           className={styles.playerPickerCancel}
           onClick={onClose}
-          aria-label="Cerrar"
+          aria-label={t("variantPicker.close")}
         >
           ✕
         </button>
@@ -87,7 +89,9 @@ export default function VariantPicker({
                 onClick={() => choose(term)}
               >
                 <span className={styles.gameSearchThumbFallback}>＋</span>
-                <span className={styles.gameSearchInfo}>Usar «{term}»</span>
+                <span className={styles.gameSearchInfo}>
+                  {t("variantPicker.useTerm", { term })}
+                </span>
               </button>
             </li>
           )}
@@ -109,9 +113,7 @@ export default function VariantPicker({
       )}
 
       {visible.length === 0 && !showCreate && (
-        <p className={styles.dimText}>
-          Escribí el nombre de la variante o tablero.
-        </p>
+        <p className={styles.dimText}>{t("variantPicker.hint")}</p>
       )}
     </div>
   );

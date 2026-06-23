@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import useSearchTerm from "../../hooks/useSearchTerm";
@@ -7,15 +8,6 @@ import useClickOutside from "../../hooks/useClickOutside";
 import EmptyState from "../../components/shared/EmptyState";
 import DiceLoader from "../../components/shared/DiceLoader";
 import styles from "./BgWatchProfile.module.css";
-
-function metaLine(loc) {
-  const parts = [];
-  if (loc.numPlays > 0) {
-    parts.push(`${loc.numPlays} partida${loc.numPlays === 1 ? "" : "s"}`);
-  }
-  if (loc.lastPlayedDate) parts.push(`última: ${loc.lastPlayedDate}`);
-  return parts.join(" · ");
-}
 
 /**
  * Selector de ubicación al cargar/editar una partida. A diferencia del selector
@@ -32,6 +24,17 @@ function metaLine(loc) {
  *   onPick(locationString) — callback al elegir/crear una ubicación.
  */
 export default function LocationPicker({ bggUsername, value, onPick }) {
+  const { t } = useTranslation("bgwatch");
+  const metaLine = (loc) => {
+    const parts = [];
+    if (loc.numPlays > 0) {
+      parts.push(t("locationPicker.metaPlays", { count: loc.numPlays }));
+    }
+    if (loc.lastPlayedDate) {
+      parts.push(t("locationPicker.metaLast", { date: loc.lastPlayedDate }));
+    }
+    return parts.join(" · ");
+  };
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -125,9 +128,9 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
         className={styles.modalInput}
         value={value || ""}
         onChange={(e) => onPick(e.target.value)}
-        placeholder="Casa, club, etc."
+        placeholder={t("locationPicker.freePlaceholder")}
         maxLength={100}
-        aria-label="Ubicación"
+        aria-label={t("locationPicker.freeAria")}
       />
     );
   }
@@ -145,13 +148,13 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
     <div className={styles.locationField} ref={fieldRef}>
       {value && (
         <p className={styles.locationSelected}>
-          Seleccionada: <strong>{value}</strong>
+          {t("locationPicker.selected")} <strong>{value}</strong>
         </p>
       )}
       <input
         type="text"
         className={styles.modalInput}
-        placeholder="Elegí o escribí una ubicación…"
+        placeholder={t("locationPicker.placeholder")}
         value={q}
         onChange={(e) => {
           setQ(e.target.value);
@@ -168,7 +171,7 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
         maxLength={100}
         role="combobox"
         aria-expanded={open}
-        aria-label="Buscar o agregar ubicación"
+        aria-label={t("locationPicker.comboAria")}
       />
 
       {open && (
@@ -177,8 +180,8 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
             <EmptyState
               variant="filtered"
               compact
-              title="Sin ubicaciones aún"
-              text="Escribí una arriba para agregarla."
+              title={t("locationPicker.emptyTitle")}
+              text={t("locationPicker.emptyText")}
             />
           )}
 
@@ -192,7 +195,9 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
                     onClick={() => choose(term)}
                   >
                     <span className={styles.gameSearchThumbFallback}>📍</span>
-                    <span className={styles.gameSearchInfo}>Usar «{term}»</span>
+                    <span className={styles.gameSearchInfo}>
+                      {t("locationPicker.useTerm", { term })}
+                    </span>
                   </button>
                 </li>
               )}
@@ -227,7 +232,9 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
                     onClick={onLoadMore}
                     disabled={loadingMore}
                   >
-                    {loadingMore ? "Cargando más…" : "Ver más"}
+                    {loadingMore
+                      ? t("locationPicker.loadingMore")
+                      : t("locationPicker.loadMore")}
                   </button>
                 </li>
               )}
@@ -237,13 +244,11 @@ export default function LocationPicker({ bggUsername, value, onPick }) {
           {/* El loader va DEBAJO del "Usar «…»" (dentro de la lista), para no
               tapar ese atajo mientras se busca. */}
           {loading && items.length === 0 && (
-            <DiceLoader text="Buscando ubicaciones" />
+            <DiceLoader text={t("locationPicker.searching")} />
           )}
 
           {error && (
-            <p className={styles.dimText}>
-              No se pudieron cargar tus ubicaciones.
-            </p>
+            <p className={styles.dimText}>{t("locationPicker.loadError")}</p>
           )}
         </div>
       )}
