@@ -1,12 +1,16 @@
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import styles from "./AdminViewToggle.module.css";
 
 export default function AdminViewToggle({ bancanosVisible = false }) {
+  const { t } = useTranslation();
   const { isActuallyAdmin, viewAsUser, setViewAsUser } = useAuth();
 
   if (!isActuallyAdmin) return null;
 
-  const label = viewAsUser ? "Volver a vista admin" : "Ver como usuario";
+  const label = viewAsUser
+    ? t("admin:viewToggle.backToAdmin")
+    : t("admin:viewToggle.viewAsUser");
   // El FAB "Bancanos" comparte spot bottom-left. Mientras está visible subimos
   // este toggle para que no se monten uno sobre otro; cuando el FAB se esconde
   // (timer o ruta /colabora) baja de nuevo al spot inferior.

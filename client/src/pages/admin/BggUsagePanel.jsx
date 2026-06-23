@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useNotifications } from "../../context/NotificationContext";
 import { API } from "../../api/endpoints";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { getUserDisplay } from "../../utils/userDisplay";
+import { getLocale } from "../../utils/locale";
 import { toCsv, downloadCsv } from "../../utils/downloadCsv";
 import Avatar from "../../components/shared/Avatar";
 import UsageTrendChart from "./UsageTrendChart";
@@ -17,7 +19,6 @@ function localDay(d) {
   return z.toISOString().slice(0, 10);
 }
 
-const ACTION_LABEL = { create: "Cargó", edit: "Editó", delete: "Borró" };
 const ACTION_CLASS = {
   create: styles.actCreate,
   edit: styles.actEdit,
@@ -25,17 +26,12 @@ const ACTION_CLASS = {
 };
 
 function fmtDateTime(value) {
-  return new Date(value).toLocaleString("es-AR", {
+  return new Date(value).toLocaleString(getLocale(), {
     day: "numeric",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function userName(user) {
-  if (!user) return "Anónimos";
-  return getUserDisplay(user).name;
 }
 
 function StatCard({ label, value, accent }) {
@@ -48,7 +44,16 @@ function StatCard({ label, value, accent }) {
 }
 
 export default function BggUsagePanel() {
+  const { t } = useTranslation();
   const { addToast } = useNotifications();
+  const userName = (user) =>
+    user ? getUserDisplay(user).name : t("admin:bggUsage.anonymous");
+  const actionLabel = (action) =>
+    ({
+      create: t("admin:bggUsage.actions.create"),
+      edit: t("admin:bggUsage.actions.edit"),
+      delete: t("admin:bggUsage.actions.delete"),
+    })[action] || action;
   const [tab, setTab] = useState("resumen");
   const [from, setFrom] = useState(() => {
     const d = new Date();
@@ -78,14 +83,14 @@ export default function BggUsagePanel() {
         if (axios.isCancel(err)) return;
         addToast({
           type: "error",
-          title: "Error",
-          message: getErrorMessage(err, "No pudimos cargar el uso de BGG."),
+          title: t("admin:errorToast"),
+          message: getErrorMessage(err, t("admin:bggUsage.errorSummary")),
         });
       } finally {
         setLoadingSummary(false);
       }
     },
-    [from, to, addToast],
+    [from, to, addToast, t],
   );
 
   const loadEvents = useCallback(
@@ -106,14 +111,14 @@ export default function BggUsagePanel() {
         if (axios.isCancel(err)) return;
         addToast({
           type: "error",
-          title: "Error",
-          message: getErrorMessage(err, "No pudimos cargar la actividad."),
+          title: t("admin:errorToast"),
+          message: getErrorMessage(err, t("admin:bggUsage.errorActivity")),
         });
       } finally {
         setLoadingEvents(false);
       }
     },
-    [from, to, eventUserId, addToast],
+    [from, to, eventUserId, addToast, t],
   );
 
   // Usuarios con actividad (para el filtro de la pestaña Actividad). Los
@@ -123,18 +128,18 @@ export default function BggUsagePanel() {
   const handleExportCsv = () => {
     if (!summary) return;
     const headers = [
-      "Usuario",
-      "BGG",
-      "Requests",
-      "Búsquedas",
-      "Juegos",
-      "Partidas(API)",
-      "Colección",
-      "Otros",
-      "Syncs",
-      "Altas",
-      "Ediciones",
-      "Borrados",
+      t("admin:bggUsage.csv.user"),
+      t("admin:bggUsage.csv.bgg"),
+      t("admin:bggUsage.csv.requests"),
+      t("admin:bggUsage.csv.searches"),
+      t("admin:bggUsage.csv.games"),
+      t("admin:bggUsage.csv.playsApi"),
+      t("admin:bggUsage.csv.collection"),
+      t("admin:bggUsage.csv.others"),
+      t("admin:bggUsage.csv.syncs"),
+      t("admin:bggUsage.csv.created"),
+      t("admin:bggUsage.csv.edited"),
+      t("admin:bggUsage.csv.deleted"),
     ];
     const rows = summary.perUser.map((r) => [
       userName(r.user),
@@ -170,12 +175,12 @@ export default function BggUsagePanel() {
 
   return (
     <div className={panelStyles.group}>
-      <h2 className={panelStyles.groupTitle}>Uso de BoardGameGeek</h2>
+      <h2 className={panelStyles.groupTitle}>{t("admin:bggUsage.title")}</h2>
 
       <div className={styles.controls}>
         <div className={styles.range}>
           <label className={styles.rangeField}>
-            <span>Desde</span>
+            <span>{t("admin:bggUsage.from")}</span>
             <input
               type="date"
               value={from}
@@ -184,7 +189,7 @@ export default function BggUsagePanel() {
             />
           </label>
           <label className={styles.rangeField}>
-            <span>Hasta</span>
+            <span>{t("admin:bggUsage.to")}</span>
             <input
               type="date"
               value={to}
@@ -203,7 +208,7 @@ export default function BggUsagePanel() {
             className={`${styles.tab} ${tab === "resumen" ? styles.tabActive : ""}`}
             onClick={() => setTab("resumen")}
           >
-            Resumen
+            {t("admin:bggUsage.tabSummary")}
           </button>
           <button
             type="button"
@@ -212,7 +217,7 @@ export default function BggUsagePanel() {
             className={`${styles.tab} ${tab === "actividad" ? styles.tabActive : ""}`}
             onClick={() => setTab("actividad")}
           >
-            Actividad
+            {t("admin:bggUsage.tabActivity")}
           </button>
         </div>
       </div>
@@ -226,24 +231,33 @@ export default function BggUsagePanel() {
               disabled={!summary || summary.perUser.length === 0}
               onClick={handleExportCsv}
             >
-              Exportar CSV
+              {t("admin:bggUsage.exportCsv")}
             </button>
           </div>
 
           <div className={styles.stats}>
             <StatCard
-              label="Requests a BGG"
+              label={t("admin:bggUsage.statRequests")}
               value={totals ? totals.reads : "—"}
               accent={styles.statReads}
             />
-            <StatCard label="Syncs" value={totals ? totals.syncs : "—"} />
             <StatCard
-              label="Partidas cargadas"
+              label={t("admin:bggUsage.statSyncs")}
+              value={totals ? totals.syncs : "—"}
+            />
+            <StatCard
+              label={t("admin:bggUsage.statCreated")}
               value={totals ? totals.created : "—"}
               accent={styles.statCreated}
             />
-            <StatCard label="Ediciones" value={totals ? totals.edited : "—"} />
-            <StatCard label="Borrados" value={totals ? totals.deleted : "—"} />
+            <StatCard
+              label={t("admin:bggUsage.statEdited")}
+              value={totals ? totals.edited : "—"}
+            />
+            <StatCard
+              label={t("admin:bggUsage.statDeleted")}
+              value={totals ? totals.deleted : "—"}
+            />
           </div>
 
           {summary && summary.byDay.length > 1 && (
@@ -251,28 +265,42 @@ export default function BggUsagePanel() {
           )}
 
           {loadingSummary ? (
-            <p className={styles.empty}>Cargando…</p>
+            <p className={styles.empty}>{t("admin:bggUsage.loading")}</p>
           ) : !summary || summary.perUser.length === 0 ? (
-            <p className={styles.empty}>
-              No hubo actividad de BGG en este rango.
-            </p>
+            <p className={styles.empty}>{t("admin:bggUsage.emptySummary")}</p>
           ) : (
             <div className={styles.tableWrap}>
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th>Usuario</th>
-                    <th className={styles.num}>Requests</th>
-                    <th className={styles.num}>Syncs</th>
-                    <th className={styles.num}>Altas</th>
-                    <th className={styles.num}>Ed.</th>
-                    <th className={styles.num}>Bor.</th>
+                    <th>{t("admin:bggUsage.colUser")}</th>
+                    <th className={styles.num}>
+                      {t("admin:bggUsage.colRequests")}
+                    </th>
+                    <th className={styles.num}>
+                      {t("admin:bggUsage.colSyncs")}
+                    </th>
+                    <th className={styles.num}>
+                      {t("admin:bggUsage.colCreated")}
+                    </th>
+                    <th className={styles.num}>
+                      {t("admin:bggUsage.colEdited")}
+                    </th>
+                    <th className={styles.num}>
+                      {t("admin:bggUsage.colDeleted")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {summary.perUser.map((row) => {
                     const be = row.byEndpoint;
-                    const breakdown = `búsquedas ${be.search} · juegos ${be.thing} · partidas ${be.plays} · colección ${be.collection} · otros ${be.other}`;
+                    const breakdown = t("admin:bggUsage.breakdown", {
+                      search: be.search,
+                      thing: be.thing,
+                      plays: be.plays,
+                      collection: be.collection,
+                      other: be.other,
+                    });
                     return (
                       <tr key={row.userId || "anon"}>
                         <td>
@@ -315,12 +343,12 @@ export default function BggUsagePanel() {
         <>
           <div className={styles.toolbar}>
             <label className={styles.filterField}>
-              <span>Usuario</span>
+              <span>{t("admin:bggUsage.filterUser")}</span>
               <select
                 value={eventUserId}
                 onChange={(e) => setEventUserId(e.target.value)}
               >
-                <option value="">Todos</option>
+                <option value="">{t("admin:bggUsage.filterAll")}</option>
                 {filterableUsers.map((r) => (
                   <option key={r.userId} value={r.userId}>
                     {userName(r.user)}
@@ -332,11 +360,9 @@ export default function BggUsagePanel() {
           </div>
 
           {loadingEvents && events.length === 0 ? (
-            <p className={styles.empty}>Cargando…</p>
+            <p className={styles.empty}>{t("admin:bggUsage.loading")}</p>
           ) : events.length === 0 ? (
-            <p className={styles.empty}>
-              No se cargaron, editaron ni borraron partidas en este rango.
-            </p>
+            <p className={styles.empty}>{t("admin:bggUsage.emptyActivity")}</p>
           ) : (
             <>
               <ul className={styles.eventsList}>
@@ -355,9 +381,10 @@ export default function BggUsagePanel() {
                         <span
                           className={`${styles.actBadge} ${ACTION_CLASS[ev.action] || ""}`}
                         >
-                          {ACTION_LABEL[ev.action] || ev.action}
+                          {actionLabel(ev.action)}
                         </span>{" "}
-                        {ev.gameName || `Juego #${ev.gameId || "?"}`}
+                        {ev.gameName ||
+                          t("admin:bggUsage.game", { id: ev.gameId || "?" })}
                       </span>
                       <span className={styles.eventMeta}>
                         {fmtDateTime(ev.createdAt)}
@@ -374,7 +401,9 @@ export default function BggUsagePanel() {
                   disabled={loadingEvents}
                   onClick={() => loadEvents(eventsMeta.page + 1)}
                 >
-                  {loadingEvents ? "Cargando…" : "Ver más"}
+                  {loadingEvents
+                    ? t("admin:bggUsage.loading")
+                    : t("admin:bggUsage.loadMore")}
                 </button>
               )}
             </>

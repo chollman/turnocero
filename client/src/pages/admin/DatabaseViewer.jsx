@@ -1,5 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Navigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
@@ -39,6 +40,7 @@ function unionKeys(docs) {
 }
 
 function DatabaseViewerInner() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [collections, setCollections] = useState([]);
   const [activeCol, setActiveCol] = useState(null);
@@ -59,7 +61,8 @@ function DatabaseViewerInner() {
         setCollections(data);
         if (data.length > 0) setActiveCol(data[0]);
       })
-      .catch(() => setError("No se pudieron cargar las colecciones"));
+      .catch(() => setError(t("admin:database.errorCollections")));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -88,7 +91,7 @@ function DatabaseViewerInner() {
         });
         setColumns(unionKeys(data.docs));
       } catch {
-        if (!cancelled) setError("Error al cargar los datos");
+        if (!cancelled) setError(t("admin:database.errorData"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -97,6 +100,7 @@ function DatabaseViewerInner() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCol, page, debouncedSearch]);
 
   const handleColChange = (name) => {
@@ -120,7 +124,7 @@ function DatabaseViewerInner() {
         ),
       );
     } catch {
-      setError("No se pudo cambiar el rol de admin");
+      setError(t("admin:database.errorToggleAdmin"));
     } finally {
       setToggling(null);
     }
@@ -132,9 +136,12 @@ function DatabaseViewerInner() {
     <div className={styles.page}>
       <div className="container">
         <div className={styles.hero}>
-          <div className={styles.eyebrow}><Meeple />BASE DE DATOS</div>
-          <h1 className={styles.title}>Base de datos</h1>
-          <p className={styles.sub}>Explorador de colecciones de MongoDB</p>
+          <div className={styles.eyebrow}>
+            <Meeple />
+            {t("admin:database.eyebrow")}
+          </div>
+          <h1 className={styles.title}>{t("admin:database.title")}</h1>
+          <p className={styles.sub}>{t("admin:database.sub")}</p>
         </div>
 
         {collections.length > 0 && (
@@ -156,7 +163,7 @@ function DatabaseViewerInner() {
             <input
               className={styles.searchInput}
               type="text"
-              placeholder="Buscar en la colección…"
+              placeholder={t("admin:database.searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -179,8 +186,8 @@ function DatabaseViewerInner() {
           <div className={styles.center}>
             <p>
               {debouncedSearch
-                ? `Sin resultados para "${debouncedSearch}"`
-                : "La colección está vacía"}
+                ? t("admin:database.noSearchResults", { query: debouncedSearch })
+                : t("admin:database.emptyCollection")}
             </p>
           </div>
         ) : (
@@ -188,8 +195,17 @@ function DatabaseViewerInner() {
             <>
               <p className={styles.meta}>
                 {debouncedSearch
-                  ? `${pagination.total} resultado${pagination.total !== 1 ? "s" : ""} para "${debouncedSearch}" · página ${pagination.page}/${pagination.pages}`
-                  : `${pagination.total} documentos · página ${pagination.page}/${pagination.pages}`}
+                  ? t("admin:database.metaSearch", {
+                      count: pagination.total,
+                      query: debouncedSearch,
+                      page: pagination.page,
+                      pages: pagination.pages,
+                    })
+                  : t("admin:database.meta", {
+                      count: pagination.total,
+                      page: pagination.page,
+                      pages: pagination.pages,
+                    })}
               </p>
               <div className={styles.tableWrap}>
                 <table className={styles.table}>
@@ -198,7 +214,7 @@ function DatabaseViewerInner() {
                       {columns.map((col) => (
                         <th key={col}>{col}</th>
                       ))}
-                      {isUsersCollection && <th>Admin</th>}
+                      {isUsersCollection && <th>{t("admin:database.colAdmin")}</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -218,15 +234,15 @@ function DatabaseViewerInner() {
                               }
                               title={
                                 doc._id?.toString() === user._id?.toString()
-                                  ? "No podés quitarte el admin a vos mismo"
+                                  ? t("admin:database.cantRemoveSelf")
                                   : ""
                               }
                             >
                               {toggling === doc._id
                                 ? "…"
                                 : doc.isAdmin
-                                  ? "Admin ✓"
-                                  : "Admin"}
+                                  ? t("admin:database.adminOn")
+                                  : t("admin:database.adminOff")}
                             </button>
                           </td>
                         )}
@@ -243,7 +259,7 @@ function DatabaseViewerInner() {
                     onClick={() => setPage((p) => p - 1)}
                     disabled={page === 1}
                   >
-                    ← Anterior
+                    {t("admin:database.prev")}
                   </button>
                   <span className={styles.pageInfo}>
                     {page} / {pagination.pages}
@@ -253,7 +269,7 @@ function DatabaseViewerInner() {
                     onClick={() => setPage((p) => p + 1)}
                     disabled={page === pagination.pages}
                   >
-                    Siguiente →
+                    {t("admin:database.next")}
                   </button>
                 </div>
               )}

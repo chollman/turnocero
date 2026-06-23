@@ -30,6 +30,7 @@ export const NAMESPACES = [
   "eventos",
   "compartidas",
   "tables",
+  "admin",
 ];
 export const DEFAULT_NS = "common";
 
