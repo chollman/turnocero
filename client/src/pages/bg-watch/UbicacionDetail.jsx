@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
@@ -26,6 +27,7 @@ export default function UbicacionDetail() {
   const { bggUsername, locationKey } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation("bgwatch");
 
   const isOwnProfile =
     !!user?.bggUsername &&
@@ -82,9 +84,9 @@ export default function UbicacionDetail() {
       <div className={comu.page}>
         <div className={comu.inner}>
           <BackButton onClick={() => navigate(-1)} flush>
-            Volver
+            {t("ubicacionDetail.back")}
           </BackButton>
-          <p className={comu.errorMsg}>No se pudo cargar la ubicación.</p>
+          <p className={comu.errorMsg}>{t("ubicacionDetail.loadError")}</p>
         </div>
       </div>
     );
@@ -94,7 +96,7 @@ export default function UbicacionDetail() {
     return (
       <div className={comu.page}>
         <div className={comu.inner}>
-          <div className={comu.loading}>Cargando…</div>
+          <div className={comu.loading}>{t("ubicacionDetail.loading")}</div>
         </div>
       </div>
     );
@@ -102,20 +104,20 @@ export default function UbicacionDetail() {
 
   const { location, stats, plays, total } = data;
   const totalPages = Math.ceil((total || 0) / PLAYS_PAGE_SIZE);
-  const locationName = location.name || "Ubicación";
+  const locationName = location.name || t("ubicacionDetail.nameFallback");
 
   return (
     <div className={comu.page}>
       <div className={comu.inner}>
         <BackButton onClick={() => navigate(-1)} flush>
-          Volver
+          {t("ubicacionDetail.back")}
         </BackButton>
 
         <header className={styles.playerHeader}>
           <div className={styles.playerHeaderInfo}>
             <div className={comu.eyebrow}>
               <Meeple />
-              BG WATCH · UBICACIÓN
+              {t("ubicacionDetail.eyebrow")}
             </div>
             <h1 className={styles.playerName}>📍 {locationName}</h1>
             <button
@@ -123,29 +125,28 @@ export default function UbicacionDetail() {
               className={styles.editPlayerBtn}
               onClick={() => setEditing(true)}
             >
-              Editar ubicación
+              {t("ubicacionDetail.editLocation")}
             </button>
           </div>
         </header>
 
         {total === 0 ? (
-          <p className={comu.heroSub}>
-            Todavía no hay partidas tuyas en esta ubicación.
-          </p>
+          <p className={comu.heroSub}>{t("ubicacionDetail.noPlaysYet")}</p>
         ) : (
           <>
             <div className={styles.statsGrid}>
               <div className={styles.statCard}>
                 <span className={styles.statValue}>{total}</span>
                 <span className={styles.statLabel}>
-                  partida{total === 1 ? "" : "s"} acá
+                  {t("ubicacionDetail.playsHere", { count: total })}
                 </span>
               </div>
               <div className={styles.statCard}>
                 <span className={styles.statValue}>{stats.uniqueGames}</span>
                 <span className={styles.statLabel}>
-                  juego{stats.uniqueGames === 1 ? "" : "s"} distinto
-                  {stats.uniqueGames === 1 ? "" : "s"}
+                  {t("ubicacionDetail.distinctGames", {
+                    count: stats.uniqueGames,
+                  })}
                 </span>
               </div>
               {stats.firstPlayedDate && (
@@ -153,7 +154,9 @@ export default function UbicacionDetail() {
                   <span className={styles.statValueSm}>
                     {stats.firstPlayedDate}
                   </span>
-                  <span className={styles.statLabel}>primera partida</span>
+                  <span className={styles.statLabel}>
+                    {t("ubicacionDetail.firstPlay")}
+                  </span>
                 </div>
               )}
               {stats.lastPlayedDate && (
@@ -161,14 +164,18 @@ export default function UbicacionDetail() {
                   <span className={styles.statValueSm}>
                     {stats.lastPlayedDate}
                   </span>
-                  <span className={styles.statLabel}>última partida</span>
+                  <span className={styles.statLabel}>
+                    {t("ubicacionDetail.lastPlay")}
+                  </span>
                 </div>
               )}
             </div>
 
             {stats.byGame?.length > 0 && (
               <section>
-                <h2 className={comu.sectionTitle}>Por juego</h2>
+                <h2 className={comu.sectionTitle}>
+                  {t("ubicacionDetail.byGame")}
+                </h2>
                 <ul className={comu.byGameList}>
                   {stats.byGame.map((g) => (
                     <li
@@ -176,10 +183,11 @@ export default function UbicacionDetail() {
                       className={comu.byGameRow}
                     >
                       <span className={comu.byGameName}>
-                        {g.name || `Juego ${g.gameId}`}
+                        {g.name ||
+                          t("ubicacionDetail.gameFallback", { id: g.gameId })}
                       </span>
                       <span className={comu.byGameScore}>
-                        {g.total} {g.total === 1 ? "partida" : "partidas"}
+                        {t("ubicacionDetail.gamePlays", { count: g.total })}
                       </span>
                     </li>
                   ))}
@@ -188,7 +196,9 @@ export default function UbicacionDetail() {
             )}
 
             <section>
-              <h2 className={comu.sectionTitle}>Partidas</h2>
+              <h2 className={comu.sectionTitle}>
+                {t("ubicacionDetail.plays")}
+              </h2>
               <div className={styles.playsList}>
                 {!plays ? (
                   [0, 1, 2].map((i) => <PlayCardSkeleton key={i} />)

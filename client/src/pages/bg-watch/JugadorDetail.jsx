@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
@@ -42,6 +43,7 @@ export default function JugadorDetail() {
   const { bggUsername, playerKey } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation("bgwatch");
 
   const isOwnProfile =
     !!user?.bggUsername &&
@@ -102,9 +104,9 @@ export default function JugadorDetail() {
       <div className={comu.page}>
         <div className={comu.inner}>
           <BackButton onClick={() => navigate(-1)} flush>
-            Volver
+            {t("jugadorDetail.back")}
           </BackButton>
-          <p className={comu.errorMsg}>No se pudo cargar el jugador.</p>
+          <p className={comu.errorMsg}>{t("jugadorDetail.loadError")}</p>
         </div>
       </div>
     );
@@ -114,7 +116,7 @@ export default function JugadorDetail() {
     return (
       <div className={comu.page}>
         <div className={comu.inner}>
-          <div className={comu.loading}>Cargando…</div>
+          <div className={comu.loading}>{t("jugadorDetail.loading")}</div>
         </div>
       </div>
     );
@@ -133,14 +135,15 @@ export default function JugadorDetail() {
           displayName: bggUsername,
           username: bggUsername,
         };
-  const playerName = player.name || player.username || "Jugador";
+  const playerName =
+    player.name || player.username || t("jugadorDetail.playerFallback");
   const playerWinRate = pct(h2h.playerWins, total);
 
   return (
     <div className={comu.page}>
       <div className={comu.inner}>
         <BackButton onClick={() => navigate(-1)} flush>
-          Volver
+          {t("jugadorDetail.back")}
         </BackButton>
 
         <header className={styles.playerHeader}>
@@ -148,7 +151,7 @@ export default function JugadorDetail() {
           <div className={styles.playerHeaderInfo}>
             <div className={comu.eyebrow}>
               <Meeple />
-              BG WATCH · JUGADOR
+              {t("jugadorDetail.eyebrow")}
             </div>
             <h1 className={styles.playerName}>
               {playerName}
@@ -158,9 +161,15 @@ export default function JugadorDetail() {
             </h1>
             <div className={styles.headerTags}>
               {player.isLinked && (
-                <span className={styles.tagFriend}>miembro TurnoCero</span>
+                <span className={styles.tagFriend}>
+                  {t("jugadorDetail.memberTag")}
+                </span>
               )}
-              {player.isSelf && <span className={styles.tagSelf}>sos vos</span>}
+              {player.isSelf && (
+                <span className={styles.tagSelf}>
+                  {t("jugadorDetail.selfTag")}
+                </span>
+              )}
             </div>
             <div className={styles.headerLinks}>
               {player.isLinked && player.linkedUser?._id && (
@@ -168,7 +177,7 @@ export default function JugadorDetail() {
                   to={`/usuarios/${player.linkedUser._id}`}
                   className={comu.h2hName}
                 >
-                  Ver perfil →
+                  {t("jugadorDetail.viewProfile")}
                 </Link>
               )}
               {player.isLinked && player.username && (
@@ -178,7 +187,7 @@ export default function JugadorDetail() {
                   )}/${encodeURIComponent(player.username)}`}
                   className={comu.h2hName}
                 >
-                  Mano a mano de comunidad →
+                  {t("jugadorDetail.communityH2h")}
                 </Link>
               )}
             </div>
@@ -188,16 +197,14 @@ export default function JugadorDetail() {
                 className={styles.editPlayerBtn}
                 onClick={() => setEditing(true)}
               >
-                Editar jugador
+                {t("jugadorDetail.editPlayer")}
               </button>
             )}
           </div>
         </header>
 
         {total === 0 ? (
-          <p className={comu.heroSub}>
-            Todavía no hay partidas tuyas con este jugador.
-          </p>
+          <p className={comu.heroSub}>{t("jugadorDetail.noPlaysYet")}</p>
         ) : (
           <>
             {/* Mano a mano + estadísticas + por juego. No se muestran al
@@ -215,7 +222,7 @@ export default function JugadorDetail() {
                     <span className={comu.h2hWins}>{h2h.playerWins}</span>
                     {h2h.draws > 0 && (
                       <span className={comu.h2hDraws}>
-                        {h2h.draws} sin decidir
+                        {t("jugadorDetail.undecided", { n: h2h.draws })}
                       </span>
                     )}
                   </div>
@@ -230,7 +237,7 @@ export default function JugadorDetail() {
                   <div className={styles.statCard}>
                     <span className={styles.statValue}>{total}</span>
                     <span className={styles.statLabel}>
-                      partida{total === 1 ? "" : "s"} juntas
+                      {t("jugadorDetail.playsTogether", { count: total })}
                     </span>
                   </div>
                   <div className={styles.statCard}>
@@ -238,7 +245,7 @@ export default function JugadorDetail() {
                       {playerWinRate == null ? "—" : `${playerWinRate}%`}
                     </span>
                     <span className={styles.statLabel}>
-                      victorias del jugador
+                      {t("jugadorDetail.playerWins")}
                     </span>
                   </div>
                   {stats.firstPlayedDate && (
@@ -246,7 +253,9 @@ export default function JugadorDetail() {
                       <span className={styles.statValueSm}>
                         {stats.firstPlayedDate}
                       </span>
-                      <span className={styles.statLabel}>primera juntada</span>
+                      <span className={styles.statLabel}>
+                        {t("jugadorDetail.firstMeetup")}
+                      </span>
                     </div>
                   )}
                   {stats.lastPlayedDate && (
@@ -254,7 +263,9 @@ export default function JugadorDetail() {
                       <span className={styles.statValueSm}>
                         {stats.lastPlayedDate}
                       </span>
-                      <span className={styles.statLabel}>última juntada</span>
+                      <span className={styles.statLabel}>
+                        {t("jugadorDetail.lastMeetup")}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -262,7 +273,9 @@ export default function JugadorDetail() {
                 {/* Por juego */}
                 {stats.byGame?.length > 0 && (
                   <section>
-                    <h2 className={comu.sectionTitle}>Por juego</h2>
+                    <h2 className={comu.sectionTitle}>
+                      {t("jugadorDetail.byGame")}
+                    </h2>
                     <ul className={comu.byGameList}>
                       {stats.byGame.map((g) => (
                         <li
@@ -270,14 +283,14 @@ export default function JugadorDetail() {
                           className={comu.byGameRow}
                         >
                           <span className={comu.byGameName}>
-                            {g.name || `Juego ${g.gameId}`}
+                            {g.name ||
+                              t("jugadorDetail.gameFallback", { id: g.gameId })}
                           </span>
                           <span className={comu.byGameScore}>
                             {g.ownerWins} – {g.playerWins}
                             <span className={comu.byGameTotal}>
                               {" "}
-                              ({g.total}{" "}
-                              {g.total === 1 ? "partida" : "partidas"})
+                              {t("jugadorDetail.gamePlays", { count: g.total })}
                             </span>
                           </span>
                         </li>
@@ -293,14 +306,14 @@ export default function JugadorDetail() {
                   className={styles.h2hRevealBtn}
                   onClick={() => setShowH2h(true)}
                 >
-                  Ver mano a mano y estadísticas
+                  {t("jugadorDetail.revealH2h")}
                 </button>
               </div>
             )}
 
             {/* Partidas */}
             <section>
-              <h2 className={comu.sectionTitle}>Partidas</h2>
+              <h2 className={comu.sectionTitle}>{t("jugadorDetail.plays")}</h2>
               <div className={styles.playsList}>
                 {!plays ? (
                   [0, 1, 2].map((i) => <PlayCardSkeleton key={i} />)

@@ -1,40 +1,42 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Avatar from "../../components/shared/Avatar";
 import { hasDisplayableScore } from "./playerScore";
+import { getLocale } from "../../utils/locale";
 import styles from "./BgWatchProfile.module.css";
 
 function formatDate(iso) {
   if (!iso) return null;
   const [y, m, d] = iso.split("-");
-  return new Date(y, m - 1, d).toLocaleDateString("es-AR", {
+  return new Date(y, m - 1, d).toLocaleDateString(getLocale(), {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
 }
 
-function relativeDate(iso) {
+function relativeDate(iso, t) {
   if (!iso) return null;
   const [y, m, d] = iso.split("-");
   const date = new Date(y, m - 1, d);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const days = Math.floor((today.getTime() - date.getTime()) / 86400000);
-  if (days < 0) return "En el futuro";
-  if (days === 0) return "Hoy";
-  if (days === 1) return "Ayer";
-  if (days < 7) return `Hace ${days} días`;
+  if (days < 0) return t("playCard.future");
+  if (days === 0) return t("playCard.today");
+  if (days === 1) return t("playCard.yesterday");
+  if (days < 7) return t("playCard.daysAgo", { n: days });
   if (days < 30) {
     const w = Math.floor(days / 7);
-    return `Hace ${w} ${w === 1 ? "semana" : "semanas"}`;
+    return t("playCard.weeksAgo", { count: w });
   }
   if (days < 365) {
     const mo = Math.floor(days / 30);
-    return `Hace ${mo} ${mo === 1 ? "mes" : "meses"}`;
+    return t("playCard.monthsAgo", { count: mo });
   }
   const yr = Math.floor(days / 365);
-  return `Hace ${yr} ${yr === 1 ? "año" : "años"}`;
+  return t("playCard.yearsAgo", { count: yr });
 }
 
 // Día + mes abreviado (capitalizado) + año para el badge de fecha tipo
@@ -45,7 +47,7 @@ function dateParts(iso) {
   const date = new Date(y, m - 1, d);
   const day = String(date.getDate());
   const monthRaw = date
-    .toLocaleDateString("es-AR", { month: "short" })
+    .toLocaleDateString(getLocale(), { month: "short" })
     .replace(".", "");
   const month = monthRaw.charAt(0).toUpperCase() + monthRaw.slice(1);
   const year = String(date.getFullYear());
@@ -117,29 +119,30 @@ function CrownIcon() {
 
 // Un override local de curación (overlayName / overlayAvatar) gana sobre el
 // perfil del miembro de TurnoCero — solo en la vista de BG Watch del dueño.
-function resolvePlayerName(player, turnoceroUser) {
+function resolvePlayerName(player, turnoceroUser, t) {
   return player.overlayName
     ? player.overlayName
     : turnoceroUser
       ? turnoceroUser.displayName || turnoceroUser.username
-      : player.name || player.username || "Anónimo";
+      : player.name || player.username || t("playCard.anonymous");
 }
 
 function PlayerChip({ player, turnoceroUser }) {
-  const name = resolvePlayerName(player, turnoceroUser);
+  const { t } = useTranslation("bgwatch");
+  const name = resolvePlayerName(player, turnoceroUser, t);
 
   const content = (
     <>
       {player.win && (
-        <span className={styles.winIcon} aria-label="Ganador">
+        <span className={styles.winIcon} aria-label={t("playCard.winnerAria")}>
           🏆
         </span>
       )}
       {player.new && (
         <span
           className={styles.newIcon}
-          aria-label="Nuevo"
-          title="Primera vez que lo jugó"
+          aria-label={t("playCard.newAria")}
+          title={t("playCard.newTitle")}
         >
           ✨
         </span>
@@ -171,7 +174,7 @@ function PlayerChip({ player, turnoceroUser }) {
         to={`/usuarios/${turnoceroUser._id}`}
         className={classes}
         onClick={(e) => e.stopPropagation()}
-        title={`Ver perfil de ${name}`}
+        title={t("playCard.viewProfileTitle", { name })}
       >
         {content}
       </Link>
@@ -182,6 +185,7 @@ function PlayerChip({ player, turnoceroUser }) {
 }
 
 function PlayCardMenu({ onEdit, onDelete, onLogAnother }) {
+  const { t } = useTranslation("bgwatch");
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -222,7 +226,7 @@ function PlayCardMenu({ onEdit, onDelete, onLogAnother }) {
           e.stopPropagation();
           setOpen((v) => !v);
         }}
-        aria-label="Acciones"
+        aria-label={t("playCard.actionsAria")}
         aria-expanded={open}
       >
         ⋯
@@ -236,7 +240,7 @@ function PlayCardMenu({ onEdit, onDelete, onLogAnother }) {
               role="menuitem"
               onClick={(e) => handle(e, onLogAnother)}
             >
-              Cargar otra partida
+              {t("playCard.logAnother")}
             </button>
           )}
           {onEdit && (
@@ -246,7 +250,7 @@ function PlayCardMenu({ onEdit, onDelete, onLogAnother }) {
               role="menuitem"
               onClick={(e) => handle(e, onEdit)}
             >
-              Editar
+              {t("playCard.edit")}
             </button>
           )}
           {onDelete && (
@@ -256,7 +260,7 @@ function PlayCardMenu({ onEdit, onDelete, onLogAnother }) {
               role="menuitem"
               onClick={(e) => handle(e, onDelete)}
             >
-              Eliminar
+              {t("playCard.delete")}
             </button>
           )}
         </div>
@@ -275,6 +279,7 @@ export default function PlayCard({
   onLogAnother,
   index = 0,
 }) {
+  const { t } = useTranslation("bgwatch");
   // Resultado del dueño del perfil: buscamos su asiento por username. Solo
   // mostramos el pill cuando lo encontramos (en partidas ajenas o sin match no
   // hay "ganaste/perdiste" que afirmar).
@@ -315,8 +320,8 @@ export default function PlayCard({
   const teamWin = ownerSeat ? !!ownerSeat.win : true;
   const teamLabel = isCollective
     ? teamWin
-      ? "Ganaron en equipo"
-      : "Perdieron"
+      ? t("playCard.wonTeam")
+      : t("playCard.lostTeam")
     : null;
 
   // Columna derecha (mobile): puesto del dueño sobre el total + su puntaje.
@@ -325,10 +330,10 @@ export default function PlayCard({
   const ownerPos = ownerSeat?.position ? Number(ownerSeat.position) : null;
   const rankLabel = ownerSeat
     ? ownerPos
-      ? `${ownerPos}º de ${totalPlayers}`
+      ? t("playCard.rankOf", { pos: ownerPos, total: totalPlayers })
       : ownerSeat.win
-        ? "Ganaste"
-        : "Perdiste"
+        ? t("playCard.won")
+        : t("playCard.lost")
     : null;
   const rightScore = ownerSeat
     ? hasDisplayableScore(ownerSeat.score)
@@ -384,7 +389,9 @@ export default function PlayCard({
 
       <div className={styles.playBody}>
         <div className={styles.playTopRow}>
-          <span className={styles.playGameName}>{play.gameName || "—"}</span>
+          <span className={styles.playGameName}>
+            {play.gameName || t("playCard.gameNameFallback")}
+          </span>
           <span className={styles.playDateBlock}>
             {ownerSeat && (
               <span
@@ -396,12 +403,12 @@ export default function PlayCard({
                 {isCollective
                   ? teamLabel
                   : ownerSeat.win
-                    ? "Ganaste"
-                    : "Perdiste"}
+                    ? t("playCard.won")
+                    : t("playCard.lost")}
               </span>
             )}
             <span className={styles.playDateRelative}>
-              {relativeDate(play.date)}
+              {relativeDate(play.date, t)}
             </span>
             <span className={styles.playDateAbs}>{formatDate(play.date)}</span>
           </span>
@@ -439,13 +446,13 @@ export default function PlayCard({
           {play.duration > 0 && (
             <span className={styles.playMetaItem}>
               <ClockIcon />
-              {play.duration} min
+              {t("playCard.minutes", { n: play.duration })}
             </span>
           )}
           {totalPlayers > 0 && (
             <span className={styles.playMetaItem}>
               <PeopleIcon />
-              {totalPlayers} jug.
+              {t("playCard.playersShort", { n: totalPlayers })}
             </span>
           )}
         </div>
@@ -465,7 +472,7 @@ export default function PlayCard({
                 const tcUser = p.username
                   ? userMap?.[p.username.toLowerCase()]
                   : null;
-                const name = resolvePlayerName(p, tcUser);
+                const name = resolvePlayerName(p, tcUser, t);
                 const avUser = p.overlayAvatar?.url
                   ? {
                       _id: p.username || p.name,
