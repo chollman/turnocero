@@ -1,0 +1,364 @@
+{
+  "errorToast": "Error",
+  "panel": {
+    "eyebrow": "ADMIN",
+    "title": "Admin panel",
+    "tablistLabel": "Admin panel sections",
+    "tabs": {
+      "secciones": "Sections",
+      "comunidades": "Communities",
+      "bgg": "BGG usage",
+      "ideas": "Ideas"
+    },
+    "groups": {
+      "main": "Main content",
+      "social": "Social",
+      "integrations": "Integrations",
+      "notifications": "Notifications"
+    },
+    "sectionsIntro": "Turn site sections on or off for non-admin users. You still see everything (unless you enable <em>\"View as user\"</em>). Changes are reflected in real time for all connected clients.",
+    "updatedAt": "Last updated: {{date}}",
+    "loadingConfig": "Loading configuration…",
+    "updateError": "Could not update",
+    "toggleOff": "Disable",
+    "toggleOn": "Enable",
+    "toggleAria": "{{action}} {{label}}",
+    "affectsOn": "If you turn it off:",
+    "affectsOff": "While it's off:"
+  },
+  "ideas": {
+    "title": "Ideas received",
+    "newBadgeAria": "{{count}} new",
+    "tabs": {
+      "new": "New",
+      "reviewed": "Reviewed",
+      "archived": "Archived"
+    },
+    "anonymous": "Anonymous",
+    "emptyNew": "No new ideas yet.",
+    "emptyReviewed": "No reviewed ideas.",
+    "emptyArchived": "No archived ideas.",
+    "markReviewed": "Mark reviewed",
+    "archive": "Archive",
+    "backToNew": "Back to new",
+    "confirmDelete": "Delete this idea? This cannot be undone.",
+    "errorLoad": "We couldn't load the ideas.",
+    "errorUpdate": "We couldn't update.",
+    "errorDelete": "We couldn't delete."
+  },
+  "pushTest": {
+    "title": "Test push notifications",
+    "intro": "Send yourself a test push to all your subscribed devices (this one and any other where you enabled notifications). It's useful to verify that delivery to the operating system works, without waiting for a real event.",
+    "notSubscribed": "This device isn't subscribed yet.",
+    "activateHere": "Enable here",
+    "activateHint": " (or from your profile) so the test reaches this screen.",
+    "send": "Send test push",
+    "sending": "Sending…",
+    "sentTitle": "Test push sent",
+    "sentOne": "Sent to 1 device. Check that the notification arrives.",
+    "sentMany": "Sent to {{count}} devices. Check that the notification arrives.",
+    "noDevicesTitle": "No subscribed devices",
+    "noDevicesMessage": "You don't have any device with push enabled. Enable it and try again.",
+    "errorSend": "We couldn't send the test push."
+  },
+  "bggUsage": {
+    "title": "BoardGameGeek usage",
+    "from": "From",
+    "to": "To",
+    "tabSummary": "Summary",
+    "tabActivity": "Activity",
+    "exportCsv": "Export CSV",
+    "statRequests": "Requests to BGG",
+    "statSyncs": "Syncs",
+    "statCreated": "Plays logged",
+    "statEdited": "Edits",
+    "statDeleted": "Deletions",
+    "loading": "Loading…",
+    "emptySummary": "There was no BGG activity in this range.",
+    "anonymous": "Anonymous",
+    "colUser": "User",
+    "colRequests": "Requests",
+    "colSyncs": "Syncs",
+    "colCreated": "Adds",
+    "colEdited": "Ed.",
+    "colDeleted": "Del.",
+    "breakdown": "searches {{search}} · games {{thing}} · plays {{plays}} · collection {{collection}} · others {{other}}",
+    "filterUser": "User",
+    "filterAll": "All",
+    "emptyActivity": "No plays were logged, edited or deleted in this range.",
+    "game": "Game #{{id}}",
+    "loadMore": "Load more",
+    "errorSummary": "We couldn't load BGG usage.",
+    "errorActivity": "We couldn't load the activity.",
+    "actions": {
+      "create": "Logged",
+      "edit": "Edited",
+      "delete": "Deleted"
+    },
+    "csv": {
+      "user": "User",
+      "bgg": "BGG",
+      "requests": "Requests",
+      "searches": "Searches",
+      "games": "Games",
+      "playsApi": "Plays(API)",
+      "collection": "Collection",
+      "others": "Others",
+      "syncs": "Syncs",
+      "created": "Adds",
+      "edited": "Edits",
+      "deleted": "Deletions"
+    }
+  },
+  "usageChart": {
+    "requestsTitle": "Requests per day",
+    "requestsUnit": "requests",
+    "playsTitle": "Plays per day",
+    "playsUnit": "plays",
+    "tooltip": "{{day}} — {{value}} {{unit}}"
+  },
+  "database": {
+    "eyebrow": "DATABASE",
+    "title": "Database",
+    "sub": "MongoDB collection explorer",
+    "errorCollections": "Could not load the collections",
+    "errorData": "Error loading the data",
+    "errorToggleAdmin": "Could not change the admin role",
+    "searchPlaceholder": "Search in the collection…",
+    "clearSearch": "✕",
+    "noSearchResults": "No results for \"{{query}}\"",
+    "emptyCollection": "The collection is empty",
+    "metaSearch_one": "{{count}} result for \"{{query}}\" · page {{page}}/{{pages}}",
+    "metaSearch_other": "{{count}} results for \"{{query}}\" · page {{page}}/{{pages}}",
+    "meta": "{{count}} documents · page {{page}}/{{pages}}",
+    "colAdmin": "Admin",
+    "adminOn": "Admin ✓",
+    "adminOff": "Admin",
+    "cantRemoveSelf": "You can't remove your own admin",
+    "prev": "← Previous",
+    "next": "Next →"
+  },
+  "communities": {
+    "heading": "Communities",
+    "namePlaceholder": "Name",
+    "nameAria": "Community name",
+    "descPlaceholder": "Description",
+    "descAria": "Community description",
+    "policyAria": "Join policy",
+    "codePlaceholder": "Code",
+    "codeAria": "Invite code",
+    "create": "Create community",
+    "loading": "Loading…",
+    "base": "base",
+    "membersCount": "{{count}} members",
+    "close": "Close",
+    "edit": "Edit",
+    "emptyToBase": "Empty → base",
+    "delete": "Delete",
+    "policies": {
+      "open": "Open",
+      "approval": "By approval",
+      "code": "By code"
+    },
+    "toastLoadError": "We couldn't load the communities",
+    "toastNeedName": "Enter a name",
+    "toastCreated": "Community created",
+    "toastCreateError": "Could not create",
+    "toastDeleted": "Community deleted",
+    "toastDeleteConflict": "It has content — reassign it to base first.",
+    "toastDeleteError": "Could not delete",
+    "toastReassigned": "Content reassigned to base",
+    "toastReassignError": "Could not reassign",
+    "toastSaved": "Saved",
+    "toastSaveError": "Could not save",
+    "editor": {
+      "nameAria": "Name",
+      "descPlaceholder": "Description",
+      "descAria": "Description",
+      "slugPlaceholder": "slug",
+      "slugAria": "Slug (subdomain / URL)",
+      "slugHelp": "Slug = what goes in the URL and subdomain (<strong>{{slug}}.{{domain}}</strong>). It doesn't change when you rename; edit it here if you want. Careful: changing it breaks old links.",
+      "policyAria": "Join policy",
+      "codePlaceholder": "New code (optional)",
+      "codeAria": "Invite code",
+      "saveData": "Save data",
+      "subdomain": "Own subdomain",
+      "subdomainToggle": "Enable single-tenant on this subdomain",
+      "subdomainHelp": "Accessible at <strong>{{slug}}.{{domain}}</strong> — entering through there scopes the site only to this community.",
+      "visibleSections": "Sections visible for this community",
+      "skinTitle": "Skin (brand colors)",
+      "skinBaseNote": "The base TurnoCero skin is defined in code (index.css) and is not edited from here.",
+      "accents": "Accents",
+      "accentsAlpha": "Accents (transparency)",
+      "colorOf": "Color {{key}}",
+      "textOnPrimary": "Text on primary",
+      "textOnPrimaryBtnAria": "Text on primary buttons",
+      "textOnButtons": "text on buttons",
+      "neutralsDark": "Neutrals (dark)",
+      "neutralsLight": "Neutrals (light)",
+      "neutralDarkAria": "{{label}} dark",
+      "neutralLightAria": "{{label}} light",
+      "brandNamePlaceholder": "Brand name (optional)",
+      "brandNameAria": "Brand name",
+      "taglinePlaceholder": "Tagline (optional)",
+      "taglineAria": "Tagline",
+      "saveSkin": "Save skin",
+      "uploadLogo": "Upload logo",
+      "toastSkinSaved": "Skin saved",
+      "toastSkinError": "Could not save the skin",
+      "toastLogoUploaded": "Logo uploaded",
+      "toastLogoError": "Could not upload the logo"
+    },
+    "neutralLabels": {
+      "bgDark": "Background",
+      "bgCard": "Card",
+      "bgElevated": "Elevated",
+      "bgHover": "Hover",
+      "textPrimary": "Text",
+      "textSecondary": "Text 2nd",
+      "textMuted": "Muted text",
+      "border": "Border",
+      "borderStrong": "Strong border",
+      "overlaySoft": "Soft overlay",
+      "overlayMedium": "Medium overlay",
+      "overlayStrong": "Strong overlay"
+    }
+  },
+  "sections": {
+    "compartidas": {
+      "label": "Compartidas",
+      "desc": "Social posts with photos, comments and likes.",
+      "affects": [
+        "Hides /compartidas, /",
+        "Hides links/widgets to compartidas in profiles",
+        "Blocks notifications (comment, like)"
+      ]
+    },
+    "noticias": {
+      "label": "News",
+      "desc": "Administrative announcements published by the team.",
+      "affects": ["Hides /noticias", "Blocks \"news published\" toasts"]
+    },
+    "eventos": {
+      "label": "Events",
+      "desc": "Events with registrations and receipts.",
+      "affects": ["Hides /eventos and subroutes"]
+    },
+    "torneos": {
+      "label": "Tournaments",
+      "desc": "Tournaments in league, single-elimination or groups format.",
+      "affects": [
+        "Hides /torneos and subroutes",
+        "Blocks notifications (accepted, eliminated, advanced, etc.)"
+      ]
+    },
+    "mathtrade": {
+      "label": "Math Trade",
+      "desc": "Multiple trades: users offer games and build want lists; the system computes the trades.",
+      "affects": [
+        "Hides /math-trade and subroutes",
+        "Blocks loading offers and want lists",
+        "Blocks result notifications"
+      ]
+    },
+    "mesas": {
+      "label": "Tables",
+      "desc": "Tables to organize game sessions (with chat, comments, photos).",
+      "affects": [
+        "Hides /mesas",
+        "Hides the table widget inside compartidas (linkedTable)",
+        "Hides table stats in profiles",
+        "Blocks notifications for chat, comments, joins, etc."
+      ]
+    },
+    "miFeed": {
+      "label": "My Feed",
+      "desc": "The user's personal feed with their own tables.",
+      "affects": ["Hides /mi"]
+    },
+    "calendario": {
+      "label": "Calendar",
+      "desc": "Unified view (tables, events and tournaments) in grid and agenda.",
+      "affects": [
+        "Hides /calendario and the nav item",
+        "Only shows types whose sections (tables/events/tournaments) are enabled"
+      ]
+    },
+    "comunidad": {
+      "label": "Community members",
+      "desc": "Member list within each community (/comunidades/:slug).",
+      "affects": [
+        "Hides \"View members\" in the communities directory",
+        "Blocks each community's member list"
+      ]
+    },
+    "comunidades": {
+      "label": "Communities",
+      "desc": "Communities directory, joining and per-community feed.",
+      "affects": [
+        "Hides /comunidades and the directory",
+        "Blocks joining / switching community from the profile",
+        "Blocks join request notifications"
+      ]
+    },
+    "amigos": {
+      "label": "Friends",
+      "desc": "Friend request and friend list system.",
+      "affects": [
+        "Hides the \"Add friend\" button in profiles",
+        "Blocks request / acceptance notifications"
+      ]
+    },
+    "dms": {
+      "label": "Direct Messages",
+      "desc": "1-on-1 chat between friends.",
+      "affects": [
+        "Hides /mensajes and /mensajes/:userId",
+        "Hides the chat FAB (desktop)",
+        "Hides the messages icon in the mobile bar",
+        "Hides floating chat windows",
+        "Blocks DM notifications"
+      ]
+    },
+    "bgwatch": {
+      "label": "BG Watch",
+      "desc": "BoardGameGeek integration (profile, plays, collection).",
+      "affects": [
+        "Hides /bg-watch",
+        "Hides the BG Watch badge/banner in profiles",
+        "Hides the link to the author's BG Watch in compartidas",
+        "Hides the \"BGG connection\" section in /perfil"
+      ]
+    },
+    "utilidades": {
+      "label": "Utilities",
+      "desc": "Helper tools (dice, timer, finger picker).",
+      "affects": ["Hides /utilidades and subroutes"]
+    },
+    "colabora": {
+      "label": "Collaborate",
+      "desc": "'Bancanos' FAB + /colabora landing with an ideas form.",
+      "affects": [
+        "Hides the 'Bancanos' FAB",
+        "Hides /colabora",
+        "Blocks POST /api/ideas (no more ideas received)"
+      ]
+    },
+    "push": {
+      "label": "Push notifications",
+      "desc": "Operating-system alerts (mobile/desktop PWA) when the app is closed. In-app notifications are not affected.",
+      "affects": [
+        "Stops sending push (subscribed devices receive no more)",
+        "Hides the \"Push notifications\" section in /perfil",
+        "Hides the prompt to enable notifications"
+      ]
+    }
+  },
+  "viewToggle": {
+    "backToAdmin": "Back to admin view",
+    "viewAsUser": "View as user"
+  },
+  "viewBanner": {
+    "label": "Viewing as user · Click to go back"
+  }
+}

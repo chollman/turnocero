@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import { useNotifications } from "../../context/NotificationContext";
@@ -12,6 +13,7 @@ import styles from "./PanelAdmin.module.css";
 // ocurra un evento real. El backend marca el payload con `test: true`, así el
 // service worker la muestra aunque la app esté en foco.
 export default function PushTestPanel() {
+  const { t } = useTranslation();
   const { addToast } = useNotifications();
   const {
     isSupported,
@@ -30,25 +32,24 @@ export default function PushTestPanel() {
       if (data.sent > 0) {
         addToast({
           type: "success",
-          title: "Push de prueba enviada",
+          title: t("admin:pushTest.sentTitle"),
           message:
             data.sent === 1
-              ? "Enviada a 1 dispositivo. Fijate que llegue la notificación."
-              : `Enviada a ${data.sent} dispositivos. Fijate que llegue la notificación.`,
+              ? t("admin:pushTest.sentOne")
+              : t("admin:pushTest.sentMany", { count: data.sent }),
         });
       } else {
         addToast({
           type: "error",
-          title: "Sin dispositivos suscriptos",
-          message:
-            "No tenés ningún dispositivo con las push activadas. Activalas y volvé a probar.",
+          title: t("admin:pushTest.noDevicesTitle"),
+          message: t("admin:pushTest.noDevicesMessage"),
         });
       }
     } catch (err) {
       addToast({
         type: "error",
-        title: "Error",
-        message: getErrorMessage(err, "No pudimos enviar la push de prueba."),
+        title: t("admin:errorToast"),
+        message: getErrorMessage(err, t("admin:pushTest.errorSend")),
       });
     } finally {
       setBusy(false);
@@ -65,26 +66,21 @@ export default function PushTestPanel() {
 
   return (
     <div className={styles.group}>
-      <h2 className={styles.groupTitle}>Probar notificaciones push</h2>
-      <p className={styles.sub}>
-        Enviate una push de prueba a todos tus dispositivos suscriptos (este y
-        cualquier otro donde hayas activado las notificaciones). Sirve para
-        verificar que la entrega al sistema operativo funciona, sin esperar a que
-        ocurra un evento real.
-      </p>
+      <h2 className={styles.groupTitle}>{t("admin:pushTest.title")}</h2>
+      <p className={styles.sub}>{t("admin:pushTest.intro")}</p>
 
       {showActivate && (
         <p className={styles.pushHint}>
-          Este dispositivo todavía no está suscripto.{" "}
+          {t("admin:pushTest.notSubscribed")}{" "}
           <button
             type="button"
             className={styles.pushLink}
             onClick={subscribe}
             disabled={subBusy}
           >
-            Activar acá
-          </button>{" "}
-          (o desde tu perfil) para que la prueba llegue a esta pantalla.
+            {t("admin:pushTest.activateHere")}
+          </button>
+          {t("admin:pushTest.activateHint")}
         </p>
       )}
 
@@ -95,7 +91,7 @@ export default function PushTestPanel() {
           onClick={sendTest}
           disabled={busy}
         >
-          {busy ? "Enviando…" : "Enviar push de prueba"}
+          {busy ? t("admin:pushTest.sending") : t("admin:pushTest.send")}
         </button>
       </div>
     </div>

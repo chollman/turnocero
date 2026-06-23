@@ -1,0 +1,364 @@
+{
+  "errorToast": "Error",
+  "panel": {
+    "eyebrow": "ADMIN",
+    "title": "Panel de administración",
+    "tablistLabel": "Secciones del panel de administración",
+    "tabs": {
+      "secciones": "Secciones",
+      "comunidades": "Comunidades",
+      "bgg": "Uso de BGG",
+      "ideas": "Ideas"
+    },
+    "groups": {
+      "main": "Contenido principal",
+      "social": "Social",
+      "integrations": "Integraciones",
+      "notifications": "Notificaciones"
+    },
+    "sectionsIntro": "Prendé o apagá secciones del sitio para usuarios no-admin. Vos seguís viendo todo (salvo que actives <em>\"Ver como usuario\"</em>). Los cambios se reflejan en tiempo real para todos los clientes conectados.",
+    "updatedAt": "Última actualización: {{date}}",
+    "loadingConfig": "Cargando configuración…",
+    "updateError": "No se pudo actualizar",
+    "toggleOff": "Desactivar",
+    "toggleOn": "Activar",
+    "toggleAria": "{{action}} {{label}}",
+    "affectsOn": "Si la apagás:",
+    "affectsOff": "Mientras esté apagada:"
+  },
+  "ideas": {
+    "title": "Ideas recibidas",
+    "newBadgeAria": "{{count}} nuevas",
+    "tabs": {
+      "new": "Nuevas",
+      "reviewed": "Revisadas",
+      "archived": "Archivadas"
+    },
+    "anonymous": "Anónimo",
+    "emptyNew": "Todavía no hay ideas nuevas.",
+    "emptyReviewed": "No hay ideas revisadas.",
+    "emptyArchived": "No hay ideas archivadas.",
+    "markReviewed": "Marcar revisada",
+    "archive": "Archivar",
+    "backToNew": "Volver a nuevas",
+    "confirmDelete": "¿Eliminar esta idea? No se puede deshacer.",
+    "errorLoad": "No pudimos cargar las ideas.",
+    "errorUpdate": "No pudimos actualizar.",
+    "errorDelete": "No pudimos eliminar."
+  },
+  "pushTest": {
+    "title": "Probar notificaciones push",
+    "intro": "Enviate una push de prueba a todos tus dispositivos suscriptos (este y cualquier otro donde hayas activado las notificaciones). Sirve para verificar que la entrega al sistema operativo funciona, sin esperar a que ocurra un evento real.",
+    "notSubscribed": "Este dispositivo todavía no está suscripto.",
+    "activateHere": "Activar acá",
+    "activateHint": " (o desde tu perfil) para que la prueba llegue a esta pantalla.",
+    "send": "Enviar push de prueba",
+    "sending": "Enviando…",
+    "sentTitle": "Push de prueba enviada",
+    "sentOne": "Enviada a 1 dispositivo. Fijate que llegue la notificación.",
+    "sentMany": "Enviada a {{count}} dispositivos. Fijate que llegue la notificación.",
+    "noDevicesTitle": "Sin dispositivos suscriptos",
+    "noDevicesMessage": "No tenés ningún dispositivo con las push activadas. Activalas y volvé a probar.",
+    "errorSend": "No pudimos enviar la push de prueba."
+  },
+  "bggUsage": {
+    "title": "Uso de BoardGameGeek",
+    "from": "Desde",
+    "to": "Hasta",
+    "tabSummary": "Resumen",
+    "tabActivity": "Actividad",
+    "exportCsv": "Exportar CSV",
+    "statRequests": "Requests a BGG",
+    "statSyncs": "Syncs",
+    "statCreated": "Partidas cargadas",
+    "statEdited": "Ediciones",
+    "statDeleted": "Borrados",
+    "loading": "Cargando…",
+    "emptySummary": "No hubo actividad de BGG en este rango.",
+    "anonymous": "Anónimos",
+    "colUser": "Usuario",
+    "colRequests": "Requests",
+    "colSyncs": "Syncs",
+    "colCreated": "Altas",
+    "colEdited": "Ed.",
+    "colDeleted": "Bor.",
+    "breakdown": "búsquedas {{search}} · juegos {{thing}} · partidas {{plays}} · colección {{collection}} · otros {{other}}",
+    "filterUser": "Usuario",
+    "filterAll": "Todos",
+    "emptyActivity": "No se cargaron, editaron ni borraron partidas en este rango.",
+    "game": "Juego #{{id}}",
+    "loadMore": "Ver más",
+    "errorSummary": "No pudimos cargar el uso de BGG.",
+    "errorActivity": "No pudimos cargar la actividad.",
+    "actions": {
+      "create": "Cargó",
+      "edit": "Editó",
+      "delete": "Borró"
+    },
+    "csv": {
+      "user": "Usuario",
+      "bgg": "BGG",
+      "requests": "Requests",
+      "searches": "Búsquedas",
+      "games": "Juegos",
+      "playsApi": "Partidas(API)",
+      "collection": "Colección",
+      "others": "Otros",
+      "syncs": "Syncs",
+      "created": "Altas",
+      "edited": "Ediciones",
+      "deleted": "Borrados"
+    }
+  },
+  "usageChart": {
+    "requestsTitle": "Requests por día",
+    "requestsUnit": "requests",
+    "playsTitle": "Partidas por día",
+    "playsUnit": "partidas",
+    "tooltip": "{{day}} — {{value}} {{unit}}"
+  },
+  "database": {
+    "eyebrow": "BASE DE DATOS",
+    "title": "Base de datos",
+    "sub": "Explorador de colecciones de MongoDB",
+    "errorCollections": "No se pudieron cargar las colecciones",
+    "errorData": "Error al cargar los datos",
+    "errorToggleAdmin": "No se pudo cambiar el rol de admin",
+    "searchPlaceholder": "Buscar en la colección…",
+    "clearSearch": "✕",
+    "noSearchResults": "Sin resultados para \"{{query}}\"",
+    "emptyCollection": "La colección está vacía",
+    "metaSearch_one": "{{count}} resultado para \"{{query}}\" · página {{page}}/{{pages}}",
+    "metaSearch_other": "{{count}} resultados para \"{{query}}\" · página {{page}}/{{pages}}",
+    "meta": "{{count}} documentos · página {{page}}/{{pages}}",
+    "colAdmin": "Admin",
+    "adminOn": "Admin ✓",
+    "adminOff": "Admin",
+    "cantRemoveSelf": "No podés quitarte el admin a vos mismo",
+    "prev": "← Anterior",
+    "next": "Siguiente →"
+  },
+  "communities": {
+    "heading": "Comunidades",
+    "namePlaceholder": "Nombre",
+    "nameAria": "Nombre de la comunidad",
+    "descPlaceholder": "Descripción",
+    "descAria": "Descripción de la comunidad",
+    "policyAria": "Política de unión",
+    "codePlaceholder": "Código",
+    "codeAria": "Código de invitación",
+    "create": "Crear comunidad",
+    "loading": "Cargando…",
+    "base": "base",
+    "membersCount": "{{count}} miembros",
+    "close": "Cerrar",
+    "edit": "Editar",
+    "emptyToBase": "Vaciar → base",
+    "delete": "Borrar",
+    "policies": {
+      "open": "Abierta",
+      "approval": "Por aprobación",
+      "code": "Por código"
+    },
+    "toastLoadError": "No pudimos cargar las comunidades",
+    "toastNeedName": "Poné un nombre",
+    "toastCreated": "Comunidad creada",
+    "toastCreateError": "No se pudo crear",
+    "toastDeleted": "Comunidad eliminada",
+    "toastDeleteConflict": "Tiene contenido — reasignalo a la base primero.",
+    "toastDeleteError": "No se pudo eliminar",
+    "toastReassigned": "Contenido reasignado a la base",
+    "toastReassignError": "No se pudo reasignar",
+    "toastSaved": "Guardado",
+    "toastSaveError": "No se pudo guardar",
+    "editor": {
+      "nameAria": "Nombre",
+      "descPlaceholder": "Descripción",
+      "descAria": "Descripción",
+      "slugPlaceholder": "slug",
+      "slugAria": "Slug (subdominio / URL)",
+      "slugHelp": "Slug = lo que va en la URL y el subdominio (<strong>{{slug}}.{{domain}}</strong>). No cambia al renombrar; editalo acá si querés. Ojo: cambiarlo rompe links viejos.",
+      "policyAria": "Política de unión",
+      "codePlaceholder": "Nuevo código (opcional)",
+      "codeAria": "Código de invitación",
+      "saveData": "Guardar datos",
+      "subdomain": "Subdominio propio",
+      "subdomainToggle": "Activar single-tenant en este subdominio",
+      "subdomainHelp": "Accesible en <strong>{{slug}}.{{domain}}</strong> — al entrar por ahí el sitio se acota solo a esta comunidad.",
+      "visibleSections": "Secciones visibles para esta comunidad",
+      "skinTitle": "Skin (colores de marca)",
+      "skinBaseNote": "El skin base de TurnoCero se define por código (index.css) y no se edita desde acá.",
+      "accents": "Acentos",
+      "accentsAlpha": "Acentos (transparencia)",
+      "colorOf": "Color {{key}}",
+      "textOnPrimary": "Texto sobre primario",
+      "textOnPrimaryBtnAria": "Texto sobre botones primarios",
+      "textOnButtons": "texto en botones",
+      "neutralsDark": "Neutros (oscuro)",
+      "neutralsLight": "Neutros (claro)",
+      "neutralDarkAria": "{{label}} oscuro",
+      "neutralLightAria": "{{label}} claro",
+      "brandNamePlaceholder": "Nombre de marca (opcional)",
+      "brandNameAria": "Nombre de marca",
+      "taglinePlaceholder": "Tagline (opcional)",
+      "taglineAria": "Tagline",
+      "saveSkin": "Guardar skin",
+      "uploadLogo": "Subir logo",
+      "toastSkinSaved": "Skin guardado",
+      "toastSkinError": "No se pudo guardar el skin",
+      "toastLogoUploaded": "Logo subido",
+      "toastLogoError": "No se pudo subir el logo"
+    },
+    "neutralLabels": {
+      "bgDark": "Fondo",
+      "bgCard": "Tarjeta",
+      "bgElevated": "Elevado",
+      "bgHover": "Hover",
+      "textPrimary": "Texto",
+      "textSecondary": "Texto 2°",
+      "textMuted": "Texto tenue",
+      "border": "Borde",
+      "borderStrong": "Borde fuerte",
+      "overlaySoft": "Overlay suave",
+      "overlayMedium": "Overlay medio",
+      "overlayStrong": "Overlay fuerte"
+    }
+  },
+  "sections": {
+    "compartidas": {
+      "label": "Compartidas",
+      "desc": "Posts sociales con fotos, comentarios y likes.",
+      "affects": [
+        "Oculta /compartidas, /",
+        "Oculta links/widgets a compartidas en perfiles",
+        "Bloquea notificaciones (comentario, like)"
+      ]
+    },
+    "noticias": {
+      "label": "Noticias",
+      "desc": "Anuncios administrativos publicados por el equipo.",
+      "affects": ["Oculta /noticias", "Bloquea toasts de \"noticia publicada\""]
+    },
+    "eventos": {
+      "label": "Eventos",
+      "desc": "Eventos con inscripciones y comprobantes.",
+      "affects": ["Oculta /eventos y subrutas"]
+    },
+    "torneos": {
+      "label": "Torneos",
+      "desc": "Torneos en formato liga, eliminación simple o grupos.",
+      "affects": [
+        "Oculta /torneos y subrutas",
+        "Bloquea notificaciones (aceptado, eliminado, avanzado, etc.)"
+      ]
+    },
+    "mathtrade": {
+      "label": "Math Trade",
+      "desc": "Intercambios múltiples: los usuarios ofrecen juegos y arman want lists; el sistema calcula los trades.",
+      "affects": [
+        "Oculta /math-trade y subrutas",
+        "Bloquea la carga de ofertas y want lists",
+        "Bloquea notificaciones de resultados"
+      ]
+    },
+    "mesas": {
+      "label": "Mesas",
+      "desc": "Mesas para organizar partidas (con chat, comentarios, fotos).",
+      "affects": [
+        "Oculta /mesas",
+        "Oculta widget de mesa dentro de compartidas (linkedTable)",
+        "Oculta stats de mesas en perfiles",
+        "Bloquea notificaciones de chat, comentarios, joins, etc."
+      ]
+    },
+    "miFeed": {
+      "label": "Mi Feed",
+      "desc": "Feed personal del usuario con sus propias mesas.",
+      "affects": ["Oculta /mi"]
+    },
+    "calendario": {
+      "label": "Calendario",
+      "desc": "Vista unificada (mesas, eventos y torneos) en grilla y agenda.",
+      "affects": [
+        "Oculta /calendario y el item del nav",
+        "Solo muestra los tipos cuyas secciones (mesas/eventos/torneos) estén habilitadas"
+      ]
+    },
+    "comunidad": {
+      "label": "Miembros de comunidad",
+      "desc": "Lista de miembros dentro de cada comunidad (/comunidades/:slug).",
+      "affects": [
+        "Oculta \"Ver miembros\" en el directorio de comunidades",
+        "Bloquea la lista de miembros de cada comunidad"
+      ]
+    },
+    "comunidades": {
+      "label": "Comunidades",
+      "desc": "Directorio de comunidades, unión y feed por comunidad.",
+      "affects": [
+        "Oculta /comunidades y el directorio",
+        "Bloquea unirse / cambiar de comunidad desde el perfil",
+        "Bloquea notificaciones de solicitudes de unión"
+      ]
+    },
+    "amigos": {
+      "label": "Amigos",
+      "desc": "Sistema de solicitudes y lista de amigos.",
+      "affects": [
+        "Oculta botón \"Agregar amigo\" en perfiles",
+        "Bloquea notificaciones de solicitud / aceptación"
+      ]
+    },
+    "dms": {
+      "label": "Mensajes Directos",
+      "desc": "Chat 1-a-1 entre amigos.",
+      "affects": [
+        "Oculta /mensajes y /mensajes/:userId",
+        "Oculta el FAB de chat (desktop)",
+        "Oculta el icono de mensajes en la barra mobile",
+        "Oculta ventanas flotantes de chat",
+        "Bloquea notificaciones de DM"
+      ]
+    },
+    "bgwatch": {
+      "label": "BG Watch",
+      "desc": "Integración con BoardGameGeek (perfil, partidas, colección).",
+      "affects": [
+        "Oculta /bg-watch",
+        "Oculta el badge/banner BG Watch en perfiles",
+        "Oculta link al BG Watch del autor en compartidas",
+        "Oculta sección \"Conexión con BGG\" en /perfil"
+      ]
+    },
+    "utilidades": {
+      "label": "Utilidades",
+      "desc": "Herramientas auxiliares (dado, temporizador, selector de dedos).",
+      "affects": ["Oculta /utilidades y subrutas"]
+    },
+    "colabora": {
+      "label": "Colabora",
+      "desc": "FAB 'Bancanos' + landing /colabora con form de ideas.",
+      "affects": [
+        "Oculta el FAB 'Bancanos'",
+        "Oculta /colabora",
+        "Bloquea POST /api/ideas (no se reciben más ideas)"
+      ]
+    },
+    "push": {
+      "label": "Notificaciones push",
+      "desc": "Avisos al sistema operativo (PWA mobile/desktop) cuando la app está cerrada. Las notificaciones in-app no se ven afectadas.",
+      "affects": [
+        "Deja de enviar push (los devices suscriptos no reciben más)",
+        "Oculta la sección \"Notificaciones push\" en /perfil",
+        "Oculta el prompt para activar notificaciones"
+      ]
+    }
+  },
+  "viewToggle": {
+    "backToAdmin": "Volver a vista admin",
+    "viewAsUser": "Ver como usuario"
+  },
+  "viewBanner": {
+    "label": "Viendo como usuario · Click para volver"
+  }
+}

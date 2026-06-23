@@ -1,15 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import { useSiteConfig } from "../../context/SiteConfigContext";
 import { useNotifications } from "../../context/NotificationContext";
 import styles from "./CommunitiesAdmin.module.css";
 
-const POLICIES = [
-  { value: "open", label: "Abierta" },
-  { value: "approval", label: "Por aprobación" },
-  { value: "code", label: "Por código" },
-];
+const POLICY_VALUES = ["open", "approval", "code"];
 
 const errMsg = (err, fallback) => err?.response?.data?.message || fallback;
 
@@ -60,20 +57,6 @@ const NEUTRAL_HEX_KEYS = [
   "borderStrong",
 ];
 const NEUTRAL_ALPHA_KEYS = ["overlaySoft", "overlayMedium", "overlayStrong"];
-const NEUTRAL_LABELS = {
-  bgDark: "Fondo",
-  bgCard: "Tarjeta",
-  bgElevated: "Elevado",
-  bgHover: "Hover",
-  textPrimary: "Texto",
-  textSecondary: "Texto 2°",
-  textMuted: "Texto tenue",
-  border: "Borde",
-  borderStrong: "Borde fuerte",
-  overlaySoft: "Overlay suave",
-  overlayMedium: "Overlay medio",
-  overlayStrong: "Overlay fuerte",
-};
 const NEUTRAL_DEFAULTS_DARK = {
   bgDark: "#0a0d15",
   bgCard: "#151c28",
@@ -110,7 +93,9 @@ function CommunityEditor({
   onToggleSection,
   onChanged,
 }) {
+  const { t } = useTranslation();
   const { addToast } = useNotifications();
+  const neutralLabel = (k) => t(`admin:communities.neutralLabels.${k}`);
   const [name, setName] = useState(community.name);
   const [description, setDescription] = useState(community.description || "");
   const [slug, setSlug] = useState(community.slug);
@@ -153,12 +138,15 @@ function CommunityEditor({
         brandName,
         tagline,
       });
-      addToast({ type: "success", message: "Skin guardado" });
+      addToast({
+        type: "success",
+        message: t("admin:communities.editor.toastSkinSaved"),
+      });
       onChanged?.();
     } catch (err) {
       addToast({
         type: "error",
-        message: errMsg(err, "No se pudo guardar el skin"),
+        message: errMsg(err, t("admin:communities.editor.toastSkinError")),
       });
     }
   };
@@ -173,12 +161,15 @@ function CommunityEditor({
       await axios.post(API.comunidades.LOGO(community.slug), fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      addToast({ type: "success", message: "Logo subido" });
+      addToast({
+        type: "success",
+        message: t("admin:communities.editor.toastLogoUploaded"),
+      });
       onChanged?.();
     } catch (err) {
       addToast({
         type: "error",
-        message: errMsg(err, "No se pudo subir el logo"),
+        message: errMsg(err, t("admin:communities.editor.toastLogoError")),
       });
     }
   };
@@ -188,14 +179,14 @@ function CommunityEditor({
       <input
         className={styles.input}
         value={name}
-        aria-label="Nombre"
+        aria-label={t("admin:communities.editor.nameAria")}
         onChange={(e) => setName(e.target.value)}
       />
       <input
         className={styles.input}
         value={description}
-        placeholder="Descripción"
-        aria-label="Descripción"
+        placeholder={t("admin:communities.editor.descPlaceholder")}
+        aria-label={t("admin:communities.editor.descAria")}
         onChange={(e) => setDescription(e.target.value)}
       />
       {!community.isBase && (
@@ -203,37 +194,39 @@ function CommunityEditor({
           <input
             className={styles.input}
             value={slug}
-            placeholder="slug"
-            aria-label="Slug (subdominio / URL)"
+            placeholder={t("admin:communities.editor.slugPlaceholder")}
+            aria-label={t("admin:communities.editor.slugAria")}
             onChange={(e) => setSlug(e.target.value)}
           />
           <p className={styles.muted}>
-            Slug = lo que va en la URL y el subdominio (
-            <strong>
-              {(slug || "").trim() || community.slug}.{tenantDomain}
-            </strong>
-            ). No cambia al renombrar; editalo acá si querés. Ojo: cambiarlo
-            rompe links viejos.
+            <Trans
+              i18nKey="admin:communities.editor.slugHelp"
+              components={{ strong: <strong /> }}
+              values={{
+                slug: (slug || "").trim() || community.slug,
+                domain: tenantDomain,
+              }}
+            />
           </p>
         </>
       )}
       <select
         className={styles.input}
         value={joinPolicy}
-        aria-label="Política de unión"
+        aria-label={t("admin:communities.editor.policyAria")}
         onChange={(e) => setJoinPolicy(e.target.value)}
       >
-        {POLICIES.map((p) => (
-          <option key={p.value} value={p.value}>
-            {p.label}
+        {POLICY_VALUES.map((p) => (
+          <option key={p} value={p}>
+            {t(`admin:communities.policies.${p}`)}
           </option>
         ))}
       </select>
       {joinPolicy === "code" && (
         <input
           className={styles.input}
-          placeholder="Nuevo código (opcional)"
-          aria-label="Código de invitación"
+          placeholder={t("admin:communities.editor.codePlaceholder")}
+          aria-label={t("admin:communities.editor.codeAria")}
           value={inviteCode}
           onChange={(e) => setInviteCode(e.target.value)}
         />
@@ -251,12 +244,14 @@ function CommunityEditor({
           })
         }
       >
-        Guardar datos
+        {t("admin:communities.editor.saveData")}
       </button>
 
       {!community.isBase && (
         <div className={styles.sections}>
-          <span className={styles.sectionsLabel}>Subdominio propio</span>
+          <span className={styles.sectionsLabel}>
+            {t("admin:communities.editor.subdomain")}
+          </span>
           <label className={styles.sectionToggle}>
             <input
               type="checkbox"
@@ -266,15 +261,15 @@ function CommunityEditor({
                 onSave({ subdomainEnabled: e.target.checked });
               }}
             />
-            Activar single-tenant en este subdominio
+            {t("admin:communities.editor.subdomainToggle")}
           </label>
           {subdomainEnabled && (
             <p className={styles.muted}>
-              Accesible en{" "}
-              <strong>
-                {community.slug}.{tenantDomain}
-              </strong>{" "}
-              — al entrar por ahí el sitio se acota solo a esta comunidad.
+              <Trans
+                i18nKey="admin:communities.editor.subdomainHelp"
+                components={{ strong: <strong /> }}
+                values={{ slug: community.slug, domain: tenantDomain }}
+              />
             </p>
           )}
         </div>
@@ -282,7 +277,7 @@ function CommunityEditor({
 
       <div className={styles.sections}>
         <span className={styles.sectionsLabel}>
-          Secciones visibles para esta comunidad
+          {t("admin:communities.editor.visibleSections")}
         </span>
         {sectionKeys
           .filter((k) => k !== "comunidades")
@@ -299,22 +294,27 @@ function CommunityEditor({
       </div>
 
       <div className={styles.skin}>
-        <span className={styles.sectionsLabel}>Skin (colores de marca)</span>
+        <span className={styles.sectionsLabel}>
+          {t("admin:communities.editor.skinTitle")}
+        </span>
         {community.isBase ? (
           <p className={styles.muted}>
-            El skin base de TurnoCero se define por código (index.css) y no se
-            edita desde acá.
+            {t("admin:communities.editor.skinBaseNote")}
           </p>
         ) : (
           <>
             <div className={styles.neutralsRow}>
-              <span className={styles.neutralsLabel}>Acentos</span>
+              <span className={styles.neutralsLabel}>
+                {t("admin:communities.editor.accents")}
+              </span>
               {ACCENT_HEX_KEYS.map((k) => (
                 <label key={k} className={styles.colorField}>
                   <input
                     type="color"
                     value={accents[k]}
-                    aria-label={`Color ${k}`}
+                    aria-label={t("admin:communities.editor.colorOf", {
+                      key: k,
+                    })}
                     onChange={(e) =>
                       setAccents((a) => ({ ...a, [k]: e.target.value }))
                     }
@@ -326,7 +326,7 @@ function CommunityEditor({
 
             <div className={styles.neutralsRow}>
               <span className={styles.neutralsLabel}>
-                Acentos (transparencia)
+                {t("admin:communities.editor.accentsAlpha")}
               </span>
               {ACCENT_ALPHA_KEYS.map((k) => (
                 <label key={k} className={styles.colorField}>
@@ -334,7 +334,9 @@ function CommunityEditor({
                     type="text"
                     className={styles.tokenText}
                     value={accents[k]}
-                    aria-label={`Color ${k}`}
+                    aria-label={t("admin:communities.editor.colorOf", {
+                      key: k,
+                    })}
                     aria-invalid={
                       !COLOR_RE.test(String(accents[k] ?? "").trim())
                     }
@@ -349,33 +351,41 @@ function CommunityEditor({
             </div>
 
             <div className={styles.neutralsRow}>
-              <span className={styles.neutralsLabel}>Texto sobre primario</span>
+              <span className={styles.neutralsLabel}>
+                {t("admin:communities.editor.textOnPrimary")}
+              </span>
               <label className={styles.colorField}>
                 <input
                   type="color"
                   value={accents.onAmber}
-                  aria-label="Texto sobre botones primarios"
+                  aria-label={t(
+                    "admin:communities.editor.textOnPrimaryBtnAria",
+                  )}
                   onChange={(e) =>
                     setAccents((a) => ({ ...a, onAmber: e.target.value }))
                   }
                 />
-                texto en botones
+                {t("admin:communities.editor.textOnButtons")}
               </label>
             </div>
 
             <div className={styles.neutralsRow}>
-              <span className={styles.neutralsLabel}>Neutros (oscuro)</span>
+              <span className={styles.neutralsLabel}>
+                {t("admin:communities.editor.neutralsDark")}
+              </span>
               {NEUTRAL_HEX_KEYS.map((k) => (
                 <label key={`d-${k}`} className={styles.colorField}>
                   <input
                     type="color"
                     value={neutralsDark[k]}
-                    aria-label={`${NEUTRAL_LABELS[k]} oscuro`}
+                    aria-label={t("admin:communities.editor.neutralDarkAria", {
+                      label: neutralLabel(k),
+                    })}
                     onChange={(e) =>
                       setNeutralsDark((n) => ({ ...n, [k]: e.target.value }))
                     }
                   />
-                  {NEUTRAL_LABELS[k]}
+                  {neutralLabel(k)}
                 </label>
               ))}
               {NEUTRAL_ALPHA_KEYS.map((k) => (
@@ -384,7 +394,9 @@ function CommunityEditor({
                     type="text"
                     className={styles.tokenText}
                     value={neutralsDark[k]}
-                    aria-label={`${NEUTRAL_LABELS[k]} oscuro`}
+                    aria-label={t("admin:communities.editor.neutralDarkAria", {
+                      label: neutralLabel(k),
+                    })}
                     aria-invalid={
                       !COLOR_RE.test(String(neutralsDark[k] ?? "").trim())
                     }
@@ -393,23 +405,27 @@ function CommunityEditor({
                       setNeutralsDark((n) => ({ ...n, [k]: e.target.value }))
                     }
                   />
-                  {NEUTRAL_LABELS[k]}
+                  {neutralLabel(k)}
                 </label>
               ))}
             </div>
             <div className={styles.neutralsRow}>
-              <span className={styles.neutralsLabel}>Neutros (claro)</span>
+              <span className={styles.neutralsLabel}>
+                {t("admin:communities.editor.neutralsLight")}
+              </span>
               {NEUTRAL_HEX_KEYS.map((k) => (
                 <label key={`l-${k}`} className={styles.colorField}>
                   <input
                     type="color"
                     value={neutralsLight[k]}
-                    aria-label={`${NEUTRAL_LABELS[k]} claro`}
+                    aria-label={t("admin:communities.editor.neutralLightAria", {
+                      label: neutralLabel(k),
+                    })}
                     onChange={(e) =>
                       setNeutralsLight((n) => ({ ...n, [k]: e.target.value }))
                     }
                   />
-                  {NEUTRAL_LABELS[k]}
+                  {neutralLabel(k)}
                 </label>
               ))}
               {NEUTRAL_ALPHA_KEYS.map((k) => (
@@ -418,7 +434,9 @@ function CommunityEditor({
                     type="text"
                     className={styles.tokenText}
                     value={neutralsLight[k]}
-                    aria-label={`${NEUTRAL_LABELS[k]} claro`}
+                    aria-label={t("admin:communities.editor.neutralLightAria", {
+                      label: neutralLabel(k),
+                    })}
                     aria-invalid={
                       !COLOR_RE.test(String(neutralsLight[k] ?? "").trim())
                     }
@@ -427,30 +445,30 @@ function CommunityEditor({
                       setNeutralsLight((n) => ({ ...n, [k]: e.target.value }))
                     }
                   />
-                  {NEUTRAL_LABELS[k]}
+                  {neutralLabel(k)}
                 </label>
               ))}
             </div>
 
             <input
               className={styles.input}
-              placeholder="Nombre de marca (opcional)"
-              aria-label="Nombre de marca"
+              placeholder={t("admin:communities.editor.brandNamePlaceholder")}
+              aria-label={t("admin:communities.editor.brandNameAria")}
               value={brandName}
               onChange={(e) => setBrandName(e.target.value)}
             />
             <input
               className={styles.input}
-              placeholder="Tagline (opcional)"
-              aria-label="Tagline"
+              placeholder={t("admin:communities.editor.taglinePlaceholder")}
+              aria-label={t("admin:communities.editor.taglineAria")}
               value={tagline}
               onChange={(e) => setTagline(e.target.value)}
             />
             <button type="button" className={styles.btn} onClick={saveSkin}>
-              Guardar skin
+              {t("admin:communities.editor.saveSkin")}
             </button>
             <label className={styles.btn}>
-              Subir logo
+              {t("admin:communities.editor.uploadLogo")}
               <input
                 type="file"
                 accept="image/*"
@@ -466,6 +484,7 @@ function CommunityEditor({
 }
 
 export default function CommunitiesAdmin() {
+  const { t } = useTranslation();
   const { SECTION_KEYS } = useSiteConfig();
   const { addToast } = useNotifications();
   const [communities, setCommunities] = useState([]);
@@ -483,11 +502,14 @@ export default function CommunitiesAdmin() {
       const { data } = await axios.get(API.comunidades.LIST);
       setCommunities(data.comunidades || []);
     } catch {
-      addToast({ type: "error", message: "No pudimos cargar las comunidades" });
+      addToast({
+        type: "error",
+        message: t("admin:communities.toastLoadError"),
+      });
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, t]);
 
   useEffect(() => {
     load();
@@ -496,12 +518,12 @@ export default function CommunitiesAdmin() {
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) {
-      addToast({ type: "error", message: "Poné un nombre" });
+      addToast({ type: "error", message: t("admin:communities.toastNeedName") });
       return;
     }
     try {
       await axios.post(API.comunidades.LIST, form);
-      addToast({ type: "success", message: "Comunidad creada" });
+      addToast({ type: "success", message: t("admin:communities.toastCreated") });
       setForm({
         name: "",
         description: "",
@@ -510,22 +532,25 @@ export default function CommunitiesAdmin() {
       });
       await load();
     } catch (err) {
-      addToast({ type: "error", message: errMsg(err, "No se pudo crear") });
+      addToast({
+        type: "error",
+        message: errMsg(err, t("admin:communities.toastCreateError")),
+      });
     }
   };
 
   const handleDelete = async (c) => {
     try {
       await axios.delete(API.comunidades.DETAIL(c.slug));
-      addToast({ type: "success", message: "Comunidad eliminada" });
+      addToast({ type: "success", message: t("admin:communities.toastDeleted") });
       await load();
     } catch (err) {
       addToast({
         type: "error",
         message:
           err.response?.status === 409
-            ? "Tiene contenido — reasignalo a la base primero."
-            : errMsg(err, "No se pudo eliminar"),
+            ? t("admin:communities.toastDeleteConflict")
+            : errMsg(err, t("admin:communities.toastDeleteError")),
       });
     }
   };
@@ -533,39 +558,48 @@ export default function CommunitiesAdmin() {
   const handleReassign = async (c) => {
     try {
       await axios.post(API.comunidades.REASSIGN_TO_BASE(c.slug));
-      addToast({ type: "success", message: "Contenido reasignado a la base" });
+      addToast({
+        type: "success",
+        message: t("admin:communities.toastReassigned"),
+      });
       await load();
     } catch (err) {
-      addToast({ type: "error", message: errMsg(err, "No se pudo reasignar") });
+      addToast({
+        type: "error",
+        message: errMsg(err, t("admin:communities.toastReassignError")),
+      });
     }
   };
 
   const saveEdit = async (c, patch) => {
     try {
       await axios.put(API.comunidades.DETAIL(c.slug), patch);
-      addToast({ type: "success", message: "Guardado" });
+      addToast({ type: "success", message: t("admin:communities.toastSaved") });
       await load();
     } catch (err) {
-      addToast({ type: "error", message: errMsg(err, "No se pudo guardar") });
+      addToast({
+        type: "error",
+        message: errMsg(err, t("admin:communities.toastSaveError")),
+      });
     }
   };
 
   return (
     <section className={styles.wrap}>
-      <h2 className={styles.heading}>Comunidades</h2>
+      <h2 className={styles.heading}>{t("admin:communities.heading")}</h2>
 
       <form onSubmit={handleCreate} className={styles.createForm}>
         <input
           className={styles.input}
-          placeholder="Nombre"
-          aria-label="Nombre de la comunidad"
+          placeholder={t("admin:communities.namePlaceholder")}
+          aria-label={t("admin:communities.nameAria")}
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
         />
         <input
           className={styles.input}
-          placeholder="Descripción"
-          aria-label="Descripción de la comunidad"
+          placeholder={t("admin:communities.descPlaceholder")}
+          aria-label={t("admin:communities.descAria")}
           value={form.description}
           onChange={(e) =>
             setForm((f) => ({ ...f, description: e.target.value }))
@@ -573,23 +607,23 @@ export default function CommunitiesAdmin() {
         />
         <select
           className={styles.input}
-          aria-label="Política de unión"
+          aria-label={t("admin:communities.policyAria")}
           value={form.joinPolicy}
           onChange={(e) =>
             setForm((f) => ({ ...f, joinPolicy: e.target.value }))
           }
         >
-          {POLICIES.map((p) => (
-            <option key={p.value} value={p.value}>
-              {p.label}
+          {POLICY_VALUES.map((p) => (
+            <option key={p} value={p}>
+              {t(`admin:communities.policies.${p}`)}
             </option>
           ))}
         </select>
         {form.joinPolicy === "code" && (
           <input
             className={styles.input}
-            placeholder="Código"
-            aria-label="Código de invitación"
+            placeholder={t("admin:communities.codePlaceholder")}
+            aria-label={t("admin:communities.codeAria")}
             value={form.inviteCode}
             onChange={(e) =>
               setForm((f) => ({ ...f, inviteCode: e.target.value }))
@@ -597,12 +631,12 @@ export default function CommunitiesAdmin() {
           />
         )}
         <button type="submit" className={styles.createBtn}>
-          Crear comunidad
+          {t("admin:communities.create")}
         </button>
       </form>
 
       {loading ? (
-        <p className={styles.muted}>Cargando…</p>
+        <p className={styles.muted}>{t("admin:communities.loading")}</p>
       ) : (
         <ul className={styles.list}>
           {communities.map((c) => (
@@ -610,10 +644,18 @@ export default function CommunitiesAdmin() {
               <div className={styles.rowHead}>
                 <span className={styles.name}>
                   {c.name}
-                  {c.isBase && <span className={styles.base}>base</span>}
+                  {c.isBase && (
+                    <span className={styles.base}>
+                      {t("admin:communities.base")}
+                    </span>
+                  )}
                 </span>
                 <span className={styles.count}>{c.slug}</span>
-                <span className={styles.count}>{c.memberCount} miembros</span>
+                <span className={styles.count}>
+                  {t("admin:communities.membersCount", {
+                    count: c.memberCount,
+                  })}
+                </span>
                 <div className={styles.actions}>
                   <button
                     type="button"
@@ -622,7 +664,9 @@ export default function CommunitiesAdmin() {
                       setEditing(editing === c.slug ? null : c.slug)
                     }
                   >
-                    {editing === c.slug ? "Cerrar" : "Editar"}
+                    {editing === c.slug
+                      ? t("admin:communities.close")
+                      : t("admin:communities.edit")}
                   </button>
                   {!c.isBase && (
                     <button
@@ -630,7 +674,7 @@ export default function CommunitiesAdmin() {
                       className={styles.btn}
                       onClick={() => handleReassign(c)}
                     >
-                      Vaciar → base
+                      {t("admin:communities.emptyToBase")}
                     </button>
                   )}
                   {!c.isBase && (
@@ -639,7 +683,7 @@ export default function CommunitiesAdmin() {
                       className={styles.btnDanger}
                       onClick={() => handleDelete(c)}
                     >
-                      Borrar
+                      {t("admin:communities.delete")}
                     </button>
                   )}
                 </div>

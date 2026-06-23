@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import AdminViewToggle from "./AdminViewToggle";
+import i18n from "../../i18n";
 
 vi.mock("../../context/AuthContext", () => ({
   useAuth: vi.fn(),
@@ -9,6 +10,23 @@ vi.mock("../../context/AuthContext", () => ({
 import { useAuth } from "../../context/AuthContext";
 
 describe("<AdminViewToggle>", () => {
+  afterEach(() => {
+    i18n.changeLanguage("es");
+  });
+
+  it("renders English labels when the language is en", async () => {
+    await i18n.changeLanguage("en");
+    useAuth.mockReturnValue({
+      isActuallyAdmin: true,
+      viewAsUser: false,
+      setViewAsUser: vi.fn(),
+    });
+    render(<AdminViewToggle />);
+    expect(
+      screen.getByRole("button", { name: "View as user" }),
+    ).toBeInTheDocument();
+  });
+
   it("renders nothing for non-admins", () => {
     useAuth.mockReturnValue({
       isActuallyAdmin: false,

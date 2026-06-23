@@ -54,6 +54,8 @@ import esCompartidas from "./resources/es/compartidas.json";
 import enCompartidas from "./resources/en/compartidas.json";
 import esTables from "./resources/es/tables.json";
 import enTables from "./resources/en/tables.json";
+import esAdmin from "./resources/es/admin.json";
+import enAdmin from "./resources/en/admin.json";
 
 export const resources = {
   es: {
@@ -77,6 +79,7 @@ export const resources = {
     eventos: esEventos,
     compartidas: esCompartidas,
     tables: esTables,
+    admin: esAdmin,
   },
   en: {
     common: enCommon,
@@ -99,6 +102,7 @@ export const resources = {
     eventos: enEventos,
     compartidas: enCompartidas,
     tables: enTables,
+    admin: enAdmin,
   },
 };
 

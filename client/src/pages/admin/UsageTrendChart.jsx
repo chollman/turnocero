@@ -1,14 +1,17 @@
+import { useTranslation } from "react-i18next";
+import { getLocale } from "../../utils/locale";
 import styles from "./UsageTrendChart.module.css";
 
 // 'YYYY-MM-DD' → '17 jun' (mediodía fijo para evitar rollover de timezone).
 function shortDay(day) {
-  return new Date(`${day}T12:00:00`).toLocaleDateString("es-AR", {
+  return new Date(`${day}T12:00:00`).toLocaleDateString(getLocale(), {
     day: "numeric",
     month: "short",
   });
 }
 
 function Series({ title, data, pick, unit, barClass, max, showValues }) {
+  const { t } = useTranslation();
   return (
     <div className={styles.series}>
       <span className={styles.seriesLabel}>{title}</span>
@@ -23,7 +26,11 @@ function Series({ title, data, pick, unit, barClass, max, showValues }) {
             <div
               key={d.day}
               className={styles.barCell}
-              title={`${shortDay(d.day)} — ${v} ${unit}`}
+              title={t("admin:usageChart.tooltip", {
+                day: shortDay(d.day),
+                value: v,
+                unit,
+              })}
             >
               {showValues && <span className={styles.barValue}>{v || ""}</span>}
               <div className={styles.barTrack}>
@@ -44,6 +51,7 @@ function Series({ title, data, pick, unit, barClass, max, showValues }) {
 // cada serie escalada a su propio máximo para que la forma sea legible aunque
 // los órdenes de magnitud difieran. Sin librerías — barras CSS theme-aware.
 export default function UsageTrendChart({ data }) {
+  const { t } = useTranslation();
   if (!data || data.length === 0) return null;
   const maxReads = Math.max(1, ...data.map((d) => d.reads || 0));
   const maxMut = Math.max(1, ...data.map((d) => d.mutations || 0));
@@ -52,19 +60,19 @@ export default function UsageTrendChart({ data }) {
   return (
     <div className={styles.chart}>
       <Series
-        title="Requests por día"
+        title={t("admin:usageChart.requestsTitle")}
         data={data}
         pick="reads"
-        unit="requests"
+        unit={t("admin:usageChart.requestsUnit")}
         barClass={styles.barReads}
         max={maxReads}
         showValues={showValues}
       />
       <Series
-        title="Partidas por día"
+        title={t("admin:usageChart.playsTitle")}
         data={data}
         pick="mutations"
-        unit="partidas"
+        unit={t("admin:usageChart.playsUnit")}
         barClass={styles.barMut}
         max={maxMut}
         showValues={showValues}

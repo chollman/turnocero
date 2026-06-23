@@ -1,7 +1,9 @@
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import styles from "./ViewAsUserBanner.module.css";
 
 export default function ViewAsUserBanner() {
+  const { t } = useTranslation();
   const { isActuallyAdmin, viewAsUser, setViewAsUser } = useAuth();
 
   if (!isActuallyAdmin || !viewAsUser) return null;
@@ -12,7 +14,7 @@ export default function ViewAsUserBanner() {
       onClick={() => setViewAsUser(false)}
       type="button"
     >
-      Viendo como usuario · Click para volver
+      {t("admin:viewBanner.label")}
     </button>
   );
 }
