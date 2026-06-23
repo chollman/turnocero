@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
@@ -12,6 +13,7 @@ import styles from "./ChatLauncher.module.css";
 const DESKTOP = 960;
 
 export default function ChatLauncher() {
+  const { t } = useTranslation("chat");
   const { user } = useAuth();
   const { conversations, openChat, dmUnreadTotal } = useChat();
   const { addFriendListener } = useNotifications();
@@ -92,7 +94,7 @@ export default function ChatLauncher() {
       {open && (
         <div className={styles.panel} ref={panelRef}>
           <div className={styles.panelHeader}>
-            <span className={styles.panelTitle}>Chats</span>
+            <span className={styles.panelTitle}>{t("launcher.title")}</span>
             <button
               className={styles.panelAllLink}
               onClick={() => {
@@ -100,7 +102,7 @@ export default function ChatLauncher() {
                 navigate("/mensajes");
               }}
             >
-              Ver todos
+              {t("launcher.seeAll")}
             </button>
           </div>
           <div className={styles.searchRow}>
@@ -120,7 +122,7 @@ export default function ChatLauncher() {
             </svg>
             <input
               className={styles.searchInput}
-              placeholder="Buscar amigo..."
+              placeholder={t("launcher.searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               autoFocus
@@ -130,8 +132,8 @@ export default function ChatLauncher() {
             {filtered.length === 0 && (
               <p className={styles.empty}>
                 {friends.length === 0
-                  ? "No tenés amigos aún"
-                  : "Sin resultados"}
+                  ? t("launcher.noFriends")
+                  : t("launcher.noResults")}
               </p>
             )}
             {filtered.map((f) => {
@@ -176,8 +178,8 @@ export default function ChatLauncher() {
         ref={btnRef}
         className={`${styles.fab} ${open ? styles.fabOpen : ""}`}
         onClick={() => setOpen((v) => !v)}
-        aria-label="Abrir chat"
-        title="Chats"
+        aria-label={t("launcher.openChat")}
+        title={t("launcher.title")}
       >
         {open ? (
           <svg

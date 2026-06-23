@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useSectionEnabled } from "../../hooks/useSectionEnabled";
 import styles from "./ColaborarFab.module.css";
 
@@ -20,6 +21,7 @@ const HeartIcon = () => (
 );
 
 export default function ColaborarFab({ onVisibilityChange }) {
+  const { t } = useTranslation("layout");
   const isSectionEnabled = useSectionEnabled();
   const { pathname } = useLocation();
   // El slide-in entra a 1s + 0.55s de animación; tras ~10s visibles el FAB se
@@ -59,12 +61,12 @@ export default function ColaborarFab({ onVisibilityChange }) {
     <Link
       to="/colabora"
       className={`${styles.fab} ${hidden ? styles.hidden : ""}`}
-      aria-label="Colaborar con TurnoCero"
+      aria-label={t("colabora.aria")}
       aria-hidden={hidden || undefined}
       tabIndex={hidden ? -1 : undefined}
     >
       <HeartIcon />
-      <span>Bancanos</span>
+      <span>{t("colabora.label")}</span>
     </Link>
   );
 }

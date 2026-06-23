@@ -58,6 +58,8 @@ import esAdmin from "./resources/es/admin.json";
 import enAdmin from "./resources/en/admin.json";
 import esBgwatch from "./resources/es/bgwatch.json";
 import enBgwatch from "./resources/en/bgwatch.json";
+import esChat from "./resources/es/chat.json";
+import enChat from "./resources/en/chat.json";
 
 export const resources = {
   es: {
@@ -83,6 +85,7 @@ export const resources = {
     tables: esTables,
     admin: esAdmin,
     bgwatch: esBgwatch,
+    chat: esChat,
   },
   en: {
     common: enCommon,
@@ -107,6 +110,7 @@ export const resources = {
     tables: enTables,
     admin: enAdmin,
     bgwatch: enBgwatch,
+    chat: enChat,
   },
 };
 

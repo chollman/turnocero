@@ -56,5 +56,9 @@
   "splash": {
     "loading": "Getting your table ready"
   },
+  "colabora": {
+    "aria": "Support TurnoCero",
+    "label": "Support us"
+  },
   "attribution": "by"
 }

@@ -1,0 +1,21 @@
+{
+  "launcher": {
+    "title": "Chats",
+    "seeAll": "Ver todos",
+    "searchPlaceholder": "Buscar amigo...",
+    "noFriends": "No tenés amigos aún",
+    "noResults": "Sin resultados",
+    "openChat": "Abrir chat"
+  },
+  "window": {
+    "errorSend": "No pudimos enviar el mensaje. Probá de nuevo.",
+    "expandChatWith": "Expandir chat con {{name}}",
+    "minimizeChatWith": "Minimizar chat con {{name}}",
+    "viewProfile": "Ver perfil",
+    "expand": "Expandir",
+    "minimize": "Minimizar",
+    "close": "Cerrar",
+    "loading": "Cargando...",
+    "inputPlaceholder": "Escribir..."
+  }
+}
