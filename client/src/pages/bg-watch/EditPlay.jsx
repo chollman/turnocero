@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -34,6 +35,7 @@ function toInitialValues(play) {
  * (fast-path al venir de la lista) o lo trae del endpoint (refresh/deep-link).
  */
 export default function EditPlay() {
+  const { t } = useTranslation("bgwatch");
   const { bggUsername, playId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,10 +80,10 @@ export default function EditPlay() {
     setServerError("");
     try {
       await axios.put(API.bgg.PARTIDA_DETAIL(playId), payload);
-      addToast({ type: "success", message: "Partida actualizada." });
+      addToast({ type: "success", message: t("editPlay.playUpdated") });
       goBack();
     } catch (err) {
-      const msg = getErrorMessage(err, "No se pudo editar la partida.");
+      const msg = getErrorMessage(err, t("editPlay.editError"));
       setServerError(msg);
       addToast({ type: "error", message: msg });
       setSubmitting(false);
@@ -89,15 +91,14 @@ export default function EditPlay() {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("¿Eliminar la partida? Se borra también en BGG."))
-      return;
+    if (!window.confirm(t("editPlay.deleteConfirm"))) return;
     setSubmitting(true);
     try {
       await axios.delete(API.bgg.PARTIDA_DETAIL(playId));
-      addToast({ type: "success", message: "Partida eliminada." });
+      addToast({ type: "success", message: t("editPlay.playDeleted") });
       goBack();
     } catch (err) {
-      const msg = getErrorMessage(err, "No se pudo eliminar la partida.");
+      const msg = getErrorMessage(err, t("editPlay.deleteError"));
       setServerError(msg);
       addToast({ type: "error", message: msg });
       setSubmitting(false);
@@ -108,7 +109,7 @@ export default function EditPlay() {
   if (loadError) {
     return (
       <p style={{ padding: "2rem", textAlign: "center" }}>
-        No se pudo cargar la partida.
+        {t("editPlay.loadError")}
       </p>
     );
   }

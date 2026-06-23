@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import DiceLoader from "../../components/shared/DiceLoader";
@@ -20,6 +21,7 @@ export default function ExpansionsPicker({
   onToggle,
   onClose,
 }) {
+  const { t } = useTranslation("bgwatch");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -55,17 +57,17 @@ export default function ExpansionsPicker({
         <input
           type="text"
           className={styles.modalInput}
-          placeholder="Buscá una expansión…"
+          placeholder={t("expansionsPicker.placeholder")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          aria-label="Buscar expansión"
+          aria-label={t("expansionsPicker.searchAria")}
           autoFocus
         />
         <button
           type="button"
           className={styles.playerPickerCancel}
           onClick={onClose}
-          aria-label="Cerrar"
+          aria-label={t("expansionsPicker.close")}
         >
           ✕
         </button>
@@ -73,8 +75,8 @@ export default function ExpansionsPicker({
 
       {loading && (
         <DiceLoader
-          text="Buscando las expansiones en BGG"
-          hint="puede tardar unos segundos"
+          text={t("expansionsPicker.searching")}
+          hint={t("expansionsPicker.searchingHint")}
         />
       )}
 
@@ -83,8 +85,8 @@ export default function ExpansionsPicker({
       {isEmpty && (
         <PickerEmptyRow>
           {term
-            ? `Ninguna expansión coincide con «${term}»`
-            : "Este juego no tiene expansiones listadas en BGG"}
+            ? t("expansionsPicker.noMatch", { term })
+            : t("expansionsPicker.emptyList")}
         </PickerEmptyRow>
       )}
 
@@ -122,7 +124,7 @@ export default function ExpansionsPicker({
       )}
 
       {error && (
-        <p className={styles.dimText}>No se pudieron cargar las expansiones.</p>
+        <p className={styles.dimText}>{t("expansionsPicker.loadError")}</p>
       )}
     </div>
   );

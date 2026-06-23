@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import i18n from "../../i18n";
 
 vi.mock("../../components/shared/Avatar", () => ({
   default: ({ user }) => <div data-testid="avatar">{user?.username || ""}</div>,
@@ -1315,6 +1316,25 @@ describe("<PlayForm>", () => {
     renderForm({ onCancel: vi.fn() });
     fireEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  // ── i18n (inglés) ──────────────────────────────────────────────────────
+  describe("en inglés", () => {
+    afterEach(() => {
+      i18n.changeLanguage("es");
+    });
+
+    it("renderiza las secciones en inglés al cambiar el idioma", async () => {
+      await i18n.changeLanguage("en");
+      renderForm();
+      expect(screen.getByText("What did you play?")).toBeInTheDocument();
+      expect(screen.getByText("Who played?")).toBeInTheDocument();
+      expect(screen.getByText("When and where?")).toBeInTheDocument();
+      expect(screen.getByText("Notes")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /save play/i }),
+      ).toBeInTheDocument();
+    });
   });
 
   it("no ofrece borrador con juego prefijado (?juego) ni en edición", () => {

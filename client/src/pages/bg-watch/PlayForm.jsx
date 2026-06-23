@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import axios from "axios";
 import Meeple from "../../components/shared/Meeple";
 import DateTimePicker from "../../components/shared/DateTimePicker";
@@ -106,6 +107,7 @@ export default function PlayForm({
   allowMultiSave = false,
   lastJuntada = null,
 }) {
+  const { t } = useTranslation("bgwatch");
   const bggUsername = user?.bggUsername;
 
   const draftEnabled =
@@ -586,7 +588,7 @@ export default function PlayForm({
     const win = playerWins(p);
     return {
       key: `${i}-${p.username || p.name || "anon"}`,
-      name: p.name || p.username || "Jugador",
+      name: p.name || p.username || t("playForm.playerFallback"),
       username: p.username,
       anonymous: p.anonymous,
       score: p.score,
@@ -679,27 +681,29 @@ export default function PlayForm({
       onAnimationEnd={handlePageAnimationEnd}
     >
       <BackButton onClick={handleCancelClick} disabled={submitting}>
-        Cancelar y volver
+        {t("playForm.cancelAndBack")}
       </BackButton>
 
       <header className={styles.head}>
         <div>
           <div className={styles.kicker}>
-            BG WATCH · {editMode ? "editar" : "nueva entrada"}
+            {editMode ? t("playForm.kickerEdit") : t("playForm.kickerNew")}
           </div>
           <h1 className={styles.title}>
-            {editMode ? "Editá la " : "Anotá la "}
-            <em>partida</em>.
+            {editMode ? t("playForm.titleEdit") : t("playForm.titleNew")}
+            <em>{t("playForm.titleEm")}</em>.
           </h1>
           <p className={styles.sub}>
-            {editMode
-              ? "Cambiá lo que haga falta. Se actualiza también en BoardGameGeek."
-              : "Cargá quién jugó, los puntajes y dónde. Queda en tu almanaque de BG Watch y en BoardGameGeek."}
+            {editMode ? t("playForm.subEdit") : t("playForm.subNew")}
           </p>
         </div>
         <div className={styles.progress}>
-          <span className={styles.progressVal}>{doneCount}/3</span>
-          <span className={styles.progressLbl}>secciones listas</span>
+          <span className={styles.progressVal}>
+            {t("playForm.progressVal", { done: doneCount })}
+          </span>
+          <span className={styles.progressLbl}>
+            {t("playForm.progressLbl")}
+          </span>
         </div>
       </header>
 
@@ -708,7 +712,7 @@ export default function PlayForm({
       <div
         className={styles.stepsDots}
         role="img"
-        aria-label={`${doneCount} de 3 secciones listas`}
+        aria-label={t("playForm.stepsAria", { done: doneCount })}
       >
         {[stepDone.juego, stepDone.jugadores, stepDone.cuando].map(
           (done, i, arr) => {
@@ -732,7 +736,7 @@ export default function PlayForm({
       {draftOffer && (
         <div className={styles.draftBanner} role="status">
           <span className={styles.draftText}>
-            Tenés un borrador sin guardar de una partida.
+            {t("playForm.draftBanner")}
           </span>
           <div className={styles.draftActions}>
             <button
@@ -740,14 +744,14 @@ export default function PlayForm({
               className={styles.draftRestore}
               onClick={restoreDraft}
             >
-              Retomar
+              {t("playForm.draftRestore")}
             </button>
             <button
               type="button"
               className={styles.draftDiscard}
               onClick={discardDraft}
             >
-              Descartar
+              {t("playForm.draftDiscard")}
             </button>
           </div>
         </div>
@@ -764,15 +768,22 @@ export default function PlayForm({
                 {stepDone.juego ? <CheckIcon /> : "1"}
               </span>
               <span className={styles.sectionTitle}>
-                ¿Qué jugaron?
-                <InfoTooltip placement="bottom" label="Ayuda: ¿Qué jugaron?">
-                  Elegí el juego de la partida — buscalo en tu lista o en BGG.
-                  Después podés sumar las <strong>expansiones</strong> jugadas o
-                  una <strong>variante/tablero</strong>.
+                {t("playForm.section1Title")}
+                <InfoTooltip
+                  placement="bottom"
+                  label={t("playForm.section1Help")}
+                >
+                  <Trans
+                    t={t}
+                    i18nKey="playForm.section1HelpBody"
+                    components={{ strong: <strong /> }}
+                  />
                 </InfoTooltip>
               </span>
               {game && game.numPlays != null && (
-                <span className={styles.sectionHint}>de tu colección</span>
+                <span className={styles.sectionHint}>
+                  {t("playForm.fromCollection")}
+                </span>
               )}
             </div>
 
@@ -792,7 +803,9 @@ export default function PlayForm({
                       <div className={styles.gameMeta}>
                         {[
                           game.year,
-                          game.numPlays > 0 ? `${game.numPlays}× jugado` : null,
+                          game.numPlays > 0
+                            ? t("playForm.playedTimes", { n: game.numPlays })
+                            : null,
                         ]
                           .filter(Boolean)
                           .join(" · ")}
@@ -810,7 +823,7 @@ export default function PlayForm({
                         setGamePicker(null);
                       }}
                     >
-                      Cambiar
+                      {t("playForm.changeGame")}
                     </button>
                   )}
                 </div>
@@ -824,7 +837,9 @@ export default function PlayForm({
                         <button
                           type="button"
                           onClick={() => toggleExpansion(e)}
-                          aria-label={`Quitar ${e.name}`}
+                          aria-label={t("playForm.removeExpansion", {
+                            name: e.name,
+                          })}
                         >
                           ✕
                         </button>
@@ -838,7 +853,7 @@ export default function PlayForm({
                         <button
                           type="button"
                           onClick={() => setVariant("")}
-                          aria-label="Quitar variante"
+                          aria-label={t("playForm.removeVariant")}
                         >
                           ✕
                         </button>
@@ -857,7 +872,7 @@ export default function PlayForm({
                     }
                     aria-expanded={gamePicker === "exp"}
                   >
-                    + Expansión jugada
+                    {t("playForm.addExpansion")}
                   </button>
                   <button
                     type="button"
@@ -867,7 +882,7 @@ export default function PlayForm({
                     }
                     aria-expanded={gamePicker === "variant"}
                   >
-                    + Variante/tablero
+                    {t("playForm.addVariant")}
                   </button>
                   {gamePicker === "exp" && (
                     <div className={styles.playerPickerPop}>
@@ -915,20 +930,20 @@ export default function PlayForm({
                 {stepDone.jugadores ? <CheckIcon /> : "2"}
               </span>
               <span className={styles.sectionTitle}>
-                ¿Quiénes jugaron?
+                {t("playForm.section2Title")}
                 <InfoTooltip
                   placement="bottom"
-                  label="Ayuda: ¿Quiénes jugaron?"
+                  label={t("playForm.section2Help")}
                 >
-                  Sumá a los jugadores (compañeros, usuarios de TurnoCero o
-                  anónimos) y cargá sus <strong>puntajes</strong>. Arriba elegís
-                  el modo: <strong>competitiva</strong>,{" "}
-                  <strong>cooperativa</strong> o <strong>equipos</strong>. Si
-                  jugaste solo/a, marcá la opción de partida en solitario.
+                  <Trans
+                    t={t}
+                    i18nKey="playForm.section2HelpBody"
+                    components={{ strong: <strong /> }}
+                  />
                 </InfoTooltip>
               </span>
               <span className={styles.sectionHint}>
-                {players.length} jugador{players.length === 1 ? "" : "es"}
+                {t("playForm.playersCount", { count: players.length })}
               </span>
             </div>
 
@@ -938,12 +953,16 @@ export default function PlayForm({
                 className={`${styles.mode} ${mode === "versus" ? styles.modeActive : ""}`}
                 onClick={() => selectMode("versus")}
               >
-                <span className={styles.modeT}>Competitiva</span>
+                <span className={styles.modeT}>
+                  {t("playForm.modeVersusTitle")}
+                </span>
                 <span className={styles.modeD}>
                   <span className={styles.modeDLong}>
-                    Cada uno con su puntaje
+                    {t("playForm.modeVersusLong")}
                   </span>
-                  <span className={styles.modeDShort}>Con puntaje</span>
+                  <span className={styles.modeDShort}>
+                    {t("playForm.modeVersusShort")}
+                  </span>
                 </span>
               </button>
               <button
@@ -951,12 +970,16 @@ export default function PlayForm({
                 className={`${styles.mode} ${mode === "coop" ? styles.modeActive : ""}`}
                 onClick={() => selectMode("coop")}
               >
-                <span className={styles.modeT}>Cooperativa</span>
+                <span className={styles.modeT}>
+                  {t("playForm.modeCoopTitle")}
+                </span>
                 <span className={styles.modeD}>
                   <span className={styles.modeDLong}>
-                    Ganan o pierden juntos
+                    {t("playForm.modeCoopLong")}
                   </span>
-                  <span className={styles.modeDShort}>Juntos</span>
+                  <span className={styles.modeDShort}>
+                    {t("playForm.modeCoopShort")}
+                  </span>
                 </span>
               </button>
               <button
@@ -964,10 +987,16 @@ export default function PlayForm({
                 className={`${styles.mode} ${mode === "equipos" ? styles.modeActive : ""}`}
                 onClick={() => selectMode("equipos")}
               >
-                <span className={styles.modeT}>Equipos</span>
+                <span className={styles.modeT}>
+                  {t("playForm.modeTeamsTitle")}
+                </span>
                 <span className={styles.modeD}>
-                  <span className={styles.modeDLong}>Gana un equipo</span>
-                  <span className={styles.modeDShort}>Bandos</span>
+                  <span className={styles.modeDLong}>
+                    {t("playForm.modeTeamsLong")}
+                  </span>
+                  <span className={styles.modeDShort}>
+                    {t("playForm.modeTeamsShort")}
+                  </span>
                 </span>
               </button>
             </div>
@@ -980,7 +1009,7 @@ export default function PlayForm({
                   onClick={() => setCoopWin(true)}
                 >
                   <TrophyIcon />
-                  <span>Ganamos</span>
+                  <span>{t("playForm.coopWin")}</span>
                 </button>
                 <button
                   type="button"
@@ -988,7 +1017,7 @@ export default function PlayForm({
                   onClick={() => setCoopWin(false)}
                 >
                   <span className={styles.coopX}>✕</span>
-                  <span>Perdimos</span>
+                  <span>{t("playForm.coopLoss")}</span>
                 </button>
               </div>
             )}
@@ -996,7 +1025,7 @@ export default function PlayForm({
             {mode === "equipos" && (
               <div className={styles.teamResult}>
                 <span className={styles.teamResultLabel}>
-                  ¿Qué equipo ganó?
+                  {t("playForm.whichTeamWon")}
                 </span>
                 <div className={styles.teamResultBtns}>
                   {numTeams > 2 && (
@@ -1005,21 +1034,21 @@ export default function PlayForm({
                       className={`${styles.btnGhost} ${styles.btnSmall}`}
                       onClick={removeTeam}
                     >
-                      − Equipo
+                      {t("playForm.removeTeam")}
                     </button>
                   )}
-                  {activeTeams.map((t) => (
+                  {activeTeams.map((team) => (
                     <button
-                      key={t}
+                      key={team}
                       type="button"
-                      className={`${styles.teamWinBtn} ${styles[`teamWin${t}`]} ${winningTeam === t ? styles.teamWinBtnActive : ""}`}
+                      className={`${styles.teamWinBtn} ${styles[`teamWin${team}`]} ${winningTeam === team ? styles.teamWinBtnActive : ""}`}
                       onClick={() =>
-                        setWinningTeam(winningTeam === t ? null : t)
+                        setWinningTeam(winningTeam === team ? null : team)
                       }
-                      aria-pressed={winningTeam === t}
+                      aria-pressed={winningTeam === team}
                     >
                       <span className={styles.teamDot} aria-hidden="true" />
-                      Equipo {t}
+                      {t("playForm.teamLabel", { team })}
                     </button>
                   ))}
                   {numTeams < TEAM_IDS.length && (
@@ -1028,7 +1057,7 @@ export default function PlayForm({
                       className={`${styles.btnGhost} ${styles.btnSmall}`}
                       onClick={addTeam}
                     >
-                      + Equipo
+                      {t("playForm.addTeam")}
                     </button>
                   )}
                 </div>
@@ -1053,9 +1082,11 @@ export default function PlayForm({
                   </span>
                   <span className={styles.hpText}>
                     <span className={styles.hpTextFull}>
-                      Jugué en solitario
+                      {t("playForm.soloFull")}
                     </span>
-                    <span className={styles.hpTextShort}>Solitario</span>
+                    <span className={styles.hpTextShort}>
+                      {t("playForm.soloShort")}
+                    </span>
                   </span>
                 </label>
                 {showLastJuntada && (
@@ -1065,8 +1096,10 @@ export default function PlayForm({
                     onClick={applyLastJuntada}
                     title={
                       lastJuntada.location
-                        ? `Jugadores y ubicación (${lastJuntada.location}) de tu última partida`
-                        : "Jugadores de tu última partida"
+                        ? t("playForm.lastJuntadaTitleWithLoc", {
+                            location: lastJuntada.location,
+                          })
+                        : t("playForm.lastJuntadaTitle")
                     }
                   >
                     <span className={styles.hpIcon} aria-hidden="true">
@@ -1074,12 +1107,16 @@ export default function PlayForm({
                     </span>
                     <span className={styles.hpText}>
                       <span className={styles.hpTextFull}>
-                        Usar última juntada
+                        {t("playForm.useLastFull")}
                       </span>
-                      <span className={styles.hpTextShort}>Usar última</span>
+                      <span className={styles.hpTextShort}>
+                        {t("playForm.useLastShort")}
+                      </span>
                     </span>
                     <span className={styles.hpHint}>
-                      {lastJuntada.players.length} jug.
+                      {t("playForm.lastJuntadaHintPlayers", {
+                        n: lastJuntada.players.length,
+                      })}
                       {lastJuntada.location ? ` · ${lastJuntada.location}` : ""}
                     </span>
                   </button>
@@ -1117,7 +1154,9 @@ export default function PlayForm({
             {/* El picker se DESPLIEGA como popover (no empuja el contenido),
                 igual que el de ubicación. */}
             <div className={styles.addPlayerArea} ref={addAreaRef}>
-              <div className={styles.addPlayerLabel}>Agregar jugadores</div>
+              <div className={styles.addPlayerLabel}>
+                {t("playForm.addPlayers")}
+              </div>
               <div className={styles.playerActions}>
                 <button
                   type="button"
@@ -1125,26 +1164,28 @@ export default function PlayForm({
                   onClick={() => setAdding((a) => !a)}
                   aria-expanded={adding}
                 >
-                  <UserPlusIcon /> Agregar jugador
+                  <UserPlusIcon /> {t("playForm.addPlayer")}
                 </button>
                 <button
                   type="button"
                   className={styles.addGuestBtn}
                   onClick={addAnonymous}
                 >
-                  <PlusIcon /> Anónimo
+                  <PlusIcon /> {t("playForm.anonymous")}
                 </button>
                 {canSortByScore && (
                   <button
                     type="button"
                     className={`${styles.btnGhost} ${styles.btnSmall} ${styles.pushRight}`}
                     onClick={sortByScore}
-                    aria-label="Ordenar por puntaje"
-                    title="Ordenar por puntaje"
+                    aria-label={t("playForm.sortByScore")}
+                    title={t("playForm.sortByScore")}
                   >
                     <SortDescIcon />
                     {/* En mobile queda solo el ícono (texto oculto por CSS). */}
-                    <span className={styles.sortText}>Ordenar por puntaje</span>
+                    <span className={styles.sortText}>
+                      {t("playForm.sortByScore")}
+                    </span>
                   </button>
                 )}
               </div>
@@ -1170,19 +1211,25 @@ export default function PlayForm({
                 {stepDone.cuando ? <CheckIcon /> : "3"}
               </span>
               <span className={styles.sectionTitle}>
-                ¿Cuándo y dónde?
-                <InfoTooltip placement="bottom" label="Ayuda: ¿Cuándo y dónde?">
-                  Poné la <strong>fecha</strong> (no puede ser futura) y, si
-                  querés, la <strong>duración</strong> y el{" "}
-                  <strong>lugar</strong>. También podés marcar si quedó
-                  incompleta o si no debe contar para las estadísticas.
+                {t("playForm.section3Title")}
+                <InfoTooltip
+                  placement="bottom"
+                  label={t("playForm.section3Help")}
+                >
+                  <Trans
+                    t={t}
+                    i18nKey="playForm.section3HelpBody"
+                    components={{ strong: <strong /> }}
+                  />
                 </InfoTooltip>
               </span>
             </div>
 
             <div className={styles.fieldRow}>
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>Fecha</label>
+                <label className={styles.fieldLabel}>
+                  {t("playForm.dateLabel")}
+                </label>
                 <DateTimePicker
                   dateOnly
                   allowPast
@@ -1196,24 +1243,26 @@ export default function PlayForm({
                     className={`${styles.quick} ${details.playdate === todayIso() ? styles.quickActive : ""}`}
                     onClick={() => updateDetail("playdate", todayIso())}
                   >
-                    Hoy
+                    {t("playForm.today")}
                   </button>
                   <button
                     type="button"
                     className={`${styles.quick} ${details.playdate === yesterdayIso() ? styles.quickActive : ""}`}
                     onClick={() => updateDetail("playdate", yesterdayIso())}
                   >
-                    Ayer
+                    {t("playForm.yesterday")}
                   </button>
                 </div>
                 {dateInvalid && (
                   <span className={styles.fieldError}>
-                    La fecha no puede ser futura.
+                    {t("playForm.dateFutureError")}
                   </span>
                 )}
               </div>
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>Duración (min)</label>
+                <label className={styles.fieldLabel}>
+                  {t("playForm.durationLabel")}
+                </label>
                 <div className={styles.durationWrap}>
                   <input
                     type="number"
@@ -1221,7 +1270,7 @@ export default function PlayForm({
                     className={styles.input}
                     value={details.length}
                     onChange={(e) => updateDetail("length", e.target.value)}
-                    placeholder="60"
+                    placeholder={t("playForm.durationPlaceholder")}
                   />
                   {/* Sugerencia "tiempo de caja" como ícono DENTRO del input
                       (no agranda el alto del campo). */}
@@ -1232,8 +1281,10 @@ export default function PlayForm({
                       onClick={() =>
                         updateDetail("length", String(suggestedDuration))
                       }
-                      aria-label={`Usar tiempo de caja: ${suggestedDuration} min`}
-                      title={`Usar tiempo de caja: ${suggestedDuration} min`}
+                      aria-label={t("playForm.useBoxTime", {
+                        n: suggestedDuration,
+                      })}
+                      title={t("playForm.useBoxTime", { n: suggestedDuration })}
                     >
                       <BoxTimeIcon />
                     </button>
@@ -1247,7 +1298,7 @@ export default function PlayForm({
                       className={`${styles.quick} ${Number(details.length) === m ? styles.quickActive : ""} ${m === 120 ? styles.quickXl : ""}`}
                       onClick={() => updateDetail("length", String(m))}
                     >
-                      {m}min
+                      {t("playForm.durationPreset", { n: m })}
                     </button>
                   ))}
                 </div>
@@ -1255,7 +1306,9 @@ export default function PlayForm({
             </div>
 
             <div className={styles.field}>
-              <label className={styles.fieldLabel}>Dónde se jugó</label>
+              <label className={styles.fieldLabel}>
+                {t("playForm.locationLabel")}
+              </label>
               <LocationPicker
                 bggUsername={bggUsername}
                 value={details.location}
@@ -1270,7 +1323,7 @@ export default function PlayForm({
                   checked={details.incomplete}
                   onChange={(e) => updateDetail("incomplete", e.target.checked)}
                 />
-                Incompleta (no se terminó)
+                {t("playForm.incomplete")}
               </label>
               <label className={styles.checkboxLabel}>
                 <input
@@ -1278,7 +1331,7 @@ export default function PlayForm({
                   checked={details.nowinstats}
                   onChange={(e) => updateDetail("nowinstats", e.target.checked)}
                 />
-                No contar para estadísticas
+                {t("playForm.noStats")}
               </label>
             </div>
           </section>
@@ -1292,14 +1345,21 @@ export default function PlayForm({
                 4
               </span>
               <span className={styles.sectionTitle}>
-                Notas
-                <InfoTooltip placement="bottom" label="Ayuda: Notas">
-                  Un comentario libre de la partida: la jugada que la definió,
-                  la revancha pendiente, lo que quieras. Es{" "}
-                  <strong>opcional</strong>.
+                {t("playForm.section4Title")}
+                <InfoTooltip
+                  placement="bottom"
+                  label={t("playForm.section4Help")}
+                >
+                  <Trans
+                    t={t}
+                    i18nKey="playForm.section4HelpBody"
+                    components={{ strong: <strong /> }}
+                  />
                 </InfoTooltip>
               </span>
-              <span className={styles.sectionHint}>opcional</span>
+              <span className={styles.sectionHint}>
+                {t("playForm.optional")}
+              </span>
             </div>
             <textarea
               className={styles.notes}
@@ -1307,7 +1367,7 @@ export default function PlayForm({
               onChange={(e) => updateDetail("comments", e.target.value)}
               maxLength={1000}
               rows={3}
-              placeholder="Ese combo de la ronda 4, la jugada que definió todo, la revancha pendiente…"
+              placeholder={t("playForm.notesPlaceholder")}
             />
           </section>
 
@@ -1332,14 +1392,15 @@ export default function PlayForm({
                 </span>
                 <span className={styles.shareHeadText}>
                   <span className={styles.shareHeadTitle}>
-                    Compartí esta partida
+                    {t("playForm.section5Title")}
                   </span>
                   <span className={styles.shareHeadSub}>
-                    Publicá una juntada con fotos y copiá el link para tus
-                    grupos de WhatsApp o Telegram.
+                    {t("playForm.section5Sub")}
                   </span>
                 </span>
-                <span className={styles.sectionHint}>opcional</span>
+                <span className={styles.sectionHint}>
+                  {t("playForm.optional")}
+                </span>
                 <svg
                   className={styles.shareChevron}
                   viewBox="0 0 24 24"
@@ -1394,12 +1455,12 @@ export default function PlayForm({
               className={styles.btnGhost}
               onClick={handleCancelClick}
               disabled={submitting}
-              aria-label="Cancelar"
+              aria-label={t("playForm.cancel")}
             >
               <span className={styles.cancelIcon}>
                 <TrashIcon />
               </span>
-              <span className={styles.cancelText}>Cancelar</span>
+              <span className={styles.cancelText}>{t("playForm.cancel")}</span>
             </button>
             <div className={styles.footerRight}>
               {allowMultiSave && !editMode && (
@@ -1408,15 +1469,15 @@ export default function PlayForm({
                   className={`${styles.btnGhost} ${styles.multiSaveBtn}`}
                   onClick={() => submit(true)}
                   disabled={!canSubmit || submitting}
-                  aria-label="Guardar y cargar otra"
-                  title="Guardar y cargar otra"
+                  aria-label={t("playForm.saveAndAnother")}
+                  title={t("playForm.saveAndAnother")}
                 >
                   {/* En mobile queda solo el ícono (texto oculto por CSS). */}
                   <span className={styles.multiSaveIcon}>
                     <SaveAnotherIcon />
                   </span>
                   <span className={styles.multiSaveText}>
-                    Guardar y cargar otra
+                    {t("playForm.saveAndAnother")}
                   </span>
                 </button>
               )}
@@ -1427,29 +1488,30 @@ export default function PlayForm({
               >
                 {!submitting && <CheckIcon />}
                 {submitting
-                  ? "Guardando…"
+                  ? t("playForm.saving")
                   : editMode
-                    ? "Guardar cambios"
-                    : "Guardar partida"}
+                    ? t("playForm.saveChanges")
+                    : t("playForm.savePlay")}
               </button>
             </div>
           </div>
 
           {editMode && onDelete && (
             <div className={styles.dangerZone}>
-              <div className={styles.dangerLabel}>Zona de peligro</div>
-              <div className={styles.dangerTitle}>Eliminar partida</div>
-              <p className={styles.dangerSub}>
-                Se borra la partida también en BoardGameGeek. Esta acción no se
-                puede deshacer.
-              </p>
+              <div className={styles.dangerLabel}>
+                {t("playForm.dangerZone")}
+              </div>
+              <div className={styles.dangerTitle}>
+                {t("playForm.deletePlay")}
+              </div>
+              <p className={styles.dangerSub}>{t("playForm.deletePlaySub")}</p>
               <button
                 type="button"
                 className={styles.dangerBtn}
                 onClick={onDelete}
                 disabled={submitting}
               >
-                Eliminar partida
+                {t("playForm.deletePlay")}
               </button>
             </div>
           )}
@@ -1457,15 +1519,20 @@ export default function PlayForm({
 
         <aside className={styles.preview}>
           <div className={styles.previewLabel}>
-            <Meeple /> Tu entrada · en vivo
+            <Meeple /> {t("playForm.previewLabel")}
             {/* En mobile la preview queda ARRIBA del form y puede parecer
                 interactiva — el ⓘ aclara que es solo la vista previa. En
                 desktop (columna lateral) se oculta por CSS. */}
             <span className={styles.previewInfo}>
-              <InfoTooltip placement="bottom" label="Ayuda: Vista previa">
-                Esta tarjeta es solo la <strong>vista previa</strong> de tu
-                partida: se va armando sola con lo que cargás en el formulario
-                de abajo. Acá no hay nada para tocar.
+              <InfoTooltip
+                placement="bottom"
+                label={t("playForm.previewHelp")}
+              >
+                <Trans
+                  t={t}
+                  i18nKey="playForm.previewHelpBody"
+                  components={{ strong: <strong /> }}
+                />
               </InfoTooltip>
             </span>
           </div>
@@ -1481,9 +1548,7 @@ export default function PlayForm({
             notes={details.comments}
             userMap={userMap}
           />
-          <p className={styles.previewNote}>
-            Se guarda en tu almanaque al confirmar.
-          </p>
+          <p className={styles.previewNote}>{t("playForm.previewNote")}</p>
         </aside>
       </div>
     </div>

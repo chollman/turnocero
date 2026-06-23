@@ -5,6 +5,7 @@ import {
   useParams,
   useSearchParams,
 } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -21,6 +22,7 @@ import PlayForm from "./PlayForm";
  * Solo el dueño con BGG conectado puede entrar; si no, redirige al perfil.
  */
 export default function CreatePlay() {
+  const { t } = useTranslation("bgwatch");
   const { bggUsername } = useParams();
   const [searchParams] = useSearchParams();
   const gameId = searchParams.get("juego") || null;
@@ -178,7 +180,7 @@ export default function CreatePlay() {
         ...(sharedFromNotifId ? { sharedFromNotifId } : {}),
       });
     } catch (err) {
-      const msg = getErrorMessage(err, "No se pudo cargar la partida.");
+      const msg = getErrorMessage(err, t("createPlay.savePlayError"));
       setServerError(msg);
       addToast({ type: "error", message: msg });
       setSubmitting(false);
@@ -212,13 +214,13 @@ export default function CreatePlay() {
       addToast({
         type: "success",
         message: shareResult?.ok
-          ? "Partida cargada. Link de la juntada copiado. Cargá la próxima."
-          : "Partida cargada. Cargá la próxima.",
+          ? t("createPlay.playLoadedShareCopiedNext")
+          : t("createPlay.playLoadedNext"),
       });
       if (shareResult?.error) {
         addToast({
           type: "error",
-          message: "La partida se guardó, pero no se pudo crear la compartida.",
+          message: t("createPlay.shareFailed"),
         });
       }
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -226,13 +228,13 @@ export default function CreatePlay() {
       addToast({
         type: "success",
         message: shareResult?.ok
-          ? "Partida cargada. Link de la juntada copiado para compartir."
-          : "Partida cargada en BGG.",
+          ? t("createPlay.playLoadedShareCopied")
+          : t("createPlay.playLoadedBgg"),
       });
       if (shareResult?.error) {
         addToast({
           type: "error",
-          message: "La partida se guardó, pero no se pudo crear la compartida.",
+          message: t("createPlay.shareFailed"),
         });
       }
       goBack();

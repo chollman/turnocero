@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import BggGameSearch from "../../components/shared/BggGameSearch";
@@ -21,6 +22,7 @@ import styles from "./BgWatchProfile.module.css";
  *   BggGameSearch + numPlays (sólo acá: marca que el juego es de la colección).
  */
 export default function MyGamesPicker({ bggUsername, onPick }) {
+  const { t } = useTranslation("bgwatch");
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -107,7 +109,7 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
             className={styles.bggFallbackToggle}
             onClick={() => setBggMode(false)}
           >
-            ← Volver a mis juegos
+            {t("myGamesPicker.backToMyGames")}
           </button>
         )}
       </div>
@@ -121,14 +123,14 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
       <input
         type="text"
         className={styles.modalInput}
-        placeholder="Filtrá tus juegos…"
+        placeholder={t("myGamesPicker.filterPlaceholder")}
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        aria-label="Filtrar mis juegos"
+        aria-label={t("myGamesPicker.filterAria")}
       />
 
       {loading && items.length === 0 && (
-        <DiceLoader text="Buscando tus juegos" />
+        <DiceLoader text={t("myGamesPicker.searching")} />
       )}
 
       {/* Estado vacío como una sola fila compacta (mismo alto que el loader),
@@ -137,8 +139,8 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
       {isEmpty && (
         <PickerEmptyRow>
           {q.trim()
-            ? `Ningún juego coincide con «${q.trim()}»`
-            : "Tu lista está vacía — buscá un juego en BGG abajo"}
+            ? t("myGamesPicker.noMatch", { term: q.trim() })
+            : t("myGamesPicker.emptyList")}
         </PickerEmptyRow>
       )}
 
@@ -179,7 +181,9 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
                 <span
                   className={`${styles.gameRowBadge} ${g.numPlays > 0 ? styles.gameRowBadgePlays : styles.gameRowBadgeNew}`}
                 >
-                  {g.numPlays > 0 ? `${g.numPlays}×` : "nuevo"}
+                  {g.numPlays > 0
+                    ? t("myGamesPicker.playsTimes", { n: g.numPlays })
+                    : t("myGamesPicker.new")}
                 </span>
               </button>
             );
@@ -192,7 +196,9 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
                 onClick={onLoadMore}
                 disabled={loadingMore}
               >
-                {loadingMore ? "Cargando más…" : "Ver más"}
+                {loadingMore
+                  ? t("myGamesPicker.loadingMore")
+                  : t("myGamesPicker.loadMore")}
               </button>
             </div>
           )}
@@ -204,12 +210,10 @@ export default function MyGamesPicker({ bggUsername, onPick }) {
         className={styles.bggFallbackToggle}
         onClick={() => setBggMode(true)}
       >
-        ¿No lo encontrás? Buscar en BGG
+        {t("myGamesPicker.bggFallback")}
       </button>
       {error && (
-        <p className={styles.dimText}>
-          No se pudo cargar tu lista — probá buscando en BGG.
-        </p>
+        <p className={styles.dimText}>{t("myGamesPicker.loadError")}</p>
       )}
     </div>
   );
