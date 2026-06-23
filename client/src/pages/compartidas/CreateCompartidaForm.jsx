@@ -1,8 +1,10 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
+import { getLocale } from "../../utils/locale";
 import Avatar from "../../components/shared/Avatar";
 import CommunitySelect from "../../components/shared/CommunitySelect";
 import GameTile from "../../components/shared/GameTile";
@@ -13,11 +15,9 @@ import { getLocationDisplay } from "../../utils/location";
 import { createJuntada, toGamePayload } from "./createJuntada";
 import styles from "./CreateCompartidaForm.module.css";
 
-const PRIVACY_OPTIONS = [
-  { value: "public", label: "Público", desc: "Todos" },
-  { value: "friends", label: "Amigos", desc: "Solo amigos" },
-  { value: "private", label: "Solo yo", desc: "Privado" },
-];
+// Las opciones de privacidad solo usan `value`; el label sale por i18n
+// (compartidas:privacy.*).
+const PRIVACY_VALUES = ["public", "friends", "private"];
 
 const REVIEW_BODY_MAX = 20000;
 const MAX_JUNTADA_GAMES = 12;
@@ -30,7 +30,7 @@ const bodyToText = (html) => (html || "").replace(/<[^>]*>/g, " ").trim();
 
 function formatChipDate(date) {
   if (!date) return "";
-  return new Date(date).toLocaleDateString("es-AR", {
+  return new Date(date).toLocaleDateString(getLocale(), {
     day: "numeric",
     month: "short",
   });
@@ -43,6 +43,7 @@ export default function CreateCompartidaForm({
   prefilledEventoId,
   initialFiles,
 }) {
+  const { t } = useTranslation("compartidas");
   const { user } = useAuth();
   const [category, setCategory] = useState("juntada");
   const [title, setTitle] = useState("");
@@ -193,19 +194,19 @@ export default function CreateCompartidaForm({
 
     if (isResena) {
       if (games.length === 0) {
-        setError("Elegí un juego para la reseña.");
+        setError(t("form.errorGameRequired"));
         return;
       }
       if (!rating) {
-        setError("Elegí una puntuación de 1 a 10.");
+        setError(t("form.errorRatingRequired"));
         return;
       }
       if (!title.trim() && !bodyText) {
-        setError("Escribí un título o el cuerpo de la reseña.");
+        setError(t("form.errorResenaContent"));
         return;
       }
     } else if (!title.trim() && !bodyText && images.length === 0) {
-      setError("Agregá al menos un título, texto o foto.");
+      setError(t("form.errorJuntadaContent"));
       return;
     }
 
@@ -231,9 +232,7 @@ export default function CreateCompartidaForm({
       images.forEach((img) => URL.revokeObjectURL(img.preview));
       onCreated?.(finalPost);
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Error al publicar la compartida",
-      );
+      setError(err.response?.data?.message || t("form.errorPublish"));
     } finally {
       setLoading(false);
       submittingRef.current = false;
@@ -251,11 +250,11 @@ export default function CreateCompartidaForm({
   // en submit y submit está bloqueado).
   const missing = [];
   if (isResena) {
-    if (games.length === 0) missing.push("el juego");
-    if (!rating) missing.push("la puntuación");
-    if (!title.trim() && !bodyText) missing.push("un título o el cuerpo");
+    if (games.length === 0) missing.push(t("form.missingGame"));
+    if (!rating) missing.push(t("form.missingRating"));
+    if (!title.trim() && !bodyText) missing.push(t("form.missingResenaContent"));
   } else if (!title.trim() && !bodyText && images.length === 0) {
-    missing.push("un título, un texto o una foto");
+    missing.push(t("form.missingJuntadaContent"));
   }
   const submitHint = !loading && missing.length > 0 ? missing.join(" · ") : "";
 
@@ -269,9 +268,7 @@ export default function CreateCompartidaForm({
       <div className={styles.header}>
         <Avatar user={user} size="md" />
         <span className={styles.prompt}>
-          {isResena
-            ? "Escribí una reseña"
-            : "¿Qué tenés ganas de compartir hoy?"}
+          {isResena ? t("form.promptResena") : t("form.promptJuntada")}
         </span>
       </div>
 
@@ -281,7 +278,7 @@ export default function CreateCompartidaForm({
       <div
         className={styles.typeToggle}
         role="radiogroup"
-        aria-label="Tipo de compartida"
+        aria-label={t("form.typeGroupAria")}
       >
         <button
           type="button"
@@ -293,8 +290,8 @@ export default function CreateCompartidaForm({
           <span className={styles.typeIcon} aria-hidden="true">
             📝
           </span>
-          <span className={styles.typeName}>Reseña</span>
-          <span className={styles.typeDesc}>Tu opinión sobre un juego</span>
+          <span className={styles.typeName}>{t("form.typeResena")}</span>
+          <span className={styles.typeDesc}>{t("form.typeResenaDesc")}</span>
         </button>
         <button
           type="button"
@@ -306,23 +303,23 @@ export default function CreateCompartidaForm({
           <span className={styles.typeIcon} aria-hidden="true">
             📸
           </span>
-          <span className={styles.typeName}>Juntada</span>
-          <span className={styles.typeDesc}>Fotos y relato del encuentro</span>
+          <span className={styles.typeName}>{t("form.typeJuntada")}</span>
+          <span className={styles.typeDesc}>{t("form.typeJuntadaDesc")}</span>
         </button>
       </div>
 
       {/* Visibilidad — al inicio para ambos tipos */}
       <div className={styles.privacyRow}>
-        <span className={styles.privacyLabel}>Visibilidad:</span>
-        {PRIVACY_OPTIONS.map((opt) => (
+        <span className={styles.privacyLabel}>{t("form.visibility")}</span>
+        {PRIVACY_VALUES.map((value) => (
           <button
-            key={opt.value}
+            key={value}
             type="button"
-            className={`${styles.privacyBtn} ${privacy === opt.value ? styles.privacyBtnActive : ""}`}
-            onClick={() => setPrivacy(opt.value)}
+            className={`${styles.privacyBtn} ${privacy === value ? styles.privacyBtnActive : ""}`}
+            onClick={() => setPrivacy(value)}
             disabled={loading}
           >
-            {opt.label}
+            {t(`privacy.${value}`)}
           </button>
         ))}
       </div>
@@ -332,11 +329,11 @@ export default function CreateCompartidaForm({
       {/* ── Selector de juego (reseña: 1 obligatorio · juntada: varios opcional) ── */}
       <div className={styles.gameField}>
         <span className={styles.fieldLabel}>
-          {isResena ? "Juego " : "Juegos "}
+          {isResena ? t("form.gameLabelResena") : t("form.gameLabelJuntada")}
           {isResena ? (
-            <span className={styles.req}>· obligatorio</span>
+            <span className={styles.req}>{t("form.gameReq")}</span>
           ) : (
-            <span className={styles.opt}>· opcional, podés agregar varios</span>
+            <span className={styles.opt}>{t("form.gameOpt")}</span>
           )}
         </span>
 
@@ -367,8 +364,8 @@ export default function CreateCompartidaForm({
                   className={styles.linkChipRemove}
                   onClick={() => removeGame(g.id)}
                   disabled={loading}
-                  aria-label={`Quitar ${g.name}`}
-                  title="Quitar juego"
+                  aria-label={t("form.removeGame", { name: g.name })}
+                  title={t("form.removeGameTitle")}
                 >
                   ✕
                 </button>
@@ -384,8 +381,8 @@ export default function CreateCompartidaForm({
             clearOnPick={!isResena}
             placeholder={
               isResena
-                ? "Buscá el juego en BGG (≥3 caracteres)…"
-                : "Agregá un juego (≥3 caracteres)…"
+                ? t("form.gameSearchResena")
+                : t("form.gameSearchJuntada")
             }
           />
         )}
@@ -405,7 +402,7 @@ export default function CreateCompartidaForm({
           <div className={styles.linkChipInfo}>
             <span className={styles.linkChipLabel}>
               <Meeple />
-              Mesa enlazada
+              {t("form.mesaLinked")}
             </span>
             <span className={styles.linkChipName}>{linkedTable.boardGame}</span>
             <span className={styles.linkChipMeta}>
@@ -418,8 +415,8 @@ export default function CreateCompartidaForm({
             className={styles.linkChipRemove}
             onClick={unlinkTable}
             disabled={loading}
-            aria-label="Quitar mesa enlazada"
-            title="Quitar mesa"
+            aria-label={t("form.removeMesa")}
+            title={t("form.removeMesaTitle")}
           >
             ✕
           </button>
@@ -435,7 +432,7 @@ export default function CreateCompartidaForm({
           <div className={styles.linkChipInfo}>
             <span className={styles.linkChipLabel}>
               <Meeple />
-              Evento enlazado
+              {t("form.eventoLinked")}
             </span>
             <span className={styles.linkChipName}>{linkedEvento.title}</span>
             <span className={styles.linkChipMeta}>
@@ -448,8 +445,8 @@ export default function CreateCompartidaForm({
             className={styles.linkChipRemove}
             onClick={unlinkEvento}
             disabled={loading}
-            aria-label="Quitar evento enlazado"
-            title="Quitar evento"
+            aria-label={t("form.removeEvento")}
+            title={t("form.removeEventoTitle")}
           >
             ✕
           </button>
@@ -458,7 +455,7 @@ export default function CreateCompartidaForm({
 
       <input
         className={styles.titleInput}
-        placeholder={isResena ? "Título de la reseña" : "Título (opcional)"}
+        placeholder={isResena ? t("form.titleResena") : t("form.titleJuntada")}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         maxLength={100}
@@ -470,14 +467,14 @@ export default function CreateCompartidaForm({
           value={body}
           onChange={setBody}
           extended
-          placeholder="Escribí tu reseña… usá títulos y subsecciones a tu gusto."
+          placeholder={t("form.resenaBodyPlaceholder")}
           maxLength={REVIEW_BODY_MAX}
           disabled={loading}
         />
       ) : (
         <textarea
           className={styles.bodyInput}
-          placeholder="Contá cómo salió, qué jugaron, anécdotas…"
+          placeholder={t("form.juntadaBodyPlaceholder")}
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={4}
@@ -514,7 +511,9 @@ export default function CreateCompartidaForm({
               className={styles.photoBtn}
               onClick={() => fileInputRef.current?.click()}
               disabled={images.length >= 3 || loading}
-              title={images.length >= 3 ? "Máximo 3 fotos" : "Agregar foto"}
+              title={
+                images.length >= 3 ? t("form.maxPhotos") : t("form.addPhoto")
+              }
             >
               <svg
                 width="16"
@@ -531,7 +530,9 @@ export default function CreateCompartidaForm({
                 <polyline points="21 15 16 10 5 21" />
               </svg>
               <span>
-                Foto {images.length > 0 ? `(${images.length}/3)` : ""}
+                {images.length > 0
+                  ? t("form.photoCount", { count: images.length })
+                  : t("form.photo")}
               </span>
             </button>
             <input
@@ -550,12 +551,13 @@ export default function CreateCompartidaForm({
       {isResena && (
         <div className={styles.ratingField}>
           <span className={styles.fieldLabel}>
-            Puntuación <span className={styles.req}>· 1 a 10</span>
+            {t("form.ratingLabel")}
+            <span className={styles.req}>{t("form.ratingReq")}</span>
           </span>
           <div
             className={styles.ratingPills}
             role="radiogroup"
-            aria-label="Puntuación"
+            aria-label={t("form.ratingAria")}
           >
             {RATING_VALUES.map((n, i) => (
               <button
@@ -577,7 +579,7 @@ export default function CreateCompartidaForm({
       <div className={styles.actions}>
         {submitHint && (
           <span className={styles.submitHint} role="status">
-            Falta: {submitHint}
+            {t("form.missingPrefix", { missing: submitHint })}
           </span>
         )}
         {onCancel && (
@@ -587,7 +589,7 @@ export default function CreateCompartidaForm({
             onClick={onCancel}
             disabled={loading}
           >
-            Cancelar
+            {t("form.cancel")}
           </button>
         )}
         <button
@@ -595,7 +597,7 @@ export default function CreateCompartidaForm({
           className={styles.submitBtn}
           disabled={!canSubmit}
         >
-          {loading ? "Publicando…" : "Publicar compartida"}
+          {loading ? t("form.publishing") : t("form.publish")}
         </button>
       </div>
     </form>

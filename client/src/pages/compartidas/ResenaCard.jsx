@@ -2,6 +2,7 @@ import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useSiteConfig } from "../../context/SiteConfigContext";
@@ -18,31 +19,10 @@ import { useShortLink } from "../../hooks/useShortLink";
 import useDialogA11y from "../../hooks/useDialogA11y";
 import useRovingRadioGroup from "../../hooks/useRovingRadioGroup";
 import { getShortUrl } from "../../utils/shortlink";
+import { compartidaTimeAgo } from "./compartidaTime";
 import CompartidaComments from "./CompartidaComments";
 import { useCompartidaLike } from "./useCompartidaLike";
 import styles from "./ResenaCard.module.css";
-
-// Mismo formato que CompartidaCard ("hace 3h" / "el 15 de enero").
-function timeAgo(date) {
-  const d = new Date(date);
-  const diff = (Date.now() - d) / 1000;
-  if (diff < 60) return "recién";
-  if (diff < 3600) return `hace ${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `hace ${Math.floor(diff / 3600)}h`;
-  if (diff < 604800) return `hace ${Math.floor(diff / 86400)}d`;
-  const isOlderYear = d.getFullYear() < new Date().getFullYear();
-  return `el ${d.toLocaleDateString("es-AR", {
-    day: "numeric",
-    month: "long",
-    ...(isOlderYear && { year: "numeric" }),
-  })}`;
-}
-
-const PRIVACY_LABELS = {
-  public: "Público",
-  friends: "Amigos",
-  private: "Solo yo",
-};
 
 const bodyToText = (html) => (html || "").replace(/<[^>]*>/g, " ").trim();
 
@@ -62,6 +42,7 @@ export default function ResenaCard({
   index = 0,
   clampBody = true,
 }) {
+  const { t } = useTranslation("compartidas");
   const { user } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
   const bgwatchEnabled = isSectionEnabled("bgwatch");
@@ -144,7 +125,7 @@ export default function ResenaCard({
 
   const handleLike = () => {
     if (!user) {
-      setLoginPrompt("Iniciá sesión para dar like a esta reseña.");
+      setLoginPrompt(t("resena.loginLike"));
       return;
     }
     toggleLike();
@@ -153,7 +134,7 @@ export default function ResenaCard({
   const toggleComments = () => setShowComments((s) => !s);
 
   const handleDelete = async () => {
-    if (!window.confirm("¿Eliminar esta reseña?")) return;
+    if (!window.confirm(t("resena.confirmDelete"))) return;
     try {
       await axios.delete(API.compartidas.DETAIL(post._id));
       onDeleted?.(post._id);
@@ -164,15 +145,15 @@ export default function ResenaCard({
 
   const handleSaveEdit = async () => {
     if (!editGame) {
-      setEditError("Elegí un juego.");
+      setEditError(t("resena.errorGameRequired"));
       return;
     }
     if (!editRating) {
-      setEditError("Elegí una puntuación de 1 a 10.");
+      setEditError(t("resena.errorRatingRequired"));
       return;
     }
     if (!editTitle.trim() && !bodyToText(editBody)) {
-      setEditError("Escribí un título o el cuerpo de la reseña.");
+      setEditError(t("resena.errorContent"));
       return;
     }
     setEditError("");
@@ -196,7 +177,7 @@ export default function ResenaCard({
       onUpdated?.(updated);
       setEditing(false);
     } catch (err) {
-      setEditError(err.response?.data?.message || "No se pudo guardar.");
+      setEditError(err.response?.data?.message || t("resena.errorSave"));
     } finally {
       setSaving(false);
     }
@@ -228,7 +209,8 @@ export default function ResenaCard({
 
   const game = post.boardGame;
   const cover = game?.image || game?.thumbnail || "";
-  const privacyLabel = PRIVACY_LABELS[post.privacy];
+  const privacyLabel =
+    post.privacy !== "public" ? t(`privacy.${post.privacy}`) : "";
   // Short link transparente (ver CompartidaCard): perezoso, primed al interactuar.
   const { shortUrl, prime: primeShort } = useShortLink({
     type: "compartida",
@@ -249,7 +231,7 @@ export default function ResenaCard({
             ref={lightboxRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Foto ampliada"
+            aria-label={t("resena.lightboxLabel")}
             tabIndex={-1}
           >
             <button
@@ -259,7 +241,7 @@ export default function ResenaCard({
                 e.stopPropagation();
                 closeLightbox();
               }}
-              aria-label="Cerrar"
+              aria-label={t("resena.close")}
             >
               ✕
             </button>
@@ -278,7 +260,7 @@ export default function ResenaCard({
                     e.stopPropagation();
                     goPrev();
                   }}
-                  aria-label="Imagen anterior"
+                  aria-label={t("resena.prevImage")}
                 >
                   ‹
                 </button>
@@ -289,7 +271,7 @@ export default function ResenaCard({
                     e.stopPropagation();
                     goNext();
                   }}
-                  aria-label="Imagen siguiente"
+                  aria-label={t("resena.nextImage")}
                 >
                   ›
                 </button>
@@ -317,7 +299,7 @@ export default function ResenaCard({
         {featured && (
           <div className={styles.featuredBadge}>
             <Meeple />
-            Reseña destacada
+            {t("resena.featuredBadge")}
           </div>
         )}
 
@@ -341,18 +323,18 @@ export default function ResenaCard({
               </span>
             )}
             <div className={styles.gameHeaderInfo}>
-              <span className={styles.eyebrow}>Reseña</span>
+              <span className={styles.eyebrow}>{t("resena.eyebrow")}</span>
               <span className={styles.gameName}>
                 {game?.bggId ? (
                   <Link
                     to={`/compartidas/juego/${game.bggId}`}
                     className={styles.gameNameLink}
-                    title={`Ver todas las reseñas de ${game.name}`}
+                    title={t("resena.viewAllReviews", { name: game.name })}
                   >
-                    {game?.name || "Juego"}
+                    {game?.name || t("resena.gameFallback")}
                   </Link>
                 ) : (
-                  game?.name || "Juego"
+                  game?.name || t("resena.gameFallback")
                 )}
                 {game?.year ? (
                   <span className={styles.gameYear}> ({game.year})</span>
@@ -362,7 +344,7 @@ export default function ResenaCard({
             {post.rating != null && (
               <div
                 className={styles.ratingBadge}
-                aria-label={`Puntuación ${post.rating} de 10`}
+                aria-label={t("resena.ratingAria", { rating: post.rating })}
               >
                 <span className={styles.ratingNum}>{post.rating}</span>
                 <span className={styles.ratingMax}>/10</span>
@@ -394,7 +376,7 @@ export default function ResenaCard({
             )}
             <span className={styles.metaLine}>
               <span className={styles.metaTime}>
-                {timeAgo(post.createdAt)}
+                {compartidaTimeAgo(post.createdAt)}
                 {privacyLabel && post.privacy !== "public"
                   ? ` · ${privacyLabel}`
                   : ""}
@@ -405,7 +387,7 @@ export default function ResenaCard({
                       to={`/bg-watch/${encodeURIComponent(post.author.bggUsername)}`}
                       className={styles.bgwatchLink}
                     >
-                      BG Watch
+                      {t("resena.bgWatch")}
                     </Link>
                   </>
                 ) : null}
@@ -419,7 +401,7 @@ export default function ResenaCard({
                 type="button"
                 className={styles.menuBtn}
                 onClick={() => setMenuOpen((o) => !o)}
-                aria-label="Opciones"
+                aria-label={t("resena.options")}
               >
                 ⋯
               </button>
@@ -433,14 +415,14 @@ export default function ResenaCard({
                       setMenuOpen(false);
                     }}
                   >
-                    Editar
+                    {t("resena.edit")}
                   </button>
                   <button
                     type="button"
                     className={`${styles.menuItem} ${styles.menuItemDanger}`}
                     onClick={handleDelete}
                   >
-                    Eliminar
+                    {t("resena.delete")}
                   </button>
                 </div>
               )}
@@ -455,14 +437,14 @@ export default function ResenaCard({
               className={styles.editTitle}
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
-              placeholder="Título de la reseña"
+              placeholder={t("resena.titlePlaceholder")}
               maxLength={100}
             />
             {editGame ? (
               <div className={styles.editGameChip}>
                 <span>🎲 {editGame.name}</span>
                 <button type="button" onClick={() => setEditGame(null)}>
-                  Cambiar
+                  {t("resena.changeGame")}
                 </button>
               </div>
             ) : (
@@ -474,7 +456,7 @@ export default function ResenaCard({
             <div
               className={styles.editRatingRow}
               role="radiogroup"
-              aria-label="Puntuación"
+              aria-label={t("resena.ratingGroupAria")}
             >
               {RATING_VALUES.map((n, i) => (
                 <button
@@ -492,7 +474,7 @@ export default function ResenaCard({
               value={editBody}
               onChange={setEditBody}
               extended
-              placeholder="Escribí tu reseña…"
+              placeholder={t("resena.bodyPlaceholder")}
               maxLength={20000}
             />
             <div className={styles.editActions}>
@@ -502,7 +484,7 @@ export default function ResenaCard({
                 onClick={() => setEditing(false)}
                 disabled={saving}
               >
-                Cancelar
+                {t("resena.cancel")}
               </button>
               <button
                 type="button"
@@ -510,7 +492,7 @@ export default function ResenaCard({
                 onClick={handleSaveEdit}
                 disabled={saving}
               >
-                {saving ? "Guardando…" : "Guardar"}
+                {saving ? t("resena.saving") : t("resena.save")}
               </button>
             </div>
           </div>
@@ -549,7 +531,7 @@ export default function ResenaCard({
                     onClick={() => setExpanded((e) => !e)}
                     aria-expanded={expanded}
                   >
-                    {expanded ? "Leer menos" : "Leer más"}
+                    {expanded ? t("resena.readLess") : t("resena.readMore")}
                     <svg
                       className={`${styles.readMoreChevron} ${expanded ? styles.readMoreChevronUp : ""}`}
                       viewBox="0 0 24 24"
@@ -581,7 +563,7 @@ export default function ResenaCard({
                     type="button"
                     className={styles.imageBtn}
                     onClick={() => setLightboxIndex(i)}
-                    aria-label={`Ver foto ${i + 1}`}
+                    aria-label={t("resena.viewPhoto", { index: i + 1 })}
                   >
                     <img src={img.url} alt="" loading="lazy" />
                   </button>
@@ -598,7 +580,7 @@ export default function ResenaCard({
               type="button"
               className={`${styles.reactionBtn} ${liked ? styles.reactionBtnLiked : ""}`}
               onClick={handleLike}
-              aria-label={liked ? "Quitar me gusta" : "Me gusta"}
+              aria-label={liked ? t("resena.removeLike") : t("resena.like")}
             >
               <span
                 className={`${styles.likeHeart} ${heartPopping ? styles.likeHeartPop : ""}`}
@@ -636,7 +618,7 @@ export default function ResenaCard({
               </svg>
               <span>{commentCount}</span>
               <span className={styles.reactionLabel}>
-                {commentCount === 1 ? "comentario" : "comentarios"}
+                {t("resena.comment", { count: commentCount })}
               </span>
             </button>
           </div>
@@ -652,8 +634,8 @@ export default function ResenaCard({
               href={`https://api.whatsapp.com/send?text=${encodeURIComponent(share.whatsappText)}`}
               target="_blank"
               rel="noopener noreferrer"
-              title="Compartir en WhatsApp"
-              aria-label="Compartir en WhatsApp"
+              title={t("resena.shareWhatsapp")}
+              aria-label={t("resena.shareWhatsapp")}
             >
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.535 5.862L.057 23.886a.5.5 0 0 0 .612.612l6.05-1.48A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.886 0-3.65-.51-5.166-1.396l-.37-.22-3.827.934.952-3.782-.243-.388A9.955 9.955 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
@@ -664,8 +646,8 @@ export default function ResenaCard({
               href={`https://t.me/share/url?url=${encodeURIComponent(share.url)}&text=${encodeURIComponent(share.caption)}`}
               target="_blank"
               rel="noopener noreferrer"
-              title="Compartir en Telegram"
-              aria-label="Compartir en Telegram"
+              title={t("resena.shareTelegram")}
+              aria-label={t("resena.shareTelegram")}
             >
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.08 13.63l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.834.931z" />
@@ -685,8 +667,8 @@ export default function ResenaCard({
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              title={copied ? "¡Copiado!" : "Copiar enlace"}
-              aria-label="Copiar enlace"
+              title={copied ? t("resena.copied") : t("resena.copyLink")}
+              aria-label={t("resena.copyLink")}
             >
               {copied ? (
                 <svg

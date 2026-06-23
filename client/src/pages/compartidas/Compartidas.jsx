@@ -1,6 +1,7 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { useSearchParams, Link } from "react-router-dom";
+import { useTranslation, Trans } from "react-i18next";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
@@ -23,11 +24,7 @@ import BgWatchHomeWidget from "./BgWatchHomeWidget";
 import GuestJoinBanner from "../../components/shared/GuestJoinBanner";
 import styles from "./Compartidas.module.css";
 
-const TABS = [
-  { value: "todo", label: "Todo" },
-  { value: "resena", label: "Reseñas" },
-  { value: "juntada", label: "Juntadas" },
-];
+const TAB_VALUES = ["todo", "resena", "juntada"];
 
 const INTERLEAVE_EVERY = 3;
 
@@ -35,12 +32,13 @@ const INTERLEAVE_EVERY = 3;
 // (ver utils/compartidaQuotes.js). Fallback de ritmo cuando la sección Mesas
 // está apagada (sin /mesas adónde mandar, el CTA no aplica).
 function QuoteWidget({ text }) {
+  const { t } = useTranslation("compartidas");
   return (
     <div className={`${styles.inlineWidget} ${styles.gold}`}>
       <div className={styles.widgetEyebrow}>
         <span className={styles.left}>
           <Meeple />
-          Frase de la mesa
+          {t("feed.quoteEyebrow")}
         </span>
       </div>
       <p className={styles.quoteText}>{text}</p>
@@ -52,24 +50,29 @@ function QuoteWidget({ text }) {
 // (conversión compartida → mesa). Reemplaza a la frase decorativa, que no
 // convertía. /mesas es navegable sin login, así que sirve a guests y logueados.
 function MesasCta() {
+  const { t } = useTranslation("compartidas");
   return (
     <Link to="/mesas" className={`${styles.inlineWidget} ${styles.mesasCta}`}>
       <div className={styles.widgetEyebrow}>
         <span className={styles.left}>
           <Meeple />
-          Mesas abiertas
+          {t("feed.mesasCtaEyebrow")}
         </span>
       </div>
-      <p className={styles.mesasCtaText}>
-        ¿Buscás con quién jugar? Mirá las mesas abiertas de la comunidad y
-        sumate a una.
-      </p>
-      <span className={styles.mesasCtaBtn}>Ver mesas abiertas →</span>
+      <p className={styles.mesasCtaText}>{t("feed.mesasCtaText")}</p>
+      <span className={styles.mesasCtaBtn}>{t("feed.mesasCtaBtn")}</span>
     </Link>
   );
 }
 
+const TAB_LABEL_KEYS = {
+  todo: "feed.tabAll",
+  resena: "feed.tabResena",
+  juntada: "feed.tabJuntada",
+};
+
 export default function Compartidas() {
+  const { t } = useTranslation("compartidas");
   const { user } = useAuth();
   const { isSectionEnabled } = useSiteConfig();
   const brandName = useBrandName();
@@ -229,7 +232,9 @@ export default function Compartidas() {
 
   const userDisplay = user ? getUserDisplay(user) : null;
   const userFirstName =
-    userDisplay?.name?.split(" ")[0] || userDisplay?.name || "vos";
+    userDisplay?.name?.split(" ")[0] ||
+    userDisplay?.name ||
+    t("feed.youFallback");
 
   const pageUrl =
     typeof window !== "undefined"
@@ -239,23 +244,14 @@ export default function Compartidas() {
   return (
     <div className={styles.page}>
       <Helmet>
-        <title>{`Compartidas – ${brandName} 🎲`}</title>
-        <meta
-          name="description"
-          content="Mirá las últimas compartidas de la comunidad de juegos de mesa."
-        />
-        <meta property="og:title" content="Compartidas – TurnoCero 🎲" />
-        <meta
-          property="og:description"
-          content="Mirá las últimas compartidas de la comunidad de juegos de mesa."
-        />
+        <title>{t("feed.metaTitle", { brand: brandName })}</title>
+        <meta name="description" content={t("feed.metaDescription")} />
+        <meta property="og:title" content={t("feed.ogTitle")} />
+        <meta property="og:description" content={t("feed.metaDescription")} />
         <meta property="og:url" content={pageUrl} />
         <meta property="og:type" content="website" />
-        <meta name="twitter:title" content="Compartidas – TurnoCero 🎲" />
-        <meta
-          name="twitter:description"
-          content="Mirá las últimas compartidas de la comunidad de juegos de mesa."
-        />
+        <meta name="twitter:title" content={t("feed.ogTitle")} />
+        <meta name="twitter:description" content={t("feed.metaDescription")} />
       </Helmet>
 
       <div className={styles.layout}>
@@ -264,18 +260,21 @@ export default function Compartidas() {
           <header className={styles.pageHead}>
             <div className={styles.heroBlock}>
               <span className={styles.pageEyebrow}>
-                Comunidad · diario compartido
+                {t("feed.pageEyebrow")}
               </span>
               <h1 className={styles.pageTitle}>
-                Lo que <em>jugamos</em> esta semana.
+                <Trans
+                  i18nKey="compartidas:feedTitle.main"
+                  components={{ em: <em /> }}
+                />
               </h1>
-              <p className={styles.heroSub}>
-                Partidas, fotos y momentos: la bitácora abierta de la comunidad.
-              </p>
+              <p className={styles.heroSub}>{t("feed.heroSub")}</p>
             </div>
             <div className={styles.heroStats}>
               <div className={styles.heroStat}>
-                <span className={styles.heroStatLabel}>Compartidas</span>
+                <span className={styles.heroStatLabel}>
+                  {t("feed.heroStatCompartidas")}
+                </span>
                 <span
                   className={`${styles.heroStatVal} ${styles.heroStatValAccent}`}
                 >
@@ -286,7 +285,9 @@ export default function Compartidas() {
               </div>
               <div className={styles.heroStatDivider} />
               <div className={styles.heroStat}>
-                <span className={styles.heroStatLabel}>Esta semana</span>
+                <span className={styles.heroStatLabel}>
+                  {t("feed.heroStatWeek")}
+                </span>
                 <span className={styles.heroStatVal}>{stats?.week ?? 0}</span>
               </div>
             </div>
@@ -312,14 +313,14 @@ export default function Compartidas() {
                   className={styles.composerTrigger}
                   onClick={() => setShowCreate(true)}
                 >
-                  ¿Querés compartir una juntada o reseña, {userFirstName}?
+                  {t("feed.composerPrompt", { name: userFirstName })}
                 </button>
                 <div className={styles.composerActions}>
                   <button
                     className={styles.composerIconBtn}
                     onClick={() => composerFileRef.current?.click()}
-                    aria-label="Subir foto"
-                    title="Subir foto"
+                    aria-label={t("feed.uploadPhoto")}
+                    title={t("feed.uploadPhoto")}
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -364,18 +365,18 @@ export default function Compartidas() {
             <div
               className={styles.tabs}
               role="tablist"
-              aria-label="Filtrar compartidas"
+              aria-label={t("feed.filterTablistAria")}
             >
-              {TABS.map((t) => (
+              {TAB_VALUES.map((value) => (
                 <button
-                  key={t.value}
+                  key={value}
                   type="button"
                   role="tab"
-                  aria-selected={tab === t.value}
-                  className={`${styles.tab} ${tab === t.value ? styles.tabActive : ""}`}
-                  onClick={() => setTab(t.value)}
+                  aria-selected={tab === value}
+                  className={`${styles.tab} ${tab === value ? styles.tabActive : ""}`}
+                  onClick={() => setTab(value)}
                 >
-                  {t.label}
+                  {t(TAB_LABEL_KEYS[value])}
                 </button>
               ))}
             </div>
@@ -396,10 +397,10 @@ export default function Compartidas() {
               <input
                 className={styles.search}
                 type="search"
-                placeholder="Buscar por título, juego o texto…"
+                placeholder={t("feed.searchPlaceholder")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                aria-label="Buscar compartidas"
+                aria-label={t("feed.searchAria")}
               />
             </div>
           </div>
@@ -416,15 +417,16 @@ export default function Compartidas() {
               variant="filtered"
               compact
               art={<ArtCompartida />}
-              eyebrow="Algo salió mal"
+              eyebrow={t("feed.errorEyebrow")}
               title={
-                <>
-                  No pudimos cargar el <em>feed.</em>
-                </>
+                <Trans
+                  i18nKey="compartidas:feedTitle.error"
+                  components={{ em: <em /> }}
+                />
               }
-              text="Hubo un problema al traer las compartidas. Revisá tu conexión e intentá de nuevo."
+              text={t("feed.errorText")}
               primary={{
-                label: "Reintentar",
+                label: t("feed.errorRetry"),
                 onClick: () =>
                   loadFeed(1, true, { category: categoryParam, q: qParam }),
               }}
@@ -435,15 +437,16 @@ export default function Compartidas() {
                 variant="filtered"
                 compact
                 art={<ArtSearch />}
-                eyebrow="Sin coincidencias"
+                eyebrow={t("feed.emptyFilteredEyebrow")}
                 title={
-                  <>
-                    Nada para <em>ese filtro.</em>
-                  </>
+                  <Trans
+                    i18nKey="compartidas:feedTitle.emptyFiltered"
+                    components={{ em: <em /> }}
+                  />
                 }
-                text="No hay compartidas que coincidan con tu búsqueda."
+                text={t("feed.emptyFilteredText")}
                 secondary={{
-                  label: "Limpiar filtros",
+                  label: t("feed.emptyFilteredClear"),
                   icon: "clear",
                   onClick: () => {
                     setTab("todo");
@@ -455,24 +458,23 @@ export default function Compartidas() {
               <EmptyState
                 art={<ArtCompartida />}
                 ghost={<GhostPolaroids />}
-                eyebrow="Diario en blanco"
+                eyebrow={t("feed.emptyEyebrow")}
                 title={
-                  <>
-                    Contá tu <em>última partida.</em>
-                  </>
+                  <Trans
+                    i18nKey="compartidas:feedTitle.empty"
+                    components={{ em: <em /> }}
+                  />
                 }
                 text={
-                  user
-                    ? "El feed está vacío. Subí una foto de la mesa, una anécdota o ese final ajustado — la comunidad quiere verlo."
-                    : "El feed está vacío. Registrate para compartir tus partidas."
+                  user ? t("feed.emptyTextUser") : t("feed.emptyTextGuest")
                 }
                 primary={
                   user
                     ? {
-                        label: "Compartir una partida",
+                        label: t("feed.emptyPrimaryUser"),
                         onClick: () => setShowCreate(true),
                       }
-                    : { label: "Registrate", to: "/register" }
+                    : { label: t("feed.emptyPrimaryGuest"), to: "/register" }
                 }
               />
             )
@@ -497,7 +499,9 @@ export default function Compartidas() {
                   onClick={() => loadFeed(page + 1, false)}
                   disabled={loadingMore}
                 >
-                  {loadingMore ? "Cargando…" : "Ver más compartidas"}
+                  {loadingMore
+                    ? t("feed.loadingMore")
+                    : t("feed.loadMore")}
                 </button>
               )}
             </div>

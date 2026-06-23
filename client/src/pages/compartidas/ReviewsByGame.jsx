@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { useTranslation, Trans } from "react-i18next";
 import axios from "axios";
 import { useBrandName } from "../../hooks/useBrandName";
 import { API } from "../../api/endpoints";
@@ -17,6 +18,7 @@ import styles from "./ReviewsByGame.module.css";
 // juego con el promedio de la comunidad + la lista de reseñas. Indexable, así
 // que apunta a búsquedas long-tail ("reseña <juego>").
 export default function ReviewsByGame() {
+  const { t } = useTranslation("compartidas");
   const { bggId } = useParams();
   const brandName = useBrandName();
 
@@ -50,8 +52,8 @@ export default function ReviewsByGame() {
       } catch (err) {
         if (axios.isCancel(err)) return;
         if (err.response?.status === 404)
-          setError("No encontramos ese juego.");
-        else setError("No pudimos cargar las reseñas.");
+          setError(t("reviewsByGame.errorNotFound"));
+        else setError(t("reviewsByGame.errorLoad"));
       } finally {
         if (!signal?.aborted) {
           setLoading(false);
@@ -59,7 +61,7 @@ export default function ReviewsByGame() {
         }
       }
     },
-    [bggId],
+    [bggId, t],
   );
 
   useEffect(() => {
@@ -77,14 +79,22 @@ export default function ReviewsByGame() {
   const handleUpdated = (updated) =>
     setReviews((prev) => prev.map((r) => (r._id === updated._id ? updated : r)));
 
-  const gameName = game?.name || "el juego";
-  const metaTitle = `Reseñas de ${gameName} – ${brandName} 🎲`;
+  const gameName = game?.name || t("reviewsByGame.gameFallback");
+  const metaTitle = t("reviewsByGame.metaTitle", {
+    game: gameName,
+    brand: brandName,
+  });
   const metaDesc =
     total > 0
-      ? `${total} ${total === 1 ? "reseña" : "reseñas"} de ${gameName}${
-          avgRating != null ? ` · puntaje promedio ${avgRating}/10` : ""
-        } en la comunidad de juegos de mesa.`
-      : `Sé el primero en reseñar ${gameName} en la comunidad.`;
+      ? t("reviewsByGame.metaDescWithCount", {
+          count: total,
+          game: gameName,
+          avg:
+            avgRating != null
+              ? t("reviewsByGame.metaDescAvg", { avg: avgRating })
+              : "",
+        })
+      : t("reviewsByGame.metaDescEmpty", { game: gameName });
   const cover = game?.image || game?.thumbnail || "";
 
   return (
@@ -101,7 +111,7 @@ export default function ReviewsByGame() {
       <div className={pageStyles.layout}>
         <div className={pageStyles.feedCol}>
           <BackButton to="/compartidas" flush>
-            Volver al feed
+            {t("reviewsByGame.back")}
           </BackButton>
 
           {loading ? (
@@ -131,7 +141,7 @@ export default function ReviewsByGame() {
                     </span>
                   )}
                   <div className={styles.gameHeadInfo}>
-                    <span className={styles.eyebrow}>Reseñas de la comunidad</span>
+                    <span className={styles.eyebrow}>{t("reviewsByGame.eyebrow")}</span>
                     <h1 className={styles.gameName}>
                       {gameName}
                       {game?.year ? (
@@ -139,17 +149,17 @@ export default function ReviewsByGame() {
                       ) : null}
                     </h1>
                     <span className={styles.count}>
-                      {total} {total === 1 ? "reseña" : "reseñas"}
+                      {t("reviewsByGame.resena", { count: total })}
                     </span>
                   </div>
                   {avgRating != null && (
                     <div
                       className={styles.avgBadge}
-                      aria-label={`Puntaje promedio ${avgRating} de 10`}
+                      aria-label={t("reviewsByGame.avgAria", { avg: avgRating })}
                     >
                       <span className={styles.avgNum}>{avgRating}</span>
                       <span className={styles.avgMax}>/10</span>
-                      <span className={styles.avgLabel}>promedio</span>
+                      <span className={styles.avgLabel}>{t("reviewsByGame.avgLabel")}</span>
                     </div>
                   )}
                 </div>
@@ -159,14 +169,19 @@ export default function ReviewsByGame() {
                 <EmptyState
                   compact
                   art={<ArtCompartida />}
-                  eyebrow="Sin reseñas todavía"
+                  eyebrow={t("reviewsByGame.emptyEyebrow")}
                   title={
-                    <>
-                      Todavía nadie reseñó <em>{gameName}.</em>
-                    </>
+                    <Trans
+                      i18nKey="compartidas:reviewsByGame.emptyTitle"
+                      values={{ game: gameName }}
+                      components={{ em: <em /> }}
+                    />
                   }
-                  text="Cuando alguien comparta su opinión, va a aparecer acá."
-                  primary={{ label: "Ir al feed", to: "/compartidas" }}
+                  text={t("reviewsByGame.emptyText")}
+                  primary={{
+                    label: t("reviewsByGame.emptyPrimary"),
+                    to: "/compartidas",
+                  }}
                 />
               ) : (
                 <>
@@ -184,7 +199,9 @@ export default function ReviewsByGame() {
                       onClick={() => loadPage(page + 1, false)}
                       disabled={loadingMore}
                     >
-                      {loadingMore ? "Cargando…" : "Ver más reseñas"}
+                      {loadingMore
+                        ? t("reviewsByGame.loadingMore")
+                        : t("reviewsByGame.loadMore")}
                     </button>
                   )}
                 </>

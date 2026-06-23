@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import i18n from "../../i18n";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SiteConfigContext", () => ({ useSiteConfig: vi.fn() }));
@@ -572,5 +573,21 @@ describe("<Compartidas>", () => {
     renderPage({ initialEntries: ["/compartidas?mesa=t9"] });
     const form = await screen.findByTestId("create-form");
     expect(form.getAttribute("data-prefilled-table")).toBe("t9");
+  });
+});
+
+describe("<Compartidas> (en)", () => {
+  beforeEach(() => {
+    i18n.changeLanguage("en");
+  });
+  afterEach(() => {
+    i18n.changeLanguage("es");
+  });
+
+  it("renders the tabs in English", async () => {
+    renderPage();
+    await screen.findByRole("tab", { name: "All" });
+    expect(screen.getByRole("tab", { name: "Reviews" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Game nights" })).toBeInTheDocument();
   });
 });

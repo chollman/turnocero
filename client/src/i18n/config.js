@@ -28,6 +28,7 @@ export const NAMESPACES = [
   "torneos",
   "usuarios",
   "eventos",
+  "compartidas",
 ];
 export const DEFAULT_NS = "common";
 

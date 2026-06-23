@@ -1,6 +1,7 @@
 import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import { useBrandName } from "../../hooks/useBrandName";
@@ -38,6 +39,7 @@ function writeDismissed() {
  * year (fetching every page just to rank games isn't worth the cost).
  */
 function ConnectedView({ bggUsername }) {
+  const { t } = useTranslation("compartidas");
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -75,7 +77,7 @@ function ConnectedView({ bggUsername }) {
           const qty = p.quantity || 1;
           if (!tally[p.gameId])
             tally[p.gameId] = {
-              name: p.gameName || "Juego desconocido",
+              name: p.gameName || t("homeWidget.unknownGame"),
               count: 0,
             };
           tally[p.gameId].count += qty;
@@ -94,29 +96,29 @@ function ConnectedView({ bggUsername }) {
     return () => {
       cancelled = true;
     };
-  }, [bggUsername]);
+  }, [bggUsername, t]);
 
   const totalYear = stats?.totalYear ?? 0;
   const headlineText = error
-    ? "No se pudieron cargar tus partidas."
+    ? t("homeWidget.errorLoad")
     : loading
-      ? "Cargando tus partidas…"
+      ? t("homeWidget.loading")
       : totalYear === 0
-        ? "¡Sumá tu primera partida del año! 🎲"
-        : `${totalYear} ${totalYear === 1 ? "partida" : "partidas"} registrada${totalYear === 1 ? "" : "s"} este año 🎉`;
+        ? t("homeWidget.firstPlay")
+        : t("homeWidget.playsThisYear", { count: totalYear });
 
   return (
     <div className={styles.widgetConnected} aria-busy={loading}>
       <div className={styles.widgetHead}>
         <span className={styles.connectedEyebrow}>
           <Meeple />
-          Tu BG Watch
+          {t("homeWidget.tuBgWatch")}
         </span>
         <Link
           to={`/bg-watch/${encodeURIComponent(bggUsername)}`}
           className={styles.widgetLink}
         >
-          Ver historial →
+          {t("homeWidget.verHistorial")}
         </Link>
       </div>
 
@@ -124,7 +126,7 @@ function ConnectedView({ bggUsername }) {
         <div
           className={styles.skeletonHeadline}
           role="status"
-          aria-label="Cargando tus partidas"
+          aria-label={t("homeWidget.loadingAria")}
         >
           <span className={styles.skeletonLine} />
           <span className={`${styles.skeletonLine} ${styles.skeletonLineShort}`} />
@@ -135,7 +137,7 @@ function ConnectedView({ bggUsername }) {
 
       <div className={styles.stats}>
         <div className={styles.stat}>
-          <span className={styles.statLabel}>Este mes</span>
+          <span className={styles.statLabel}>{t("homeWidget.esteMes")}</span>
           <span className={styles.statValue}>
             {loading ? (
               <span className={styles.skeletonStat} aria-hidden="true" />
@@ -147,7 +149,7 @@ function ConnectedView({ bggUsername }) {
           </span>
         </div>
         <div className={styles.stat}>
-          <span className={styles.statLabel}>Más jugado</span>
+          <span className={styles.statLabel}>{t("homeWidget.masJugado")}</span>
           <span
             className={`${styles.statValue} ${styles.statValueText}`}
             title={
@@ -174,13 +176,14 @@ function ConnectedView({ bggUsername }) {
         to={`/bg-watch/${encodeURIComponent(bggUsername)}/partidas/nueva`}
         className={styles.cta}
       >
-        + Registrar partida
+        {t("homeWidget.registrarPartida")}
       </Link>
     </div>
   );
 }
 
 function PromoView({ onDismiss }) {
+  const { t } = useTranslation("compartidas");
   const brandName = useBrandName();
   return (
     <div className={`${styles.widget} ${styles.widgetPromo}`}>
@@ -193,8 +196,8 @@ function PromoView({ onDismiss }) {
             e.stopPropagation();
             onDismiss();
           }}
-          aria-label="No volver a mostrar"
-          title="No volver a mostrar"
+          aria-label={t("homeWidget.dismiss")}
+          title={t("homeWidget.dismiss")}
         >
           ✕
         </button>
@@ -206,11 +209,11 @@ function PromoView({ onDismiss }) {
             BG WATCH
           </span>
         </div>
-        <h3 className={styles.title}>¿Llevás tus partidas en BGG?</h3>
+        <h3 className={styles.title}>{t("homeWidget.promoTitle")}</h3>
         <p className={styles.promoSub}>
-          Conectá tu cuenta y registrá todo desde {brandName}.
+          {t("homeWidget.promoSub", { brand: brandName })}
         </p>
-        <span className={styles.promoCta}>Activá BG Watch →</span>
+        <span className={styles.promoCta}>{t("homeWidget.promoCta")}</span>
       </Link>
     </div>
   );

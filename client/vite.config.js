@@ -19,6 +19,12 @@ export default defineConfig({
       filename: "sw.js",
       injectManifest: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
+        // El bundle principal ronda los 2 MiB y crece con cada namespace de
+        // i18n, superando el default de `maximumFileSizeToCacheInBytes` (2 MiB)
+        // y rompiendo el build en CI (Vercel) aunque localmente quede justo por
+        // debajo. Subimos el límite a 3 MiB para que el chunk principal se siga
+        // precacheando — necesario para el funcionamiento offline de la PWA.
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
       includeAssets: [
         "logo.svg",
