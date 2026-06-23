@@ -550,7 +550,7 @@ The app is bilingual: **Argentine Spanish (`es`, default) + English (`en`)**, ch
 - **Formatting:** never hardcode `"es-AR"` — use [client/src/utils/locale.js](client/src/utils/locale.js) (`getLocale`, `formatNumber`, `formatDate`, `formatTime`), which read the active language.
 - **URLs stay Spanish** — routing slugs are NOT translated, only display text (see "Frontend routing").
 - **Tests:** the test setups load the real `es` resources so existing Spanish assertions stay green when a string becomes a key; `es↔en` key-parity is enforced (`client/src/i18n/parity.test.js`, `server/tests/unit/i18n/i18n.test.js`). Every new/migrated string ships es + en + a test.
-- **Rollout:** infra + pilots (auth recovery pages, `/perfil` toggle, `locale.js`) landed; the bulk migration is incremental per section/namespace — use `/i18n-audit`.
+- **Rollout:** **complete (2026-06-23).** Every user-facing client string is keyed (es + en) across 24 incremental PRs; 23 content namespaces (`common`, `auth`, `notifs`, `time`, `dates`, `enums`, `quotes`, `layout`, `toasts`, `shared`, `error`, `comunidades`, `mathtrade`, `noticias`, `dashboard`, `torneos`, `usuarios`, `eventos`, `compartidas`, `tables`, `admin`, `bgwatch`, `chat`), es↔en parity enforced in CI. New features add their own namespace; run `/i18n-audit` before shipping. Two regression notes (byte-identical es / the `common:*`-reuse trap, and the PWA precache cap raised to 3 MiB — check the real build exit code) live in `.claude/memory/feedback_i18n_keys.md`.
 
 ### Server error format
 
