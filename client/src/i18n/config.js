@@ -32,6 +32,7 @@ export const NAMESPACES = [
   "tables",
   "admin",
   "bgwatch",
+  "chat",
 ];
 export const DEFAULT_NS = "common";
 

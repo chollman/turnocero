@@ -56,5 +56,9 @@
   "splash": {
     "loading": "Preparando tu mesa"
   },
+  "colabora": {
+    "aria": "Colaborar con TurnoCero",
+    "label": "Bancanos"
+  },
   "attribution": "por"
 }

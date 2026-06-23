@@ -1,18 +1,21 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useChat } from "../../context/ChatContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { getLocale } from "../../utils/locale";
 import Avatar from "../shared/Avatar";
 import styles from "./ChatWindow.module.css";
 
 function formatTime(date) {
-  return new Date(date).toLocaleTimeString("es-AR", {
+  return new Date(date).toLocaleTimeString(getLocale(), {
     hour: "2-digit",
     minute: "2-digit",
   });
 }
 
 export default function ChatWindow({ userId, index, currentUserId }) {
+  const { t } = useTranslation("chat");
   const { conversations, closeChat, minimizeChat, sendMessage } = useChat();
   const { addToast } = useNotifications();
   const conv = conversations[userId];
@@ -53,7 +56,7 @@ export default function ChatWindow({ userId, index, currentUserId }) {
       setInput(content);
       addToast({
         type: "error",
-        message: "No pudimos enviar el mensaje. Probá de nuevo.",
+        message: t("window.errorSend"),
       });
     } finally {
       setSending(false);
@@ -78,8 +81,8 @@ export default function ChatWindow({ userId, index, currentUserId }) {
         tabIndex={0}
         aria-label={
           conv.minimized
-            ? `Expandir chat con ${conv.user.username}`
-            : `Minimizar chat con ${conv.user.username}`
+            ? t("window.expandChatWith", { name: conv.user.username })
+            : t("window.minimizeChatWith", { name: conv.user.username })
         }
       >
         <div className={styles.headerLeft}>
@@ -96,7 +99,7 @@ export default function ChatWindow({ userId, index, currentUserId }) {
             to={`/usuarios/${userId}`}
             className={styles.headerBtn}
             onClick={(e) => e.stopPropagation()}
-            title="Ver perfil"
+            title={t("window.viewProfile")}
           >
             <svg
               width="13"
@@ -118,7 +121,7 @@ export default function ChatWindow({ userId, index, currentUserId }) {
               e.stopPropagation();
               minimizeChat(userId);
             }}
-            title={conv.minimized ? "Expandir" : "Minimizar"}
+            title={conv.minimized ? t("window.expand") : t("window.minimize")}
           >
             {conv.minimized ? (
               <svg
@@ -154,7 +157,7 @@ export default function ChatWindow({ userId, index, currentUserId }) {
               e.stopPropagation();
               closeChat(userId);
             }}
-            title="Cerrar"
+            title={t("window.close")}
           >
             <svg
               width="13"
@@ -175,7 +178,9 @@ export default function ChatWindow({ userId, index, currentUserId }) {
       {!conv.minimized && (
         <>
           <div className={styles.messages} ref={messageListRef}>
-            {!conv.loaded && <div className={styles.loading}>Cargando...</div>}
+            {!conv.loaded && (
+              <div className={styles.loading}>{t("window.loading")}</div>
+            )}
             {conv.messages.map((msg) => {
               const isOwn =
                 (msg.from._id || msg.from).toString() === currentUserId;
@@ -198,7 +203,7 @@ export default function ChatWindow({ userId, index, currentUserId }) {
               className={styles.input}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Escribir..."
+              placeholder={t("window.inputPlaceholder")}
               maxLength={1000}
               autoComplete="off"
             />

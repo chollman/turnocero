@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/server";
+import i18n from "../../i18n";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/ChatContext", () => ({ useChat: vi.fn() }));
@@ -63,6 +64,7 @@ function setup({
 }
 
 beforeEach(() => navigateMock.mockReset());
+afterEach(() => i18n.changeLanguage("es"));
 
 describe("<ChatLauncher>", () => {
   it("renders nothing for anonymous users", () => {
@@ -145,5 +147,17 @@ describe("<ChatLauncher>", () => {
     await screen.findByText("alice");
     fireEvent.click(screen.getByRole("button", { name: /alice/i }));
     expect(navigateMock).toHaveBeenCalledWith("/mensajes/aliceId");
+  });
+
+  it("renders English strings when the language is 'en'", async () => {
+    i18n.changeLanguage("en");
+    setup({ friends: [] });
+    fireEvent.click(screen.getByRole("button", { name: /open chat/i }));
+    await waitFor(() =>
+      expect(screen.getByText("You have no friends yet")).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByPlaceholderText("Search friend..."),
+    ).toBeInTheDocument();
   });
 });
