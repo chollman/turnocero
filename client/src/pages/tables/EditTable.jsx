@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -17,6 +18,7 @@ export default function EditTable() {
   const { user } = useAuth();
   const { addToast } = useNotifications();
   const navigate = useNavigate();
+  const { t } = useTranslation("tables");
 
   const [initialValues, setInitialValues] = useState(null);
   const [playersCount, setPlayersCount] = useState(0);
@@ -107,7 +109,7 @@ export default function EditTable() {
       navigate(`/mesas/${id}`);
     } catch (err) {
       const msg =
-        err.response?.data?.message || "Error al guardar los cambios";
+        err.response?.data?.message || t("edit.errorSave");
       setServerError(msg);
       addToast({ type: "error", message: msg });
     } finally {
@@ -116,7 +118,7 @@ export default function EditTable() {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("¿Cancelar la mesa? Esta acción no se puede deshacer."))
+    if (!window.confirm(t("edit.confirmDelete")))
       return;
     setSubmitting(true);
     try {
@@ -124,7 +126,7 @@ export default function EditTable() {
       navigate("/mesas");
     } catch (err) {
       const msg =
-        err.response?.data?.message || "Error al cancelar la mesa";
+        err.response?.data?.message || t("edit.errorCancel");
       setServerError(msg);
       addToast({ type: "error", message: msg });
       setSubmitting(false);

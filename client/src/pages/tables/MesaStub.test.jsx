@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import MesaStub from "./MesaStub";
+import i18n from "../../i18n";
 
 function makeTable(overrides = {}) {
   return {
@@ -174,5 +175,21 @@ describe("<MesaStub>", () => {
     const btn = screen.getByRole("button", { name: /iniciá sesión/i });
     fireEvent.click(btn);
     expect(onLogin).toHaveBeenCalled();
+  });
+
+  describe("i18n (en)", () => {
+    afterEach(async () => {
+      await i18n.changeLanguage("es");
+    });
+
+    it("renders English copy when the language is switched to en", async () => {
+      await i18n.changeLanguage("en");
+      render(<MesaStub table={makeTable()} userState="idle" onJoin={vi.fn()} />);
+      expect(screen.getByText("Game")).toBeInTheDocument();
+      expect(screen.getByText(/Public/)).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /join the table/i }),
+      ).toBeInTheDocument();
+    });
   });
 });

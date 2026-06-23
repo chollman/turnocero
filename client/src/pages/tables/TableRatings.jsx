@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
@@ -26,6 +27,7 @@ export default function TableRatings({
   onSummaryChange,
   className = "",
 }) {
+  const { t } = useTranslation("tables");
   const [ratings, setRatings] = useState([]);
   const [avg, setAvg] = useState(null);
   const [count, setCount] = useState(0);
@@ -88,7 +90,7 @@ export default function TableRatings({
       setAvg(data.avg);
       setCount(data.count);
     } catch (err) {
-      setError(getErrorMessage(err, "Error al enviar la valoración"));
+      setError(getErrorMessage(err, t("ratings.errorSubmit")));
     } finally {
       setSubmitting(false);
     }
@@ -97,13 +99,11 @@ export default function TableRatings({
   return (
     <div className={`${styles.ratingsCard} ${className}`}>
       {lockedByPrivacy && !canRate && (
-        <p className={styles.commentsLocked}>
-          Las valoraciones solo se pueden agregar en mesas públicas.
-        </p>
+        <p className={styles.commentsLocked}>{t("ratings.locked")}</p>
       )}
       {canRate && (
         <form className={styles.ratingForm} onSubmit={handleSubmit}>
-          <span className={styles.ratingLabel}>Tu puntuación</span>
+          <span className={styles.ratingLabel}>{t("ratings.yourScore")}</span>
           <div className={styles.starRow}>
             {[1, 2, 3, 4, 5].map((star) => (
               <button
@@ -113,7 +113,7 @@ export default function TableRatings({
                 onMouseEnter={() => setHoverScore(star)}
                 onMouseLeave={() => setHoverScore(0)}
                 onClick={() => setMyScore(star)}
-                aria-label={`${star} estrellas`}
+                aria-label={t("ratings.starsAria", { count: star })}
               >
                 ★
               </button>
@@ -121,7 +121,7 @@ export default function TableRatings({
           </div>
           <textarea
             className={styles.ratingTextarea}
-            placeholder="Comentario opcional (máx. 300 caracteres)…"
+            placeholder={t("ratings.commentPlaceholder")}
             value={myComment}
             onChange={(e) => setMyComment(e.target.value)}
             maxLength={300}
@@ -135,15 +135,15 @@ export default function TableRatings({
             disabled={!myScore || submitting}
           >
             {submitting
-              ? "…"
+              ? t("ratings.ellipsis")
               : myScore
-                ? "Enviar valoración"
-                : "Seleccioná una puntuación"}
+                ? t("ratings.submit")
+                : t("ratings.selectScore")}
           </button>
         </form>
       )}
       {ratings.length === 0 ? (
-        <p className={styles.ratingsEmpty}>Todavía no hay valoraciones.</p>
+        <p className={styles.ratingsEmpty}>{t("ratings.empty")}</p>
       ) : (
         <div className={styles.ratingsList}>
           {ratings.map((r) => {

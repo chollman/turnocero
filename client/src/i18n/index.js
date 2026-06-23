@@ -52,6 +52,8 @@ import esEventos from "./resources/es/eventos.json";
 import enEventos from "./resources/en/eventos.json";
 import esCompartidas from "./resources/es/compartidas.json";
 import enCompartidas from "./resources/en/compartidas.json";
+import esTables from "./resources/es/tables.json";
+import enTables from "./resources/en/tables.json";
 
 export const resources = {
   es: {
@@ -74,6 +76,7 @@ export const resources = {
     usuarios: esUsuarios,
     eventos: esEventos,
     compartidas: esCompartidas,
+    tables: esTables,
   },
   en: {
     common: enCommon,
@@ -95,6 +98,7 @@ export const resources = {
     usuarios: enUsuarios,
     eventos: enEventos,
     compartidas: enCompartidas,
+    tables: enTables,
   },
 };
 
