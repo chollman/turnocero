@@ -1,6 +1,7 @@
 import Meeple from "../../components/shared/Meeple";
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useBrandName } from "../../hooks/useBrandName";
 import styles from "./BgWatchLanding.module.css";
@@ -74,21 +75,21 @@ const StatsIcon = () => (
   </svg>
 );
 
-const featuresFor = (brandName) => [
+const featuresFor = (t, brandName) => [
   {
     Icon: PlayIcon,
-    title: "Registrá tus partidas",
-    body: `Cargá, editá y eliminá partidas directamente desde ${brandName}. Se sincronizan con tu cuenta de BoardGameGeek.`,
+    title: t("landing.features.plays.title"),
+    body: t("landing.features.plays.body", { brandName }),
   },
   {
     Icon: CollectionIcon,
-    title: "Tu colección, siempre a mano",
-    body: "Mirá los juegos que tenés, con ratings, cantidad de partidas jugadas y miniaturas.",
+    title: t("landing.features.collection.title"),
+    body: t("landing.features.collection.body"),
   },
   {
     Icon: StatsIcon,
-    title: "Una vista por juego",
-    body: "Filtrá tu historial de partidas por título, con score, posición, jugadores y notas de cada sesión.",
+    title: t("landing.features.perGame.title"),
+    body: t("landing.features.perGame.body"),
   },
 ];
 
@@ -96,6 +97,7 @@ export default function BgWatchLanding() {
   const { user, loading } = useAuth();
   const brandName = useBrandName();
   const navigate = useNavigate();
+  const { t } = useTranslation("bgwatch");
 
   // If a logged-in user has BG Watch active, jump them straight to their profile.
   useEffect(() => {
@@ -118,21 +120,17 @@ export default function BgWatchLanding() {
         </div>
         <div className={styles.eyebrow}>
           <Meeple />
-          BG WATCH
+          {t("landing.brand")}
         </div>
-        <h1 className={styles.heroTitle}>Llevá tus partidas como nunca</h1>
-        <p className={styles.heroSub}>
-          BG Watch es el tracker de partidas de {brandName}. Conectá tu cuenta
-          de BoardGameGeek y registrá, editá y explorá todo lo que jugaste — sin
-          salir del app.
-        </p>
+        <h1 className={styles.heroTitle}>{t("landing.heroTitle")}</h1>
+        <p className={styles.heroSub}>{t("landing.heroSub", { brandName })}</p>
         <Link to="/bg-watch/comunidad" className={styles.communityLink}>
-          Ver las estadísticas de la comunidad →
+          {t("landing.communityLink")}
         </Link>
       </header>
 
       <section className={styles.features}>
-        {featuresFor(brandName).map(({ Icon, title, body }) => (
+        {featuresFor(t, brandName).map(({ Icon, title, body }) => (
           <article key={title} className={styles.feature}>
             <div className={styles.featureIcon}>
               <Icon />
@@ -146,39 +144,35 @@ export default function BgWatchLanding() {
       <section className={styles.ctaCard}>
         {isLoggedIn ? (
           <>
-            <h2 className={styles.ctaTitle}>Activá BG Watch ahora</h2>
-            <p className={styles.ctaSub}>
-              Andá a tu perfil, cargá tu usuario de BoardGameGeek y conectá tu
-              cuenta para empezar a registrar partidas.
-            </p>
+            <h2 className={styles.ctaTitle}>{t("landing.ctaLoggedTitle")}</h2>
+            <p className={styles.ctaSub}>{t("landing.ctaLoggedSub")}</p>
             <Link to="/perfil#conexion-bgg" className={styles.ctaButton}>
-              Ir a Mi perfil
+              {t("landing.ctaGoToProfile")}
             </Link>
             <p className={styles.ctaFinePrint}>
-              ¿Todavía no tenés cuenta en BoardGameGeek?{" "}
+              {t("landing.ctaFinePrint")}
               <a
                 href="https://boardgamegeek.com/register"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.ctaLink}
               >
-                Crear una en BGG.com →
+                {t("landing.ctaCreateBgg")}
               </a>
             </p>
           </>
         ) : (
           <>
-            <h2 className={styles.ctaTitle}>Creá tu cuenta y empezá</h2>
+            <h2 className={styles.ctaTitle}>{t("landing.ctaGuestTitle")}</h2>
             <p className={styles.ctaSub}>
-              Registrate gratis en {brandName} y conectá tu cuenta de
-              BoardGameGeek desde tu perfil. Es rápido.
+              {t("landing.ctaGuestSub", { brandName })}
             </p>
             <div className={styles.ctaButtons}>
               <Link to="/register" className={styles.ctaButton}>
-                Crear cuenta
+                {t("landing.ctaCreateAccount")}
               </Link>
               <Link to="/login" className={styles.ctaButtonGhost}>
-                Ya tengo cuenta
+                {t("landing.ctaHaveAccount")}
               </Link>
             </div>
           </>
@@ -186,49 +180,41 @@ export default function BgWatchLanding() {
       </section>
 
       <section className={styles.howItWorks}>
-        <h3 className={styles.sectionTitle}>Cómo funciona</h3>
+        <h3 className={styles.sectionTitle}>{t("landing.howItWorksTitle")}</h3>
         <ol className={styles.steps}>
           <li>
             <span className={styles.stepNum}>1</span>
             <div>
-              <strong className={styles.stepTitle}>Conectá tu cuenta</strong>
-              <p className={styles.stepBody}>
-                Ingresá tu usuario y password de BoardGameGeek. Guardamos el
-                password cifrado (AES-256-GCM) y nunca lo enviamos al navegador.
-              </p>
+              <strong className={styles.stepTitle}>
+                {t("landing.step1Title")}
+              </strong>
+              <p className={styles.stepBody}>{t("landing.step1Body")}</p>
             </div>
           </li>
           <li>
             <span className={styles.stepNum}>2</span>
             <div>
               <strong className={styles.stepTitle}>
-                Sincronizamos tu data
+                {t("landing.step2Title")}
               </strong>
-              <p className={styles.stepBody}>
-                Traemos tu colección y tus partidas desde BGG. Vas a ver todo en
-                una interfaz pensada para usar desde el celu, mientras jugás.
-              </p>
+              <p className={styles.stepBody}>{t("landing.step2Body")}</p>
             </div>
           </li>
           <li>
             <span className={styles.stepNum}>3</span>
             <div>
               <strong className={styles.stepTitle}>
-                Cargá partidas nuevas
+                {t("landing.step3Title")}
               </strong>
               <p className={styles.stepBody}>
-                Apenas termina la mesa, registrá la partida desde {brandName}.
-                Se guarda en BGG automáticamente.
+                {t("landing.step3Body", { brandName })}
               </p>
             </div>
           </li>
         </ol>
       </section>
 
-      <p className={styles.footnote}>
-        BoardGameGeek es un servicio externo. BG Watch es la integración de{" "}
-        {brandName} con su API.
-      </p>
+      <p className={styles.footnote}>{t("landing.footnote", { brandName })}</p>
     </div>
   );
 }

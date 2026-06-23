@@ -1,9 +1,11 @@
+import { useTranslation } from "react-i18next";
+import { getLocale } from "../../utils/locale";
 import styles from "./BgWatchProfile.module.css";
 
 function formatDate(iso) {
   if (!iso) return null;
   const [year, month, day] = iso.split("-");
-  return new Date(year, month - 1, day).toLocaleDateString("es-AR", {
+  return new Date(year, month - 1, day).toLocaleDateString(getLocale(), {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -11,6 +13,7 @@ function formatDate(iso) {
 }
 
 export default function StatsBar({ collection, playsMeta }) {
+  const { t } = useTranslation("bgwatch");
   const totalPartidas = playsMeta?.total ?? null;
   const juegosUnicos = collection?.length ?? null;
 
@@ -32,28 +35,30 @@ export default function StatsBar({ collection, playsMeta }) {
   return (
     <div className={styles.statsBar}>
       <div className={`${styles.statCard} ${styles.statAccent}`}>
-        <span className={styles.statLabel}>Partidas</span>
+        <span className={styles.statLabel}>{t("stats.partidas")}</span>
         <span className={styles.statValue}>
           {totalPartidas !== null ? totalPartidas : "—"}
         </span>
       </div>
       <div className={styles.statCard}>
-        <span className={styles.statLabel}>Juegos únicos</span>
+        <span className={styles.statLabel}>{t("stats.uniqueGames")}</span>
         <span className={styles.statValue}>
           {juegosUnicos !== null ? juegosUnicos : "—"}
         </span>
       </div>
       <div className={`${styles.statCard} ${styles.statPurple}`}>
-        <span className={styles.statLabel}>Más jugado</span>
+        <span className={styles.statLabel}>{t("stats.topGame")}</span>
         <span className={styles.statValueSm} title={topGame?.name || ""}>
           {topGame ? topGame.name : "—"}
         </span>
         {topGame && (
-          <span className={styles.statHint}>{topGame.numPlays}× partidas</span>
+          <span className={styles.statHint}>
+            {t("stats.topGamePlays", { n: topGame.numPlays })}
+          </span>
         )}
       </div>
       <div className={`${styles.statCard} ${styles.statGold}`}>
-        <span className={styles.statLabel}>Última partida</span>
+        <span className={styles.statLabel}>{t("stats.lastPlay")}</span>
         <span className={styles.statValueSm}>
           {ultimaPartida ? formatDate(ultimaPartida) : "—"}
         </span>

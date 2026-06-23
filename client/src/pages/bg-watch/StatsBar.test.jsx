@@ -1,8 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import i18n from "../../i18n";
 import StatsBar from "./StatsBar";
 
 describe("<StatsBar>", () => {
+  afterEach(async () => {
+    await i18n.changeLanguage("es");
+  });
+
   it("renders all four metric labels with em-dashes when there is no data", () => {
     render(<StatsBar collection={null} playsMeta={null} />);
     expect(screen.getByText("Partidas")).toBeInTheDocument();
@@ -66,5 +71,14 @@ describe("<StatsBar>", () => {
     expect(screen.getByText("17")).toBeInTheDocument();
     // Spanish AR locale, day + short month + year
     expect(screen.getByText(/15.*may.*2026/i)).toBeInTheDocument();
+  });
+
+  it("renders English labels when the language is 'en'", async () => {
+    await i18n.changeLanguage("en");
+    render(<StatsBar collection={null} playsMeta={null} />);
+    expect(screen.getByText("Plays")).toBeInTheDocument();
+    expect(screen.getByText("Unique games")).toBeInTheDocument();
+    expect(screen.getByText("Most played")).toBeInTheDocument();
+    expect(screen.getByText("Last play")).toBeInTheDocument();
   });
 });

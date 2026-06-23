@@ -1,5 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { Link } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import { useBrandName } from "../../hooks/useBrandName";
 import styles from "./BgWatchGuestCTAs.module.css";
 
@@ -44,6 +45,7 @@ const ArrowIcon = () => (
  * Strong, non-dismissible. Anchors the framing: "this user keeps their plays here. You could too."
  */
 export function GuestBanner({ bggUsername }) {
+  const { t } = useTranslation("bgwatch");
   return (
     <div className={styles.banner}>
       <div className={styles.bannerInner}>
@@ -51,10 +53,15 @@ export function GuestBanner({ bggUsername }) {
           <DieIcon />
         </span>
         <span className={styles.bannerText}>
-          Llevá tus partidas como <strong>@{bggUsername}</strong> con BG Watch.
+          <Trans
+            t={t}
+            i18nKey="guestCtas.banner"
+            values={{ bggUsername }}
+            components={{ strong: <strong /> }}
+          />
         </span>
         <Link to={REGISTER_HREF} className={styles.bannerCta}>
-          Registrate gratis
+          {t("guestCtas.registerFree")}
           <ArrowIcon />
         </Link>
       </div>
@@ -68,21 +75,21 @@ export function GuestBanner({ bggUsername }) {
  */
 export function GuestInlineCTA() {
   const brandName = useBrandName();
+  const { t } = useTranslation("bgwatch");
   return (
     <div className={styles.inline}>
       <div className={styles.inlineCopy}>
         <span className={styles.inlineEyebrow}>
           <Meeple />
-          ACTIVÁ TU PROPIO BG WATCH
+          {t("guestCtas.inlineEyebrow")}
         </span>
-        <h2 className={styles.inlineTitle}>¿Tenés cuenta en BoardGameGeek?</h2>
+        <h2 className={styles.inlineTitle}>{t("guestCtas.inlineTitle")}</h2>
         <p className={styles.inlineBody}>
-          Conectala con {brandName} y llevá tus partidas como esta persona —
-          gratis y sin instalar nada.
+          {t("guestCtas.inlineBody", { brandName })}
         </p>
       </div>
       <Link to={REGISTER_HREF} className={styles.inlineCta}>
-        Empezar
+        {t("guestCtas.start")}
         <ArrowIcon />
       </Link>
     </div>
@@ -95,14 +102,19 @@ export function GuestInlineCTA() {
  */
 export function GuestFooter({ bggUsername }) {
   const brandName = useBrandName();
+  const { t } = useTranslation("bgwatch");
   return (
     <div className={styles.footer}>
       <p className={styles.footerCopy}>
-        Este es el BG Watch de <strong>@{bggUsername}</strong>, una persona que
-        juega en {brandName}. Vos también podés tener el tuyo.
+        <Trans
+          t={t}
+          i18nKey="guestCtas.footer"
+          values={{ bggUsername, brandName }}
+          components={{ strong: <strong /> }}
+        />
       </p>
       <Link to={REGISTER_HREF} className={styles.footerCta}>
-        Registrate gratis
+        {t("guestCtas.registerFree")}
         <ArrowIcon />
       </Link>
     </div>

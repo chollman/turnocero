@@ -1,0 +1,224 @@
+{
+  "common": {
+    "back": "Volver",
+    "loading": "Cargando…",
+    "bgWatchBrand": "BG WATCH"
+  },
+  "profile": {
+    "eyebrowOwn": "tu perfil",
+    "eyebrowPublic": "perfil público",
+    "viewOnBgg": "Ver en BoardGameGeek",
+    "viewCommunityInline": "Ver la comunidad →",
+    "viewCommunity": "Ver la comunidad",
+    "newPlay": "Nueva partida",
+    "newPlayPlus": "+ Nueva partida",
+    "deletePlayError": "No se pudo eliminar la partida.",
+    "deleteTitle": "Eliminar partida",
+    "deleteMessage": "¿Eliminar la partida de \"{{game}}\" del {{date}}? Esta acción no se puede deshacer y borra la partida en BGG.",
+    "deleteConfirm": "Eliminar",
+    "tabs": {
+      "partidas": "Partidas",
+      "coleccion": "Colección",
+      "jugadores": "Jugadores",
+      "ubicaciones": "Ubicaciones"
+    }
+  },
+  "landing": {
+    "brand": "BG WATCH",
+    "heroTitle": "Llevá tus partidas como nunca",
+    "heroSub": "BG Watch es el tracker de partidas de {{brandName}}. Conectá tu cuenta de BoardGameGeek y registrá, editá y explorá todo lo que jugaste — sin salir del app.",
+    "communityLink": "Ver las estadísticas de la comunidad →",
+    "features": {
+      "plays": {
+        "title": "Registrá tus partidas",
+        "body": "Cargá, editá y eliminá partidas directamente desde {{brandName}}. Se sincronizan con tu cuenta de BoardGameGeek."
+      },
+      "collection": {
+        "title": "Tu colección, siempre a mano",
+        "body": "Mirá los juegos que tenés, con ratings, cantidad de partidas jugadas y miniaturas."
+      },
+      "perGame": {
+        "title": "Una vista por juego",
+        "body": "Filtrá tu historial de partidas por título, con score, posición, jugadores y notas de cada sesión."
+      }
+    },
+    "ctaLoggedTitle": "Activá BG Watch ahora",
+    "ctaLoggedSub": "Andá a tu perfil, cargá tu usuario de BoardGameGeek y conectá tu cuenta para empezar a registrar partidas.",
+    "ctaGoToProfile": "Ir a Mi perfil",
+    "ctaFinePrint": "¿Todavía no tenés cuenta en BoardGameGeek? ",
+    "ctaCreateBgg": "Crear una en BGG.com →",
+    "ctaGuestTitle": "Creá tu cuenta y empezá",
+    "ctaGuestSub": "Registrate gratis en {{brandName}} y conectá tu cuenta de BoardGameGeek desde tu perfil. Es rápido.",
+    "ctaCreateAccount": "Crear cuenta",
+    "ctaHaveAccount": "Ya tengo cuenta",
+    "howItWorksTitle": "Cómo funciona",
+    "step1Title": "Conectá tu cuenta",
+    "step1Body": "Ingresá tu usuario y password de BoardGameGeek. Guardamos el password cifrado (AES-256-GCM) y nunca lo enviamos al navegador.",
+    "step2Title": "Sincronizamos tu data",
+    "step2Body": "Traemos tu colección y tus partidas desde BGG. Vas a ver todo en una interfaz pensada para usar desde el celu, mientras jugás.",
+    "step3Title": "Cargá partidas nuevas",
+    "step3Body": "Apenas termina la mesa, registrá la partida desde {{brandName}}. Se guarda en BGG automáticamente.",
+    "footnote": "BoardGameGeek es un servicio externo. BG Watch es la integración de {{brandName}} con su API."
+  },
+  "perGame": {
+    "loadGameError": "No se pudo cargar el juego",
+    "loadPlaysError": "No se pudo cargar las partidas",
+    "gameNotFound": "Juego no encontrado",
+    "ellipsis": "…",
+    "playersRange": "{{min}}–{{max}} jugadores",
+    "playersSingle": "{{n}} jugadores",
+    "viewOnBgg": "Ver en BoardGameGeek ↗",
+    "newPlayOfGame": "+ Nueva partida de este juego",
+    "stats": {
+      "partidas": "Partidas",
+      "winRate": "% de victorias",
+      "avgDuration": "Duración media",
+      "lastPlay": "Última partida",
+      "fromLast": "de últimas {{n}}",
+      "minutes": "{{n}}m"
+    },
+    "loadingPlays": "Cargando partidas…",
+    "noPlays": "No hay partidas de este juego.",
+    "playsCount_one": "{{count}} partida",
+    "playsCount_other": "{{count}} partidas",
+    "pageInfo": "página {{page}} de {{total}}",
+    "deleteTitle": "Eliminar partida",
+    "deleteMessage": "¿Eliminar la partida del {{date}}? Esta acción no se puede deshacer y borra la partida en BGG.",
+    "deleteConfirm": "Eliminar"
+  },
+  "comunidad": {
+    "brand": "BG WATCH · COMUNIDAD",
+    "heroTitle": "La comunidad en juego",
+    "heroSub": "Lo más jugado, los rankings y la actividad de toda la comunidad de {{brandName}}, a partir de las partidas que registran sus miembros.",
+    "sectionsLabel": "Secciones",
+    "tabs": {
+      "juegos": "Juegos",
+      "jugadores": "Jugadores",
+      "actividad": "Actividad"
+    },
+    "periodLabel": "Período",
+    "mostPlayed": "Más jugados",
+    "onFire": "En llamas 🔥",
+    "gamesError": "No se pudieron cargar los juegos.",
+    "noDataEyebrow": "SIN DATOS",
+    "gamesEmptyTitle": "Todavía no hay partidas en la comunidad",
+    "gamesEmptyText": "Cuando los miembros registren partidas, vas a ver acá los juegos más jugados.",
+    "gameFallback": "Juego {{id}}",
+    "gameMeta": "{{plays}} · {{players}}",
+    "playsCount_one": "{{count}} partida",
+    "playsCount_other": "{{count}} partidas",
+    "playersCount_one": "{{count}} jugador",
+    "playersCount_other": "{{count}} jugadores",
+    "metricLabel": "Métrica",
+    "metrics": {
+      "plays": "Partidas",
+      "variedad": "Variedad",
+      "winrate": "Win-rate",
+      "racha": "Racha"
+    },
+    "metricValue": {
+      "variedad": "{{n}} juegos",
+      "winrate": "{{n}}%",
+      "racha": "{{n}} sem",
+      "plays": "{{n}} partidas"
+    },
+    "rankingError": "No se pudo cargar el ranking.",
+    "rankingEmptyTitle": "Ranking vacío",
+    "rankingEmptyText": "No hay suficientes partidas registradas para armar este ranking todavía.",
+    "activityLabel": "Actividad por día",
+    "activityCell": "{{date}}: {{plays}}",
+    "activityError": "No se pudo cargar la actividad.",
+    "activityEmptyTitle": "No hay actividad reciente",
+    "activityEmptyText": "Cuando los miembros registren partidas, vas a verlas en este feed.",
+    "feedPlayed": "jugó",
+    "scope": {
+      "global": "Estás viendo <strong>toda la comunidad</strong>. Para acotar las estadísticas a una comunidad puntual, destildá <strong>TurnoCero</strong> en el selector y dejá solo esa.",
+      "scoped": "Estás viendo las estadísticas de <strong>{{names}}</strong>."
+    }
+  },
+  "juegoDetail": {
+    "brand": "BG WATCH · COMUNIDAD",
+    "loadError": "No se pudo cargar el juego.",
+    "gameFallback": "Juego {{id}}",
+    "winRate": "{{n}}%",
+    "duration": "{{n}}′",
+    "stats": {
+      "partidas": "Partidas",
+      "jugadores": "Jugadores",
+      "winRate": "Win-rate",
+      "avgDuration": "Duración prom.",
+      "avgScore": "Score prom."
+    },
+    "whoPlayedMost": "Quién lo jugó más",
+    "whoHasIt": "¿Quién lo tiene?",
+    "noOwners": "Ningún miembro tiene este juego en su colección (o sus colecciones son privadas).",
+    "ownerNote": "La colección puede estar incompleta si algún perfil es privado.",
+    "createTable": "Armar una mesa"
+  },
+  "coleccion": {
+    "refreshLabel": "Actualizar colección",
+    "refreshWait": "↻ Esperá {{n}}s",
+    "refresh": "↻ Actualizar",
+    "loadError": "No se pudo cargar la colección",
+    "empty": "Este usuario no tiene juegos marcados como propios en BGG.",
+    "header": "{{n}} juegos · página {{page}} de {{total}}",
+    "unplayed": "Sin jugar",
+    "playsTimes": "{{n}}×",
+    "yourRating": "Tu nota",
+    "bggRating": "BGG",
+    "partidas": "Partidas",
+    "logPlay": "+ Cargar partida"
+  },
+  "stats": {
+    "partidas": "Partidas",
+    "uniqueGames": "Juegos únicos",
+    "topGame": "Más jugado",
+    "lastPlay": "Última partida",
+    "topGamePlays": "{{n}}× partidas"
+  },
+  "groupStats": {
+    "toggleLabel": "👥 Estadísticas con este grupo",
+    "hide": "Ocultar",
+    "show": "Ver cómo les fue jugando juntos",
+    "error": "No se pudieron cargar las estadísticas del grupo.",
+    "playsTogether_one": "partida juntos",
+    "playsTogether_other": "partidas juntos",
+    "first": "Primera: {{date}}",
+    "last": "Última: {{date}}",
+    "wins": "Victorias",
+    "groupGames": "Juegos del grupo",
+    "winsCount_one": "{{count}} victoria",
+    "winsCount_other": "{{count}} victorias",
+    "gameTimes": "{{n}}×",
+    "otherPlays": "Otras partidas con este grupo",
+    "noOtherPlays": "Este grupo no tiene otras partidas registradas.",
+    "rosterFallbackName": "Anónimo"
+  },
+  "h2h": {
+    "loadError": "No se pudo cargar el head-to-head.",
+    "brand": "BG WATCH · MANO A MANO",
+    "title": "{{a}} vs {{b}}",
+    "none": "Todavía no compartieron ninguna partida registrada.",
+    "sharedCount_one": "{{count}} partida compartida.",
+    "sharedCount_other": "{{count}} partidas compartidas.",
+    "undecided": "{{n}} sin decidir",
+    "byGame": "Por juego",
+    "gameFallback": "Juego {{id}}",
+    "gamePlays_one": "({{count}} partida)",
+    "gamePlays_other": "({{count}} partidas)"
+  },
+  "sessionNotice": {
+    "title": "Tu sesión con BoardGameGeek caducó",
+    "body": "Seguramente cambiaste tu contraseña en BoardGameGeek. Reingresá tu password para volver a cargar y editar partidas.",
+    "reconnect": "Reconectar"
+  },
+  "guestCtas": {
+    "banner": "Llevá tus partidas como <strong>@{{bggUsername}}</strong> con BG Watch.",
+    "registerFree": "Registrate gratis",
+    "inlineEyebrow": "ACTIVÁ TU PROPIO BG WATCH",
+    "inlineTitle": "¿Tenés cuenta en BoardGameGeek?",
+    "inlineBody": "Conectala con {{brandName}} y llevá tus partidas como esta persona — gratis y sin instalar nada.",
+    "start": "Empezar",
+    "footer": "Este es el BG Watch de <strong>@{{bggUsername}}</strong>, una persona que juega en {{brandName}}. Vos también podés tener el tuyo."
+  }
+}

@@ -1,9 +1,11 @@
 import Meeple from "../../components/shared/Meeple";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
+import { getLocale } from "../../utils/locale";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import BackButton from "../../components/shared/BackButton";
 import PlayCard from "./PlayCard";
@@ -18,7 +20,7 @@ const PLAYS_PAGE_SIZE = 10;
 function formatDate(iso) {
   if (!iso) return null;
   const [y, m, d] = iso.split("-");
-  return new Date(y, m - 1, d).toLocaleDateString("es-AR", {
+  return new Date(y, m - 1, d).toLocaleDateString(getLocale(), {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -37,6 +39,7 @@ export default function BgWatchPerGameView() {
   const { bggUsername, gameId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation("bgwatch");
 
   const [game, setGame] = useState(null);
   const [gameError, setGameError] = useState(null);
@@ -58,7 +61,7 @@ export default function BgWatchPerGameView() {
       setDeletingPlay(null);
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      alert(err.response?.data?.message || "No se pudo eliminar la partida.");
+      alert(err.response?.data?.message || t("profile.deletePlayError"));
     } finally {
       setDeleting(false);
     }
@@ -82,13 +85,13 @@ export default function BgWatchPerGameView() {
       .catch((err) => {
         if (!cancelled)
           setGameError(
-            err.response?.data?.message || "No se pudo cargar el juego",
+            err.response?.data?.message || t("perGame.loadGameError"),
           );
       });
     return () => {
       cancelled = true;
     };
-  }, [gameId]);
+  }, [gameId, t]);
 
   // Fetch plays of this game
   useEffect(() => {
@@ -103,7 +106,7 @@ export default function BgWatchPerGameView() {
       .catch((err) => {
         if (!cancelled)
           setError(
-            err.response?.data?.message || "No se pudo cargar las partidas",
+            err.response?.data?.message || t("perGame.loadPlaysError"),
           );
       })
       .finally(() => {
@@ -112,7 +115,7 @@ export default function BgWatchPerGameView() {
     return () => {
       cancelled = true;
     };
-  }, [bggUsername, gameId, page, refreshKey]);
+  }, [bggUsername, gameId, page, refreshKey, t]);
 
   // Map of bggUsernameLower → TurnoCero user for players on the current page.
   const userMap = useBggUserMap(plays?.plays);
@@ -183,7 +186,7 @@ export default function BgWatchPerGameView() {
       {isGuest && <GuestBanner bggUsername={bggUsername} />}
       <div className={styles.inner}>
         <BackButton onClick={() => navigate(-1)} flush>
-          Volver
+          {t("common.back")}
         </BackButton>
 
         <div className={styles.gameHero}>
@@ -208,7 +211,8 @@ export default function BgWatchPerGameView() {
               {bggUsername}
             </Link>
             <h1 className={styles.heroTitle}>
-              {game?.name || (gameError ? "Juego no encontrado" : "…")}
+              {game?.name ||
+                (gameError ? t("perGame.gameNotFound") : t("perGame.ellipsis"))}
             </h1>
             {game && (
               <div className={styles.gameHeroMeta}>
@@ -218,8 +222,13 @@ export default function BgWatchPerGameView() {
                     {game.minPlayers &&
                     game.maxPlayers &&
                     game.minPlayers !== game.maxPlayers
-                      ? `${game.minPlayers}–${game.maxPlayers} jugadores`
-                      : `${game.minPlayers || game.maxPlayers} jugadores`}
+                      ? t("perGame.playersRange", {
+                          min: game.minPlayers,
+                          max: game.maxPlayers,
+                        })
+                      : t("perGame.playersSingle", {
+                          n: game.minPlayers || game.maxPlayers,
+                        })}
                   </span>
                 )}
               </div>
@@ -230,7 +239,7 @@ export default function BgWatchPerGameView() {
               rel="noopener noreferrer"
               className={styles.bggLink}
             >
-              Ver en BoardGameGeek ↗
+              {t("perGame.viewOnBgg")}
             </a>
             {canCreate && game && (
               <button
@@ -242,7 +251,7 @@ export default function BgWatchPerGameView() {
                   )
                 }
               >
-                + Nueva partida de este juego
+                {t("perGame.newPlayOfGame")}
               </button>
             )}
           </div>
@@ -251,33 +260,43 @@ export default function BgWatchPerGameView() {
         {plays && (
           <div className={styles.statsBar}>
             <div className={styles.statCard}>
-              <span className={styles.statLabel}>Partidas</span>
+              <span className={styles.statLabel}>
+                {t("perGame.stats.partidas")}
+              </span>
               <span className={styles.statValue}>{plays.total}</span>
             </div>
             <div className={styles.statCard}>
-              <span className={styles.statLabel}>% de victorias</span>
+              <span className={styles.statLabel}>
+                {t("perGame.stats.winRate")}
+              </span>
               <span className={styles.statValue}>
                 {stats.winRate !== null ? `${stats.winRate}%` : "—"}
               </span>
               {partialStats && stats.winRate !== null && (
                 <span className={styles.statHint}>
-                  de últimas {stats.ratedCount}
+                  {t("perGame.stats.fromLast", { n: stats.ratedCount })}
                 </span>
               )}
             </div>
             <div className={styles.statCard}>
-              <span className={styles.statLabel}>Duración media</span>
+              <span className={styles.statLabel}>
+                {t("perGame.stats.avgDuration")}
+              </span>
               <span className={styles.statValue}>
-                {stats.avgDuration !== null ? `${stats.avgDuration}m` : "—"}
+                {stats.avgDuration !== null
+                  ? t("perGame.stats.minutes", { n: stats.avgDuration })
+                  : "—"}
               </span>
               {partialStats && stats.avgDuration !== null && (
                 <span className={styles.statHint}>
-                  de últimas {stats.durationsCount}
+                  {t("perGame.stats.fromLast", { n: stats.durationsCount })}
                 </span>
               )}
             </div>
             <div className={styles.statCard}>
-              <span className={styles.statLabel}>Última partida</span>
+              <span className={styles.statLabel}>
+                {t("perGame.stats.lastPlay")}
+              </span>
               <span className={styles.statValueSm}>
                 {stats.lastPlay ? formatDate(stats.lastPlay) : "—"}
               </span>
@@ -290,7 +309,7 @@ export default function BgWatchPerGameView() {
         {loading && (
           <div className={styles.stateCenter}>
             <span className={styles.loadingDice}>🎲</span>
-            <p>Cargando partidas…</p>
+            <p>{t("perGame.loadingPlays")}</p>
           </div>
         )}
 
@@ -302,7 +321,7 @@ export default function BgWatchPerGameView() {
 
         {!loading && !error && plays && plays.plays.length === 0 && (
           <div className={styles.stateCenter}>
-            <p>No hay partidas de este juego.</p>
+            <p>{t("perGame.noPlays")}</p>
           </div>
         )}
 
@@ -310,10 +329,10 @@ export default function BgWatchPerGameView() {
           <div className={styles.playsList}>
             <div className={styles.playsHeader}>
               <span className={styles.playsTotal}>
-                {plays.total} partida{plays.total === 1 ? "" : "s"}
+                {t("perGame.playsCount", { count: plays.total })}
               </span>
               <span className={styles.paginationInfo}>
-                página {page} de {totalPages}
+                {t("perGame.pageInfo", { page, total: totalPages })}
               </span>
             </div>
             {plays.plays.map((play) => (
@@ -349,14 +368,14 @@ export default function BgWatchPerGameView() {
 
       <ConfirmActionModal
         isOpen={!!deletingPlay}
-        title="Eliminar partida"
+        title={t("perGame.deleteTitle")}
         message={
           deletingPlay
-            ? `¿Eliminar la partida del ${deletingPlay.date || "?"}? Esta acción no se puede deshacer y borra la partida en BGG.`
+            ? t("perGame.deleteMessage", { date: deletingPlay.date || "?" })
             : ""
         }
-        confirmLabel="Eliminar"
-        cancelLabel="Cancelar"
+        confirmLabel={t("perGame.deleteConfirm")}
+        cancelLabel={t("common:actions.cancel")}
         variant="danger"
         loading={deleting}
         onConfirm={confirmDelete}
