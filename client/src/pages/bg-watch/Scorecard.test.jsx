@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -7,6 +7,7 @@ vi.mock("../../components/shared/Avatar", () => ({
 }));
 
 import Scorecard, { gameInitials, deriveWinnerLabel } from "./Scorecard";
+import i18n from "../../i18n";
 
 const inRouter = (ui) => render(ui, { wrapper: MemoryRouter });
 
@@ -337,6 +338,32 @@ describe("deriveWinnerLabel", () => {
     expect(deriveWinnerLabel([r()], "versus")).toEqual({
       label: "Sin resultado",
       state: "empty",
+    });
+  });
+});
+
+describe("<Scorecard> i18n (en)", () => {
+  afterEach(() => {
+    i18n.changeLanguage("es");
+  });
+
+  it("renders English copy when language is en", async () => {
+    await i18n.changeLanguage("en");
+    render(<Scorecard rows={[]} />);
+    expect(screen.getByText("Pick a game")).toBeInTheDocument();
+    expect(screen.getByText("No players yet")).toBeInTheDocument();
+  });
+
+  it("deriveWinnerLabel uses English labels when language is en", async () => {
+    await i18n.changeLanguage("en");
+    const r = (over) => ({ name: "P", win: false, team: "", ...over });
+    expect(deriveWinnerLabel([r({ win: true })], "coop")).toEqual({
+      label: "You won!",
+      state: "win",
+    });
+    expect(deriveWinnerLabel([r({ name: "Beto", win: true })], "versus")).toEqual({
+      label: "Beto won",
+      state: "win",
     });
   });
 });

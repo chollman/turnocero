@@ -1,5 +1,6 @@
 import { hasDisplayableScore } from "./playerScore";
 import { getUserDisplay } from "../../utils/userDisplay";
+import i18n from "../../i18n";
 
 // Convierte el snapshot `playResult` guardado en una juntada (ver buildPlayResult)
 // en los props del <Scorecard> en modo público. Recomputa lo viewer-relativo:
@@ -41,7 +42,9 @@ export function playResultToScorecardProps(playResult) {
     if (tcUser && p.username) userMap[p.username.toLowerCase()] = tcUser;
     return {
       key: `${i}-${p.username || p.name || "anon"}`,
-      name: tcUser ? getUserDisplay(tcUser).name : p.name || p.username || "Jugador",
+      name: tcUser
+        ? getUserDisplay(tcUser).name
+        : p.name || p.username || i18n.t("bgwatch:jugadorDetail.playerFallback"),
       username: p.username,
       anonymous: !!p.anonymous,
       // Link al perfil público de TurnoCero (solo si es usuario) y a su BG Watch

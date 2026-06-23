@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import PlayCard from "./PlayCard";
@@ -17,12 +18,7 @@ import styles from "./BgWatchProfile.module.css";
 const PLAYS_PAGE_SIZE = 10;
 const GAMES_PAGE_SIZE = 24;
 
-const FILTERS = [
-  { id: "all", label: "Todas" },
-  { id: "year", label: "Este año" },
-  { id: "month", label: "Este mes" },
-  { id: "7d", label: "7 días" },
-];
+const FILTER_IDS = ["all", "year", "month", "7d"];
 
 function toIso(date) {
   const y = date.getFullYear();
@@ -100,6 +96,7 @@ function SyncIcon() {
 }
 
 function GameWithPlaysCard({ game, bggUsername, index = 0 }) {
+  const { t } = useTranslation("bgwatch");
   return (
     <Link
       to={`/bg-watch/${encodeURIComponent(bggUsername)}/juego/${game.id}`}
@@ -124,7 +121,7 @@ function GameWithPlaysCard({ game, bggUsername, index = 0 }) {
           <div className={styles.gamePlayCount}>
             <span className={styles.gamePlayCountValue}>{game.numPlays}</span>
             <span className={styles.gamePlayCountLabel}>
-              {game.numPlays === 1 ? "partida" : "partidas"}
+              {t("partidas.gamePlaysCount", { count: game.numPlays })}
             </span>
           </div>
         </div>
@@ -143,6 +140,7 @@ export default function PartidasPanel({
   onMetaChange,
   canRefresh = false,
 }) {
+  const { t } = useTranslation("bgwatch");
   const [viewMode, setViewMode] = useState("list"); // 'list' | 'byGame'
 
   // ── List mode state ──
@@ -220,7 +218,7 @@ export default function PartidasPanel({
           setNow(Date.now());
         }
         setError(
-          err.response?.data?.message || "No se pudo cargar las partidas",
+          err.response?.data?.message || t("partidas.loadError"),
         );
       })
       .finally(() => {
@@ -230,7 +228,7 @@ export default function PartidasPanel({
     return () => {
       cancelled = true;
     };
-  }, [bggUsername, page, filter, onMetaChange, refreshTick]);
+  }, [bggUsername, page, filter, onMetaChange, refreshTick, t]);
 
   // Fetch the server-aggregated played-games list (derived from BggPlay).
   // Authoritative when present: includes games the user played but doesn't
@@ -331,21 +329,24 @@ export default function PartidasPanel({
             <div
               className={styles.filterBar}
               role="group"
-              aria-label="Filtrar por fecha"
+              aria-label={t("partidas.filterByDate")}
             >
-              {FILTERS.map((f) => (
+              {FILTER_IDS.map((id) => (
                 <button
-                  key={f.id}
-                  className={`${styles.filterChip} ${filter === f.id ? styles.filterChipActive : ""}`}
-                  onClick={() => handleFilter(f.id)}
+                  key={id}
+                  className={`${styles.filterChip} ${filter === id ? styles.filterChipActive : ""}`}
+                  onClick={() => handleFilter(id)}
                   type="button"
                 >
-                  {f.label}
+                  {t(`partidas.filters.${id}`)}
                 </button>
               ))}
             </div>
             <BgWatchFilterSelect
-              filters={FILTERS}
+              filters={FILTER_IDS.map((id) => ({
+                id,
+                label: t(`partidas.filters.${id}`),
+              }))}
               activeId={filter}
               onSelect={handleFilter}
             />
@@ -355,7 +356,7 @@ export default function PartidasPanel({
             de la lista). Diseño .playsBar del handoff "BG Watch Mobile". */}
         <div className={styles.playsBarTitle}>
           <span className={styles.playsBarLabel}>
-            Partidas
+            {t("partidas.title")}
             {plays?.total != null && (
               <span className={styles.playsBarCount}> · {plays.total}</span>
             )}
@@ -369,25 +370,31 @@ export default function PartidasPanel({
             onClick={() => setViewMode("list")}
             aria-pressed={viewMode === "list"}
           >
-            <ViewListIcon /> Lista
+            <ViewListIcon /> {t("partidas.viewList")}
           </button>
           <button
             type="button"
             className={`${styles.viewToggleBtn} ${viewMode === "byGame" ? styles.viewToggleBtnActive : ""}`}
             onClick={() => setViewMode("byGame")}
             aria-pressed={viewMode === "byGame"}
-            aria-label="Por juego"
+            aria-label={t("partidas.byGameAria")}
           >
             <ViewGridIcon />
-            <span className={styles.viewToggleFull}>Por juego</span>
-            <span className={styles.viewToggleShort}>Juego</span>
+            <span className={styles.viewToggleFull}>
+              {t("partidas.byGameFull")}
+            </span>
+            <span className={styles.viewToggleShort}>
+              {t("partidas.byGameShort")}
+            </span>
           </button>
         </div>
         {canRefresh && (
           <>
             {plays?.sync?.lastProbedAt && (
               <span className={styles.lastSynced}>
-                Actualizado {formatExactDateTime(plays.sync.lastProbedAt)}
+                {t("partidas.lastSynced", {
+                  when: formatExactDateTime(plays.sync.lastProbedAt),
+                })}
               </span>
             )}
             <button
@@ -399,13 +406,15 @@ export default function PartidasPanel({
                 setRefreshTick((t) => t + 1);
               }}
               disabled={loading || inCooldown}
-              aria-label="Actualizar partidas"
+              aria-label={t("partidas.refreshAria")}
             >
               <SyncIcon />
               <span
                 className={`${styles.refreshLabel} ${inCooldown ? styles.refreshLabelCooldown : ""}`}
               >
-                {inCooldown ? `Esperá ${cooldownRemaining}s` : "Actualizar"}
+                {inCooldown
+                  ? t("partidas.refreshWait", { n: cooldownRemaining })
+                  : t("partidas.refresh")}
               </span>
             </button>
           </>
@@ -433,8 +442,8 @@ export default function PartidasPanel({
               <div className={styles.stateCenter}>
                 <p>
                   {filter === "all"
-                    ? "Este usuario no tiene partidas registradas en BGG."
-                    : "No hay partidas en el período seleccionado."}
+                    ? t("partidas.emptyAll")
+                    : t("partidas.emptyPeriod")}
                 </p>
               </div>
             )}
@@ -443,11 +452,11 @@ export default function PartidasPanel({
               <div className={styles.playsList}>
                 <div className={styles.playsHeader}>
                   <span className={styles.playsTotal}>
-                    {plays.total} partida{plays.total === 1 ? "" : "s"}
-                    {filter !== "all" && " en el período"}
+                    {t("partidas.playsTotal", { count: plays.total })}
+                    {filter !== "all" && t("partidas.playsTotalPeriod")}
                   </span>
                   <span className={styles.paginationInfo}>
-                    página {page} de {totalPages}
+                    {t("partidas.pageInfo", { page, total: totalPages })}
                   </span>
                 </div>
                 {plays.plays.map((play, i) => (
@@ -506,7 +515,7 @@ export default function PartidasPanel({
 
           {playedGames && playedGames.length === 0 && (
             <div className={styles.stateCenter}>
-              <p>No hay juegos con partidas registradas en la colección.</p>
+              <p>{t("partidas.byGameEmpty")}</p>
             </div>
           )}
 
@@ -514,9 +523,11 @@ export default function PartidasPanel({
             <>
               <div className={styles.paginationHeader}>
                 <span className={styles.paginationInfo}>
-                  {playedGames.length} juego
-                  {playedGames.length === 1 ? "" : "s"} · página {gamesPage} de{" "}
-                  {gamesTotalPages}
+                  {t("partidas.gamesCount", { count: playedGames.length })}
+                  {t("partidas.gamesPageInfo", {
+                    page: gamesPage,
+                    total: gamesTotalPages,
+                  })}
                 </span>
               </div>
               <div className={styles.gameGrid}>

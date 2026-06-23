@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { API } from "../../api/endpoints";
@@ -15,13 +16,14 @@ import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import NotFound from "../error/NotFound";
 import useBggUserMap from "./useBggUserMap";
 import { hasDisplayableScore } from "./playerScore";
+import { getLocale } from "../../utils/locale";
 import GroupStatsPanel from "./GroupStatsPanel";
 import styles from "./PlayDetail.module.css";
 
 function formatFullDate(iso) {
   if (!iso) return null;
   const [y, m, d] = iso.split("-");
-  return new Date(y, m - 1, d).toLocaleDateString("es-AR", {
+  return new Date(y, m - 1, d).toLocaleDateString(getLocale(), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -72,14 +74,14 @@ function colorSwatch(name) {
   return KNOWN_COLORS[k] || k;
 }
 
-function PlayerRow({ player, index, turnoceroUser, brandName }) {
+function PlayerRow({ player, index, turnoceroUser, brandName, t }) {
   // Un override de curación (overlayName / overlayAvatar) gana sobre el
   // perfil del miembro — igual que PlayCard.
   const displayName = player.overlayName
     ? player.overlayName
     : turnoceroUser
       ? turnoceroUser.displayName || turnoceroUser.username
-      : player.name || player.username || "Anónimo";
+      : player.name || player.username || t("playDetail.anonymous");
   const swatch = colorSwatch(player.color);
   const rankCls =
     index === 0
@@ -95,7 +97,7 @@ function PlayerRow({ player, index, turnoceroUser, brandName }) {
       className={`${styles.playersRow} ${player.win ? styles.rowWinner : ""}`}
     >
       <div className={`${styles.rank} ${rankCls}`}>
-        {player.position ? `#${player.position}` : "—"}
+        {player.position ? `#${player.position}` : t("playDetail.dash")}
       </div>
       <div className={styles.player}>
         {player.overlayAvatar?.url ? (
@@ -114,8 +116,11 @@ function PlayerRow({ player, index, turnoceroUser, brandName }) {
           <div className={styles.playerName}>
             <span>{displayName}</span>
             {player.new && (
-              <span className={styles.newBadge} title="Primera vez que lo jugó">
-                ✨ nuevo
+              <span
+                className={styles.newBadge}
+                title={t("playDetail.newBadgeTitle")}
+              >
+                {t("playDetail.newBadge")}
               </span>
             )}
           </div>
@@ -124,9 +129,12 @@ function PlayerRow({ player, index, turnoceroUser, brandName }) {
               <Link
                 to={`/usuarios/${turnoceroUser._id}`}
                 className={styles.playerUsername}
-                title={`Ver perfil en ${brandName}`}
+                title={t("playDetail.viewProfileTitle", { brandName })}
               >
-                @{turnoceroUser.username} · en {brandName}
+                {t("playDetail.memberAt", {
+                  username: turnoceroUser.username,
+                  brandName,
+                })}
               </Link>
             ) : (
               player.username && (
@@ -143,7 +151,7 @@ function PlayerRow({ player, index, turnoceroUser, brandName }) {
             {player.rating > 0 && (
               <span
                 className={styles.playerRating}
-                title="Rating que le puso al juego"
+                title={t("playDetail.ratingTitle")}
               >
                 ★ {player.rating.toFixed(1)}
               </span>
@@ -161,21 +169,21 @@ function PlayerRow({ player, index, turnoceroUser, brandName }) {
             {player.color}
           </>
         ) : (
-          <span className={styles.dimText}>—</span>
+          <span className={styles.dimText}>{t("playDetail.dash")}</span>
         )}
       </div>
       <div className={styles.scoreCell}>
         {hasDisplayableScore(player.score) ? (
           player.score
         ) : (
-          <span className={styles.dimText}>—</span>
+          <span className={styles.dimText}>{t("playDetail.dash")}</span>
         )}
       </div>
       <div className={styles.outcomeCell}>
         {player.win ? (
-          <span className={styles.outcomeWin}>✦ Ganó</span>
+          <span className={styles.outcomeWin}>{t("playDetail.won")}</span>
         ) : (
-          <span className={styles.dimText}>—</span>
+          <span className={styles.dimText}>{t("playDetail.dash")}</span>
         )}
       </div>
     </div>
@@ -233,6 +241,7 @@ export default function PlayDetail() {
   const { user } = useAuth();
   const { addToast } = useNotifications();
   const brandName = useBrandName();
+  const { t } = useTranslation("bgwatch");
 
   const [data, setData] = useState(null);
   const [notFound, setNotFound] = useState(false);
@@ -332,7 +341,7 @@ export default function PlayDetail() {
       addToast({
         type: "error",
         message:
-          err.response?.data?.message || "No se pudo eliminar la partida.",
+          err.response?.data?.message || t("playDetail.deleteError"),
       });
       setDeleting(false);
       setConfirmingDelete(false);
@@ -346,10 +355,10 @@ export default function PlayDetail() {
       <div className={styles.page}>
         <div className={styles.inner}>
           <BackButton onClick={handleBack} flush>
-            Volver
+            {t("playDetail.back")}
           </BackButton>
           <div className={styles.stateCenter}>
-            <p>No se pudo cargar la partida.</p>
+            <p>{t("playDetail.loadError")}</p>
           </div>
         </div>
       </div>
@@ -361,7 +370,7 @@ export default function PlayDetail() {
       <div className={styles.page}>
         <div className={styles.inner}>
           <BackButton onClick={handleBack} flush>
-            Volver
+            {t("playDetail.back")}
           </BackButton>
           <div className={styles.skeletonHero} />
           <div className={styles.skeletonTable} />
@@ -375,20 +384,23 @@ export default function PlayDetail() {
       <Helmet>
         <title>
           {play.gameName
-            ? `Partida de ${play.gameName} – BG Watch`
-            : "Partida – BG Watch"}
+            ? t("playDetail.titleWithGame", { game: play.gameName })
+            : t("playDetail.title")}
         </title>
       </Helmet>
       <div className={styles.inner}>
         <BackButton onClick={handleBack} flush>
-          Volver
+          {t("playDetail.back")}
         </BackButton>
 
         {/* ── Hero ── */}
         <header className={styles.hero}>
           {heroImage ? (
             <div className={styles.heroThumb}>
-              <img src={heroImage} alt={play.gameName || "Juego"} />
+              <img
+                src={heroImage}
+                alt={play.gameName || t("playDetail.gameImageAlt")}
+              />
             </div>
           ) : (
             <div className={styles.heroThumbFallback} aria-hidden="true">
@@ -399,7 +411,7 @@ export default function PlayDetail() {
           <div className={styles.heroInfo}>
             <div className={styles.kicker}>
               <Meeple />
-              Partida #{play.id} · de{" "}
+              {t("playDetail.kicker", { id: play.id })}{" "}
               <Link
                 to={`/bg-watch/${encodeURIComponent(bggUsername)}`}
                 className={styles.heroLink}
@@ -408,7 +420,7 @@ export default function PlayDetail() {
               </Link>
             </div>
             <h1 className={styles.gameTitle}>
-              {play.gameName || "Sin nombre"}
+              {play.gameName || t("playDetail.gameNameFallback")}
             </h1>
             <div className={styles.pills}>
               {play.date && (
@@ -425,20 +437,24 @@ export default function PlayDetail() {
               {play.players?.length > 0 && (
                 <span className={styles.pill}>
                   👥 {play.players.length}{" "}
-                  {play.players.length === 1 ? "jugador" : "jugadores"}
+                  {t("playDetail.playersCount", {
+                    count: play.players.length,
+                  })}
                 </span>
               )}
               {play.quantity > 1 && (
-                <span className={styles.pill}>×{play.quantity} partidas</span>
+                <span className={styles.pill}>
+                  {t("playDetail.quantityPlays", { n: play.quantity })}
+                </span>
               )}
               {play.incomplete && (
                 <span className={`${styles.pill} ${styles.pillWarn}`}>
-                  Incompleta
+                  {t("playDetail.incomplete")}
                 </span>
               )}
               {play.nowinstats && (
                 <span className={`${styles.pill} ${styles.pillMuted}`}>
-                  No cuenta para ranking
+                  {t("playDetail.noRanking")}
                 </span>
               )}
             </div>
@@ -448,7 +464,7 @@ export default function PlayDetail() {
                   to={`/bg-watch/${encodeURIComponent(bggUsername)}/juego/${play.gameId}`}
                   className={styles.heroLink}
                 >
-                  Ver juego en BG Watch →
+                  {t("playDetail.viewGameInBgWatch")}
                 </Link>
                 <a
                   href={`https://boardgamegeek.com/boardgame/${play.gameId}`}
@@ -456,7 +472,7 @@ export default function PlayDetail() {
                   rel="noopener noreferrer"
                   className={styles.heroLink}
                 >
-                  Ver en BoardGameGeek ↗
+                  {t("playDetail.viewOnBgg")}
                 </a>
               </div>
             )}
@@ -465,7 +481,9 @@ export default function PlayDetail() {
           {ownerSeat && hasDisplayableScore(ownerSeat.score) && (
             <div className={styles.score}>
               <div className={styles.scoreLbl}>
-                {isOwner ? "Tu puntaje" : `Puntaje de ${bggUsername}`}
+                {isOwner
+                  ? t("playDetail.yourScore")
+                  : t("playDetail.scoreOf", { name: bggUsername })}
               </div>
               <div
                 className={`${styles.scoreVal} ${ownerSeat.win ? styles.scoreWin : ""}`}
@@ -477,35 +495,37 @@ export default function PlayDetail() {
 
           <div className={styles.heroFooter}>
             <div className={styles.shareRow}>
-              <span className={styles.shareLabel}>Compartir</span>
+              <span className={styles.shareLabel}>{t("playDetail.share")}</span>
               <a
                 className={styles.shareBtn}
                 href={`https://api.whatsapp.com/send?text=${encodeURIComponent(share.whatsappText)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                title="Compartir en WhatsApp"
+                title={t("playDetail.shareWhatsappTitle")}
               >
                 {WhatsAppIcon}
-                <span>WhatsApp</span>
+                <span>{t("playDetail.whatsapp")}</span>
               </a>
               <a
                 className={styles.shareBtn}
                 href={`https://t.me/share/url?url=${encodeURIComponent(share.url)}&text=${encodeURIComponent(share.caption)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                title="Compartir en Telegram"
+                title={t("playDetail.shareTelegramTitle")}
               >
                 {TelegramIcon}
-                <span>Telegram</span>
+                <span>{t("playDetail.telegram")}</span>
               </a>
               <button
                 type="button"
                 className={`${styles.shareBtn} ${copied ? styles.shareBtnCopied : ""}`}
                 onClick={handleCopy}
-                title={copied ? "¡Copiado!" : "Copiar enlace"}
+                title={copied ? t("playDetail.copied") : t("playDetail.copyLink")}
               >
                 {copied ? CheckIcon : LinkIcon}
-                <span>{copied ? "¡Copiado!" : "Copiar"}</span>
+                <span>
+                  {copied ? t("playDetail.copied") : t("playDetail.copy")}
+                </span>
               </button>
             </div>
 
@@ -520,7 +540,7 @@ export default function PlayDetail() {
                     )
                   }
                 >
-                  Cargar otra
+                  {t("playDetail.logAnother")}
                 </button>
                 <button
                   type="button"
@@ -532,14 +552,14 @@ export default function PlayDetail() {
                     )
                   }
                 >
-                  Editar
+                  {t("playDetail.edit")}
                 </button>
                 <button
                   type="button"
                   className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
                   onClick={() => setConfirmingDelete(true)}
                 >
-                  Eliminar
+                  {t("playDetail.delete")}
                 </button>
               </div>
             )}
@@ -551,16 +571,16 @@ export default function PlayDetail() {
           <>
             <div className={styles.ruleLine}>
               <span>
-                <Meeple /> Resultados
+                <Meeple /> {t("playDetail.results")}
               </span>
             </div>
             <div className={styles.playersTable}>
               <div className={styles.playersHead}>
-                <div>#</div>
-                <div>Jugador</div>
-                <div className={styles.colorCol}>Color</div>
-                <div>Puntaje</div>
-                <div>Resultado</div>
+                <div>{t("playDetail.colHash")}</div>
+                <div>{t("playDetail.colPlayer")}</div>
+                <div className={styles.colorCol}>{t("playDetail.colColor")}</div>
+                <div>{t("playDetail.colScore")}</div>
+                <div>{t("playDetail.colResult")}</div>
               </div>
               {sortedPlayers.map((p, i) => (
                 <PlayerRow
@@ -571,6 +591,7 @@ export default function PlayDetail() {
                     p.username ? userMap?.[p.username.toLowerCase()] : null
                   }
                   brandName={brandName}
+                  t={t}
                 />
               ))}
             </div>
@@ -590,7 +611,8 @@ export default function PlayDetail() {
         {play.comments && (
           <div className={styles.notes}>
             <div className={styles.notesHead}>
-              <Meeple /> {isOwner ? "Tus notas" : "Notas"}
+              <Meeple />{" "}
+              {isOwner ? t("playDetail.yourNotes") : t("playDetail.notes")}
             </div>
             <p className={styles.notesBody}>"{play.comments}"</p>
           </div>
@@ -599,10 +621,13 @@ export default function PlayDetail() {
 
       <ConfirmActionModal
         isOpen={confirmingDelete}
-        title="Eliminar partida"
-        message={`¿Eliminar la partida de "${play.gameName}" del ${play.date || "?"}? Esta acción no se puede deshacer y borra la partida en BGG.`}
-        confirmLabel="Eliminar"
-        cancelLabel="Cancelar"
+        title={t("playDetail.deleteTitle")}
+        message={t("playDetail.deleteMessage", {
+          game: play.gameName,
+          date: play.date || t("playDetail.deleteUnknownDate"),
+        })}
+        confirmLabel={t("playDetail.deleteConfirm")}
+        cancelLabel={t("playDetail.deleteCancel")}
         variant="danger"
         loading={deleting}
         onConfirm={confirmDelete}

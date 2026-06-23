@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
@@ -17,6 +18,7 @@ import styles from "./BgWatchProfile.module.css";
  * "sos vos". Montado solo para dueño/admin (gate en BgWatchProfile).
  */
 export default function JugadoresPanel({ bggUsername, onTotalChange }) {
+  const { t } = useTranslation("bgwatch");
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -81,7 +83,7 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
       });
       reload();
     } catch (e) {
-      alert(e?.response?.data?.message || "No se pudo actualizar el jugador.");
+      alert(e?.response?.data?.message || t("jugadores.updateError"));
     }
   };
 
@@ -89,41 +91,35 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
 
   return (
     <div className={styles.modalSection}>
-      <p className={styles.sectionHelp}>
-        Estos son los jugadores de tus partidas. Tocá uno para ver su detalle y
-        editarlo (corregir el nombre, fijar su usuario de BoardGameGeek o
-        fusionar duplicados).
-      </p>
+      <p className={styles.sectionHelp}>{t("jugadores.help")}</p>
 
       <div className={styles.playerPickerHead}>
         <input
           type="text"
           className={styles.modalInput}
-          placeholder="Buscar jugador…"
+          placeholder={t("jugadores.searchPlaceholder")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           maxLength={100}
-          aria-label="Buscar jugador"
+          aria-label={t("jugadores.searchAria")}
         />
       </div>
 
       {loading && items.length === 0 && <SearchRowSkeleton rows={5} />}
 
       {error && (
-        <p className={styles.dimText}>
-          No se pudo cargar la lista de jugadores.
-        </p>
+        <p className={styles.dimText}>{t("jugadores.loadError")}</p>
       )}
 
       {isEmpty && (
         <EmptyState
           variant="filtered"
           compact
-          title={q ? "Sin coincidencias" : "Sin jugadores aún"}
+          title={
+            q ? t("jugadores.emptyFilteredTitle") : t("jugadores.emptyTitle")
+          }
           text={
-            q
-              ? "Ningún jugador coincide con tu búsqueda."
-              : "Cuando cargues partidas con otros jugadores van a aparecer acá."
+            q ? t("jugadores.emptyFilteredText") : t("jugadores.emptyText")
           }
         />
       )}
@@ -138,12 +134,12 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
                   type="button"
                   className={styles.jugadorRowMain}
                   onClick={() => openDetail(row)}
-                  title="Ver partidas y estadísticas con este jugador"
+                  title={t("jugadores.openDetailTitle")}
                 >
                   <Avatar user={rowAvatarUser(row)} size="sm" />
                   <div className={styles.gameSearchInfo}>
                     <span className={styles.gameSearchName}>
-                      {row.name || row.username || "Sin nombre"}
+                      {row.name || row.username || t("jugadores.nameFallback")}
                       {row.username && (
                         <span className={styles.coPlayerHandle}>
                           {" "}
@@ -152,11 +148,13 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
                       )}
                       {row.isLinked && (
                         <span className={styles.playerTagFriend}>
-                          miembro TurnoCero
+                          {t("jugadores.memberTag")}
                         </span>
                       )}
                       {row.isSelf && (
-                        <span className={styles.playerTagSelf}>sos vos</span>
+                        <span className={styles.playerTagSelf}>
+                          {t("jugadores.selfTag")}
+                        </span>
                       )}
                     </span>
                     {meta && (
@@ -170,9 +168,9 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
                       type="button"
                       className={styles.btnGhost}
                       onClick={() => setSelf(row, false)}
-                      title="Dejar de marcar a este jugador como vos"
+                      title={t("jugadores.unmarkSelfTitle")}
                     >
-                      Ya no soy yo
+                      {t("jugadores.unmarkSelf")}
                     </button>
                   </div>
                 )}
@@ -192,7 +190,7 @@ export default function JugadoresPanel({ bggUsername, onTotalChange }) {
 
       {total > 0 && (
         <p className={styles.dimText}>
-          {total} jugador{total === 1 ? "" : "es"}
+          {t("jugadores.total", { count: total })}
         </p>
       )}
     </div>

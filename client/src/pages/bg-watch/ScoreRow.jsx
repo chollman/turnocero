@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import Avatar from "../../components/shared/Avatar";
 import { hasDisplayableScore } from "./playerScore";
 import { CrownIcon, TrophyIcon } from "./playFormIcons";
@@ -30,13 +31,14 @@ function PlayerAvatar({ player, userMap }) {
 // Celda de puntaje (stepper − / input / +). Compartida por los modos versus y
 // equipos para no duplicar el markup ni los aria-labels.
 function ScoreCell({ value, onChange, onStep, label }) {
+  const { t } = useTranslation("bgwatch");
   return (
     <div className={styles.scoreCell}>
       <button
         type="button"
         className={styles.scoreStep}
         onClick={() => onStep(-1)}
-        aria-label="Bajar puntaje"
+        aria-label={t("scoreRow.lowerScore")}
         tabIndex={-1}
       >
         −
@@ -44,7 +46,7 @@ function ScoreCell({ value, onChange, onStep, label }) {
       <input
         type="text"
         className={styles.scoreInput}
-        placeholder="—"
+        placeholder={t("scoreRow.scorePlaceholder")}
         aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -55,7 +57,7 @@ function ScoreCell({ value, onChange, onStep, label }) {
         type="button"
         className={styles.scoreStep}
         onClick={() => onStep(1)}
-        aria-label="Subir puntaje"
+        aria-label={t("scoreRow.raiseScore")}
         tabIndex={-1}
       >
         +
@@ -98,8 +100,11 @@ export default function ScoreRow({
   onToggleWin,
   onRemove,
 }) {
+  const { t } = useTranslation("bgwatch");
   const p = player;
-  const scoreLabel = `Puntaje de ${p.name || p.username || "jugador"}`;
+  const scoreLabel = t("scoreRow.scoreOf", {
+    name: p.name || p.username || t("scoreRow.playerFallback"),
+  });
   return (
     <div
       className={`${styles.scoreRow} ${mode === "equipos" ? styles.scoreRowTeams : ""} ${leader ? styles.scoreRowLeader : ""} ${isYou ? styles.scoreRowYou : ""}`}
@@ -108,7 +113,7 @@ export default function ScoreRow({
         {mode === "versus"
           ? hasDisplayableScore(p.score) || rankByWin
             ? `#${position}`
-            : "—"
+            : t("scoreRow.rankDash")
           : "·"}
       </span>
       <span className={styles.scoreAvatar}>
@@ -119,19 +124,18 @@ export default function ScoreRow({
         {!p.anonymous && p.username && (
           <span className={styles.scorePlayerHandle}>@{p.username}</span>
         )}
-        {p.anonymous && <span className={styles.anonTag}>anónimo</span>}
-        {isYou && <span className={styles.youPill}>vos</span>}
+        {p.anonymous && (
+          <span className={styles.anonTag}>{t("scoreRow.anonTag")}</span>
+        )}
+        {isYou && <span className={styles.youPill}>{t("scoreRow.youPill")}</span>}
         {leader && (
           <span className={styles.scoreCrown}>
             <CrownIcon />
           </span>
         )}
         {p.new && (
-          <span
-            className={styles.newBadge}
-            title="Primera vez que lo juega (autodetectado)"
-          >
-            ✨ Nuevo
+          <span className={styles.newBadge} title={t("scoreRow.newTitle")}>
+            {t("scoreRow.new")}
           </span>
         )}
       </div>
@@ -148,15 +152,15 @@ export default function ScoreRow({
             type="button"
             className={`${styles.winToggle} ${p.win ? styles.winToggleActive : ""}`}
             onClick={onToggleWin}
-            aria-label="Ganó"
+            aria-label={t("scoreRow.wonAria")}
             aria-pressed={p.win}
-            title="Ganó"
+            title={t("scoreRow.wonTitle")}
           >
             <TrophyIcon />
           </button>
         </div>
       ) : mode === "coop" ? (
-        <span className={styles.teamTag}>Equipo</span>
+        <span className={styles.teamTag}>{t("scoreRow.team")}</span>
       ) : (
         <div className={styles.scoreControls}>
           <ScoreCell
@@ -166,11 +170,15 @@ export default function ScoreRow({
             label={scoreLabel}
           />
           <div className={styles.teamSelect}>
-            <span className={styles.teamSelectLabel}>Elegí el equipo:</span>
+            <span className={styles.teamSelectLabel}>
+              {t("scoreRow.pickTeam")}
+            </span>
             <div
               className={styles.teamPick}
               role="group"
-              aria-label={`Equipo de ${p.name || p.username || "jugador"}`}
+              aria-label={t("scoreRow.teamOf", {
+                name: p.name || p.username || t("scoreRow.playerFallback"),
+              })}
             >
               {activeTeams.map((t) => (
                 <button
@@ -199,7 +207,7 @@ export default function ScoreRow({
             type="button"
             className={styles.scoreRemove}
             onClick={onRemove}
-            aria-label="Quitar jugador"
+            aria-label={t("scoreRow.removePlayer")}
           >
             ✕
           </button>

@@ -1,19 +1,23 @@
 import { useEffect, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import Avatar from "../../components/shared/Avatar";
 import ConfirmActionModal from "../../components/shared/ConfirmActionModal";
 import AvatarCropModal from "../../components/shared/AvatarCropModal";
 import useSearchTerm from "../../hooks/useSearchTerm";
+import i18n from "../../i18n";
 import SearchRowSkeleton from "./SearchRowSkeleton";
 import styles from "./BgWatchProfile.module.css";
 
 export function playerMeta(p) {
   const parts = [];
   if (p.numPlays > 0) {
-    parts.push(`${p.numPlays} partida${p.numPlays === 1 ? "" : "s"}`);
+    parts.push(i18n.t("bgwatch:playerEdit.metaPlays", { count: p.numPlays }));
   }
-  if (p.lastPlayedDate) parts.push(`última: ${p.lastPlayedDate}`);
+  if (p.lastPlayedDate) {
+    parts.push(i18n.t("bgwatch:playerEdit.metaLast", { date: p.lastPlayedDate }));
+  }
   return parts.join(" · ");
 }
 
@@ -46,6 +50,7 @@ export function rowAvatarUser(row) {
 //   - "merged"   → se fusionó / se marcó como "vos" (la identidad cambió) →
 //                  el caller debería salir de la vista del jugador
 export function EditPlayerModal({ bggUsername, player, onClose }) {
+  const { t } = useTranslation("bgwatch");
   const [name, setName] = useState(player.name || "");
   const [bgg, setBgg] = useState(player.username || "");
   const [avatar, setAvatar] = useState(player.avatar || null);
@@ -58,14 +63,14 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
   const fileRef = useRef(null);
 
   const fail = (e) =>
-    setErr(e?.response?.data?.message || "No se pudo guardar el cambio.");
+    setErr(e?.response?.data?.message || t("playerEdit.saveError"));
 
   const closeWithChanges = () => onClose(dirty ? "updated" : false);
 
   const saveName = async () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      setErr("El nombre no puede estar vacío.");
+      setErr(t("playerEdit.nameEmpty"));
       return;
     }
     setBusy("name");
@@ -77,7 +82,7 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
         name: trimmed,
       });
       setDirty(true);
-      setMsg("Nombre guardado.");
+      setMsg(t("playerEdit.nameSaved"));
     } catch (e) {
       fail(e);
     } finally {
@@ -88,7 +93,7 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
   const reassignBgg = async () => {
     const handle = bgg.trim().replace(/^@/, "");
     if (!handle) {
-      setErr("Ingresá un usuario de BGG.");
+      setErr(t("playerEdit.bggEmpty"));
       return;
     }
     setBusy("bgg");
@@ -125,7 +130,7 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
       const { data } = await axios.put(API.bgg.JUGADOR_AVATAR(bggUsername), fd);
       setAvatar(data.player?.avatar || null);
       setDirty(true);
-      setMsg("Avatar actualizado.");
+      setMsg(t("playerEdit.avatarUpdated"));
       setCropFile(null);
     } catch (e) {
       fail(e);
@@ -144,7 +149,7 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
       });
       setAvatar(null);
       setDirty(true);
-      setMsg("Avatar quitado.");
+      setMsg(t("playerEdit.avatarRemoved"));
     } catch (e) {
       fail(e);
     } finally {
@@ -168,12 +173,12 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
     <div className={styles.modalBackdrop} role="dialog" aria-modal="true">
       <div className={styles.modalCard}>
         <div className={styles.modalHeaderRow}>
-          <h3 className={styles.modalTitle}>Editar jugador</h3>
+          <h3 className={styles.modalTitle}>{t("playerEdit.title")}</h3>
           <button
             type="button"
             className={styles.modalClose}
             onClick={closeWithChanges}
-            aria-label="Cerrar"
+            aria-label={t("playerEdit.close")}
           >
             ✕
           </button>
@@ -181,9 +186,10 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
 
         {player.isLinked && (
           <p className={styles.linkedDisclaimer}>
-            Este jugador es miembro de TurnoCero. El nombre y la foto que pongas
-            acá <strong>reemplazan los de su perfil</strong>, pero solo en tu
-            vista de BG Watch (no cambian su perfil ni lo que ven los demás).
+            <Trans
+              i18nKey="bgwatch:playerEdit.linkedDisclaimer"
+              components={{ strong: <strong /> }}
+            />
           </p>
         )}
 
@@ -205,7 +211,7 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
               onClick={() => fileRef.current?.click()}
               disabled={busy === "avatar"}
             >
-              {avatar ? "Cambiar foto" : "Subir foto"}
+              {avatar ? t("playerEdit.changePhoto") : t("playerEdit.uploadPhoto")}
             </button>
             {avatar && (
               <button
@@ -214,7 +220,7 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
                 onClick={removeAvatar}
                 disabled={busy === "avatar"}
               >
-                Quitar
+                {t("playerEdit.removePhoto")}
               </button>
             )}
             <input
@@ -229,7 +235,9 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
 
         {/* Nombre */}
         <div>
-          <label className={styles.fieldLabel}>Nombre</label>
+          <label className={styles.fieldLabel}>
+            {t("playerEdit.nameLabel")}
+          </label>
           <div className={styles.editInlineRow}>
             <input
               type="text"
@@ -244,19 +252,19 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
               onClick={saveName}
               disabled={busy === "name"}
             >
-              {busy === "name" ? "Guardando…" : "Guardar"}
+              {busy === "name" ? t("playerEdit.saving") : t("playerEdit.save")}
             </button>
           </div>
         </div>
 
         {/* @BGG — vínculo local, no reescribe el histórico en BGG. */}
         <div>
-          <label className={styles.fieldLabel}>Usuario de BoardGameGeek</label>
+          <label className={styles.fieldLabel}>{t("playerEdit.bggLabel")}</label>
           <div className={styles.editInlineRow}>
             <input
               type="text"
               className={styles.modalInput}
-              placeholder="@usuario"
+              placeholder={t("playerEdit.bggPlaceholder")}
               value={bgg}
               onChange={(e) => setBgg(e.target.value)}
               maxLength={50}
@@ -267,14 +275,10 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
               onClick={reassignBgg}
               disabled={busy === "bgg"}
             >
-              {busy === "bgg" ? "Vinculando…" : "Vincular"}
+              {busy === "bgg" ? t("playerEdit.linking") : t("playerEdit.link")}
             </button>
           </div>
-          <p className={styles.dimText}>
-            Se aplica en TurnoCero a toda la historia de este jugador. No
-            modifica las partidas ya cargadas en BoardGameGeek; las nuevas que
-            cargues sí van a usar este usuario.
-          </p>
+          <p className={styles.dimText}>{t("playerEdit.bggHelp")}</p>
         </div>
 
         {msg && <p className={styles.editOk}>{msg}</p>}
@@ -287,14 +291,14 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
             style={{ marginRight: "auto" }}
             onClick={() => setShowMerge(true)}
           >
-            Fusionar con otro jugador
+            {t("playerEdit.mergeWithAnother")}
           </button>
           <button
             type="button"
             className={styles.btnGhost}
             onClick={closeWithChanges}
           >
-            Cerrar
+            {t("playerEdit.close")}
           </button>
         </div>
       </div>
@@ -311,6 +315,7 @@ export function EditPlayerModal({ bggUsername, player, onClose }) {
 
 // ── Fusionar jugador (source → target) ─────────────────────────────────────
 export function MergePlayerModal({ bggUsername, source, onClose }) {
+  const { t } = useTranslation("bgwatch");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -364,7 +369,7 @@ export function MergePlayerModal({ bggUsername, source, onClose }) {
       }
       onClose(true);
     } catch (e) {
-      setErr(e?.response?.data?.message || "No se pudo fusionar.");
+      setErr(e?.response?.data?.message || t("playerEdit.mergeError"));
       setMerging(false);
     }
   };
@@ -377,31 +382,33 @@ export function MergePlayerModal({ bggUsername, source, onClose }) {
         <div className={styles.modalBackdrop} role="dialog" aria-modal="true">
           <div className={styles.modalCard}>
             <div className={styles.modalHeaderRow}>
-              <h3 className={styles.modalTitle}>Fusionar jugador</h3>
+              <h3 className={styles.modalTitle}>{t("playerEdit.mergeTitle")}</h3>
               <button
                 type="button"
                 className={styles.modalClose}
                 onClick={() => onClose(false)}
-                aria-label="Cerrar"
+                aria-label={t("playerEdit.close")}
               >
                 ✕
               </button>
             </div>
 
             <p className={styles.sectionHelp}>
-              Elegí con qué jugador querés fusionar a{" "}
-              <strong>{source.name || source.username}</strong>. Las partidas de
-              ambos van a contar como una sola persona.
+              <Trans
+                i18nKey="bgwatch:playerEdit.mergeHelp"
+                values={{ name: source.name || source.username }}
+                components={{ strong: <strong /> }}
+              />
             </p>
 
             <input
               type="text"
               className={styles.modalInput}
-              placeholder="Buscar jugador destino…"
+              placeholder={t("playerEdit.mergeSearchPlaceholder")}
               value={q}
               onChange={(e) => setQ(e.target.value)}
               maxLength={100}
-              aria-label="Buscar jugador destino"
+              aria-label={t("playerEdit.mergeSearchAria")}
             />
 
             {/* Opción especial: este jugador sos vos (el dueño del perfil). */}
@@ -410,9 +417,13 @@ export function MergePlayerModal({ bggUsername, source, onClose }) {
               className={styles.selfMergeBtn}
               onClick={() => setTarget({ __self: true })}
             >
-              👤 Sos vos (<strong>@{bggUsername}</strong>)
+              <Trans
+                i18nKey="bgwatch:playerEdit.selfMerge"
+                values={{ username: bggUsername }}
+                components={{ strong: <strong /> }}
+              />
               <span className={styles.gameSearchMeta}>
-                Marcar a este jugador como vos mismo
+                {t("playerEdit.selfMergeMeta")}
               </span>
             </button>
 
@@ -420,7 +431,7 @@ export function MergePlayerModal({ bggUsername, source, onClose }) {
 
             {!loading && items.length === 0 && (
               <p className={styles.dimText}>
-                No hay otros jugadores para fusionar.
+                {t("playerEdit.noOthersToMerge")}
               </p>
             )}
 
@@ -463,16 +474,30 @@ export function MergePlayerModal({ bggUsername, source, onClose }) {
 
       <ConfirmActionModal
         isOpen={!!target}
-        title={target?.__self ? "Sos vos" : "Fusionar jugadores"}
+        title={
+          target?.__self
+            ? t("playerEdit.confirmSelfTitle")
+            : t("playerEdit.confirmMergeTitle")
+        }
         message={
           target?.__self
-            ? `¿Marcar a "${source.name || source.username}" como vos mismo (@${bggUsername})? Sus partidas van a contar como tuyas y dejará de aparecer como compañero.`
+            ? t("playerEdit.confirmSelfMessage", {
+                name: source.name || source.username,
+                username: bggUsername,
+              })
             : target
-              ? `¿Fusionar "${source.name || source.username}" dentro de "${target.name || target.username}"? Esta acción no se puede deshacer fácilmente.`
+              ? t("playerEdit.confirmMergeMessage", {
+                  source: source.name || source.username,
+                  target: target.name || target.username,
+                })
               : ""
         }
-        confirmLabel={target?.__self ? "Sí, soy yo" : "Fusionar"}
-        cancelLabel="Cancelar"
+        confirmLabel={
+          target?.__self
+            ? t("playerEdit.confirmSelfBtn")
+            : t("playerEdit.confirmMergeBtn")
+        }
+        cancelLabel={t("playerEdit.cancel")}
         loading={merging}
         onConfirm={doMerge}
         onCancel={() => !merging && setTarget(null)}

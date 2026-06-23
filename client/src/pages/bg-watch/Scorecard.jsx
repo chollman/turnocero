@@ -1,8 +1,11 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Avatar from "../../components/shared/Avatar";
 import Meeple from "../../components/shared/Meeple";
 import { hasDisplayableScore } from "./playerScore";
+import { getLocale } from "../../utils/locale";
+import i18n from "../../i18n";
 import styles from "./PlayForm.module.css";
 
 // 2 letras para el thumbnail del juego (espeja el estilo de la partida ya
@@ -17,11 +20,11 @@ export function gameInitials(name) {
   return clean.slice(0, 2).toUpperCase();
 }
 
-function fmtDate(iso) {
-  if (!iso) return "sin fecha";
+function fmtDate(iso, t) {
+  if (!iso) return t("scorecard.noGameDate");
   const [y, m, d] = iso.split("-");
-  if (!y || !m || !d) return "sin fecha";
-  return new Date(y, m - 1, d).toLocaleDateString("es-AR", {
+  if (!y || !m || !d) return t("scorecard.noGameDate");
+  return new Date(y, m - 1, d).toLocaleDateString(getLocale(), {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -147,24 +150,25 @@ const ico = {
 // ganador/es en vez de "¡Ganaste!/Perdiste" (que es relativo al que mira).
 // Devuelve { label, state } con state ∈ "win" | "loss" | "empty".
 export function deriveWinnerLabel(rows, mode) {
+  const tt = (key, opts) => i18n.t(`bgwatch:scorecard.${key}`, opts);
   const winners = rows.filter((r) => r.win);
   if (mode === "coop") {
     return winners.length
-      ? { label: "¡Ganaron!", state: "win" }
-      : { label: "Perdieron", state: "loss" };
+      ? { label: tt("wonCoop"), state: "win" }
+      : { label: tt("lostCoop"), state: "loss" };
   }
   if (mode === "equipos") {
     const team = winners[0]?.team;
     return team
-      ? { label: `Ganó el Equipo ${team}`, state: "win" }
-      : { label: "Sin resultado", state: "empty" };
+      ? { label: tt("wonTeam", { team }), state: "win" }
+      : { label: tt("noResult"), state: "empty" };
   }
   // versus
   if (winners.length === 1) {
-    return { label: `Ganó ${winners[0].name}`, state: "win" };
+    return { label: tt("wonVersus", { name: winners[0].name }), state: "win" };
   }
-  if (winners.length > 1) return { label: "Empate", state: "win" };
-  return { label: "Sin resultado", state: "empty" };
+  if (winners.length > 1) return { label: tt("draw"), state: "win" };
+  return { label: tt("noResult"), state: "empty" };
 }
 
 /**
@@ -193,6 +197,7 @@ export default function Scorecard({
   publicView = false,
   bgwatchEnabled = false,
 }) {
+  const { t } = useTranslation("bgwatch");
   const initials = game ? gameInitials(game.name) : null;
   const stopProp = (e) => e.stopPropagation();
 
@@ -211,12 +216,12 @@ export default function Scorecard({
     : hasResult
       ? mode === "coop"
         ? youWin
-          ? "¡Ganaron!"
-          : "Perdieron"
+          ? t("scorecard.wonAll")
+          : t("scorecard.lostAll")
         : youWin
-          ? "¡Ganaste!"
-          : "Perdiste"
-      : "Cargá los puntajes para ver el resultado";
+          ? t("scorecard.won")
+          : t("scorecard.lost")
+      : t("scorecard.loadScoresHint");
   const bannerState = publicView
     ? winner.state
     : !hasResult
@@ -229,7 +234,7 @@ export default function Scorecard({
     <div className={styles.scorecard}>
       <div className={styles.scorecardTop}>
         <div className={styles.scorecardKicker}>
-          <Meeple /> BG Watch · partida
+          <Meeple /> {t("scorecard.kicker")}
         </div>
         <div className={styles.scorecardGameRow}>
           <div
@@ -244,12 +249,12 @@ export default function Scorecard({
           <div
             className={`${styles.scorecardGameName} ${!game ? styles.scorecardGameNameEmpty : ""}`}
           >
-            {game ? game.name : "Elegí un juego"}
+            {game ? game.name : t("scorecard.pickGame")}
           </div>
         </div>
         <div className={styles.scorecardMeta}>
           <span>
-            {ico.cal} {fmtDate(date)}
+            {ico.cal} {fmtDate(date, t)}
           </span>
           {location?.trim() && (
             <span>
@@ -258,11 +263,11 @@ export default function Scorecard({
           )}
           {duration > 0 && (
             <span>
-              {ico.clock} {duration} min
+              {ico.clock} {t("scorecard.minutes", { n: duration })}
             </span>
           )}
           <span>
-            {ico.users} {rows.length} jug.
+            {ico.users} {t("scorecard.playersShort", { n: rows.length })}
           </span>
         </div>
       </div>
@@ -324,15 +329,15 @@ export default function Scorecard({
                     ) : (
                       p.name
                     )}
-                    {!publicView && p.you ? " (vos)" : ""}
+                    {!publicView && p.you ? t("scorecard.you") : ""}
                     {p.leader && (
                       <span className={styles.scorecardCrown}>{ico.crown}</span>
                     )}
                     {p.new && (
                       <span
                         className={styles.scorecardNew}
-                        title="Primera vez que lo juega"
-                        aria-label="Nuevo"
+                        title={t("scorecard.newTitle")}
+                        aria-label={t("scorecard.newAria")}
                       >
                         ✨
                       </span>
@@ -342,8 +347,12 @@ export default function Scorecard({
                         to={p.bgwatchHref}
                         className={styles.scorecardBgw}
                         onClick={stopProp}
-                        title={`Ver BG Watch de @${p.username}`}
-                        aria-label={`Ver BG Watch de ${p.name}`}
+                        title={t("scorecard.viewBgWatchTitle", {
+                          username: p.username,
+                        })}
+                        aria-label={t("scorecard.viewBgWatchAria", {
+                          name: p.name,
+                        })}
                       >
                         {ico.bgwatch}
                       </Link>
@@ -369,7 +378,9 @@ export default function Scorecard({
             })}
           </div>
         ) : (
-          <div className={styles.scorecardEmpty}>Sin jugadores todavía</div>
+          <div className={styles.scorecardEmpty}>
+            {t("scorecard.noPlayers")}
+          </div>
         )}
 
         {notes.trim() && <div className={styles.scorecardNotes}>“{notes}”</div>}

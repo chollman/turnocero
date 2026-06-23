@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import EmptyState from "../../components/shared/EmptyState";
@@ -34,6 +35,7 @@ function PinIcon() {
  * solo para dueño/admin (gate en BgWatchProfile).
  */
 export default function UbicacionesPanel({ bggUsername, onTotalChange }) {
+  const { t } = useTranslation("bgwatch");
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -90,40 +92,35 @@ export default function UbicacionesPanel({ bggUsername, onTotalChange }) {
 
   return (
     <div className={styles.modalSection}>
-      <p className={styles.sectionHelp}>
-        Estas son las ubicaciones de tus partidas. Tocá una para ver su detalle
-        y editarla (corregir el nombre o fusionar duplicadas).
-      </p>
+      <p className={styles.sectionHelp}>{t("ubicaciones.help")}</p>
 
       <div className={styles.playerPickerHead}>
         <input
           type="text"
           className={styles.modalInput}
-          placeholder="Buscar ubicación…"
+          placeholder={t("ubicaciones.searchPlaceholder")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           maxLength={100}
-          aria-label="Buscar ubicación"
+          aria-label={t("ubicaciones.searchAria")}
         />
       </div>
 
       {loading && items.length === 0 && <SearchRowSkeleton rows={5} />}
 
       {error && (
-        <p className={styles.dimText}>
-          No se pudo cargar la lista de ubicaciones.
-        </p>
+        <p className={styles.dimText}>{t("ubicaciones.loadError")}</p>
       )}
 
       {isEmpty && (
         <EmptyState
           variant="filtered"
           compact
-          title={q ? "Sin coincidencias" : "Sin ubicaciones aún"}
+          title={
+            q ? t("ubicaciones.emptyFilteredTitle") : t("ubicaciones.emptyTitle")
+          }
           text={
-            q
-              ? "Ninguna ubicación coincide con tu búsqueda."
-              : "Cuando cargues partidas con una ubicación van a aparecer acá."
+            q ? t("ubicaciones.emptyFilteredText") : t("ubicaciones.emptyText")
           }
         />
       )}
@@ -138,12 +135,12 @@ export default function UbicacionesPanel({ bggUsername, onTotalChange }) {
                   type="button"
                   className={styles.jugadorRowMain}
                   onClick={() => openDetail(row)}
-                  title="Ver partidas y estadísticas de esta ubicación"
+                  title={t("ubicaciones.openDetailTitle")}
                 >
                   <PinIcon />
                   <div className={styles.gameSearchInfo}>
                     <span className={styles.gameSearchName}>
-                      {row.name || "Sin nombre"}
+                      {row.name || t("ubicaciones.nameFallback")}
                     </span>
                     {meta && (
                       <span className={styles.gameSearchMeta}>{meta}</span>
@@ -166,7 +163,7 @@ export default function UbicacionesPanel({ bggUsername, onTotalChange }) {
 
       {total > 0 && (
         <p className={styles.dimText}>
-          {total} ubicaci{total === 1 ? "ón" : "ones"}
+          {t("ubicaciones.total", { count: total })}
         </p>
       )}
     </div>
