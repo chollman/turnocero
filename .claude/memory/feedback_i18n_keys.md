@@ -74,15 +74,42 @@ translated — only display text is. See CLAUDE.md → "Frontend routing".
   namespace. Every new/migrated string ships **es + en + a test** in the same
   change (the tests-required rule still applies).
 
-### Migration status (rollout)
+### Migration status (rollout) — COMPLETE (2026-06-23)
 
-Infra + pilots landed via a stacked PR chain (2026-06-22): client/server i18n
-infra, `locale.js`, `common` + `auth` namespaces (password-recovery pages),
-`User.language`, and the `/perfil` toggle. The **bulk migration is incremental**
-— one section/namespace per change (mesas, torneos, eventos, notifs via
-`notifDomains.js`, the rest of auth, server route/email strings). Use
-`/i18n-audit` to find hardcoded strings and missing `en` keys. Plan:
-[plans/app-i18n.md] (see the approved plan / session).
+The full client migration is **done**: every user-facing string is keyed
+(es + en), shipped across **24 incremental PRs** (one namespace per PR, each on
+top of `master`, each verified independently with the full suite + build + lint
+before opening). Client suite at close: **2955 tests**, es↔en parity enforced.
+
+**Content namespaces** (`client/src/i18n/resources/{es,en}/`): `common`, `auth`,
+`notifs`, `time`, `dates`, `enums`, `quotes`, `layout`, `toasts`, `shared`,
+`error`, `comunidades`, `mathtrade`, `noticias`, `dashboard`, `torneos`,
+`usuarios`, `eventos`, `compartidas`, `tables`, `admin`, `bgwatch`, `chat`.
+`bgwatch` was split into 3 sequential PRs (profile/collection → partidas →
+PlayForm) by size. Adding a new feature? Add its namespace + register it in
+`config.js`/`index.js`; run `/i18n-audit` before shipping.
+
+**Two hard-won lessons (regressions to avoid):**
+
+1. **Byte-identical es / `common:*` reuse trap.** When migrating, the `es` value
+   MUST render EXACTLY the prior literal. Do NOT swap a literal for a generic
+   `common:*` key unless it renders the *same* text — e.g. original title
+   `"Error"` is NOT `common:states.error` (which renders `"Ocurrió un error"`).
+   That bug shipped from an agent in the `admin` PR and was caught by diffing
+   every introduced `common:*` against the original. Audit reuse: for each
+   `t('common:…')` you add, confirm the rendered es matches the literal it
+   replaced. When unsure, add a namespaced key with the exact text.
+
+2. **PWA precache cap + build exit code.** Each namespace JSON grows the main
+   bundle; it crossed `vite-plugin-pwa`'s default `maximumFileSizeToCacheInBytes`
+   (2 MiB) mid-migration and broke the Vercel build (`exited with 1`) while
+   passing locally (local bundle landed a hair under 2 MiB). Raised the cap to
+   **3 MiB** in [client/vite.config.js](../../client/vite.config.js). The bundle
+   keeps growing — if it nears 3 MiB again, raise the cap or code-split.
+   **Always check the real build exit code** (`npm run build; echo $?`) — piping
+   the build through `tail`/`grep` masks a non-zero exit and hides this failure.
+
+Plan: [plans/app-i18n.md] (approved plan / session).
 
 **Known sandbox gotcha:** server vitest can't run where the `mongodb-memory-server`
 binary download is blocked (`fastdl.mongodb.org` → 403). Validate server i18n via
