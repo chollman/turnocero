@@ -1,5 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import SeatTrack from "../../components/shared/SeatTrack";
 import { dateParts, countdown } from "../../utils/eventoDate";
 import { getLocationDisplay } from "../../utils/location";
@@ -116,6 +117,7 @@ export default function MesaStub({
   // <TableChat>; en otros estados queda null y la sección no se renderiza.
   chatSlot = null,
 }) {
+  const { t } = useTranslation("tables");
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [confirmCancelMesa, setConfirmCancelMesa] = useState(false);
 
@@ -128,7 +130,7 @@ export default function MesaStub({
   const available = totalSeats - filledSeats;
   const isFull = available <= 0;
   const locationTexto =
-    getLocationDisplay(table.location, "regular") || "Por confirmar";
+    getLocationDisplay(table.location, "regular") || t("stub.locationTbd");
 
   const showCountdown =
     !isCancelled && cd.text && cd.tone !== "past" && userState !== "full";
@@ -136,19 +138,21 @@ export default function MesaStub({
   return (
     <aside className={styles.stub}>
       <div className={styles.top}>
-        <div className={styles.label}><Meeple />Esta mesa</div>
+        <div className={styles.label}><Meeple />{t("stub.label")}</div>
         {d && (
           <div className={styles.dateBlock}>
             <span className={styles.day}>{d.day}</span>
             <div className={styles.dateRight}>
               <div className={styles.month}>{d.monthLong}</div>
               <div className={styles.weekday}>
-                {d.weekdayLong} · {d.year}
+                {t("stub.weekdayYear", { weekday: d.weekdayLong, year: d.year })}
               </div>
             </div>
           </div>
         )}
-        {d && <div className={styles.time}>⏱ {d.time} hs (hora local)</div>}
+        {d && (
+          <div className={styles.time}>{t("stub.time", { time: d.time })}</div>
+        )}
         {showCountdown && (
           <div
             className={`${styles.countdown} ${styles[`countdown_${cd.tone}`] || ""}`}
@@ -169,19 +173,19 @@ export default function MesaStub({
 
       <div className={styles.bottom}>
         <div className={styles.row}>
-          <span className={styles.rowLabel}>Juego</span>
+          <span className={styles.rowLabel}>{t("stub.rowGame")}</span>
           <span className={styles.rowValue} title={table.boardGame}>
             {table.boardGame}
           </span>
         </div>
         <div className={styles.row}>
-          <span className={styles.rowLabel}>Lugar</span>
+          <span className={styles.rowLabel}>{t("stub.rowLocation")}</span>
           <span className={styles.rowValue} title={locationTexto}>
-            {locationTexto || "Por confirmar"}
+            {locationTexto || t("stub.locationTbd")}
           </span>
         </div>
         <div className={styles.row}>
-          <span className={styles.rowLabel}>Jugadores</span>
+          <span className={styles.rowLabel}>{t("stub.rowPlayers")}</span>
           <span
             className={`${styles.rowValue} ${isFull ? styles.rowValue_full : ""}`}
           >
@@ -189,9 +193,9 @@ export default function MesaStub({
           </span>
         </div>
         <div className={styles.row}>
-          <span className={styles.rowLabel}>Acceso</span>
+          <span className={styles.rowLabel}>{t("stub.rowAccess")}</span>
           <span className={styles.rowValue}>
-            {isPrivate ? "🔒 Privada" : "🌐 Pública"}
+            {isPrivate ? t("stub.accessPrivate") : t("stub.accessPublic")}
           </span>
         </div>
         <div className={styles.seatTrackWrap}>
@@ -201,7 +205,7 @@ export default function MesaStub({
         <div className={styles.ctaBlock}>
           {isCancelled ? (
             <button className={styles.ghostBtn} disabled type="button">
-              Mesa cancelada
+              {t("stub.cancelled")}
             </button>
           ) : userState === "past" ? (
             // Mesa finalizada (fecha pasada) — viewer no-admin queda en modo
@@ -210,10 +214,8 @@ export default function MesaStub({
             // sólo damos el estado del CTA.
             <div className={`${styles.state} ${styles.state_past}`}>
               <ClockIcon size={16} />
-              <span className={styles.stateTitle}>Mesa finalizada</span>
-              <span className={styles.stateSub}>
-                Compartí cómo estuvo: dejá comentarios, fotos o puntaje.
-              </span>
+              <span className={styles.stateTitle}>{t("stub.pastTitle")}</span>
+              <span className={styles.stateSub}>{t("stub.pastSub")}</span>
             </div>
           ) : userState === "anon" ? (
             <button
@@ -221,21 +223,24 @@ export default function MesaStub({
               className={styles.cta}
               onClick={onLoginRequest}
             >
-              Iniciá sesión para unirte
+              {t("stub.anonCta")}
             </button>
           ) : userState === "hosting" ? (
             <>
               <div className={`${styles.state} ${styles.state_hosting}`}>
                 <CrownIcon size={16} />
-                <span className={styles.stateTitle}>Sos el host</span>
+                <span className={styles.stateTitle}>{t("stub.hostTitle")}</span>
                 <span className={styles.stateSub}>
                   {pendingCount > 0
-                    ? `${pendingCount} solicitud${pendingCount !== 1 ? "es" : ""} pendiente${pendingCount !== 1 ? "s" : ""}`
-                    : "Mesa al día"}
+                    ? t("stub.hostPending", { count: pendingCount })
+                    : t("stub.hostUpToDate")}
                 </span>
               </div>
               <div className={styles.adminBlock}>
-                <div className={styles.adminTitle}><Meeple />Acciones de host</div>
+                <div className={styles.adminTitle}>
+                  <Meeple />
+                  {t("stub.hostActions")}
+                </div>
                 <div className={styles.adminActions}>
                   {onEdit && (
                     <button
@@ -245,7 +250,7 @@ export default function MesaStub({
                       disabled={busy}
                     >
                       <EditIcon size={11} />
-                      &nbsp;Editar
+                      &nbsp;{t("stub.edit")}
                     </button>
                   )}
                   {onCancelMesa && !confirmCancelMesa && (
@@ -256,14 +261,14 @@ export default function MesaStub({
                       disabled={busy}
                     >
                       <TrashIcon size={11} />
-                      &nbsp;Cancelar
+                      &nbsp;{t("stub.cancel")}
                     </button>
                   )}
                 </div>
                 {confirmCancelMesa && (
                   <div className={styles.confirmRow}>
                     <span className={styles.confirmText}>
-                      ¿Cancelar esta mesa?
+                      {t("stub.confirmCancelMesa")}
                     </span>
                     <button
                       type="button"
@@ -274,14 +279,14 @@ export default function MesaStub({
                       }}
                       disabled={busy}
                     >
-                      Sí
+                      {t("stub.yes")}
                     </button>
                     <button
                       type="button"
                       className={styles.adminBtn}
                       onClick={() => setConfirmCancelMesa(false)}
                     >
-                      No
+                      {t("stub.no")}
                     </button>
                   </div>
                 )}
@@ -291,8 +296,8 @@ export default function MesaStub({
             <>
               <div className={`${styles.state} ${styles.state_joined}`}>
                 <CheckIcon size={16} />
-                <span className={styles.stateTitle}>Estás dentro</span>
-                <span className={styles.stateSub}>Te esperamos en la mesa</span>
+                <span className={styles.stateTitle}>{t("stub.joinedTitle")}</span>
+                <span className={styles.stateSub}>{t("stub.joinedSub")}</span>
               </div>
               {!confirmLeave ? (
                 <button
@@ -301,11 +306,13 @@ export default function MesaStub({
                   onClick={() => setConfirmLeave(true)}
                   disabled={busy}
                 >
-                  Abandonar mesa
+                  {t("stub.leave")}
                 </button>
               ) : (
                 <div className={styles.confirmRow}>
-                  <span className={styles.confirmText}>¿Abandonar?</span>
+                  <span className={styles.confirmText}>
+                    {t("stub.confirmLeave")}
+                  </span>
                   <button
                     type="button"
                     className={`${styles.adminBtn} ${styles.adminBtnConfirm}`}
@@ -315,14 +322,14 @@ export default function MesaStub({
                     }}
                     disabled={busy}
                   >
-                    Sí
+                    {t("stub.yes")}
                   </button>
                   <button
                     type="button"
                     className={styles.adminBtn}
                     onClick={() => setConfirmLeave(false)}
                   >
-                    No
+                    {t("stub.no")}
                   </button>
                 </div>
               )}
@@ -331,10 +338,10 @@ export default function MesaStub({
             <>
               <div className={`${styles.state} ${styles.state_pending}`}>
                 <ClockIcon size={16} />
-                <span className={styles.stateTitle}>Solicitud enviada</span>
-                <span className={styles.stateSub}>
-                  El host revisará tu solicitud
+                <span className={styles.stateTitle}>
+                  {t("stub.pendingTitle")}
                 </span>
+                <span className={styles.stateSub}>{t("stub.pendingSub")}</span>
               </div>
               <button
                 type="button"
@@ -342,12 +349,12 @@ export default function MesaStub({
                 onClick={onCancelRequest}
                 disabled={busy}
               >
-                Cancelar solicitud
+                {t("stub.cancelRequest")}
               </button>
             </>
           ) : isFull ? (
             <button className={styles.ghostBtn} disabled type="button">
-              Mesa llena
+              {t("stub.full")}
             </button>
           ) : (
             <button
@@ -356,7 +363,7 @@ export default function MesaStub({
               onClick={onJoin}
               disabled={busy}
             >
-              {isPrivate ? "Solicitar lugar" : "Unirme a la mesa"}
+              {isPrivate ? t("stub.requestSeat") : t("stub.joinMesa")}
             </button>
           )}
         </div>

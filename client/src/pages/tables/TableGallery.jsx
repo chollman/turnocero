@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { getErrorMessage } from "../../utils/getErrorMessage";
 import { API } from "../../api/endpoints";
@@ -74,6 +75,7 @@ export default function TableGallery({
   onImagesChange,
   className = "",
 }) {
+  const { t } = useTranslation("tables");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   // El lightbox trackea el índice (no la url) para poder navegar prev/next.
@@ -115,20 +117,20 @@ export default function TableGallery({
       });
       onImagesChange?.(data);
     } catch (err) {
-      setError(getErrorMessage(err, "Error al subir la imagen"));
+      setError(getErrorMessage(err, t("gallery.errorUpload")));
     } finally {
       setUploading(false);
     }
   };
 
   const handleDelete = async (imageId) => {
-    if (!window.confirm("¿Eliminar esta imagen?")) return;
+    if (!window.confirm(t("gallery.confirmDelete"))) return;
     setError("");
     try {
       await axios.delete(API.tables.IMAGE_DETAIL(tableId, imageId));
       onImagesChange?.(images.filter((img) => img._id !== imageId));
     } catch (err) {
-      setError(getErrorMessage(err, "Error al eliminar la imagen"));
+      setError(getErrorMessage(err, t("gallery.errorDelete")));
     }
   };
 
@@ -147,10 +149,12 @@ export default function TableGallery({
                   className={styles.galleryAddTile}
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  aria-label="+ Foto"
+                  aria-label={t("gallery.addPhotoAria")}
                 >
                   <PlusIcon size={28} />
-                  <span>{uploading ? "Subiendo…" : "Subir foto"}</span>
+                  <span>
+                    {uploading ? t("gallery.uploading") : t("gallery.uploadPhoto")}
+                  </span>
                 </button>
                 <input
                   ref={fileInputRef}
@@ -165,7 +169,7 @@ export default function TableGallery({
               <div key={img._id} className={styles.imageThumb}>
                 <img
                   src={img.url}
-                  alt="Foto de la mesa"
+                  alt={t("gallery.photoAlt")}
                   className={styles.thumbImg}
                   onClick={() => setLightboxIndex(idx)}
                 />
@@ -173,8 +177,8 @@ export default function TableGallery({
                   <button
                     className={styles.btnDeleteImg}
                     onClick={() => handleDelete(img._id)}
-                    title="Eliminar imagen"
-                    aria-label="Eliminar imagen"
+                    title={t("gallery.deleteImage")}
+                    aria-label={t("gallery.deleteImage")}
                   >
                     ✕
                   </button>
@@ -199,7 +203,7 @@ export default function TableGallery({
         ) : (
           <div className={styles.galleryEmpty}>
             <CameraIcon size={36} />
-            <span>Todavía no hay fotos.</span>
+            <span>{t("gallery.empty")}</span>
           </div>
         )}
       </div>
@@ -214,7 +218,7 @@ export default function TableGallery({
                 e.stopPropagation();
                 closeLightbox();
               }}
-              aria-label="Cerrar"
+              aria-label={t("gallery.close")}
             >
               ✕
             </button>
@@ -226,14 +230,14 @@ export default function TableGallery({
                   e.stopPropagation();
                   goPrev();
                 }}
-                aria-label="Imagen anterior"
+                aria-label={t("gallery.prevImage")}
               >
                 <ChevronIcon dir="left" />
               </button>
             )}
             <img
               src={images[lightboxIndex].url}
-              alt="Vista ampliada"
+              alt={t("gallery.enlargedAlt")}
               className={styles.lightboxImg}
               onClick={(e) => {
                 e.stopPropagation();
@@ -248,7 +252,7 @@ export default function TableGallery({
                   e.stopPropagation();
                   goNext();
                 }}
-                aria-label="Imagen siguiente"
+                aria-label={t("gallery.nextImage")}
               >
                 <ChevronIcon dir="right" />
               </button>

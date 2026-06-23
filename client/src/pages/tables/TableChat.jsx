@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { io } from "socket.io-client";
 import axios from "axios";
 import Avatar from "../../components/shared/Avatar";
 import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
 import { STORAGE_KEYS } from "../../utils/storageKeys";
 import { getErrorMessage } from "../../utils/getErrorMessage";
+import { getLocale } from "../../utils/locale";
 import { API } from "../../api/endpoints";
 import styles from "./TableDetail.module.css";
 
 const formatTime = (dateStr) =>
-  new Date(dateStr).toLocaleTimeString("es-AR", {
+  new Date(dateStr).toLocaleTimeString(getLocale(), {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -51,6 +53,7 @@ export default function TableChat({
   isViewingAsAdmin,
   className = "",
 }) {
+  const { t } = useTranslation("tables");
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -122,7 +125,7 @@ export default function TableChat({
         prev.some((m) => m._id === data._id) ? prev : [...prev, data],
       );
     } catch (err) {
-      setError(getErrorMessage(err, "Error al enviar el mensaje"));
+      setError(getErrorMessage(err, t("chat.errorSend")));
       setInput(content);
     } finally {
       setSending(false);
@@ -133,9 +136,7 @@ export default function TableChat({
     <div className={`${styles.chatPreview} ${className}`}>
       <div className={styles.chatRows} ref={messageListRef}>
         {messages.length === 0 && (
-          <p className={styles.chatEmpty}>
-            Sin mensajes todavía · empezá la conversación
-          </p>
+          <p className={styles.chatEmpty}>{t("chat.empty")}</p>
         )}
         {messages.map((msg) => {
           const senderInfo = getUserDisplay(msg.sender);
@@ -154,7 +155,7 @@ export default function TableChat({
                     {senderInfo.isDeleted ? (
                       DELETED_USER_LABEL
                     ) : isOwn ? (
-                      "Vos"
+                      t("chat.you")
                     ) : (
                       <Link
                         to={`/usuarios/${msg.sender._id}`}
@@ -182,17 +183,17 @@ export default function TableChat({
           <input
             className={styles.chatInput}
             type="text"
-            placeholder="Escribí un mensaje…"
+            placeholder={t("chat.placeholder")}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             maxLength={1000}
-            aria-label="Mensaje"
+            aria-label={t("chat.messageAria")}
           />
           <button
             className={styles.chatSubmit}
             type="submit"
             disabled={!input.trim() || sending}
-            aria-label="Enviar mensaje"
+            aria-label={t("chat.sendAria")}
           >
             <SendIcon />
           </button>

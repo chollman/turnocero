@@ -6,6 +6,7 @@ import {
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
+import { useTranslation, Trans } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -51,6 +52,7 @@ export default function CreateTable() {
 function CreateMesaStandalone() {
   const navigate = useNavigate();
   const { addToast } = useNotifications();
+  const { t } = useTranslation("tables");
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
 
@@ -85,7 +87,7 @@ function CreateMesaStandalone() {
       });
       navigate(`/mesas/${data._id}`);
     } catch (err) {
-      const msg = err.response?.data?.message || "Error al crear la mesa";
+      const msg = err.response?.data?.message || t("create.errorCreate");
       setServerError(msg);
       addToast({ type: "error", message: msg });
     } finally {
@@ -107,6 +109,7 @@ function CreateMesaStandalone() {
 // ── Mesa dentro de un evento (compact form) ──────────────────────────
 function CreateMesaForEvento({ eventoId: _eventoId }) {
   const { user } = useAuth();
+  const { t } = useTranslation("tables");
   const profileDireccionTexto = user?.direccion?.texto || "";
   const hasProfileDireccion = Boolean(
     profileDireccionTexto ||
@@ -312,7 +315,7 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
   const handleManualGeocode = async () => {
     const q = form.location.texto.trim();
     if (q.length < 3) {
-      setError("Escribí una dirección de al menos 3 caracteres.");
+      setError(t("create.geocodeTooShort"));
       setTimeout(() => setError(""), 3000);
       return;
     }
@@ -330,8 +333,8 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
     } catch (err) {
       const msg =
         err.response?.status === 404
-          ? "No se encontró la dirección. Intentá ser más específico o picá una sugerencia."
-          : err.response?.data?.message || "Error al buscar la dirección.";
+          ? t("create.geocodeNotFound")
+          : err.response?.data?.message || t("create.geocodeError");
       setError(msg);
       setTimeout(() => setError(""), 3000);
     } finally {
@@ -383,7 +386,7 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
     e.preventDefault();
     setError("");
     if (!boardGameSelected) {
-      setError("Seleccioná un juego del catálogo de BGG");
+      setError(t("create.errorSelectGame"));
       return;
     }
     setLoading(true);
@@ -419,7 +422,7 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
       });
       navigate(`/mesas/${data._id}`);
     } catch (err) {
-      setError(err.response?.data?.message || "Error al crear la mesa");
+      setError(err.response?.data?.message || t("create.errorCreate"));
     } finally {
       setLoading(false);
     }
@@ -430,15 +433,15 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
       <div className={styles.inner}>
         <div className={styles.hero}>
           <div className={styles.eyebrow}>
-            <Meeple />NUEVA MESA{eventoId ? " · DENTRO DEL EVENTO" : ""}
+            <Meeple />
+            {t("create.eyebrowBase")}
+            {eventoId ? t("create.eyebrowEvento") : ""}
           </div>
           <h1 className={styles.heroTitle}>
-            {eventoId ? "Armá una mesa para el evento" : "Convocá una partida"}
+            {eventoId ? t("create.heroTitleEvento") : t("create.heroTitle")}
           </h1>
           <p className={styles.heroSub}>
-            {eventoId
-              ? "La mesa va a ser visible dentro del evento, no en /mesas global."
-              : "Elegí juego, lugar y horario. La comunidad se encarga del resto."}
+            {eventoId ? t("create.heroSubEvento") : t("create.heroSub")}
           </p>
         </div>
 
@@ -447,7 +450,7 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
 
           <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.field}>
-              <label className={styles.label}>Juego de mesa *</label>
+              <label className={styles.label}>{t("create.gameLabel")}</label>
               {eventoId && ludotecaGames.length > 0 && (
                 <div className={styles.ludotecaPicker}>
                   {/* Header acts as a button (role+keyboard) en vez de
@@ -469,11 +472,12 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                   >
                     <span className={styles.ludotecaPickerTitleRow}>
                       <span className={styles.ludotecaPickerTitle}>
-                        Ludoteca del evento
+                        {t("create.ludotecaTitle")}
                       </span>
                       <span className={styles.ludotecaPickerCount}>
-                        {ludotecaGames.length}{" "}
-                        {ludotecaGames.length === 1 ? "juego" : "juegos"}
+                        {t("create.ludotecaGames", {
+                          count: ludotecaGames.length,
+                        })}
                       </span>
                       {/* stopPropagation evita que el click/keydown del
                           tooltip toggle-é el acordeón. */}
@@ -481,9 +485,8 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                         onClick={(e) => e.stopPropagation()}
                         onKeyDown={(e) => e.stopPropagation()}
                       >
-                        <InfoTooltip label="Cómo usar la ludoteca">
-                          Tocá un juego de la ludoteca para elegirlo, o buscá
-                          otro en BGG abajo.
+                        <InfoTooltip label={t("create.ludotecaTooltipLabel")}>
+                          {t("create.ludotecaTooltip")}
                         </InfoTooltip>
                       </span>
                       <span
@@ -516,7 +519,9 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                                 aria-pressed={isSelected || false}
                                 aria-label={
                                   g.addedByMe
-                                    ? `${g.name} (aportado por vos)`
+                                    ? t("create.ludotecaItemMine", {
+                                        name: g.name,
+                                      })
                                     : g.name
                                 }
                                 tabIndex={ludotecaExpanded ? 0 : -1}
@@ -541,7 +546,7 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                                       className={styles.ludotecaMineBadge}
                                       aria-hidden="true"
                                     >
-                                      Tuyo
+                                      {t("create.ludotecaMineBadge")}
                                     </span>
                                   )}
                                 </div>
@@ -563,7 +568,9 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                 </div>
               )}
               {eventoId && ludotecaLoading && ludotecaGames.length === 0 && (
-                <div className={styles.searchHint}>Cargando ludoteca…</div>
+                <div className={styles.searchHint}>
+                  {t("create.ludotecaLoading")}
+                </div>
               )}
               <div className={styles.gameSearchWrapper} ref={searchRef}>
                 <input
@@ -578,16 +585,20 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                   className={`${styles.input} ${boardGameSelected ? styles.inputSelected : ""}`}
                   placeholder={
                     eventoId && ludotecaGames.length > 0
-                      ? "…o buscá otro juego en BGG"
-                      : "Buscá un juego en BGG…"
+                      ? t("create.gamePlaceholderEvento")
+                      : t("create.gamePlaceholder")
                   }
                   autoComplete="off"
                 />
                 {searching && (
-                  <div className={styles.searchHint}>Buscando…</div>
+                  <div className={styles.searchHint}>
+                    {t("create.searching")}
+                  </div>
                 )}
                 {noResults && (
-                  <div className={styles.searchHint}>Sin resultados en BGG</div>
+                  <div className={styles.searchHint}>
+                    {t("create.noResults")}
+                  </div>
                 )}
                 {showDropdown && (
                   <ul className={styles.suggestions}>
@@ -628,7 +639,7 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                 {eventoId ? (
                   <>
                     <label className={styles.label} htmlFor="mesa-time">
-                      Hora *
+                      {t("create.timeLabel")}
                     </label>
                     <input
                       id="mesa-time"
@@ -643,7 +654,7 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                 ) : (
                   <>
                     <label className={styles.label} htmlFor="mesa-date">
-                      Fecha y hora *
+                      {t("create.dateLabel")}
                     </label>
                     <DateTimePicker
                       id="mesa-date"
@@ -658,8 +669,10 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
 
               <div className={styles.field}>
                 <label className={styles.label}>
-                  Jugadores
-                  <span className={styles.labelHint}>(incluyéndote)</span>
+                  {t("create.playersLabel")}
+                  <span className={styles.labelHint}>
+                    {t("create.playersHint")}
+                  </span>
                 </label>
                 <div className={styles.counter}>
                   <button
@@ -694,25 +707,30 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
             {!eventoId && (
               <div className={styles.field}>
                 <label className={styles.label}>
-                  Ubicación
-                  <span className={styles.labelHint}>(opcional)</span>
+                  {t("create.locationLabel")}
+                  <span className={styles.labelHint}>
+                    {t("create.locationHint")}
+                  </span>
                 </label>
                 <p className={styles.locationHint}>
                   {hasProfileDireccion ? (
-                    <>
-                      Si lo dejás vacío, usamos la dirección de tu perfil:{" "}
-                      <strong>
-                        {profileDireccionTexto || "tus coordenadas guardadas"}
-                      </strong>
-                      .
-                    </>
+                    <Trans
+                      i18nKey="create.locationHintProfile"
+                      t={t}
+                      values={{
+                        address:
+                          profileDireccionTexto ||
+                          t("create.locationCoordsFallback"),
+                      }}
+                      components={{ 1: <strong /> }}
+                    />
                   ) : (
                     <>
-                      Si lo dejás vacío, la mesa se publica sin ubicación.{" "}
+                      {t("create.locationHintNoProfilePre")}
                       <Link to="/perfil" className={styles.locationLink}>
-                        Agregá una dirección a tu perfil
-                      </Link>{" "}
-                      para usarla por default.
+                        {t("create.locationHintAddLink")}
+                      </Link>
+                      {t("create.locationHintNoProfilePost")}
                     </>
                   )}
                 </p>
@@ -721,36 +739,36 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                     value={form.location.texto}
                     onChange={updateLocationTexto}
                     onSelect={handlePlaceSelect}
-                    placeholder="Empezá a escribir una dirección…"
+                    placeholder={t("create.locationPlaceholder")}
                   />
                   <button
                     type="button"
                     className={styles.btnSearch}
                     onClick={handleManualGeocode}
                     disabled={geocoding}
-                    title="Buscar la dirección que tipeaste (sin picar sugerencia)"
+                    title={t("create.searchTitle")}
                   >
-                    {geocoding ? "…" : "Buscar"}
+                    {geocoding ? "…" : t("create.search")}
                   </button>
                 </div>
               </div>
             )}
 
             <div className={styles.field}>
-              <label className={styles.label}>Descripción</label>
+              <label className={styles.label}>{t("create.descLabel")}</label>
               <textarea
                 name="description"
                 value={form.description}
                 onChange={handleChange}
                 className={`${styles.input} ${styles.textarea}`}
-                placeholder="Reglas especiales, nivel requerido, qué llevar… (opcional)"
+                placeholder={t("create.descPlaceholder")}
                 maxLength={500}
                 rows={3}
               />
             </div>
 
             <div className={styles.field}>
-              <label className={styles.label}>Privacidad</label>
+              <label className={styles.label}>{t("create.privacyLabel")}</label>
               <div className={styles.privacyGrid}>
                 <button
                   type="button"
@@ -758,9 +776,11 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                   onClick={() => setForm((f) => ({ ...f, privacy: "public" }))}
                 >
                   <span className={styles.privacyIcon}>🌐</span>
-                  <span className={styles.privacyLabel}>Pública</span>
+                  <span className={styles.privacyLabel}>
+                    {t("create.privacyPublic")}
+                  </span>
                   <span className={styles.privacyDesc}>
-                    Cualquiera puede unirse al instante
+                    {t("create.privacyPublicDesc")}
                   </span>
                 </button>
                 <button
@@ -769,9 +789,11 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                   onClick={() => setForm((f) => ({ ...f, privacy: "private" }))}
                 >
                   <span className={styles.privacyIcon}>🔒</span>
-                  <span className={styles.privacyLabel}>Privada</span>
+                  <span className={styles.privacyLabel}>
+                    {t("create.privacyPrivate")}
+                  </span>
                   <span className={styles.privacyDesc}>
-                    Aprobás cada solicitud
+                    {t("create.privacyPrivateDesc")}
                   </span>
                 </button>
               </div>
@@ -791,14 +813,14 @@ function CreateMesaForEvento({ eventoId: _eventoId }) {
                   else navigate("/");
                 }}
               >
-                Cancelar
+                {t("create.cancel")}
               </button>
               <button
                 type="submit"
                 className={styles.btnPrimary}
                 disabled={loading}
               >
-                {loading ? "Creando…" : "🎲 Crear mesa"}
+                {loading ? t("create.creating") : t("create.createBtn")}
               </button>
             </div>
           </form>

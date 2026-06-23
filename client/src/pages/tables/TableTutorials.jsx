@@ -1,5 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { useEffect, useState } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import axios from "axios";
 import { API } from "../../api/endpoints";
 import { youtubeWatchUrl } from "../../utils/youtube";
@@ -19,6 +20,7 @@ export default function TableTutorials({
   tutorialMode,
   tutorialVideoId,
 }) {
+  const { t } = useTranslation("tables");
   // Mesas viejas (sin campo en el doc) → tratamos como auto para
   // preservar el comportamiento original.
   const mode = tutorialMode || "auto";
@@ -97,17 +99,20 @@ export default function TableTutorials({
   const isSingle = mode === "manual";
   const tagline =
     mode === "manual" ? (
-      "El host recomienda este video para llegar preparado a la mesa."
+      t("tutorials.taglineManual")
     ) : (
-      <>
-        Aprendé cómo se juega <strong>{boardGame}</strong> antes de la mesa.
-      </>
+      <Trans
+        i18nKey="tutorials.taglineAuto"
+        t={t}
+        values={{ game: boardGame }}
+        components={{ 1: <strong /> }}
+      />
     );
 
   return (
     <section className={styles.section}>
       <header className={styles.sectionHead}>
-        <span className={styles.sectionLabel}><Meeple />Andá preparado</span>
+        <span className={styles.sectionLabel}><Meeple />{t("tutorials.sectionLabel")}</span>
         <span className={styles.sectionRule} />
       </header>
       <p className={styles.tagline}>{tagline}</p>
@@ -151,7 +156,7 @@ export default function TableTutorials({
                 </div>
                 <div className={styles.cardBody}>
                   <h3 className={styles.title}>
-                    {v.title || "Tutorial recomendado"}
+                    {v.title || t("tutorials.titleFallback")}
                   </h3>
                   {v.channel && (
                     <span className={styles.channel}>{v.channel}</span>

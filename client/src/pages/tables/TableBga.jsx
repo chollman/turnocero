@@ -1,4 +1,5 @@
 import Meeple from "../../components/shared/Meeple";
+import { useTranslation, Trans } from "react-i18next";
 import styles from "./TableBga.module.css";
 
 // "Probá el juego online" — render condicional al lado de TableTutorials.
@@ -9,12 +10,13 @@ import styles from "./TableBga.module.css";
 // la rechaza si no es boardgamearena.com). Si `bgaUrl` es null/empty,
 // el componente se auto-oculta.
 export default function TableBga({ boardGame, bgaUrl }) {
+  const { t } = useTranslation("tables");
   if (!bgaUrl || typeof bgaUrl !== "string" || !bgaUrl.trim()) return null;
 
   return (
     <section className={styles.section}>
       <header className={styles.sectionHead}>
-        <span className={styles.sectionLabel}><Meeple />Probá el juego online</span>
+        <span className={styles.sectionLabel}><Meeple />{t("bga.sectionLabel")}</span>
         <span className={styles.sectionRule} />
       </header>
       <a
@@ -25,19 +27,20 @@ export default function TableBga({ boardGame, bgaUrl }) {
       >
         <img
           src="/bga-logo.png"
-          alt="Board Game Arena"
+          alt={t("bga.logoAlt")}
           className={styles.logo}
           loading="lazy"
         />
         <div className={styles.body}>
           <h3 className={styles.title}>
-            Jugá <strong>{boardGame || "este juego"}</strong> en Board Game
-            Arena
+            <Trans
+              i18nKey="bga.title"
+              t={t}
+              values={{ game: boardGame || t("bga.gameFallback") }}
+              components={{ 1: <strong /> }}
+            />
           </h3>
-          <p className={styles.sub}>
-            El host sugirió esta página para que pruebes el juego online antes
-            de la mesa.
-          </p>
+          <p className={styles.sub}>{t("bga.sub")}</p>
         </div>
         <span className={styles.arrow} aria-hidden="true">
           →

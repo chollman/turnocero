@@ -1,5 +1,6 @@
 import Meeple from "../../components/shared/Meeple";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { API } from "../../api/endpoints";
@@ -153,12 +154,14 @@ const TrashIcon = ({ size = 12 }) => (
   </svg>
 );
 
+// Pasos del wizard. `labelKey` resuelve a i18n en el render (el idioma puede
+// cambiar en runtime); `key` es el id estructural usado para refs/scroll/done.
 const STEPS = [
-  { key: "juego", label: "Juego" },
-  { key: "cuando", label: "Cuándo" },
-  { key: "donde", label: "Dónde" },
-  { key: "detalles", label: "Detalles" },
-  { key: "extras", label: "Extras" },
+  { key: "juego", labelKey: "form.stepJuego" },
+  { key: "cuando", labelKey: "form.stepCuando" },
+  { key: "donde", labelKey: "form.stepDonde" },
+  { key: "detalles", labelKey: "form.stepDetalles" },
+  { key: "extras", labelKey: "form.stepExtras" },
 ];
 
 const PILL_PLAYERS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -193,6 +196,7 @@ export default function MesaForm({
   onDelete,
 }) {
   const { user } = useAuth();
+  const { t } = useTranslation("tables");
 
   // ── Exit animation ────────────────────────────────────────────────
   // Cuando el user clickea "Volver" o "Cancelar" disparamos un slide-out
@@ -393,7 +397,7 @@ export default function MesaForm({
   const handleManualGeocode = async () => {
     const q = locationField.texto.trim();
     if (q.length < 3) {
-      setLocalError("Escribí una dirección de al menos 3 caracteres.");
+      setLocalError(t("form.geocodeTooShort"));
       setTimeout(() => setLocalError(""), 3000);
       return;
     }
@@ -408,8 +412,8 @@ export default function MesaForm({
     } catch (err) {
       const msg =
         err.response?.status === 404
-          ? "No se encontró la dirección. Intentá ser más específico o picá una sugerencia."
-          : err.response?.data?.message || "Error al buscar la dirección.";
+          ? t("form.geocodeNotFound")
+          : err.response?.data?.message || t("form.geocodeError");
       setLocalError(msg);
       setTimeout(() => setLocalError(""), 3000);
     } finally {
@@ -471,7 +475,7 @@ export default function MesaForm({
     () => ({
       _id: "preview",
       bannerSeedKey: previewBannerSeed,
-      boardGame: boardGameInput || "Tu juego",
+      boardGame: boardGameInput || t("form.previewGame"),
       bggImage: bggData?.image || null,
       bggThumbnail: bggData?.thumbnail || null,
       bggId: bggData?.id || null,
@@ -488,7 +492,7 @@ export default function MesaForm({
           }
         : {
             _id: "preview-host",
-            username: "Vos",
+            username: t("form.previewHost"),
             avatar: { url: "", publicId: "" },
           },
       privacy,
@@ -513,6 +517,7 @@ export default function MesaForm({
       description,
       rules,
       tags,
+      t,
     ],
   );
 
@@ -551,37 +556,39 @@ export default function MesaForm({
         onClick={handleCancelClick}
         disabled={submitting || exiting}
       >
-        {editMode ? "Cancelar edición" : "Cancelar y volver"}
+        {editMode ? t("form.backEdit") : t("form.backCreate")}
       </BackButton>
 
       <header className={styles.hero}>
         <div className={styles.heroLeft}>
           <p className={styles.heroEyebrow}>
-            <Meeple />{editMode ? "Editar mesa" : "Nueva mesa"} · paso a paso
+            <Meeple />
+            {editMode ? t("form.eyebrowEdit") : t("form.eyebrowCreate")}
+            {t("form.eyebrowSuffix")}
           </p>
           <h1 className={styles.heroTitle}>
-            {editMode ? (
-              <>
-                Ajustá tu <em>convocatoria</em>.
-              </>
-            ) : (
-              <>
-                Armá la <em>convocatoria</em>.
-              </>
-            )}
+            <Trans
+              i18nKey={editMode ? "form.heroTitleEdit" : "form.heroTitleCreate"}
+              t={t}
+              components={{ 1: <em /> }}
+            />
           </h1>
           <p className={styles.heroSub}>
-            {editMode
-              ? "Los cambios se notifican a quienes ya están unidos. La carta de la derecha se actualiza en vivo."
-              : "Cuatro pasos cortos. La carta de la derecha se va armando con cada campo que completás."}
+            {editMode ? t("form.heroSubEdit") : t("form.heroSubCreate")}
           </p>
         </div>
         <div className={styles.heroRight}>
           <span className={styles.heroProgressLabel}>
-            Paso {activeStep + 1} de {STEPS.length}
+            {t("form.progressStep", {
+              current: activeStep + 1,
+              total: STEPS.length,
+            })}
           </span>
           <span className={styles.heroProgressValue}>
-            {completedCount}/{STEPS.length} completos
+            {t("form.progressComplete", {
+              completed: completedCount,
+              total: STEPS.length,
+            })}
           </span>
         </div>
       </header>
@@ -593,7 +600,7 @@ export default function MesaForm({
           <div
             className={styles.steps}
             role="tablist"
-            aria-label="Progreso del formulario"
+            aria-label={t("form.progressAria")}
           >
             {STEPS.map((s, i) => {
               const done = stepDone[s.key] && i !== activeStep;
@@ -611,7 +618,7 @@ export default function MesaForm({
                   <span className={styles.stepDot}>
                     {done ? <CheckIcon size={13} /> : i + 1}
                   </span>
-                  <span className={styles.stepLabel}>{s.label}</span>
+                  <span className={styles.stepLabel}>{t(s.labelKey)}</span>
                 </button>
               );
             })}
@@ -624,13 +631,19 @@ export default function MesaForm({
             className={styles.section}
           >
             <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}><Meeple />Paso 1</span>
-              <span className={styles.sectionTitle}>El juego</span>
+              <span className={styles.sectionLabel}>
+                <Meeple />
+                {t("form.step1")}
+              </span>
+              <span className={styles.sectionTitle}>
+                {t("form.sectionGame")}
+              </span>
             </header>
 
             <div className={styles.field} ref={searchRef}>
               <label className={styles.fieldLabel} htmlFor="mesa-game">
-                Nombre del juego <span className={styles.required}>*</span>
+                {t("form.gameLabel")}
+                <span className={styles.required}>{t("form.required")}</span>
               </label>
               {editMode ? (
                 <div className={styles.readOnly}>{boardGameInput}</div>
@@ -647,22 +660,21 @@ export default function MesaForm({
                       !bggData &&
                       setShowDropdown(true)
                     }
-                    placeholder="Buscá un juego en BGG…"
+                    placeholder={t("form.gamePlaceholder")}
                     autoComplete="off"
                   />
                   {searching && (
-                    <span className={styles.fieldHelp}>Buscando…</span>
+                    <span className={styles.fieldHelp}>
+                      {t("form.searching")}
+                    </span>
                   )}
                   {noResults && !searching && (
                     <span className={styles.fieldHelp}>
-                      Sin resultados en BGG
+                      {t("form.noResults")}
                     </span>
                   )}
                   {!searching && !noResults && !bggData && (
-                    <span className={styles.fieldHelp}>
-                      El mosaico y la imagen de la carta se generan a partir de
-                      tu elección de BGG.
-                    </span>
+                    <span className={styles.fieldHelp}>{t("form.gameHelp")}</span>
                   )}
                   {showDropdown && suggestions.length > 0 && (
                     <ul className={styles.suggestions}>
@@ -710,12 +722,18 @@ export default function MesaForm({
             className={styles.section}
           >
             <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}><Meeple />Paso 2</span>
-              <span className={styles.sectionTitle}>Cuándo</span>
+              <span className={styles.sectionLabel}>
+                <Meeple />
+                {t("form.step2")}
+              </span>
+              <span className={styles.sectionTitle}>
+                {t("form.sectionWhen")}
+              </span>
             </header>
             <div className={styles.field}>
               <label className={styles.fieldLabel} htmlFor="mesa-date">
-                Fecha y hora <span className={styles.required}>*</span>
+                {t("form.dateLabel")}
+                <span className={styles.required}>{t("form.required")}</span>
               </label>
               <DateTimePicker
                 id="mesa-date"
@@ -724,10 +742,7 @@ export default function MesaForm({
                 onChange={setDate}
                 required
               />
-              <span className={styles.fieldHelp}>
-                Recomendado: avisar con 24h+ de anticipación para llenar la
-                mesa.
-              </span>
+              <span className={styles.fieldHelp}>{t("form.dateHelp")}</span>
             </div>
           </section>
 
@@ -738,21 +753,29 @@ export default function MesaForm({
             className={styles.section}
           >
             <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}><Meeple />Paso 3</span>
-              <span className={styles.sectionTitle}>Dónde</span>
+              <span className={styles.sectionLabel}>
+                <Meeple />
+                {t("form.step3")}
+              </span>
+              <span className={styles.sectionTitle}>
+                {t("form.sectionWhere")}
+              </span>
             </header>
             <div className={styles.field}>
               <label className={styles.fieldLabel}>
-                Lugar <span className={styles.required}>*</span>
+                {t("form.placeLabel")}
+                <span className={styles.required}>{t("form.required")}</span>
               </label>
               {user?.direccion?.texto?.trim() && (
                 <button
                   type="button"
                   className={styles.btnMyLocation}
                   onClick={handleUseMyLocation}
-                  title={`Usar mi dirección: ${user.direccion.texto}`}
+                  title={t("form.useMyLocationTitle", {
+                    address: user.direccion.texto,
+                  })}
                 >
-                  📍 Mi ubicación
+                  {t("form.myLocation")}
                 </button>
               )}
               <div className={styles.locationRow}>
@@ -760,7 +783,7 @@ export default function MesaForm({
                   value={locationField.texto}
                   onChange={updateLocationTexto}
                   onSelect={handlePlaceSelect}
-                  placeholder="Café Rivas · Palermo / Casa de Fede…"
+                  placeholder={t("form.placePlaceholder")}
                 />
                 <button
                   type="button"
@@ -768,13 +791,10 @@ export default function MesaForm({
                   onClick={handleManualGeocode}
                   disabled={geocoding}
                 >
-                  {geocoding ? "…" : "Buscar"}
+                  {geocoding ? "…" : t("form.search")}
                 </button>
               </div>
-              <span className={styles.fieldHelp}>
-                Empezá a escribir y elegí una sugerencia, o tipeala y tocá
-                "Buscar".
-              </span>
+              <span className={styles.fieldHelp}>{t("form.placeHelp")}</span>
             </div>
           </section>
 
@@ -785,14 +805,19 @@ export default function MesaForm({
             className={styles.section}
           >
             <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}><Meeple />Paso 4</span>
-              <span className={styles.sectionTitle}>Detalles</span>
+              <span className={styles.sectionLabel}>
+                <Meeple />
+                {t("form.step4")}
+              </span>
+              <span className={styles.sectionTitle}>
+                {t("form.sectionDetails")}
+              </span>
             </header>
 
             <div className={styles.field}>
               <label className={styles.fieldLabel}>
-                Jugadores totales (incluyéndote){" "}
-                <span className={styles.required}>*</span>
+                {t("form.playersLabel")}
+                <span className={styles.required}>{t("form.required")}</span>
               </label>
               <div className={styles.pillGroup}>
                 {PILL_PLAYERS.map((n) => {
@@ -806,7 +831,9 @@ export default function MesaForm({
                       disabled={disabled}
                       title={
                         disabled
-                          ? `Ya hay ${playersCount} jugadores; no se puede bajar`
+                          ? t("form.playersDisabledTitle", {
+                              count: playersCount,
+                            })
                           : undefined
                       }
                     >
@@ -816,15 +843,14 @@ export default function MesaForm({
                 })}
               </div>
               <span className={styles.fieldHelp}>
-                {maxPlayers - 1}{" "}
-                {maxPlayers - 1 === 1 ? "lugar libre" : "lugares libres"} para
-                convocar.
+                {t("form.playersFreeHelp", { count: maxPlayers - 1 })}
               </span>
             </div>
 
             <div className={styles.field}>
               <label className={styles.fieldLabel}>
-                Privacidad <span className={styles.required}>*</span>
+                {t("form.privacyLabel")}
+                <span className={styles.required}>{t("form.required")}</span>
               </label>
               <div className={styles.privacyOptions}>
                 <button
@@ -834,9 +860,11 @@ export default function MesaForm({
                 >
                   <GlobeIcon size={22} />
                   <div className={styles.privacyCardBody}>
-                    <span className={styles.privacyCardTitle}>Pública</span>
+                    <span className={styles.privacyCardTitle}>
+                      {t("form.privacyPublic")}
+                    </span>
                     <span className={styles.privacyCardSub}>
-                      Cualquiera puede unirse mientras haya lugar.
+                      {t("form.privacyPublicSub")}
                     </span>
                   </div>
                 </button>
@@ -847,9 +875,11 @@ export default function MesaForm({
                 >
                   <UsersIcon size={22} />
                   <div className={styles.privacyCardBody}>
-                    <span className={styles.privacyCardTitle}>Amigos</span>
+                    <span className={styles.privacyCardTitle}>
+                      {t("form.privacyFriends")}
+                    </span>
                     <span className={styles.privacyCardSub}>
-                      Solo tus amigos la ven y se unen directo, sin aprobación.
+                      {t("form.privacyFriendsSub")}
                     </span>
                   </div>
                 </button>
@@ -860,9 +890,11 @@ export default function MesaForm({
                 >
                   <LockIcon size={22} />
                   <div className={styles.privacyCardBody}>
-                    <span className={styles.privacyCardTitle}>Privada</span>
+                    <span className={styles.privacyCardTitle}>
+                      {t("form.privacyPrivate")}
+                    </span>
                     <span className={styles.privacyCardSub}>
-                      Aprobás vos cada solicitud antes de confirmar lugar.
+                      {t("form.privacyPrivateSub")}
                     </span>
                   </div>
                 </button>
@@ -877,14 +909,14 @@ export default function MesaForm({
 
             <div className={styles.field}>
               <label className={styles.fieldLabel} htmlFor="mesa-desc">
-                Descripción (opcional)
+                {t("form.descLabel")}
               </label>
               <textarea
                 id="mesa-desc"
                 className={styles.textarea}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="¿Qué tipo de partida es? ¿Apto principiantes? ¿Tono competitivo o relajado?"
+                placeholder={t("form.descPlaceholder")}
                 maxLength={500}
                 rows={3}
               />
@@ -892,14 +924,14 @@ export default function MesaForm({
 
             <div className={styles.field}>
               <label className={styles.fieldLabel} htmlFor="mesa-rules">
-                Reglas de la mesa (opcional)
+                {t("form.rulesLabel")}
               </label>
               <textarea
                 id="mesa-rules"
                 className={styles.textarea}
                 value={rules}
                 onChange={(e) => setRules(e.target.value)}
-                placeholder="Llegar 10 min antes. Cada uno trae algo para picar. Sin alianzas. Apagamos celulares."
+                placeholder={t("form.rulesPlaceholder")}
                 maxLength={500}
                 rows={3}
               />
@@ -913,19 +945,20 @@ export default function MesaForm({
             className={styles.section}
           >
             <header className={styles.sectionHead}>
-              <span className={styles.sectionLabel}><Meeple />Extras (opcional)</span>
+              <span className={styles.sectionLabel}>
+                <Meeple />
+                {t("form.extrasLabel")}
+              </span>
               <span className={styles.sectionRule} />
             </header>
-            <p className={styles.sectionHelp}>
-              Recursos opcionales para los jugadores que se suman a la mesa.
-            </p>
+            <p className={styles.sectionHelp}>{t("form.extrasHelp")}</p>
 
             {/* Sub-bloque 1 · Tutoriales de YouTube */}
             <div className={styles.subBlock}>
-              <h4 className={styles.subBlockLabel}>Tutoriales de YouTube</h4>
-              <p className={styles.subBlockHelp}>
-                Sumá un tutorial para los que no conocen el juego.
-              </p>
+              <h4 className={styles.subBlockLabel}>
+                {t("form.tutorialsTitle")}
+              </h4>
+              <p className={styles.subBlockHelp}>{t("form.tutorialsHelp")}</p>
 
               <div className={styles.field}>
                 <div className={styles.privacyOptions}>
@@ -937,10 +970,10 @@ export default function MesaForm({
                     <EyeOffIcon size={22} />
                     <div className={styles.privacyCardBody}>
                       <span className={styles.privacyCardTitle}>
-                        No incluir tutoriales
+                        {t("form.tutorialNoneTitle")}
                       </span>
                       <span className={styles.privacyCardSub}>
-                        La sección no se muestra en la mesa.
+                        {t("form.tutorialNoneSub")}
                       </span>
                     </div>
                   </button>
@@ -952,10 +985,10 @@ export default function MesaForm({
                     <PlayIcon size={22} />
                     <div className={styles.privacyCardBody}>
                       <span className={styles.privacyCardTitle}>
-                        Proponer un video
+                        {t("form.tutorialManualTitle")}
                       </span>
                       <span className={styles.privacyCardSub}>
-                        Vos elegís el tutorial que mejor pega.
+                        {t("form.tutorialManualSub")}
                       </span>
                     </div>
                   </button>
@@ -967,11 +1000,12 @@ export default function MesaForm({
                     <SearchIcon size={22} />
                     <div className={styles.privacyCardBody}>
                       <span className={styles.privacyCardTitle}>
-                        Buscar automáticamente
+                        {t("form.tutorialAutoTitle")}
                       </span>
                       <span className={styles.privacyCardSub}>
-                        Mostrar los 3 primeros resultados de YouTube para
-                        «Como se juega {boardGameInput || "el juego"}».
+                        {t("form.tutorialAutoSub", {
+                          game: boardGameInput || t("form.gameFallback"),
+                        })}
                       </span>
                     </div>
                   </button>
@@ -984,8 +1018,8 @@ export default function MesaForm({
                     className={styles.fieldLabel}
                     htmlFor="mesa-tutorial-url"
                   >
-                    URL del video de YouTube{" "}
-                    <span className={styles.required}>*</span>
+                    {t("form.tutorialUrlLabel")}
+                    <span className={styles.required}>{t("form.required")}</span>
                   </label>
                   <input
                     id="mesa-tutorial-url"
@@ -993,7 +1027,7 @@ export default function MesaForm({
                     className={styles.input}
                     value={tutorialVideoInput}
                     onChange={(e) => setTutorialVideoInput(e.target.value)}
-                    placeholder="https://www.youtube.com/watch?v=..."
+                    placeholder={t("form.tutorialUrlPlaceholder")}
                     autoComplete="off"
                   />
                   {tutorialVideoInput.trim() && !tutorialVideoId && (
@@ -1001,14 +1035,12 @@ export default function MesaForm({
                       className={styles.fieldHelp}
                       style={{ color: "var(--red)" }}
                     >
-                      URL de YouTube inválido. Aceptamos
-                      youtube.com/watch?v=…, youtu.be/…, /shorts/… o el ID
-                      directo.
+                      {t("form.tutorialUrlInvalid")}
                     </span>
                   )}
                   {tutorialVideoId && (
                     <span className={styles.fieldHelp}>
-                      Video detectado · ID:{" "}
+                      {t("form.tutorialDetected")}
                       <code style={{ color: "var(--amber)" }}>
                         {tutorialVideoId}
                       </code>
@@ -1022,16 +1054,18 @@ export default function MesaForm({
 
             {/* Sub-bloque 2 · Board Game Arena */}
             <div className={styles.subBlock}>
-              <h4 className={styles.subBlockLabel}>Board Game Arena</h4>
+              <h4 className={styles.subBlockLabel}>{t("form.bgaTitle")}</h4>
               <p className={styles.subBlockHelp}>
-                ¿Está disponible en{" "}
-                <strong>boardgamearena.com</strong>? Pegá el link para que los
-                jugadores puedan probarlo online antes de la mesa.
+                <Trans
+                  i18nKey="form.bgaHelp"
+                  t={t}
+                  components={{ 1: <strong /> }}
+                />
               </p>
 
               <div className={styles.field}>
                 <label className={styles.fieldLabel} htmlFor="mesa-bga-url">
-                  URL del juego en Board Game Arena
+                  {t("form.bgaUrlLabel")}
                 </label>
                 <input
                   id="mesa-bga-url"
@@ -1039,7 +1073,7 @@ export default function MesaForm({
                   className={styles.input}
                   value={bgaUrlInput}
                   onChange={(e) => setBgaUrlInput(e.target.value)}
-                  placeholder="https://boardgamearena.com/gamepanel?game=..."
+                  placeholder={t("form.bgaUrlPlaceholder")}
                   autoComplete="off"
                 />
                 {bgaUrlInput.trim() && !bgaUrl && (
@@ -1047,11 +1081,13 @@ export default function MesaForm({
                     className={styles.fieldHelp}
                     style={{ color: "var(--red)" }}
                   >
-                    El link debe ser de boardgamearena.com.
+                    {t("form.bgaUrlInvalid")}
                   </span>
                 )}
                 {bgaUrl && (
-                  <span className={styles.fieldHelp}>Link válido ✓</span>
+                  <span className={styles.fieldHelp}>
+                    {t("form.bgaUrlValid")}
+                  </span>
                 )}
               </div>
             </div>
@@ -1068,7 +1104,7 @@ export default function MesaForm({
               onClick={handleCancelClick}
               disabled={submitting || exiting}
             >
-              {editMode ? "Descartar cambios" : "Cancelar"}
+              {editMode ? t("form.discardEdit") : t("form.cancel")}
             </button>
             <button
               type="submit"
@@ -1076,22 +1112,25 @@ export default function MesaForm({
               disabled={!canSubmit || submitting}
             >
               {submitting
-                ? "…"
+                ? t("form.ellipsis")
                 : editMode
-                  ? "Guardar cambios →"
-                  : "Publicar mesa →"}
+                  ? t("form.saveChanges")
+                  : t("form.publish")}
             </button>
           </div>
 
           {editMode && onDelete && (
             <div className={styles.dangerZone}>
-              <div className={styles.dangerLabel}><Meeple />Zona delicada</div>
-              <div className={styles.dangerTitle}>Cancelar la mesa</div>
+              <div className={styles.dangerLabel}>
+                <Meeple />
+                {t("form.dangerLabel")}
+              </div>
+              <div className={styles.dangerTitle}>{t("form.dangerTitle")}</div>
               <p className={styles.dangerSub}>
-                Esta acción no se puede deshacer.{" "}
+                {t("form.dangerSubPrefix")}
                 {playersCount > 0
-                  ? `Los ${playersCount} jugadores que ya se sumaron van a recibir una notificación.`
-                  : "Si después se suman jugadores, no podrás revertir."}
+                  ? t("form.dangerSubWithPlayers", { count: playersCount })
+                  : t("form.dangerSubNoPlayers")}
               </p>
               <button
                 type="button"
@@ -1099,7 +1138,7 @@ export default function MesaForm({
                 onClick={onDelete}
                 disabled={submitting}
               >
-                <TrashIcon /> Cancelar mesa
+                <TrashIcon /> {t("form.dangerBtn")}
               </button>
             </div>
           )}
@@ -1107,7 +1146,8 @@ export default function MesaForm({
 
         <aside className={styles.preview}>
           <div className={styles.previewLabel}>
-            <Meeple />Tu carta · vista previa en vivo
+            <Meeple />
+            {t("form.previewLabel")}
           </div>
           <div className={styles.previewCard} aria-hidden="true">
             <TableCard
@@ -1116,9 +1156,7 @@ export default function MesaForm({
               onCancel={() => {}}
             />
           </div>
-          <p className={styles.previewNote}>
-            Así se ve tu mesa en el listado de la comunidad.
-          </p>
+          <p className={styles.previewNote}>{t("form.previewNote")}</p>
         </aside>
       </div>
     </div>

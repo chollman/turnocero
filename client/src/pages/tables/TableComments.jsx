@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import Avatar from "../../components/shared/Avatar";
 import CommentLikeButton from "../../components/shared/CommentLikeButton";
 import LikersModal from "../../components/shared/LikersModal";
 import { getUserDisplay, DELETED_USER_LABEL } from "../../utils/userDisplay";
 import { getErrorMessage } from "../../utils/getErrorMessage";
+import { getLocale } from "../../utils/locale";
 import { patchCommentInTree, toggleLikePatch } from "../../utils/commentLikes";
 import { API } from "../../api/endpoints";
 import styles from "./TableDetail.module.css";
@@ -16,7 +18,7 @@ import styles from "./TableDetail.module.css";
 const MOBILE_BREAKPOINT = 980;
 
 const formatDate = (dateStr) =>
-  new Date(dateStr).toLocaleDateString("es-AR", {
+  new Date(dateStr).toLocaleDateString(getLocale(), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -53,6 +55,7 @@ export default function TableComments({
   onCountChange,
   className = "",
 }) {
+  const { t } = useTranslation("tables");
   const [comments, setComments] = useState([]); // top-level, cada uno con .replies
   const [commentInput, setCommentInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -110,7 +113,7 @@ export default function TableComments({
       setComments((prev) => [...prev, { ...data, replies: [] }]);
       setCommentInput("");
     } catch (err) {
-      setError(getErrorMessage(err, "Error al comentar"));
+      setError(getErrorMessage(err, t("comments.errorComment")));
     } finally {
       setSubmitting(false);
     }
@@ -144,7 +147,7 @@ export default function TableComments({
       setReplyingTo(null);
       setReplyText("");
     } catch (err) {
-      setError(getErrorMessage(err, "Error al responder"));
+      setError(getErrorMessage(err, t("comments.errorReply")));
     } finally {
       setReplySubmitting(false);
     }
@@ -174,12 +177,12 @@ export default function TableComments({
       setEditingId(null);
       setEditingContent("");
     } catch (err) {
-      setError(getErrorMessage(err, "Error al editar"));
+      setError(getErrorMessage(err, t("comments.errorEdit")));
     }
   };
 
   const handleDelete = async (commentId) => {
-    if (!window.confirm("¿Eliminar este comentario?")) return;
+    if (!window.confirm(t("comments.confirmDelete"))) return;
     setError("");
     try {
       await axios.delete(API.tables.COMMENT_DETAIL(tableId, commentId));
@@ -196,14 +199,14 @@ export default function TableComments({
         );
       }
     } catch (err) {
-      setError(getErrorMessage(err, "Error al eliminar"));
+      setError(getErrorMessage(err, t("comments.errorDelete")));
     }
   };
 
   // Toggle de like de un comentario/respuesta. Optimistic + rollback.
   const toggleCommentLike = async (comment) => {
     if (!user) {
-      onRequireLogin?.("Iniciá sesión para reaccionar a este comentario.");
+      onRequireLogin?.(t("comments.loginReact"));
       return;
     }
     const original = {
@@ -249,7 +252,7 @@ export default function TableComments({
               {formatDate(comment.createdAt)}
             </span>
             {comment.editedAt && (
-              <span className={styles.editedBadge}>editado</span>
+              <span className={styles.editedBadge}>{t("comments.edited")}</span>
             )}
           </div>
           {editingId === comment._id ? (
@@ -266,13 +269,13 @@ export default function TableComments({
                   className={styles.btnSaveEdit}
                   onClick={() => handleEdit(comment._id)}
                 >
-                  Guardar
+                  {t("comments.save")}
                 </button>
                 <button
                   className={styles.btnCancelEdit}
                   onClick={() => setEditingId(null)}
                 >
-                  Cancelar
+                  {t("comments.cancel")}
                 </button>
               </div>
             </div>
@@ -297,7 +300,7 @@ export default function TableComments({
                     openReply(comment._id, isReply ? authorInfo.name : null)
                   }
                 >
-                  Responder
+                  {t("comments.reply")}
                 </button>
               )}
               {isOwn && (
@@ -308,7 +311,7 @@ export default function TableComments({
                     setEditingContent(comment.content);
                   }}
                 >
-                  Editar
+                  {t("comments.edit")}
                 </button>
               )}
               {canDelete && (
@@ -316,7 +319,7 @@ export default function TableComments({
                   className={styles.btnCommentDelete}
                   onClick={() => handleDelete(comment._id)}
                 >
-                  Eliminar
+                  {t("comments.delete")}
                 </button>
               )}
             </div>
@@ -331,7 +334,7 @@ export default function TableComments({
             >
               <input
                 className={styles.replyInput}
-                placeholder="Escribí una respuesta…"
+                placeholder={t("comments.replyPlaceholder")}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 maxLength={500}
@@ -343,7 +346,7 @@ export default function TableComments({
                 className={styles.btnReplySend}
                 disabled={!replyText.trim() || replySubmitting}
               >
-                {replySubmitting ? "…" : "Responder"}
+                {replySubmitting ? t("comments.ellipsis") : t("comments.reply")}
               </button>
               <button
                 type="button"
@@ -353,7 +356,7 @@ export default function TableComments({
                   setReplyText("");
                 }}
               >
-                Cancelar
+                {t("comments.cancel")}
               </button>
             </form>
           )}
@@ -366,9 +369,7 @@ export default function TableComments({
     <div className={`${styles.card} ${className}`}>
       {error && <p className={styles.commentError}>{error}</p>}
       {comments.length === 0 ? (
-        <p className={styles.commentsEmpty}>
-          Nadie comentó todavía. ¡Sé el primero!
-        </p>
+        <p className={styles.commentsEmpty}>{t("comments.empty")}</p>
       ) : (
         <div className={styles.commentsList}>
           {comments.map((comment) => (
@@ -386,24 +387,24 @@ export default function TableComments({
         </div>
       )}
       {!canPost ? (
-        <p className={styles.commentsLocked}>
-          Los comentarios solo se pueden agregar en mesas públicas.
-        </p>
+        <p className={styles.commentsLocked}>{t("comments.locked")}</p>
       ) : isAnon ? (
         <button
           className={styles.btnComment}
-          onClick={() =>
-            onRequireLogin?.("Iniciá sesión para comentar en esta mesa.")
-          }
+          onClick={() => onRequireLogin?.(t("comments.loginComment"))}
           type="button"
         >
-          Iniciá sesión para comentar
+          {t("comments.loginCta")}
         </button>
       ) : (
         <form className={styles.addCommentForm} onSubmit={handleAdd}>
           <textarea
             className={styles.commentTextarea}
-            placeholder={isMobile ? "Escribí uno..." : "Escribí un comentario…"}
+            placeholder={
+              isMobile
+                ? t("comments.placeholderMobile")
+                : t("comments.placeholder")
+            }
             value={commentInput}
             onChange={(e) => setCommentInput(e.target.value)}
             maxLength={500}
@@ -415,7 +416,7 @@ export default function TableComments({
             type="submit"
             disabled={!commentInput.trim() || submitting}
           >
-            {submitting ? "…" : "Comentar"}
+            {submitting ? t("comments.ellipsis") : t("comments.submit")}
           </button>
         </form>
       )}
@@ -423,7 +424,7 @@ export default function TableComments({
       <LikersModal
         isOpen={!!likersCommentId}
         onClose={() => setLikersCommentId(null)}
-        title="A quién le gustó"
+        title={t("comments.likersTitle")}
         fetchUrl={
           likersCommentId
             ? API.tables.COMMENT_LIKES(tableId, likersCommentId)

@@ -2,6 +2,7 @@ import Meeple from "../../components/shared/Meeple";
 import BackButton from "../../components/shared/BackButton";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -28,13 +29,14 @@ import styles from "./TableDetail.module.css";
 
 // Small inline link next to a player's name when they have an active BG Watch.
 function PlayerBgWatchLink({ user }) {
+  const { t } = useTranslation("tables");
   if (!user?.bggUsername) return null;
   return (
     <Link
       to={`/bg-watch/${encodeURIComponent(user.bggUsername)}`}
       className={styles.playerBgWatch}
-      title={`Ver historial de partidas de @${user.username}`}
-      aria-label={`Ver BG Watch de ${user.username}`}
+      title={t("detail.bgWatchTitle", { username: user.username })}
+      aria-label={t("detail.bgWatchAria", { username: user.username })}
       onClick={(e) => e.stopPropagation()}
     >
       <svg
@@ -152,6 +154,7 @@ export default function TableDetail() {
   const { user } = useAuth();
   const { setActiveTable, addToast } = useNotifications();
   const navigate = useNavigate();
+  const { t } = useTranslation("tables");
 
   const [table, setTable] = useState(null);
   const [loadingTable, setLoadingTable] = useState(true);
@@ -216,7 +219,7 @@ export default function TableDetail() {
       } catch (err) {
         if (axios.isCancel(err)) return;
         if (err.response?.status === 403) {
-          setAccessError("Esta mesa es privada");
+          setAccessError(t("detail.accessPrivate"));
         } else {
           navigate("/", { replace: true });
         }
@@ -246,7 +249,7 @@ export default function TableDetail() {
       setPendingRequests(data.pendingRequests || []);
     } catch (err) {
       setRequestError(
-        err.response?.data?.message || "Error al procesar la solicitud",
+        err.response?.data?.message || t("detail.errorRequest"),
       );
     } finally {
       setRequestLoading(null);
@@ -255,7 +258,7 @@ export default function TableDetail() {
 
   const handleFollow = async () => {
     if (!user) {
-      setLoginPrompt("Iniciá sesión para seguir esta mesa.");
+      setLoginPrompt(t("detail.loginFollow"));
       return;
     }
     setFollowLoading(true);
@@ -274,7 +277,7 @@ export default function TableDetail() {
       setTable((prev) => ({ ...prev, followers: currentFollowers }));
       addToast({
         type: "error",
-        message: "No pudimos actualizar tu follow. Probá de nuevo.",
+        message: t("detail.errorFollow"),
       });
     } finally {
       setFollowLoading(false);
@@ -283,7 +286,7 @@ export default function TableDetail() {
 
   const handleGuestJoin = async () => {
     if (!user) {
-      setLoginPrompt("Iniciá sesión para unirte a esta mesa.");
+      setLoginPrompt(t("detail.loginJoin"));
       return;
     }
     setJoinLoading(true);
@@ -294,7 +297,7 @@ export default function TableDetail() {
     } catch (err) {
       addToast({
         type: "error",
-        message: err.response?.data?.message || "Error al unirse",
+        message: err.response?.data?.message || t("detail.errorJoin"),
       });
     } finally {
       setJoinLoading(false);
@@ -309,7 +312,7 @@ export default function TableDetail() {
     } catch (err) {
       addToast({
         type: "error",
-        message: err.response?.data?.message || "Error al abandonar la mesa",
+        message: err.response?.data?.message || t("detail.errorLeave"),
       });
       setLeaveLoading(false);
     }
@@ -323,7 +326,7 @@ export default function TableDetail() {
     } catch (err) {
       addToast({
         type: "error",
-        message: err.response?.data?.message || "Error al cancelar la mesa",
+        message: err.response?.data?.message || t("detail.errorCancel"),
       });
       setCancelTableLoading(false);
     }
@@ -338,7 +341,7 @@ export default function TableDetail() {
     } catch (err) {
       addToast({
         type: "error",
-        message: err.response?.data?.message || "Error al cancelar solicitud",
+        message: err.response?.data?.message || t("detail.errorCancelRequest"),
       });
     } finally {
       setJoinLoading(false);
@@ -400,7 +403,7 @@ export default function TableDetail() {
           <p style={{ fontSize: "2rem" }}>🔒</p>
           <p style={{ color: "var(--text-secondary)" }}>{accessError}</p>
           <BackButton onClick={goBack} disabled={exiting}>
-            Volver al listado
+            {t("detail.back")}
           </BackButton>
         </div>
       </div>
@@ -475,12 +478,12 @@ export default function TableDetail() {
       >
         <div className={styles.inner}>
           <BackButton onClick={goBack} disabled={exiting}>
-            Volver al listado
+            {t("detail.back")}
           </BackButton>
 
           {showAdminBanner && (
             <div className={styles.adminBanner}>
-              👁 Estás viendo esta mesa como administrador
+              {t("detail.viewingAsAdmin")}
             </div>
           )}
 
@@ -488,13 +491,11 @@ export default function TableDetail() {
             <div className={styles.pastBanner} role="status">
               <span aria-hidden="true">🎲</span>
               <span>
-                <strong>Mesa finalizada.</strong> Ya no se permite editar,
-                cancelar, unirse ni salir — pero el chat, las fotos, los
-                comentarios y la calificación siguen abiertos.
+                <strong>{t("detail.pastBannerTitle")}</strong>
+                {t("detail.pastBannerText")}
                 {user?.isAdmin && (
                   <span className={styles.pastBannerAdminNote}>
-                    {" "}
-                    Como admin podés seguir editando si hace falta.
+                    {t("detail.pastBannerAdminNote")}
                   </span>
                 )}
               </span>
@@ -512,7 +513,7 @@ export default function TableDetail() {
               />
               <div className={styles.bannerOverlay} />
               <div className={styles.bannerEyebrow}>
-                Mesa de{" "}
+                {t("detail.mesaBy")}
                 {hostInfo.isDeleted ? (
                   DELETED_USER_LABEL
                 ) : (
@@ -543,35 +544,35 @@ export default function TableDetail() {
                       <span
                         className={`${styles.bannerBadge} ${styles.bannerBadge_host}`}
                       >
-                        Host
+                        {t("detail.badgeHost")}
                       </span>
                     )}
                     {isPlayer && (
                       <span
                         className={`${styles.bannerBadge} ${styles.bannerBadge_joined}`}
                       >
-                        Unido
+                        {t("detail.badgeJoined")}
                       </span>
                     )}
                     {isCancelled && (
                       <span
                         className={`${styles.bannerBadge} ${styles.bannerBadge_cancelled}`}
                       >
-                        Cancelada
+                        {t("detail.badgeCancelled")}
                       </span>
                     )}
                     {isPrivate && (
                       <span
                         className={`${styles.bannerBadge} ${styles.bannerBadge_lock}`}
                       >
-                        <LockIcon size={10} /> Privada
+                        <LockIcon size={10} /> {t("detail.badgePrivate")}
                       </span>
                     )}
                     {isFriendsOnly && (
                       <span
                         className={`${styles.bannerBadge} ${styles.bannerBadge_friends}`}
                       >
-                        <UsersIcon size={10} /> Amigos
+                        <UsersIcon size={10} /> {t("detail.badgeFriends")}
                       </span>
                     )}
                   </div>
@@ -589,7 +590,7 @@ export default function TableDetail() {
               {/* Meta row */}
               <div className={styles.metaRow}>
                 <div className={styles.metaCell}>
-                  <span className={styles.metaLabel}>Cuándo</span>
+                  <span className={styles.metaLabel}>{t("detail.metaWhen")}</span>
                   <span className={styles.metaValue}>
                     {dParts
                       ? `${dParts.weekday} ${dParts.day} ${dParts.month}`
@@ -597,14 +598,14 @@ export default function TableDetail() {
                   </span>
                   {dParts && (
                     <span className={styles.metaValueAccent}>
-                      {dParts.time} hs
+                      {t("detail.metaTimeSuffix", { time: dParts.time })}
                     </span>
                   )}
                 </div>
                 <div className={styles.metaCell}>
-                  <span className={styles.metaLabel}>Dónde</span>
+                  <span className={styles.metaLabel}>{t("detail.metaWhere")}</span>
                   <span className={styles.metaValue} title={locationTexto}>
-                    {locationTexto || "Por confirmar"}
+                    {locationTexto || t("detail.locationTbd")}
                   </span>
                   {distanceLabel && (
                     <span className={styles.metaDistance}>
@@ -613,31 +614,35 @@ export default function TableDetail() {
                   )}
                 </div>
                 <div className={styles.metaCell}>
-                  <span className={styles.metaLabel}>Jugadores</span>
+                  <span className={styles.metaLabel}>
+                    {t("detail.metaPlayers")}
+                  </span>
                   <span className={styles.metaValue}>
                     {filled}/{total}
                   </span>
                   <span className={styles.metaValueAccent}>
                     {isFull
-                      ? "mesa llena"
-                      : `${availableSeats} lugar${availableSeats !== 1 ? "es" : ""} libre${availableSeats !== 1 ? "s" : ""}`}
+                      ? t("detail.seatsFull")
+                      : t("detail.seatsFree", { count: availableSeats })}
                   </span>
                 </div>
                 <div className={styles.metaCell}>
-                  <span className={styles.metaLabel}>Privacidad</span>
+                  <span className={styles.metaLabel}>
+                    {t("detail.metaPrivacy")}
+                  </span>
                   <span className={styles.metaValue}>
                     {isPrivate
-                      ? "Privada"
+                      ? t("detail.privacyPrivate")
                       : isFriendsOnly
-                        ? "Amigos"
-                        : "Pública"}
+                        ? t("detail.privacyFriends")
+                        : t("detail.privacyPublic")}
                   </span>
                   <span className={styles.metaValueAccent}>
                     {isPrivate
-                      ? "Requiere aprobación"
+                      ? t("detail.privacyPrivateSub")
                       : isFriendsOnly
-                        ? "Solo amigos del host"
-                        : "Abierta a todos"}
+                        ? t("detail.privacyFriendsSub")
+                        : t("detail.privacyPublicSub")}
                   </span>
                 </div>
               </div>
@@ -647,7 +652,8 @@ export default function TableDetail() {
                 <section className={styles.section}>
                   <header className={styles.sectionHead}>
                     <span className={styles.sectionLabel}>
-                      <Meeple />Sobre la partida
+                      <Meeple />
+                      {t("detail.sectionAbout")}
                     </span>
                     <span className={styles.sectionRule} />
                   </header>
@@ -660,7 +666,8 @@ export default function TableDetail() {
                 <section className={styles.section}>
                   <header className={styles.sectionHead}>
                     <span className={styles.sectionLabel}>
-                      <Meeple />Reglas de la casa
+                      <Meeple />
+                      {t("detail.sectionRules")}
                     </span>
                     <span className={styles.sectionRule} />
                   </header>
@@ -672,11 +679,12 @@ export default function TableDetail() {
               <section className={styles.section}>
                 <header className={styles.sectionHead}>
                   <span className={styles.sectionLabel}>
-                    <Meeple />Alrededor de la mesa
+                    <Meeple />
+                    {t("detail.sectionAround")}
                   </span>
                   <span className={styles.sectionRule} />
                   <span className={styles.sectionCount}>
-                    {filled} de {total}
+                    {t("detail.aroundCount", { filled, total })}
                   </span>
                 </header>
                 <div className={styles.tableMapWrap}>
@@ -685,23 +693,23 @@ export default function TableDetail() {
                       <span
                         className={`${styles.legendDot} ${styles.legendDot_host}`}
                       />
-                      Host
+                      {t("detail.legendHost")}
                     </span>
                     <span>
                       <span className={styles.legendDot} />
-                      Jugador
+                      {t("detail.legendPlayer")}
                     </span>
                     <span>
                       <span
                         className={`${styles.legendDot} ${styles.legendDot_you}`}
                       />
-                      Vos
+                      {t("detail.legendYou")}
                     </span>
                     <span>
                       <span
                         className={`${styles.legendDot} ${styles.legendDot_empty}`}
                       />
-                      Libre
+                      {t("detail.legendEmpty")}
                     </span>
                   </div>
                   <div className={styles.tableMap}>
@@ -737,14 +745,16 @@ export default function TableDetail() {
                         </span>
                         {table.host?.bggUsername && (
                           <span className={styles.playerHandle}>
-                            @{table.host.bggUsername} · BGG
+                            {t("detail.bggHandle", {
+                              username: table.host.bggUsername,
+                            })}
                           </span>
                         )}
                       </div>
                       <span
                         className={`${styles.playerRole} ${styles.playerRole_host}`}
                       >
-                        Host
+                        {t("detail.roleHost")}
                       </span>
                     </div>
                     {table.players.filter(Boolean).map((p) => {
@@ -775,14 +785,16 @@ export default function TableDetail() {
                             </span>
                             {p.bggUsername && (
                               <span className={styles.playerHandle}>
-                                @{p.bggUsername} · BGG
+                                {t("detail.bggHandle", {
+                                  username: p.bggUsername,
+                                })}
                               </span>
                             )}
                           </div>
                           <span
                             className={`${styles.playerRole} ${isYou ? styles.playerRole_you : ""}`}
                           >
-                            {isYou ? "Vos" : "Jugador"}
+                            {isYou ? t("detail.roleYou") : t("detail.rolePlayer")}
                           </span>
                         </div>
                       );
@@ -793,7 +805,7 @@ export default function TableDetail() {
                           <ChairIcon size={16} />
                         </span>
                         <span className={styles.emptyLabel}>
-                          Lugar libre · esperando jugador
+                          {t("detail.emptySeat")}
                         </span>
                       </div>
                     ))}
@@ -816,7 +828,8 @@ export default function TableDetail() {
                 <section className={styles.section}>
                   <header className={styles.sectionHead}>
                     <span className={styles.sectionLabel}>
-                      <Meeple />Solicitudes pendientes
+                      <Meeple />
+                      {t("detail.sectionRequests")}
                     </span>
                     <span className={styles.sectionRule} />
                     <span className={styles.sectionCount}>
@@ -828,7 +841,7 @@ export default function TableDetail() {
                   )}
                   {pendingRequests.length === 0 ? (
                     <p className={styles.pendingEmpty}>
-                      No hay solicitudes pendientes.
+                      {t("detail.requestsEmpty")}
                     </p>
                   ) : (
                     pendingRequests.map((req) => (
@@ -844,7 +857,7 @@ export default function TableDetail() {
                             </Link>
                           </span>
                           <span className={styles.playerHandle}>
-                            quiere unirse
+                            {t("detail.wantsToJoin")}
                           </span>
                         </div>
                         <div className={styles.pendingActions}>
@@ -856,7 +869,7 @@ export default function TableDetail() {
                           >
                             {requestLoading === `${req._id}reject`
                               ? "…"
-                              : "Rechazar"}
+                              : t("detail.reject")}
                           </button>
                           <button
                             type="button"
@@ -866,7 +879,7 @@ export default function TableDetail() {
                           >
                             {requestLoading === `${req._id}accept`
                               ? "…"
-                              : "Aceptar"}
+                              : t("detail.accept")}
                           </button>
                         </div>
                       </div>
@@ -882,8 +895,8 @@ export default function TableDetail() {
               {!isGuest && (
                 <div className={styles.mobileTabBar}>
                   {[
-                    { id: "fotos", label: "Fotos" },
-                    { id: "resenas", label: "Comentarios" },
+                    { id: "fotos", label: t("detail.tabPhotos") },
+                    { id: "resenas", label: t("detail.tabComments") },
                   ].map(({ id, label }) => (
                     <button
                       key={id}
@@ -899,7 +912,7 @@ export default function TableDetail() {
 
               {isGuest && !user && (
                 <p className={styles.text} style={{ fontStyle: "italic" }}>
-                  El chat es privado y solo está disponible para los miembros.
+                  {t("detail.chatGuestNote")}
                 </p>
               )}
 
@@ -911,12 +924,15 @@ export default function TableDetail() {
                   className={`${styles.sectionHead} ${styles.sectionHead_tabbed}`}
                 >
                   <span className={styles.sectionLabel}>
-                    <Meeple />Fotos de la mesa
+                    <Meeple />
+                    {t("detail.sectionPhotos")}
                   </span>
                   <span className={styles.sectionRule} />
                   {(table.images || []).length > 0 && (
                     <span className={styles.sectionCount}>
-                      {(table.images || []).length}/10
+                      {t("detail.photosCount", {
+                        count: (table.images || []).length,
+                      })}
                     </span>
                   )}
                 </header>
@@ -946,7 +962,10 @@ export default function TableDetail() {
                 <header
                   className={`${styles.sectionHead} ${styles.sectionHead_tabbed}`}
                 >
-                  <span className={styles.sectionLabel}><Meeple />Comentarios</span>
+                  <span className={styles.sectionLabel}>
+                    <Meeple />
+                    {t("detail.sectionComments")}
+                  </span>
                   <span className={styles.sectionRule} />
                   {commentsCount > 0 && (
                     <span className={styles.sectionCount}>
@@ -971,18 +990,19 @@ export default function TableDetail() {
               >
                 <header className={styles.sectionHead}>
                   <span className={styles.sectionLabel}>
-                    <Meeple />Valoraciones
-                    <InfoTooltip label="Acerca de las valoraciones">
-                      Una vez finalizada la mesa, los participantes pueden dejar
-                      una valoración de 1 a 5 estrellas y un comentario opcional
-                      para reflejar cómo estuvo la sesión. Ayuda a otros
-                      jugadores a saber qué esperar del host y del grupo.
+                    <Meeple />
+                    {t("detail.sectionRatings")}
+                    <InfoTooltip label={t("detail.ratingsTooltipLabel")}>
+                      {t("detail.ratingsTooltip")}
                     </InfoTooltip>
                   </span>
                   <span className={styles.sectionRule} />
                   {ratingsSummary.count > 0 && ratingsSummary.avg !== null && (
                     <span className={styles.sectionCount}>
-                      ★ {ratingsSummary.avg.toFixed(1)} ({ratingsSummary.count})
+                      {t("detail.ratingsBadge", {
+                        avg: ratingsSummary.avg.toFixed(1),
+                        count: ratingsSummary.count,
+                      })}
                     </span>
                   )}
                 </header>
@@ -1021,20 +1041,16 @@ export default function TableDetail() {
                 onLeave={handleLeave}
                 onEdit={() => navigate(`/mesas/${id}/editar`)}
                 onCancelMesa={handleCancelTable}
-                onLoginRequest={() =>
-                  setLoginPrompt("Iniciá sesión para unirte a esta mesa.")
-                }
+                onLoginRequest={() => setLoginPrompt(t("detail.loginJoin"))}
                 chatSlot={
                   showChat ? (
                     <>
                       <header className={styles.sectionHead}>
                         <span className={styles.sectionLabel}>
-                          <Meeple />Chat de la mesa
-                          <InfoTooltip label="Privacidad del chat">
-                            El chat es privado. Sólo el host y los jugadores
-                            unidos a esta mesa pueden ver y enviar mensajes —
-                            ningún visitante externo puede leerlo, ni siquiera
-                            si tiene el link de la mesa.
+                          <Meeple />
+                          {t("detail.sectionChat")}
+                          <InfoTooltip label={t("detail.chatTooltipLabel")}>
+                            {t("detail.chatTooltip")}
                           </InfoTooltip>
                         </span>
                         <span className={styles.sectionRule} />
@@ -1061,7 +1077,7 @@ export default function TableDetail() {
                     disabled={followLoading}
                   >
                     <BellIcon size={13} filled={isFollowing} />
-                    {isFollowing ? "Siguiendo" : "Seguir mesa"}
+                    {isFollowing ? t("detail.following") : t("detail.follow")}
                   </button>
                   {(isHost || isPlayer) && (
                     <button
@@ -1069,7 +1085,7 @@ export default function TableDetail() {
                       className={styles.secondaryBtn}
                       onClick={() => navigate(`/compartidas?mesa=${id}`)}
                     >
-                      📸 Compartir
+                      {t("detail.share")}
                     </button>
                   )}
                 </div>
