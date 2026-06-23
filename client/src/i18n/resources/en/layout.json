@@ -1,9 +1,9 @@
 {
   "nav": {
     "items": {
-      "compartidas": "Compartidas",
-      "compartite": "Compartite",
-      "noticias": "Noticias",
+      "compartidas": "Shared",
+      "compartite": "Share it",
+      "noticias": "News",
       "calendario": "Calendar",
       "comunidades": "My Communities",
       "mesas": "Tables",
